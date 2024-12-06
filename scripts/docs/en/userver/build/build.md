@@ -269,7 +269,7 @@ To install userver in `ghcr.io/userver-framework/ubuntu-22.04-userver-base:lates
 sudo ./scripts/build_and_install_all.sh
 ```
 
-Alternatively see @ref userver_install
+Alternatively see @ref userver_install "userver install"
 
 @note The above image is build from `scripts/docker/ubuntu-22.04-pg.dockerfile`,
    `scripts/docker/ubuntu-22.04.dockerfile`

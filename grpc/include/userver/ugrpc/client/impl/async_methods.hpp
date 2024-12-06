@@ -163,23 +163,6 @@ private:
     grpc::Status status_;
 };
 
-class FutureImpl final {
-public:
-    explicit FutureImpl(RpcData& data) noexcept;
-
-    ~FutureImpl() noexcept = default;
-
-    FutureImpl(FutureImpl&&) noexcept;
-    FutureImpl& operator=(FutureImpl&&) noexcept;
-
-    RpcData* GetData() const noexcept;
-
-    void ClearData() noexcept;
-
-private:
-    RpcData* data_;
-};
-
 void CheckOk(RpcData& data, AsyncMethodInvocation::WaitStatus status, std::string_view stage);
 
 template <typename GrpcStream>

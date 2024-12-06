@@ -95,6 +95,7 @@ tracing::Span Tracing::MakeSpan(const http::HttpRequest& http_request, std::stri
 
     span.AddNonInheritableTag(tracing::kHttpMetaType, std::string{meta_type});
     span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
+    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
     span.AddNonInheritableTag(tracing::kHttpMethod, http_request.GetMethodStr());
 
     return span;

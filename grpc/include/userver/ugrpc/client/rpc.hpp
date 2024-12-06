@@ -52,12 +52,12 @@ public:
     ) noexcept;
     /// @endcond
 
-    UnaryFuture(UnaryFuture&&) noexcept = default;
+    UnaryFuture(UnaryFuture&&) noexcept;
     UnaryFuture& operator=(UnaryFuture&&) noexcept;
     UnaryFuture(const UnaryFuture&) = delete;
     UnaryFuture& operator=(const UnaryFuture&) = delete;
 
-    ~UnaryFuture() noexcept;
+    ~UnaryFuture();
 
     /// @brief Await response
     ///
@@ -92,7 +92,7 @@ public:
     /// @endcond
 
 private:
-    impl::FutureImpl impl_;
+    impl::RpcData* data_{};
     std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish_;
 };
 
@@ -109,10 +109,12 @@ public:
     ) noexcept;
     /// @endcond
 
-    StreamReadFuture(StreamReadFuture&& other) noexcept = default;
+    StreamReadFuture(StreamReadFuture&& other) noexcept;
     StreamReadFuture& operator=(StreamReadFuture&& other) noexcept;
+    StreamReadFuture(const StreamReadFuture&) = delete;
+    StreamReadFuture& operator=(const StreamReadFuture&) = delete;
 
-    ~StreamReadFuture() noexcept;
+    ~StreamReadFuture();
 
     /// @brief Await response
     ///
@@ -131,8 +133,8 @@ public:
     [[nodiscard]] bool IsReady() const noexcept;
 
 private:
-    impl::FutureImpl impl_;
-    typename RPC::RawStream* stream_;
+    impl::RpcData* data_{};
+    typename RPC::RawStream* stream_{};
     std::function<void(impl::RpcData& data)> post_recv_message_;
     std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish_;
 };
@@ -424,8 +426,6 @@ private:
     impl::RawReaderWriter<Request, Response> stream_;
 };
 
-// ========================== Implementation follows ==========================
-
 template <typename RPC>
 StreamReadFuture<RPC>::StreamReadFuture(
     impl::RpcData& data,
@@ -433,32 +433,23 @@ StreamReadFuture<RPC>::StreamReadFuture(
     std::function<void(impl::RpcData& data)> post_recv_message,
     std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish
 ) noexcept
-    : impl_(data),
+    : data_(&data),
       stream_(&stream),
       post_recv_message_(std::move(post_recv_message)),
       post_finish_(std::move(post_finish)) {}
 
 template <typename RPC>
-StreamReadFuture<RPC>::~StreamReadFuture() noexcept {
-    if (auto* const data = impl_.GetData()) {
-        impl::RpcData::AsyncMethodInvocationGuard guard(*data);
-        const auto wait_status = impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
-        if (wait_status != impl::AsyncMethodInvocation::WaitStatus::kOk) {
-            if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
-                data->GetStatsScope().OnCancelled();
-            }
-            impl::Finish(*stream_, *data, post_finish_, false);
-        } else {
-            post_recv_message_(*data);
-        }
-    }
-}
+StreamReadFuture<RPC>::StreamReadFuture(StreamReadFuture&& other) noexcept
+    : data_{std::exchange(other.data_, nullptr)},
+      stream_{other.stream_},
+      post_recv_message_{std::move(other.post_recv_message_)},
+      post_finish_{std::move(other.post_finish_)} {}
 
 template <typename RPC>
 StreamReadFuture<RPC>& StreamReadFuture<RPC>::operator=(StreamReadFuture<RPC>&& other) noexcept {
     if (this == &other) return *this;
     [[maybe_unused]] auto for_destruction = std::move(*this);
-    impl_ = std::move(other.impl_);
+    data_ = std::exchange(other.data_, nullptr);
     stream_ = other.stream_;
     post_recv_message_ = std::move(other.post_recv_message_);
     post_finish_ = std::move(other.post_finish_);
@@ -466,11 +457,26 @@ StreamReadFuture<RPC>& StreamReadFuture<RPC>::operator=(StreamReadFuture<RPC>&& 
 }
 
 template <typename RPC>
+StreamReadFuture<RPC>::~StreamReadFuture() {
+    if (data_) {
+        impl::RpcData::AsyncMethodInvocationGuard guard(*data_);
+        const auto wait_status = impl::Wait(data_->GetAsyncMethodInvocation(), data_->GetContext());
+        if (wait_status != impl::AsyncMethodInvocation::WaitStatus::kOk) {
+            if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+                data_->GetStatsScope().OnCancelled();
+            }
+            impl::Finish(*stream_, *data_, post_finish_, false);
+        } else {
+            post_recv_message_(*data_);
+        }
+    }
+}
+
+template <typename RPC>
 bool StreamReadFuture<RPC>::Get() {
-    auto* const data = impl_.GetData();
-    UINVARIANT(data, "'Get' must be called only once");
-    impl::RpcData::AsyncMethodInvocationGuard guard(*data);
-    impl_.ClearData();
+    UINVARIANT(data_, "'Get' must be called only once");
+    impl::RpcData::AsyncMethodInvocationGuard guard(*data_);
+    auto* const data = std::exchange(data_, nullptr);
     const auto result = impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
     if (result == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         data->GetStatsScope().OnCancelled();
@@ -487,9 +493,8 @@ bool StreamReadFuture<RPC>::Get() {
 
 template <typename RPC>
 bool StreamReadFuture<RPC>::IsReady() const noexcept {
-    auto* const data = impl_.GetData();
-    UINVARIANT(data, "IsReady should be called only before 'Get'");
-    auto& method = data->GetAsyncMethodInvocation();
+    UINVARIANT(data_, "IsReady should be called only before 'Get'");
+    auto& method = data_->GetAsyncMethodInvocation();
     return method.IsReady();
 }
 

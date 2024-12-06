@@ -75,20 +75,6 @@ void SetErrorForSpan(RpcData& data, std::string&& message) {
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
     : enforce_task_deadline(config[kEnforceClientTaskDeadline]) {}
 
-FutureImpl::FutureImpl(RpcData& data) noexcept : data_(&data) {}
-
-FutureImpl::FutureImpl(FutureImpl&& other) noexcept : data_(std::exchange(other.data_, nullptr)) {}
-
-FutureImpl& FutureImpl::operator=(FutureImpl&& other) noexcept {
-    if (this == &other) return *this;
-    data_ = std::exchange(other.data_, nullptr);
-    return *this;
-}
-
-RpcData* FutureImpl::GetData() const noexcept { return data_; }
-
-void FutureImpl::ClearData() noexcept { data_ = nullptr; }
-
 RpcData::RpcData(impl::CallParams&& params, CallKind call_kind)
     : context_(std::move(params.context)),
       client_name_(params.client_name),

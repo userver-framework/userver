@@ -80,6 +80,13 @@ Static configuration of service is quite close to the configuration from @ref sc
 
 @snippet samples/redis_service/static_config.yaml Redis service sample - static config
 
+components::Redis takes database connection information from components::DefaultSecdistProvider, so it should be
+also configured:
+
+@snippet samples/redis_service/static_config.yaml Sample secdist static config
+
+The actual content of `secure_data.json` or `SECDIST_CONFIG` is described at components::Redis.
+
 
 ### int main()
 
@@ -177,6 +184,9 @@ See the full example:
 * @ref samples/redis_service/redis_service.cpp
 * @ref samples/redis_service/static_config.yaml
 * @ref samples/redis_service/CMakeLists.txt
+* @ref samples/redis_service/testsuite/conftest.pysamples/redis_service/CMakeLists.txt
+* @ref samples/redis_service/testsuite/conftest.py
+* @ref samples/redis_service/testsuite/test_redis.py
 
 ----------
 
@@ -187,3 +197,5 @@ See the full example:
 @example samples/redis_service/redis_service.cpp
 @example samples/redis_service/static_config.yaml
 @example samples/redis_service/CMakeLists.txt
+@example samples/redis_service/testsuite/conftest.py
+@example samples/redis_service/testsuite/test_redis.py

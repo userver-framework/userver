@@ -3,6 +3,7 @@
 #include <userver/clients/http/response.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <userver/http/common_headers.hpp>
@@ -27,7 +28,10 @@ Plugin::Plugin() : http::Plugin(kName) {}
 
 void Plugin::HookPerformRequest(PluginRequest&) {}
 
-void Plugin::HookCreateSpan(PluginRequest&, tracing::Span& span) { span.AddNonInheritableTag(kTypeTag, kTypeRequest); }
+void Plugin::HookCreateSpan(PluginRequest&, tracing::Span& span) {
+    span.AddNonInheritableTag(kTypeTag, kTypeRequest);
+    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindClient);
+}
 
 void Plugin::HookOnCompleted(PluginRequest&, Response& response) {
     const auto& headers = response.headers();
