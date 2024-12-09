@@ -46,7 +46,7 @@ struct MiddlewarePipeline {
 class [[nodiscard]] UnaryFuture {
 public:
     /// @cond
-    explicit UnaryFuture(
+    UnaryFuture(
         impl::RpcData& data,
         std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish
     ) noexcept;
@@ -59,6 +59,17 @@ public:
 
     ~UnaryFuture();
 
+    /// @brief Checks if the asynchronous call has completed
+    ///        Note, that once user gets result, IsReady should not be called
+    /// @return true if result ready
+    [[nodiscard]] bool IsReady() const noexcept;
+
+    /// @brief Await response until the deadline is reached or until the task is cancelled.
+    ///
+    /// Upon completion result is available in `response` when initiating the
+    /// asynchronous operation, e.g. FinishAsync.
+    [[nodiscard]] engine::FutureStatus WaitUntil(engine::Deadline deadline) const;
+
     /// @brief Await response
     ///
     /// Upon completion result is available in `response` when initiating the
@@ -69,22 +80,6 @@ public:
     /// @throws ugrpc::client::RpcError on an RPC error
     /// @throws ugrpc::client::RpcCancelledError on task cancellation
     void Get();
-
-    /// @brief Await response until specified timepoint
-    ///
-    /// Once `kReady` is returned, result is available in `response` when
-    /// initiating the asynchronous operation, e.g. FinishAsync.
-    ///
-    /// In case of 'kReady/kCancelled' answer or exception `Get` should not
-    /// be called anymore.
-    ///
-    /// @throws ugrpc::client::RpcError on an RPC error
-    [[nodiscard]] engine::FutureStatus Get(engine::Deadline deadline);
-
-    /// @brief Checks if the asynchronous call has completed
-    ///        Note, that once user gets result, IsReady should not be called
-    /// @return true if result ready
-    [[nodiscard]] bool IsReady() const noexcept;
 
     /// @cond
     // For internal use only.

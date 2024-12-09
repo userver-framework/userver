@@ -19,8 +19,10 @@ class ConsumerTest : public kafka::utest::KafkaCluster {};
 
 const std::string kLargeTopic1{"lt-1"};
 const std::string kLargeTopic2{"lt-2"};
+const std::string kBlockingTopic{"bt"};  // Must be used only in OneConsumerPartitionOffsets test
 
 constexpr std::size_t kNumPartitionsLargeTopic{4};
+constexpr std::size_t kNumPartitionsBlockingTopic{4};
 
 }  // namespace
 
@@ -169,6 +171,7 @@ UTEST_F(ConsumerTest, OneConsumerRereadAfterCommit) {
         kTestMessages.size(),
         /*commit_after_receive=*/false
     );
+
     const auto received_second = ReceiveMessages(
         consumer,
         kTestMessages.size(),
@@ -211,6 +214,65 @@ UTEST_F(ConsumerTest, LargeBatch) {
 
     UEXPECT_NO_THROW(consumed_event.Wait());
     EXPECT_LT(callback_calls.load(), kMessagesCount) << callback_calls.load();
+}
+
+UTEST_F_MT(ConsumerTest, OneConsumerPartitionOffsets, 2) {
+    constexpr std::size_t kMessagesCount{kNumPartitionsBlockingTopic + 1};
+    constexpr std::uint32_t kFirstPartition{0};
+    const auto messages = utils::GenerateFixedArray(kMessagesCount, [](std::size_t i) {
+        return kafka::utest::Message{
+            kBlockingTopic, fmt::format("key-{}", i), fmt::format("msg-{}", i), i % kNumPartitionsBlockingTopic};
+    });
+    SendMessages(messages);
+
+    auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{kBlockingTopic});
+    {
+        // 1. Check blocking function before consumer
+        auto consumer_scope = consumer.MakeConsumerScope();
+        const auto partitions = consumer_scope.GetPartitionIds(kBlockingTopic);
+        EXPECT_EQ(partitions.size(), kNumPartitionsBlockingTopic);
+    }
+
+    ReceiveMessages(
+        consumer,
+        messages.size(),
+        /*commit_after_receive=*/true,
+        [&consumer](kafka::MessageBatchView batch) {
+            // 2. Check blocking function when consumer processing
+            const auto partitions = consumer.GetPartitionIds(kBlockingTopic);
+            EXPECT_EQ(partitions.size(), kNumPartitionsBlockingTopic);
+
+            for (const auto& msg : batch) {
+                kafka::OffsetRange offset_range{};
+                UEXPECT_NO_THROW(
+                    offset_range = consumer.GetOffsetRange(msg.GetTopic(), msg.GetPartition(), utest::kMaxTestWaitTime)
+                );
+                EXPECT_EQ(offset_range.low, 0u);
+
+                // Note that offset is not yet commited, just fetched
+                if (msg.GetPartition() != kFirstPartition) {
+                    EXPECT_EQ(offset_range.high, 1u);
+                } else {
+                    EXPECT_LE(offset_range.high, 2u);
+                }
+            }
+        }
+    );
+
+    // 3. Check blocking function after consumer stopped
+    const auto partitions = consumer.GetPartitionIds(kBlockingTopic);
+    EXPECT_EQ(partitions.size(), kNumPartitionsBlockingTopic);
+
+    for (const auto& partition_id : partitions) {
+        kafka::OffsetRange offset_range{};
+        UEXPECT_NO_THROW(offset_range = consumer.GetOffsetRange(kBlockingTopic, partition_id, utest::kMaxTestWaitTime));
+        EXPECT_EQ(offset_range.low, 0u);
+        if (partition_id != kFirstPartition) {
+            EXPECT_EQ(offset_range.high, 1u);
+        } else {
+            EXPECT_LE(offset_range.high, 2u);
+        }
+    }
 }
 
 USERVER_NAMESPACE_END

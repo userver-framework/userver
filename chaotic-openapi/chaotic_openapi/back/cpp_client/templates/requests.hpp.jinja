@@ -1,0 +1,41 @@
+#pragma once
+
+#include <string>
+{# TODO: variant #}
+
+#include <userver/clients/http/request.hpp>
+
+{# TODO: request_bodies includes #}
+
+namespace {{ namespace }} {
+
+{% for op in operations %}
+  {% if op.client_generate %}
+    {%- if not op.empty_request() -%}
+      namespace {{ op.cpp_namespace() }} {
+      {% if len(op.request_bodies) == 1 %}
+        using Body = {{ op.request_bodies[0].schema.cpp_user_name() }};
+      {% elif len(op.request_bodies) > 1 %}
+        using Body = std::variant<
+          {%- for body in op.request_bodies -%}
+            {{ op.request_bodies[0].schema.cpp_user_name() }}
+            {%- if not loop.last %},{% endif %}
+          {% endfor %}
+        >
+      {% endif %}
+        struct Request {
+          {% for parameter in op.parameters %}
+            {{ parameter.cpp_type }} {{ parameter.cpp_name }};
+          {% endfor %}
+          {% if op.request_bodies %}
+              Body body;
+          {% endif %}
+        };
+
+        void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::Request& http_request);
+      }
+    {%- endif %}
+  {% endif %}
+{% endfor %}
+
+}

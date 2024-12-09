@@ -8,6 +8,7 @@ from typing import List
 from typing import NoReturn
 from typing import Optional
 
+from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
@@ -337,7 +338,7 @@ class Generator:
         )
 
     def _str_enum_name(self, item: str) -> str:
-        cpp_name = cpp_types.camel_case(self._normalize_name(item))
+        cpp_name = cpp_names.camel_case(self._normalize_name(item))
         if cpp_name[0].isnumeric():
             cpp_name = 'X' + cpp_name
         return 'k' + cpp_name

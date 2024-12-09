@@ -22,6 +22,7 @@ ConsumerComponent::ConsumerComponent(
           config.Name(),
           config["topics"].As<std::vector<std::string>>(),
           context.GetTaskProcessor("consumer-task-processor"),
+          context.GetTaskProcessor("consumer-blocking-task-processor"),
           context.GetTaskProcessor("main-task-processor"),
           config.As<impl::ConsumerConfiguration>(),
           context.FindComponent<components::Secdist>().Get().Get<impl::BrokerSecrets>().GetSecretByComponentName(

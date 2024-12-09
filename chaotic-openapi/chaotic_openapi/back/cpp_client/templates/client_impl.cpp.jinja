@@ -1,0 +1,28 @@
+#include <client/{{ name }}/client_impl.hpp>
+
+namespace {{ namespace }} {
+
+ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config& config,
+             USERVER_NAMESPACE::clients::http::Client& http_client) : config_(config), http_client_(http_client)
+  {
+  }
+
+{% for op in operations %}
+  {% if op.client_generate %}
+    {{ op.cpp_namespace() }}::Response ClientImpl::{{ op.cpp_method_name() }}(
+      {%- if not op.empty_request() -%}
+          const {{ op.cpp_namespace() }}::Request& request ,
+      {%- endif %}
+          const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control
+      ) {
+        auto r = http_client_.CreateRequest();
+        SerializeRequest(request, r);
+        ApplyConfig(r, command_control, config_);
+        {# TODO: apply extentions #}
+        auto response = r.perform();
+        return {{ op.cpp_namespace() }}::ParseResponse(*response);
+      }
+  {% endif %}
+{% endfor %}
+
+}

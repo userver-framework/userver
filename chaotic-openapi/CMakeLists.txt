@@ -29,7 +29,7 @@ if(USERVER_BUILD_TESTS)
   # )
 
   # add_subdirectory(integration_tests)
-  # add_subdirectory(golden_tests)
+  add_subdirectory(golden_tests)
 endif()
 
 _userver_directory_install(COMPONENT chaotic-openapi

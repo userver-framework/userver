@@ -6,7 +6,10 @@ components_manager:
             worker_threads: 4
         consumer-task-processor:  # Task processor for listenting messages from topics
             thread_name: consumer
-            worker_threads: 1     # Threads are shared between all consumers in program
+            worker_threads: 1
+        consumer-blocking-task-processor: # Task processor for blocking consumer operations
+            thread_name: consumer-blocking
+            worker_threads: 1
         producer-task-processor:  # Task processor for handling message delivery reports
             thread_name: producer
             worker_threads: 4     # Threads are shared between all producers in program

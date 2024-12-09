@@ -79,6 +79,8 @@ FieldDescription Field::Description() const { return res_->GetFieldDescription(f
 
 std::string_view Field::Name() const { return res_->GetFieldName(field_index_); }
 
+Field::size_type Field::Length() const { return res_->GetFieldLength(row_index_, field_index_); }
+
 bool Field::IsNull() const { return res_->IsFieldNull(row_index_, field_index_); }
 
 const io::TypeBufferCategory& Field::GetTypeBufferCategories() const { return res_->GetTypeBufferCategories(); }

@@ -46,6 +46,12 @@ template <typename Request, typename Response>
 using RawReaderWriter = std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>>;
 /// @}
 
+void SetStatusDetailsForSpan(
+    tracing::Span& span,
+    const grpc::Status& status,
+    const std::optional<std::string>& error_details
+);
+
 struct RpcConfigValues final {
     explicit RpcConfigValues(const dynamic_config::Snapshot& config);
 
@@ -113,6 +119,8 @@ public:
     // we use two different invocation types
     FinishAsyncMethodInvocation& GetFinishAsyncMethodInvocation() noexcept;
 
+    bool GetAndSetFinishProcessed() noexcept;
+
     // This are for asserts and invariants. Do NOT branch actual code
     // based on these two functions. Branching based on these two functions
     // is considered UB, no diagnostics required.
@@ -160,6 +168,8 @@ private:
     // Read* call, because we don't need to close span and/or account stats
     // when finishing Read* call.
     std::variant<std::monostate, AsyncMethodInvocation, FinishAsyncMethodInvocation> invocation_;
+    bool finish_processed_{false};
+
     grpc::Status status_;
 };
 

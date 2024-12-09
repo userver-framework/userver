@@ -319,6 +319,8 @@ public:
     /** @name Data access */
     bool IsNull() const;
 
+    size_type Length() const;
+
     /// Read the field's buffer into user-provided variable.
     /// @throws FieldValueIsNull If the field is null and the C++ type is
     ///                           not nullable.

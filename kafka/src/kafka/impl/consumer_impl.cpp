@@ -1,10 +1,13 @@
 #include <kafka/impl/consumer_impl.hpp>
 
+#include <algorithm>
 #include <chrono>
+#include <iostream>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <userver/kafka/exceptions.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/kafka/impl/stats.hpp>
 #include <userver/logging/log.hpp>
@@ -13,6 +16,7 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/span.hpp>
 
+#include <kafka/impl/error_buffer.hpp>
 #include <kafka/impl/holders_aliases.hpp>
 #include <kafka/impl/log_level.hpp>
 
@@ -248,31 +252,32 @@ ConsumerImpl::ConsumerImpl(
     const std::vector<std::string>& topics,
     Stats& stats
 )
-    : name_(name), stats_(stats), consumer_(conf) {
-    StartConsuming(topics);
-}
+    : name_(name), stats_(stats), topics_(topics), consumer_(conf) {}
 
 const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
-void ConsumerImpl::StartConsuming(const std::vector<std::string>& topics) {
+void ConsumerImpl::StartConsuming() {
     rd_kafka_queue_cb_event_enable(consumer_.GetQueue(), &EventCallbackProxy, this);
 
-    TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(topics.size())};
-    for (const auto& topic : topics) {
+    TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(topics_.size())};
+    for (const auto& topic : topics_) {
         rd_kafka_topic_partition_list_add(topic_partitions_list.GetHandle(), topic.c_str(), RD_KAFKA_PARTITION_UA);
     }
 
-    LOG_INFO() << fmt::format("Consumer is subscribing to topics: [{}]", fmt::join(topics, ", "));
+    LOG_INFO() << fmt::format("Consumer is subscribing to topics: [{}]", fmt::join(topics_, ", "));
 
-    rd_kafka_subscribe(consumer_.GetHandle(), topic_partitions_list.GetHandle());
+    // Only initiates subscribe process
+    auto err = rd_kafka_subscribe(consumer_.GetHandle(), topic_partitions_list.GetHandle());
+    if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        throw std::runtime_error{fmt::format("Consumer failed to subscribe: {}", rd_kafka_err2str(err))};
+    }
 }
 
 void ConsumerImpl::StopConsuming() {
     // disable EventCallback
     rd_kafka_queue_cb_event_enable(consumer_.GetQueue(), nullptr, nullptr);
 
-    utils::FastScopeGuard destroy_consumer_guard{[this]() noexcept { consumer_.reset(); }};
-
+    // launch closing process
     ErrorHolder error{rd_kafka_consumer_close_queue(consumer_.GetHandle(), consumer_.GetQueue())};
     if (error) {
         LOG_ERROR() << fmt::format(
@@ -281,6 +286,7 @@ void ConsumerImpl::StopConsuming() {
         return;
     }
 
+    // poll until queue is closed
     while (!rd_kafka_consumer_closed(consumer_.GetHandle())) {
         if (const EventHolder event = PollEvent()) {
             DispatchEvent(event);
@@ -291,6 +297,78 @@ void ConsumerImpl::StopConsuming() {
 void ConsumerImpl::Commit() { rd_kafka_commit(consumer_.GetHandle(), nullptr, /*async=*/0); }
 
 void ConsumerImpl::AsyncCommit() { rd_kafka_commit(consumer_.GetHandle(), nullptr, /*async=*/1); }
+
+OffsetRange ConsumerImpl::GetOffsetRange(
+    const std::string& topic,
+    std::uint32_t partition,
+    std::optional<std::chrono::milliseconds> timeout
+) const {
+    std::int64_t low_offset{0};
+    std::int64_t high_offset{0};
+
+    auto err = rd_kafka_query_watermark_offsets(
+        consumer_.GetHandle(),
+        topic.c_str(),
+        partition,
+        &low_offset,
+        &high_offset,
+        static_cast<int>(timeout.value_or(std::chrono::milliseconds(-1)).count())
+    );
+
+    if (err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
+        throw OffsetRangeTimeoutException{topic, partition};
+    }
+    if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        throw OffsetRangeException{fmt::format("Failed to get offsets: {}", rd_kafka_err2str(err)), topic, partition};
+    }
+    if (low_offset == RD_KAFKA_OFFSET_INVALID || high_offset == RD_KAFKA_OFFSET_INVALID) {
+        throw OffsetRangeException{fmt::format("Failed to get offsets: invalid offset."), topic, partition};
+    }
+
+    return {static_cast<std::uint32_t>(low_offset), static_cast<std::uint32_t>(high_offset)};
+}
+
+std::vector<std::uint32_t>
+ConsumerImpl::GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout) const {
+    MetadataHolder metadata{[this, &topic, &timeout] {
+        const rd_kafka_metadata_t* raw_metadata{nullptr};
+        TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
+        auto err = rd_kafka_metadata(
+            consumer_.GetHandle(),
+            /*all_topics=*/0,
+            topic_holder.GetHandle(),
+            &raw_metadata,
+            static_cast<int>(timeout.value_or(std::chrono::milliseconds(-1)).count())
+        );
+        if (err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
+            throw GetMetadataTimeoutException{topic};
+        }
+        if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+            throw GetMetadataException{fmt::format("Failed to fetch metadata: {}.", rd_kafka_err2str(err)), topic};
+        }
+        return raw_metadata;
+    }()};
+
+    utils::span<const rd_kafka_metadata_topic> topics{metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)};
+    const auto* topic_it =
+        std::find_if(topics.begin(), topics.end(), [&topic](const rd_kafka_metadata_topic& topic_raw) {
+            return topic == topic_raw.topic;
+        });
+    if (topic_it == topics.end()) {
+        throw TopicNotFoundException{fmt::format("Failed to find topic: {}", topic)};
+    }
+
+    utils::span<const rd_kafka_metadata_partition> partitions{
+        topic_it->partitions, static_cast<std::size_t>(topic_it->partition_cnt)};
+    std::vector<std::uint32_t> partition_ids;
+    partition_ids.reserve(partitions.size());
+
+    for (const auto& partition : partitions) {
+        partition_ids.push_back(partition.id);
+    }
+
+    return partition_ids;
+}
 
 EventHolder ConsumerImpl::PollEvent() {
     return EventHolder{rd_kafka_queue_poll(consumer_.GetQueue(), /*timeout_ms=*/0)};

@@ -42,5 +42,6 @@ def make_env(prefix: str, full_path: str) -> jinja2.Environment:
 
     # common symbols used by everyone
     env.globals['NOT_IMPLEMENTED'] = not_implemented
+    env.globals['len'] = len
 
     return env

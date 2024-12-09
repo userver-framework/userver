@@ -39,6 +39,7 @@ class S3MockBucketStorage:
         self,
         key: str,
         data: bytearray,
+        user_defined_meta: Mapping[str, str] = {},
         last_modified: Optional[Union[dt.datetime, str]] = None,
     ):
         key_path = pathlib.Path(key)
@@ -56,6 +57,9 @@ class S3MockBucketStorage:
             'Last-Modified': last_modified,
             'Size': str(sys.getsizeof(data)),
         }
+
+        meta.update(user_defined_meta)
+
         self._storage[key_path] = S3Object(data, meta)
         return meta
 
@@ -173,7 +177,14 @@ class S3HandleMock:
         bucket_storage = self._storage[self._get_bucket_name(request)]
 
         data = request.get_data()
-        meta = bucket_storage.put_object(key, data)
+
+        user_defined_meta = {}
+        for meta_key, meta_value in request.headers.items():
+            # https://docs.amazonaws.cn/en_us/AmazonS3/latest/userguide/UsingMetadata.html
+            if meta_key.startswith('x-amz-meta-'):
+                user_defined_meta[meta_key] = meta_value
+
+        meta = bucket_storage.put_object(key, data, user_defined_meta)
         return self._mockserver.make_response('OK', 200, headers=meta)
 
     def copy_object(self, request):
@@ -186,8 +197,10 @@ class S3HandleMock:
         src_bucket_storage = self._storage[source_bucket_name]
         dst_bucket_storage = self._storage[dest_bucket_name]
 
-        data = src_bucket_storage.get_object(source_key).data
-        meta = dst_bucket_storage.put_object(key, data)
+        src_obj = src_bucket_storage.get_object(source_key)
+        src_data = src_obj.data
+        src_meta = src_obj.meta
+        meta = dst_bucket_storage.put_object(key, src_data, src_meta)
         return self._mockserver.make_response('OK', 200, headers=meta)
 
     def get_objects(self, request):

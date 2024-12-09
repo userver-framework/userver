@@ -160,7 +160,10 @@ UTEST_F(GrpcClientTest, AsyncUnaryRPCWithTimeout) {
     auto call = std::move(call_for_move);      // test move operation
     auto future = std::move(future_for_move);  // test move operation
 
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(60s)), engine::FutureStatus::kReady);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(60s)), engine::FutureStatus::kReady);
+
+    EXPECT_TRUE(future.IsReady());
+
     CheckClientContext(call.GetContext());
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
@@ -317,9 +320,11 @@ UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
     auto call = std::move(call_for_move);      // test move operation
     auto future = std::move(future_for_move);  // test move operation
 
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(kLongTimeout / 100)), engine::FutureStatus::kTimeout);
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(kLongTimeout / 50)), engine::FutureStatus::kTimeout);
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(kLongTimeout / 100)), engine::FutureStatus::kTimeout);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(kLongTimeout / 50)), engine::FutureStatus::kTimeout);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    UEXPECT_NO_THROW(future.Get());
 
     CheckClientContext(call.GetContext());
     EXPECT_EQ("Hello " + out.name(), in.name());

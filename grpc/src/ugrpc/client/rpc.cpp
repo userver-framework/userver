@@ -1,9 +1,11 @@
 #include <userver/ugrpc/client/rpc.hpp>
 
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -66,100 +68,75 @@ UnaryFuture::~UnaryFuture() {
     if (data_) {
         impl::RpcData::AsyncMethodInvocationGuard guard(*data_);
 
-        auto& finish = data_->GetFinishAsyncMethodInvocation();
-
         data_->GetContext().TryCancel();
 
-        const auto wait_status = impl::Wait(finish, data_->GetContext());
-
-        switch (wait_status) {
-            case impl::AsyncMethodInvocation::WaitStatus::kOk:
-                [[fallthrough]];
-            case impl::AsyncMethodInvocation::WaitStatus::kError:
-                impl::ProcessFinishResult(
-                    *data_,
-                    wait_status,
-                    std::move(finish.GetStatus()),
-                    std::move(finish.GetParsedGStatus()),
-                    post_finish_,
-                    false
-                );
-                break;
-            case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
-                data_->GetStatsScope().OnCancelled();
-                break;
-            case impl::AsyncMethodInvocation::WaitStatus::kDeadline:
-                UASSERT_MSG(false, "Unexpected status 'kDeadline' at UnaryFuture destruction");
-                break;
-        }
+        [[maybe_unused]] const auto future_status = WaitUntil(engine::Deadline{});
     }
+}
+
+bool UnaryFuture::IsReady() const noexcept {
+    UINVARIANT(data_, "IsReady should be called only before 'Get'");
+    auto& finish = data_->GetFinishAsyncMethodInvocation();
+    return finish.IsReady();
+}
+
+engine::FutureStatus UnaryFuture::WaitUntil(engine::Deadline deadline) const {
+    UINVARIANT(data_, "WaitUntil should be called only before 'Get'");
+    auto& finish = data_->GetFinishAsyncMethodInvocation();
+    const auto wait_status = impl::WaitUntil(finish, data_->GetContext(), deadline);
+    switch (wait_status) {
+        case impl::AsyncMethodInvocation::WaitStatus::kOk:
+            if (!data_->GetAndSetFinishProcessed()) {
+                const auto& status = finish.GetStatus();
+
+                data_->GetStatsScope().OnExplicitFinish(status.error_code());
+                data_->GetStatsScope().Flush();
+
+                post_finish_(*data_, status);
+
+                const auto& parsed_gstatus = finish.GetParsedGStatus();
+                impl::SetStatusDetailsForSpan(data_->GetSpan(), status, parsed_gstatus.gstatus_string);
+                data_->ResetSpan();
+            }
+            return engine::FutureStatus::kReady;
+
+        case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
+            data_->GetStatsScope().OnCancelled();
+            return engine::FutureStatus::kCancelled;
+
+        case impl::AsyncMethodInvocation::WaitStatus::kDeadline:
+            return engine::FutureStatus::kTimeout;
+
+        case impl::AsyncMethodInvocation::WaitStatus::kError:
+            UINVARIANT(false, "Client-side Finish: ok should always be true");
+    }
+
+    UINVARIANT(false, "unreachable");
 }
 
 void UnaryFuture::Get() {
     UINVARIANT(data_, "'Get' should not be called after readiness");
-    auto* const data = data_;
-
-    const auto result = Get(engine::Deadline{});
-    UASSERT_MSG(result != engine::FutureStatus::kTimeout, "kTimeout has happened for infinite timeout");
-
-    if (result == engine::FutureStatus::kCancelled) {
-        UASSERT_MSG(!data_, "Data should be cleaned up before RpcCancelledError generation");
-        throw RpcCancelledError(data->GetCallName(), "Get()");
-    }
-}
-
-engine::FutureStatus UnaryFuture::Get(engine::Deadline deadline) {
-    UINVARIANT(data_, "'Get' should not be called after readiness");
     impl::RpcData::AsyncMethodInvocationGuard guard(*data_);
-    auto* const data = data_;
+
+    const auto future_status = WaitUntil(engine::Deadline{});
+
+    auto* const data = std::exchange(data_, nullptr);
+
+    if (engine::FutureStatus::kCancelled == future_status) {
+        throw RpcCancelledError(data->GetCallName(), "UnaryFuture::Get");
+    }
 
     auto& finish = data->GetFinishAsyncMethodInvocation();
-
-    const auto wait_status = impl::WaitUntil(finish, data->GetContext(), deadline);
-
-    // if result is not ready yet we should not clear data
-    if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kDeadline) {
-        // If the result is not ready we do not change AsyncMethodInvocation state.
-        //
-        // It is vital to hold the state of the AsyncMethodInvocation in order to
-        // allow subsequent execution of the 'Get' to finalize RPC and exclude
-        // operations with incorrect AsyncMethodInvocation from gRPC thread.
-        //
-        // If for some reason the RPC is not finished via 'Get', destructor should
-        // do it and correct AsyncMethodInvocation object is required for actions in
-        // destructor.
-        guard.Disarm();
-    } else {
-        // In this case operation has been finished and we got the notification from
-        // AsyncMethodInvocation.
-        // All used data could be cleared as it is not required anymore.
-        // AsyncMethodInvocation object also should be cleared and in result
-        // destructor will not wait any finalization from it.
-        data_ = nullptr;
+    auto& status = finish.GetStatus();
+    if (!status.ok()) {
+        auto& parsed_gstatus = finish.GetParsedGStatus();
+        impl::ThrowErrorWithStatus(
+            data->GetCallName(),
+            std::move(status),
+            std::move(parsed_gstatus.gstatus),
+            std::move(parsed_gstatus.gstatus_string)
+        );
     }
-
-    switch (wait_status) {
-        case impl::AsyncMethodInvocation::WaitStatus::kOk:
-            [[fallthrough]];
-        case impl::AsyncMethodInvocation::WaitStatus::kError:
-            impl::ProcessFinishResult(
-                *data,
-                wait_status,
-                std::move(finish.GetStatus()),
-                std::move(finish.GetParsedGStatus()),
-                post_finish_,
-                true
-            );
-            return engine::FutureStatus::kReady;
-        case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
-            data->GetStatsScope().OnCancelled();
-            return engine::FutureStatus::kCancelled;
-        case impl::AsyncMethodInvocation::WaitStatus::kDeadline:
-            return engine::FutureStatus::kTimeout;
-    }
-
-    UASSERT(false);
-    return engine::FutureStatus::kTimeout;
 }
 
 engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
@@ -173,12 +150,6 @@ engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
     // if data exists, then FinishAsyncMethodInvocation also exists
     auto& finish = data_->GetFinishAsyncMethodInvocation();
     return finish.TryGetContextAccessor();
-}
-
-bool UnaryFuture::IsReady() const noexcept {
-    UINVARIANT(data_, "IsReady should be called only before 'Get'");
-    auto& finish = data_->GetFinishAsyncMethodInvocation();
-    return finish.IsReady();
 }
 
 grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }

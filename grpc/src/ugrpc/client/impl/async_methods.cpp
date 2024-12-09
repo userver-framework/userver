@@ -51,26 +51,29 @@ void SetupSpan(
     context.AddMetadata(ugrpc::impl::kTraceParent, ugrpc::impl::ToGrpcString(traceparent.value()));
 }
 
-void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status, const std::optional<std::string>& message) {
-    data.GetSpan().SetLogLevel(logging::Level::kWarning);
-    data.GetSpan().AddTag(tracing::kErrorFlag, true);
-    data.GetSpan().AddTag("grpc_code", std::string{ugrpc::ToString(status.error_code())});
-    if (message.has_value()) {
-        data.GetSpan().AddTag(tracing::kErrorMessage, *message);
-    } else {
-        data.GetSpan().AddTag(tracing::kErrorMessage, status.error_message());
-    }
-    data.ResetSpan();
+void SetErrorForSpan(tracing::Span& span, const std::string& error_message) {
+    span.SetLogLevel(logging::Level::kWarning);
+    span.AddTag(tracing::kErrorFlag, true);
+    span.AddTag(tracing::kErrorMessage, error_message);
 }
 
-void SetErrorForSpan(RpcData& data, std::string&& message) {
-    data.GetSpan().SetLogLevel(logging::Level::kWarning);
-    data.GetSpan().AddTag(tracing::kErrorFlag, true);
-    data.GetSpan().AddTag(tracing::kErrorMessage, std::move(message));
+void SetErrorAndResetSpan(RpcData& data, const std::string& error_message) {
+    SetErrorForSpan(data.GetSpan(), error_message);
     data.ResetSpan();
 }
 
 }  // namespace
+
+void SetStatusDetailsForSpan(
+    tracing::Span& span,
+    const grpc::Status& status,
+    const std::optional<std::string>& error_details
+) {
+    span.AddTag("grpc_code", std::string{ugrpc::ToString(status.error_code())});
+    if (!status.ok()) {
+        SetErrorForSpan(span, error_details.value_or(status.error_message()));
+    }
+}
 
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
     : enforce_task_deadline(config[kEnforceClientTaskDeadline]) {}
@@ -94,7 +97,7 @@ RpcData::~RpcData() {
 
     if (context_ && !IsFinished()) {
         UASSERT(span_);
-        SetErrorForSpan(*this, "Abandoned");
+        SetErrorAndResetSpan(*this, "Abandoned");
         context_->TryCancel();
     }
 }
@@ -212,6 +215,8 @@ FinishAsyncMethodInvocation& RpcData::GetFinishAsyncMethodInvocation() noexcept 
     return std::get<FinishAsyncMethodInvocation>(invocation_);
 }
 
+bool RpcData::GetAndSetFinishProcessed() noexcept { return std::exchange(finish_processed_, true); }
+
 bool RpcData::HoldsAsyncMethodInvocationDebug() noexcept {
     return std::holds_alternative<AsyncMethodInvocation>(invocation_);
 }
@@ -238,12 +243,12 @@ void CheckOk(RpcData& data, AsyncMethodInvocation::WaitStatus status, std::strin
         data.SetFinished();
         data.GetStatsScope().OnNetworkError();
         data.GetStatsScope().Flush();
-        SetErrorForSpan(data, fmt::format("Network error at '{}'", stage));
+        SetErrorAndResetSpan(data, fmt::format("Network error at '{}'", stage));
         throw RpcInterruptedError(data.GetCallName(), stage);
     } else if (status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         data.SetFinished();
         data.GetStatsScope().OnCancelled();
-        SetErrorForSpan(data, fmt::format("Network error at '{}' (task cancelled)", stage));
+        SetErrorAndResetSpan(data, fmt::format("Network error at '{}' (task cancelled)", stage));
         throw RpcCancelledError(data.GetCallName(), stage);
     }
 }
@@ -272,9 +277,10 @@ void ProcessFinishResult(
 
     post_finish(data, status);
 
-    if (!status.ok()) {
-        SetStatusDetailsForSpan(data, status, parsed_gstatus.gstatus_string);
+    SetStatusDetailsForSpan(data.GetSpan(), status, parsed_gstatus.gstatus_string);
+    data.ResetSpan();
 
+    if (!status.ok()) {
         if (throw_on_error) {
             impl::ThrowErrorWithStatus(
                 data.GetCallName(),
@@ -283,9 +289,6 @@ void ProcessFinishResult(
                 std::move(parsed_gstatus.gstatus_string)
             );
         }
-    } else {
-        data.GetSpan().AddTag("grpc_code", std::string{ugrpc::ToString(grpc::StatusCode::OK)});
-        data.ResetSpan();
     }
 }
 

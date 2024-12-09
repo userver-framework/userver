@@ -111,13 +111,9 @@ UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCallFinishAsyncWaitUntil) {
 
     sample::ugrpc::GreetingResponse in;
     auto future = call.FinishAsync(in);
-    EXPECT_EQ(future.Get(deadline), engine::FutureStatus::kTimeout);
+    EXPECT_EQ(future.WaitUntil(deadline), engine::FutureStatus::kTimeout);
 
-    auto result = engine::FutureStatus::kReady;
-    UEXPECT_THROW(
-        result = future.Get(engine::Deadline::FromDuration(2 * tests::kShortTimeout)),
-        ugrpc::client::DeadlineExceededError
-    );
+    UEXPECT_THROW(future.Get(), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientReadManyRead) {

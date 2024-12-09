@@ -1,0 +1,26 @@
+#pragma once
+
+#include <userver/components/component_base.hpp>
+
+#include <client/{{ name }}/client_impl.hpp>
+
+namespace {{ namespace }} {
+
+class Component final : public USERVER_NAMESPACE::components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "{{ name }}-client";
+
+    Component(const USERVER_NAMESPACE::components::ComponentConfig& config, const USERVER_NAMESPACE::components::ComponentContext& context);
+
+    Client& GetClient();
+
+private:
+    ClientImpl client_;
+};
+
+}
+
+template<>
+inline constexpr auto USERVER_NAMESPACE::components::kConfigFileMode<::{{ namespace }}::Component> =
+    USERVER_NAMESPACE::components::ConfigFileMode::kNotRequired;
+
