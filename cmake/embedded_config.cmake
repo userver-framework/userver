@@ -9,8 +9,13 @@ set(TEMPLATE "
 
 #include <userver/utils/resources.hpp>
 
-__asm__(R\"(
-.section .rodata
+__asm__(
+#if defined(__APPLE__)
+\".const_data\"
+#else
+\".section .rodata\"
+#endif
+R\"(
 .align 16
 @NAME@_begin:
 .incbin \"${FILEPATH}\"
@@ -18,7 +23,6 @@ __asm__(R\"(
 .byte 0
 @NAME@_size:
 .int @NAME@_end - @NAME@_begin
-.section .text
 )\");
 
 extern \"C\" const char @NAME@_begin[];
