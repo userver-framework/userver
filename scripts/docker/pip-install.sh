@@ -4,5 +4,5 @@
 set -euo pipefail
 
 for REQUIREMENT in requirements/*.txt; do
-  pip3 install -r ${REQUIREMENT}
+  pip3 install --break-system-packages -r ${REQUIREMENT}
 done
