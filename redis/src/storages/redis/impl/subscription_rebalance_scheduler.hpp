@@ -8,12 +8,12 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 #include "subscription_storage.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class SubscriptionRebalanceScheduler {
 public:
@@ -53,6 +53,6 @@ private:
     std::chrono::milliseconds rebalance_min_interval_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

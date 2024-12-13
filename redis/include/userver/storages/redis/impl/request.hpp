@@ -5,8 +5,8 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,7 +14,11 @@ namespace tracing {
 class Span;
 }
 
-namespace redis {
+namespace storages::redis::impl {
+
+struct Command;
+using CommandPtr = std::shared_ptr<Command>;
+class Sentinel;
 
 class Request {
 public:
@@ -54,6 +58,6 @@ private:
     engine::Deadline deadline_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

@@ -2,7 +2,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 /// Represents the state of redis instance connection
 enum class RedisState {
@@ -25,6 +25,6 @@ enum class RedisState {
     kDisconnectError
 };
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

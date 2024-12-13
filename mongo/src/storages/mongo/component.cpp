@@ -32,10 +32,11 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
     auto dbalias = config["dbalias"].As<std::string>("");
 
     std::string connection_string;
+    storages::secdist::Secdist* secdist{};
     if (!dbalias.empty()) {
-        connection_string = storages::mongo::secdist::GetSecdistConnectionString(
-            context.FindComponent<Secdist>().GetStorage(), dbalias
-        );
+        dbalias_ = dbalias;
+        secdist = &context.FindComponent<Secdist>().GetStorage();
+        connection_string = storages::mongo::secdist::GetSecdistConnectionString(*secdist, dbalias);
     } else {
         connection_string = config["dbconnection"].As<std::string>();
     }
@@ -48,6 +49,10 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
     pool_ = std::make_shared<storages::mongo::Pool>(
         config.Name(), connection_string, pool_config, dns_resolver, config_source
     );
+
+    if (!dbalias_.empty()) {
+        secdist_subscriber_ = secdist->UpdateAndListen(this, dbalias_, &Mongo::OnSecdistUpdate);
+    }
 
     pool_->Start();
 
@@ -75,6 +80,11 @@ Mongo::~Mongo() {
 }
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
+
+void Mongo::OnSecdistUpdate(const storages::secdist::SecdistConfig& config) {
+    auto connection_string = storages::mongo::secdist::GetSecdistConnectionString(config, dbalias_);
+    pool_->SetConnectionString(connection_string);
+}
 
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<MultiMongo>(R"(

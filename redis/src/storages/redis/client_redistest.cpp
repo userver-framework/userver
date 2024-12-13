@@ -36,7 +36,7 @@ UTEST_F(RedisClientTest, Sample) { RedisClientSampleUsage(*GetClient()); }
 UTEST_F(RedisClientTest, CancelRequest) {
     try {
         EXPECT_FALSE(RedisClientCancelRequest(*GetClient()));
-    } catch (const redis::RequestCancelledException&) {
+    } catch (const storages::redis::RequestCancelledException&) {
     }
 }
 
@@ -129,10 +129,10 @@ UTEST_F(RedisClientTest, Geosearch) {
     options.withhash = true;
     options.withcoord = true;
 
-    const auto lon = redis::Longitude(15);
-    const auto lat = redis::Latitude(37);
-    const auto width = redis::BoxWidth(200);
-    const auto height = redis::BoxHeight(200);
+    const auto lon = storages::redis::Longitude(15);
+    const auto lat = storages::redis::Latitude(37);
+    const auto width = storages::redis::BoxWidth(200);
+    const auto height = storages::redis::BoxHeight(200);
 
     // FROMLONLAT BYRADIUS
     auto result = client->Geosearch("Sicily", lon, lat, 100, options, {}).Get();
@@ -268,8 +268,8 @@ UTEST_F(RedisClientTest, Georadius) {
     options.withhash = true;
     options.withcoord = true;
 
-    const auto lon = redis::Longitude(15);
-    const auto lat = redis::Latitude(37);
+    const auto lon = storages::redis::Longitude(15);
+    const auto lat = storages::redis::Latitude(37);
 
     auto result = client->Georadius("Sicily", lon, lat, 200, options, {}).Get();
     EXPECT_EQ(result.size(), 2);

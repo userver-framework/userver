@@ -1,4 +1,4 @@
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 
 #include <sstream>
 
@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 void PutArg(CmdArgs::CmdArgsArray& args_, const char* arg) { args_.emplace_back(arg); }
 
@@ -81,6 +81,6 @@ logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v) {
     return os;
 }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

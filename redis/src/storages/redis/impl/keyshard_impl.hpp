@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class KeyShardZero : public KeyShard {
 public:
@@ -42,7 +42,7 @@ private:
     utils::encoding::Converter converter_;
 };
 
-class KeyShardGpsStorageDriver : public redis::KeyShard {
+class KeyShardGpsStorageDriver : public KeyShard {
 public:
     KeyShardGpsStorageDriver(size_t shard_count) : shard_count_(shard_count) {}
 
@@ -59,6 +59,6 @@ inline constexpr char kRedisCluster[] = "RedisCluster";
 
 bool IsClusterStrategy(const std::string& type);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

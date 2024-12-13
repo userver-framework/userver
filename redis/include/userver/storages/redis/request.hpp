@@ -9,6 +9,7 @@
 
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/storages/redis/exception.hpp>
+#include <userver/storages/redis/fwd.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request_data_base.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
@@ -20,7 +21,7 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
-template <typename Result, typename ReplyType = Result>
+template <typename Result, typename ReplyType>
 class [[nodiscard]] Request final {
 public:
     using Reply = ReplyType;
@@ -124,9 +125,9 @@ public:
     Iterator begin() { return Iterator(this); }
     Iterator end() { return Iterator(nullptr); }
 
-    class GetAfterEofException : public USERVER_NAMESPACE::redis::Exception {
+    class GetAfterEofException : public Exception {
     public:
-        using USERVER_NAMESPACE::redis::Exception::Exception;
+        using Exception::Exception;
     };
 
 private:

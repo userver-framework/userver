@@ -2,7 +2,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 RedisConnectionHolder::RedisConnectionHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
@@ -104,6 +104,6 @@ Redis::State RedisConnectionHolder::GetState() const {
     return ptr->get()->GetState();
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

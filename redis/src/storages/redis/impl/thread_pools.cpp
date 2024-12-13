@@ -19,7 +19,7 @@ const std::string kRedisThreadName = "redis_client";
 
 }  // namespace
 
-namespace redis {
+namespace storages::redis::impl {
 
 ThreadPools::ThreadPools(size_t sentinel_thread_pool_size, size_t redis_thread_pool_size) {
     sentinel_thread_pool_ = std::make_unique<engine::ev::ThreadPool>(engine::ev::ThreadPoolConfig{
@@ -41,6 +41,6 @@ engine::ev::ThreadPool& ThreadPools::GetSentinelThreadPool() const { return *sen
 
 const std::shared_ptr<engine::ev::ThreadPool>& ThreadPools::GetRedisThreadPool() const { return redis_thread_pool_; }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

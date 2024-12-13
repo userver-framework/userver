@@ -78,6 +78,8 @@ public:
     /// Sets new dynamic pool settings
     void SetPoolSettings(const PoolSettings& pool_settings);
 
+    void SetConnectionString(const std::string& connection_string);
+
 private:
     std::shared_ptr<impl::PoolImpl> impl_;
 };

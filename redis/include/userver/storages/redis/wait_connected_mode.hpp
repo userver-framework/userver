@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 const auto kRedisWaitConnectedDefaultTimeout = std::chrono::seconds(11);
 
@@ -32,6 +32,14 @@ struct RedisWaitConnected {
     RedisWaitConnected MergeWith(const testsuite::RedisControl& t) const;
 };
 
+}  // namespace storages::redis
+
+#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
+namespace redis {
+using storages::redis::kRedisWaitConnectedDefaultTimeout;
+using storages::redis::RedisWaitConnected;
+using storages::redis::WaitConnectedMode;
 }  // namespace redis
+#endif
 
 USERVER_NAMESPACE_END

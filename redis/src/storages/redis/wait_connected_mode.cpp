@@ -1,10 +1,10 @@
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include <stdexcept>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 std::string ToString(WaitConnectedMode mode) {
     switch (mode) {
@@ -36,6 +36,7 @@ RedisWaitConnected RedisWaitConnected::MergeWith(const testsuite::RedisControl& 
     result.timeout = std::max(t.min_timeout_connect, result.timeout);
     return result;
 }
-}  // namespace redis
+
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -7,10 +7,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
-CommandControl::Strategy
-Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::redis::CommandControl::Strategy>) {
+CommandControl::Strategy Parse(const formats::json::Value& elem, formats::parse::To<CommandControl::Strategy>) {
     auto strategy = elem.As<std::string>();
     try {
         return StrategyFromString(strategy);
@@ -20,9 +19,8 @@ Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::re
     }
 }
 
-USERVER_NAMESPACE::redis::CommandControl
-Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::redis::CommandControl>) {
-    USERVER_NAMESPACE::redis::CommandControl result;
+CommandControl Parse(const formats::json::Value& elem, formats::parse::To<CommandControl>) {
+    CommandControl result;
 
     for (const auto [name, option] : Items(elem)) {
         if (name == "timeout_all_ms") {
@@ -38,7 +36,7 @@ Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::re
         } else if (name == "max_retries") {
             result.max_retries = option.As<size_t>();
         } else if (name == "strategy") {
-            result.strategy = option.As<USERVER_NAMESPACE::redis::CommandControl::Strategy>();
+            result.strategy = option.As<CommandControl::Strategy>();
         } else if (name == "best_dc_count") {
             result.best_dc_count = option.As<size_t>();
         } else if (name == "max_ping_latency_ms") {
@@ -53,7 +51,7 @@ Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::re
         }
     }
     if (result.best_dc_count.has_value() && result.strategy.has_value() && (*result.best_dc_count > 1) &&
-        (*result.strategy != USERVER_NAMESPACE::redis::CommandControl::Strategy::kNearestServerPing)) {
+        (*result.strategy != CommandControl::Strategy::kNearestServerPing)) {
         LOG_WARNING() << "CommandControl.best_dc_count = " << *result.best_dc_count
                       << ", but is ignored for the current strategy (" << static_cast<size_t>(*result.strategy) << ")";
     }
@@ -72,9 +70,8 @@ RedisWaitConnected Parse(const formats::json::Value& elem, formats::parse::To<Re
     return result;
 }
 
-USERVER_NAMESPACE::redis::CommandsBufferingSettings
-Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::redis::CommandsBufferingSettings>) {
-    USERVER_NAMESPACE::redis::CommandsBufferingSettings result;
+CommandsBufferingSettings Parse(const formats::json::Value& elem, formats::parse::To<CommandsBufferingSettings>) {
+    CommandsBufferingSettings result;
     result.buffering_enabled = elem["buffering_enabled"].As<bool>();
     result.commands_buffering_threshold = elem["commands_buffering_threshold"].As<size_t>(0);
     result.watch_command_timer_interval =
@@ -105,10 +102,6 @@ PubsubMetricsSettings Parse(const formats::json::Value& elem, formats::parse::To
     result.per_shard_stats_enabled = elem["per-shard-stats-enabled"].As<bool>(result.per_shard_stats_enabled);
     return result;
 }
-
-}  // namespace redis
-
-namespace storages::redis {
 
 namespace {
 

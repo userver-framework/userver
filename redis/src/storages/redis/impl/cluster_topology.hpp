@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <userver/rcu/rcu_map.hpp>
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 
 #include <storages/redis/impl/cluster_shard.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
@@ -16,7 +16,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 template <typename K>
 struct StdMutexRcuMapTraits : rcu::DefaultRcuMapTraits<K> {
@@ -100,6 +100,6 @@ private:
 
 const std::string& GetShardName(size_t shard_index);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

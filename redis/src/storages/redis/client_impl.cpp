@@ -10,9 +10,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using redis::CommandControlImpl;
-
 namespace storages::redis {
+
+using impl::CommandControlImpl;
+
 namespace {
 
 template <ScanTag>
@@ -29,7 +30,7 @@ const std::string kScanCommandName<ScanTag::kZscan> = "zscan";
 
 void DoCheckShard(size_t shard, std::optional<size_t> force_shard_idx) {
     if (force_shard_idx && *force_shard_idx != shard)
-        throw USERVER_NAMESPACE::redis::InvalidArgumentException(
+        throw InvalidArgumentException(
             "forced shard idx != shard from command (" + std::to_string(*force_shard_idx) +
             " != " + std::to_string(shard) + ')'
         );
@@ -37,13 +38,10 @@ void DoCheckShard(size_t shard, std::optional<size_t> force_shard_idx) {
 
 }  // namespace
 
-ClientImpl::ClientImpl(
-    std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel> sentinel,
-    std::optional<size_t> force_shard_idx
-)
+ClientImpl::ClientImpl(std::shared_ptr<impl::Sentinel> sentinel, std::optional<size_t> force_shard_idx)
     : redis_client_(std::move(sentinel)), force_shard_idx_(force_shard_idx) {}
 
-void ClientImpl::WaitConnectedOnce(USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) {
+void ClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
     redis_client_->WaitConnectedOnce(wait_connected);
 }
 
@@ -586,9 +584,7 @@ RequestMget ClientImpl::Mget(std::vector<std::string> keys, const CommandControl
 RequestMset
 ClientImpl::Mset(std::vector<std::pair<std::string, std::string>> key_values, const CommandControl& command_control) {
     if (key_values.empty())
-        return CreateDummyRequest<RequestMset>(std::make_shared<USERVER_NAMESPACE::redis::Reply>(
-            "mset", USERVER_NAMESPACE::redis::ReplyData::CreateStatus("OK")
-        ));
+        return CreateDummyRequest<RequestMset>(std::make_shared<Reply>("mset", ReplyData::CreateStatus("OK")));
     auto shard = ShardByKey(key_values.at(0).first, command_control);
     return CreateRequest<RequestMset>(
         MakeRequest(CmdArgs{"mset", std::move(key_values)}, shard, true, GetCommandControl(command_control))
@@ -656,7 +652,7 @@ RequestRename ClientImpl::Rename(std::string key, std::string new_key, const Com
     auto shard = ShardByKey(key, command_control);
     auto new_shard = ShardByKey(new_key, command_control);
     if (shard != new_shard)
-        throw USERVER_NAMESPACE::redis::InvalidArgumentException(
+        throw InvalidArgumentException(
             "shard of key != shard of new_key (" + std::to_string(shard) + " != " + std::to_string(new_shard) + ')'
         );
     return CreateRequest<RequestRename>(MakeRequest(
@@ -917,8 +913,7 @@ RequestZadd ClientImpl::Zadd(
     std::vector<std::pair<double, std::string>> scored_members,
     const CommandControl& command_control
 ) {
-    if (scored_members.empty())
-        return CreateDummyRequest<RequestZadd>(std::make_shared<USERVER_NAMESPACE::redis::Reply>("zadd", 0));
+    if (scored_members.empty()) return CreateDummyRequest<RequestZadd>(std::make_shared<Reply>("zadd", 0));
     auto shard = ShardByKey(key, command_control);
     return CreateRequest<RequestZadd>(MakeRequest(
         CmdArgs{"zadd", std::move(key), std::move(scored_members)}, shard, true, GetCommandControl(command_control)
@@ -931,8 +926,7 @@ RequestZadd ClientImpl::Zadd(
     const ZaddOptions& options,
     const CommandControl& command_control
 ) {
-    if (scored_members.empty())
-        return CreateDummyRequest<RequestZadd>(std::make_shared<USERVER_NAMESPACE::redis::Reply>("zadd", 0));
+    if (scored_members.empty()) return CreateDummyRequest<RequestZadd>(std::make_shared<Reply>("zadd", 0));
     auto shard = ShardByKey(key, command_control);
     return CreateRequest<RequestZadd>(MakeRequest(
         CmdArgs{"zadd", std::move(key), options, std::move(scored_members)},
@@ -988,7 +982,7 @@ RequestZrange ClientImpl::Zrange(std::string key, int64_t start, int64_t stop, c
 RequestZrangeWithScores
 ClientImpl::ZrangeWithScores(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
-    USERVER_NAMESPACE::redis::ScoreOptions with_scores{true};
+    ScoreOptions with_scores{true};
     return CreateRequest<RequestZrangeWithScores>(MakeRequest(
         CmdArgs{"zrange", std::move(key), start, stop, with_scores}, shard, false, GetCommandControl(command_control)
     ));
@@ -1021,7 +1015,7 @@ RequestZrangebyscore ClientImpl::Zrangebyscore(
     const CommandControl& command_control
 ) {
     auto shard = ShardByKey(key, command_control);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{false}, range_options};
+    RangeScoreOptions range_score_options{{false}, range_options};
     return CreateRequest<RequestZrangebyscore>(MakeRequest(
         CmdArgs{"zrangebyscore", std::move(key), min, max, range_score_options},
         shard,
@@ -1038,7 +1032,7 @@ RequestZrangebyscore ClientImpl::Zrangebyscore(
     const CommandControl& command_control
 ) {
     auto shard = ShardByKey(key, command_control);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{false}, range_options};
+    RangeScoreOptions range_score_options{{false}, range_options};
     return CreateRequest<RequestZrangebyscore>(MakeRequest(
         CmdArgs{"zrangebyscore", std::move(key), std::move(min), std::move(max), range_score_options},
         shard,
@@ -1050,7 +1044,7 @@ RequestZrangebyscore ClientImpl::Zrangebyscore(
 RequestZrangebyscoreWithScores
 ClientImpl::ZrangebyscoreWithScores(std::string key, double min, double max, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, {}};
+    RangeScoreOptions range_score_options{{true}, {}};
     return CreateRequest<RequestZrangebyscoreWithScores>(MakeRequest(
         CmdArgs{"zrangebyscore", std::move(key), min, max, range_score_options},
         shard,
@@ -1066,7 +1060,7 @@ RequestZrangebyscoreWithScores ClientImpl::ZrangebyscoreWithScores(
     const CommandControl& command_control
 ) {
     auto shard = ShardByKey(key, command_control);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, {}};
+    RangeScoreOptions range_score_options{{true}, {}};
     return CreateRequest<RequestZrangebyscoreWithScores>(MakeRequest(
         CmdArgs{"zrangebyscore", std::move(key), std::move(min), std::move(max), range_score_options},
         shard,
@@ -1083,7 +1077,7 @@ RequestZrangebyscoreWithScores ClientImpl::ZrangebyscoreWithScores(
     const CommandControl& command_control
 ) {
     auto shard = ShardByKey(key, command_control);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, range_options};
+    RangeScoreOptions range_score_options{{true}, range_options};
     return CreateRequest<RequestZrangebyscoreWithScores>(MakeRequest(
         CmdArgs{"zrangebyscore", std::move(key), min, max, range_score_options},
         shard,
@@ -1100,7 +1094,7 @@ RequestZrangebyscoreWithScores ClientImpl::ZrangebyscoreWithScores(
     const CommandControl& command_control
 ) {
     auto shard = ShardByKey(key, command_control);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, range_options};
+    RangeScoreOptions range_score_options{{true}, range_options};
     return CreateRequest<RequestZrangebyscoreWithScores>(MakeRequest(
         CmdArgs{"zrangebyscore", std::move(key), std::move(min), std::move(max), range_score_options},
         shard,
@@ -1165,7 +1159,7 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member, const Comm
 
 // end of redis commands
 
-USERVER_NAMESPACE::redis::Request ClientImpl::MakeRequest(
+impl::Request ClientImpl::MakeRequest(
     CmdArgs&& args,
     size_t shard,
     bool master,
@@ -1179,7 +1173,7 @@ CommandControl ClientImpl::GetCommandControl(const CommandControl& cc) const {
     return redis_client_->GetCommandControl(cc);
 }
 
-size_t ClientImpl::GetPublishShard(PubShard policy, const USERVER_NAMESPACE::redis::PublishSettings& settings) {
+size_t ClientImpl::GetPublishShard(PubShard policy, const PublishSettings& settings) {
     if (force_shard_idx_) {
         return *force_shard_idx_;
     }
@@ -1198,7 +1192,7 @@ size_t ClientImpl::GetPublishShard(PubShard policy, const USERVER_NAMESPACE::red
 size_t ClientImpl::ShardByKey(const std::string& key, const CommandControl& cc) const {
     if (force_shard_idx_) {
         if (cc.force_shard_idx && *cc.force_shard_idx != *force_shard_idx_)
-            throw USERVER_NAMESPACE::redis::InvalidArgumentException(
+            throw InvalidArgumentException(
                 "forced shard idx from CommandControl != forced shard for client (" +
                 std::to_string(*cc.force_shard_idx) + " != " + std::to_string(*force_shard_idx_) + ')'
             );

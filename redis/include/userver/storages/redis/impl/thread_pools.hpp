@@ -8,7 +8,7 @@ namespace engine::ev {
 class ThreadPool;
 }  // namespace engine::ev
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ThreadPools {
 public:
@@ -26,6 +26,6 @@ private:
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

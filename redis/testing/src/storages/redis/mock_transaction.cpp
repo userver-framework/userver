@@ -43,7 +43,7 @@ private:
                 } else {
                     promise_.set_value(subrequest_.Get(request_description));
                 }
-            } catch (const USERVER_NAMESPACE::redis::RequestFailedException&) {
+            } catch (const RequestFailedException&) {
                 throw;
             } catch (const std::exception&) {
                 promise_.set_exception(std::current_exception());
@@ -654,8 +654,8 @@ RequestZscore MockTransaction::Zscore(std::string key, std::string member) {
 void MockTransaction::UpdateShard(const std::string& key) {
     try {
         UpdateShard(client_->ShardByKey(key));
-    } catch (const USERVER_NAMESPACE::redis::InvalidArgumentException& ex) {
-        throw USERVER_NAMESPACE::redis::InvalidArgumentException(ex.what() + std::string{" for key=" + key});
+    } catch (const InvalidArgumentException& ex) {
+        throw InvalidArgumentException(ex.what() + std::string{" for key=" + key});
     }
 }
 
@@ -675,13 +675,13 @@ void MockTransaction::UpdateShard(size_t shard) {
     if (shard_) {
         if (check_shards_ == CheckShards::kSame && *shard_ != shard) {
             std::ostringstream os;
-            os << "Storages::redis::Transaction must deal with the same shard across "
+            os << "storages::redis::Transaction must deal with the same shard across "
                   "all the operations. Shard="
                << *shard_
                << " was detected by first command, but one of the commands used "
                   "shard="
                << shard;
-            throw USERVER_NAMESPACE::redis::InvalidArgumentException(os.str());
+            throw InvalidArgumentException(os.str());
         }
     } else {
         shard_ = shard;

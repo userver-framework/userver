@@ -28,7 +28,7 @@ public:
 
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
 
-    redis::Sentinel& SentinelClient() const { return *sentinel_client_; }
+    storages::redis::impl::Sentinel& SentinelClient() const { return *sentinel_client_; }
 
     MockRedisServerArray& Masters() { return masters_; }
     MockRedisServerArray& Slaves() { return slaves_; }
@@ -51,8 +51,8 @@ private:
     MockRedisServerArray slaves_;
     MockRedisServerArray sentinels_;
 
-    std::shared_ptr<redis::ThreadPools> thread_pools_;
-    std::shared_ptr<redis::Sentinel> sentinel_client_;
+    std::shared_ptr<storages::redis::impl::ThreadPools> thread_pools_;
+    std::shared_ptr<storages::redis::impl::Sentinel> sentinel_client_;
 };
 
 class SentinelShardTest {
@@ -67,7 +67,7 @@ public:
 
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
 
-    redis::Sentinel& SentinelClient() const { return *sentinel_client_; }
+    storages::redis::impl::Sentinel& SentinelClient() const { return *sentinel_client_; }
 
     MockRedisServerArray& Masters() { return masters_; }
     MockRedisServerArray& Slaves() { return slaves_; }
@@ -91,8 +91,8 @@ private:
     MockRedisServerArray slaves_;
     MockRedisServerArray sentinels_;
 
-    std::shared_ptr<redis::ThreadPools> thread_pools_;
-    std::shared_ptr<redis::Sentinel> sentinel_client_;
+    std::shared_ptr<storages::redis::impl::ThreadPools> thread_pools_;
+    std::shared_ptr<storages::redis::impl::Sentinel> sentinel_client_;
 };
 
 USERVER_NAMESPACE_END

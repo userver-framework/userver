@@ -12,6 +12,7 @@
 #include <userver/formats/bson.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
@@ -303,20 +304,22 @@ CDriverPoolImpl::CDriverPoolImpl(
       size_(0),
       in_use_semaphore_(config.pool_settings.max_size),
       connecting_semaphore_(config.pool_settings.connecting_limit),
+      pool_config_(config),
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.pool_settings.max_size) {
     static const GlobalInitializer kInitMongoc;
     GlobalInitializer::LogInitWarningsOnce();
 
-    uri_ = MakeUri(Id(), uri_string, config);
-    const char* uri_database = mongoc_uri_get_database(uri_.get());
+    SetConnectionString(uri_string);
+    auto uri = uri_.Read();
+    const char* uri_database = mongoc_uri_get_database(&**uri);
     if (!uri_database) {
         throw InvalidConfigException("MongoDB uri for pool '") << Id() << "' must include database name";
     }
     default_database_ = uri_database;
 
-    init_data_.ssl_opt = MakeSslOpt(uri_.get());
+    init_data_.ssl_opt = MakeSslOpt(&**uri);
 
     std::size_t i = 0;
     try {
@@ -374,6 +377,22 @@ void CDriverPoolImpl::SetPoolSettings(const PoolSettings& pool_settings) {
     idle_limit_ = pool_settings.idle_limit;
     in_use_semaphore_.SetCapacity(pool_settings.max_size);
     connecting_semaphore_.SetCapacity(pool_settings.connecting_limit);
+}
+
+void CDriverPoolImpl::SetConnectionString(const std::string& connection_string) {
+    if (orig_connection_string_ == connection_string) {
+        // not changed
+        return;
+    }
+    orig_connection_string_ = connection_string;
+    LOG_WARNING() << "New connection string for " << Id()
+                  << " found in secdist, all old sockets will be eventually closed";
+
+    // sync: store uri_ before epoch_
+    uri_.Assign(MakeUri(Id(), connection_string, pool_config_));
+    epoch_++;
+
+    TESTPOINT("mongo-new-connection-string", {});
 }
 
 void CDriverPoolImpl::Ping() {
@@ -456,6 +475,9 @@ void CDriverPoolImpl::Push(ConnPtr conn) noexcept {
          */
         Drop(std::move(conn));
         UASSERT(!conn);
+    } else if (conn->GetEpoch() != epoch_) {
+        Drop(std::move(conn));
+        UASSERT(!conn);
     }
     if (conn && !queue_.enqueue(std::move(conn))) {
         --size_;
@@ -486,7 +508,10 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
 
     LOG_DEBUG() << "Creating mongo connection";
 
-    ConnPtr conn = std::make_unique<Connection>(mongoc_client_new_from_uri(uri_.get()), &apm_stats_);
+    auto epoch = epoch_.load();  // sync: load epoch_ before uri_
+    auto uri = uri_.Read();
+
+    ConnPtr conn = std::make_unique<Connection>(mongoc_client_new_from_uri(&**uri), &apm_stats_, epoch);
 
     // Set command monitoring events to get command durations.
     {

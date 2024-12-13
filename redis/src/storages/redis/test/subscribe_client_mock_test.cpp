@@ -14,15 +14,15 @@ TEST(MockSubscribeClientTest, Basic) {
         testing::InSequence seq;
         EXPECT_CALL(*client_mock, Subscribe("test_subscribe", _, _))
             .Times(1)
-            .WillRepeatedly([](std::string,
-                               SubscriptionToken::OnMessageCb,
-                               const USERVER_NAMESPACE::redis::CommandControl&) { return SubscriptionToken{}; });
+            .WillRepeatedly([](std::string, SubscriptionToken::OnMessageCb, const CommandControl&) {
+                return SubscriptionToken{};
+            });
 
         EXPECT_CALL(*client_mock, Psubscribe("test_psubscribe", _, _))
             .Times(1)
-            .WillRepeatedly([](std::string,
-                               SubscriptionToken::OnPmessageCb,
-                               const USERVER_NAMESPACE::redis::CommandControl&) { return SubscriptionToken{}; });
+            .WillRepeatedly([](std::string, SubscriptionToken::OnPmessageCb, const CommandControl&) {
+                return SubscriptionToken{};
+            });
     }
     // check that wrong calls aren't there
     EXPECT_CALL(*client_mock, Subscribe("test_psubscribe", _, _)).Times(0);

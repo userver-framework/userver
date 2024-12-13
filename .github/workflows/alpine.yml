@@ -29,12 +29,20 @@ jobs:
           - name: Setup latest Alpine Linux
             uses: jirutka/setup-alpine@v1
 
-          - name: Run script inside Alpine chroot as root
+          - name: Install dependencies
             shell: alpine.sh --root {0}
             run: |
                 pwd
                 cat /etc/alpine-release
                 apk add $(cat scripts/docs/en/deps/alpine.md)
+
+          - name: Install test dependencies
+            shell: alpine.sh --root {0}
+            run: |
+                apk add postgresql16 \
+                        redis \
+                        rabbitmq-server \
+
 
           - name: Run cmake
             shell: alpine.sh {0}

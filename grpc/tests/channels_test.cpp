@@ -65,9 +65,9 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
             client, engine::Deadline::FromDuration(utest::kMaxTestWaitTime), engine::current_task::GetTaskProcessor()
         ));
 
-        auto call = client.SayHello({});
+        auto future = client.AsyncSayHello({});
         EXPECT_FALSE(engine::current_task::ShouldCancel());
-        UEXPECT_NO_THROW((void)call.Finish());
+        UEXPECT_NO_THROW(future.Get());
         EXPECT_FALSE(engine::current_task::ShouldCancel());
 
         // TryWaitForConnected should return immediately if the connection is

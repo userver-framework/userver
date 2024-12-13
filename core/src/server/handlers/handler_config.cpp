@@ -12,10 +12,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-namespace {
-constexpr size_t kLogRequestDataSizeDefaultLimit = 512;
-}
-
 UrlTrailingSlashOption Parse(const yaml_config::YamlConfig& yaml, formats::parse::To<UrlTrailingSlashOption>) {
     const auto& value = yaml.As<std::string>();
     if (value == "both") return UrlTrailingSlashOption::kBoth;
@@ -70,11 +66,11 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
         value["url_trailing_slash"].As<UrlTrailingSlashOption>(UrlTrailingSlashOption::kDefault);
     config.max_requests_in_flight = value["max_requests_in_flight"].As<std::optional<size_t>>();
     config.request_body_size_log_limit =
-        value["request_body_size_log_limit"].As<size_t>(kLogRequestDataSizeDefaultLimit);
+        value["request_body_size_log_limit"].As<size_t>(handler_defaults.request_body_size_log_limit);
     config.request_headers_size_log_limit =
-        value["request_headers_size_log_limit"].As<size_t>(kLogRequestDataSizeDefaultLimit);
+        value["request_headers_size_log_limit"].As<size_t>(handler_defaults.request_headers_size_log_limit);
     config.response_data_size_log_limit =
-        value["response_data_size_log_limit"].As<size_t>(kLogRequestDataSizeDefaultLimit);
+        value["response_data_size_log_limit"].As<size_t>(handler_defaults.response_data_size_log_limit);
     config.max_requests_per_second = value["max_requests_per_second"].As<std::optional<size_t>>();
     config.decompress_request = value["decompress_request"].As<bool>(true);
     config.throttling_enabled = value["throttling_enabled"].As<bool>(true);

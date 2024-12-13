@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 /// String representations of ReplyStatus codes
 constexpr utils::TrivialBiMap kReplyStatusMap = [](auto selector) {
@@ -31,6 +31,6 @@ inline std::ostream& operator<<(std::ostream& ostr, ReplyStatus status) {
     return ostr;
 }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -1,10 +1,10 @@
-#include <userver/storages/redis/impl/reply/ttl_reply.hpp>
+#include <userver/storages/redis/ttl_reply.hpp>
 
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 TtlReply::TtlReply(int64_t value) : value_(value) {}
 
@@ -24,6 +24,6 @@ size_t TtlReply::GetExpireSeconds() const {
     return value_;
 }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

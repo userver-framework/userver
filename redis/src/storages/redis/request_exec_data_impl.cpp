@@ -5,7 +5,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 
 RequestExecDataImpl::RequestExecDataImpl(
-    USERVER_NAMESPACE::redis::Request&& request,
+    impl::Request&& request,
     std::vector<TransactionImpl::ResultPromise>&& result_promises
 )
     : RequestDataImplBase(std::move(request)), result_promises_(std::move(result_promises)) {}
@@ -19,7 +19,7 @@ void RequestExecDataImpl::Get(const std::string& request_description) {
     result.ExpectArray(description);
     auto& array = result.GetArray();
     if (array.size() != result_promises_.size()) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "unexpected received array size: got " + std::to_string(array.size()) + " need " +
             std::to_string(result_promises_.size())
         );

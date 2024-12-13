@@ -36,7 +36,7 @@ UTEST_P_MT(RedisPubsubTestBasic, SimpleSubscribe, 2) {
         }
     });
 
-    redis::CommandControl cc{GetParam()};
+    storages::redis::CommandControl cc{GetParam()};
     auto token = GetSubscribeClient()->Subscribe(test_channel, std::move(callback), cc);
 
     std::chrono::seconds deadwait{15};
@@ -70,7 +70,7 @@ UTEST_P_MT(RedisPubsubTestBasic, SimplePsubscribe, 2) {
         }
     });
 
-    redis::CommandControl cc{GetParam()};
+    storages::redis::CommandControl cc{GetParam()};
     auto token = GetSubscribeClient()->Psubscribe(test_pattern, std::move(callback), cc);
 
     std::chrono::seconds deadwait{15};
@@ -106,7 +106,7 @@ UTEST_P_MT(RedisClusterPubsubTestBasic, DISABLED_SimpleSsubscribe, 2) {
         }
     });
 
-    redis::CommandControl cc{GetParam()};
+    storages::redis::CommandControl cc{GetParam()};
     auto token = GetSubscribeClient()->Ssubscribe(test_channel, std::move(callback), cc);
 
     std::chrono::seconds deadwait{15};
@@ -118,8 +118,8 @@ UTEST_P_MT(RedisClusterPubsubTestBasic, DISABLED_SimpleSsubscribe, 2) {
 
 namespace {
 
-std::vector<redis::CommandControl> BuildTestData() {
-    std::vector<redis::CommandControl> result;
+std::vector<storages::redis::CommandControl> BuildTestData() {
+    std::vector<storages::redis::CommandControl> result;
 
     // One default CC
     result.emplace_back();
@@ -127,9 +127,9 @@ std::vector<redis::CommandControl> BuildTestData() {
     return result;
 }
 
-const std::vector<redis::CommandControl>& TestData() {
+const std::vector<storages::redis::CommandControl>& TestData() {
     // C++11 standard ensures that initialization will be thread-safe
-    static std::vector<redis::CommandControl> test_data{BuildTestData()};
+    static std::vector<storages::redis::CommandControl> test_data{BuildTestData()};
     return test_data;
 }
 

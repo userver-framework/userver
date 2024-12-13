@@ -3,7 +3,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ClusterSubscriptionStorage : public SubscriptionStorageBase {
 public:
@@ -91,6 +91,6 @@ private:
     std::unique_ptr<SubscriptionRebalanceScheduler> rebalance_scheduler_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

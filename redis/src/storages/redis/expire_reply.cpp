@@ -1,11 +1,11 @@
-#include <userver/storages/redis/impl/reply/expire_reply.hpp>
+#include <userver/storages/redis/expire_reply.hpp>
 
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 ExpireReply::ExpireReply(int64_t value) {
     switch (value) {
@@ -29,6 +29,6 @@ ExpireReply ExpireReply::Parse(ReplyData&& reply_data, const std::string& reques
 
 ExpireReply::operator ExpireReplyValue() const { return value_; }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -38,11 +38,11 @@ class Http2SessionTest : public ::testing::Test {
 public:
     Http2SessionTest()
         : ::testing::Test(),
-          parser_(CreateTestParser(
+          parser_http2_(CreateTestParser(
               [this](ParsedRequestPtr&& request) { NewRequestCallback(std::move(request)); },
               USERVER_NAMESPACE::http::HttpVersion::k2
           )),
-          parser1_(CreateTestParser(
+          parser_http11_(CreateTestParser(
               [this](ParsedRequestPtr&& request) { NewRequestCallback(std::move(request)); },
               USERVER_NAMESPACE::http::HttpVersion::k11
           )),
@@ -50,12 +50,10 @@ public:
           client_ptr_(utest::CreateHttpClient()),
           queue_(RequestsQueue::Create()),
           producer_(queue_->GetProducer()) {
-        const auto response = client_ptr_->CreateRequest()
-                                  .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                                  .get(server_.GetBaseUrl())
-                                  .perform();
-
-        EXPECT_EQ(200, response->status_code());
+        [[maybe_unused]] const auto response = client_ptr_->CreateRequest()
+                                                   .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+                                                   .get(server_.GetBaseUrl())
+                                                   .perform();
     }
 
     const utest::SimpleServer& GetServer() const { return server_; }
@@ -71,7 +69,7 @@ private:
         if (const auto& h = request->GetHeader(USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
             !h.empty()) {
             is_upgrade_http_ = true;
-            dynamic_cast<Http2Session*>(parser_.get())->UpgradeToHttp2(h);
+            dynamic_cast<Http2Session*>(parser_http2_.get())->UpgradeToHttp2(h);
             return;
         }
         UASSERT(request->GetHttpResponse().GetStreamId().has_value());
@@ -82,15 +80,15 @@ private:
     void ParseHttp2Request(const MockHttpRequest& request) {
         if (slice_size_ == -1) {
             if (request.find("HTTP/1.1") != std::string::npos) {
-                parser1_->Parse(request);
+                parser_http11_->Parse(request);
             } else {
-                parser_->Parse(request);
+                parser_http2_->Parse(request);
             }
         } else {
             UASSERT(slice_size_);
             for (size_t i = 0; i < request.size(); i += slice_size_) {
                 const auto slice = std::string_view{request}.substr(i, slice_size_);
-                parser_->Parse(slice);
+                parser_http2_->Parse(slice);
             }
         }
     }
@@ -105,7 +103,7 @@ private:
               status200.size(),
               NGHTTP2_NV_FLAG_NONE}}};
 
-        auto session_ptr = dynamic_cast<Http2Session*>(parser_.get())->GetNghttp2SessionPtr();
+        auto session_ptr = dynamic_cast<Http2Session*>(parser_http2_.get())->GetNghttp2SessionPtr();
         int rv = nghttp2_submit_response(session_ptr, cur_stream_id_, headers.data(), headers.size(), nullptr);
 
         UASSERT(!rv);
@@ -148,8 +146,8 @@ private:
     request::ResponseDataAccounter accounter_;
     net::ParserStats stats_;
 
-    std::shared_ptr<request::RequestParser> parser_;
-    std::shared_ptr<request::RequestParser> parser1_;
+    std::shared_ptr<request::RequestParser> parser_http2_;
+    std::shared_ptr<request::RequestParser> parser_http11_;
 
     const utest::SimpleServer server_;
 

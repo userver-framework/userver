@@ -112,7 +112,7 @@ UTEST_F(GrpcMiddlewares, HappyPath) {
 
     sample::ugrpc::GreetingRequest request;
     request.set_name("userver");
-    auto response = GetClient().SayHello(request).Finish();
+    auto response = GetClient().SyncSayHello(request);
 
     EXPECT_EQ(GetMockMiddleware().times_called, 1);
     EXPECT_EQ(response.name(), "Hello userver");
@@ -124,7 +124,7 @@ UTEST_F(GrpcMiddlewares, Exception) {
     GetMockMiddleware().throw_exception = true;
     sample::ugrpc::GreetingRequest request;
     request.set_name("userver");
-    UEXPECT_THROW(auto r = GetClient().SayHello(request), std::runtime_error);
+    UEXPECT_THROW(auto future = GetClient().AsyncSayHello(request), std::runtime_error);
     EXPECT_EQ(GetMockMiddleware().times_called, 1);
 }
 

@@ -16,10 +16,10 @@ public:
     using OnMessageCb = SubscriptionToken::OnMessageCb;
 
     SubscriptionTokenImpl(
-        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        impl::SubscribeSentinel& subscribe_sentinel,
         std::string channel,
         OnMessageCb on_message_cb,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     );
 
     ~SubscriptionTokenImpl() override;
@@ -42,10 +42,10 @@ public:
     using OnPmessageCb = SubscriptionToken::OnPmessageCb;
 
     PsubscriptionTokenImpl(
-        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        impl::SubscribeSentinel& subscribe_sentinel,
         std::string pattern,
         OnPmessageCb on_pmessage_cb,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     );
 
     ~PsubscriptionTokenImpl() override;
@@ -68,10 +68,10 @@ public:
     using OnMessageCb = SubscriptionToken::OnMessageCb;
 
     SsubscriptionTokenImpl(
-        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        impl::SubscribeSentinel& subscribe_sentinel,
         std::string channel,
         OnMessageCb on_message_cb,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     );
 
     ~SsubscriptionTokenImpl() override;

@@ -72,7 +72,7 @@ void MultiMongo::PoolSet::Activate() { target_->pool_map_.Assign(*pool_map_ptr_)
 
 MultiMongo::MultiMongo(
     std::string name,
-    const storages::secdist::Secdist& secdist,
+    storages::secdist::Secdist& secdist,
     storages::mongo::PoolConfig pool_config,
     clients::dns::Resolver* dns_resolver,
     dynamic_config::Source config_source
@@ -83,6 +83,7 @@ MultiMongo::MultiMongo(
       pool_config_(std::move(pool_config)),
       dns_resolver_(dns_resolver) {
     config_subscriber_ = config_source_.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnConfigUpdate);
+    secdist_subscriber_ = secdist.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnSecdistUpdate);
 }
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
@@ -140,6 +141,14 @@ storages::mongo::PoolPtr MultiMongo::FindPool(const std::string& dbalias) const 
     const auto it = pool_map->find(dbalias);
     if (it == pool_map->end()) return {};
     return it->second;
+}
+
+void MultiMongo::OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist) {
+    const auto pool_map = pool_map_.Read();
+    for (const auto& [dbalias, pool] : *pool_map) {
+        auto conn_string = secdist::GetSecdistConnectionString(secdist, dbalias);
+        pool->SetConnectionString(conn_string);
+    }
 }
 
 }  // namespace storages::mongo

@@ -59,8 +59,12 @@ const std::string& MongoSettings::GetConnectionString(const std::string& dbalias
 
 std::string GetSecdistConnectionString(const storages::secdist::Secdist& secdist, const std::string& dbalias) {
     auto snapshot = secdist.GetSnapshot();
+    return GetSecdistConnectionString(*snapshot, dbalias);
+}
+
+std::string GetSecdistConnectionString(const storages::secdist::SecdistConfig& secdist, const std::string& dbalias) {
     try {
-        return snapshot->Get<storages::mongo::secdist::MongoSettings>().GetConnectionString(dbalias);
+        return secdist.Get<storages::mongo::secdist::MongoSettings>().GetConnectionString(dbalias);
     } catch (const storages::secdist::SecdistError& ex) {
         throw storages::mongo::InvalidConfigException("Failed to load mongo config for dbalias ")
             << dbalias << ": " << ex.what();

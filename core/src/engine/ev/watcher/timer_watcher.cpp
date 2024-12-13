@@ -27,7 +27,7 @@ void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout, Callback c
 
 void TimerWatcher::OnEventTimeout(struct ev_loop*, ev_timer* timer, int events) noexcept {
     auto* self = static_cast<TimerWatcher*>(timer->data);
-    self->ev_timer_.Stop();
+    const auto guard = self->ev_timer_.StopWithinEvCallback();
 
     if (events & EV_TIMER) {
         try {

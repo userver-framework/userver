@@ -11,7 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class SubscribeSentinel : protected Sentinel {
 public:
@@ -34,7 +34,7 @@ public:
 
     static std::shared_ptr<SubscribeSentinel> Create(
         const std::shared_ptr<ThreadPools>& thread_pools,
-        const secdist::RedisSettings& settings,
+        const USERVER_NAMESPACE::secdist::RedisSettings& settings,
         std::string shard_group_name,
         dynamic_config::Source dynamic_config_source,
         const std::string& client_name,
@@ -44,7 +44,7 @@ public:
     );
     static std::shared_ptr<SubscribeSentinel> Create(
         const std::shared_ptr<ThreadPools>& thread_pools,
-        const secdist::RedisSettings& settings,
+        const USERVER_NAMESPACE::secdist::RedisSettings& settings,
         std::string shard_group_name,
         dynamic_config::Source dynamic_config_source,
         const std::string& client_name,
@@ -94,10 +94,10 @@ private:
     void InitStorage();
 
     std::shared_ptr<ThreadPools> thread_pools_;
-    std::shared_ptr<redis::SubscriptionStorageBase> storage_;
+    std::shared_ptr<SubscriptionStorageBase> storage_;
     std::shared_ptr<Stopper> stopper_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

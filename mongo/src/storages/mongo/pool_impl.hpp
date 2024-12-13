@@ -41,6 +41,9 @@ public:
 
     virtual void SetPoolSettings(const PoolSettings& pool_settings) = 0;
 
+    // Cannot be called in parallel
+    virtual void SetConnectionString(const std::string& connection_string) = 0;
+
 protected:
     PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_config::Source config_source);
 

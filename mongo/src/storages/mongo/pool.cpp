@@ -80,6 +80,8 @@ void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
 
 void Pool::SetPoolSettings(const PoolSettings& pool_settings) { impl_->SetPoolSettings(pool_settings); }
 
+void Pool::SetConnectionString(const std::string& connection_string) { impl_->SetConnectionString(connection_string); }
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

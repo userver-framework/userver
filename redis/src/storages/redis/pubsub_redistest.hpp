@@ -12,11 +12,12 @@ class RedisClusterPubsubTest : public RedisClusterClientTest {};
 
 // Basic functionality should work for every possible CommandControl object
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-struct RedisPubsubTestBasic : public RedisPubsubTest, public ::testing::WithParamInterface<redis::CommandControl> {};
+struct RedisPubsubTestBasic : public RedisPubsubTest,
+                              public ::testing::WithParamInterface<storages::redis::CommandControl> {};
 
 // Basic functionality should work for every possible CommandControl object
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 struct RedisClusterPubsubTestBasic : public RedisClusterPubsubTest,
-                                     public ::testing::WithParamInterface<redis::CommandControl> {};
+                                     public ::testing::WithParamInterface<storages::redis::CommandControl> {};
 
 USERVER_NAMESPACE_END

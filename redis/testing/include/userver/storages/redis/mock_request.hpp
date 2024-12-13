@@ -6,8 +6,8 @@
 #include <memory>
 #include <string>
 
+#include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/request.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request.hpp>
@@ -71,9 +71,7 @@ public:
     void Wait() override {}
 
     ReplyType Get(const std::string& request_description) override {
-        throw USERVER_NAMESPACE::redis::RequestFailedException(
-            request_description, USERVER_NAMESPACE::redis::ReplyStatus::kTimeoutError
-        );
+        throw RequestFailedException(request_description, ReplyStatus::kTimeoutError);
     }
 
     ReplyPtr GetRaw() override {
@@ -117,27 +115,31 @@ private:
 };
 
 template <typename Result, typename ReplyType = Result>
-Request<Result, ReplyType> CreateMockRequest(Result&& result, Request<Result, ReplyType>* /* for ADL */) {
-    return Request<Result, ReplyType>(std::make_unique<MockRequestData<Result, ReplyType>>(std::forward<Result>(result))
+storages::redis::Request<Result, ReplyType>
+CreateMockRequest(Result&& result, storages::redis::Request<Result, ReplyType>* /* for ADL */) {
+    return storages::redis::Request<Result, ReplyType>(
+        std::make_unique<MockRequestData<Result, ReplyType>>(std::forward<Result>(result))
     );
 }
 
 template <typename Result, typename ReplyType = Result>
-Request<Result, ReplyType> CreateMockRequestVoid(Request<Result, ReplyType>* /* for ADL */) {
+storages::redis::Request<Result, ReplyType>
+CreateMockRequestVoid(storages::redis::Request<Result, ReplyType>* /* for ADL */) {
     static_assert(std::is_same<ReplyType, void>::value, "ReplyType must be void");
-    return Request<Result, ReplyType>(std::make_unique<MockRequestData<Result, ReplyType>>());
+    return storages::redis::Request<Result, ReplyType>(std::make_unique<MockRequestData<Result, ReplyType>>());
 }
 
 template <typename Result, typename ReplyType = Result>
-Request<Result, ReplyType> CreateMockRequestTimeout(Request<Result, ReplyType>* /* for ADL */) {
-    return Request<Result, ReplyType>(std::make_unique<MockRequestDataTimeout<Result, ReplyType>>());
+storages::redis::Request<Result, ReplyType>
+CreateMockRequestTimeout(storages::redis::Request<Result, ReplyType>* /* for ADL */) {
+    return storages::redis::Request<Result, ReplyType>(std::make_unique<MockRequestDataTimeout<Result, ReplyType>>());
 }
 
 template <typename T>
 struct ReplyTypeHelper {};
 
 template <typename Result, typename ReplyType>
-struct ReplyTypeHelper<Request<Result, ReplyType>> {
+struct ReplyTypeHelper<storages::redis::Request<Result, ReplyType>> {
     using ExtractedReplyType = ReplyType;
 };
 

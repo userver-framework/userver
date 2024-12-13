@@ -10,6 +10,8 @@ namespace storages::mongo::secdist {
 
 std::string GetSecdistConnectionString(const storages::secdist::Secdist& secdist, const std::string& dbalias);
 
+std::string GetSecdistConnectionString(const storages::secdist::SecdistConfig& secdist, const std::string& dbalias);
+
 }  // namespace storages::mongo::secdist
 
 USERVER_NAMESPACE_END

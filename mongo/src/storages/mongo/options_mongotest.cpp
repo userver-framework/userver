@@ -601,6 +601,8 @@ UTEST_F(Options, Hint) {
     UEXPECT_NO_THROW(
         coll.UpdateMany({}, bson::MakeDoc("$set", bson::MakeDoc("a", "b")), mongo::options::Hint{"some_index"})
     );
+
+    UEXPECT_NO_THROW(coll.Count({}, mongo::options::Hint{"some_index"}));
 }
 
 UTEST_F(Options, AllowPartialResults) {

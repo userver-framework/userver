@@ -23,13 +23,13 @@ protected:
     class InClusterMode {};
     explicit RedisConnectionState(InClusterMode);
 
-    std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel> GetSentinel() const { return sentinel_; }
+    std::shared_ptr<storages::redis::impl::Sentinel> GetSentinel() const { return sentinel_; }
 
 private:
-    std::shared_ptr<USERVER_NAMESPACE::redis::ThreadPools> thread_pools_;
-    std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel> sentinel_;
+    std::shared_ptr<storages::redis::impl::ThreadPools> thread_pools_;
+    std::shared_ptr<storages::redis::impl::Sentinel> sentinel_;
     ClientPtr client_;
-    std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel> subscribe_sentinel_;
+    std::shared_ptr<storages::redis::impl::SubscribeSentinel> subscribe_sentinel_;
     SubscribeClientPtr subscribe_client_;
 };
 

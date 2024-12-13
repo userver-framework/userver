@@ -9,10 +9,7 @@ namespace storages::redis {
 
 class RequestExecDataImpl final : public RequestDataImplBase, public RequestDataBase<void> {
 public:
-    RequestExecDataImpl(
-        USERVER_NAMESPACE::redis::Request&& request,
-        std::vector<TransactionImpl::ResultPromise>&& result_promises
-    );
+    RequestExecDataImpl(impl::Request&& request, std::vector<TransactionImpl::ResultPromise>&& result_promises);
 
     void Wait() override;
 

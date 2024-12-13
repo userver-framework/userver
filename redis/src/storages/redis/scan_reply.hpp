@@ -48,7 +48,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(ReplyData&& reply_data, c
 
     auto& top_array = reply_data.GetArray();
     if (top_array.size() != 2) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected reply size to '" + request_description + "' request: expected 2 elements, received " +
             std::to_string(top_array.size())
         );
@@ -56,7 +56,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(ReplyData&& reply_data, c
 
     const auto& cursor_elem = top_array[0];
     if (!cursor_elem.IsString()) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected format of reply to '" + request_description + "' request: expected " +
             ReplyData::TypeToString(ReplyData::Type::kString) + " as first element, received " +
             cursor_elem.GetTypeString()
@@ -65,7 +65,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(ReplyData&& reply_data, c
 
     auto& keys_elem = top_array[1];
     if (!keys_elem.IsArray()) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected format of reply to '" + request_description + "' request: expected " +
             ReplyData::TypeToString(ReplyData::Type::kArray) + " as second element, received " +
             keys_elem.GetTypeString()
@@ -76,7 +76,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(ReplyData&& reply_data, c
     try {
         cursor = std::stoul(cursor_elem.GetString());
     } catch (const std::exception& ex) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Can't parse reply to '" + request_description + "' request: " + "Can't parse cursor from " +
             cursor_elem.GetString()
         );

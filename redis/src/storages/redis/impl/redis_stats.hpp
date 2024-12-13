@@ -6,18 +6,19 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/redis_state.hpp>
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/redis_state.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
+#include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/reply_status_strings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 std::chrono::milliseconds MillisecondsSinceEpoch();
 
@@ -141,6 +142,6 @@ void DumpMetric(utils::statistics::Writer& writer, const ShardStatistics& stats)
 
 void DumpMetric(utils::statistics::Writer& writer, const SentinelStatistics& stats);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

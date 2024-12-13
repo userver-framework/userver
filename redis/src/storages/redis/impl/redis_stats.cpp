@@ -5,15 +5,15 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/reply.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <hiredis/hiredis.h>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -128,7 +128,7 @@ void DumpMetric(utils::statistics::Writer& writer, const ConnStateStatistic& sta
     for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError); ++i) {
         const auto state = static_cast<Redis::State>(i);
         writer["cluster_states"].ValueWithLabels(
-            stats.Get(state), {"redis_instance_state", redis::StateToString(state)}
+            stats.Get(state), {"redis_instance_state", impl::StateToString(state)}
         );
     }
 }
@@ -225,12 +225,12 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
         for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError); ++i) {
             const auto state = static_cast<Redis::State>(i);
             writer["state"].ValueWithLabels(
-                static_cast<int>(stats.state == state), {"redis_instance_state", redis::StateToString(state)}
+                static_cast<int>(stats.state == state), {"redis_instance_state", impl::StateToString(state)}
             );
         }
 
-        long long session_time_ms = stats.state == redis::Redis::State::kConnected
-                                        ? (redis::MillisecondsSinceEpoch() - stats.session_start_time).count()
+        long long session_time_ms = stats.state == impl::Redis::State::kConnected
+                                        ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
                                         : 0;
         writer["session-time-ms"] = session_time_ms;
     }
@@ -294,6 +294,6 @@ void DumpMetric(utils::statistics::Writer& writer, const SentinelStatistics& sta
     }
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

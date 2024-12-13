@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 const std::chrono::seconds kRebalanceMinIntervalDefault{30};
 
@@ -94,6 +94,6 @@ void SubscriptionRebalanceScheduler::OnTimer(struct ev_loop*, ev_timer* w, int) 
     scheduler->DoRebalance();
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

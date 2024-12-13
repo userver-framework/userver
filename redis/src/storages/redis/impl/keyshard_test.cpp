@@ -57,7 +57,7 @@ const std::string kKey =
     "Index.КАЗАХСТАН:Index.КАЗАХСТАН:Index.КАЗАХСТАН:";
 
 TEST(KeyShardTaximeterCrc32, Multithreads) {
-    redis::KeyShardTaximeterCrc32 key_shard(kShards);
+    storages::redis::impl::KeyShardTaximeterCrc32 key_shard(kShards);
 
     std::mutex mutex;
     std::vector<size_t> counts(kShards, 0);

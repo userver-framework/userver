@@ -16,10 +16,10 @@ constexpr std::string_view kProcessRedisSubscriptionMessage = "process redis sub
 }  // namespace
 
 SubscriptionTokenImpl::SubscriptionTokenImpl(
-    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    impl::SubscribeSentinel& subscribe_sentinel,
     std::string channel,
     OnMessageCb on_message_cb,
-    const USERVER_NAMESPACE::redis::CommandControl& command_control
+    const CommandControl& command_control
 )
     : channel_(std::move(channel)),
       queue_(subscribe_sentinel, channel_, command_control),
@@ -44,10 +44,10 @@ void SubscriptionTokenImpl::ProcessMessages() {
 }
 
 PsubscriptionTokenImpl::PsubscriptionTokenImpl(
-    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    impl::SubscribeSentinel& subscribe_sentinel,
     std::string pattern,
     OnPmessageCb on_pmessage_cb,
-    const USERVER_NAMESPACE::redis::CommandControl& command_control
+    const CommandControl& command_control
 )
     : pattern_(std::move(pattern)),
       queue_(subscribe_sentinel, pattern_, command_control),
@@ -72,10 +72,10 @@ void PsubscriptionTokenImpl::ProcessMessages() {
 }
 
 SsubscriptionTokenImpl::SsubscriptionTokenImpl(
-    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    impl::SubscribeSentinel& subscribe_sentinel,
     std::string channel,
     OnMessageCb on_message_cb,
-    const USERVER_NAMESPACE::redis::CommandControl& command_control
+    const CommandControl& command_control
 )
     : channel_(std::move(channel)),
       queue_(subscribe_sentinel, channel_, command_control),

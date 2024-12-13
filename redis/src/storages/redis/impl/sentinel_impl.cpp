@@ -20,13 +20,13 @@
 #include <storages/redis/impl/sentinel.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #include "command_control_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 namespace {
 
 bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
@@ -98,6 +98,13 @@ SentinelImpl::SentinelImpl(
 }
 
 SentinelImpl::~SentinelImpl() { Stop(); }
+
+void SentinelImpl::SetSentinelConnectionInfo(const std::vector<ConnectionInfo>& sentinel_conns) {
+    std::vector<ConnectionInfoInt> cii;
+    cii.reserve(sentinel_conns.size());
+    for (const auto& conn : sentinel_conns) cii.emplace_back(ConnectionInfoInt{conn});
+    sentinels_->SetConnectionInfo(cii);
+}
 
 std::unordered_map<ServerId, size_t, ServerIdHasher>
 SentinelImpl::GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const {
@@ -1022,6 +1029,10 @@ bool SentinelImpl::ConnectedStatus::Wait(engine::Deadline deadline, const Pred& 
     return cv_.WaitUntil(lock, deadline, pred);
 }
 
-}  // namespace redis
+void SentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+    sentinels_->SetConnectionInfo(info_array);
+}
+
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

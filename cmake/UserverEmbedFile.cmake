@@ -19,6 +19,11 @@ function(userver_embed_file TARGET)
 
   set(CONFIG_HPP ${CMAKE_CURRENT_BINARY_DIR}/embedded/include/generated/${ARG_HPP_FILENAME}.hpp)
   add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
+    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/embedded &&
+            touch ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
+  )
+  add_custom_command(
     OUTPUT
     ${CONFIG_HPP}
     DEPENDS
@@ -32,7 +37,7 @@ function(userver_embed_file TARGET)
 	    -DNAME=${ARG_NAME}
 	    -P ${USERVER_ROOT_DIR}/cmake/embedded_config.cmake
   )
-  add_library(${TARGET} STATIC ${CONFIG_HPP})
+  add_library(${TARGET} STATIC ${CONFIG_HPP} ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp)
   target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/embedded/include)
   target_link_libraries(${TARGET} PUBLIC userver::universal)
 endfunction()

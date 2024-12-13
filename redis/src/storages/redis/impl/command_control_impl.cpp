@@ -2,7 +2,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 CommandControlImpl::CommandControlImpl(const CommandControl& command_control) {
     if (command_control.timeout_single.has_value()) timeout_single = *command_control.timeout_single;
@@ -21,6 +21,6 @@ CommandControlImpl::CommandControlImpl(const CommandControl& command_control) {
     if (command_control.force_server_id.has_value()) force_server_id = *command_control.force_server_id;
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

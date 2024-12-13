@@ -6,13 +6,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 struct PubsubChannelStatistics {
     std::chrono::steady_clock::time_point subscription_timestamp;
@@ -72,6 +72,6 @@ void DumpMetric(utils::statistics::Writer& writer, const PubsubShardStatistics& 
 
 void DumpMetric(utils::statistics::Writer& writer, const PubsubClusterStatistics& stats);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

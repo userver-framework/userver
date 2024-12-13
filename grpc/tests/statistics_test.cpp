@@ -37,7 +37,7 @@ UTEST_F(GrpcStatistics, LongRequest) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    UEXPECT_THROW(client.SayHello(out).Finish(), ugrpc::client::InvalidArgumentError);
+    UEXPECT_THROW(client.SyncSayHello(out), ugrpc::client::InvalidArgumentError);
     GetServer().StopServing();
 
     for (const auto& domain : {"client", "server"}) {
@@ -73,11 +73,9 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
 
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
-    sample::ugrpc::GreetingResponse res;
     out.set_name("userver");
 
-    auto call = client.SayHello(out);
-    auto future = call.FinishAsync(res);
+    auto future = client.AsyncSayHello(out);
 
     const std::string kMetricsPath = "grpc.client.by-destination";
     const std::vector<utils::statistics::Label> kMetricsLabels{
@@ -128,7 +126,7 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
         for (int i = 0; i < kIterations; ++i) {
             sample::ugrpc::GreetingRequest out;
             out.set_name("userver");
-            UEXPECT_THROW(client.SayHello(out).Finish(), ugrpc::client::InvalidArgumentError);
+            UEXPECT_THROW(client.SyncSayHello(out), ugrpc::client::InvalidArgumentError);
         }
     });
 

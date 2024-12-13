@@ -15,7 +15,7 @@ std::string ExtractStringElem(ReplyData& array_data, size_t elem_idx, const std:
     auto& array = array_data.GetArray();
     auto& elem = array.at(elem_idx);
     if (!elem.IsString()) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected redis reply type to '" + request_description + "' request: " + "array[" +
             std::to_string(elem_idx) + "]: expected " + ReplyData::TypeToString(ReplyData::Type::kString) +
             ", got type=" + elem.GetTypeString() + " elem=" + elem.ToDebugString() +
@@ -29,9 +29,7 @@ ReplyData::MovableKeyValues GetKeyValues(ReplyData& array_data, const std::strin
     try {
         return array_data.GetMovableKeyValues();
     } catch (const std::exception& ex) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
-            "Can't parse response to '" + request_description + "' request: " + ex.what()
-        );
+        throw ParseReplyException("Can't parse response to '" + request_description + "' request: " + ex.what());
     }
 }
 
@@ -39,13 +37,13 @@ Point ParsePointArray(const redis::ReplyData& elem, const std::string& request_d
     const auto& array = elem.GetArray();
     size_t size = array.size();
     if (size != 2) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected reply to '" + request_description + "'. Expected 2 elements in array, got " +
             std::to_string(size)
         );
     }
     if (!array[0].IsString() || !array[1].IsString()) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected reply to '" + request_description + "'. Expected 2 elements of type: [" +
             ReplyData::TypeToString(ReplyData::Type::kString) + "," +
             ReplyData::TypeToString(ReplyData::Type::kString) + "], got: " + elem.ToDebugString()
@@ -54,7 +52,7 @@ Point ParsePointArray(const redis::ReplyData& elem, const std::string& request_d
     try {
         return {utils::FromString<double>(array[0].GetString()), utils::FromString<double>(array[1].GetString())};
     } catch (const std::exception& exc) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected reply to '" + request_description + "'. Parse sub_elements " + elem.ToDebugString() +
             " made error: " + exc.what()
         );
@@ -141,14 +139,14 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
         try {
             score = std::stod(score_elem);
         } catch (const std::exception& ex) {
-            throw USERVER_NAMESPACE::redis::ParseReplyException(std::string("Can't parse response to '")
-                                                                    .append(request_description)
-                                                                    .append("' request: can't parse score from '")
-                                                                    .append(score_elem)
-                                                                    .append("' array=")
-                                                                    .append(array_data.ToDebugString())
-                                                                    .append(": ")
-                                                                    .append(ex.what()));
+            throw ParseReplyException(std::string("Can't parse response to '")
+                                          .append(request_description)
+                                          .append("' request: can't parse score from '")
+                                          .append(score_elem)
+                                          .append("' array=")
+                                          .append(array_data.ToDebugString())
+                                          .append(": ")
+                                          .append(ex.what()));
         }
 
         result.emplace_back(std::move(member_elem), score);
@@ -167,7 +165,7 @@ ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& 
         } else if (elem.IsArray()) {
             auto additional_infos = elem.GetArray();
             if (additional_infos.empty()) {
-                throw USERVER_NAMESPACE::redis::ParseReplyException(
+                throw ParseReplyException(
                     "Can't parse value from reply to '" + request_description + ", additional_info item is empty array"
                 );
             }
@@ -181,7 +179,7 @@ ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& 
                     try {
                         geo_point.dist = utils::FromString<double>(sub_elem.GetString());
                     } catch (const std::exception& exc) {
-                        throw USERVER_NAMESPACE::redis::ParseReplyException(
+                        throw ParseReplyException(
                             "Unexpected reply to '" + request_description + "'. Parse sub_elem '" +
                             sub_elem.ToDebugString() + "' made error: " + exc.what()
                         );
@@ -189,7 +187,7 @@ ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& 
                 } else if (sub_elem.IsArray()) {
                     geo_point.point = ParsePointArray(sub_elem, request_description);
                 } else {
-                    throw USERVER_NAMESPACE::redis::ParseReplyException(
+                    throw ParseReplyException(
                         "Can't parse value from reply to '" + request_description + ", expected subarray types: [" +
                         ReplyData::TypeToString(ReplyData::Type::kString) + "," +
                         ReplyData::TypeToString(ReplyData::Type::kInteger) + "," +
@@ -199,7 +197,7 @@ ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& 
                 }
             }
         } else {
-            throw USERVER_NAMESPACE::redis::ParseReplyException(
+            throw ParseReplyException(
                 "Can't parse value from reply to '" + request_description + "', expected one of [" +
                 ReplyData::TypeToString(ReplyData::Type::kString) + ", " +
                 ReplyData::TypeToString(ReplyData::Type::kArray) + "], got type: " + elem.GetTypeString() +
@@ -221,7 +219,7 @@ double Parse(ReplyData&& reply_data, const std::string& request_description, To<
     try {
         return std::stod(reply_data.GetString());
     } catch (const std::exception& ex) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Can't parse value from reply to '" + request_description + "' request (" + reply_data.ToDebugString() +
             "): " + ex.what()
         );
@@ -248,7 +246,7 @@ Parse(ReplyData&& reply_data, const std::string& request_description, To<std::ch
     reply_data.ExpectArray(request_description);
     auto&& result = reply_data.GetArray();
     if (result.size() != 2) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected reply to '" + request_description + "'. Expected 2 elements in array, got " +
             std::to_string(result.size())
         );
@@ -266,7 +264,7 @@ HsetReply Parse(ReplyData&& reply_data, const std::string& request_description, 
     reply_data.ExpectInt(request_description);
     auto result = reply_data.GetInt();
     if (result < 0 || result > 1)
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
+        throw ParseReplyException(
             "Unexpected reply to '" + request_description + "' request: " + std::to_string(result)
         );
     return result ? HsetReply::kCreated : HsetReply::kUpdated;
@@ -281,7 +279,7 @@ PersistReply Parse(ReplyData&& reply_data, const std::string& request_descriptio
         case 1:
             return PersistReply::kTimeoutRemoved;
         default:
-            throw USERVER_NAMESPACE::redis::ParseReplyException(
+            throw ParseReplyException(
                 "Unexpected reply to '" + request_description + "' request: " + std::to_string(value)
             );
     }
@@ -293,9 +291,7 @@ KeyType Parse(ReplyData&& reply_data, const std::string& request_description, To
     try {
         return ParseKeyType(status);
     } catch (const std::exception& ex) {
-        throw USERVER_NAMESPACE::redis::ParseReplyException(
-            "Unexpected redis reply to '" + request_description + "' request. " + ex.what()
-        );
+        throw ParseReplyException("Unexpected redis reply to '" + request_description + "' request. " + ex.what());
     }
 }
 

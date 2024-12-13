@@ -9,16 +9,16 @@
 #include <engine/ev/thread_pool.hpp>
 #include <userver/utils/retry_budget.hpp>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/redis_state.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/fwd.hpp>
 #include <userver/storages/redis/impl/request.hpp>
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/redis_state.hpp>
 
 #include "redis_creation_settings.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class Statistics;
 
@@ -69,6 +69,6 @@ double ToEvDuration(const std::chrono::duration<Rep, Period>& duration) {
 
 std::string_view StateToString(RedisState state);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

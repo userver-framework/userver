@@ -2,7 +2,7 @@
 
 #include <thread>
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 
@@ -38,7 +38,9 @@ void PeriodicWait(Predicate predicate) {
     EXPECT_TRUE(predicate());
 }
 
-bool IsConnected(const redis::Redis& redis) { return redis.GetState() == redis::RedisState::kConnected; }
+bool IsConnected(const storages::redis::impl::Redis& redis) {
+    return redis.GetState() == storages::redis::RedisState::kConnected;
+}
 
 }  // namespace
 
@@ -46,10 +48,10 @@ TEST(Redis, NoPassword) {
     MockRedisServer server;
     auto ping_handler = server.RegisterPingHandler();
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
-    redis->Connect({kLocalhost}, server.GetPort(), redis::Password(""));
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""));
 
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
 }
@@ -59,10 +61,10 @@ TEST(Redis, Auth) {
     auto ping_handler = server.RegisterPingHandler();
     auto auth_handler = server.RegisterStatusReplyHandler("AUTH", "OK");
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
-    redis->Connect({kLocalhost}, server.GetPort(), redis::Password("password"));
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"));
 
     EXPECT_TRUE(auth_handler->WaitForFirstReply(kSmallPeriod));
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
@@ -73,10 +75,10 @@ TEST(Redis, AuthFail) {
     auto ping_handler = server.RegisterPingHandler();
     auto auth_error_handler = server.RegisterErrorReplyHandler("AUTH", "NO PASARAN");
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
-    redis->Connect({kLocalhost}, server.GetPort(), redis::Password("password"));
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"));
 
     EXPECT_TRUE(auth_error_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicCheck([&] { return !IsConnected(*redis); });
@@ -85,13 +87,13 @@ TEST(Redis, AuthFail) {
 TEST(Redis, AuthTimeout) {
     MockRedisServer server;
     auto ping_handler = server.RegisterPingHandler();
-    auto sleep_period = redis::kDefaultTimeoutSingle + std::chrono::milliseconds(30);
+    auto sleep_period = storages::redis::kDefaultTimeoutSingle + std::chrono::milliseconds(30);
     auto auth_error_handler = server.RegisterTimeoutHandler("AUTH", sleep_period);
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
-    redis->Connect({kLocalhost}, server.GetPort(), redis::Password("password"));
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"));
 
     EXPECT_TRUE(auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
     PeriodicCheck([&] { return !IsConnected(*redis); });
@@ -102,10 +104,10 @@ TEST(Redis, SlaveREADONLY) {
     auto ping_handler = server.RegisterPingHandler();
     auto readonly_handler = server.RegisterStatusReplyHandler("READONLY", "OK");
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
     redis_settings.send_readonly = true;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
     redis->Connect({kLocalhost}, server.GetPort(), {});
 
     EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
@@ -117,10 +119,10 @@ TEST(Redis, SlaveREADONLYFail) {
     auto ping_handler = server.RegisterPingHandler();
     auto readonly_handler = server.RegisterErrorReplyHandler("READONLY", "FAIL");
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
     redis_settings.send_readonly = true;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
     redis->Connect({kLocalhost}, server.GetPort(), {});
 
     EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
@@ -131,10 +133,10 @@ TEST(Redis, PingFail) {
     MockRedisServer server;
     auto ping_error_handler = server.RegisterErrorReplyHandler("PING", "PONG");
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
-    redis->Connect({kLocalhost}, server.GetPort(), redis::Password(""));
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""));
 
     EXPECT_TRUE(ping_error_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicWait([&] { return !IsConnected(*redis); });
@@ -158,15 +160,17 @@ TEST_P(RedisDisconnectingReplies, X) {
     auto ping_handler = server.RegisterPingHandler();
     auto get_handler = server.RegisterErrorReplyHandler("GET", GetParam());
 
-    auto pool = std::make_shared<redis::ThreadPools>(1, 1);
-    redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), redis_settings);
-    redis->Connect({kLocalhost}, server.GetPort(), redis::Password(""));
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    storages::redis::RedisCreationSettings redis_settings;
+    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings);
+    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""));
 
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicWait([&] { return IsConnected(*redis); });
 
-    auto cmd = redis::PrepareCommand({"GET", "123"}, [](const redis::CommandPtr&, redis::ReplyPtr) {});
+    auto cmd = storages::redis::impl::PrepareCommand(
+        {"GET", "123"}, [](const storages::redis::impl::CommandPtr&, storages::redis::ReplyPtr) {}
+    );
     redis->AsyncCommand(cmd);
 
     EXPECT_TRUE(get_handler->WaitForFirstReply(kSmallPeriod));

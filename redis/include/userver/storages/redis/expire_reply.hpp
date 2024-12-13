@@ -3,11 +3,11 @@
 #include <cstdint>
 #include <string>
 
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 class ExpireReply final {
 public:
@@ -27,6 +27,12 @@ private:
     ExpireReplyValue value_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis
+
+#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
+namespace redis {
+using storages::redis::ExpireReply;
+}
+#endif
 
 USERVER_NAMESPACE_END

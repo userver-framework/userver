@@ -2,7 +2,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 /// Redis reply status
 enum class ReplyStatus {
@@ -15,6 +15,12 @@ enum class ReplyStatus {
     kTimeoutError,
 };
 
-}  // namespace redis
+}  // namespace storages::redis
+
+#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
+namespace redis {
+using storages::redis::ReplyStatus;
+}
+#endif
 
 USERVER_NAMESPACE_END

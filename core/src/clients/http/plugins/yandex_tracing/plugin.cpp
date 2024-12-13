@@ -20,8 +20,6 @@ constexpr USERVER_NAMESPACE::http::headers::PredefinedHeader kYaTracingHeaders[]
 };
 
 const std::string kName = "yandex-tracing";
-const std::string kTypeTag = "type";
-const std::string kTypeRequest = "request";
 }  // namespace
 
 Plugin::Plugin() : http::Plugin(kName) {}
@@ -29,7 +27,6 @@ Plugin::Plugin() : http::Plugin(kName) {}
 void Plugin::HookPerformRequest(PluginRequest&) {}
 
 void Plugin::HookCreateSpan(PluginRequest&, tracing::Span& span) {
-    span.AddNonInheritableTag(kTypeTag, kTypeRequest);
     span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindClient);
 }
 

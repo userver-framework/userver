@@ -13,8 +13,8 @@
 #include <userver/logging/log.hpp>
 
 #include <storages/redis/impl/redis.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -36,7 +36,7 @@ public:
 
     void SendReplyOk(const std::string& reply);
     void SendReplyError(const std::string& reply);
-    void SendReplyData(const redis::ReplyData& reply_data);
+    void SendReplyData(const storages::redis::ReplyData& reply_data);
     int GetPort() const;
 
 protected:
@@ -46,7 +46,7 @@ protected:
 
     virtual void OnDisconnected() {}
 
-    virtual void OnCommand(std::shared_ptr<redis::Reply> cmd) {
+    virtual void OnCommand(std::shared_ptr<storages::redis::Reply> cmd) {
         LOG_DEBUG() << "Got command: " << cmd->data.ToDebugString();
     }
 
@@ -54,7 +54,7 @@ protected:
     void Accept();
 
 private:
-    static std::string ReplyDataToRedisProto(const redis::ReplyData& reply_data);
+    static std::string ReplyDataToRedisProto(const storages::redis::ReplyData& reply_data);
     void Work();
     void OnAccept(boost::system::error_code ec);
     void OnRead(boost::system::error_code ec, size_t count);
@@ -80,11 +80,11 @@ public:
     class Handler;
     using HandlerPtr = std::shared_ptr<Handler>;
 
-    HandlerPtr RegisterHandlerWithConstReply(const std::string& command, redis::ReplyData reply_data);
+    HandlerPtr RegisterHandlerWithConstReply(const std::string& command, storages::redis::ReplyData reply_data);
     HandlerPtr RegisterHandlerWithConstReply(
         const std::string& command,
         const std::vector<std::string>& args_prefix,
-        redis::ReplyData reply_data
+        storages::redis::ReplyData reply_data
     );
     HandlerPtr RegisterStatusReplyHandler(const std::string& command, std::string reply);
     HandlerPtr RegisterStatusReplyHandler(
@@ -121,7 +121,7 @@ public:
     bool WaitForFirstPingReply(const std::chrono::duration<Rep, Period>& duration) const;
 
 protected:
-    void OnCommand(std::shared_ptr<redis::Reply> cmd) override;
+    void OnCommand(std::shared_ptr<storages::redis::Reply> cmd) override;
 
 private:
     struct CommonMasterSlaveInfo;

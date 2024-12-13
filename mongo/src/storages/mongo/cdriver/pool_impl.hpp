@@ -32,7 +32,8 @@ public:
 
     class Connection final {
     public:
-        Connection(mongoc_client_t* client, stats::ApmStats* apm_stats) : client_(client) {
+        Connection(mongoc_client_t* client, stats::ApmStats* apm_stats, int64_t epoch)
+            : epoch_(epoch), client_(client) {
             UASSERT(client_);
             UASSERT(apm_stats);
             stats_.apm_stats_ = apm_stats;
@@ -47,7 +48,10 @@ public:
 
         stats::ConnStats* GetStatsPtr() { return &stats_; }
 
+        std::int64_t GetEpoch() const { return epoch_; }
+
     private:
+        std::int64_t epoch_;
         stats::ConnStats stats_;
         std::unique_ptr<mongoc_client_t, ClientDeleter> client_{nullptr};
     };
@@ -115,6 +119,9 @@ public:
 
     void SetPoolSettings(const PoolSettings& pool_settings) override;
 
+    // Cannot be called in parallel
+    void SetConnectionString(const std::string& connection_string) override;
+
 private:
     ConnPtr Pop();
     void Push(ConnPtr) noexcept;
@@ -127,7 +134,11 @@ private:
 
     const std::string app_name_;
     std::string default_database_;
-    UriPtr uri_;
+
+    std::string orig_connection_string_;
+    std::atomic<std::int64_t> epoch_{0};
+    rcu::Variable<UriPtr> uri_;
+
     AsyncStreamInitiatorData init_data_;
 
     std::atomic<size_t> max_size_;
@@ -136,9 +147,10 @@ private:
     std::atomic<size_t> size_;
     engine::Semaphore in_use_semaphore_;
     engine::Semaphore connecting_semaphore_;
-    moodycamel::ConcurrentQueue<ConnPtr> queue_;
-    // ApmStats must be after the queue_
+    const PoolConfig pool_config_;
     stats::ApmStats apm_stats_;
+    // queue_ must be after the apm_stats_, so apm_stats_ is used in connections
+    moodycamel::ConcurrentQueue<ConnPtr> queue_;
     utils::PeriodicTask maintenance_task_;
 };
 

@@ -9,7 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 KeysForShards::KeysForShards(
     size_t shard_count,
@@ -73,6 +73,6 @@ std::string KeysForShards::KeysToDebugString() const {
     return os.str();
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

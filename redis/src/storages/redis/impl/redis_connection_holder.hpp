@@ -10,7 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 /// This class holds redis connection and automatically reconnects if
 /// disconnected
@@ -58,6 +58,6 @@ private:
     engine::ev::PeriodicWatcher connection_check_timer_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

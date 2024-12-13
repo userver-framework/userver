@@ -11,7 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -116,7 +116,7 @@ void ClusterShard::GetStatistics(bool master, const MetricsSettings& settings, S
             return;
         }
         auto master_host_port = instance->GetServerHost() + ":" + std::to_string(instance->GetServerPort());
-        auto it = stats.instances.emplace(std::move(master_host_port), redis::InstanceStatistics(settings));
+        auto it = stats.instances.emplace(std::move(master_host_port), impl::InstanceStatistics(settings));
         auto& inst_stats = it.first->second;
         inst_stats.Fill(instance->GetStatistics());
         stats.shard_total.Add(inst_stats);
@@ -347,6 +347,6 @@ ClusterShard::GetAvailableServersWeighted(bool with_master, const CommandControl
     return ret;
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

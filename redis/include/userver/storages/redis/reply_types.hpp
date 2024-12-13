@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply/expire_reply.hpp>
-#include <userver/storages/redis/impl/reply/ttl_reply.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/expire_reply.hpp>
+#include <userver/storages/redis/ttl_reply.hpp>
 #include <userver/utils/void_t.hpp>
 
 #include <userver/storages/redis/key_type.hpp>
@@ -15,8 +15,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
-
-using ExpireReply = USERVER_NAMESPACE::redis::ExpireReply;
 
 enum class HsetReply { kCreated, kUpdated };
 
@@ -95,8 +93,6 @@ enum class SetReply { kSet, kNotSet };
 enum class StatusOk { kOk };
 
 enum class StatusPong { kPong };
-
-using TtlReply = USERVER_NAMESPACE::redis::TtlReply;
 
 }  // namespace storages::redis
 
