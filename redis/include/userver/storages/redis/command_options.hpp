@@ -55,19 +55,28 @@ struct GeosearchOptions {
 
 struct ZaddOptions {
     enum class Exist { kAddAlways, kAddIfNotExist, kAddIfExist };
+    enum class Compare { kNone, kGreaterThan, kLessThan };
     enum class ReturnValue { kAddedCount, kChangedCount };
 
     ZaddOptions() = default;
-    ZaddOptions(Exist exist, ReturnValue return_value = ReturnValue::kAddedCount)
-        : exist(exist), return_value(return_value) {}
-    ZaddOptions(ReturnValue return_value, Exist exist = Exist::kAddAlways) : exist(exist), return_value(return_value) {}
+    ZaddOptions(Exist exist, Compare compare = Compare::kNone, ReturnValue return_value = ReturnValue::kAddedCount)
+        : exist(exist), compare(compare), return_value(return_value) {}
+    ZaddOptions(Compare compare, Exist exist = Exist::kAddAlways, ReturnValue return_value = ReturnValue::kAddedCount)
+        : exist(exist), compare(compare), return_value(return_value) {}
+    ZaddOptions(ReturnValue return_value, Exist exist = Exist::kAddAlways, Compare compare = Compare::kNone)
+        : exist(exist), compare(compare), return_value(return_value) {}
 
     Exist exist = Exist::kAddAlways;
+    Compare compare = Compare::kNone;
     ReturnValue return_value = ReturnValue::kAddedCount;
 };
 
 ZaddOptions operator|(ZaddOptions::Exist exist, ZaddOptions::ReturnValue return_value);
+ZaddOptions operator|(ZaddOptions::Exist exist, ZaddOptions::Compare compare);
+ZaddOptions operator|(ZaddOptions::Compare compare, ZaddOptions::Exist exist);
+ZaddOptions operator|(ZaddOptions::Compare compare, ZaddOptions::ReturnValue return_value);
 ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptions::Exist exist);
+ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptions::Compare compare);
 
 class ScanOptionsBase {
 public:
