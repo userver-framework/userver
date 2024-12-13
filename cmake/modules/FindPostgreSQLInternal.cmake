@@ -32,7 +32,7 @@ _userver_module_find_include(
     ${USERVER_PG_INCLUDE_DIR}/internal
     ${USERVER_PG_INCLUDE_DIR}/postgresql/internal
     /usr/local/include/postgresql/internal  # FreeBSD
-    /usr/local/pgsql/include    # postgresql: make install
+    /usr/local/pgsql/include/internal    # postgresql: make install
     PATH_SUFFIXES
     postgresql/internal  # libpq-dev
     pgsql/internal       # postgresql-private-devel
