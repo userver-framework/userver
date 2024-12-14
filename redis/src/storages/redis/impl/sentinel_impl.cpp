@@ -99,6 +99,13 @@ SentinelImpl::SentinelImpl(
 
 SentinelImpl::~SentinelImpl() { Stop(); }
 
+void SentinelImpl::SetSentinelConnectionInfo(const std::vector<ConnectionInfo>& sentinel_conns) {
+    std::vector<ConnectionInfoInt> cii;
+    cii.reserve(sentinel_conns.size());
+    for (const auto& conn : sentinel_conns) cii.emplace_back(ConnectionInfoInt{conn});
+    sentinels_->SetConnectionInfo(cii);
+}
+
 std::unordered_map<ServerId, size_t, ServerIdHasher>
 SentinelImpl::GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const {
     return master_shards_.at(shard_idx)->GetAvailableServersWeighted(with_master, cc);
@@ -1020,6 +1027,10 @@ template <typename Pred>
 bool SentinelImpl::ConnectedStatus::Wait(engine::Deadline deadline, const Pred& pred) {
     std::unique_lock<std::mutex> lock(mutex_);
     return cv_.WaitUntil(lock, deadline, pred);
+}
+
+void SentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+    sentinels_->SetConnectionInfo(info_array);
 }
 
 }  // namespace storages::redis::impl

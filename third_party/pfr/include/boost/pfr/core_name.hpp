@@ -33,6 +33,8 @@
 
 namespace boost { namespace pfr {
 
+BOOST_PFR_BEGIN_MODULE_EXPORT
+
 /// \brief Returns name of a field with index `I` in \aggregate `T`.
 ///
 /// \b Example:
@@ -82,7 +84,30 @@ names_as_array() noexcept {
     );
 }
 
+
+/// Calls `func` for each field with its name of a `value`
+///
+/// \param func must have one of the following signatures:
+///     * any_return_type func(std::string_view name, U&& field)                // field of value is perfect forwarded to function
+///     * any_return_type func(std::string_view name, U&& field, std::size_t i)
+///     * any_return_type func(std::string_view name, U&& value, I i)           // Here I is an `std::integral_constant<size_t, field_index>`
+///
+/// \param value To each field of this variable will be the `func` applied.
+///
+/// \b Example:
+/// \code
+///     struct Toto { int a; char c; };
+///     Toto t {5, 'c'};
+///     auto print = [](std::string_view name, const auto& value){ std::cout << "Name: " << name << " Value: " << value << std::endl; };
+///     for_each_field_with_name(t, print);
+/// \endcode
+template <class T, class F>
+constexpr void for_each_field_with_name(T&& value, F&& func) {
+    return boost::pfr::detail::for_each_field_with_name(std::forward<T>(value), std::forward<F>(func));
+}
+
+BOOST_PFR_END_MODULE_EXPORT
+
 }} // namespace boost::pfr
 
 #endif // BOOST_PFR_CORE_NAME_HPP
-

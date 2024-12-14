@@ -20,7 +20,8 @@ function(userver_embed_file TARGET)
   set(CONFIG_HPP ${CMAKE_CURRENT_BINARY_DIR}/embedded/include/generated/${ARG_HPP_FILENAME}.hpp)
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
-    COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
+    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/embedded &&
+            touch ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
   )
   add_custom_command(
     OUTPUT

@@ -348,6 +348,10 @@ public:
         }
     }
 
+    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+        sentinels_->SetConnectionInfo(info_array);
+    }
+
     static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter_.load(std::memory_order_relaxed); }
 
     boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() {
@@ -1049,6 +1053,10 @@ size_t ClusterSentinelImpl::ShardsCount() const {
 
 size_t ClusterSentinelImpl::GetClusterSlotsCalledCounter() {
     return ClusterTopologyHolder::GetClusterSlotsCalledCounter();
+}
+
+void ClusterSentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+    topology_holder_->SetConnectionInfo(info_array);
 }
 
 PublishSettings ClusterSentinelImpl::GetPublishSettings() {

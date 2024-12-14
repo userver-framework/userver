@@ -146,6 +146,15 @@ properties:
                     max_headers_size:
                         type: integer
                         description: max headers size in bytes
+                    request_body_size_log_limit:
+                        type: integer
+                        description: trim the request to this size before logging
+                    request_headers_size_log_limit:
+                        type: integer
+                        description: trim request headers to this size before logging
+                    response_data_size_log_limit:
+                        type: integer
+                        description: trim responses to this size before logging
                     parse_args_from_body:
                         type: boolean
                         description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters

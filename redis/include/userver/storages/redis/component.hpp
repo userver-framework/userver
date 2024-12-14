@@ -14,6 +14,7 @@
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/fwd.hpp>
 #include <userver/storages/redis/wait_connected_mode.hpp>
+#include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/redis_control.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
@@ -145,6 +146,7 @@ public:
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+    void OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg);
 
     void Connect(
         const ComponentConfig& config,
@@ -162,6 +164,7 @@ private:
 
     dynamic_config::Source config_;
     concurrent::AsyncEventSubscriberScope config_subscription_;
+    concurrent::AsyncEventSubscriberScope secdist_subscription_;
 
     utils::statistics::Entry statistics_holder_;
     utils::statistics::Entry subscribe_statistics_holder_;

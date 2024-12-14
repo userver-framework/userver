@@ -184,6 +184,9 @@ public:
 
     virtual void SetConfigDefaultCommandControl(const std::shared_ptr<CommandControl>& cc);
 
+    void SetConnectionInfo(std::vector<ConnectionInfo> info_array);
+    const std::string& ShardGroupName() const;
+
     using UserMessageCallback = std::function<Outcome(const std::string& channel, const std::string& message)>;
     using UserPmessageCallback =
         std::function<Outcome(const std::string& pattern, const std::string& channel, const std::string& message)>;
@@ -228,6 +231,7 @@ private:
 
     friend class Transaction;
 
+    const std::string shard_group_name_;
     std::shared_ptr<ThreadPools> thread_pools_;
     std::unique_ptr<engine::ev::ThreadControl> sentinel_thread_control_;
     CommandControl secdist_default_command_control_;

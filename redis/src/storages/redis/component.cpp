@@ -128,6 +128,9 @@ Redis::Redis(const ComponentConfig& config, const ComponentContext& component_co
 
     config_subscription_ = config_.UpdateAndListen(this, "redis", &Redis::OnConfigUpdate);
 
+    auto& secdist = component_context.FindComponent<Secdist>();
+    secdist_subscription_ = secdist.GetStorage().UpdateAndListen(this, "redis", &Redis::OnSecdistUpdate);
+
     auto& statistics_storage = component_context.FindComponent<components::StatisticsStorage>().GetStorage();
 
     statistics_holder_ = statistics_storage.RegisterWriter(kStatisticsName, [this](utils::statistics::Writer& writer) {
@@ -320,6 +323,22 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     auto pubsub_metrics_settings = pubsub_metrics_settings_.Read();
     if (*pubsub_metrics_settings != redis_config.pubsub_metrics_settings) {
         pubsub_metrics_settings_.Assign(redis_config.pubsub_metrics_settings);
+    }
+}
+
+void Redis::OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg) {
+    for (auto& [db, sentinel] : sentinels_) {
+        const auto& config_name = sentinel->ShardGroupName();
+        const auto& settings = cfg.Get<storages::secdist::RedisMapSettings>().GetSettings(config_name);
+
+        std::vector<storages::redis::ConnectionInfo> cii;
+        for (const auto& host_port : settings.sentinels) {
+            storages::redis::ConnectionInfo ci(host_port.host, host_port.port, settings.password);
+
+            cii.push_back(ci);
+        }
+
+        sentinels_.at(db)->SetConnectionInfo(cii);
     }
 }
 

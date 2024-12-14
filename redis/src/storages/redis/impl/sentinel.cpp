@@ -73,7 +73,8 @@ Sentinel::Sentinel(
     const testsuite::RedisControl& testsuite_redis_control,
     ConnectionMode mode
 )
-    : thread_pools_(thread_pools),
+    : shard_group_name_(shard_group_name),
+      thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
     config_default_command_control_.Set(std::make_shared<CommandControl>(secdist_default_command_control_));
@@ -412,6 +413,16 @@ PublishSettings Sentinel::GetPublishSettings() const { return impl_->GetPublishS
 
 void Sentinel::SetConfigDefaultCommandControl(const std::shared_ptr<CommandControl>& cc) {
     config_default_command_control_.Set(cc);
+}
+
+const std::string& Sentinel::ShardGroupName() const { return shard_group_name_; }
+
+void Sentinel::SetConnectionInfo(std::vector<ConnectionInfo> info_array) {
+    std::vector<ConnectionInfoInt> cii;
+    cii.reserve(info_array.size());
+    for (const auto& ci : info_array) cii.emplace_back(ci);
+
+    impl_->SetConnectionInfo(cii);
 }
 
 std::vector<std::shared_ptr<const Shard>> Sentinel::GetMasterShards() const { return impl_->GetMasterShards(); }

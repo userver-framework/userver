@@ -69,6 +69,8 @@ public:
 
     static size_t GetClusterSlotsCalledCounter();
 
+    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
+
 private:
     void AsyncCommandFailed(const SentinelCommand& scommand);
     void EnqueueCommand(const SentinelCommand& command);

@@ -20,8 +20,6 @@ constexpr USERVER_NAMESPACE::http::headers::PredefinedHeader kYaTracingHeaders[]
 };
 
 const std::string kName = "yandex-tracing";
-const std::string kTypeTag = "type";
-const std::string kTypeRequest = "request";
 }  // namespace
 
 Plugin::Plugin() : http::Plugin(kName) {}
