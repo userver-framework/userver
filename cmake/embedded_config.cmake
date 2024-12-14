@@ -12,6 +12,8 @@ set(TEMPLATE "
 __asm__(
 #if defined(__APPLE__)
 \".const_data\"
+\".globl @NAME@_begin\"
+\".globl @NAME@_end\"
 #else
 \".section .rodata\"
 #endif
