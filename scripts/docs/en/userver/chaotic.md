@@ -54,8 +54,6 @@ Some frequently used parameters are described below.
 * `-n` defines types mapping from in-yaml object path to C++ type name (with namespace).
   The path regex is written first, then equal sign `=`, then C++ type name.
   `-n` can be passed multiple times.
-* `-f` defines file mapping from yaml filenames to C++ filenames (excluding the extensions).
-  Usually as-is mapping is used.
 * `--parse-extra-formats` generates YAML and YAML config parsers besides JSON parser.
 * `--generate-serializers` generates serializers into JSON besides JSON parser from `formats::json::Value`.
 

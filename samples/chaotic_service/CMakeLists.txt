@@ -25,11 +25,9 @@ userver_target_generate_chaotic(${PROJECT_NAME}-chgen
     ARGS
         # Map '/components/schemas/*' JSONSchema types to C++ types in 'samples::hello' namespace
         -n "/components/schemas/([^/]*)/=samples::hello::{0}"
-        -f "(.*)={0}"
-        # Don't call clang-format
-        --clang-format=
         # Generate serializers for responses
         --generate-serializers
+    FORMAT OFF
     OUTPUT_DIR
         ${CMAKE_CURRENT_BINARY_DIR}/src
     SCHEMAS

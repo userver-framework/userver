@@ -50,6 +50,7 @@ jobs:
                 pwd
                 mkdir build_debug
                 cd build_debug
+                CMAKE_PROGRAM_PATH=/usr/lib/llvm17/bin/ \
                 cmake \
                     -DCMAKE_BUILD_TYPE=Debug \
                     -DUSERVER_NO_WERROR=OFF \
