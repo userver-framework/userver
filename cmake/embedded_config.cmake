@@ -16,7 +16,7 @@ __asm__(
 \".global _@NAME@_end\\n\"
 \".global _@NAME@_size\\n\"
 #else
-\".section .rodata\"
+\".section .rodata\\n\"
 #endif
 R\"(
 .balign 16
