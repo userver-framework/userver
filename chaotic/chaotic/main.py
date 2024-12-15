@@ -52,15 +52,6 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        '-f',
-        '--file-map',
-        type=NameMapItem,
-        required=True,
-        action='append',
-        help='full filepath to virtual filepath mapping',
-    )
-
-    parser.add_argument(
         '-u',
         '--userver',
         type=str,
@@ -135,14 +126,6 @@ def generate_cpp_name_func(
     return cpp_name_func
 
 
-def vfilepath_from_filepath(filepath: str, file_map: List[NameMapItem]) -> str:
-    for item in file_map:
-        vfilepath = item.match(filepath)
-        if vfilepath:
-            return vfilepath
-    raise Exception(f'Cannot match path: {filepath}')
-
-
 def traverse_dfs(path: str, data: Any):
     if not isinstance(data, dict):
         return
@@ -199,7 +182,6 @@ def read_schemas(
     erase_path_prefix: str,
     filepaths: List[str],
     name_map,
-    file_map,
     dependencies: List[types.ResolvedSchemas] = [],
 ) -> types.ResolvedSchemas:
     config = front_parser.ParserConfig(erase_prefix=erase_path_prefix)
@@ -212,9 +194,8 @@ def read_schemas(
 
         scan_objects = extract_schemas_to_scan(data, name_map)
 
-        vfilepath = vfilepath_from_filepath(fname, file_map)
         parser = front_parser.SchemaParser(
-            config=config, full_filepath=fname, full_vfilepath=vfilepath,
+            config=config, full_filepath=fname, full_vfilepath=fname,
         )
         for path, obj in rr.sort_json_types(
             scan_objects, erase_path_prefix,
@@ -245,9 +226,7 @@ def write_file(filepath: str, content: str) -> None:
 def main() -> None:
     args = parse_args()
 
-    schemas = read_schemas(
-        args.erase_path_prefix, args.file, args.name_map, args.file_map,
-    )
+    schemas = read_schemas(args.erase_path_prefix, args.file, args.name_map)
     cpp_name_func = generate_cpp_name_func(
         args.name_map, args.erase_path_prefix,
     )
