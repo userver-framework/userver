@@ -11,18 +11,22 @@ set(TEMPLATE "
 
 __asm__(
 #if defined(__APPLE__)
-\".const_data\"
+\".const_data\\n\"
+\".global _@NAME@_start\\n\"
+\".global _@NAME@_end\\n\"
+\".global _@NAME@_size\\n\"
 #else
 \".section .rodata\"
 #endif
 R\"(
-.align 16
-@NAME@_begin:
+.balign 16
+_@NAME@_begin:
 .incbin \"${FILEPATH}\"
-@NAME@_end:
+.balign 1
+_@NAME@_end:
 .byte 0
-@NAME@_size:
-.int @NAME@_end - @NAME@_begin
+_@NAME@_size:
+.int _@NAME@_end - _@NAME@_begin
 )\");
 
 extern \"C\" const char @NAME@_begin[];
