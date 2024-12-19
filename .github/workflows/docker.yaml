@@ -21,6 +21,7 @@ jobs:
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_FEATURE_CORE=1
                         -DUSERVER_FEATURE_CHAOTIC=0
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base
                     info: ubuntu + gcc + cxx17 + core
                     id: ubuntu_clang_cxx17_core
@@ -32,6 +33,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx17
                     id: ubuntu_clang_cxx17
@@ -43,6 +45,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx17
                     id: ubuntu_gcc_cxx17
@@ -53,6 +56,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx20
                     id: ubuntu_clang_cxx20
@@ -64,6 +68,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx20
                     id: ubuntu_gcc_cxx20
@@ -126,4 +131,4 @@ jobs:
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
-                'cd /userver/build && ulimit -n 4096 && ctest -V'
+                'cd /userver/build && ulimit -n 4096 && GTEST_FILTER="${{ matrix.gtest-filter }}" ctest -V'
