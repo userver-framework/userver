@@ -16,6 +16,7 @@ jobs:
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
+                -DCMAKE_PREFIX_PATH=/opt/homebrew
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
@@ -31,6 +32,7 @@ jobs:
                 -DUSERVER_FEATURE_ROCKS=0
                 -DUSERVER_FEATURE_KAFKA=0
                 -DUSERVER_FEATURE_EASY=0
+                -DUSERVER_USE_LD=lld
 
         steps:
           - uses: actions/checkout@v4
@@ -44,6 +46,7 @@ jobs:
                 brew install $(cat scripts/docs/en/deps/macos.md)
                 brew install clang-format
                 brew install python@3.11
+                brew install lld
                 brew link postgresql@16
                 brew upgrade
 
