@@ -51,10 +51,11 @@ jobs:
                 brew install lld
 
                 brew install libiconv
+                brew install lzlib
                 
                 brew link postgresql@16
                 brew link libiconv
-                brew link zlib
+                brew link lzlib
                 
                 brew upgrade
 
