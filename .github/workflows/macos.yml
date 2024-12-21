@@ -17,6 +17,9 @@ jobs:
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
                 -DCMAKE_PREFIX_PATH=/opt/homebrew
+                -DCMAKE_FIND_FRAMEWORK=NEVER
+                -DCMAKE_FIND_APPBUNDLE=NEVER
+                -DCMAKE_FIND_USE_CMAKE_SYSTEM_PATH=0
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
