@@ -1,7 +1,7 @@
 _userver_module_begin(
     NAME libzstd
     DEBIAN_NAMES libzstd-dev
-    FORMULA_NAMES libzstd
+    FORMULA_NAMES zstd
     RPM_NAMES libzstd-dev
     PACMAN_NAMES zstd
 )
