@@ -42,7 +42,12 @@ target_link_libraries(PostgreSQLInternal
     ${USERVER_LIB_MATH}
 )
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "BSD" OR ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   find_package(libintl REQUIRED)
   target_link_libraries(PostgreSQLInternal INTERFACE libintl)
+endif()
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  find_package(libintl REQUIRED)
+  target_link_libraries(PostgreSQLInternal INTERFACE libintl "-framework Foundation")
 endif()
