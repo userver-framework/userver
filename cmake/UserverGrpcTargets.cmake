@@ -85,7 +85,7 @@ function(_userver_prepare_grpc)
       REQUIREMENTS "${USERVER_GRPC_SCRIPTS_PATH}/${requirements_name}"
       UNIQUE
   )
-  set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
+  set_property(GLOBAL PROPERTY userver_grpc_python_binary "${USERVER_GRPC_PYTHON_BINARY}")
 endfunction()
 
 _userver_prepare_grpc()
@@ -97,6 +97,7 @@ function(userver_generate_grpc_files)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   get_property(USERVER_GRPC_SCRIPTS_PATH GLOBAL PROPERTY userver_grpc_scripts_path)
+  set_property(USERVER_GRPC_PYTHON_BINARY GLOBAL PROPERTY userver_grpc_python_binary)
   get_property(PROTO_GRPC_CPP_PLUGIN GLOBAL PROPERTY userver_grpc_cpp_plugin)
   get_property(PROTO_GRPC_PYTHON_PLUGIN GLOBAL PROPERTY userver_grpc_python_plugin)
   get_property(PROTOBUF_PROTOC GLOBAL PROPERTY userver_protobuf_protoc)
@@ -235,7 +236,9 @@ function(userver_generate_grpc_files)
   _userver_initialize_codegen_flag()
   add_custom_command(
       OUTPUT ${generated_cpps} ${generated_usrv_cpps}
-      COMMAND "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
+      COMMAND
+      ${CMAKE_COMMAND} -E env "USERVER_GRPC_PYTHON_BINARY=${USERVER_GRPC_PYTHON_BINARY}"
+      "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
       DEPENDS ${proto_dependencies}
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
       COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
