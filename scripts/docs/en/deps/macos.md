@@ -8,14 +8,12 @@ ares
 cctz
 libev
 fmt
-grpc
 googletest
 hiredis
 jemalloc
 krb5
 nghttp2
 ninja
-protobuf
 pugixml
 openssl
 yaml-cpp
