@@ -49,5 +49,6 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   find_package(libintl REQUIRED)
-  target_link_libraries(PostgreSQLInternal INTERFACE libintl "-framework Foundation")
+  find_package(Iconv REQUIRED)
+  target_link_libraries(PostgreSQLInternal INTERFACE libintl Iconv::Iconv "-framework Foundation")
 endif()
