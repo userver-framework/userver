@@ -8,7 +8,7 @@ find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
 find_package(CURL REQUIRED)
 find_package(libz REQUIRED)
 find_package(libzstd REQUIRED)
-find_package(LZ4 REQUIRED)
+find_package(lz4 REQUIRED)
 
 if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   if(USERVER_DOWNLOAD_PACKAGE_KAFKA)
