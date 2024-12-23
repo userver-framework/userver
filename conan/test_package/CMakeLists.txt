@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.1)
 project(PackageTest CXX)
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.31")
+  cmake_policy(SET CMP0171 NEW)
+endif()
+
 find_package(userver REQUIRED)
 find_package(Python COMPONENTS Interpreter Development)
 
