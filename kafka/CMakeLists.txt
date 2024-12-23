@@ -13,7 +13,7 @@ endif()
 
 userver_module(kafka
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-  LINK_LIBRARIES_PRIVATE RdKafka sasl2 libz libzstd LZ4 CURL::libcurl OpenSSL::SSL OpenSSL::Crypto
+  LINK_LIBRARIES_PRIVATE RdKafka sasl2 libz libzstd lz4::lz4 CURL::libcurl OpenSSL::SSL OpenSSL::Crypto
   DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
   DBTEST_LINK_LIBRARIES userver::kafka-utest
   DBTEST_DATABASES kafka
