@@ -16,5 +16,4 @@ _userver_module_find_library(
 
 _userver_module_end()
 
-add_library(LZ4::LZ4 ALIAS lz4)
 add_library(lz4::lz4 ALIAS lz4)
