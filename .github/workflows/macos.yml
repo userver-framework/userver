@@ -17,16 +17,13 @@ jobs:
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
                 -DCMAKE_PREFIX_PATH=/opt/homebrew
-                -DCMAKE_FIND_FRAMEWORK=NEVER
-                -DCMAKE_FIND_APPBUNDLE=NEVER
-                -DCMAKE_FIND_USE_CMAKE_SYSTEM_PATH=0
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                -DUSERVER_FEATURE_POSTGRESQL=0
+                -DUSERVER_FEATURE_POSTGRESQL=1
                 -DUSERVER_FEATURE_GRPC=0
                 -DUSERVER_FEATURE_GRPC_REFLECTION=0
                 -DUSERVER_FEATURE_OTLP=0
@@ -49,13 +46,8 @@ jobs:
                 brew install clang-format
                 brew install python@3.11
                 brew install lld
-
-                brew install libiconv
-                brew install lzlib
                 
                 brew link postgresql@16
-                brew link libiconv
-                brew link lzlib
                 
                 brew upgrade
 
