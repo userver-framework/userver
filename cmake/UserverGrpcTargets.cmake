@@ -85,6 +85,7 @@ function(_userver_prepare_grpc)
       REQUIREMENTS "${USERVER_GRPC_SCRIPTS_PATH}/${requirements_name}"
       UNIQUE
   )
+  message(STATUS "GRPC PYTHON: ${USERVER_GRPC_PYTHON_BINARY}")
   set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
 endfunction()
 
