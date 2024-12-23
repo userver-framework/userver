@@ -27,7 +27,6 @@ jobs:
                 -DUSERVER_FEATURE_GRPC_REFLECTION=0
                 -DUSERVER_FEATURE_OTLP=0
                 -DUSERVER_FEATURE_MYSQL=0
-                -DUSERVER_FEATURE_ROCKS=0
                 -DUSERVER_USE_LD=lld
 
         steps:
