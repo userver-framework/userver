@@ -24,7 +24,6 @@ jobs:
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                 -DUSERVER_FEATURE_MONGODB=1
                 -DUSERVER_FEATURE_CLICKHOUSE=1
-                -DUSERVER_FEATURE_MYSQL=0
                 -DUSERVER_USE_LD=lld
                 -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
                 -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1
@@ -43,9 +42,9 @@ jobs:
                 brew install clang-format
                 brew install python@3.11
                 brew install lld
-                
+
                 brew link postgresql@16
-                
+
                 brew upgrade
 
           - name: Run cmake

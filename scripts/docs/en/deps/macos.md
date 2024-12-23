@@ -25,3 +25,4 @@ zlib
 c-ares
 coreutils
 mongo-c-driver
+mariadb

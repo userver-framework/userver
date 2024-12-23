@@ -4,13 +4,13 @@ find_package(libmariadb REQUIRED)
 
 userver_module(mysql
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE mariadb
+    LINK_LIBRARIES_PRIVATE libmariadb
 
     DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
-    UTEST_LINK_LIBRARIES mariadb
+    UTEST_LINK_LIBRARIES libmariadb
     DBTEST_DATABASES mysql
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks"
-    UBENCH_LINK_LIBRARIES mariadb
+    UBENCH_LINK_LIBRARIES libmariadb
     UBENCH_DATABASES mysql
 )
 
