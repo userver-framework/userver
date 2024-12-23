@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-include("${USERVER_CMAKE_DIR}/UserverVenv.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/UserverVenv.cmake")
 
 function(gen_gdb_printers TARGET STRUCTURE)
   # Set the path to the Python script
