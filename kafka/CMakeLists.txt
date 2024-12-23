@@ -37,6 +37,7 @@ endif()
 _userver_directory_install(COMPONENT kafka
     FILES
     "${USERVER_ROOT_DIR}/cmake/modules/FindRdKafka.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibz.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/FindLZ4.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
