@@ -1,5 +1,5 @@
 _userver_module_begin(
-    NAME LZ4
+    NAME lz4
     VERSION 1.9.2
     DEBIAN_NAMES liblz4-dev
     FORMULA_NAMES lz4
@@ -16,4 +16,5 @@ _userver_module_find_library(
 
 _userver_module_end()
 
-add_library(LZ4::LZ4 ALIAS LZ4)
+add_library(LZ4::LZ4 ALIAS lz4)
+add_library(lz4::lz4 ALIAS lz4)
