@@ -97,7 +97,7 @@ function(userver_generate_grpc_files)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   get_property(USERVER_GRPC_SCRIPTS_PATH GLOBAL PROPERTY userver_grpc_scripts_path)
-  set_property(USERVER_GRPC_PYTHON_BINARY GLOBAL PROPERTY userver_grpc_python_binary)
+  get_property(USERVER_GRPC_PYTHON_BINARY GLOBAL PROPERTY userver_grpc_python_binary)
   get_property(PROTO_GRPC_CPP_PLUGIN GLOBAL PROPERTY userver_grpc_cpp_plugin)
   get_property(PROTO_GRPC_PYTHON_PLUGIN GLOBAL PROPERTY userver_grpc_python_plugin)
   get_property(PROTOBUF_PROTOC GLOBAL PROPERTY userver_protobuf_protoc)
