@@ -302,7 +302,7 @@ jobs:
 
           - name: Run tests (mongo)
             # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
-            if: matrix.info != 'g++-9 + debug + sanitize addr+ub'
+            if: matrix.info != 'g++-9 + release'
             run: |
                 sudo apt install mongodb-mongosh
                 cd build_debug
