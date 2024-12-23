@@ -16,21 +16,18 @@ jobs:
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
-                -DCMAKE_PREFIX_PATH=/opt/homebrew
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                -DUSERVER_FEATURE_POSTGRESQL=1
                 -DUSERVER_FEATURE_GRPC=0
                 -DUSERVER_FEATURE_GRPC_REFLECTION=0
                 -DUSERVER_FEATURE_OTLP=0
                 -DUSERVER_FEATURE_MYSQL=0
                 -DUSERVER_FEATURE_RABBITMQ=0
                 -DUSERVER_FEATURE_ROCKS=0
-                -DUSERVER_FEATURE_EASY=0
                 -DUSERVER_USE_LD=lld
 
         steps:
