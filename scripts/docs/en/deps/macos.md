@@ -24,6 +24,5 @@ rocksdb
 postgresql@16
 redis
 zlib
-amqp-cpp
 c-ares
 coreutils
