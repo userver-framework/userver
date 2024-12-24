@@ -276,21 +276,19 @@ class UserverConan(ConanFile):
         )
 
         def copy_component(component, is_library: bool = False):
+            component_path = os.path.join('libraries', component) if is_library else component
             copy(
                 self,
                 pattern='*',
                 dst=os.path.join(self.package_folder, 'include', component),
-                src=(
-                    os.path.join(self.source_folder, 'libraries', component, 'include') if is_library
-                    else os.path.join(self.source_folder, component, 'include')
-                ),
+                src=os.path.join(self.source_folder, component_path, 'include'),
                 keep_path=True,
             )
             copy(
                 self,
                 pattern='*.a',
                 dst=os.path.join(self.package_folder, 'lib'),
-                src=os.path.join(self._build_subfolder, component),
+                src=os.path.join(self._build_subfolder, component_path),
                 keep_path=False,
             )
 
@@ -412,13 +410,13 @@ class UserverConan(ConanFile):
             copy_component('otlp')
 
         if self.options.with_easy:
-            copy_component('easy')
+            copy_component('easy', is_library=True)
 
         if self.options.with_s3api:
-            copy_component('s3api')
+            copy_component('s3api', is_library=True)
 
         if self.options.with_grpc_reflection:
-            copy_component('grpc-reflection')
+            copy_component('grpc-reflection', is_library=True)
 
     @property
     def _userver_components(self):
