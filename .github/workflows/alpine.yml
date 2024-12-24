@@ -12,6 +12,7 @@ env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
     CXX: clang++-18
+    C: clang-18
 
 jobs:
     posix:
@@ -63,6 +64,9 @@ jobs:
                     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
                     -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
                     -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
+                    -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
+                    -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
+                    -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \
                     ..
 
           - name: Compile
