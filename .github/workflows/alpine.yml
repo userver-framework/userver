@@ -35,6 +35,7 @@ jobs:
             run: |
                 pwd
                 cat /etc/alpine-release
+                apk add lld
                 apk add $(cat scripts/docs/en/deps/alpine.md)
 
           - name: Install test dependencies
