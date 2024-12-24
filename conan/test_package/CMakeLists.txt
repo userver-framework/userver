@@ -64,4 +64,9 @@ if (TARGET userver::kafka)
     target_link_libraries(${PROJECT_NAME}_kafka ${PROJECT_NAME}_objs userver::kafka)
 endif()
 
+if (TARGET userver::easy)
+    add_executable(${PROJECT_NAME}_easy test_easy.cpp)
+    target_link_libraries(${PROJECT_NAME}_easy userver::easy)
+endif()
+
 add_subdirectory(hello_service)
