@@ -67,6 +67,8 @@ jobs:
                     -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
                     -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
                     -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \
+                    -DUSERVER_USE_LD=lld \
+                    -DUSERVER_DISABLE_PHDR_CACHE=1 \
                     ..
 
           - name: Compile
