@@ -59,6 +59,8 @@ jobs:
                     -DUSERVER_BUILD_TESTS=1 \
                     -DUSERVER_FEATURE_JEMALLOC=OFF \
                     -DUSERVER_FEATURE_KAFKA=OFF \
+                    -DUSERVER_FEATURE_GRPC=OFF \
+                    -DUSERVER_FEATURE_GRPC_REFLECTION=OFF \
                     -DUSERVER_FEATURE_STACKTRACE=OFF \
                     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
                     -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
