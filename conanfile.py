@@ -718,12 +718,6 @@ class UserverConan(ConanFile):
                     ].includedirs.append(
                         os.path.join('include', 'function_backports'),
                     )
-                if cmake_component in {'easy', 's3api', 'grpc-reflection'}:
-                    self.cpp_info.components[
-                        conan_component
-                    ].includedirs.append(
-                        os.path.join('libraries', cmake_component, 'include'),
-                    )
                 if cmake_component != 'ubench':
                     self.cpp_info.components[
                         conan_component
