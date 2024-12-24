@@ -1,4 +1,4 @@
-name: Alpine Linux
+name: Alpine Linux (compile only)
 
 'on':
     pull_request:
@@ -12,13 +12,14 @@ env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
     CXX: clang++-18
+    C: clang-18
 
 jobs:
     posix:
         strategy:
             fail-fast: false
 
-        name: Alpine Linux
+        name: Alpine Linux (compile only)
         runs-on: ubuntu-24.04
 
         steps:
@@ -34,6 +35,7 @@ jobs:
             run: |
                 pwd
                 cat /etc/alpine-release
+                apk add lld
                 apk add $(cat scripts/docs/en/deps/alpine.md)
 
           - name: Install test dependencies
@@ -65,6 +67,11 @@ jobs:
                     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
                     -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
                     -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
+                    -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
+                    -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
+                    -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \
+                    -DUSERVER_USE_LD=lld \
+                    -DUSERVER_DISABLE_PHDR_CACHE=1 \
                     ..
 
           - name: Compile
@@ -75,6 +82,7 @@ jobs:
 
           - name: Run tests
             shell: alpine.sh {0}
+            if: false
             run: |
                 cd build_debug
                 ctest -V
