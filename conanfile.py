@@ -275,12 +275,15 @@ class UserverConan(ConanFile):
             keep_path=True,
         )
 
-        def copy_component(component):
+        def copy_component(component, is_library: bool = False):
             copy(
                 self,
                 pattern='*',
                 dst=os.path.join(self.package_folder, 'include', component),
-                src=os.path.join(self.source_folder, component, 'include'),
+                src=(
+                    os.path.join(self.source_folder, 'libraries', component, 'include') if is_library
+                    else os.path.join(self.source_folder, component, 'include')
+                ),
                 keep_path=True,
             )
             copy(
@@ -716,6 +719,12 @@ class UserverConan(ConanFile):
                         cmake_component
                     ].includedirs.append(
                         os.path.join('include', 'function_backports'),
+                    )
+                if cmake_component in {'easy', 's3api', 'grpc-reflection'}:
+                    self.cpp_info.components[
+                        conan_component
+                    ].includedirs.append(
+                        os.path.join('libraries', cmake_component, 'include'),
                     )
                 if cmake_component != 'ubench':
                     self.cpp_info.components[
