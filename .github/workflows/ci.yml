@@ -204,10 +204,18 @@ jobs:
             if: matrix.os == 'ubuntu-22.04'
             run: |
                 # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
-                sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
-                echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-                sudo apt update
+                sudo apt install -y libpq5=14.2-1ubuntu1
+                sudo apt install -y --allow-downgrades libpq-dev
                 sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
+
+          - name: Install libpq-dev 16
+            if: matrix.os == 'ubuntu-24.04'
+            run: |
+                # GH Ubuntu image has libpq version 17+ from pg's repo that is broker and can not be linked statically.
+                sudo apt update
+                sudo apt install -y libpq5=16.6-0ubuntu0.24.04.1
+                sudo apt install -y --allow-downgrades libpq-dev
+                sudo apt install -y postgresql-16 postgresql-client-16 postgresql-server-dev-16
 
           - name: Install g++-8
             if: matrix.info == 'g++-8 + debug'
