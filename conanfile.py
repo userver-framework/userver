@@ -588,7 +588,6 @@ class UserverConan(ConanFile):
             build_modules.append(_cmake_path_to('AddGoogleTests.cmake'))
         if self.options.with_grpc:
             build_modules.append(_cmake_path_to('SetupProtobuf.cmake'))
-            build_modules.append(_cmake_path_to('GrpcConan.cmake'))
             build_modules.append(_cmake_path_to('UserverGrpcTargets.cmake'))
 
         self.cpp_info.set_property('cmake_build_modules', build_modules)
