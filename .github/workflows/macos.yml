@@ -10,7 +10,7 @@ name: CI
 
 jobs:
     macos:
-        name: MacOS (build only)
+        name: MacOS (build only, no gRPC)
         runs-on: macos-latest
         env:
             CMAKE_FLAGS: >-
@@ -21,6 +21,9 @@ jobs:
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                -DUSERVER_FEATURE_GRPC=0
+                -DUSERVER_FEATURE_GRPC_REFLECTION=0
+                -DUSERVER_FEATURE_OTLP=0
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                 -DUSERVER_FEATURE_MONGODB=1
                 -DUSERVER_FEATURE_CLICKHOUSE=1
