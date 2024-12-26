@@ -31,7 +31,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 namespace impl {
 
 template <typename RedisRequestType>
@@ -187,6 +187,16 @@ MakeBulkHedgedRedisRequestAsync(
     return utils::hedging::HedgeRequestsBulkAsync<RequestStrategy>(std::move(strategies), hedging_settings);
 }
 
+}  // namespace storages::redis
+
+#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
+namespace redis {
+using USERVER_NAMESPACE::storages::redis::HedgedRedisRequest;
+using USERVER_NAMESPACE::storages::redis::MakeBulkHedgedRedisRequest;
+using USERVER_NAMESPACE::storages::redis::MakeBulkHedgedRedisRequestAsync;
+using USERVER_NAMESPACE::storages::redis::MakeHedgedRedisRequest;
+using USERVER_NAMESPACE::storages::redis::MakeHedgedRedisRequestAsync;
 }  // namespace redis
+#endif
 
 USERVER_NAMESPACE_END

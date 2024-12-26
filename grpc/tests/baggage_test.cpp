@@ -72,10 +72,9 @@ UTEST_F(GrpcServerTestBaggage, TestGrpcBaggage) {
     const std::string baggage = "key1=value1";
 
     context->AddMetadata(ugrpc::impl::kXBaggage, ugrpc::impl::ToGrpcString(baggage));
-    auto call = client.SayHello(out, std::move(context));
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(out, std::move(context)));
     ASSERT_EQ(in.name(), baggage);
 }
 
@@ -86,10 +85,9 @@ UTEST_F(GrpcServerTestBaggage, TestGrpcBaggageMultiply) {
 
     const std::string baggage = "key1=value1;key2=value2;key3";
     context->AddMetadata(ugrpc::impl::kXBaggage, ugrpc::impl::ToGrpcString(baggage));
-    auto call = client.SayHello(out, std::move(context));
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(out, std::move(context)));
     ASSERT_EQ(in.name(), baggage);
 }
 
@@ -98,10 +96,8 @@ UTEST_F(GrpcServerTestBaggage, TestGrpcBaggageNoBaggage) {
     sample::ugrpc::GreetingRequest out;
     auto context = std::make_unique<grpc::ClientContext>();
 
-    auto call = client.SayHello(out, std::move(context));
-
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(out, std::move(context)));
     ASSERT_EQ(in.name(), "null");
 }
 
@@ -111,10 +107,9 @@ UTEST_F(GrpcServerTestBaggage, TestGrpcBaggageWrongKey) {
     auto context = std::make_unique<grpc::ClientContext>();
 
     context->AddMetadata(ugrpc::impl::kXBaggage, "wrong_key=wrong_value");
-    auto call = client.SayHello(out, std::move(context));
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(out, std::move(context)));
     ASSERT_EQ(in.name(), "");
 }
 
@@ -169,10 +164,9 @@ UTEST_F(GrpcClientTestBaggage, TestGrpcClientBaggage) {
     BaggageManager().SetBaggage(baggage);
 
     auto context = std::make_unique<grpc::ClientContext>();
-    auto call = client.SayHello(request, std::move(context));
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(request, std::move(context)));
     ASSERT_EQ(in.name(), baggage);
 }
 
@@ -185,10 +179,9 @@ UTEST_F(GrpcClientTestBaggage, TestGrpcClientBaggageMultiply) {
     BaggageManager().SetBaggage(baggage);
 
     auto context = std::make_unique<grpc::ClientContext>();
-    auto call = client.SayHello(request, std::move(context));
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(request, std::move(context)));
     ASSERT_EQ(in.name(), baggage);
 }
 
@@ -198,10 +191,9 @@ UTEST_F(GrpcClientTestBaggage, TestGrpcClientNoBaggage) {
     sample::ugrpc::GreetingRequest request;
 
     auto context = std::make_unique<grpc::ClientContext>();
-    auto call = client.SayHello(request, std::move(context));
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(request, std::move(context)));
     ASSERT_EQ(in.name(), "null");
 }
 
@@ -213,10 +205,9 @@ UTEST_F(GrpcClientTestBaggage, TestGrpcClientWrongKey) {
     BaggageManager().SetBaggage("wrong_key=wrong_value");
 
     auto context = std::make_unique<grpc::ClientContext>();
-    auto call = client.SayHello(request, std::move(context));
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(request, std::move(context)));
     ASSERT_EQ(in.name(), "");
 }
 

@@ -34,11 +34,30 @@ class {{service.name}}Client final {
         USERVER_NAMESPACE::ugrpc::client::InputStream<
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% else %}
+  using {{method.name}}ResponseFuture =
+        USERVER_NAMESPACE::ugrpc::client::ResponseFuture<
+            {{ method.output_type | grpc_to_cpp_name }}>;
+
+  {{method.name}}ResponseFuture Async{{method.name}}(
+      const {{ method.input_type | grpc_to_cpp_name }}& request,
+      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+  ) const;
+
+  {{ method.output_type | grpc_to_cpp_name }} Sync{{method.name}}(
+      const {{ method.input_type | grpc_to_cpp_name }}& request,
+      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+  ) const;
+
   using {{method.name}}Call =
         USERVER_NAMESPACE::ugrpc::client::UnaryCall<
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% endif %}
 
+  {% if not method.client_streaming and not method.server_streaming %}
+  /// @deprecated use Sync{{method.name}}/Async{{method.name}} method instead
+  {% endif %}
   {{method.name}}Call {{method.name}}(
       {% if not method.client_streaming %}
       const {{ method.input_type | grpc_to_cpp_name }}& request,

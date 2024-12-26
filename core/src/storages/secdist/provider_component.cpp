@@ -176,7 +176,6 @@ ParseSettings(const components::ComponentConfig& config, const components::Compo
         blocking_task_processor_name ? &context.GetTaskProcessor(*blocking_task_processor_name) : nullptr;
     settings.config_path = config["config"].As<std::string>({});
     settings.inline_config = config["inline"].As<formats::json::Value>({});
-    LOG_INFO() << "INLINE " << settings.inline_config;
     if (!settings.config_path.empty() && !settings.inline_config.IsNull()) {
         throw std::runtime_error("'config' and 'inline' cannot be set together");
     }

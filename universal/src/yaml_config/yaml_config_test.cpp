@@ -454,7 +454,7 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
 
     yaml_config::YamlConfig root_array_data = conf["root"];
     Accessor root_array(root_array_data);
-    EXPECT_TRUE(root_array_data.Yaml().IsArray());
+    EXPECT_TRUE(root_array_data.IsArray());
 
     EXPECT_EQ(root_array[0]["member1"].template As<int>(), 42);
     EXPECT_EQ(root_array[0]["duration"].template As<std::chrono::milliseconds>(), std::chrono::seconds{10});
@@ -525,7 +525,7 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
 
     yaml_config::YamlConfig root_object_data = conf["root"];
     Accessor root_object(root_object_data);
-    EXPECT_TRUE(root_object_data.Yaml().IsObject());
+    EXPECT_TRUE(root_object_data.IsObject());
 
     EXPECT_EQ(root_object["e0"]["member1"].template As<int>(), 42);
     EXPECT_EQ(root_object["e0"]["duration"].template As<std::chrono::milliseconds>(), std::chrono::seconds{10});
@@ -633,7 +633,7 @@ TEST(YamlConfig, SubconfigNotObject) {
 
     yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
     EXPECT_EQ(conf["member"].As<std::string>(), "hello");
-    EXPECT_TRUE(conf.Yaml().IsObject());
+    EXPECT_TRUE(conf.IsObject());
     // Get subconfig that is not an object
     auto subconf = conf["member"];
     // It must throw an exception
@@ -659,7 +659,7 @@ TEST(YamlConfig, IteratorArray) {
     yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
     auto root_array = conf["root"];
-    EXPECT_TRUE(root_array.Yaml().IsArray());
+    EXPECT_TRUE(root_array.IsArray());
 
     // Testing basics
     auto it = root_array.begin();

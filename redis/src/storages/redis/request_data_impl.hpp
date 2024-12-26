@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/request.hpp>
+#include <storages/redis/impl/request.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <userver/storages/redis/client.hpp>
@@ -20,10 +20,10 @@ namespace storages::redis {
 
 namespace impl {
 
-void Wait(USERVER_NAMESPACE::redis::Request& request);
+void Wait(impl::Request& request);
 
 template <ScanTag scan_tag>
-Request<ScanReplyTmpl<scan_tag>> MakeScanRequest(
+storages::redis::Request<ScanReplyTmpl<scan_tag>> MakeScanRequest(
     ClientImpl& client,
     std::string key,
     size_t shard,
@@ -31,44 +31,23 @@ Request<ScanReplyTmpl<scan_tag>> MakeScanRequest(
     ScanOptionsTmpl<scan_tag> options,
     const CommandControl& command_control
 ) {
-    return client.MakeScanRequestWithKey<scan_tag>(std::move(key), shard, cursor, std::move(options), command_control);
-}
-
-template <>
-inline Request<ScanReply> MakeScanRequest<ScanTag::kScan>(
-    ClientImpl& client,
-    std::string,
-    size_t shard,
-    ScanReply::Cursor cursor,
-    ScanOptions options,
-    const CommandControl& command_control
-) {
-    return client.MakeScanRequestNoKey(shard, cursor, std::move(options), command_control);
+    if constexpr (scan_tag == ScanTag::kScan) {
+        return client.MakeScanRequestNoKey(shard, cursor, std::move(options), command_control);
+    } else {
+        return client.MakeScanRequestWithKey<scan_tag>(
+            std::move(key), shard, cursor, std::move(options), command_control
+        );
+    }
 }
 
 }  // namespace impl
 
-class RequestDataImplBase {
-public:
-    RequestDataImplBase(USERVER_NAMESPACE::redis::Request&& request);
-
-    virtual ~RequestDataImplBase();
-
-protected:
-    ReplyPtr GetReply();
-
-    USERVER_NAMESPACE::redis::Request& GetRequest();
-
-private:
-    USERVER_NAMESPACE::redis::Request request_;
-};
-
 template <typename Result, typename ReplyType>
-class RequestDataImpl final : public RequestDataImplBase, public RequestDataBase<ReplyType> {
+class RequestDataImpl final : public RequestDataBase<ReplyType> {
 public:
-    explicit RequestDataImpl(USERVER_NAMESPACE::redis::Request&& request) : RequestDataImplBase(std::move(request)) {}
+    explicit RequestDataImpl(impl::Request&& request) : request_(std::move(request)) {}
 
-    void Wait() override { impl::Wait(GetRequest()); }
+    void Wait() override { impl::Wait(request_); }
 
     ReplyType Get(const std::string& request_description) override {
         auto reply = GetReply();
@@ -78,8 +57,13 @@ public:
     ReplyPtr GetRaw() override { return GetReply(); }
 
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
-        return GetRequest().TryGetContextAccessor();
+        return request_.TryGetContextAccessor();
     }
+
+private:
+    ReplyPtr GetReply() { return request_.Get(); }
+
+    impl::Request request_;
 };
 
 template <typename Result, typename ReplyType>

@@ -386,6 +386,8 @@ void ConnectionPool::SetMaxConnectionsCc(std::size_t max_connections) { cc_max_c
 
 dynamic_config::Source ConnectionPool::GetConfigSource() const { return config_source_; }
 
+const Dsn& ConnectionPool::GetDsn() const { return dsn_; }
+
 engine::TaskWithResult<bool> ConnectionPool::Connect(engine::SemaphoreLock lock) {
     return engine::AsyncNoSpan([this, size_lock = std::move(lock)]() mutable {
         if (!size_lock) {

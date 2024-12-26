@@ -285,6 +285,7 @@ private:
                 impl::OidPrettyPrint(GetTypeOid()),
                 compiler::GetTypeName<T>()
             ));
+            UASSERT_MSG(false, ex.what());
             throw;
         } catch (ResultSetError& ex) {
             ex.AddMsgSuffix(fmt::format(" (ResultSet error while reading field #{} name `{}`)", field_index_, Name()));
@@ -317,6 +318,8 @@ public:
     //@{
     /** @name Data access */
     bool IsNull() const;
+
+    size_type Length() const;
 
     /// Read the field's buffer into user-provided variable.
     /// @throws FieldValueIsNull If the field is null and the C++ type is

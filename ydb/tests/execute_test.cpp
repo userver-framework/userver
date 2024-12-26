@@ -13,6 +13,50 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 class YdbExecute : public YdbSmallTableTest {};
+
+template <typename ExecuteImpl>
+class YdbExecuteTpl : public YdbSmallTableTest {
+public:
+    template <typename... Args>
+    auto Execute(Args&&... args) {
+        return ExecuteImpl::DoExecute(GetTableClient(), std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto ExecuteWithBasicStats(Args&&... args) {
+        return ExecuteImpl::DoExecuteWithBasicStats(GetTableClient(), std::forward<Args>(args)...);
+    }
+};
+
+struct ExecuteDataQuery {
+    template <typename... Args>
+    static auto DoExecute(ydb::TableClient& client, Args&&... args) {
+        return client.ExecuteDataQuery(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    static auto DoExecuteWithBasicStats(ydb::TableClient& client, Args&&... args) {
+        ydb::QuerySettings query_settings;
+        query_settings.collect_query_stats = NYdb::NTable::ECollectQueryStatsMode::Basic;
+
+        return client.ExecuteDataQuery(std::move(query_settings), std::forward<Args>(args)...);
+    }
+};
+
+struct ExecuteQuery {
+    template <typename... Args>
+    static auto DoExecute(ydb::TableClient& client, Args&&... args) {
+        return client.ExecuteQuery(std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    static auto DoExecuteWithBasicStats(ydb::TableClient& client, Args&&... args) {
+        NYdb::NQuery::TExecuteQuerySettings query_settings;
+        query_settings.StatsMode(NYdb::NQuery::EStatsMode::Basic);
+
+        return client.ExecuteQuery(std::move(query_settings), std::forward<Args>(args)...);
+    }
+};
 }  // namespace
 
 UTEST_F(YdbExecute, ExecuteDataQuery) {
@@ -50,10 +94,13 @@ UTEST_F(YdbExecute, ExecuteDataQuery) {
     ASSERT_FALSE(result_parser.TryNextRow());
 }
 
-UTEST_F(YdbExecute, SimpleRead) {
-    CreateTable("simple_read", true);
+using MyTypes = testing::Types<ExecuteDataQuery, ExecuteQuery>;
+TYPED_UTEST_SUITE(YdbExecuteTpl, MyTypes);
 
-    auto response = GetTableClient().ExecuteDataQuery(ydb::Query{R"(
+TYPED_UTEST(YdbExecuteTpl, SimpleRead) {
+    this->CreateTable("simple_read", true);
+
+    auto response = this->Execute(ydb::Query{R"(
         SELECT key, value_str
         FROM simple_read
         WHERE key IN ("key1", "key3")
@@ -64,14 +111,14 @@ UTEST_F(YdbExecute, SimpleRead) {
     AssertArePreFilledRows(std::move(cursor), {3, 1});
 }
 
-UTEST_F(YdbExecute, SimpleStaleRead) {
-    CreateTable("stale_read", true);
+TYPED_UTEST(YdbExecuteTpl, SimpleStaleRead) {
+    this->CreateTable("stale_read", true);
 
     const int retries_count = 10;
     for (int i = 1; i <= retries_count; i++) {
         ydb::OperationSettings settings;
         settings.tx_mode = ydb::TransactionMode::kStaleRO;
-        auto response = GetTableClient().ExecuteDataQuery(settings, ydb::Query{R"(
+        auto response = this->Execute(settings, ydb::Query{R"(
             --!syntax_v1
             SELECT key
             FROM `stale_read` view value_idx
@@ -90,9 +137,9 @@ UTEST_F(YdbExecute, SimpleStaleRead) {
     }
 }
 
-UTEST_F(YdbExecute, SimpleMultiCursorRead) {
-    CreateTable("simple_read", true);
-    auto response = GetTableClient().ExecuteDataQuery(ydb::Query{R"(
+TYPED_UTEST(YdbExecuteTpl, SimpleMultiCursorRead) {
+    this->CreateTable("simple_read", true);
+    auto response = this->Execute(ydb::Query{R"(
         SELECT key FROM simple_read WHERE value_int=1;
         SELECT key FROM simple_read WHERE value_int=2;
         SELECT key FROM simple_read WHERE value_int=3;
@@ -111,8 +158,8 @@ UTEST_F(YdbExecute, SimpleMultiCursorRead) {
     }
 }
 
-UTEST_F(YdbExecute, PreparedRead) {
-    CreateTable("prepared_read", true);
+TYPED_UTEST(YdbExecuteTpl, PreparedRead) {
+    this->CreateTable("prepared_read", true);
 
     const ydb::Query query{R"(
         DECLARE $search_key AS String;
@@ -123,22 +170,22 @@ UTEST_F(YdbExecute, PreparedRead) {
     )"};
 
     {
-        auto builder = GetTableClient().GetBuilder();
+        auto builder = this->GetTableClient().GetBuilder();
         UASSERT_NO_THROW(builder.Add("$search_key", std::string{"key1"}));
 
-        auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder));
+        auto response = this->Execute(ydb::OperationSettings{}, query, std::move(builder));
         AssertArePreFilledRows(response.GetSingleCursor(), {1});
     }
     {
-        auto builder = GetTableClient().GetBuilder();
+        auto builder = this->GetTableClient().GetBuilder();
         UASSERT_NO_THROW(builder.Add("$search_key", std::string{"key3"}));
-        auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder));
+        auto response = this->Execute(ydb::OperationSettings{}, query, std::move(builder));
         AssertArePreFilledRows(response.GetSingleCursor(), {3});
     }
 }
 
-UTEST_F(YdbExecute, PreparedReadSafe) {
-    CreateTable("prepared_read_safe", true);
+TYPED_UTEST(YdbExecuteTpl, PreparedReadSafe) {
+    this->CreateTable("prepared_read_safe", true);
 
     const ydb::Query query{R"(
         DECLARE $search_key AS String;
@@ -149,21 +196,21 @@ UTEST_F(YdbExecute, PreparedReadSafe) {
     )"};
 
     {
-        auto builder = GetTableClient().GetBuilder();
+        auto builder = this->GetTableClient().GetBuilder();
         UASSERT_NO_THROW(builder.Add("$search_key", std::string{"key1"}));
-        auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder));
+        auto response = this->Execute(ydb::OperationSettings{}, query, std::move(builder));
         AssertArePreFilledRows(response.GetSingleCursor(), {1});
     }
     {
-        auto builder = GetTableClient().GetBuilder();
+        auto builder = this->GetTableClient().GetBuilder();
         UASSERT_NO_THROW(builder.Add("$search_key", std::string{"key3"}));
-        auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder));
+        auto response = this->Execute(ydb::OperationSettings{}, query, std::move(builder));
         AssertArePreFilledRows(response.GetSingleCursor(), {3});
     }
 }
 
-UTEST_F(YdbExecute, PreparedVectorRead) {
-    CreateTable("prepared_vector_read", true);
+TYPED_UTEST(YdbExecuteTpl, PreparedVectorRead) {
+    this->CreateTable("prepared_vector_read", true);
 
     const ydb::Query query{R"(
         DECLARE $search_keys AS List<String>;
@@ -174,18 +221,18 @@ UTEST_F(YdbExecute, PreparedVectorRead) {
         ORDER BY key;
     )"};
 
-    auto builder = GetTableClient().GetBuilder();
+    auto builder = this->GetTableClient().GetBuilder();
     std::vector<std::string> rows{"key1", "key3"};
     UASSERT_NO_THROW(builder.Add("$search_keys", rows));
 
-    auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder));
+    auto response = this->Execute(ydb::OperationSettings{}, query, std::move(builder));
     AssertArePreFilledRows(response.GetSingleCursor(), {1, 3});
 }
 
-UTEST_F(YdbExecute, CursorMoveDoesNotInvalidateRow) {
-    CreateTable("test_table", true);
+TYPED_UTEST(YdbExecuteTpl, CursorMoveDoesNotInvalidateRow) {
+    this->CreateTable("test_table", true);
 
-    auto response = GetTableClient().ExecuteDataQuery(kSelectAllRows);
+    auto response = this->Execute(kSelectAllRows);
     auto cursor = response.GetSingleCursor();
 
     auto row = cursor.GetFirstRow();
@@ -193,10 +240,10 @@ UTEST_F(YdbExecute, CursorMoveDoesNotInvalidateRow) {
     AssertIsPreFilledRow(std::move(row), 1);
 }
 
-UTEST_F(YdbExecute, SimpleWrite) {
-    CreateTable("simple_write_async", false);
+TYPED_UTEST(YdbExecuteTpl, SimpleWrite) {
+    this->CreateTable("simple_write_async", false);
 
-    auto response = GetTableClient().ExecuteDataQuery(ydb::Query{R"(
+    auto response = this->Execute(ydb::Query{R"(
       UPSERT INTO simple_write_async (key, value_str, value_int)
       VALUES ("key1", "value1", 1), ("key2", "value2", 2);
   )"});
@@ -204,8 +251,8 @@ UTEST_F(YdbExecute, SimpleWrite) {
     ASSERT_EQ(response.GetCursorCount(), 0);
 }
 
-UTEST_F(YdbExecute, InsertRowWrite) {
-    CreateTable("prepared_vector_struct_write", false);
+TYPED_UTEST(YdbExecuteTpl, InsertRowWrite) {
+    this->CreateTable("prepared_vector_struct_write", false);
 
     const ydb::Query query{R"(
         --!syntax_v1
@@ -223,12 +270,12 @@ UTEST_F(YdbExecute, InsertRowWrite) {
     };
     std::vector<ydb::InsertRow> rows{row};
 
-    auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, "$items", rows);
+    auto response = this->Execute(ydb::OperationSettings{}, query, "$items", rows);
     ASSERT_EQ(response.GetCursorCount(), 0);
 }
 
-UTEST_F(YdbExecute, PreparedReadIndependentParams) {
-    CreateTable("prepared_read_params", true);
+TYPED_UTEST(YdbExecuteTpl, PreparedReadIndependentParams) {
+    this->CreateTable("prepared_read_params", true);
 
     const ydb::Query query{R"(
         DECLARE $search_key AS String;
@@ -239,22 +286,22 @@ UTEST_F(YdbExecute, PreparedReadIndependentParams) {
     )"};
 
     // Create first params
-    auto builder1 = GetTableClient().GetBuilder();
+    auto builder1 = this->GetTableClient().GetBuilder();
     UASSERT_NO_THROW(builder1.Add("$search_key", std::string{"key1"}));
 
     // Create second params
-    auto builder2 = GetTableClient().GetBuilder();
+    auto builder2 = this->GetTableClient().GetBuilder();
     UASSERT_NO_THROW(builder2.Add("$search_key", std::string{"key3"}));
 
     // Execute second params
     {
-        auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder2));
+        auto response = this->Execute(ydb::OperationSettings{}, query, std::move(builder2));
         AssertArePreFilledRows(response.GetSingleCursor(), {3});
     }
 
     // Execute first params
     {
-        auto response = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder1));
+        auto response = this->Execute(ydb::OperationSettings{}, query, std::move(builder1));
         AssertArePreFilledRows(response.GetSingleCursor(), {1});
     }
 }
@@ -325,9 +372,9 @@ UTEST_F(YdbExecute, Consistency) {
     }
 }
 
-UTEST_F(YdbExecute, BulkUpsert) {
+TYPED_UTEST(YdbExecuteTpl, BulkUpsert) {
     constexpr auto kBulkSize = 10;
-    CreateTable("bulk_upsert", false);
+    this->CreateTable("bulk_upsert", false);
 
     NYdb::TValueBuilder rows;
     rows.BeginList();
@@ -345,9 +392,9 @@ UTEST_F(YdbExecute, BulkUpsert) {
     }
     rows.EndList();
 
-    GetTableClient().BulkUpsert("bulk_upsert", rows.Build());
+    this->GetTableClient().BulkUpsert("bulk_upsert", rows.Build());
 
-    auto result = GetTableClient().ExecuteDataQuery(ydb::Query{"SELECT key, value_str, value_int FROM bulk_upsert"});
+    auto result = this->Execute(ydb::Query{"SELECT key, value_str, value_int FROM bulk_upsert"});
     ASSERT_EQ(result.GetCursorCount(), 1);
     auto cursor = result.GetSingleCursor();
     EXPECT_EQ(cursor.RowsCount(), kBulkSize);
@@ -370,8 +417,8 @@ UTEST_F(YdbExecute, ReadTable) {
     EXPECT_FALSE(results.GetNextResult().has_value());
 }
 
-UTEST_F(YdbExecute, IsQueryFromCache) {
-    CreateTable("test_table", true);
+TYPED_UTEST(YdbExecuteTpl, IsQueryFromCache) {
+    this->CreateTable("test_table", true);
 
     const ydb::Query kSelectQuery{R"(
     DECLARE $search_key AS String;
@@ -384,13 +431,10 @@ UTEST_F(YdbExecute, IsQueryFromCache) {
     constexpr std::uint64_t kIterations = 16;
 
     for (std::uint64_t i = 0; i < kIterations; ++i) {
-        ydb::QuerySettings query_settings;
-        query_settings.collect_query_stats = NYdb::NTable::ECollectQueryStatsMode::Basic;
-
-        auto params_builder = GetTableClient().GetBuilder();
+        auto params_builder = this->GetTableClient().GetBuilder();
         params_builder.Add("$search_key", std::string{"key1"});
 
-        auto response = GetTableClient().ExecuteDataQuery(query_settings, {}, kSelectQuery, std::move(params_builder));
+        auto response = this->ExecuteWithBasicStats(ydb::OperationSettings{}, kSelectQuery, std::move(params_builder));
         EXPECT_TRUE(0 == i || response.IsFromServerQueryCache());
         AssertArePreFilledRows(response.GetSingleCursor(), {1});
     }
@@ -425,8 +469,8 @@ UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
     }
 }
 
-UTEST_F(YdbExecute, PrepareQueryError) {
-    CreateTable("prepare_error", true);
+TYPED_UTEST(YdbExecuteTpl, PrepareQueryError) {
+    this->CreateTable("prepare_error", true);
 
     const ydb::Query query{R"(
         DECLARE $search_key AS String;
@@ -439,13 +483,13 @@ UTEST_F(YdbExecute, PrepareQueryError) {
     ydb::OperationSettings settings;
     settings.retries = 1;
 
-    auto builder = GetTableClient().GetBuilder();
+    auto builder = this->GetTableClient().GetBuilder();
     UASSERT_NO_THROW(builder.Add("$search_key", std::string{"key1"}));
-    UASSERT_THROW(GetTableClient().ExecuteDataQuery(settings, query, std::move(builder)), ydb::YdbResponseError);
+    UASSERT_THROW(this->Execute(settings, query, std::move(builder)), ydb::YdbResponseError);
 }
 
-UTEST_F(YdbExecute, ExecutePreparedError) {
-    CreateTable("execute_prepared_error", true);
+TYPED_UTEST(YdbExecuteTpl, ExecutePreparedError) {
+    this->CreateTable("execute_prepared_error", true);
 
     const ydb::Query query{R"(
         DECLARE $search_key AS String;
@@ -455,15 +499,13 @@ UTEST_F(YdbExecute, ExecutePreparedError) {
         WHERE key = $search_key;
     )"};
 
-    auto builder = GetTableClient().GetBuilder();
+    auto builder = this->GetTableClient().GetBuilder();
     UASSERT_NO_THROW(builder.Add("$search_key", ydb::Utf8{"key1"}));
-    UASSERT_THROW(
-        GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder)), ydb::YdbResponseError
-    );
+    UASSERT_THROW(this->Execute(ydb::OperationSettings{}, query, std::move(builder)), ydb::YdbResponseError);
 }
 
-UTEST_F(YdbExecute, SimpleWriteReadBinary) {
-    CreateTable("simple_write_read_binary", false);
+TYPED_UTEST(YdbExecuteTpl, SimpleWriteReadBinary) {
+    this->CreateTable("simple_write_read_binary", false);
 
     const ydb::Query insert_query{R"(
         --!syntax_v1
@@ -486,12 +528,11 @@ UTEST_F(YdbExecute, SimpleWriteReadBinary) {
     const std::string insert_value_2 = std::string("test_\0value", 11);
     ASSERT_EQ(insert_value_1[0], '\0') << "Must be binary string with leading zero byte";
 
-    auto insert_builder = GetTableClient().GetBuilder();
+    auto insert_builder = this->GetTableClient().GetBuilder();
     UASSERT_NO_THROW(insert_builder.Add("$value_str", insert_value_1));
     UASSERT_NO_THROW(insert_builder.Add("$opt_value_str", std::optional<std::string>(insert_value_2)));
 
-    auto insert_response =
-        GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, insert_query, std::move(insert_builder));
+    auto insert_response = this->Execute(ydb::OperationSettings{}, insert_query, std::move(insert_builder));
 
     ASSERT_EQ(insert_response.GetCursorCount(), 0);
 
@@ -502,7 +543,7 @@ UTEST_F(YdbExecute, SimpleWriteReadBinary) {
         FROM `simple_write_read_binary`;
         --WHERE key = "key1";
     )"};
-    auto response = GetTableClient().ExecuteDataQuery(select_query);
+    auto response = this->Execute(select_query);
 
     auto cursor = response.GetSingleCursor();
     ASSERT_EQ(cursor.size(), 2);
@@ -517,8 +558,8 @@ UTEST_F(YdbExecute, SimpleWriteReadBinary) {
     }
 }
 
-UTEST_F(YdbExecute, GetSingleCursor) {
-    auto response = GetTableClient().ExecuteDataQuery(ydb::Query{R"(
+TYPED_UTEST(YdbExecuteTpl, GetSingleCursor) {
+    auto response = this->Execute(ydb::Query{R"(
       SELECT 123 as num, "qwe" as str;
     )"});
     ASSERT_EQ(response.GetCursorCount(), 1);
@@ -529,8 +570,8 @@ UTEST_F(YdbExecute, GetSingleCursor) {
         ASSERT_EQ(1, cursor1.RowsCount());
         ASSERT_EQ(2, cursor1.ColumnsCount());
         auto row = cursor1.GetFirstRow();
-        EXPECT_EQ(123, row.Get<int>(0));
-        EXPECT_EQ("qwe", row.Get<std::string>("str"));
+        EXPECT_EQ(123, row.template Get<int>(0));
+        EXPECT_EQ("qwe", row.template Get<std::string>("str"));
     }
 
     // second time, check that response does not change
@@ -539,21 +580,21 @@ UTEST_F(YdbExecute, GetSingleCursor) {
         ASSERT_EQ(1, cursor2.RowsCount());
         ASSERT_EQ(2, cursor2.ColumnsCount());
         auto row = cursor2.GetFirstRow();
-        EXPECT_EQ(123, row.Get<int>(0));
-        EXPECT_EQ("qwe", row.Get<std::string>("str"));
+        EXPECT_EQ(123, row.template Get<int>(0));
+        EXPECT_EQ("qwe", row.template Get<std::string>("str"));
     }
 }
 
-UTEST_F(YdbExecute, GetSingleCursorThrow) {
-    auto response = GetTableClient().ExecuteDataQuery(ydb::Query{R"(
+TYPED_UTEST(YdbExecuteTpl, GetSingleCursorThrow) {
+    auto response = this->Execute(ydb::Query{R"(
       SELECT 1;
       SELECT 1;
     )"});
     ASSERT_EQ(response.GetCursorCount(), 2);
     UASSERT_THROW(response.GetSingleCursor(), ydb::IgnoreResultsError);
 
-    CreateTable("zero_cursor_throw", false);
-    auto response1 = GetTableClient().ExecuteDataQuery(ydb::Query{R"(
+    this->CreateTable("zero_cursor_throw", false);
+    auto response1 = this->Execute(ydb::Query{R"(
         UPSERT INTO zero_cursor_throw (key, value_str, value_int)
         VALUES ("key", "value_str", 1);
     )"});
@@ -561,15 +602,15 @@ UTEST_F(YdbExecute, GetSingleCursorThrow) {
     UASSERT_THROW(response1.GetSingleCursor(), ydb::EmptyResponseError);
 }
 
-UTEST_F(YdbExecute, CursorThrow) {
-    CreateTable("cursor_throw", true);
+TYPED_UTEST(YdbExecuteTpl, CursorThrow) {
+    this->CreateTable("cursor_throw", true);
     const ydb::Query query{R"(
         SELECT *
         FROM cursor_throw
         WHERE key = "key1";
     )"};
 
-    auto response = GetTableClient().ExecuteDataQuery(query);
+    auto response = this->Execute(query);
     auto cursor = response.GetSingleCursor();
     ASSERT_EQ(cursor.size(), 1);
     UASSERT_NO_THROW(cursor.GetFirstRow());

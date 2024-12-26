@@ -32,6 +32,20 @@ NYdb::NTable::TTxSettings PrepareTxSettings(const OperationSettings& settings) {
     }
 }
 
+NYdb::NQuery::TTxSettings PrepareQueryTxSettings(const OperationSettings& settings) {
+    switch (settings.tx_mode.value()) {
+        case TransactionMode::kSerializableRW: {
+            return NYdb::NQuery::TTxSettings::SerializableRW();
+        }
+        case TransactionMode::kOnlineRO: {
+            return NYdb::NQuery::TTxSettings::OnlineRO();
+        }
+        case TransactionMode::kStaleRO: {
+            return NYdb::NQuery::TTxSettings::StaleRO();
+        }
+    }
+}
+
 }  // namespace
 
 TableClient::TableClient(
@@ -57,8 +71,12 @@ TableClient::TableClient(
     NYdb::NTable::TClientSettings client_config;
     client_config.SessionPoolSettings(session_config);
 
+    NYdb::NQuery::TClientSettings query_client_config;
+    client_config.SessionPoolSettings(session_config);
+
     table_client_ = std::make_unique<NYdb::NTable::TTableClient>(driver_->GetNativeDriver(), client_config);
     scheme_client_ = std::make_unique<NYdb::NScheme::TSchemeClient>(driver_->GetNativeDriver(), client_config);
+    query_client_ = std::make_unique<NYdb::NQuery::TQueryClient>(driver_->GetNativeDriver(), query_client_config);
     if (settings.sync_start) {
         LOG_DEBUG() << "Synchronously starting ydb client with name '" << driver_->GetDbName() << "'";
         Select1();
@@ -167,6 +185,8 @@ void TableClient::Select1() {
 }
 
 NYdb::NTable::TTableClient& TableClient::GetNativeTableClient() { return *table_client_; }
+
+NYdb::NQuery::TQueryClient& TableClient::GetNativeQueryClient() { return *query_client_; }
 
 utils::RetryBudget& TableClient::GetRetryBudget() { return driver_->GetRetryBudget(); }
 
@@ -326,6 +346,43 @@ ExecuteResponse TableClient::ExecuteDataQuery(
     return ExecuteResponse{impl::GetFutureValueChecked(std::move(future), "ExecuteDataQuery", context)};
 }
 
+ExecuteResponse
+TableClient::ExecuteQuery(OperationSettings settings, const Query& query, PreparedArgsBuilder&& builder) {
+    return ExecuteQuery(NYdb::NQuery::TExecuteQuerySettings{}, std::move(settings), query, std::move(builder));
+}
+
+ExecuteResponse TableClient::ExecuteQuery(
+    NYdb::NQuery::TExecuteQuerySettings&& query_settings,
+    OperationSettings settings,
+    const Query& query,
+    PreparedArgsBuilder&& builder
+) {
+    if (settings.operation_timeout_ms > std::chrono::milliseconds::zero()) {
+        throw std::runtime_error("You set up custom operation_timeout in an execution method that does not use it");
+    }
+    if (settings.cancel_after_ms > std::chrono::milliseconds::zero()) {
+        throw std::runtime_error("You set up custom cancel_after in an execution method that does not use it");
+    }
+
+    impl::RequestContext context{*this, query, settings};
+
+    auto future = impl::RetryQueryOperation(
+        context,
+        [query = query.Statement(),
+         params = std::move(builder).Build(),
+         query_settings = std::move(query_settings),
+         settings = std::move(settings),
+         deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
+            impl::ApplyToRequestSettings(query_settings, settings, deadline);
+            const auto tx_settings = PrepareQueryTxSettings(settings);
+            const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();
+            return session.ExecuteQuery(impl::ToString(query), tx, params, query_settings);
+        }
+    );
+
+    return ExecuteResponse{impl::GetFutureValueChecked(std::move(future), "ExecuteQuery", context)};
+}
+
 std::string TableClient::JoinDbPath(std::string_view path) const { return impl::JoinPath(driver_->GetDbPath(), path); }
 
 void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_client) {
@@ -346,7 +403,6 @@ NYdb::NTable::TExecDataQuerySettings TableClient::ToExecQuerySettings(QuerySetti
     }
     return exec_settings;
 }
-
 }  // namespace ydb
 
 USERVER_NAMESPACE_END

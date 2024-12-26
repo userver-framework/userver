@@ -7,7 +7,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from chaotic.back.cpp import keywords as cpp_keywords
+from chaotic import cpp_keywords
 from chaotic.back.cpp import type_name
 from chaotic.front import types
 
@@ -493,22 +493,6 @@ class CppRef(CppType):
 
     def need_operator_lshift(self) -> bool:
         return False
-
-
-def camel_case(string: str, no_lower_casing: bool = False) -> str:
-    result = ''
-    set_upper = True
-    for char in string:
-        if char in {'_', '-', '.'}:
-            set_upper = True
-        else:
-            if set_upper:
-                char = char.upper()
-            elif not no_lower_casing:
-                char = char.lower()
-            result += char
-            set_upper = False
-    return result
 
 
 class EnumItemName(str):

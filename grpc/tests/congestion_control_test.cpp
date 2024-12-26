@@ -45,11 +45,11 @@ UTEST_F(CongestionControlTest, Basic) {
 
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto call = client.SayHello(out);
+    auto future = client.AsyncSayHello(out);
 
-    UEXPECT_THROW(call.Finish(), ugrpc::client::ResourceExhaustedError);
+    UEXPECT_THROW(future.Get(), ugrpc::client::ResourceExhaustedError);
 
-    const auto& metadata = call.GetContext().GetServerInitialMetadata();
+    const auto& metadata = future.GetCall().GetContext().GetServerInitialMetadata();
     ASSERT_EQ(
         ugrpc::impl::kCongestionControlRatelimitReason,
         utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)

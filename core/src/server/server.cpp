@@ -14,7 +14,6 @@
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
-#include <server/pph_config.hpp>
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -150,15 +149,7 @@ ServerImpl::ServerImpl(
     : config_(std::move(config)) {
     LOG_DEBUG() << "Creating server";
 
-    if (config_.listener.tls) {
-        auto contents = fs::blocking::ReadFileContents(config_.listener.tls_private_key_path);
-        if (config_.listener.tls_private_key_passphrase_name.empty()) {
-            config_.listener.tls_private_key = crypto::PrivateKey::LoadFromString(contents);
-        } else {
-            auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(config_.listener.tls_private_key_passphrase_name);
-            config_.listener.tls_private_key = crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
-        }
-    }
+    for (auto& port : config_.listener.ports) port.ReadTlsSettings(secdist);
 
     main_port_info_.Init(config_, config_.listener, component_context, false);
     if (config_.max_response_size_in_flight) {

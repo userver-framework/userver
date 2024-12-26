@@ -3,6 +3,7 @@
 #include <functional>
 
 #include <userver/kafka/message.hpp>
+#include <userver/kafka/offset_range.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -113,6 +114,28 @@ public:
     /// messages already processed (committed) by the current consumer if current
     /// has stopped and leaved the group
     void AsyncCommit();
+
+    /// @brief Retrieves the lowest and highest offsets for the specified topic and partition.
+    /// @throws OffsetRangeException if offsets could not be retrieved
+    /// @warning This is a blocking call
+    /// @param topic The name of the topic.
+    /// @param partition The partition number of the topic.
+    /// @returns Lowest and highest offsets for the given topic and partition.
+    /// @see OffsetRange for more explanation
+    OffsetRange GetOffsetRange(
+        const std::string& topic,
+        std::uint32_t partition,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
+
+    /// @brief Retrieves the partition IDs for the specified topic.
+    /// @throws GetMetadataException if failed to fetch metadata
+    /// @throws TopicNotFoundException if topic not found
+    /// @warning This is a blocking call
+    /// @param topic The name of the topic.
+    /// @returns A vector of partition IDs for the given topic.
+    std::vector<std::uint32_t>
+    GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
 
 private:
     friend class impl::Consumer;

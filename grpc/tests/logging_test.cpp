@@ -50,7 +50,7 @@ UTEST_F(GrpcAccessLog, Test) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto response = client.SayHello(out).Finish();
+    auto response = client.SyncSayHello(out);
 
     GetServer().StopServing();
 

@@ -151,11 +151,8 @@ are available at the
 * @ref clickhouse_driver
 
 ## Libraries
-
-### S3 client
+* @ref scripts/docs/en/userver/libraries/easy.md
 * @ref scripts/docs/en/userver/libraries/s3api.md
-
-### grpc-reflection
 * @ref scripts/docs/en/userver/libraries/grpc-reflection.md
 
 ## Opensource

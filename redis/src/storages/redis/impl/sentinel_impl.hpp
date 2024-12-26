@@ -23,8 +23,8 @@
 
 #include <storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/client.hpp>
-#include <userver/storages/redis/impl/types.hpp>
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include "ev_wrapper.hpp"
 #include "keys_for_shards.hpp"
@@ -35,7 +35,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class SentinelImplBase {
 public:
@@ -85,6 +85,7 @@ public:
     virtual void SetRetryBudgetSettings(const utils::RetryBudgetSettings& retry_budget_settings) = 0;
 
     virtual PublishSettings GetPublishSettings() = 0;
+    virtual void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) = 0;
 };
 
 bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand, const dynamic_config::Snapshot& config);
@@ -109,6 +110,8 @@ public:
         ConnectionMode mode = ConnectionMode::kCommands
     );
     ~SentinelImpl() override;
+
+    void SetSentinelConnectionInfo(const std::vector<ConnectionInfo>& sentinel_conns);
 
     std::unordered_map<ServerId, size_t, ServerIdHasher>
     GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const override;
@@ -138,6 +141,8 @@ public:
     ) override;
     void SetRetryBudgetSettings(const utils::RetryBudgetSettings& retry_budget_settings) override;
     PublishSettings GetPublishSettings() override;
+
+    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
 
 private:
     static constexpr const std::chrono::milliseconds cluster_slots_timeout_ = std::chrono::milliseconds(4000);
@@ -273,6 +278,6 @@ private:
     std::atomic<int> publish_shard_{0};
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

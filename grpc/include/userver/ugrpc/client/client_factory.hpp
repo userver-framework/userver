@@ -96,7 +96,7 @@ public:
         ClientFactorySettings&& settings,
         engine::TaskProcessor& channel_task_processor,
         MiddlewareFactories mws,
-        ugrpc::impl::CompletionQueuePoolBase& queue,
+        ugrpc::impl::CompletionQueuePoolBase& completion_queues,
         ugrpc::impl::StatisticsStorage& statistics_storage,
         testsuite::GrpcControl& testsuite_grpc,
         dynamic_config::Source source

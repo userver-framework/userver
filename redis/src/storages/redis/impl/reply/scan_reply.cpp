@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 ScanReply ScanReply::parse(ReplyPtr reply) {
     reply->ExpectArray();
@@ -56,6 +56,6 @@ ScanReply ScanReply::parse(ReplyPtr reply) {
     return result;
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

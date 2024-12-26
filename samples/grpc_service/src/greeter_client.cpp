@@ -21,15 +21,8 @@ std::string GreeterClient::SayHello(std::string name) const {
     api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    // Initiate the RPC. No actual actions have been taken thus far besides
-    // preparing to send the request.
-    auto stream = raw_client_.SayHello(request, MakeClientContext());
-
-    // Complete the unary RPC by sending the request and receiving the response.
-    // The client should call `Finish` (in case of single response) or `Read`
-    // until `false` (in case of response stream), otherwise the RPC will be
-    // cancelled.
-    api::GreetingResponse response = stream.Finish();
+    // Perform RPC by sending the request and receiving the response.
+    api::GreetingResponse response = raw_client_.SyncSayHello(request, MakeClientContext());
     return std::move(*response.mutable_greeting());
 }
 

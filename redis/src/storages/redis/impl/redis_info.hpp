@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 /// Replication info of redis instance
 struct ReplicationInfo {
@@ -19,6 +19,6 @@ struct ReplicationInfo {
 /// Parse replication info from response of redis "INFO REPLICATION" command
 ReplicationInfo ParseReplicationInfo(const std::string& info);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

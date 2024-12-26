@@ -15,7 +15,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 using SubscriptionId = size_t;
 
@@ -332,6 +332,6 @@ private:
     std::vector<std::unique_ptr<SubscriptionRebalanceScheduler>> rebalance_schedulers_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

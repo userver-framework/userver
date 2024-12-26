@@ -96,6 +96,8 @@ void Cluster::SetStatementMetricsSettings(const StatementMetricsSettings& settin
     pimpl_->SetStatementMetricsSettings(settings);
 }
 
+void Cluster::SetDsnList(const DsnList& dsn) { pimpl_->SetDsnList(dsn); }
+
 detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags, OptionalCommandControl cmd_ctl) {
     return pimpl_->Start(flags, cmd_ctl);
 }

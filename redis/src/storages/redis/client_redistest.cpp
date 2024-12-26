@@ -36,7 +36,7 @@ UTEST_F(RedisClientTest, Sample) { RedisClientSampleUsage(*GetClient()); }
 UTEST_F(RedisClientTest, CancelRequest) {
     try {
         EXPECT_FALSE(RedisClientCancelRequest(*GetClient()));
-    } catch (const redis::RequestCancelledException&) {
+    } catch (const storages::redis::RequestCancelledException&) {
     }
 }
 
@@ -129,10 +129,10 @@ UTEST_F(RedisClientTest, Geosearch) {
     options.withhash = true;
     options.withcoord = true;
 
-    const auto lon = redis::Longitude(15);
-    const auto lat = redis::Latitude(37);
-    const auto width = redis::BoxWidth(200);
-    const auto height = redis::BoxHeight(200);
+    const auto lon = storages::redis::Longitude(15);
+    const auto lat = storages::redis::Latitude(37);
+    const auto width = storages::redis::BoxWidth(200);
+    const auto height = storages::redis::BoxHeight(200);
 
     // FROMLONLAT BYRADIUS
     auto result = client->Geosearch("Sicily", lon, lat, 100, options, {}).Get();
@@ -268,8 +268,8 @@ UTEST_F(RedisClientTest, Georadius) {
     options.withhash = true;
     options.withcoord = true;
 
-    const auto lon = redis::Longitude(15);
-    const auto lat = redis::Latitude(37);
+    const auto lon = storages::redis::Longitude(15);
+    const auto lat = storages::redis::Latitude(37);
 
     auto result = client->Georadius("Sicily", lon, lat, 200, options, {}).Get();
     EXPECT_EQ(result.size(), 2);
@@ -695,6 +695,40 @@ UTEST_F(RedisClientTest, Zadd) {
     EXPECT_EQ(client->ZaddIncr("zset", 4., "four", {}).Get(), 4.);
     EXPECT_EQ(client->ZaddIncrExisting("zset", 1.1, "four", {}).Get(), 5.1);
     EXPECT_FALSE(client->ZaddIncrExisting("zset", 1.1, "five", {}).Get().has_value());
+}
+
+UTEST_F(RedisClientTest, ZaddGtLt) {
+    Version since{6, 2, 0};
+    if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Zadd gt/lt", since);
+
+    auto client = GetClient();
+
+    storages::redis::ZaddOptions options;
+    options.compare = storages::redis::ZaddOptions::Compare::kGreaterThan;
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{1., "one"}, {3., "two"}}, options, {}).Get(), 2);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 1);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{3., "one"}, {1., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{4., "one"}, {4., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 4);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 4);
+
+    options.compare = storages::redis::ZaddOptions::Compare::kLessThan;
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{3., "one"}, {5., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 4);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{5., "one"}, {3., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{1., "one"}, {1., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 1);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 1);
 }
 
 UTEST_F(RedisClientTest, Zcard) {

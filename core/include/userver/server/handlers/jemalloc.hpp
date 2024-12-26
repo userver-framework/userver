@@ -28,11 +28,26 @@ namespace server::handlers {
 /// * `enable` - to start memory profiling
 /// * `disable` - to stop memory profiling
 /// * `dump` - to get jemalloc profiling dump
+/// * `bg_threads_set_max` - to set maximum number of background threads
+/// * `bg_threads_enable` - to start background threads
+/// * `bg_threads_disable` - to *synchronously* stop background threads
 
 // clang-format on
 
 class Jemalloc final : public HttpHandlerBase {
 public:
+    enum class Command {
+        kStat,
+        kEnable,
+        kDisable,
+        kDump,
+        kBgThreadsSetMax,
+        kBgThreadsEnable,
+        kBgThreadsDisable,
+    };
+    static std::optional<Command> GetCommandFromString(std::string_view str);
+    static std::string ListCommands();
+
     Jemalloc(const components::ComponentConfig&, const components::ComponentContext&);
 
     /// @ingroup userver_component_names

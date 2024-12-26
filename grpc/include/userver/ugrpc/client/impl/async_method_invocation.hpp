@@ -33,15 +33,10 @@ public:
     explicit FinishAsyncMethodInvocation(RpcData& rpc_data);
     ~FinishAsyncMethodInvocation() override;
 
-    grpc::Status& GetStatus();
-    ParsedGStatus& GetParsedGStatus();
-
     void Notify(bool ok) noexcept override;
 
 private:
     RpcData& rpc_data_;
-    grpc::Status& status_;
-    ParsedGStatus parsed_gstatus_;
 };
 
 ugrpc::impl::AsyncMethodInvocation::WaitStatus

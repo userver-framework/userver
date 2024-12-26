@@ -33,11 +33,11 @@ struct ExecOptions final {
     /// File path to be redirected stderr, or `std::nullopt` to use the service's
     /// stderr
     std::optional<std::string> stderr_file{};
-    /// If `false`, `command` is treated as absolute path or a relative path.
-    /// If `true`, and `command` does not contain `/`, and PATH in environment
+    /// If `false`, `executable_path` is treated as absolute path or a relative path.
+    /// If `true`, and `executable_path` does not contain `/`, and PATH in environment
     /// variables, then it will be searched in the colon-separated list of
     /// directory pathnames specified in the PATH environment variable.
-    /// If `true`, and `command` contains `/`, `command` is treated as absolute
+    /// If `true`, and `executable_path` contains `/`, `executable_path` is treated as absolute
     /// path or a relative path.
     bool use_path{false};
 };
@@ -51,23 +51,24 @@ public:
     /// `main-task-processor is OK for this purpose.
     explicit ProcessStarter(TaskProcessor& task_processor);
 
-    /// @param command the absolute path or relative path. If `use_path` is
-    /// `true`, and `command` does not contains `/`, then it will be searched in
+    /// @param executable_path the absolute path or relative path. If `use_path` is
+    /// `true`, and `executable_path` does not contains `/`, then it will be searched in
     /// the colon-separated list of directory pathnames specified in the PATH
     /// environment variable. More details @ref ExecOptions::use_path
     /// @param args exact args passed to the executable
     /// @param options @ref ExecOptions settings
-    /// @throws std::runtime_error if `use_path` is `true`, `command` contains `/`
+    /// @throws std::runtime_error if `use_path` is `true`, `executable_path` contains `/`
     /// and PATH not in environment variables
-    ChildProcess Exec(const std::string& command, const std::vector<std::string>& args, ExecOptions&& options = {});
+    ChildProcess
+    Exec(const std::string& executable_path, const std::vector<std::string>& args, ExecOptions&& options = {});
 
     /// @overload
-    /// @param command the absolute path or relative path
+    /// @param executable_path the absolute path or relative path
     /// @param args exact args passed to the executable
     /// @param env redefines all environment variables
     /// @deprecated Use the `Exec` overload taking @ref ExecOptions
     ChildProcess Exec(
-        const std::string& command,
+        const std::string& executable_path,
         const std::vector<std::string>& args,
         const EnvironmentVariables& env,
         // TODO: use something like pipes instead of path to files
@@ -76,13 +77,13 @@ public:
     );
 
     /// @overload
-    /// @param command the absolute path or relative path
+    /// @param executable_path the absolute path or relative path
     /// @param args exact args passed to the executable
     /// @param env_update variables to add to the current environment, overwriting
     /// existing ones
     /// @deprecated Use the `Exec` overload taking @ref ExecOptions
     ChildProcess Exec(
-        const std::string& command,
+        const std::string& executable_path,
         const std::vector<std::string>& args,
         EnvironmentVariablesUpdate env_update,
         // TODO: use something like pipes instead of path to files

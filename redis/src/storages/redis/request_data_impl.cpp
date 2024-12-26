@@ -4,11 +4,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::redis {
+namespace storages::redis::impl {
 
-namespace impl {
-
-void Wait(USERVER_NAMESPACE::redis::Request& request) {
+void Wait(impl::Request& request) {
     try {
         request.Get();
     } catch (const std::exception& ex) {
@@ -16,16 +14,6 @@ void Wait(USERVER_NAMESPACE::redis::Request& request) {
     }
 }
 
-}  // namespace impl
-
-RequestDataImplBase::RequestDataImplBase(USERVER_NAMESPACE::redis::Request&& request) : request_(std::move(request)) {}
-
-RequestDataImplBase::~RequestDataImplBase() = default;
-
-ReplyPtr RequestDataImplBase::GetReply() { return request_.Get(); }
-
-USERVER_NAMESPACE::redis::Request& RequestDataImplBase::GetRequest() { return request_; }
-
-}  // namespace storages::redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

@@ -68,23 +68,20 @@ using GrpcClientWaitAnyTest = ugrpc::tests::ServiceFixture<AsyncTestService>;
 UTEST_F_MT(GrpcClientWaitAnyTest, HappyPath, 4) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     // Make two calls
-    auto call1 = client.SayHello({});
-    auto call2 = client.SayHello({});
+    auto future1 = client.AsyncSayHello({});
+    auto future2 = client.AsyncSayHello({});
 
     sample::ugrpc::GreetingResponse response1;
     sample::ugrpc::GreetingResponse response2;
-
-    auto future1 = call1.FinishAsync(response1);
-    auto future2 = call2.FinishAsync(response2);
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> bool {
         auto success_idx_opt = engine::WaitAny(future1, future2);
         // consume future
         if (*success_idx_opt == 0) {
-            future1.Get();
+            response1 = future1.Get();
         } else {
-            future2.Get();
+            response2 = future2.Get();
         }
 
         return success_idx_opt.has_value();
@@ -106,20 +103,17 @@ UTEST_F_MT(GrpcClientWaitAnyTest, GrcpCallCancelledAtFutureDestruction, 4) {
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> bool {
-        auto call1 = client.SayHello({});
-        auto call2 = client.SayHello({});
+        auto future1 = client.AsyncSayHello({});
+        auto future2 = client.AsyncSayHello({});
 
         sample::ugrpc::GreetingResponse response1;
         sample::ugrpc::GreetingResponse response2;
 
-        auto future1 = call1.FinishAsync(response1);
-        auto future2 = call2.FinishAsync(response2);
-
         auto success_idx_opt = engine::WaitAny(future1, future2);
         if (*success_idx_opt == 0) {
-            future1.Get();
+            response1 = future1.Get();
         } else {
-            future2.Get();
+            response2 = future2.Get();
         }
 
         return success_idx_opt.has_value();
@@ -138,11 +132,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, GrcpCallCancelledAtFutureDestruction, 4) {
 UTEST_F_MT(GrpcClientWaitAnyTest, SingleCancel, 2) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     // Make two calls
-    auto call1 = client.SayHello({});
-
-    sample::ugrpc::GreetingResponse response1;
-
-    auto future1 = call1.FinishAsync(response1);
+    auto future1 = client.AsyncSayHello({});
 
     engine::SingleConsumerEvent wait_task_started;
 
@@ -180,9 +170,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, FutureDestructionAtCancel, 2) {
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> std::optional<std::size_t> {
-        auto call1 = client.SayHello({});
-        sample::ugrpc::GreetingResponse response1;
-        auto future1 = call1.FinishAsync(response1);
+        auto future1 = client.AsyncSayHello({});
 
         // notify that we have started
         wait_task_started.Send();
@@ -214,11 +202,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, DoubleCall, 2) {
     // calling Get() doesn't lead to segfault
 
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto call1 = client.SayHello({});
-
-    sample::ugrpc::GreetingResponse response1;
-
-    auto future1 = call1.FinishAsync(response1);
+    auto future1 = client.AsyncSayHello({});
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> void {
@@ -243,11 +227,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, CallAfterGet, 2) {
     // Get on it doesn't lead to segfault
 
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto call1 = client.SayHello({});
-
-    sample::ugrpc::GreetingResponse response1;
-
-    auto future1 = call1.FinishAsync(response1);
+    auto future1 = client.AsyncSayHello({});
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> void {
@@ -273,21 +253,18 @@ UTEST_F_MT(GrpcClientWaitAnyTest, WaitInLoop, 2) {
     // and wait one-by-one until completion
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     // Make two calls
-    auto call1 = client.SayHello({});
-    auto call2 = client.SayHello({});
-    auto call3 = client.SayHello({});
-    auto call4 = client.SayHello({});
+    auto future1 = client.AsyncSayHello({});
+    auto future2 = client.AsyncSayHello({});
+    auto future3 = client.AsyncSayHello({});
+    auto future4 = client.AsyncSayHello({});
 
-    sample::ugrpc::GreetingResponse response1;
-    sample::ugrpc::GreetingResponse response2;
-    sample::ugrpc::GreetingResponse response3;
-    sample::ugrpc::GreetingResponse response4;
+    sample::ugrpc::GreetingResponse response;
 
-    std::vector<ugrpc::client::UnaryFuture> futures;
-    futures.emplace_back(call1.FinishAsync(response1));
-    futures.emplace_back(call2.FinishAsync(response2));
-    futures.emplace_back(call3.FinishAsync(response3));
-    futures.emplace_back(call4.FinishAsync(response4));
+    std::vector<ugrpc::client::ResponseFuture<sample::ugrpc::GreetingResponse>> futures;
+    futures.emplace_back(std::move(future1));
+    futures.emplace_back(std::move(future2));
+    futures.emplace_back(std::move(future3));
+    futures.emplace_back(std::move(future4));
 
     utils::FixedArray<bool> got_responses_flag{futures.size(), false};
 
@@ -307,7 +284,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, WaitInLoop, 2) {
             ASSERT_EQ(got_responses_flag[*success_idx_opt], false);
             got_responses_flag[*success_idx_opt] = true;
             // consume future
-            futures[*success_idx_opt].Get();
+            response = futures[*success_idx_opt].Get();
         }
         return;
     });
@@ -338,11 +315,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, ServerTimeout, 2) {
     auto deadline = engine::Deadline::FromDuration(deadline_ms);
     context->set_deadline(deadline);
 
-    auto call1 = client.SayHello({}, std::move(context));
-
-    sample::ugrpc::GreetingResponse response1;
-
-    auto future1 = call1.FinishAsync(response1);
+    auto future1 = client.AsyncSayHello({}, std::move(context));
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> void {

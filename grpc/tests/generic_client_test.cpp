@@ -39,12 +39,12 @@ sample::ugrpc::GreetingResponse PerformGenericUnaryCall(ugrpc::tests::ServiceBas
     sample::ugrpc::GreetingRequest request;
     request.set_name("generic");
 
-    auto rpc = client.UnaryCall(call_name, ugrpc::SerializeToByteBuffer(request));
+    auto future = client.AsyncUnaryCall(call_name, ugrpc::SerializeToByteBuffer(request));
 
-    auto response_bytes = rpc.Finish();
+    auto response_bytes = future.Get();
     sample::ugrpc::GreetingResponse response;
     if (!ugrpc::ParseFromByteBuffer(std::move(response_bytes), response)) {
-        throw ugrpc::client::RpcError(rpc.GetCallName(), "Failed to parse response");
+        throw ugrpc::client::RpcError(future.GetCall().GetCallName(), "Failed to parse response");
     }
 
     return response;
@@ -67,11 +67,11 @@ UTEST_F(GenericClientTest, MetricsRealUnsafe) {
     ugrpc::client::GenericOptions options;
     options.metrics_call_name = std::nullopt;
 
-    auto rpc = client.UnaryCall(
+    auto future = client.AsyncUnaryCall(
         kSayHelloCallName, ugrpc::SerializeToByteBuffer(request), std::make_unique<grpc::ClientContext>(), options
     );
-    EXPECT_EQ(rpc.GetCallName(), kSayHelloCallName);
-    rpc.Finish();
+    EXPECT_EQ(future.GetCall().GetCallName(), kSayHelloCallName);
+    future.Get();
 
     const auto stats = GetStatistics(
         "grpc.client.by-destination",

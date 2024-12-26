@@ -71,6 +71,11 @@ public:
     explicit TaskWithResult(impl::TaskContextHolder&& context) : Task(std::move(context)) {}
     /// @endcond
 
+    Task AsTask() && {
+        // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+        return std::move(*this);
+    }
+
 private:
     void EnsureValid() const {
         UINVARIANT(

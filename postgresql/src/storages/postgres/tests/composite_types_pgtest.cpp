@@ -798,6 +798,17 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
             "'__pgtest.no_cpp_type' (oid: "
         );
     }
+}
+
+// Following tests abort in debug
+#ifdef NDEBUG
+
+UTEST_P(PostgreConnection, InvalidInputBufferSizeExceptionReadability) {
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
     {
         UEXPECT_NO_THROW(GetConn()->Execute(R"~(
           CREATE TABLE __pgtest.numeric_problem (
@@ -857,9 +868,11 @@ UTEST_P(PostgreConnection, UnknownBufferCategoryExceptionReadability) {
         storages::postgres::UnknownBufferCategory,
         "Database type is 'tsquery' (oid: 3615) and it is not representable as a C++ type 'int' within a C++ composite "
         "'PairForUnknownBufferCategoryExceptionReadabilityTest'. Refer to the 'Supported data types' in the "
-        "documentation to find a propper C++ type."
+        "documentation to find a proper C++ type."
     );
 }
+
+#endif
 
 }  // namespace
 

@@ -14,6 +14,8 @@ static void test_gdb_printers() {
     };
 
     formats::json::Value value{};
+    TEST_INIT(value);
+
     TEST_EXPR('value', 'null');
 
     value = new_value(true);
@@ -93,6 +95,8 @@ static void test_gdb_printers() {
         'value',
         '{["a"] = {1, {}, []}, ["b"] = {true, false}, ["c"] = {["internal"] = {["subkey"] = 2}}, ["i"] = -1, ["u"] = 1, ["i64"] = -1.8446744073709552e+19, ["u64"] = 18446744073709551614, ["d"] = 0.40000000000000002}'
     );
+
+    TEST_DEINIT(value);
 }
 
 USERVER_NAMESPACE_END

@@ -36,6 +36,24 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams, const
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/message.hpp>
 
+#if !defined(USERVER_NO_LIBPQ_PATCHES)
+static_assert(
+    USERVER_LIBPQ_VERSION / 10000 == PG_VERSION_NUM / 10000,
+    "\n\n"
+    "======================================================================\n"
+    "Versions of postgres and libpq have diverged, check the output of cmake configure.\n"
+    "Either:\n"
+    "  a) set USERVER_FEATURE_PATCH_LIBPQ to OFF\n"
+    "     https://userver.tech/d5/d3d/md_en_2userver_2build_2options.html#cmake_options\n"
+    "  b) install libpq of the same version as postgres server\n"
+    "     and pass USERVER_PG_INCLUDE_DIR and USERVER_PG_LIBRARY_DIR cmake options to userver\n"
+    "     https://userver.tech/de/db9/md_en_2userver_2build_2dependencies.html#autotoc_md183\n"
+    "  c) build using the provided Docker containers or Conan\n"
+    "     https://userver.tech/de/dab/md_en_2userver_2build_2build.html#postgres_deps_versions\n"
+    "======================================================================\n"
+);
+#endif
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info

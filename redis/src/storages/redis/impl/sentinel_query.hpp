@@ -2,12 +2,12 @@
 
 #include <atomic>
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 #include "shard.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 struct GetHostsRequest {
     // For MASTERS
@@ -150,6 +150,6 @@ private:
     std::map<ServerId, ClusterSlotsResponse> responses_by_id_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

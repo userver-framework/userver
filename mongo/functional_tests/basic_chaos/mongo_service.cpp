@@ -10,6 +10,8 @@
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/mongo/component.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/utils/from_string.hpp>
@@ -80,6 +82,8 @@ int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<clients::dns::Component>()
                                     .Append<components::HttpClient>()
+                                    .Append<components::Secdist>()
+                                    .Append<components::DefaultSecdistProvider>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::TestsControl>()
                                     .Append<components::Mongo>("key-value-database")

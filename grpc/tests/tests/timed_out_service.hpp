@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <vector>
 
+#include <userver/ugrpc/server/exceptions.hpp>
+
 #include <userver/utest/utest.hpp>
 
 #include <tests/deadline_helpers.hpp>

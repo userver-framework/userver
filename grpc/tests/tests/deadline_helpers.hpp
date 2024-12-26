@@ -9,8 +9,6 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/ugrpc/client/rpc.hpp>
-#include <userver/ugrpc/server/rpc.hpp>
 
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 

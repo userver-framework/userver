@@ -360,14 +360,16 @@ macro(_userver_module_end)
 endmacro()
 
 function(_userver_macos_set_default_dir variable command_args)
+  set(default_value "")
   if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT DEFINED ${variable})
     execute_process(
         COMMAND ${command_args}
         OUTPUT_VARIABLE output
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    set("${variable}" "${output}" CACHE PATH "")
+    set(default_value "${output}")
   endif()
+  set("${variable}" "${default_value}" CACHE PATH "")
 endfunction()
 
 function(_userver_print_features_list)

@@ -15,7 +15,7 @@ Plugin::Plugin() : clients::http::Plugin(kName) {}
 
 void Plugin::HookPerformRequest(PluginRequest&) {}
 
-void Plugin::HookCreateSpan(PluginRequest& request) {
+void Plugin::HookCreateSpan(PluginRequest& request, tracing::Span&) {
     for (const auto& [name, value] : server::request::GetPropagatedHeaders()) {
         request.SetHeader(name, value);
     }

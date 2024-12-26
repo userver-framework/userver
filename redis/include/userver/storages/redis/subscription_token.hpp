@@ -9,12 +9,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
-struct CommandControl;
-class SubscribeSentinel;
-}  // namespace redis
-
 namespace storages::redis {
+
+struct CommandControl;
 
 namespace impl {
 

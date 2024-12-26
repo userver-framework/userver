@@ -1,0 +1,21 @@
+#include <client/{{ name }}/component.hpp>
+
+#include <userver/chaotic/openapi/client/config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/clients/http/component.hpp>
+
+namespace {{ namespace }} {
+
+Component::Component(const USERVER_NAMESPACE::components::ComponentConfig& config, const USERVER_NAMESPACE::components::ComponentContext& context)
+        : USERVER_NAMESPACE::components::ComponentBase(config, context),
+          client_(
+              USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, "{{ base_url }}"),
+              context.FindComponent<USERVER_NAMESPACE::components::HttpClient>().GetHttpClient()
+          ) {}
+
+Client& Component::GetClient()
+{
+  return client_;
+}
+
+}

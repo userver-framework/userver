@@ -45,13 +45,13 @@ storages::postgres::ConnlimitMode ParseConnlimitMode(const std::string& value) {
 Postgres::Postgres(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       name_{config.Name()},
-      database_{std::make_shared<storages::postgres::Database>()} {
+      database_{std::make_shared<storages::postgres::Database>()},
+      config_source_{context.FindComponent<DynamicConfig>().GetSource()} {
     storages::postgres::LogRegisteredTypesOnce();
 
     namespace pg = storages::postgres;
 
-    auto config_source = context.FindComponent<DynamicConfig>().GetSource();
-    const auto initial_config = config_source.GetSnapshot();
+    const auto initial_config = config_source_.GetSnapshot();
     const auto& pg_config = initial_config[storages::postgres::kConfig];
 
     const auto dbalias = config["dbalias"].As<std::string>("");
@@ -67,6 +67,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
             auto& secdist = context.FindComponent<Secdist>();
             cluster_desc = secdist.Get().Get<pg::secdist::PostgresSettings>().GetShardedClusterDescription(dbalias);
             db_name_ = dbalias;
+            dbalias_ = dbalias;
         } catch (const storages::secdist::SecdistError& ex) {
             LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias << ": " << ex;
             throw;
@@ -131,13 +132,17 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
             testsuite_pg_ctl,
             ei_settings,
             testsuite_tasks,
-            config_source,
+            config_source_,
             shard_number++
         );
         database_->clusters_.push_back(cluster);
     }
 
-    config_subscription_ = config_source.UpdateAndListen(this, "postgres", &Postgres::OnConfigUpdate);
+    config_subscription_ = config_source_.UpdateAndListen(this, "postgres", &Postgres::OnConfigUpdate);
+    if (!dbalias_.empty()) {
+        auto& secdist = context.FindComponent<Secdist>();
+        secdist_subscription_ = secdist.GetStorage().UpdateAndListen(this, db_name_, &Postgres::OnSecdistUpdate);
+    }
 
     LOG_DEBUG() << "Component ready";
 }
@@ -188,6 +193,15 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
         cluster->SetConnectionSettings(connection_settings);
         cluster->SetStatementMetricsSettings(statement_metrics_settings);
     }
+}
+
+void Postgres::OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist) {
+    const auto& cluster_desc =
+        secdist.Get<storages::postgres::secdist::PostgresSettings>().GetShardedClusterDescription(dbalias_);
+    database_->UpdateClusterDescription(cluster_desc);
+
+    auto snapshot = config_source_.GetSnapshot();
+    OnConfigUpdate(snapshot);
 }
 
 yaml_config::Schema Postgres::GetStaticConfigSchema() {

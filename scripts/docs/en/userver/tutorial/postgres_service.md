@@ -24,31 +24,41 @@ Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a compo
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component
 
-Note that the component holds a storages::postgres::ClusterPtr - a client to the PostgreSQL DB. That client is thread safe, you can use it concurrently from different threads and tasks.
+Note that the component holds a storages::postgres::ClusterPtr - a client to the PostgreSQL DB. That client is thread
+safe, you can use it concurrently from different threads and tasks.
 
 ### Initializing the database
 
-To access the database from our new component we need to find the PostgreSQL component and request a client to the DB. After that we may create the required tables.
+To access the database from our new component we need to find the PostgreSQL component and request a client to the DB.
+After that we may create the required tables.
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component constructor
 
-To create a table we just execute an SQL statement, mentioning that it should go to the master instance. After that, our component is ready to process incoming requests in the KeyValue::HandleRequestThrow function. 
+To create a table we just execute an SQL statement, mentioning that it should go to the master instance. After that, our
+component is ready to process incoming requests in the KeyValue::HandleRequestThrow function. 
 
 
 ### KeyValue::HandleRequestThrow
 
-In this sample we use a single handler to deal with all the HTTP methods. The KeyValue::HandleRequestThrow member function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic: 
+In this sample we use a single handler to deal with all the HTTP methods. The KeyValue::HandleRequestThrow member
+function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic: 
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - HandleRequestThrow
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the KeyValue component only uses the thread safe DB client. In more complex cases @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" should be used or data must not be mutated.
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the
+KeyValue component only uses the thread safe DB client. In more complex cases
+@ref scripts/docs/en/userver/synchronization.md "synchronization primitives" should be used or data must not be mutated.
 
 
 ### KeyValue::GetValue
 
-Postgres driver in userver implicitly works with prepared statements. For the first time you execute the query a prepared statement is created. Executing the query next time would result in only sending the arguments for the already created prepared statement.
+Postgres driver in userver implicitly works with prepared statements. For the first time you execute the query a
+prepared statement is created. Executing the query next time would result in only sending the arguments for the already
+created prepared statement.
 
-You could pass strings as queries, just like we done in constructor of KeyValue. Also queries could be stored in variables along with query names and reused across the functions. Name of the query could be used in dynamic configs to set the execution timeouts (see @ref POSTGRES_QUERIES_COMMAND_CONTROL).
+You could pass strings as queries, just like we done in constructor of KeyValue. Also queries could be stored in
+variables along with query names and reused across the functions. Name of the query could be used in dynamic configs to
+set the execution timeouts (see @ref POSTGRES_QUERIES_COMMAND_CONTROL).
 You can ease query definition by using @ref scripts/docs/en/userver/sql_files.md.
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - GetValue
@@ -56,8 +66,10 @@ You can ease query definition by using @ref scripts/docs/en/userver/sql_files.md
 
 ### KeyValue::PostValue
 
-You can start a transaction by calling storages::postgres::Cluster::Begin(). Transactions are automatically rolled back, if you do not commit them.
-To execute a query in transaction, just call Execute member function of a transaction. Just like with non-transactional Execute, you can pass string or storages::postgres::Query, you could reuse the 
+You can start a transaction by calling storages::postgres::Cluster::Begin(). Transactions are automatically rolled back,
+if you do not commit them.
+To execute a query in transaction, just call Execute member function of a transaction. Just like with non-transactional
+Execute, you can pass string or storages::postgres::Query, you could reuse the 
 same query in different functions. Transactions also could be named, and those names could be used in @ref POSTGRES_QUERIES_COMMAND_CONTROL.
 You can ease query definition by using @ref scripts/docs/en/userver/sql_files.md.
 

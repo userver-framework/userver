@@ -361,7 +361,7 @@ UTEST_P(PostgreConnection, UnknownParserExceptionReadability) {
         storages::postgres::UnknownBufferCategory,
         "Query result set field `tsquery` doesn't have a parser. Database type is 'tsquery' (oid: 3615) and it was not "
         "retrieved in C++ code as a corresponding C++ type. Refer to the 'Supported data types' in the documentation "
-        "to find a propper C++ type."
+        "to find a proper C++ type."
     );
 }
 

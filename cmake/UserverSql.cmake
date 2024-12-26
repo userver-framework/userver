@@ -44,6 +44,7 @@ function(userver_add_sql_library TARGET)
   get_property(USERVER_SQL_SCRIPTS_PATH
       GLOBAL PROPERTY userver_scripts_sql)
 
+  _userver_initialize_codegen_flag()
   add_custom_command(
     OUTPUT 
         ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
@@ -55,6 +56,7 @@ function(userver_add_sql_library TARGET)
         --output-dir ${ARG_OUTPUT_DIR}
         --query-log-mode ${ARG_QUERY_LOG_MODE}
         ${SQL_FILES}
+    ${CODEGEN}
   )
 
   add_library(${TARGET} STATIC 

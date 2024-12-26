@@ -20,33 +20,29 @@ ParsedGStatus ParsedGStatus::ProcessStatus(const grpc::Status& status) {
     return ParsedGStatus{std::move(gstatus), std::move(gstatus_string)};
 }
 
-FinishAsyncMethodInvocation::FinishAsyncMethodInvocation(RpcData& rpc_data)
-    : rpc_data_(rpc_data), status_(rpc_data.GetStatus()) {}
+FinishAsyncMethodInvocation::FinishAsyncMethodInvocation(RpcData& rpc_data) : rpc_data_(rpc_data) {}
 
 FinishAsyncMethodInvocation::~FinishAsyncMethodInvocation() { WaitWhileBusy(); }
 
 void FinishAsyncMethodInvocation::Notify(bool ok) noexcept {
     if (ok) {
         try {
-            rpc_data_.GetStatsScope().OnExplicitFinish(status_.error_code());
+            auto& status = rpc_data_.GetStatus();
+            rpc_data_.GetStatsScope().OnExplicitFinish(status.error_code());
 
-            if (status_.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED && rpc_data_.IsDeadlinePropagated()) {
+            if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED && rpc_data_.IsDeadlinePropagated()) {
                 rpc_data_.GetStatsScope().OnCancelledByDeadlinePropagation();
             }
 
             rpc_data_.GetStatsScope().Flush();
 
-            parsed_gstatus_ = ParsedGStatus::ProcessStatus(status_);
+            rpc_data_.GetParsedGStatus() = ParsedGStatus::ProcessStatus(status);
         } catch (const std::exception& e) {
             LOG_LIMITED_ERROR() << "Error in FinishAsyncMethodInvocation::Notify: " << e;
         }
     }
     AsyncMethodInvocation::Notify(ok);
 }
-
-ParsedGStatus& FinishAsyncMethodInvocation::GetParsedGStatus() { return parsed_gstatus_; }
-
-grpc::Status& FinishAsyncMethodInvocation::GetStatus() { return status_; }
 
 ugrpc::impl::AsyncMethodInvocation::WaitStatus
 Wait(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::ClientContext& context) noexcept {

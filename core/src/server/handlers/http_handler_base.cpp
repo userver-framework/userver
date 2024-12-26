@@ -198,8 +198,7 @@ HttpHandlerBase::HttpHandlerBase(
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
-void HttpHandlerBase::HandleRequestStream(const http::HttpRequest& http_request, request::RequestContext& context)
-    const {
+void HttpHandlerBase::HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const {
     auto& response = http_request.GetHttpResponse();
     const utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
 
@@ -254,11 +253,11 @@ void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request
         HandleRequestStream(http_request, context);
     } else {
         // !IsBodyStreamed()
-        response.SetData(HandleRequestThrow(http_request, context));
+        response.SetData(HandleRequest(http_request, context));
     }
 }
 
-void HttpHandlerBase::HandleRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
+void HttpHandlerBase::PrepareAndHandleRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
     auto& response = http_request.GetHttpResponse();
 
     context.GetInternalContext().SetConfigSnapshot(config_source_.GetSnapshot());
@@ -288,13 +287,18 @@ void HttpHandlerBase::ThrowUnsupportedHttpMethod(const http::HttpRequest& reques
 
 std::string HttpHandlerBase::HandleRequestThrow(const http::HttpRequest&, request::RequestContext&) const {
     throw std::runtime_error(
-        "non-stream HandleRequestThrow() is executed, but the handler doesn't "
-        "override HandleRequestThrow()."
+        "non-stream HandleRequest() is executed, but the handler doesn't "
+        "override HandleRequest()."
     );
 }
 
+std::string HttpHandlerBase::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
+    // Default implementation proxies the request to legacy HandleRequestThrow()
+    return HandleRequestThrow(request, context);
+}
+
 void HttpHandlerBase::
-    HandleStreamRequest(const server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
+    HandleStreamRequest(server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
         const {
     throw std::runtime_error(
         "stream HandleStreamRequest() is executed, but the handler doesn't "

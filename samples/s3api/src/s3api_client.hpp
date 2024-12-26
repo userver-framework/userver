@@ -10,7 +10,7 @@ namespace samples {
 
 /// [s3_sample_component]
 
-// This component is not required to create S3 api client. It is used for demonstation
+// This component is not required to create S3 api client. It is used for demonstration
 // purposes only.
 class S3ApiSampleComponent : public components::LoggableComponentBase {
 public:

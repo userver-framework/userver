@@ -32,8 +32,6 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
-                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/16/server
-                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/16/lib
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
                     tests-flags: ''
@@ -53,8 +51,6 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
-                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
-                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
@@ -198,16 +194,8 @@ jobs:
           - name: Install common deps
             run: |
                 sudo apt update
+                sudo apt purge libpq5 libpq-dev postgresql-*
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
-
-          - name: Install postgres 15
-            if: matrix.os == 'ubuntu-22.04'
-            run: |
-                # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
-                sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
-                echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-                sudo apt update
-                sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
 
           - name: Install g++-8
             if: matrix.info == 'g++-8 + debug'
@@ -217,6 +205,10 @@ jobs:
           - name: Install RabbitMQ packages
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
+
+          - name: Install gdb and pytest
+            run: |
+                sudo apt install -y gdb python3-pytest
 
           - name: Setup ccache
             run: |
@@ -298,7 +290,7 @@ jobs:
 
           - name: Run tests (mongo)
             # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
-            if: matrix.info != 'g++-9 + debug + sanitize addr+ub'
+            if: matrix.info != 'g++-9 + release'
             run: |
                 sudo apt install mongodb-mongosh
                 cd build_debug
@@ -325,4 +317,9 @@ jobs:
                 cd build_debug
                 mkdir mysql || :
                 cd mysql
+                ctest -V
+
+          - name: Run tests (gdb)
+            run: |
+                cd build_debug/scripts/gdb/tests
                 ctest -V

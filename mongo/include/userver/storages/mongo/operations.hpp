@@ -35,6 +35,7 @@ public:
     void SetOption(options::Limit);
     void SetOption(options::ForceCountImpl);
     void SetOption(const options::MaxServerTime&);
+    void SetOption(const options::Hint&);
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;

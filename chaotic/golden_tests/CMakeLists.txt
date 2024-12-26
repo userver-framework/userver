@@ -7,11 +7,11 @@ file(GLOB_RECURSE SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml")
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen
     ARGS
         -n "/components/schemas/([^/]*)/=ns::{0}"
-        -f "(.*)={0}"
         -I "${CMAKE_CURRENT_SOURCE_DIR}/include"
         -I "${CMAKE_CURRENT_SOURCE_DIR}/../include"
         --parse-extra-formats
         --generate-serializers
+    FORMAT ON
     OUTPUT_DIR
         "${CMAKE_CURRENT_BINARY_DIR}/src"
     SCHEMAS

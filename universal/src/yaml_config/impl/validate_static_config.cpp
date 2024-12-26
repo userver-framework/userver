@@ -17,7 +17,7 @@ namespace yaml_config::impl {
 
 namespace {
 
-bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
+bool IsTypeValid(FieldType type, const yaml_config::YamlConfig& value) {
     switch (type) {
         case FieldType::kInteger:
             return value.IsInt() || value.IsUInt64() || value.IsInt64();
@@ -37,11 +37,11 @@ bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
 }
 
 void CheckType(const YamlConfig& value, const Schema& schema) {
-    if (!IsTypeValid(schema.type, value.Yaml())) {
+    if (!IsTypeValid(schema.type, value)) {
         throw std::runtime_error(fmt::format(
             "Error while validating static config against schema. "
             "Value '{}' of field '{}' must be {}",
-            formats::yaml::ToString(value.Yaml()),
+            formats::yaml::ToString(value.GetRawYamlWithoutConfigVars()),
             value.GetPath(),
             ToString(schema.type)
         ));
@@ -146,7 +146,7 @@ void CheckNumericBounds(const YamlConfig& value, const Schema& schema) {
             ToString(schema.type),
             value.GetPath(),
             *schema.minimum,
-            formats::yaml::ToString(value.Yaml())
+            formats::yaml::ToString(value.GetRawYamlWithoutConfigVars())
         ));
     }
 
@@ -157,7 +157,7 @@ void CheckNumericBounds(const YamlConfig& value, const Schema& schema) {
             ToString(schema.type),
             value.GetPath(),
             *schema.maximum,
-            formats::yaml::ToString(value.Yaml())
+            formats::yaml::ToString(value.GetRawYamlWithoutConfigVars())
         ));
     }
 }

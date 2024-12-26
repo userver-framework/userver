@@ -231,22 +231,28 @@ function(userver_testsuite_add)
   list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
 
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary)
-  execute_process(
-    COMMAND
-    "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
-    "--output=${TESTSUITE_RUNNER}"
-    "--python=${python_binary}"
-    "--python-path=${ARG_PYTHONPATH}"
-    --
-    "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
-    "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
-    "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary"
-    ${ARG_PYTEST_ARGS}
-    RESULT_VARIABLE STATUS
+
+  _userver_initialize_codegen_flag()
+  add_custom_command(
+      OUTPUT "${TESTSUITE_RUNNER}"
+      COMMAND
+      "${python_binary}"
+      "${USERVER_TESTSUITE_DIR}/create_runner.py"
+      "--output=${TESTSUITE_RUNNER}"
+      "--python=${python_binary}"
+      "--python-path=${ARG_PYTHONPATH}"
+      --
+      "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
+      "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
+      "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary"
+      ${ARG_PYTEST_ARGS}
+      DEPENDS "${USERVER_TESTSUITE_DIR}/create_runner.py"
+      COMMENT "Creating testsuite runner at ${TESTSUITE_RUNNER}"
+      VERBATIM
+      ${CODEGEN}
   )
-  if (STATUS)
-    message(FATAL_ERROR "Failed to create testsuite runner")
-  endif()
+  # HACK: it seems too verbose to create a separate target for the file.
+  target_sources("${ARG_SERVICE_TARGET}" PRIVATE "${TESTSUITE_RUNNER}")
 
   set(PRETTY_LOGS_MODE "")
   if (ARG_PRETTY_LOGS)
@@ -308,6 +314,7 @@ function(userver_testsuite_add_simple)
       CONFIG_VARS_PATH
       DYNAMIC_CONFIG_FALLBACK_PATH
       SECDIST_PATH
+      DUMP_CONFIG
   )
   set(multiValueArgs
       PYTEST_ARGS
@@ -358,9 +365,16 @@ function(userver_testsuite_add_simple)
     set(ARG_TEST_SUFFIX "")
   endif()
 
+  set(DUMP_CONFIG_OPTION "")
+  if (ARG_DUMP_CONFIG)
+    set(DUMP_CONFIG_OPTION "--dump-config")
+  endif()
+
   if(ARG_CONFIG_PATH)
     get_filename_component(config_path "${ARG_CONFIG_PATH}"
         REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  elseif(ARG_DUMP_CONFIG)
+    set(config_path "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/static_config.yaml")
   else()
     foreach(probable_config_path IN ITEMS
         "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
@@ -460,6 +474,7 @@ function(userver_testsuite_add_simple)
       "--service-config=${config_path}"
       "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
       "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
+      "${DUMP_CONFIG_OPTION}"
       ${pytest_additional_args}
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}

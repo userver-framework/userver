@@ -500,7 +500,7 @@ UTEST_F(Collection, AggregateOut) { SampleMongoPool(GetDefaultPool()); }
 
 UTEST_F(Collection, Drop) {
     const std::string collection_name = "drop";
-    auto pool = GetDefaultPool();
+    auto& pool = GetDefaultPool();
     auto coll = pool.GetCollection(collection_name);
 
     {

@@ -219,7 +219,6 @@ void HttpRequestConstructor::ParseArgs(const HttpParserUrl& url) {
     if (url.parsed_url.field_set & (1 << http_parser_url_fields::UF_QUERY)) {
         const auto& str_info = url.parsed_url.field_data[http_parser_url_fields::UF_QUERY];
         ParseArgs(builder_.GetRef().GetUrl().data() + str_info.off, str_info.len);
-        LOG_TRACE() << "query=" << url_.substr(str_info.off, str_info.len);
     }
 }
 

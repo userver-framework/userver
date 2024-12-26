@@ -17,6 +17,15 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To
 
     conf.max_headers_size = value["max_headers_size"].As<size_t>(conf.max_headers_size);
 
+    conf.request_body_size_log_limit =
+        value["request_body_size_log_limit"].As<size_t>(conf.request_body_size_log_limit);
+
+    conf.request_headers_size_log_limit =
+        value["request_headers_size_log_limit"].As<size_t>(conf.request_headers_size_log_limit);
+
+    conf.response_data_size_log_limit =
+        value["response_data_size_log_limit"].As<size_t>(conf.response_data_size_log_limit);
+
     conf.parse_args_from_body = value["parse_args_from_body"].As<bool>(conf.parse_args_from_body);
 
     conf.set_tracing_headers = value["set_tracing_headers"].As<bool>(conf.set_tracing_headers);

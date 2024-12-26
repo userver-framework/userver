@@ -269,7 +269,7 @@ Config defaults are specified in their
 @ref dynamic_config_key "C++ definition".
 They may be overridden in the static config of `dynamic-config` component:
 
-@see @ref dynamic_config_defaults_override
+@see @ref dynamic_config_defaults_override "Overriding dynamic configs defaults"
 
 If utils::DaemonMain is used, then the default dynamic configs can
 be printed by passing `--print-dynamic-config-defaults` command line option.
@@ -360,7 +360,8 @@ Here is a reasonable static config for those:
 Components components::DynamicConfigClientUpdater and components::DynamicConfigClient
 use the following OpenAPI Schema to communicate with the dynamic configs server:
 
-```yaml
+```
+# yaml
 swagger: '2.0'
 info:
     title: Dynamic configs service

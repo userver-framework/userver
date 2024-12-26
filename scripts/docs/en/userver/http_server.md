@@ -41,7 +41,7 @@ To enable Streaming API in your handler:
 ```cpp
   #include <userver/server/http/http_response_body_stream_fwd.hpp>
   ...
-    void HandleStreamRequest(const server::http::HttpRequest&,
+    void HandleStreamRequest(server::http::HttpRequest&,
                              server::request::RequestContext&,
                              server::http::ResponseBodyStream&) const override;
 ```

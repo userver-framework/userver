@@ -59,17 +59,21 @@ private:
         const server::net::ListenerConfig& acceptor_config
     );
 
-    void KeepAccepting();
+    void KeepAccepting(engine::io::Socket& listen_sock);
 
     void OnAllComponentsLoaded() final;
     void OnAllComponentsAreStopping() final;
+
+    struct SocketData {
+        engine::io::Socket listen_sock;
+        engine::Task acceptor;
+    };
 
     const bool no_delay_;
     engine::TaskProcessor& acceptor_task_processor_;
     engine::TaskProcessor& sockets_task_processor_;
     concurrent::BackgroundTaskStorageCore tasks_;
-    engine::io::Socket listen_sock_;
-    engine::Task acceptor_;
+    std::vector<SocketData> sockets_;
 };
 
 }  // namespace components

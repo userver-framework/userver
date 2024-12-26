@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/fwd.hpp>
 #include <userver/utils/void_t.hpp>
 
 #include <userver/storages/redis/reply_types.hpp>

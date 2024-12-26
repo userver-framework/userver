@@ -98,10 +98,8 @@ UTEST_F(GrpcClientQosConfigOk, Ok) {
     auto client = GetClientFactory().MakeClient<sample::ugrpc::UnitTestServiceClient>(MakeClientSettingsWithQos());
     ExtendDynamicConfig(MakeQosConfig(utest::kMaxTestWaitTime));
 
-    auto call = client.SayHello(kRequest);
-
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_NO_THROW(response = call.Finish());
+    UEXPECT_NO_THROW(response = client.SyncSayHello(kRequest));
     EXPECT_EQ(response.name(), "Hello " + kRequest.name());
 }
 
@@ -111,10 +109,9 @@ UTEST_F(GrpcClientQosConfigOk, ContextDeadlineOverrides) {
 
     auto context = std::make_unique<grpc::ClientContext>();
     context->set_deadline(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
-    auto call = client.SayHello(kRequest, std::move(context));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_NO_THROW(response = call.Finish());
+    UEXPECT_NO_THROW(response = client.SyncSayHello(kRequest, std::move(context)));
     EXPECT_EQ(response.name(), "Hello " + kRequest.name());
 }
 
@@ -127,10 +124,9 @@ UTEST_F(GrpcClientQosConfigOk, UserQosOverridesEverything) {
 
     ugrpc::client::Qos qos;
     qos.timeout = tests::kLongTimeout;
-    auto call = client.SayHello(kRequest, std::move(context), qos);
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_NO_THROW(response = call.Finish());
+    UEXPECT_NO_THROW(response = client.SyncSayHello(kRequest, std::move(context), qos));
     EXPECT_EQ(response.name(), "Hello " + kRequest.name());
 }
 
@@ -139,10 +135,8 @@ UTEST_F(GrpcClientQosConfigExceeded, DefaultTimeout) {
 
     ExtendDynamicConfig(MakeQosConfig(tests::kShortTimeout));
 
-    auto call = client.SayHello(kRequest);
-
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, PerRpcTimeout) {
@@ -150,10 +144,8 @@ UTEST_F(GrpcClientQosConfigExceeded, PerRpcTimeout) {
 
     ExtendDynamicConfig(MakePerRpcQosConfig(tests::kShortTimeout));
 
-    auto call = client.SayHello(kRequest);
-
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, DeadlinePropagationWorks) {
@@ -162,10 +154,8 @@ UTEST_F(GrpcClientQosConfigExceeded, DeadlinePropagationWorks) {
     ExtendDynamicConfig(MakeQosConfig(utest::kMaxTestWaitTime));
     tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
 
-    auto call = client.SayHello(kRequest);
-
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, ContextDeadlineOverrides) {
@@ -175,10 +165,9 @@ UTEST_F(GrpcClientQosConfigExceeded, ContextDeadlineOverrides) {
 
     auto context = std::make_unique<grpc::ClientContext>();
     context->set_deadline(engine::Deadline::FromDuration(tests::kShortTimeout));
-    auto call = client.SayHello(kRequest, std::move(context));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SyncSayHello(kRequest, std::move(context)), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, UserQosOverridesEverything) {
@@ -191,10 +180,11 @@ UTEST_F(GrpcClientQosConfigExceeded, UserQosOverridesEverything) {
 
     ugrpc::client::Qos qos;
     qos.timeout = tests::kShortTimeout;
-    auto call = client.SayHello(kRequest, std::move(context), qos);
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(
+        response = client.SyncSayHello(kRequest, std::move(context), qos), ugrpc::client::DeadlineExceededError
+    );
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, EmptyConfigMeansInfinity) {
@@ -204,10 +194,8 @@ UTEST_F(GrpcClientQosConfigExceeded, EmptyConfigMeansInfinity) {
     ExtendDynamicConfig({{tests::kUnitTestClientQos, {}}});
     tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
 
-    auto call = client.SayHello(kRequest);
-
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 USERVER_NAMESPACE_END

@@ -95,7 +95,7 @@ UTEST_F(GrpcClientCancel, UnaryCall) {
 
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
-        UEXPECT_THROW((void)client.SayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW(client.SyncSayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =
@@ -111,7 +111,7 @@ UTEST_F(GrpcClientCancel, AsyncUnaryRPC) {
 
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
-        UEXPECT_THROW((void)client.SayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW((void)client.AsyncSayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =
@@ -125,12 +125,12 @@ UTEST_F(GrpcClientCancel, UnaryFinish) {
     {
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
-        auto call = client.SayHello(out, PrepareClientContext());
+        auto future = client.AsyncSayHello(out, PrepareClientContext());
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
         sample::ugrpc::GreetingResponse in;
-        UEXPECT_THROW(in = call.Finish(), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW(in = future.Get(), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =

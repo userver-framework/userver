@@ -482,6 +482,8 @@ std::chrono::hours Parse(const Value& value, parse::To<std::chrono::hours>) {
     return ParseJsonDuration<std::chrono::hours>(value);
 }
 
+void PrintTo(const Value& json, std::ostream* out) { Serialize(json, *out); }
+
 }  // namespace formats::json
 
 namespace formats::literals {

@@ -7,7 +7,7 @@ namespace engine::ev {
 class PeriodicWatcher;
 }
 
-namespace redis {
+namespace storages::redis::impl {
 class ClusterTopologyHolder;
 class ClusterNodesHolder;
 
@@ -69,6 +69,8 @@ public:
 
     static size_t GetClusterSlotsCalledCounter();
 
+    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
+
 private:
     void AsyncCommandFailed(const SentinelCommand& scommand);
     void EnqueueCommand(const SentinelCommand& command);
@@ -99,6 +101,6 @@ private:
     dynamic_config::Source dynamic_config_source_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

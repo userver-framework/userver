@@ -33,7 +33,7 @@
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref scripts/docs/en/userver/redis.md |
-/// @ref scripts/docs/en/userver/libraries/s3api.md ⇨
+/// @ref scripts/docs/en/userver/libraries/easy.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN

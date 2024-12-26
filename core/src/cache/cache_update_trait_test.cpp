@@ -213,7 +213,7 @@ dump:
 }
 
 yaml_config::YamlConfig UpdateConfig(yaml_config::YamlConfig& config, formats::yaml::Value&& other) {
-    formats::yaml::ValueBuilder builder(config.Yaml());
+    formats::yaml::ValueBuilder builder(config.GetRawYamlWithoutConfigVars());
     formats::yaml::ValueBuilder yaml{other};
     for (const auto& [name, value] : Items(yaml)) {
         builder[name] = value;

@@ -188,8 +188,7 @@ public:
     GreetUser(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context), cache_(context.FindComponent<HttpCachedTranslations>()) {}
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override {
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         const auto cache_snapshot = cache_.Get();
 
         using samples::http_cache::KeyLang;

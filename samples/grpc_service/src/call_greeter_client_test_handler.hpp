@@ -20,8 +20,7 @@ public:
         : HttpHandlerBase(config, context),
           grpc_greeter_client_(context.FindComponent<GreeterClientComponent>().GetClient()) {}
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override {
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         const auto& arg_case = request.GetArg("case");
         request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
 

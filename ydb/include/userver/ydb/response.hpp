@@ -26,6 +26,10 @@ namespace NTable {
 class TDataQueryResult;
 class TTablePartIterator;
 }  // namespace NTable
+
+namespace NQuery {
+class TExecuteQueryResult;
+}  // namespace NQuery
 }  // namespace NYdb
 
 USERVER_NAMESPACE_BEGIN
@@ -165,6 +169,7 @@ class ExecuteResponse final {
 public:
     /// @cond
     explicit ExecuteResponse(NYdb::NTable::TDataQueryResult&& query_result);
+    explicit ExecuteResponse(NYdb::NQuery::TExecuteQueryResult&& query_result);
     /// @endcond
 
     ExecuteResponse(const ExecuteResponse&) = delete;

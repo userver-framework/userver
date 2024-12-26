@@ -8,14 +8,12 @@ ares
 cctz
 libev
 fmt
-grpc
 googletest
 hiredis
 jemalloc
 krb5
 nghttp2
 ninja
-protobuf
 pugixml
 openssl
 yaml-cpp
@@ -24,6 +22,7 @@ rocksdb
 postgresql@16
 redis
 zlib
-amqp-cpp
 c-ares
 coreutils
+mongo-c-driver
+mariadb

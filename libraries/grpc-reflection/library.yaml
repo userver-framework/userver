@@ -4,7 +4,7 @@ project-alt-names:
 description: library with reflection implementation
 
 maintainers:
-  - Common componets
+  - Common components
 
 libraries:
   - userver-core

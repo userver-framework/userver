@@ -246,6 +246,8 @@ public:
 
     void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
+    void SetDsnList(const DsnList&);
+
 private:
     detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 

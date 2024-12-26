@@ -79,7 +79,7 @@ private:
     /// @brief Callback called on each succeeded/failed message delivery.
     /// @param message represents the delivered (or not) message. Its `_private`
     /// field contains and `opaque` argument, which was passed to
-    /// `rd_kafka_producev`, i.e. the Promise which must be setted to notify
+    /// `rd_kafka_producev`, i.e. the Promise which must be set to notify
     /// waiter about the delivery.
     void DeliveryReportCallback(const rd_kafka_message_s* message) const;
 

@@ -25,6 +25,9 @@ inline server::http::HttpRequestParser CreateBenchmarkParser(server::http::HttpR
         /*.max_url_size = */ 8192,
         /*.max_request_size = */ 1024 * 1024,
         /*.max_headers_size = */ 65536,
+        /*.request_body_size_log_limit = */ 512,
+        /*.request_headers_size_log_limit = */ 512,
+        /*.response_data_size_log_limit = */ 512,
         /*.parse_args_from_body = */ false,
         /*.testing_mode = */ true,  // non default value
         /*.decompress_request = */ false,

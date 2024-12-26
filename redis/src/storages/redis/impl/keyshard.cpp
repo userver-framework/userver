@@ -13,7 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 namespace {
 
 const std::string kRawKeyEncoding = "UTF-8";
@@ -100,18 +100,18 @@ std::optional<std::string> KeyShardGpsStorageDriver::Parse(const std::string& s)
     return parts[2];  // data/db/driver_id/data/bucket
 }
 
-std::unique_ptr<redis::KeyShard> KeyShardFactory::operator()(size_t nshards) {
+std::unique_ptr<KeyShard> KeyShardFactory::operator()(size_t nshards) {
     LOG_TRACE() << "Create KeyShard with type '" << type_ << '\'';
-    if (type_ == "KeyShardGpsStorageDriver") return std::make_unique<redis::KeyShardGpsStorageDriver>(nshards);
-    if (type_ == "KeyShardTaximeterCrc32") return std::make_unique<redis::KeyShardTaximeterCrc32>(nshards);
-    if (type_ == KeyShardCrc32::kName) return std::make_unique<redis::KeyShardCrc32>(nshards);
+    if (type_ == "KeyShardGpsStorageDriver") return std::make_unique<KeyShardGpsStorageDriver>(nshards);
+    if (type_ == "KeyShardTaximeterCrc32") return std::make_unique<KeyShardTaximeterCrc32>(nshards);
+    if (type_ == KeyShardCrc32::kName) return std::make_unique<KeyShardCrc32>(nshards);
     if (type_ == kRedisCluster) return nullptr;
 
-    return std::make_unique<redis::KeyShardTaximeterCrc32>(nshards);
+    return std::make_unique<KeyShardTaximeterCrc32>(nshards);
 }
 
 bool IsClusterStrategy(const std::string& type) { return type == kRedisCluster; }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

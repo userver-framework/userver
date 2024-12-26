@@ -96,7 +96,7 @@ std::unique_ptr<::grpc::ClientContext> AddFieldMask(
 
 UTEST_F(FieldMaskTest, NoFieldMask) {
     const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto response = client.SayHello({}).Finish();
+    auto response = client.SyncSayHello({});
 
     sample::ugrpc::GreetingResponse expected_response;
     expected_response.set_greeting("Welcome!");
@@ -106,7 +106,7 @@ UTEST_F(FieldMaskTest, NoFieldMask) {
 
 UTEST_F(FieldMaskTest, EmptyFieldMask) {
     const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto response = client.SayHello({}, AddFieldMask({})).Finish();
+    auto response = client.SyncSayHello({}, AddFieldMask({}));
 
     sample::ugrpc::GreetingResponse expected_response;
     expected_response.set_greeting("Welcome!");
@@ -118,7 +118,7 @@ UTEST_F(FieldMaskTest, WithFieldMask) {
     google::protobuf::FieldMask field_mask;
     field_mask.add_paths("greeting");
     const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto response = client.SayHello({}, AddFieldMask(field_mask)).Finish();
+    auto response = client.SyncSayHello({}, AddFieldMask(field_mask));
 
     sample::ugrpc::GreetingResponse expected_response;
     expected_response.set_greeting("Welcome!");
@@ -130,7 +130,7 @@ UTEST_F(FieldMaskTest, BadFieldMaskRequest) {
     field_mask.add_paths("`value_field..");
     const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     try {
-        client.SayHello({}, AddFieldMask(field_mask)).Finish();
+        client.SyncSayHello({}, AddFieldMask(field_mask));
         FAIL();  // Should not execute. The method must throw.
     } catch (const ugrpc::client::ErrorWithStatus& error) {
         EXPECT_EQ(error.GetStatus().error_code(), ::grpc::StatusCode::INVALID_ARGUMENT);
@@ -142,7 +142,7 @@ UTEST_F(FieldMaskTest, BadFieldMaskResponse) {
     field_mask.add_paths("non_existing_field");
     const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     try {
-        client.SayHello({}, AddFieldMask(field_mask)).Finish();
+        client.SyncSayHello({}, AddFieldMask(field_mask));
         FAIL();  // Should not execute. The method must throw.
     } catch (const ugrpc::client::ErrorWithStatus& error) {
         EXPECT_EQ(error.GetStatus().error_code(), ::grpc::StatusCode::INVALID_ARGUMENT);

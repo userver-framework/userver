@@ -14,7 +14,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ConnectionInfoInt {
 public:
@@ -133,6 +133,6 @@ private:
     const bool cluster_mode_ = false;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

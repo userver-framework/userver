@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 Command::Command(
     CmdArgs&& _args,
@@ -97,6 +97,6 @@ CommandPtr PrepareCommand(
     );
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

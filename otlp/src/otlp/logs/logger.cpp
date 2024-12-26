@@ -14,6 +14,7 @@
 #include <userver/utils/encoding/tskv_parser_read.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/text_light.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -230,10 +231,10 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client, Trace
             );
         } while (consumer.Pop(action, deadline));
 
-        if (config_.logs_sink == SinkType::kBoth || config_.logs_sink == SinkType::kOtlp) {
+        if (utils::UnderlyingValue(config_.logs_sink) & utils::UnderlyingValue(SinkType::kOtlp)) {
             DoLog(log_request, log_client);
         }
-        if (config_.tracing_sink == SinkType::kBoth || config_.tracing_sink == SinkType::kOtlp) {
+        if (utils::UnderlyingValue(config_.tracing_sink) & utils::UnderlyingValue(SinkType::kOtlp)) {
             DoTrace(trace_request, trace_client);
         }
     }
@@ -270,8 +271,7 @@ void Logger::DoLog(
     LogClient& client
 ) {
     try {
-        auto call = client.Export(request);
-        auto response = call.Finish();
+        auto response = client.SyncExport(request);
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;
@@ -286,8 +286,7 @@ void Logger::DoTrace(
     TraceClient& trace_client
 ) {
     try {
-        auto call = trace_client.Export(request);
-        auto response = call.Finish();
+        auto response = trace_client.SyncExport(request);
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;

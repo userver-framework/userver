@@ -64,11 +64,11 @@ engine::io::Socket CreateIpv6Socket(const std::string& address, uint16_t port, i
 
 }  // namespace
 
-engine::io::Socket CreateSocket(const ListenerConfig& config) {
-    if (config.unix_socket_path.empty())
-        return CreateIpv6Socket(config.address, config.port, config.backlog);
+engine::io::Socket CreateSocket(const ListenerConfig& config, const PortConfig& port_config) {
+    if (port_config.unix_socket_path.empty())
+        return CreateIpv6Socket(port_config.address, port_config.port, config.backlog);
     else
-        return CreateUnixSocket(config.unix_socket_path, config.backlog);
+        return CreateUnixSocket(port_config.unix_socket_path, config.backlog);
 }
 
 }  // namespace server::net

@@ -84,12 +84,13 @@ properties:
         defaultDescription: <no limit>
     request_body_size_log_limit:
         type: integer
-        description: trim request to this size before logging
-        defaultDescription: 512
+        description: trim the request to this size before logging
+    request_headers_size_log_limit:
+        type: integer
+        description: trim request headers to this size before logging
     response_data_size_log_limit:
         type: integer
         description: trim responses to this size before logging
-        defaultDescription: 512
     max_requests_per_second:
         type: integer
         description: integer to limit RPS to this handler

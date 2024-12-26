@@ -70,7 +70,7 @@ private:
 UTEST_P(MockMessengerServiceFixture, MiddlewareInterruption) {
     const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     try {
-        client.SayHello(sample::ugrpc::GreetingRequest()).Finish();
+        client.SyncSayHello(sample::ugrpc::GreetingRequest());
         FAIL();  // Should not execute. The method must throw.
     } catch (const ugrpc::client::ErrorWithStatus& error) {
         switch (static_cast<MiddlewareFlag>(GetParam().GetValue())) {

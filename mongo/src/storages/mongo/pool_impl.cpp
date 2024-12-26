@@ -22,13 +22,17 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_co
           static_config.cc_config,
           config_source,
           [](const dynamic_config::Snapshot& config) { return config[kCcConfig]; }
-      ) {
+      ) {}
+
+void PoolImpl::Start() {
     config_subscriber_ = config_source_.UpdateAndListen(this, "mongo_pool", &PoolImpl::OnConfigUpdate);
+    cc_controller_.Start();
 }
 
-void PoolImpl::Start() { cc_controller_.Start(); }
-
-void PoolImpl::Stop() { cc_controller_.Stop(); }
+void PoolImpl::Stop() noexcept {
+    cc_controller_.Stop();
+    config_subscriber_.Unsubscribe();
+}
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     bool cc_enabled =
