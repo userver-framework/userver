@@ -26,7 +26,7 @@ jobs:
                 -DUSERVER_FEATURE_OTLP=0
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                 -DUSERVER_FEATURE_MONGODB=1
-                -DUSERVER_FEATURE_CLICKHOUSE=1
+                -DUSERVER_FEATURE_CLICKHOUSE=0
                 -DUSERVER_USE_LD=lld
 
         steps:
