@@ -29,7 +29,7 @@ function(_userver_setup_environment_impl)
   message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
   cmake_policy(SET CMP0057 NEW)
-  if(NOT "${USERVER_CMAKE_DIR}/modules" IN_LIST CMAKE_MODULE_PATH)
+  if(NOT "${USERVER_CMAKE_DIR}/modules" IN_LIST CMAKE_MODULE_PATH AND NOT USERVER_CONAN)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${USERVER_CMAKE_DIR}/modules" PARENT_SCOPE)
   endif()
   if(NOT "${CMAKE_BINARY_DIR}/package_stubs" IN_LIST CMAKE_PREFIX_PATH)
