@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class KeyShardStandalone : public KeyShard {
  public:
