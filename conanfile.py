@@ -572,6 +572,7 @@ class UserverConan(ConanFile):
 
         with open(_cmake_path_to('UserverSetupPathsInConan.cmake'), 'w') as cmake_file:
             cmake_file.write('set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")\n')
+            cmake_file.write('set(USERVER_CONAN TRUE)\n')
             cmake_file.write('set(USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/testsuite")\n')
 
         with open(_cmake_path_to('CallSetupEnv.cmake'), 'w') as cmake_file:
