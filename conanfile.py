@@ -99,10 +99,6 @@ class UserverConan(ConanFile):
 
         self.version = f'{major_version}.{minor_version}'
 
-    @property
-    def _build_subfolder(self):
-        return os.path.join(self.build_folder)
-
     def layout(self):
         cmake_layout(self)
 
@@ -184,33 +180,51 @@ class UserverConan(ConanFile):
 
     def generate(self):
         tool_ch = CMakeToolchain(self)
-        tool_ch.variables.update({
-            'CMAKE_FIND_DEBUG_MODE': False,
-            'USERVER_CONAN': True,
-            'USERVER_INSTALL': True,
-            'USERVER_DOWNLOAD_PACKAGES': True,
-            'USERVER_FEATURE_DWCAS': True,
-            'USERVER_NAMESPACE': self.options.namespace,
-            'USERVER_NAMESPACE_BEGIN': self.options.namespace_begin,
-            'USERVER_NAMESPACE_END': self.options.namespace_end,
-            'USERVER_PYTHON_PATH': self.options.python_path,
-            'USERVER_LTO': self.options.lto,
-            'USERVER_FEATURE_JEMALLOC': self.options.with_jemalloc,
-            'USERVER_FEATURE_MONGODB': self.options.with_mongodb,
-            'USERVER_FEATURE_POSTGRESQL': self.options.with_postgresql,
-            'USERVER_FEATURE_PATCH_LIBPQ': self.options.with_postgresql_extra,
-            'USERVER_FEATURE_REDIS': self.options.with_redis,
-            'USERVER_FEATURE_GRPC': self.options.with_grpc,
-            'USERVER_FEATURE_CLICKHOUSE': self.options.with_clickhouse,
-            'USERVER_FEATURE_RABBITMQ': self.options.with_rabbitmq,
-            'USERVER_FEATURE_UTEST': self.options.with_utest,
-            'USERVER_FEATURE_TESTSUITE': self.options.with_utest,
-            'USERVER_FEATURE_KAFKA': self.options.with_kafka,
-            'USERVER_FEATURE_OTLP': self.options.with_otlp,
-            'USERVER_FEATURE_EASY': self.options.with_easy,
-            'USERVER_FEATURE_S3API': self.options.with_s3api,
-            'USERVER_FEATURE_GRPC_REFLECTION': self.options.with_grpc_reflection,
-        })
+        tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
+
+        tool_ch.variables['USERVER_CONAN'] = True
+        tool_ch.variables['USERVER_INSTALL'] = True
+        tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
+        tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
+        tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
+        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = (
+            self.options.namespace_begin
+        )
+        tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
+        tool_ch.variables['USERVER_PYTHON_PATH'] = self.options.python_path
+
+        tool_ch.variables['USERVER_LTO'] = self.options.lto
+        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = (
+            self.options.with_jemalloc
+        )
+        tool_ch.variables['USERVER_FEATURE_MONGODB'] = (
+            self.options.with_mongodb
+        )
+        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = (
+            self.options.with_postgresql
+        )
+        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = (
+            self.options.with_postgresql_extra
+        )
+        tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
+        tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
+        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = (
+            self.options.with_clickhouse
+        )
+        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = (
+            self.options.with_rabbitmq
+        )
+        tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
+        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = (
+            self.options.with_utest
+        )
+        tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
+        tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
+        tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
+        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = (
+            self.options.with_grpc_reflection
+        )
         tool_ch.generate()
 
         CMakeDeps(self).generate()
@@ -222,12 +236,359 @@ class UserverConan(ConanFile):
 
     def package(self):
         cmake = CMake(self)
-        # cmake.configure() is not required according to https://github.com/conan-io/conan/issues/7058
         cmake.install()
 
-    def package_info(self):
-        # https://docs.conan.io/2/reference/tools/cmake/cmakedeps.html#disable-cmakedeps-for-installed-cmake-configuration-files
-        self.cpp_info.set_property('cmake_find_mode', 'none')
-        self.cpp_info.builddirs.append(os.path.join('lib', 'cmake', 'userver'))
+    @property
+    def _userver_components(self):
+        def abseil():
+            return ['abseil::abseil']
 
-        # https://docs.conan.io/2/examples/tools/cmake/cmake_toolchain/use_package_config_cmake.html
+        def ares():
+            return ['c-ares::c-ares']
+
+        def fmt():
+            return ['fmt::fmt']
+
+        def curl():
+            return ['libcurl::libcurl']
+
+        def cryptopp():
+            return ['cryptopp::cryptopp']
+
+        def cctz():
+            return ['cctz::cctz']
+
+        def boost():
+            return ['boost::boost']
+
+        def concurrentqueue():
+            return ['concurrentqueue::concurrentqueue']
+
+        def yaml():
+            return ['yaml-cpp::yaml-cpp']
+
+        def iconv():
+            return ['libiconv::libiconv']
+
+        def libev():
+            return ['libev::libev']
+
+        def libnghttp2():
+            return ['libnghttp2::libnghttp2']
+
+        def openssl():
+            return ['openssl::openssl']
+
+        def rapidjson():
+            return ['rapidjson::rapidjson']
+
+        def zlib():
+            return ['zlib::zlib']
+
+        def zstd():
+            # According to https://conan.io/center/recipes/zstd should be
+            # zstd::libzstd_static, but it does not work that way
+            return ['zstd::zstd']
+
+        def jemalloc():
+            return ['jemalloc::jemalloc'] if self.options.with_jemalloc else []
+
+        def grpc():
+            return ['grpc::grpc'] if self.options.with_grpc else []
+
+        def protobuf():
+            return ['protobuf::protobuf'] if self.options.with_grpc else []
+
+        def postgresql():
+            return ['libpq::pq'] if self.options.with_postgresql else []
+
+        def gtest():
+            return ['gtest::gtest'] if self.options.with_utest else []
+
+        def benchmark():
+            return ['benchmark::benchmark'] if self.options.with_utest else []
+
+        def mongo():
+            return (
+                ['mongo-c-driver::mongo-c-driver']
+                if self.options.with_mongodb
+                else []
+            )
+
+        def cyrussasl():
+            return (
+                ['cyrus-sasl::cyrus-sasl']
+                if self.options.with_mongodb or self.options.with_kafka
+                else []
+            )
+
+        def hiredis():
+            return ['hiredis::hiredis'] if self.options.with_redis else []
+
+        def amqpcpp():
+            return ['amqp-cpp::amqp-cpp'] if self.options.with_rabbitmq else []
+
+        def pugixml():
+            return ['pugixml::pugixml'] if self.options.with_s3api else []
+
+        def clickhouse():
+            return (
+                ['clickhouse-cpp::clickhouse-cpp']
+                if self.options.with_clickhouse
+                else []
+            )
+
+        def librdkafka():
+            return (
+                ['librdkafka::librdkafka'] if self.options.with_kafka else []
+            )
+
+        userver_components = [
+            {
+                'target': 'core',
+                'lib': 'core',
+                'requires': (
+                    ['universal']
+                    + fmt()
+                    + cctz()
+                    + boost()
+                    + concurrentqueue()
+                    + yaml()
+                    + iconv()
+                    + libev()
+                    + libnghttp2()
+                    + curl()
+                    + cryptopp()
+                    + jemalloc()
+                    + ares()
+                    + rapidjson()
+                    + zlib()
+                ),
+            },
+        ]
+        userver_components.extend([
+            {
+                'target': 'universal',
+                'lib': 'universal',
+                'requires': (
+                    fmt()
+                    + cctz()
+                    + boost()
+                    + concurrentqueue()
+                    + yaml()
+                    + cryptopp()
+                    + jemalloc()
+                    + openssl()
+                    + zstd()
+                ),
+            },
+        ])
+
+        if self.options.with_grpc:
+            userver_components.extend([
+                {
+                    'target': 'grpc',
+                    'lib': 'grpc',
+                    'requires': (['core'] + abseil() + grpc() + protobuf()),
+                },
+                {
+                    'target': 'grpc-handlers',
+                    'lib': 'grpc-handlers',
+                    'requires': ['core'] + grpc(),
+                },
+                {
+                    'target': 'grpc-handlers-proto',
+                    'lib': 'grpc-handlers-proto',
+                    'requires': ['core'] + grpc(),
+                },
+                {
+                    'target': 'api-common-protos',
+                    'lib': 'api-common-protos',
+                    'requires': ['grpc'],
+                },
+            ])
+        if self.options.with_utest:
+            userver_components.extend([
+                {
+                    'target': 'utest',
+                    'lib': 'utest',
+                    'requires': ['core'] + gtest(),
+                },
+                {
+                    'target': 'ubench',
+                    'lib': 'ubench',
+                    'requires': ['core'] + benchmark(),
+                },
+            ])
+        if self.options.with_postgresql:
+            userver_components.extend([
+                {
+                    'target': 'postgresql',
+                    'lib': 'postgresql',
+                    'requires': ['core'] + postgresql(),
+                },
+            ])
+        if self.options.with_mongodb:
+            userver_components.extend([
+                {
+                    'target': 'mongo',
+                    'lib': 'mongo',
+                    'requires': ['core'] + mongo() + cyrussasl(),
+                },
+            ])
+        if self.options.with_redis:
+            userver_components.extend([
+                {
+                    'target': 'redis',
+                    'lib': 'redis',
+                    'requires': ['core'] + hiredis(),
+                },
+            ])
+        if self.options.with_rabbitmq:
+            userver_components.extend([
+                {
+                    'target': 'rabbitmq',
+                    'lib': 'rabbitmq',
+                    'requires': ['core'] + amqpcpp(),
+                },
+            ])
+        if self.options.with_clickhouse:
+            userver_components.extend([
+                {
+                    'target': 'clickhouse',
+                    'lib': 'clickhouse',
+                    'requires': ['core'] + abseil() + clickhouse(),
+                },
+            ])
+        if self.options.with_kafka:
+            userver_components.extend([
+                {
+                    'target': 'kafka',
+                    'lib': 'kafka',
+                    'requires': (
+                        ['core']
+                        + cyrussasl()
+                        + curl()
+                        + zlib()
+                        + openssl()
+                        + librdkafka()
+                    ),
+                },
+            ])
+
+        if self.options.with_otlp:
+            userver_components.extend([
+                {'target': 'otlp', 'lib': 'otlp', 'requires': ['core']},
+            ])
+
+        if self.options.with_easy:
+            userver_components.extend([
+                {
+                    'target': 'easy',
+                    'lib': 'easy',
+                    'requires': ['core', 'postgresql'],
+                },
+            ])
+
+        if self.options.with_s3api:
+            userver_components.extend([
+                {
+                    'target': 's3api',
+                    'lib': 's3api',
+                    'requires': ['core'] + pugixml(),
+                },
+            ])
+
+        if self.options.with_grpc_reflection:
+            userver_components.extend([
+                {
+                    'target': 'grpc-reflection',
+                    'lib': 'grpc-reflection',
+                    'requires': ['grpc'],
+                },
+            ])
+        return userver_components
+
+    def package_info(self):
+        debug = 'd' if self.settings.build_type == 'Debug' else ''
+
+        def get_lib_name(module):
+            return f'userver-{module}{debug}'
+
+        def add_components(components):
+            for component in components:
+                conan_component = component['target']
+                cmake_target = component['target']
+                cmake_component = component['lib']
+                lib_name = get_lib_name(component['lib'])
+                requires = component['requires']
+                # TODO: we should also define COMPONENTS names of each target
+                # for find_package() but not possible yet in CMakeDeps
+                #       see https://github.com/conan-io/conan/issues/10258
+                self.cpp_info.components[conan_component].set_property(
+                    'cmake_target_name', 'userver::' + cmake_target,
+                )
+                if cmake_component == 'grpc':
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('grpc-internal'),
+                    )
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('grpc-proto'),
+                    )
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('api-common-protos'),
+                    )
+                else:
+                    self.cpp_info.components[conan_component].libs = [lib_name]
+                if cmake_component == 'otlp':
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('otlp-proto'),
+                    )
+                if cmake_component == 'universal':
+                    self.cpp_info.components[
+                        cmake_component
+                    ].includedirs.append(
+                        os.path.join('include', 'userver', 'third_party'),
+                    )
+
+                self.cpp_info.components[conan_component].requires = requires
+
+        self.cpp_info.components['universal'].defines.append(
+            f'USERVER_NAMESPACE={self.options.namespace}',
+        )
+        self.cpp_info.components['universal'].defines.append(
+            f'USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}',
+        )
+        self.cpp_info.components['universal'].defines.append(
+            f'USERVER_NAMESPACE_END={self.options.namespace_end}',
+        )
+
+        self.cpp_info.set_property('cmake_file_name', 'userver')
+
+        add_components(self._userver_components)
+
+        def _cmake_path_to(name):
+            return os.path.join(self.package_folder, 'lib', 'cmake', 'userver', name)
+
+        with open(_cmake_path_to('UserverSetupPathsInConan.cmake'), 'w') as cmake_file:
+            cmake_file.write('set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")\n')
+            cmake_file.write('set(USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/testsuite")\n')
+
+        with open(_cmake_path_to('CallSetupEnv.cmake'), 'w') as cmake_file:
+            cmake_file.write('userver_setup_environment()\n')
+
+        build_modules = [
+            _cmake_path_to('UserverSetupPathsInConan.cmake'),
+            _cmake_path_to('UserverSetupEnvironment.cmake'),
+            _cmake_path_to('CallSetupEnv.cmake'),
+            _cmake_path_to('UserverVenv.cmake'),
+            _cmake_path_to('UserverTestsuite.cmake'),
+        ]
+        if self.options.with_utest:
+            build_modules.append(_cmake_path_to('AddGoogleTests.cmake'))
+        if self.options.with_grpc:
+            build_modules.append(_cmake_path_to('SetupProtobuf.cmake'))
+            build_modules.append(_cmake_path_to('GrpcConan.cmake'))
+            build_modules.append(_cmake_path_to('UserverGrpcTargets.cmake'))
+
+        self.cpp_info.set_property('cmake_build_modules', build_modules)
