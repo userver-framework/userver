@@ -236,7 +236,7 @@ InvalidParserCategory::InvalidParserCategory(
 UnknownBufferCategory::UnknownBufferCategory(std::string_view context, Oid type_oid)
     : ResultSetError(fmt::format(
           "Query {} doesn't have a parser. Database type {} and it was not retrieved in C++ code as a corresponding "
-          "C++ type. Refer to the 'Supported data types' in the documentation to find a propper C++ type.",
+          "C++ type. Refer to the 'Supported data types' in the documentation to find a proper C++ type.",
           context,
           impl::OidPrettyPrint(type_oid)
       )),
@@ -249,7 +249,7 @@ UnknownBufferCategory::UnknownBufferCategory(
 )
     : ResultSetError(fmt::format(
           "Database type {} and it is not representable as a C++ type '{}' within a C++ composite '{}'. Refer to "
-          "the 'Supported data types' in the documentation to find a propper C++ type.",
+          "the 'Supported data types' in the documentation to find a proper C++ type.",
           impl::OidPrettyPrint(type_oid),
           cpp_field_type,
           cpp_composite_type

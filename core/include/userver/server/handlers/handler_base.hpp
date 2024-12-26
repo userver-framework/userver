@@ -57,7 +57,7 @@ public:
 
     /// Parses request, executes processing routines, and fills response
     /// accordingly. Does not throw.
-    virtual void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const = 0;
+    virtual void PrepareAndHandleRequest(http::HttpRequest& request, request::RequestContext& context) const = 0;
 
     /// Produces response to a request unrecognized by the protocol based on
     /// provided generic response. Does not throw.

@@ -24,7 +24,7 @@ endif()
 
 set(USERVER_USE_LD "${USERVER_USE_LD_DEFAULT}" CACHE STRING "Linker to use e.g. gold, lld")
 
-if (USERVER_USE_LD)
+if (USERVER_USE_LD AND NOT CUSTOM_LD_OK)
   execute_process(COMMAND "${CMAKE_C_COMPILER}" "-fuse-ld=${USERVER_USE_LD}" -Wl,--version
       ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
 

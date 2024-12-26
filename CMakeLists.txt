@@ -23,6 +23,7 @@ set(USERVER_AVAILABLE_COMPONENTS universal)
 
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
 option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
+option(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL "Provide chaotic-codegen for openapi" OFF)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
@@ -187,6 +188,12 @@ endif()
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic)
   list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
+
+  if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    _require_userver_core(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    add_subdirectory(chaotic-openapi)
+    list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic-openapi)
+  endif()
 endif()
 
 if (USERVER_FEATURE_MONGODB)
@@ -259,7 +266,9 @@ endif()
 
 add_subdirectory(libraries)
 
-add_subdirectory(scripts/gdb/tests)
+if (USERVER_BUILD_TESTS)
+  add_subdirectory(scripts/gdb/tests)
+endif()
 
 _userver_export_targets()
 _userver_make_install_config()

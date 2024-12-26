@@ -109,18 +109,20 @@ std::default_sentinel_t Cursor::end() { return std::default_sentinel; }
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace {
-
-std::optional<NYdb::NTable::TQueryStats> GetStats(const NYdb::NTable::TDataQueryResult& query_result) {
+template <typename TQueryResult>
+std::optional<NYdb::NTable::TQueryStats> GetStats(const TQueryResult& query_result) {
     if (auto query_stats = query_result.GetStats(); query_stats) {
         return std::move(*query_stats);
     }
     return {};
 }
-
 }  // namespace
 
 ExecuteResponse::ExecuteResponse(NYdb::NTable::TDataQueryResult&& query_result)
     : query_stats_(GetStats(query_result)), result_sets_(std::move(query_result).ExtractResultSets()) {}
+
+ExecuteResponse::ExecuteResponse(NYdb::NQuery::TExecuteQueryResult&& query_result)
+    : query_stats_(GetStats(query_result)), result_sets_(std::move(query_result).GetResultSets()) {}
 
 std::size_t ExecuteResponse::GetCursorCount() const { return result_sets_.size(); }
 

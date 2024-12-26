@@ -23,15 +23,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-
-template <class Tag, class T, utils::StrongTypedefOps Ops>
-static void PrintTo(const utils::StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
-    ::testing::internal::UniversalTersePrint(v.GetUnderlying(), os);
-}
-
-}  // namespace utils
-
 namespace {
 
 struct IntTag {};

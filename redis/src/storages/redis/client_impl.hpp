@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/command_options.hpp>
-#include <userver/storages/redis/impl/request.hpp>
+#include <storages/redis/impl/request.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/command_options.hpp>
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
@@ -17,9 +17,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
+class CmdArgs;
 class Sentinel;
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 namespace storages::redis {
 
@@ -28,12 +29,9 @@ class TransactionImpl;
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ClientImpl final : public Client, public std::enable_shared_from_this<ClientImpl> {
 public:
-    explicit ClientImpl(
-        std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel> sentinel,
-        std::optional<size_t> force_shard_idx = std::nullopt
-    );
+    explicit ClientImpl(std::shared_ptr<impl::Sentinel> sentinel, std::optional<size_t> force_shard_idx = std::nullopt);
 
-    void WaitConnectedOnce(USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) override;
+    void WaitConnectedOnce(RedisWaitConnected wait_connected) override;
 
     size_t ShardsCount() const override;
     bool IsInClusterMode() const override;
@@ -433,10 +431,8 @@ public:
     friend class TransactionImpl;
 
 private:
-    using CmdArgs = USERVER_NAMESPACE::redis::CmdArgs;
-
-    USERVER_NAMESPACE::redis::Request MakeRequest(
-        CmdArgs&& args,
+    impl::Request MakeRequest(
+        impl::CmdArgs&& args,
         size_t shard,
         bool master,
         const CommandControl& command_control,
@@ -445,7 +441,7 @@ private:
 
     template <typename T, typename Func>
     auto MakeRequestChunks(size_t max_chunk_size, std::vector<T>&& args, Func&& func) {
-        std::vector<USERVER_NAMESPACE::redis::Request> requests;
+        std::vector<impl::Request> requests;
 
         auto chunk_size = static_cast<std::ptrdiff_t>(max_chunk_size);
         // NOLINTNEXTLINE(readability-qualified-auto)
@@ -462,13 +458,13 @@ private:
 
     CommandControl GetCommandControl(const CommandControl& cc) const;
 
-    size_t GetPublishShard(PubShard policy, const USERVER_NAMESPACE::redis::PublishSettings& settings);
+    size_t GetPublishShard(PubShard policy, const PublishSettings& settings);
 
     size_t ShardByKey(const std::string& key, const CommandControl& cc) const;
 
     void CheckShard(size_t shard, const CommandControl& cc) const;
 
-    std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel> redis_client_;
+    std::shared_ptr<impl::Sentinel> redis_client_;
     std::atomic<int> publish_shard_{0};
     const std::optional<size_t> force_shard_idx_;
 };

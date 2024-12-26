@@ -14,8 +14,7 @@ public:
 
     GreeterHttpHandler(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override;
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override;
 
 private:
     GreeterClient& grpc_greeter_client_;

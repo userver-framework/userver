@@ -37,42 +37,39 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
     auto pool_ptr = target_->FindPool(dbalias);
 
     if (!pool_ptr) {
+        auto pool_config = target_->pool_config_;
+        const auto pool_settings = target_->config_source_.GetSnapshot(kPoolSettings);
+        const auto new_pool_settings = pool_settings->GetOptional(target_->name_);
+        if (new_pool_settings.has_value()) {
+            new_pool_settings->Validate(target_->name_);
+            pool_config.pool_settings = new_pool_settings.value();
+        }
+
         pool_ptr = std::make_shared<storages::mongo::Pool>(
             target_->name_ + ':' + dbalias,
             secdist::GetSecdistConnectionString(target_->secdist_, dbalias),
-            target_->pool_config_,
+            pool_config,
             target_->dns_resolver_,
             target_->config_source_
         );
-
-        const auto config = target_->config_source_.GetSnapshot(kPoolSettings);
-        const auto new_pool_settings = config->GetOptional(target_->name_);
-        if (new_pool_settings.has_value()) {
-            new_pool_settings->Validate(target_->name_);
-            pool_ptr->SetPoolSettings(new_pool_settings.value());
-        }
-
-        pool_ptr->Start();
     }
 
     pool_map_ptr_->emplace(std::move(dbalias), std::move(pool_ptr));
 }
 
 bool MultiMongo::PoolSet::RemovePool(const std::string& dbalias) {
-    auto it = pool_map_ptr_->find(dbalias);
-    if (it != pool_map_ptr_->end()) {
-        it->second->Stop();
-        return pool_map_ptr_->erase(it) != pool_map_ptr_->end();
-    } else {
-        return false;
+    if (const auto it = pool_map_ptr_->find(dbalias); it != pool_map_ptr_->end()) {
+        pool_map_ptr_->erase(it);
+        return true;
     }
+    return false;
 }
 
 void MultiMongo::PoolSet::Activate() { target_->pool_map_.Assign(*pool_map_ptr_); }
 
 MultiMongo::MultiMongo(
     std::string name,
-    const storages::secdist::Secdist& secdist,
+    storages::secdist::Secdist& secdist,
     storages::mongo::PoolConfig pool_config,
     clients::dns::Resolver* dns_resolver,
     dynamic_config::Source config_source
@@ -83,6 +80,7 @@ MultiMongo::MultiMongo(
       pool_config_(std::move(pool_config)),
       dns_resolver_(dns_resolver) {
     config_subscriber_ = config_source_.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnConfigUpdate);
+    secdist_subscriber_ = secdist.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnSecdistUpdate);
 }
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
@@ -140,6 +138,14 @@ storages::mongo::PoolPtr MultiMongo::FindPool(const std::string& dbalias) const 
     const auto it = pool_map->find(dbalias);
     if (it == pool_map->end()) return {};
     return it->second;
+}
+
+void MultiMongo::OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist) {
+    const auto pool_map = pool_map_.Read();
+    for (const auto& [dbalias, pool] : *pool_map) {
+        auto conn_string = secdist::GetSecdistConnectionString(secdist, dbalias);
+        pool->SetConnectionString(conn_string);
+    }
 }
 
 }  // namespace storages::mongo

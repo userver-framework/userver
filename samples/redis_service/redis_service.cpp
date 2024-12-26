@@ -23,8 +23,7 @@ public:
 
     EvalSha(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override;
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override;
 
 private:
     std::string EvalShaRequest(const server::http::HttpRequest& request) const;
@@ -40,8 +39,7 @@ public:
 
     KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override;
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override;
 
 private:
     std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const;
@@ -65,8 +63,7 @@ KeyValue::KeyValue(const components::ComponentConfig& config, const components::
 /// [Redis service sample - component constructor]
 
 /// [Redis service sample - HandleRequestThrow]
-std::string
-KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/)
+std::string KeyValue::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& /*context*/)
     const {
     const auto& key = request.GetArg("key");
     if (key.empty()) {
@@ -124,8 +121,7 @@ EvalSha::EvalSha(const components::ComponentConfig& config, const components::Co
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("taxi-tmp")} {}
 
-std::string EvalSha::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-    const {
+std::string EvalSha::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const {
     const auto& command = request.GetArg("command");
     request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
 

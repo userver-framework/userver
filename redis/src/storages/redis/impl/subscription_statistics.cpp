@@ -2,7 +2,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 void DumpMetric(utils::statistics::Writer& writer, const PubsubChannelStatistics& stats) {
     writer["messages"]["count"] = stats.messages_count;
@@ -35,6 +35,6 @@ void DumpMetric(utils::statistics::Writer& writer, const PubsubClusterStatistics
     writer = stats.SumByShards();
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

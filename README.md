@@ -16,11 +16,31 @@ requests and tasks and returns to the handling of the operation only when it is
 guaranteed to execute immediately: 
 
 ```cpp
-std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
-  // Asynchronous execution of the SQL query in transaction. Current thread
-  // handles other requests while the response from the DB is being received:
-  auto res = tr.Execute("INSERT INTO keys VALUES ($1)", key);
-  return res.RowsAffected();
+#include <userver/easy.hpp>
+#include "schemas/key_value.hpp"
+
+int main(int argc, char* argv[]) {
+    using namespace userver;
+
+    easy::HttpWith<easy::PgDep>(argc, argv)
+        // Handles multiple HTTP requests to `/kv` URL concurrently
+        .Get("/kv", [](formats::json::Value request_json, const easy::PgDep& dep) {
+            // JSON parser and serializer are generated from JSON schema by userver
+            auto key = request_json.As<schemas::KeyRequest>().key;
+
+            // Asynchronous execution of the SQL query in transaction. Current thread
+            // handles other requests while the response from the DB is being received:
+            auto res = dep.pg().Execute(
+                storages::postgres::ClusterHostType::kSlave,
+                // Query is converted into a prepared statement. Subsequent requests
+                // send only parameters in a binary form and meta information is
+                // discarded on the DB side, significantly saving network bandwidth.
+                "SELECT value FROM key_value_table WHERE key=$1", key
+            );
+
+            schemas::KeyValue response{key, res[0][0].As<std::string>()};
+            return formats::json::ValueBuilder{response}.ExtractValue();
+        });
 }
 ```
 

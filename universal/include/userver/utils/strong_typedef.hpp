@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <iosfwd>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -17,6 +18,13 @@
 #include <userver/utils/meta.hpp>
 #include <userver/utils/underlying_value.hpp>
 #include <userver/utils/void_t.hpp>
+
+namespace testing {
+
+template <typename T>
+std::string PrintToString(const T& value);
+
+}  // namespace testing
 
 USERVER_NAMESPACE_BEGIN
 
@@ -300,7 +308,7 @@ UTILS_STRONG_TYPEDEF_REL_OP(>)
 UTILS_STRONG_TYPEDEF_REL_OP(<=)
 UTILS_STRONG_TYPEDEF_REL_OP(>=)
 
-#if __cpp_lib_three_way_comparison >= 201907L
+#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
 UTILS_STRONG_TYPEDEF_REL_OP(<=>)
 #endif
 
@@ -368,7 +376,7 @@ std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
 template <typename Tag, typename T, StrongTypedefOps Ops, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
     impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, std::string, Ops>>();
-    return fmt::format("{}", object.GetUnderlying());
+    return fmt::to_string(object.GetUnderlying());
 }
 
 // Explicit casting
@@ -401,6 +409,12 @@ constexpr Target StrongCast(StrongTypedef<Tag, T, Ops, Enable>&& src) {
 template <class Tag, class T, StrongTypedefOps Ops>
 std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
     return boost::hash<T>{}(v.GetUnderlying());
+}
+
+/// gtest formatter for utils::StrongTypedef
+template <class Tag, class T, StrongTypedefOps Ops>
+void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
+    *os << testing::PrintToString(v.GetUnderlying());
 }
 
 /// A StrongTypedef for data that MUST NOT be logged or outputted in some other

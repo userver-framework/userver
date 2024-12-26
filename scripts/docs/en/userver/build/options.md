@@ -29,6 +29,7 @@ userver is split into multiple CMake libraries.
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                       |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"               |
 | `userver::s3api`           | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md           |
+| `userver::easy`            | `USERVER_FEATURE_EASY`                            | `easy`                | @ref scripts/docs/en/userver/libraries/easy.md            |
 | `userver::grpc-reflection` | `USERVER_FEATURE_GRPC_REFLECTION`                 | `grpc-reflection`     | @ref scripts/docs/en/userver/libraries/grpc-reflection.md |
 
 Make sure to:
@@ -164,7 +165,7 @@ cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 | `USERVER_PIP_OPTIONS`                  | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                  | (no options)                                                |
 | `USERVER_INSTALL`                      | Build userver for further installation                                                                      | `OFF`                                                       |
 | `USERVER_CONAN`                        | Build userver using Conan packages                                                                          | `ON` if build is launched from Conan, `OFF` otherwise       |
-| `USERVER_GENERATE_PROTOS_AT_CONFIGURE` | Run protoc at CMake Configure time for better IDE integration                                               | `OFF` for downloaded Protobuf, `ON` otherwise               |
+| `USERVER_CHAOTIC_FORMAT`               | Whether to format generated code if FORMAT option is missing                                                | `ON`                                                        |
 
 @warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
 

@@ -19,7 +19,6 @@ mariadb-static
 mongo-c-driver-dev
 nghttp2-dev
 openldap-dev
-postgresql16
 postgresql16-dev
 protobuf-c-compiler
 protobuf-c-dev
@@ -33,4 +32,3 @@ python3-dev
 snappy-dev
 snappy-static
 yaml-cpp-dev
-compiler-rt

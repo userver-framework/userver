@@ -53,6 +53,7 @@ Consumer::Consumer(
     const std::string& name,
     const std::vector<std::string>& topics,
     engine::TaskProcessor& consumer_task_processor,
+    engine::TaskProcessor& consumer_blocking_task_processor,
     engine::TaskProcessor& main_task_processor,
     const ConsumerConfiguration& configuration,
     const Secret& secrets,
@@ -62,8 +63,10 @@ Consumer::Consumer(
       topics_(topics),
       execution_params(params),
       consumer_task_processor_(consumer_task_processor),
+      consumer_blocking_task_processor_(consumer_blocking_task_processor),
       main_task_processor_(main_task_processor),
-      conf_(Configuration{name, configuration, secrets}.Release()) {
+      conf_(Configuration{name, configuration, secrets}.Release()),
+      consumer_(std::make_unique<ConsumerImpl>(name_, conf_, topics_, stats_)) {
     /// To check configuration validity
     [[maybe_unused]] auto _ = ConsumerHolder{conf_};
 }
@@ -87,7 +90,11 @@ void Consumer::DumpMetric(utils::statistics::Writer& writer) const {
 }
 
 void Consumer::RunConsuming(ConsumerScope::Callback callback) {
+    // note: Consumer must be recreated after each stop,
+    // because stop invalidates some internal consumer state (in librdkafka).
+    // Nevertheless, it is possible to use blocking consumer methods after stop.
     consumer_ = std::make_unique<ConsumerImpl>(name_, conf_, topics_, stats_);
+    consumer_->StartConsuming();
 
     LOG_INFO() << fmt::format("Started messages polling");
 
@@ -166,10 +173,37 @@ void Consumer::AsyncCommit() {
     }).Get();
 }
 
+OffsetRange Consumer::GetOffsetRange(
+    const std::string& topic,
+    std::uint32_t partition,
+    std::optional<std::chrono::milliseconds> timeout
+) const {
+    return utils::Async(
+               consumer_blocking_task_processor_,
+               "consumer_getting_offset",
+               [this, &topic, partition, &timeout] {
+                   ExtendCurrentSpan();
+
+                   return consumer_->GetOffsetRange(topic, partition, timeout);
+               }
+    ).Get();
+}
+
+std::vector<std::uint32_t>
+Consumer::GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout) const {
+    return utils::Async(
+               consumer_blocking_task_processor_,
+               "consumer_getting_partition_ids",
+               [this, &topic, &timeout] {
+                   ExtendCurrentSpan();
+
+                   return consumer_->GetPartitionIds(topic, timeout);
+               }
+    ).Get();
+}
+
 void Consumer::Stop() noexcept {
     if (processing_.exchange(false) && poll_task_.IsValid()) {
-        UINVARIANT(consumer_, "Stopping already stopped consumer");
-
         LOG_INFO() << "Stopping consumer poll task";
         poll_task_.SyncCancel();
 
@@ -178,7 +212,6 @@ void Consumer::Stop() noexcept {
             // 1. This is blocking.
             // 2. This calls testpoints
             consumer_->StopConsuming();
-            consumer_.reset();
         }).Get();
         TESTPOINT(fmt::format("tp_{}_stopped", name_), {});
         LOG_INFO() << "Consumer stopped";

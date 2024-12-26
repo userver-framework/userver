@@ -155,9 +155,9 @@ private:
         if (headers.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
             header_writer.AddKeyValue(USERVER_NAMESPACE::http::headers::kContentType, kDefaultContentType);
         }
-        std::string_view content_lenght_header{USERVER_NAMESPACE::http::headers::kContentLength};
+        std::string_view content_length_header{USERVER_NAMESPACE::http::headers::kContentLength};
         for (const auto& [key, value] : headers) {
-            if (key == content_lenght_header) {
+            if (key == content_length_header) {
                 continue;
             }
             header_writer.AddKeyValue(key, value);

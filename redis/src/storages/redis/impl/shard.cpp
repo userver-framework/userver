@@ -9,13 +9,13 @@
 #include <userver/utils/retry_budget.hpp>
 
 #include <storages/redis/impl/command.hpp>
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 
 #include "command_control_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 ConnectionInfoInt::ConnectionInfoInt(ConnectionInfo conn_info)
     : conn_info_(std::move(conn_info)),
@@ -368,7 +368,7 @@ void Shard::GetStatistics(bool master, const MetricsSettings& settings, ShardSta
     for (const auto& instance : instances_) {
         if (!instance.instance || instance.info.IsReadOnly() == master) continue;
 
-        auto it = stats.instances.emplace(instance.info.Fulltext(), redis::InstanceStatistics(settings));
+        auto it = stats.instances.emplace(instance.info.Fulltext(), impl::InstanceStatistics(settings));
         auto& inst_stats = it.first->second;
         inst_stats.Fill(instance.instance->GetStatistics());
         stats.shard_total.Add(inst_stats);
@@ -473,6 +473,6 @@ bool Shard::UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait)
     return instances_changed;
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

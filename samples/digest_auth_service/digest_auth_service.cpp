@@ -23,7 +23,7 @@ public:
 
     using HttpHandlerBase::HttpHandlerBase;
 
-    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+    std::string HandleRequest(server::http::HttpRequest&, server::request::RequestContext&) const override {
         return "Hello world";
     }
 };

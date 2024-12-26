@@ -1,0 +1,50 @@
+#pragma once
+
+#include <string>
+{% if spec.has_multiple_content_type_request() %}
+#include <variant>
+{% endif %}
+
+#include <userver/clients/http/request.hpp>
+{% for include in spec.requests_declaration_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+
+namespace {{ namespace }} {
+
+{% for op in operations %}
+  {% if op.client_generate %}
+    {%- if not op.empty_request() -%}
+      namespace {{ op.cpp_namespace() }} {
+      {% if len(op.request_bodies) == 1 %}
+        using Body = {{ op.request_bodies[0].schema.cpp_user_name() }};
+      {% elif len(op.request_bodies) > 1 %}
+        {%- for body in op.request_bodies -%}
+          struct {{ op.request_bodies[0].cpp_body_type() }} {
+            std::string data;
+          };
+        {% endfor %}
+        using Body = std::variant<
+          {%- for body in op.request_bodies -%}
+            {{ op.request_bodies[0].cpp_body_type() }}
+            {%- if not loop.last %},{% endif %}
+          {% endfor %}
+        >
+      {% endif %}
+        struct Request {
+          {% for parameter in op.parameters %}
+            {{ parameter.cpp_type }} {{ parameter.cpp_name }};
+          {% endfor %}
+          {% if op.request_bodies %}
+              Body body;
+          {% endif %}
+        };
+
+        void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::Request& http_request);
+      }
+    {%- endif %}
+  {% endif %}
+{% endfor %}
+
+}

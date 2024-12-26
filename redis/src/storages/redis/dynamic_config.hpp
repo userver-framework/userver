@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 extern const dynamic_config::Key<int> kDeadlinePropagationVersion;
 
@@ -14,6 +14,6 @@ inline constexpr int kDeadlinePropagationExperimentVersion = 1;
 
 extern const dynamic_config::Key<bool> kRedisAutoTopologyEnabled;
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

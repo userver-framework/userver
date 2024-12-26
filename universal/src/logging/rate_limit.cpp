@@ -2,6 +2,8 @@
 
 #include <atomic>
 
+#include <userver/logging/log.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
@@ -29,7 +31,10 @@ bool IsLogLimitedEnabled() noexcept { return AtomicLogLimited().load(); }
 
 void SetLogLimitedInterval(std::chrono::steady_clock::duration d) noexcept { AtomicLogLimitedDuration() = d; }
 
-std::chrono::steady_clock::duration GetLogLimitedInterval() noexcept { return AtomicLogLimitedDuration().load(); }
+std::chrono::steady_clock::duration GetLogLimitedInterval() noexcept {
+    if (GetDefaultLoggerLevel() <= Level::kDebug) return {};
+    return AtomicLogLimitedDuration().load();
+}
 
 }  // namespace logging::impl
 

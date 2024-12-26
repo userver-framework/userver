@@ -37,9 +37,9 @@ template <typename Item>
 class SubscriptionQueue {
 public:
     SubscriptionQueue(
-        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        impl::SubscribeSentinel& subscribe_sentinel,
         std::string channel,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     );
     ~SubscriptionQueue();
 
@@ -54,37 +54,37 @@ public:
 
 private:
     template <typename T = Item>
-    std::enable_if_t<std::is_same<T, ChannelSubscriptionQueueItem>::value, USERVER_NAMESPACE::redis::SubscriptionToken>
+    std::enable_if_t<std::is_same<T, ChannelSubscriptionQueueItem>::value, impl::SubscriptionToken>
     GetSubscriptionToken(
-        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        impl::SubscribeSentinel& subscribe_sentinel,
         std::string channel,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     );
 
     template <typename T = Item>
-    std::enable_if_t<std::is_same<T, PatternSubscriptionQueueItem>::value, USERVER_NAMESPACE::redis::SubscriptionToken>
+    std::enable_if_t<std::is_same<T, PatternSubscriptionQueueItem>::value, impl::SubscriptionToken>
     GetSubscriptionToken(
-        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        impl::SubscribeSentinel& subscribe_sentinel,
         std::string pattern,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     );
 
     template <typename T = Item>
-    std::enable_if_t<std::is_same<T, ShardedSubscriptionQueueItem>::value, USERVER_NAMESPACE::redis::SubscriptionToken>
+    std::enable_if_t<std::is_same<T, ShardedSubscriptionQueueItem>::value, impl::SubscriptionToken>
     GetSubscriptionToken(
-        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        impl::SubscribeSentinel& subscribe_sentinel,
         std::string channel,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     );
 
     // Messages could come out-of-order due to Redis limitations. Non FIFO is fine
     using Queue = concurrent::NonFifoMpscQueue<Item>;
-    using Outcome = USERVER_NAMESPACE::redis::Sentinel::Outcome;
+    using Outcome = impl::Sentinel::Outcome;
 
     std::shared_ptr<Queue> queue_;
     typename Queue::Producer producer_;
     typename Queue::Consumer consumer_;
-    std::unique_ptr<USERVER_NAMESPACE::redis::SubscriptionToken> token_;
+    std::unique_ptr<impl::SubscriptionToken> token_;
 };
 
 extern template class SubscriptionQueue<ChannelSubscriptionQueueItem>;

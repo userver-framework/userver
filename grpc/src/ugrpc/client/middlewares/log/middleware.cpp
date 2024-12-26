@@ -1,6 +1,7 @@
 #include "middleware.hpp"
 
 #include <userver/logging/log_extra.hpp>
+#include <userver/tracing/tags.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 
@@ -44,6 +45,7 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     span.SetLocalLogLevel(settings_.log_level);
 
     span.AddTag("meta_type", std::string{context.GetCallName()});
+    span.AddTag(tracing::kSpanKind, tracing::kSpanKindClient);
 
     if (!IsSingleRequest(context.GetCallKind())) {
         SpanLogger{context.GetSpan(), settings_.log_level}.Log(

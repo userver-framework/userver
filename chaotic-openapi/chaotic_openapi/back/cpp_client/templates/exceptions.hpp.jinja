@@ -1,0 +1,85 @@
+#pragma once
+
+#include <userver/chaotic/openapi/client/exceptions.hpp>
+
+namespace {{ namespace }} {
+
+/// @brief Base class for {{ name }} client exceptions
+class Exception: public USERVER_NAMESPACE::chaotic::openapi::client::Exception {
+ public:
+  using USERVER_NAMESPACE::chaotic::openapi::client::Exception::Exception;
+  ~Exception();
+};
+
+/// @brief Response with ErrorKind for {{ name }} client exceptions
+class HttpException : public USERVER_NAMESPACE::chaotic::openapi::client::HttpException
+{
+ public:
+   explicit HttpException(USERVER_NAMESPACE::clients::http::ErrorKind error_kind);
+};
+
+/// @brief Response with HTTP status code for {{ name }} client exceptions
+class ExceptionWithStatusCode : public USERVER_NAMESPACE::chaotic::openapi::client::ExceptionWithStatusCode
+{
+ public:
+   ExceptionWithStatusCode(int status_code);
+};
+
+/// @brief Timeout exception class for {{ name }} client exceptions
+class TimeoutException: public USERVER_NAMESPACE::chaotic::openapi::client::TimeoutException {
+ public:
+  using USERVER_NAMESPACE::chaotic::openapi::client::TimeoutException::TimeoutException;
+  ~TimeoutException();
+};
+
+{% for op in operations %}
+  {% if op.client_generate %}
+
+namespace {{ op.cpp_namespace() }} {
+
+/// @brief Base exception class for all client {{ op.method }} operations with URL '{{ op.path }}'
+class Exception: public clients::{{ name }}::Exception {
+ public:
+    const char* what() const noexcept override;
+
+    std::string_view HandleInfo() const noexcept final;
+
+    static constexpr char kHandleInfo[] = "{{ op.method }} {{ op.path }}";
+};
+
+/// @brief Error response with ErrorKind for all client {{ op.method }} operations with URL '{{ op.path }}'
+class HttpException
+    : public Exception
+    , public clients::{{ name }}::HttpException
+{
+  public:
+    using clients::{{ name }}::HttpException::HttpException;
+    ~HttpException();
+};
+
+/// @brief Timeout exception class for all client {{ op.method }} operations with URL '{{ op.path }}'
+class TimeoutException
+    : public HttpException
+    , public clients::{{ name }}::TimeoutException
+{
+  public:
+    TimeoutException();
+    ~TimeoutException();
+};
+
+/// @brief Error response with HTTP status code for all client {{ op.method }} operations with URL '{{ op.path }}'
+class ExceptionWithStatusCode
+    : public Exception
+    , public clients::{{ name }}::ExceptionWithStatusCode
+{
+  public:
+    using clients::{{ name }}::ExceptionWithStatusCode::ExceptionWithStatusCode;
+    ~ExceptionWithStatusCode();
+};
+
+} // namespace
+
+  {% endif %}
+{% endfor %}
+
+}

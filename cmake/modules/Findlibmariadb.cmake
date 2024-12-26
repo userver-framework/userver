@@ -2,6 +2,7 @@ _userver_module_begin(
     NAME libmariadb
     VERSION 3.0.3
     DEBIAN_NAMES libmariadb-dev
+    FORMULA_NAMES mariadb
     PKG_CONFIG_NAMES mariadb
 )
 

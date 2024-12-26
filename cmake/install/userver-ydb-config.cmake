@@ -11,4 +11,6 @@ find_package(userver REQUIRED COMPONENTS
 
 # include("${USERVER_CMAKE_DIR}/ydb-cpp-sdk.cmake")
 
+include("${USERVER_CMAKE_DIR}/UserverSql.cmake")
+
 set(userver_ydb_FOUND TRUE)

@@ -27,7 +27,7 @@ GenericClient::GenericClient(impl::ClientDependencies&& client_params)
     UINVARIANT(!impl_.GetClientQos(), "Client QOS configs are unsupported for generic services");
 }
 
-client::UnaryCall<grpc::ByteBuffer> GenericClient::UnaryCall(
+client::ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
     std::string_view call_name,
     const grpc::ByteBuffer& request,
     std::unique_ptr<grpc::ClientContext> context,
@@ -35,7 +35,7 @@ client::UnaryCall<grpc::ByteBuffer> GenericClient::UnaryCall(
 ) const {
     auto& stub = impl_.NextGenericStub<GenericStubService>();
     auto grpcpp_call_name = utils::StrCat<grpc::string>("/", call_name);
-    return {
+    client::UnaryCall<grpc::ByteBuffer> call{
         impl::CreateGenericCallParams(
             impl_, call_name, std::move(context), generic_options.qos, generic_options.metrics_call_name
         ),
@@ -44,6 +44,16 @@ client::UnaryCall<grpc::ByteBuffer> GenericClient::UnaryCall(
         ) { return stub.PrepareUnaryCall(context, grpcpp_call_name, request, cq); },
         request,
     };
+    return client::ResponseFuture<grpc::ByteBuffer>{std::move(call)};
+}
+
+grpc::ByteBuffer GenericClient::UnaryCall(
+    std::string_view call_name,
+    const grpc::ByteBuffer& request,
+    std::unique_ptr<grpc::ClientContext> context,
+    const GenericOptions& generic_options
+) const {
+    return AsyncUnaryCall(call_name, request, std::move(context), generic_options).Get();
 }
 
 }  // namespace ugrpc::client

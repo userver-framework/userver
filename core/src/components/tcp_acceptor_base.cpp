@@ -70,12 +70,16 @@ TcpAcceptorBase::TcpAcceptorBase(
     : ComponentBase(config, context),
       no_delay_(config["no_delay"].As<bool>(true)),
       acceptor_task_processor_(context.GetTaskProcessor(acceptor_config.task_processor)),
-      sockets_task_processor_(context.GetTaskProcessor(SocketsTaskProcessorName(config, acceptor_config))),
-      listen_sock_(server::net::CreateSocket(acceptor_config)) {}
+      sockets_task_processor_(context.GetTaskProcessor(SocketsTaskProcessorName(config, acceptor_config))) {
+    for (const auto& port : acceptor_config.ports) {
+        auto socket = server::net::CreateSocket(acceptor_config, port);
+        sockets_.emplace_back(SocketData{std::move(socket), {}});
+    }
+}
 
-void TcpAcceptorBase::KeepAccepting() {
+void TcpAcceptorBase::KeepAccepting(engine::io::Socket& listen_sock) {
     while (!engine::current_task::ShouldCancel()) {
-        engine::io::Socket sock = listen_sock_.Accept({});
+        engine::io::Socket sock = listen_sock.Accept({});
 
         tasks_.Detach(engine::AsyncNoSpan(
             sockets_task_processor_,
@@ -93,13 +97,20 @@ void TcpAcceptorBase::KeepAccepting() {
 void TcpAcceptorBase::OnAllComponentsLoaded() {
     // Start handling after the derived object was fully constructed
 
-    // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-    acceptor_ = engine::AsyncNoSpan(acceptor_task_processor_, &TcpAcceptorBase::KeepAccepting, this);
+    for (auto& socket_data : sockets_) {
+        socket_data.acceptor =
+            engine::AsyncNoSpan(
+                acceptor_task_processor_, &TcpAcceptorBase::KeepAccepting, this, std::ref(socket_data.listen_sock)
+            )
+                .AsTask();
+    }
 }
 
 void TcpAcceptorBase::OnAllComponentsAreStopping() {
-    acceptor_ = {};  // Cancel and wait for finish
-    listen_sock_.Close();
+    for (auto& socket_data : sockets_) {
+        socket_data.acceptor.SyncCancel();
+        socket_data.listen_sock.Close();
+    }
     tasks_.CancelAndWait();
 }
 

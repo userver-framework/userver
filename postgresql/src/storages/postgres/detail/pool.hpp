@@ -101,6 +101,8 @@ public:
 
     dynamic_config::Source GetConfigSource() const;
 
+    const Dsn& GetDsn() const;
+
 private:
     using SizeGuard = postgres::SizeGuard<std::atomic<size_t>>;
 

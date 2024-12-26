@@ -4,6 +4,7 @@
 /// @brief @copybrief formats::json::Value
 
 #include <chrono>
+#include <iosfwd>
 #include <string_view>
 #include <type_traits>
 
@@ -433,6 +434,9 @@ std::chrono::hours Parse(const Value& value, parse::To<std::chrono::hours>);
 ///   for (const auto& [name, value]: Items(map)) ...
 /// @endcode
 using formats::common::Items;
+
+/// gtest formatter for formats::json::Value
+void PrintTo(const Value&, std::ostream*);
 
 }  // namespace formats::json
 

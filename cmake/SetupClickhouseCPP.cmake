@@ -23,6 +23,7 @@ CPMAddPackage(
     OPTIONS
     "WITH_SYSTEM_ABSEIL ON"
     "WITH_SYSTEM_LZ4 ON"
+    "DEBUG_DEPENDENCIES OFF"
 )
 
 add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib)

@@ -4,9 +4,9 @@ option(USERVER_DOWNLOAD_PACKAGE_ROCKS "Download and setup RocksDB if no RocksDB 
 
 if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   if(USERVER_DOWNLOAD_PACKAGE_ROCKS)
-    find_package(RocksDB QUIET)
+    find_package(RocksDB QUIET CONFIG)
   else()
-    find_package(RocksDB REQUIRED)
+    find_package(RocksDB REQUIRED CONFIG)
   endif()
 
   if(RocksDB_FOUND)
@@ -36,3 +36,4 @@ CPMAddPackage(
 
 mark_targets_as_system("${rocksdb_SOURCE_DIR}")
 write_package_stub(rocksdb)
+add_library(RocksDB::rocksdb ALIAS rocksdb)

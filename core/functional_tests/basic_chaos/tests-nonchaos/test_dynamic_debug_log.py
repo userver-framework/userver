@@ -15,6 +15,9 @@ try:
     USERVER_LOCATION_FILE = (
         'taxi/uservices/userver/core/src/server/http/http_request_parser.cpp'
     )
+    SERVICE_LOCATION_BAD = (
+        'taxi/uservices/userver/core/src/server/handlers/ping.cpp:99'
+    )
     SERVICE_LOCATION = (
         'taxi/uservices/userver/core/src/server/handlers/ping.cpp:100'
     )
@@ -24,6 +27,7 @@ except ModuleNotFoundError:
     USERVER_LOCATION_FILE = (
         'userver/core/src/server/http/http_request_parser.cpp'
     )
+    SERVICE_LOCATION_BAD = 'userver/core/src/server/handlers/ping.cpp:99'
     SERVICE_LOCATION = 'userver/core/src/server/handlers/ping.cpp:100'
     PREFIX = 'userver/'
 
@@ -67,6 +71,16 @@ async def test_service_debug_logs_on(
         assert response.status_code == 200
 
     assert capture.select(text=SERVICE_LOGGED_TEXT)
+
+
+@SKIP_BROKEN_LOGS
+async def test_invalid_line(
+    service_client, monitor_client, taxi_bodyless_headers_mock,
+):
+    resp = await monitor_client.put(
+        '/log/dynamic-debug', params={'location': SERVICE_LOCATION_BAD},
+    )
+    assert resp.status_code == 500
 
 
 @SKIP_BROKEN_LOGS

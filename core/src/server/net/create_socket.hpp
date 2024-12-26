@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
-engine::io::Socket CreateSocket(const ListenerConfig& config);
+engine::io::Socket CreateSocket(const ListenerConfig& config, const PortConfig& port_config);
 
 }  // namespace server::net
 

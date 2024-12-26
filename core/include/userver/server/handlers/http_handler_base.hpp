@@ -72,7 +72,7 @@ public:
 
     ~HttpHandlerBase() override;
 
-    void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
+    void PrepareAndHandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
     void ReportMalformedRequest(http::HttpRequest& request) const final;
 
@@ -119,11 +119,14 @@ public:
 protected:
     [[noreturn]] void ThrowUnsupportedHttpMethod(const http::HttpRequest& request) const;
 
+    /// Same as `HandleRequest`.
+    virtual std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const;
+
     /// The core method for HTTP request handling.
     /// `request` arg contains HTTP headers, full body, etc.
     /// The method should return response body.
     /// @note It is used only if IsStreamed() returned `false`.
-    virtual std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const;
+    virtual std::string HandleRequest(http::HttpRequest& request, request::RequestContext& context) const;
 
     /// The core method for HTTP request handling.
     /// `request` arg contains HTTP headers, full body, etc.
@@ -137,12 +140,12 @@ protected:
     ///    in memory.
     /// @note It is used only if IsStreamed() returned `true`.
     virtual void
-    HandleStreamRequest(const server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
+    HandleStreamRequest(server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
         const;
 
     /// If IsStreamed() returns `true`, call HandleStreamRequest()
-    /// for request handling, HandleRequestThrow() is not called.
-    /// If it returns `false`, HandleRequestThrow() is called instead,
+    /// for request handling, HandleRequest() is not called.
+    /// If it returns `false`, HandleRequest() is called instead,
     /// and HandleStreamRequest() is not called.
     /// @note The default implementation returns the cached value of
     /// "response-body-streamed" value from static config.
@@ -182,7 +185,7 @@ private:
 
     void HandleHttpRequest(http::HttpRequest& request, request::RequestContext& context) const;
 
-    void HandleRequestStream(const http::HttpRequest& http_request, request::RequestContext& context) const;
+    void HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const;
 
     std::string GetRequestBodyForLoggingChecked(
         const http::HttpRequest& request,

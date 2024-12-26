@@ -76,6 +76,8 @@ public:
 
     std::string GetDbName() const;
 
+    void SetDsnList(const DsnList&);
+
 private:
     void OnConnlimitChanged();
 
@@ -85,15 +87,25 @@ private:
 
     ConnectionPoolPtr FindPool(ClusterHostTypeFlags);
 
-    DefaultCommandControls default_cmd_ctls_;
+    struct TopologyData {
+        std::unique_ptr<topology::TopologyBase> topology;
+        std::vector<ConnectionPoolPtr> host_pools;
+    };
+
+    void CreateTopology(const DsnList& dsns);
+
     rcu::Variable<ClusterSettings> cluster_settings_;
-    std::unique_ptr<topology::TopologyBase> topology_;
+    concurrent::Variable<TopologyData, engine::SharedMutex> topology_data_;
+    clients::dns::Resolver* resolver_{};
     engine::TaskProcessor& bg_task_processor_;
-    std::vector<ConnectionPoolPtr> host_pools_;
-    std::atomic<uint32_t> rr_host_idx_;
     dynamic_config::Source config_source_;
-    ConnlimitWatchdog connlimit_watchdog_;
+    DefaultCommandControls default_cmd_ctls_;
+    const testsuite::PostgresControl testsuite_pg_ctl_;
+    const error_injection::Settings ei_settings_;
+
+    std::atomic<uint32_t> rr_host_idx_;
     std::atomic<bool> connlimit_mode_auto_enabled_;
+    ConnlimitWatchdog connlimit_watchdog_;
 };
 
 }  // namespace storages::postgres::detail

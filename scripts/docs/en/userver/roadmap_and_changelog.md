@@ -33,6 +33,74 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.6
+
+* storages::secdist::Secdist is now automatically reloaded for Mongo, Redis and PostgreSQL databases if the secdist file
+  was changed. Now changing the connection parameters in file does not require service restart.
+* Public parts of the Redis driver were moved out from `impl/` directory and placed into `storages::redis::` namespace.
+  If you were relying on the old paths, see `./scripts/migrate_from_legacy_redis_ns.sh` script to ease migration.
+* Shortened testsuite logs were made more functional by providing HTTP URL info.
+* Removed old gRPC interface for server handlers as was promised in previous release notes.
+* gRPC client interfaces were changed to be more user friendly. For example, for `HelloWorld` method in protobuf we
+  generate the old `HelloWorld` function along with the new `AsyncHelloWorld` and `SyncHelloWorld` functions.
+  `AsyncHelloWorld` returns a `ugrpc::client::ResponseFuture` that can be used to retrieve the request result later
+  in code. `SyncHelloWorld` retrieves the response from the future and returns the response itself.
+  Consider replacing:
+  * `HelloWorld(x).Finish()` with `SyncHelloWorld(x)`
+  * `auto res = HelloWorld(x); /* a lot of code */; res.Finish();` with
+    `auto res = AsyncHelloWorld(x); /* a lot of code*/; res.Get();`
+  In next release we will remove the old `HelloWorld` and will rename `SyncHelloWorld` into `HelloWorld`.
+* Added @ref scripts/docs/en/userver/libraries/easy.md. Now the service can be created in a few code lines:
+  ```cpp
+  int main(int argc, char* argv[]) {
+    easy::HttpWith<>(argc, argv)
+        .DefaultContentType(http::content_type::kTextPlain)
+        .Route("/hello", [](const server::http::HttpRequest& /*req*/) {
+            return "Hello world";  // Just return the string as a response body
+        });
+  }
+  ```
+* Added `userver_embed_file` CMake function to embed files into the binary.
+  See @ref scripts/docs/en/userver/tutorial/hello_service.md for an example.
+* Queries now @ref scripts/docs/en/userver/sql_files.md "can be moved to a separate files".
+* Added graceful shutdown functionality. See `graceful_shutdown_interval` in components::ManagerControllerComponent.
+* server::http::HttpRequestBuilder now can be used to create server::http::HttpRequest in unit tests.
+* Kafka driver now has kafka::ConsumerScope::GetPartitionIds() and kafka::ConsumerScope::GetOffsetRange() functions.
+  Many thanks to [Kirill](https://github.com/KVolodin) for the PR!
+* @ref opentelemetry "OpenTelemetry" now sends `span_kind` information.
+
+* Added `user`, `password`, and `secure_connection_cert` parameters support for the YDB secdist. Thanks to
+  [Попов Алексей](https://github.com/popov-aa) for the PR!
+* @ref POSTGRES_TOPOLOGY_SETTINGS now has `disabled_replicas` option to disable some of the replicas.
+* Fixed Kafka logs being written into STDERR in edge cases. Thanks to [Dudnik Pavel](https://github.com/nepridumalnik)
+  for the PR!
+* Added unbounded queue variants concurrent::UnboundedNonFifoMpscQueue, concurrent::UnboundedSpmcQueue,
+  and concurrent::UnboundedSpscQueue. Those queues are usually x2 faster than the bounded variants.
+* `GT` and `LT` flags support in Redis `ZADD`. Thanks to [Nikolay Pervushin](https://github.com/Greenvi4) for the PR!
+* Reduced condition in OTLP, thanks to [Dudnik Pavel](https://github.com/nepridumalnik).
+
+* Build:
+  * Simplified Profile Guided Optimization (PGO) gathering and usage due to new `USERVER_PGO_GENERATE` and
+    `USERVER_PGO_USE` CMake options. See @ref scripts/docs/en/userver/build/build.md for more info.
+  * MacOS now can build the userver as a Conan package.
+  * Build flags were reorganized to use a new `USERVER_BUILD_ALL_LIBRARIES` CMake option.
+    See @ref scripts/docs/en/userver/build/options.md for more info.
+  * Source directory now can contain spaces.
+  * Correctly set grpc-reflection found flag. Thanks to [Nikita](https://github.com/rtkid-nik) for the PR!
+  * Fixed `USERVER_CHAOTIC_FORMAT` option for CMake build. Thanks to [Konstantin Goncharik](https://github.com/botanegg)
+    for the PR.
+  * Optimized reconfiguration in CMake giving up to 60% time save (6-20 seconds).
+
+* Documentation and diagnostics:
+  * More information on Mongo heartbeat in logs.
+  * Added docs about tag name of tracing::ScopeTime.
+  * Improved PostgreSQL diagnostic messages for server response parsing errors due to C++ and DB types mismatch. 
+  * Better samples and docs for utils::statistics::Writer.
+  * Added direct database access to testsuite samples.
+  * Updated the @ref concurrent_queues "Concurrent Queues" docs.
+  * Log formats message was amended. Thanks to [tkhanipov](https://github.com/tkhanipov) for the PR!
+
+
 ### Release v2.5
 
 * Added @ref scripts/docs/en/userver/libraries/s3api.md "S3 API client s3api::Client". Many thanks to

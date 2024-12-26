@@ -42,7 +42,7 @@ class LogFile:
         for line, position in _raw_line_reader(
             self.path, self.position, eof_handler=eof_handler,
         ):
-            # userver does not give any gurantees about log file encoding
+            # userver does not give any guarantees about log file encoding
             line = line.decode(encoding='utf-8', errors='backslashreplace')
             if not first_skipped:
                 first_skipped = True

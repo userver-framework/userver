@@ -241,6 +241,8 @@ UTEST_P(PostgreConnection, DecimalStored) {
     EXPECT_EQ(decimal, expected);
 }
 
+// Following tests abort in debug
+#ifdef NDEBUG
 UTEST_P(PostgreConnection, DecimalTypeParseExceptionReadability) {
     {
         auto result = GetConn()->Execute("SELECT 4.0::numeric");
@@ -255,6 +257,8 @@ UTEST_P(PostgreConnection, DecimalTypeParseExceptionReadability) {
         );
     }
 }
+#endif
+
 }  // namespace
 
 USERVER_NAMESPACE_END

@@ -51,7 +51,7 @@ void IoWatcher::WriteAsync(Callback cb) {
 
 void IoWatcher::OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept {
     auto* self = static_cast<IoWatcher*>(io->data);
-    self->watcher_read_.Stop();
+    const auto guard = self->watcher_read_.StopWithinEvCallback();
 
     if (events & EV_READ) {
         try {
@@ -75,7 +75,7 @@ void IoWatcher::CallReadCb(std::error_code ec) {
 
 void IoWatcher::OnEventWrite(struct ev_loop*, ev_io* io, int events) noexcept {
     auto* self = static_cast<IoWatcher*>(io->data);
-    self->watcher_write_.Stop();
+    const auto guard = self->watcher_write_.StopWithinEvCallback();
 
     if (events & EV_WRITE) {
         try {

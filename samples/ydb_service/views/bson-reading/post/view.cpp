@@ -7,8 +7,7 @@
 
 namespace sample {
 
-std::string
-BsonReadingHandler::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+std::string BsonReadingHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&)
     const {
     static const std::string kSelectQuery = R"(
 --!syntax_v1

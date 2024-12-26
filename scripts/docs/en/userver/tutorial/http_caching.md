@@ -141,7 +141,7 @@ should be provided:
 ### Cache component usage
 
 Now the cache could be used just as any other component. For example, a handler
-could get a reference to the cache and use it in `HandleRequestThrow`:
+could get a reference to the cache and use it in `HandleRequest`:
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GreetUser
 

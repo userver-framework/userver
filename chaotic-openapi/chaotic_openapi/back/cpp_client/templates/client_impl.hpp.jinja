@@ -1,0 +1,37 @@
+#pragma once
+
+#include <client/{{ name }}/client.hpp>
+
+#include <userver/chaotic/openapi/client/config.hpp>
+#include <userver/clients/http/client.hpp>
+
+namespace {{ namespace }} {
+
+class ClientImpl final : public Client {
+public:
+  // API
+
+{% for op in operations %}
+  {% if op.client_generate %}
+    {{ op.cpp_namespace() }}::Response {{ op.cpp_method_name() }}(
+      {%- if not op.empty_request() -%}
+          const {{ op.cpp_namespace() }}::Request& request ,
+      {%- endif %}
+          const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control
+    ) override;
+  {% endif %}
+{% endfor %}
+
+  // end of API
+
+  static constexpr std::string_view kName = "{{ name }}";
+  static constexpr std::string_view kDefaultBaseUrl = "{{ base_url }}";
+
+  ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config&,
+             USERVER_NAMESPACE::clients::http::Client& http_client);
+private:
+  USERVER_NAMESPACE::chaotic::openapi::client::Config config_;
+  USERVER_NAMESPACE::clients::http::Client& http_client_;
+};
+
+}

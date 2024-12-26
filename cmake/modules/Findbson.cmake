@@ -13,6 +13,7 @@ _userver_module_find_include(
     PATHS
     /usr/include/libbson-1.0
     /usr/local/opt/mongo-c-driver/include/libbson-1.0
+    /opt/homebrew/opt/mongo-c-driver/include/libbson-1.0
 )
 
 _userver_module_find_library(

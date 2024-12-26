@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <storages/redis/impl/sentinel_impl.hpp>
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,12 +21,12 @@ const auto constexpr kInstanceReplica1 = 1;
 const auto constexpr kInstanceMaster = 2;
 ///}
 
-redis::CommandControl MakeCC(
+storages::redis::CommandControl MakeCC(
     bool allow_reads_from_master = false,
-    redis::CommandControl::Strategy strategy = redis::CommandControl::Strategy::kDefault,
+    storages::redis::CommandControl::Strategy strategy = storages::redis::CommandControl::Strategy::kDefault,
     size_t best_dc_count = 0
 ) {
-    redis::CommandControl ret;
+    storages::redis::CommandControl ret;
     ret.allow_reads_from_master = allow_reads_from_master;
     ret.best_dc_count = best_dc_count;
     ret.strategy = strategy;
@@ -36,7 +36,7 @@ redis::CommandControl MakeCC(
 }  // namespace
 
 class ClusterShardGetStatIndexTests : public ::testing::TestWithParam<std::tuple<
-                                          redis::CommandControl,
+                                          storages::redis::CommandControl,
                                           size_t,  ///< attempt
                                           bool,    ///< is_nearest_ping_server
                                           size_t,  ///< prev_instance_idx
@@ -55,7 +55,9 @@ TEST_P(ClusterShardGetStatIndexTests, Base) {
     const auto expected_result = std::get<6>(GetParam());
     EXPECT_EQ(
         expected_result,
-        redis::GetStartIndex(cc, attempt, is_nearest_ping_server, prev_instance_idx, current, servers_count)
+        storages::redis::impl::GetStartIndex(
+            cc, attempt, is_nearest_ping_server, prev_instance_idx, current, servers_count
+        )
     );
 }
 
@@ -69,7 +71,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             kInstanceReplica0
@@ -78,7 +80,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             kInstanceReplica1
@@ -87,7 +89,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             kInstanceReplica0
@@ -96,7 +98,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             kInstanceReplica1
@@ -110,7 +112,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             kInstanceReplica1
@@ -119,7 +121,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             kInstanceMaster
@@ -128,7 +130,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             kInstanceReplica0
@@ -137,7 +139,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             kInstanceReplica1
@@ -158,7 +160,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             kInstanceReplica0
@@ -167,7 +169,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             kInstanceReplica1
@@ -176,7 +178,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             kInstanceMaster
@@ -185,7 +187,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             kInstanceReplica0
@@ -202,7 +204,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
@@ -211,7 +213,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
@@ -220,7 +222,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
@@ -229,7 +231,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             1
@@ -242,37 +244,37 @@ INSTANTIATE_TEST_SUITE_P(
         ///  But we can cylcle through first best_dc_count servers now it is 1.
         ///  So expected results only 0, only the best each time
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 1),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 1),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 1),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 1),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             0
@@ -286,37 +288,37 @@ INSTANTIATE_TEST_SUITE_P(
         ///  So expected results only 0 and 1, only one of the best each time
         ///  (one of this numbers can be master)
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 2),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 2),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 2),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 2),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             1
@@ -329,37 +331,37 @@ INSTANTIATE_TEST_SUITE_P(
         ///  But we can cylcle through first best_dc_count servers now it is 3.
         ///  So expected results only 0, 1 and 2 (one of this numbers is master)
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             2
         ),
         std::make_tuple(
-            MakeCC(kAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             0
@@ -372,37 +374,37 @@ INSTANTIATE_TEST_SUITE_P(
         ///  one of the replicas. Master has last position in list of available
         ///  servers for NearestServerPing and not allowed reads from master
         std::make_tuple(
-            MakeCC(kDoNotAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kDoNotAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
         ),
         std::make_tuple(
-            MakeCC(kDoNotAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
         ),
         std::make_tuple(
-            MakeCC(kDoNotAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            redis::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             1
@@ -410,7 +412,7 @@ INSTANTIATE_TEST_SUITE_P(
         ///}
 
         std::make_tuple(
-            MakeCC(kDoNotAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
             0,
@@ -419,7 +421,7 @@ INSTANTIATE_TEST_SUITE_P(
             1
         ),
         std::make_tuple(
-            MakeCC(kDoNotAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
             1,
@@ -428,7 +430,7 @@ INSTANTIATE_TEST_SUITE_P(
             kInstanceMaster
         ),  // Can be master as retry
         std::make_tuple(
-            MakeCC(kDoNotAllowReadFromMaster, redis::CommandControl::Strategy::kNearestServerPing, 3),
+            MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
             2,

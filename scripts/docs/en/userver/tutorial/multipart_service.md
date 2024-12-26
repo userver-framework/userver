@@ -52,7 +52,7 @@ server::handlers::HttpHandlerBase:
 @snippet samples/multipart_service/service.cpp  Multipart service sample - component
 
 The primary functionality of the handler should be located in
-`HandleRequestThrow` function. To work with the `multipart/form-data`
+`HandleRequest` function. To work with the `multipart/form-data`
 parameters use the appropriate
 server::http::HttpRequest functions:
 

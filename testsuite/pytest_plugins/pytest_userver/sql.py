@@ -8,7 +8,7 @@ class RegisteredTrx:
     will throw an exception.
 
     If you don't need a fault injection anymore (e.g. you want to test
-    a successfull retry), you may call `disable_trx_failure` afterwards.
+    a successful retry), you may call `disable_trx_failure` afterwards.
 
     Example usage:
     @snippet integration_tests/tests/test_trx_failure.py  fault injection

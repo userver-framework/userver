@@ -36,7 +36,7 @@ public:
     };
 
     void HandleStreamRequest(
-        const server::http::HttpRequest& req,
+        server::http::HttpRequest& req,
         server::request::RequestContext&,
         server::http::ResponseBodyStream& stream
     ) const override {

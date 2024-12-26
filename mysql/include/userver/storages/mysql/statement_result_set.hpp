@@ -322,10 +322,10 @@ std::optional<T> StatementResultSet::AsOptionalSingleField() && {
     return std::move(*this).DoAsOptionalSingleRow<T, FieldTag>();
 }
 
-template <typename Container, typename MapFrom, typename ExtractionTag>
+template <typename Container, typename MapFromType, typename ExtractionTag>
 Container StatementResultSet::DoAsContainerMapped() && {
     static_assert(meta::kIsRange<Container>, "The type isn't actually a container");
-    using Extractor = impl::io::TypedExtractor<Container, MapFrom, ExtractionTag>;
+    using Extractor = impl::io::TypedExtractor<Container, MapFromType, ExtractionTag>;
 
     Extractor extractor{};
 
@@ -379,13 +379,13 @@ std::vector<T> MappedStatementResultSet<DbType>::AsVector(FieldTag) && {
 template <typename DbType>
 template <typename Container>
 Container MappedStatementResultSet<DbType>::AsContainer() && {
-    return std::move(result_set_).DoAsContainerMapped<Container, DbType, RowTag>();
+    return std::move(result_set_).template DoAsContainerMapped<Container, DbType, RowTag>();
 }
 
 template <typename DbType>
 template <typename Container>
 Container MappedStatementResultSet<DbType>::AsContainer(FieldTag) && {
-    return std::move(result_set_).DoAsContainerMapped<Container, DbType, FieldTag>();
+    return std::move(result_set_).template DoAsContainerMapped<Container, DbType, FieldTag>();
 }
 
 template <typename DbType>

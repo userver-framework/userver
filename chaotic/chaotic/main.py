@@ -52,15 +52,6 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        '-f',
-        '--file-map',
-        type=NameMapItem,
-        required=True,
-        action='append',
-        help='full filepath to virtual filepath mapping',
-    )
-
-    parser.add_argument(
         '-u',
         '--userver',
         type=str,
@@ -246,7 +237,10 @@ def main() -> None:
     args = parse_args()
 
     schemas = read_schemas(
-        args.erase_path_prefix, args.file, args.name_map, args.file_map,
+        args.erase_path_prefix,
+        args.file,
+        args.name_map,
+        [NameMapItem('(.*)={0}')],
     )
     cpp_name_func = generate_cpp_name_func(
         args.name_map, args.erase_path_prefix,

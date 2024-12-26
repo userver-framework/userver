@@ -9,8 +9,8 @@
 #include <memory>
 #include <string>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/command_options.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/command_options.hpp>
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/mock_request.hpp>
@@ -44,7 +44,7 @@ public:
 
     ~MockClientBase() override;
 
-    void WaitConnectedOnce(USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) override;
+    void WaitConnectedOnce(RedisWaitConnected wait_connected) override;
 
     size_t ShardsCount() const override;
     bool IsInClusterMode() const override;

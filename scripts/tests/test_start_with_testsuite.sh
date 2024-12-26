@@ -18,7 +18,7 @@ PG_SERVICE_PID=$!
 ${BUILD_SYSTEM} start-userver-samples-hello_service &
 HELLO_SERVICE_PID=$!
 
-# Disable exitting on error
+# Disable exiting on error
 set +e
 
 while ! curl --max-time 1 'http://localhost:8080/hello'; do

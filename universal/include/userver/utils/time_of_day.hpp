@@ -87,7 +87,7 @@ public:
     //@{
     /** @name Comparison operators */
 
-#ifdef __cpp_lib_three_way_comparison
+#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
     constexpr auto operator<=>(const TimeOfDay&) const = default;
 #else
     constexpr bool operator==(const TimeOfDay&) const;
@@ -397,7 +397,7 @@ template <typename Rep, typename Period>
 constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(std::string_view str)
     : since_midnight_{detail::TimeOfDayParser<Rep, Period>{}(str)} {}
 
-#ifndef __cpp_lib_three_way_comparison
+#if !(__cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT))
 template <typename Rep, typename Period>
 constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator==(const TimeOfDay& rhs) const {
     return since_midnight_ == rhs.since_midnight_;

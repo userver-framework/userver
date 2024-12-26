@@ -9,7 +9,7 @@
 #include <optional>
 #include <string>
 
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +17,7 @@ namespace testsuite {
 struct RedisControl;
 }  // namespace testsuite
 
-namespace redis {
+namespace storages::redis {
 
 inline constexpr std::chrono::milliseconds kDefaultTimeoutSingle{500};
 inline constexpr std::chrono::milliseconds kDefaultTimeoutAll{2000};
@@ -152,6 +152,23 @@ CommandControl::Strategy StrategyFromString(std::string_view s);
 /// Returns string representation of CommandControl::Strategy
 std::string_view StrategyToString(CommandControl::Strategy s);
 
+}  // namespace storages::redis
+
+#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
+namespace redis {
+using storages::redis::kDefaultMaxRetries;
+using storages::redis::kDefaultTimeoutAll;
+using storages::redis::kDefaultTimeoutSingle;
+
+using storages::redis::kRetryNilFromMaster;
+using storages::redis::RetryNilFromMaster;
+using storages::redis::ServerIdHasher;
+
+using storages::redis::CommandControl;
+using storages::redis::ServerId;
+using storages::redis::StrategyFromString;
+using storages::redis::StrategyToString;
 }  // namespace redis
+#endif
 
 USERVER_NAMESPACE_END

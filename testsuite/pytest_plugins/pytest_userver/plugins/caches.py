@@ -139,7 +139,7 @@ class CacheControl:
         return staged, actions
 
     def commit_staged(self, staged: typing.Dict[str, typing.Any]) -> None:
-        """Apply recently commited state."""
+        """Apply recently committed state."""
         self._context.update(staged)
 
 

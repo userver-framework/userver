@@ -30,6 +30,12 @@ organization page contains multiple repositories, including:
 * [service_template](https://github.com/userver-framework/service_template) -
   template of a C++ service that uses userver framework with ready-to-user
   build, test and CI scripts. 
+* [pg_service_template](https://github.com/userver-framework/pg_service_template) -
+  template of a C++ service that uses userver framework with ready-to-user PostgreSQL database,
+  build, test and CI scripts. 
+* [pg_grpc_service_template](https://github.com/userver-framework/pg_grpc_service_template) -
+  template of a C++ service that uses userver framework with ready-to-user PostgreSQL database, gRPC server,
+  build, test and CI scripts. 
 * [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf) -
   the service to control dynamic configs of the other userver-based services.
 

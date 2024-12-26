@@ -45,6 +45,8 @@ template class HolderBase<rd_kafka_error_t, &rd_kafka_error_destroy>;
 template class HolderBase<rd_kafka_event_t, &rd_kafka_event_destroy>;
 template class HolderBase<rd_kafka_queue_t, &rd_kafka_queue_destroy>;
 template class HolderBase<rd_kafka_topic_partition_list_t, &rd_kafka_topic_partition_list_destroy>;
+template class HolderBase<const rd_kafka_metadata_t, &rd_kafka_metadata_destroy>;
+template class HolderBase<rd_kafka_topic_t, &rd_kafka_topic_destroy>;
 
 struct ConfHolder::Impl {
     explicit Impl(rd_kafka_conf_t* conf) : conf(conf) {}

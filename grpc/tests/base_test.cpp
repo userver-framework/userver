@@ -122,43 +122,42 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto call_for_move = client.SayHello(out, PrepareClientContext());
-    auto call = std::move(call_for_move);  // test move operation
-    EXPECT_EQ(call.GetCallName(), "sample.ugrpc.UnitTestService/SayHello");
-
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = call.Finish());
-    CheckClientContext(call.GetContext());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(out, PrepareClientContext()));
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
 UTEST_F(GrpcClientTest, AsyncUnaryRPC) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
-    sample::ugrpc::GreetingResponse in;
     out.set_name("userver");
-    auto call_for_move = client.SayHello(out, PrepareClientContext());
-    auto future_for_move = call_for_move.FinishAsync(in);
-    auto call = std::move(call_for_move);      // test move operation
+    auto future_for_move = client.AsyncSayHello(out, PrepareClientContext());
     auto future = std::move(future_for_move);  // test move operation
 
-    UEXPECT_NO_THROW(future.Get());
-    CheckClientContext(call.GetContext());
+    bool is_ready = false;
+    UEXPECT_NO_THROW(is_ready = future.IsReady());
+
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = future.Get());
+    CheckClientContext(future.GetCall().GetContext());
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
 UTEST_F(GrpcClientTest, AsyncUnaryRPCWithTimeout) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
-    sample::ugrpc::GreetingResponse in;
     out.set_name("userver");
-    auto call_for_move = client.SayHello(out, PrepareClientContext());
-    auto future_for_move = call_for_move.FinishAsync(in);
-    auto call = std::move(call_for_move);      // test move operation
+    auto future_for_move = client.AsyncSayHello(out, PrepareClientContext());
     auto future = std::move(future_for_move);  // test move operation
 
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(60s)), engine::FutureStatus::kReady);
-    CheckClientContext(call.GetContext());
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(60s)), engine::FutureStatus::kReady);
+
+    EXPECT_TRUE(future.IsReady());
+
+    CheckClientContext(future.GetCall().GetContext());
+
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = future.Get());
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -168,7 +167,7 @@ UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
     out.set_name("default_context");
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(out).Finish());
+    UEXPECT_NO_THROW(in = client.SyncSayHello(out));
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -306,19 +305,19 @@ UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
 
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
-    sample::ugrpc::GreetingResponse in;
     out.set_name("userver");
 
-    auto call_for_move = client.SayHello(out, PrepareClientContext());
-    auto future_for_move = call_for_move.FinishAsync(in);
-    auto call = std::move(call_for_move);      // test move operation
+    auto future_for_move = client.AsyncSayHello(out, PrepareClientContext());
     auto future = std::move(future_for_move);  // test move operation
 
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(kLongTimeout / 100)), engine::FutureStatus::kTimeout);
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(kLongTimeout / 50)), engine::FutureStatus::kTimeout);
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(kLongTimeout / 100)), engine::FutureStatus::kTimeout);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(kLongTimeout / 50)), engine::FutureStatus::kTimeout);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = future.Get());
 
-    CheckClientContext(call.GetContext());
+    CheckClientContext(future.GetCall().GetContext());
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -336,9 +335,9 @@ UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
             out.set_name("userver");
 
             while (keep_running) {
-                auto call = client.SayHello(out, PrepareClientContext());
-                auto in = call.Finish();
-                CheckClientContext(call.GetContext());
+                auto future = client.AsyncSayHello(out, PrepareClientContext());
+                auto in = future.Get();
+                CheckClientContext(future.GetCall().GetContext());
                 EXPECT_EQ("Hello " + out.name(), in.name());
                 request_finished.Send();
                 engine::Yield();

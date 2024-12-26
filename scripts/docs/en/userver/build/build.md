@@ -176,8 +176,14 @@ To build `libuserver-all-dev.deb` package run the following shell command:
 ```shell
 docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
    --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
-   ./scripts/build_and_install_all.sh
+   BUILD_OPTIONS="-DUSERVER_FEATURE_POSTGRESQL=1" ./scripts/build_and_install.sh
 ```
+
+Pass the @ref cmake_options "cmake options" inside `BUILD_OPTIONS`.
+Make sure to at least:
+
+1. enable the desired @ref userver libraries "userver_libraries";
+2. pass the required options for @ref scripts/docs/en/userver/build/dependencies.md "build dependencies", if any.
 
 And install the package with the following:
 
@@ -269,7 +275,7 @@ To install userver in `ghcr.io/userver-framework/ubuntu-22.04-userver-base:lates
 sudo ./scripts/build_and_install_all.sh
 ```
 
-Alternatively see @ref userver_install
+Alternatively see @ref userver_install "userver install"
 
 @note The above image is build from `scripts/docker/ubuntu-22.04-pg.dockerfile`,
    `scripts/docker/ubuntu-22.04.dockerfile`

@@ -33,6 +33,8 @@ public:
 
     NYdb::NTable::TTableClient& GetNativeTableClient() { return table_client_->GetNativeTableClient(); }
 
+    NYdb::NQuery::TQueryClient& GetNativeQueryClient() { return table_client_->GetNativeQueryClient(); }
+
     ydb::TopicClient& GetTopicClient() { return *topic_client_; }
 
     NYdb::NTopic::TTopicClient& GetNativeTopicClient() { return topic_client_->GetNativeTopicClient(); }

@@ -3,11 +3,12 @@
 #include <string>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
-
 #include <userver/engine/future.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
+
+#include <storages/redis/impl/cmd_args.hpp>
 
 #include "request_data_impl.hpp"
 
@@ -327,7 +328,7 @@ private:
     std::optional<size_t> shard_;
 
     bool master_{};
-    USERVER_NAMESPACE::redis::CmdArgs cmd_args_;
+    impl::CmdArgs cmd_args_;
     std::vector<ResultPromise> result_promises_;
 };
 

@@ -11,7 +11,7 @@
 
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/qos.hpp>
-#include <userver/ugrpc/client/rpc.hpp>
+#include <userver/ugrpc/client/response_future.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -68,7 +68,14 @@ public:
     GenericClient& operator=(GenericClient&&) noexcept = delete;
 
     /// Initiate a `single request -> single response` RPC with the given name.
-    client::UnaryCall<grpc::ByteBuffer> UnaryCall(
+    client::ResponseFuture<grpc::ByteBuffer> AsyncUnaryCall(
+        std::string_view call_name,
+        const grpc::ByteBuffer& request,
+        std::unique_ptr<grpc::ClientContext> context = std::make_unique<grpc::ClientContext>(),
+        const GenericOptions& options = {}
+    ) const;
+
+    grpc::ByteBuffer UnaryCall(
         std::string_view call_name,
         const grpc::ByteBuffer& request,
         std::unique_ptr<grpc::ClientContext> context = std::make_unique<grpc::ClientContext>(),

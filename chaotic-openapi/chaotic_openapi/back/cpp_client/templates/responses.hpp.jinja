@@ -1,0 +1,23 @@
+#pragma once
+
+#include <client/{{ name }}/exceptions.hpp>
+
+USERVER_NAMESPACE_BEGIN
+namespace clients::http {
+class Response;
+}
+USERVER_NAMESPACE_END
+
+namespace {{ namespace }} {
+
+{% for op in operations %}
+  {% if op.client_generate %}
+      namespace {{ op.cpp_namespace() }} {
+        struct Response { };
+
+        Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& response);
+      }
+  {% endif %}
+{% endfor %}
+
+}

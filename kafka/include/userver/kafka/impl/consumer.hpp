@@ -54,13 +54,14 @@ public:
     ///
     /// @param topics stands for topics list that consumer subscribes to
     /// after ConsumerScope::Start called
-    /// @param consumer_task_processor -- task processor for message batches
-    /// polling
+    /// @param consumer_task_processor -- task processor for message batches polling
+    /// @param consumer_blocking_task_processor -- task processor for consumer blocking operations
     /// All callbacks are invoked in `main_task_processor`
     Consumer(
         const std::string& name,
         const std::vector<std::string>& topics,
         engine::TaskProcessor& consumer_task_processor,
+        engine::TaskProcessor& consumer_blocking_task_processor,
         engine::TaskProcessor& main_task_processor,
         const ConsumerConfiguration& consumer_configuration,
         const Secret& secrets,
@@ -80,6 +81,21 @@ public:
     /// @brief Dumps per topic messages processing statistics.
     /// @see impl/stats.hpp
     void DumpMetric(utils::statistics::Writer& writer) const;
+
+    /// @cond
+    /// @brief Retrieves the low and high offsets for the specified topic and partition.
+    /// @see ConsumerScope::GetOffsetRange for better commitment process
+    OffsetRange GetOffsetRange(
+        const std::string& topic,
+        std::uint32_t partition,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
+
+    /// @brief Retrieves the partition IDs for the specified topic.
+    /// @see ConsumerScope::GetPartitionIds for better commitment process
+    std::vector<std::uint32_t>
+    GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+    /// @endcond
 
 private:
     friend class kafka::ConsumerScope;
@@ -111,6 +127,7 @@ private:
     const ConsumerExecutionParams execution_params;
 
     engine::TaskProcessor& consumer_task_processor_;
+    engine::TaskProcessor& consumer_blocking_task_processor_;
     engine::TaskProcessor& main_task_processor_;
 
     ConfHolder conf_;

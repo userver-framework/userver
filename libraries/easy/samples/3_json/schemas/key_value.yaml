@@ -1,0 +1,17 @@
+# yaml
+components:
+    schemas:
+        KeyRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                key:
+                    type: integer
+        KeyValue:
+            type: object
+            additionalProperties: false
+            properties:
+                key:
+                    type: integer
+                value:
+                    type: string

@@ -37,6 +37,32 @@ inline const bool k{{service.name}}TypesRegistration =
   {% for method in service.method %}
   {% set method_id = loop.index0 %}
 
+  {% if not method.client_streaming and not method.server_streaming %}
+{{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    std::unique_ptr<::grpc::ClientContext> context,
+    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+) const {
+    auto& stub = impl_.NextStubFromMethodId<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>({{method_id}});
+    USERVER_NAMESPACE::ugrpc::client::UnaryCall<{{ method.output_type | grpc_to_cpp_name }}> call{
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+          impl_, {{method_id}}, std::move(context), qos
+        ),
+        [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
+        request,
+    };
+    return {{method.name}}ResponseFuture{std::move(call)};
+}
+
+{{ method.output_type | grpc_to_cpp_name }} {{service.name}}Client::Sync{{method.name}}(
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    std::unique_ptr<::grpc::ClientContext> context,
+    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+) const {
+    return Async{{method.name}}(request, std::move(context), qos).Get();
+}
+
+{% endif %}
 {{service.name}}Client::{{method.name}}Call
 {{service.name}}Client::{{method.name}}(
     {% if not method.client_streaming %}

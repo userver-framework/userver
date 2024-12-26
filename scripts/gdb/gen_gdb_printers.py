@@ -28,7 +28,6 @@ marshalized_splitted = '\n' + '\n'.join(
     str(marshalized[i : i + string_len])
     for i in range(0, len(marshalized), string_len)
 )
-print(marshalized_splitted)
 new_script = f'import marshal, zlib, base64\nexec(marshal.loads(zlib.decompress(base64.decodebytes({marshalized_splitted}))))'.split(
     '\n',
 )

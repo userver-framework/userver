@@ -1,8 +1,16 @@
+option(USERVER_FEATURE_EASY "Build easy HTTP server library" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_S3API "Build S3 api client library" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_GRPC_REFLECTION "Build grpc reflection library" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 if (USERVER_FEATURE_S3API)
   add_subdirectory(s3api)
+endif()
+
+if (USERVER_FEATURE_EASY)
+  if (NOT USERVER_FEATURE_POSTGRESQL)
+    message(FATAL_ERROR "'USERVER_FEATURE_EASY' requires 'USERVER_FEATURE_POSTGRESQL=ON'")
+  endif()
+  add_subdirectory(easy)
 endif()
 
 if (USERVER_FEATURE_GRPC_REFLECTION)

@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN

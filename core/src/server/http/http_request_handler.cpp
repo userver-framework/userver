@@ -153,7 +153,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         request->SetTaskStartTime();
 
         request::RequestContext context;
-        handler->HandleRequest(*request, context);
+        handler->PrepareAndHandleRequest(*request, context);
 
         const auto now = std::chrono::steady_clock::now();
         request->SetResponseNotifyTime(now);

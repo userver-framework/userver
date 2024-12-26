@@ -2,6 +2,7 @@
 
 @note In case you struggle with setting up userver dependencies there are other options:
 
+* Prebuilt `.deb` package in each release of userver framework
 * @ref docker_with_ubuntu_22_04 "Docker"
 * @ref userver_conan "Conan"
 
@@ -252,9 +253,11 @@ Feel free to provide a PR with instructions for your favorite platform at https:
 If there's a strong need to build \b only the userver and run its tests, then see
 @ref scripts/docs/en/userver/build/userver.md
 
+@anchor postgres_deps_versions
 ## PostgreSQL versions
-If CMake option USERVER_FEATURE_PATCH_LIBPQ is on, then the same developer version of libpq, libpgport and libpgcommon libraries
-should be available on the system. If there are multiple versions of those libraries use `USERVER_PG_*` @ref cmake_options "CMake options"
+
+If CMake option `USERVER_FEATURE_PATCH_LIBPQ` is on, then the same developer version of libpq, libpgport and libpgcommon libraries
+should be available on the system. If there are multiple versions of those libraries, use `USERVER_PG_*` @ref cmake_options "CMake options"
 to aid the build system in finding the right version.
 
 You could also install any version of the above libraries by explicitly pinning the version. For example in Debian/Ubuntu pinning

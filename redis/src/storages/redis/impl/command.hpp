@@ -1,14 +1,16 @@
 #pragma once
 
 #include <userver/logging/log_extra.hpp>
+#include <userver/storages/redis/fwd.hpp>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/types.hpp>
+#include <storages/redis/impl/cmd_args.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
+struct Command;
+using CommandPtr = std::shared_ptr<Command>;
 using ReplyCallback = std::function<void(const CommandPtr& cmd, ReplyPtr reply)>;
 
 struct Command : public std::enable_shared_from_this<Command> {
@@ -62,6 +64,6 @@ CommandPtr PrepareCommand(
     bool read_only = false
 );
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

@@ -32,14 +32,6 @@ function(_userver_prepare_grpc)
   set_property(GLOBAL PROPERTY userver_grpc_python_plugin "${PROTO_GRPC_PYTHON_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_protobuf_protoc "${PROTOBUF_PROTOC}")
   set_property(GLOBAL PROPERTY userver_protobuf_version "${Protobuf_VERSION}")
-  set(generate_protos_at_configure_description
-      "Run protoc at CMake Configure time instead of the more traditional build time. "
-      "This avoids IDE errors before the first build, but requires re-running CMake "
-      "Configure each time .proto files change"
-  )
-  option(USERVER_GENERATE_PROTOS_AT_CONFIGURE
-      "${generate_protos_at_configure_description}"
-      "${GENERATE_PROTOS_AT_CONFIGURE_DEFAULT}")
 
   if(NOT USERVER_GRPC_SCRIPTS_PATH)
     get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
@@ -93,7 +85,7 @@ function(_userver_prepare_grpc)
       REQUIREMENTS "${USERVER_GRPC_SCRIPTS_PATH}/${requirements_name}"
       UNIQUE
   )
-  set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
+  set_property(GLOBAL PROPERTY userver_grpc_python_binary "${USERVER_GRPC_PYTHON_BINARY}")
 endfunction()
 
 _userver_prepare_grpc()
@@ -105,6 +97,7 @@ function(userver_generate_grpc_files)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   get_property(USERVER_GRPC_SCRIPTS_PATH GLOBAL PROPERTY userver_grpc_scripts_path)
+  get_property(USERVER_GRPC_PYTHON_BINARY GLOBAL PROPERTY userver_grpc_python_binary)
   get_property(PROTO_GRPC_CPP_PLUGIN GLOBAL PROPERTY userver_grpc_cpp_plugin)
   get_property(PROTO_GRPC_PYTHON_PLUGIN GLOBAL PROPERTY userver_grpc_python_plugin)
   get_property(PROTOBUF_PROTOC GLOBAL PROPERTY userver_protobuf_protoc)
@@ -139,7 +132,7 @@ function(userver_generate_grpc_files)
   else()
     set(GENERATED_PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
   endif()
-  
+
   get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
 
   if(NOT "${GEN_RPC_SOURCE_PATH}" STREQUAL "")
@@ -193,7 +186,6 @@ function(userver_generate_grpc_files)
   list(TRANSFORM proto_dependencies_globs APPEND "/*.proto")
   list(APPEND proto_dependencies_globs
       "${root_path}/*.proto"
-      "${USERVER_PROTOBUF_IMPORT_DIR}/*.proto"
       "${USERVER_GRPC_SCRIPTS_PATH}/*"
   )
   file(GLOB_RECURSE proto_dependencies ${proto_dependencies_globs})
@@ -239,49 +231,20 @@ function(userver_generate_grpc_files)
     endif()
   endforeach()
 
-  if(USERVER_GENERATE_PROTOS_AT_CONFIGURE)
-    list(GET proto_dependencies 0 newest_proto_dependency)
-    foreach(dependency ${proto_dependencies})
-      if("${dependency}" IS_NEWER_THAN "${newest_proto_dependency}")
-        set(newest_proto_dependency "${dependency}")
-      endif()
-    endforeach()
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/proto")
 
-    set(should_generate_protos FALSE)
-    foreach(proto_rel_path ${proto_rel_paths})
-      if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${proto_rel_path}.pb.cc")
-        set(should_generate_protos TRUE)
-        break()
-      endif()
-    endforeach()
-
-    if(should_generate_protos)
-      message(STATUS "Generating sources for protos in ${root_path}:")
-      file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/proto")
-      execute_process(
-          COMMAND "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
-          WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-          RESULT_VARIABLE execute_process_result
-      )
-      if(execute_process_result)
-        message(SEND_ERROR "Error while generating gRPC sources for protos in ${root_path}")
-      else()
-        set(did_generate_proto_sources TRUE)
-      endif()
-    else()
-      message(STATUS "Reused previously generated sources for protos in ${root_path}")
-    endif()
-  else()
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/proto")
-    add_custom_command(
-        OUTPUT ${generated_cpps} ${generated_usrv_cpps}
-        COMMAND "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
-        DEPENDS ${proto_dependencies}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
-    )
-    message(STATUS "Scheduled build-time generation of protos in ${root_path}")
-  endif()
+  _userver_initialize_codegen_flag()
+  add_custom_command(
+      OUTPUT ${generated_cpps} ${generated_usrv_cpps}
+      COMMAND
+      ${CMAKE_COMMAND} -E env "USERVER_GRPC_PYTHON_BINARY=${USERVER_GRPC_PYTHON_BINARY}"
+      "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
+      DEPENDS ${proto_dependencies}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+      COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
+      ${CODEGEN}
+  )
+  message(STATUS "Scheduled build-time generation of protos in ${root_path}")
 
   set_source_files_properties(
       ${generated_cpps} ${generated_usrv_cpps} ${pyi_init_files}

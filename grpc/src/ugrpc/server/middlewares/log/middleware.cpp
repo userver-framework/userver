@@ -3,6 +3,7 @@
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/impl/logging.hpp>
@@ -73,6 +74,7 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
 
     span.AddTag("meta_type", std::string{context.GetCall().GetCallName()});
     span.AddNonInheritableTag("type", "response");
+    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
     if (IsResponseStream(call_kind)) {
         // Just like in HTTP, there must be a single trailing Span log
         // with type=response and some `body`. We don't have a real single response

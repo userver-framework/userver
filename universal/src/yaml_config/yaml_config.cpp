@@ -146,7 +146,11 @@ std::optional<YamlConfig> GetYamlConfig(
             /*met_substitution*/ false
         );
         if (res) {
-            return YamlConfig{res->Yaml().CloneWithReplacedPath(value.GetPath()), {}, YamlConfig::Mode::kSecure};
+            return YamlConfig{
+                res->GetRawYamlWithoutConfigVars().CloneWithReplacedPath(value.GetPath()),
+                {},
+                YamlConfig::Mode::kSecure,
+            };
         }
     }
 
@@ -166,8 +170,6 @@ std::optional<YamlConfig> GetYamlConfig(
 
 YamlConfig::YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars, Mode mode)
     : yaml_(std::move(yaml)), config_vars_(std::move(config_vars)), mode_(mode) {}
-
-const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
 
 YamlConfig YamlConfig::operator[](std::string_view key) const {
     if (utils::text::EndsWith(key, "#env") || utils::text::EndsWith(key, "#file") ||
@@ -204,7 +206,11 @@ YamlConfig YamlConfig::operator[](size_t index) const {
             /*met_substitution*/ false
         );
         if (res) {
-            return YamlConfig{res->Yaml().CloneWithReplacedPath(value.GetPath()), {}, YamlConfig::Mode::kSecure};
+            return YamlConfig{
+                res->GetRawYamlWithoutConfigVars().CloneWithReplacedPath(value.GetPath()),
+                {},
+                YamlConfig::Mode::kSecure,
+            };
         }
 
         // Avoid parsing $substitution as a string
@@ -257,6 +263,8 @@ std::string YamlConfig::GetPath() const { return yaml_.GetPath(); }
 YamlConfig::const_iterator YamlConfig::begin() const { return const_iterator{*this, yaml_.begin()}; }
 
 YamlConfig::const_iterator YamlConfig::end() const { return const_iterator{*this, yaml_.end()}; }
+
+formats::yaml::Value YamlConfig::GetRawYamlWithoutConfigVars() const { return yaml_; }
 
 bool Parse(const YamlConfig& value, formats::parse::To<bool>) { return value.yaml_.As<bool>(); }
 

@@ -19,6 +19,8 @@
 
 namespace boost { namespace pfr {
 
+BOOST_PFR_BEGIN_MODULE_EXPORT
+
 /// Has a static const member variable `value` when it is known that type T can or can't be reflected using Boost.PFR; otherwise, there is no member variable.
 /// Every user may (and in some difficult cases - should) specialize is_reflectable on his own.
 ///
@@ -53,6 +55,8 @@ using is_implicitly_reflectable = std::integral_constant< bool, boost::pfr::deta
 /// Specialize is_reflectable if you disagree with is_implicitly_reflectable_v's default decision.
 template<class T, class WhatFor>
 constexpr bool is_implicitly_reflectable_v = is_implicitly_reflectable<T, WhatFor>::value;
+
+BOOST_PFR_END_MODULE_EXPORT
 
 }} // namespace boost::pfr
 

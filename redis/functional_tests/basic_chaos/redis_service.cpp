@@ -84,8 +84,8 @@ std::string KeyValue::GetValue(std::string_view key, const server::http::HttpReq
             return {};
         }
         return *result;
-    } catch (const redis::RequestFailedException& e) {
-        if (e.GetStatus() == redis::ReplyStatus::kTimeoutError) {
+    } catch (const storages::redis::RequestFailedException& e) {
+        if (e.GetStatus() == storages::redis::ReplyStatus::kTimeoutError) {
             request.SetResponseStatus(server::http::HttpStatus::kServiceUnavailable);
             return "timeout";
         }

@@ -29,13 +29,13 @@
 #include <storages/redis/impl/redis_info.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/tcp_socket.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #include "command_control_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 namespace {
 
 const auto kPingLatencyExp = 0.7;
@@ -1186,6 +1186,6 @@ void Redis::RedisImpl::SetRetryBudgetSettings(const utils::RetryBudgetSettings& 
     retry_budget_.SetSettings(settings);
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

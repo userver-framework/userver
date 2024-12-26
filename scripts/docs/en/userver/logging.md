@@ -28,6 +28,47 @@ Sometimes it is useful to set the logging level of a given log entry dynamically
 
 @snippet logging/log_test.cpp  Example set custom logging usage
 
+### Guidelines for choosing log level
+
+Use `TRACE` for debug logs that are too frequent and verbose to enable them even for most tests.
+
+Use `DEBUG` for debug information:
+
+* the logs likely won't give additional information from production to debug incidents;
+* the logs are only helpful for the service developers during debug;
+* there are too many such logs to enable them in production.
+
+Use `INFO` for regular operation:
+
+* examples:
+   * handling a request;
+   * background operations, e.g. `utils::PeriodicTask`, periodic caches;
+   * expected change in the operation mode, e.g. applying dynamic config.
+
+Use `WARNING` for unexpected, but regular operation:
+
+* immediate reaction from admins or service developers IS NOT required;
+* if the message goes unnoticed, the service will keep working correctly;
+* these logs should be looked at before `INFO` when debugging incidents;
+* examples:
+   * another service returned HTTP 5xx, which does not lead to degradation of the current service
+     (e.g. due to a fallback or retry);
+   * the current service returned 4xx (an upstream client error);
+   * switching to a fallback mode without degradation.
+
+Use `ERROR` for critical errors:
+
+* immediate reaction from admins or service developers IS required;
+* either the service is failing to handle some requests, or its background operations are failing,
+  which is going to disrupt the whole service;
+* examples:
+   * the current service returned HTTP 500;
+   * a downstream service returned 4xx (the current service sends invalid requests);
+   * failing to update a periodic cache;
+   * an inconsistent state of the database.
+
+Use `CRITICAL` optionally for service-scale critical errors.
+
 ### Filter to the log level
 
 Not all logs get into the log file, but only those that are not lower than the logger's log level. The logger log level
@@ -44,7 +85,7 @@ yaml
         log-level: WARNING
 ```
 
-Logging per line and file can be overriden at runtime using @ref USERVER_LOG_DYNAMIC_DEBUG dynamic config.
+Logging per line and file can be overridden at runtime using @ref USERVER_LOG_DYNAMIC_DEBUG dynamic config.
 
 
 ### Dynamic change of the logging level

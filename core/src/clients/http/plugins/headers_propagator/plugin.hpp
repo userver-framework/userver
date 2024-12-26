@@ -12,7 +12,7 @@ public:
 
     void HookPerformRequest(PluginRequest&) override;
 
-    void HookCreateSpan(PluginRequest&) override;
+    void HookCreateSpan(PluginRequest&, tracing::Span& span) override;
 
     void HookOnCompleted(PluginRequest&, Response&) override;
 

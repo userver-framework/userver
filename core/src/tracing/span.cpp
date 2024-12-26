@@ -11,6 +11,7 @@
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/hex.hpp>
@@ -142,6 +143,9 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
         // TODO apparently, same tags can be added both to log_extra_inheritable_
         //  and log_extra_local_. Merge to deduplicate such tags.
         log_extra_inheritable_.Extend(std::move(*log_extra_local_));
+    }
+    if (log_extra_inheritable_.GetValue(tracing::kSpanKind) == logging::LogExtra::Value{}) {
+        log_extra_inheritable_.Extend(tracing::kSpanKind, tracing::kSpanKindInternal);
     }
     writer.PutLogExtra(log_extra_inheritable_);
 

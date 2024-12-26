@@ -22,14 +22,12 @@ jobs:
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                -DUSERVER_FEATURE_POSTGRESQL=0
-                -DUSERVER_FEATURE_GRPC=0
-                -DUSERVER_FEATURE_GRPC_REFLECTION=0
-                -DUSERVER_FEATURE_OTLP=0
-                -DUSERVER_FEATURE_MYSQL=0
-                -DUSERVER_FEATURE_RABBITMQ=0
-                -DUSERVER_FEATURE_ROCKS=0
-                -DUSERVER_FEATURE_KAFKA=0
+                -DUSERVER_FEATURE_MONGODB=1
+                -DUSERVER_FEATURE_CLICKHOUSE=1
+                -DUSERVER_USE_LD=lld
+                -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
+                -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1
+                -DUSERVER_FORCE_DOWNLOAD_GRPC=1
 
         steps:
           - uses: actions/checkout@v4
@@ -43,7 +41,10 @@ jobs:
                 brew install $(cat scripts/docs/en/deps/macos.md)
                 brew install clang-format
                 brew install python@3.11
+                brew install lld
+
                 brew link postgresql@16
+
                 brew upgrade
 
           - name: Run cmake

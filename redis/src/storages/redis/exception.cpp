@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 RequestFailedException::RequestFailedException(const std::string& request_description, ReplyStatus status)
     : Exception(fmt::format("{} request failed with status '{}'", request_description, *kReplyStatusMap.TryFind(status))
@@ -19,6 +19,6 @@ std::string_view RequestFailedException::GetStatusString() const { return *kRepl
 
 bool RequestFailedException::IsTimeout() const { return status_ == ReplyStatus::kTimeoutError; }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

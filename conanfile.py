@@ -40,6 +40,9 @@ class UserverConan(ConanFile):
         'with_utest': [True, False],
         'with_kafka': [True, False],
         'with_otlp': [True, False],
+        'with_easy': [True, False],
+        'with_s3api': [True, False],
+        'with_grpc_reflection': [True, False],
         'namespace': ['ANY'],
         'namespace_begin': ['ANY'],
         'namespace_end': ['ANY'],
@@ -60,6 +63,9 @@ class UserverConan(ConanFile):
         'with_utest': True,
         'with_kafka': True,
         'with_otlp': True,
+        'with_easy': True,
+        'with_s3api': False,
+        'with_grpc_reflection': False,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
@@ -227,6 +233,11 @@ class UserverConan(ConanFile):
         )
         tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
         tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
+        tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
+        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = (
+            self.options.with_grpc_reflection
+        )
         tool_ch.generate()
 
         CMakeDeps(self).generate()
@@ -266,19 +277,26 @@ class UserverConan(ConanFile):
             keep_path=True,
         )
 
-        def copy_component(component):
+        def copy_component(component, is_library: bool = False):
+            component_path = (
+                os.path.join('libraries', component)
+                if is_library
+                else component
+            )
             copy(
                 self,
                 pattern='*',
                 dst=os.path.join(self.package_folder, 'include', component),
-                src=os.path.join(self.source_folder, component, 'include'),
+                src=os.path.join(
+                    self.source_folder, component_path, 'include',
+                ),
                 keep_path=True,
             )
             copy(
                 self,
                 pattern='*.a',
                 dst=os.path.join(self.package_folder, 'lib'),
-                src=os.path.join(self._build_subfolder, component),
+                src=os.path.join(self._build_subfolder, component_path),
                 keep_path=False,
             )
 
@@ -399,6 +417,15 @@ class UserverConan(ConanFile):
         if self.options.with_otlp:
             copy_component('otlp')
 
+        if self.options.with_easy:
+            copy_component('easy', is_library=True)
+
+        if self.options.with_s3api:
+            copy_component('s3api', is_library=True)
+
+        if self.options.with_grpc_reflection:
+            copy_component('grpc-reflection', is_library=True)
+
     @property
     def _userver_components(self):
         def abseil():
@@ -488,6 +515,9 @@ class UserverConan(ConanFile):
 
         def amqpcpp():
             return ['amqp-cpp::amqp-cpp'] if self.options.with_rabbitmq else []
+
+        def pugixml():
+            return ['pugixml::pugixml'] if self.options.with_s3api else []
 
         def clickhouse():
             return (
@@ -637,6 +667,33 @@ class UserverConan(ConanFile):
         if self.options.with_otlp:
             userver_components.extend([
                 {'target': 'otlp', 'lib': 'otlp', 'requires': ['core']},
+            ])
+
+        if self.options.with_easy:
+            userver_components.extend([
+                {
+                    'target': 'easy',
+                    'lib': 'easy',
+                    'requires': ['core', 'postgresql'],
+                },
+            ])
+
+        if self.options.with_s3api:
+            userver_components.extend([
+                {
+                    'target': 's3api',
+                    'lib': 's3api',
+                    'requires': ['core'] + pugixml(),
+                },
+            ])
+
+        if self.options.with_grpc_reflection:
+            userver_components.extend([
+                {
+                    'target': 'grpc-reflection',
+                    'lib': 'grpc-reflection',
+                    'requires': ['grpc'],
+                },
             ])
         return userver_components
 
