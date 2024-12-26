@@ -571,10 +571,11 @@ class UserverConan(ConanFile):
             return os.path.join(self.package_folder, 'lib', 'cmake', 'userver', name)
 
         with open(_cmake_path_to('UserverSetupPathsInConan.cmake'), 'w') as cmake_file:
-            cmake_file.write('set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")\n')
+            cmake_file.write('set(USERVER_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")\n')
+            cmake_file.write('set_property(GLOBAL PROPERTY userver_cmake_dir "${USERVER_CMAKE_DIR}")\n')
             cmake_file.write('set(USERVER_CONAN TRUE)\n')
             cmake_file.write('set(USERVER_GRPC_SCRIPTS_PATH "${USERVER_CMAKE_DIR}/grpc")\n')
-            cmake_file.write('set(USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/testsuite")\n')
+            cmake_file.write('set(USERVER_TESTSUITE_DIR "${USERVER_CMAKE_DIR}/testsuite")\n')
 
         with open(_cmake_path_to('CallSetupEnv.cmake'), 'w') as cmake_file:
             cmake_file.write('userver_setup_environment()\n')
