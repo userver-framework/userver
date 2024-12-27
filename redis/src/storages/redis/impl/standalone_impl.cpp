@@ -9,8 +9,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/redis_state.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -432,6 +431,10 @@ size_t StandaloneImpl::GetClusterSlotsCalledCounter() {
 PublishSettings StandaloneImpl::GetPublishSettings() {
   return PublishSettings{kUnknownShard, false,
                          CommandControl::Strategy::kEveryDc};
+}
+
+void StandaloneImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+
 }
 
 }  // namespace storages::redis::impl

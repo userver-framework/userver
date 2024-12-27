@@ -72,6 +72,7 @@ class StandaloneImpl : public SentinelImplBase {
       const utils::RetryBudgetSettings& settings) override;
   PublishSettings GetPublishSettings() override;
 
+  void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
   static size_t GetClusterSlotsCalledCounter();
 
  private:
