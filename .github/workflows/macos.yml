@@ -10,7 +10,6 @@ name: CI
 
 jobs:
     macos:
-        if: false
         name: MacOS (build only)
         runs-on: macos-latest
         env:
