@@ -113,7 +113,6 @@ jobs:
                 ctest -V -E testsuite-userver-redis-tests-basic-chaos
 
           - name: Run tests (postgresql)
-            if: false
             run: |
                 cd build_debug/postgresql
-                ctest -V
+                ulimit -n 4096 && ctest -V
