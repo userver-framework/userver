@@ -242,4 +242,3 @@ class UserverConan(ConanFile):
         # https://docs.conan.io/2/examples/tools/cmake/cmake_toolchain/use_package_config_cmake.html
         self.cpp_info.set_property('cmake_find_mode', 'none')
         self.cpp_info.builddirs.append(os.path.join('lib', 'cmake', 'userver'))
-
