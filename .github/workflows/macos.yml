@@ -10,7 +10,7 @@ name: CI
 
 jobs:
     macos:
-        name: MacOS (build only)
+        name: MacOS
         runs-on: macos-latest
         env:
             CMAKE_FLAGS: >-
@@ -43,9 +43,11 @@ jobs:
                 brew install python@3.11
                 brew install lld
 
-                brew link postgresql@16
+                brew link postgresql@16 # postgres is keg-only
 
-                brew upgrade
+          - name: Install test dependencies
+            run: |
+                brew install clickhouse
 
           - name: Run cmake
             run: |
@@ -55,8 +57,63 @@ jobs:
             run: |
                 cmake --build build_debug -j$(nproc) -- -k 1
 
+          - name: Run tests (universal)
+            run: |
+                cd build_debug/universal
+                ctest -V
+
           - name: Run tests (samples)
             run: |
                 cd build_debug/samples
                 # Fix Kafka and Rabbitmq after https://github.com/yandex/yandex-taxi-testsuite/pull/109 
                 ctest -V -E "(kafka|mongo|rabbitmq)"
+
+          - name: Run tests (libraries)
+            run: |
+                cd build_debug/libraries
+                ctest -V
+
+          - name: Run tests (clickhouse)
+            run: |
+                cd build_debug/clickhouse
+                ctest -V
+
+          - name: Run tests (rocks)
+            run: |
+                cd build_debug/rocks
+                ctest -V
+
+          - name: Run tests (postgresql)
+            run: |
+                cd build_debug/postgresql
+                ctest -V
+
+          - name: Run tests (kafka)
+            if: false 
+            run: |
+                # Enable after https://github.com/yandex/yandex-taxi-testsuite/pull/109
+                cd build_debug/kafka
+                ctest -V
+
+          - name: Run tests (rabbitmq)
+            if: false 
+            run: |
+                # Enable after https://github.com/yandex/yandex-taxi-testsuite/pull/109
+                cd build_debug/rabbitmq
+                ctest -V
+
+          - name: Run tests (grpc)
+            run: |
+                cd build_debug/grpc
+                ctest -V
+
+          - name: Run tests (mysql)
+            if: false 
+            run: |
+                cd build_debug/mysql
+                GTEST_FILTER="-*Transaction*" ctest -V
+
+          - name: Run tests (redis)
+            run: |
+                cd build_debug/redis
+                ctest -V -E testsuite-userver-redis-tests-basic-chaos
