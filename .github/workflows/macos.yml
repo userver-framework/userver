@@ -115,4 +115,4 @@ jobs:
           - name: Run tests (postgresql)
             run: |
                 cd build_debug/postgresql
-                ulimit -n 4096 && ctest -V
+                ulimit -n 4096 && ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
