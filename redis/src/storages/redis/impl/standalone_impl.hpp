@@ -11,7 +11,7 @@ namespace engine::ev {
 class PeriodicWatcher;
 }
 
-namespace redis {
+namespace storages::redis::impl {
 
 
 class StandaloneImpl : public SentinelImplBase {
@@ -104,7 +104,7 @@ class StandaloneImpl : public SentinelImplBase {
   ClusterShard master_shard_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END
 

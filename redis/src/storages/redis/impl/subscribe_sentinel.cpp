@@ -144,8 +144,8 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     LOG_DEBUG() << "shards.size() = " << shards.size();
     for (const std::string& shard : shards) LOG_DEBUG() << "shard:  name = " << shard;
 
-    auto is_cluster_mode = USERVER_NAMESPACE::redis::IsClusterStrategy(sharding_strategy);
-    redis::KeyShardFactory keysShardFactory{sharding_strategy};
+    auto is_cluster_mode = IsClusterStrategy(sharding_strategy);
+    KeyShardFactory keysShardFactory{sharding_strategy};
     std::vector<ConnectionInfo> conns;
     conns.reserve(settings.sentinels.size());
     LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();

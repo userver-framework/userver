@@ -107,7 +107,7 @@ std::unique_ptr<KeyShard> KeyShardFactory::operator()(size_t nshards) {
     if (type_ == "KeyShardTaximeterCrc32") return std::make_unique<KeyShardTaximeterCrc32>(nshards);
     if (type_ == KeyShardCrc32::kName) return std::make_unique<KeyShardCrc32>(nshards);
     if (type_ == kRedisCluster) return nullptr;
-    if (type_ == KeyShardStandalone::kName) return std::make_unique<redis::KeyShardStandalone>();
+    if (type_ == KeyShardStandalone::kName) return std::make_unique<KeyShardStandalone>();
 
     return std::make_unique<KeyShardTaximeterCrc32>(nshards);
 }

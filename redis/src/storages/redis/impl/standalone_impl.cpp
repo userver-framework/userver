@@ -29,7 +29,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -434,6 +434,6 @@ PublishSettings StandaloneImpl::GetPublishSettings() {
                          CommandControl::Strategy::kEveryDc};
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END
