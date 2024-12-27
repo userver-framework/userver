@@ -39,6 +39,9 @@ struct CommandControl {};
 using OptionalCommandControl = std::optional<CommandControl>;
 
 struct SQLiteSettings {
+  enum class ReadMode { kReadOnly = 0, kReadWrite = 1 };
+  ReadMode read_mode = ReadMode::kReadWrite;
+  bool create_file = true;
   std::string db_name;
 };
 

@@ -7,12 +7,15 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
+
+#include <sqlite3.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,10 +30,9 @@ using ConnectionPtr = std::shared_ptr<Connection>;
 /// Usually retrieved from components::SQLite
 class Connection final {
  public:
-  Connection() = default;
   /// @brief Connection constructor
   Connection(const SQLiteSettings& settings,
-             const components::ComponentConfig& config);
+             engine::TaskProcessor& blocking_task_processor);
   /// @brief Connection destructor
   ~Connection();
 
@@ -64,6 +66,9 @@ class Connection final {
  private:
   ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
                       std::optional<std::size_t> batch_size) const;
+
+  sqlite3* db = nullptr;
+  engine::TaskProcessor& blocking_task_processor_;
 };
 
 template <typename... Args>

@@ -14,8 +14,10 @@ components_manager:
         testsuite-support:
 
         key-value-database:
-            path_to_db: "path/to/kv.db"
-            # path_to_db: "::memory"
+            db-path: ::memory
+            task_processor: fs-task-processor
+            create_file: true
+            is_read_only: false
 
         server:
             listener:
