@@ -83,11 +83,6 @@ jobs:
                 cd build_debug/rocks
                 ctest -V
 
-          - name: Run tests (postgresql)
-            run: |
-                cd build_debug/postgresql
-                ctest -V
-
           - name: Run tests (kafka)
             if: false 
             run: |
@@ -108,7 +103,6 @@ jobs:
                 ctest -V
 
           - name: Run tests (mysql)
-            if: false 
             run: |
                 cd build_debug/mysql
                 GTEST_FILTER="-*Transaction*" ctest -V
@@ -117,3 +111,8 @@ jobs:
             run: |
                 cd build_debug/redis
                 ctest -V -E testsuite-userver-redis-tests-basic-chaos
+
+          - name: Run tests (postgresql)
+            run: |
+                cd build_debug/postgresql
+                ctest -V
