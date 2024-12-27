@@ -49,12 +49,6 @@ public:
         std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
         const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
     ) const;
-
-    {{ method.output_type | grpc_to_cpp_name }} Sync{{method.name}}(
-        const {{ method.input_type | grpc_to_cpp_name }}& request,
-        std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
-        const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
-    ) const;
 {% endif %}
 {% if method.client_streaming or method.server_streaming %}
 

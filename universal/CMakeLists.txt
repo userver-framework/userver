@@ -175,7 +175,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   if (USERVER_CONAN)
-    find_package(jemalloc REQUIRED)
+    find_package(jemalloc REQUIRED CONFIG)
     target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
   else()
     find_package_required(Jemalloc "libjemalloc-dev")

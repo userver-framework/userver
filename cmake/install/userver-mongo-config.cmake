@@ -8,7 +8,11 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-include("${USERVER_CMAKE_DIR}/modules/Findbson.cmake")
-include("${USERVER_CMAKE_DIR}/modules/Findmongoc.cmake")
+if (USERVER_CONAN)
+  find_package(mongoc-1.0 REQUIRED CONFIG)
+else()
+  include("${USERVER_CMAKE_DIR}/modules/Findbson.cmake")
+  include("${USERVER_CMAKE_DIR}/modules/Findmongoc.cmake")
+endif()
 
 set(userver_mongo_FOUND TRUE)
