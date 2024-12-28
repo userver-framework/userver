@@ -58,7 +58,8 @@ jobs:
 
           - name: Install test dependencies
             run: |
-                brew install clickhouse
+                brew tap mongodb/brew
+                brew install clickhouse kafka mongodb-community
 
           - name: Setup ccache
             run: |
@@ -97,6 +98,11 @@ jobs:
           - name: Run tests (clickhouse)
             run: |
                 cd build_debug/clickhouse
+                ctest -V
+
+          - name: Run tests (mongo)
+            run: |
+                cd build_debug/mongo
                 ctest -V
 
           - name: Run tests (rocks)
