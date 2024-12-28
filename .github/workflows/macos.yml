@@ -13,6 +13,7 @@ jobs:
         name: MacOS
         runs-on: macos-latest
         env:
+            CPM_SOURCE_CACHE: '~/Library/Caches/CPM'
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
@@ -34,14 +35,15 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: Reuse ccache directory
+          - name: Reuse cached directories
             uses: actions/cache@v4
             with:
-                path: '~/Library/Caches/ccache'
+                path: |
+                   '~/Library/Caches/ccache'
+                   '~/Library/Caches/CPM'
                 key: 'ccache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
-                    ccache-dir ${{github.ref}} run-'
-                    ccache-
+                    ccache-dir ${{github.ref}} run-
 
           - name: Install brew packages
             run: |
@@ -60,7 +62,7 @@ jobs:
 
           - name: Setup ccache
             run: |
-                ccache -M 2.0GB
+                ccache -M 4.0GB
                 ccache -s
 
           - name: Run cmake
