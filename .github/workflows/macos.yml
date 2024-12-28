@@ -11,7 +11,7 @@ name: CI
 jobs:
     macos:
         name: MacOS
-        runs-on: macos-15
+        runs-on: macos-latest
         env:
             CMAKE_FLAGS: >-
                 -GNinja
@@ -34,6 +34,15 @@ jobs:
             with:
                 fetch-depth: 0
 
+          - name: Reuse ccache directory
+            uses: actions/cache@v4
+            with:
+                path: '~/Library/Caches/ccache'
+                key: 'ccache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    ccache-dir ${{github.ref}} run-'
+                    ccache-
+
           - name: Install brew packages
             run: |
                 export SDKROOT="`xcrun --show-sdk-path`"
@@ -48,6 +57,11 @@ jobs:
           - name: Install test dependencies
             run: |
                 brew install clickhouse
+
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s
 
           - name: Run cmake
             run: |
