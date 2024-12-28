@@ -7,9 +7,6 @@ from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
-from conan.tools.cmake import CMakeDeps
-from conan.tools.cmake import CMakeToolchain
-from conan.tools.files import copy
 from conan.tools.files import load
 
 required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
@@ -178,60 +175,38 @@ class UserverConan(ConanFile):
                 f'{self.ref} requires mongo-c-driver with_sasl cyrus',
             )
 
-    def generate(self):
-        tool_ch = CMakeToolchain(self)
-        tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
-
-        tool_ch.variables['USERVER_CONAN'] = True
-        tool_ch.variables['USERVER_INSTALL'] = True
-        tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
-        tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
-        tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
-        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = (
-            self.options.namespace_begin
-        )
-        tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
-        tool_ch.variables['USERVER_PYTHON_PATH'] = self.options.python_path
-
-        tool_ch.variables['USERVER_LTO'] = self.options.lto
-        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = (
-            self.options.with_jemalloc
-        )
-        tool_ch.variables['USERVER_FEATURE_MONGODB'] = (
-            self.options.with_mongodb
-        )
-        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = (
-            self.options.with_postgresql
-        )
-        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = (
-            self.options.with_postgresql_extra
-        )
-        tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
-        tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
-        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = (
-            self.options.with_clickhouse
-        )
-        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = (
-            self.options.with_rabbitmq
-        )
-        tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
-        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = (
-            self.options.with_utest
-        )
-        tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
-        tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
-        tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
-        tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
-        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = (
-            self.options.with_grpc_reflection
-        )
-        tool_ch.generate()
-
-        CMakeDeps(self).generate()
-
     def build(self):
         cmake = CMake(self)
-        cmake.configure()
+        cmake.configure(variables={
+            'CMAKE_FIND_DEBUG_MODE': False,
+
+            'USERVER_CONAN': True,
+            'USERVER_INSTALL': True,
+            'USERVER_DOWNLOAD_PACKAGES': True,
+            'USERVER_FEATURE_DWCAS': True,
+            'USERVER_PYTHON_PATH': self.options.python_path,
+            'USERVER_LTO': self.options.lto,
+            'USERVER_FEATURE_JEMALLOC': self.options.with_jemalloc,
+
+            'USERVER_NAMESPACE': self.options.namespace,
+            'USERVER_NAMESPACE_BEGIN': self.options.namespace_begin,
+            'USERVER_NAMESPACE_END': self.options.namespace_end,
+
+            'USERVER_FEATURE_MONGODB': self.options.with_mongodb,
+            'USERVER_FEATURE_POSTGRESQL': self.options.with_postgresql,
+            'USERVER_FEATURE_PATCH_LIBPQ': self.options.with_postgresql_extra,
+            'USERVER_FEATURE_REDIS': self.options.with_redis,
+            'USERVER_FEATURE_GRPC': self.options.with_grpc,
+            'USERVER_FEATURE_CLICKHOUSE': self.options.with_clickhouse,
+            'USERVER_FEATURE_RABBITMQ': self.options.with_rabbitmq,
+            'USERVER_FEATURE_UTEST': self.options.with_utest,
+            'USERVER_FEATURE_TESTSUITE': self.options.with_utest,
+            'USERVER_FEATURE_KAFKA': self.options.with_kafka,
+            'USERVER_FEATURE_OTLP': self.options.with_otlp,
+            'USERVER_FEATURE_EASY': self.options.with_easy,
+            'USERVER_FEATURE_S3API': self.options.with_s3api,
+            'USERVER_FEATURE_GRPC_REFLECTION': self.options.with_grpc_reflection,
+        })
         cmake.build()
 
     def package(self):
