@@ -11,7 +11,7 @@ name: CI
 jobs:
     macos:
         name: MacOS
-        runs-on: macos-latest
+        runs-on: macos-15
         env:
             CMAKE_FLAGS: >-
                 -GNinja
