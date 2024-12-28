@@ -57,3 +57,6 @@ check_required_components(userver)
 if(USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH AND NOT USERVER_CONAN)
   message(FATAL_ERROR "Don't flood cmake include namespace, please")
 endif()
+
+set(userver_FOUND TRUE)
+

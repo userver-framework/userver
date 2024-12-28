@@ -33,7 +33,7 @@ jobs:
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
             run: |
-                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv
+                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv postgresql
 
           - name: Install MacOS packages
             if: matrix.os == 'macos-latest'
@@ -52,4 +52,13 @@ jobs:
 
           - name: Run conan
             run: |
-                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -tf conan/test_package/
+                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
+
+          - name: Test userver conan package
+            run: |
+                USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
+                for SAMPLE in hello_service embedded_files postgres_service grpc_service; do
+                    cp scripts/tests/conanfile.py samples/$SAMPLE/
+                    conan test samples/$SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
+                    rm samples/$SAMPLE/conanfile.py
+                done
