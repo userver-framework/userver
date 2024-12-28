@@ -68,6 +68,11 @@ jobs:
                 # Fix Kafka and Rabbitmq after https://github.com/yandex/yandex-taxi-testsuite/pull/109 
                 ctest -V -E "(kafka|mongo|rabbitmq)"
 
+          - name: Run tests (core)
+            run: |
+                cd build_debug/core
+                GTEST_FILTER="-Subprocess.EnvironmentVariablesScope" ctest -V
+
           - name: Run tests (libraries)
             run: |
                 cd build_debug/libraries
