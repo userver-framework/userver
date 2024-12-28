@@ -20,7 +20,6 @@ yaml-cpp
 librdkafka
 rocksdb
 postgresql@16
-redis
 zlib
 c-ares
 coreutils

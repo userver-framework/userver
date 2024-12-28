@@ -59,7 +59,7 @@ jobs:
           - name: Install test dependencies
             run: |
                 brew tap mongodb/brew
-                brew install clickhouse kafka mongodb-community
+                brew install clickhouse redis kafka mongodb-community
 
           - name: Setup ccache
             run: |
@@ -82,7 +82,7 @@ jobs:
           - name: Run tests (samples)
             run: |
                 cd build_debug/samples
-                # Fix Kafka and Rabbitmq after https://github.com/yandex/yandex-taxi-testsuite/pull/109 
+                # Fix Kafka and Rabbitmq after https://github.com/yandex/yandex-taxi-testsuite/pull/109
                 ctest -V -E "(kafka|mongo|rabbitmq)"
 
           - name: Run tests (core)
@@ -111,14 +111,14 @@ jobs:
                 ctest -V
 
           - name: Run tests (kafka)
-            if: false 
+            if: false
             run: |
                 # Enable after https://github.com/yandex/yandex-taxi-testsuite/pull/109
                 cd build_debug/kafka
                 ctest -V
 
           - name: Run tests (rabbitmq)
-            if: false 
+            if: false
             run: |
                 # Enable after https://github.com/yandex/yandex-taxi-testsuite/pull/109
                 cd build_debug/rabbitmq
