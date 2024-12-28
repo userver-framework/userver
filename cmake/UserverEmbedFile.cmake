@@ -24,7 +24,7 @@ function(userver_embed_file TARGET)
     OUTPUT
         ${CONFIG_HPP}
     DEPENDS
-        ${USERVER_CMAKE_DIR}/embedded_config.cmake
+        ${CMAKE_CURRENT_LIST_DIR}/embedded_config.cmake
         ${ARG_FILEPATH}
     COMMAND
         ${CMAKE_COMMAND}
@@ -32,7 +32,7 @@ function(userver_embed_file TARGET)
 	    -DFILEPATH=${ARG_FILEPATH}
 	    -DOUTPUT=${CONFIG_HPP}
 	    -DNAME=${ARG_NAME}
-	    -P ${USERVER_CMAKE_DIR}/embedded_config.cmake
+	    -P ${CMAKE_CURRENT_LIST_DIR}/embedded_config.cmake
     ${CODEGEN}
   )
   add_library(${TARGET} STATIC ${CONFIG_HPP} ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp)
