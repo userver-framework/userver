@@ -138,9 +138,6 @@ StaticLogEntry::StaticLogEntry(const char* path, int line) noexcept {
     static_assert(sizeof(LogEntryContent) == sizeof(content_));
     // static_assert(std::is_trivially_destructible_v<LogEntryContent>);
     auto* item = new (&content_) LogEntryContent(path, line);
-#if defined(__APPLE__)
-    item->state.store(EntryState{});
-#endif
     RegisterLogLocation(*item);
 }
 
