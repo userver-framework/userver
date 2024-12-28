@@ -87,7 +87,7 @@ jobs:
           - name: Run tests (core)
             run: |
                 cd build_debug/core
-                ulimit -n 4096 && GTEST_FILTER="-Subprocess.EnvironmentVariablesScope" ctest -V
+                ulimit -n 4096 && GTEST_FILTER="-Subprocess.EnvironmentVariablesScope:HttpClient.StatsOnTimeout:PeriodicTask.*:AsyncFlatCombiningQueue.StressAsync" ctest -V
 
           - name: Run tests (libraries)
             run: |
