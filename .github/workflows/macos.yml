@@ -88,7 +88,7 @@ jobs:
           - name: Run tests (core)
             run: |
                 cd build_debug/core
-                ulimit -n 4096 && ctest -V -E userver-core-unittest -E testsuite-userver-core-tests-basic-chaos-tests-deadline  # ~10 failed tests
+                ulimit -n 4096 && ctest -V -E "userver-core-unittest|testsuite-userver-core-tests-basic-chaos-tests-deadline"  # ~10 failed tests
 
           - name: Run tests (libraries)
             run: |
