@@ -1,6 +1,6 @@
 project(userver-easy-samples-hi CXX)
 
-find_package(userver COMPONENTS easy chaotic REQUIRED)
+find_package(userver COMPONENTS easy REQUIRED)
 
 add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::easy)
