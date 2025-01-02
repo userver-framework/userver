@@ -65,7 +65,7 @@ class UserverConan(ConanFile):
         'with_otlp': True,
         'with_easy': True,
         'with_s3api': False,
-        'with_grpc_reflection': False,
+        'with_grpc_reflection': True,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
