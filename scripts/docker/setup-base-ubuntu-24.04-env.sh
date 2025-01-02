@@ -111,7 +111,7 @@ apt clean all
 
 # You could override those versions from command line
 AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
-CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.4.0}
+CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=my_fix}
 ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
 
 # Installing amqp/rabbitmq client libraries from sources
@@ -120,7 +120,7 @@ git clone --depth 1 -b ${AMQP_VERSION} https://github.com/CopernicaMarketingSoft
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
 
 # Installing Clickhouse C++ client libraries from sources
-git clone --depth 1 -b ${CLICKHOUSE_VERSION} https://github.com/ClickHouse/clickhouse-cpp.git
+git clone --depth 1 -b ${CLICKHOUSE_VERSION} https://github.com/c5xheavy/clickhouse-cpp.git
 (cd clickhouse-cpp && mkdir build && cd build && \
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
 
