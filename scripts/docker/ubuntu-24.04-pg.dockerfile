@@ -1,8 +1,8 @@
-FROM ghcr.io/userver-framework/ubuntu-22.04-userver:latest
+FROM ghcr.io/userver-framework/ubuntu-24.04-userver:latest
 
 RUN \
   apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-    postgresql-14 \
+    postgresql-16 \
     pycodestyle \
     && \
   apt clean all
