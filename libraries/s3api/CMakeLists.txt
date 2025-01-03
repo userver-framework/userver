@@ -1,6 +1,11 @@
 project(userver-s3api CXX)
 
-find_package(Pugixml REQUIRED)
+if(USERVER_CONAN)
+  find_package(pugixml REQUIRED CONFIG)
+  add_library(Pugixml ALIAS pugixml::pugixml)
+else()
+  find_package(Pugixml REQUIRED)
+endif()
 
 userver_module(s3api
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
