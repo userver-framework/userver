@@ -1,4 +1,4 @@
-name: CI
+name: Ubuntu
 
 'on':
     pull_request:
@@ -93,19 +93,24 @@ jobs:
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
+        env:
+          CPM_SOURCE_CACHE: ~/.cache/CPM
 
         steps:
           - uses: actions/checkout@v4
             with:
                 fetch-depth: 0
 
-          - name: Reuse ccache directory
-            uses: actions/cache@v4
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
             with:
-                path: '${{matrix.ccache-dir}}'
+                path: |
+                  ${{matrix.ccache-dir}}
+                  ${{env.CPM_SOURCE_CACHE}}
                 key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
-                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
+                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
           - name: Setup ramdrive for testsuites
@@ -157,8 +162,9 @@ jobs:
             run: |
                 git clone --recursive -b v1.45.0 https://github.com/grpc/grpc new_grpc
                 cmake -S./new_grpc -B./new_grpc/build -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
-                cmake --build new_grpc/build -- -j$(nproc)
+                cmake --build new_grpc/build -j$(nproc)
                 sudo cmake --install new_grpc/build
+                rm -rf new_grpc
 
           - name: Add missing repositories
             run: |
@@ -243,6 +249,14 @@ jobs:
                 pwd
                 cd build_debug
                 cmake --build . -j $(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                  ${{matrix.ccache-dir}}
+                  ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
           - name: Run tests (universal)
             run: |

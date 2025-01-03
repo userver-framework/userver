@@ -1,4 +1,4 @@
-name: CI
+name: MacOS
 
 'on':
     pull_request:
@@ -10,12 +10,16 @@ name: CI
 
 jobs:
     macos:
-        name: MacOS (build only)
+        strategy:
+            fail-fast: false
+
+        name: macos-latest (build only)
         runs-on: macos-latest
+
         env:
-            CPM_SOURCE_CACHE: '~/Library/Caches/CPM'
             CMAKE_FLAGS: >-
                 -GNinja
+                -DCPM_SOURCE_CACHE=~/Library/Caches/CPM
                 -DCMAKE_BUILD_TYPE=Debug
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -33,16 +37,15 @@ jobs:
         steps:
           - uses: actions/checkout@v4
 
-          - name: Reuse cached directories
-            uses: actions/cache@v4
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
             with:
                 path: |
                    ~/Library/Caches/ccache
                    ~/Library/Caches/CPM
-                key: 'cmake-cache-dir ${{github.ref}} run-${{github.run_number}}'
-                restore-keys: |
-                    cmake-cache-dir ${{github.ref}} run-
-                    cmake-cache-dir
+                key: 'macos-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: macos-cache-dir ${{github.ref}} run-
 
           - name: Install brew packages
             run: |
@@ -53,11 +56,11 @@ jobs:
                 brew install python@3.11
                 brew install lld
 
-                brew link postgresql@16
+                brew link postgresql@16 # postgresql is keg-only
 
           - name: Setup ccache
             run: |
-                ccache -M 4.0GB
+                ccache -M 2.0GB
                 ccache -s
 
           - name: Run cmake
@@ -67,3 +70,11 @@ jobs:
           - name: Compile
             run: |
                 cmake --build build_debug -j$(nproc) -- -k 1
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                   ~/Library/Caches/ccache
+                   ~/Library/Caches/CPM
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}

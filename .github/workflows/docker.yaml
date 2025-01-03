@@ -1,4 +1,4 @@
-name: Docker build
+name: Docker
 
 'on':
     pull_request:
@@ -16,6 +16,7 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_STANDARD=17
+                        -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
@@ -29,6 +30,7 @@ jobs:
                         -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=17
+                        -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
@@ -41,6 +43,7 @@ jobs:
                         -DCMAKE_C_COMPILER=gcc-11
                         -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=17
+                        -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
@@ -53,6 +56,7 @@ jobs:
                         -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=20
+                        -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
@@ -64,6 +68,7 @@ jobs:
                         -DCMAKE_C_COMPILER=gcc-11
                         -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=20
+                        -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
@@ -82,10 +87,13 @@ jobs:
             run: |
                 sudo apt install -y docker-compose
 
-          - name: Reuse ccache directory
-            uses: actions/cache@v4
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
             with:
-                path: .ccache
+                path: |
+                  .ccache
+                  .cache/CPM
                 key: 'ccache-dir-${{ matrix.id }}_${{github.ref}}_run-${{github.run_number}}'
                 restore-keys: |
                     ccache-dir-${{ matrix.id }}_${{github.ref}}_run-
@@ -116,6 +124,14 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
                 'cd /userver/build && make -j $(nproc)'
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                  .ccache
+                  .cache/CPM
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
           - name: Run ydb
             run: docker-compose -f .github/docker-compose.yml run -d --rm run-ydb

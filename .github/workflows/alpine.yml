@@ -1,4 +1,4 @@
-name: Alpine Linux
+name: Alpine
 
 'on':
     pull_request:
@@ -19,7 +19,7 @@ jobs:
         strategy:
             fail-fast: false
 
-        name: Build only
+        name: ubuntu-24.04 (build-only)
         runs-on: ubuntu-24.04
 
         steps:
@@ -30,15 +30,15 @@ jobs:
           - name: Setup latest Alpine Linux
             uses: jirutka/setup-alpine@v1
 
-          - name: Reuse cached directories
-            uses: actions/cache@v4
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
             with:
                 path: |
                   ~/.cache/ccache
                   ~/.cache/CPM
                 key: 'alpine-cache-dir ${{github.ref}} run-${{github.run_number}}'
-                restore-keys: |
-                    alpine-cache-dir ${{github.ref}} run-
+                restore-keys: alpine-cache-dir ${{github.ref}} run-
 
           - name: Install dependencies
             shell: alpine.sh --root {0}
@@ -94,3 +94,11 @@ jobs:
             run: |
                 cd build_debug
                 cmake --build . -j$(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                  ~/.cache/ccache
+                  ~/.cache/CPM
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
