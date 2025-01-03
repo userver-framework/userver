@@ -57,11 +57,10 @@ jobs:
                         rabbitmq-server \
 
           - name: Setup ccache
-            shell: alpine.sh {0}
+            shell: alpine.sh --root {0}
             run: |
                 ccache -M 2.0GB
-                ccache -s
-                ccache -p
+                ccache -s -v
 
           - name: Run cmake
             shell: alpine.sh {0}
