@@ -129,6 +129,12 @@ jobs:
                 sudo docker image prune --all --force
                 df -h
 
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s
+                ccache -p
+
           - name: Add confluentinc repositories
             if: matrix.os != 'ubuntu-24.04'
             run: |
@@ -215,12 +221,6 @@ jobs:
           - name: Install gdb and pytest
             run: |
                 sudo apt install -y gdb python3-pytest
-
-          - name: Setup ccache
-            run: |
-                ccache -M 2.0GB
-                ccache -s
-                ccache -p
 
           - name: Run cmake
             run: |
