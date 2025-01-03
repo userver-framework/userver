@@ -35,7 +35,7 @@ jobs:
             uses: actions/cache/restore@v4
             with:
                 path: |
-                  ~/.ccache
+                  ~/.cache/ccache
                   ~/.cache/CPM
                 key: 'alpine-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: alpine-cache-dir ${{github.ref}} run-
@@ -100,6 +100,6 @@ jobs:
             uses: actions/cache/save@v4
             with:
                 path: |
-                  ~/.ccache
+                  ~/.cache/ccache
                   ~/.cache/CPM
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
