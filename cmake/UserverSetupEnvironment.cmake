@@ -78,10 +78,6 @@ function(_userver_setup_environment_impl)
     message(STATUS "ccache: disabled")
   endif()
 
-  if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT USERVER_CONAN)
-    set(Boost_NO_BOOST_CMAKE ON PARENT_SCOPE)
-  endif()
-
   # Build type specific
   if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
     add_compile_definitions(_GLIBCXX_ASSERTIONS)
