@@ -37,8 +37,8 @@ jobs:
             uses: actions/cache@v4
             with:
                 path: |
-                   '~/Library/Caches/ccache'
-                   '~/Library/Caches/CPM'
+                   ~/Library/Caches/ccache
+                   ~/Library/Caches/CPM
                 key: 'cmake-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     cmake-cache-dir ${{github.ref}} run-
@@ -60,6 +60,7 @@ jobs:
             run: |
                 ccache -M 4.0GB
                 ccache -s
+                ccache -p
 
           - name: Run cmake
             run: |
