@@ -39,6 +39,7 @@ jobs:
                 path: |
                    ~/Library/Caches/ccache
                    ~/Library/Caches/CPM
+                   ~/Library/Caches/pip
                 key: 'cmake-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     cmake-cache-dir ${{github.ref}} run-
@@ -54,13 +55,10 @@ jobs:
 
                 brew link postgresql@16
 
-                brew upgrade
-
           - name: Setup ccache
             run: |
                 ccache -M 4.0GB
                 ccache -s
-                ccache -p
 
           - name: Run cmake
             run: |
