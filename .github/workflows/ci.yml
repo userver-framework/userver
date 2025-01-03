@@ -96,8 +96,6 @@ jobs:
 
         steps:
           - uses: actions/checkout@v4
-            with:
-                fetch-depth: 0
 
           - name: Reuse ccache directory
             uses: actions/cache@v4
