@@ -13,6 +13,7 @@ jobs:
         name: MacOS (build only)
         runs-on: macos-latest
         env:
+            CPM_SOURCE_CACHE: '~/Library/Caches/CPM'
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
@@ -31,8 +32,16 @@ jobs:
 
         steps:
           - uses: actions/checkout@v4
+
+          - name: Reuse cached directories
+            uses: actions/cache@v4
             with:
-                fetch-depth: 0
+                path: |
+                   '~/Library/Caches/ccache'
+                   '~/Library/Caches/CPM'
+                key: 'cmake-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    cmake-cache-dir ${{github.ref}} run-
 
           - name: Install brew packages
             run: |
@@ -46,6 +55,11 @@ jobs:
                 brew link postgresql@16
 
                 brew upgrade
+
+          - name: Setup ccache
+            run: |
+                ccache -M 4.0GB
+                ccache -s
 
           - name: Run cmake
             run: |
