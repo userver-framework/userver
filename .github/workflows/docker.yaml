@@ -123,7 +123,7 @@ jobs:
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
-                'cd /userver/build && make -j $(nproc)'
+                'cd /userver && cmake --build build -j $(nproc)'
 
           - name: Save cached directories
             uses: actions/cache/save@v4

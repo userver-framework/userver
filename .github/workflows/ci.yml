@@ -219,7 +219,8 @@ jobs:
           - name: Setup ccache
             run: |
                 ccache -M 2.0GB
-                ccache -s -v
+                ccache -s
+                ccache -p
 
           - name: Run cmake
             run: |
