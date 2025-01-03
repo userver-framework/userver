@@ -54,6 +54,10 @@ jobs:
             run: |
                 conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
 
+          - name: Purge parts of userver directory
+            run: |
+                rm -rf cmake/ chaotic* universal/ core/ grpc/ redis/ mongo/
+
           - name: Test userver conan package
             run: |
                 USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
