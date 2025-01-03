@@ -1,5 +1,6 @@
 ccache
 cmake
+cryptopp
 cyrus-sasl
 git
 google-benchmark
