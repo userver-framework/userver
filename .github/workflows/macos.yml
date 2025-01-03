@@ -39,10 +39,10 @@ jobs:
                 path: |
                    ~/Library/Caches/ccache
                    ~/Library/Caches/CPM
-                   ~/Library/Caches/pip
                 key: 'cmake-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     cmake-cache-dir ${{github.ref}} run-
+                    cmake-cache-dir
 
           - name: Install brew packages
             run: |
