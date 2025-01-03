@@ -58,23 +58,24 @@ jobs:
             run: |
                 cd ..
                 mkdir _userver0
-                mv userver/samples _userver0/
-                mv userver/libraries _userver0/
-                rm -rf userver
+                mv userver/samples/*/ _userver0/
+                mv userver/libraries/easy/samples/3_json _userver0/
+                mv userver/scripts/tests/conanfile.py _userver0/
+                rm -rf userver/
                 cd _userver0
 
                 USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
                 for SAMPLE in \
-                    libraries/easy/samples/3_json \
-                    samples/chaotic_service \
-                    samples/redis_service \
-                    samples/hello_service \
-                    samples/embedded_files \
-                    samples/postgres_service \
-                    samples/s3api \
-                    samples/grpc_service
-                do
-                    cp scripts/tests/conanfile.py $SAMPLE/
+                    3_json \
+                    chaotic_service \
+                    embedded_files \
+                    grpc_service \
+                    hello_service \
+                    postgres_service \
+                    redis_service \
+                    s3api \
+                ; do
+                    mv conanfile.py $SAMPLE/
                     conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
-                    rm $SAMPLE/conanfile.py
+                    mv $SAMPLE/conanfile.py ./
                 done
