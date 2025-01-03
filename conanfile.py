@@ -64,7 +64,7 @@ class UserverConan(ConanFile):
         'with_kafka': True,
         'with_otlp': True,
         'with_easy': True,
-        'with_s3api': False,
+        'with_s3api': True,
         'with_grpc_reflection': True,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
@@ -159,6 +159,8 @@ class UserverConan(ConanFile):
             )
         if self.options.with_kafka:
             self.requires('librdkafka/2.6.0')
+        if self.options.with_s3api:
+            self.requires('pugixml/1.14')
 
     def build_requirements(self):
         self.tool_requires('protobuf/5.27.0')
