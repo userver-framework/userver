@@ -1,4 +1,3 @@
-#include <iostream>
 #include <userver/storages/sqlite/connection.hpp>
 
 #include <optional>
@@ -25,10 +24,9 @@ Connection::Connection(const SQLiteSettings& settings [[maybe_unused]],
   if (settings.create_file) {
     flags |= SQLITE_OPEN_CREATE;
   }
-  if (sqlite3_open_v2(settings.db_name.c_str(), &db, flags, nullptr) !=
-      SQLITE_OK) {
-    throw USERVER_NAMESPACE::storages::sqlite::SQLiteException(
-        0, "Failed to open database: " + std::string(sqlite3_errmsg(db)));
+  if (int ret = sqlite3_open_v2(settings.db_name.c_str(), &db, flags,
+                                nullptr) != SQLITE_OK) {
+    throw SQLiteException(db, ret);
   }
 }
 
