@@ -169,7 +169,9 @@ jobs:
             if: matrix.os == 'ubuntu-20.04'
             run: |
                 git clone --recursive -b v1.45.0 https://github.com/grpc/grpc new_grpc
-                cmake -S./new_grpc -B./new_grpc/build -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
+                cmake -S./new_grpc -B./new_grpc/build \
+                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
                 cmake --build new_grpc/build -j$(nproc)
                 sudo cmake --install new_grpc/build
                 rm -rf new_grpc
@@ -255,22 +257,10 @@ jobs:
 
           - name: Show ccache progress
             run: |
-                pwd
-                ls -lha
                 ls -lha ${{matrix.ccache-dir}}
                 ls -lha ${{env.CPM_SOURCE_CACHE}}
                 ccache -s
                 ccache -p
-
-          - uses: actions/upload-artifact@v4
-            with:
-              name: '${{matrix.os}} ${{matrix.info}} caches-ccache-dir ${{github.ref}} run-${{github.run_number}}'
-              path: ${{matrix.ccache-dir}}
-
-          - uses: actions/upload-artifact@v4
-            with:
-              name: '${{matrix.os}} ${{matrix.info}} caches-cpm-dir ${{github.ref}} run-${{github.run_number}}'
-              path: ${{env.CPM_SOURCE_CACHE}}
 
           - name: Save cached directories
             uses: actions/cache/save@v4
@@ -279,6 +269,16 @@ jobs:
                   ${{matrix.ccache-dir}}
                   ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - uses: actions/upload-artifact@v4
+            with:
+              name: '${{matrix.os}} ${{matrix.info}} caches-ccache-dir run-${{github.run_number}}'
+              path: ${{matrix.ccache-dir}}
+
+          - uses: actions/upload-artifact@v4
+            with:
+              name: '${{matrix.os}} ${{matrix.info}} caches-cpm-dir run-${{github.run_number}}'
+              path: ${{env.CPM_SOURCE_CACHE}}
 
           - name: Run tests (universal)
             run: |
