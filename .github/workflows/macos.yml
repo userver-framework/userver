@@ -45,7 +45,9 @@ jobs:
                    ~/Library/Caches/ccache
                    ~/Library/Caches/CPM
                 key: 'macos-cache-dir ${{github.ref}} run-${{github.run_number}}'
-                restore-keys: macos-cache-dir ${{github.ref}} run-
+                restore-keys: |
+                  macos-cache-dir ${{github.ref}} run-
+                  macos-cache-dir
 
           - name: Install brew packages
             run: |

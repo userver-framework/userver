@@ -94,11 +94,10 @@ jobs:
                 path: |
                   .ccache
                   .cache/CPM
-                key: 'ccache-dir-${{ matrix.id }}_${{github.ref}}_run-${{github.run_number}}'
+                key: 'docker-cache-dir ${{ matrix.id }} ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
-                    ccache-dir-${{ matrix.id }}_${{github.ref}}_run-
-                    ccache-dir-${{ matrix.id }}_
-                    ccache-
+                    docker-cache-dir ${{ matrix.id }} ${{github.ref}} run-
+                    docker-cache-dir ${{ matrix.id }}
 
           - name: Free disk space
             run: |

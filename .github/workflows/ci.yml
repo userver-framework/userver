@@ -208,7 +208,7 @@ jobs:
           - name: Install common deps
             run: |
                 sudo apt update
-                sudo apt purge libpq5 libpq-dev postgresql-*
+                sudo apt purge -y libpq5 libpq-dev postgresql-*
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
 
           - name: Install g++-8
@@ -261,6 +261,16 @@ jobs:
                 ls -lha ${{env.CPM_SOURCE_CACHE}}
                 ccache -s
                 ccache -p
+
+          - uses: actions/upload-artifact@v4
+            with:
+              name: '${{matrix.os}} ${{matrix.info}} caches-ccache-dir ${{github.ref}} run-${{github.run_number}}'
+              path: ${{matrix.ccache-dir}}
+
+          - uses: actions/upload-artifact@v4
+            with:
+              name: '${{matrix.os}} ${{matrix.info}} caches-cpm-dir ${{github.ref}} run-${{github.run_number}}'
+              path: ${{env.CPM_SOURCE_CACHE}}
 
           - name: Save cached directories
             uses: actions/cache/save@v4

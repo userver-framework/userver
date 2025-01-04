@@ -38,7 +38,9 @@ jobs:
                   ~/.cache/ccache
                   ~/.cache/CPM
                 key: 'alpine-cache-dir ${{github.ref}} run-${{github.run_number}}'
-                restore-keys: alpine-cache-dir ${{github.ref}} run-
+                restore-keys: |
+                  alpine-cache-dir ${{github.ref}} run-
+                  alpine-cache-dir
 
           - name: Install dependencies
             shell: alpine.sh --root {0}
