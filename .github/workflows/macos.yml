@@ -8,6 +8,10 @@ name: MacOS
           - develop
           - feature/**
 
+env:
+    CCACHE_DIR: ~/Library/Caches/ccache
+    CPM_SOURCE_CACHE: ~/Library/Caches/CPM
+
 jobs:
     macos:
         strategy:
@@ -19,7 +23,6 @@ jobs:
         env:
             CMAKE_FLAGS: >-
                 -GNinja
-                -DCPM_SOURCE_CACHE=~/Library/Caches/CPM
                 -DCMAKE_BUILD_TYPE=Debug
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -42,8 +45,8 @@ jobs:
             uses: actions/cache/restore@v4
             with:
                 path: |
-                   ~/Library/Caches/ccache
-                   ~/Library/Caches/CPM
+                  ${{env.CCACHE_DIR}}
+                  ${{env.CPM_SOURCE_CACHE}}
                 key: 'macos-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                   macos-cache-dir ${{github.ref}} run-
@@ -77,6 +80,6 @@ jobs:
             uses: actions/cache/save@v4
             with:
                 path: |
-                   ~/Library/Caches/ccache
-                   ~/Library/Caches/CPM
+                  ${{env.CCACHE_DIR}}
+                  ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}

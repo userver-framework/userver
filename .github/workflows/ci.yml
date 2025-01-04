@@ -11,6 +11,8 @@ name: Ubuntu
 env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
 
 jobs:
     posix:
@@ -35,7 +37,6 @@ jobs:
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
                     tests-flags: ''
-                    ccache-dir: ~/.cache/ccache
 
                   - cmake-flags: >-
                         -GNinja
@@ -54,7 +55,6 @@ jobs:
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
-                    ccache-dir: ~/.cache/ccache
 
                   - cmake-flags: >-
                         -GNinja
@@ -70,7 +70,6 @@ jobs:
                     os: ubuntu-20.04
                     info: g++-9 + release
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
-                    ccache-dir: ~/.ccache
 
                   # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
@@ -89,12 +88,9 @@ jobs:
                     os: ubuntu-20.04
                     info: g++-8 + debug
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
-                    ccache-dir: ~/.ccache
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
-        env:
-          CPM_SOURCE_CACHE: ~/.cache/CPM
 
         steps:
           - uses: actions/checkout@v4
@@ -106,7 +102,7 @@ jobs:
             uses: actions/cache/restore@v4
             with:
                 path: |
-                  ${{matrix.ccache-dir}}
+                  ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
                 key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
@@ -134,6 +130,7 @@ jobs:
                 sudo apt update
                 sudo apt install ccache
                 ccache -M 2.0GB
+                ccache --set-config=cache_dir=${{env.CCACHE_DIR}}
                 ccache -s
                 ccache -p
 
@@ -168,10 +165,10 @@ jobs:
           - name: Install grpc, protobuf and abseil
             if: matrix.os == 'ubuntu-20.04'
             run: |
-                git clone --recursive -b v1.45.0 https://github.com/grpc/grpc new_grpc
-                cmake -S./new_grpc -B./new_grpc/build \
-                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+                git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
+                GRPC_BUILD_ENABLE_CCACHE=true \
+                  cmake -GNinja -S./new_grpc -B./new_grpc/build \
+                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
                 cmake --build new_grpc/build -j$(nproc)
                 sudo cmake --install new_grpc/build
                 rm -rf new_grpc
@@ -257,8 +254,10 @@ jobs:
 
           - name: Show ccache progress
             run: |
-                ls -lha ${{matrix.ccache-dir}}
+                ls -lha ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CCACHE_DIR}}
                 ls -lha ${{env.CPM_SOURCE_CACHE}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s
                 ccache -p
 
@@ -266,19 +265,19 @@ jobs:
             uses: actions/cache/save@v4
             with:
                 path: |
-                  ${{matrix.ccache-dir}}
+                  ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
           - uses: actions/upload-artifact@v4
             with:
-              name: '${{matrix.os}} ${{matrix.info}} caches-ccache-dir run-${{github.run_number}}'
-              path: ${{matrix.ccache-dir}}
+              name: '${{matrix.os}} ${{matrix.info}} build-dir run-${{github.run_number}}'
+              path: build_debug
 
           - uses: actions/upload-artifact@v4
             with:
-              name: '${{matrix.os}} ${{matrix.info}} caches-cpm-dir run-${{github.run_number}}'
-              path: ${{env.CPM_SOURCE_CACHE}}
+              name: '${{matrix.os}} ${{matrix.info}} ccache-dir run-${{github.run_number}}'
+              path: ${{env.CCACHE_DIR}}
 
           - name: Run tests (universal)
             run: |

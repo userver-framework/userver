@@ -13,6 +13,8 @@ env:
     ASAN_OPTIONS: detect_odr_violation=2
     CXX: clang++-18
     CC: clang-18
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
 
 jobs:
     posix:
@@ -35,8 +37,8 @@ jobs:
             uses: actions/cache/restore@v4
             with:
                 path: |
-                  ~/.cache/ccache
-                  ~/.cache/CPM
+                  ${{env.CCACHE_DIR}}
+                  ${{env.CPM_SOURCE_CACHE}}
                 key: 'alpine-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                   alpine-cache-dir ${{github.ref}} run-
@@ -61,6 +63,7 @@ jobs:
           - name: Setup ccache
             shell: alpine.sh --root {0}
             run: |
+                ccache --set-config=cache_dir=${{env.CCACHE_DIR}}
                 ccache -M 2.0GB
                 ccache -s -v
 
@@ -73,7 +76,6 @@ jobs:
                 CMAKE_PROGRAM_PATH=/usr/lib/llvm17/bin/ \
                 cmake \
                     -DCMAKE_BUILD_TYPE=Debug \
-                    -DCPM_SOURCE_CACHE=~/.cache/CPM \
                     -DUSERVER_NO_WERROR=OFF \
                     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
                     -DUSERVER_BUILD_SAMPLES=1 \
@@ -101,6 +103,6 @@ jobs:
             uses: actions/cache/save@v4
             with:
                 path: |
-                  ~/.cache/ccache
-                  ~/.cache/CPM
+                  ${{env.CCACHE_DIR}}
+                  ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
