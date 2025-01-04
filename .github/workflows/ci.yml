@@ -253,6 +253,15 @@ jobs:
                 cd build_debug
                 cmake --build . -j $(nproc)
 
+          - name: Show ccache progress
+            run: |
+                pwd
+                ls -lha
+                ls -lha ${{matrix.ccache-dir}}
+                ls -lha ${{env.CPM_SOURCE_CACHE}}
+                ccache -s
+                ccache -p
+
           - name: Save cached directories
             uses: actions/cache/save@v4
             with:
