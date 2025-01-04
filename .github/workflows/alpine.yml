@@ -63,6 +63,10 @@ jobs:
           - name: Setup ccache
             uses: Chocobo1/setup-ccache-action@v1
             with:
+              override_cache_key: ${{ steps.restore-cache.outputs.cache-matched-key }}
+              override_cache_key_fallback: |
+                alpine-cache-dir ${{github.ref}} run-
+                alpine-cache-dir
               ccache_options: |
                 max_size=3GB
                 cache_dir=${{env.CCACHE_DIR}}
