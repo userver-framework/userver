@@ -99,6 +99,10 @@ jobs:
             run: |
                 cd build_debug
                 cmake --build . -j$(nproc)
+                ls -lha ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                ls -lha ${{env.CPM_SOURCE_CACHE}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
 
           - name: Save cached directories
             uses: actions/cache/save@v4
