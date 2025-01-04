@@ -25,7 +25,7 @@ ResultSet::reference ResultSet::Front() const& { return (*this)[0]; }
 ResultSet::reference ResultSet::Back() const& { return (*this)[Size() - 1]; }
 
 ResultSet::reference ResultSet::operator[](size_type index) const& {
-  if (index >= Size()) throw SQLiteException{0, ""};
+  if (index >= Size()) throw SQLiteException{"Result set index out of range "};
   return {};
 }
 
