@@ -128,13 +128,11 @@ jobs:
                 df -h
 
           - name: Setup ccache
-            run: |
-                sudo apt update
-                sudo apt install ccache
-                ccache -M 3.0GB
-                ccache --set-config=cache_dir=${{env.CCACHE_DIR}}
-                ccache -s
-                ccache -p
+            uses: Chocobo1/setup-ccache-action@v1
+            with:
+              ccache_options: |
+                max_size=3GB
+                cache_dir=${{env.CCACHE_DIR}}
 
           - name: Add confluentinc repositories
             if: matrix.os != 'ubuntu-24.04'
