@@ -17,6 +17,7 @@ jobs:
                   - cmake-flags: >-
                         -DCMAKE_CXX_STANDARD=17
                         -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
@@ -44,6 +45,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=17
                         -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
@@ -69,6 +71,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=20
                         -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
@@ -114,14 +117,14 @@ jobs:
           - name: CMake
             run: >-
                 docker-compose -f .github/docker-compose.yml
-                run --rm ${{ matrix.image}} bash -c
-                'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+                run --rm ${{ matrix.image }} bash -c
+                'cd /userver && cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Build
             run: >-
                 docker-compose -f .github/docker-compose.yml
-                run --rm ${{ matrix.image}} bash -c
+                run --rm ${{ matrix.image }} bash -c
                 'cd /userver && cmake --build build -j $(nproc)'
 
           - name: Save cached directories
