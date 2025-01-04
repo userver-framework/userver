@@ -274,16 +274,6 @@ jobs:
                   ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
-          - uses: actions/upload-artifact@v4
-            with:
-              name: '${{matrix.os}} ${{matrix.info}} build-dir run-${{github.run_number}}'
-              path: build_debug
-
-          - uses: actions/upload-artifact@v4
-            with:
-              name: '${{matrix.os}} ${{matrix.info}} ccache-dir run-${{github.run_number}}'
-              path: ${{env.CCACHE_DIR}}
-
           - name: Run tests (universal)
             run: |
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
