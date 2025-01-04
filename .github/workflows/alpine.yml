@@ -63,8 +63,8 @@ jobs:
           - name: Setup cache
             shell: alpine.sh --root {0}
             run: |
-                mkdir ${{env.CCACHE_DIR}}
-                mkdir ${{env.CPM_SOURCE_CACHE}}
+                mkdir -p ${{env.CCACHE_DIR}}
+                mkdir -p ${{env.CPM_SOURCE_CACHE}}
                 ccache --set-config=cache_dir=${{env.CCACHE_DIR}}
                 ccache -M 2.0GB
                 ccache -s -v
