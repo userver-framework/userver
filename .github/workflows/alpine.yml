@@ -60,16 +60,13 @@ jobs:
                         redis \
                         rabbitmq-server \
 
-          - name: Setup ccache
-            uses: Chocobo1/setup-ccache-action@v1
-            with:
-              override_cache_key: ${{ steps.restore-cache.outputs.cache-matched-key }}
-              override_cache_key_fallback: |
-                alpine-cache-dir ${{github.ref}} run-
-                alpine-cache-dir
-              ccache_options: |
-                max_size=3GB
-                cache_dir=${{env.CCACHE_DIR}}
+          - name: Setup cache
+            shell: alpine.sh --root {0}
+            run: |
+                mkdir -p ${{env.CCACHE_DIR}}
+                mkdir -p ${{env.CPM_SOURCE_CACHE}}
+                ccache -M 2.0GB
+                ccache -s -v
 
           - name: Run cmake
             shell: alpine.sh --root {0}
@@ -114,8 +111,6 @@ jobs:
           - name: Show ccache progress
             shell: alpine.sh --root {0}
             run: |
-                pwd
-                ls -lha
                 ls -lha ${{env.CCACHE_DIR}}
                 du -h -d 1 ${{env.CCACHE_DIR}}
                 ls -lha ${{env.CPM_SOURCE_CACHE}}
@@ -125,8 +120,6 @@ jobs:
 
           - name: Show ccache progress
             run: |
-                pwd
-                ls -lha
                 ls -lha ${{env.CCACHE_DIR}}
                 du -h -d 1 ${{env.CCACHE_DIR}}
                 ls -lha ${{env.CPM_SOURCE_CACHE}}
