@@ -96,7 +96,7 @@ jobs:
                     ..
 
           - name: Compile
-            shell: alpine.sh {0}
+            shell: alpine.sh --root {0}
             run: |
                 cd build_debug
                 cmake --build . -j$(nproc)
