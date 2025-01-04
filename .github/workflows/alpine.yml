@@ -70,7 +70,7 @@ jobs:
                 ccache -s -v
 
           - name: Run cmake
-            shell: alpine.sh {0}
+            shell: alpine.sh --root {0}
             run: |
                 pwd
                 mkdir build_debug
