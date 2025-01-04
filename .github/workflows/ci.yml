@@ -165,6 +165,7 @@ jobs:
           - name: Install grpc, protobuf and abseil
             if: matrix.os == 'ubuntu-20.04'
             run: |
+                sudo apt install ninja-build
                 git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
                 GRPC_BUILD_ENABLE_CCACHE=true \
                   cmake -GNinja -S./new_grpc -B./new_grpc/build \

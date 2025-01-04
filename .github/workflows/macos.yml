@@ -9,8 +9,8 @@ name: MacOS
           - feature/**
 
 env:
-    CCACHE_DIR: ~/Library/Caches/ccache
-    CPM_SOURCE_CACHE: ~/Library/Caches/CPM
+    CCACHE_DIR: /Users/runner/Library/Caches/ccache
+    CPM_SOURCE_CACHE: /Users/runner/Library/Caches/CPM
 
 jobs:
     macos:
