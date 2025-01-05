@@ -236,9 +236,7 @@ jobs:
 
           - name: Run cmake
             run: |
-                mkdir build_debug
-                cd build_debug
-                cmake ${{matrix.cmake-flags}} ..
+                cmake -S . -B build_debug ${{matrix.cmake-flags}}
 
           - name: Run clang-tidy
             if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
@@ -263,12 +261,6 @@ jobs:
                 cd build_debug
                 cmake --build . -j $(nproc)
 
-          - name: Show cache stats
-            run: |
-                du -h -d 1 ${{env.CCACHE_DIR}}
-                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
-                ccache -s -v
-
           - name: Save cached directories
             uses: actions/cache/save@v4
             with:
@@ -276,6 +268,13 @@ jobs:
                   ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v
+
 
           - name: Run tests (universal)
             run: |

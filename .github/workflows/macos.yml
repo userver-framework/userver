@@ -76,12 +76,6 @@ jobs:
             run: |
                 cmake --build build_debug -j$(nproc) -- -k 1
 
-          - name: Show cache stats
-            run: |
-                du -h -d 1 ${{env.CCACHE_DIR}}
-                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
-                ccache -s -v
-
           - name: Save cached directories
             uses: actions/cache/save@v4
             with:
@@ -89,3 +83,9 @@ jobs:
                   ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v
