@@ -10,6 +10,7 @@ name: MacOS
 
 env:
     CCACHE_DIR: /Users/runner/Library/Caches/ccache
+    CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /Users/runner/Library/Caches/CPM
 
 jobs:

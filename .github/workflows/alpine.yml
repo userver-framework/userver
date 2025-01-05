@@ -14,6 +14,7 @@ env:
     CXX: clang++-18
     CC: clang-18
     CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /home/runner/.cache/CPM
 
 jobs:
