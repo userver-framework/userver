@@ -79,11 +79,10 @@ jobs:
             shell: alpine.sh --root {0}
             run: |
                 pwd
-                mkdir build_debug
-                cd build_debug
                 CMAKE_PROGRAM_PATH=/usr/lib/llvm17/bin/ \
-                cmake \
+                cmake -S . -B build_debug -GNinja \
                     -DCMAKE_BUILD_TYPE=Debug \
+                    -DUSERVER_USE_LD=lld \
                     -DUSERVER_NO_WERROR=OFF \
                     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
                     -DUSERVER_BUILD_SAMPLES=1 \
@@ -98,14 +97,11 @@ jobs:
                     -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
                     -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
                     -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \
-                    -DUSERVER_USE_LD=lld \
-                    ..
 
           - name: Compile
             shell: alpine.sh --root {0}
             run: |
-                cd build_debug
-                cmake --build . -j$(nproc)
+                cmake --build build_debug -j$(nproc)
 
           - name: Save cached directories
             uses: actions/cache/save@v4

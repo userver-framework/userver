@@ -17,6 +17,7 @@ make
 mariadb-dev
 mariadb-static
 mongo-c-driver-dev
+ninja-build
 nghttp2-dev
 openldap-dev
 postgresql16-dev
