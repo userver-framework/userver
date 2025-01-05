@@ -41,7 +41,7 @@ jobs:
                   alpine-cache-dir ${{github.ref}} run-
                   alpine-cache-dir
 
-          - name: Setup host dirs
+          - name: Setup host cache dirs
             run: |
                 mkdir -p ${{env.CCACHE_DIR}}
                 mkdir -p ${{env.CPM_SOURCE_CACHE}}
@@ -70,11 +70,8 @@ jobs:
                         rabbitmq-server \
 
           - name: Setup cache
-            shell: alpine.sh --root {0}
+            shell: alpine.sh {0}
             run: |
-                mkdir -p ${{env.CCACHE_DIR}}
-                mkdir -p ${{env.CPM_SOURCE_CACHE}}
-
                 ccache -M 2.0GB
                 ccache -s -v
 
@@ -109,10 +106,13 @@ jobs:
             run: |
                 cd build_debug
                 cmake --build . -j$(nproc)
-                ls -lha ${{env.CCACHE_DIR}}
+
+          - name: Show cache stats
+            shell: alpine.sh {0}
+            run: |
                 du -h -d 1 ${{env.CCACHE_DIR}}
-                ls -lha ${{env.CPM_SOURCE_CACHE}}
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v
 
           - name: Save cached directories
             uses: actions/cache/save@v4
@@ -121,22 +121,3 @@ jobs:
                   ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
-
-          - name: Show ccache progress
-            shell: alpine.sh --root {0}
-            run: |
-                ls -lha ${{env.CCACHE_DIR}}
-                du -h -d 1 ${{env.CCACHE_DIR}}
-                ls -lha ${{env.CPM_SOURCE_CACHE}}
-                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
-                ccache -s
-                ccache -p
-
-          - name: Show ccache progress
-            run: |
-                ls -lha ${{env.CCACHE_DIR}}
-                du -h -d 1 ${{env.CCACHE_DIR}}
-                ls -lha ${{env.CPM_SOURCE_CACHE}}
-                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
-                ccache -s
-                ccache -p

@@ -205,9 +205,7 @@ jobs:
 
           - name: Setup ccache
             run: |
-                which ccache
-                ccache --version
-                ccache -M 3.0GB
+                ccache -M 2.0GB
                 ccache -s -v
 
           - name: Install grpc, protobuf and abseil
@@ -265,14 +263,11 @@ jobs:
                 cd build_debug
                 cmake --build . -j $(nproc)
 
-          - name: Show ccache progress
+          - name: Show cache stats
             run: |
-                ls -lha ${{env.CCACHE_DIR}}
                 du -h -d 1 ${{env.CCACHE_DIR}}
-                ls -lha ${{env.CPM_SOURCE_CACHE}}
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
-                ccache -s
-                ccache -p
+                ccache -s -v
 
           - name: Save cached directories
             uses: actions/cache/save@v4
