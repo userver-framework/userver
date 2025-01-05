@@ -129,14 +129,4 @@ jobs:
                 du -h -d 1 ${{env.CCACHE_DIR}}
                 ls -lha ${{env.CPM_SOURCE_CACHE}}
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
-                ccache -s
-                ccache -p
-
-          - name: Show ccache progress
-            run: |
-                ls -lha ${{env.CCACHE_DIR}}
-                du -h -d 1 ${{env.CCACHE_DIR}}
-                ls -lha ${{env.CPM_SOURCE_CACHE}}
-                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
-                ccache -s
-                ccache -p
+                ccache -s -v
