@@ -199,7 +199,7 @@ jobs:
                 sudo apt remove --purge -y ccache
                 git clone --depth 1 -b v4.10.2 https://github.com/ccache/ccache.git
                 cd ccache
-                cmake -S . -B build -D ENABLE_TESTING=OFF -DSTATIC_LINK=ON -DCMAKE_BUILD_TYPE=Release
+                cmake -S . -B build -GNinja -DENABLE_TESTING=OFF -DSTATIC_LINK=ON -DCMAKE_BUILD_TYPE=Release
                 cmake --build build -j$(nproc)
                 sudo cmake --install build
 

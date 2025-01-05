@@ -81,8 +81,7 @@ jobs:
             run: |
                 pwd
                 CMAKE_PROGRAM_PATH=/usr/lib/llvm17/bin/ \
-                cmake -S . -B build_debug -GNinja \
-                    -DCMAKE_MAKE_PROGRAM=/usr/lib/ninja-build/bin/ninja
+                cmake -S . -B build_debug \
                     -DCMAKE_BUILD_TYPE=Debug \
                     -DUSERVER_USE_LD=lld \
                     -DUSERVER_NO_WERROR=OFF \
