@@ -12,7 +12,6 @@ env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
     CCACHE_DIR: /home/runner/.cache/ccache
-    CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /home/runner/.cache/CPM
 
 jobs:
