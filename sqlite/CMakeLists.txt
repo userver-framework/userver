@@ -25,8 +25,6 @@ else()
   find_package(SQLite3 REQUIRED)
   if (SQLITE3_FOUND)
     target_link_libraries(${PROJECT_NAME} PUBLIC SQLite::SQLite3)
-    # include_directories(${SQLITE3_INCLUDE_DIRS})
-    # target_link_libraries (${PROJECT_NAME} ${SQLITE3_LIBRARIES})
   endif (SQLITE3_FOUND)
 endif()
 
