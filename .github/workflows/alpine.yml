@@ -29,9 +29,6 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: Setup latest Alpine Linux
-            uses: jirutka/setup-alpine@v1
-
           - name: Restore cached directories
             id: restore-cache
             uses: actions/cache/restore@v4
@@ -43,6 +40,13 @@ jobs:
                 restore-keys: |
                   alpine-cache-dir ${{github.ref}} run-
                   alpine-cache-dir
+
+          - name: Setup latest Alpine Linux
+            uses: jirutka/setup-alpine@v1
+            with:
+              volumes: |
+                ${{env.CCACHE_DIR}}:${{env.CCACHE_DIR}}
+                ${{env.CPM_SOURCE_CACHE}}:${{env.CPM_SOURCE_CACHE}}
 
           - name: Install dependencies
             shell: alpine.sh --root {0}

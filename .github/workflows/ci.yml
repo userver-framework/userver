@@ -128,14 +128,6 @@ jobs:
                 sudo docker image prune --all --force
                 df -h
 
-          - name: Setup ccache
-            run: |
-                sudo apt update
-                sudo apt install ccache
-                ccache -M 3.0GB
-                ccache -s
-                ccache -p
-
           - name: Add confluentinc repositories
             if: matrix.os != 'ubuntu-24.04'
             run: |
@@ -163,20 +155,6 @@ jobs:
                 sudo apt install clang-format-14
                 sudo ln -sf /usr/bin/clang-format-14 /usr/bin/clang-format
                 clang-format --version
-
-          - name: Install grpc, protobuf and abseil
-            if: matrix.os == 'ubuntu-20.04'
-            run: |
-                sudo apt install ninja-build
-                git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
-                GRPC_BUILD_ENABLE_CCACHE=true \
-                  cmake -GNinja -S./new_grpc -B./new_grpc/build \
-                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
-                cmake --build new_grpc/build -j$(nproc)
-                sudo cmake --install new_grpc/build
-                rm -rf new_grpc
-                ccache -s
-                ccache -p
 
           - name: Add missing repositories
             run: |
@@ -214,6 +192,36 @@ jobs:
                 sudo apt update
                 sudo apt purge -y libpq5 libpq-dev postgresql-*
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+
+          - name: Install ccache
+            if: matrix.os == 'ubuntu-20.04'
+            run: |
+                sudo apt remove --purge -y ccache
+                git clone --depth 1 -b v4.10.2 https://github.com/ccache/ccache.git
+                cd ccache
+                cmake -S . -B build -D ENABLE_TESTING=OFF -DSTATIC_LINK=ON -DCMAKE_BUILD_TYPE=Release
+                cmake --build build -j$(nproc)
+                sudo cmake --install build
+
+          - name: Setup ccache
+            run: |
+                which ccache
+                ccache --version
+                ccache -M 3.0GB
+                ccache -s -v
+
+          - name: Install grpc, protobuf and abseil
+            if: matrix.os == 'ubuntu-20.04'
+            run: |
+                sudo apt install ninja-build
+                git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
+                GRPC_BUILD_ENABLE_CCACHE=true \
+                  cmake -GNinja -S./new_grpc -B./new_grpc/build \
+                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
+                cmake --build new_grpc/build -j$(nproc)
+                sudo cmake --install new_grpc/build
+                rm -rf new_grpc
+                ccache -s -v
 
           - name: Install g++-8
             if: matrix.info == 'g++-8 + debug'
