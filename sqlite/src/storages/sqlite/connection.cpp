@@ -24,17 +24,24 @@ Connection::Connection(const SQLiteSettings& settings [[maybe_unused]],
   if (settings.create_file) {
     flags |= SQLITE_OPEN_CREATE;
   }
-  if (int ret = sqlite3_open_v2(settings.db_name.c_str(), &db, flags,
-                                nullptr) != SQLITE_OK) {
-    throw SQLiteException(db, ret);
+  sqlite3* handle = nullptr;
+  if (const int ret =
+          sqlite3_open_v2(settings.db_name.c_str(), &handle, flags, nullptr);
+      ret != SQLITE_OK) {
+    throw SQLiteException(getHandle(), ret);
   }
+  db.reset(handle);
 }
 
-Connection::~Connection() {
-  if (db) {
-    sqlite3_close(db);
-  }
-};
+Connection::~Connection() = default;
+
+void Connection::Deleter::operator()(sqlite3* sqlite_handle) {
+  sqlite3_close(sqlite_handle);
+
+  // TODO: error is SQLITE_BUSY: "database is locked"
+}
+
+sqlite3* Connection::getHandle() const noexcept { return db.get(); };
 
 Transaction Connection::Begin(std::string name,
                               const TransactionOptions& options) const {
@@ -56,10 +63,10 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
                                 [[maybe_unused]]) const {
   // TODO:
   sqlite3_stmt* stmt = nullptr;
-  if (sqlite3_prepare_v2(db, query.GetStatement().c_str(), -1, &stmt,
-                         nullptr) != SQLITE_OK) {
-    throw std::runtime_error("Failed to prepare statement: " +
-                             std::string(sqlite3_errmsg(db)));
+  if (const int ret = sqlite3_prepare_v2(
+          getHandle(), query.GetStatement().c_str(), -1, &stmt, nullptr);
+      ret != SQLITE_OK) {
+    throw SQLiteException(getHandle(), ret);
   }
   ResultSet result_set;
   int step_result = 0;
@@ -71,8 +78,7 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
 
   if (step_result != SQLITE_DONE) {
     sqlite3_finalize(stmt);
-    throw std::runtime_error("Error during query execution: " +
-                             std::string(sqlite3_errmsg(db)));
+    throw SQLiteException(getHandle(), step_result);
   }
   sqlite3_finalize(stmt);
 

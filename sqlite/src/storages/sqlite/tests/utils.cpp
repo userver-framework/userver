@@ -1,8 +1,6 @@
 #include <userver/storages/sqlite/tests/utils.hpp>
 
 #include <cstdlib>
-#include <optional>
-#include <string>
 
 #include <fmt/format.h>
 #include <userver/components/component_config.hpp>
@@ -13,8 +11,6 @@
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/uuid4.hpp>
-
-#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

@@ -36,6 +36,12 @@ class Connection final {
   /// @brief Connection destructor
   ~Connection();
 
+  struct Deleter {
+    void operator()(sqlite3* sqlite_handle);
+  };
+
+  sqlite3* getHandle() const noexcept;
+
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;
 
@@ -67,7 +73,7 @@ class Connection final {
   ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
                       std::optional<std::size_t> batch_size) const;
 
-  sqlite3* db = nullptr;
+  std::unique_ptr<sqlite3, Deleter> db;
   engine::TaskProcessor& blocking_task_processor_;
 };
 

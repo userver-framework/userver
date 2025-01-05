@@ -26,14 +26,21 @@ namespace components {
 
 // clang-format on
 
-class SQLite final : public components::ComponentBase {
+// for mocked tests
+class ISQLite {
+ public:
+  virtual ~ISQLite() = default;
+  virtual storages::sqlite::ConnectionPtr GetConnection() const = 0;
+};
+
+class SQLite final : public components::ComponentBase, public ISQLite {
  public:
   /// Component constructor
   SQLite(const ComponentConfig&, const ComponentContext&);
   /// Component destructor
   ~SQLite() override;
 
-  storages::sqlite::ConnectionPtr GetConnection() const;
+  storages::sqlite::ConnectionPtr GetConnection() const override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
