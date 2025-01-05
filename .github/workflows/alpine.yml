@@ -41,6 +41,11 @@ jobs:
                   alpine-cache-dir ${{github.ref}} run-
                   alpine-cache-dir
 
+          - name: Setup host dirs
+            run: |
+                mkdir -p ${{env.CCACHE_DIR}}
+                mkdir -p ${{env.CPM_SOURCE_CACHE}}
+
           - name: Setup latest Alpine Linux
             uses: jirutka/setup-alpine@v1
             with:
