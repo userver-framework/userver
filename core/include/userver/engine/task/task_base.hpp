@@ -5,14 +5,13 @@
 
 #include <chrono>
 #include <memory>
-#include <string>
-
-#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <string_view>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/exception.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,9 +20,6 @@ class WrappedCallBase;
 }  // namespace utils::impl
 
 namespace engine {
-namespace ev {
-class ThreadControl;
-}  // namespace ev
 namespace impl {
 class TaskContextHolder;
 class TaskContext;
@@ -81,7 +77,7 @@ public:
     /// Gets the task State
     State GetState() const;
 
-    static const std::string& GetStateName(State state);
+    static std::string_view GetStateName(State state);
 
     /// Returns whether the task finished execution
     bool IsFinished() const;
@@ -112,6 +108,19 @@ public:
     /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
     /// and no TaskCancellationBlockers are present.
     void WaitUntil(Deadline) const;
+
+    /// @brief Suspends execution until the task finishes or caller is cancelled.
+    /// Can be called from coroutine context only. For non-coroutine context use
+    /// BlockingWait().
+    /// @returns `false` when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    [[nodiscard]] bool WaitNothrow() const noexcept;
+
+    /// @brief Suspends execution until the task finishes or until the specified
+    /// deadline is reached or until caller is cancelled
+    /// @returns FutureStatus::kCancelled when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    [[nodiscard]] FutureStatus WaitNothrowUntil(Deadline) const noexcept;
 
     /// Queues task cancellation request
     void RequestCancel();
@@ -163,28 +172,9 @@ private:
     friend class impl::DetachedTasksSyncBlock;
     friend class TaskCancellationToken;
 
-    boost::intrusive_ptr<impl::TaskContext> context_;
+    struct Impl;
+    utils::FastPimpl<Impl, 8, 8> pimpl_;
 };
-
-/// @brief Namespace with functions to work with current task from within it
-namespace current_task {
-
-/// Returns true only when running in userver coroutine environment,
-/// i.e. in an engine::TaskProcessor thread.
-bool IsTaskProcessorThread() noexcept;
-
-/// Returns reference to the task processor executing the caller
-TaskProcessor& GetTaskProcessor();
-
-/// Returns task coroutine stack size
-std::size_t GetStackSize();
-
-/// @cond
-// Returns ev thread handle, internal use only
-ev::ThreadControl& GetEventThread();
-/// @endcond
-
-}  // namespace current_task
 
 template <typename Rep, typename Period>
 void TaskBase::WaitFor(const std::chrono::duration<Rep, Period>& duration) const noexcept(false) {
@@ -195,13 +185,6 @@ template <typename Clock, typename Duration>
 void TaskBase::WaitUntil(const std::chrono::time_point<Clock, Duration>& until) const noexcept(false) {
     WaitUntil(Deadline::FromTimePoint(until));
 }
-
-namespace impl {
-
-// For internal use only.
-std::uint64_t GetCreatedTaskCount(TaskProcessor&);
-
-}  // namespace impl
 
 }  // namespace engine
 

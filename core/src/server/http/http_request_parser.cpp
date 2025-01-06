@@ -2,7 +2,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/server/http/http_method.hpp>
-#include <userver/server/request/request_base.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
 

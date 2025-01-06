@@ -12,6 +12,7 @@
 
 #include <userver/ugrpc/field_mask.hpp>
 #include <userver/ugrpc/protobuf_visit.hpp>
+#include <userver/utils/text_light.hpp>
 
 #include <tests/protobuf.pb.h>
 
@@ -26,6 +27,42 @@ namespace {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLE_IF_OLD_PROTOBUF_TEST(test_suite, name) TEST(test_suite, DISABLED_##name)
 #endif
+
+// The weird characters are important to test whether WebSafeBase64 actually works.
+const std::vector<std::string> kSmallFieldMask = {"abc.`def.gh`.qc gh+ûï¾", "value.field"};
+
+// These should be equivalent. Depends on the order of paths in the mask.
+const std::string kSmallFieldMaskCommaSeparatedString1 = "abc.`def.gh`.qc gh+ûï¾,value.field";
+const std::string kSmallFieldMaskCommaSeparatedString2 = "value.field,abc.`def.gh`.qc gh+ûï¾";
+
+// These should be equivalent. Depends on the order of paths in the mask.
+const std::string kSmallFieldMaskWebSafeBase64String1 = "YWJjLmBkZWYuZ2hgLnFjIGdoK8O7w6_Cvix2YWx1ZS5maWVsZA==";
+const std::string kSmallFieldMaskWebSafeBase64String2 = "dmFsdWUuZmllbGQsYWJjLmBkZWYuZ2hgLnFjIGdoK8O7w6_Cvg==";
+
+void EnsureEqualToSmallMask(const ugrpc::FieldMask& field_mask) {
+    EXPECT_FALSE(field_mask.IsLeaf());
+    EXPECT_THAT(field_mask.GetFieldNames(), testing::UnorderedElementsAreArray({"abc", "value"}));
+
+    const ugrpc::FieldMask& abc = field_mask.GetMaskForField("abc").value();
+    EXPECT_FALSE(abc.IsLeaf());
+    EXPECT_THAT(abc.GetFieldNames(), testing::UnorderedElementsAreArray({"def.gh"}));
+
+    const ugrpc::FieldMask& defgh = abc.GetMaskForField("def.gh").value();
+    EXPECT_FALSE(defgh.IsLeaf());
+    EXPECT_THAT(defgh.GetFieldNames(), testing::UnorderedElementsAreArray({"qc gh+ûï¾"}));
+
+    const ugrpc::FieldMask& qcgh = defgh.GetMaskForField("qc gh+ûï¾").value();
+    EXPECT_TRUE(qcgh.IsLeaf());
+    EXPECT_THAT(qcgh.GetFieldNamesList(), testing::IsEmpty());
+
+    const ugrpc::FieldMask& value = field_mask.GetMaskForField("value").value();
+    EXPECT_FALSE(value.IsLeaf());
+    EXPECT_THAT(value.GetFieldNames(), testing::UnorderedElementsAreArray({"field"}));
+
+    const ugrpc::FieldMask& field = value.GetMaskForField("field").value();
+    EXPECT_TRUE(field.IsLeaf());
+    EXPECT_THAT(field.GetFieldNamesList(), testing::IsEmpty());
+}
 
 const std::vector<std::string> kMockFieldMask = {
     "root3.category3.field2",                 // Three levels of nesting
@@ -89,15 +126,6 @@ google::protobuf::FieldMask MakeGoogleFieldMask(const std::vector<std::string>& 
     return field_mask;
 }
 
-sample::ugrpc::MessageWithDifferentTypes::NestedMessage* ConstructNestedMessagePtr() {
-    auto* message = new sample::ugrpc::MessageWithDifferentTypes::NestedMessage();
-    message->set_required_string("string1");
-    message->set_optional_string("string2");
-    message->set_required_int(123321);
-    message->set_optional_int(456654);
-    return message;
-}
-
 sample::ugrpc::MessageWithDifferentTypes::NestedMessage ConstructNestedMessage() {
     sample::ugrpc::MessageWithDifferentTypes::NestedMessage message;
     message.set_required_string("string1");
@@ -107,47 +135,47 @@ sample::ugrpc::MessageWithDifferentTypes::NestedMessage ConstructNestedMessage()
     return message;
 }
 
-sample::ugrpc::MessageWithDifferentTypes* ConstructMessage(bool with_recursive = true) {
-    auto* message = new sample::ugrpc::MessageWithDifferentTypes();
+sample::ugrpc::MessageWithDifferentTypes ConstructMessage(bool with_recursive = true) {
+    sample::ugrpc::MessageWithDifferentTypes message;
 
     // leave required_string empty
-    message->set_optional_string("string2");
+    message.set_optional_string("string2");
 
-    message->set_required_int(123321);
-    message->set_optional_int(456654);
+    message.set_required_int(123321);
+    message.set_optional_int(456654);
 
-    message->set_allocated_required_nested(ConstructNestedMessagePtr());
-    message->set_allocated_optional_nested(ConstructNestedMessagePtr());
+    *message.mutable_required_nested() = ConstructNestedMessage();
+    *message.mutable_optional_nested() = ConstructNestedMessage();
 
     if (with_recursive) {
-        message->set_allocated_required_recursive(ConstructMessage(false));
-        message->set_allocated_optional_recursive(ConstructMessage(false));
+        *message.mutable_required_recursive() = ConstructMessage(false);
+        *message.mutable_optional_recursive() = ConstructMessage(false);
     }
 
-    message->add_repeated_primitive("string1");
-    message->add_repeated_primitive("string2");
-    message->add_repeated_primitive("string3");
+    message.add_repeated_primitive("string1");
+    message.add_repeated_primitive("string2");
+    message.add_repeated_primitive("string3");
 
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
 
     // No key1
-    message->mutable_primitives_map()->insert({"key2", "value2"});
-    message->mutable_primitives_map()->insert({"key3", "value3"});
+    message.mutable_primitives_map()->insert({"key2", "value2"});
+    message.mutable_primitives_map()->insert({"key3", "value3"});
 
-    message->mutable_nested_map()->insert({"key1", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key2", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key3", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key1 value1", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key1", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key2", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key3", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key1 value1", ConstructNestedMessage()});
     // No key2.value2
-    message->mutable_nested_map()->insert({"key3.value3 field3", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key3.value3 field3", ConstructNestedMessage()});
 
     // leave oneof_string empty
-    message->set_oneof_int(789987);
+    message.set_oneof_int(789987);
     // leave oneof_nested empty
 
-    message->mutable_google_value()->set_string_value("string");
+    message.mutable_google_value()->set_string_value("string");
 
     return message;
 }
@@ -474,30 +502,43 @@ TEST(FieldMaskConstructor, SimpleFieldMask) {
 
 TEST(FieldMaskConstructor, HardFieldMask) { EXPECT_NO_THROW(ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask))); }
 
-TEST(FieldMaskAddPath, Errors) {
-    ugrpc::FieldMask fm;
-
-    EXPECT_THROW(fm.AddPath("."), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath(".."), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath(".value1"), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath("value2.."), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath(".value3."), ugrpc::FieldMask::BadPathError);
-
-    EXPECT_THROW(fm.AddPath("`"), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath("``"), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath("`value5"), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath("`value6``"), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath("`value7`.`"), ugrpc::FieldMask::BadPathError);
-    EXPECT_THROW(fm.AddPath("value8.`unclosed.field"), ugrpc::FieldMask::BadPathError);
+TEST(FieldMaskConstructor, FromCommaSeparatedString1) {
+    ugrpc::FieldMask field_mask(kSmallFieldMaskCommaSeparatedString1, ugrpc::FieldMask::Encoding::kCommaSeparated);
+    EnsureEqualToSmallMask(field_mask);
 }
 
-TEST(FieldMaskToGoogleMask, EmptyMask) {
-    EXPECT_THAT(ToList(ugrpc::FieldMask().ToGoogleMask().paths()), testing::UnorderedElementsAreArray({""}));
+TEST(FieldMaskConstructor, FromCommaSeparatedString2) {
+    ugrpc::FieldMask field_mask(kSmallFieldMaskCommaSeparatedString2, ugrpc::FieldMask::Encoding::kCommaSeparated);
+    EnsureEqualToSmallMask(field_mask);
 }
 
-TEST(FieldMaskToGoogleMask, MockFieldMask) {
+TEST(FieldMaskConstructor, FromWebSafeBase64String1) {
+    ugrpc::FieldMask field_mask(kSmallFieldMaskWebSafeBase64String1, ugrpc::FieldMask::Encoding::kWebSafeBase64);
+    EnsureEqualToSmallMask(field_mask);
+}
+
+TEST(FieldMaskConstructor, FromWebSafeBase64String2) {
+    ugrpc::FieldMask field_mask(kSmallFieldMaskWebSafeBase64String2, ugrpc::FieldMask::Encoding::kWebSafeBase64);
+    EnsureEqualToSmallMask(field_mask);
+}
+
+TEST(FieldMaskToString, EmptyMask) {
+    const ugrpc::FieldMask field_mask;
+    EXPECT_THAT(field_mask.ToString(), "");
+}
+
+TEST(FieldMaskToString, SmallMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kSmallFieldMask));
     EXPECT_THAT(
-        ToList(ugrpc::FieldMask(MakeGoogleFieldMask(kMockFieldMask)).ToGoogleMask().paths()),
+        field_mask.ToString(),
+        testing::AnyOf(kSmallFieldMaskCommaSeparatedString1, kSmallFieldMaskCommaSeparatedString2)
+    );
+}
+
+TEST(FieldMaskToString, MockMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kMockFieldMask));
+    EXPECT_THAT(
+        utils::text::Split(field_mask.ToString(), ","),
         testing::UnorderedElementsAreArray(
             {"root1",
              "root2.category1",
@@ -518,9 +559,10 @@ TEST(FieldMaskToGoogleMask, MockFieldMask) {
     );
 }
 
-TEST(FieldMaskToGoogleMask, SimpleFieldMask) {
+TEST(FieldMaskToString, SimpleMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kSimpleFieldMask));
     EXPECT_THAT(
-        ToList(ugrpc::FieldMask(MakeGoogleFieldMask(kSimpleFieldMask)).ToGoogleMask().paths()),
+        utils::text::Split(field_mask.ToString(), ","),
         testing::UnorderedElementsAreArray({
             "required_string",
             "optional_int",
@@ -536,9 +578,10 @@ TEST(FieldMaskToGoogleMask, SimpleFieldMask) {
     );
 }
 
-TEST(FieldMaskToGoogleMask, HardFieldMask) {
+TEST(FieldMaskToString, HardMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kHardFieldMask));
     EXPECT_THAT(
-        ToList(ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask)).ToGoogleMask().paths()),
+        utils::text::Split(field_mask.ToString(), ","),
         testing::UnorderedElementsAreArray(
             {"required_string",
              "optional_int",
@@ -559,6 +602,51 @@ TEST(FieldMaskToGoogleMask, HardFieldMask) {
              "nested_map.*.optional_string"}
         )
     );
+}
+
+TEST(FieldMaskToWebSafeBase64, EmptyMask) {
+    const ugrpc::FieldMask field_mask;
+    EXPECT_THAT(field_mask.ToWebSafeBase64(), "");
+}
+
+TEST(FieldMaskToWebSafeBase64, SmallMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kSmallFieldMask));
+    EXPECT_THAT(
+        field_mask.ToWebSafeBase64(),
+        testing::AnyOf(kSmallFieldMaskWebSafeBase64String1, kSmallFieldMaskWebSafeBase64String2)
+    );
+}
+
+TEST(FieldMaskToWebSafeBase64, MockMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kMockFieldMask));
+    EXPECT_NO_THROW(field_mask.ToWebSafeBase64());
+}
+
+TEST(FieldMaskToWebSafeBase64, SimpleMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kSimpleFieldMask));
+    EXPECT_NO_THROW(field_mask.ToWebSafeBase64());
+}
+
+TEST(FieldMaskToWebSafeBase64, HardMask) {
+    const ugrpc::FieldMask field_mask(MakeGoogleFieldMask(kHardFieldMask));
+    EXPECT_NO_THROW(field_mask.ToWebSafeBase64());
+}
+
+TEST(FieldMaskAddPath, Errors) {
+    ugrpc::FieldMask fm;
+
+    EXPECT_THROW(fm.AddPath("."), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath(".."), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath(".value1"), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath("value2.."), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath(".value3."), ugrpc::FieldMask::BadPathError);
+
+    EXPECT_THROW(fm.AddPath("`"), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath("``"), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath("`value5"), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath("`value6``"), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath("`value7`.`"), ugrpc::FieldMask::BadPathError);
+    EXPECT_THROW(fm.AddPath("value8.`unclosed.field"), ugrpc::FieldMask::BadPathError);
 }
 
 TEST(FieldMaskIsPathFullyIn, MockFieldMask) {
@@ -655,6 +743,9 @@ TEST(FieldMaskIsPathFullyIn, MockFieldMask) {
     EXPECT_TRUE(field_mask.IsPathFullyIn("root9.*.field.subfield2"));
     EXPECT_FALSE(field_mask.IsPathFullyIn("root9.*.field2.subfield1"));
     EXPECT_FALSE(field_mask.IsPathFullyIn("root9.*.field2.subfield2"));
+    EXPECT_FALSE(field_mask.IsPathFullyIn("root9.some_key"));
+    EXPECT_TRUE(field_mask.IsPathFullyIn("root9.some_key.field"));
+    EXPECT_TRUE(field_mask.IsPathFullyIn("root9.some_key.field.subfield1"));
 }
 
 TEST(FieldMaskIsPathFullyIn, EmptyMask) {
@@ -769,6 +860,9 @@ TEST(FieldMaskIsPathPartiallyIn, MockFieldMask) {
     EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.*.field.subfield2"));
     EXPECT_FALSE(field_mask.IsPathPartiallyIn("root9.*.field2.subfield1"));
     EXPECT_FALSE(field_mask.IsPathPartiallyIn("root9.*.field2.subfield2"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key.field"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key.field.subfield1"));
 }
 
 TEST(FieldMaskIsPathPartiallyIn, EmptyMask) {
@@ -894,27 +988,45 @@ TEST(FieldMaskTrim, TrivialMessage) {
 
 DISABLE_IF_OLD_PROTOBUF_TEST(FieldMaskTrim, SimpleFieldMask) {
     auto message = ConstructMessage();
-    ugrpc::FieldMask(MakeGoogleFieldMask(kSimpleFieldMask)).Trim(*message);
-    Compare(*message, ConstructTrimmedSimple());
-    delete message;
+    ugrpc::FieldMask(MakeGoogleFieldMask(kSimpleFieldMask)).Trim(message);
+    Compare(message, ConstructTrimmedSimple());
 }
 
 DISABLE_IF_OLD_PROTOBUF_TEST(FieldMaskTrim, HardFieldMask) {
     auto message = ConstructMessage();
-    ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask)).Trim(*message);
-    Compare(*message, ConstructTrimmedHard());
-    delete message;
+    ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask)).Trim(message);
+    Compare(message, ConstructTrimmedHard());
 }
 
-TEST(FieldMaskGetChild, NonExistingChild) {
+TEST(FieldMaskGetMaskForField, NonExistingChild) {
     ugrpc::FieldMask mask(MakeGoogleFieldMask(kHardFieldMask));
     EXPECT_FALSE(mask.GetMaskForField("something-weird").has_value());
+}
+
+TEST(FieldMaskGetMaskForField, NonExistingChildOnLeaf) {
+    ugrpc::FieldMask mask;
+    EXPECT_TRUE(mask.GetMaskForField("something-weird").has_value());
+    EXPECT_EQ(&mask.GetMaskForField("something-weird").value(), &mask.GetMaskForField("something-weird-2").value());
+}
+
+TEST(FieldMaskGetMaskForField, FallbackToWildcard) {
+    const ugrpc::FieldMask mask(MakeGoogleFieldMask(kHardFieldMask));
+    const utils::OptionalRef<const ugrpc::FieldMask> nested_map = mask.GetMaskForField("nested_map");
+    const utils::OptionalRef<const ugrpc::FieldMask> unknown_key = nested_map->GetMaskForField("unknown_key");
+    EXPECT_THAT(unknown_key->GetFieldNames(), testing::UnorderedElementsAreArray({"optional_string"}));
 }
 
 TEST(FieldMaskHasFieldName, MockFieldMask) {
     ugrpc::FieldMask mask(MakeGoogleFieldMask(kMockFieldMask));
     EXPECT_FALSE(mask.HasFieldName("something-weird"));
     EXPECT_TRUE(mask.HasFieldName("root1"));
+    EXPECT_TRUE(mask.GetMaskForField("root9")->HasFieldName("*"));
+    EXPECT_TRUE(mask.GetMaskForField("root9")->HasFieldName("some_key"));
+}
+
+TEST(FieldMaskHasFieldName, NonExistingChildOnLeaf) {
+    ugrpc::FieldMask mask;
+    EXPECT_TRUE(mask.HasFieldName("something-weird"));
 }
 
 USERVER_NAMESPACE_END

@@ -1,9 +1,9 @@
-#include <userver/storages/redis/impl/request.hpp>
+#include <storages/redis/impl/request.hpp>
 
 #include <userver/tracing/in_place_span.hpp>
 
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/sentinel.hpp>
@@ -12,7 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -128,6 +128,6 @@ ReplyPtr Request::Get() {
 
 engine::impl::ContextAccessor* Request::TryGetContextAccessor() noexcept { return future_.TryGetContextAccessor(); }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

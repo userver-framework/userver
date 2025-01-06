@@ -66,6 +66,9 @@ void SetDeadline(Deadline deadline);
 /// Return cancellation token for current coroutine.
 TaskCancellationToken GetCancellationToken();
 
+/// @see engine::Task::RequestCancel
+void RequestCancel();
+
 }  // namespace current_task
 
 /// Blocks cancellation for specific scopes, e.g. destructors.

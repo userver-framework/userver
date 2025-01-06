@@ -3,8 +3,7 @@
 // This file was generated from {{ proto.source_file }}
 #include "{{ proto.source_file_without_ext }}_service.usrv.pb.hpp"
 
-{# All constant includes must go inside this header #}
-#include <userver/ugrpc/impl/protobuf_collector.hpp>
+{# DO NOT ADD NEW INCLUDES HERE! Add them inside codegen_definitions.hpp instead #}
 #include <userver/ugrpc/server/impl/codegen_definitions.hpp>
 
 {{ utils.include_grpcpp(proto.source_file_without_ext) }}
@@ -40,13 +39,6 @@ inline const bool k{{service.name}}TypesRegistration =
   return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
 }
 
-// Legacy
-void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
-  CallContext context{call};
-  auto result = {{method.name}}(context, call);
-  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
-}
-
 {% elif method.client_streaming %}
 
 {{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
@@ -54,13 +46,6 @@ void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
     [[maybe_unused]] {{method.name}}Reader& reader) {
   UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
   return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
-}
-
-// Legacy
-void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
-  CallContext context{call};
-  auto result = {{method.name}}(context, call);
-  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
 }
 
 {% elif method.server_streaming %}
@@ -73,14 +58,6 @@ void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
   return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
 }
 
-// Legacy
-void {{service.name}}Base::{{method.name}}({{method.name}}Call& call,
-                                           {{ method.input_type | grpc_to_cpp_name }}&& request) {
-  CallContext context{call};
-  auto result = {{method.name}}(context, std::move(request), call);
-  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
-}
-
 {% else %}
 
 {{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
@@ -88,14 +65,6 @@ void {{service.name}}Base::{{method.name}}({{method.name}}Call& call,
     [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
   UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
   return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
-}
-
-// Legacy
-void {{service.name}}Base::{{method.name}}({{method.name}}Call& call,
-                                           {{ method.input_type | grpc_to_cpp_name }}&& request) {
-  CallContext context{call};
-  auto result = {{method.name}}(context, std::move(request));
-  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
 }
 
 {% endif %}
@@ -110,8 +79,7 @@ std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
       {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
       std::move(settings), k{{service.name}}MethodNames, *this,
       {% for method in service.method %}
-      USERVER_NAMESPACE::ugrpc::server::impl::Dispatch(
-          &{{service.name}}Base::{{method.name}}){{ "," if not loop.last else ");" }}
+      &{{service.name}}Base::{{method.name}}{{ "," if not loop.last else ");" }}
       {% endfor %}
 }
 

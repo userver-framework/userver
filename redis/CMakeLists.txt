@@ -8,6 +8,7 @@ userver_module(redis
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_redistest.cpp"
     DBTEST_DATABASES redis redis-cluster
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmark"
+    UBENCH_DATABASES redis
 )
 
 # for libev
@@ -50,7 +51,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 _userver_directory_install(COMPONENT redis FILES
 	  "${USERVER_ROOT_DIR}/cmake/modules/FindHiredis.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
 # Helper library for testing user code with redis. Provides mock_client_base.hpp
@@ -59,6 +60,6 @@ if (USERVER_FEATURE_UTEST)
   add_subdirectory(testing)
 endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
   add_subdirectory(functional_tests)
 endif()

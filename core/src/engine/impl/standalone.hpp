@@ -44,6 +44,7 @@ private:
     utils::UniqueRef<TaskProcessor> task_processor_;
 };
 
+// Spawns a single task to run the callback, blocks the current thread to wait until it finishes.
 void RunOnTaskProcessorSync(TaskProcessor& tp, utils::function_ref<void()> user_cb);
 
 }  // namespace engine::impl

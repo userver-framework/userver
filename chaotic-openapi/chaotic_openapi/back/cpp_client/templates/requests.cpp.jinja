@@ -1,0 +1,55 @@
+#include <client/{{ name }}/requests.hpp>
+
+#include <userver/chaotic/openapi/parameters_write.hpp>
+#include <userver/formats/json/value_builder.hpp>
+
+namespace {{ namespace }} {
+
+namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
+
+{% for op in operations %}
+  {% if op.client_generate %}
+    {%- if not op.empty_request() -%}
+      namespace {{ op.cpp_namespace() }} {
+
+{% for parameter in op.parameters %}
+    static constexpr openapi::Name k{{ parameter.cpp_name }} = "{{ parameter.raw_name }}";
+{% endfor %}
+
+void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::Request& http_request)
+{
+  {# parameters #}
+  openapi::ParameterSinkHttpClient sink(
+    http_request,
+    "{{ op.path }}"
+  );
+  {% for parameter in op.parameters %}
+    WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
+  {% endfor %}
+
+  {# body #}
+  {% if len(op.request_bodies) == 1 %}
+    // http_request.data(ToJsonString(request.body));
+    http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));
+  {% elif len(op.request_bodies) > 1 %}
+    switch (request.body.index()) {
+    {%- for num, body in enumerate(op.request_bodies) -%}
+      case {{ num }}:
+        http_request.headers({kContentType, "{{ body.content_type }}");
+        {% if body.content_type == 'application/json' %}
+          // http_request.data(ToJsonString(std::get<{{ num }}>(request.body)));
+          http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(std::get<{{ num }}>(request.body)).ExtractValue()));
+        {% else %}
+          http_request.data(std::get<{{ num }}>(request.body).data);
+        {% endif %}
+    {% endfor %}
+    UASSERT(false);
+  {% endif %}
+}
+
+} // namespace
+    {%- endif %}
+  {% endif %}
+{% endfor %}
+
+}

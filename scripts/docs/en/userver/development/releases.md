@@ -29,7 +29,7 @@ This development strategy provides fast delivery and adoption of new features.
 ## Releases and Release model
 
 The above model may not fit if stability of interfaces is
-required. Examples of such development cases are: making prebuilt packeges of
+required. Examples of such development cases are: making prebuilt packages of
 the framework for package managers or OS distros, release based development
 model in the company, prototyping.
 

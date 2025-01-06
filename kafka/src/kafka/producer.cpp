@@ -16,6 +16,8 @@ namespace kafka {
 
 namespace {
 
+constexpr std::string_view kNonUtf8MessagePlaceholder = "<non-utf8-message>";
+
 void SendToTestPoint(
     std::string_view component_name,
     std::string_view topic_name,
@@ -30,6 +32,8 @@ void SendToTestPoint(
         builder["key"] = key;
         if (utils::text::IsUtf8(message)) {
             builder["message"] = message;
+        } else {
+            builder["message"] = kNonUtf8MessagePlaceholder;
         }
         if (partition.has_value()) {
             builder["partition"] = partition.value();

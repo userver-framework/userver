@@ -33,6 +33,13 @@ void Finish(Call& call, ugrpc::server::StreamingResult<Response>&& result) {
     }
 }
 
+template <typename Call, typename Result>
+void Finalize(Call& call, Result&& result) {
+    if (!call.IsFinished()) {
+        Finish(call, std::forward<Result>(result));
+    }
+}
+
 }  // namespace ugrpc::server::impl
 
 USERVER_NAMESPACE_END

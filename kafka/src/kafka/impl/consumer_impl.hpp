@@ -9,6 +9,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/kafka/impl/holders.hpp>
 #include <userver/kafka/message.hpp>
+#include <userver/kafka/offset_range.hpp>
 
 #include <kafka/impl/holders_aliases.hpp>
 
@@ -37,6 +38,17 @@ public:
     /// @brief Schedules the commitment task.
     void AsyncCommit();
 
+    /// @brief Retrieves the low and high offsets for the specified topic and partition.
+    OffsetRange GetOffsetRange(
+        const std::string& topic,
+        std::uint32_t partition,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
+
+    /// @brief Retrieves the partition IDs for the specified topic.
+    std::vector<std::uint32_t>
+    GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+
     /// @brief Effectively calls `PollMessage` until `deadline` is reached
     /// and no more than `max_batch_size` messages polled.
     MessageBatch PollBatch(std::size_t max_batch_size, engine::Deadline deadline);
@@ -55,10 +67,10 @@ public:
     /// @warning May throw in testsuite because calls testpoints
     void StopConsuming();
 
-private:
     /// @brief Schedules the `topics_` subscription.
-    void StartConsuming(const std::vector<std::string>& topics);
+    void StartConsuming();
 
+private:
     /// @brief Try to poll the message until `deadline` is reached.
     /// If no message polled until the deadline, returns
     /// `std::nullopt`.
@@ -104,6 +116,8 @@ private:
 private:
     const std::string& name_;
     Stats& stats_;
+
+    const std::vector<std::string> topics_;
 
     engine::SingleConsumerEvent queue_became_non_empty_event_;
 

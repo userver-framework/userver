@@ -9,50 +9,51 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-template <typename QueueType>
-auto GetProducerTask(std::shared_ptr<QueueType> queue, std::atomic<bool>& run) {
-    return utils::Async("producer", [producer = queue->GetProducer(), &run] {
+template <typename Producer>
+auto GetProducerTask(Producer producer, const std::atomic<bool>& run) {
+    return engine::CriticalAsyncNoSpan([producer = std::move(producer), &run] {
         std::size_t message = 0;
-        while (run) {
-            bool res = producer.Push(std::size_t{message++});
-            benchmark::DoNotOptimize(res);
+        while (run && producer.Push(std::size_t{message++})) {
         }
     });
 }
 
-template <typename QueueType>
-auto GetConsumerTask(std::shared_ptr<QueueType> queue, const std::atomic<bool>& run) {
-    return utils::Async("consumer", [consumer = queue->GetConsumer(), &run]() {
+template <typename Consumer>
+auto GetConsumerTask(Consumer consumer) {
+    return engine::CriticalAsyncNoSpan([consumer = std::move(consumer)] {
         std::size_t value{};
-        while (run) {
-            bool res = consumer.Pop(value);
-            benchmark::DoNotOptimize(res);
+        while (consumer.Pop(value)) {
+            benchmark::DoNotOptimize(value);
         }
     });
 }
+
+constexpr auto kUnbounded = concurrent::NonFifoMpmcQueue<std::size_t>::kUnbounded;
+
 }  // namespace
 
 template <typename QueueType>
-void producer_consumer(benchmark::State& state) {
+void QueueProduce(benchmark::State& state) {
     engine::RunStandalone(state.range(0) + state.range(1), [&] {
-        std::size_t ProducersCount = state.range(0);
-        std::size_t ConsumersCount = state.range(1);
-        std::size_t QueueSize = state.range(2);
+        const std::size_t producers_count = state.range(0);
+        const std::size_t consumers_count = state.range(1);
+        const std::size_t max_size = state.range(2);
 
+        auto queue = QueueType::Create(max_size);
         std::atomic<bool> run{true};
-        auto queue = QueueType::Create(QueueSize);
 
-        std::vector<engine::TaskWithResult<void>> tasks;
-        tasks.reserve(ProducersCount + ConsumersCount - 1);
-        for (std::size_t i = 0; i < ProducersCount - 1; ++i) {
-            tasks.push_back(GetProducerTask(queue, run));
+        std::vector<engine::TaskWithResult<void>> producer_tasks;
+        producer_tasks.reserve(producers_count - 1);
+        for (std::size_t i = 0; i < producers_count - 1; ++i) {
+            producer_tasks.push_back(GetProducerTask(queue->GetProducer(), run));
         }
 
-        for (std::size_t i = 0; i < ConsumersCount; ++i) {
-            tasks.push_back(GetConsumerTask(queue, run));
+        std::vector<engine::TaskWithResult<void>> consumer_tasks;
+        consumer_tasks.reserve(consumers_count);
+        for (std::size_t i = 0; i < consumers_count; ++i) {
+            consumer_tasks.push_back(GetConsumerTask(queue->GetConsumer()));
         }
 
-        // Current thread work
         {
             std::size_t message = 0;
             auto producer = queue->GetProducer();
@@ -63,35 +64,145 @@ void producer_consumer(benchmark::State& state) {
         }
 
         run = false;
+
+        for (auto& task : producer_tasks) {
+            task.RequestCancel();
+            task.Get();
+        }
+        for (auto& task : consumer_tasks) {
+            task.Get();
+        }
     });
 }
 
-BENCHMARK_TEMPLATE(producer_consumer, concurrent::NonFifoMpmcQueue<std::size_t>)
-    ->RangeMultiplier(2)
-    ->Ranges({{1, 4}, {1, 4}, {128, 512}});
+template <typename QueueType>
+void QueueConsume(benchmark::State& state) {
+    engine::RunStandalone(state.range(0) + state.range(1), [&] {
+        const std::size_t producers_count = state.range(0);
+        const std::size_t consumers_count = state.range(1);
+        const std::size_t max_size = state.range(2);
 
-BENCHMARK_TEMPLATE(producer_consumer, concurrent::NonFifoMpmcQueue<std::size_t>)
-    ->RangeMultiplier(2)
-    ->Ranges({{1, 4}, {1, 4}, {1'000'000'000, 1'000'000'000}});
+        auto queue = QueueType::Create(max_size);
+        std::atomic<bool> run{true};
 
-BENCHMARK_TEMPLATE(producer_consumer, concurrent::NonFifoMpscQueue<std::size_t>)
-    ->RangeMultiplier(2)
-    ->Ranges({{1, 4}, {1, 1}, {1'000'000'000, 1'000'000'000}});
+        std::vector<engine::TaskWithResult<void>> producer_tasks;
+        producer_tasks.reserve(producers_count);
+        for (std::size_t i = 0; i < producers_count; ++i) {
+            producer_tasks.push_back(GetProducerTask(queue->GetProducer(), run));
+        }
 
-BENCHMARK_TEMPLATE(producer_consumer, concurrent::SpmcQueue<std::size_t>)
-    ->RangeMultiplier(2)
-    ->Ranges({{1, 1}, {1, 4}, {1'000'000'000, 1'000'000'000}});
+        std::vector<engine::TaskWithResult<void>> consumer_tasks;
+        consumer_tasks.reserve(consumers_count - 1);
+        for (std::size_t i = 0; i < consumers_count - 1; ++i) {
+            consumer_tasks.push_back(GetConsumerTask(queue->GetConsumer()));
+        }
 
-BENCHMARK_TEMPLATE(producer_consumer, concurrent::SpscQueue<std::size_t>)
-    ->RangeMultiplier(2)
-    ->Ranges({{1, 1}, {1, 1}, {1'000'000'000, 1'000'000'000}});
+        {
+            std::size_t message = 0;
+            auto consumer = queue->GetConsumer();
+            for ([[maybe_unused]] auto _ : state) {
+                (void)consumer.Pop(message);
+                benchmark::DoNotOptimize(message);
+            }
+        }
 
-BENCHMARK_TEMPLATE(producer_consumer, concurrent::MpscQueue<std::size_t>)
+        run = false;
+        for (auto& task : producer_tasks) {
+            task.RequestCancel();
+            task.Get();
+        }
+        for (auto& task : consumer_tasks) {
+            task.Get();
+        }
+    });
+}
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::NonFifoMpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 4}, {128, 512}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::NonFifoMpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 4}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::impl::UnfairUnboundedNonFifoMpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 4}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::NonFifoMpmcQueue<std::size_t>)
     ->RangeMultiplier(2)
     ->Ranges({{1, 4}, {1, 1}, {128, 512}});
 
-BENCHMARK_TEMPLATE(producer_consumer, concurrent::MpscQueue<std::size_t>)
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::NonFifoMpmcQueue<std::size_t>)
     ->RangeMultiplier(2)
-    ->Ranges({{1, 4}, {1, 1}, {1'000'000'000, 1'000'000'000}});
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::impl::UnfairUnboundedNonFifoMpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::NonFifoMpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::UnboundedNonFifoMpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::NonFifoMpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::UnboundedNonFifoMpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::SpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 4}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::UnboundedSpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 4}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::SpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::UnboundedSpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::SpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::UnboundedSpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::SpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::UnboundedSpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::MpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {128, 512}});
+
+BENCHMARK_TEMPLATE(QueueProduce, concurrent::MpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::MpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {128, 512}});
+
+BENCHMARK_TEMPLATE(QueueConsume, concurrent::MpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {kUnbounded, kUnbounded}});
 
 USERVER_NAMESPACE_END

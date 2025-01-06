@@ -2,6 +2,8 @@
 
 #include <set>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <dump/internal_helpers_test.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>

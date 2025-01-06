@@ -12,7 +12,7 @@
 #include <server/http/http_request_parser.hpp>
 //
 #include <userver/engine/io/socket.hpp>
-#include <userver/server/request/request_base.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -45,11 +45,11 @@ private:
     bool IsRequestTasksEmpty() const noexcept;
 
     void ListenForRequests() noexcept;
-    void ProcessRequest(std::shared_ptr<request::RequestBase>&& request_ptr);
+    void ProcessRequest(std::shared_ptr<http::HttpRequest>&& request_ptr);
     bool WaitOnSocket(engine::Deadline deadline);
 
-    engine::TaskWithResult<void> HandleQueueItem(const std::shared_ptr<request::RequestBase>& request) noexcept;
-    void SendResponse(request::RequestBase& request);
+    engine::TaskWithResult<void> HandleQueueItem(const std::shared_ptr<http::HttpRequest>& request) noexcept;
+    void SendResponse(http::HttpRequest& request);
 
     std::string Getpeername() const;
 
@@ -66,8 +66,8 @@ private:
     std::unique_ptr<request::RequestParser> parser_{nullptr};
     bool is_http2_parser_{false};
 
-    using RequestBasePtr = std::shared_ptr<request::RequestBase>;
-    std::vector<RequestBasePtr> pending_requests_;
+    using HttpRequestPtr = std::shared_ptr<http::HttpRequest>;
+    std::vector<HttpRequestPtr> pending_requests_;
 
     engine::io::Sockaddr remote_address_;
     std::string peer_name_;

@@ -20,6 +20,7 @@ userver_module(ydb
     LINK_LIBRARIES ${YDB_LIBRARIES}
     INCLUDE_DIRS ${ydb-cpp-sdk_INCLUDE_DIRS}
     UTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
+    NO_INSTALL  # TODO
 )
 
 # Enforce that userver-ydb requires C++20
@@ -33,6 +34,6 @@ _userver_directory_install(COMPONENT ydb
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
   add_subdirectory(functional_tests)
 endif()

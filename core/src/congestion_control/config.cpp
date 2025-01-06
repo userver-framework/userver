@@ -76,7 +76,7 @@ const dynamic_config::Key<RpsCcConfig> kRpsCcConfig{
     ParseRpsCcConfig,
     {
         {"USERVER_RPS_CCONTROL", kRpsControlDefaults},
-        {"USERVER_RPS_CCONTROL_ENABLED", false},
+        {"USERVER_RPS_CCONTROL_ENABLED", true},
         {"USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC", 5},
     },
 };

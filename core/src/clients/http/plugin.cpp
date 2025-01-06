@@ -38,11 +38,11 @@ namespace impl {
 
 PluginPipeline::PluginPipeline(const std::vector<utils::NotNull<Plugin*>>& plugins) : plugins_(plugins) {}
 
-void PluginPipeline::HookCreateSpan(RequestState& request_state) {
+void PluginPipeline::HookCreateSpan(RequestState& request_state, tracing::Span& span) {
     PluginRequest req(request_state);
 
     for (const auto& plugin : plugins_) {
-        plugin->HookCreateSpan(req);
+        plugin->HookCreateSpan(req, span);
     }
 }
 

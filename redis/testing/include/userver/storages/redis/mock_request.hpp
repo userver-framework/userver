@@ -6,9 +6,8 @@
 #include <memory>
 #include <string>
 
+#include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/request.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request.hpp>
 #include <userver/utils/assert.hpp>
@@ -71,9 +70,7 @@ public:
     void Wait() override {}
 
     ReplyType Get(const std::string& request_description) override {
-        throw USERVER_NAMESPACE::redis::RequestFailedException(
-            request_description, USERVER_NAMESPACE::redis::ReplyStatus::kTimeoutError
-        );
+        throw RequestFailedException(request_description, ReplyStatus::kTimeoutError);
     }
 
     ReplyPtr GetRaw() override {
@@ -116,55 +113,32 @@ private:
     std::deque<ReplyElem> data_;
 };
 
-template <typename Result, typename ReplyType = Result>
-Request<Result, ReplyType> CreateMockRequest(Result&& result, Request<Result, ReplyType>* /* for ADL */) {
-    return Request<Result, ReplyType>(std::make_unique<MockRequestData<Result, ReplyType>>(std::forward<Result>(result))
-    );
-}
-
-template <typename Result, typename ReplyType = Result>
-Request<Result, ReplyType> CreateMockRequestVoid(Request<Result, ReplyType>* /* for ADL */) {
-    static_assert(std::is_same<ReplyType, void>::value, "ReplyType must be void");
-    return Request<Result, ReplyType>(std::make_unique<MockRequestData<Result, ReplyType>>());
-}
-
-template <typename Result, typename ReplyType = Result>
-Request<Result, ReplyType> CreateMockRequestTimeout(Request<Result, ReplyType>* /* for ADL */) {
-    return Request<Result, ReplyType>(std::make_unique<MockRequestDataTimeout<Result, ReplyType>>());
-}
-
 template <typename T>
 struct ReplyTypeHelper {};
 
 template <typename Result, typename ReplyType>
-struct ReplyTypeHelper<Request<Result, ReplyType>> {
+struct ReplyTypeHelper<storages::redis::Request<Result, ReplyType>> {
     using ExtractedReplyType = ReplyType;
 };
-
-template <typename Request>
-using ExtractReplyType = typename ReplyTypeHelper<Request>::ExtractedReplyType;
 
 }  // namespace impl
 
 template <typename Request>
-Request CreateMockRequest(impl::ExtractReplyType<Request> reply) {
-    Request* tmp = nullptr;
-    return impl::CreateMockRequest(std::move(reply), tmp);
+Request CreateMockRequest(typename Request::Reply reply) {
+    return Request(
+        std::make_unique<impl::MockRequestData<typename Request::Result, typename Request::Reply>>(std::move(reply))
+    );
 }
 
 template <typename Request>
 Request CreateMockRequest() {
-    static_assert(
-        std::is_same<impl::ExtractReplyType<Request>, void>::value, "you must specify the reply for this request"
-    );
-    Request* tmp = nullptr;
-    return impl::CreateMockRequestVoid(tmp);
+    static_assert(std::is_same_v<typename Request::Reply, void>, "you must specify the reply for this request");
+    return Request(std::make_unique<impl::MockRequestData<typename Request::Result, void>>());
 }
 
 template <typename Request>
 Request CreateMockRequestTimeout() {
-    Request* tmp = nullptr;
-    return impl::CreateMockRequestTimeout(tmp);
+    return Request(std::make_unique<impl::MockRequestDataTimeout<typename Request::Result, typename Request::Reply>>());
 }
 
 template <ScanTag scan_tag>

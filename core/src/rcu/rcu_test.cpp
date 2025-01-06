@@ -17,10 +17,6 @@ namespace {
 
 using X = std::pair<int, int>;
 
-struct StdMutexRcuTraits {
-    using MutexType = std::mutex;
-};
-
 }  // namespace
 
 UTEST(Rcu, Ctr) { rcu::Variable<X> ptr; }
@@ -135,6 +131,7 @@ UTEST(Rcu, Lifetime) {
         auto writer = ptr.StartWrite();
         EXPECT_EQ(2, Counted::counter);
     }
+    engine::Yield();
     EXPECT_EQ(1, Counted::counter);
 
     {
@@ -503,7 +500,7 @@ private:
 UTEST(Rcu, SyncDestruction) {
     std::atomic<bool> destroyed[3]{false, false, false};
     {
-        rcu::Variable<DestructionTracker> var{rcu::DestructionType::kSync, destroyed[0]};
+        rcu::Variable<DestructionTracker, rcu::SyncRcuTraits> var{destroyed[0]};
         EXPECT_FALSE(destroyed[0]);
         EXPECT_FALSE(destroyed[1]);
         EXPECT_FALSE(destroyed[2]);
@@ -575,13 +572,13 @@ UTEST_MT(Rcu, Core, 3) {
 }
 
 TEST(Rcu, StdMutexInit) {
-    rcu::Variable<X, StdMutexRcuTraits> ptr(1, 2);
+    rcu::Variable<X, rcu::BlockingRcuTraits> ptr(1, 2);
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(1, 2), *reader);
 }
 
 TEST(Rcu, StdMutexChangeRead) {
-    rcu::Variable<X, StdMutexRcuTraits> ptr(1, 2);
+    rcu::Variable<X, rcu::BlockingRcuTraits> ptr(1, 2);
 
     {
         auto writer = ptr.StartWrite();
@@ -594,7 +591,7 @@ TEST(Rcu, StdMutexChangeRead) {
 }
 
 TEST(Rcu, StdMutexConcurrentWrites) {
-    rcu::Variable<X, StdMutexRcuTraits> ptr(1, 2);
+    rcu::Variable<X, rcu::BlockingRcuTraits> ptr(1, 2);
 
     std::atomic<bool> thread_started_write{false};
 

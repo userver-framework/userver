@@ -5,6 +5,7 @@
 
 #include <grpcpp/server_context.h>
 
+#include <userver/tracing/span.hpp>
 #include <userver/ugrpc/server/storage_context.hpp>
 #include <userver/utils/any_storage.hpp>
 
@@ -32,6 +33,9 @@ public:
 
     /// @brief Get name of called gRPC method
     std::string_view GetMethodName() const;
+
+    /// @brief Get the span of the current RPC
+    tracing::Span& GetSpan();
 
     /// @brief Returns call context for storing per-call custom data
     ///

@@ -1,0 +1,79 @@
+name: Alpine Linux
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+    CXX: clang++-18
+    CC: clang-18
+
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
+
+        name: Build only
+        runs-on: ubuntu-24.04
+
+        steps:
+          - uses: actions/checkout@v4
+            with:
+                fetch-depth: 0
+
+          - name: Setup latest Alpine Linux
+            uses: jirutka/setup-alpine@v1
+
+          - name: Install dependencies
+            shell: alpine.sh --root {0}
+            run: |
+                pwd
+                cat /etc/alpine-release
+                apk add lld
+                apk add $(cat scripts/docs/en/deps/alpine.md)
+
+          - name: Install test dependencies
+            shell: alpine.sh --root {0}
+            run: |
+                apk add postgresql16 \
+                        redis \
+                        rabbitmq-server \
+
+
+          - name: Run cmake
+            shell: alpine.sh {0}
+            run: |
+                pwd
+                mkdir build_debug
+                cd build_debug
+                CMAKE_PROGRAM_PATH=/usr/lib/llvm17/bin/ \
+                cmake \
+                    -DCMAKE_BUILD_TYPE=Debug \
+                    -DUSERVER_NO_WERROR=OFF \
+                    -DUSERVER_BUILD_ALL_COMPONENTS=1 \
+                    -DUSERVER_BUILD_SAMPLES=1 \
+                    -DUSERVER_BUILD_TESTS=1 \
+                    -DUSERVER_FEATURE_JEMALLOC=OFF \
+                    -DUSERVER_FEATURE_KAFKA=OFF \
+                    -DUSERVER_FEATURE_CLICKHOUSE=OFF \
+                    -DUSERVER_FEATURE_STACKTRACE=OFF \
+                    -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
+                    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
+                    -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
+                    -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
+                    -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
+                    -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \
+                    -DUSERVER_USE_LD=lld \
+                    ..
+
+          - name: Compile
+            shell: alpine.sh {0}
+            run: |
+                cd build_debug
+                cmake --build . -j$(nproc)

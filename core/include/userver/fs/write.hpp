@@ -5,8 +5,8 @@
 
 #include <string>
 
-#include <boost/filesystem/operations.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/boost_filesystem_file_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

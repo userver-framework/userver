@@ -36,6 +36,24 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams, const
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/message.hpp>
 
+#if !defined(USERVER_NO_LIBPQ_PATCHES)
+static_assert(
+    USERVER_LIBPQ_VERSION / 10000 == PG_VERSION_NUM / 10000,
+    "\n\n"
+    "======================================================================\n"
+    "Versions of postgres and libpq have diverged, check the output of cmake configure.\n"
+    "Either:\n"
+    "  a) set USERVER_FEATURE_PATCH_LIBPQ to OFF\n"
+    "     https://userver.tech/d5/d3d/md_en_2userver_2build_2options.html#cmake_options\n"
+    "  b) install libpq of the same version as postgres server\n"
+    "     and pass USERVER_PG_INCLUDE_DIR and USERVER_PG_LIBRARY_DIR cmake options to userver\n"
+    "     https://userver.tech/de/db9/md_en_2userver_2build_2dependencies.html#autotoc_md183\n"
+    "  c) build using the provided Docker containers or Conan\n"
+    "     https://userver.tech/de/dab/md_en_2userver_2build_2build.html#postgres_deps_versions\n"
+    "======================================================================\n"
+);
+#endif
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
@@ -58,6 +76,8 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams, const
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
+
+std::string_view FindCommandName(std::string_view str);
 
 namespace {
 
@@ -487,11 +507,22 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline, const PGresult* des
 
 void PGConnectionWrapper::ConsumeInput(Deadline deadline, const PGresult* description) {
     if (!TryConsumeInput(deadline, description)) {
-        if (engine::current_task::ShouldCancel()) {
-            throw ConnectionInterrupted("Task cancelled while consuming input");
+        std::string additional_info;
+        if (description) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+            const auto command_name = FindCommandName(PQcmdStatus(const_cast<PGresult*>(description)));
+            if (!command_name.empty()) {
+                additional_info = fmt::format(" for '{}' command", command_name);
+            }
         }
-        PGCW_LOG_LIMITED_WARNING() << "Timeout while consuming input from PostgreSQL connection socket";
-        throw ConnectionTimeoutError("Timed out while consuming input");
+
+        if (engine::current_task::ShouldCancel()) {
+            throw ConnectionInterrupted("Task cancelled while consuming input" + additional_info);
+        }
+
+        auto message = "Timeout while consuming input from PostgreSQL connection" + std::move(additional_info);
+        PGCW_LOG_LIMITED_WARNING() << message;
+        throw ConnectionTimeoutError(std::move(message));
     }
 }
 

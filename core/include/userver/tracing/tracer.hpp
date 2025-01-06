@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <unordered_set>
 
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer_fwd.hpp>

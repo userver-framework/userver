@@ -12,11 +12,11 @@ namespace storages::postgres::io {
 inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(std::size_t offset, std::size_t size, BufferCategory cat) const {
     const auto* new_buffer_start = buffer + offset;
     if (offset > length) {
-        throw InvalidInputBufferSize(length, ". Offset requested " + std::to_string(offset));
+        throw InvalidInputBufferSize(fmt::format("Offset {} requested for a buffer of size {}.", offset, length));
     }
     size = size == npos ? length - offset : size;
     if (offset + size > length) {
-        throw InvalidInputBufferSize(size, ". Buffer remaininig size is " + std::to_string(length - offset));
+        throw InvalidInputBufferSize(fmt::format("Unconsumed bytes in buffer: {}.", length - offset));
     }
     if (cat == BufferCategory::kKeepCategory) {
         cat = category;
@@ -51,7 +51,7 @@ std::size_t FieldBuffer::ReadRaw(T&& value, const TypeBufferCategory& categories
         return consumed;
     } else if (field_length < 0) {
         // invalid length value
-        throw InvalidInputBufferSize(0, "Negative buffer size value");
+        throw InvalidInputBufferSize(fmt::format("Negative buffer size value {}", field_length));
     } else if (field_length == 0) {
         traits::GetSetNull<ValueType>::SetDefault(std::forward<T>(value));
         return consumed;

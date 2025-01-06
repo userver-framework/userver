@@ -7,6 +7,8 @@
 
 #include <fmt/format.h>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <userver/alerts/component.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>

@@ -13,8 +13,6 @@ namespace server::net {
 struct EndpointInfo {
     EndpointInfo(const ListenerConfig&, http::HttpRequestHandler&);
 
-    std::string GetDescription() const;
-
     const ListenerConfig& listener_config;
     http::HttpRequestHandler& request_handler;
     Connection::Type connection_type{Connection::Type::kRequest};

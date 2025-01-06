@@ -4,18 +4,17 @@
 
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/server/http/http_method.hpp>
+#include <userver/server/http/http_request.hpp>
+#include <userver/server/http/http_request_builder.hpp>
 #include <userver/server/request/request_config.hpp>
 
-#include <server/request/request_constructor.hpp>
-
 #include "handler_info_index.hpp"
-#include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-class HttpRequestConstructor final : public request::RequestConstructor {
+class HttpRequestConstructor final {
 public:
     enum class Status {
         kOk,
@@ -40,7 +39,7 @@ public:
         engine::io::Sockaddr remote_address
     );
 
-    ~HttpRequestConstructor() override;
+    ~HttpRequestConstructor();
 
     HttpRequestConstructor(HttpRequestConstructor&&) = delete;
     HttpRequestConstructor& operator=(HttpRequestConstructor&&) = delete;
@@ -61,7 +60,7 @@ public:
     void SetStreamProducer(impl::Http2StreamEventProducer&& producer);
     void SetResponseStreamId(std::int32_t stream_id);
 
-    std::shared_ptr<request::RequestBase> Finalize() override;
+    std::shared_ptr<http::HttpRequest> Finalize();
 
 private:
     struct HttpParserUrl;
@@ -71,14 +70,13 @@ private:
     void ParseArgs(const HttpParserUrl& url);
     void ParseArgs(const char* data, size_t size);
     void AddHeader();
-    void ParseCookies();
 
     void SetStatus(Status status);
     void AccountRequestSize(size_t size);
     void AccountUrlSize(size_t size);
     void AccountHeadersSize(size_t size);
 
-    void CheckStatus() const;
+    void CheckStatus();
 
     Config config_;
     const HandlerInfoIndex& handler_info_index_;
@@ -95,7 +93,9 @@ private:
     bool url_parsed_ = false;
     Status status_ = Status::kOk;
 
-    std::shared_ptr<HttpRequestImpl> request_;
+    std::string url_;
+    std::string body_;
+    HttpRequestBuilder builder_;
 };
 
 }  // namespace server::http

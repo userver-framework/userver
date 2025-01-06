@@ -24,17 +24,18 @@ public:
     )
         : api::GreeterServiceBase::Component(config, context), prefix_(config["greeting-prefix"].As<std::string>()) {}
 
-    void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
+    SayHelloResult SayHello(CallContext& context, api::GreetingRequest&& request) override;
 
 private:
     const std::string prefix_;
 };
 
-void GreeterServiceComponent::SayHello(api::GreeterServiceBase::SayHelloCall& call, api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult
+GreeterServiceComponent::SayHello(CallContext& /*context*/, api::GreetingRequest&& request) {
     api::GreetingResponse response;
     response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
 
-    call.Finish(response);
+    return response;
 }
 
 }  // namespace samples

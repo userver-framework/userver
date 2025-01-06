@@ -18,6 +18,9 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 namespace chaos {
 
 constexpr std::string_view kSelectSmallTimeout = "select-small-timeout";

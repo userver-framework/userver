@@ -21,15 +21,8 @@ std::string GreeterClient::SayHello(std::string name) const {
     api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    // Initiate the RPC. No actual actions have been taken thus far besides
-    // preparing to send the request.
-    auto stream = raw_client_.SayHello(request, MakeClientContext());
-
-    // Complete the unary RPC by sending the request and receiving the response.
-    // The client should call `Finish` (in case of single response) or `Read`
-    // until `false` (in case of response stream), otherwise the RPC will be
-    // cancelled.
-    api::GreetingResponse response = stream.Finish();
+    // Perform RPC by sending the request and receiving the response.
+    api::GreetingResponse response = raw_client_.SyncSayHello(request, MakeClientContext());
     return std::move(*response.mutable_greeting());
 }
 
@@ -103,35 +96,5 @@ std::vector<std::string> GreeterClient::SayHelloStreams(const std::vector<std::s
     return result;
 }
 /// [client_streams]
-
-/// [component]
-GreeterClientComponent::GreeterClientComponent(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
-    : ComponentBase(config, context),
-      // ClientFactory is used to create gRPC clients
-      client_factory_(context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory()),
-      // The client needs a fixed endpoint
-      client_(client_factory_.MakeClient<api::GreeterServiceClient>("greeter", config["endpoint"].As<std::string>())) {}
-/// [component]
-
-const GreeterClient& GreeterClientComponent::GetClient() const { return client_; }
-
-yaml_config::Schema GreeterClientComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: >
-    a user-defined wrapper around api::GreeterServiceClient that provides
-    a simplified interface.
-additionalProperties: false
-properties:
-    endpoint:
-        type: string
-        description: >
-            the service endpoint (URI). We talk to our own service,
-            which is kind of pointless, but works for an example
-)");
-}
 
 }  // namespace samples

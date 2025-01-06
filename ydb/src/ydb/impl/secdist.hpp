@@ -13,6 +13,9 @@ struct DatabaseSettings final {
     std::optional<std::string> endpoint;
     std::optional<std::string> database;
     std::optional<std::string> oauth_token;
+    std::optional<std::string> secure_connection_cert;
+    std::optional<std::string> user;
+    std::optional<std::string> password;
     std::optional<formats::json::Value> iam_jwt_params;
     std::optional<bool> sync_start;
 };

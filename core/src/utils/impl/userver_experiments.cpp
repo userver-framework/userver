@@ -46,10 +46,7 @@ auto GetEnabledUserverExperiments() {
 
 }  // namespace
 
-UserverExperiment::UserverExperiment(std::string name, bool force_enabling_allowed)
-    : name_(name), force_enabling_allowed_(force_enabling_allowed) {
-    RegisterExperiment(*this);
-}
+UserverExperiment::UserverExperiment(std::string name) : name_(name) { RegisterExperiment(*this); }
 
 UserverExperimentsScope::UserverExperimentsScope() : old_enabled_(GetEnabledUserverExperiments()) {}
 
@@ -69,7 +66,7 @@ void UserverExperimentsScope::Set(UserverExperiment& experiment, bool value) noe
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void UserverExperimentsScope::EnableOnly(const UserverExperimentSet& enabled_experiments, bool force_enable) {
+void UserverExperimentsScope::EnableOnly(const UserverExperimentSet& enabled_experiments) {
     utils::impl::AssertStaticRegistrationFinished();
 
     const auto& exp_map = GetExperimentsInfo();
@@ -81,12 +78,15 @@ void UserverExperimentsScope::EnableOnly(const UserverExperimentSet& enabled_exp
 
     for (const auto& [_, experiment] : exp_map) {
         const bool enabled = enabled_experiments.count(experiment->GetName()) != 0;
-        const bool force_enabled = experiment->IsForceEnablingAllowed() && force_enable;
-        UserverExperimentSetter::Set(*experiment, enabled || force_enabled);
+        UserverExperimentSetter::Set(*experiment, enabled);
     }
 }
 
-UserverExperiment kCoroutineStackUsageMonitorExperiment{"coro-stack-usage-monitor", true};
+UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
+UserverExperiment kCoroutineStackUsageMonitorExperiment{"coro-stack-usage-monitor"};
+UserverExperiment kServerSelectionTimeoutExperiment{"mongo-server-selection-timeout"};
+UserverExperiment kPgCcExperiment{"pg-cc"};
+UserverExperiment kYdbDeadlinePropagationExperiment{"ydb-deadline-propagation"};
 
 }  // namespace utils::impl
 

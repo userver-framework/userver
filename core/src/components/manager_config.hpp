@@ -25,7 +25,7 @@ struct ManagerConfig {
     std::string default_task_processor;
     ValidationMode validate_components_configs{};
     utils::impl::UserverExperimentSet enabled_experiments;
-    bool experiments_force_enabled{false};
+    std::chrono::milliseconds graceful_shutdown_interval{};
     bool mlock_debug_info{true};
     bool disable_phdr_cache{false};
     bool preheat_stacktrace_collector{true};

@@ -3,9 +3,10 @@
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <ugrpc/impl/protobuf_utils.hpp>
+#include <ugrpc/impl/logging.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,27 +23,13 @@ bool IsResponseStream(CallKind kind) {
 }
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
-    if (logging::ShouldLog(settings.msg_log_level)) {
-        if (settings.trim_secrets) {
-            return ugrpc::impl::ToJsonLogString(message, settings.max_msg_size);
-        } else {
-            return ugrpc::impl::ToJsonString(message, settings.max_msg_size);
-        }
-    } else {
-        return "hidden by log level";
-    }
+    return ugrpc::impl::GetMessageForLogging(
+        message,
+        ugrpc::impl::MessageLoggingOptions{settings.msg_log_level, settings.max_msg_size, settings.trim_secrets}
+    );
 }
 
 }  // namespace
-
-Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
-    Settings settings;
-    settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
-    settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
-    settings.local_log_level = config["log-level"].As<std::optional<logging::Level>>();
-    settings.trim_secrets = config["trim-secrets"].As<bool>(settings.trim_secrets);
-    return settings;
-}
 
 Middleware::Middleware(const Settings& settings) : settings_(settings) {}
 
@@ -87,6 +74,7 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
 
     span.AddTag("meta_type", std::string{context.GetCall().GetCallName()});
     span.AddNonInheritableTag("type", "response");
+    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
     if (IsResponseStream(call_kind)) {
         // Just like in HTTP, there must be a single trailing Span log
         // with type=response and some `body`. We don't have a real single response

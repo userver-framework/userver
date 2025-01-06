@@ -10,8 +10,6 @@
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
@@ -72,6 +70,11 @@ public:
     // For internal use only.
     explicit TaskWithResult(impl::TaskContextHolder&& context) : Task(std::move(context)) {}
     /// @endcond
+
+    Task AsTask() && {
+        // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+        return std::move(*this);
+    }
 
 private:
     void EnsureValid() const {

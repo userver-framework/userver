@@ -48,7 +48,7 @@ void MockRedisServerBase::SendReplyOk(const std::string& reply) { SendReply('+' 
 
 void MockRedisServerBase::SendReplyError(const std::string& reply) { SendReply('-' + reply + kCrlf); }
 
-void MockRedisServerBase::SendReplyData(const redis::ReplyData& reply_data) {
+void MockRedisServerBase::SendReplyData(const storages::redis::ReplyData& reply_data) {
     SendReply(ReplyDataToRedisProto(reply_data));
 }
 
@@ -65,22 +65,22 @@ void MockRedisServerBase::SendReply(const std::string& reply) {
     io::write(socket_, io::buffer(reply.c_str(), reply.size()));
 }
 
-std::string MockRedisServerBase::ReplyDataToRedisProto(const redis::ReplyData& reply_data) {
+std::string MockRedisServerBase::ReplyDataToRedisProto(const storages::redis::ReplyData& reply_data) {
     switch (reply_data.GetType()) {
-        case redis::ReplyData::Type::kString:
+        case storages::redis::ReplyData::Type::kString:
             return '$' + std::to_string(reply_data.GetString().size()) + kCrlf + reply_data.GetString() + kCrlf;
-        case redis::ReplyData::Type::kArray: {
+        case storages::redis::ReplyData::Type::kArray: {
             std::string res = '*' + std::to_string(reply_data.GetArray().size()) + kCrlf;
             for (const auto& elem : reply_data.GetArray()) res += ReplyDataToRedisProto(elem);
             return res;
         }
-        case redis::ReplyData::Type::kInteger:
+        case storages::redis::ReplyData::Type::kInteger:
             return ':' + reply_data.ToDebugString() + kCrlf;
-        case redis::ReplyData::Type::kNil:
+        case storages::redis::ReplyData::Type::kNil:
             return "$-1" + kCrlf;
-        case redis::ReplyData::Type::kStatus:
+        case storages::redis::ReplyData::Type::kStatus:
             return '+' + reply_data.ToDebugString() + kCrlf;
-        case redis::ReplyData::Type::kError:
+        case storages::redis::ReplyData::Type::kError:
             return '-' + reply_data.ToDebugString() + kCrlf;
         default:
             throw std::runtime_error("can't send reply with data type=" + reply_data.GetTypeString());
@@ -118,8 +118,9 @@ void MockRedisServerBase::OnRead(boost::system::error_code ec, size_t count) {
 
     void* hiredis_reply = nullptr;
     while (redisReaderGetReply(reader_.get(), &hiredis_reply) == REDIS_OK && hiredis_reply) {
-        auto reply =
-            std::make_shared<redis::Reply>("", static_cast<redisReply*>(hiredis_reply), redis::ReplyStatus::kOk);
+        auto reply = std::make_shared<storages::redis::Reply>(
+            "", static_cast<redisReply*>(hiredis_reply), storages::redis::ReplyStatus::kOk
+        );
         LOG_DEBUG() << "command: " << reply->data.ToDebugString();
 
         OnCommand(reply);
@@ -139,14 +140,14 @@ void MockRedisServerBase::DoRead() {
 MockRedisServer::~MockRedisServer() { Stop(); }
 
 MockRedisServer::HandlerPtr
-MockRedisServer::RegisterHandlerWithConstReply(const std::string& command, redis::ReplyData reply_data) {
+MockRedisServer::RegisterHandlerWithConstReply(const std::string& command, storages::redis::ReplyData reply_data) {
     return RegisterHandlerWithConstReply(command, {}, std::move(reply_data));
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterHandlerWithConstReply(
     const std::string& command,
     const std::vector<std::string>& args_prefix,
-    redis::ReplyData reply_data
+    storages::redis::ReplyData reply_data
 ) {
     auto handler = std::make_shared<Handler>();
     RegisterHandlerFunc(command, args_prefix, [this, handler, reply_data](const std::vector<std::string>&) {
@@ -157,7 +158,7 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterHandlerWithConstReply(
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterStatusReplyHandler(const std::string& command, std::string reply) {
-    return RegisterHandlerWithConstReply(command, redis::ReplyData::CreateStatus(std::move(reply)));
+    return RegisterHandlerWithConstReply(command, storages::redis::ReplyData::CreateStatus(std::move(reply)));
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterStatusReplyHandler(
@@ -165,11 +166,13 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterStatusReplyHandler(
     const std::vector<std::string>& args_prefix,
     std::string reply
 ) {
-    return RegisterHandlerWithConstReply(command, args_prefix, redis::ReplyData::CreateStatus(std::move(reply)));
+    return RegisterHandlerWithConstReply(
+        command, args_prefix, storages::redis::ReplyData::CreateStatus(std::move(reply))
+    );
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterErrorReplyHandler(const std::string& command, std::string reply) {
-    return RegisterHandlerWithConstReply(command, redis::ReplyData::CreateError(std::move(reply)));
+    return RegisterHandlerWithConstReply(command, storages::redis::ReplyData::CreateError(std::move(reply)));
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterErrorReplyHandler(
@@ -177,16 +180,18 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterErrorReplyHandler(
     const std::vector<std::string>& args_prefix,
     std::string reply
 ) {
-    return RegisterHandlerWithConstReply(command, args_prefix, redis::ReplyData::CreateError(std::move(reply)));
+    return RegisterHandlerWithConstReply(
+        command, args_prefix, storages::redis::ReplyData::CreateError(std::move(reply))
+    );
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterNilReplyHandler(const std::string& command) {
-    return RegisterHandlerWithConstReply(command, redis::ReplyData::CreateNil());
+    return RegisterHandlerWithConstReply(command, storages::redis::ReplyData::CreateNil());
 }
 
 MockRedisServer::HandlerPtr
 MockRedisServer::RegisterNilReplyHandler(const std::string& command, const std::vector<std::string>& args_prefix) {
-    return RegisterHandlerWithConstReply(command, args_prefix, redis::ReplyData::CreateNil());
+    return RegisterHandlerWithConstReply(command, args_prefix, storages::redis::ReplyData::CreateNil());
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterPingHandler() {
@@ -195,11 +200,11 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterPingHandler() {
 }
 
 MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelMastersHandler(const std::vector<MasterInfo>& masters) {
-    std::vector<redis::ReplyData> reply_data;
+    std::vector<storages::redis::ReplyData> reply_data;
     reply_data.reserve(masters.size());
     for (const auto& master : masters) {
         // TODO: add fields like 'role-reported', ... if needed
-        reply_data.emplace_back(redis::ReplyData::Array{
+        reply_data.emplace_back(storages::redis::ReplyData::Array{
             {"name"},
             {master.name},
             {"ip"},
@@ -214,11 +219,11 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelMastersHandler(cons
 
 MockRedisServer::HandlerPtr
 MockRedisServer::RegisterSentinelSlavesHandler(const std::string& master_name, const std::vector<SlaveInfo>& slaves) {
-    std::vector<redis::ReplyData> reply_data;
+    std::vector<storages::redis::ReplyData> reply_data;
     reply_data.reserve(slaves.size());
     for (const auto& slave : slaves) {
         // TODO: add fields like 'role-reported', 'master-host', ... if needed
-        reply_data.emplace_back(redis::ReplyData::Array{
+        reply_data.emplace_back(storages::redis::ReplyData::Array{
             {"name"},
             {slave.name},
             {"ip"},
@@ -233,7 +238,7 @@ MockRedisServer::RegisterSentinelSlavesHandler(const std::string& master_name, c
     return RegisterHandlerWithConstReply("SENTINEL", {"SLAVES", master_name}, std::move(reply_data));
 }
 
-void MockRedisServer::OnCommand(std::shared_ptr<redis::Reply> cmd) {
+void MockRedisServer::OnCommand(std::shared_ptr<storages::redis::Reply> cmd) {
     ASSERT_TRUE(cmd->data.IsArray());
     auto array = cmd->data.GetArray();
     ASSERT_GT(array.size(), 0UL);
@@ -298,7 +303,7 @@ MockRedisServer::HandlerPtr MockRedisServer::DoRegisterTimeoutHandler(
     RegisterHandlerFunc(command, args_prefix, [this, handler, duration](const std::vector<std::string>&) {
         std::this_thread::sleep_for(duration);
         handler->AccountReply();
-        SendReplyData(redis::ReplyData::CreateStatus("OK"));
+        SendReplyData(storages::redis::ReplyData::CreateStatus("OK"));
     });
     return handler;
 }

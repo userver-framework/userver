@@ -1,0 +1,31 @@
+openapi: 3.0.0
+info:
+    description: Service sample
+    title: Service sample
+    version: '1.0'
+
+servers:
+  - url: uservice-sample.yandex.net
+    description: production
+  - url: uservice-sample.tst.yandex.net
+    description: testing
+
+# x-usrv-middlewares:
+#     tvm: true
+
+# x-usrv-client-qos:
+#     dynamic-config: taxi/schemas/schemas/configs/declarations/uservice-template/USERVICE_TEMPLATE_CLIENT_QOS.yaml
+
+paths:
+    /v1/test:
+        get:
+            parameters:
+              - in: query
+                name: uid
+                schema:
+                    type: string
+            responses:
+                200:
+                    description: OK
+
+components: {}

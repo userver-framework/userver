@@ -446,6 +446,9 @@ void CacheUpdateTrait::Impl::CheckUpdateState(impl::UpdateState update_state, st
         case impl::UpdateState::kSuccess:
             LOG_INFO() << "Updated cache update_type=" << update_type_str << " name=" << name_;
             break;
+        case impl::UpdateState::kNoChanges:
+            LOG_INFO() << "No changes for cache update_type=" << update_type_str << " name=" << name_;
+            break;
         case impl::UpdateState::kFailure:
             throw std::runtime_error("FinishWithError");
     }

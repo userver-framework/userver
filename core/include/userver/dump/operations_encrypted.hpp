@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/filesystem/operations.hpp>
+#include <userver/utils/boost_filesystem_file_status.hpp>
 
 #include <userver/dump/factory.hpp>
 #include <userver/dump/operations.hpp>

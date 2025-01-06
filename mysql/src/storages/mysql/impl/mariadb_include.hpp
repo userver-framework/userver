@@ -1,8 +1,18 @@
 #pragma once
 
+#ifdef USERVER_MYSQL_OLD_INCLUDE
+
+#include <mysql/errmsg.h>
+#include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
+
+#else
+
 #include <mariadb/errmsg.h>
 #include <mariadb/mysql.h>
 #include <mariadb/mysqld_error.h>
+
+#endif
 
 USERVER_NAMESPACE_BEGIN
 

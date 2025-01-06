@@ -24,6 +24,8 @@ struct Rate {
 
     explicit operator bool() const noexcept { return value != 0; }
 
+    Rate operator-(Rate rhs) const noexcept { return {value - rhs.value}; }
+
     bool operator==(Rate rhs) const noexcept { return value == rhs.value; }
 
     bool operator!=(Rate rhs) const noexcept { return !(*this == rhs); }
@@ -38,7 +40,7 @@ struct Rate {
 
     bool operator==(std::uint64_t rhs) const noexcept { return value == rhs; }
 
-    bool operator!=(std::uint64_t rhs) const noexcept { return value == rhs; }
+    bool operator!=(std::uint64_t rhs) const noexcept { return value != rhs; }
 
     bool operator<(std::uint64_t rhs) const noexcept { return value < rhs; }
 

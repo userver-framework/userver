@@ -12,7 +12,7 @@
 USERVER_NAMESPACE_BEGIN
 
 /// [Sample Mongo usage]
-inline void SampleMongoPool(storages::mongo::Pool pool) {
+inline void SampleMongoPool(storages::mongo::Pool& pool) {
     using formats::bson::MakeArray;
     using formats::bson::MakeDoc;
 

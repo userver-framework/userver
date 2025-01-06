@@ -13,10 +13,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using ThreadPools = USERVER_NAMESPACE::redis::ThreadPools;
-using Sentinel = USERVER_NAMESPACE::redis::Sentinel;
-using SubscribeSentinel = USERVER_NAMESPACE::redis::SubscribeSentinel;
-using KeyShardFactory = USERVER_NAMESPACE::redis::KeyShardFactory;
+using ThreadPools = USERVER_NAMESPACE::storages::redis::impl::ThreadPools;
+using Sentinel = USERVER_NAMESPACE::storages::redis::impl::Sentinel;
+using SubscribeSentinel = USERVER_NAMESPACE::storages::redis::impl::SubscribeSentinel;
+using KeyShardFactory = USERVER_NAMESPACE::storages::redis::impl::KeyShardFactory;
 
 namespace storages::redis::utest::impl {
 
@@ -130,7 +130,8 @@ dynamic_config::Source GetClusterDynamicConfigSource() {
 
 RedisConnectionState::RedisConnectionState() {
     thread_pools_ = std::make_shared<ThreadPools>(
-        USERVER_NAMESPACE::redis::kDefaultSentinelThreadPoolSize, USERVER_NAMESPACE::redis::kDefaultRedisThreadPoolSize
+        USERVER_NAMESPACE::storages::redis::impl::kDefaultSentinelThreadPoolSize,
+        USERVER_NAMESPACE::storages::redis::impl::kDefaultRedisThreadPoolSize
     );
 
     sentinel_ = Sentinel::CreateSentinel(
@@ -150,7 +151,8 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
     auto configs_source = GetClusterDynamicConfigSource();
 
     thread_pools_ = std::make_shared<ThreadPools>(
-        USERVER_NAMESPACE::redis::kDefaultSentinelThreadPoolSize, USERVER_NAMESPACE::redis::kDefaultRedisThreadPoolSize
+        USERVER_NAMESPACE::storages::redis::impl::kDefaultSentinelThreadPoolSize,
+        USERVER_NAMESPACE::storages::redis::impl::kDefaultRedisThreadPoolSize
     );
 
     sentinel_ = Sentinel::CreateSentinel(
@@ -159,16 +161,16 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         "none",
         configs_source,
         "pub",
-        KeyShardFactory{USERVER_NAMESPACE::redis::kRedisCluster}
+        KeyShardFactory{storages::redis::impl::kRedisCluster}
     );
     sentinel_->WaitConnectedDebug();
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
-    subscribe_sentinel_ = SubscribeSentinel::Create(
+    subscribe_sentinel_ = storages::redis::impl::SubscribeSentinel::Create(
         thread_pools_, GetRedisClusterSettings(), "none", configs_source, "pub", true, {}, {}
     );
     subscribe_sentinel_->WaitConnectedDebug();
-    subscribe_client_ = std::make_shared<SubscribeClientImpl>(subscribe_sentinel_);
+    subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(subscribe_sentinel_);
 }
 
 }  // namespace storages::redis::utest::impl

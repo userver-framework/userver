@@ -98,7 +98,7 @@ size_t ParseSize(std::string_view token) {
 }  // namespace
 
 struct HotStandby::HostState {
-    explicit HostState(const Dsn& dsn) : app_name{EscapeHostName(OptionsFromDsn(dsn).host)} {}
+    explicit HostState(const Dsn& dsn) : host_name{OptionsFromDsn(dsn).host}, app_name(EscapeHostName(host_name)) {}
 
     ~HostState() {
         // close connections synchronously
@@ -117,7 +117,9 @@ struct HotStandby::HostState {
 
     std::unique_ptr<Connection> connection;
 
-    const std::string host_port;
+    // Used to check against disabled_replicas
+    std::string host_name;
+
     // In pg_stat_replication slaves' host names are escaped and the column is
     // called `application_name`
     std::string app_name;
@@ -225,11 +227,16 @@ void HotStandby::RunDiscovery() {
             std::chrono::duration_cast<std::chrono::milliseconds>(slave_lag).count()
         );
 
-        auto& max_replication_lag = GetTopologySettings().max_replication_lag;
-        if (max_replication_lag > std::chrono::milliseconds{0} && slave_lag > max_replication_lag) {
+        const auto& topology_settings = GetTopologySettings();
+        if (topology_settings.max_replication_lag > std::chrono::milliseconds{0} &&
+            slave_lag > topology_settings.max_replication_lag) {
             // Demote lagged slave
             LOG_INFO() << "Disabling slave " << slave.app_name << " due to replication lag of " << slave_lag.count()
-                       << " ms (max " << GetTopologySettings().max_replication_lag.count() << " ms)";
+                       << " ms (max " << topology_settings.max_replication_lag.count() << " ms)";
+            slave.role = ClusterHostType::kNone;
+        } else if (topology_settings.disabled_replicas.count(slave.host_name)) {
+            // Manually disable slave
+            LOG_INFO() << "Disabling slave " << slave.app_name << " due to manual setting in config";
             slave.role = ClusterHostType::kNone;
         } else if (master) {
             // Check for sync slave

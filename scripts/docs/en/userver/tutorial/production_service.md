@@ -112,7 +112,8 @@ that would stop sending traffic to the server if it responds with codes other th
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config ping
 
-Note that the ping handler lives on the task processor of all the other handlers. Smart balancers may measure response times and send less traffic to the heavy loaded services. 
+Note that the ping handler lives on the task processor of all the other handlers. Smart balancers may measure response
+times and send less traffic to the heavy loaded services. 
 
 ```
 bash
@@ -129,16 +130,16 @@ Content-Length: 0
 ```
 
 
-### Dynamic configs
+### Dynamic configs of a sample production service
 
 Here's a configuration of a dynamic config related components
 components::DynamicConfigClient, components::DynamicConfig,
 components::DynamicConfigClientUpdater.
 
-Service starts with some dynamic config values from `dynamic-config.fs-cache-path`
-file and updates dynamic values from a
+Service starts with some dynamic config values from defaults and updates dynamic values from a
 @ref scripts/docs/en/userver/tutorial/config_service.md "configs service"
-at startup.
+at startup. If the first update fails, the values are retrieved from `dynamic-config.fs-cache-path`
+file (if it exists).
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
 
@@ -154,13 +155,15 @@ at startup.
 
 See @ref scripts/docs/en/userver/congestion_control.md.
 
-congestion_control::Component limits the active requests count. In case of overload it responds with HTTP 429 codes to some requests, allowing your service to properly process handle the rest.
+congestion_control::Component limits the active requests count. In case of overload it responds with HTTP 429 codes to
+some requests, allowing your service to properly process handle the rest.
 
-All the significant parts of the component are configured by dynamic config options @ref USERVER_RPS_CCONTROL and @ref USERVER_RPS_CCONTROL_ENABLED 
+All the significant parts of the component are configured by dynamic config options @ref USERVER_RPS_CCONTROL and
+@ref USERVER_RPS_CCONTROL_ENABLED.
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config congestion-control
 
-It is a good idea to disable it in unit tests to avoid getting HTTP 429 on an overloaded CI server.
+It is a good idea to disable it in unit tests to avoid getting `HTTP 429` on an overloaded CI server.
 
 
 @anchor tutorial_metrics
@@ -220,10 +223,6 @@ components::TestsuiteSupport is a lightweight storage to keep minor testsuite
 data. This component is required by many high-level components and it is safe to
 use this component in production environments.
 
-
-## Dynamic config
-
-Dynamic configs are described in details at @ref scripts/docs/en/schemas/dynamic_configs.md .
 
 ### Build
 

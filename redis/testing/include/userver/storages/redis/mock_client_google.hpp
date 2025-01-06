@@ -22,7 +22,7 @@ public:
 
     MOCK_METHOD(std::shared_ptr<Client>, GetClientForShard, (size_t shard_idx), (override));
 
-    MOCK_METHOD(void, WaitConnectedOnce, (USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected), (override));
+    MOCK_METHOD(void, WaitConnectedOnce, (RedisWaitConnected wait_connected), (override));
 
     MOCK_METHOD(
         RequestAppend,

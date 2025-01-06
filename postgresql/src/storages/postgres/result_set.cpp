@@ -68,6 +68,8 @@ io::FieldBuffer FieldView::GetBuffer() const { return res_.GetFieldBuffer(row_in
 
 std::string_view FieldView::Name() const { return res_.GetFieldName(field_index_); }
 
+Oid FieldView::GetTypeOid() const { return res_.GetFieldTypeOid(field_index_); }
+
 const io::TypeBufferCategory& FieldView::GetTypeBufferCategories() const { return res_.GetTypeBufferCategories(); }
 
 //----------------------------------------------------------------------------
@@ -76,6 +78,8 @@ const io::TypeBufferCategory& FieldView::GetTypeBufferCategories() const { retur
 FieldDescription Field::Description() const { return res_->GetFieldDescription(field_index_); }
 
 std::string_view Field::Name() const { return res_->GetFieldName(field_index_); }
+
+Field::size_type Field::Length() const { return res_->GetFieldLength(row_index_, field_index_); }
 
 bool Field::IsNull() const { return res_->IsFieldNull(row_index_, field_index_); }
 

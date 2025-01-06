@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <userver/components/component_base.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/yaml_config/schema.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -15,10 +16,6 @@ namespace server {
 
 namespace request {
 class RequestContext;
-}
-
-namespace http {
-class HttpRequest;
 }
 
 namespace handlers {

@@ -6,8 +6,8 @@
 #include <google/protobuf/message.h>
 #include <grpcpp/server_context.h>
 
+#include <userver/tracing/span.hpp>
 #include <userver/ugrpc/impl/internal_tag_fwd.hpp>
-#include <userver/ugrpc/impl/span.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>

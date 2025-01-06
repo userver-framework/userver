@@ -33,6 +33,7 @@ libmongoc-dev
 libnghttp2-dev
 libpq-dev
 libprotoc-dev
+libpugixml-dev
 libsasl2-dev
 libssl-dev
 libyaml-cpp-dev

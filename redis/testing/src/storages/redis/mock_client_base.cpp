@@ -19,7 +19,7 @@ MockClientBase::MockClientBase(
 
 MockClientBase::~MockClientBase() = default;
 
-void MockClientBase::WaitConnectedOnce(USERVER_NAMESPACE::redis::RedisWaitConnected) {}
+void MockClientBase::WaitConnectedOnce(RedisWaitConnected) {}
 
 size_t MockClientBase::ShardsCount() const { return 1; }
 

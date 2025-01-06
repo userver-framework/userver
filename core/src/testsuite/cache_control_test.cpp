@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/components/component_base.hpp>

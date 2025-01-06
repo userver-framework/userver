@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/log.hpp>

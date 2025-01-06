@@ -28,6 +28,8 @@ RawComponentBase* ComponentContext::AddComponent(std::string_view name, const im
 
 void ComponentContext::OnAllComponentsLoaded() { impl_->OnAllComponentsLoaded(); }
 
+void ComponentContext::OnGracefulShutdownStarted() { impl_->OnGracefulShutdownStarted(); }
+
 void ComponentContext::OnAllComponentsAreStopping() { impl_->OnAllComponentsAreStopping(); }
 
 void ComponentContext::ClearComponents() { impl_->ClearComponents(); }

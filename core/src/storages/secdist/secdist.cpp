@@ -73,8 +73,6 @@ public:
 
     bool IsPeriodicUpdateEnabled() const;
 
-    void EnsurePeriodicUpdateEnabled(const std::string& msg) const;
-
     concurrent::AsyncEventSubscriberScope
     DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, EventSource::Function&& func);
 
@@ -117,18 +115,11 @@ bool Secdist::Impl::IsPeriodicUpdateEnabled() const {
 
 concurrent::AsyncEventSubscriberScope
 Secdist::Impl::DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, EventSource::Function&& func) {
-    EnsurePeriodicUpdateEnabled("Secdist update must be enabled to subscribe on it");
     auto func_copy = func;
     return channel_.DoUpdateAndListen(id, name, std::move(func), [&] {
         const auto snapshot = GetSnapshot();
         func_copy(*snapshot);
     });
-}
-
-void Secdist::Impl::EnsurePeriodicUpdateEnabled(const std::string& msg) const {
-    if (!IsPeriodicUpdateEnabled()) {
-        throw SecdistError(msg);
-    }
 }
 
 void Secdist::Impl::StartUpdateTask() {

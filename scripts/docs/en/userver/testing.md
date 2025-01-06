@@ -141,6 +141,15 @@ It can be used for testing that a certain piece of code produces logs
 with the given text (which is brittle, but sometimes needs to be done).
 It can also be used for testing @ref logging::LogHelper serialization functions.
 
+### Outputting logs in unit test run
+
+Log level in the unit tests can be controlled via `log-level` parameter. For example, the following command outputs
+the debug logs for all the `*Log*` tests for the CMake built binary:
+
+```shell
+./core/userver-core-unittest --log-level=debug --gtest_filter=*Log*
+```
+
 
 ## Benchmarks (google-benchmark)
 

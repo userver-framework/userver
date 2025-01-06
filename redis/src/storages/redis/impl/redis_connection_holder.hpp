@@ -11,7 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 /// This class holds redis connection and automatically reconnects if
 /// disconnected
@@ -61,11 +61,11 @@ private:
     const std::string host_;
     const uint16_t port_;
     const Password password_;
-    rcu::Variable<std::shared_ptr<Redis>, StdMutexRcuTraits> redis_;
+    rcu::Variable<std::shared_ptr<Redis>, rcu::BlockingRcuTraits> redis_;
     engine::ev::PeriodicWatcher connection_check_timer_;
     const RedisCreationSettings redis_creation_settings_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

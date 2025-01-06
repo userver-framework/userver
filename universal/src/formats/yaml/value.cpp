@@ -82,6 +82,11 @@ Value::Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path&
 Value::Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, size_t index)
     : value_pimpl_(value), path_(path.MakeChildPath(index)) {}
 
+Value Value::CloneWithReplacedPath(std::string&& new_path) const {
+    auto cloned = Clone();
+    return MakeNonRoot(*cloned.value_pimpl_, formats::yaml::Path{}, std::move(new_path));
+}
+
 Value Value::MakeNonRoot(const YAML::Node& value, const formats::yaml::Path& path, std::string_view key) {
     return {EmplaceEnabler{}, value, path, key};
 }

@@ -203,7 +203,7 @@ bool Connection::WaitOnSocket(engine::Deadline deadline) {
     return true;
 }
 
-void Connection::ProcessRequest(std::shared_ptr<request::RequestBase>&& request_ptr) {
+void Connection::ProcessRequest(std::shared_ptr<http::HttpRequest>&& request_ptr) {
     if (request_ptr->IsFinal()) {
         is_accepting_requests_ = false;
     }
@@ -239,8 +239,7 @@ bool Connection::ReadSome() {
     return true;
 }
 
-engine::TaskWithResult<void> Connection::HandleQueueItem(const std::shared_ptr<request::RequestBase>& request
-) noexcept {
+engine::TaskWithResult<void> Connection::HandleQueueItem(const std::shared_ptr<http::HttpRequest>& request) noexcept {
     auto request_task = request_handler_.StartRequestTask(request);
 
     if (engine::current_task::IsCancelRequested()) {
@@ -253,7 +252,7 @@ engine::TaskWithResult<void> Connection::HandleQueueItem(const std::shared_ptr<r
     }
 
     try {
-        auto& response = request->GetResponse();
+        auto& response = request->GetHttpResponse();
         if (response.IsBodyStreamed()) {
             // TODO: wait for TCP connection closure too
             response.WaitForHeadersEnd();
@@ -292,7 +291,7 @@ engine::TaskWithResult<void> Connection::HandleQueueItem(const std::shared_ptr<r
         auto lvl =
             reason == engine::TaskCancellationReason::kUserRequest ? logging::Level::kWarning : logging::Level::kError;
         LOG_LIMITED(lvl) << "Handler task was cancelled with reason: " << ToString(reason);
-        auto& response = request->GetResponse();
+        auto& response = request->GetHttpResponse();
         if (!response.IsReady()) {
             response.SetReady();
             response.SetStatusServiceUnavailable();
@@ -307,24 +306,17 @@ engine::TaskWithResult<void> Connection::HandleQueueItem(const std::shared_ptr<r
     return request_task;
 }
 
-void Connection::SendResponse(request::RequestBase& request) {
-    auto& response = request.GetResponse();
+void Connection::SendResponse(http::HttpRequest& request) {
+    auto& response = request.GetHttpResponse();
     UASSERT(!response.IsSent());
     request.SetStartSendResponseTime();
     if (is_response_chain_valid_ && peer_socket_) {
         try {
             // Might be a stream reading or a fully constructed response
             if (config_.http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
-                // TODO: There is only one inheritor of the request::ResponseBase
-                UASSERT(dynamic_cast<http::HttpResponse*>(&response));
                 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                 auto& http_response = static_cast<http::HttpResponse&>(response);
-                UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
-                if (const auto& h =
-                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-                    static_cast<http::HttpRequestImpl&>(request).GetHeader(
-                        USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader
-                    );
+                if (const auto& h = request.GetHeader(USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
                     !h.empty()) {
                     const auto send = peer_socket_->WriteAll(
                         http::kSwitchingProtocolResponse.data(),
@@ -344,8 +336,7 @@ void Connection::SendResponse(request::RequestBase& request) {
 
                     http::WriteHttp2ResponseToSocket(http_response, *http2_session);
                     parser_ = std::move(parser);
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-                } else if (static_cast<http::HttpRequestImpl&>(request).GetHttpMajor() == 1) {
+                } else if (request.GetHttpMajor() == 1) {
                     response.SendResponse(*peer_socket_);
                 } else {
                     UASSERT(dynamic_cast<http::Http2Session*>(parser_.get()));
@@ -381,7 +372,7 @@ void Connection::SendResponse(request::RequestBase& request) {
 std::string Connection::Getpeername() const { return peer_name_; }
 
 std::unique_ptr<request::RequestParser> Connection::MakeParser(USERVER_NAMESPACE::http::HttpVersion ver) {
-    const auto on_req_cb = [&pending_requests_ = pending_requests_](RequestBasePtr&& request_ptr) {
+    const auto on_req_cb = [&pending_requests_ = pending_requests_](HttpRequestPtr&& request_ptr) {
         pending_requests_.push_back(std::move(request_ptr));
     };
     if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {

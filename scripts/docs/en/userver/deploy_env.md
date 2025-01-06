@@ -430,5 +430,5 @@ so use the same `main-task-processor` for all the task processors.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/build.md | @ref scripts/docs/en/userver/development/releases.md ⇨
+⇦ @ref scripts/docs/en/userver/build/build.md | @ref scripts/docs/en/userver/development/releases.md ⇨
 @htmlonly </div> @endhtmlonly

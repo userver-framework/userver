@@ -13,12 +13,16 @@ env:
 
 jobs:
     build:
-        runs-on: ubuntu-${{ matrix.ubuntu_version }}
-        name: Ubuntu-${{ matrix.ubuntu_version }}
+        runs-on: ${{ matrix.os }}
+        name: ${{ matrix.os }}
         strategy:
             fail-fast: false
             matrix:
-                ubuntu_version: [22.04]
+                include:
+                  - os: ubuntu-22.04
+                    conanflags: ''
+                  - os: macos-latest
+                    conanflags: '-o python_path=python3.11'
 
         steps:
           - name: Checkout
@@ -26,27 +30,26 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: Reuse ccache directory
-            uses: actions/cache@v4
-            with:
-                path: ~/.ccache
-                key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
-                restore-keys: |
-                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
-                    ${{matrix.os}} ${{matrix.info}} ccache-
-
-          - name: Install packages
+          - name: Install Ubuntu packages
+            if: matrix.os == 'ubuntu-22.04'
             run: |
-                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv ccache
+                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv
+
+          - name: Install MacOS packages
+            if: matrix.os == 'macos-latest'
+            run: |
+                brew update
+                brew install postgresql
+                brew install libiconv  # https://stackoverflow.com/questions/57734434/libiconv-or-iconv-undefined-symbol-on-mac-osx
+                brew install python@3.11
+
+          - name: Install common packages
+            run: |
                 pip install "conan==2.8.0"
+                pip install numpy
                 conan profile detect
                 conan profile show
 
-          - name: Setup ccache
-            run: |
-                ccache -M 2.0GB
-                ccache -s
-
           - name: Run conan
             run: |
-                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default -tf conan/test_package/
+                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -tf conan/test_package/

@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <vector>
 
+#include <userver/ugrpc/server/exceptions.hpp>
+
 #include <userver/utest/utest.hpp>
 
 #include <tests/deadline_helpers.hpp>
@@ -20,68 +22,75 @@ constexpr const char* kRequests[] = {
 
 class TimedOutUnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&& request) override {
-        tests::WaitUntilRpcDeadline(call);
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& request) override {
+        tests::WaitUntilRpcDeadlineService();
 
         sample::ugrpc::GreetingResponse response;
         response.set_name("Hello " + request.name());
-        call.Finish(response);
+        return response;
     }
 
-    void ReadMany(ReadManyCall& call, ::sample::ugrpc::StreamGreetingRequest&& request) override {
+    ReadManyResult ReadMany(
+        CallContext& /*context*/,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& writer
+    ) override {
         sample::ugrpc::StreamGreetingResponse response;
         response.set_name("One " + request.name());
         // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        call.Write(response);
+        writer.Write(response);
         response.set_name("Two " + request.name());
         // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        call.Write(response);
+        writer.Write(response);
         response.set_name("Three " + request.name());
         // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        call.Write(response);
+        writer.Write(response);
 
-        tests::WaitUntilRpcDeadline(call);
-        call.Finish();
+        tests::WaitUntilRpcDeadlineService();
+        return grpc::Status::OK;
     }
 
-    void WriteMany(WriteManyCall& call) override {
+    WriteManyResult WriteMany(CallContext& /*context*/, WriteManyReader& reader) override {
         sample::ugrpc::StreamGreetingRequest request;
         std::size_t reads{0};
 
-        while (call.Read(request)) {
-            ASSERT_LT(reads, std::size(kRequests));
-            EXPECT_EQ(request.name(), kRequests[reads]);
+        while (reader.Read(request)) {
+            EXPECT_LT(reads, std::size(kRequests));
+            if (reads < std::size(kRequests)) {
+                EXPECT_EQ(request.name(), kRequests[reads]);
+            }
             ++reads;
         }
 
-        tests::WaitUntilRpcDeadline(call);
+        tests::WaitUntilRpcDeadlineService();
 
         sample::ugrpc::StreamGreetingResponse response;
         response.set_name("Hello " + request.name());
-        call.Finish(response);
+        return response;
     }
 
-    void Chat(ChatCall& call) override {
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         std::vector<sample::ugrpc::StreamGreetingRequest> requests(3);
 
         sample::ugrpc::StreamGreetingResponse response;
 
         for (auto& it : requests) {
-            if (!call.Read(it)) {
+            if (!stream.Read(it)) {
                 // It is deadline from client side
-                return;
+                return grpc::Status{grpc::StatusCode::UNKNOWN, "Could not read expected amount of requests"};
             }
         }
 
         response.set_name("One " + requests[0].name());
-        UEXPECT_NO_THROW(call.Write(response));
+        UEXPECT_NO_THROW(stream.Write(response));
         response.set_name("Two " + requests[1].name());
-        UEXPECT_NO_THROW(call.Write(response));
+        UEXPECT_NO_THROW(stream.Write(response));
 
-        tests::WaitUntilRpcDeadline(call);
+        tests::WaitUntilRpcDeadlineService();
 
         response.set_name("Three " + requests[0].name());
-        UEXPECT_THROW(call.WriteAndFinish(response), ugrpc::server::RpcInterruptedError);
+        UEXPECT_THROW(stream.Write(response), ugrpc::server::RpcInterruptedError);
+        return grpc::Status::OK;
     }
 };
 

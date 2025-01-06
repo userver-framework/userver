@@ -27,8 +27,7 @@ constexpr std::size_t kMaxThreadNameLen = 15;  // + '\0'
 }  // namespace
 
 std::string GetCurrentThreadName() {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    std::array<char, kMaxThreadNameLen + 1> buf;
+    std::array<char, kMaxThreadNameLen + 1> buf{};
 
     int ret = ::pthread_getname_np(::pthread_self(), buf.data(), buf.size());
     if (ret) {

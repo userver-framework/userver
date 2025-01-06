@@ -5,12 +5,12 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
-class HttpRequestImpl;
+class HttpRequest;
 }  // namespace server::http
 
 namespace server::request {
 
-inline engine::TaskInheritedVariable<std::shared_ptr<http::HttpRequestImpl>> kTaskInheritedRequest;
+inline engine::TaskInheritedVariable<std::shared_ptr<http::HttpRequest>> kTaskInheritedRequest;
 
 }  // namespace server::request
 

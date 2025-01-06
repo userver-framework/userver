@@ -17,12 +17,12 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fixed_array.hpp>
 
-#include <ugrpc/impl/logging.hpp>
-#include <ugrpc/impl/to_string.hpp>
+#include <ugrpc/impl/grpc_native_logging.hpp>
 #include <ugrpc/server/impl/generic_service_worker.hpp>
 #include <ugrpc/server/impl/parse_config.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 

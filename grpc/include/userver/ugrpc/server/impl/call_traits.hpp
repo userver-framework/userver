@@ -1,6 +1,9 @@
 #pragma once
 
+#include <userver/ugrpc/server/call_context.hpp>
+#include <userver/ugrpc/server/result.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
+#include <userver/ugrpc/server/stream.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +23,8 @@ template <typename HandlerMethod>
 struct CallTraits;
 
 template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<void (ServiceBaseType::*)(UnaryCall<ResponseType>&, RequestType&&)> final {
+struct CallTraits<ugrpc::server::Result<ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, RequestType&&)>
+    final {
     using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
@@ -28,12 +32,14 @@ struct CallTraits<void (ServiceBaseType::*)(UnaryCall<ResponseType>&, RequestTyp
     using InitialRequest = Request;
     using Call = UnaryCall<Response>;
     using ContextType = ::grpc::ServerContext;
-    using ServiceMethod = void (ServiceBase::*)(Call&, Request&&);
+    using ServiceMethod = ugrpc::server::Result<Response> (ServiceBase::*)(ugrpc::server::CallContext&, Request&&);
     static constexpr auto kCallCategory = CallCategory::kUnary;
 };
 
 template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<void (ServiceBaseType::*)(InputStream<RequestType, ResponseType>&)> final {
+struct CallTraits<ugrpc::server::Result<
+    ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, ugrpc::server::Reader<RequestType>&)>
+    final {
     using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
@@ -41,12 +47,15 @@ struct CallTraits<void (ServiceBaseType::*)(InputStream<RequestType, ResponseTyp
     using InitialRequest = NoInitialRequest;
     using Call = InputStream<Request, Response>;
     using ContextType = ::grpc::ServerContext;
-    using ServiceMethod = void (ServiceBase::*)(Call&);
+    using ServiceMethod =
+        ugrpc::server::Result<Response> (ServiceBase::*)(ugrpc::server::CallContext&, ugrpc::server::Reader<Request>&);
     static constexpr auto kCallCategory = CallCategory::kInputStream;
 };
 
 template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<void (ServiceBaseType::*)(OutputStream<ResponseType>&, RequestType&&)> final {
+struct CallTraits<ugrpc::server::StreamingResult<
+    ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, RequestType&&, ugrpc::server::Writer<ResponseType>&)>
+    final {
     using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
@@ -54,12 +63,15 @@ struct CallTraits<void (ServiceBaseType::*)(OutputStream<ResponseType>&, Request
     using InitialRequest = Request;
     using Call = OutputStream<Response>;
     using ContextType = ::grpc::ServerContext;
-    using ServiceMethod = void (ServiceBase::*)(Call&, Request&&);
+    using ServiceMethod = ugrpc::server::StreamingResult<
+        Response> (ServiceBase::*)(ugrpc::server::CallContext&, Request&&, ugrpc::server::Writer<Response>&);
     static constexpr auto kCallCategory = CallCategory::kOutputStream;
 };
 
 template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<void (ServiceBaseType::*)(BidirectionalStream<RequestType, ResponseType>&)> final {
+struct CallTraits<ugrpc::server::StreamingResult<
+    ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, ugrpc::server::ReaderWriter<RequestType, ResponseType>&)>
+    final {
     using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
@@ -67,7 +79,8 @@ struct CallTraits<void (ServiceBaseType::*)(BidirectionalStream<RequestType, Res
     using InitialRequest = NoInitialRequest;
     using Call = BidirectionalStream<Request, Response>;
     using ContextType = ::grpc::ServerContext;
-    using ServiceMethod = void (ServiceBase::*)(Call&);
+    using ServiceMethod = ugrpc::server::StreamingResult<
+        Response> (ServiceBase::*)(ugrpc::server::CallContext&, ugrpc::server::ReaderWriter<Request, Response>&);
     static constexpr auto kCallCategory = CallCategory::kBidirectionalStream;
 };
 

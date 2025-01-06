@@ -60,6 +60,14 @@ formats::json::Value DoLoadFromFile(const std::string& path, SecdistFormat forma
         } else if (format == SecdistFormat::kYaml) {
             const auto yaml_doc = formats::yaml::FromStream(stream);
             doc = yaml_doc.As<formats::json::Value>();
+        } else if (format == SecdistFormat::kYamlConfig) {
+            // yaml_config allows user to read from env variables and other useful
+            // features.
+            const auto yaml_doc = formats::yaml::FromStream(stream);
+            const auto yaml_cfg =
+                yaml_config::YamlConfig(yaml_doc, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+            // finally, convert to JSON
+            doc = yaml_cfg.As<formats::json::Value>();
         }
     } catch (const std::exception& e) {
         if (missing_ok) {
@@ -130,8 +138,14 @@ void UpdateFromEnv(formats::json::Value& doc, const std::optional<std::string>& 
 DefaultLoader::DefaultLoader(Settings settings) : settings_{settings} {}
 
 formats::json::Value DefaultLoader::Get() const {
-    auto doc =
-        LoadFromFile(settings_.config_path, settings_.format, settings_.missing_ok, settings_.blocking_task_processor);
+    formats::json::Value doc;
+    if (!settings_.config_path.empty()) {
+        doc = LoadFromFile(
+            settings_.config_path, settings_.format, settings_.missing_ok, settings_.blocking_task_processor
+        );
+    } else {
+        doc = settings_.inline_config;
+    }
     UpdateFromEnv(doc, settings_.environment_secrets_key);
     return doc;
 }
@@ -147,6 +161,8 @@ storages::secdist::SecdistFormat FormatFromString(std::string_view str) {
         return storages::secdist::SecdistFormat::kJson;
     } else if (str == "yaml") {
         return storages::secdist::SecdistFormat::kYaml;
+    } else if (str == "yaml_config") {
+        return storages::secdist::SecdistFormat::kYamlConfig;
     }
 
     UINVARIANT(false, fmt::format("Unknown secdist format '{}' (must be one of 'json', 'yaml')", str));
@@ -159,6 +175,11 @@ ParseSettings(const components::ComponentConfig& config, const components::Compo
     settings.blocking_task_processor =
         blocking_task_processor_name ? &context.GetTaskProcessor(*blocking_task_processor_name) : nullptr;
     settings.config_path = config["config"].As<std::string>({});
+    settings.inline_config = config["inline"].As<formats::json::Value>({});
+    if (!settings.config_path.empty() && !settings.inline_config.IsNull()) {
+        throw std::runtime_error("'config' and 'inline' cannot be set together");
+    }
+
     settings.format = FormatFromString(config["format"].As<std::string>({}));
     settings.missing_ok = config["missing-ok"].As<bool>(false);
     settings.environment_secrets_key = config["environment-secrets-key"].As<std::optional<std::string>>();
@@ -183,6 +204,11 @@ properties:
         type: string
         description: path to the config file with data
         defaultDescription: ''
+    inline:
+        type: object
+        description: inline data
+        additionalProperties: true
+        properties: {}
     format:
         type: string
         description: secdist format

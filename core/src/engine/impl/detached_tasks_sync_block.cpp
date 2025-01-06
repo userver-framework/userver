@@ -3,6 +3,7 @@
 #include <atomic>
 #include <optional>
 
+#include <engine/task/task_base_impl.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
@@ -61,7 +62,7 @@ void DetachedTasksSyncBlock::Add(TaskContext& context) {
 }
 
 void DetachedTasksSyncBlock::Add(Task&& task) {
-    const auto context = std::move(task.context_);
+    const auto context = std::move(task.pimpl_->context);
     Add(*context);
 }
 

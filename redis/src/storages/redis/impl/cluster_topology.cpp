@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 ClusterTopology::ClusterTopology(
     size_t version,
@@ -144,6 +144,6 @@ const std::string& GetShardName(size_t shard_index) {
     return names.at(shard_index);
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

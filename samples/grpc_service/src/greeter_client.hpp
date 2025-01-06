@@ -7,7 +7,9 @@
 /// [includes]
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
+
 #include <userver/ugrpc/client/fwd.hpp>
+#include <userver/ugrpc/client/simple_client_component.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
 /// [includes]
@@ -41,20 +43,19 @@ private:
 };
 /// [client]
 
+using Client = GreeterClient;
+
 /// [component]
-class GreeterClientComponent final : public components::ComponentBase {
+class GreeterClientComponent final : public ugrpc::client::SimpleClientComponent<Client> {
 public:
     static constexpr std::string_view kName = "greeter-client";
 
-    GreeterClientComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+    using Base = ugrpc::client::SimpleClientComponent<Client>;
 
-    const GreeterClient& GetClient() const;
+    GreeterClientComponent(const ::components::ComponentConfig& config, const ::components::ComponentContext& context)
+        : Base(config, context) {}
 
-    static yaml_config::Schema GetStaticConfigSchema();
-
-private:
-    ugrpc::client::ClientFactory& client_factory_;
-    GreeterClient client_;
+    using Base::GetClient;
 };
 /// [component]
 

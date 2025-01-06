@@ -72,7 +72,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
          storages::secdist::SecdistFormat::kJson,
          false,
          std::nullopt,
-         &engine::current_task::GetTaskProcessor()}};
+         &engine::current_task::GetTaskProcessor(),
+         {}}};
     storages::secdist::Secdist secdist{{&provider, std::chrono::milliseconds(100)}};
     auto subscriber =
         secdist.UpdateAndListen(&storage, "test/multimongo_update_secdist", &SecdistConfigStorage::OnSecdistUpdate);

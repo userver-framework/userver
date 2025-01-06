@@ -1,7 +1,7 @@
 #include <server/middlewares/exceptions_handling.hpp>
 
-#include <server/http/http_request_impl.hpp>
 #include <server/request/internal_request_context.hpp>
+#include <userver/server/http/http_request.hpp>
 
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/formatted_error_data.hpp>

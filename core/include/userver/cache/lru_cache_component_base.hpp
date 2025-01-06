@@ -50,7 +50,7 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 /// Caching components must be configured in service config (see options below)
 /// and may be reconfigured dynamically via components::DynamicConfig.
 ///
-/// ## Dynamic config
+/// ## LruCacheComponent Dynamic config
 /// * @ref USERVER_LRU_CACHES
 ///
 /// ## Static options:

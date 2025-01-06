@@ -176,7 +176,7 @@ constexpr std::string_view kCommands[] = {
 
 }  // namespace
 
-std::string FindQueryShortInfo(std::string_view prefix, std::string_view str) {
+std::string_view FindCommandName(std::string_view str) {
     const std::size_t max_search_depth = std::min(std::size_t{128}, str.size());
     const auto end_it = str.begin() + max_search_depth;
 
@@ -186,7 +186,14 @@ std::string FindQueryShortInfo(std::string_view prefix, std::string_view str) {
 
     constexpr auto kKnownCommands = USERVER_NAMESPACE::utils::MakeTrivialSet<kCommands>();
     if (const auto match = kKnownCommands.GetIndexICase(command); match) {
-        return fmt::format("{}:{}", prefix, kCommands[*match]);
+        return kCommands[*match];
+    }
+    return {};
+}
+
+std::string FindQueryShortInfo(std::string_view prefix, std::string_view str) {
+    if (const auto match = FindCommandName(str); !match.empty()) {
+        return fmt::format("{}:{}", prefix, match);
     }
 
     return std::string{prefix};

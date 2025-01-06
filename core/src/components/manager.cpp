@@ -191,6 +191,11 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config, const ComponentList& c
 Manager::~Manager() {
     LOG_INFO() << "Stopping components manager";
 
+    try {
+        RunInCoro(*default_task_processor_, [this] { component_context_.OnGracefulShutdownStarted(); });
+    } catch (const std::exception& exc) {
+        LOG_ERROR() << "Graceful shutdown failed: " << exc;
+    }
     engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();
 
     LOG_TRACE() << "Stopping component context";

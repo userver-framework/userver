@@ -15,21 +15,6 @@ namespace ugrpc::impl {
 
 namespace {
 
-// See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/
-// Except that we don't mark DEADLINE_EXCEEDED as a server error.
-bool IsServerError(grpc::StatusCode status) {
-    switch (status) {
-        case grpc::StatusCode::UNKNOWN:
-        case grpc::StatusCode::UNIMPLEMENTED:
-        case grpc::StatusCode::INTERNAL:
-        case grpc::StatusCode::UNAVAILABLE:
-        case grpc::StatusCode::DATA_LOSS:
-            return true;
-        default:
-            return false;
-    }
-}
-
 bool IsZeroWritten(grpc::StatusCode status) {
     switch (status) {
         case grpc::StatusCode::OK:

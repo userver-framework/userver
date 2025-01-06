@@ -50,7 +50,18 @@ userver_module(postgresql
 target_sources(${PROJECT_NAME} PRIVATE "${LIBPQ_VERSION_DIR}/userver_libpq_version.hpp")
 
 _userver_install_targets(COMPONENT postgres TARGETS userver-libpq)
+_userver_directory_install(COMPONENT postgres FILES
+    "${USERVER_ROOT_DIR}/cmake/UserverSql.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+)
+_userver_directory_install(COMPONENT postgres
+    DIRECTORY "${USERVER_ROOT_DIR}/scripts/sql"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/scripts"
+)
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
   add_subdirectory(functional_tests)
 endif()
+
+set(USERVER_DIR "${USERVER_ROOT_DIR}")
+include(UserverSql)

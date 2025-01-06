@@ -23,7 +23,7 @@ if (NOT api-common-protos_SOURCE_DIR)
   message(FATAL_ERROR "Unable to get google common proto apis. It is required for userver-grpc build.")
 endif()
 
-include(GrpcTargets)
+include(UserverGrpcTargets)
 file(GLOB_RECURSE SOURCES
   ${api-common-protos_SOURCE_DIR}/*.proto)
 

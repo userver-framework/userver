@@ -8,11 +8,11 @@
 #include <storages/redis/impl/cluster_topology.hpp>
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/subscription_rebalance_scheduler.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -189,9 +189,9 @@ void ClusterSubscriptionStorage::PsubscribeImpl(
 }
 
 const std::string& ClusterSubscriptionStorage::GetShardName(size_t shard_idx) const {
-    return redis::GetShardName(shard_idx);
+    return impl::GetShardName(shard_idx);
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

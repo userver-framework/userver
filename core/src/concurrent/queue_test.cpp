@@ -34,6 +34,7 @@ using TestMpmcTypes = testing::Types<
     concurrent::NonFifoMpmcQueue<int>,
     concurrent::NonFifoMpmcQueue<std::unique_ptr<int>>,
     concurrent::NonFifoMpmcQueue<std::unique_ptr<RefCountData>>>;
+
 using TestMpscTypes = testing::Types<
     concurrent::NonFifoMpscQueue<int>,
     concurrent::NonFifoMpscQueue<std::unique_ptr<int>>,
@@ -53,7 +54,7 @@ INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpmcQueue, TypedQueueFixture, TestMpmcTyp
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, QueueFixture, concurrent::NonFifoMpscQueue<int>);
 
-INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, TypedQueueFixture, TestMpmcTypes);
+INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, TypedQueueFixture, TestMpscTypes);
 
 TYPED_TEST_SUITE(NonCoroutineTest, TestQueueTypes);
 
@@ -87,7 +88,30 @@ UTEST(NonFifoMpmcQueue, ConsumerIsDead) {
     EXPECT_FALSE(producer.Push(0));
 }
 
-UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kConsumersCount) {
+namespace {
+
+template <typename T>
+class MpMcQueueFixture : public testing::Test {};
+
+class MpMcQueueSmallCapacity final {
+    auto CreateQueue() { return concurrent::NonFifoMpmcQueue<std::size_t>::Create(10); }
+};
+
+class MpMcQueueLargeCapacity final {
+    auto CreateQueue() { return concurrent::NonFifoMpmcQueue<std::size_t>::Create(1000); }
+};
+
+class MpMcQueueUnbounded final {
+    auto CreateQueue() { return concurrent::impl::UnfairUnboundedNonFifoMpmcQueue<std::size_t>::Create(); }
+};
+
+using MpMcQueueFixtureTypes = testing::Types<MpMcQueueSmallCapacity, MpMcQueueLargeCapacity, MpMcQueueUnbounded>;
+
+}  // namespace
+
+TYPED_UTEST_SUITE(MpMcQueueFixture, MpMcQueueFixtureTypes);
+
+TYPED_UTEST_MT(MpMcQueueFixture, Mpmc, kProducersCount + kConsumersCount) {
     auto queue = concurrent::NonFifoMpmcQueue<std::size_t>::Create(kMessageCount);
     std::vector<concurrent::NonFifoMpmcQueue<std::size_t>::Producer> producers;
     producers.reserve(kProducersCount);
@@ -134,7 +158,7 @@ UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kConsumersCount) {
     ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(), [](int item) { return item == 1; }));
 }
 
-UTEST_MT(NonFifoMpmcQueue, SizeAfterConsumersDie, kConsumersCount + 1) {
+TYPED_UTEST_MT(MpMcQueueFixture, SizeAfterConsumersDie, kConsumersCount + 1) {
     constexpr std::size_t kAttemptsCount = 1000;
 
     auto queue = concurrent::NonFifoMpmcQueue<int>::Create();
@@ -325,7 +349,7 @@ UTEST_MT(SpscQueue, Spsc, 1 + 1) {
     ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(), [](int item) { return item == 1; }));
 }
 
-UTEST_MT(QueueFixture, MultiConsumerToken, kProducersCount + kConsumersCount) {
+TYPED_UTEST_MT(MpMcQueueFixture, MultiConsumerToken, kProducersCount + kConsumersCount) {
     using Message = std::size_t;
     using Queue = concurrent::NonFifoMpmcQueue<Message>;
     using ReceivedMessages = std::unordered_set<Message>;

@@ -36,6 +36,7 @@ proxy setup and so forth.
 See @ref scripts/docs/en/userver/tutorial/production_service.md setup example.
 
 
+@anchor dynamic_config_usage
 ### Adding and using your own dynamic configs
 
 Dynamic config values are obtained via the dynamic_config::Source client
@@ -144,7 +145,7 @@ You may use @ref scripts/docs/en/userver/chaotic.md if you hesitate writing the 
 @anchor dynamic_config_parsing_trivial
 #### Trivial types
 
-JSON leafs can be parsed out of the box:
+JSON leaves can be parsed out of the box:
 
 | OpenAPI   | C++ type                                 |
 |-----------|------------------------------------------|
@@ -268,7 +269,7 @@ Config defaults are specified in their
 @ref dynamic_config_key "C++ definition".
 They may be overridden in the static config of `dynamic-config` component:
 
-@see @ref dynamic_config_defaults_override
+@see @ref dynamic_config_defaults_override "Overriding dynamic configs defaults"
 
 If utils::DaemonMain is used, then the default dynamic configs can
 be printed by passing `--print-dynamic-config-defaults` command line option.
@@ -291,6 +292,9 @@ Dynamic config defaults are used in the following places:
 
 5. If `dynamic-config` component loads the config cache file, and some configs
    are missing, then those are filled in from defaults.
+
+6. If a @ref kill_switches "Kill Switch" is disabled, the default is used
+   instead of runtime updates.
 
 
 @anchor dynamic_config_setup
@@ -350,6 +354,98 @@ Here is a reasonable static config for those:
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
 
 
+@anchor dynamic_config_client_schema
+#### Schema of the dynamic config client
+
+Components components::DynamicConfigClientUpdater and components::DynamicConfigClient
+use the following OpenAPI Schema to communicate with the dynamic configs server:
+
+```
+# yaml
+swagger: '2.0'
+info:
+    title: Dynamic configs service
+    version: '1.0'
+
+paths:
+    /configs/values:
+        post:
+            description: |
+                Returns configs changed since updated_since and last update time.
+                If any changed configs are kill switches, returns additional list of disabled Kill Switches.
+                A config with a changed Kill Switch flag is considered changed.
+
+            parameters:
+              - in: body
+                name: values_request
+                schema:
+                    $ref: '#/definitions/Request'
+            responses:
+                200:
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/Response'
+
+definitions:
+    Request:
+        type: object
+        description: Request configs/values
+        additionalProperties: false
+        properties:
+            stage_name:
+                type: string
+                description: Environment name
+            ids:
+                type: array
+                description: Requested configs
+                items:
+                    type: string
+                    description: Config id
+            updated_since:
+                type: string
+                description: |
+                    Time since which updates are requested,
+                    format string "%Y-%m-%dT%H:%M:%E*SZ"
+                example: '2018-08-24T18:36:00.15Z'
+            service:
+                type: string
+                description: Service name
+    Response:
+        type: object
+        description: Response to the configs/values request (with code 200)
+        additionalProperties: false
+        properties:
+            configs:
+                type: object
+                additionalProperties: true
+                description: Configs values
+            kill_switches_disabled:
+                type: array
+                description: Disabled Kill Switches
+                items:
+                    type: string
+                    description: Config id
+            updated_at:
+                type: string
+                description: |
+                    Last update time,
+                    format string "%Y-%m-%dT%H:%M:%E*SZ"
+                example: '2018-08-24T18:36:00.15Z'
+            removed:
+                type: array
+                description: | 
+                    Configs that were removed from the last update.
+                    Should be returned only by testsuite mocks, but not by real config services.
+                    Used only in case of incremental updates, i.e. updated_since is present.
+                items:
+                    type: string
+                    description: Config id
+        required:
+          - configs
+          - updated_at
+```
+
+
 @anchor dynamic_config_fallback
 ### Fallback mechanisms for dynamic configs updates
 
@@ -403,6 +499,51 @@ authorization, ...).
 If you still wish to boot the service using just dynamic config defaults, you
 can create a config cache file with contents `{}`, or bake a config cache file
 into the service's Docker image.
+
+
+@anchor kill_switches
+### Kill Switches
+
+The Kill Switch is a special type of dynamic config option that,
+depending on a special flag, can be configured
+either dynamically or statically.
+
+* If the Kill Switch flag is `true`, it is considered as enabled and works
+  like a normal dynamic config option.
+* Otherwise, it is disabled and its value is determined by the
+  @ref dynamic_config_defaults "static default",
+  ignoring runtime updates.
+
+The Kill Switch flag can be changed at runtime,
+allowing to switch between these two modes.
+
+#### Why Kill Switches may be useful
+
+If you need a static configuration option
+that can be temporarily changed at runtime (e.g. in the event of an incident),
+you should consider using a Kill Switch.
+
+If you enable the Kill Switch very rarely and for a short time,
+then you get advantages that ordinary dynamic configs do not have:
+
+* The production and test configurations are not different.
+* Configuration changes are synchronized with code releases.
+
+#### Usage of Kill Switches
+
+To use a Kill Switch, you need to do the following:
+
+1. Add support for the Kill Switches to the dynamic configuration server
+   used by your component. In particular, the server must send
+   the `kill_switch_disabled` field that is explained in
+   @ref dynamic_config_client_schema "Dynamic config client schema".
+2. Define a global dynamic_config::Key variable
+   in your component's code.
+   @see @ref dynamic_config_usage "Adding and using your own dynamic configs"
+3. You should define a meaningful default value in the dynamic_config::Key variable.
+   Alternatively, you may provide a reasonable
+   @ref dynamic_config_defaults_override "override".
+4. Mark this key as a Kill Switch in the dynamic config server.
 
 
 @anchor dynamic_config_unit_tests

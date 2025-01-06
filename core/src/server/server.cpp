@@ -11,14 +11,13 @@
 #include <engine/task/task_processor.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/http_request_handler.hpp>
-#include <server/http/http_request_impl.hpp>
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
-#include <server/pph_config.hpp>
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
 #include <userver/fs/blocking/read.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/server/middlewares/configuration.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -150,15 +149,7 @@ ServerImpl::ServerImpl(
     : config_(std::move(config)) {
     LOG_DEBUG() << "Creating server";
 
-    if (config_.listener.tls) {
-        auto contents = fs::blocking::ReadFileContents(config_.listener.tls_private_key_path);
-        if (config_.listener.tls_private_key_passphrase_name.empty()) {
-            config_.listener.tls_private_key = crypto::PrivateKey::LoadFromString(contents);
-        } else {
-            auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(config_.listener.tls_private_key_passphrase_name);
-            config_.listener.tls_private_key = crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
-        }
-    }
+    for (auto& port : config_.listener.ports) port.ReadTlsSettings(secdist);
 
     main_port_info_.Init(config_, config_.listener, component_context, false);
     if (config_.max_response_size_in_flight) {
@@ -182,7 +173,7 @@ void ServerImpl::StartPortInfos() {
     if (has_requests_view_watchers_.load()) {
         auto queue = requests_view_.GetQueue();
         requests_view_.StartBackgroundWorker();
-        auto hook = [queue](std::shared_ptr<request::RequestBase> request) { queue->enqueue(request); };
+        auto hook = [queue](std::shared_ptr<http::HttpRequest> request) mutable { queue->enqueue(std::move(request)); };
         main_port_info_.request_handler_->SetNewRequestHook(hook);
         if (monitor_port_info_.request_handler_) {
             monitor_port_info_.request_handler_->SetNewRequestHook(hook);

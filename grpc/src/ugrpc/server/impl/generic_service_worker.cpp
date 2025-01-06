@@ -18,12 +18,13 @@ constexpr std::string_view kGenericMethodFullNamesFake[] = {
 constexpr std::string_view kGenericServiceNameFake = "Generic";
 constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServiceNameFake, kGenericMethodFullNamesFake};
 
-auto Dispatch(void (GenericServiceBase::*service_method)(GenericServiceBase::Call&)) { return service_method; }
-
 }  // namespace
 
 template <>
-struct CallTraits<void (GenericServiceBase::*)(GenericServiceBase::Call&)> final {
+struct CallTraits<ugrpc::server::StreamingResult<
+    grpc::
+        ByteBuffer> (GenericServiceBase::*)(ugrpc::server::GenericCallContext&, ugrpc::server::ReaderWriter<grpc::ByteBuffer, grpc::ByteBuffer>&)>
+    final {
     using ServiceBase = GenericServiceBase;
     using Request = grpc::ByteBuffer;
     using Response = grpc::ByteBuffer;
@@ -31,7 +32,9 @@ struct CallTraits<void (GenericServiceBase::*)(GenericServiceBase::Call&)> final
     using InitialRequest = NoInitialRequest;
     using Call = BidirectionalStream<Request, Response>;
     using ContextType = grpc::GenericServerContext;
-    using ServiceMethod = void (ServiceBase::*)(Call&);
+    using ServiceMethod = ugrpc::server::StreamingResult<
+        grpc::
+            ByteBuffer> (ServiceBase::*)(ugrpc::server::GenericCallContext&, ugrpc::server::ReaderWriter<Request, Response>&);
     static constexpr auto kCallCategory = CallCategory::kGeneric;
 };
 
@@ -83,7 +86,7 @@ GenericServiceWorker::~GenericServiceWorker() = default;
 grpc::AsyncGenericService& GenericServiceWorker::GetService() { return impl_->service_data.async_service.GetService(); }
 
 void GenericServiceWorker::Start() {
-    impl::StartServing(impl_->service_data, impl_->service, Dispatch(&GenericServiceBase::Handle));
+    impl::StartServing(impl_->service_data, impl_->service, &GenericServiceBase::Handle);
 }
 
 }  // namespace ugrpc::server::impl

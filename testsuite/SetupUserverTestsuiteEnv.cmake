@@ -1,19 +1,10 @@
 # This script sets up venv for tests of userver itself.
 # It is not used for testing services based on userver.
 
-# /// [testsuite - UserverTestsuite]
-# cmake
-include(UserverTestsuite)
-# /// [testsuite - UserverTestsuite]
-
 userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
 
 list(APPEND requirements_files
   "${USERVER_ROOT_DIR}/testsuite/requirements-internal-tests.txt")
-if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  list(APPEND requirements_files
-    "${USERVER_ROOT_DIR}/testsuite/requirements-internal-tests-linux.txt")
-endif()
 
 userver_venv_setup(
   NAME userver-testenv

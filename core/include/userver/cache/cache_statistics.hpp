@@ -41,7 +41,7 @@ struct Statistics final {
 
 void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats);
 
-enum class UpdateState { kNotFinished, kSuccess, kFailure };
+enum class UpdateState { kNotFinished, kSuccess, kNoChanges, kFailure };
 
 }  // namespace impl
 

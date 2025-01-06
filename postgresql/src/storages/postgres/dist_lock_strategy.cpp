@@ -1,5 +1,7 @@
 #include <userver/storages/postgres/dist_lock_strategy.hpp>
 
+#include <string_view>
+
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
@@ -16,7 +18,7 @@ namespace {
 // owner - $2
 // timeout in seconds - $3
 std::string MakeAcquireQuery(const std::string& table) {
-    static constexpr auto kAcquireQueryFmt = R"(
+    static constexpr std::string_view kAcquireQueryFmt = R"(
     INSERT INTO {} AS t (key, owner, expiration_time) VALUES
     ($1, $2, current_timestamp + make_interval(secs => $3))
     ON CONFLICT (key) DO UPDATE
@@ -30,7 +32,7 @@ std::string MakeAcquireQuery(const std::string& table) {
 // key - $1
 // owner - $2
 std::string MakeReleaseQuery(const std::string& table) {
-    static constexpr auto kReleaseQueryFmt = R"(
+    static constexpr std::string_view kReleaseQueryFmt = R"(
     DELETE FROM {}
     WHERE key = $1
     AND owner = $2

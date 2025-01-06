@@ -13,16 +13,12 @@ namespace utils::impl {
 
 class UserverExperiment final {
 public:
-    // Setting 'userver_experiments_force_enabled: true' in the static config
-    // root results in batch-enabling the experiments created with
-    // 'force_enabling_allowed = true'.
-    explicit UserverExperiment(std::string name, bool force_enabling_allowed = false);
+    explicit UserverExperiment(std::string name);
 
     UserverExperiment(UserverExperiment&&) = delete;
     UserverExperiment& operator=(UserverExperiment&&) = delete;
 
     bool IsEnabled() const noexcept { return enabled_; }
-    bool IsForceEnablingAllowed() const { return force_enabling_allowed_; }
     const std::string& GetName() const { return name_; }
 
 private:
@@ -30,7 +26,6 @@ private:
 
     std::string name_;
     bool enabled_{false};
-    bool force_enabling_allowed_{false};
 };
 
 class InvalidUserverExperiments final : public std::runtime_error {
@@ -51,13 +46,19 @@ public:
     void Set(UserverExperiment& experiment, bool value) noexcept;
 
     /// @throws InvalidUserverExperiments on name mismatch
-    void EnableOnly(const UserverExperimentSet& enabled_experiments, bool force_enable = false);
+    void EnableOnly(const UserverExperimentSet& enabled_experiments);
 
 private:
     const std::vector<utils::NotNull<UserverExperiment*>> old_enabled_;
 };
 
+// All userver experiments should be registered here to ensure that they can be globally enabled
+// for all services, no matter whether a specific userver library is used in a given service.
+extern UserverExperiment kJemallocBgThread;
 extern UserverExperiment kCoroutineStackUsageMonitorExperiment;
+extern UserverExperiment kServerSelectionTimeoutExperiment;
+extern UserverExperiment kPgCcExperiment;
+extern UserverExperiment kYdbDeadlinePropagationExperiment;
 
 }  // namespace utils::impl
 

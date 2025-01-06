@@ -4,7 +4,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md and took a look at the
+@ref scripts/docs/en/userver/build/build.md and took a look at the
 @ref scripts/docs/en/userver/tutorial/tcp_service.md.
 
 

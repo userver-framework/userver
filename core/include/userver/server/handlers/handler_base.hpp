@@ -6,7 +6,7 @@
 #include <userver/components/component_base.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/handler_config.hpp>
-#include <userver/server/request/request_base.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -57,11 +57,11 @@ public:
 
     /// Parses request, executes processing routines, and fills response
     /// accordingly. Does not throw.
-    virtual void HandleRequest(request::RequestBase& request, request::RequestContext& context) const = 0;
+    virtual void PrepareAndHandleRequest(http::HttpRequest& request, request::RequestContext& context) const = 0;
 
     /// Produces response to a request unrecognized by the protocol based on
     /// provided generic response. Does not throw.
-    virtual void ReportMalformedRequest(request::RequestBase&) const {}
+    virtual void ReportMalformedRequest(http::HttpRequest&) const {}
 
     /// Returns whether this is a monitoring handler.
     bool IsMonitor() const { return is_monitor_; }

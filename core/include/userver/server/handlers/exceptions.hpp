@@ -59,7 +59,7 @@ enum class HandlerErrorCode {
     kUnsupportedMediaType,  //!< kUnsupportedMediaType Content-Encoding or
                             //!< Content-Type is not supported
 
-    // Server error codes are declared ater the client side error to be
+    // Server error codes are declared after the client side error to be
     // mapped correctly to a protocol-specific error code!
 };
 // When adding enumerators here ^, please also add mappings to the

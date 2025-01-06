@@ -32,7 +32,7 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCE
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED
+find_package(Boost REQUIRED CONFIG
     COMPONENTS
     program_options
     filesystem
@@ -41,7 +41,7 @@ find_package(Boost REQUIRED
     OPTIONAL_COMPONENTS
     stacktrace_backtrace
 )
-include(UserverRequireDWCAS)  # Should be called after `find_package(Boost REQUIRED)`
+include(UserverRequireDWCAS)  # Should be called after `find_package(Boost)`
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -53,7 +53,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   endif()
 endif()
 
-find_package(Iconv REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 
 if (USERVER_CONAN)
@@ -88,7 +87,7 @@ userver_target_cxx_compile_options_if_supported(userver-internal-compile-options
 
   # -Wall and -Wextra do not enable these
   "-Wdisabled-optimization" "-Winvalid-pch" "-Wimplicit-fallthrough"
-  "-Wlogical-op" "-Wformat=2" "-Wno-error=deprecated-declarations"  
+  "-Wlogical-op" "-Wformat=2" "-Wno-error=deprecated-declarations"
 
   # This warning is unavoidable in generic code with templates
   "-Wno-useless-cast"
@@ -104,7 +103,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
   target_compile_options(userver-internal-compile-options INTERFACE "-Wno-range-loop-analysis")
 endif()
 
-# Trimming filename prefixes 
+# Trimming filename prefixes
 get_filename_component(BASE_PREFIX "${USERVER_ROOT_DIR}/../" ABSOLUTE)
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
 file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
@@ -126,7 +125,8 @@ if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
     -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
     -fmacro-prefix-map=${BASE_PREFIX}=
   )
-  if (NOT SRC_LOG_PATH_BASE MATCHES "${BASE_PREFIX}.*" OR NOT "${USERVER_ROOT_DIR}" MATCHES [=[/userver$]=])
+  string(FIND "${SRC_LOG_PATH_BASE}" "${BASE_PREFIX}" _base_prefix_pos)
+  if (NOT _base_prefix_pos EQUAL 0 OR NOT "${USERVER_ROOT_DIR}" MATCHES [=[/userver$]=])
     target_compile_options(userver-internal-compile-options INTERFACE
       -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
     )
@@ -152,7 +152,7 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-_userver_install_targets(COMPONENT universal 
+_userver_install_targets(COMPONENT universal
   TARGETS userver-internal-sanitize-options userver-internal-compile-options)
 
 # The library itself
@@ -307,7 +307,7 @@ _userver_directory_install(COMPONENT universal
 )
 _userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})
 
-if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
+if (USERVER_FEATURE_UTEST)
   add_subdirectory(utest)
 
   add_library(${PROJECT_NAME}-internal-ubench INTERFACE)
@@ -323,7 +323,7 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   )
 endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
     add_library(${PROJECT_NAME}-internal OBJECT ${INTERNAL_SOURCES})
     target_compile_definitions(${PROJECT_NAME}-internal PUBLIC
         $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>
@@ -375,12 +375,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 _userver_directory_install(COMPONENT universal FILES
-    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
     "${USERVER_ROOT_DIR}/cmake/ModuleHelpers.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
@@ -388,12 +382,25 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupPGO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
     "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
     "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
     "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverEmbedFile.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
+_userver_directory_install(COMPONENT universal FILES
+    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
+)
+
+include(UserverEmbedFile)

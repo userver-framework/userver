@@ -8,6 +8,6 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-include("${USERVER_CMAKE_DIR}/FindHiredis.cmake")
+include("${USERVER_CMAKE_DIR}/modules/FindHiredis.cmake")
 
 set(userver_redis_FOUND TRUE)

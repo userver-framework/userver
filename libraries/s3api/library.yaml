@@ -1,0 +1,11 @@
+project-name: userver-lib-s3api
+project-alt-names:
+  - yandex-userver-lib-s3api
+
+description: S3 client
+
+maintainers:
+  - Common componnts
+
+libraries:
+  - userver-core

@@ -4,10 +4,10 @@
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/impl/to_string.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -30,26 +30,26 @@ const grpc::string kClientLinkEcho = "client-link-echo";
 
 class UnitTestServiceWithTracingChecks final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
-        SetMetadata(call.GetContext());
-        sample::ugrpc::GreetingResponse response{};
-        call.Finish(response);
+    SayHelloResult SayHello(CallContext& context, sample::ugrpc::GreetingRequest&& /*request*/) override {
+        SetMetadata(context.GetServerContext());
+        return sample::ugrpc::GreetingResponse{};
     }
 
-    void ReadMany(ReadManyCall& call, sample::ugrpc::StreamGreetingRequest&&) override {
-        SetMetadata(call.GetContext());
-        call.Finish();
+    ReadManyResult
+    ReadMany(CallContext& context, sample::ugrpc::StreamGreetingRequest&& /*request*/, ReadManyWriter& /*writer*/)
+        override {
+        SetMetadata(context.GetServerContext());
+        return grpc::Status::OK;
     }
 
-    void WriteMany(WriteManyCall& call) override {
-        SetMetadata(call.GetContext());
-        sample::ugrpc::StreamGreetingResponse response{};
-        call.Finish(response);
+    WriteManyResult WriteMany(CallContext& context, WriteManyReader& /*reader*/) override {
+        SetMetadata(context.GetServerContext());
+        return sample::ugrpc::StreamGreetingResponse{};
     }
 
-    void Chat(ChatCall& call) override {
-        SetMetadata(call.GetContext());
-        call.Finish();
+    ChatResult Chat(CallContext& context, ChatReaderWriter& /*stream*/) override {
+        SetMetadata(context.GetServerContext());
+        return grpc::Status::OK;
     }
 
 private:
@@ -102,9 +102,9 @@ UTEST_F(GrpcTracing, UnaryRPC) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto call = client.SayHello(out);
-    UEXPECT_NO_THROW(call.Finish());
-    CheckMetadata(call.GetContext());
+    auto future = client.AsyncSayHello(out);
+    UEXPECT_NO_THROW(future.Get());
+    CheckMetadata(future.GetCall().GetContext());
 }
 
 UTEST_F(GrpcTracing, InputStream) {
@@ -138,13 +138,13 @@ UTEST_F(GrpcTracing, SpansInDifferentRPCs) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
 
-    auto call1 = client.SayHello(out);
-    call1.Finish();
-    const auto& metadata1 = call1.GetContext().GetServerInitialMetadata();
+    auto future1 = client.AsyncSayHello(out);
+    future1.Get();
+    const auto& metadata1 = future1.GetCall().GetContext().GetServerInitialMetadata();
 
-    auto call2 = client.SayHello(out);
-    call2.Finish();
-    const auto& metadata2 = call2.GetContext().GetServerInitialMetadata();
+    auto future2 = client.AsyncSayHello(out);
+    future2.Get();
+    const auto& metadata2 = future2.GetCall().GetContext().GetServerInitialMetadata();
 
     EXPECT_EQ(GetMetadata(metadata1, kServerTraceId), GetMetadata(metadata2, kServerTraceId));
     EXPECT_NE(GetMetadata(metadata1, kServerSpanId), GetMetadata(metadata2, kServerSpanId));

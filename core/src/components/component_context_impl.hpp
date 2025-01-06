@@ -31,6 +31,8 @@ public:
 
     void OnAllComponentsLoaded();
 
+    void OnGracefulShutdownStarted();
+
     void OnAllComponentsAreStopping();
 
     void ClearComponents();
@@ -155,6 +157,8 @@ private:
     engine::ConditionVariable print_adding_components_cv_;
     concurrent::Variable<ProtectedData> shared_data_;
     engine::TaskWithResult<void> print_adding_components_task_;
+
+    std::atomic<bool> shutdown_started_{false};
 };
 
 }  // namespace components::impl

@@ -207,6 +207,10 @@ public:
     /// control.
     ///
     /// Suspends coroutine for execution.
+    ///
+    /// @warning Do NOT create a query string manually by embedding arguments!
+    /// It leads to vulnerabilities and bad performance. Either pass arguments
+    /// separately, or use storages::postgres::ParameterScope.
     ResultSet Execute(OptionalCommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store);
 
     /// Execute statement that uses an array of arguments splitting that array in

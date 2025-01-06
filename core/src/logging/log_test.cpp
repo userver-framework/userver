@@ -84,10 +84,12 @@ TEST_F(LoggingTest, Boolean) {
 
 TEST_F(LoggingTest, DocsData) {
     /// [Sample logging usage]
+    LOG_TRACE() << "Very verbose logs, only enabled using dynamic debug logs";
     LOG_DEBUG() << "Some debug info, not logged by default in production";
     LOG_INFO() << "This is informational message";
     LOG_WARNING() << "Something strange happened";
     LOG_ERROR() << "This is unbelievable, fix me, please!";
+    LOG_CRITICAL() << "The service is about to abort, bye";
     /// [Sample logging usage]
 
     const bool flag = true;

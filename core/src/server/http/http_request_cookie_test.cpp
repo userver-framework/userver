@@ -45,22 +45,21 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(HttpRequestCookies, Test) {
     const auto& param = GetParam();
     bool parsed = false;
-    auto parser = server::CreateTestParser([&param, &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
-        parsed = true;
-        auto& http_request_impl = dynamic_cast<server::http::HttpRequestImpl&>(*request);
-        const server::http::HttpRequest http_request(http_request_impl);
-        EXPECT_EQ(http_request.CookieCount(), param.expected.size());
-        for (const auto& [name, value] : param.expected) {
-            EXPECT_TRUE(http_request.HasCookie(name));
-            EXPECT_EQ(http_request.GetCookie(name), value);
-        }
-        size_t names_count = 0;
-        for (const auto& name : http_request.GetCookieNames()) {
-            ++names_count;
-            EXPECT_TRUE(param.expected.find(name) != param.expected.end());
-        }
-        EXPECT_EQ(names_count, param.expected.size());
-    });
+    auto parser =
+        server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
+            parsed = true;
+            EXPECT_EQ(http_request->CookieCount(), param.expected.size());
+            for (const auto& [name, value] : param.expected) {
+                EXPECT_TRUE(http_request->HasCookie(name));
+                EXPECT_EQ(http_request->GetCookie(name), value);
+            }
+            size_t names_count = 0;
+            for (const auto& name : http_request->GetCookieNames()) {
+                ++names_count;
+                EXPECT_TRUE(param.expected.find(name) != param.expected.end());
+            }
+            EXPECT_EQ(names_count, param.expected.size());
+        });
 
     const auto request = "GET / HTTP/1.1\r\nCookie: " + param.data + "\r\n\r\n";
     parser->Parse(request);
@@ -69,12 +68,10 @@ UTEST_P(HttpRequestCookies, Test) {
 
 UTEST(HttpRequestCookiesHashDos, HashDos) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
         parsed = true;
-        auto& http_request_impl = dynamic_cast<server::http::HttpRequestImpl&>(*request);
-        const server::http::HttpRequest http_request(http_request_impl);
 
-        EXPECT_EQ(http_request.CookieCount(), 3589);
+        EXPECT_EQ(http_request->CookieCount(), 3589);
     });
 
     std::string headers;

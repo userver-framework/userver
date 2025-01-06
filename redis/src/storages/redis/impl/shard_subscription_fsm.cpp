@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis::shard_subscriber {
+namespace storages::redis::impl::shard_subscriber {
 
 std::string Event::TypeToDebugString(Type type) {
     switch (type) {
@@ -469,6 +469,6 @@ void Fsm::ChangeState(State new_state) {
     state_ = new_state;
 }
 
-}  // namespace redis::shard_subscriber
+}  // namespace storages::redis::impl::shard_subscriber
 
 USERVER_NAMESPACE_END

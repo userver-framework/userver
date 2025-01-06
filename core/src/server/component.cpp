@@ -89,15 +89,15 @@ properties:
         description: describes the request processing socket
         additionalProperties: false
         properties: &server-listener-properties
-            address:
+            address: &ports-address
                 type: string
                 description: IPv6 or IPv4 network interface to bind to
                 defaultDescription: "::"
-            port:
+            port: &ports-port
                 type: integer
                 description: port to listen on
                 defaultDescription: 0
-            unix-socket:
+            unix-socket: &ports-unix-socket
                 type: string
                 description: unix socket to listen on instead of listening on a port
                 defaultDescription: ''
@@ -112,7 +112,7 @@ properties:
                 type: integer
                 description: max count of new connections pending acceptance
                 defaultDescription: 1024
-            tls:
+            tls: &ports-tls
                 type: object
                 description: TLS settings
                 additionalProperties: false
@@ -132,6 +132,18 @@ properties:
                     private-key-passphrase-name:
                         type: string
                         description: passphrase name located in secdist
+            ports:
+               description: settings of listener ports
+               type: array
+               items:
+                   type: object
+                   additionalProperties: false
+                   description: settings of listener port
+                   properties:
+                       address: *ports-address
+                       port: *ports-port
+                       unix-socket: *ports-unix-socket
+                       tls: *ports-tls
             handler-defaults:
                 type: object
                 description: handler defaults options
@@ -146,6 +158,15 @@ properties:
                     max_headers_size:
                         type: integer
                         description: max headers size in bytes
+                    request_body_size_log_limit:
+                        type: integer
+                        description: trim the request to this size before logging
+                    request_headers_size_log_limit:
+                        type: integer
+                        description: trim request headers to this size before logging
+                    response_data_size_log_limit:
+                        type: integer
+                        description: trim responses to this size before logging
                     parse_args_from_body:
                         type: boolean
                         description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters

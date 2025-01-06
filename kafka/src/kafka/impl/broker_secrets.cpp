@@ -22,7 +22,7 @@ BrokerSecrets::BrokerSecrets(const formats::json::Value& doc) {
     if (!doc.HasMember("kafka_settings")) {
         LOG_ERROR() << "No 'kafka_settings' in secdist";
     }
-    secret_by_component_name_ = doc["kafka_settings"].As<std::map<std::string, Secret>>();
+    secret_by_component_name_ = doc["kafka_settings"].As<std::map<std::string, Secret>>({});
 }
 
 const Secret& BrokerSecrets::GetSecretByComponentName(const std::string& component_name) const {

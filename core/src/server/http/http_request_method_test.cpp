@@ -50,12 +50,11 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(HttpRequestMethods, Test) {
     const auto& param = GetParam();
     bool parsed = false;
-    auto parser = server::CreateTestParser([&param, &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
-        parsed = true;
-        auto& http_request_impl = dynamic_cast<server::http::HttpRequestImpl&>(*request);
-        const server::http::HttpRequest http_request(http_request_impl);
-        EXPECT_EQ(http_request.GetMethod(), param.method);
-    });
+    auto parser =
+        server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
+            parsed = true;
+            EXPECT_EQ(http_request->GetMethod(), param.method);
+        });
 
     const std::string request = param.method_query + " / HTTP/1.1\r\n\r\n";
 

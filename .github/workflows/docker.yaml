@@ -15,47 +15,60 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
-                        -DUSERVER_FEATURE_CHAOTIC=0
-                        -DUSERVER_FEATURE_MYSQL=0
-                        -DUSERVER_FEATURE_MONGODB=0
-                        -DUSERVER_FEATURE_POSTGRESQL=0
-                        -DUSERVER_FEATURE_REDIS=0
-                        -DUSERVER_FEATURE_CLICKHOUSE=0
-                        -DUSERVER_FEATURE_GRPC=0
-                        -DUSERVER_FEATURE_OTLP=0
-                        -DUSERVER_FEATURE_KAFKA=0
-                        -DUSERVER_FEATURE_RABBITMQ=0
-                        -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=17
+                        -DUSERVER_NO_WERROR=0
+                        -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_FEATURE_CORE=1
+                        -DUSERVER_FEATURE_CHAOTIC=0
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base
-                    info: ubuntu + clang + cxx17 + core
+                    info: ubuntu + gcc + cxx17 + core
                     id: ubuntu_clang_cxx17_core
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
-                        -DUSERVER_FEATURE_MYSQL=1
+                        -DCMAKE_C_COMPILER=clang-16
+                        -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=17
+                        -DUSERVER_NO_WERROR=0
+                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx17
                     id: ubuntu_clang_cxx17
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
-                        -DUSERVER_FEATURE_MYSQL=1
+                        -DCMAKE_C_COMPILER=gcc-11
+                        -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=17
+                        -DUSERVER_NO_WERROR=0
+                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx17
                     id: ubuntu_gcc_cxx17
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
-                        -DUSERVER_FEATURE_MYSQL=1
+                        -DCMAKE_C_COMPILER=clang-16
+                        -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=20
+                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx20
                     id: ubuntu_clang_cxx20
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
-                        -DUSERVER_FEATURE_MYSQL=1
-                        -DUSERVER_FEATURE_YDB=0
+                        -DCMAKE_C_COMPILER=gcc-11
+                        -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=20
+                        -DUSERVER_NO_WERROR=0
+                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_BUILD_TESTS=1
+                    gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx20
                     id: ubuntu_gcc_cxx20
@@ -118,4 +131,4 @@ jobs:
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
-                'cd /userver/build && ulimit -n 4096 && ctest -V'
+                'cd /userver/build && ulimit -n 4096 && GTEST_FILTER="${{ matrix.gtest-filter }}" ctest -V'

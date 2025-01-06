@@ -3,11 +3,12 @@
 /// @file userver/fs/blocking/c_file.hpp
 /// @brief @copybrief fs::blocking::CFile
 
+#include <cstdint>
 #include <cstdio>
 #include <string>
 #include <string_view>
 
-#include <boost/filesystem/operations.hpp>
+#include <userver/utils/boost_filesystem_file_status.hpp>
 
 #include <userver/fs/blocking/open_mode.hpp>
 #include <userver/utils/fast_pimpl.hpp>

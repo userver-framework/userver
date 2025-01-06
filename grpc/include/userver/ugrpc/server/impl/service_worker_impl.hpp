@@ -25,15 +25,16 @@
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
+#include <userver/ugrpc/server/call_context.hpp>
 #include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/impl/async_service.hpp>
 #include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
+#include <userver/ugrpc/server/impl/call_utils.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
-#include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -185,6 +186,7 @@ private:
         auto& access_tskv_logger = method_data_.service_data.settings.access_tskv_logger;
         auto& statistics_storage = method_data_.service_data.settings.statistics_storage;
         utils::AnyStorage<StorageContext> storage_context;
+
         Call responder(
             CallParams{
                 context_,
@@ -199,11 +201,32 @@ private:
                 middlewares},
             raw_responder_
         );
+
         auto do_call = [&] {
-            if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
-                (method_data_.service.*(method_data_.service_method))(responder);
+            if constexpr (CallTraits::kCallCategory == CallCategory::kGeneric) {
+                GenericCallContext context{responder};
+                auto result = (method_data_.service.*(method_data_.service_method))(context, responder);
+                Finalize(responder, std::move(result));
             } else {
-                (method_data_.service.*(method_data_.service_method))(responder, std::move(initial_request_));
+                CallContext context{responder};
+                if constexpr (CallTraits::kCallCategory == CallCategory::kUnary) {
+                    auto result =
+                        (method_data_.service.*(method_data_.service_method))(context, std::move(initial_request_));
+                    Finalize(responder, std::move(result));
+                } else if constexpr (CallTraits::kCallCategory == CallCategory::kInputStream) {
+                    auto result = (method_data_.service.*(method_data_.service_method))(context, responder);
+                    Finalize(responder, std::move(result));
+                } else if constexpr (CallTraits::kCallCategory == CallCategory::kOutputStream) {
+                    auto result =
+                        (method_data_.service.*(method_data_.service_method)
+                        )(context, std::move(initial_request_), responder);
+                    Finalize(responder, std::move(result));
+                } else if constexpr (CallTraits::kCallCategory == CallCategory::kBidirectionalStream) {
+                    auto result = (method_data_.service.*(method_data_.service_method))(context, responder);
+                    Finalize(responder, std::move(result));
+                } else {
+                    static_assert(!sizeof(CallTraits), "Unexpected CallCategory");
+                }
             }
         };
 

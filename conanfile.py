@@ -1,5 +1,6 @@
 # pylint: disable=no-member
 import os
+import platform
 import re
 
 from conan import ConanFile
@@ -39,15 +40,19 @@ class UserverConan(ConanFile):
         'with_utest': [True, False],
         'with_kafka': [True, False],
         'with_otlp': [True, False],
+        'with_easy': [True, False],
+        'with_s3api': [True, False],
+        'with_grpc_reflection': [True, False],
         'namespace': ['ANY'],
         'namespace_begin': ['ANY'],
         'namespace_end': ['ANY'],
+        'python_path': ['ANY'],
     }
 
     default_options = {
         'fPIC': True,
         'lto': False,
-        'with_jemalloc': True,
+        'with_jemalloc': (platform.system() != 'Darwin'),
         'with_mongodb': True,
         'with_postgresql': True,
         'with_postgresql_extra': False,
@@ -58,10 +63,19 @@ class UserverConan(ConanFile):
         'with_utest': True,
         'with_kafka': True,
         'with_otlp': True,
+        'with_easy': True,
+        'with_s3api': False,
+        'with_grpc_reflection': False,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
+        'python_path': 'python3',
         'mongo-c-driver/*:with_sasl': 'cyrus',
+        'grpc/*:php_plugin': False,
+        'grpc/*:node_plugin': False,
+        'grpc/*:ruby_plugin': False,
+        'grpc/*:csharp_plugin': False,
+        'grpc/*:objective_c_plugin': False,
     }
 
     # scm = {
@@ -103,70 +117,65 @@ class UserverConan(ConanFile):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires('boost/1.79.0', transitive_headers=True)
-        self.requires('c-ares/1.19.1')
-        self.requires('cctz/2.3', transitive_headers=True)
+        self.requires('boost/1.86.0', transitive_headers=True)
+        self.requires('c-ares/1.33.1')
+        self.requires('cctz/2.4', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
-        self.requires('cryptopp/8.7.0')
+        self.requires('cryptopp/8.9.0')
         self.requires('fmt/8.1.1', transitive_headers=True)
-        self.requires('libnghttp2/1.51.0')
+        self.requires('libiconv/1.17')
+        self.requires('libnghttp2/1.61.0')
         self.requires('libcurl/7.86.0')
         self.requires('libev/4.33')
-        self.requires('openssl/1.1.1s')
+        self.requires('openssl/3.3.2')
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
-        self.requires('yaml-cpp/0.7.0')
-        self.requires('zlib/1.2.13')
-        self.requires('zstd/1.5.6')
+        self.requires('yaml-cpp/0.8.0')
+        self.requires('zlib/1.3.1')
+        self.requires('zstd/1.5.5')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
+        if self.options.with_grpc or self.options.with_clickhouse:
+            self.requires('abseil/20240116.2', force=True)
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.48.4', transitive_headers=True, transitive_libs=True,
+                'grpc/1.65.0', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
-                'googleapis/cci.20230501',
+                'protobuf/5.27.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
-            self.requires(
-                'grpc-proto/cci.20220627',
-                transitive_headers=True,
-                transitive_libs=True,
-            )
-            self.requires('protobuf/3.21.12', force=True)
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
         if self.options.with_mongodb or self.options.with_kafka:
-            self.requires('cyrus-sasl/2.1.27', force=True)
+            self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/1.27.6',
+                'mongo-c-driver/1.28.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_redis:
-            self.requires('hiredis/1.0.2')
+            self.requires('hiredis/1.2.0')
         if self.options.with_rabbitmq:
-            self.requires('amqp-cpp/4.3.16')
+            self.requires('amqp-cpp/4.3.26')
         if self.options.with_clickhouse:
-            self.requires('clickhouse-cpp/2.4.0')
-            self.requires(
-                'abseil/20230125.3',
-                transitive_headers=True,
-                transitive_libs=True,
-            )
+            self.requires('clickhouse-cpp/2.5.1')
         if self.options.with_utest:
             self.requires(
-                'gtest/1.12.1', transitive_headers=True, transitive_libs=True,
+                'gtest/1.15.0', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
-                'benchmark/1.6.2',
+                'benchmark/1.9.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('librdkafka/2.4.0')
+            self.requires('librdkafka/2.6.0')
+
+    def build_requirements(self):
+        self.tool_requires('protobuf/5.27.0')
 
     def validate(self):
         if self.settings.os == 'Windows':
@@ -188,7 +197,6 @@ class UserverConan(ConanFile):
         tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
 
         tool_ch.variables['USERVER_CONAN'] = True
-        tool_ch.variables['USERVER_IS_THE_ROOT_PROJECT'] = False
         tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
         tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
         tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
@@ -196,6 +204,7 @@ class UserverConan(ConanFile):
             self.options.namespace_begin
         )
         tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
+        tool_ch.variables['USERVER_PYTHON_PATH'] = self.options.python_path
 
         tool_ch.variables['USERVER_LTO'] = self.options.lto
         tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = (
@@ -224,6 +233,11 @@ class UserverConan(ConanFile):
         )
         tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
         tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
+        tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
+        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = (
+            self.options.with_grpc_reflection
+        )
         tool_ch.generate()
 
         CMakeDeps(self).generate()
@@ -263,26 +277,26 @@ class UserverConan(ConanFile):
             keep_path=True,
         )
 
-        def copy_component(component):
+        def copy_component(component, is_library: bool = False):
+            component_path = (
+                os.path.join('libraries', component)
+                if is_library
+                else component
+            )
             copy(
                 self,
                 pattern='*',
                 dst=os.path.join(self.package_folder, 'include', component),
-                src=os.path.join(self.source_folder, component, 'include'),
+                src=os.path.join(
+                    self.source_folder, component_path, 'include',
+                ),
                 keep_path=True,
             )
             copy(
                 self,
                 pattern='*.a',
                 dst=os.path.join(self.package_folder, 'lib'),
-                src=os.path.join(self._build_subfolder, component),
-                keep_path=False,
-            )
-            copy(
-                self,
-                pattern='*.so',
-                dst=os.path.join(self.package_folder, 'lib'),
-                src=os.path.join(self._build_subfolder, component),
+                src=os.path.join(self._build_subfolder, component_path),
                 keep_path=False,
             )
 
@@ -292,6 +306,7 @@ class UserverConan(ConanFile):
             'UserverSetupEnvironment',
             'SetupLinker',
             'SetupLTO',
+            'SetupPGO',
             'UserverVenv',
         ):
             copy(
@@ -315,7 +330,14 @@ class UserverConan(ConanFile):
             )
             copy(
                 self,
-                pattern='GrpcTargets.cmake',
+                pattern='*pb.h',
+                dst=os.path.join(self.package_folder, 'include'),
+                src=os.path.join(self._build_subfolder, 'grpc', 'proto'),
+                keep_path=True,
+            )
+            copy(
+                self,
+                pattern='UserverGrpcTargets.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
@@ -395,6 +417,15 @@ class UserverConan(ConanFile):
         if self.options.with_otlp:
             copy_component('otlp')
 
+        if self.options.with_easy:
+            copy_component('easy', is_library=True)
+
+        if self.options.with_s3api:
+            copy_component('s3api', is_library=True)
+
+        if self.options.with_grpc_reflection:
+            copy_component('grpc-reflection', is_library=True)
+
     @property
     def _userver_components(self):
         def abseil():
@@ -424,6 +455,9 @@ class UserverConan(ConanFile):
         def yaml():
             return ['yaml-cpp::yaml-cpp']
 
+        def iconv():
+            return ['libiconv::libiconv']
+
         def libev():
             return ['libev::libev']
 
@@ -450,12 +484,6 @@ class UserverConan(ConanFile):
         def grpc():
             return ['grpc::grpc'] if self.options.with_grpc else []
 
-        def googleapis():
-            return ['googleapis::googleapis'] if self.options.with_grpc else []
-
-        def grpcproto():
-            return ['grpc-proto::grpc-proto'] if self.options.with_grpc else []
-
         def protobuf():
             return ['protobuf::protobuf'] if self.options.with_grpc else []
 
@@ -477,7 +505,9 @@ class UserverConan(ConanFile):
 
         def cyrussasl():
             return (
-                ['cyrus-sasl::cyrus-sasl'] if self.options.with_mongodb else []
+                ['cyrus-sasl::cyrus-sasl']
+                if self.options.with_mongodb or self.options.with_kafka
+                else []
             )
 
         def hiredis():
@@ -485,6 +515,9 @@ class UserverConan(ConanFile):
 
         def amqpcpp():
             return ['amqp-cpp::amqp-cpp'] if self.options.with_rabbitmq else []
+
+        def pugixml():
+            return ['pugixml::pugixml'] if self.options.with_s3api else []
 
         def clickhouse():
             return (
@@ -504,12 +537,12 @@ class UserverConan(ConanFile):
                 'lib': 'core',
                 'requires': (
                     ['universal']
-                    + abseil()
                     + fmt()
                     + cctz()
                     + boost()
                     + concurrentqueue()
                     + yaml()
+                    + iconv()
                     + libev()
                     + libnghttp2()
                     + curl()
@@ -544,13 +577,7 @@ class UserverConan(ConanFile):
                 {
                     'target': 'grpc',
                     'lib': 'grpc',
-                    'requires': (
-                        ['core']
-                        + grpc()
-                        + protobuf()
-                        + googleapis()
-                        + grpcproto()
-                    ),
+                    'requires': (['core'] + abseil() + grpc() + protobuf()),
                 },
                 {
                     'target': 'grpc-handlers',
@@ -618,7 +645,7 @@ class UserverConan(ConanFile):
                 {
                     'target': 'clickhouse',
                     'lib': 'clickhouse',
-                    'requires': ['core'] + clickhouse(),
+                    'requires': ['core'] + abseil() + clickhouse(),
                 },
             ])
         if self.options.with_kafka:
@@ -641,15 +668,37 @@ class UserverConan(ConanFile):
             userver_components.extend([
                 {'target': 'otlp', 'lib': 'otlp', 'requires': ['core']},
             ])
+
+        if self.options.with_easy:
+            userver_components.extend([
+                {
+                    'target': 'easy',
+                    'lib': 'easy',
+                    'requires': ['core', 'postgresql'],
+                },
+            ])
+
+        if self.options.with_s3api:
+            userver_components.extend([
+                {
+                    'target': 's3api',
+                    'lib': 's3api',
+                    'requires': ['core'] + pugixml(),
+                },
+            ])
+
+        if self.options.with_grpc_reflection:
+            userver_components.extend([
+                {
+                    'target': 'grpc-reflection',
+                    'lib': 'grpc-reflection',
+                    'requires': ['grpc'],
+                },
+            ])
         return userver_components
 
     def package_info(self):
-        debug = (
-            'd'
-            if self.settings.build_type == 'Debug'
-            and self.settings.os == 'Windows'
-            else ''
-        )
+        debug = 'd' if self.settings.build_type == 'Debug' else ''
 
         def get_lib_name(module):
             return f'userver-{module}{debug}'
@@ -670,6 +719,12 @@ class UserverConan(ConanFile):
                 if cmake_component == 'grpc':
                     self.cpp_info.components[conan_component].libs.append(
                         get_lib_name('grpc-internal'),
+                    )
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('grpc-proto'),
+                    )
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('api-common-protos'),
                     )
                 else:
                     self.cpp_info.components[conan_component].libs = [lib_name]
@@ -731,7 +786,7 @@ class UserverConan(ConanFile):
                 os.path.join(self._cmake_subfolder, 'GrpcConan.cmake'),
             )
             build_modules.append(
-                os.path.join(self._cmake_subfolder, 'GrpcTargets.cmake'),
+                os.path.join(self._cmake_subfolder, 'UserverGrpcTargets.cmake'),
             )
 
         self.cpp_info.set_property('cmake_build_modules', build_modules)

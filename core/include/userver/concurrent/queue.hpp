@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/concurrent/queue.hpp
+/// @brief @copybrief concurrent::GenericQueue
+
 #include <atomic>
 #include <limits>
 #include <memory>
@@ -19,21 +22,74 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
 
-namespace impl {
+/// @brief Represents the manner in which the queue enforces the configured
+/// max size limit.
+/// @see @ref GenericQueue
+/// @see @ref DefaultQueuePolicy
+enum class QueueMaxSizeMode {
+    /// No support for setting max size. Fastest.
+    kNone,
 
-template <bool MultipleProducer, bool MultipleConsumer>
-struct SimpleQueuePolicy {
+    /// Supports dynamically changing max size; supports awaiting non-fullness
+    /// in producers. Slightly slower than @ref kNone.
+    kDynamicSync,
+};
+
+/// @brief The default queue policy for @ref GenericQueue.
+/// Custom queue policies must inherit from it.
+struct DefaultQueuePolicy {
+    /// If `true`, the queue gains support for multiple concurrent producers,
+    /// which adds some synchronization overhead. This also makes the queue
+    /// non-FIFO, because consumer(s) will randomly prioritize some producers
+    /// over the other ones.
+    static constexpr bool kIsMultipleProducer{false};
+
+    /// If `true`, the queue gains support for multiple concurrent consumers,
+    /// which adds some synchronization overhead.
+    static constexpr bool kIsMultipleConsumer{false};
+
+    /// Whether the queue has support for max size,
+    /// which adds some synchronization overhead.
+    static constexpr QueueMaxSizeMode kMaxSizeMode = QueueMaxSizeMode::kNone;
+
+    /// Should return the size of an element, which accounts towards
+    /// the capacity limit. Only makes sense to set if `kHasMaxSize == true`.
+    ///
+    /// For the vast majority of queues, capacity is naturally counted
+    /// in queue elements, e.g. `GetSoftMaxSize() == 1000` means that we want
+    /// no more than 1000 elements in the queue.
+    ///
+    /// Sometimes we want a more complex limit, e.g. for a queue of strings we
+    /// want the total number of bytes in all the strings to be limited.
+    /// In that case we can set the element size equal to its `std::size`.
+    ///
+    /// @note Returning anything other than 1 adds some synchronization overhead.
+    /// @warning An element changing its capacity while inside the queue is UB.
+    /// @warning Overflow in the total queue size is UB.
     template <typename T>
     static constexpr std::size_t GetElementSize(const T&) {
         return 1;
     }
+};
 
+namespace impl {
+
+template <bool MultipleProducer, bool MultipleConsumer>
+struct SimpleQueuePolicy : public DefaultQueuePolicy {
     static constexpr bool kIsMultipleProducer{MultipleProducer};
     static constexpr bool kIsMultipleConsumer{MultipleConsumer};
+    static constexpr auto kMaxSizeMode = QueueMaxSizeMode::kDynamicSync;
 };
 
 template <bool MultipleProducer, bool MultipleConsumer>
-struct ContainerQueuePolicy {
+struct NoMaxSizeQueuePolicy : public DefaultQueuePolicy {
+    static constexpr bool kIsMultipleProducer{MultipleProducer};
+    static constexpr bool kIsMultipleConsumer{MultipleConsumer};
+    static constexpr auto kMaxSizeMode = QueueMaxSizeMode::kNone;
+};
+
+template <bool MultipleProducer, bool MultipleConsumer>
+struct ContainerQueuePolicy : public DefaultQueuePolicy {
     template <typename T>
     static std::size_t GetElementSize(const T& value) {
         return std::size(value);
@@ -48,10 +104,7 @@ struct ContainerQueuePolicy {
 /// @brief Queue with single and multi producer/consumer options.
 ///
 /// @tparam T element type
-/// @tparam QueuePolicy policy type, it should have:
-/// 1. `static constexpr bool kIsMultipleProducer`
-/// 2. `static constexpr bool kIsMultipleConsumer`
-/// 3. `static std::size_t GetElementSize(const T& value)`
+/// @tparam QueuePolicy policy type, see @ref DefaultQueuePolicy for details
 ///
 /// On practice, instead of using `GenericQueue` directly, use an alias:
 ///
@@ -59,14 +112,25 @@ struct ContainerQueuePolicy {
 /// * concurrent::NonFifoMpscQueue
 /// * concurrent::SpmcQueue
 /// * concurrent::SpscQueue
+/// * concurrent::UnboundedNonFifoMpscQueue
+/// * concurrent::UnboundedSpmcQueue
+/// * concurrent::UnboundedSpscQueue
+/// * concurrent::StringStreamQueue
 ///
-/// @see @ref scripts/docs/en/userver/synchronization.md
+/// @see @ref concurrent_queues
 template <typename T, typename QueuePolicy>
 class GenericQueue final : public std::enable_shared_from_this<GenericQueue<T, QueuePolicy>> {
     struct EmplaceEnabler final {
         // Disable {}-initialization in Queue's constructor
         explicit EmplaceEnabler() = default;
     };
+
+    static_assert(
+        std::is_base_of_v<DefaultQueuePolicy, QueuePolicy>,
+        "QueuePolicy must inherit from concurrent::DefaultQueuePolicy"
+    );
+
+    static constexpr QueueMaxSizeMode kMaxSizeMode = QueuePolicy::kMaxSizeMode;
 
     using ProducerToken =
         std::conditional_t<QueuePolicy::kIsMultipleProducer, moodycamel::ProducerToken, impl::NoToken>;
@@ -193,12 +257,19 @@ public:
 private:
     class SingleProducerSide;
     class MultiProducerSide;
+    class NoMaxSizeProducerSide;
     class SingleConsumerSide;
     class MultiConsumerSide;
 
     /// Proxy-class makes synchronization of Push operations in multi or single
     /// producer cases
-    using ProducerSide = std::conditional_t<QueuePolicy::kIsMultipleProducer, MultiProducerSide, SingleProducerSide>;
+    using ProducerSide = std::conditional_t<
+        kMaxSizeMode == QueueMaxSizeMode::kNone,
+        NoMaxSizeProducerSide,
+        std::conditional_t<  //
+            QueuePolicy::kIsMultipleProducer,
+            MultiProducerSide,
+            SingleProducerSide>>;
 
     /// Proxy-class makes synchronization of Pop operations in multi or single
     /// consumer cases
@@ -334,11 +405,10 @@ private:
     static constexpr std::size_t kSemaphoreUnlockValue = std::numeric_limits<std::size_t>::max() / 2;
 };
 
-// Single-producer ProducerSide implementation
 template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::SingleProducerSide final {
 public:
-    explicit SingleProducerSide(GenericQueue& queue, std::size_t capacity)
+    SingleProducerSide(GenericQueue& queue, std::size_t capacity)
         : queue_(queue), used_capacity_(0), total_capacity_(capacity) {}
 
     // Blocks if there is a consumer to Pop the current value and task
@@ -400,11 +470,10 @@ private:
     std::atomic<std::size_t> total_capacity_;
 };
 
-// Multi producer ProducerSide implementation
 template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::MultiProducerSide final {
 public:
-    explicit MultiProducerSide(GenericQueue& queue, std::size_t capacity)
+    MultiProducerSide(GenericQueue& queue, std::size_t capacity)
         : queue_(queue), remaining_capacity_(capacity), remaining_capacity_control_(remaining_capacity_) {}
 
     // Blocks if there is a consumer to Pop the current value and task
@@ -449,7 +518,44 @@ private:
     concurrent::impl::SemaphoreCapacityControl remaining_capacity_control_;
 };
 
-// Single consumer ConsumerSide implementation
+template <typename T, typename QueuePolicy>
+class GenericQueue<T, QueuePolicy>::NoMaxSizeProducerSide final {
+public:
+    NoMaxSizeProducerSide(GenericQueue& queue, std::size_t max_size) : queue_(queue) { SetSoftMaxSize(max_size); }
+
+    template <typename Token>
+    [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline /*deadline*/, std::size_t /*value_size*/) {
+        if (queue_.NoMoreConsumers()) {
+            return false;
+        }
+
+        queue_.DoPush(token, std::move(value));
+        return true;
+    }
+
+    template <typename Token>
+    [[nodiscard]] bool PushNoblock(Token& token, T&& value, std::size_t value_size) {
+        return Push(token, std::move(value), engine::Deadline{}, value_size);
+    }
+
+    void OnElementPopped(std::size_t /*released_capacity*/) {}
+
+    void StopBlockingOnPush() {}
+
+    void ResumeBlockingOnPush() {}
+
+    void SetSoftMaxSize(std::size_t new_capacity) {
+        UINVARIANT(new_capacity == kUnbounded, "Cannot set max size for a queue with QueueMaxSizeMode::kNone");
+    }
+
+    std::size_t GetSoftMaxSize() const noexcept { return kUnbounded; }
+
+    std::size_t GetSizeApproximate() const noexcept { return queue_.queue_.size_approx(); }
+
+private:
+    GenericQueue& queue_;
+};
+
 template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
 public:
@@ -509,7 +615,6 @@ private:
     std::atomic<std::size_t> element_count_;
 };
 
-// Multi consumer ConsumerSide implementation
 template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::MultiConsumerSide final {
 public:
@@ -611,10 +716,49 @@ using SpmcQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, true>>;
 template <typename T>
 using SpscQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, false>>;
 
+namespace impl {
+
 /// @ingroup userver_concurrency
 ///
-/// @brief Single producer single consumer queue of std::string which is bounded
-/// bytes inside.
+/// @brief Like @see NonFifoMpmcQueue, but does not support setting max size and is thus slightly faster.
+///
+/// @warning The current implementation suffers from performance issues in multi-producer scenario under heavy load.
+/// Precisely speaking, producers always take priority over consumers (breaking thread fairness), and consumers starve,
+/// leading to increased latencies to the point of OOM. Use other queue types (unbounded or not) for the time being.
+///
+/// @see @ref scripts/docs/en/userver/synchronization.md
+template <typename T>
+using UnfairUnboundedNonFifoMpmcQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<true, true>>;
+
+}  // namespace impl
+
+/// @ingroup userver_concurrency
+///
+/// @brief Like @see NonFifoMpscQueue, but does not support setting max size and is thus slightly faster.
+///
+/// @see @ref scripts/docs/en/userver/synchronization.md
+template <typename T>
+using UnboundedNonFifoMpscQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<true, false>>;
+
+/// @ingroup userver_concurrency
+///
+/// @brief Like @see SpmcQueue, but does not support setting max size and is thus slightly faster.
+///
+/// @see @ref scripts/docs/en/userver/synchronization.md
+template <typename T>
+using UnboundedSpmcQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<false, true>>;
+
+/// @ingroup userver_concurrency
+///
+/// @brief Like @see SpscQueue, but does not support setting max size and is thus slightly faster.
+///
+/// @see @ref scripts/docs/en/userver/synchronization.md
+template <typename T>
+using UnboundedSpscQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<false, false>>;
+
+/// @ingroup userver_concurrency
+///
+/// @brief Single producer single consumer queue of std::string which is bounded by the total bytes inside the strings.
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 using StringStreamQueue = GenericQueue<std::string, impl::ContainerQueuePolicy<false, false>>;

@@ -64,6 +64,7 @@ protected:
 /// ---- | ----------- | -------------
 /// endpoint | URL of the gRPC service | --
 /// client-name | name of the gRPC server we talk to, for diagnostics | <uses the component name>
+/// dedicated-channel-counts | a map of a full rpc name (`full.service.Name/MethodName`) in channel count. Used for high-load methods | -
 /// factory-component | ClientFactoryComponent name to use for client creation | --
 
 // clang-format on

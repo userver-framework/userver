@@ -46,10 +46,18 @@ inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
 
 // clang-format off
 
-/// @brief Class for writing metrics
+/// @brief Class for writing metrics that is provided by utils::statistics::Storage.
 ///
-/// The Writer could be customized by providing a
-/// `void DumpMetric(utils::statistics::Writer& writer, const Metric& value)`
+/// Usage is quite straightforward:
+///
+/// @snippet core/src/utils/statistics/pretty_format_test.cpp  Writer basic sample
+///
+/// The above sample would produce the following metrics:
+///
+/// @snippet core/src/utils/statistics/pretty_format_test.cpp  metrics pretty
+///
+/// The Writer can be customized for writing custom metric types by providing a
+/// `void DumpMetric(utils::statistics::Writer& writer, const CustomMetric& value)`
 /// function:
 ///
 /// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric basic

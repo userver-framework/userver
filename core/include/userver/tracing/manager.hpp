@@ -12,8 +12,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
-class HttpRequest;
 class HttpResponse;
+class HttpRequest;
 }  // namespace server::http
 
 namespace tracing {

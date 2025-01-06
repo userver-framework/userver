@@ -33,7 +33,7 @@ namespace engine::subprocess {
 namespace {
 
 void DoExec(
-    const std::string& command,
+    const std::string& executable_path,
     const std::vector<std::string>& args,
     const EnvironmentVariables& env,
     const std::optional<std::string>& stdout_file,
@@ -58,7 +58,7 @@ void DoExec(
     envp_ptrs.reserve(env.size() + 1);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    argv_ptrs.push_back(const_cast<char*>(command.c_str()));
+    argv_ptrs.push_back(const_cast<char*>(executable_path.c_str()));
     for (const auto& arg : args) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         argv_ptrs.push_back(const_cast<char*>(arg.c_str()));
@@ -76,9 +76,9 @@ void DoExec(
                                  // use the execv, execvp functions
 
     if (!use_path) {
-        utils::CheckSyscall(execv(command.c_str(), argv_ptrs.data()), "execv");
+        utils::CheckSyscall(execv(executable_path.c_str(), argv_ptrs.data()), "execv");
     } else {
-        utils::CheckSyscall(execvp(command.c_str(), argv_ptrs.data()), "execvp");
+        utils::CheckSyscall(execvp(executable_path.c_str(), argv_ptrs.data()), "execvp");
     }
 }
 
@@ -107,10 +107,10 @@ ProcessStarter::ProcessStarter(TaskProcessor& task_processor)
     : thread_control_(task_processor.EventThreadPool().GetEvDefaultLoopThread()) {}
 
 ChildProcess
-ProcessStarter::Exec(const std::string& command, const std::vector<std::string>& args, ExecOptions&& options) {
+ProcessStarter::Exec(const std::string& executable_path, const std::vector<std::string>& args, ExecOptions&& options) {
     EnvironmentVariables env = ApplyEnvironmentUpdate(std::move(options.env), std::move(options.env_update));
 
-    if (options.use_path && command.find('/') != std::string::npos && !env.GetValueOptional("PATH")) {
+    if (options.use_path && executable_path.find('/') != std::string::npos && !env.GetValueOptional("PATH")) {
         throw std::runtime_error(
             "execvp potential vulnerability. more details "
             "https://github.com/userver-framework/userver/issues/588"
@@ -118,7 +118,7 @@ ProcessStarter::Exec(const std::string& command, const std::vector<std::string>&
     }
 
     tracing::Span span("ProcessStarter::Exec");
-    span.AddTag("command", command);
+    span.AddTag("executable_path", executable_path);
     Promise<ChildProcess> promise;
     auto future = promise.get_future();
 
@@ -127,7 +127,7 @@ ProcessStarter::Exec(const std::string& command, const std::vector<std::string>&
                               return key_value.first + '=' + key_value.second;
                           });
         LOG_DEBUG() << fmt::format(
-            "do fork() + {}(), command={}, args=[\'{}\'], env=[]",
+            "do fork() + {}(), executable_path={}, args=[\'{}\'], env=[]",
             options.use_path ? "execv" : "execvp",
             fmt::join(args, "' '"),
             fmt::join(keys, ", ")
@@ -152,7 +152,7 @@ ProcessStarter::Exec(const std::string& command, const std::vector<std::string>&
             // in child thread
             try {
                 try {
-                    DoExec(command, args, env, options.stdout_file, options.stderr_file, options.use_path);
+                    DoExec(executable_path, args, env, options.stdout_file, options.stderr_file, options.use_path);
                 } catch (const std::exception& ex) {
                     std::cerr << "Cannot execute child: " << ex.what();
                 }
@@ -170,25 +170,25 @@ ProcessStarter::Exec(const std::string& command, const std::vector<std::string>&
 }
 
 ChildProcess ProcessStarter::Exec(
-    const std::string& command,
+    const std::string& executable_path,
     const std::vector<std::string>& args,
     const EnvironmentVariables& env,
     const std::optional<std::string>& stdout_file,
     const std::optional<std::string>& stderr_file
 ) {
     ExecOptions options{std::move(env), std::nullopt, std::move(stdout_file), std::move(stderr_file), false};
-    return Exec(command, args, std::move(options));
+    return Exec(executable_path, args, std::move(options));
 }
 
 ChildProcess ProcessStarter::Exec(
-    const std::string& command,
+    const std::string& executable_path,
     const std::vector<std::string>& args,
     EnvironmentVariablesUpdate env_update,
     const std::optional<std::string>& stdout_file,
     const std::optional<std::string>& stderr_file
 ) {
     ExecOptions options{std::nullopt, std::move(env_update), std::move(stdout_file), std::move(stderr_file), false};
-    return Exec(command, args, std::move(options));
+    return Exec(executable_path, args, std::move(options));
 }
 
 }  // namespace engine::subprocess

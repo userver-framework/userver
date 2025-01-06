@@ -22,6 +22,8 @@ class SpanBuilder;
 /// @brief Measures the execution time of the current code block, links it with
 /// the parent tracing::Spans and stores that info in the log.
 ///
+/// Logging of spans can be controled at runtime via @ref USERVER_NO_LOG_SPANS.
+///
 /// See @ref scripts/docs/en/userver/logging.md for usage examples and more
 /// descriptions.
 ///
@@ -124,6 +126,10 @@ public:
 
     /// @brief Creates a tracing::ScopeTime attached to the Span and starts
     /// measuring execution time.
+    /// Tag `{scope_name}_time` with elapsed time is added to result span.
+    ///
+    /// @note `name` parameter is expected to satisfy snake case.
+    /// Otherwise, it is converted to snake case.
     ScopeTime CreateScopeTime(std::string name);
 
     /// Returns total time elapsed for a certain scope of this span.

@@ -22,6 +22,7 @@ ninja
 openldap-devel
 openssl-devel
 postgresql-server
+pugixml
 python3-devel
 python3-jinja2
 python3-protobuf

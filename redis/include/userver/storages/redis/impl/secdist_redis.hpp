@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,8 +20,8 @@ struct RedisSettings {
 
     std::vector<std::string> shards;
     std::vector<HostPort> sentinels;
-    redis::Password password{std::string()};
-    redis::ConnectionSecurity secure_connection{redis::ConnectionSecurity::kNone};
+    storages::redis::Password password{std::string()};
+    storages::redis::ConnectionSecurity secure_connection{storages::redis::ConnectionSecurity::kNone};
 };
 
 }  // namespace secdist

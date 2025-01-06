@@ -11,8 +11,7 @@ GreeterHttpHandler::GreeterHttpHandler(
 )
     : HttpHandlerBase(config, context), grpc_greeter_client_(context.FindComponent<GreeterClient>()) {}
 
-std::string
-GreeterHttpHandler::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+std::string GreeterHttpHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&)
     const {
     return grpc_greeter_client_.SayHello(request.RequestBody());
 }

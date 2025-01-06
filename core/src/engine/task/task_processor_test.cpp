@@ -2,6 +2,8 @@
 
 #include <engine/task/task_processor_config.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/run_standalone.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_base.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
@@ -44,6 +46,32 @@ UTEST(TaskProcessor, Overload) {
         task.Wait();
         EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted);
     }
+}
+
+UTEST_MT(TaskProcessor, MetricsAliveAndRunning, 2) {
+    auto& task_counter = engine::current_task::GetTaskProcessor().GetTaskCounter();
+
+    EXPECT_EQ(task_counter.GetRunningTasks(), 1);
+
+    std::atomic<bool> ready{false};
+    auto task = engine::AsyncNoSpan([&ready] {
+        ready = true;
+        // wait until end of test
+        while (ready) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    });
+
+    // wait until task is running
+    while (!ready) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    EXPECT_EQ(task_counter.GetRunningTasks(), 2);
+
+    ready = false;
+    task.Get();
+
+    EXPECT_EQ(task_counter.GetRunningTasks(), 1);
 }
 
 USERVER_NAMESPACE_END

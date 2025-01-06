@@ -123,6 +123,8 @@ struct HeartbeatsStatistics final {
     Counter success;
     Counter failed;
     Counter start;
+
+    std::chrono::steady_clock::time_point hb_started{};
 };
 
 // See
@@ -133,10 +135,10 @@ struct ApmStats final {
 };
 
 struct EventStats final {
-    Rate sucess;
+    Rate success;
     Rate failed;
 
-    bool operator==(const EventStats& o) const { return sucess == o.sucess && failed == o.failed; }
+    bool operator==(const EventStats& o) const { return success == o.success && failed == o.failed; }
 };
 
 struct ConnStats final {

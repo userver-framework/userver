@@ -81,7 +81,7 @@ public:
     void operator()(Manager&, const components::ComponentConfigMap&) const override;
 
     void ValidateStaticConfig(const ComponentConfig& static_config, ValidationMode validation_mode) const override {
-        impl::TryValidateStaticConfig<Component>(static_config, validation_mode);
+        impl::TryValidateStaticConfig<Component>(GetComponentName(), static_config, validation_mode);
     }
 
     yaml_config::Schema GetStaticConfigSchema() const override { return impl::GetStaticConfigSchema<Component>(); }

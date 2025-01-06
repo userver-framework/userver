@@ -177,6 +177,8 @@ void Count::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
+void Count::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+
 CountApprox::CountApprox() = default;
 CountApprox::~CountApprox() = default;
 

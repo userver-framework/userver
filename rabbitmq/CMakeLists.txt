@@ -20,7 +20,7 @@ _userver_directory_install(
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
   set_tests_properties(${PROJECT_NAME}-dbtest PROPERTIES ENVIRONMENT
           "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=120.0")
 

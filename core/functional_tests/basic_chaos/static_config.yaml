@@ -50,6 +50,11 @@ components_manager:
             method: POST
             task_processor: monitor-task-processor
 
+        handler-dynamic-debug-log:
+            path: /log/dynamic-debug
+            method: GET,PUT,DELETE
+            task_processor: monitor-task-processor
+
         testsuite-support:
 
         http-client:
@@ -124,6 +129,11 @@ components_manager:
             task_processor: main-task-processor
             throttling_enabled: false
             url_trailing_slash: strict-match
+
+        handler-restart:
+            path: /restart
+            method: GET
+            task_processor: main-task-processor
 
     task_processors:
         main-task-processor:

@@ -1,7 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/engine/sleep.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/utest/impl/redis_connection_state.hpp>
@@ -13,7 +13,7 @@ namespace {
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class SentinelTest : public ::testing::Test, public storages::redis::utest::impl::RedisConnectionState {
 protected:
-    auto RequestKeys(redis::CommandControl cc = {}) {
+    auto RequestKeys(storages::redis::CommandControl cc = {}) {
         return GetSentinel()->MakeRequest({"keys", "*"}, 0, false, GetSentinel()->GetCommandControl(cc));
     }
 };
@@ -26,7 +26,7 @@ UTEST_F(SentinelTest, ReplyServerId) {
     // let's give sentinel enough time to learn about new replicas
     auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-    std::set<redis::ServerId> server_ids;
+    std::set<storages::redis::ServerId> server_ids;
     while (!deadline.IsReached()) {
         for (auto i = 0; i < kTotalRequests; ++i) {
             auto reply = RequestKeys().Get();
@@ -47,7 +47,7 @@ UTEST_F(SentinelTest, ForceServerId) {
 
     const auto max_i = 10;
     for (int i = 0; i < max_i; i++) {
-        redis::CommandControl cc;
+        storages::redis::CommandControl cc;
         cc.force_server_id = first_id;
 
         auto reply = RequestKeys(cc).Get();
@@ -65,8 +65,8 @@ UTEST_F(SentinelTest, ForceNonExistingServerId) {
     EXPECT_TRUE(reply1->IsOk());
 
     // w force_server_id
-    redis::CommandControl cc;
-    cc.force_server_id = redis::ServerId::Invalid();
+    storages::redis::CommandControl cc;
+    cc.force_server_id = storages::redis::ServerId::Invalid();
     auto reply2 = RequestKeys(cc).Get();
 
     EXPECT_FALSE(reply2->IsOk());

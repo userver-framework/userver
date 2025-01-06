@@ -9,10 +9,14 @@
 
 #include <boost/pfr/detail/config.hpp>
 
+#ifdef BOOST_PFR_HAS_STD_MODULE
+import std;
+#else
 #include <utility> // metaprogramming stuff
 #include <array>
 #include <type_traits> // for std::common_type_t
 #include <cstddef>
+#endif
 
 #include <boost/pfr/detail/sequence_tuple.hpp>
 

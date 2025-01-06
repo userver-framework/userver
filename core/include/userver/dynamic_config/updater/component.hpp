@@ -96,6 +96,11 @@ private:
 
     void UpdateIncremental(const std::vector<std::string>& docs_map_keys, cache::UpdateStatisticsScope&);
 
+    void SetDisabledKillSwitchesToDefault(
+        dynamic_config::DocsMap& docs_map,
+        const std::vector<std::string>& kill_switches_disabled
+    );
+
     dynamic_config::DocsMap MergeDocsMap(
         const dynamic_config::DocsMap& current,
         dynamic_config::DocsMap&& update,
@@ -121,6 +126,7 @@ private:
     dynamic_config::Client::Timestamp server_timestamp_;
     // for atomic updates of cached data
     engine::Mutex update_config_mutex_;
+    dynamic_config::DocsMap docs_map_defaults_;
     DocsMapKeys docs_map_keys_;
     concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
 };

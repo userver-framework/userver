@@ -7,6 +7,7 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/concurrent/variable.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracer.hpp>
@@ -16,6 +17,7 @@
 #include <components/component_context_component_info.hpp>
 #include <components/impl/component_name_from_info.hpp>
 #include <components/manager.hpp>
+#include <components/manager_config.hpp>
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -55,8 +57,8 @@ ComponentContextImpl::TaskToComponentMapScope::TaskToComponentMapScope(
     if (!res.second)
         throw std::runtime_error(
             "can't create multiple components in the same task simultaneously: "
-            "component " +
-            std::string{res.first->second.StringViewName()} + " is already registered for current task"
+            "component '" +
+            std::string{res.first->second.StringViewName()} + "' is already registered for current task"
         );
 }
 
@@ -136,6 +138,16 @@ void ComponentContextImpl::OnAllComponentsLoaded() {
     );
 }
 
+void ComponentContextImpl::OnGracefulShutdownStarted() {
+    shutdown_started_ = true;
+
+    const auto interval = manager_.GetConfig().graceful_shutdown_interval;
+    if (interval > std::chrono::milliseconds{0}) {
+        LOG_INFO() << "Shutdown started, notifying ping handlers and delaying by " << interval;
+        engine::SleepFor(interval);
+    }
+}
+
 void ComponentContextImpl::OnAllComponentsAreStopping() {
     LOG_INFO() << "Sending stopping notification to all components";
     ProcessAllComponentLifetimeStageSwitchings(
@@ -207,6 +219,11 @@ bool ComponentContextImpl::IsAnyComponentInFatalState() const {
                 LOG_DEBUG() << "Component '" << name << "' is in kOk state";
                 break;
         }
+    }
+
+    if (shutdown_started_) {
+        LOG_WARNING() << "Service is shutting down, returning 5xx from ping";
+        return true;
     }
 
     return false;
@@ -328,8 +345,9 @@ void ComponentContextImpl::ProcessSingleComponentLifetimeStageSwitching(
         auto& dependency_to = (params.dependency_type == DependencyType::kInverted ? name : component_name);
         auto& other_component_info = components_.at(component_name);
         if (other_component_info.GetStage() != params.next_stage) {
-            LOG_DEBUG() << "Cannot call " << params.stage_switch_handler_name << " for component " << name << " yet ("
-                        << dependency_from << " depends on " << dependency_to << ")";
+            LOG_DEBUG() << "Cannot call " << params.stage_switch_handler_name << " for component '" << name << "' yet. "
+                        << "Component '" << dependency_from << "' is waiting for '" << dependency_to
+                        << "' component to complete its " << params.stage_switch_handler_name << " call.";
             other_component_info.WaitStage(params.next_stage, params.stage_switch_handler_name);
         }
     };
@@ -339,14 +357,14 @@ void ComponentContextImpl::ProcessSingleComponentLifetimeStageSwitching(
         else
             component_info.ForEachDependsOnIt(wait_cb);
 
-        LOG_DEBUG() << "Call " << params.stage_switch_handler_name << " for component " << name;
+        LOG_DEBUG() << "Call " << params.stage_switch_handler_name << " for component '" << name << "'";
         (component_info.*params.stage_switch_handler)();
     } catch (const impl::StageSwitchingCancelledException& ex) {
-        LOG_WARNING() << params.stage_switch_handler_name << " failed for component " << name << ": " << ex;
+        LOG_WARNING() << params.stage_switch_handler_name << " failed for component '" << name << "': " << ex;
         component_info.SetStage(params.next_stage);
         throw;
     } catch (const std::exception& ex) {
-        LOG_ERROR() << params.stage_switch_handler_name << " failed for component " << name << ": " << ex;
+        LOG_ERROR() << params.stage_switch_handler_name << " failed for component '" << name << "': " << ex;
         if (params.allow_cancelling) {
             component_info.SetStageSwitchingCancelled(true);
             if (!params.is_component_lifetime_stage_switchings_cancelled.exchange(true)) {
@@ -410,8 +428,8 @@ RawComponentBase* ComponentContextImpl::DoFindComponent(std::string_view name) {
         engine::TaskCancellationBlocker block_cancel;
         auto data = shared_data_.Lock();
         this_component_name = GetLoadingComponentName(*data);
-        LOG_DEBUG() << "component " << name << " is not loaded yet, component " << this_component_name
-                    << " is waiting for it to load";
+        LOG_DEBUG() << "Component '" << name << "' is not loaded yet, component '" << this_component_name
+                    << "' is waiting for it to load";
     }
     SearchingComponentScope finder(*this, this_component_name);
 

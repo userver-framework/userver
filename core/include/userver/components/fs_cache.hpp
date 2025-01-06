@@ -3,7 +3,6 @@
 /// @file userver/components/fs_cache.hpp
 /// @brief @copybrief components::FsCache
 
-#include <unordered_map>
 #include <userver/components/component_base.hpp>
 #include <userver/fs/fs_cache_client.hpp>
 #include <userver/yaml_config/fwd.hpp>

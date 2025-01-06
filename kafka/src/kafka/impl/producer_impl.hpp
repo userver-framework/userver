@@ -45,7 +45,7 @@ public:
     void EventCallback();
 
 private:
-    /// @brief Shedules the message delivery.
+    /// @brief Schedules the message delivery.
     /// @returns the future for delivery result, which must be awaited.
     [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
         const std::string& topic_name,
@@ -79,7 +79,7 @@ private:
     /// @brief Callback called on each succeeded/failed message delivery.
     /// @param message represents the delivered (or not) message. Its `_private`
     /// field contains and `opaque` argument, which was passed to
-    /// `rd_kafka_producev`, i.e. the Promise which must be setted to notify
+    /// `rd_kafka_producev`, i.e. the Promise which must be set to notify
     /// waiter about the delivery.
     void DeliveryReportCallback(const rd_kafka_message_s* message) const;
 
@@ -91,8 +91,7 @@ private:
     ConcurrentEventWaiters waiters_;
     ProducerHolder producer_;
 
-    /// If no messages are send, some errors may occure and we want to log them
-    /// anyway.
+    /// If no messages are send, some errors may occurred and we want to log them anyway.
     utils::PeriodicTask log_events_handler_;
 };
 

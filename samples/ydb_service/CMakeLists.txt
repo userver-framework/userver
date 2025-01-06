@@ -13,7 +13,7 @@ add_executable(${PROJECT_NAME}
   "views/upsert-row/post/view.cpp"
   "components/topic_reader.cpp"
 )
-target_link_libraries(${PROJECT_NAME} userver::mongo userver::ydb)
+target_link_libraries(${PROJECT_NAME} userver::mongo userver-ydb)
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}

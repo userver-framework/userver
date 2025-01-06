@@ -57,6 +57,8 @@ void AddDynamicDebugLog(
 
 void RemoveDynamicDebugLog(const std::string& location_relative, int line);
 
+void RemoveAllDynamicDebugLog();
+
 const LogEntryContentSet& GetDynamicDebugLocations();
 
 void RegisterLogLocation(LogEntryContent& location);

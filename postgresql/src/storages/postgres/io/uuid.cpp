@@ -16,7 +16,7 @@ void BufferFormatter<boost::uuids::uuid>::operator()(const UserTypes&, std::stri
 
 void BufferParser<boost::uuids::uuid>::operator()(const FieldBuffer& buf) {
     if (buf.length != boost::uuids::uuid::static_size()) {
-        throw InvalidInputBufferSize{buf.length, "for a uuid value type"};
+        throw InvalidInputBufferSize{fmt::format("Invalid buffer size {} for an uuid type", buf.length)};
     }
     std::copy(buf.buffer, buf.buffer + buf.length, value.begin());
 }

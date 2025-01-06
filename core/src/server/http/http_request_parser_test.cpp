@@ -39,11 +39,11 @@ constexpr std::string_view kHttpRequestBodySimple =
 
 UTEST(HttpRequestParserParser, Small) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -59,11 +59,11 @@ UTEST(HttpRequestParserParser, Small) {
 
 UTEST(HttpRequestParserParser, OriginUrl) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -80,11 +80,11 @@ UTEST(HttpRequestParserParser, OriginUrl) {
 
 UTEST(HttpRequestParserParser, AbsoluteUrl) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -98,11 +98,11 @@ UTEST(HttpRequestParserParser, AbsoluteUrl) {
 
 UTEST(HttpRequestParserParser, HeadersSimple) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -120,11 +120,11 @@ UTEST(HttpRequestParserParser, HeadersSimple) {
 
 UTEST(HttpRequestParserParser, HeadersNoSpaces) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -142,11 +142,11 @@ UTEST(HttpRequestParserParser, HeadersNoSpaces) {
 
 UTEST(HttpRequestParserParser, HeadersCaseInsensitive) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -164,11 +164,11 @@ UTEST(HttpRequestParserParser, HeadersCaseInsensitive) {
 
 UTEST(HttpRequestParserParser, HeaderValues) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -186,11 +186,11 @@ UTEST(HttpRequestParserParser, HeaderValues) {
 
 UTEST(HttpRequestParserParser, BodySimple) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
@@ -220,11 +220,11 @@ constexpr std::string_view kHttpRequestBodyContentLengthTooLong =
 
 UTEST(HttpRequestParserParser, MethodWrongCase) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kUnknown);
     });
@@ -235,11 +235,11 @@ UTEST(HttpRequestParserParser, MethodWrongCase) {
 
 UTEST(HttpRequestParserParser, NoURL) {
     bool parsed = false;
-    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            static_cast<server::http::HttpRequestImpl&>(*request);
+            static_cast<server::http::HttpRequest&>(*request);
 
         EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kUnknown);
     });
@@ -250,8 +250,7 @@ UTEST(HttpRequestParserParser, NoURL) {
 
 UTEST(HttpRequestParserParser, AbsentCRLF) {
     bool parsed = false;
-    auto parser =
-        server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&&) { parsed = true; });
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&&) { parsed = true; });
 
     parser->Parse(kHttpRequestAbsentCRLF);
     EXPECT_EQ(parsed, false);
@@ -259,8 +258,7 @@ UTEST(HttpRequestParserParser, AbsentCRLF) {
 
 UTEST(HttpRequestParserParser, BodyContentLengthTooLong) {
     bool parsed = false;
-    auto parser =
-        server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&&) { parsed = true; });
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&&) { parsed = true; });
 
     parser->Parse(kHttpRequestBodyContentLengthTooLong);
     EXPECT_EQ(parsed, false);

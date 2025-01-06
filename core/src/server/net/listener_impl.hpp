@@ -27,8 +27,8 @@ public:
     StatsAggregation GetStats() const;
 
 private:
-    void AcceptConnection(engine::io::Socket& request_socket);
-    void ProcessConnection(engine::io::Socket peer_socket);
+    void AcceptConnection(engine::io::Socket& request_socket, const PortConfig& port_config);
+    void ProcessConnection(engine::io::Socket peer_socket, const PortConfig& port_config);
 
     engine::TaskProcessor& task_processor_;
     std::shared_ptr<EndpointInfo> endpoint_info_;
@@ -38,7 +38,7 @@ private:
 
     concurrent::BackgroundTaskStorageCore connections_;
 
-    engine::TaskWithResult<void> socket_listener_task_;
+    std::vector<engine::TaskWithResult<void>> socket_listener_tasks;
 };
 
 }  // namespace server::net

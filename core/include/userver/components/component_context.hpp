@@ -178,6 +178,8 @@ private:
 
     void OnAllComponentsLoaded();
 
+    void OnGracefulShutdownStarted();
+
     void OnAllComponentsAreStopping();
 
     void ClearComponents();

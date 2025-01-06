@@ -12,10 +12,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 namespace {
 
-RequestExec CreateExecRequest(
-    USERVER_NAMESPACE::redis::Request&& request,
-    std::vector<TransactionImpl::ResultPromise>&& result_promises
-) {
+RequestExec CreateExecRequest(impl::Request&& request, std::vector<TransactionImpl::ResultPromise>&& result_promises) {
     return RequestExec(std::make_unique<RequestExecDataImpl>(std::move(request), std::move(result_promises)));
 }
 
@@ -32,7 +29,7 @@ RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
     const auto client_force_shard_idx = client_->GetForcedShardIdx();
     if (client_force_shard_idx) {
         if (command_control.force_shard_idx && *command_control.force_shard_idx != *client_force_shard_idx)
-            throw USERVER_NAMESPACE::redis::InvalidArgumentException(
+            throw InvalidArgumentException(
                 "forced shard idx from CommandControl != forced shard for client (" +
                 std::to_string(*command_control.force_shard_idx) + " != " + std::to_string(*client_force_shard_idx) +
                 ')'
@@ -554,7 +551,7 @@ RequestZrange TransactionImpl::Zrange(std::string key, int64_t start, int64_t st
 
 RequestZrangeWithScores TransactionImpl::ZrangeWithScores(std::string key, int64_t start, int64_t stop) {
     UpdateShard(key);
-    USERVER_NAMESPACE::redis::ScoreOptions with_scores{true};
+    ScoreOptions with_scores{true};
     return AddCmd<RequestZrangeWithScores>("zrange", false, std::move(key), start, stop, with_scores);
 }
 
@@ -584,7 +581,7 @@ TransactionImpl::Zrangebyscore(std::string key, std::string min, std::string max
 
 RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(std::string key, double min, double max) {
     UpdateShard(key);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, {}};
+    RangeScoreOptions range_score_options{{true}, {}};
     return AddCmd<RequestZrangebyscoreWithScores>(
         "zrangebyscore", false, std::move(key), min, max, range_score_options
     );
@@ -593,7 +590,7 @@ RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(std::str
 RequestZrangebyscoreWithScores
 TransactionImpl::ZrangebyscoreWithScores(std::string key, std::string min, std::string max) {
     UpdateShard(key);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, {}};
+    RangeScoreOptions range_score_options{{true}, {}};
     return AddCmd<RequestZrangebyscoreWithScores>(
         "zrangebyscore", false, std::move(key), std::move(min), std::move(max), range_score_options
     );
@@ -602,7 +599,7 @@ TransactionImpl::ZrangebyscoreWithScores(std::string key, std::string min, std::
 RequestZrangebyscoreWithScores
 TransactionImpl::ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options) {
     UpdateShard(key);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, range_options};
+    RangeScoreOptions range_score_options{{true}, range_options};
     return AddCmd<RequestZrangebyscoreWithScores>(
         "zrangebyscore", false, std::move(key), min, max, range_score_options
     );
@@ -615,7 +612,7 @@ RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(
     const RangeOptions& range_options
 ) {
     UpdateShard(key);
-    USERVER_NAMESPACE::redis::RangeScoreOptions range_score_options{{true}, range_options};
+    RangeScoreOptions range_score_options{{true}, range_options};
     return AddCmd<RequestZrangebyscoreWithScores>(
         "zrangebyscore", false, std::move(key), std::move(min), std::move(max), range_score_options
     );
@@ -656,8 +653,8 @@ RequestZscore TransactionImpl::Zscore(std::string key, std::string member) {
 void TransactionImpl::UpdateShard(const std::string& key) {
     try {
         UpdateShard(client_->ShardByKey(key));
-    } catch (const USERVER_NAMESPACE::redis::InvalidArgumentException& ex) {
-        throw USERVER_NAMESPACE::redis::InvalidArgumentException(ex.what() + std::string{" for key=" + key});
+    } catch (const InvalidArgumentException& ex) {
+        throw InvalidArgumentException(ex.what() + std::string{" for key=" + key});
     }
 }
 
@@ -677,13 +674,13 @@ void TransactionImpl::UpdateShard(size_t shard) {
     if (shard_) {
         if (check_shards_ == CheckShards::kSame && *shard_ != shard) {
             std::ostringstream os;
-            os << "Storages::redis::Transaction must deal with the same shard across "
+            os << "storages::redis::Transaction must deal with the same shard across "
                   "all the operations. Shard="
                << *shard_
                << " was detected by first command, but one of the commands used "
                   "shard="
                << shard;
-            throw USERVER_NAMESPACE::redis::InvalidArgumentException(os.str());
+            throw InvalidArgumentException(os.str());
         }
     } else {
         shard_ = shard;

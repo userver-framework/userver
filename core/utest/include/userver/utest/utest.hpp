@@ -4,16 +4,12 @@
 /// @brief Versions of gtest macros that run tests in a coroutine environment
 
 #include <chrono>
-#include <functional>
-#include <utility>
 
 #include <gtest/gtest.h>
 
 #include <userver/engine/run_in_coro.hpp>  // legacy
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/test_case_macros.hpp>
-#include <userver/utils/assert.hpp>
-#include <userver/utils/strong_typedef.hpp>
 
 // gtest-specific serializers
 namespace testing {
@@ -35,35 +31,6 @@ namespace utest {
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
 
 }  // namespace utest
-
-namespace formats::json {
-
-class Value;
-
-void PrintTo(const Value&, std::ostream*);
-
-}  // namespace formats::json
-
-namespace utils {
-
-template <class Tag, class T, StrongTypedefOps Ops>
-void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
-    ::testing::internal::UniversalTersePrint(v.GetUnderlying(), os);
-}
-
-}  // namespace utils
-
-namespace decimal64 {
-
-template <int Prec, typename RoundPolicy>
-class Decimal;
-
-template <int Prec, typename RoundPolicy>
-void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
-    *os << v;
-}
-
-}  // namespace decimal64
 
 USERVER_NAMESPACE_END
 

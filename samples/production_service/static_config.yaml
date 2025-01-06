@@ -107,8 +107,6 @@ components_manager:
             limited-logging-interval: 1s
         # /// [Production service sample - static config secdist]
         # yaml
-        secdist:
-            provider: default-secdist-provider
         default-secdist-provider:
             config: $secdist-path
         # /// [Production service sample - static config secdist]

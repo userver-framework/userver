@@ -6,7 +6,7 @@
 #include <thread>
 #include <vector>
 
-#include <concurrent/impl/interference_shield.hpp>
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/run_standalone.hpp>

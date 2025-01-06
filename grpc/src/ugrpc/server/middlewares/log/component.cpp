@@ -9,6 +9,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::log {
 
+Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
+    Settings settings;
+    settings.local_log_level = config["log-level"].As<std::optional<logging::Level>>();
+    settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
+    settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
+    settings.trim_secrets = config["trim-secrets"].As<bool>(settings.trim_secrets);
+    return settings;
+}
+
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : MiddlewareComponentBase(config, context), settings_(config.As<Settings>()) {}
 

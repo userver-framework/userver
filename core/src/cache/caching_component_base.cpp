@@ -72,6 +72,11 @@ properties:
         description: |
             override testsuite-periodic-update-enabled in TestsuiteSupport
             component config
+    failed-updates-before-expiration:
+        type: integer
+        description: |
+            the number of consecutive failed updates for data expiration
+        minimum: 0
     alert-on-failing-to-update-times:
         type: integer
         description: |

@@ -2,8 +2,6 @@
 
 #include <functional>
 #include <string_view>
-#include <unordered_map>
-#include <unordered_set>
 
 #if defined(USERVER_IMPL_ORIGINAL_CXX_STANDARD)
 
@@ -18,6 +16,9 @@
 #ifdef USERVER_IMPL_TRANSPARENT_HASH_LEGACY
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
+#else
+#include <unordered_map>
+#include <unordered_set>
 #endif
 
 USERVER_NAMESPACE_BEGIN

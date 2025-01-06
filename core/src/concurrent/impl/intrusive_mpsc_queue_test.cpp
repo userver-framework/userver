@@ -1,4 +1,4 @@
-#include <concurrent/impl/intrusive_mpsc_queue.hpp>
+#include <userver/concurrent/impl/intrusive_mpsc_queue.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -31,9 +31,9 @@ constexpr std::chrono::milliseconds kStressTestDuration{200};
 
 TEST(IntrusiveMpscQueue, Empty) {
     MpscQueue queue;
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
 }
 
 TEST(IntrusiveMpscQueue, PushPopOnce) {
@@ -41,10 +41,10 @@ TEST(IntrusiveMpscQueue, PushPopOnce) {
     Node node1;
 
     queue.Push(node1);
-    EXPECT_EQ(queue.TryPop(), &node1);
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), &node1);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
 }
 
 TEST(IntrusiveMpscQueue, PushPopTwice) {
@@ -54,11 +54,11 @@ TEST(IntrusiveMpscQueue, PushPopTwice) {
 
     queue.Push(node1);
     queue.Push(node2);
-    EXPECT_EQ(queue.TryPop(), &node1);
-    EXPECT_EQ(queue.TryPop(), &node2);
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), &node1);
+    EXPECT_EQ(queue.TryPopWeak(), &node2);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
 }
 
 TEST(IntrusiveMpscQueue, PushPopInterleaved) {
@@ -69,14 +69,14 @@ TEST(IntrusiveMpscQueue, PushPopInterleaved) {
 
     queue.Push(node1);
     queue.Push(node2);
-    EXPECT_EQ(queue.TryPop(), &node1);
+    EXPECT_EQ(queue.TryPopWeak(), &node1);
 
     queue.Push(node3);
-    EXPECT_EQ(queue.TryPop(), &node2);
-    EXPECT_EQ(queue.TryPop(), &node3);
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
-    EXPECT_EQ(queue.TryPop(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), &node2);
+    EXPECT_EQ(queue.TryPopWeak(), &node3);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
+    EXPECT_EQ(queue.TryPopWeak(), nullptr);
 }
 
 TEST(IntrusiveMpscQueue, StressTest) {
@@ -106,7 +106,7 @@ TEST(IntrusiveMpscQueue, StressTest) {
         std::size_t stop_signals_received = 0;
 
         while (true) {
-            std::unique_ptr<Node> node(queue.TryPop());
+            std::unique_ptr<Node> node(queue.TryPopWeak());
             if (!node) continue;
 
             if (node->x == kStopSignal) {
@@ -143,7 +143,7 @@ TEST(IntrusiveMpscQueue, StressTestNodeReuse) {
 
     auto worker1 = std::async([&] {
         while (keep_running) {
-            Node* node = queue1.TryPop();
+            Node* node = queue1.TryPopWeak();
             if (!node) continue;
 
             EXPECT_EQ(node->x, 0);
@@ -153,7 +153,7 @@ TEST(IntrusiveMpscQueue, StressTestNodeReuse) {
 
     auto worker2 = std::async([&] {
         while (keep_running) {
-            Node* node = queue2.TryPop();
+            Node* node = queue2.TryPopWeak();
             if (!node) continue;
 
             EXPECT_EQ(node->x, 0);

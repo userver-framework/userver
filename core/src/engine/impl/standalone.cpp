@@ -1,5 +1,7 @@
 #include <engine/impl/standalone.hpp>
 
+#include <future>
+
 #include <engine/coro/pool_config.hpp>
 #include <engine/ev/thread_pool_config.hpp>
 #include <engine/task/task_processor.hpp>
@@ -42,12 +44,14 @@ TaskProcessorHolder::TaskProcessorHolder(std::unique_ptr<TaskProcessor>&& task_p
 TaskProcessorHolder::~TaskProcessorHolder() = default;
 
 void RunOnTaskProcessorSync(TaskProcessor& tp, utils::function_ref<void()> user_cb) {
-    auto task = engine::AsyncNoSpan(tp, [&user_cb] {
+    UASSERT(!current_task::IsTaskProcessorThread());
+    std::packaged_task<void()> packaged_task([&user_cb] {
         tracing::Span span("span", tracing::ReferenceType::kChild, logging::Level::kNone);
         user_cb();
     });
-    task.BlockingWait();
-    task.Get();
+    auto future = packaged_task.get_future();
+    engine::AsyncNoSpan(tp, std::move(packaged_task)).Detach();
+    future.get();
 }
 
 }  // namespace engine::impl

@@ -109,7 +109,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
             stats_.lock_successes++;
             if (!ExchangeLockState(true, attempt_start)) {
                 LOG_DEBUG() << "Starting watchdog task";
-                GetTask(watchdog_task, WatchdogName(name_));
+                GetTask(watchdog_task, name_, "watchdog wait stale task");
                 watchdog_task = utils::CriticalAsync(WatchdogName(name_), [this] { RunWatchdog(); });
                 LOG_DEBUG() << "Started watchdog task";
             }
@@ -124,7 +124,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
                 stats_.brain_splits++;
                 LOG_DEBUG() << "Terminating watchdog task";
                 if (watchdog_task.IsValid()) watchdog_task.RequestCancel();
-                GetTask(watchdog_task, WatchdogName(name_));
+                GetTask(watchdog_task, name_, "cancel and watchdog wait after brain split detected");
                 LOG_DEBUG() << "Terminated watchdog task";
                 ExchangeLockState(false, utils::datetime::SteadyNow());
             }
@@ -146,7 +146,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
 
             if (watchdog_task.IsFinished()) {
                 std::exception_ptr exception;
-                worker_succeeded = GetTask(watchdog_task, WatchdogName(name_), &exception);
+                worker_succeeded = GetTask(watchdog_task, name_, "watchdog wait", &exception);
                 if (!worker_succeeded) {
                     stats_.task_failures++;
                 }
@@ -167,7 +167,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
         }
     }
     if (watchdog_task.IsValid()) watchdog_task.RequestCancel();
-    GetTask(watchdog_task, WatchdogName(name_));
+    GetTask(watchdog_task, name_, "cancel and watchdog wait on finish");
 }
 
 engine::TaskWithResult<void>
@@ -201,10 +201,11 @@ bool Locker::ExchangeLockState(bool is_locked, std::chrono::steady_clock::time_p
 }
 
 void Locker::RunWatchdog() {
-    LOG(base_log_level_) << "Starting worker task";
+    LOG(base_log_level_) << "Starting worker task '" << name_ << "'";
     auto worker_task = utils::CriticalAsync("lock-worker-" + name_, [this] { worker_func_(); });
-    LOG(base_log_level_) << "Started worker task";
+    LOG(base_log_level_) << "Started worker task '" << name_ << "'";
 
+    bool failed_to_prolong = false;
     while (!engine::current_task::ShouldCancel() && !worker_task.IsFinished()) {
         const auto settings = GetSettings();
 
@@ -212,15 +213,18 @@ void Locker::RunWatchdog() {
         const auto deadline = std::chrono::steady_clock::time_point{refresh_since_epoch} + settings.lock_ttl -
                               settings.forced_stop_margin;
         const auto now = utils::datetime::SteadyNow();
-        if (deadline < now) {
+
+        failed_to_prolong = (deadline < now);
+        if (failed_to_prolong) {
             LOG_ERROR() << "Failed to prolong the lock before the deadline, "
                            "voluntarily dropping the lock and killing the worker "
-                           "task to avoid brain split";
+                           "task '"
+                        << name_ << "' to avoid brain split";
             stats_.watchdog_triggers++;
             break;
         } else {
             LOG_DEBUG() << "Watchdog found a valid locked timepoint (" << now.time_since_epoch().count() << " < "
-                        << deadline.time_since_epoch().count() << ")";
+                        << deadline.time_since_epoch().count() << ") for task '" << name_ << "'";
         }
 
         try {
@@ -229,18 +233,27 @@ void Locker::RunWatchdog() {
             // do nothing
         }
     }
-    LOG(base_log_level_) << "Waiting for worker task";
-    worker_task.RequestCancel();
+    LOG(base_log_level_) << "Waiting for worker task '" << name_ << "'";
+
+    std::string_view error_context = "wait";
+    if (!worker_task.IsFinished()) {
+        worker_task.RequestCancel();  // do not call on OK task to report exceptions as ERRORs
+        error_context =
+            (failed_to_prolong ? "cancel and wait after prolongation fail" : "cancel from parent task and wait");
+    }
 
     std::exception_ptr exception;
-    if (!GetTask(worker_task, WorkerName(name_), &exception)) {
-        LOG_WARNING() << "Worker task failed";
-        if (exception)
+    if (!GetTask(worker_task, name_, error_context, &exception)) {
+        LOG_WARNING() << "Worker task '" << name_ << "' failed";
+        // throw exception to report to Run() that the task failed
+        if (exception) {
             std::rethrow_exception(exception);
-        else
+        } else {
             throw WorkerFuncFailedException{fmt::format("worker name='{}' id='{}' task failed", name_, id_)};
+        }
     }
-    LOG(base_log_level_) << "Worker task completed";
+
+    LOG(base_log_level_) << "Worker task '" << name_ << "' completed";
 }
 
 }  // namespace dist_lock::impl

@@ -8,7 +8,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/server/handlers/handler_base.hpp>
-#include <userver/server/request/request_base.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/token_bucket.hpp>
 
@@ -28,10 +28,10 @@ public:
         std::string server_name
     );
 
-    using NewRequestHook = std::function<void(std::shared_ptr<request::RequestBase>)>;
+    using NewRequestHook = std::function<void(std::shared_ptr<http::HttpRequest>)>;
     void SetNewRequestHook(NewRequestHook hook);
 
-    engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<request::RequestBase> request) const override;
+    engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<http::HttpRequest> request) const override;
 
     void DisableAddHandler();
     void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
@@ -46,6 +46,8 @@ public:
     void SetRpsRatelimitStatusCode(HttpStatus status_code);
 
 private:
+    engine::TaskWithResult<void> StartFailsafeTask(std::shared_ptr<http::HttpRequest> http_request) const;
+
     logging::LoggerPtr logger_access_;
     logging::LoggerPtr logger_access_tskv_;
 

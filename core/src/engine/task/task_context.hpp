@@ -17,6 +17,7 @@
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
@@ -112,8 +113,7 @@ public:
 
     // wait for this to become finished
     // should only be called from other context
-    void Wait() const;
-    void WaitUntil(Deadline) const;
+    [[nodiscard]] FutureStatus WaitUntil(Deadline) const noexcept;
 
     TaskProcessor& GetTaskProcessor() { return task_processor_; }
     void DoStep();

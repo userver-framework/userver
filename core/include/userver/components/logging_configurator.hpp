@@ -26,7 +26,7 @@ namespace components {
 /// The functionality is not in Trace or Logger components because that
 /// introduces circular dependency between Logger and DynamicConfig.
 ///
-/// ## Dynamic config
+/// ## LoggingConfigurator Dynamic config
 /// * @ref USERVER_LOG_DYNAMIC_DEBUG
 /// * @ref USERVER_NO_LOG_SPANS
 ///

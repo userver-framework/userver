@@ -50,7 +50,7 @@ UTEST_F(Pool, CollectionAccess) {
 UTEST_F(Pool, DropDatabase) {
     static const std::string kCollName = "test";
 
-    auto pool = GetDefaultPool();
+    auto& pool = GetDefaultPool();
     auto coll = pool.GetCollection(kCollName);
 
     UEXPECT_NO_THROW(coll.InsertOne(formats::bson::MakeDoc("_id", 42)));
@@ -97,7 +97,7 @@ UTEST_F(Pool, ListCollectionNames) {
     static const std::string kCollAName = "list_test_a";
     static const std::string kCollBName = "list_test_b";
 
-    auto pool = GetDefaultPool();
+    auto& pool = GetDefaultPool();
     EXPECT_EQ(0, pool.ListCollectionNames().size());
 
     {

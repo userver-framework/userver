@@ -2,9 +2,9 @@
 
 #include <cctz/time_zone.h>
 
-#include <server/http/http_request_impl.hpp>
 #include <server/requests_view.hpp>
 #include <userver/server/component.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,14 +18,14 @@ InspectRequests::InspectRequests(
     : HttpHandlerJsonBase(config, component_context, /* is_monitor = */ true),
       view_(component_context.FindComponent<components::Server>().GetServer().GetRequestsView()) {}
 
-formats::json::ValueBuilder FormatHeadersAsJson(const http::HttpRequestImpl& request) {
+formats::json::ValueBuilder FormatHeadersAsJson(const http::HttpRequest& request) {
     formats::json::ValueBuilder result(formats::json::Type::kObject);
     for (const auto& name : request.GetHeaderNames()) result[name] = request.GetHeader(name);
 
     return result;
 }
 
-formats::json::ValueBuilder FormatArgsAsJson(const http::HttpRequestImpl& request) {
+formats::json::ValueBuilder FormatArgsAsJson(const http::HttpRequest& request) {
     formats::json::ValueBuilder result(formats::json::Type::kObject);
     for (const auto& name : request.ArgNames()) {
         formats::json::ValueBuilder values_json(formats::json::Type::kArray);
@@ -36,23 +36,23 @@ formats::json::ValueBuilder FormatArgsAsJson(const http::HttpRequestImpl& reques
     return result;
 }
 
-formats::json::ValueBuilder FormatCookiesAsJson(const http::HttpRequestImpl& request) {
+formats::json::ValueBuilder FormatCookiesAsJson(const http::HttpRequest& request) {
     formats::json::ValueBuilder result(formats::json::Type::kObject);
     for (const auto& name : request.GetCookieNames()) result[name] = request.GetCookie(name);
 
     return result;
 }
 
-formats::json::ValueBuilder FormatHandlingDuration(const http::HttpRequestImpl& request) {
-    auto start_time = request.StartTime();
+formats::json::ValueBuilder FormatHandlingDuration(const http::HttpRequest& request) {
+    auto start_time = request.GetStartTime();
     auto now = std::chrono::steady_clock::now();
     auto duration = now - start_time;
     auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
     return duration_ms;
 }
 
-formats::json::ValueBuilder FormatStartHandlingTimestamp(const http::HttpRequestImpl& request) {
-    auto start_time = request.StartTime();
+formats::json::ValueBuilder FormatStartHandlingTimestamp(const http::HttpRequest& request) {
+    auto start_time = request.GetStartTime();
     auto now = std::chrono::steady_clock::now();
     auto duration = now - start_time;
     auto now_system = std::chrono::system_clock::now();
@@ -71,9 +71,8 @@ formats::json::Value InspectRequests::
     formats::json::ValueBuilder result(formats::json::Type::kArray);
     auto requests = view_.GetAllRequests();
     LOG_INFO() << "Got " << requests.size() << " requests";
-    for (const auto& base_request : requests) {
+    for (const auto& request : requests) {
         /* TODO: change if we support non-HTTP requests */
-        auto* request = dynamic_cast<http::HttpRequestImpl*>(base_request.get());
 
         formats::json::ValueBuilder request_json(formats::json::Type::kObject);
         if (with_body) request_json["request-body"] = request->RequestBody();

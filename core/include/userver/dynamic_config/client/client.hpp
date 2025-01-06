@@ -44,6 +44,7 @@ public:
 
     struct Reply {
         USERVER_NAMESPACE::dynamic_config::DocsMap docs_map;
+        std::vector<std::string> kill_switches_disabled;
         std::vector<std::string> removed;
         Timestamp timestamp;
 
@@ -52,6 +53,7 @@ public:
 
     struct JsonReply {
         formats::json::Value configs;
+        std::vector<std::string> kill_switches_disabled;
         Timestamp timestamp;
     };
 

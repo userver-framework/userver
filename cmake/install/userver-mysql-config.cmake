@@ -8,6 +8,6 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-include("${USERVER_CMAKE_DIR}/Findlibmariadb.cmake")
+include("${USERVER_CMAKE_DIR}/modules/Findlibmariadb.cmake")
 
 set(userver_mysql_FOUND TRUE)

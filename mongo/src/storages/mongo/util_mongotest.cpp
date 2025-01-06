@@ -93,7 +93,7 @@ MongoPoolFixture::~MongoPoolFixture() {
     }
 }
 
-storages::mongo::Pool MongoPoolFixture::GetDefaultPool() { return default_pool_; }
+storages::mongo::Pool& MongoPoolFixture::GetDefaultPool() { return default_pool_; }
 
 storages::mongo::Pool MongoPoolFixture::MakePool(
     std::optional<std::string> db_name,
@@ -106,7 +106,6 @@ storages::mongo::Pool MongoPoolFixture::MakePool(
     used_db_names_.insert(*db_name);
     storages::mongo::Pool pool{
         *db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver, dynamic_config_storage_.GetSource()};
-    pool.Start();
     return pool;
 }
 

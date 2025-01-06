@@ -15,13 +15,13 @@ def userver_testsuite_middleware_enabled():
 
 
 @pytest.fixture(name='sentinel_gate_settings', scope='session')
-def _sentinel_gate_settings() -> typing.Tuple[str, int]:
-    return ('localhost', 27379)
+def _sentinel_gate_settings(get_free_port) -> typing.Tuple[str, int]:
+    return ('localhost', get_free_port())
 
 
 @pytest.fixture(name='master_gate_settings', scope='session')
-def _master_gate_settings() -> typing.Tuple[str, int]:
-    return ('localhost', 17379)
+def _master_gate_settings(get_free_port) -> typing.Tuple[str, int]:
+    return ('localhost', get_free_port())
 
 
 @pytest.fixture(scope='session')

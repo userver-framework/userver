@@ -1,9 +1,9 @@
 #include "redis_fixture.hpp"
 
+#include <storages/redis/impl/thread_pools.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/storages/redis/impl/thread_pools.hpp>
 
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
@@ -53,16 +53,16 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetTestsuiteRedisSettings() {
 void Redis::RunStandalone(std::function<void()> payload) {
     engine::RunStandalone(kMainWorkerThreads, [&] {
         auto thread_pools =
-            std::make_shared<USERVER_NAMESPACE::redis::ThreadPools>(kSentinelThreadPoolSize, kRedisThreadPoolSize);
+            std::make_shared<storages::redis::impl::ThreadPools>(kSentinelThreadPoolSize, kRedisThreadPoolSize);
         dynamic_config::StorageMock config;
 
-        sentinel_ = USERVER_NAMESPACE::redis::Sentinel::CreateSentinel(
+        sentinel_ = storages::redis::impl::Sentinel::CreateSentinel(
             std::move(thread_pools),
             GetTestsuiteRedisSettings(),
             "none",
             config.GetSource(),
             "pub",
-            USERVER_NAMESPACE::redis::KeyShardFactory{""}
+            storages::redis::impl::KeyShardFactory{""}
         );
 
         sentinel_->WaitConnectedDebug();

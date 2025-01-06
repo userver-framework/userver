@@ -7,8 +7,8 @@
 #include <memory>
 #include <string>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include <userver/storages/redis/bit_operation.hpp>
 #include <userver/storages/redis/client_fwd.hpp>
@@ -26,10 +26,6 @@ enum class PubShard {
     kZeroShard,
     kRoundRobin,
 };
-
-using RetryNilFromMaster = USERVER_NAMESPACE::redis::RetryNilFromMaster;
-
-inline constexpr RetryNilFromMaster kRetryNilFromMaster{};
 
 /// @ingroup userver_clients
 ///
@@ -55,7 +51,7 @@ public:
 
     virtual std::shared_ptr<Client> GetClientForShard(size_t shard_idx) = 0;
 
-    virtual void WaitConnectedOnce(USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) = 0;
+    virtual void WaitConnectedOnce(RedisWaitConnected wait_connected) = 0;
 
     // redis commands:
 

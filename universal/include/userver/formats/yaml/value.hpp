@@ -251,6 +251,8 @@ public:
     Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, std::string_view key);
 
     Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, size_t index);
+
+    Value CloneWithReplacedPath(std::string&& new_path) const;
     /// @endcond
 
 private:

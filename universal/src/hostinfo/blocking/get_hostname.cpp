@@ -22,7 +22,7 @@ constexpr std::size_t kHostNameMax = _POSIX_HOST_NAME_MAX;
 constexpr std::size_t kHostNameMax = MAXHOSTNAMELEN;
 #endif /* HOST_NAME_MAX */
 
-USERVER_IMPL_CONSTINIT std::array<char, kHostNameMax> host_name{};
+USERVER_IMPL_CONSTINIT std::array<char, kHostNameMax + 1> host_name{};
 
 std::string_view DoGetRealHostName() {
     if (::gethostname(host_name.data(), host_name.size()) == -1) {

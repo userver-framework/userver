@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
+@ref scripts/docs/en/userver/build/build.md.
 
 Take a look at the @ref scripts/docs/en/userver/tutorial/hello_service.md
 and make sure that you do realize the basic concepts.
@@ -52,7 +52,7 @@ server::handlers::HttpHandlerBase:
 @snippet samples/multipart_service/service.cpp  Multipart service sample - component
 
 The primary functionality of the handler should be located in
-`HandleRequestThrow` function. To work with the `multipart/form-data`
+`HandleRequest` function. To work with the `multipart/form-data`
 parameters use the appropriate
 server::http::HttpRequest functions:
 
@@ -116,7 +116,6 @@ paths in the configuration files and starts the service.
 To start the service manually run
 `./samples/multipart_service/userver-samples-multipart_service -c </path/to/static_config.yaml>`.
 
-@note Without file path to `static_config.yaml` `userver-samples-multipart_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` files from `samples` directory into build directory.
 
 Now you can send a request to your server from another terminal:
@@ -176,7 +175,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/websocket_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/websocket_service.md | @ref scripts/docs/en/userver/tutorial/s3api.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

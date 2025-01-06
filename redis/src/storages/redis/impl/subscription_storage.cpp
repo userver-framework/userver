@@ -9,12 +9,12 @@
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/subscription_rebalance_scheduler.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 #include "cluster_subscription_storage.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 SubscriptionToken::SubscriptionToken(std::weak_ptr<SubscriptionStorageBase> storage, SubscriptionId subscription_id)
     : storage_(storage), subscription_id_(subscription_id) {}
@@ -943,6 +943,6 @@ const std::string& SubscriptionStorage::GetShardName(size_t shard_idx) const {
     return shard_names_->at(shard_idx);
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

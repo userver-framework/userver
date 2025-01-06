@@ -164,22 +164,28 @@ void TaskContext::FinishDetached() noexcept {
     }
 }
 
-void TaskContext::Wait() const { WaitUntil({}); }
-
-void TaskContext::WaitUntil(Deadline deadline) const {
+FutureStatus TaskContext::WaitUntil(Deadline deadline) const noexcept {
     // try to avoid ctx switch if possible
-    if (IsFinished()) return;
+    static_assert(noexcept(IsFinished()));
+    if (IsFinished()) return FutureStatus::kReady;
 
+    static_assert(noexcept(current_task::GetCurrentTaskContext()));
     auto& current = current_task::GetCurrentTaskContext();
 
-    FutureWaitStrategy wait_strategy{// NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-                                     /*target=*/const_cast<TaskContext&>(*this),
-                                     current};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+    auto& target = const_cast<TaskContext&>(*this);
 
-    current.Sleep(wait_strategy, deadline);
+    static_assert(noexcept(FutureWaitStrategy{target, current}));
+    auto wait_strategy = FutureWaitStrategy{target, current};
 
-    if (!IsFinished() && current.ShouldCancel()) {
-        throw WaitInterruptedException(current.cancellation_reason_);
+    try {
+        const auto wakeup_source = current.Sleep(wait_strategy, deadline);
+        return ToFutureStatus(wakeup_source);
+    } catch (...) {
+        // We cannot just refuse to wait because of the lifetime guarantees for tasks and their data.
+        utils::impl::AbortWithStacktrace(
+            "Unexpected exception from Sleep: " + boost::current_exception_diagnostic_information()
+        );
     }
 }
 

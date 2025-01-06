@@ -16,6 +16,7 @@ class Constants:
     RJ_GENERIC_MEMBER = (
         f'rapidjson::GenericMember<{RJ_TENCODING}, {RJ_TALLOC}>'
     )
+    RG_ENCODING_CH = 'char'
 
     RJ_GENERIC_OBJECT = f'rapidjson::GenericObject<true, {RJ_GENERIC_VALUE} >'
 
@@ -184,11 +185,16 @@ class RJStringType(RJBaseType):
 
     def to_string(self):
         data = self.val['data_']
-        if (self.flags & Constants.RJFlag_kShortStringFlag) != 0:
+        if (self.flags & Constants.RJFlag_kInlineStrFlag) != 0:
             # FIXME: support other architectures
             # @see definition of LenPos in rapidjson/document.h
             return data['ss']['str'].string()
-        return data['s']['str'].string()
+        else:
+            str_ptr = rj_get_pointer(
+                data['s']['str'], Constants.RG_ENCODING_CH,
+            )
+            length = int(data['s']['length'])
+            return str_ptr.string(length=length)
 
 
 class RJBoolType(RJBaseType):
@@ -238,17 +244,15 @@ class RapidJsonValue:
             self.children = self.data.children
 
 
-class FormatsJsonValue:
+class FormatsJsonValue(RapidJsonValue):
     "Print formats::json::Value"
 
     def __init__(self, val: gdb.Value):
-        self.value = val['value_ptr_']
-
-    def to_string(self):
-        return 'formats::json::Value'
-
-    def children(self):
-        yield ('value', self.value.dereference() if self.value else None)
+        value_ptr = val['value_ptr_']
+        if value_ptr:
+            super().__init__(value_ptr.dereference())
+        else:
+            self.to_string = lambda: 'null'
 
 
 def register_printers(

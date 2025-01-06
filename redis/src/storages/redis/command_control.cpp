@@ -13,7 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 namespace {
 
 class ServerIdDescriptionMap {
@@ -186,6 +186,6 @@ std::string_view StrategyToString(CommandControl::Strategy strategy) {
     return *result;
 }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -16,6 +16,7 @@ class TestPackageConan(ConanFile):
 
     def requirements(self):
         self.requires(self.tested_reference_str)
+        self.build_requires('protobuf/5.27.0')
 
     def build(self):
         cmake = CMake(self)

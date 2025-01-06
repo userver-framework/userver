@@ -4,6 +4,7 @@
 
 #include <engine/impl/wait_any_utils.hpp>
 #include <engine/task/task_context.hpp>
+#include <userver/engine/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

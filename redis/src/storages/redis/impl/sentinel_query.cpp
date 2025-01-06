@@ -12,11 +12,11 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/shard.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -549,6 +549,6 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
     callback_(res, expected_responses_cnt_, responses_parsed_, is_non_cluster_);
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

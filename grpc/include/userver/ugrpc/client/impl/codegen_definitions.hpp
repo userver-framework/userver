@@ -9,3 +9,4 @@
 #include <utility>
 
 #include <userver/ugrpc/client/client_qos.hpp>
+#include <userver/ugrpc/impl/protobuf_collector.hpp>

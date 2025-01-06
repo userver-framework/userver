@@ -14,7 +14,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -243,6 +243,6 @@ void SubscribeSentinel::InitStorage() {
     });
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

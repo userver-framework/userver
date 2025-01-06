@@ -34,15 +34,10 @@ Its main purpose is:
 * Add a `start-*` target that starts the service and databases with testsuite
   configs and waits for keyboard interruption to stop the service.
 
-@ref cmake/UserverTestsuite.cmake library is automatically added to CMake path
-after userver environment setup. Add the following line to use it:
-
-@snippet testsuite/SetupUserverTestsuiteEnv.cmake testsuite - UserverTestsuite
-
 Then create testsuite target:
 @snippet samples/testsuite-support/CMakeLists.txt testsuite - cmake
 
-### Arguments
+### `userver_testsuite_add()` arguments
 
 * SERVICE_TARGET, required CMake name of the target service to test. Used as
   suffix for `testsuite-` and `start-` CMake target names.
@@ -52,6 +47,9 @@ Then create testsuite target:
 * REQUIREMENTS, list of requirements.txt files used to populate `venv`.
 * PYTHON_BINARY, path to existing Python binary.
 * PRETTY_LOGS, set to `OFF` to disable pretty printing.
+* DUMP_CONFIG, set to `TRUE` to tell the testsuite that there is no static config file in the file system and force the
+  testsuite to retrieve config from a service itself, by running it
+  with `--dump-config` option first. See @ref scripts/docs/en/userver/libraries/easy.md for usage example.
 
 Some of the most useful arguments for PYTEST_ARGS:
 

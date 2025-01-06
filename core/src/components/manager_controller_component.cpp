@@ -21,13 +21,12 @@ void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& 
     const auto destroyed = counter.GetDestroyedTasks();
     const auto created = counter.GetCreatedTasks();
     const auto stopped = counter.GetStoppedTasks();
-    const auto started = counter.GetStartedTasks();
 
     // TODO report RATE metrics
     if (auto tasks = writer["tasks"]) {
         tasks["created"] = created.value;
-        tasks["alive"] = created.value - std::min(destroyed, created).value;
-        tasks["running"] = started.value - std::min(stopped, started).value;
+        tasks["alive"] = (created - std::min(destroyed, created)).value;
+        tasks["running"] = counter.GetRunningTasks();
         tasks["queued"] = task_processor.GetTaskQueueSize();
         tasks["finished"] = stopped.value;
         tasks["cancelled"] = counter.GetCancelledTasks().value;
@@ -39,8 +38,8 @@ void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& 
     );
 
     if (auto context_switch = writer["context_switch"]) {
-        context_switch["slow"] = counter.GetTaskSwitchSlow().value;
-        context_switch["fast"] = counter.GetTaskSwitchFast().value;
+        context_switch["slow"] = counter.GetTasksStartedRunning().value;
+        context_switch["fast"] = 0;
         context_switch["spurious_wakeups"] = counter.GetSpuriousWakeups().value;
 
         context_switch["overloaded"] = counter.GetTasksOverloadSensor().value;

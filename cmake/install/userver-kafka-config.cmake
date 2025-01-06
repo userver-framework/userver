@@ -5,9 +5,11 @@ if(userver_kafka_FOUND)
 endif()
 
 find_package(userver REQUIRED COMPONENTS
-    core
+  core
 )
 
-include("${USERVER_CMAKE_DIR}/FindRdKafka.cmake")
+include("${USERVER_CMAKE_DIR}/modules/Findlibz.cmake")
+include("${USERVER_CMAKE_DIR}/modules/Findlz4.cmake")
+include("${USERVER_CMAKE_DIR}/modules/FindRdKafka.cmake")
 
 set(userver_kafka_FOUND TRUE)

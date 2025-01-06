@@ -20,7 +20,7 @@
 
 #include <server/http/http_cached_date.hpp>
 
-#include "http_request_impl.hpp"
+#include <userver/server/http/http_request.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -112,11 +112,11 @@ void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header, std::
 
 }  // namespace impl
 
-HttpResponse::HttpResponse(const HttpRequestImpl& request, request::ResponseDataAccounter& data_accounter)
+HttpResponse::HttpResponse(const HttpRequest& request, request::ResponseDataAccounter& data_accounter)
     : HttpResponse{request, data_accounter, std::chrono::steady_clock::now(), utils::StrCaseHash{}} {}
 
 HttpResponse::HttpResponse(
-    const HttpRequestImpl& request,
+    const HttpRequest& request,
     request::ResponseDataAccounter& data_accounter,
     std::chrono::steady_clock::time_point now,
     utils::StrCaseHash hasher

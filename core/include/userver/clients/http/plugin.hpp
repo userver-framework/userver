@@ -11,6 +11,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace tracing {
+class Span;
+}
+
 namespace clients::http {
 
 class RequestState;
@@ -51,7 +55,7 @@ public:
 
     /// @brief The hook is called just after the "external" Span is created.
     ///        You might want to add custom tags from the hook.
-    virtual void HookCreateSpan(PluginRequest& request) = 0;
+    virtual void HookCreateSpan(PluginRequest& request, tracing::Span& span) = 0;
 
     /// @brief The hook is called after the HTTP response is received or the
     ///        timeout is passed.
@@ -72,7 +76,7 @@ public:
 
     void HookPerformRequest(RequestState& request);
 
-    void HookCreateSpan(RequestState& request);
+    void HookCreateSpan(RequestState& request, tracing::Span& span);
 
     void HookOnCompleted(RequestState& request, Response& response);
 

@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/protobuf_visit.hpp
 /// @brief Utilities for visiting the fields of protobufs
 
+#include <mutex>
 #include <shared_mutex>
 #include <string_view>
 #include <vector>

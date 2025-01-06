@@ -68,6 +68,9 @@ DriverSettings ParseDriverSettings(
     result.endpoint = MergeWithSecdist(dbsecdist.endpoint, std::move(config_endpoint), dbconfig, "endpoint");
     result.database = MergeWithSecdist(dbsecdist.database, std::move(config_database), dbconfig, "database");
     result.oauth_token = dbsecdist.oauth_token;
+    result.secure_connection_cert = dbsecdist.secure_connection_cert;
+    result.user = dbsecdist.user;
+    result.password = dbsecdist.password;
     if (dbsecdist.iam_jwt_params.has_value()) {
         result.iam_jwt_params = formats::json::ToString(dbsecdist.iam_jwt_params.value());
     }

@@ -68,14 +68,14 @@ It is recommended to set this setting >= 2000 (2 ms) because system scheduler (C
 
 ## Diagnostics
 
-In case RPS mechanism is triggered it is recommended to ensure that there is no mistake. If RPS triggering coinsided 
-with peak CPU comsumption than there is no mistake and the lack of resources situation needs to be resolved:
+In case RPS mechanism is triggered it is recommended to ensure that there is no mistake. If RPS triggering coincided 
+with peak CPU consumption than there is no mistake and the lack of resources situation needs to be resolved:
 
 1. You need to locate slow code and optimise it for the workload.
 
 2. Do test runs and increase the resources if needed (more memory or more kernels for each pod in a cluster).
 
-If RPS triggering did not coinside with peak CPU comsumption than there is no lack of resources but a different kind of problem.
+If RPS triggering did not coincide with peak CPU consumption than there is no lack of resources but a different kind of problem.
 Most likely your service has synchronous operations that block the coroutine flow. If this is the case then you need to either:
 
 * Try to find synchronous system calls which block the corountine flow.

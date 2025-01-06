@@ -56,7 +56,7 @@ struct EnumMappingBase {
 };
 
 /// An enumerators type that uses `Parse` and `ToString` functions for
-/// convertions.
+/// conversions.
 struct Codegen {};
 
 namespace detail {

@@ -2,6 +2,8 @@
 
 #include <functional>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>

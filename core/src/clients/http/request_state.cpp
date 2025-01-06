@@ -974,7 +974,7 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
     auto request_editable_instance = GetEditableRequestInstance();
 
     tracing_manager_->FillRequestWithTracingContext(span, request_editable_instance);
-    plugin_pipeline_.HookCreateSpan(*this);
+    plugin_pipeline_.HookCreateSpan(*this, span);
     span.AddTag(tracing::kHttpUrl, GetLoggedOriginalUrl());
     span.AddTag(tracing::kMaxAttempts, retry_.retries);
 

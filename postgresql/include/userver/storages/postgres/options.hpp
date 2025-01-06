@@ -12,6 +12,7 @@
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -150,8 +151,16 @@ inline constexpr std::size_t kDefaultPoolMaxQueueSize = 200;
 /// Default limit for concurrent establishing connections number
 inline constexpr std::size_t kDefaultConnectingLimit = 0;
 
+/// @brief PostgreSQL topology options
+///
+/// Dynamic option @ref POSTGRES_TOPOLOGY_SETTINGS
 struct TopologySettings {
+    /// Maximum replication lag. Once the replica lag exceeds this value it will be automatically disabled.
     std::chrono::milliseconds max_replication_lag{kDefaultMaxReplicationLag};
+
+    /// List of manually disabled replicas (FQDNs).
+    std::unordered_set<std::string, USERVER_NAMESPACE::utils::StrIcaseHash, USERVER_NAMESPACE::utils::StrIcaseEqual>
+        disabled_replicas{};
 };
 
 /// @brief PostgreSQL connection pool options

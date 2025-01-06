@@ -146,7 +146,7 @@ int HttpConnection::DoOnMessageComplete() {
                 auto eq_pos = value.find('=');
                 EXPECT_NE(std::string::npos, eq_pos) << "Bad query: " << query;
                 if (eq_pos != std::string::npos)
-                    http_request_.query[value.substr(0, eq_pos)] = value.substr(eq_pos + 1);
+                    http_request_.query.emplace(value.substr(0, eq_pos), value.substr(eq_pos + 1));
             }
         }
     }

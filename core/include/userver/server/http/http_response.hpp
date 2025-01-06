@@ -5,7 +5,6 @@
 
 #include <chrono>
 #include <string>
-#include <unordered_map>
 #include <variant>
 
 #include <userver/concurrent/queue.hpp>
@@ -39,7 +38,7 @@ void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header, std::
 
 }  // namespace impl
 
-class HttpRequestImpl;
+class HttpRequest;
 
 /// @brief HTTP Response data
 class HttpResponse final : public request::ResponseBase {
@@ -53,9 +52,9 @@ public:
     using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
     /// @cond
-    HttpResponse(const HttpRequestImpl& request, request::ResponseDataAccounter& data_accounter);
+    HttpResponse(const HttpRequest& request, request::ResponseDataAccounter& data_accounter);
     HttpResponse(
-        const HttpRequestImpl& request,
+        const HttpRequest& request,
         request::ResponseDataAccounter& data_accounter,
         std::chrono::steady_clock::time_point now,
         utils::StrCaseHash hasher
@@ -154,7 +153,7 @@ private:
     // Returns total size of the response
     std::size_t SetBodyNotStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::http::headers::HeadersString& header);
 
-    const HttpRequestImpl& request_;
+    const HttpRequest& request_;
     HttpStatus status_ = HttpStatus::kOk;
     HeadersMap headers_;
     CookiesMap cookies_;

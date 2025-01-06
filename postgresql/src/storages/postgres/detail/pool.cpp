@@ -22,8 +22,6 @@ namespace storages::postgres::detail {
 
 namespace {
 
-USERVER_NAMESPACE::utils::impl::UserverExperiment kCcExperiment("pg-cc");
-
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
 // Part of max_pool that can be cancelled at once
@@ -114,7 +112,7 @@ ConnectionPool::ConnectionPool(
           config_source,
           [](const dynamic_config::Snapshot& config) { return config[kCcConfig]; }
       ) {
-    if (kCcExperiment.IsEnabled()) {
+    if (USERVER_NAMESPACE::utils::impl::kPgCcExperiment.IsEnabled()) {
         cc_controller_.Start();
     }
 }
@@ -387,6 +385,8 @@ void ConnectionPool::SetStatementMetricsSettings(const StatementMetricsSettings&
 void ConnectionPool::SetMaxConnectionsCc(std::size_t max_connections) { cc_max_connections_ = max_connections; }
 
 dynamic_config::Source ConnectionPool::GetConfigSource() const { return config_source_; }
+
+const Dsn& ConnectionPool::GetDsn() const { return dsn_; }
 
 engine::TaskWithResult<bool> ConnectionPool::Connect(engine::SemaphoreLock lock) {
     return engine::AsyncNoSpan([this, size_lock = std::move(lock)]() mutable {

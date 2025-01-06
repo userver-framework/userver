@@ -12,7 +12,9 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
 
-namespace samples::pg {
+#include <samples_postgres_service/sql_queries.hpp>
+
+namespace samples_postgres_service::pg {
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
 public:
@@ -20,8 +22,7 @@ public:
 
     KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override;
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override;
 
 private:
     std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const;
@@ -31,30 +32,22 @@ private:
     storages::postgres::ClusterPtr pg_cluster_;
 };
 
-}  // namespace samples::pg
+}  // namespace samples_postgres_service::pg
 /// [Postgres service sample - component]
 
-namespace samples::pg {
+namespace samples_postgres_service::pg {
 
 /// [Postgres service sample - component constructor]
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context),
       pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster()) {
-    constexpr auto kCreateTable = R"~(
-      CREATE TABLE IF NOT EXISTS key_value_table (
-        key VARCHAR PRIMARY KEY,
-        value VARCHAR
-      )
-    )~";
-
     using storages::postgres::ClusterHostType;
-    pg_cluster_->Execute(ClusterHostType::kMaster, kCreateTable);
+    pg_cluster_->Execute(ClusterHostType::kMaster, sql::kCreateTable);
 }
 /// [Postgres service sample - component constructor]
 
 /// [Postgres service sample - HandleRequestThrow]
-std::string KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-    const {
+std::string KeyValue::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const {
     const auto& key = request.GetArg("key");
     if (key.empty()) {
         throw server::handlers::ClientError(server::handlers::ExternalBody{"No 'key' query argument"});
@@ -135,12 +128,12 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 }
 /// [Postgres service sample - DeleteValue]
 
-}  // namespace samples::pg
+}  // namespace samples_postgres_service::pg
 
 /// [Postgres service sample - main]
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
-                                    .Append<samples::pg::KeyValue>()
+                                    .Append<samples_postgres_service::pg::KeyValue>()
                                     .Append<components::Postgres>("key-value-database")
                                     .Append<components::TestsuiteSupport>()
                                     .Append<clients::dns::Component>();

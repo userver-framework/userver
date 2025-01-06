@@ -22,10 +22,10 @@ userver_module(clickhouse
 
 _userver_directory_install(COMPONENT clickhouse FILES
 	  "${USERVER_ROOT_DIR}/cmake/modules/Findclickhouse-cpp.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
   set_tests_properties(${PROJECT_NAME}-dbtest PROPERTIES ENVIRONMENT
           "TESTSUITE_CLICKHOUSE_SERVER_START_TIMEOUT=120.0")
 

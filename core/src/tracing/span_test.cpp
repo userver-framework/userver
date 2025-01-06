@@ -98,7 +98,8 @@ UTEST_F(Span, LogFormat) {
                                                   R"(start_timestamp=\d+(\.\d+)?\t)"
                                                   R"(my_timer_time=\d+(\.\d+)?\t)"
                                                   R"(link=[0-9a-f]+\t)"
-                                                  R"(my_tag_key=my_tag_value\n)";
+                                                  R"(my_tag_key=my_tag_value\t)"
+                                                  R"(span_kind=internal\n)";
     {
         tracing::Span span("span_name");
         span.AddTag("my_tag_key", "my_tag_value");

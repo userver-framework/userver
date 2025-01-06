@@ -16,9 +16,9 @@ namespace ugrpc::server::middlewares::log {
 inline const utils::AnyStorageDataTag<StorageContext, bool> kIsFirstRequest;
 
 struct Settings final {
-    std::size_t max_msg_size{512};
-    logging::Level msg_log_level{logging::Level::kDebug};
     std::optional<logging::Level> local_log_level{};
+    logging::Level msg_log_level{logging::Level::kDebug};
+    std::size_t max_msg_size{512};
     bool trim_secrets{true};
 };
 

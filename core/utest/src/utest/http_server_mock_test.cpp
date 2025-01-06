@@ -20,7 +20,7 @@ UTEST(HttpServerMock, Ctr) {
         EXPECT_EQ("value1", request.headers.at(std::string_view{"a"}));
         EXPECT_EQ("value2", request.headers.at(std::string_view{"header"}));
 
-        EXPECT_EQ((std::unordered_map<std::string, std::string>{{"arg1", "val1"}, {"arg2", "val2"}}), request.query);
+        EXPECT_EQ((std::multimap<std::string, std::string>{{"arg1", "val1"}, {"arg2", "val2"}}), request.query);
         EXPECT_EQ(kRequestBody, request.body);
         return utest::HttpServerMock::HttpResponse{
             287,

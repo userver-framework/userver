@@ -23,7 +23,7 @@ class Manager;
 /// @brief Component that prepares the engine internals and starts all the
 /// other components.
 ///
-/// ## Dynamic config
+/// ## ManagerControllerComponent Dynamic config
 /// * @ref USERVER_TASK_PROCESSOR_PROFILER_DEBUG
 /// * @ref USERVER_TASK_PROCESSOR_QOS
 ///
@@ -41,7 +41,10 @@ class Manager;
 /// task_processors.*NAME*.*OPTIONS* | dictionary of task processors to create and their options. See description below | -
 /// mlock_debug_info | whether to mlock(2) process debug info to prevent major page faults on unwinding | true
 /// disable_phdr_cache | whether to disable caching of phdr_info objects. Usable if rebuilding with cmake variable USERVER_DISABLE_PHDR_CACHE is off limits, and has the same effect | false
+/// static_config_validation.validate_all_components | whether to validate static config according to schema; should be `true` for all new services | true
 /// preheat_stacktrace_collector | whether to collect a dummy stacktrace at server start up (usable to avoid loading debug info at random point at runtime) | true
+/// userver_experiments.*NAME* | whether to enable certain userver experiments; these are gradually enabled by userver team, for internal use only | false
+/// graceful_shutdown_interval | at shutdown, first hang for this duration with /ping 5xx to give the balancer a chance to redirect new requests to other hosts | 0s
 ///
 /// ## Static task_processor options:
 /// Name | Description | Default value

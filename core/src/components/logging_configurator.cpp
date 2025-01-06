@@ -68,7 +68,7 @@ void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config)
              */
 
             // Flush
-            logging::RemoveDynamicDebugLog("", logging::kAnyLine);
+            logging::RemoveAllDynamicDebugLog();
 
             for (const auto& [location, level] : dd.force_disabled) {
                 const auto [path, line] = logging::SplitLocation(location);

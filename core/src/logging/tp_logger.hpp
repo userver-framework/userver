@@ -16,11 +16,11 @@
 #include <userver/logging/format.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 
-#include <concurrent/impl/interference_shield.hpp>
 #include <engine/impl/async_flat_combining_queue.hpp>
 #include <logging/config.hpp>
 #include <logging/impl/base_sink.hpp>
 #include <logging/impl/reopen_mode.hpp>
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/logging/impl/log_stats.hpp>
 

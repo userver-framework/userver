@@ -53,7 +53,7 @@ std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& reque
         request.GetHttpResponse().SetContentType(config[kContentTypeMap][file->extension]);
         return file->data;
     }
-    request.GetResponse().SetStatusNotFound();
+    request.GetHttpResponse().SetStatusNotFound();
     return "File not found";
 }
 

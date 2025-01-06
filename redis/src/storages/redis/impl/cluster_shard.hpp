@@ -6,9 +6,9 @@
 #include <vector>
 
 #include <userver/rcu/rcu_map.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/types.hpp>
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis_connection_holder.hpp>
@@ -16,11 +16,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ClusterShard {
 public:
-    using RedisPtr = std::shared_ptr<redis::Redis>;
+    using RedisPtr = std::shared_ptr<Redis>;
     using RedisConnectionPtr = std::shared_ptr<const RedisConnectionHolder>;
     using ServersWeighted = std::unordered_map<ServerId, size_t, ServerIdHasher>;
 
@@ -77,6 +77,6 @@ size_t GetStartIndex(
     size_t current,
     size_t servers_count
 );
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

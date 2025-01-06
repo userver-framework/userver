@@ -48,7 +48,7 @@ namespace components {
 ///
 /// @ref scripts/docs/en/userver/caches.md provide a more detailed introduction.
 ///
-/// ## Dynamic config
+/// ## CachingComponentBase Dynamic config
 /// * @ref USERVER_CACHES
 /// * @ref USERVER_DUMPS
 ///

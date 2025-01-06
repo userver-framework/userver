@@ -57,13 +57,17 @@ void AddDynamicDebugLog(const std::string& location_relative, int line, EntrySta
     }
 
     if (line != kAnyLine) {
-        if (it_lower->line != line && it_lower->path != location_relative) {
+        // A specific line
+        if (it_lower->line != line || it_lower->path != location_relative) {
+            // Non-full match
             ThrowUnknownDynamicLogLocation(location_relative, line);
         }
 
+        // Full match
         it_lower->state.store(state);
         return;
     } else {
+        // Any line
         for (; it_lower != all_locations.end(); ++it_lower) {
             if (std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0) break;
             it_lower->state.store(state);
@@ -82,6 +86,14 @@ void RemoveDynamicDebugLog(const std::string& location_relative, int line) {
 
     for (; it_lower != it_upper; ++it_lower) {
         it_lower->state.store(EntryState{});
+    }
+}
+
+void RemoveAllDynamicDebugLog() {
+    utils::impl::AssertStaticRegistrationFinished();
+    auto& all_locations = GetAllLocations();
+    for (auto& location : all_locations) {
+        location.state.store(EntryState{});
     }
 }
 

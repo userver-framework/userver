@@ -34,6 +34,7 @@ libnghttp2-dev
 libpq-dev=12.*
 libpq5=12.*
 libprotoc-dev
+libpugixml-dev
 libsasl2-dev
 libssl-dev
 libyaml-cpp-dev

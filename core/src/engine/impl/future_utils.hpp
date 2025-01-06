@@ -18,7 +18,7 @@ class FutureWaitStrategy final : public impl::WaitStrategy {
     static_assert(std::is_base_of_v<ContextAccessor, T>);
 
 public:
-    FutureWaitStrategy(T& target, impl::TaskContext& current) : target_(target), current_(current) {}
+    FutureWaitStrategy(T& target, impl::TaskContext& current) noexcept : target_(target), current_(current) {}
 
     EarlyWakeup SetupWakeups() override { return target_.TryAppendWaiter(current_); }
 
@@ -29,17 +29,19 @@ private:
     impl::TaskContext& current_;
 };
 
-inline FutureStatus ToFutureStatus(TaskContext::WakeupSource wakeup_source) {
+inline FutureStatus ToFutureStatus(TaskContext::WakeupSource wakeup_source) noexcept {
     switch (wakeup_source) {
-        case impl::TaskContext::WakeupSource::kCancelRequest:
-            return FutureStatus::kCancelled;
-        case impl::TaskContext::WakeupSource::kDeadlineTimer:
-            return FutureStatus::kTimeout;
         case impl::TaskContext::WakeupSource::kWaitList:
             return FutureStatus::kReady;
-        default:
-            UINVARIANT(false, "Unexpected wakeup source");
+        case impl::TaskContext::WakeupSource::kDeadlineTimer:
+            return FutureStatus::kTimeout;
+        case impl::TaskContext::WakeupSource::kCancelRequest:
+            return FutureStatus::kCancelled;
+        case impl::TaskContext::WakeupSource::kBootstrap:
+        case impl::TaskContext::WakeupSource::kNone:
+            break;
     }
+    utils::impl::AbortWithStacktrace("Unexpected wakeup source");
 }
 
 }  // namespace engine::impl

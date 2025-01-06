@@ -10,6 +10,8 @@ from typing import Tuple
 import jinja2
 import yaml
 
+from chaotic import cpp_format
+from chaotic import cpp_names
 from chaotic.back.cpp import renderer
 from chaotic.back.cpp import translator
 from chaotic.back.cpp import types
@@ -45,7 +47,7 @@ def get_clang_format_bin():
 
 
 def taxi_alias(type_name: str) -> str:
-    return types.camel_case(type_name.split('::')[-1], True)
+    return cpp_names.camel_case(type_name.split('::')[-1], True)
 
 
 # TODO: move to compilers.common?
@@ -63,7 +65,7 @@ def write_file(filepath: str, content: str) -> None:
 
 
 def enrich_jinja_env(env: jinja2.Environment) -> None:
-    env.globals['camel_case'] = types.camel_case
+    env.globals['camel_case'] = cpp_names.camel_case
     env.globals['taxi_alias'] = taxi_alias
 
 
@@ -323,13 +325,17 @@ class CompilerBase:
             os.path.join(
                 output_dir, f'include/taxi_config/variables/{name}.hpp',
             ),
-            renderer.format_pp(tpl.render(env), binary=get_clang_format_bin()),
+            cpp_format.format_pp(
+                tpl.render(env), binary=get_clang_format_bin(),
+            ),
         )
 
         tpl = self._jinja().get_template('variable.cpp.jinja')
         write_file(
             os.path.join(output_dir, f'src/taxi_config/variables/{name}.cpp'),
-            renderer.format_pp(tpl.render(env), binary=get_clang_format_bin()),
+            cpp_format.format_pp(
+                tpl.render(env), binary=get_clang_format_bin(),
+            ),
         )
 
     def generate_definition(

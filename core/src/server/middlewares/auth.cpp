@@ -1,7 +1,7 @@
 #include <server/middlewares/auth.hpp>
 
 #include <server/handlers/auth/auth_checker.hpp>
-#include <server/http/http_request_impl.hpp>
+#include <userver/server/http/http_request.hpp>
 
 #include <userver/components/component_context.hpp>
 #include <userver/logging/log.hpp>

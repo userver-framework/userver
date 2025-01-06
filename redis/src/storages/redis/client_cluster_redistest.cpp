@@ -17,7 +17,7 @@ std::string MakeKey2(size_t idx, int add) {
     return "{" + MakeKey(idx) + "}not_hashed_suffix_" + std::to_string(add - idx);
 }
 
-redis::CommandControl kDefaultCc(std::chrono::milliseconds(300), std::chrono::milliseconds(300), 1);
+storages::redis::CommandControl kDefaultCc(std::chrono::milliseconds(300), std::chrono::milliseconds(300), 1);
 
 }  // namespace
 
@@ -102,7 +102,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_MgetCrossSlot) {
 
     {
         auto req = client->Mget({MakeKey(idx[0]), MakeKey(idx[1])}, kDefaultCc);
-        UASSERT_THROW(req.Get(), redis::ParseReplyException);
+        UASSERT_THROW(req.Get(), storages::redis::ParseReplyException);
     }
 
     for (unsigned long i : idx) {
@@ -154,7 +154,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_TransactionCrossSlot) {
         auto set = transaction->Set(MakeKey(idx[i]), std::to_string(add + i));
         auto get = transaction->Get(MakeKey(idx[i]));
     }
-    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), redis::ParseReplyException);
+    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::ParseReplyException);
 }
 
 UTEST_F(RedisClusterClientTest, DISABLED_TransactionDistinctShards) {
@@ -168,7 +168,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_TransactionDistinctShards) {
         auto set = transaction->Set(MakeKey(i), std::to_string(add + i));
         auto get = transaction->Get(MakeKey(i));
     }
-    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), redis::ParseReplyException);
+    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::ParseReplyException);
 }
 
 UTEST_F(RedisClusterClientTest, DISABLED_Subscribe) {
@@ -238,7 +238,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_LongWork) {
             auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
             try {
                 req.Get();
-            } catch (const redis::RequestFailedException& ex) {
+            } catch (const storages::redis::RequestFailedException& ex) {
                 ++num_write_errors;
                 std::cerr << "Set failed with status " << ex.GetStatusString();
             }
@@ -248,7 +248,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_LongWork) {
             auto req = client->Get(MakeKey(i), kDefaultCc);
             try {
                 req.Get();
-            } catch (const redis::RequestFailedException& ex) {
+            } catch (const storages::redis::RequestFailedException& ex) {
                 ++num_read_errors;
                 std::cerr << "Get failed with status " << ex.GetStatusString();
             }
@@ -258,7 +258,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_LongWork) {
             auto req = client->Del(MakeKey(i), kDefaultCc);
             try {
                 req.Get();
-            } catch (const redis::RequestFailedException& ex) {
+            } catch (const storages::redis::RequestFailedException& ex) {
                 ++num_write_errors;
                 std::cerr << "Del failed with status " << ex.GetStatusString();
             }
@@ -276,7 +276,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_LongWork) {
 UTEST_F(RedisClusterClientTest, DISABLED_ClusterSlotsCalled) {
     auto client = GetClient();
     engine::SleepFor(std::chrono::seconds(10));
-    ASSERT_GT(redis::ClusterSentinelImpl::GetClusterSlotsCalledCounter(), 2);
+    ASSERT_GT(storages::redis::impl::ClusterSentinelImpl::GetClusterSlotsCalledCounter(), 2);
 }
 
 USERVER_NAMESPACE_END

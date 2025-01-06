@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ydb-cpp-sdk/client/query/client.h>
+#include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
 #include <userver/dynamic_config/source.hpp>
@@ -140,16 +142,51 @@ public:
     );
     /// @}
 
+    /// @name Queries execution (using YDB Query SDK)
+    /// Execute a single query outside of transactions. Query parameters are
+    /// passed in `Args` as "string key - value" pairs:
+    ///
+    /// @code
+    /// client.ExecuteQuery(query, "name1", value1, "name2", value2, ...);
+    /// @endcode
+    ///
+    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
+    /// if needed.
+    ///
+    /// If both query_settings and settings args are passed,
+    /// query_settings.client_timeout_ms and query_settings.trace_id are ignored
+    /// and are overwritten by settings.client_timeout_ms and settings.trace_id.
+    /// @{
+    template <typename... Args>
+    ExecuteResponse ExecuteQuery(const Query& query, Args&&... args);
+
+    template <typename... Args>
+    ExecuteResponse ExecuteQuery(OperationSettings settings, const Query& query, Args&&... args);
+
+    ExecuteResponse ExecuteQuery(OperationSettings settings, const Query& query, PreparedArgsBuilder&& builder);
+
+    ExecuteResponse ExecuteQuery(
+        NYdb::NQuery::TExecuteQuerySettings&& query_settings,
+        OperationSettings settings,
+        const Query& query,
+        PreparedArgsBuilder&& builder
+    );
+    /// @}
+
     /// @cond
     // For internal use only.
     friend void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_client);
     /// @endcond
 
-    /// Get native table client
+    /// Get native table or query client
     /// @warning Use with care! Facilities from
     /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
     /// non-blocking wait operations.
+    /// @{
     NYdb::NTable::TTableClient& GetNativeTableClient();
+
+    NYdb::NQuery::TQueryClient& GetNativeQueryClient();
+    /// @}
 
     utils::RetryBudget& GetRetryBudget();
 
@@ -187,6 +224,7 @@ private:
     std::shared_ptr<impl::Driver> driver_;
     std::unique_ptr<NYdb::NScheme::TSchemeClient> scheme_client_;
     std::unique_ptr<NYdb::NTable::TTableClient> table_client_;
+    std::unique_ptr<NYdb::NQuery::TQueryClient> query_client_;
 };
 
 template <typename... Args>
@@ -228,6 +266,16 @@ ScanQueryResults TableClient::ExecuteScanQuery(
     return ExecuteScanQuery(
         std::move(scan_settings), std::move(settings), query, MakeBuilder(std::forward<Args>(args)...)
     );
+}
+
+template <typename... Args>
+ExecuteResponse TableClient::ExecuteQuery(const Query& query, Args&&... args) {
+    return ExecuteQuery(OperationSettings{}, query, MakeBuilder(std::forward<Args>(args)...));
+}
+
+template <typename... Args>
+ExecuteResponse TableClient::ExecuteQuery(OperationSettings settings, const Query& query, Args&&... args) {
+    return ExecuteQuery(settings, query, MakeBuilder(std::forward<Args>(args)...));
 }
 
 }  // namespace ydb

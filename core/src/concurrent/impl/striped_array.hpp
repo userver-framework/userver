@@ -8,7 +8,7 @@
 
 #include <boost/range/adaptor/strided.hpp>
 
-#include <concurrent/impl/interference_shield.hpp>
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/span.hpp>

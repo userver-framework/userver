@@ -1,0 +1,59 @@
+# yaml
+components_manager:
+    components:
+        handler-postgres:
+            path: /postgres
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            dbconnection: 'postgresql://testsuite@localhost:11433/pg_key_value'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+            sync-start: true
+            user-types-enabled: false  # Not used in chaos tests
+            max_pool_size: 1
+            max_queue_size: 200
+            min_pool_size: 1
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        secdist:
+            load-enabled: false
+        default-secdist-provider: {}
+
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

@@ -7,15 +7,19 @@
 
 #include <grpcpp/channel.h>
 #include <grpcpp/completion_queue.h>
+#include <grpcpp/security/credentials.h>
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/fixed_array.hpp>
+
+#include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
-#include <userver/utils/fixed_array.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +27,10 @@ namespace ugrpc::impl {
 class StatisticsStorage;
 class CompletionQueuePoolBase;
 }  // namespace ugrpc::impl
+
+namespace ugrpc::client {
+struct ClientFactorySettings;
+}
 
 namespace ugrpc::client::impl {
 
@@ -37,6 +45,8 @@ struct ClientDependencies final {
     const dynamic_config::Source config_source;
     testsuite::GrpcControl& testsuite_grpc;
     const dynamic_config::Key<ClientQos>* qos{nullptr};
+    const ClientFactorySettings& settings;
+    DedicatedMethodsConfig dedicated_methods_config;
 };
 
 struct GenericClientTag final {
@@ -56,11 +66,12 @@ public:
         : dependencies_(std::move(dependencies)),
           metadata_(metadata),
           service_statistics_(&GetServiceStatistics()),
-          stubs_(MakeStubs<Service>(dependencies_.channel_token)) {}
+          default_stubs_(MakeStubs<Service>(dependencies_.channel_token)),
+          dedicated_stubs_(MakeDedicatedStubs<Service>(dependencies_, metadata)) {}
 
     template <typename Service>
     ClientData(ClientDependencies&& dependencies, GenericClientTag, std::in_place_type_t<Service>)
-        : dependencies_(std::move(dependencies)), stubs_(MakeStubs<Service>(dependencies_.channel_token)) {}
+        : dependencies_(std::move(dependencies)), default_stubs_(MakeStubs<Service>(dependencies_.channel_token)) {}
 
     ClientData(ClientData&&) noexcept = default;
     ClientData& operator=(ClientData&&) = delete;
@@ -69,8 +80,16 @@ public:
     ClientData& operator=(const ClientData&) = delete;
 
     template <typename Service>
-    Stub<Service>& NextStub() const {
-        return *static_cast<Stub<Service>*>(NextStubPtr().get());
+    Stub<Service>& NextStubFromMethodId(std::size_t method_id) const {
+        if (!dedicated_stubs_[method_id].empty()) {
+            return *static_cast<Stub<Service>*>(NextStubPtr(dedicated_stubs_[method_id]).get());
+        }
+        return NextGenericStub<Service>();
+    }
+
+    template <typename Service>
+    Stub<Service>& NextGenericStub() const {
+        return *static_cast<Stub<Service>*>(NextStubPtr(default_stubs_).get());
     }
 
     grpc::CompletionQueue& NextQueue() const;
@@ -93,9 +112,22 @@ public:
 
     const dynamic_config::Key<ClientQos>* GetClientQos() const;
 
+    std::size_t GetDedicatedChannelCount(std::size_t method_id) const;
+
 private:
+    static std::shared_ptr<grpc::Channel>
+    CreateChannelImpl(const ClientDependencies& dependencies, const grpc::string& endpoint);
+
+    static std::size_t GetDedicatedChannelCountImpl(
+        const ClientDependencies& dependencies,
+        std::size_t method_id,
+        const ugrpc::impl::StaticServiceMetadata& meta
+    );
+
     using StubDeleterType = void (*)(void*);
     using StubPtr = std::unique_ptr<void, StubDeleterType>;
+
+    using StubPool = utils::FixedArray<StubPtr>;
 
     template <typename Service>
     static void StubDeleter(void* ptr) noexcept {
@@ -110,14 +142,29 @@ private:
         });
     }
 
-    const StubPtr& NextStubPtr() const;
+    template <typename Service>
+    static utils::FixedArray<StubPool>
+    MakeDedicatedStubs(ClientDependencies& dependencies, const ugrpc::impl::StaticServiceMetadata& meta) {
+        const auto& method_full_names = meta.method_full_names;
+        const auto endpoint_string = ugrpc::impl::ToGrpcString(dependencies.endpoint);
+        return utils::GenerateFixedArray(method_full_names.size(), [&](std::size_t method_id) {
+            const auto count_of_channels = GetDedicatedChannelCountImpl(dependencies, method_id, meta);
+            return utils::GenerateFixedArray(count_of_channels, [&](std::size_t) {
+                return StubPtr(Service::NewStub(CreateChannelImpl(dependencies, endpoint_string)).release(), &StubDeleter<Service>);
+            });
+        });
+    }
+
+    const StubPtr& NextStubPtr(const utils::FixedArray<StubPtr>& stubs) const;
 
     ugrpc::impl::ServiceStatistics& GetServiceStatistics();
 
     ClientDependencies dependencies_;
     std::optional<ugrpc::impl::StaticServiceMetadata> metadata_{std::nullopt};
     ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
-    utils::FixedArray<StubPtr> stubs_;
+    utils::FixedArray<StubPtr> default_stubs_;
+    // method_id -> stub_pool
+    utils::FixedArray<StubPool> dedicated_stubs_;
 };
 
 template <typename Client>

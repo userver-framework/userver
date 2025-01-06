@@ -109,8 +109,6 @@ void PrepareSettings(
     if (cc.get_session_timeout_ms) os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
 }
 
-utils::impl::UserverExperiment kYdbDeadlinePropagationExperiment("ydb-deadline-propagation");
-
 engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
     if (config_snapshot[impl::kDeadlinePropagationVersion] != impl::kDeadlinePropagationExperimentVersion) {
         LOG_DEBUG() << "Wrong DP experiment version, config=" << config_snapshot[impl::kDeadlinePropagationVersion]
@@ -118,7 +116,7 @@ engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot
         return {};
     }
 
-    if (!kYdbDeadlinePropagationExperiment.IsEnabled()) {
+    if (!utils::impl::kYdbDeadlinePropagationExperiment.IsEnabled()) {
         LOG_DEBUG() << "Deadline propagation is disabled via experiment";
         return {};
     }

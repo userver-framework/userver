@@ -37,6 +37,7 @@ TEST(YamlConfig, SampleVars) {
 
     yaml_config::YamlConfig yaml(std::move(node), vars);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+    EXPECT_EQ(yaml["some_element"]["some"].GetPath(), "some_element.some");
     /// [sample vars]
 }
 
@@ -94,15 +95,19 @@ some_element:
 
     yaml_config::YamlConfig yaml(node, vars);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+    EXPECT_EQ(yaml["some_element"]["some"].GetPath(), "some_element.some");
 
     yaml = yaml_config::YamlConfig(node, vars, yaml_config::YamlConfig::Mode::kEnvAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+    EXPECT_EQ(yaml["some_element"]["some"].GetPath(), "some_element.some");
 
     yaml = yaml_config::YamlConfig(node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+    EXPECT_EQ(yaml["some_element"]["some"].GetPath(), "some_element.some");
 
     yaml = yaml_config::YamlConfig(node, {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 
     yaml = yaml_config::YamlConfig(node, {});
     UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
@@ -115,6 +120,7 @@ some_element:
 
     yaml = yaml_config::YamlConfig(node, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100500);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 }
 
 TEST(YamlConfig, IterationSkipInternalFields) {
@@ -143,6 +149,8 @@ element2:
     for (auto [key, value] : Items(yaml["element1"])) {
         ++count;
         EXPECT_THAT(key, testing::Not(testing::HasSubstr("#")));
+        EXPECT_THAT(key, testing::StartsWith("some"));
+        EXPECT_THAT(value.GetPath(), testing::StartsWith("element1.some"));
         EXPECT_EQ(value.As<int>(), 0);
     }
     ASSERT_EQ(count, 3);
@@ -151,6 +159,7 @@ element2:
     for (const auto& value : yaml["element1"]) {
         ++count;
         EXPECT_EQ(value.As<int>(), 0);
+        EXPECT_THAT(value.GetPath(), testing::StartsWith("element1.some"));
     }
     ASSERT_EQ(count, 3);
 
@@ -160,6 +169,8 @@ element2:
     for (auto it = element1.begin(); it != element1.end(); it++) {
         ++count;
         EXPECT_THAT(it.GetName(), testing::Not(testing::HasSubstr("#")));
+        EXPECT_THAT(it.GetName(), testing::StartsWith("some"));
+        EXPECT_THAT(it->GetPath(), testing::StartsWith("element1.some"));
         EXPECT_EQ(it->As<int>(), 0);
     }
     ASSERT_EQ(count, 3);
@@ -168,6 +179,8 @@ element2:
     for (auto [key, value] : Items(yaml["element2"])) {
         ++count;
         EXPECT_THAT(key, testing::Not(testing::HasSubstr("#")));
+        EXPECT_THAT(key, testing::StartsWith("some"));
+        EXPECT_THAT(value.GetPath(), testing::StartsWith("element2.some"));
         EXPECT_EQ(value.As<int>(), 100);
     }
     ASSERT_EQ(count, 1);
@@ -185,6 +198,8 @@ element2:
     for (auto it = element2.begin(); it != element2.end(); it++) {
         ++count;
         EXPECT_THAT(it.GetName(), testing::Not(testing::HasSubstr("#")));
+        EXPECT_THAT(it.GetName(), testing::StartsWith("some"));
+        EXPECT_THAT(it->GetPath(), testing::StartsWith("element2.some"));
         EXPECT_EQ(it->As<int>(), 100);
     }
     ASSERT_EQ(count, 1);
@@ -202,6 +217,7 @@ some_element:
 
     yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 }
 
 TEST(YamlConfig, SampleFile) {
@@ -216,6 +232,7 @@ TEST(YamlConfig, SampleFile) {
     yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some"]["some_key"][0].As<std::string>(), "a");
     /// [sample read_file]
+    EXPECT_THAT(yaml["some"]["some_key"][0].GetPath(), testing::StrEq("some.some_key[0]"));
 }
 
 TEST(YamlConfig, FileFallback) {
@@ -227,6 +244,7 @@ some_element:
 
     yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 }
 
 TEST(YamlConfig, FileFallbackUnallowed) {
@@ -305,6 +323,45 @@ TEST(YamlConfig, VariableMap) {
     std::vector<std::optional<std::string>> expected_vec_miss{
         std::nullopt, std::optional<std::string>("str333"), std::optional<std::string>("xxx"), std::nullopt};
     EXPECT_EQ(conf["array_with_missing"].As<std::vector<std::optional<std::string>>>(), expected_vec_miss);
+}
+
+TEST(YamlConfig, NoVariableMap) {
+    auto node = formats::yaml::FromString(R"(
+    some_element:
+        some: $variable
+        some#env: DOES_NOT_EXIST
+        some#file: /does/not/exists
+        some2:
+          - 0
+          - 1
+          - $variable
+          - 3
+  )");
+
+    yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    UEXPECT_THROW_MSG(
+        yaml["some_element"]["some"].As<int>(), std::exception, "Error at path 'some_element.some': Field is missing"
+    );
+    UEXPECT_THROW_MSG(
+        yaml["some_element"]["some2"][2].As<int>(),
+        std::exception,
+        "Error at path 'some_element.some2[2].$variable': Field is missing"
+    );
+    UEXPECT_THROW_MSG(
+        yaml["some_element"]["some2"][20].As<int>(),
+        std::exception,
+        "Error at path 'some_element.some2': Index 20 of array of size 4 is out of bounds"
+    );
+
+    node = formats::yaml::FromString(R"(
+    some_element:
+      some#env: DOES_NOT_EXIST
+      some#file: /does/not/exists
+    )");
+    yaml = yaml_config::YamlConfig(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    UEXPECT_THROW_MSG(
+        yaml["some_element"]["some"].As<int>(), std::exception, "Error at path 'some_element.some': Field is missing"
+    );
 }
 
 /// Common test base to make consistent tests between iterators and operator[]
@@ -397,7 +454,7 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
 
     yaml_config::YamlConfig root_array_data = conf["root"];
     Accessor root_array(root_array_data);
-    EXPECT_TRUE(root_array_data.Yaml().IsArray());
+    EXPECT_TRUE(root_array_data.IsArray());
 
     EXPECT_EQ(root_array[0]["member1"].template As<int>(), 42);
     EXPECT_EQ(root_array[0]["duration"].template As<std::chrono::milliseconds>(), std::chrono::seconds{10});
@@ -468,7 +525,7 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
 
     yaml_config::YamlConfig root_object_data = conf["root"];
     Accessor root_object(root_object_data);
-    EXPECT_TRUE(root_object_data.Yaml().IsObject());
+    EXPECT_TRUE(root_object_data.IsObject());
 
     EXPECT_EQ(root_object["e0"]["member1"].template As<int>(), 42);
     EXPECT_EQ(root_object["e0"]["duration"].template As<std::chrono::milliseconds>(), std::chrono::seconds{10});
@@ -576,7 +633,7 @@ TEST(YamlConfig, SubconfigNotObject) {
 
     yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
     EXPECT_EQ(conf["member"].As<std::string>(), "hello");
-    EXPECT_TRUE(conf.Yaml().IsObject());
+    EXPECT_TRUE(conf.IsObject());
     // Get subconfig that is not an object
     auto subconf = conf["member"];
     // It must throw an exception
@@ -602,7 +659,7 @@ TEST(YamlConfig, IteratorArray) {
     yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
     auto root_array = conf["root"];
-    EXPECT_TRUE(root_array.Yaml().IsArray());
+    EXPECT_TRUE(root_array.IsArray());
 
     // Testing basics
     auto it = root_array.begin();
@@ -732,15 +789,18 @@ some_element:
 
     yaml = yaml_config::YamlConfig(node, vars, yaml_config::YamlConfig::Mode::kEnvAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 
     yaml = yaml_config::YamlConfig(node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     ::unsetenv("VARIABLE_ENV");
 
     yaml = yaml_config::YamlConfig(node, {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 
     yaml = yaml_config::YamlConfig(node, {});
     UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
@@ -753,6 +813,7 @@ some_element:
 
     yaml = yaml_config::YamlConfig(node, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100500);
+    EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 }
 
 USERVER_NAMESPACE_END

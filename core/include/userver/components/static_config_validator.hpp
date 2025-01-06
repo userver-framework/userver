@@ -18,9 +18,14 @@ ValidationMode Parse(const yaml_config::YamlConfig& value, formats::parse::To<Va
 
 namespace impl {
 template <typename Component>
-void TryValidateStaticConfig(const components::ComponentConfig& static_config, ValidationMode validation_condition) {
+void TryValidateStaticConfig(
+    std::string_view component_name,
+    const components::ComponentConfig& static_config,
+    ValidationMode validation_condition
+) {
     if (components::kHasValidate<Component> || validation_condition == ValidationMode::kAll) {
         yaml_config::Schema schema = Component::GetStaticConfigSchema();
+        schema.path = component_name;
 
         yaml_config::impl::Validate(static_config, schema);
     }

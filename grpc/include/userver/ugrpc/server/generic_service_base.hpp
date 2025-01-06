@@ -10,9 +10,6 @@
 #include <userver/ugrpc/server/service_component_base.hpp>
 #include <userver/ugrpc/server/stream.hpp>
 
-// use by legacy
-#include <userver/ugrpc/server/rpc.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -76,21 +73,8 @@ public:
     virtual ~GenericServiceBase();
 
     /// @brief Override this method in the derived class to handle all RPCs.
-    /// RPC name can be obtained through @ref CallAnyBase::GetCallName.
-    /// @note RPCs of all kinds (including unary RPCs) are represented using
-    /// BidirectionalStream API.
-    /// @note The implementation of the method should call `Finish` or
-    /// `FinishWithError`, otherwise the server will respond with an "internal
-    /// server error" status.
-    virtual GenericResult Handle(GenericCallContext& context, GenericReaderWriter& stream);
-
-    // Legacy
-    using Call = BidirectionalStream<grpc::ByteBuffer, grpc::ByteBuffer>;
-    [[deprecated(
-        "Use 'grpc::Status Handle(GenericCallContext&, "
-        "GenericReaderWriter&)'"
-    )]] virtual void
-    Handle(Call& call);
+    /// RPC name can be obtained through @ref GenericCallContext::GetCallName.
+    virtual GenericResult Handle(GenericCallContext& context, GenericReaderWriter& stream) = 0;
 
 protected:
     GenericServiceBase() = default;

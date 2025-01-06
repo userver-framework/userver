@@ -15,7 +15,7 @@ SentinelTest::SentinelTest(
     : masters_(InitServerArray(master_count, "masters", magic_value_add_master)),
       slaves_(InitServerArray(slave_count, "slaves", magic_value_add_slave)),
       sentinels_(InitServerArray(sentinel_count, "sentinels")),
-      thread_pools_(std::make_shared<redis::ThreadPools>(1, redis_thread_count)) {
+      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count)) {
     InitSentinelServers();
     CreateSentinelClient();
 }
@@ -46,7 +46,7 @@ void SentinelTest::CreateSentinelClient() {
     secdist::RedisSettings settings;
     settings.shards = {redis_name_};
     for (const auto& sentinel : sentinels_) settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
-    sentinel_client_ = redis::Sentinel::CreateSentinel(
+    sentinel_client_ = storages::redis::impl::Sentinel::CreateSentinel(
         thread_pools_, settings, "test_shard_group_name", dynamic_config::GetDefaultSource(), "test_client_name", {""}
     );
     sentinel_client_->WaitConnectedDebug(slaves_.empty());
@@ -67,7 +67,7 @@ SentinelShardTest::SentinelShardTest(
       masters_(InitServerArray(shard_count, "masters", magic_value_add_master)),
       slaves_(InitServerArray(shard_count, "slaves", magic_value_add_slave)),
       sentinels_(InitServerArray(sentinel_count, "sentinels")),
-      thread_pools_(std::make_shared<redis::ThreadPools>(1, redis_thread_count)) {
+      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count)) {
     InitSentinelServers(shard_count);
     CreateSentinelClient();
 }
@@ -113,7 +113,7 @@ void SentinelShardTest::CreateSentinelClient() {
     secdist::RedisSettings settings;
     settings.shards = redis_names_;
     for (const auto& sentinel : sentinels_) settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
-    sentinel_client_ = redis::Sentinel::CreateSentinel(
+    sentinel_client_ = storages::redis::impl::Sentinel::CreateSentinel(
         thread_pools_, settings, "test_shard_group_name", dynamic_config::GetDefaultSource(), "test_client_name", {""}
     );
     sentinel_client_->WaitConnectedDebug(slaves_.empty());

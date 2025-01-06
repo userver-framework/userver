@@ -19,22 +19,21 @@ constexpr std::string_view kSayHelloCallName = "sample.ugrpc.UnitTestService/Say
 
 class SampleGenericService final : public ugrpc::server::GenericServiceBase {
 public:
-    void Handle(Call& call) override {
-        EXPECT_EQ(call.GetCallName(), kSayHelloCallName);
+    GenericResult Handle(GenericCallContext& context, GenericReaderWriter& stream) override {
+        EXPECT_EQ(context.GetCallName(), kSayHelloCallName);
 
         grpc::ByteBuffer request_bytes;
-        ASSERT_TRUE(call.Read(request_bytes));
+        EXPECT_TRUE(stream.Read(request_bytes));
 
         sample::ugrpc::GreetingRequest request;
         if (!ugrpc::ParseFromByteBuffer(std::move(request_bytes), request)) {
-            call.FinishWithError(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "Failed to parse request"});
-            return;
+            return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "Failed to parse request"};
         }
 
         sample::ugrpc::GreetingResponse response;
         response.set_name("Hello " + request.name());
 
-        call.WriteAndFinish(ugrpc::SerializeToByteBuffer(response));
+        return ugrpc::SerializeToByteBuffer(response);
     }
 };
 /// [sample]
@@ -43,17 +42,16 @@ void PerformGenericUnaryCall(const sample::ugrpc::UnitTestServiceClient& client)
     sample::ugrpc::GreetingRequest out;
     out.set_name("generic");
 
-    auto call = client.SayHello(out);
+    const auto in = client.SyncSayHello(out);
 
-    const auto in = call.Finish();
     EXPECT_EQ(in.name(), "Hello generic");
 }
 
 class RealCallNameGenericService final : public ugrpc::server::GenericServiceBase {
 public:
-    void Handle(Call& call) override {
-        call.SetMetricsCallName(call.GetCallName());
-        call.FinishWithError(grpc::Status{grpc::StatusCode::UNAUTHENTICATED, "To avoid message parsing bureaucracy"});
+    GenericResult Handle(GenericCallContext& context, GenericReaderWriter& /*stream*/) override {
+        context.SetMetricsCallName(context.GetCallName());
+        return grpc::Status{grpc::StatusCode::UNAUTHENTICATED, "To avoid message parsing bureaucracy"};
     }
 };
 

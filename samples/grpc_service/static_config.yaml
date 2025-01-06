@@ -31,6 +31,12 @@ components_manager:
             # The service endpoint (URI). We talk to our own service,
             # which is kind of pointless, but works for an example
             endpoint: '[::1]:8091'
+            client-name: greeter
+            dedicated-channel-counts:
+                SayHello: 3
+                SayHelloRequestStream: 2
+            factory-component: grpc-client-factory
+
 # /// [static config client]
 
 # /// [static config server]

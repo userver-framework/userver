@@ -20,13 +20,10 @@ option(
 )
 
 set(USERVER_AVAILABLE_COMPONENTS universal)
-set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
-  set(USERVER_NOT_INCLUDED_AS_SUBDIR ON)
-endif()
 
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
 option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
+option(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL "Provide chaotic-codegen for openapi" OFF)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
@@ -45,27 +42,40 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 option(
-    USERVER_IS_THE_ROOT_PROJECT
-    "Contributor mode: build userver tests, samples and helper tools"
-    "${USERVER_NOT_INCLUDED_AS_SUBDIR}"
+    USERVER_BUILD_TESTS
+    "Build unit tests, functional tests and benchmarks for userver itself"
+    OFF
 )
-if (USERVER_IS_THE_ROOT_PROJECT)
-  message(STATUS "Building userver as a primary project")
-  if (NOT USERVER_FEATURE_UTEST)
-    message(FATAL_ERROR "Cannot build tests without utest")
-  endif()
-else()
-  message(STATUS "Building userver as a subproject")
+option(USERVER_BUILD_SAMPLES "Build userver samples" OFF)
+
+if(USERVER_BUILD_TESTS AND NOT USERVER_FEATURE_UTEST)
+  message(FATAL_ERROR "Running unit tests for userver requires utest, disabling it is meaningless")
 endif()
 
+if(USERVER_INSTALL AND (USERVER_BUILD_TESTS OR USERVER_BUILD_SAMPLES))
+  message(
+      FATAL_ERROR
+      "For USERVER_INSTALL, please turn off USERVER_BUILD_TESTS and USERVER_BUILD_SAMPLES "
+      "to avoid accidentally installing them"
+  )
+endif()
+
+option(
+    USERVER_BUILD_ALL_COMPONENTS
+    "\
+Build all libraries except for those explicitly turned off by 'USERVER_FEATURE_*'\
+and except for libraries disabled for the current platform"
+    OFF
+)
+
 set(USERVER_LIB_ENABLED_DEFAULT OFF)
-if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS)
   set(USERVER_LIB_ENABLED_DEFAULT ON)
 endif()
 
 set(USERVER_MONGODB_DEFAULT OFF)
 set(USERVER_CLICKHOUSE_DEFAULT OFF)
-if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND USERVER_BUILD_PLATFORM_X86)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS AND USERVER_BUILD_PLATFORM_X86)
   if(NOT CMAKE_SYSTEM_NAME MATCHES "BSD")
     set(USERVER_MONGODB_DEFAULT ON)
   endif()
@@ -73,12 +83,12 @@ if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND USERVER_BUILD_PLATFO
 endif()
 
 set(USERVER_YDB_DEFAULT OFF)
-if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND
-    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS AND
+    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(USERVER_YDB_DEFAULT ON)
 endif()
 
-option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
+option(USERVER_CONAN "Build with Conan packages" "${CONAN_EXPORTED}")
 
 option(
     USERVER_DOWNLOAD_PACKAGES
@@ -129,10 +139,12 @@ option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${US
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
+option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 set(CMAKE_DEBUG_POSTFIX d)
 
-include(cmake/UserverSetupEnvironment.cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(UserverSetupEnvironment)
 userver_setup_environment()
 
 include(PrepareInstall)
@@ -157,13 +169,11 @@ init_debian_depends()
 
 include(SetupGTest)
 
-option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
-
 if (USERVER_FEATURE_GRPC)
   include(SetupProtobuf)
 endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
   include(testsuite/SetupUserverTestsuiteEnv.cmake)
   add_subdirectory(testsuite)
 endif()
@@ -178,14 +188,12 @@ endif()
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic)
   list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
-endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
-  add_subdirectory(tools/engine)
-  add_subdirectory(tools/httpclient)
-  add_subdirectory(tools/netcat)
-  add_subdirectory(tools/dns_resolver)
-  add_subdirectory(tools/congestion_control_emulator)
+  if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    _require_userver_core(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    add_subdirectory(chaotic-openapi)
+    list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic-openapi)
+  endif()
 endif()
 
 if (USERVER_FEATURE_MONGODB)
@@ -256,13 +264,24 @@ if (USERVER_FEATURE_YDB)
   list(APPEND USERVER_AVAILABLE_COMPONENTS ydb)
 endif()
 
+add_subdirectory(libraries)
+
+if (USERVER_BUILD_TESTS)
+  add_subdirectory(scripts/gdb/tests)
+endif()
+
 _userver_export_targets()
 _userver_make_install_config()
 
-if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
+if (USERVER_BUILD_SAMPLES AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
+endif()
+if (USERVER_BUILD_TESTS AND USERVER_FEATURE_CORE)
+  add_subdirectory(tools)
 endif()
 
 if(USERVER_INSTALL)
   include(cmake/UserverPack.cmake)
 endif()
+
+_userver_print_features_list()

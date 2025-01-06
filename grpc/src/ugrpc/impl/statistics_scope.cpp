@@ -15,20 +15,20 @@ RpcStatisticsScope::RpcStatisticsScope(MethodStatistics& statistics)
 
 RpcStatisticsScope::~RpcStatisticsScope() { Flush(); }
 
-void RpcStatisticsScope::OnExplicitFinish(grpc::StatusCode code) {
+void RpcStatisticsScope::OnExplicitFinish(grpc::StatusCode code) noexcept {
     finish_kind_ = std::max(finish_kind_, FinishKind::kExplicit);
     finish_code_ = code;
 }
 
-void RpcStatisticsScope::OnNetworkError() { finish_kind_ = std::max(finish_kind_, FinishKind::kNetworkError); }
+void RpcStatisticsScope::OnNetworkError() noexcept { finish_kind_ = std::max(finish_kind_, FinishKind::kNetworkError); }
 
-void RpcStatisticsScope::OnCancelledByDeadlinePropagation() {
+void RpcStatisticsScope::OnCancelledByDeadlinePropagation() noexcept {
     finish_kind_ = std::max(finish_kind_, FinishKind::kDeadlinePropagation);
 }
 
-void RpcStatisticsScope::OnDeadlinePropagated() { is_deadline_propagated_ = true; }
+void RpcStatisticsScope::OnDeadlinePropagated() noexcept { is_deadline_propagated_ = true; }
 
-void RpcStatisticsScope::OnCancelled() {
+void RpcStatisticsScope::OnCancelled() noexcept {
     // If the task is cancelled, then this is what typically happens:
     //
     // 1. after cancelling the wait, the task calls OnCancelled
@@ -46,7 +46,7 @@ void RpcStatisticsScope::OnCancelled() {
     is_cancelled_.store(true, std::memory_order_relaxed);
 }
 
-void RpcStatisticsScope::Flush() {
+void RpcStatisticsScope::Flush() noexcept {
     if (!start_time_) {
         return;
     }
@@ -90,7 +90,7 @@ void RpcStatisticsScope::RedirectTo(MethodStatistics& statistics) {
     statistics_ = statistics;
 }
 
-void RpcStatisticsScope::AccountTiming() {
+void RpcStatisticsScope::AccountTiming() noexcept {
     if (!start_time_) return;
 
     statistics_->AccountTiming(

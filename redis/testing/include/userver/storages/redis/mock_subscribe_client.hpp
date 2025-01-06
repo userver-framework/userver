@@ -23,25 +23,19 @@ public:
     MOCK_METHOD(
         SubscriptionToken,
         Subscribe,
-        (std::string channel,
-         SubscriptionToken::OnMessageCb on_message_cb,
-         const USERVER_NAMESPACE::redis::CommandControl& command_control),
+        (std::string channel, SubscriptionToken::OnMessageCb on_message_cb, const CommandControl& command_control),
         (override)
     );
     MOCK_METHOD(
         SubscriptionToken,
         Ssubscribe,
-        (std::string channel,
-         SubscriptionToken::OnMessageCb on_message_cb,
-         const USERVER_NAMESPACE::redis::CommandControl& command_control),
+        (std::string channel, SubscriptionToken::OnMessageCb on_message_cb, const CommandControl& command_control),
         (override)
     );
     MOCK_METHOD(
         SubscriptionToken,
         Psubscribe,
-        (std::string pattern,
-         SubscriptionToken::OnPmessageCb on_pmessage_cb,
-         const USERVER_NAMESPACE::redis::CommandControl& command_control),
+        (std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb, const CommandControl& command_control),
         (override)
     );
     MOCK_METHOD(size_t, ShardsCount, (), (const, override));

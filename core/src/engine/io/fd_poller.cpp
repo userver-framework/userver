@@ -159,11 +159,9 @@ void FdPoller::Impl::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept 
 
     auto* self = static_cast<FdPoller::Impl*>(watcher->data);
 
-    /* Cleanup watcher_ first, then awake the coroutine.
-     * Otherwise, the coroutine may close watcher_'s fd
-     * before watcher_ is stopped.
-     */
-    self->watcher_.Stop();
+    // Cleanup watcher_ first, then awake the coroutine.
+    // Otherwise, the coroutine may close watcher_'s fd before watcher_ is stopped.
+    const auto guard = self->watcher_.StopWithinEvCallback();
 
     self->events_that_happened_.store(GetUserMode(ev_events), std::memory_order_relaxed);
     self->WakeupWaiters();

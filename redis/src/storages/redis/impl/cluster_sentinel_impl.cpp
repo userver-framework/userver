@@ -10,8 +10,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/redis_state.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/redis_state.hpp>
+#include <userver/storages/redis/reply.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -28,7 +28,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 const auto kProcessCreationInterval = std::chrono::seconds(3);
@@ -294,7 +294,7 @@ public:
         });
     }
 
-    rcu::ReadablePtr<ClusterTopology, StdMutexRcuTraits> GetTopology() const { return topology_.Read(); }
+    rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const { return topology_.Read(); }
 
     void SendUpdateClusterTopology() { update_topology_watch_.Send(); }
 
@@ -348,6 +348,10 @@ public:
         }
     }
 
+    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+        sentinels_->SetConnectionInfo(info_array);
+    }
+
     static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter_.load(std::memory_order_relaxed); }
 
     boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() {
@@ -370,7 +374,7 @@ private:
     std::shared_ptr<Shard> sentinels_;
 
     std::atomic_size_t current_topology_version_{0};
-    rcu::Variable<ClusterTopology, StdMutexRcuTraits> topology_;
+    rcu::Variable<ClusterTopology, rcu::BlockingRcuTraits> topology_;
 
     /// Update cluster topology
     /// @{
@@ -418,7 +422,7 @@ private:
     concurrent::Variable<std::unordered_set<HostPort>, std::mutex> actual_nodes_;
     // work only from sentinel thread so no need to synchronize it
     std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point> nodes_last_seen_time_;
-    rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string, std::string>> ip_by_fqdn_;
+    rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string>> ip_by_fqdn_;
 
     static std::atomic<size_t> cluster_slots_call_counter_;
 };
@@ -1051,10 +1055,14 @@ size_t ClusterSentinelImpl::GetClusterSlotsCalledCounter() {
     return ClusterTopologyHolder::GetClusterSlotsCalledCounter();
 }
 
+void ClusterSentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+    topology_holder_->SetConnectionInfo(info_array);
+}
+
 PublishSettings ClusterSentinelImpl::GetPublishSettings() {
     return PublishSettings{kUnknownShard, false, CommandControl::Strategy::kEveryDc};
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

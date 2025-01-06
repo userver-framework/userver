@@ -16,8 +16,8 @@ RequestsView::RequestsView() : queue_(std::make_shared<Queue>()), job_requests(k
 
 RequestsView::~RequestsView() { StopBackgroundWorker(); }
 
-std::vector<std::shared_ptr<request::RequestBase>> RequestsView::GetAllRequests() {
-    std::vector<std::shared_ptr<request::RequestBase>> result;
+std::vector<std::shared_ptr<http::HttpRequest>> RequestsView::GetAllRequests() {
+    std::vector<std::shared_ptr<http::HttpRequest>> result;
 
     // Move all to-be-deleted items into delete_list
     // to avoid deletion under mutex.

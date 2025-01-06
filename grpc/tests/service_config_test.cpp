@@ -10,10 +10,10 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
-#include <ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/client/channels.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>

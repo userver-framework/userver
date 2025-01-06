@@ -187,11 +187,7 @@ TEST(Text, SplitMultiple) {
     }
     {
         std::string input = "1;;2";
-        auto tokens = utils::text::Split(
-            input,
-            ";",
-            /*is_compress_adjacent_separators=*/false
-        );
+        auto tokens = utils::text::Split(input, ";", utils::text::SplitFlags::kNone);
         ASSERT_EQ(tokens.size(), 3);
         EXPECT_EQ(tokens[0], "1");
         EXPECT_EQ(tokens[1], "");

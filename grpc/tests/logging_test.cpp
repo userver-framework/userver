@@ -24,10 +24,10 @@ ugrpc::server::ServerConfig MakeServerConfig(logging::LoggerPtr access_tskv_logg
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&& request) override {
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& request) override {
         sample::ugrpc::GreetingResponse response;
         response.set_name("Hello " + request.name());
-        call.Finish(response);
+        return response;
     }
 };
 
@@ -50,7 +50,7 @@ UTEST_F(GrpcAccessLog, Test) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto response = client.SayHello(out).Finish();
+    auto response = client.SyncSayHello(out);
 
     GetServer().StopServing();
 

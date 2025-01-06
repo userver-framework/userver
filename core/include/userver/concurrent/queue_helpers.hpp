@@ -3,6 +3,8 @@
 #include <memory>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,7 +55,8 @@ public:
     /// @returns whether push succeeded before the deadline and before the task
     /// was canceled.
     [[nodiscard]] bool Push(ValueType&& value, engine::Deadline deadline = {}) const {
-        UASSERT(queue_);
+        UASSERT_MSG(queue_, "Trying to use a moved-from queue Producer");
+        UASSERT_MSG(engine::current_task::IsTaskProcessorThread(), "Use PushNoblock for non-coroutine producers");
         return queue_->Push(token_, std::move(value), deadline);
     }
 
@@ -62,11 +65,11 @@ public:
     /// does not succeed.
     /// @returns whether push succeeded.
     [[nodiscard]] bool PushNoblock(ValueType&& value) const {
-        UASSERT(queue_);
+        UASSERT_MSG(queue_, "Trying to use a moved-from queue Producer");
         return queue_->PushNoblock(token_, std::move(value));
     }
 
-    void Reset() && {
+    void Reset() && noexcept {
         if (queue_) queue_->MarkProducerIsDead();
         queue_.reset();
         [[maybe_unused]] ProducerToken for_destruction = std::move(token_);
@@ -122,13 +125,18 @@ public:
     /// `duration`! If you need a timeout, you must reconstruct the deadline in
     /// the loop.
     [[nodiscard]] bool Pop(ValueType& value, engine::Deadline deadline = {}) const {
+        UASSERT_MSG(queue_, "Trying to use a moved-from queue Consumer");
+        UASSERT_MSG(engine::current_task::IsTaskProcessorThread(), "Use PopNoblock for non-coroutine consumers");
         return queue_->Pop(token_, value, deadline);
     }
 
     /// Try to pop element from queue without blocking. May be used in
     /// non-coroutine environment
     /// @return whether something was popped.
-    [[nodiscard]] bool PopNoblock(ValueType& value) const { return queue_->PopNoblock(token_, value); }
+    [[nodiscard]] bool PopNoblock(ValueType& value) const {
+        UASSERT_MSG(queue_, "Trying to use a moved-from queue Consumer");
+        return queue_->PopNoblock(token_, value);
+    }
 
     void Reset() && {
         if (queue_) queue_->MarkConsumerIsDead();

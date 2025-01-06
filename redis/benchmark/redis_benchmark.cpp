@@ -5,7 +5,7 @@
 
 #include <storages/redis/client_impl.hpp>
 #include <userver/engine/run_standalone.hpp>
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/utils/rand.hpp>
 #include <utils/gbench_auxilary.hpp>
 
@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::bench {
 
-using USERVER_NAMESPACE::redis::CommandControl;
+using USERVER_NAMESPACE::storages::redis::CommandControl;
 
 namespace {
 

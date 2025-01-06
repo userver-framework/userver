@@ -23,16 +23,18 @@ constexpr int kNumber = 42;
 
 class AsyncTestServiceWithError final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void Chat(ChatCall& call) override { call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"}); }
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
+        return grpc::Status{grpc::StatusCode::INTERNAL, "message", "details"};
+    }
 };
 
 class AsyncTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void Chat(ChatCall& call) override {
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
         sample::ugrpc::StreamGreetingResponse response;
         response.set_number(kNumber);
         response.set_name("Hello");
-        call.WriteAndFinish(response);
+        return response;
     }
 };
 

@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-#include <boost/filesystem/operations.hpp>
+#include <userver/utils/boost_filesystem_file_status.hpp>
 
 #include <userver/fs/blocking/open_mode.hpp>
 

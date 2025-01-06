@@ -73,14 +73,14 @@ ProxyService::GenericResult ProxyService::Handle(GenericCallContext& context, Ge
     // Deadline propagation will work, as we've registered the DP middleware
     // in the config of grpc-server component.
     // Optionally, we can set an additional timeout using GenericOptions::qos.
-    auto client_rpc = client_.UnaryCall(context.GetCallName(), request_bytes, std::move(client_context));
+    auto future = client_.AsyncUnaryCall(context.GetCallName(), request_bytes, std::move(client_context));
 
     grpc::ByteBuffer response_bytes;
     try {
-        response_bytes = client_rpc.Finish();
+        response_bytes = future.Get();
     } catch (const ugrpc::client::ErrorWithStatus& ex) {
         // Proxy the error returned from client.
-        ProxyTrailingResponseMetadata(client_rpc.GetContext(), context.GetServerContext());
+        ProxyTrailingResponseMetadata(future.GetCall().GetContext(), context.GetServerContext());
         return ex.GetStatus();
     } catch (const ugrpc::client::RpcError& ex) {
         // Either the upstream client has cancelled our server RPC, or a network
@@ -91,7 +91,7 @@ ProxyService::GenericResult ProxyService::Handle(GenericCallContext& context, Ge
         return grpc::Status{grpc::StatusCode::UNAVAILABLE, "Failed to proxy the request"};
     }
 
-    ProxyTrailingResponseMetadata(client_rpc.GetContext(), context.GetServerContext());
+    ProxyTrailingResponseMetadata(future.GetCall().GetContext(), context.GetServerContext());
 
     // on success just return response from client
     return response_bytes;

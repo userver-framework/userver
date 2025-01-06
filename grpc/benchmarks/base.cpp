@@ -120,10 +120,8 @@ std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
 void UnaryRPCPayload(sample::ugrpc::UnitTestServiceClient& client) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto call = client.SayHello(out, PrepareClientContext());
-
     sample::ugrpc::GreetingResponse in;
-    in = call.Finish();
+    in = client.SyncSayHello(out, PrepareClientContext());
     UINVARIANT("Hello " + out.name() == in.name(), "Behavior broken");
 }
 
@@ -267,7 +265,14 @@ void BatchOfNewClient(benchmark::State& state) {
     );
 }
 
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+BENCHMARK(BatchOfNewClient)->DenseRange(1, 1)->Unit(benchmark::kMillisecond);
+#endif
 BENCHMARK(BatchOfNewClient)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
+#else
+BENCHMARK(BatchOfNewClient)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
+#endif
 
 }  // namespace ugrpc
 

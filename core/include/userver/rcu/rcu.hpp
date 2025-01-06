@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <mutex>
 #include <optional>
 #include <utility>
 
@@ -45,7 +46,15 @@ struct FreeListHookGetter {
 };
 
 template <typename T>
-using SnapshotRecordFreeList = concurrent::impl::IntrusiveStack<SnapshotRecord<T>, FreeListHookGetter<T>>;
+struct SnapshotRecordFreeList {
+    SnapshotRecordFreeList() = default;
+
+    ~SnapshotRecordFreeList() {
+        list.DisposeUnsafe([](SnapshotRecord<T>& record) { delete &record; });
+    }
+
+    concurrent::impl::IntrusiveStack<SnapshotRecord<T>, FreeListHookGetter<T>> list;
+};
 
 template <typename T>
 class SnapshotRecordRetiredList final {
@@ -81,12 +90,111 @@ private:
 
 }  // namespace impl
 
-/// Default Rcu traits.
-/// - `MutexType` is a writer's mutex type that has to be used to protect
-/// structure on update
+/// @brief A handle to the retired object version, which an RCU deleter should
+/// clean up.
+/// @see rcu::DefaultRcuTraits
 template <typename T>
+class SnapshotHandle final {
+public:
+    SnapshotHandle(SnapshotHandle&& other) noexcept
+        : record_(std::exchange(other.record_, nullptr)), free_list_(std::exchange(other.free_list_, nullptr)) {}
+
+    ~SnapshotHandle() {
+        if (record_ != nullptr) {
+            UASSERT(free_list_ != nullptr);
+            record_->data.reset();
+            free_list_->list.Push(*record_);
+        }
+    }
+
+private:
+    template <typename /*T*/, typename Traits>
+    friend class Variable;
+
+    template <typename /*T*/, typename Traits>
+    friend class WritablePtr;
+
+    explicit SnapshotHandle(impl::SnapshotRecord<T>& record, impl::SnapshotRecordFreeList<T>& free_list) noexcept
+        : record_(&record), free_list_(&free_list) {}
+
+    impl::SnapshotRecord<T>* record_;
+    impl::SnapshotRecordFreeList<T>* free_list_;
+};
+
+/// @brief Destroys retired objects synchronously.
+/// @see rcu::DefaultRcuTraits
+struct SyncDeleter final {
+    template <typename T>
+    void Delete(SnapshotHandle<T>&& handle) noexcept {
+        [[maybe_unused]] const auto for_deletion = std::move(handle);
+    }
+};
+
+/// @brief Destroys retired objects asynchronously in the same `TaskProcessor`.
+/// @see rcu::DefaultRcuTraits
+class AsyncDeleter final {
+public:
+    ~AsyncDeleter() { wait_token_storage_.WaitForAllTokens(); }
+
+    template <typename T>
+    void Delete(SnapshotHandle<T>&& handle) noexcept {
+        if constexpr (std::is_trivially_destructible_v<T> || std::is_same_v<T, std::string>) {
+            SyncDeleter{}.Delete(std::move(handle));
+        } else {
+            try {
+                engine::CriticalAsyncNoSpan(
+                    // The order of captures is important, 'handle' must be destroyed before 'token'.
+                    [token = wait_token_storage_.GetToken(), handle = std::move(handle)]() mutable {}
+                ).Detach();
+                // NOLINTNEXTLINE(bugprone-empty-catch)
+            } catch (...) {
+                // Task creation somehow failed.
+                // `handle` will be destroyed synchronously, because it is already moved
+                // into the task's lambda.
+            }
+        }
+    }
+
+private:
+    utils::impl::WaitTokenStorage wait_token_storage_;
+};
+
+/// @brief Default RCU traits. Deletes garbage asynchronously.
+/// Designed for storing data of multi-megabyte or multi-gigabyte caches.
+/// @note Allows reads from any kind of thread.
+/// Only allows writes from coroutine threads.
+/// @see rcu::Variable
+/// @see rcu::SyncRcuTraits
+/// @see rcu::BlockingRcuTraits
 struct DefaultRcuTraits {
+    /// `MutexType` is a writer's mutex type that has to be used to protect
+    /// structure on update.
     using MutexType = engine::Mutex;
+
+    /// `DeleterType` is used to delete retired objects. It should:
+    /// 1. should contain `void Delete(SnapshotHandle<T>) noexcept`;
+    /// 2. force synchronous cleanup of remaining handles on destruction.
+    using DeleterType = AsyncDeleter;
+};
+
+/// @brief Deletes garbage synchronously.
+/// Designed for storing small amounts of data with relatively fast destructors.
+/// @note Allows reads from any kind of thread.
+/// Only allows writes from coroutine threads.
+/// @see rcu::DefaultRcuTraits
+struct SyncRcuTraits : public DefaultRcuTraits {
+    using DeleterType = SyncDeleter;
+};
+
+/// @brief Rcu traits for using outside of coroutines.
+/// @note Allows reads from any kind of thread.
+/// Only allows writes from NON-coroutine threads.
+/// @warning Blocks writing threads which are coroutines, which can cause
+/// deadlocks and hangups.
+/// @see rcu::DefaultRcuTraits
+struct BlockingRcuTraits : public DefaultRcuTraits {
+    using MutexType = std::mutex;
+    using DeleterType = SyncDeleter;
 };
 
 /// Reader smart pointer for rcu::Variable<T>. You may use operator*() or
@@ -197,8 +305,7 @@ public:
 
     ~WritablePtr() {
         if (record_) {
-            // TODO should DeleteSnapshot instead?
-            var_.DeleteSnapshotSync(*record_);
+            var_.DeleteSnapshot(*record_);
         }
     }
 
@@ -235,10 +342,6 @@ private:
     impl::SnapshotRecord<T>* record_;
 };
 
-/// @brief Can be passed to `rcu::Variable` as the first argument to customize
-/// whether old values should be destroyed asynchronously.
-enum class DestructionType { kSync, kAsync };
-
 /// @ingroup userver_concurrency userver_containers
 ///
 /// @brief Read-Copy-Update variable
@@ -263,34 +366,26 @@ enum class DestructionType { kSync, kAsync };
 /// @snippet rcu/rcu_test.cpp  Sample rcu::Variable usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
+///
+/// @tparam T the stored value
+/// @tparam RcuTraits traits, should inherit from rcu::DefaultRcuTraits
 template <typename T, typename RcuTraits>
 class Variable final {
+    static_assert(
+        std::is_base_of_v<DefaultRcuTraits, RcuTraits>,
+        "RcuTraits should publicly inherit from rcu::DefaultRcuTraits"
+    );
+
 public:
     using MutexType = typename RcuTraits::MutexType;
+    using DeleterType = typename RcuTraits::DeleterType;
 
-    /// Create a new `Variable` with an in-place constructed initial value.
-    /// Asynchronous destruction is enabled by default.
+    /// @brief Create a new `Variable` with an in-place constructed initial value.
     /// @param initial_value_args arguments passed to the constructor of the
     /// initial value
     template <typename... Args>
     // TODO make explicit
-    Variable(Args&&... initial_value_args)
-        : destruction_type_(
-              std::is_trivially_destructible_v<T> || std::is_same_v<T, std::string> ||
-                      !std::is_same_v<MutexType, engine::Mutex>
-                  ? DestructionType::kSync
-                  : DestructionType::kAsync
-          ),
-          current_(&EmplaceSnapshot(std::forward<Args>(initial_value_args)...)) {}
-
-    /// Create a new `Variable` with an in-place constructed initial value.
-    /// @param destruction_type controls whether destruction of old values should
-    /// be performed asynchronously
-    /// @param initial_value_args arguments passed to the constructor of the
-    /// initial value
-    template <typename... Args>
-    explicit Variable(DestructionType destruction_type, Args&&... initial_value_args)
-        : destruction_type_(destruction_type), current_(&EmplaceSnapshot(std::forward<Args>(initial_value_args)...)) {}
+    Variable(Args&&... initial_value_args) : current_(&EmplaceSnapshot(std::forward<Args>(initial_value_args)...)) {}
 
     Variable(const Variable&) = delete;
     Variable(Variable&&) = delete;
@@ -311,12 +406,6 @@ public:
                 delete &record;
             }
         );
-
-        if (destruction_type_ == DestructionType::kAsync) {
-            wait_token_storage_.WaitForAllTokens();
-        }
-
-        free_list_.DisposeUnsafe([](impl::SnapshotRecord<T>& record) { delete &record; });
     }
 
     /// Obtain a smart pointer which can be used to read the current value.
@@ -377,20 +466,14 @@ private:
 
     template <typename... Args>
     [[nodiscard]] impl::SnapshotRecord<T>& EmplaceSnapshot(Args&&... args) {
-        auto* const free_list_record = free_list_.TryPop();
+        auto* const free_list_record = free_list_.list.TryPop();
         auto& record = free_list_record ? *free_list_record : *new impl::SnapshotRecord<T>{};
         UASSERT(!record.data);
 
         try {
             record.data.emplace(std::forward<Args>(args)...);
         } catch (...) {
-            if (free_list_record) {
-                free_list_.Push(record);
-            } else {
-                // Important to delete this way in the rcu::Variable's constructor,
-                // otherwise we'd have to clean up free_list_ there.
-                delete &record;
-            }
+            free_list_.list.Push(record);
             throw;
         }
 
@@ -409,31 +492,23 @@ private:
         );
     }
 
-    void DeleteSnapshot(impl::SnapshotRecord<T>& record) {
-        switch (destruction_type_) {
-            case DestructionType::kSync:
-                DeleteSnapshotSync(record);
-                break;
-            case DestructionType::kAsync:
-                engine::CriticalAsyncNoSpan([this, &record, token = wait_token_storage_.GetToken()] {
-                    DeleteSnapshotSync(record);
-                }).Detach();
-                break;
-        }
+    void DeleteSnapshot(impl::SnapshotRecord<T>& record) noexcept {
+        static_assert(
+            noexcept(deleter_.Delete(SnapshotHandle<T>{record, free_list_})), "DeleterType::Delete must be noexcept"
+        );
+        deleter_.Delete(SnapshotHandle<T>{record, free_list_});
     }
 
-    void DeleteSnapshotSync(impl::SnapshotRecord<T>& record) noexcept {
-        record.data.reset();
-        free_list_.Push(record);
-    }
-
-    const DestructionType destruction_type_;
     // Covers current_ writes, free_list_.Pop, retired_list_
-    MutexType mutex_;
+    MutexType mutex_{};
     impl::SnapshotRecordFreeList<T> free_list_;
     impl::SnapshotRecordRetiredList<T> retired_list_;
+    // Must be placed after 'free_list_' to force sync cleanup before
+    // the destruction of free_list_.
+    DeleterType deleter_{};
+    // Must be placed after 'free_list_' and 'deleter_' so that if
+    // the initialization of current_ throws, it can be disposed properly.
     std::atomic<impl::SnapshotRecord<T>*> current_;
-    utils::impl::WaitTokenStorage wait_token_storage_;
 };
 
 }  // namespace rcu

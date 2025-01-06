@@ -304,11 +304,11 @@ void TaskProcessor::ProcessTasks() noexcept {
         auto context = std::visit([](auto&& arg) { return arg.PopBlocking(); }, task_queue_);
         if (!context) break;
 
-        GetTaskCounter().AccountTaskSwitchSlow();
         CheckWaitTime(*context);
 
         bool has_failed = false;
         try {
+            impl::TaskCounter::RunningToken token{GetTaskCounter()};
             context->DoStep();
         } catch (const std::exception& ex) {
             LOG_ERROR() << "uncaught exception from DoStep: " << ex;

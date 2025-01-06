@@ -10,6 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc {
 
+namespace {
+
 // See grpcpp StatusCode documentation for the list of possible values:
 // https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
 constexpr utils::TrivialBiMap kStatusCodesMap([](auto selector) {
@@ -33,6 +35,8 @@ constexpr utils::TrivialBiMap kStatusCodesMap([](auto selector) {
         .Case(grpc::StatusCode::UNAUTHENTICATED, "UNAUTHENTICATED");
 });
 
+}  // namespace
+
 grpc::StatusCode StatusCodeFromString(std::string_view str) {
     const auto code = kStatusCodesMap.TryFindBySecond(str);
     if (code) {
@@ -50,6 +54,21 @@ std::string_view ToString(grpc::StatusCode code) noexcept {
 
     UASSERT_MSG(false, fmt::format("Invalid grpc status code: {}", utils::UnderlyingValue(code)));
     return "<invalid status>";
+}
+
+// See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/
+// Except that we don't mark DEADLINE_EXCEEDED as a server error.
+bool IsServerError(grpc::StatusCode status) noexcept {
+    switch (status) {
+        case grpc::StatusCode::UNKNOWN:
+        case grpc::StatusCode::UNIMPLEMENTED:
+        case grpc::StatusCode::INTERNAL:
+        case grpc::StatusCode::UNAVAILABLE:
+        case grpc::StatusCode::DATA_LOSS:
+            return true;
+        default:
+            return false;
+    }
 }
 
 }  // namespace ugrpc

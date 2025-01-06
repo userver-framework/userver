@@ -106,14 +106,14 @@ class Updates:
 
 class _Changelog:
     timestamp: datetime.datetime
-    commited_entries: typing.List[_ChangelogEntry]
+    committed_entries: typing.List[_ChangelogEntry]
     staged_entry: _ChangelogEntry
 
     def __init__(self):
         self.timestamp = datetime.datetime.fromtimestamp(
             0, datetime.timezone.utc,
         )
-        self.commited_entries = []
+        self.committed_entries = []
         self.staged_entry = _ChangelogEntry.new(
             timestamp=self.service_timestamp(), previous=None,
         )
@@ -126,14 +126,14 @@ class _Changelog:
         return self.service_timestamp()
 
     def commit(self) -> _ChangelogEntry:
-        """Commit staged changed if any and return last commited entry."""
+        """Commit staged changed if any and return last committed entry."""
         entry = self.staged_entry
-        if entry.has_changes or not self.commited_entries:
+        if entry.has_changes or not self.committed_entries:
             self.staged_entry = _ChangelogEntry.new(
                 timestamp=self.next_timestamp(), previous=entry,
             )
-            self.commited_entries.append(entry)
-        return self.commited_entries[-1]
+            self.committed_entries.append(entry)
+        return self.committed_entries[-1]
 
     def get_updated_since(
         self,
@@ -157,7 +157,7 @@ class _Changelog:
             return values, []
         dirty_keys = set()
         last_known_state = {}
-        for entry in reversed(self.commited_entries):
+        for entry in reversed(self.committed_entries):
             if entry.timestamp > updated_since:
                 dirty_keys.update(entry.dirty_keys)
             else:
@@ -187,14 +187,14 @@ class _Changelog:
             self._do_rollback(defaults)
 
     def _do_rollback(self, defaults: ConfigDict):
-        if not self.commited_entries:
+        if not self.committed_entries:
             return
 
         maybe_dirty = set()
-        for entry in self.commited_entries:
+        for entry in self.committed_entries:
             maybe_dirty.update(entry.dirty_keys)
 
-        last = self.commited_entries[-1]
+        last = self.committed_entries[-1]
         last_state = last.state
         dirty_keys = set()
         reverted = {}
@@ -210,7 +210,7 @@ class _Changelog:
             dirty_keys=dirty_keys,
             prev_state={},
         )
-        self.commited_entries = [entry]
+        self.committed_entries = [entry]
         self.staged_entry = _ChangelogEntry(
             timestamp=self.staged_entry.timestamp,
             dirty_keys=dirty_keys.copy(),

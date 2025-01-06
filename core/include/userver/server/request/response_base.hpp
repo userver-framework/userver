@@ -6,7 +6,6 @@
 #include <limits>
 #include <optional>
 #include <string>
-#include <unordered_map>
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/concurrent/striped_counter.hpp>
@@ -71,6 +70,8 @@ private:
     concurrent::StripedCounter count_;
     concurrent::StripedCounter time_sum_;
 };
+
+// TODO: merge with HttpResponse
 
 /// @brief Base class for all the server responses.
 class ResponseBase {

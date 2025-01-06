@@ -1,7 +1,7 @@
 #pragma once
 
-#include <atomic>
 #include <cstdint>
+#include <map>
 
 #include <userver/utest/simple_server.hpp>
 
@@ -18,13 +18,13 @@ public:
         clients::http::HttpMethod method{clients::http::HttpMethod::kGet};
         std::string path;
 
-        std::unordered_map<std::string, std::string> query;
+        std::multimap<std::string, std::string> query;
         clients::http::Headers headers;
         std::string body;
     };
 
     struct HttpResponse {
-        int response_status;
+        int response_status{200};
         clients::http::Headers headers;
         std::string body;
     };

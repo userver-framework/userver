@@ -548,7 +548,7 @@ public:
         return *this;
     }
 
-#ifdef __cpp_lib_three_way_comparison
+#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
     constexpr auto operator<=>(const Decimal& rhs) const = default;
 #else
     constexpr bool operator==(Decimal rhs) const { return value_ == rhs.value_; }
@@ -1374,6 +1374,12 @@ TargetType Serialize(const Decimal<Prec, RoundPolicy>& object, formats::serializ
 template <int Prec, typename RoundPolicy, typename StringBuilder>
 void WriteToStream(const Decimal<Prec, RoundPolicy>& object, StringBuilder& sw) {
     WriteToStream(ToString(object), sw);
+}
+
+/// gtest formatter for decimal64::Decimal
+template <int Prec, typename RoundPolicy>
+void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
+    *os << v;
 }
 
 }  // namespace decimal64

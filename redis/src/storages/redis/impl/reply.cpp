@@ -1,4 +1,4 @@
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #include <sstream>
 #include <string>
@@ -12,7 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 ReplyData::ReplyData(const redisReply* reply) {
     if (!reply) return;
@@ -322,6 +322,6 @@ const std::string& Reply::GetRequestDescription(const std::string& request_descr
     return request_description.empty() ? cmd : request_description;
 }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -5,6 +5,7 @@
 
 #include <moodycamel/concurrentqueue.h>
 
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/span.hpp>
 
@@ -61,7 +62,7 @@ private:
 
     const std::size_t consumers_count_;
     moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
-    utils::FixedArray<std::atomic<std::int64_t>> shared_counters_;
+    utils::FixedArray<concurrent::impl::InterferenceShield<std::atomic<std::int64_t>>> shared_counters_;
     std::atomic<std::size_t> token_order_{0};
     std::atomic<std::size_t> size_{0};
 };

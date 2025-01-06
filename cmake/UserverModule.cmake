@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 function(userver_module MODULE)
   unset(ARG_UNPARSED_ARGUMENTS)
-  set(OPTIONS)
+  set(OPTIONS NO_INSTALL)
   set(ONE_VALUE_ARGS SOURCE_DIR)
   set(MULTI_VALUE_ARGS
       IGNORE_SOURCES
@@ -40,28 +40,29 @@ function(userver_module MODULE)
       "${ARG_SOURCE_DIR}/src/*.hpp"
       "${ARG_SOURCE_DIR}/include/*.hpp"
   )
-  list(REMOVE_ITEM SOURCES ${ARG_IGNORE_SOURCES})
+  # cmake <= 3.19 has a bug in remove_item
+  list(REMOVE_ITEM SOURCES ${ARG_IGNORE_SOURCES} "")
 
   list(TRANSFORM ARG_UTEST_DIRS APPEND "/*.cpp" OUTPUT_VARIABLE UTEST_DIRS_SOURCES)
   file(GLOB_RECURSE UTEST_SOURCES
       ${ARG_UTEST_SOURCES}
       ${UTEST_DIRS_SOURCES}
   )
-  list(REMOVE_ITEM SOURCES ${UTEST_SOURCES})
+  list(REMOVE_ITEM SOURCES ${UTEST_SOURCES} "")
 
   list(TRANSFORM ARG_DBTEST_DIRS APPEND "/*.cpp" OUTPUT_VARIABLE DBTEST_DIRS_SOURCES)
   file(GLOB_RECURSE DBTEST_SOURCES
       ${ARG_DBTEST_SOURCES}
       ${DBTEST_DIRS_SOURCES}
   )
-  list(REMOVE_ITEM SOURCES ${DBTEST_SOURCES})
+  list(REMOVE_ITEM SOURCES ${DBTEST_SOURCES} "")
 
   list(TRANSFORM ARG_UBENCH_DIRS APPEND "/*.cpp" OUTPUT_VARIABLE UBENCH_DIRS_SOURCES)
   file(GLOB_RECURSE UBENCH_SOURCES
       ${ARG_UBENCH_SOURCES}
       ${UBENCH_DIRS_SOURCES}
   )
-  list(REMOVE_ITEM SOURCES ${UBENCH_SOURCES})
+  list(REMOVE_ITEM SOURCES ${UBENCH_SOURCES} "")
 
   add_library(userver-${MODULE} STATIC ${SOURCES})
   set_target_properties(userver-${MODULE} PROPERTIES LINKER_LANGUAGE CXX)
@@ -84,20 +85,28 @@ function(userver_module MODULE)
       ${ARG_LINK_LIBRARIES_PRIVATE}
   )
 
-  _userver_directory_install(
-      COMPONENT ${MODULE}
-      DIRECTORY "${ARG_SOURCE_DIR}/include"
-      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
-  )
-  _userver_install_targets(COMPONENT ${MODULE} TARGETS userver-${MODULE})
-  _userver_directory_install(
-      COMPONENT ${MODULE}
-      FILES "${USERVER_ROOT_DIR}/cmake/install/userver-${MODULE}-config.cmake"
-      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
-  )
+  if(NOT ARG_NO_INSTALL)
+    _userver_directory_install(
+        COMPONENT ${MODULE}
+        DIRECTORY "${ARG_SOURCE_DIR}/include"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
+    )
+    _userver_install_targets(COMPONENT ${MODULE} TARGETS userver-${MODULE})
+
+        set(install_config_file "${USERVER_ROOT_DIR}/cmake/install/userver-${MODULE}-config.cmake")
+
+        if(NOT EXISTS ${install_config_file})
+            message(FATAL_ERROR "Can not install ${MODULE}, no installation config in ${install_config_file}")
+        endif()
+    _userver_directory_install(
+        COMPONENT ${MODULE}
+        FILES "${install_config_file}"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+    )
+  endif()
 
   ## 2. userver-${MODULE}-unittest
-  if(USERVER_IS_THE_ROOT_PROJECT AND UTEST_SOURCES)
+  if(USERVER_BUILD_TESTS AND UTEST_SOURCES)
     add_executable(userver-${MODULE}-unittest ${UTEST_SOURCES})
     target_link_libraries(userver-${MODULE}-unittest PRIVATE
         userver-utest
@@ -112,7 +121,7 @@ function(userver_module MODULE)
   endif()
 
   ## 3. userver-${MODULE}-dbtest
-  if(USERVER_IS_THE_ROOT_PROJECT AND DBTEST_SOURCES)
+  if(USERVER_BUILD_TESTS AND DBTEST_SOURCES)
     add_executable(userver-${MODULE}-dbtest ${DBTEST_SOURCES})
     target_link_libraries(userver-${MODULE}-dbtest PRIVATE
         userver-utest
@@ -131,7 +140,7 @@ function(userver_module MODULE)
   endif()
 
   ## 4. userver-${MODULE}-benchmark
-  if(USERVER_IS_THE_ROOT_PROJECT AND UBENCH_SOURCES)
+  if(USERVER_BUILD_TESTS AND UBENCH_SOURCES)
     add_executable(userver-${MODULE}-benchmark ${UBENCH_SOURCES})
     target_link_libraries(userver-${MODULE}-benchmark PRIVATE
         userver-ubench

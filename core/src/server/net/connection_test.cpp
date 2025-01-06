@@ -3,12 +3,12 @@
 #include <fmt/format.h>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
-#include <server/http/http_request_impl.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/create_socket.hpp>
 #include <userver/clients/http/client.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/server/http/http_request.hpp>
 
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/utest.hpp>
@@ -27,13 +27,9 @@ public:
 
     explicit TestHttprequestHandler(Behaviors behavior = Behaviors::kNoop) : behavior_(behavior) {}
 
-    engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<server::request::RequestBase> request
+    engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<server::http::HttpRequest> http_request
     ) const override {
-        UASSERT(request);
-
-        auto& http_request = dynamic_cast<server::http::HttpRequestImpl&>(*request);
-        static server::handlers::HttpRequestStatistics statistics;
-        http_request.SetHttpHandlerStatistics(statistics);
+        UASSERT(http_request);
 
         switch (behavior_) {
             case Behaviors::kNoop:
@@ -95,6 +91,7 @@ net::ListenerConfig CreateConfig(
     net::ListenerConfig config;
     config.handler_defaults = server::request::HttpRequestConfig{};
     config.connection_config.http_version = http_ver;
+    config.ports.emplace_back(net::PortConfig{});
     return config;
 }
 
@@ -112,7 +109,7 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(ServerNetConnection, EarlyCancel) {
     const auto http_ver = GetParam();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -150,7 +147,7 @@ UTEST_P(ServerNetConnection, EarlyCancel) {
 UTEST_P(ServerNetConnection, EarlyTimeout) {
     const auto http_ver = GetParam();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -183,7 +180,7 @@ UTEST_P(ServerNetConnection, EarlyTimeout) {
 UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
     const auto http_ver = GetParam();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -217,7 +214,7 @@ UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
 UTEST_P(ServerNetConnection, EarlyTeardown) {
     const auto http_ver = GetParam();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kClose);
@@ -235,7 +232,7 @@ UTEST_P(ServerNetConnection, EarlyTeardown) {
 UTEST_P(ServerNetConnection, RemoteClosed) {
     const auto http_ver = GetParam();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kClose);
@@ -269,7 +266,7 @@ UTEST_P(ServerNetConnection, RemoteClosed) {
 UTEST_P(ServerNetConnection, KeepAlive) {
     const auto http_ver = GetParam();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     http_client_ptr->SetMaxHostConnections(1);
@@ -308,7 +305,7 @@ UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
     constexpr std::size_t kMaxAttempts = 10;
     const auto http_ver = GetParam();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     http_client_ptr->SetMaxHostConnections(1);

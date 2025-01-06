@@ -185,7 +185,7 @@ components_manager:
       fs-task-processor: fs-task-processor
       with-nginx: false
 # /// [Sample system statistics component config]
-config_vars: )";
+)";
 // clang-format on
 
 }  // namespace
@@ -210,7 +210,39 @@ TEST_F(ComponentList, Common) {
     );
 
     components::RunOnce(
-        components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path}, components::CommonComponentList()
+        components::InMemoryConfig{std::string{kStaticConfig} + "config_vars: " + config_vars_path},
+        components::CommonComponentList()
+    );
+}
+
+TEST_F(ComponentList, ValidationWithConfigVars) {
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const std::string dynamic_config_cache_path = temp_root.GetPath() + "/dynamic_config.json";
+    const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
+
+    fs::blocking::RewriteFileContents(
+        dynamic_config_cache_path, formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+    );
+
+    fs::blocking::RewriteFileContents(
+        config_vars_path,
+        fmt::format(
+            kConfigVarsTemplate,
+            temp_root.GetPath(),
+            dynamic_config_cache_path,
+            ToString(logging::GetDefaultLoggerLevel())
+        )
+    );
+
+    constexpr const char* kBadParam = "      non-described-in-schema-parameter: $default_log_path\n";
+    const components::InMemoryConfig conf{std::string{kStaticConfig} + kBadParam + "config_vars: " + config_vars_path};
+
+    UEXPECT_THROW_MSG(
+        components::RunOnce(conf, components::CommonComponentList()),
+        std::exception,
+        "Error while validating static config against schema. Field "
+        "'components_manager.components.system-statistics-collector.non-described-in-schema-parameter' is not declared "
+        "in schema 'system-statistics-collector' (declared: load-enabled, with-nginx, fs-task-processor)"
     );
 }
 

@@ -20,17 +20,17 @@ public:
 
     ~RpcStatisticsScope();
 
-    void OnExplicitFinish(grpc::StatusCode code);
+    void OnExplicitFinish(grpc::StatusCode code) noexcept;
 
-    void OnCancelledByDeadlinePropagation();
+    void OnCancelledByDeadlinePropagation() noexcept;
 
-    void OnDeadlinePropagated();
+    void OnDeadlinePropagated() noexcept;
 
-    void OnCancelled();
+    void OnCancelled() noexcept;
 
-    void OnNetworkError();
+    void OnNetworkError() noexcept;
 
-    void Flush();
+    void Flush() noexcept;
 
     // Not thread-safe with respect to Flush.
     void RedirectTo(MethodStatistics& statistics);
@@ -56,7 +56,7 @@ private:
         kCancelled = 4,
     };
 
-    void AccountTiming();
+    void AccountTiming() noexcept;
 
     utils::NotNull<MethodStatistics*> statistics_;
     std::optional<std::chrono::steady_clock::time_point> start_time_;

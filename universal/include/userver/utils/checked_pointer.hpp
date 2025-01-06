@@ -3,6 +3,7 @@
 /// @file userver/utils/checked_pointer.hpp
 /// @brief @copybrief utils::CheckedPtr
 
+#include <cstdlib>
 #include <stdexcept>
 
 #include <userver/utils/assert.hpp>

@@ -2,8 +2,8 @@
 
 #include <algorithm>
 
-#include <server/http/http_request_impl.hpp>
 #include <server/request/task_inherited_request_impl.hpp>
+#include <userver/server/http/http_request.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

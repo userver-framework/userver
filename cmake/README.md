@@ -19,7 +19,7 @@ It contains several scripts intended for external usage:
   userver_testsuite_add_simple()
   ```
 
-* `GrpcTargets.cmake` defines functions for generating userver gRPC
+* `UserverGrpcTargets.cmake` defines functions for generating userver gRPC
   clients and services
 
 * `AddGoogleTests.cmake` defines functions for creating CTest tests

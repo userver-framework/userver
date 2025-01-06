@@ -14,13 +14,13 @@ namespace {
 
 class UnitTestServiceEcho final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void Chat(ChatCall& call) override {
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         sample::ugrpc::StreamGreetingRequest request;
         sample::ugrpc::StreamGreetingResponse response{};
-        while (call.Read(request)) {
-            call.Write(response);
+        while (stream.Read(request)) {
+            stream.Write(response);
         }
-        call.Finish();
+        return grpc::Status::OK;
     }
 };
 

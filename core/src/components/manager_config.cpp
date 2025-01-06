@@ -2,10 +2,14 @@
 
 #include <fstream>
 
+#include <boost/range/adaptor/filtered.hpp>
+#include <boost/range/adaptor/transformed.hpp>
+
 #include <userver/components/static_config_validator.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
@@ -30,8 +34,6 @@ ManagerConfig ParseFromAny(
 ) {
     constexpr std::string_view kConfigVarsField = "config_vars";
     constexpr std::string_view kManagerConfigField = "components_manager";
-    constexpr std::string_view kUserverExperimentsField = "userver_experiments";
-    constexpr std::string_view kUserverExperimentsForceEnabledField = "userver_experiments_force_enabled";
 
     formats::yaml::Value config_yaml;
     try {
@@ -61,9 +63,13 @@ ManagerConfig ParseFromAny(
 
     auto config =
         yaml_config::YamlConfig(config_yaml, std::move(config_vars), yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    config.CheckObject();
+    for (const auto& [key, value] : Items(config)) {
+        if (key != kManagerConfigField && key != kConfigVarsField) {
+            throw std::runtime_error(fmt::format("Invalid config: extra key '{}' at the root level", key));
+        }
+    }
     auto result = config[kManagerConfigField].As<ManagerConfig>();
-    result.enabled_experiments = config[kUserverExperimentsField].As<utils::impl::UserverExperimentSet>({});
-    result.experiments_force_enabled = config[kUserverExperimentsForceEnabledField].As<bool>(false);
 
     return result;
 }
@@ -207,6 +213,21 @@ properties:
             validate_all_components:
                 type: boolean
                 description: if true, all components configs are validated
+    userver_experiments:
+        type: object
+        description: userver experiments to enable, `false` by default
+        defaultDescription: '{}'
+        properties: {}
+        additionalProperties:
+            type: boolean
+            description: whether a specific experiment is enabled
+    graceful_shutdown_interval:
+        type: string
+        description: |
+            At shutdown, first hang for this duration with /ping 5xx to give
+            the balancer a chance to redirect new requests to other hosts and
+            to give the service a chance to finish handling old requests.
+        defaultDescription: 0s
 )");
 }
 
@@ -228,10 +249,18 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     config.default_task_processor = value["default_task_processor"].As<std::string>();
 
     config.validate_components_configs = value["static_config_validation"].As<ValidationMode>(ValidationMode::kAll);
+    config.enabled_experiments = utils::AsContainer<utils::impl::UserverExperimentSet>(
+        value["userver_experiments"].As<std::unordered_map<std::string, bool>>({}) |
+        boost::adaptors::filtered([](const auto& pair) { return pair.second; }) |
+        boost::adaptors::transformed([](const auto& pair) { return pair.first; })
+    );
     config.mlock_debug_info = value["mlock_debug_info"].As<bool>(config.mlock_debug_info);
     config.disable_phdr_cache = value["disable_phdr_cache"].As<bool>(config.disable_phdr_cache);
     config.preheat_stacktrace_collector =
         value["preheat_stacktrace_collector"].As<bool>(config.preheat_stacktrace_collector);
+    config.graceful_shutdown_interval =
+        value["graceful_shutdown_interval"].As<std::chrono::milliseconds>(config.graceful_shutdown_interval);
+
     return config;
 }
 

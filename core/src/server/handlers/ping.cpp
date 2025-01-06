@@ -23,6 +23,9 @@ std::string Ping::HandleRequestThrow(const http::HttpRequest& request, request::
     auto& response = request.GetHttpResponse();
     AppendWeightHeaders(response);
 
+#line 100  // for test_dynamic_debug_log.py
+    LOG_TRACE() << "Everything is OK";
+
     return {};
 }
 

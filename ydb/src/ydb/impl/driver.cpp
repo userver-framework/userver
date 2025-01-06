@@ -3,6 +3,7 @@
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/extensions/solomon_stats/pull_connector.h>
 #include <ydb-cpp-sdk/client/iam/iam.h>
+#include <ydb-cpp-sdk/client/types/credentials/credentials.h>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/text_light.hpp>
@@ -27,14 +28,23 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
                                      : NYdb::EBalancingPolicy::UseAllNodes
         );
 
+    if (settings.secure_connection_cert.has_value()) {
+        driver_config.UseSecureConnection(settings.secure_connection_cert->data());
+    }
+
     if (settings.credentials_provider_factory) {
         driver_config.SetCredentialsProviderFactory(settings.credentials_provider_factory);
     } else if (settings.oauth_token.has_value()) {
-        driver_config.SetAuthToken(settings.oauth_token->data());
+        driver_config.SetAuthToken(settings.oauth_token->c_str());
     } else if (settings.iam_jwt_params.has_value()) {
         driver_config.UseSecureConnection().SetCredentialsProviderFactory(
-            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = settings.iam_jwt_params->data()})
+            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = settings.iam_jwt_params->c_str()})
         );
+    } else if (settings.user.has_value() && settings.password.has_value()) {
+        NYdb::TLoginCredentialsParams creds{};
+        creds.User = settings.user->c_str();
+        creds.Password = settings.password->c_str();
+        driver_config.SetCredentialsProviderFactory(NYdb::CreateLoginCredentialsProviderFactory(std::move(creds)));
     }
 
     driver_ = std::make_unique<NYdb::TDriver>(driver_config);

@@ -58,7 +58,6 @@ UTEST_F(ProducerTest, TooLargeMessage) {
 
     kafka::impl::ProducerConfiguration producer_configuration{};
     producer_configuration.message_max_bytes = kMessageMaxBytes;
-    producer_configuration.rd_kafka_options["debug"] = "all";
 
     auto producer = MakeProducer("kafka-producer", producer_configuration);
     UEXPECT_NO_THROW(producer.Send(GenerateTopic(), "small-key", "small-message"));

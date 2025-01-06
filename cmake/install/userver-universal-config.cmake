@@ -7,7 +7,7 @@ endif()
 include("${USERVER_CMAKE_DIR}/ModuleHelpers.cmake")
 
 find_package(Threads)
-find_package(Boost REQUIRED COMPONENTS
+find_package(Boost REQUIRED CONFIG COMPONENTS
     program_options
     filesystem
     regex
@@ -17,7 +17,7 @@ find_package(Boost REQUIRED COMPONENTS
 )
 find_package(Iconv REQUIRED)
 
-_userver_macos_set_default_dir(OPENSSL_ROOT_DIR brew;--prefix;openssl)
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
 find_package(OpenSSL REQUIRED)
 
 find_package(fmt "8.1.1" REQUIRED)
@@ -39,6 +39,7 @@ include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")
 include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
 include("${USERVER_CMAKE_DIR}/UserverSetupEnvironment.cmake")
 include("${USERVER_CMAKE_DIR}/UserverVenv.cmake")
+include("${USERVER_CMAKE_DIR}/UserverEmbedFile.cmake")
 
 userver_setup_environment()
 _userver_make_sanitize_blacklist()

@@ -279,14 +279,14 @@ public:
 
 using TransactionPtr = std::unique_ptr<Transaction>;
 
-class EmptyTransactionException : public USERVER_NAMESPACE::redis::Exception {
+class EmptyTransactionException : public Exception {
 public:
-    using USERVER_NAMESPACE::redis::Exception::Exception;
+    using Exception::Exception;
 };
 
-class NotStartedTransactionException : public USERVER_NAMESPACE::redis::Exception {
+class NotStartedTransactionException : public Exception {
 public:
-    using USERVER_NAMESPACE::redis::Exception::Exception;
+    using Exception::Exception;
 };
 
 }  // namespace storages::redis

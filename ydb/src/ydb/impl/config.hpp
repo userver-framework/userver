@@ -46,6 +46,9 @@ struct DriverSettings {
     bool prefer_local_dc{false};
     std::optional<std::string> oauth_token;
     std::optional<std::string> iam_jwt_params;
+    std::optional<std::string> secure_connection_cert;
+    std::optional<std::string> user;
+    std::optional<std::string> password;
     std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory;
 };
 
