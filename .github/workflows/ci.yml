@@ -156,7 +156,7 @@ jobs:
                 wget https://apt.llvm.org/llvm.sh
                 chmod +x llvm.sh
                 sudo ./llvm.sh 14
-                sudo apt install clang-format-14
+                sudo apt install -y clang-format-14
                 sudo ln -sf /usr/bin/clang-format-14 /usr/bin/clang-format
                 clang-format --version
 
@@ -215,7 +215,7 @@ jobs:
           - name: Install grpc, protobuf and abseil
             if: matrix.os == 'ubuntu-20.04'
             run: |
-                sudo apt install ninja-build
+                sudo apt install -y ninja-build
                 git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
                 GRPC_BUILD_ENABLE_CCACHE=true \
                   cmake -GNinja -S./new_grpc -B./new_grpc/build \
@@ -328,7 +328,7 @@ jobs:
             # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
             if: matrix.info != 'g++-9 + release'
             run: |
-                sudo apt install mongodb-mongosh
+                sudo apt install -y mongodb-mongosh
                 cd build_debug
                 mkdir mongo || :
                 cd mongo
@@ -349,7 +349,7 @@ jobs:
             # MySQL benchmarks do not work on new Ubuntu
             if: matrix.os != 'ubuntu-24.04'
             run: |
-                sudo apt install mariadb-server
+                sudo apt install -y mariadb-server
                 cd build_debug
                 mkdir mysql || :
                 cd mysql
