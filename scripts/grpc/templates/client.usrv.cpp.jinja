@@ -14,18 +14,18 @@
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
 inline constexpr std::string_view k{{service.name}}MethodNames[] = {
-  {% for method in service.method %}
-  "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
-  {% endfor %}
+{% for method in service.method %}
+    "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+{% endfor %}
 };
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
 inline const bool k{{service.name}}TypesRegistration =
     (USERVER_NAMESPACE::ugrpc::impl::RegisterMessageTypes({
-      {% for method in service.method %}
+{% for method in service.method %}
         std::string("{{method.input_type}}").substr(1),
         std::string("{{method.output_type}}").substr(1),
-      {% endfor %}
+{% endfor %}
     }),
     false);
 
@@ -34,27 +34,11 @@ inline const bool k{{service.name}}TypesRegistration =
     : impl_(std::move(dependencies), GetMetadata(),
             std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
     }
-  {% for method in service.method %}
-  {% set method_id = loop.index0 %}
+{% for method in service.method %}
+{% set method_id = loop.index0 %}
 
-  {% if not method.client_streaming and not method.server_streaming %}
-{{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(
-    const {{ method.input_type | grpc_to_cpp_name }}& request,
-    std::unique_ptr<::grpc::ClientContext> context,
-    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
-) const {
-    auto& stub = impl_.NextStubFromMethodId<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>({{method_id}});
-    USERVER_NAMESPACE::ugrpc::client::UnaryCall<{{ method.output_type | grpc_to_cpp_name }}> call{
-        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-          impl_, {{method_id}}, std::move(context), qos
-        ),
-        [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
-        request,
-    };
-    return {{method.name}}ResponseFuture{std::move(call)};
-}
-
-{{ method.output_type | grpc_to_cpp_name }} {{service.name}}Client::Sync{{method.name}}(
+{% if not method.client_streaming and not method.server_streaming %}
+{{ method.output_type | grpc_to_cpp_name }} {{service.name}}Client::{{method.name}}(
     const {{ method.input_type | grpc_to_cpp_name }}& request,
     std::unique_ptr<::grpc::ClientContext> context,
     const USERVER_NAMESPACE::ugrpc::client::Qos& qos
@@ -62,7 +46,23 @@ inline const bool k{{service.name}}TypesRegistration =
     return Async{{method.name}}(request, std::move(context), qos).Get();
 }
 
+{{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    std::unique_ptr<::grpc::ClientContext> context,
+    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+) const {
+    auto& stub = impl_.NextStubFromMethodId<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>({{method_id}});
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+          impl_, {{method_id}}, std::move(context), qos
+        ),
+        [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
+        request,
+    };
+}
 {% endif %}
+{% if method.client_streaming or method.server_streaming %}
+
 {{service.name}}Client::{{method.name}}Call
 {{service.name}}Client::{{method.name}}(
     {% if not method.client_streaming %}
@@ -73,26 +73,25 @@ inline const bool k{{service.name}}TypesRegistration =
 ) const {
       auto& stub = impl_.NextStubFromMethodId<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>({{method_id}});
       return {
-        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-          impl_, {{method_id}}, std::move(context), qos
-        ),
-        [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
-        {% if method.client_streaming %}
+          USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+              impl_, {{method_id}}, std::move(context), qos
+          ),
+          [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
+{% if not method.client_streaming %}
+          request,
+{% endif %}
       };
-        {% else %}
-        request,
-      };
-        {% endif %}
 }
-  {% endfor %}
+{% endif %}
+{% endfor %}
 
 USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
 {{ service.name }}Client::GetMetadata() {
   (void)k{{service.name}}TypesRegistration;  // odr-use
 
   return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<
-    {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
-      k{{service.name}}MethodNames);
+      {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
+          k{{service.name}}MethodNames);
 }
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

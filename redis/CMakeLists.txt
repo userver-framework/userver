@@ -35,7 +35,7 @@ if(USERVER_FEATURE_REDIS_TLS)
 endif()
 
 if (USERVER_CONAN)
-  find_package(hiredis REQUIRED)
+  find_package(hiredis REQUIRED CONFIG)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
 else()
   find_package(Hiredis REQUIRED)

@@ -8,7 +8,6 @@ It contains several scripts intended for external usage:
   that that simplifies userver usage as a submodule of your project:
 
   ```cmake
-  add_subdirectory(third_party/userver)
   userver_setup_environment()
   ```
 

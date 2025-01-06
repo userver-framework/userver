@@ -237,7 +237,7 @@ UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
     context->set_wait_for_ready(true);
 
     auto long_deadline = engine::Deadline::FromDuration(100ms + 1s);
-    UEXPECT_THROW(client.SyncSayHello({}, std::move(context)), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(client.SayHello({}, std::move(context)), ugrpc::client::DeadlineExceededError);
     EXPECT_FALSE(long_deadline.IsReached());
 }
 
@@ -278,7 +278,7 @@ UTEST_F_MT(GrpcCancelByClient, CancelByClient, 3) {
     auto context = std::make_unique<grpc::ClientContext>();
     context->set_deadline(engine::Deadline::FromDuration(100ms));
     context->set_wait_for_ready(true);
-    UEXPECT_THROW(client.SyncSayHello({}, std::move(context)), ugrpc::client::BaseError);
+    UEXPECT_THROW(client.SayHello({}, std::move(context)), ugrpc::client::BaseError);
 
     ASSERT_TRUE(GetService().GetFinishEvent().WaitForEventFor(std::chrono::seconds{5}));
 }
@@ -288,7 +288,7 @@ UTEST_F_MT(GrpcCancelByClient, CancelByClientNoReadyWait, 3) {
 
     auto context = std::make_unique<grpc::ClientContext>();
     context->set_deadline(engine::Deadline::FromDuration(100ms));
-    UEXPECT_THROW(client.SyncSayHello({}, std::move(context)), ugrpc::client::BaseError);
+    UEXPECT_THROW(client.SayHello({}, std::move(context)), ugrpc::client::BaseError);
 
     ASSERT_TRUE(GetService().GetFinishEvent().WaitForEventFor(std::chrono::seconds{5}));
 }
@@ -312,7 +312,7 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
     UEXPECT_THROW(
-        client.SyncSayHello(
+        client.SayHello(
             {}, std::make_unique<::grpc::ClientContext>(), ugrpc::client::Qos{std::chrono::milliseconds(100)}
         ),
         ugrpc::client::DeadlineExceededError

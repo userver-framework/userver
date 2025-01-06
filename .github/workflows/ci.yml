@@ -1,4 +1,4 @@
-name: CI
+name: Ubuntu
 
 'on':
     pull_request:
@@ -11,6 +11,9 @@ name: CI
 env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
 
 jobs:
     posix:
@@ -34,8 +37,8 @@ jobs:
                         -DUSERVER_NAMESPACE_END="}}"
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
+                    id: ubuntu24_clang18_debug_sanitize-addr-ub
                     tests-flags: ''
-                    ccache-dir: ~/.cache/ccache
 
                   - cmake-flags: >-
                         -GNinja
@@ -53,12 +56,13 @@ jobs:
                         -DUSERVER_NAMESPACE_END="}}"
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
+                    id: ubuntu22_clang14_debug_sanitize-addr-ub
                     tests-flags: ''
-                    ccache-dir: ~/.cache/ccache
 
                   - cmake-flags: >-
                         -GNinja
                         -DCMAKE_BUILD_TYPE=Release
+                        -DUSERVER_USE_LD=gold
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
@@ -69,8 +73,8 @@ jobs:
                         -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
                     os: ubuntu-20.04
                     info: g++-9 + release
+                    id: ubuntu20_gcc9_release
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
-                    ccache-dir: ~/.ccache
 
                   # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
@@ -78,6 +82,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-8
                         -DCMAKE_C_COMPILER=gcc-8
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_USE_LD=gold
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
@@ -88,25 +93,26 @@ jobs:
                         -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
                     os: ubuntu-20.04
                     info: g++-8 + debug
+                    id: ubuntu20_gcc8_debug
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
-                    ccache-dir: ~/.ccache
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
 
         steps:
           - uses: actions/checkout@v4
-            with:
-                fetch-depth: 0
 
-          - name: Reuse ccache directory
-            uses: actions/cache@v4
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
             with:
-                path: '${{matrix.ccache-dir}}'
-                key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}'
                 restore-keys: |
-                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
-                    ${{matrix.os}} ${{matrix.info}} ccache-
+                    ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}
+                    ubuntu-cache-dir ${{matrix.id}}
 
           - name: Setup ramdrive for testsuites
             run: |
@@ -148,17 +154,9 @@ jobs:
                 wget https://apt.llvm.org/llvm.sh
                 chmod +x llvm.sh
                 sudo ./llvm.sh 14
-                sudo apt install clang-format-14
+                sudo apt install -y clang-format-14
                 sudo ln -sf /usr/bin/clang-format-14 /usr/bin/clang-format
                 clang-format --version
-
-          - name: Install grpc, protobuf and abseil
-            if: matrix.os == 'ubuntu-20.04'
-            run: |
-                git clone --recursive -b v1.45.0 https://github.com/grpc/grpc new_grpc
-                cmake -S./new_grpc -B./new_grpc/build -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
-                cmake --build new_grpc/build -- -j$(nproc)
-                sudo cmake --install new_grpc/build
 
           - name: Add missing repositories
             run: |
@@ -194,8 +192,36 @@ jobs:
           - name: Install common deps
             run: |
                 sudo apt update
-                sudo apt purge libpq5 libpq-dev postgresql-*
+                sudo apt purge -y libpq5 libpq-dev postgresql-*
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+
+          - name: Install ccache
+            if: matrix.os == 'ubuntu-20.04'
+            run: |
+                sudo apt remove --purge -y ccache
+                git clone --depth 1 -b v4.10.2 https://github.com/ccache/ccache.git
+                cd ccache
+                cmake -S . -B build -GNinja -DENABLE_TESTING=OFF -DSTATIC_LINK=ON -DCMAKE_BUILD_TYPE=Release
+                cmake --build build -j$(nproc)
+                sudo cmake --install build
+
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s -v
+
+          - name: Install grpc, protobuf and abseil
+            if: matrix.os == 'ubuntu-20.04'
+            run: |
+                sudo apt install -y ninja-build
+                git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
+                GRPC_BUILD_ENABLE_CCACHE=true \
+                  cmake -GNinja -S./new_grpc -B./new_grpc/build \
+                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
+                cmake --build new_grpc/build -j$(nproc)
+                sudo cmake --install new_grpc/build
+                rm -rf new_grpc
+                ccache -s -v
 
           - name: Install g++-8
             if: matrix.info == 'g++-8 + debug'
@@ -210,16 +236,9 @@ jobs:
             run: |
                 sudo apt install -y gdb python3-pytest
 
-          - name: Setup ccache
-            run: |
-                ccache -M 2.0GB
-                ccache -s
-
           - name: Run cmake
             run: |
-                mkdir build_debug
-                cd build_debug
-                cmake ${{matrix.cmake-flags}} ..
+                cmake -S . -B build_debug ${{matrix.cmake-flags}}
 
           - name: Run clang-tidy
             if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
@@ -243,6 +262,21 @@ jobs:
                 pwd
                 cd build_debug
                 cmake --build . -j $(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v
+
 
           - name: Run tests (universal)
             run: |
@@ -292,7 +326,7 @@ jobs:
             # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
             if: matrix.info != 'g++-9 + release'
             run: |
-                sudo apt install mongodb-mongosh
+                sudo apt install -y mongodb-mongosh
                 cd build_debug
                 mkdir mongo || :
                 cd mongo
@@ -313,7 +347,7 @@ jobs:
             # MySQL benchmarks do not work on new Ubuntu
             if: matrix.os != 'ubuntu-24.04'
             run: |
-                sudo apt install mariadb-server
+                sudo apt install -y mariadb-server
                 cd build_debug
                 mkdir mysql || :
                 cd mysql

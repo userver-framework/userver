@@ -121,7 +121,7 @@ void UnaryRPCPayload(sample::ugrpc::UnitTestServiceClient& client) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
     sample::ugrpc::GreetingResponse in;
-    in = client.SyncSayHello(out, PrepareClientContext());
+    in = client.SayHello(out, PrepareClientContext());
     UINVARIANT("Hello " + out.name() == in.name(), "Behavior broken");
 }
 

@@ -1,4 +1,7 @@
+cmake_minimum_required(VERSION 3.14)
 project(userver-easy-samples-json CXX)
+
+find_package(userver COMPONENTS easy chaotic REQUIRED)
 
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen

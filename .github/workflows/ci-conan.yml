@@ -27,19 +27,17 @@ jobs:
         steps:
           - name: Checkout
             uses: actions/checkout@v4
-            with:
-                fetch-depth: 0
 
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
             run: |
-                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv
+                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv postgresql redis clang-format
 
           - name: Install MacOS packages
             if: matrix.os == 'macos-latest'
             run: |
                 brew update
-                brew install postgresql
+                brew install postgresql redis clang-format
                 brew install libiconv  # https://stackoverflow.com/questions/57734434/libiconv-or-iconv-undefined-symbol-on-mac-osx
                 brew install python@3.11
 
@@ -52,4 +50,27 @@ jobs:
 
           - name: Run conan
             run: |
-                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -tf conan/test_package/
+                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
+
+          - name: Test userver conan package
+            run: |
+                mv libraries/easy/samples/3_json samples/
+                mv scripts/tests/conanfile.py samples/
+                rm -rf userver/cmake/
+                cd samples/
+
+                USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
+                for SAMPLE in \
+                    3_json \
+                    chaotic_service \
+                    embedded_files \
+                    grpc_service \
+                    hello_service \
+                    postgres_service \
+                    redis_service \
+                    s3api \
+                ; do
+                    mv conanfile.py $SAMPLE/
+                    conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
+                    mv $SAMPLE/conanfile.py ./
+                done

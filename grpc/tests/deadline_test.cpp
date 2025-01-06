@@ -83,7 +83,7 @@ UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCall) {
     auto context = std::make_unique<grpc::ClientContext>();
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_THROW(in = Client().SyncSayHello(request, std::move(context)), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(in = Client().SayHello(request, std::move(context)), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCallAsync) {
@@ -272,7 +272,7 @@ UTEST_F(GrpcTestInheritedDedline, TestServerDataExist) {
     engine::SleepFor(std::chrono::milliseconds{10});
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SyncSayHello(out, std::move(context)));
+    UEXPECT_NO_THROW(in = client.SayHello(out, std::move(context)));
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -290,7 +290,7 @@ UTEST_F(GrpcTestInheritedDedline, TestDeadlineExpiresBeforeCall) {
     engine::SleepFor(tests::kLongTimeout);
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_THROW(in = client.SyncSayHello(out, std::move(context)), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(in = client.SayHello(out, std::move(context)), ugrpc::client::DeadlineExceededError);
 }
 
 namespace {
@@ -330,7 +330,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithoutDeadline) {
     // Context deadline not set
     sample::ugrpc::GreetingResponse in;
     UEXPECT_THROW(
-        in = Client().SyncSayHello(request, tests::MakeClientContext(/*set_deadline=*/false)),
+        in = Client().SayHello(request, tests::MakeClientContext(/*set_deadline=*/false)),
         ugrpc::client::DeadlineExceededError
     );
 }
@@ -348,7 +348,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithDeadline) {
     // Set additional client deadline
     sample::ugrpc::GreetingResponse in;
     UEXPECT_THROW(
-        in = Client().SyncSayHello(request, tests::MakeClientContext(/*set_deadline=*/true)),
+        in = Client().SayHello(request, tests::MakeClientContext(/*set_deadline=*/true)),
         ugrpc::client::DeadlineExceededError
     );
 }

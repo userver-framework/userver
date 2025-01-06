@@ -96,7 +96,7 @@ UTEST_P(SecretFieldsTest, MiddlewaresHideSecrets) {
     request.set_dest(grpc::string{kDest});
     request.mutable_msg()->set_text(grpc::string{kRequestText});
 
-    const auto response = client.SyncSend(request);
+    const auto response = client.Send(request);
     EXPECT_EQ(true, response.delivered());
     EXPECT_EQ(kResponseText, response.reply().text());
     EXPECT_EQ(kToken, response.token());

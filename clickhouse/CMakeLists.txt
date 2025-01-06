@@ -1,7 +1,7 @@
 project(userver-clickhouse CXX)
 
 if (USERVER_CONAN)
-  find_package(clickhouse-cpp REQUIRED)
+  find_package(clickhouse-cpp REQUIRED CONFIG)
   set(CLICKHOUSE_CPP_TARGET clickhouse-cpp-lib::clickhouse-cpp-lib)
 else()
   include(SetupClickhouseCPP)

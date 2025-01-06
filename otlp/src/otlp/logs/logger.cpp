@@ -271,7 +271,7 @@ void Logger::DoLog(
     LogClient& client
 ) {
     try {
-        auto response = client.SyncExport(request);
+        auto response = client.Export(request);
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;
@@ -286,7 +286,7 @@ void Logger::DoTrace(
     TraceClient& trace_client
 ) {
     try {
-        auto response = trace_client.SyncExport(request);
+        auto response = trace_client.Export(request);
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;

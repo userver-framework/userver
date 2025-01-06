@@ -6,7 +6,7 @@ set(USERVER_KAFKA_VERSION "2.3.0")
 
 find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
 find_package(CURL REQUIRED)
-find_package(libz REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(libzstd REQUIRED)
 find_package(lz4 REQUIRED)
 

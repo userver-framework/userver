@@ -35,7 +35,7 @@ client::ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
 ) const {
     auto& stub = impl_.NextGenericStub<GenericStubService>();
     auto grpcpp_call_name = utils::StrCat<grpc::string>("/", call_name);
-    client::UnaryCall<grpc::ByteBuffer> call{
+    return {
         impl::CreateGenericCallParams(
             impl_, call_name, std::move(context), generic_options.qos, generic_options.metrics_call_name
         ),
@@ -44,7 +44,6 @@ client::ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
         ) { return stub.PrepareUnaryCall(context, grpcpp_call_name, request, cq); },
         request,
     };
-    return client::ResponseFuture<grpc::ByteBuffer>{std::move(call)};
 }
 
 grpc::ByteBuffer GenericClient::UnaryCall(

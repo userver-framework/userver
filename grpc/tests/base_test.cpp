@@ -123,7 +123,7 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SyncSayHello(out, PrepareClientContext()));
+    UEXPECT_NO_THROW(in = client.SayHello(out, PrepareClientContext()));
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -167,7 +167,7 @@ UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
     out.set_name("default_context");
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SyncSayHello(out));
+    UEXPECT_NO_THROW(in = client.SayHello(out));
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 

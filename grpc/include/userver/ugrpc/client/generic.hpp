@@ -75,6 +75,7 @@ public:
         const GenericOptions& options = {}
     ) const;
 
+    /// Initiate a `single request -> single response` RPC with the given name.
     grpc::ByteBuffer UnaryCall(
         std::string_view call_name,
         const grpc::ByteBuffer& request,

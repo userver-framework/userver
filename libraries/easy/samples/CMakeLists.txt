@@ -2,6 +2,9 @@ project(userver-easy-samples CXX)
 
 add_custom_target(${PROJECT_NAME})
 
+# Imitate an installed userver in samples.
+file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")
+
 add_subdirectory(0_hello_world)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-hello-world)
 
@@ -22,3 +25,7 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-pg-service-template)
 
 add_subdirectory(6_pg_service_template_no_http_with)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-pg-service-template-no-http-with)
+
+# Clean up fake userver installation above to avoid messing
+# with find_package(userver) in the parent project.
+file(REMOVE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")

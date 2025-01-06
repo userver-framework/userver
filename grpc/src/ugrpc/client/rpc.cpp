@@ -41,8 +41,6 @@ void MiddlewarePipeline::PostFinish(impl::RpcData& data, const grpc::Status& sta
     }
 }
 
-}  // namespace impl
-
 UnaryFuture::UnaryFuture(
     impl::RpcData& data,
     std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish
@@ -176,6 +174,8 @@ void UnaryFuture::ProcessFinish() const {
 
     data_->ResetSpan();
 }
+
+}  // namespace impl
 
 grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
 

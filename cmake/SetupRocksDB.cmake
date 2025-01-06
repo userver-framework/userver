@@ -16,7 +16,7 @@ endif()
 
 find_package(libgflags REQUIRED)
 find_package(libsnappy REQUIRED)
-find_package(libz REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(libzip REQUIRED)
 find_package(libzstd REQUIRED)
 

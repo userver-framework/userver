@@ -73,7 +73,7 @@ public:
 
         auto client_context = tests::MakeClientContext(set_deadline);
         try {
-            response = client.SyncSayHello(request, std::move(client_context));
+            response = client.SayHello(request, std::move(client_context));
             EXPECT_EQ(response.name(), "Hello abacaba");
             return true;
         } catch (const ugrpc::client::DeadlineExceededError& /*exception*/) {

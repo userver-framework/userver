@@ -1,4 +1,4 @@
-name: Alpine Linux
+name: Alpine
 
 'on':
     pull_request:
@@ -13,13 +13,16 @@ env:
     ASAN_OPTIONS: detect_odr_violation=2
     CXX: clang++-18
     CC: clang-18
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
 
 jobs:
     posix:
         strategy:
             fail-fast: false
 
-        name: Build only
+        name: ubuntu-24.04 (build-only)
         runs-on: ubuntu-24.04
 
         steps:
@@ -27,15 +30,36 @@ jobs:
             with:
                 fetch-depth: 0
 
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'alpine-cache-dir ${{github.ref}}'
+                restore-keys: |
+                    alpine-cache-dir ${{github.ref}}
+                    alpine-cache-dir
+
+          - name: Setup host cache dirs
+            run: |
+                mkdir -p ${{env.CCACHE_DIR}}
+                mkdir -p ${{env.CPM_SOURCE_CACHE}}
+
           - name: Setup latest Alpine Linux
             uses: jirutka/setup-alpine@v1
+            with:
+                volumes: |
+                    ${{env.CCACHE_DIR}}:${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}:${{env.CPM_SOURCE_CACHE}}
 
           - name: Install dependencies
             shell: alpine.sh --root {0}
             run: |
                 pwd
                 cat /etc/alpine-release
-                apk add lld
+                apk add lld ccache git
                 apk add $(cat scripts/docs/en/deps/alpine.md)
 
           - name: Install test dependencies
@@ -45,16 +69,29 @@ jobs:
                         redis \
                         rabbitmq-server \
 
+          - name: Setup caches
+            shell: alpine.sh --root {0}
+            run: |
+                echo "Cached CPM packages:"
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                for f in $(find ${{env.CPM_SOURCE_CACHE}} -name "cmake.lock");
+                do
+                  repo=$(ls -d $(dirname $f)/*/);
+                  echo "Repository: $repo";
+                  git config --global --add safe.directory $repo;
+                done
+
+                ccache -M 2.0GB
+                ccache -s -v
 
           - name: Run cmake
-            shell: alpine.sh {0}
+            shell: alpine.sh --root {0}
             run: |
                 pwd
-                mkdir build_debug
-                cd build_debug
                 CMAKE_PROGRAM_PATH=/usr/lib/llvm17/bin/ \
-                cmake \
+                cmake -S . -B build_debug \
                     -DCMAKE_BUILD_TYPE=Debug \
+                    -DUSERVER_USE_LD=lld \
                     -DUSERVER_NO_WERROR=OFF \
                     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
                     -DUSERVER_BUILD_SAMPLES=1 \
@@ -69,11 +106,23 @@ jobs:
                     -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
                     -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
                     -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \
-                    -DUSERVER_USE_LD=lld \
-                    ..
 
           - name: Compile
+            shell: alpine.sh --root {0}
+            run: |
+                cmake --build build_debug -j$(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
             shell: alpine.sh {0}
             run: |
-                cd build_debug
-                cmake --build . -j$(nproc)
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v

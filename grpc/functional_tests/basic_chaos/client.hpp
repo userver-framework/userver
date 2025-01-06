@@ -84,7 +84,7 @@ std::string GreeterClient::SayHello(std::string name, bool is_small_timeout) {
     api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    api::GreetingResponse response = client_.SyncSayHello(request, CreateClientContext(is_small_timeout));
+    api::GreetingResponse response = client_.SayHello(request, CreateClientContext(is_small_timeout));
 
     return std::move(*response.mutable_greeting());
 }

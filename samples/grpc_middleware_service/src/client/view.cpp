@@ -14,7 +14,7 @@ std::string GreeterClient::SayHello(std::string name) {
     auto context = std::make_unique<::grpc::ClientContext>();
     context->set_deadline(engine::Deadline::FromDuration(std::chrono::seconds{20}));
 
-    api::GreetingResponse response = client_.SyncSayHello(request, std::move(context));
+    api::GreetingResponse response = client_.SayHello(request, std::move(context));
 
     return std::move(*response.mutable_greeting());
 }

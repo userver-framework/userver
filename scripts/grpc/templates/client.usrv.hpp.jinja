@@ -13,70 +13,65 @@
 
 // Client for {{service.name}}
 class {{service.name}}Client final {
- public:
-  // For internal use only
-  {{service.name}}Client(
-      USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies);
-  {% for method in service.method %}
+public:
+    // For internal use only
+    {{service.name}}Client(
+        USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies);
+{% for method in service.method %}
 
-  {% if method.client_streaming and method.server_streaming %}
-  using {{method.name}}Call =
+{% if method.client_streaming and method.server_streaming %}
+    using {{method.name}}Call =
         USERVER_NAMESPACE::ugrpc::client::BidirectionalStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
-  {% elif method.client_streaming %}
-  using {{method.name}}Call =
+{% elif method.client_streaming %}
+    using {{method.name}}Call =
         USERVER_NAMESPACE::ugrpc::client::OutputStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
-  {% elif method.server_streaming %}
-  using {{method.name}}Call =
+{% elif method.server_streaming %}
+    using {{method.name}}Call =
         USERVER_NAMESPACE::ugrpc::client::InputStream<
             {{ method.output_type | grpc_to_cpp_name }}>;
-  {% else %}
-  using {{method.name}}ResponseFuture =
+{% else %}
+    {{ method.output_type | grpc_to_cpp_name }} {{method.name}}(
+        const {{ method.input_type | grpc_to_cpp_name }}& request,
+        std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+        const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+    ) const;
+
+    using {{method.name}}ResponseFuture =
         USERVER_NAMESPACE::ugrpc::client::ResponseFuture<
             {{ method.output_type | grpc_to_cpp_name }}>;
 
-  {{method.name}}ResponseFuture Async{{method.name}}(
-      const {{ method.input_type | grpc_to_cpp_name }}& request,
-      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
-      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
-  ) const;
+    {{method.name}}ResponseFuture Async{{method.name}}(
+        const {{ method.input_type | grpc_to_cpp_name }}& request,
+        std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+        const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+    ) const;
+{% endif %}
+{% if method.client_streaming or method.server_streaming %}
 
-  {{ method.output_type | grpc_to_cpp_name }} Sync{{method.name}}(
-      const {{ method.input_type | grpc_to_cpp_name }}& request,
-      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
-      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
-  ) const;
+    {{method.name}}Call {{method.name}}(
+{% if not method.client_streaming %}
+        const {{ method.input_type | grpc_to_cpp_name }}& request,
+{% endif %}
+        std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+        const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+    ) const;
+{% endif %}
+{% endfor %}
 
-  using {{method.name}}Call =
-        USERVER_NAMESPACE::ugrpc::client::UnaryCall<
-            {{ method.output_type | grpc_to_cpp_name }}>;
-  {% endif %}
+    // For internal use only
+    static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
 
-  {% if not method.client_streaming and not method.server_streaming %}
-  /// @deprecated use Sync{{method.name}}/Async{{method.name}} method instead
-  {% endif %}
-  {{method.name}}Call {{method.name}}(
-      {% if not method.client_streaming %}
-      const {{ method.input_type | grpc_to_cpp_name }}& request,
-      {% endif %}
-      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
-      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
-  ) const;
-  {% endfor %}
+private:
+    template <typename Client>
+    friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
+    USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
 
-  // For internal use only
-  static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
-
- private:
-  template <typename Client>
-  friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
-  USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
-
-  {# All non-template related client data should be placed in ClientData #}
-  USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
+    {# All non-template related client data should be placed in ClientData #}
+    USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
 };
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

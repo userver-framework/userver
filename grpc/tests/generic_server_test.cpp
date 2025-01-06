@@ -42,7 +42,7 @@ void PerformGenericUnaryCall(const sample::ugrpc::UnitTestServiceClient& client)
     sample::ugrpc::GreetingRequest out;
     out.set_name("generic");
 
-    const auto in = client.SyncSayHello(out);
+    const auto in = client.SayHello(out);
 
     EXPECT_EQ(in.name(), "Hello generic");
 }

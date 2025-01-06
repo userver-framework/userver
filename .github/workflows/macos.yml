@@ -1,4 +1,4 @@
-name: CI
+name: MacOS
 
 'on':
     pull_request:
@@ -8,10 +8,19 @@ name: CI
           - develop
           - feature/**
 
+env:
+    CCACHE_DIR: /Users/runner/Library/Caches/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /Users/runner/Library/Caches/CPM
+
 jobs:
     macos:
-        name: MacOS (build only)
+        strategy:
+            fail-fast: false
+
+        name: macos-latest (build only)
         runs-on: macos-latest
+
         env:
             CMAKE_FLAGS: >-
                 -GNinja
@@ -31,8 +40,18 @@ jobs:
 
         steps:
           - uses: actions/checkout@v4
+
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
             with:
-                fetch-depth: 0
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'macos-cache-dir ${{github.ref}}'
+                restore-keys: |
+                    macos-cache-dir ${{github.ref}}
+                    macos-cache-dir
 
           - name: Install brew packages
             run: |
@@ -43,9 +62,12 @@ jobs:
                 brew install python@3.11
                 brew install lld
 
-                brew link postgresql@16
+                brew link postgresql@16 # postgresql is keg-only
 
-                brew upgrade
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s -v
 
           - name: Run cmake
             run: |
@@ -54,3 +76,17 @@ jobs:
           - name: Compile
             run: |
                 cmake --build build_debug -j$(nproc) -- -k 1
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v

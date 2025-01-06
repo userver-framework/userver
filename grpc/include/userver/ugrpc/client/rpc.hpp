@@ -41,8 +41,6 @@ struct MiddlewarePipeline {
     static void PostFinish(impl::RpcData& data, const grpc::Status& status);
 };
 
-}  // namespace impl
-
 /// @brief UnaryFuture for waiting a single response RPC
 class [[nodiscard]] UnaryFuture {
 public:
@@ -94,6 +92,8 @@ private:
     std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish_;
     mutable std::exception_ptr exception_;
 };
+
+}  // namespace impl
 
 /// @brief StreamReadFuture for waiting a single read response from stream
 template <typename RPC>
@@ -166,6 +166,8 @@ private:
     std::unique_ptr<impl::RpcData> data_;
 };
 
+namespace impl {
+
 /// @brief Controls a single request -> single response RPC
 ///
 /// This class is not thread-safe except for `GetContext`.
@@ -211,6 +213,8 @@ public:
 private:
     impl::RawResponseReader<Response> reader_;
 };
+
+}  // namespace impl
 
 /// @brief Controls a single request -> response stream RPC
 ///
@@ -497,6 +501,8 @@ bool StreamReadFuture<RPC>::IsReady() const noexcept {
     return method.IsReady();
 }
 
+namespace impl {
+
 template <typename Response>
 template <typename PrepareFunc, typename Request>
 UnaryCall<Response>::UnaryCall(impl::CallParams&& params, PrepareFunc prepare_func, const Request& req)
@@ -538,6 +544,8 @@ UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
     };
     return UnaryFuture{GetData(), post_finish};
 }
+
+}  // namespace impl
 
 template <typename Response>
 template <typename PrepareFunc, typename Request>

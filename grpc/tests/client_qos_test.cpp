@@ -99,7 +99,7 @@ UTEST_F(GrpcClientQosConfigOk, Ok) {
     ExtendDynamicConfig(MakeQosConfig(utest::kMaxTestWaitTime));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_NO_THROW(response = client.SyncSayHello(kRequest));
+    UEXPECT_NO_THROW(response = client.SayHello(kRequest));
     EXPECT_EQ(response.name(), "Hello " + kRequest.name());
 }
 
@@ -111,7 +111,7 @@ UTEST_F(GrpcClientQosConfigOk, ContextDeadlineOverrides) {
     context->set_deadline(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_NO_THROW(response = client.SyncSayHello(kRequest, std::move(context)));
+    UEXPECT_NO_THROW(response = client.SayHello(kRequest, std::move(context)));
     EXPECT_EQ(response.name(), "Hello " + kRequest.name());
 }
 
@@ -126,7 +126,7 @@ UTEST_F(GrpcClientQosConfigOk, UserQosOverridesEverything) {
     qos.timeout = tests::kLongTimeout;
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_NO_THROW(response = client.SyncSayHello(kRequest, std::move(context), qos));
+    UEXPECT_NO_THROW(response = client.SayHello(kRequest, std::move(context), qos));
     EXPECT_EQ(response.name(), "Hello " + kRequest.name());
 }
 
@@ -136,7 +136,7 @@ UTEST_F(GrpcClientQosConfigExceeded, DefaultTimeout) {
     ExtendDynamicConfig(MakeQosConfig(tests::kShortTimeout));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, PerRpcTimeout) {
@@ -145,7 +145,7 @@ UTEST_F(GrpcClientQosConfigExceeded, PerRpcTimeout) {
     ExtendDynamicConfig(MakePerRpcQosConfig(tests::kShortTimeout));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, DeadlinePropagationWorks) {
@@ -155,7 +155,7 @@ UTEST_F(GrpcClientQosConfigExceeded, DeadlinePropagationWorks) {
     tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, ContextDeadlineOverrides) {
@@ -167,7 +167,7 @@ UTEST_F(GrpcClientQosConfigExceeded, ContextDeadlineOverrides) {
     context->set_deadline(engine::Deadline::FromDuration(tests::kShortTimeout));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SyncSayHello(kRequest, std::move(context)), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest, std::move(context)), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, UserQosOverridesEverything) {
@@ -182,9 +182,7 @@ UTEST_F(GrpcClientQosConfigExceeded, UserQosOverridesEverything) {
     qos.timeout = tests::kShortTimeout;
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(
-        response = client.SyncSayHello(kRequest, std::move(context), qos), ugrpc::client::DeadlineExceededError
-    );
+    UEXPECT_THROW(response = client.SayHello(kRequest, std::move(context), qos), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, EmptyConfigMeansInfinity) {
@@ -195,7 +193,7 @@ UTEST_F(GrpcClientQosConfigExceeded, EmptyConfigMeansInfinity) {
     tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SyncSayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
 }
 
 USERVER_NAMESPACE_END

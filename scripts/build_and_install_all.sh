@@ -16,4 +16,4 @@ BUILD_OPTIONS="
 "
 CONFIGURE_RETRIES="${CONFIGURE_RETRIES:-5}"
 
-"$(dirname "$(realpath "$0")")/build_and_install.sh"
+BUILD_OPTIONS="$BUILD_OPTIONS" CONFIGURE_RETRIES="$CONFIGURE_RETRIES" "$(dirname "$(realpath "$0")")/build_and_install.sh"

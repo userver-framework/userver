@@ -205,7 +205,7 @@ endif()
 if (USERVER_FEATURE_POSTGRESQL)
   _require_userver_core("USERVER_FEATURE_POSTGRESQL")
   add_subdirectory(postgresql)
-  list(APPEND USERVER_AVAILABLE_COMPONENTS postgres)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS postgresql)
 endif()
 
 if (USERVER_FEATURE_REDIS)
