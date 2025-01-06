@@ -69,14 +69,16 @@ jobs:
                         redis \
                         rabbitmq-server \
 
-          - name: Setup ccache
+          - name: Setup caches
             shell: alpine.sh --root {0}
             run: |
                 echo "Cached CPM packages:"
-                ls -lha ${{env.CPM_SOURCE_CACHE}}
-                for d in $(ls ${{env.CPM_SOURCE_CACHE}})
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                for f in $(find ${{env.CPM_SOURCE_CACHE}} -name "cmake.lock");
                 do
-                  git config --global --add safe.directory ${{env.CPM_SOURCE_CACHE}}/$d
+                  repo=$(ls -d $(dirname $f)/*/);
+                  echo "Repository: $repo";
+                  git config --global --add safe.directory $repo;
                 done
 
                 ccache -M 2.0GB

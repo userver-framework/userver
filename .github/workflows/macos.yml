@@ -48,9 +48,9 @@ jobs:
                 path: |
                   ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
-                key: 'macos-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                key: 'macos-cache-dir ${{github.ref}}'
                 restore-keys: |
-                  macos-cache-dir ${{github.ref}} run-
+                  macos-cache-dir ${{github.ref}}
                   macos-cache-dir
 
           - name: Install brew packages
