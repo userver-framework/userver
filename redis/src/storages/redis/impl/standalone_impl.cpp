@@ -433,9 +433,7 @@ PublishSettings StandaloneImpl::GetPublishSettings() {
                          CommandControl::Strategy::kEveryDc};
 }
 
-void StandaloneImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
-
-}
+void StandaloneImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>&) {}
 
 }  // namespace storages::redis::impl
 
