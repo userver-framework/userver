@@ -10,18 +10,18 @@
 namespace samples::hello {
 
 class Hello final : public server::handlers::HttpHandlerBase {
- public:
-  // `kName` is used as the component name in static config
-  static constexpr std::string_view kName = "handler-hello-sample";
+public:
+    // `kName` is used as the component name in static config
+    static constexpr std::string_view kName = "handler-hello-sample";
 
-  // Component is valid after construction and is able to accept requests
-  using HttpHandlerBase::HttpHandlerBase;
+    // Component is valid after construction and is able to accept requests
+    using HttpHandlerBase::HttpHandlerBase;
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest&,
-      server::request::RequestContext&) const override {
-    return "Hello world!\n";
-  }
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
+        request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
+        return "Hello world!\n";
+    }
 };
 
 }  // namespace samples::hello
@@ -29,10 +29,10 @@ class Hello final : public server::handlers::HttpHandlerBase {
 
 /// [Hello service sample - main]
 int main(int argc, char* argv[]) {
-  const auto component_list = components::MinimalServerComponentList()
-                                  .Append<samples::hello::Hello>()
-                                  .Append<components::DefaultSecdistProvider>()
-                                  .Append<components::Secdist>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<samples::hello::Hello>()
+                                    .Append<components::DefaultSecdistProvider>()
+                                    .Append<components::Secdist>();
+    return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Hello service sample - main]

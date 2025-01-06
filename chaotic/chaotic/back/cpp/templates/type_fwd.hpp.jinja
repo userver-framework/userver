@@ -1,0 +1,33 @@
+#pragma once
+
+{% macro generate_type_fwd(name, type) %}
+    {% if type.get_py_type() == 'CppStruct' %}
+        struct {{ type.cpp_local_name() }};
+    {% elif type.get_py_type() in ('CppPrimitiveType', 'CppStringWithFormat', 'CppRef') %}
+        {# nothing #}
+    {% elif type.get_py_type() == 'CppIntEnum' %}
+        enum class {{ type.cpp_local_name() }};
+    {% elif type.get_py_type() == 'CppStringEnum' %}
+        enum class {{ type.cpp_local_name() }};
+    {% elif type.get_py_type() == 'CppArray' %}
+        {# nothing #}
+    {% elif type.get_py_type() == 'CppStructAllOf' %}
+        struct {{ type.cpp_local_name() }};
+    {% elif type.get_py_type() == 'CppVariant' %}
+        {# nothing #}
+    {% elif type.get_py_type() == 'CppVariantWithDiscriminator' %}
+        {# nothing #}
+    {% else %}
+        {{ NOT_IMPLEMENTED(type) }}
+    {% endif %}
+{% endmacro %}
+
+{% import 'templates/common.jinja' as common %}
+
+{% for name, type in types.items() %}
+    {{ common.switch_namespace(cpp_namespace(name)) }}
+
+    {{ generate_type_fwd(name, type) }}
+{% endfor %}
+
+{{ common.switch_namespace('') }}

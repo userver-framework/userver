@@ -22,136 +22,133 @@ constexpr std::size_t kMod = 1 << 11;
 constexpr std::string_view kAlphabet{"abcdefghijklmnopqrstuvwxyz0123456789"};
 constexpr std::size_t kCollisionsCount = 800;
 constexpr std::size_t kStringLen = [] {
-  std::size_t p = 1;
-  for (std::size_t len = 1;; ++len) {
-    p *= kAlphabet.size();
-    if (p >= kCollisionsCount * kMod) {
-      return len;
+    std::size_t p = 1;
+    for (std::size_t len = 1;; ++len) {
+        p *= kAlphabet.size();
+        if (p >= kCollisionsCount * kMod) {
+            return len;
+        }
     }
-  }
 }();
 
 template <typename Action>
-void DoGenerateStrings(std::string& current, const Action& action,
-                       std::size_t depth = 0) {
-  if (depth == kStringLen) {
-    action(current);
-    return;
-  }
+void DoGenerateStrings(std::string& current, const Action& action, std::size_t depth = 0) {
+    if (depth == kStringLen) {
+        action(current);
+        return;
+    }
 
-  for (const auto c : kAlphabet) {
-    current[depth] = c;
-    DoGenerateStrings(current, action, depth + 1);
-  }
+    for (const auto c : kAlphabet) {
+        current[depth] = c;
+        DoGenerateStrings(current, action, depth + 1);
+    }
 }
 
 std::vector<std::string> GenerateCollisions(const HeaderMap& map) {
-  // There are two ways to generate collisions:
-  // 1. Brute force all strings of length, say, 4. This relies on us knowing
-  // that map resizes in powers of 2.
-  // 2. Generate MurMur universal multicollisions. This relies on us knowing
-  // that MurMur is used.
-  //
-  // 2. is way more complicated than 1. and still relies on some assumptions, so
-  // why bother.
+    // There are two ways to generate collisions:
+    // 1. Brute force all strings of length, say, 4. This relies on us knowing
+    // that map resizes in powers of 2.
+    // 2. Generate MurMur universal multicollisions. This relies on us knowing
+    // that MurMur is used.
+    //
+    // 2. is way more complicated than 1. and still relies on some assumptions, so
+    // why bother.
 
-  const auto& danger = TestsHelper::GetMapDanger(map);
+    const auto& danger = TestsHelper::GetMapDanger(map);
 
-  std::vector<std::size_t> cnt(kMod, 0);
+    std::vector<std::size_t> cnt(kMod, 0);
 
-  std::string current;
-  current.resize(kStringLen);
+    std::string current;
+    current.resize(kStringLen);
 
-  DoGenerateStrings(current, [&danger, &cnt](const std::string& s) {
-    const auto hash = danger.HashKey(s);
-    ++cnt[hash % kMod];
-  });
+    DoGenerateStrings(current, [&danger, &cnt](const std::string& s) {
+        const auto hash = danger.HashKey(s);
+        ++cnt[hash % kMod];
+    });
 
-  std::vector<std::string> result{};
-  result.reserve(kCollisionsCount);
+    std::vector<std::string> result{};
+    result.reserve(kCollisionsCount);
 
-  for (const auto [index, count] : utils::enumerate(cnt)) {
-    if (count >= kCollisionsCount) {
-      DoGenerateStrings(
-          current, [&danger, &result, remainder = index](const std::string& s) {
-            const auto hash = danger.HashKey(s);
-            if (hash % kMod == remainder && result.size() < kCollisionsCount) {
-              result.push_back(s);
-            }
-          });
-      return result;
+    for (const auto [index, count] : utils::enumerate(cnt)) {
+        if (count >= kCollisionsCount) {
+            DoGenerateStrings(current, [&danger, &result, remainder = index](const std::string& s) {
+                const auto hash = danger.HashKey(s);
+                if (hash % kMod == remainder && result.size() < kCollisionsCount) {
+                    result.push_back(s);
+                }
+            });
+            return result;
+        }
     }
-  }
 
-  ADD_FAILURE() << "Failed to generate collisions";
+    ADD_FAILURE() << "Failed to generate collisions";
 
-  return {};
+    return {};
 }
 
-void ValidateCollisions(const HeaderMap& map,
-                        const std::vector<std::string>& collisions) {
-  const auto& danger = TestsHelper::GetMapDanger(map);
+void ValidateCollisions(const HeaderMap& map, const std::vector<std::string>& collisions) {
+    const auto& danger = TestsHelper::GetMapDanger(map);
 
-  std::optional<std::size_t> common_hash{};
-  for (const auto& s : collisions) {
-    const auto hash = danger.HashKey(s) % kMod;
+    std::optional<std::size_t> common_hash{};
+    for (const auto& s : collisions) {
+        const auto hash = danger.HashKey(s) % kMod;
 
-    ASSERT_EQ(common_hash.value_or(hash), hash);
+        ASSERT_EQ(common_hash.value_or(hash), hash);
 
-    common_hash.emplace(hash);
-  }
+        common_hash.emplace(hash);
+    }
 }
 
 }  // namespace
 
 TEST(HeaderMapHashDos, ModuloCollisions) {
-  HeaderMap map{};
+    HeaderMap map{};
 
-  const auto collisions = GenerateCollisions(map);
-  ASSERT_GE(collisions.size(), kCollisionsCount);
+    const auto collisions = GenerateCollisions(map);
+    ASSERT_GE(collisions.size(), kCollisionsCount);
 
-  ValidateCollisions(map, collisions);
+    ValidateCollisions(map, collisions);
 
-  for (const auto& s : collisions) {
-    map.emplace(s, "1");
-  }
+    for (const auto& s : collisions) {
+        map.emplace(s, "1");
+    }
 
-  EXPECT_TRUE(TestsHelper::GetMapDanger(map).IsRed());
-  EXPECT_LT(TestsHelper::GetMapMaxDisplacement(map), 10);
+    EXPECT_TRUE(TestsHelper::GetMapDanger(map).IsRed());
+    EXPECT_LT(TestsHelper::GetMapMaxDisplacement(map), 10);
 }
 
 TEST(HeaderMapHashDos, HashAbuse) {
-  constexpr std::size_t kCollisionsLen = 10;
-  static_assert((1 << kCollisionsLen) >= kCollisionsCount);
+    constexpr std::size_t kCollisionsLen = 10;
+    static_assert((1 << kCollisionsLen) >= kCollisionsCount);
 
-  HeaderMap map{};
-  const auto& danger = TestsHelper::GetMapDanger(map);
+    HeaderMap map{};
+    const auto& danger = TestsHelper::GetMapDanger(map);
 
-  EXPECT_EQ(danger.HashKey("a"), danger.HashKey("A"));
-  EXPECT_EQ(danger.HashKey("["), danger.HashKey("{"));
+    EXPECT_EQ(danger.HashKey("a"), danger.HashKey("A"));
+    EXPECT_EQ(danger.HashKey("["), danger.HashKey("{"));
 
-  std::vector<std::string> collisions;
-  collisions.reserve(kCollisionsCount);
-  for (std::size_t i = 0; i < kCollisionsCount; ++i) {
-    std::string collision(kCollisionsLen, '[');
-    for (std::size_t j = 0; j < kCollisionsLen; ++j) {
-      if ((i >> j) & 1) {
-        collision[j] = '{';
-      }
+    std::vector<std::string> collisions;
+    collisions.reserve(kCollisionsCount);
+    for (std::size_t i = 0; i < kCollisionsCount; ++i) {
+        std::string collision(kCollisionsLen, '[');
+        for (std::size_t j = 0; j < kCollisionsLen; ++j) {
+            if ((i >> j) & 1) {
+                collision[j] = '{';
+            }
+        }
+        collisions.push_back(std::move(collision));
     }
-    collisions.push_back(std::move(collision));
-  }
 
-  ValidateCollisions(map, collisions);
+    ValidateCollisions(map, collisions);
 
-  for (const auto& s : collisions) {
-    map.emplace(s, "1");
-  }
-  EXPECT_TRUE(TestsHelper::GetMapDanger(map).IsRed());
-  EXPECT_LT(TestsHelper::GetMapMaxDisplacement(map), 10);
-  EXPECT_EQ(map.size(), kCollisionsCount);
-  // hashing changed to siphash
-  EXPECT_NE(danger.HashKey("["), danger.HashKey("{"));
+    for (const auto& s : collisions) {
+        map.emplace(s, "1");
+    }
+    EXPECT_TRUE(TestsHelper::GetMapDanger(map).IsRed());
+    EXPECT_LT(TestsHelper::GetMapMaxDisplacement(map), 10);
+    EXPECT_EQ(map.size(), kCollisionsCount);
+    // hashing changed to siphash
+    EXPECT_NE(danger.HashKey("["), danger.HashKey("{"));
 }
 
 }  // namespace http::headers

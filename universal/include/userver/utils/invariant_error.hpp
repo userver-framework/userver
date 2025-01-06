@@ -13,7 +13,7 @@ namespace utils {
 ///
 /// @brief Exception that is thrown on UINVARIANT violation
 class InvariantError : public TracefulException {
-  using TracefulException::TracefulException;
+    using TracefulException::TracefulException;
 };
 
 }  // namespace utils

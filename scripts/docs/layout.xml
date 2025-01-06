@@ -6,13 +6,13 @@
     <tab type="topics" visible="yes" title="API Groups" intro=""/>
     <tab type="namespacelist" visible="yes" title="Namespaces" intro=""/>
     <tab type="usergroup" visible="yes" title="Reference">
-      <tab type="namespacemembers" visible="yes" title="" intro=""/>
+      <tab type="namespacemembers" visible="no" title="" intro=""/>
       <tab type="classlist" visible="yes" title="" intro=""/>
       <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/> 
-      <tab type="hierarchy" visible="yes" title="" intro=""/>
-      <tab type="classmembers" visible="yes" title="" intro=""/>
+      <tab type="hierarchy" visible="no" title="" intro=""/>
+      <tab type="classmembers" visible="no" title="" intro=""/>
       <tab type="filelist" visible="yes" title="" intro=""/>
-      <tab type="globals" visible="yes" title="" intro=""/>
+      <tab type="globals" visible="yes" title="Macros" intro=""/>
       <tab type="examples" visible="yes" title="" intro=""/>
       <tab type="pages" visible="no" title="" intro=""/>
     </tab>

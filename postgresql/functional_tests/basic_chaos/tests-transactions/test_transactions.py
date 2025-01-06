@@ -4,7 +4,6 @@ import pytest
 
 import utils
 
-
 SELECT_URL = '/chaos/postgres?type=select'
 SELECT_SMALL_TIMEOUT_URL = '/chaos/postgres?type=select-small-timeout'
 

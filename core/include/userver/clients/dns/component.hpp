@@ -4,7 +4,7 @@
 /// @brief @copybrief clients::dns::Component
 
 #include <userver/clients/dns/resolver.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,24 +39,23 @@ namespace clients::dns {
 /// @snippet components/common_component_list_test.cpp  Sample dns client component config
 
 // clang-format on
-class Component final : public components::LoggableComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of clients::dns::Component component
-  static constexpr std::string_view kName = "dns-client";
+class Component final : public components::ComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of clients::dns::Component component
+    static constexpr std::string_view kName = "dns-client";
 
-  Component(const components::ComponentConfig&,
-            const components::ComponentContext&);
+    Component(const components::ComponentConfig&, const components::ComponentContext&);
 
-  Resolver& GetResolver();
+    Resolver& GetResolver();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void Write(utils::statistics::Writer& writer);
+private:
+    void Write(utils::statistics::Writer& writer);
 
-  Resolver resolver_;
-  utils::statistics::Entry statistics_holder_;
+    Resolver resolver_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace clients::dns

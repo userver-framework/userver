@@ -1,6 +1,7 @@
 async def test_basic(service_client, monitor_client):
     response = await service_client.get('/metrics')
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
 
     metric = await monitor_client.single_metric('sample-metrics.foo')
     assert metric.value > 0
@@ -18,6 +19,7 @@ async def test_reset(service_client, monitor_client):
 
     response = await service_client.get('/metrics')
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
 
     metric = await monitor_client.single_metric('sample-metrics.foo')
     assert metric.value == 1

@@ -97,7 +97,7 @@ Hello, grpc
 Hello, kernel
 Hello, developer
 Hello, core
-Hello, anonim
+Hello, anonymous
 Hello, user
 If this message has arrived then everything works
 """

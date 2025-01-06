@@ -12,15 +12,15 @@ namespace os_signals {
 
 /// @brief Provides Processor for use in tests
 class ProcessorMock final {
- public:
-  explicit ProcessorMock(engine::TaskProcessor& task_processor);
+public:
+    explicit ProcessorMock(engine::TaskProcessor& task_processor);
 
-  Processor& Get();
+    Processor& Get();
 
-  void Notify(int signum);
+    void Notify(int signum);
 
- private:
-  Processor manager_;
+private:
+    Processor manager_;
 };
 
 }  // namespace os_signals

@@ -28,59 +28,60 @@ namespace engine {
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 class [[nodiscard]] TaskWithResult : public Task {
- public:
-  /// @brief Default constructor
-  ///
-  /// Creates an invalid task.
-  TaskWithResult() = default;
+public:
+    /// @brief Default constructor
+    ///
+    /// Creates an invalid task.
+    TaskWithResult() = default;
 
-  TaskWithResult(const TaskWithResult&) = delete;
-  TaskWithResult& operator=(const TaskWithResult&) = delete;
+    TaskWithResult(const TaskWithResult&) = delete;
+    TaskWithResult& operator=(const TaskWithResult&) = delete;
 
-  /// @brief Moves the other task into this, leaving the other in an invalid
-  /// state.
-  TaskWithResult(TaskWithResult&& other) noexcept = default;
+    /// @brief Moves the other task into this, leaving the other in an invalid
+    /// state.
+    TaskWithResult(TaskWithResult&& other) noexcept = default;
 
-  /// @brief If this Task is still valid and is not finished, cancels it and
-  /// waits until it finishes before moving the other. Otherwise just moves the
-  /// other task into this, leaving the other in invalid state.
-  TaskWithResult& operator=(TaskWithResult&& other) noexcept = default;
+    /// @brief If this Task is still valid and is not finished, cancels it and
+    /// waits until it finishes before moving the other. Otherwise just moves the
+    /// other task into this, leaving the other in invalid state.
+    TaskWithResult& operator=(TaskWithResult&& other) noexcept = default;
 
-  /// @brief Returns (or rethrows) the result of task invocation.
-  /// After return from this method the task is not valid.
-  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
-  /// and no TaskCancellationBlockers are present.
-  /// @throws TaskCancelledException
-  ///   if no result is available because the task was cancelled
-  T Get() noexcept(false) {
-    EnsureValid();
+    /// @brief Returns (or rethrows) the result of task invocation.
+    /// After return from this method the task is not valid.
+    /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    /// @throws TaskCancelledException
+    ///   if no result is available because the task was cancelled
+    T Get() noexcept(false) {
+        EnsureValid();
 
-    Wait();
-    if (GetState() == State::kCancelled) {
-      throw TaskCancelledException(CancellationReason());
+        Wait();
+        if (GetState() == State::kCancelled) {
+            throw TaskCancelledException(CancellationReason());
+        }
+
+        utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
+        return utils::impl::CastWrappedCall<T>(GetPayload()).Retrieve();
     }
 
-    utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
-    return utils::impl::CastWrappedCall<T>(GetPayload()).Retrieve();
-  }
+    using Task::TryGetContextAccessor;
 
-  using Task::TryGetContextAccessor;
+    /// @cond
+    static constexpr WaitMode kWaitMode = WaitMode::kSingleWaiter;
 
-  /// @cond
-  static constexpr WaitMode kWaitMode = WaitMode::kSingleWaiter;
+    // For internal use only.
+    explicit TaskWithResult(impl::TaskContextHolder&& context) : Task(std::move(context)) {}
+    /// @endcond
 
-  // For internal use only.
-  explicit TaskWithResult(impl::TaskContextHolder&& context)
-      : Task(std::move(context)) {}
-  /// @endcond
-
- private:
-  void EnsureValid() const {
-    UINVARIANT(IsValid(),
-               "TaskWithResult::Get was called on an invalid task. Note that "
-               "Get invalidates self, so it must be called at most once "
-               "per task");
-  }
+private:
+    void EnsureValid() const {
+        UINVARIANT(
+            IsValid(),
+            "TaskWithResult::Get was called on an invalid task. Note that "
+            "Get invalidates self, so it must be called at most once "
+            "per task"
+        );
+    }
 };
 
 }  // namespace engine

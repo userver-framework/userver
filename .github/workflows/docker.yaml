@@ -15,12 +15,14 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
+                        -DUSERVER_FEATURE_CHAOTIC=0
                         -DUSERVER_FEATURE_MYSQL=0
                         -DUSERVER_FEATURE_MONGODB=0
                         -DUSERVER_FEATURE_POSTGRESQL=0
                         -DUSERVER_FEATURE_REDIS=0
                         -DUSERVER_FEATURE_CLICKHOUSE=0
                         -DUSERVER_FEATURE_GRPC=0
+                        -DUSERVER_FEATURE_OTLP=0
                         -DUSERVER_FEATURE_KAFKA=0
                         -DUSERVER_FEATURE_RABBITMQ=0
                         -DUSERVER_FEATURE_ROCKS=0
@@ -61,14 +63,14 @@ jobs:
         runs-on: ubuntu-latest
         name: '${{ matrix.info }}'
         steps:
-          - uses: actions/checkout@v2
+          - uses: actions/checkout@v4
 
           - name: Install packages
             run: |
                 sudo apt install -y docker-compose
 
           - name: Reuse ccache directory
-            uses: actions/cache@v2
+            uses: actions/cache@v4
             with:
                 path: .ccache
                 key: 'ccache-dir-${{ matrix.id }}_${{github.ref}}_run-${{github.run_number}}'
@@ -76,6 +78,14 @@ jobs:
                     ccache-dir-${{ matrix.id }}_${{github.ref}}_run-
                     ccache-dir-${{ matrix.id }}_
                     ccache-
+
+          - name: Free disk space
+            run: |
+                df -h
+                # See https://stackoverflow.com/questions/75536771/github-runner-out-of-disk-space-after-building-docker-image
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc \
+                    /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup || true
+                df -h
 
           - name: Setup ccache
             run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
@@ -95,9 +105,14 @@ jobs:
                 'cd /userver/build && make -j $(nproc)'
 
           - name: Run ydb
-            run: |-
-                docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
-                sleep 60
+            run: docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
+
+          - name: Watch ydb
+            run: >-
+                docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image}} bash -c
+                'curl --retry 15 --retry-all-errors --retry-delay 5 -s -o /dev/null
+                http://run-ydb:8765/monitoring/ -v'
 
           - name: Run tests
             run: >-

@@ -145,6 +145,15 @@ git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
 (cd rocksdb && mkdir build-debug && cd build-debug && \
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF  -DUSE_RTTI=ON .. && make -j $(nproc) && make install)
 
+# Installing Kafka
+DEBIAN_FRONTEND=noninteractive apt install -y default-jre
+
+curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
+mkdir -p /etc/kafka
+tar xf kafka.tgz --directory=/etc/kafka
+cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
+rm -rf /etc/kafka/kafka_2.13-3.8.0
+
 # Set UTC timezone
 TZ=Etc/UTC
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

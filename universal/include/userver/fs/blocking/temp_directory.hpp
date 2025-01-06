@@ -17,39 +17,38 @@ namespace fs::blocking {
 /// @note The directory, as well as any newly created parent directories,
 /// has permissions=0700.
 class TempDirectory final {
- public:
-  /// @brief Create the directory at the default path for temporary files
-  /// @throws std::runtime_error
-  static TempDirectory Create();
+public:
+    /// @brief Create the directory at the default path for temporary files
+    /// @throws std::runtime_error
+    static TempDirectory Create();
 
-  /// @brief Create the directory at the specified path
-  /// @param parent_path The directory where the temporary directory
-  /// will be created
-  /// @param name_prefix Directory name prefix, a random string will be added
-  /// after the prefix
-  /// @throws std::runtime_error
-  static TempDirectory Create(std::string_view parent_path,
-                              std::string_view name_prefix);
+    /// @brief Create the directory at the specified path
+    /// @param parent_path The directory where the temporary directory
+    /// will be created
+    /// @param name_prefix Directory name prefix, a random string will be added
+    /// after the prefix
+    /// @throws std::runtime_error
+    static TempDirectory Create(std::string_view parent_path, std::string_view name_prefix);
 
-  TempDirectory() = default;
-  TempDirectory(TempDirectory&& other) noexcept;
-  TempDirectory& operator=(TempDirectory&& other) noexcept;
-  ~TempDirectory();
+    TempDirectory() = default;
+    TempDirectory(TempDirectory&& other) noexcept;
+    TempDirectory& operator=(TempDirectory&& other) noexcept;
+    ~TempDirectory();
 
-  /// Take ownership of an existing directory
-  static TempDirectory Adopt(std::string path);
+    /// Take ownership of an existing directory
+    static TempDirectory Adopt(std::string path);
 
-  /// The directory path
-  const std::string& GetPath() const;
+    /// The directory path
+    const std::string& GetPath() const;
 
-  /// @brief Remove the directory early
-  /// @throws std::runtime_error
-  void Remove() &&;
+    /// @brief Remove the directory early
+    /// @throws std::runtime_error
+    void Remove() &&;
 
- private:
-  explicit TempDirectory(std::string&& path);
+private:
+    explicit TempDirectory(std::string&& path);
 
-  std::string path_;
+    std::string path_;
 };
 
 }  // namespace fs::blocking

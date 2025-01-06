@@ -6,9 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::any_storage::impl {
 
-void AssertStaticRegistrationAllowed() {
-  utils::impl::AssertStaticRegistrationAllowed("AnyStorageTag creation");
-}
+void AssertStaticRegistrationAllowed() { utils::impl::AssertStaticRegistrationAllowed("AnyStorageTag creation"); }
 
 }  // namespace utils::any_storage::impl
 

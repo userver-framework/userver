@@ -8,16 +8,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::baggage {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : MiddlewareComponentBase(config, context) {}
 
-std::shared_ptr<MiddlewareBase> Component::GetMiddleware() {
-  return std::make_shared<Middleware>();
-}
+std::shared_ptr<MiddlewareBase> Component::GetMiddleware() { return std::make_shared<Middleware>(); }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
+    return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
 type: object
 description: gRPC service baggage middleware component
 additionalProperties: false

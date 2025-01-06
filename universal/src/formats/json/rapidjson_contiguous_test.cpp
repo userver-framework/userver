@@ -19,31 +19,29 @@ namespace {
 
 // Ensure contiguous allocation in rapidjson arrays
 TEST(FormatsJson, RapidjsonContiguousArrays) {
-  using formats::json::impl::Value;
-  Value json{rapidjson::kArrayType};
+    using formats::json::impl::Value;
+    Value json{rapidjson::kArrayType};
 
-  for (int i = 0; i < 1000; i++) json.PushBack(i, g_allocator);
+    for (int i = 0; i < 1000; i++) json.PushBack(i, g_allocator);
 
-  Value* begin = &*json.Begin();
-  for (int i = 0, size = json.Size(); i < size; i++) {
-    ASSERT_EQ(&json[i], begin + i);
-  }
+    Value* begin = &*json.Begin();
+    for (int i = 0, size = json.Size(); i < size; i++) {
+        ASSERT_EQ(&json[i], begin + i);
+    }
 }
 
 // Ensure contiguous allocation in rapidjson objects
 TEST(FormatsJson, RapidjsonContiguousMaps) {
-  using formats::json::impl::Value;
-  Value json{rapidjson::kObjectType};
+    using formats::json::impl::Value;
+    Value json{rapidjson::kObjectType};
 
-  for (int i = 0; i < 1000; i++)
-    json.AddMember(Value{std::to_string(i), g_allocator}, Value{i},
-                   g_allocator);
+    for (int i = 0; i < 1000; i++) json.AddMember(Value{std::to_string(i), g_allocator}, Value{i}, g_allocator);
 
-  auto* begin = &*json.MemberBegin();
-  for (int i = 0, size = json.MemberCount(); i < size; i++) {
-    std::string index = std::to_string(i);
-    ASSERT_EQ(&json[index], &begin[i].value);
-  }
+    auto* begin = &*json.MemberBegin();
+    for (int i = 0, size = json.MemberCount(); i < size; i++) {
+        std::string index = std::to_string(i);
+        ASSERT_EQ(&json[index], &begin[i].value);
+    }
 }
 
 USERVER_NAMESPACE_END

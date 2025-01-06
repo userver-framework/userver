@@ -72,7 +72,7 @@ def get_handler_exception_logs(capture):
     return [
         log
         for log in capture.select()
-        if log['text'].startswith('exception in \'handler-chaos-httpclient\'')
+        if log['text'].startswith("exception in 'handler-chaos-httpclient'")
     ]
 
 
@@ -81,13 +81,13 @@ def get_handler_exception_logs(capture):
     [(100, 2000, 1), (100, 2000, 1), (200, 2000, 2)],
 )
 async def test_timeout_expired(
-        service_client,
-        call,
-        client_metrics,
-        slow_mock,
-        timeout,
-        deadline,
-        attempts,
+    service_client,
+    call,
+    client_metrics,
+    slow_mock,
+    timeout,
+    deadline,
+    attempts,
 ):
     async with service_client.capture_logs(log_level='INFO') as capture:
         async with client_metrics:
@@ -139,13 +139,13 @@ async def test_timeout_expired(
     ],
 )
 async def test_deadline_expired(
-        service_client,
-        call,
-        client_metrics,
-        slow_mock,
-        timeout,
-        deadline,
-        attempts,
+    service_client,
+    call,
+    client_metrics,
+    slow_mock,
+    timeout,
+    deadline,
+    attempts,
 ):
     async with service_client.capture_logs(log_level='INFO') as capture:
         async with client_metrics:
@@ -206,8 +206,35 @@ def _fake_deadline_expired_mock(mockserver):
     return mock
 
 
+async def test_fake_deadline_expired_with_exception(
+    service_client, call, fake_deadline_expired_mock, mockserver,
+):
+    async with service_client.capture_logs() as capture:
+        response = await call(
+            headers={DP_TIMEOUT_MS: '300'}, timeout=500, attempts=3,
+        )
+        assert response.status == 504
+        assert response.text == 'Deadline expired'
+
+    errors = capture.select(level='ERROR')
+    warnings = capture.select(level='WARNING')
+    assert len(errors) == 0
+    assert len(warnings) == 2
+
+    exception_warning = warnings[0]
+    deadline_warning = warnings[1]
+
+    assert exception_warning['text'].startswith(
+        f'exception in \'handler-chaos-httpclient\' handler: Timeout happened (deadline propagation), '
+        f'url: {mockserver.url("test")}',
+    )
+
+    assert deadline_warning['body'] == 'Deadline expired'
+    assert deadline_warning['meta_code'] == '504'
+
+
 async def test_fake_deadline_expired(
-        service_client, call, client_metrics, fake_deadline_expired_mock,
+    service_client, call, client_metrics, fake_deadline_expired_mock,
 ):
     async with service_client.capture_logs() as capture:
         async with client_metrics:
@@ -247,10 +274,7 @@ async def test_fake_deadline_expired(
     'retry_network_errors,retries_performed', [(True, 3), (False, 1)],
 )
 async def test_dp_timeout_not_retried(
-        call,
-        fake_deadline_expired_mock,
-        retry_network_errors,
-        retries_performed,
+    call, fake_deadline_expired_mock, retry_network_errors, retries_performed,
 ):
     # If the called service (fake_deadline_expired_mock in this case) returns
     # DP_DEADLINE_EXPIRED header, and our service did not spend the rest of its

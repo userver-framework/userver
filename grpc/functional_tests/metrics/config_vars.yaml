@@ -16,3 +16,5 @@ default-log-path: /var/log/test_core_metrics/server.log
 secdist-path: /etc/test_core_metrics/secure_data.json
 
 config-cache: /var/cache/test_core_metrics/config_cache.json
+
+greeter-client-endpoint: $grpc_mockserver

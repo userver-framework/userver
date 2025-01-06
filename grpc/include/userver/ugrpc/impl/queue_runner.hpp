@@ -9,13 +9,13 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 class QueueRunner final {
- public:
-  explicit QueueRunner(grpc::CompletionQueue& queue);
-  ~QueueRunner();
+public:
+    explicit QueueRunner(grpc::CompletionQueue& queue);
+    ~QueueRunner();
 
- private:
-  grpc::CompletionQueue& queue_;
-  engine::SingleUseEvent completion_;
+private:
+    grpc::CompletionQueue& queue_;
+    engine::SingleUseEvent completion_;
 };
 
 }  // namespace ugrpc::impl

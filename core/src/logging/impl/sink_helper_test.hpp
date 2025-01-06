@@ -20,7 +20,7 @@ std::vector<std::string> ReadFromSocket(engine::io::Socket&& sock);
 
 template <typename... Strings>
 std::vector<std::string> Messages(const Strings&... strings) {
-  return {strings...};
+    return {strings...};
 }
 
 }  // namespace test

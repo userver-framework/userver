@@ -10,18 +10,17 @@
 #include <userver/utils/daemon_run.hpp>
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::ComponentList()
-          .AppendComponentList(components::CommonComponentList())
-          .AppendComponentList(components::CommonServerComponentList())
-          .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>()
-          .Append<server::handlers::Ping>()
-          .Append<alerts::Handler>()
+    const auto component_list = components::ComponentList()
+                                    .AppendComponentList(components::CommonComponentList())
+                                    .AppendComponentList(components::CommonServerComponentList())
+                                    .Append<components::Secdist>()
+                                    .Append<components::DefaultSecdistProvider>()
+                                    .Append<server::handlers::Ping>()
+                                    .Append<alerts::Handler>()
 
-      // Put your handlers and components here
-      ;
+        // Put your handlers and components here
+        ;
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Production service sample - main]

@@ -20,73 +20,76 @@ using LogBuffer = fmt::basic_memory_buffer<char, kInitialLogBufferSize>;
 struct LogHelper::InternalTag final {};
 
 class LogHelper::Impl final {
- public:
-  explicit Impl(LoggerRef logger, Level level) noexcept;
+public:
+    explicit Impl(LoggerRef logger, Level level) noexcept;
 
-  bool IsStreamInitialized() const noexcept { return !!lazy_stream_; }
-  std::ostream& Stream() { return GetLazyInitedStream().ostr; }
+    bool IsStreamInitialized() const noexcept { return !!lazy_stream_; }
+    std::ostream& Stream() { return GetLazyInitedStream().ostr; }
 
-  void PutMessageBegin();
-  void PutMessageEnd();
+    void PutMessageBegin();
+    void PutMessageEnd();
 
-  // Closes the previous tag value, puts the new tag key, opens the new value.
-  void PutKey(std::string_view key);
-  void PutRawKey(std::string_view key);
+    // Closes the previous tag value, puts the new tag key, opens the new value.
+    void PutKey(std::string_view key);
+    void PutRawKey(std::string_view key);
 
-  void PutValuePart(std::string_view value);
-  void PutValuePart(char text_part);
-  LogBuffer& GetBufferForRawValuePart() noexcept;
+    void PutValuePart(std::string_view value);
+    void PutValuePart(char text_part);
+    LogBuffer& GetBufferForRawValuePart() noexcept;
 
-  bool IsWithinValue() const noexcept { return is_within_value_; }
-  void MarkValueEnd() noexcept;
+    bool IsWithinValue() const noexcept { return is_within_value_; }
+    void MarkValueEnd() noexcept;
 
-  LogExtra& GetLogExtra() { return extra_; }
+    LogExtra& GetLogExtra() { return extra_; }
 
-  void StartText();
+    void StartText();
 
-  std::size_t GetTextSize() const { return msg_.size() - initial_length_; }
+    std::size_t GetTextSize() const { return msg_.size() - initial_length_; }
 
-  void LogTheMessage() const;
+    void LogTheMessage() const;
 
-  void MarkAsBroken() noexcept;
+    void MarkAsBroken() noexcept;
 
-  bool IsBroken() const noexcept;
+    bool IsBroken() const noexcept;
 
- private:
-  class BufferStd final : public std::streambuf {
-   public:
-    using char_type = std::streambuf::char_type;
-    using int_type = std::streambuf::int_type;
+    void MarkAsTrace() noexcept;
 
-    explicit BufferStd(Impl& impl) : impl_{impl} {}
+private:
+    class BufferStd final : public std::streambuf {
+    public:
+        using char_type = std::streambuf::char_type;
+        using int_type = std::streambuf::int_type;
 
-   private:
-    int_type overflow(int_type c) override;
-    std::streamsize xsputn(const char_type* s, std::streamsize n) override;
+        explicit BufferStd(Impl& impl) : impl_{impl} {}
 
-    Impl& impl_;
-  };
+    private:
+        int_type overflow(int_type c) override;
+        std::streamsize xsputn(const char_type* s, std::streamsize n) override;
 
-  struct LazyInitedStream {
-    BufferStd sbuf;
-    std::ostream ostr;
+        Impl& impl_;
+    };
 
-    explicit LazyInitedStream(Impl& impl) : sbuf{impl}, ostr(&sbuf) {}
-  };
+    struct LazyInitedStream {
+        BufferStd sbuf;
+        std::ostream ostr;
 
-  LazyInitedStream& GetLazyInitedStream();
+        explicit LazyInitedStream(Impl& impl) : sbuf{impl}, ostr(&sbuf) {}
+    };
 
-  void CheckRepeatedKeys(std::string_view raw_key);
+    LazyInitedStream& GetLazyInitedStream();
 
-  impl::LoggerBase* logger_;
-  const Level level_;
-  const char key_value_separator_;
-  LogBuffer msg_;
-  std::optional<LazyInitedStream> lazy_stream_;
-  LogExtra extra_;
-  std::size_t initial_length_{0};
-  bool is_within_value_{false};
-  std::optional<std::unordered_set<std::string>> debug_tag_keys_;
+    void CheckRepeatedKeys(std::string_view raw_key);
+
+    impl::LoggerBase* logger_;
+    const Level level_;
+    const char key_value_separator_;
+    LogBuffer msg_;
+    std::optional<LazyInitedStream> lazy_stream_;
+    LogExtra extra_;
+    std::size_t initial_length_{0};
+    bool is_within_value_{false};
+    bool is_trace_{false};
+    std::optional<std::unordered_set<std::string>> debug_tag_keys_;
 };
 
 }  // namespace logging

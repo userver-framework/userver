@@ -14,28 +14,30 @@ class ClusterImpl;
 }
 
 class ConnlimitWatchdog final {
- public:
-  explicit ConnlimitWatchdog(detail::ClusterImpl& cluster,
-                             testsuite::TestsuiteTasks& testsuite_tasks,
-                             int shard_number,
-                             std::function<void()> on_new_connlimit);
+public:
+    explicit ConnlimitWatchdog(
+        detail::ClusterImpl& cluster,
+        testsuite::TestsuiteTasks& testsuite_tasks,
+        int shard_number,
+        std::function<void()> on_new_connlimit
+    );
 
-  void Start();
+    void Start();
 
-  void Stop();
+    void Stop();
 
-  void Step();
+    void Step();
 
-  size_t GetConnlimit() const;
+    size_t GetConnlimit() const;
 
- private:
-  detail::ClusterImpl& cluster_;
-  std::atomic<size_t> connlimit_;
-  std::function<void()> on_new_connlimit_;
-  testsuite::TestsuiteTasks& testsuite_tasks_;
-  int steps_with_errors_{0};
-  USERVER_NAMESPACE::utils::PeriodicTask periodic_;
-  int shard_number_;
+private:
+    detail::ClusterImpl& cluster_;
+    std::atomic<size_t> connlimit_;
+    std::function<void()> on_new_connlimit_;
+    testsuite::TestsuiteTasks& testsuite_tasks_;
+    int steps_with_errors_{0};
+    USERVER_NAMESPACE::utils::PeriodicTask periodic_;
+    int shard_number_;
 };
 
 }  // namespace storages::postgres

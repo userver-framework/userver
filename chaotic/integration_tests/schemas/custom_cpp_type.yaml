@@ -1,0 +1,117 @@
+definitions:
+    CustomStruct1:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - field1
+        properties:
+            type:
+                type: string
+            field1:
+                type: integer
+    CustomStruct2:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - field2
+        properties:
+            type:
+                type: string
+            field2:
+                type: string
+    ObjWithCustom:
+        type: object
+        additionalProperties: false
+        properties:
+            integer:
+                type: integer
+                x-usrv-cpp-type: std::chrono::milliseconds
+            sizet:
+                type: integer
+                minimum: 0
+                x-usrv-cpp-type: std::size_t
+            boolean:
+                type: boolean
+                x-usrv-cpp-type: my::CustomBoolean
+            number:
+                type: number
+                x-usrv-cpp-type: my::CustomNumber
+            string:
+                type: string
+                x-usrv-cpp-type: my::CustomString
+            decimal:
+                type: string
+                x-usrv-cpp-type: userver::decimal64::Decimal<10>
+            object:
+                $ref: '#/definitions/CustomObject'
+            std_array:
+                $ref: '#/definitions/StdArray'
+            custom_array:
+                $ref: '#/definitions/CustomArray'
+            allOf:
+                $ref: '#/definitions/CustomAllOf'
+            oneOf:
+                $ref: '#/definitions/CustomOneOf'
+            oneOfWithDiscriminator:
+                x-usrv-cpp-type: my::CustomOneOfWithDiscriminator
+                oneOf:
+                  - $ref: '#/definitions/CustomStruct1'
+                  - $ref: '#/definitions/CustomStruct2'
+                discriminator:
+                    propertyName: type
+    CustomObject:
+        type: object
+        x-usrv-cpp-type: my::CustomObject
+        properties:
+            foo:
+                type: string
+        required:
+          - foo
+        additionalProperties: false
+    StdArray:
+        type: array
+        items:
+            type: string
+        x-usrv-cpp-container: std::set
+    CustomArray:
+        type: array
+        items:
+            type: string
+        x-usrv-cpp-type: my::CustomArray<std::string>
+    CustomAllOf:
+        allOf:
+          - type: object
+            additionalProperties: true
+            properties:
+                field2:
+                    type: string
+          - type: object
+            additionalProperties: true
+            properties:
+                field1:
+                    type: string
+        x-usrv-cpp-type: my::CustomAllOf
+    CustomOneOf:
+        x-usrv-cpp-type: my::CustomOneOf
+        oneOf:
+          - type: integer
+          - type: string
+    CustomDefaultDict:
+        type: object
+        additionalProperties:
+            $ref: '#/definitions/DefaultDict'
+        properties:
+            default_dict:
+                $ref: '#/definitions/DefaultDict'
+    DefaultDict:
+        type: object
+        properties:
+            __default__:
+                type: string
+                x-usrv-cpp-type: my::CustomString
+        additionalProperties:
+            type: string
+            x-usrv-cpp-type: my::CustomString
+        x-usrv-cpp-type: userver::utils::DefaultDict<my::CustomString>

@@ -7,7 +7,7 @@
 #include <fmt/format.h>
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
@@ -19,8 +19,8 @@
 #include <userver/ugrpc/server/service_component_base.hpp>
 
 int main(int argc, char* argv[]) {
-  const auto component_list = components::MinimalServerComponentList()
-                                  .Append<ugrpc::server::ServerComponent>()
-                                  .Append<ugrpc::server::HealthComponent>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<ugrpc::server::ServerComponent>()
+                                    .Append<ugrpc::server::HealthComponent>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

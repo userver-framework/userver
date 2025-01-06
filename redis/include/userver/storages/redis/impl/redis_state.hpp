@@ -6,23 +6,23 @@ namespace redis {
 
 /// Represents the state of redis instance connection
 enum class RedisState {
-  /// Initializing context and establishing connection
-  kInit = 0,
+    /// Initializing context and establishing connection
+    kInit = 0,
 
-  /// Connection initialization failed
-  kInitError,
+    /// Connection initialization failed
+    kInitError,
 
-  /// Connection established and ready to send commands
-  kConnected,
+    /// Connection established and ready to send commands
+    kConnected,
 
-  /// Closing connection, all remaining commands are dropped
-  kDisconnecting,
+    /// Closing connection, all remaining commands are dropped
+    kDisconnecting,
 
-  /// Connection successfully closed
-  kDisconnected,
+    /// Connection successfully closed
+    kDisconnected,
 
-  /// An error occurred while closing connection
-  kDisconnectError
+    /// An error occurred while closing connection
+    kDisconnectError
 };
 
 }  // namespace redis

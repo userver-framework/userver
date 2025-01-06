@@ -1,0 +1,30 @@
+definitions:
+    OneOfDiscriminator:
+        type: object
+        additionalProperties: false
+        properties:
+            foo:
+                oneOf:
+                  - $ref: '#/definitions/A'
+                  - $ref: '#/definitions/B'
+                discriminator:
+                    propertyName: type
+                    mapping:
+                        aaa: '#/definitions/A'
+                        bbb: '#/definitions/B'
+    A:
+        type: object
+        additionalProperties: true
+        properties:
+            type:
+                type: string
+            a_prop:
+                type: integer
+    B:
+        type: object
+        additionalProperties: true
+        properties:
+            type:
+                type: string
+            b_prop:
+                type: integer

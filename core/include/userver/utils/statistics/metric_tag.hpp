@@ -25,21 +25,19 @@ namespace utils::statistics {
 /// @endcode
 template <typename Metric>
 class MetricTag final {
- public:
-  /// Register metric, passing a copy of `args` to the constructor of `Metric`
-  template <typename... Args>
-  explicit MetricTag(const std::string& path, Args&&... args)
-      : key_{typeid(Metric), path} {
-    impl::RegisterMetricInfo(
-        key_, impl::MakeMetricFactory<Metric>(std::forward<Args>(args)...));
-  }
+public:
+    /// Register metric, passing a copy of `args` to the constructor of `Metric`
+    template <typename... Args>
+    explicit MetricTag(const std::string& path, Args&&... args) : key_{typeid(Metric), path} {
+        impl::RegisterMetricInfo(key_, impl::MakeMetricFactory<Metric>(std::forward<Args>(args)...));
+    }
 
-  std::string GetPath() const { return key_.path; }
+    std::string GetPath() const { return key_.path; }
 
- private:
-  friend class MetricsStorage;
+private:
+    friend class MetricsStorage;
 
-  const impl::MetricKey key_;
+    const impl::MetricKey key_;
 };
 
 }  // namespace utils::statistics

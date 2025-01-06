@@ -18,8 +18,8 @@ ninja
 protobuf
 openssl
 yaml-cpp
-librdkafka-dev
-postgresql@14
+librdkafka
+postgresql@16
 redis
 zlib
 amqp-cpp

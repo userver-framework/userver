@@ -19,39 +19,39 @@ class RpcData;
 /// @brief Contains parsed additional data for grpc status
 /// For example parsed status string
 struct ParsedGStatus final {
-  /// @brief Processes status and builds ParsedGStatus
-  static ParsedGStatus ProcessStatus(const grpc::Status& status);
+    /// @brief Processes status and builds ParsedGStatus
+    static ParsedGStatus ProcessStatus(const grpc::Status& status);
 
-  std::optional<google::rpc::Status> gstatus;
-  std::optional<std::string> gstatus_string;
+    std::optional<google::rpc::Status> gstatus;
+    std::optional<std::string> gstatus_string;
 };
 
 /// AsyncMethodInvocation for Finish method that stops stats and Span timers
 /// ASAP, without waiting for a Task to wake up
-class FinishAsyncMethodInvocation final
-    : public ugrpc::impl::AsyncMethodInvocation {
- public:
-  explicit FinishAsyncMethodInvocation(RpcData& rpc_data);
-  ~FinishAsyncMethodInvocation() override;
+class FinishAsyncMethodInvocation final : public ugrpc::impl::AsyncMethodInvocation {
+public:
+    explicit FinishAsyncMethodInvocation(RpcData& rpc_data);
+    ~FinishAsyncMethodInvocation() override;
 
-  grpc::Status& GetStatus();
-  ParsedGStatus& GetParsedGStatus();
+    grpc::Status& GetStatus();
+    ParsedGStatus& GetParsedGStatus();
 
-  void Notify(bool ok) noexcept override;
+    void Notify(bool ok) noexcept override;
 
- private:
-  RpcData& rpc_data_;
-  grpc::Status& status_;
-  ParsedGStatus parsed_gstatus_;
+private:
+    RpcData& rpc_data_;
+    grpc::Status& status_;
+    ParsedGStatus parsed_gstatus_;
 };
 
-ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(
-    ugrpc::impl::AsyncMethodInvocation& invocation,
-    grpc::ClientContext& context) noexcept;
+ugrpc::impl::AsyncMethodInvocation::WaitStatus
+Wait(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::ClientContext& context) noexcept;
 
 ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitUntil(
     ugrpc::impl::AsyncMethodInvocation& invocation,
-    grpc::ClientContext& context, engine::Deadline deadline) noexcept;
+    grpc::ClientContext& context,
+    engine::Deadline deadline
+) noexcept;
 
 }  // namespace ugrpc::client::impl
 

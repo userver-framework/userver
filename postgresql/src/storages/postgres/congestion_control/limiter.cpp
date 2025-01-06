@@ -9,7 +9,7 @@ namespace storages::postgres::cc {
 Limiter::Limiter(detail::ConnectionPool& pool) : pool_(pool) {}
 
 void Limiter::SetLimit(const congestion_control::Limit& new_limit) {
-  pool_.SetMaxConnectionsCc(new_limit.load_limit.value_or(0));
+    pool_.SetMaxConnectionsCc(new_limit.load_limit.value_or(0));
 }
 
 }  // namespace storages::postgres::cc

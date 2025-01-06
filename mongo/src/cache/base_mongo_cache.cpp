@@ -7,13 +7,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components::impl {
 
-std::chrono::milliseconds GetMongoCacheUpdateCorrection(
-    const ComponentConfig& config) {
-  return config["update-correction"].As<std::chrono::milliseconds>(0);
+std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig& config) {
+    return config["update-correction"].As<std::chrono::milliseconds>(0);
 }
 
 std::string GetMongoCacheSchema() {
-  return R"(
+    return R"(
 type: object
 description: Base class for all caches polling mongo collection
 additionalProperties: false

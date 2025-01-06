@@ -8,6 +8,7 @@ message GreetingRequest {
 
 message GreetingResponse {
   string name = 1;
+  string greeting = 2;
 }
 
 message StreamGreetingRequest {

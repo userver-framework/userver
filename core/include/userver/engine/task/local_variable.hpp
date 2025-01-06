@@ -21,41 +21,39 @@ namespace engine {
 /// initialization.
 template <typename T>
 class TaskLocalVariable final {
-  static_assert(!std::is_reference_v<T>);
-  static_assert(!std::is_const_v<T>);
+    static_assert(!std::is_reference_v<T>);
+    static_assert(!std::is_const_v<T>);
 
- public:
-  /// @brief Get the instance of the variable for the current coroutine.
-  /// Initializes (default constructs) the variable if it was not previously
-  /// initialized.
-  /// @note Must be called from a coroutine, otherwise it is UB.
-  T& operator*();
+public:
+    /// @brief Get the instance of the variable for the current coroutine.
+    /// Initializes (default constructs) the variable if it was not previously
+    /// initialized.
+    /// @note Must be called from a coroutine, otherwise it is UB.
+    T& operator*();
 
-  /// @overload
-  T* operator->();
+    /// @overload
+    T* operator->();
 
-  /// @brief Get the variable instance for the current task.
-  /// @returns the variable or `nullptr` if variable was not initialized.
-  T* GetOptional() noexcept {
-    return impl::task_local::GetCurrentStorage().GetOptional<T, kVariableKind>(
-        impl_.GetKey());
-  }
+    /// @brief Get the variable instance for the current task.
+    /// @returns the variable or `nullptr` if variable was not initialized.
+    T* GetOptional() noexcept {
+        return impl::task_local::GetCurrentStorage().GetOptional<T, kVariableKind>(impl_.GetKey());
+    }
 
- private:
-  static constexpr auto kVariableKind = impl::task_local::VariableKind::kNormal;
+private:
+    static constexpr auto kVariableKind = impl::task_local::VariableKind::kNormal;
 
-  impl::task_local::Variable impl_;
+    impl::task_local::Variable impl_;
 };
 
 template <typename T>
 T& TaskLocalVariable<T>::operator*() {
-  return impl::task_local::GetCurrentStorage().GetOrEmplace<T, kVariableKind>(
-      impl_.GetKey());
+    return impl::task_local::GetCurrentStorage().GetOrEmplace<T, kVariableKind>(impl_.GetKey());
 }
 
 template <typename T>
 T* TaskLocalVariable<T>::operator->() {
-  return &(**this);
+    return &(**this);
 }
 
 }  // namespace engine

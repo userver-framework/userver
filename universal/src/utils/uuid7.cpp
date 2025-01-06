@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::generators {
 
 std::string GenerateUuidV7() {
-  const auto val = GenerateBoostUuidV7();
-  return encoding::ToHex(val.begin(), val.size());
+    const auto val = GenerateBoostUuidV7();
+    return encoding::ToHex(val.begin(), val.size());
 }
 
 }  // namespace utils::generators

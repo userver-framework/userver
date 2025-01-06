@@ -2,7 +2,6 @@ import json
 
 import pytest
 
-
 pytest_plugins = [
     'pytest_userver.plugins.redis',
     'pytest_userver.plugins.dynamic_config',

@@ -97,6 +97,8 @@ Checks:
   ,-readability-redundant-declaration\
   ,-readability-uppercase-literal-suffix\
   ,-readability-use-anyofallof\
+  ,-hicpp-use-emplace\
+  ,-modernize-use-emplace\
   "
 
 WarningsAsErrors: '*'

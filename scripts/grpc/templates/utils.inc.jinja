@@ -22,3 +22,7 @@ namespace {{ namespace }} {
 #pragma clang diagnostic pop
 #endif
 {%- endmacro %}
+
+{% macro namespace_with_colons(namespace) %}
+{% if namespace %}::{{namespace}}{% endif %}
+{%- endmacro %}

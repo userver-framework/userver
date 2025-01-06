@@ -1,0 +1,18 @@
+definitions:
+    ObjectDate:
+        type: object
+        additionalProperties: false
+        properties:
+            created_at:
+                type: string
+                format: date
+            updated_at:
+                type: string
+                format: date-time
+            updated_at_extra:
+                type: string
+                format: date-time
+                x-usrv-cpp-type: my::CustomDateTime
+            deleted_at:
+                type: string
+                format: date-time-iso-basic

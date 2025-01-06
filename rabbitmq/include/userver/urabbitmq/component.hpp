@@ -5,9 +5,8 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
-
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/components/component_base.hpp>
+#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -54,23 +53,24 @@ namespace components {
 ///
 // clang-format on
 
-class RabbitMQ : public LoggableComponentBase {
- public:
-  /// Component constructor
-  RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
-  /// Component destructor
-  ~RabbitMQ() override;
+class RabbitMQ final : public ComponentBase {
+public:
+    /// Component constructor
+    RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
+    /// Component destructor
+    ~RabbitMQ() override;
 
-  /// Cluster accessor
-  std::shared_ptr<urabbitmq::Client> GetClient() const;
+    /// Cluster accessor
+    std::shared_ptr<urabbitmq::Client> GetClient() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Component& dns_;
+private:
+    clients::dns::Component& dns_;
+    std::shared_ptr<urabbitmq::Client> client_;
 
-  std::shared_ptr<urabbitmq::Client> client_;
-  utils::statistics::Entry statistics_holder_;
+    // Must be the last field
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

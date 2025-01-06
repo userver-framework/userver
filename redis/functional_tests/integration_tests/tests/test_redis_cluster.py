@@ -3,7 +3,6 @@ import asyncio
 import redis
 import pytest
 
-
 KEYS_SEQ_LEN = 10  # enough sequential keys to test all shards
 FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
 

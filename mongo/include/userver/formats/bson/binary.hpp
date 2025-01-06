@@ -27,25 +27,25 @@ class BsonStringImpl;
 }  // namespace impl
 
 class BsonString {
- public:
-  /// @cond
-  explicit BsonString(impl::BsonHolder);
-  /// @endcond
+public:
+    /// @cond
+    explicit BsonString(impl::BsonHolder);
+    /// @endcond
 
-  /// Implicitly convertible to string
-  /*implicit*/ operator std::string() const { return ToString(); }
+    /// Implicitly convertible to string
+    /*implicit*/ operator std::string() const { return ToString(); }
 
-  /// Returns a copy of the binary
-  std::string ToString() const;
+    /// Returns a copy of the binary
+    std::string ToString() const;
 
-  /// Returns a view of the binary
-  std::string_view GetView() const;
+    /// Returns a view of the binary
+    std::string_view GetView() const;
 
-  const uint8_t* Data() const;
-  size_t Size() const;
+    const uint8_t* Data() const;
+    size_t Size() const;
 
- private:
-  impl::BsonHolder impl_;
+private:
+    impl::BsonHolder impl_;
 };
 
 }  // namespace formats::bson

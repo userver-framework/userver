@@ -1,23 +1,37 @@
-if (TARGET libgtest)
-    return()
+if(TARGET GTest::gtest)
+  return()
 endif()
 
 option(USERVER_DOWNLOAD_PACKAGE_GTEST "Download and setup gtest if no gtest of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 
-if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
-    if (USERVER_DOWNLOAD_PACKAGE_GTEST)
-        find_package(UserverGTest QUIET)
-    else()
-        find_package(UserverGTest REQUIRED)
+if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+  find_package(GTest QUIET)
+  if(NOT GTest_FOUND AND NOT USERVER_DOWNLOAD_PACKAGE_GTEST)
+    message(FATAL_ERROR
+        "userver failed to find GTest package.\n"
+        "Please install the packages required for your system:\n\n"
+        "  Debian:    sudo apt install libgtest-dev libgmock-dev\n\n"
+        "  macOS:     brew install googletest\n"
+        "  ArchLinux: sudo pacman -S gtest\n"
+        "  FreeBSD:   pkg install gtest\n")
+  endif()
+
+  if(GTest_FOUND)
+    if(NOT TARGET GTest::gtest)
+      add_library(GTest::gtest ALIAS GTest::GTest)
+    endif()
+    if(NOT TARGET GTest::gmock)
+      add_library(GTest::gmock ALIAS GTest::GTest)
+    endif()
+    if(NOT TARGET GTest::gtest_main)
+      add_library(GTest::gtest_main ALIAS GTest::Main)
+    endif()
+    if(NOT TARGET GTest::gmock_main)
+      add_library(GTest::gmock_main ALIAS GTest::Main)
     endif()
 
-    if (UserverGTest_FOUND)
-        if (NOT TARGET libgtest)
-            add_library(libgtest ALIAS UserverGTest)  # Unify link names
-            add_library(libgmock ALIAS UserverGTest)  # Unify link names
-        endif()
-        return()
-    endif()
+    return()
+  endif()
 endif()
 
 include(DownloadUsingCPM)
@@ -29,5 +43,10 @@ CPMAddPackage(
     OPTIONS "INSTALL_GTEST OFF"
 )
 
-add_library(libgtest ALIAS gtest_main)  # Unify link names
-add_library(libgmock ALIAS gmock)  # Unify link names
+# Unify link names
+if(NOT TARGET GTest::gtest)
+  add_library(GTest::gtest ALIAS gtest)
+  add_library(GTest::gmock ALIAS gmock)
+  add_library(GTest::gtest_main ALIAS gtest_main)
+  add_library(GTest::gmock_main ALIAS gmock_main)
+endif()

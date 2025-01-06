@@ -19,22 +19,27 @@ USERVER_NAMESPACE_BEGIN
 namespace ydb::impl {
 
 struct RequestContext final {
-  RequestContext(TableClient& client, const Query& query,
-                 OperationSettings& settings,
-                 IsStreaming is_streaming = IsStreaming{false},
-                 tracing::Span* custom_parent_span = nullptr,
-                 const utils::impl::SourceLocation& location =
-                     utils::impl::SourceLocation::Current());
+    RequestContext(
+        TableClient& client,
+        const Query& query,
+        OperationSettings& settings,
+        IsStreaming is_streaming = IsStreaming{false},
+        tracing::Span* custom_parent_span = nullptr,
+        const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
+    );
 
-  ~RequestContext();
+    void HandleError(const NYdb::TStatus& status);
 
-  TableClient& table_client;
-  OperationSettings& settings;
-  const int initial_uncaught_exceptions;
-  StatsScope stats_scope;
-  dynamic_config::Snapshot config_snapshot;
-  tracing::Span span;
-  engine::Deadline deadline;
+    ~RequestContext();
+
+    TableClient& table_client;
+    OperationSettings& settings;
+    const int initial_uncaught_exceptions;
+    StatsScope stats_scope;
+    dynamic_config::Snapshot config_snapshot;
+    tracing::Span span;
+    engine::Deadline deadline;
+    bool is_error_{false};
 };
 
 }  // namespace ydb::impl

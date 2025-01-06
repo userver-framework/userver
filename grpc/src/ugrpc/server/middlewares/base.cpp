@@ -1,5 +1,7 @@
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
+#include <userver/ugrpc/server/impl/exceptions.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -9,54 +11,52 @@ MiddlewareBase::MiddlewareBase() = default;
 MiddlewareBase::~MiddlewareBase() = default;
 
 MiddlewareCallContext::MiddlewareCallContext(
-    const Middlewares& middlewares, CallAnyBase& call,
-    utils::function_ref<void()> user_call, std::string_view service_name,
-    std::string_view method_name, const dynamic_config::Snapshot& config,
-    const ::google::protobuf::Message* request)
+    const Middlewares& middlewares,
+    CallAnyBase& call,
+    utils::function_ref<void()> user_call,
+    const dynamic_config::Snapshot& config,
+    ::google::protobuf::Message* request
+)
     : middleware_(middlewares.begin()),
       middleware_end_(middlewares.end()),
       user_call_(std::move(user_call)),
       call_(call),
-      service_name_(service_name),
-      method_name_(method_name),
       config_(config),
       request_(request) {}
 
 void MiddlewareCallContext::Next() {
-  if (middleware_ == middleware_end_) {
-    ClearMiddlewaresResources();
-    user_call_();
-  } else {
-    // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto middleware = middleware_++;
-    (*middleware)->Handle(*this);
-  }
+    if (is_called_from_handle_) {
+        // It is important for non-stream calls
+        if (request_) {
+            (*middleware_)->CallRequestHook(*this, *request_);
+            if (call_.IsFinished()) throw impl::MiddlewareRpcInterruptionError();
+        }
+        ++middleware_;
+    }
+    if (middleware_ == middleware_end_) {
+        ClearMiddlewaresResources();
+        user_call_();
+    } else {
+        is_called_from_handle_ = true;
+        (*middleware_)->Handle(*this);
+    }
 }
 
 void MiddlewareCallContext::ClearMiddlewaresResources() {
-  UASSERT(config_);
-  config_.reset();
+    UASSERT(config_);
+    config_.reset();
 }
 
-CallAnyBase& MiddlewareCallContext::GetCall() { return call_; }
+CallAnyBase& MiddlewareCallContext::GetCall() const { return call_; }
 
-std::string_view MiddlewareCallContext::GetServiceName() const {
-  return service_name_;
+const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig() const {
+    UASSERT(config_);
+    return config_.value();
 }
 
-std::string_view MiddlewareCallContext::GetMethodName() const {
-  return method_name_;
-}
+void MiddlewareBase::CallRequestHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
 
-const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
-    const {
-  UASSERT(config_);
-  return config_.value();
-}
-
-const ::google::protobuf::Message* MiddlewareCallContext::GetInitialRequest() {
-  return request_;
-}
+void MiddlewareBase::CallResponseHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
 
 }  // namespace ugrpc::server
 

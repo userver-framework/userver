@@ -19,38 +19,37 @@ namespace fs::blocking {
 /// @note The newly created file is immediately opened with read-write
 /// permissions. The file descriptor can be accessed using `File`.
 class TempFile final {
- public:
-  /// @brief Create the file at the default path for temporary files
-  /// @throws std::runtime_error
-  static TempFile Create();
+public:
+    /// @brief Create the file at the default path for temporary files
+    /// @throws std::runtime_error
+    static TempFile Create();
 
-  /// @brief Create the file at the specified path
-  /// @param parent_path The directory where the temporary file will be created
-  /// @param name_prefix File name prefix, a random string will be added
-  /// after the prefix
-  /// @throws std::runtime_error
-  static TempFile Create(std::string_view parent_path,
-                         std::string_view name_prefix);
+    /// @brief Create the file at the specified path
+    /// @param parent_path The directory where the temporary file will be created
+    /// @param name_prefix File name prefix, a random string will be added
+    /// after the prefix
+    /// @throws std::runtime_error
+    static TempFile Create(std::string_view parent_path, std::string_view name_prefix);
 
-  TempFile() = delete;
-  TempFile(TempFile&& other) noexcept;
-  TempFile& operator=(TempFile&& other) noexcept;
-  ~TempFile();
+    TempFile() = delete;
+    TempFile(TempFile&& other) noexcept;
+    TempFile& operator=(TempFile&& other) noexcept;
+    ~TempFile();
 
-  /// Take ownership of an existing file
-  static TempFile Adopt(std::string path);
+    /// Take ownership of an existing file
+    static TempFile Adopt(std::string path);
 
-  /// The file path
-  const std::string& GetPath() const;
+    /// The file path
+    const std::string& GetPath() const;
 
-  /// @brief Remove the file early
-  /// @throws std::runtime_error
-  void Remove() &&;
+    /// @brief Remove the file early
+    /// @throws std::runtime_error
+    void Remove() &&;
 
- private:
-  explicit TempFile(std::string&& path);
+private:
+    explicit TempFile(std::string&& path);
 
-  std::string path_;
+    std::string path_;
 };
 
 }  // namespace fs::blocking

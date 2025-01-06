@@ -75,6 +75,150 @@ schema:
 
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
+@anchor MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS
+## MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS
+
+Whether Congestion Control is enabled for specified MongoDB databases.
+Overrides settings from @ref MONGO_CONGESTION_CONTROL_ENABLED.
+
+```
+yaml
+schema:
+    type: object
+    example: |
+        {
+            // Options for specified database.
+            "mongo-stq_config": true,
+            // Default options. Applied to all not specified components.
+            // If __default__ section is not present,
+            // use settings from MONGO_CONGESTION_CONTROL_ENABLED
+            "__default__": false
+        }
+    additionalProperties:
+        type: boolean
+```
+
+Dictionary keys can be either the service **component name** (not database name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Mongo component of the service.
+
+Used by components::Mongo, components::MultiMongo.
+
+
+@anchor MONGO_CONGESTION_CONTROL_ENABLED
+## MONGO_CONGESTION_CONTROL_ENABLED
+
+Whether Congestion Control is enabled for MongoDB
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```
+true
+```
+
+Used by components::Mongo, components::MultiMongo.
+
+
+@anchor MONGO_CONGESTION_CONTROL_SETTINGS
+## MONGO_CONGESTION_CONTROL_SETTINGS
+
+Congestion Control settings for MongoDB
+
+```
+yaml
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        errors-threshold-percent:
+            description: Percent of errors to enable СС
+            type: number
+        deactivate-delta:
+            description: СС turned off if this amount of free connections is reached 
+            type: integer
+        timings-burst-times-threshold:
+            description: CC is turned on if request times grow to this value
+            type: number
+        min-timings-ms:
+            description: minimal value of timeings after which the CC heuristics turn on
+            type: integer
+        min-limit:
+            description: minimal value of connections after which the CC heuristics turn on
+            type: integer
+        min-qps:
+            description: minimal value of queries per second after which the CC heuristics turn on
+            type: integer
+```
+
+Used by components::Mongo, components::MultiMongo.
+
+
+@anchor MONGO_CONNECTION_POOL_SETTINGS
+## MONGO_CONNECTION_POOL_SETTINGS
+
+Options for MongoDB connections pool. Overrides the static config values.
+For components::MultiMongo all pools are updated.
+
+```
+yaml
+schema:
+    type: object
+    example: |
+        {
+            // Options for specified component.
+            "mongo-stq_config": {
+                "initial_size": 32,
+                "max_size": 256,
+                "idle_limit": 128,
+                "connecting_limit": 8
+            },
+            // Default options. Applied to all not specified components.
+            "__default__": {
+                "initial_size": 16,
+                "max_size": 128,
+                "idle_limit": 64,
+                "connecting_limit": 8
+            }
+        }
+    additionalProperties:
+        $ref: "#/definitions/PoolSettings"
+    definitions:
+        PoolSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                initial_size:
+                    type: integer
+                    minimum: 0
+                    description: number of connections created initially.
+                max_size:
+                    type: integer
+                    minimum: 1
+                    description: limit for total connections number.
+                idle_limit:
+                    type: integer
+                    minimum: 1
+                    description: limit for idle connections number.
+                connecting_limit:
+                    type: integer
+                    minimum: 0
+                    description: limit for establishing connections number.
+            required:
+              - max_size
+              - connecting_limit
+```
+
+Dictionary keys can be either the service **component name** (not database name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Mongo component of the service.
+
+Used by components::Mongo, components::MultiMongo.
+
 
 @anchor MONGO_DEFAULT_MAX_TIME_MS
 ## MONGO_DEFAULT_MAX_TIME_MS
@@ -1087,6 +1231,8 @@ Used by components::Server.
 
 Controls whether the logging of HTTP headers in handlers is performed.
 
+@note To ensure safety, all header values will be output as `***` unless specified in @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST.
+
 ```
 yaml
 schema:
@@ -1099,6 +1245,26 @@ false
 ```
 
 Used by components::Server.
+
+@anchor USERVER_LOG_REQUEST_HEADERS_WHITELIST
+## USERVER_LOG_REQUEST_HEADERS_WHITELIST
+
+If the @ref USERVER_LOG_REQUEST_HEADERS option is enabled, you can control which HTTP headers are logged, including their values. Header is suitable if it exactly matches one of the values in the whitelist. Any headers that are not on the whitelist will have their values replaced with *** in the logs.
+
+```
+yaml
+schema:
+    type: array
+    items:
+        type: string
+```
+
+**Example:**
+```
+["User-Agent", "Accept-Encoding"]
+```
+
+Used by server::handlers::HttpHandlerBase.
 
 @anchor USERVER_LRU_CACHES
 ## USERVER_LRU_CACHES

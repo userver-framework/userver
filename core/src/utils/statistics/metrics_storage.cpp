@@ -19,40 +19,39 @@ namespace impl {
 
 namespace {
 
-using MetricMetadataMap =
-    std::unordered_map<MetricKey, MetricFactory, MetricKeyHash>;
+using MetricMetadataMap = std::unordered_map<MetricKey, MetricFactory, MetricKeyHash>;
 
 MetricMetadataMap& GetRegisteredMetrics() {
-  static MetricMetadataMap map;
-  return map;
+    static MetricMetadataMap map;
+    return map;
 }
 
 MetricMap InstantiateMetrics() {
-  utils::impl::AssertStaticRegistrationFinished();
-  const auto& registered_metrics = GetRegisteredMetrics();
+    utils::impl::AssertStaticRegistrationFinished();
+    const auto& registered_metrics = GetRegisteredMetrics();
 
-  MetricMap metrics;
-  for (const auto& [key, factory] : registered_metrics) {
-    metrics.emplace(key, factory());
-  }
-  return metrics;
+    MetricMap metrics;
+    for (const auto& [key, factory] : registered_metrics) {
+        metrics.emplace(key, factory());
+    }
+    return metrics;
 }
 
 }  // namespace
 
 std::size_t MetricKeyHash::operator()(const MetricKey& key) const noexcept {
-  auto seed = std::hash<std::type_index>()(key.idx);
-  boost::hash_combine(seed, std::hash<std::string>()(key.path));
-  return seed;
+    auto seed = std::hash<std::type_index>()(key.idx);
+    boost::hash_combine(seed, std::hash<std::string>()(key.path));
+    return seed;
 }
 
 MetricWrapperBase::~MetricWrapperBase() = default;
 
 void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
-  utils::impl::AssertStaticRegistrationAllowed("MetricKey registration");
-  UASSERT(factory);
-  auto [_, ok] = GetRegisteredMetrics().emplace(key, factory);
-  UASSERT_MSG(ok, fmt::format("duplicate MetricTag with path '{}'", key.path));
+    utils::impl::AssertStaticRegistrationAllowed("MetricKey registration");
+    UASSERT(factory);
+    auto [_, ok] = GetRegisteredMetrics().emplace(key, factory);
+    UASSERT_MSG(ok, fmt::format("duplicate MetricTag with path '{}'", key.path));
 }
 
 }  // namespace impl
@@ -60,31 +59,31 @@ void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
 MetricsStorage::MetricsStorage() : metrics_(impl::InstantiateMetrics()) {}
 
 std::vector<Entry> MetricsStorage::RegisterIn(Storage& statistics_storage) {
-  std::vector<Entry> holders;
-  holders.reserve(metrics_.size());
+    std::vector<Entry> holders;
+    holders.reserve(metrics_.size());
 
-  for (auto& [key, metric_ptr] : metrics_) {
-    auto& metric = *metric_ptr;
-    if (metric.HasWriterSupport()) {
-      holders.push_back(statistics_storage.RegisterWriter(
-          key.path,
-          [&metric](utils::statistics::Writer& w) { metric.DumpToWriter(w); }));
-    } else {
-      holders.push_back(statistics_storage.RegisterExtender(
-          key.path,
-          [&metric](const auto&) { return metric.DeprecatedJsonDump(); }));
+    for (auto& [key, metric_ptr] : metrics_) {
+        auto& metric = *metric_ptr;
+        if (metric.HasWriterSupport()) {
+            holders.push_back(statistics_storage.RegisterWriter(key.path, [&metric](utils::statistics::Writer& w) {
+                metric.DumpToWriter(w);
+            }));
+        } else {
+            holders.push_back(statistics_storage.RegisterExtender(key.path, [&metric](const auto&) {
+                return metric.DeprecatedJsonDump();
+            }));
+        }
     }
-  }
 
-  return holders;
+    return holders;
 }
 
 void MetricsStorage::ResetMetrics() {
-  LOG_DEBUG() << "resetting custom metric";
+    LOG_DEBUG() << "resetting custom metric";
 
-  for (auto& [_, value] : metrics_) {
-    value->Reset();
-  }
+    for (auto& [_, value] : metrics_) {
+        value->Reset();
+    }
 }
 
 }  // namespace utils::statistics

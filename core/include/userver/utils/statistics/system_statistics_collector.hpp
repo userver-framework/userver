@@ -3,8 +3,8 @@
 /// @file userver/utils/statistics/system_statistics_collector.hpp
 /// @brief @copybrief components::SystemStatisticsCollector
 
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
@@ -35,23 +35,23 @@ namespace components {
 
 // clang-format on
 
-class SystemStatisticsCollector final : public LoggableComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::SystemStatisticsCollector
-  static constexpr std::string_view kName = "system-statistics-collector";
+class SystemStatisticsCollector final : public ComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::SystemStatisticsCollector
+    static constexpr std::string_view kName = "system-statistics-collector";
 
-  SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
-  ~SystemStatisticsCollector() override;
+    SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
+    ~SystemStatisticsCollector() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void ExtendStatistics(utils::statistics::Writer& writer);
+private:
+    void ExtendStatistics(utils::statistics::Writer& writer);
 
-  const bool with_nginx_;
-  engine::TaskProcessor& fs_task_processor_;
-  utils::statistics::Entry statistics_holder_;
+    const bool with_nginx_;
+    engine::TaskProcessor& fs_task_processor_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

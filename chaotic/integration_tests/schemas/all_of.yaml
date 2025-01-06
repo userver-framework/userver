@@ -1,0 +1,16 @@
+definitions:
+    Object1:
+        type: object
+        additionalProperties: true
+        properties:
+            foo:
+                type: integer
+
+    AllOf:
+        allOf:
+          - $ref: '#/definitions/Object1'
+          - type: object
+            additionalProperties: true
+            properties:
+                bar:
+                    type: integer

@@ -90,6 +90,24 @@ and also passes the handler into the middleware constructor. Given the middlewar
 @snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware implementation
 the factory implementation is just this:
 @snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware factory implementation
+Do not forget to add components configs:
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - noop-middleware and server-middleware components configs
+
+### Global middleware configuration
+
+Normally, the process of configuring a middleware is the same as configuring any other component,
+see @ref scripts/docs/en/userver/component_system.md
+
+As a component, a `MiddlewareFactory` takes `(config, context)` parameters in its constructor.
+It can parse some fields from `config` and store them in the component.
+Then it can pass this configuration (references are OK) to each `Middleware` created in its
+@ref server::middlewares::HttpMiddlewareFactoryBase::Create "Create" method.
+
+All used config fields should be described in `MyMiddlewareFactory::GetStaticConfigSchema`.
+
+Global configuration should be preferred to per-handler configuration,
+because the latter leads to copy-pasta in configs.
+For some options, it's a good idea to implement both global and per-handler configuration.
 
 ### Per-handler middleware configuration
 
@@ -107,6 +125,9 @@ would be to have a configuration in the Factory config, and for Factory to pass 
 constructor. This takes away the possibility to declare a Factory as a SimpleHttpMiddlewareFactory, but we find this
 tradeoff acceptable (after all, if a middleware needs a configuration it isn't that "Simple" already).
 
+Do not forget to add components configs:
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - handler-middleware component config
+
 ## Pipelines configuration
 
 Now, after we have a middleware and its factory implemented, it would be nice to actually use the middleware in the
@@ -121,9 +142,10 @@ server::middlewares::DefaultPipeline and appends the given middlewares to it, wh
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - pipeline builder configuration
 
 If a more sophisticated behavior is desired, derive from server::middlewares::PipelineBuilder and override
-its `BuildPipeline` method. Then set the custom pipeline component's name in the server config:
+its `BuildPipeline` method. Then set the custom pipeline component's name in the config of components::Server:
 
-```yaml
+```
+# yaml
         server:
             # ...
             middleware-pipeline-builder: custom-pipeline-builder

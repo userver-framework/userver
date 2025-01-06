@@ -43,7 +43,7 @@ async def test_happy_path_sentinel(service_client, redis_store, db_name):
 
 @pytest.mark.parametrize('db_name', ['sentinel', 'sentinel-with-master'])
 async def test_happy_path_sentinel_with_resubscription(
-        service_client, redis_store, db_name,
+    service_client, redis_store, db_name,
 ):
     msg = 'sentinel_message'
     response = await service_client.put(_get_url(db_name))

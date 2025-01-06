@@ -7,10 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite::impl::actions {
 
 class BaseTestsuiteAction {
- public:
-  virtual ~BaseTestsuiteAction() = default;
-  virtual formats::json::Value Perform(
-      const formats::json::Value& request_body) const = 0;
+public:
+    virtual ~BaseTestsuiteAction() = default;
+    virtual formats::json::Value Perform(const formats::json::Value& request_body) const = 0;
 };
 
 }  // namespace testsuite::impl::actions

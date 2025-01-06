@@ -150,7 +150,7 @@ async def test_down_pending_recv(service_client, loop, gate):
 
 
 async def test_multiple_socks(
-        service_client, loop, monitor_client, tcp_service_port,
+    service_client, loop, monitor_client, tcp_service_port,
 ):
     await service_client.reset_metrics()
     sockets_count = 250
@@ -172,7 +172,7 @@ async def test_multiple_socks(
 
 
 async def test_multiple_send_only(
-        service_client, loop, monitor_client, tcp_service_port,
+    service_client, loop, monitor_client, tcp_service_port,
 ):
     await service_client.reset_metrics()
     sockets_count = 25

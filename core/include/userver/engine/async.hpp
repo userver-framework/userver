@@ -16,116 +16,106 @@ namespace engine {
 
 namespace impl {
 
-template <template <typename> typename TaskType, typename Function,
-          typename... Args>
-[[nodiscard]] auto MakeTaskWithResult(TaskProcessor& task_processor,
-                                      Task::Importance importance,
-                                      Deadline deadline, Function&& f,
-                                      Args&&... args) {
-  using ResultType =
-      typename utils::impl::WrappedCallImplType<Function, Args...>::ResultType;
-  constexpr auto kWaitMode = TaskType<ResultType>::kWaitMode;
+template <template <typename> typename TaskType, typename Function, typename... Args>
+[[nodiscard]] auto MakeTaskWithResult(
+    TaskProcessor& task_processor,
+    Task::Importance importance,
+    Deadline deadline,
+    Function&& f,
+    Args&&... args
+) {
+    using ResultType = typename utils::impl::WrappedCallImplType<Function, Args...>::ResultType;
+    constexpr auto kWaitMode = TaskType<ResultType>::kWaitMode;
 
-  return TaskType<ResultType>{
-      MakeTask({task_processor, importance, kWaitMode, deadline},
-               std::forward<Function>(f), std::forward<Args>(args)...)};
+    return TaskType<ResultType>{MakeTask(
+        {task_processor, importance, kWaitMode, deadline}, std::forward<Function>(f), std::forward<Args>(args)...
+    )};
 }
 
 }  // namespace impl
 
 /// Runs an asynchronous function call using specified task processor
 template <typename Function, typename... Args>
-[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Function&& f,
-                               Args&&... args) {
-  return impl::MakeTaskWithResult<TaskWithResult>(
-      task_processor, Task::Importance::kNormal, {}, std::forward<Function>(f),
-      std::forward<Args>(args)...);
+[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<TaskWithResult>(
+        task_processor, Task::Importance::kNormal, {}, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// Runs an asynchronous function call using specified task processor
 template <typename Function, typename... Args>
-[[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor,
-                                     Function&& f, Args&&... args) {
-  return impl::MakeTaskWithResult<SharedTaskWithResult>(
-      task_processor, Task::Importance::kNormal, {}, std::forward<Function>(f),
-      std::forward<Args>(args)...);
+[[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<SharedTaskWithResult>(
+        task_processor, Task::Importance::kNormal, {}, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// Runs an asynchronous function call with deadline using specified task
 /// processor
 template <typename Function, typename... Args>
-[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Deadline deadline,
-                               Function&& f, Args&&... args) {
-  return impl::MakeTaskWithResult<TaskWithResult>(
-      task_processor, Task::Importance::kNormal, deadline,
-      std::forward<Function>(f), std::forward<Args>(args)...);
+[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Deadline deadline, Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<TaskWithResult>(
+        task_processor, Task::Importance::kNormal, deadline, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// Runs an asynchronous function call with deadline using specified task
 /// processor
 template <typename Function, typename... Args>
-[[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor,
-                                     Deadline deadline, Function&& f,
-                                     Args&&... args) {
-  return impl::MakeTaskWithResult<SharedTaskWithResult>(
-      task_processor, Task::Importance::kNormal, deadline,
-      std::forward<Function>(f), std::forward<Args>(args)...);
+[[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor, Deadline deadline, Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<SharedTaskWithResult>(
+        task_processor, Task::Importance::kNormal, deadline, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// Runs an asynchronous function call using task processor of the caller
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(Function&& f, Args&&... args) {
-  return AsyncNoSpan(current_task::GetTaskProcessor(),
-                     std::forward<Function>(f), std::forward<Args>(args)...);
+    return AsyncNoSpan(current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 /// Runs an asynchronous function call using task processor of the caller
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedAsyncNoSpan(Function&& f, Args&&... args) {
-  return SharedAsyncNoSpan(current_task::GetTaskProcessor(),
-                           std::forward<Function>(f),
-                           std::forward<Args>(args)...);
+    return SharedAsyncNoSpan(current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 /// Runs an asynchronous function call with deadline using task processor of the
 /// caller
 template <typename Function, typename... Args>
-[[nodiscard]] auto AsyncNoSpan(Deadline deadline, Function&& f,
-                               Args&&... args) {
-  return AsyncNoSpan(current_task::GetTaskProcessor(), deadline,
-                     std::forward<Function>(f), std::forward<Args>(args)...);
+[[nodiscard]] auto AsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
+    return AsyncNoSpan(
+        current_task::GetTaskProcessor(), deadline, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// Runs an asynchronous function call with deadline using task processor of the
 /// caller
 template <typename Function, typename... Args>
-[[nodiscard]] auto SharedAsyncNoSpan(Deadline deadline, Function&& f,
-                                     Args&&... args) {
-  return SharedAsyncNoSpan(current_task::GetTaskProcessor(), deadline,
-                           std::forward<Function>(f),
-                           std::forward<Args>(args)...);
+[[nodiscard]] auto SharedAsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
+    return SharedAsyncNoSpan(
+        current_task::GetTaskProcessor(), deadline, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// @brief Runs an asynchronous function call that will start regardless of
 /// cancellations using specified task processor
 /// @see Task::Importance::Critical
 template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsyncNoSpan(TaskProcessor& task_processor,
-                                       Function&& f, Args&&... args) {
-  return impl::MakeTaskWithResult<TaskWithResult>(
-      task_processor, Task::Importance::kCritical, {},
-      std::forward<Function>(f), std::forward<Args>(args)...);
+[[nodiscard]] auto CriticalAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<TaskWithResult>(
+        task_processor, Task::Importance::kCritical, {}, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// @brief Runs an asynchronous function call that will start regardless of
 /// cancellations using specified task processor
 /// @see Task::Importance::Critical
 template <typename Function, typename... Args>
-[[nodiscard]] auto SharedCriticalAsyncNoSpan(TaskProcessor& task_processor,
-                                             Function&& f, Args&&... args) {
-  return impl::MakeTaskWithResult<SharedTaskWithResult>(
-      task_processor, Task::Importance::kCritical, {},
-      std::forward<Function>(f), std::forward<Args>(args)...);
+[[nodiscard]] auto SharedCriticalAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<SharedTaskWithResult>(
+        task_processor, Task::Importance::kCritical, {}, std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// @brief Runs an asynchronous function call that will start regardless of
@@ -133,9 +123,9 @@ template <typename Function, typename... Args>
 /// @see Task::Importance::Critical
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoSpan(Function&& f, Args&&... args) {
-  return CriticalAsyncNoSpan(current_task::GetTaskProcessor(),
-                             std::forward<Function>(f),
-                             std::forward<Args>(args)...);
+    return CriticalAsyncNoSpan(
+        current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// @brief Runs an asynchronous function call that will start regardless of
@@ -143,20 +133,23 @@ template <typename Function, typename... Args>
 /// @see Task::Importance::Critical
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedCriticalAsyncNoSpan(Function&& f, Args&&... args) {
-  return SharedCriticalAsyncNoSpan(current_task::GetTaskProcessor(),
-                                   std::forward<Function>(f),
-                                   std::forward<Args>(args)...);
+    return SharedCriticalAsyncNoSpan(
+        current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...
+    );
 }
 
 /// @brief Runs an asynchronous function call that will start regardless of
 /// cancellations, using task processor of the caller, with deadline
 /// @see Task::Importance::Critical
 template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsyncNoSpan(Deadline deadline, Function&& f,
-                                       Args&&... args) {
-  return impl::MakeTaskWithResult<TaskWithResult>(
-      current_task::GetTaskProcessor(), Task::Importance::kCritical, deadline,
-      std::forward<Function>(f), std::forward<Args>(args)...);
+[[nodiscard]] auto CriticalAsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<TaskWithResult>(
+        current_task::GetTaskProcessor(),
+        Task::Importance::kCritical,
+        deadline,
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
+    );
 }
 
 }  // namespace engine

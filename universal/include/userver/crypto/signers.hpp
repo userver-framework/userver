@@ -22,37 +22,36 @@ namespace crypto {
 
 /// Base signer class
 class Signer : public NamedAlgo {
- public:
-  explicit Signer(const std::string& name);
-  ~Signer() override;
+public:
+    explicit Signer(const std::string& name);
+    ~Signer() override;
 
-  /// Signs a raw message, returning the signature
-  virtual std::string Sign(
-      std::initializer_list<std::string_view> data) const = 0;
+    /// Signs a raw message, returning the signature
+    virtual std::string Sign(std::initializer_list<std::string_view> data) const = 0;
 };
 
 /// "none" algorithm signer
 class SignerNone final : public Signer {
- public:
-  SignerNone();
+public:
+    SignerNone();
 
-  /// Signs a raw message, returning the signature
-  std::string Sign(std::initializer_list<std::string_view> data) const override;
+    /// Signs a raw message, returning the signature
+    std::string Sign(std::initializer_list<std::string_view> data) const override;
 };
 
 /// HMAC-SHA signer
 template <DigestSize bits>
 class HmacShaSigner final : public Signer {
- public:
-  /// Constructor from a shared secret
-  explicit HmacShaSigner(std::string secret);
-  ~HmacShaSigner() override;
+public:
+    /// Constructor from a shared secret
+    explicit HmacShaSigner(std::string secret);
+    ~HmacShaSigner() override;
 
-  /// Signs a raw message, returning the signature
-  std::string Sign(std::initializer_list<std::string_view> data) const override;
+    /// Signs a raw message, returning the signature
+    std::string Sign(std::initializer_list<std::string_view> data) const override;
 
- private:
-  std::string secret_;
+private:
+    std::string secret_;
 };
 
 /// @name Outputs HMAC SHA MAC.
@@ -66,21 +65,20 @@ using SignerHs512 = HmacShaSigner<DigestSize::k512>;
 /// Generic signer for asymmetric cryptography
 template <DsaType type, DigestSize bits>
 class DsaSigner final : public Signer {
- public:
-  /// Constructor from a PEM-encoded private key and an optional passphrase
-  explicit DsaSigner(const std::string& privkey,
-                     const std::string& password = {});
+public:
+    /// Constructor from a PEM-encoded private key and an optional passphrase
+    explicit DsaSigner(const std::string& privkey, const std::string& password = {});
 
-  /// Signs a raw message, returning the signature
-  std::string Sign(std::initializer_list<std::string_view> data) const override;
+    /// Signs a raw message, returning the signature
+    std::string Sign(std::initializer_list<std::string_view> data) const override;
 
-  /// Signs a message digest, returning the signature.
-  ///
-  /// Not available for RSASSA-PSS.
-  std::string SignDigest(std::string_view digest) const;
+    /// Signs a message digest, returning the signature.
+    ///
+    /// Not available for RSASSA-PSS.
+    std::string SignDigest(std::string_view digest) const;
 
- private:
-  PrivateKey pkey_;
+private:
+    PrivateKey pkey_;
 };
 
 /// @name Outputs RSASSA signature using SHA-2 and PKCS1 padding.
@@ -112,40 +110,39 @@ using SignerPs512 = DsaSigner<DsaType::kRsaPss, DigestSize::k512>;
 
 /// @name CMS signer per RFC 5652
 class CmsSigner final : public NamedAlgo {
- public:
-  /// Signer flags
-  enum class Flags {
-    kNone = 0x0,
-    /// If set MIME headers for type text/plain are prepended to the data.
-    kText = 0x1,
-    /// If set the signer's certificate will not be included in the
-    /// resulting CMS structure. This can reduce the size of
-    /// the signature if the signers certificate can be obtained by other means:
-    /// for example a previously signed message.
-    kNoCerts = 0x2,
-    /// If set data being signed is omitted from the resulting CMS structure.
-    kDetached = 0x40,
-    /// Normally the supplied content is translated into MIME canonical format
-    /// (as required by the S/MIME specifications).
-    /// If set no translation occurs.
-    kBinary = 0x80
-  };
+public:
+    /// Signer flags
+    enum class Flags {
+        kNone = 0x0,
+        /// If set MIME headers for type text/plain are prepended to the data.
+        kText = 0x1,
+        /// If set the signer's certificate will not be included in the
+        /// resulting CMS structure. This can reduce the size of
+        /// the signature if the signers certificate can be obtained by other means:
+        /// for example a previously signed message.
+        kNoCerts = 0x2,
+        /// If set data being signed is omitted from the resulting CMS structure.
+        kDetached = 0x40,
+        /// Normally the supplied content is translated into MIME canonical format
+        /// (as required by the S/MIME specifications).
+        /// If set no translation occurs.
+        kBinary = 0x80
+    };
 
-  /// Output encoding
-  enum class OutForm { kDer, kPem, kSMime };
+    /// Output encoding
+    enum class OutForm { kDer, kPem, kSMime };
 
-  /// Construct from certificate and private key
-  CmsSigner(Certificate certificate, PrivateKey pkey);
+    /// Construct from certificate and private key
+    CmsSigner(Certificate certificate, PrivateKey pkey);
 
-  ~CmsSigner() override;
+    ~CmsSigner() override;
 
-  /// Signs a raw message, returning as specified by flags
-  std::string Sign(std::initializer_list<std::string_view> data,
-                   utils::Flags<Flags> flags, OutForm out_form) const;
+    /// Signs a raw message, returning as specified by flags
+    std::string Sign(std::initializer_list<std::string_view> data, utils::Flags<Flags> flags, OutForm out_form) const;
 
- private:
-  Certificate cert_;
-  PrivateKey pkey_;
+private:
+    Certificate cert_;
+    PrivateKey pkey_;
 };
 
 namespace weak {

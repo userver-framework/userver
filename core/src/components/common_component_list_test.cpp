@@ -41,6 +41,7 @@ components_manager:
       thread_name: bg-worker
       worker_threads: 2
       os-scheduling: idle
+      task-processor-queue: global-task-queue
       task-trace:
         every: 1000
         max-context-switch-count: 1000
@@ -87,7 +88,6 @@ components_manager:
       pool-statistics-disable: false
       thread-name-prefix: http-client
       threads: 2
-      defer-events: false
       fs-task-processor: fs-task-processor
       destination-metrics-auto-max-size: 100
       user-agent: common_component_list sample
@@ -191,26 +191,27 @@ config_vars: )";
 }  // namespace
 
 TEST_F(ComponentList, Common) {
-  const auto temp_root = fs::blocking::TempDirectory::Create();
-  const std::string dynamic_config_cache_path =
-      temp_root.GetPath() + "/dynamic_config.json";
-  const std::string config_vars_path =
-      temp_root.GetPath() + "/config_vars.json";
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const std::string dynamic_config_cache_path = temp_root.GetPath() + "/dynamic_config.json";
+    const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(
-      dynamic_config_cache_path,
-      formats::json::ToString(
-          dynamic_config::impl::GetDefaultDocsMap().AsJson()));
+    fs::blocking::RewriteFileContents(
+        dynamic_config_cache_path, formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+    );
 
-  fs::blocking::RewriteFileContents(
-      config_vars_path,
-      fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
-                  dynamic_config_cache_path,
-                  ToString(logging::GetDefaultLoggerLevel())));
+    fs::blocking::RewriteFileContents(
+        config_vars_path,
+        fmt::format(
+            kConfigVarsTemplate,
+            temp_root.GetPath(),
+            dynamic_config_cache_path,
+            ToString(logging::GetDefaultLoggerLevel())
+        )
+    );
 
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
-      components::CommonComponentList());
+    components::RunOnce(
+        components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path}, components::CommonComponentList()
+    );
 }
 
 USERVER_NAMESPACE_END

@@ -22,32 +22,32 @@ constexpr auto kCoarseRealtimeClockNativeFlag = CLOCK_REALTIME;
 
 template <typename TimePoint, int Flag>
 TimePoint CoarseNow() noexcept {
-  static_assert(Flag == kCoarseSteadyClockNativeFlag ||
-                Flag == kCoarseRealtimeClockNativeFlag);
+    static_assert(Flag == kCoarseSteadyClockNativeFlag || Flag == kCoarseRealtimeClockNativeFlag);
 
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-  ::timespec tp;
-  const auto res = ::clock_gettime(static_cast<clockid_t>(Flag), &tp);
-  UASSERT_MSG(res == 0, "Must always succeed");
-  return TimePoint{std::chrono::duration_cast<typename TimePoint::duration>(
-      std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec))};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    ::timespec tp;
+    const auto res = ::clock_gettime(static_cast<clockid_t>(Flag), &tp);
+    UASSERT_MSG(res == 0, "Must always succeed");
+    return TimePoint{std::chrono::duration_cast<typename TimePoint::duration>(
+        std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec)
+    )};
 }
 
 template <typename Duration, int Flag>
 Duration CoarseResolution() noexcept {
-  static_assert(Flag == kCoarseSteadyClockNativeFlag ||
-                Flag == kCoarseRealtimeClockNativeFlag);
+    static_assert(Flag == kCoarseSteadyClockNativeFlag || Flag == kCoarseRealtimeClockNativeFlag);
 
-  static const Duration cached_resolution = []() {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    ::timespec tp;
-    const auto res = ::clock_getres(static_cast<clockid_t>(Flag), &tp);
-    UASSERT_MSG(res == 0, "Must always succeed");
-    return std::chrono::duration_cast<Duration>(
-        std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec));
-  }();
+    static const Duration cached_resolution = []() {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        ::timespec tp;
+        const auto res = ::clock_getres(static_cast<clockid_t>(Flag), &tp);
+        UASSERT_MSG(res == 0, "Must always succeed");
+        return std::chrono::duration_cast<Duration>(
+            std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec)
+        );
+    }();
 
-  return cached_resolution;
+    return cached_resolution;
 }
 
 }  // namespace utils::datetime

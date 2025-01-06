@@ -9,8 +9,8 @@ USERVER_NAMESPACE_BEGIN
 namespace redis {
 
 struct RedisCreationSettings {
-  ConnectionSecurity connection_security = ConnectionSecurity::kNone;
-  bool send_readonly{false};
+    ConnectionSecurity connection_security = ConnectionSecurity::kNone;
+    bool send_readonly{false};
 };
 
 }  // namespace redis

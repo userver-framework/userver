@@ -12,15 +12,16 @@ include(Sanitizers)
 _userver_make_sanitize_target()
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
 )
 file(GLOB_RECURSE BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp
 )
 file(GLOB_RECURSE INTERNAL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
@@ -46,7 +47,7 @@ message(STATUS "boost: ${Boost_VERSION_STRING}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if (CMAKE_SYSTEM_NAME MATCHES "Darwin" AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
-    if (${Boost_VERSION_STRING} VERSION_LESS "1.68.0")
+    if ("${Boost_VERSION_STRING}" VERSION_LESS "1.68.0")
       message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
     endif()
   endif()
@@ -60,6 +61,7 @@ if (USERVER_CONAN)
   find_package(yaml-cpp REQUIRED)
   find_package(fmt REQUIRED)
   find_package(cctz REQUIRED)
+  find_package(zstd REQUIRED)
 
   find_package(RapidJSON REQUIRED)
   target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
@@ -68,6 +70,7 @@ else()
   find_package_required(libyamlcpp "libyaml-cpp-dev")
   include(SetupFmt)
   include(SetupCCTZ)
+  find_package(libzstd REQUIRED)
 endif()
 
 # Compiler flags for userver code. Flags for all the code
@@ -123,7 +126,7 @@ if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
     -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
     -fmacro-prefix-map=${BASE_PREFIX}=
   )
-  if (NOT SRC_LOG_PATH_BASE MATCHES "${BASE_PREFIX}.*")
+  if (NOT SRC_LOG_PATH_BASE MATCHES "${BASE_PREFIX}.*" OR NOT "${USERVER_ROOT_DIR}" MATCHES [=[/userver$]=])
     target_compile_options(userver-internal-compile-options INTERFACE
       -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
     )
@@ -247,6 +250,13 @@ if (USERVER_CONAN)
       cryptopp::cryptopp
       rapidjson
   )
+  # According to https://conan.io/center/recipes/zstd should be
+  # zstd::libzstd_static, but it does not work that way
+  if (TARGET zstd::libzstd_static)
+    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_static)
+  else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_shared)
+  endif()
 else()
   include(Stacktrace)
   _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
@@ -259,6 +269,7 @@ else()
       userver-stacktrace
     PRIVATE
       libyamlcpp
+      libzstd
       CryptoPP
   )
 endif()
@@ -268,6 +279,7 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/date/include>
     $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/function_backports/include>
+    $<INSTALL_INTERFACE:include/userver/third_party>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
@@ -276,54 +288,46 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
-add_library(userver::universal ALIAS ${PROJECT_NAME})
+include(GenGdbPrinters)
+gen_gdb_printers(${PROJECT_NAME} "formats/json")
+# gen_gdb_printers(${PROJECT_NAME} "formats/yaml")
+# gen_gdb_printers(${PROJECT_NAME} "utils/fast_pimpl")
+
 _userver_directory_install(COMPONENT universal
-  DIRECTORY 
+  DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/date/include
-    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+  PATTERN "*pp"  # ignore .gitignore in userver/third_party
+)
+_userver_directory_install(COMPONENT universal
+  DIRECTORY
+    ${USERVER_THIRD_PARTY_DIRS}/date/include/date
+    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include/function_backports
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/userver/third_party/
 )
 _userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
-  add_library(${PROJECT_NAME}-internal-utest INTERFACE)
+  add_subdirectory(utest)
+
   add_library(${PROJECT_NAME}-internal-ubench INTERFACE)
   if (USERVER_CONAN)
-    find_package(GTest REQUIRED)
     find_package(benchmark REQUIRED)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        GTest::gtest
-        GTest::gmock
-        GTest::gtest_main
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        benchmark::benchmark
-        ${PROJECT_NAME}
-    )
   else()
-    include(SetupGTest)
     include(SetupGBench)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        libgtest
-        libgmock
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        libbenchmark
-        ${PROJECT_NAME}
-    )
   endif()
+  target_link_libraries(${PROJECT_NAME}-internal-ubench
+      INTERFACE
+      benchmark::benchmark
+      ${PROJECT_NAME}
+  )
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_library(${PROJECT_NAME}-internal OBJECT ${INTERNAL_SOURCES})
-    target_compile_definitions(${PROJECT_NAME}-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+    target_compile_definitions(${PROJECT_NAME}-internal PUBLIC
+        $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>
+    )
     target_include_directories(${PROJECT_NAME}-internal PUBLIC
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
       ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
@@ -343,13 +347,14 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       PRIVATE
         Boost::program_options
         ${PROJECT_NAME}-internal
-        ${PROJECT_NAME}-internal-utest
+        ${PROJECT_NAME}-utest
     )
-
     add_google_tests(${PROJECT_NAME}-unittest)
 
-    add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
-
+    add_executable(${PROJECT_NAME}-benchmark
+        ${BENCH_SOURCES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main.cpp"
+    )
     target_include_directories (${PROJECT_NAME}-benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
@@ -369,33 +374,26 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-if (USERVER_INSTALL)
-  configure_package_config_file("${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-
-  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
-    VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
-  )
-
-  _userver_directory_install(COMPONENT universal FILES
-      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
-      "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
-      "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
-      "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
-      "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
-      "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
-      "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
-      "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
-      "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
-      "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
-      "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-endif()
+_userver_directory_install(COMPONENT universal FILES
+    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/ModuleHelpers.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
+    "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
+    "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
+    "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
+    "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
+    "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)

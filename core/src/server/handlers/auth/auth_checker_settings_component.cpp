@@ -10,24 +10,24 @@ namespace components {
 namespace {
 
 server::handlers::auth::AuthCheckerSettings GetSettings(Secdist* secdist) {
-  if (secdist) {
-    return secdist->Get().Get<server::handlers::auth::AuthCheckerSettings>();
-  }
+    if (secdist) {
+        return secdist->Get().Get<server::handlers::auth::AuthCheckerSettings>();
+    }
 
-  return server::handlers::auth::AuthCheckerSettings{formats::json::Value{}};
+    return server::handlers::auth::AuthCheckerSettings{formats::json::Value{}};
 }
 
 }  // namespace
 
 AuthCheckerSettings::AuthCheckerSettings(
     const ComponentConfig& component_config,
-    const ComponentContext& component_context)
-    : LoggableComponentBase(component_config, component_context),
-      settings_(
-          GetSettings(component_context.FindComponentOptional<Secdist>())) {}
+    const ComponentContext& component_context
+)
+    : ComponentBase(component_config, component_context),
+      settings_(GetSettings(component_context.FindComponentOptional<Secdist>())) {}
 
 yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: >
   Component that loads auth configuration settings from a

@@ -21,13 +21,12 @@ USERVER_NAMESPACE_END
 
 template <>
 class grpc::TimePoint<USERVER_NAMESPACE::engine::Deadline> {
- public:
-  explicit TimePoint(USERVER_NAMESPACE::engine::Deadline time) noexcept
-      : time_(USERVER_NAMESPACE::ugrpc::impl::ToGprTimePoint(time.TimeLeft())) {
-  }
+public:
+    explicit TimePoint(USERVER_NAMESPACE::engine::Deadline time) noexcept
+        : time_(USERVER_NAMESPACE::ugrpc::impl::ToGprTimePoint(time.TimeLeft())) {}
 
-  ::gpr_timespec raw_time() const noexcept { return time_; }
+    ::gpr_timespec raw_time() const noexcept { return time_; }
 
- private:
-  ::gpr_timespec time_;
+private:
+    ::gpr_timespec time_;
 };

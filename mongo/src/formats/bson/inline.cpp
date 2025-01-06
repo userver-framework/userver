@@ -15,14 +15,13 @@ InlineArrayBuilder::InlineArrayBuilder() = default;
 InlineArrayBuilder::~InlineArrayBuilder() = default;
 
 Value InlineArrayBuilder::Build() {
-  return Value(std::make_shared<ValueImpl>(builder_.Extract(),
-                                           ValueImpl::DocumentKind::kArray));
+    return Value(std::make_shared<ValueImpl>(builder_.Extract(), ValueImpl::DocumentKind::kArray));
 }
 
 std::string_view InlineArrayBuilder::GetKey() {
-  auto key = helper_->GetKey();
-  helper_->Advance();
-  return key;
+    auto key = helper_->GetKey();
+    helper_->Advance();
+    return key;
 }
 
 }  // namespace formats::bson::impl

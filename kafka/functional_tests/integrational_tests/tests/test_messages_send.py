@@ -1,12 +1,12 @@
 from typing import Awaitable
-
+from typing import Dict
+from typing import List
 
 from utils import clear_topics
 from utils import make_producer_request_body
 from utils import produce
 from utils import produce_async
 from utils import produce_batch
-
 
 TOPIC = 'test-topic-send'
 
@@ -32,7 +32,7 @@ async def test_many_producers_send_sync(service_client, testpoint):
 
     await service_client.enable_testpoints()
 
-    responses: list[Awaitable[any]] = []
+    responses: List[Awaitable[any]] = []
     for i in range(8):
         responses.append(
             produce_async(
@@ -58,7 +58,7 @@ async def test_many_producers_send_async(service_client, testpoint):
 
     await service_client.enable_testpoints()
 
-    requests: list[dict[str, str]] = []
+    requests: List[Dict[str, str]] = []
     for i in range(8):
         requests.append(
             make_producer_request_body(

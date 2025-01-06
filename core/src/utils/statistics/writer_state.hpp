@@ -9,10 +9,10 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics::impl {
 
 struct WriterState {
-  BaseFormatBuilder& builder;
-  const Request& request;
-  std::string path;
-  std::vector<LabelView> add_labels;
+    BaseFormatBuilder& builder;
+    const Request& request;
+    std::string path;
+    std::vector<LabelView> add_labels;
 };
 
 }  // namespace utils::statistics::impl

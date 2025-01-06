@@ -18,16 +18,14 @@ namespace samples::digest_auth {
 
 /// [request context]
 class Hello final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-hello";
+public:
+    static constexpr std::string_view kName = "handler-hello";
 
-  using HttpHandlerBase::HttpHandlerBase;
+    using HttpHandlerBase::HttpHandlerBase;
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest&,
-      server::request::RequestContext&) const override {
-    return "Hello world";
-  }
+    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+        return "Hello world";
+    }
 };
 /// [request context]
 
@@ -35,30 +33,29 @@ class Hello final : public server::handlers::HttpHandlerBase {
 
 /// [auth checker registration]
 int main(int argc, const char* const argv[]) {
-  server::handlers::auth::RegisterAuthCheckerFactory(
-      "digest", std::make_unique<samples::digest_auth::CheckerFactory>());
-  server::handlers::auth::RegisterAuthCheckerFactory(
-      "digest-proxy",
-      std::make_unique<samples::digest_auth::CheckerProxyFactory>());
-  /// [auth checker registration]
+    server::handlers::auth::RegisterAuthCheckerFactory(
+        "digest", std::make_unique<samples::digest_auth::CheckerFactory>()
+    );
+    server::handlers::auth::RegisterAuthCheckerFactory(
+        "digest-proxy", std::make_unique<samples::digest_auth::CheckerProxyFactory>()
+    );
+    /// [auth checker registration]
 
-  /// [main]
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<components::Postgres>("auth-database")
-          .Append<samples::digest_auth::Hello>()
-          .Append<samples::digest_auth::Hello>("handler-hello-proxy")
-          .Append<components::TestsuiteSupport>()
-          .Append<components::HttpClient>()
-          .Append<server::handlers::TestsControl>()
-          .Append<clients::dns::Component>()
-          .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>()
-          .Append<server::handlers::auth::digest::AuthCheckerSettingsComponent>(
-              "auth-digest-checker-settings-proxy")
-          .Append<
-              server::handlers::auth::digest::AuthCheckerSettingsComponent>();
-  return utils::DaemonMain(argc, argv, component_list);
-  /// [main]
+    /// [main]
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<components::Postgres>("auth-database")
+            .Append<samples::digest_auth::Hello>()
+            .Append<samples::digest_auth::Hello>("handler-hello-proxy")
+            .Append<components::TestsuiteSupport>()
+            .Append<components::HttpClient>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<server::handlers::auth::digest::AuthCheckerSettingsComponent>("auth-digest-checker-settings-proxy")
+            .Append<server::handlers::auth::digest::AuthCheckerSettingsComponent>();
+    return utils::DaemonMain(argc, argv, component_list);
+    /// [main]
 }
 /// [Postgres digest auth service sample - main]

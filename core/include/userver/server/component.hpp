@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -77,6 +77,10 @@ namespace components {
 /// connection.requests_queue_size_threshold | drop requests from handlers that allow throttling if there's more pending requests than allowed by this value | 100
 /// connection.keepalive_timeout | timeout in seconds to drop connection if there's not data received from it | 600
 /// connection.stream_close_check_delay | delay in microseconds of the start of stream close check routine; do not set if not sure what it is doing | 20ms
+/// connection.http-version | the HTTP protocol version | '1.1'
+/// connection.http2-session.max_concurrent_streams | max number of concurrent open streams | 100
+/// connection.http2-session.max_frame_size | max size of the HTTP/2.0 frame | 16384
+/// connection.http2-session.initial_window_size | the initial window size of the server | 65536
 /// shards | how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing | -
 /// middleware-pipeline-builder | name of a component to build a server-wide middleware pipeline | default-server-middleware-pipeline-builder
 ///
@@ -84,36 +88,34 @@ namespace components {
 
 // clang-format on
 
-class Server final : public LoggableComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Server component
-  static constexpr std::string_view kName = "server";
+class Server final : public ComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Server component
+    static constexpr std::string_view kName = "server";
 
-  Server(const components::ComponentConfig& component_config,
-         const components::ComponentContext& component_context);
+    Server(const components::ComponentConfig& component_config, const components::ComponentContext& component_context);
 
-  ~Server() override;
+    ~Server() override;
 
-  void OnAllComponentsLoaded() override;
+    void OnAllComponentsLoaded() override;
 
-  void OnAllComponentsAreStopping() override;
+    void OnAllComponentsAreStopping() override;
 
-  const server::Server& GetServer() const;
+    const server::Server& GetServer() const;
 
-  server::Server& GetServer();
+    server::Server& GetServer();
 
-  void AddHandler(const server::handlers::HttpHandlerBase& handler,
-                  engine::TaskProcessor& task_processor);
+    void AddHandler(const server::handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void WriteStatistics(utils::statistics::Writer& writer);
+private:
+    void WriteStatistics(utils::statistics::Writer& writer);
 
-  std::unique_ptr<server::Server> server_;
-  utils::statistics::Entry server_statistics_holder_;
-  utils::statistics::Entry handler_statistics_holder_;
+    std::unique_ptr<server::Server> server_;
+    utils::statistics::Entry server_statistics_holder_;
+    utils::statistics::Entry handler_statistics_holder_;
 };
 
 template <>

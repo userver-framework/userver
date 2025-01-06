@@ -10,8 +10,8 @@ namespace clients::dns {
 
 /// Resolver types used by the components
 enum class ResolverType {
-  kGetaddrinfo,  ///< resolve hosts using blocking getaddrinfo call
-  kAsync,        ///< use non-blocking resolver
+    kGetaddrinfo,  ///< resolve hosts using blocking getaddrinfo call
+    kAsync,        ///< use non-blocking resolver
 };
 
 /// Returns pointer to asynchronous resolver interface if required by config
@@ -20,7 +20,8 @@ enum class ResolverType {
 clients::dns::Resolver* GetResolverPtr(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    ResolverType default_type = ResolverType::kAsync);
+    ResolverType default_type = ResolverType::kAsync
+);
 
 }  // namespace clients::dns
 

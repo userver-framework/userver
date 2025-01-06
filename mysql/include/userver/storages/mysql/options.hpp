@@ -27,8 +27,8 @@ using TimeoutDuration = std::chrono::milliseconds;
 /// connection (no further reuse will take place),
 /// otherwise the connection is returned to the pool.
 struct CommandControl final {
-  /// Overall timeout for a statement being executed.
-  TimeoutDuration execute{};
+    /// Overall timeout for a statement being executed.
+    TimeoutDuration execute{};
 };
 
 /// @brief storages::mysql::CommandControl that may not be set.

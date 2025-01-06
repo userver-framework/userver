@@ -11,43 +11,43 @@ using Lru = cache::LruSet<unsigned>;
 constexpr unsigned kElementsCount = 1000;
 
 Lru FillLru(unsigned elements_count) {
-  Lru lru(kElementsCount);
-  for (unsigned i = 0; i < elements_count; ++i) {
-    lru.Put(i);
-  }
+    Lru lru(kElementsCount);
+    for (unsigned i = 0; i < elements_count; ++i) {
+        lru.Put(i);
+    }
 
-  return lru;
+    return lru;
 }
 
 }  // namespace
 
 void LruPut(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    auto lru = FillLru(kElementsCount);
-    benchmark::DoNotOptimize(lru);
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        auto lru = FillLru(kElementsCount);
+        benchmark::DoNotOptimize(lru);
+    }
 }
 BENCHMARK(LruPut);
 
 void LruHas(benchmark::State& state) {
-  auto lru = FillLru(kElementsCount);
-  for ([[maybe_unused]] auto _ : state) {
-    for (unsigned i = 0; i < kElementsCount; ++i) {
-      benchmark::DoNotOptimize(lru.Has(i));
+    auto lru = FillLru(kElementsCount);
+    for ([[maybe_unused]] auto _ : state) {
+        for (unsigned i = 0; i < kElementsCount; ++i) {
+            benchmark::DoNotOptimize(lru.Has(i));
+        }
     }
-  }
 }
 BENCHMARK(LruHas);
 
 void LruPutOverflow(benchmark::State& state) {
-  auto lru = FillLru(kElementsCount);
-  unsigned i = kElementsCount;
-  for ([[maybe_unused]] auto _ : state) {
-    for (unsigned j = 0; j < kElementsCount; ++j) {
-      lru.Put(++i);
+    auto lru = FillLru(kElementsCount);
+    unsigned i = kElementsCount;
+    for ([[maybe_unused]] auto _ : state) {
+        for (unsigned j = 0; j < kElementsCount; ++j) {
+            lru.Put(++i);
+        }
+        benchmark::DoNotOptimize(lru);
     }
-    benchmark::DoNotOptimize(lru);
-  }
 }
 BENCHMARK(LruPutOverflow);
 

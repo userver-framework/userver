@@ -15,15 +15,15 @@ namespace storages::redis::bench {
 using SentinelPtr = std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel>;
 
 class Redis : public benchmark::Fixture {
- protected:
-  ClientPtr GetClient() const noexcept { return client_; };
-  SentinelPtr GetSentinel() const noexcept { return sentinel_; };
+protected:
+    ClientPtr GetClient() const noexcept { return client_; };
+    SentinelPtr GetSentinel() const noexcept { return sentinel_; };
 
-  void RunStandalone(std::function<void()> payload);
+    void RunStandalone(std::function<void()> payload);
 
- private:
-  ClientPtr client_;
-  SentinelPtr sentinel_;
+private:
+    ClientPtr client_;
+    SentinelPtr sentinel_;
 };
 
 }  // namespace storages::redis::bench

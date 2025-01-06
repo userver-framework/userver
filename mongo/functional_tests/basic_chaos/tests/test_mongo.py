@@ -3,7 +3,6 @@ import logging
 
 from pytest_userver import chaos
 
-
 logger = logging.getLogger(__name__)
 
 

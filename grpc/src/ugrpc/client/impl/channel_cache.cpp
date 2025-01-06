@@ -14,10 +14,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-ChannelCache::Token::Token(ChannelCache& cache, const std::string& endpoint,
-                           CountedChannel& counted_channel) noexcept
+ChannelCache::Token::Token(ChannelCache& cache, const std::string& endpoint, CountedChannel& counted_channel) noexcept
     : cache_(&cache), endpoint_(&endpoint), counted_channel_(&counted_channel) {
-  ++counted_channel.counter;
+    ++counted_channel.counter;
 }
 
 ChannelCache::Token::Token(Token&& other) noexcept
@@ -26,63 +25,62 @@ ChannelCache::Token::Token(Token&& other) noexcept
       counted_channel_(std::exchange(other.counted_channel_, nullptr)) {}
 
 ChannelCache::Token& ChannelCache::Token::operator=(Token&& other) noexcept {
-  std::swap(cache_, other.cache_);
-  std::swap(endpoint_, other.endpoint_);
-  std::swap(counted_channel_, other.counted_channel_);
-  return *this;
+    std::swap(cache_, other.cache_);
+    std::swap(endpoint_, other.endpoint_);
+    std::swap(counted_channel_, other.counted_channel_);
+    return *this;
 }
 
 ChannelCache::Token::~Token() {
-  if (!cache_) return;
-  UASSERT(endpoint_);
-  UASSERT(counted_channel_);
+    if (!cache_) return;
+    UASSERT(endpoint_);
+    UASSERT(counted_channel_);
 
-  auto channels = cache_->channels_.Lock();
-  if (--counted_channel_->counter == 0) {
-    channels->erase(*endpoint_);
-  }
+    auto channels = cache_->channels_.Lock();
+    if (--counted_channel_->counter == 0) {
+        channels->erase(*endpoint_);
+    }
 }
 
-const std::shared_ptr<grpc::Channel>& ChannelCache::Token::GetChannel(
-    std::size_t index) const noexcept {
-  UASSERT(counted_channel_);
-  UASSERT(index < counted_channel_->channels.size());
-  return counted_channel_->channels[index];
+const std::shared_ptr<grpc::Channel>& ChannelCache::Token::GetChannel(std::size_t index) const noexcept {
+    UASSERT(counted_channel_);
+    UASSERT(index < counted_channel_->channels.size());
+    return counted_channel_->channels[index];
 }
 
 std::size_t ChannelCache::Token::GetChannelCount() const noexcept {
-  UASSERT(counted_channel_);
-  return counted_channel_->channels.size();
+    UASSERT(counted_channel_);
+    return counted_channel_->channels.size();
 }
 
 ChannelCache::CountedChannel::CountedChannel(
     const std::string& endpoint,
     const std::shared_ptr<grpc::ChannelCredentials>& credentials,
-    const grpc::ChannelArguments& channel_args, std::size_t count) {
-  const auto endpoint_string = ugrpc::impl::ToGrpcString(endpoint);
-  channels = utils::GenerateFixedArray(count, [&](std::size_t) {
-    return grpc::CreateCustomChannel(endpoint_string, credentials,
-                                     channel_args);
-  });
-  UASSERT(count > 0);
+    const grpc::ChannelArguments& channel_args,
+    std::size_t count
+) {
+    const auto endpoint_string = ugrpc::impl::ToGrpcString(endpoint);
+    channels = utils::GenerateFixedArray(count, [&](std::size_t) {
+        return grpc::CreateCustomChannel(endpoint_string, credentials, channel_args);
+    });
+    UASSERT(count > 0);
 }
 
 ChannelCache::ChannelCache(
     std::shared_ptr<grpc::ChannelCredentials>&& credentials,
-    const grpc::ChannelArguments& channel_args, std::size_t channel_count)
-    : credentials_(std::move(credentials)),
-      channel_args_(channel_args),
-      channel_count_(channel_count) {
-  UINVARIANT(channel_count > 0, "Channels count must be greater than zero");
+    const grpc::ChannelArguments& channel_args,
+    std::size_t channel_count
+)
+    : credentials_(std::move(credentials)), channel_args_(channel_args), channel_count_(channel_count) {
+    UINVARIANT(channel_count > 0, "Channels count must be greater than zero");
 }
 
 ChannelCache::~ChannelCache() = default;
 
 ChannelCache::Token ChannelCache::Get(const std::string& endpoint) {
-  auto channels = channels_.Lock();
-  const auto [it, _] = channels->try_emplace(endpoint, endpoint, credentials_,
-                                             channel_args_, channel_count_);
-  return {*this, it->first, it->second};
+    auto channels = channels_.Lock();
+    const auto [it, _] = channels->try_emplace(endpoint, endpoint, credentials_, channel_args_, channel_count_);
+    return {*this, it->first, it->second};
 }
 
 }  // namespace ugrpc::client::impl

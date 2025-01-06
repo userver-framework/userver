@@ -13,19 +13,19 @@ class BrokenGuard;
 class Connection;
 
 class PlainQuery final {
- public:
-  PlainQuery(Connection& connection, const std::string& query);
-  ~PlainQuery();
+public:
+    PlainQuery(Connection& connection, const std::string& query);
+    ~PlainQuery();
 
-  PlainQuery(const PlainQuery& other) = delete;
-  PlainQuery(PlainQuery&& other) noexcept;
+    PlainQuery(const PlainQuery& other) = delete;
+    PlainQuery(PlainQuery&& other) noexcept;
 
-  void Execute(engine::Deadline deadline);
-  QueryResult FetchResult(engine::Deadline deadline);
+    void Execute(engine::Deadline deadline);
+    QueryResult FetchResult(engine::Deadline deadline);
 
- private:
-  Connection* connection_;
-  const std::string& query_;
+private:
+    Connection* connection_;
+    const std::string& query_;
 };
 
 }  // namespace storages::mysql::impl

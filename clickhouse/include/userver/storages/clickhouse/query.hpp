@@ -31,34 +31,32 @@ class QueryTester;
 /// In case query is expected to be executed with parameters,
 /// query text should conform to fmt format
 class Query final {
- public:
-  using Name =
-      USERVER_NAMESPACE::utils::StrongTypedef<struct NameTag, std::string>;
+public:
+    using Name = USERVER_NAMESPACE::utils::StrongTypedef<struct NameTag, std::string>;
 
-  Query(const char* text, std::optional<Name> = std::nullopt);
-  Query(std::string text, std::optional<Name> = std::nullopt);
+    Query(const char* text, std::optional<Name> = std::nullopt);
+    Query(std::string text, std::optional<Name> = std::nullopt);
 
-  const std::string& QueryText() const&;
+    const std::string& QueryText() const&;
 
-  const std::optional<Name>& QueryName() const&;
+    const std::optional<Name>& QueryName() const&;
 
-  friend class Cluster;
-  friend class QueryTester;
-  friend class impl::Pool;
+    friend class Cluster;
+    friend class QueryTester;
+    friend class impl::Pool;
 
- private:
-  template <typename... Args>
-  Query WithArgs(const Args&... args) const {
-    // we should throw on params count mismatch
-    // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
-    return Query{fmt::format(fmt::runtime(text_), io::impl::Escape(args)...),
-                 name_};
-  }
+private:
+    template <typename... Args>
+    Query WithArgs(const Args&... args) const {
+        // we should throw on params count mismatch
+        // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
+        return Query{fmt::format(fmt::runtime(text_), io::impl::Escape(args)...), name_};
+    }
 
-  void FillSpanTags(tracing::Span&) const;
+    void FillSpanTags(tracing::Span&) const;
 
-  std::string text_;
-  std::optional<Name> name_;
+    std::string text_;
+    std::optional<Name> name_;
 };
 
 }  // namespace storages::clickhouse

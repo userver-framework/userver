@@ -45,18 +45,16 @@ gRUIzzXiJrXsfaQHv6XY7lf6kHluk7WZXZXicQEX58sv
 
 }  // namespace
 
-TEST(Crypto, CertificatePemDefault) {
-  EXPECT_FALSE(crypto::Certificate{}.GetPemString().has_value());
-}
+TEST(Crypto, CertificatePemDefault) { EXPECT_FALSE(crypto::Certificate{}.GetPemString().has_value()); }
 
 TEST(Crypto, CertificatePemRoundtripRsa) {
-  const auto rsa_cert = crypto::Certificate::LoadFromString(kRsaCertPem);
-  EXPECT_EQ(rsa_cert.GetPemString(), kRsaCertPem);
+    const auto rsa_cert = crypto::Certificate::LoadFromString(kRsaCertPem);
+    EXPECT_EQ(rsa_cert.GetPemString(), kRsaCertPem);
 }
 
 TEST(Crypto, CertificatePemRoundtripEc) {
-  const auto ec_cert = crypto::Certificate::LoadFromString(kEcCertPem);
-  EXPECT_EQ(ec_cert.GetPemString(), kEcCertPem);
+    const auto ec_cert = crypto::Certificate::LoadFromString(kEcCertPem);
+    EXPECT_EQ(ec_cert.GetPemString(), kEcCertPem);
 }
 
 USERVER_NAMESPACE_END

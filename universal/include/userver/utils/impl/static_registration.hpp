@@ -15,9 +15,11 @@ void AssertStaticRegistrationAllowed(std::string_view operation_name);
 
 // Defined inline to optimize away in Release builds
 inline void AssertStaticRegistrationFinished() noexcept {
-  UASSERT_MSG(is_static_registration_finished,
-              "This operation is only allowed after static initialization "
-              "completes, see stacktrace");
+    UASSERT_MSG(
+        is_static_registration_finished,
+        "This operation is only allowed after static initialization "
+        "completes, see stacktrace"
+    );
 }
 
 // Called in TaskProcessor constructor, before the creation of first

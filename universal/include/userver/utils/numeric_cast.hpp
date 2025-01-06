@@ -28,17 +28,19 @@ using PrintableValue = std::conditional_t<(sizeof(T) > 1), T, int>;
 /// @snippet utils/numeric_cast_test.cpp  Sample utils::numeric_cast usage
 template <typename U, typename T>
 constexpr U numeric_cast(T input) {
-  static_assert(std::is_integral_v<T>);
-  static_assert(std::is_integral_v<U>);
+    static_assert(std::is_integral_v<T>);
+    static_assert(std::is_integral_v<U>);
 
-  U result = input;
-  if (static_cast<T>(result) != input || ((result < 0) != (input < 0))) {
-    throw std::runtime_error(fmt::format(
-        "Failed to convert {} {} into {} due to integer overflow",
-        compiler::GetTypeName<T>(), static_cast<impl::PrintableValue<T>>(input),
-        compiler::GetTypeName<U>()));
-  }
-  return result;
+    U result = input;
+    if (static_cast<T>(result) != input || ((result < 0) != (input < 0))) {
+        throw std::runtime_error(fmt::format(
+            "Failed to convert {} {} into {} due to integer overflow",
+            compiler::GetTypeName<T>(),
+            static_cast<impl::PrintableValue<T>>(input),
+            compiler::GetTypeName<U>()
+        ));
+    }
+    return result;
 }
 
 }  // namespace utils

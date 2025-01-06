@@ -52,7 +52,7 @@ See @ref scripts/docs/en/userver/log_level_running_service.md for more info.
 
 ### Limit log length of the requests and responses
 
-For per-handle limiting of the request body or response data logging you can use the `request_body_size_log_limit` and `response_data_size_log_limit` static options of the handler (see server::handlers::HandlerBase). Or you could override the server::handlers::HttpHandlerBase::GetRequestBodyForLogging and server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
+For per-handle limiting of the request body or response data logging you can use the `request_body_size_log_limit` and `request_headers_size_log_limit` and `response_data_size_log_limit` static options of the handler (see server::handlers::HandlerBase). Or you could override the server::handlers::HttpHandlerBase::GetRequestBodyForLogging and server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
 
 ### Limiting the log frequency
 
@@ -116,13 +116,13 @@ After that, you can get a logger in the code like this:
 ```cpp
 auto& logging_component =
       context.FindComponent<::components::Logging>();
-  my_logger = logging_component.GetLogger("my_logger_name");
+logging::LoggerPtr my_logger = logging_component.GetLogger("my_logger_name");
 ```
 
 To write to such a logger, it is convenient to use `LOG_XXX_TO`, for example:
 
 ```cpp
-LOG_INFO_TO(my_logger) << "Look, I am a new logger!";
+LOG_INFO_TO(*my_logger) << "Look, I am a new logger!";
 ```
 
 Note: do not forget to configure the logrotate for your new log file!
@@ -182,7 +182,7 @@ All logs in the current task are implicitly linked to the current `Span` for the
 
 If you want to get the current `Span` (for example, you want to write something to `LogExtra`, but do not want to create an additional `Span`), then you can use the following approach:
 
-@snippet tracing/span_test.cpp  Example get current span
+@snippet core/src/tracing/span_test.cpp  Example get current span
 
 ### Creating a Span
 
@@ -229,8 +229,81 @@ For example, this is how you can disable logging of all Span for MongoDB (that i
 ```
 
 
+@anchor opentelemetry
+## OpenTelemetry protocol
+
+It is possible to use OpenTelemetry protocol for logs and tracing exporting.
+To use it, register all prerequisites for gRPC client and register `otlp::LoggerComponent` in component list in your `main` function.
+The static config file should contain a component section with OTLP logger.
+Also remove `default` logger from `logging.loggers` as the default logger is handled by otlp component from now on.
+
+The related part of static config:
+
+@snippet samples/otlp_service/static_config.yaml otlp logger
+
+`endpoint` contains OTLP collector host and port,
+`service-name` contains your service name,
+and `log-level` contains service log level.
+
+After the service start you'll see the following in stderr:
+
+```
+  OTLP logger has started
+```
+
+It means the logger is successfully initialized and is ready to process the logs.
+
+If somethings goes wrong (e.g. OTLP collector agent is not available), you'll see errors in stderr.
+The service buffers not-yet-sent logs and traces in memory, but drops them on overflow.
+
+### Separate Sinks for Logs and Tracing
+
+In certain environments, such as Kubernetes, applications typically write logs to stdout/stderr, while traces are sent efficiently through the 'push' model (via OTLP transport). Kubernetes stores the container's stdout/stderr in files on nodes, making logs available for log collectors using the 'pull' model. This approach ensures that logs remain accessible even if the application fails, capturing the most critical information.
+
+To configure separate sinks for logs and traces, use the optional 'sinks' block in the 'otlp-logger' configuration:
+
+```yaml
+otlp-logger:
+    endpoint: $otlp-endpoint
+    service-name: $service-name
+    log-level: info    
+    sinks:
+        logs: default | otlp | both
+        tracing: default | otlp | both
+```
+
+If the 'sinks' block is not present in the 'otlp-logger' configuration, both logs and traces use the OTLP transport and are delivered to an OpenTelemetry-compatible collector by a background task in userver.
+
+In the `sinks` block, you can set a value for each stream. See: `otlp::LoggerComponent`.
+
+If you choose `otlp` for both streams, ensure that `logging.loggers` is empty:
+
+```yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: {}
+```
+
+Otherwise, add the _default_ logger in the `logging` component's `loggers` field:
+
+```yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: 
+        default:
+            file_path: $log-location 
+            level: info
+            overflow_behavior: discard
+        my_rabbit_logger: # you can use additional loggers
+            file_path: $log-location                     
+            level: error
+            overflow_behavior: discard               
+```
+
+**Note:** If you have additional loggers configured, they will function as usual, even if you're using the default logger for tracing only. But you can't redirect them to OTLP exporter.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/formats.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/chaotic.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
 @htmlonly </div> @endhtmlonly

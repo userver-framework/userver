@@ -16,6 +16,11 @@
 
 ## Announcements
 
+### Release 2.0
+* 📖 Introducing userver 2.0, overview of safety and freestanding features (ru):
+  [userver 2.0 — большой релиз фреймворка для IO-bound программ](https://habr.com/ru/companies/yandex/articles/813115/)
+
+
 ### Release 1.0.0
 * 📖 Introducing userver 1.0, overview of safety and freestanding features
   [userver 1.0: Releasing a Framework for IO-Bound Programs](https://medium.com/yandex/userver-1-0-releasing-a-framework-for-io-bound-programs-7898c275d226)

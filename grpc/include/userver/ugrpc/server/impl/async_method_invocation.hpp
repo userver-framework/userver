@@ -11,31 +11,29 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::impl {
 
 class RpcFinishedEvent final : public ugrpc::impl::EventBase {
- public:
-  RpcFinishedEvent(engine::TaskCancellationToken cancellation_token,
-                   grpc::ServerContext& server_ctx) noexcept;
+public:
+    RpcFinishedEvent(engine::TaskCancellationToken cancellation_token, grpc::ServerContext& server_ctx) noexcept;
 
-  RpcFinishedEvent(const RpcFinishedEvent&) = delete;
-  RpcFinishedEvent& operator=(const RpcFinishedEvent&) = delete;
-  RpcFinishedEvent(RpcFinishedEvent&&) = delete;
-  RpcFinishedEvent& operator=(RpcFinishedEvent&&) = delete;
+    RpcFinishedEvent(const RpcFinishedEvent&) = delete;
+    RpcFinishedEvent& operator=(const RpcFinishedEvent&) = delete;
+    RpcFinishedEvent(RpcFinishedEvent&&) = delete;
+    RpcFinishedEvent& operator=(RpcFinishedEvent&&) = delete;
 
-  void* GetTag() noexcept;
+    void* GetTag() noexcept;
 
-  /// @see EventBase::Notify
-  void Notify(bool ok) noexcept override;
+    /// @see EventBase::Notify
+    void Notify(bool ok) noexcept override;
 
-  /// @brief For use from coroutines
-  void Wait() noexcept;
+    /// @brief For use from coroutines
+    void Wait() noexcept;
 
- private:
-  engine::TaskCancellationToken cancellation_token_;
-  grpc::ServerContext& server_ctx_;
-  engine::SingleUseEvent event_;
+private:
+    engine::TaskCancellationToken cancellation_token_;
+    grpc::ServerContext& server_ctx_;
+    engine::SingleUseEvent event_;
 };
 
-ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(
-    ugrpc::impl::AsyncMethodInvocation& async);
+ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async);
 
 }  // namespace ugrpc::server::impl
 

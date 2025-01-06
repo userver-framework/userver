@@ -10,9 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 class FormatsMerge<formats::bson::Value> : public ::testing::Test {
- public:
-  constexpr static auto CheckMerge =
-      CheckJsonMerge<formats::bson::Value, formats::bson::FromJsonString>;
+public:
+    constexpr static auto CheckMerge = CheckJsonMerge<formats::bson::Value, formats::bson::FromJsonString>;
 };
 
 INSTANTIATE_TYPED_TEST_SUITE_P(BsonMerge, FormatsMerge, formats::bson::Value);

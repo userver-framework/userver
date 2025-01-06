@@ -17,11 +17,11 @@ async def test_expired(service_client, dynamic_config, sentinel_gate, gate):
     logs = [
         log
         for log in capture.select()
-        if log['text'].startswith('exception in \'handler-chaos\'')
+        if log['text'].startswith("exception in 'handler-chaos'")
     ]
     assert len(logs) == 1
     text = logs[0]['text']
-    assert 'request failed with status \'timeout\'' in text, text
+    assert "request failed with status 'timeout'" in text, text
     assert 'redis::RequestFailedException' in text, text
 
 

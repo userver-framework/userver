@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -33,7 +33,7 @@ class Driver;
 ///
 /// @brief YDB client component
 ///
-/// Provides access to ydb::TableClient.
+/// Provides access to ydb::TableClient, ydb::TopicClient, ydb::CoordinationClient.
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -49,6 +49,7 @@ class Driver;
 /// databases.<dbname>.credentials | credentials config passed to credentials provider component | -
 /// databases.<dbname>.min_pool_size | minimum pool size for database with name <dbname> | 10
 /// databases.<dbname>.max_pool_size | maximum pool size for database with name <dbname> | 50
+/// databases.<dbname>.get_session_retry_limit | retries count to get session, every attempt with a get-session-timeout | 5
 /// databases.<dbname>.keep-in-query-cache | whether to use query cache | true
 /// databases.<dbname>.prefer_local_dc | prefer making requests to local DataCenter | false
 /// databases.<dbname>.aliases | list of alias names for this database | []
@@ -58,51 +59,62 @@ class Driver;
 
 // clang-format on
 
-class YdbComponent final : public components::LoggableComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ydb::YdbComponent component
-  static constexpr std::string_view kName = "ydb";
+class YdbComponent final : public components::ComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ydb::YdbComponent component
+    static constexpr std::string_view kName = "ydb";
 
-  YdbComponent(const components::ComponentConfig&,
-               const components::ComponentContext&);
+    YdbComponent(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~YdbComponent();
+    ~YdbComponent();
 
-  std::shared_ptr<TableClient> GetTableClient(const std::string& dbname) const;
+    /// Get table client
+    /// @param dbname database name from static config key
+    std::shared_ptr<TableClient> GetTableClient(const std::string& dbname) const;
 
-  std::shared_ptr<TopicClient> GetTopicClient(const std::string& dbname) const;
+    /// Get topic client
+    /// @param dbname database name from static config key
+    std::shared_ptr<TopicClient> GetTopicClient(const std::string& dbname) const;
 
-  std::shared_ptr<CoordinationClient> GetCoordinationClient(
-      const std::string& dbname) const;
+    /// Get coordination client
+    /// @param dbname database name from static config key
+    std::shared_ptr<CoordinationClient> GetCoordinationClient(const std::string& dbname) const;
 
-  const NYdb::TDriver& GetNativeDriver(const std::string& dbname) const;
+    /// Get native driver
+    /// @param dbname database name from static config key
+    /// @warning Use with care! Facilities from
+    /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+    /// non-blocking wait operations.
+    const NYdb::TDriver& GetNativeDriver(const std::string& dbname) const;
 
-  const std::string& GetDatabasePath(const std::string& dbname) const;
+    /// Get database path
+    /// @param dbname database name from static config key
+    const std::string& GetDatabasePath(const std::string& dbname) const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  struct DatabaseUtils;
+private:
+    struct DatabaseUtils;
 
-  struct Database {
-    std::shared_ptr<impl::Driver> driver;
-    std::shared_ptr<TableClient> table_client;
-    std::shared_ptr<TopicClient> topic_client;
-    std::shared_ptr<CoordinationClient> coordination_client;
-  };
+    struct Database {
+        std::shared_ptr<impl::Driver> driver;
+        std::shared_ptr<TableClient> table_client;
+        std::shared_ptr<TopicClient> topic_client;
+        std::shared_ptr<CoordinationClient> coordination_client;
+    };
 
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
-  void WriteStatistics(utils::statistics::Writer& writer) const;
-  const Database& FindDatabase(const std::string& dbname) const;
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+    void WriteStatistics(utils::statistics::Writer& writer) const;
+    const Database& FindDatabase(const std::string& dbname) const;
 
-  std::unordered_map<std::string, Database> databases_;
+    std::unordered_map<std::string, Database> databases_;
 
-  dynamic_config::Source config_;
+    dynamic_config::Source config_;
 
-  // These fields must be the last ones
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-  utils::statistics::Entry statistic_holder_;
+    // These fields must be the last ones
+    concurrent::AsyncEventSubscriberScope config_subscription_;
+    utils::statistics::Entry statistic_holder_;
 };
 
 }  // namespace ydb

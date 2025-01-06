@@ -3,7 +3,6 @@ import re
 
 from requests.auth import HTTPDigestAuth
 
-
 # parsing regex
 REG = re.compile(r'(\w+)[:=][\s"]?([^",]+)"?')
 

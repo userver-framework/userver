@@ -16,14 +16,12 @@ namespace utils::datetime {
 /// overflow
 /// Example:
 /// @snippet utils/datetime/from_string_saturating_test.cpp FromStringSaturation
-std::chrono::system_clock::time_point FromRfc3339StringSaturating(
-    const std::string& timestring);
+std::chrono::system_clock::time_point FromRfc3339StringSaturating(const std::string& timestring);
 
 /// @brief Converts strings of the specified format starting with "%Y" to
 /// std::chrono::system_clock::time_point in UTC timezone and saturates on
 /// overflow.
-std::chrono::system_clock::time_point FromStringSaturating(
-    const std::string& timestring, const std::string& format);
+std::chrono::system_clock::time_point FromStringSaturating(const std::string& timestring, const std::string& format);
 
 }  // namespace utils::datetime
 

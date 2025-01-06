@@ -8,6 +8,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-chaos)
 add_subdirectory(https)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https)
 
+add_subdirectory(https_no_passphrase)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https-no-passphrase)
+
 add_subdirectory(metrics)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
 

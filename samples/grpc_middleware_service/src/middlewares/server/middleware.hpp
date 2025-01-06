@@ -8,10 +8,10 @@ namespace sample::grpc::auth::server {
 
 /// [gRPC middleware sample - Middleware declaration]
 class Middleware final : public ugrpc::server::MiddlewareBase {
- public:
-  explicit Middleware();
+public:
+    explicit Middleware();
 
-  void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
+    void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
 };
 /// [gRPC middleware sample - Middleware declaration]
 

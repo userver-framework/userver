@@ -4,47 +4,36 @@
 #include "{{ proto.source_file_without_ext }}_client.usrv.pb.hpp"
 
 {# All constant includes must go inside this header #}
+#include <userver/ugrpc/impl/protobuf_collector.hpp>
 #include <userver/ugrpc/client/impl/codegen_definitions.hpp>
 
 {{ utils.include_grpcpp(proto.source_file_without_ext) }}
 
 {% call utils.optional_namespace(proto.namespace) %}
 
-namespace {
 {% for service in proto.services %}
 
-constexpr std::string_view k{{service.name}}MethodNames[] = {
+// Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
+inline constexpr std::string_view k{{service.name}}MethodNames[] = {
   {% for method in service.method %}
   "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
   {% endfor %}
 };
 
-{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
-{% set client_qos_default = 'GRPC_CLIENT_QOS_DEFAULT_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
-#ifdef {{ client_qos }}
-const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::ugrpc::client::impl::ClientQos> k{{service.name}}ClientQosConfig{
-    {{ client_qos }},
-    USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{
-#ifdef {{ client_qos_default }}
-        {{ client_qos_default }}
-#else
-        R"({"__default__": {}})"
-#endif
-    },
-};
-#else
-constexpr const auto& k{{service.name}}ClientQosConfig =
-    USERVER_NAMESPACE::ugrpc::client::impl::kNoClientQos;
-#endif
-{% endfor %}
-
-}  // namespace
-{% for service in proto.services %}
+// Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
+inline const bool k{{service.name}}TypesRegistration =
+    (USERVER_NAMESPACE::ugrpc::impl::RegisterMessageTypes({
+      {% for method in service.method %}
+        std::string("{{method.input_type}}").substr(1),
+        std::string("{{method.output_type}}").substr(1),
+      {% endfor %}
+    }),
+    false);
 
 {{service.name}}Client::{{service.name}}Client(
-    USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params)
-    : impl_(std::move(client_params), GetMetadata(),
-            std::in_place_type<{{proto.namespace}}::{{service.name}}>) {
+    USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies)
+    : impl_(std::move(dependencies), GetMetadata(),
+            std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
     }
   {% for method in service.method %}
   {% set method_id = loop.index0 %}
@@ -57,12 +46,12 @@ constexpr const auto& k{{service.name}}ClientQosConfig =
     std::unique_ptr<::grpc::ClientContext> context,
     const USERVER_NAMESPACE::ugrpc::client::Qos& qos
 ) const {
+      auto& stub = impl_.NextStub<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>();
       return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-          impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
+          impl_, {{method_id}}, std::move(context), qos
         ),
-        impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
-        &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}},
+        [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
         {% if method.client_streaming %}
       };
         {% else %}
@@ -74,8 +63,10 @@ constexpr const auto& k{{service.name}}ClientQosConfig =
 
 USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
 {{ service.name }}Client::GetMetadata() {
+  (void)k{{service.name}}TypesRegistration;  // odr-use
+
   return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<
-      {{proto.namespace}}::{{service.name}}>(
+    {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
       k{{service.name}}MethodNames);
 }
 {% endfor %}

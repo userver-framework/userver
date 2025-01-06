@@ -2,20 +2,8 @@ project(userver-samples CXX)
 
 add_custom_target(${PROJECT_NAME})
 
-function(userver_sample_testsuite_add)
-  set(options)
-  set(oneValueArgs TESTS_DIRECTORY ENV)
-  set(multiValueArgs PYTHONPATH)
-  cmake_parse_arguments(
-      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-  userver_testsuite_add_simple(
-      WORKING_DIRECTORY "${ARG_TESTS_DIRECTORY}"
-      PYTHON_BINARY "${TESTSUITE_PYTHON_BINARY}"
-      PYTHONPATH ${ARG_PYTHONPATH}
-      TEST_ENV "${ARG_ENV}"
-  )
-endfunction()
+# Imitate an installed userver in samples.
+file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")
 
 add_subdirectory(config_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
@@ -23,7 +11,20 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
 add_subdirectory(testsuite-support)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-testsuite-support)
 
+if (USERVER_FEATURE_CHAOTIC)
+  add_subdirectory(chaotic_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic_service)
+endif()
+
+if (USERVER_FEATURE_OTLP)
+  add_subdirectory(otlp_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-otlp_service)
+endif()
+
 if (USERVER_FEATURE_GRPC)
+  add_subdirectory(grpc-generic-proxy)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc-generic-proxy)
+
   add_subdirectory(grpc_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc_service)
 
@@ -101,6 +102,11 @@ if (USERVER_FEATURE_RABBITMQ)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-rabbitmq_service)
 endif()
 
+if (USERVER_FEATURE_KAFKA)
+  add_subdirectory(kafka_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-kafka_service)
+endif()
+
 if (USERVER_FEATURE_MYSQL)
   add_subdirectory(mysql_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mysql_service)
@@ -110,3 +116,7 @@ if (USERVER_FEATURE_YDB AND USERVER_FEATURE_MONGODB)
   add_subdirectory(ydb_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-ydb_service)
 endif()
+
+# Clean up fake userver installation above to avoid messing
+# with find_package(userver) in the parent project.
+file(REMOVE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")

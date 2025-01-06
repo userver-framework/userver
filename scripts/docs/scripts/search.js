@@ -21,3 +21,12 @@ function init_all_results_button() {
     allResultsLink.href = searchURL;
   });
 }
+
+function init_search_hotkey() {
+  document.addEventListener("keydown", function(event) {
+    if (event.key === "k" && event.ctrlKey) {
+      event.preventDefault();
+      document.getElementById("MSearchField").focus();
+    }
+  });
+}

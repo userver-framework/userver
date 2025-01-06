@@ -21,14 +21,14 @@ static_assert((static_cast<std::size_t>('a') | kUppercaseToLowerMask) == 'a');
 static_assert((static_cast<std::size_t>('z') | kUppercaseToLowerMask) == 'z');
 
 compiler::ThreadLocal local_rng = [] {
-  auto seed_seq = impl::MakeSeedSeq();
-  return std::mt19937{seed_seq};
+    auto seed_seq = impl::MakeSeedSeq();
+    return std::mt19937{seed_seq};
 };
 
 HashSeed GenerateHashSeed() {
-  auto rng = local_rng.Use();
-  std::uniform_int_distribution<std::uint64_t> distribution{};
-  return HashSeed{distribution(*rng), distribution(*rng)};
+    auto rng = local_rng.Use();
+    std::uniform_int_distribution<std::uint64_t> distribution{};
+    return HashSeed{distribution(*rng), distribution(*rng)};
 }
 
 }  // namespace
@@ -38,11 +38,11 @@ StrIcaseHash::StrIcaseHash() : StrIcaseHash(GenerateHashSeed()) {}
 StrIcaseHash::StrIcaseHash(HashSeed seed) noexcept : seed_{seed} {}
 
 std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
-  // Out implementation of siphash returns 64bit hash and under 32 bits
-  // systems it gets truncated to size_t here, which might be problematic,
-  // but I'm not certain.
-  // TODO : TAXICOMMON-6397, think about this
-  return impl::CaseInsensitiveSipHasher{seed_.k0, seed_.k1}(s);
+    // Out implementation of siphash returns 64bit hash and under 32 bits
+    // systems it gets truncated to size_t here, which might be problematic,
+    // but I'm not certain.
+    // TODO : TAXICOMMON-6397, think about this
+    return impl::CaseInsensitiveSipHasher{seed_.k0, seed_.k1}(s);
 }
 
 StrCaseHash::StrCaseHash() : StrCaseHash(GenerateHashSeed()) {}
@@ -50,40 +50,43 @@ StrCaseHash::StrCaseHash() : StrCaseHash(GenerateHashSeed()) {}
 StrCaseHash::StrCaseHash(HashSeed seed) noexcept : seed_{seed} {}
 
 std::size_t StrCaseHash::operator()(std::string_view s) const& noexcept {
-  // Out implementation of siphash returns 64bit hash and under 32 bits
-  // systems it gets truncated to size_t here, which might be problematic,
-  // but I'm not certain.
-  // TODO : TAXICOMMON-6397, think about this
-  return impl::SipHasher{seed_.k0, seed_.k1}(s);
+    // Out implementation of siphash returns 64bit hash and under 32 bits
+    // systems it gets truncated to size_t here, which might be problematic,
+    // but I'm not certain.
+    // TODO : TAXICOMMON-6397, think about this
+    return impl::SipHasher{seed_.k0, seed_.k1}(s);
 }
 
-int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
-                                        std::string_view rhs) const noexcept {
-  const auto min_len = std::min(lhs.size(), rhs.size());
-  for (std::size_t i = 0; i < min_len; ++i) {
-    unsigned char a = lhs[i];
-    unsigned char b = rhs[i];
+int StrIcaseCompareThreeWay::operator()(std::string_view lhs, std::string_view rhs) const noexcept {
+    const auto min_len = std::min(lhs.size(), rhs.size());
+    for (std::size_t i = 0; i < min_len; ++i) {
+        unsigned char a = lhs[i];
+        unsigned char b = rhs[i];
 
-    if (a == b) continue;
-    if ('A' <= a && a <= 'Z') a |= kUppercaseToLowerMask;
-    if ('A' <= b && b <= 'Z') b |= kUppercaseToLowerMask;
-    if (a == b) continue;
+        if (a == b) continue;
+        if ('A' <= a && a <= 'Z') a |= kUppercaseToLowerMask;
+        if ('A' <= b && b <= 'Z') b |= kUppercaseToLowerMask;
+        if (a == b) continue;
 
-    return static_cast<int>(a) - static_cast<int>(b);
-  }
+        return static_cast<int>(a) - static_cast<int>(b);
+    }
 
-  if (lhs.size() != rhs.size()) return lhs.size() < rhs.size() ? -1 : 1;
-  return 0;
+    if (lhs.size() != rhs.size()) return lhs.size() < rhs.size() ? -1 : 1;
+    return 0;
 }
 
-bool StrIcaseEqual::operator()(std::string_view lhs,  //
-                               std::string_view rhs) const noexcept {
-  return impl::CaseInsensitiveEqual{}(lhs, rhs);
+bool StrIcaseEqual::operator()(
+    std::string_view lhs,  //
+    std::string_view rhs
+) const noexcept {
+    return impl::CaseInsensitiveEqual{}(lhs, rhs);
 }
 
-bool StrIcaseLess::operator()(std::string_view lhs,  //
-                              std::string_view rhs) const noexcept {
-  return StrIcaseCompareThreeWay{}(lhs, rhs) < 0;
+bool StrIcaseLess::operator()(
+    std::string_view lhs,  //
+    std::string_view rhs
+) const noexcept {
+    return StrIcaseCompareThreeWay{}(lhs, rhs) < 0;
 }
 
 }  // namespace utils

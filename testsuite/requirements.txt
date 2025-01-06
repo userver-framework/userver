@@ -3,3 +3,4 @@ websockets >= 11.0.3
 # Not ready to migrate to 0.23.0+ because of
 # https://github.com/pytest-dev/pytest-asyncio/issues/706
 pytest_asyncio >= 0.21.2, < 0.22.0
+zstd >= 1.5.5.0

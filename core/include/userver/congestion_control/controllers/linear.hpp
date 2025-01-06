@@ -15,32 +15,35 @@ USERVER_NAMESPACE_BEGIN
 namespace congestion_control::v2 {
 
 class LinearController final : public Controller {
- public:
-  using StaticConfig = Controller::Config;
+public:
+    using StaticConfig = Controller::Config;
 
-  LinearController(
-      const std::string& name, v2::Sensor& sensor, Limiter& limiter,
-      Stats& stats, const StaticConfig& config,
-      dynamic_config::Source config_source,
-      std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter);
+    LinearController(
+        const std::string& name,
+        v2::Sensor& sensor,
+        Limiter& limiter,
+        Stats& stats,
+        const StaticConfig& config,
+        dynamic_config::Source config_source,
+        std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter
+    );
 
-  Limit Update(const Sensor::Data& current) override;
+    Limit Update(const Sensor::Data& current) override;
 
- private:
-  StaticConfig config_;
-  utils::SlidingInterval<int64_t> current_load_;
-  utils::SlidingInterval<int64_t> long_timings_;
-  utils::SlidingInterval<int64_t> short_timings_;
-  std::optional<std::size_t> current_limit_;
-  std::size_t epochs_passed_{0};
+private:
+    StaticConfig config_;
+    utils::SlidingInterval<int64_t> current_load_;
+    utils::SlidingInterval<int64_t> long_timings_;
+    utils::SlidingInterval<int64_t> short_timings_;
+    std::optional<std::size_t> current_limit_;
+    std::size_t epochs_passed_{0};
 
-  dynamic_config::Source config_source_;
-  std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter_;
+    dynamic_config::Source config_source_;
+    std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter_;
 };
 
-LinearController::StaticConfig Parse(
-    const yaml_config::YamlConfig& value,
-    formats::parse::To<LinearController::StaticConfig>);
+LinearController::StaticConfig
+Parse(const yaml_config::YamlConfig& value, formats::parse::To<LinearController::StaticConfig>);
 
 }  // namespace congestion_control::v2
 

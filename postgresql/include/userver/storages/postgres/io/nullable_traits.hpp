@@ -17,12 +17,12 @@ inline constexpr bool kIsNullable = IsNullable<T>::value;
 
 template <typename T>
 struct GetSetNull {
-  inline static bool IsNull(const T&) { return false; }
-  inline static void SetNull(T&) {
-    // TODO Consider a static_assert here
-    throw TypeCannotBeNull(compiler::GetTypeName<T>());
-  }
-  inline static void SetDefault(T& value) { value = T{}; }
+    inline static bool IsNull(const T&) { return false; }
+    inline static void SetNull(T&) {
+        // TODO Consider a static_assert here
+        throw TypeCannotBeNull(compiler::GetTypeName<T>());
+    }
+    inline static void SetDefault(T& value) { value = T{}; }
 };
 
 }  // namespace storages::postgres::io::traits

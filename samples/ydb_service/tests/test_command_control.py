@@ -12,12 +12,13 @@ async def test_query_span(service_client):
             },
         )
         assert response.status_code == 200
+        assert 'application/json' in response.headers['Content-Type']
         assert response.json() == {'items': []}
 
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='3',
+        max_retries='3',
         get_session_timeout_ms='5000',
         operation_timeout_ms='1000',
         cancel_after_ms='1000',
@@ -28,7 +29,7 @@ async def test_query_span(service_client):
 @pytest.mark.config(
     YDB_QUERIES_COMMAND_CONTROL={
         'select': {
-            'attempts': 10,
+            'attempts': 11,
             'operation-timeout-ms': 5001,
             'cancel-after-ms': 5002,
             'client-timeout-ms': 5003,
@@ -47,12 +48,13 @@ async def test_config_command_control(service_client):
             },
         )
         assert response.status_code == 200
+        assert 'application/json' in response.headers['Content-Type']
         assert response.json() == {'items': []}
 
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='10',
+        max_retries='10',
         get_session_timeout_ms='5004',
         operation_timeout_ms='5001',
         cancel_after_ms='5002',

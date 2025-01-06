@@ -16,9 +16,9 @@ namespace formats::serialize {
 
 template <typename T, typename Value>
 Value Serialize(const boost::optional<T>& value, To<Value>) {
-  if (!value) return {};
+    if (!value) return {};
 
-  return typename Value::Builder(*value).ExtractValue();
+    return typename Value::Builder(*value).ExtractValue();
 }
 
 }  // namespace formats::serialize

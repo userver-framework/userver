@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-const dynamic_config::Key<bool> kEnforceClientTaskDeadline{
-    "USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION", true};
+const dynamic_config::Key<bool> kEnforceClientTaskDeadline{"USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION", true};
 
 }  // namespace ugrpc::client::impl
 

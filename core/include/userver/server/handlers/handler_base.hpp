@@ -3,7 +3,7 @@
 /// @file userver/server/handlers/handler_base.hpp
 /// @brief @copybrief server::handlers::HandlerBase
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/handler_config.hpp>
 #include <userver/server/request/request_base.hpp>
@@ -34,6 +34,7 @@ namespace server::handlers {
 /// url_trailing_slash | 'both' to treat URLs with and without a trailing slash as equal, 'strict-match' otherwise | 'both'
 /// max_requests_in_flight | integer to limit max pending requests to this handler | <no limit>
 /// request_body_size_log_limit | trim request to this size before logging | 512
+/// request_headers_size_log_limit | limit on the total length of logged headers | 512
 /// response_data_size_log_limit | trim responses to this size before logging | 512
 /// max_requests_per_second | integer to limit RPS to this handler | <no limit>
 /// decompress_request | allow decompression of the requests | true
@@ -45,42 +46,43 @@ namespace server::handlers {
 /// deadline_expired_status_code | the HTTP status code to return if the request @ref scripts/docs/en/userver/deadline_propagation.md "deadline expires" | 498
 
 // clang-format on
-class HandlerBase : public components::LoggableComponentBase {
- public:
-  HandlerBase(const components::ComponentConfig& config,
-              const components::ComponentContext& component_context,
-              bool is_monitor = false);
-  ~HandlerBase() noexcept override = default;
+class HandlerBase : public components::ComponentBase {
+public:
+    HandlerBase(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& component_context,
+        bool is_monitor = false
+    );
+    ~HandlerBase() noexcept override = default;
 
-  /// Parses request, executes processing routines, and fills response
-  /// accordingly. Does not throw.
-  virtual void HandleRequest(request::RequestBase& request,
-                             request::RequestContext& context) const = 0;
+    /// Parses request, executes processing routines, and fills response
+    /// accordingly. Does not throw.
+    virtual void HandleRequest(request::RequestBase& request, request::RequestContext& context) const = 0;
 
-  /// Produces response to a request unrecognized by the protocol based on
-  /// provided generic response. Does not throw.
-  virtual void ReportMalformedRequest(request::RequestBase&) const {}
+    /// Produces response to a request unrecognized by the protocol based on
+    /// provided generic response. Does not throw.
+    virtual void ReportMalformedRequest(request::RequestBase&) const {}
 
-  /// Returns whether this is a monitoring handler.
-  bool IsMonitor() const { return is_monitor_; }
+    /// Returns whether this is a monitoring handler.
+    bool IsMonitor() const { return is_monitor_; }
 
-  /// Returns handler config.
-  const HandlerConfig& GetConfig() const;
+    /// Returns handler config.
+    const HandlerConfig& GetConfig() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- protected:
-  // Pull the type names in the handler's scope to shorten throwing code
-  using HandlerErrorCode = handlers::HandlerErrorCode;
-  using InternalMessage = handlers::InternalMessage;
-  using ExternalBody = handlers::ExternalBody;
+protected:
+    // Pull the type names in the handler's scope to shorten throwing code
+    using HandlerErrorCode = handlers::HandlerErrorCode;
+    using InternalMessage = handlers::InternalMessage;
+    using ExternalBody = handlers::ExternalBody;
 
-  using ClientError = handlers::ClientError;
-  using InternalServerError = handlers::InternalServerError;
+    using ClientError = handlers::ClientError;
+    using InternalServerError = handlers::InternalServerError;
 
- private:
-  bool is_monitor_;
-  HandlerConfig config_;
+private:
+    bool is_monitor_;
+    HandlerConfig config_;
 };
 
 }  // namespace server::handlers

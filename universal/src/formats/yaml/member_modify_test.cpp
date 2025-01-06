@@ -21,39 +21,39 @@ key5: 10.5
 
 template <>
 struct MemberModify<formats::yaml::ValueBuilder> : public ::testing::Test {
-  // XXX: not working from base class in clang-7 (decltype?)
-  static_assert(
-      std::is_assignable_v<
-          decltype(*std::declval<formats::yaml::ValueBuilder>().begin()),
-          formats::yaml::ValueBuilder>,
-      "ValueBuilder iterators are assignable");
+    // XXX: not working from base class in clang-7 (decltype?)
+    static_assert(
+        std::is_assignable_v<
+            decltype(*std::declval<formats::yaml::ValueBuilder>().begin()),
+            formats::yaml::ValueBuilder>,
+        "ValueBuilder iterators are assignable"
+    );
 
-  MemberModify() : builder_(formats::yaml::FromString(kDoc)) {}
+    MemberModify() : builder_(formats::yaml::FromString(kDoc)) {}
 
-  static formats::yaml::Value GetValue(formats::yaml::ValueBuilder& bld) {
-    auto v = bld.ExtractValue();
-    bld = v;
-    return v;
-  }
+    static formats::yaml::Value GetValue(formats::yaml::ValueBuilder& bld) {
+        auto v = bld.ExtractValue();
+        bld = v;
+        return v;
+    }
 
-  formats::yaml::Value GetBuiltValue() { return GetValue(builder_); }
+    formats::yaml::Value GetBuiltValue() { return GetValue(builder_); }
 
-  formats::yaml::ValueBuilder builder_;
+    formats::yaml::ValueBuilder builder_;
 
-  using ValueBuilder = formats::yaml::ValueBuilder;
-  using Value = formats::yaml::Value;
-  using Type = formats::yaml::Type;
+    using ValueBuilder = formats::yaml::ValueBuilder;
+    using Value = formats::yaml::Value;
+    using Type = formats::yaml::Type;
 
-  using ParseException = formats::yaml::ParseException;
-  using TypeMismatchException = formats::yaml::TypeMismatchException;
-  using OutOfBoundsException = formats::yaml::OutOfBoundsException;
-  using MemberMissingException = formats::yaml::MemberMissingException;
-  using Exception = formats::yaml::Exception;
+    using ParseException = formats::yaml::ParseException;
+    using TypeMismatchException = formats::yaml::TypeMismatchException;
+    using OutOfBoundsException = formats::yaml::OutOfBoundsException;
+    using MemberMissingException = formats::yaml::MemberMissingException;
+    using Exception = formats::yaml::Exception;
 
-  constexpr static auto FromString = formats::yaml::FromString;
+    constexpr static auto FromString = formats::yaml::FromString;
 };
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberModify,
-                               formats::yaml::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberModify, formats::yaml::ValueBuilder);
 
 USERVER_NAMESPACE_END

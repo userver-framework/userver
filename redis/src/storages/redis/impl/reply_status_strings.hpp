@@ -12,25 +12,23 @@ namespace redis {
 
 /// String representations of ReplyStatus codes
 constexpr utils::TrivialBiMap kReplyStatusMap = [](auto selector) {
-  return selector()
-      .Case(ReplyStatus::kOk, "OK")
-      .Case(ReplyStatus::kInputOutputError, "input_output_error")
-      .Case(ReplyStatus::kOtherError, "other_error")
-      .Case(ReplyStatus::kEndOfFileError, "EOF")
-      .Case(ReplyStatus::kProtocolError, "protocol_error")
-      .Case(ReplyStatus::kOutOfMemoryError, "OOM")
-      .Case(ReplyStatus::kTimeoutError, "timeout");
+    return selector()
+        .Case(ReplyStatus::kOk, "OK")
+        .Case(ReplyStatus::kInputOutputError, "input_output_error")
+        .Case(ReplyStatus::kOtherError, "other_error")
+        .Case(ReplyStatus::kEndOfFileError, "EOF")
+        .Case(ReplyStatus::kProtocolError, "protocol_error")
+        .Case(ReplyStatus::kOutOfMemoryError, "OOM")
+        .Case(ReplyStatus::kTimeoutError, "timeout");
 };
 
 /// Returns a string representation of a ReplyStatus code
-inline auto ToString(ReplyStatus status) {
-  return std::string{*kReplyStatusMap.TryFindByFirst(status)};
-}
+inline auto ToString(ReplyStatus status) { return std::string{*kReplyStatusMap.TryFindByFirst(status)}; }
 
 /// Convenience operator for ReplyStatus logging
 inline std::ostream& operator<<(std::ostream& ostr, ReplyStatus status) {
-  ostr << *kReplyStatusMap.TryFindByFirst(status);
-  return ostr;
+    ostr << *kReplyStatusMap.TryFindByFirst(status);
+    return ostr;
 }
 
 }  // namespace redis

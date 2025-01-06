@@ -11,20 +11,21 @@ namespace server::handlers::auth::apikey {
 namespace {
 
 class AuthCheckerApiKeyFactory final : public AuthCheckerFactoryBase {
- public:
-  static constexpr const char* kAuthType = "apikey";
+public:
+    static constexpr const char* kAuthType = "apikey";
 
-  AuthCheckerBasePtr operator()(
-      const components::ComponentContext&, const HandlerAuthConfig& config,
-      const AuthCheckerSettings& settings) const override {
-    return std::make_shared<AuthCheckerApiKey>(config, settings);
-  }
+    AuthCheckerBasePtr operator()(
+        const components::ComponentContext&,
+        const HandlerAuthConfig& config,
+        const AuthCheckerSettings& settings
+    ) const override {
+        return std::make_shared<AuthCheckerApiKey>(config, settings);
+    }
 };
 
 bool RegisterAuthChecker() {
-  RegisterAuthCheckerFactory(AuthCheckerApiKeyFactory::kAuthType,
-                             std::make_unique<AuthCheckerApiKeyFactory>());
-  return true;
+    RegisterAuthCheckerFactory(AuthCheckerApiKeyFactory::kAuthType, std::make_unique<AuthCheckerApiKeyFactory>());
+    return true;
 }
 
 }  // namespace

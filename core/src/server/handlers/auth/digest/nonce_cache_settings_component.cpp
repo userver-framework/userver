@@ -12,20 +12,19 @@ namespace server::handlers::auth::digest {
 
 NonceCacheSettingsComponent::NonceCacheSettingsComponent(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : AuthCheckerSettingsComponent(config, context) {
-  settings_.ways = config["ways"].As<std::size_t>();
-  settings_.way_size = config["size"].As<std::size_t>();
+    settings_.ways = config["ways"].As<std::size_t>();
+    settings_.way_size = config["size"].As<std::size_t>();
 }
 
 NonceCacheSettingsComponent::~NonceCacheSettingsComponent() = default;
 
-const NonceCacheSettings& NonceCacheSettingsComponent::GetSettings() const {
-  return settings_;
-}
+const NonceCacheSettings& NonceCacheSettingsComponent::GetSettings() const { return settings_; }
 
 yaml_config::Schema NonceCacheSettingsComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<AuthCheckerSettingsComponent>(R"(
+    return yaml_config::MergeSchemas<AuthCheckerSettingsComponent>(R"(
 type: object
 description: class for nonce cache settings
 additionalProperties: false

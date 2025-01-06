@@ -1,0 +1,41 @@
+definitions:
+    Number:
+        type: number
+
+    OneOf:
+        oneOf:
+          - type: boolean
+          - $ref: '#/definitions/Number'
+          - type: object
+            additionalProperties: false
+            properties: {}
+
+    ObjectOneOfWithDiscriminator:
+        type: object
+        additionalProperties: false
+        properties:
+            oneof:
+                oneOf:
+                  - $ref: '#/definitions/ObjectFoo'
+                  - $ref: '#/definitions/ObjectBar'
+                discriminator:
+                    propertyName: type
+
+    ObjectFoo:
+        type: object
+        additionalProperties: false
+        properties:
+            type:
+                type: string
+            foo:
+                type: integer
+
+    ObjectBar:
+        type: object
+        additionalProperties: false
+        properties:
+            type:
+                type: string
+            bar:
+                type: string
+

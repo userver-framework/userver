@@ -11,10 +11,10 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 ComponentList MinimalServerComponentList() {
-  return components::MinimalComponentList()
-      .Append<components::Server>()
-      .Append<components::AuthCheckerSettings>()
-      .AppendComponentList(server::middlewares::DefaultMiddlewareComponents());
+    return components::MinimalComponentList()
+        .Append<components::Server>()
+        .Append<components::AuthCheckerSettings>()
+        .AppendComponentList(server::middlewares::DefaultMiddlewareComponents());
 }
 
 }  // namespace components

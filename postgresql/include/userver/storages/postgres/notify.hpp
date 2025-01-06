@@ -15,8 +15,8 @@ class ConnectionPtr;
 }
 
 struct Notification {
-  std::string channel;
-  std::optional<std::string> payload;
+    std::string channel;
+    std::optional<std::string> payload;
 };
 
 /// @brief RAII scope for receiving notifications.
@@ -35,24 +35,23 @@ struct Notification {
 /// auto ntf = scope.WaitNotify(engine::Deadline::FromDuration(100ms));
 /// @endcode
 class [[nodiscard]] NotifyScope final {
- public:
-  NotifyScope(detail::ConnectionPtr conn, std::string_view channel,
-              OptionalCommandControl cmd_ctl);
+public:
+    NotifyScope(detail::ConnectionPtr conn, std::string_view channel, OptionalCommandControl cmd_ctl);
 
-  ~NotifyScope();
+    ~NotifyScope();
 
-  NotifyScope(NotifyScope&&) noexcept;
-  NotifyScope& operator=(NotifyScope&&) noexcept;
+    NotifyScope(NotifyScope&&) noexcept;
+    NotifyScope& operator=(NotifyScope&&) noexcept;
 
-  NotifyScope(const NotifyScope&) = delete;
-  NotifyScope& operator=(const NotifyScope&) = delete;
+    NotifyScope(const NotifyScope&) = delete;
+    NotifyScope& operator=(const NotifyScope&) = delete;
 
-  /// Wait for notification on connection
-  Notification WaitNotify(engine::Deadline deadline);
+    /// Wait for notification on connection
+    Notification WaitNotify(engine::Deadline deadline);
 
- private:
-  struct Impl;
-  USERVER_NAMESPACE::utils::FastPimpl<Impl, 80, 8> pimpl_;
+private:
+    struct Impl;
+    USERVER_NAMESPACE::utils::FastPimpl<Impl, 80, 8> pimpl_;
 };
 
 }  // namespace storages::postgres

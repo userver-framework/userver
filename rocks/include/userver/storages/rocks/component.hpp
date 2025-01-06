@@ -3,9 +3,9 @@
 /// @file userver/storages/rocks/component.hpp
 /// @brief @copybrief rocks::Rocks
 
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/storages/rocks/client_fwd.hpp>
 
@@ -26,19 +26,18 @@ namespace storages::rocks {
 
 // clang-format on
 
-class Component : public components::LoggableComponentBase {
- public:
-  Component(const components::ComponentConfig&,
-            const components::ComponentContext&);
+class Component : public components::ComponentBase {
+public:
+    Component(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~Component() = default;
+    ~Component() = default;
 
-  storages::rocks::ClientPtr MakeClient();
+    storages::rocks::ClientPtr MakeClient();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  storages::rocks::ClientPtr client_ptr_;
+private:
+    storages::rocks::ClientPtr client_ptr_;
 };
 
 }  // namespace storages::rocks

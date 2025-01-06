@@ -21,11 +21,11 @@ namespace storages::postgres {
 /// @brief SQL transaction isolation level
 /// @see https://www.postgresql.org/docs/current/static/sql-set-transaction.html
 enum class IsolationLevel {
-  kReadCommitted,   //!< READ COMMITTED
-  kRepeatableRead,  //!< REPEATABLE READ
-  kSerializable,    //!< SERIALIZABLE
-  kReadUncommitted  //!< READ UNCOMMITTED @warning In Postgres READ UNCOMMITTED
-                    //!< is treated as READ COMMITTED
+    kReadCommitted,   //!< READ COMMITTED
+    kRepeatableRead,  //!< REPEATABLE READ
+    kSerializable,    //!< SERIALIZABLE
+    kReadUncommitted  //!< READ UNCOMMITTED @warning In Postgres READ UNCOMMITTED
+                      //!< is treated as READ COMMITTED
 };
 /*! [Isolation levels] */
 
@@ -50,35 +50,30 @@ std::ostream& operator<<(std::ostream&, IsolationLevel);
 ///
 /// @see https://www.postgresql.org/docs/current/static/sql-set-transaction.html
 struct TransactionOptions {
-  /*! [Transaction modes] */
-  enum Mode {
-    kReadWrite = 0,
-    kReadOnly = 1,
-    kDeferrable = 3  //!< Deferrable transaction is read only
-  };
-  /*! [Transaction modes] */
-  IsolationLevel isolation_level = IsolationLevel::kReadCommitted;
-  Mode mode = kReadWrite;
+    /*! [Transaction modes] */
+    enum Mode {
+        kReadWrite = 0,
+        kReadOnly = 1,
+        kDeferrable = 3  //!< Deferrable transaction is read only
+    };
+    /*! [Transaction modes] */
+    IsolationLevel isolation_level = IsolationLevel::kReadCommitted;
+    Mode mode = kReadWrite;
 
-  constexpr TransactionOptions() = default;
-  constexpr explicit TransactionOptions(IsolationLevel lvl)
-      : isolation_level{lvl} {}
-  constexpr TransactionOptions(IsolationLevel lvl, Mode m)
-      : isolation_level{lvl}, mode{m} {}
-  constexpr explicit TransactionOptions(Mode m) : mode{m} {}
+    constexpr TransactionOptions() = default;
+    constexpr explicit TransactionOptions(IsolationLevel lvl) : isolation_level{lvl} {}
+    constexpr TransactionOptions(IsolationLevel lvl, Mode m) : isolation_level{lvl}, mode{m} {}
+    constexpr explicit TransactionOptions(Mode m) : mode{m} {}
 
-  bool IsReadOnly() const { return mode & kReadOnly; }
+    bool IsReadOnly() const { return mode & kReadOnly; }
 
-  /// The deferrable property has effect only if the transaction is also
-  /// serializable and read only
-  static constexpr TransactionOptions Deferrable() {
-    return {IsolationLevel::kSerializable, kDeferrable};
-  }
+    /// The deferrable property has effect only if the transaction is also
+    /// serializable and read only
+    static constexpr TransactionOptions Deferrable() { return {IsolationLevel::kSerializable, kDeferrable}; }
 };
 
-constexpr inline bool operator==(const TransactionOptions& lhs,
-                                 const TransactionOptions& rhs) {
-  return lhs.isolation_level == rhs.isolation_level && lhs.mode == rhs.mode;
+constexpr inline bool operator==(const TransactionOptions& lhs, const TransactionOptions& rhs) {
+    return lhs.isolation_level == rhs.isolation_level && lhs.mode == rhs.mode;
 }
 const std::string& BeginStatement(const TransactionOptions&);
 
@@ -109,48 +104,36 @@ const std::string& BeginStatement(const TransactionOptions&);
 /// In case of a timeout, either back-end or overall, the client gets an
 /// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
-  /// Overall timeout for a command being executed
-  TimeoutDuration execute{};
-  /// PostgreSQL server-side timeout
-  TimeoutDuration statement{};
+    /// Overall timeout for a command being executed
+    TimeoutDuration execute{};
+    /// PostgreSQL server-side timeout
+    TimeoutDuration statement{};
 
-  constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
-      : execute(execute), statement(statement) {}
+    constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
+        : execute(execute), statement(statement) {}
 
-  constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const
-      noexcept {
-    return {n, statement};
-  }
+    constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const noexcept { return {n, statement}; }
 
-  constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const
-      noexcept {
-    return {execute, s};
-  }
+    constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const noexcept { return {execute, s}; }
 
-  bool operator==(const CommandControl& rhs) const {
-    return execute == rhs.execute && statement == rhs.statement;
-  }
+    bool operator==(const CommandControl& rhs) const { return execute == rhs.execute && statement == rhs.statement; }
 
-  bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
+    bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
 };
 
 /// @brief storages::postgres::CommandControl that may not be set
 using OptionalCommandControl = std::optional<CommandControl>;
 
-using CommandControlByMethodMap =
-    USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
+using CommandControlByMethodMap = USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 using CommandControlByHandlerMap =
-    USERVER_NAMESPACE::utils::impl::TransparentMap<std::string,
-                                                   CommandControlByMethodMap>;
-using CommandControlByQueryMap =
-    std::unordered_map<std::string, CommandControl>;
+    USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControlByMethodMap>;
+using CommandControlByQueryMap = std::unordered_map<std::string, CommandControl>;
 
-OptionalCommandControl GetHandlerOptionalCommandControl(
-    const CommandControlByHandlerMap& map, std::string_view path,
-    std::string_view method);
+OptionalCommandControl
+GetHandlerOptionalCommandControl(const CommandControlByHandlerMap& map, std::string_view path, std::string_view method);
 
-OptionalCommandControl GetQueryOptionalCommandControl(
-    const CommandControlByQueryMap& map, const std::string& query_name);
+OptionalCommandControl
+GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, const std::string& query_name);
 
 /// Default initial pool connection count
 inline constexpr std::size_t kDefaultPoolMinSize = 4;
@@ -168,30 +151,29 @@ inline constexpr std::size_t kDefaultPoolMaxQueueSize = 200;
 inline constexpr std::size_t kDefaultConnectingLimit = 0;
 
 struct TopologySettings {
-  std::chrono::milliseconds max_replication_lag{kDefaultMaxReplicationLag};
+    std::chrono::milliseconds max_replication_lag{kDefaultMaxReplicationLag};
 };
 
 /// @brief PostgreSQL connection pool options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_POOL_SETTINGS
 struct PoolSettings {
-  /// Number of connections created initially
-  std::size_t min_size{kDefaultPoolMinSize};
+    /// Number of connections created initially
+    std::size_t min_size{kDefaultPoolMinSize};
 
-  /// Maximum number of created connections
-  std::size_t max_size{kDefaultPoolMaxSize};
+    /// Maximum number of created connections
+    std::size_t max_size{kDefaultPoolMaxSize};
 
-  /// Maximum number of clients waiting for a connection
-  std::size_t max_queue_size{kDefaultPoolMaxQueueSize};
+    /// Maximum number of clients waiting for a connection
+    std::size_t max_queue_size{kDefaultPoolMaxQueueSize};
 
-  /// Limits number of concurrent establishing connections (0 - unlimited)
-  std::size_t connecting_limit{kDefaultConnectingLimit};
+    /// Limits number of concurrent establishing connections (0 - unlimited)
+    std::size_t connecting_limit{kDefaultConnectingLimit};
 
-  bool operator==(const PoolSettings& rhs) const {
-    return min_size == rhs.min_size && max_size == rhs.max_size &&
-           max_queue_size == rhs.max_queue_size &&
-           connecting_limit == rhs.connecting_limit;
-  }
+    bool operator==(const PoolSettings& rhs) const {
+        return min_size == rhs.min_size && max_size == rhs.max_size && max_queue_size == rhs.max_queue_size &&
+               connecting_limit == rhs.connecting_limit;
+    }
 };
 
 /// Default size limit for prepared statements cache
@@ -212,125 +194,117 @@ enum class OmitDescribeInExecuteMode { kDisabled, kEnabled };
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_SETTINGS
 struct ConnectionSettings {
-  enum PreparedStatementOptions {
-    kCachePreparedStatements,
-    kNoPreparedStatements,
-  };
-  enum UserTypesOptions {
-    kUserTypesEnabled,
-    kUserTypesEnforced,
-    kPredefinedTypesOnly,
-  };
-  enum CheckQueryParamsOptions {
-    kIgnoreUnused,
-    kCheckUnused,
-  };
-  enum DiscardOnConnectOptions {
-    kDiscardNone,
-    kDiscardAll,
-  };
-  using SettingsVersion = std::size_t;
+    enum PreparedStatementOptions {
+        kCachePreparedStatements,
+        kNoPreparedStatements,
+    };
+    enum UserTypesOptions {
+        kUserTypesEnabled,
+        kUserTypesEnforced,
+        kPredefinedTypesOnly,
+    };
+    enum CheckQueryParamsOptions {
+        kIgnoreUnused,
+        kCheckUnused,
+    };
+    enum DiscardOnConnectOptions {
+        kDiscardNone,
+        kDiscardAll,
+    };
+    using SettingsVersion = std::size_t;
 
-  /// Cache prepared statements or not
-  PreparedStatementOptions prepared_statements = kCachePreparedStatements;
+    /// Cache prepared statements or not
+    PreparedStatementOptions prepared_statements = kCachePreparedStatements;
 
-  /// Enables the usage of user-defined types
-  UserTypesOptions user_types = kUserTypesEnabled;
+    /// Enables the usage of user-defined types
+    UserTypesOptions user_types = kUserTypesEnabled;
 
-  /// Checks for not-NULL query params that are not used in query
-  CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
+    /// Checks for not-NULL query params that are not used in query
+    CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
 
-  /// Limits the size or prepared statements cache
-  std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
+    /// Limits the size or prepared statements cache
+    std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
-  /// Turns on connection pipeline mode
-  PipelineMode pipeline_mode = PipelineMode::kDisabled;
+    /// Turns on connection pipeline mode
+    PipelineMode pipeline_mode = PipelineMode::kDisabled;
 
-  /// Enables protocol-level optimization when executing prepared statements
-  OmitDescribeInExecuteMode omit_describe_mode =
-      OmitDescribeInExecuteMode::kDisabled;
+    /// Enables protocol-level optimization when executing prepared statements
+    OmitDescribeInExecuteMode omit_describe_mode = OmitDescribeInExecuteMode::kDisabled;
 
-  /// This many connection errors in 15 seconds block new connections opening
-  std::size_t recent_errors_threshold = 2;
+    /// This many connection errors in 15 seconds block new connections opening
+    std::size_t recent_errors_threshold = 2;
 
-  /// The maximum lifetime of the connection after which it will be closed
-  std::optional<std::chrono::seconds> max_ttl{};
+    /// The maximum lifetime of the connection after which it will be closed
+    std::optional<std::chrono::seconds> max_ttl{};
 
-  /// Execute discard all after establishing a new connection
-  DiscardOnConnectOptions discard_on_connect = kDiscardAll;
+    /// Execute discard all after establishing a new connection
+    DiscardOnConnectOptions discard_on_connect = kDiscardAll;
 
-  /// Helps keep track of the changes in settings
-  SettingsVersion version{0U};
+    /// Helps keep track of the changes in settings
+    SettingsVersion version{0U};
 
-  bool operator==(const ConnectionSettings& rhs) const {
-    return !RequiresConnectionReset(rhs) &&
-           recent_errors_threshold == rhs.recent_errors_threshold;
-  }
+    bool operator==(const ConnectionSettings& rhs) const {
+        return !RequiresConnectionReset(rhs) && recent_errors_threshold == rhs.recent_errors_threshold;
+    }
 
-  bool operator!=(const ConnectionSettings& rhs) const {
-    return !(*this == rhs);
-  }
+    bool operator!=(const ConnectionSettings& rhs) const { return !(*this == rhs); }
 
-  bool RequiresConnectionReset(const ConnectionSettings& rhs) const {
-    // TODO: max_prepared_cache_size check could be relaxed
-    return prepared_statements != rhs.prepared_statements ||
-           user_types != rhs.user_types ||
-           ignore_unused_query_params != rhs.ignore_unused_query_params ||
-           max_prepared_cache_size != rhs.max_prepared_cache_size ||
-           pipeline_mode != rhs.pipeline_mode || max_ttl != rhs.max_ttl ||
-           discard_on_connect != rhs.discard_on_connect ||
-           omit_describe_mode != rhs.omit_describe_mode;
-  }
+    bool RequiresConnectionReset(const ConnectionSettings& rhs) const {
+        // TODO: max_prepared_cache_size check could be relaxed
+        return prepared_statements != rhs.prepared_statements || user_types != rhs.user_types ||
+               ignore_unused_query_params != rhs.ignore_unused_query_params ||
+               max_prepared_cache_size != rhs.max_prepared_cache_size || pipeline_mode != rhs.pipeline_mode ||
+               max_ttl != rhs.max_ttl || discard_on_connect != rhs.discard_on_connect ||
+               omit_describe_mode != rhs.omit_describe_mode;
+    }
 };
 
 /// @brief PostgreSQL statements metrics options
 ///
 /// Dynamic option @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 struct StatementMetricsSettings final {
-  /// Store metrics in LRU of this size
-  std::size_t max_statements{0};
+    /// Store metrics in LRU of this size
+    std::size_t max_statements{0};
 
-  bool operator==(const StatementMetricsSettings& other) const {
-    return max_statements == other.max_statements;
-  }
+    bool operator==(const StatementMetricsSettings& other) const { return max_statements == other.max_statements; }
 };
 
 /// Initialization modes
 enum class InitMode {
-  kSync = 0,
-  kAsync,
+    kSync = 0,
+    kAsync,
 };
 
 enum class ConnlimitMode {
-  kManual = 0,
-  kAuto,
+    kManual = 0,
+    kAuto,
 };
 
 /// Settings for storages::postgres::Cluster
 struct ClusterSettings {
-  /// settings for statements metrics
-  StatementMetricsSettings statement_metrics_settings;
+    /// settings for statements metrics
+    StatementMetricsSettings statement_metrics_settings;
 
-  /// settings for host discovery
-  TopologySettings topology_settings;
+    /// settings for host discovery
+    TopologySettings topology_settings;
 
-  /// settings for connection pools
-  PoolSettings pool_settings;
+    /// settings for connection pools
+    PoolSettings pool_settings;
 
-  /// settings for individual connections
-  ConnectionSettings conn_settings;
+    /// settings for individual connections
+    ConnectionSettings conn_settings;
 
-  /// initialization mode
-  InitMode init_mode = InitMode::kSync;
+    /// initialization mode
+    InitMode init_mode = InitMode::kSync;
 
-  /// database name
-  std::string db_name;
+    /// database name
+    std::string db_name;
 
-  /// connection limit change mode
-  ConnlimitMode connlimit_mode = ConnlimitMode::kAuto;
+    /// connection limit change mode
+    ConnlimitMode connlimit_mode = ConnlimitMode::kAuto;
 
-  /// congestion control settings
-  congestion_control::v2::LinearController::StaticConfig cc_config;
+    /// congestion control settings
+    congestion_control::v2::LinearController::StaticConfig cc_config;
 };
 
 }  // namespace storages::postgres

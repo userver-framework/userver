@@ -18,23 +18,23 @@ namespace clients::http {
 /// @warning ConnectTo passed to connect_to() must outlive http's Request as
 /// it holds curl's slist value.
 class ConnectTo final {
- public:
-  ConnectTo(ConnectTo&&) noexcept;
+public:
+    ConnectTo(ConnectTo&&) noexcept;
 
-  ConnectTo(const ConnectTo&) = delete;
+    ConnectTo(const ConnectTo&) = delete;
 
-  explicit ConnectTo(const std::string& value);
+    explicit ConnectTo(const std::string& value);
 
-  ~ConnectTo();
+    ~ConnectTo();
 
-  ConnectTo& operator=(const ConnectTo&) = delete;
+    ConnectTo& operator=(const ConnectTo&) = delete;
 
-  ConnectTo& operator=(ConnectTo&&) noexcept;
+    ConnectTo& operator=(ConnectTo&&) noexcept;
 
-  curl::native::curl_slist* GetUnderlying() const noexcept;
+    curl::native::curl_slist* GetUnderlying() const noexcept;
 
- private:
-  curl::native::curl_slist* value_{nullptr};
+private:
+    curl::native::curl_slist* value_{nullptr};
 };
 
 }  // namespace clients::http

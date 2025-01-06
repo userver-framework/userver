@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-const dynamic_config::Key<bool> kServerCancelTaskByDeadline{
-    "USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE", true};
+const dynamic_config::Key<bool> kServerCancelTaskByDeadline{"USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE", true};
 
 }  // namespace ugrpc::server::impl
 

@@ -16,7 +16,6 @@ from testsuite.utils import compat
 
 from pytest_userver import client
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +37,7 @@ def extra_client_deps() -> None:
 def auto_client_deps(request) -> None:
     """
     Service client dependencies hook that knows about pgsql, mongodb,
-    clickhouse, rabbitmq, redis_store, ydb, and mysql dependencies.
+    clickhouse, rabbitmq, kafka, redis_store, ydb, and mysql dependencies.
     To add some other dependencies prefer overriding the
     extra_client_deps() fixture.
 
@@ -49,6 +48,8 @@ def auto_client_deps(request) -> None:
         'mongodb',
         'clickhouse',
         'rabbitmq',
+        'kafka_producer',
+        'kafka_consumer',
         'redis_store',
         'mysql',
         'ydb',
@@ -59,6 +60,7 @@ def auto_client_deps(request) -> None:
     except AttributeError:
         # support for an older version of the pytest
         import _pytest.fixtures
+
         fixture_lookup_error = _pytest.fixtures.FixtureLookupError
 
     resolved_deps = []
@@ -77,20 +79,19 @@ def auto_client_deps(request) -> None:
 
 @pytest.fixture
 async def service_client(
-        ensure_daemon_started,
-        service_daemon,
-        dynamic_config,
-        mock_configs_service,
-        cleanup_userver_dumps,
-        userver_client_cleanup,
-        _config_service_defaults_updated,
-        _testsuite_client_config: client.TestsuiteClientConfig,
-        _service_client_base,
-        _service_client_testsuite,
-        # User defined client deps must be last in order to use
-        # fixtures defined above.
-        extra_client_deps,
-        auto_client_deps,
+    ensure_daemon_started,
+    service_daemon,
+    dynamic_config,
+    mock_configs_service,
+    cleanup_userver_dumps,
+    userver_client_cleanup,
+    _testsuite_client_config: client.TestsuiteClientConfig,
+    _service_client_base,
+    _service_client_testsuite,
+    # User defined client deps must be last in order to use
+    # fixtures defined above.
+    extra_client_deps,
+    auto_client_deps,
 ) -> client.Client:
     """
     Main fixture that provides access to userver based service.
@@ -107,16 +108,27 @@ async def service_client(
         yield _service_client_base
     else:
         service_client = _service_client_testsuite(daemon)
-        await _config_service_defaults_updated.update(
-            service_client, dynamic_config,
-        )
-
         async with userver_client_cleanup(service_client):
             yield service_client
 
 
 @pytest.fixture
-def userver_client_cleanup(request, userver_flush_logs):
+def userver_client_cleanup(
+    request,
+    _userver_logging_plugin,
+    _dynamic_config_defaults_storage,
+    _check_config_marks,
+    dynamic_config,
+) -> typing.Callable[[client.Client], typing.AsyncGenerator]:
+    """
+    Contains the pre-test and post-test setup that depends
+    on @ref service_client.
+
+    Feel free to override, but in that case make sure to call the original
+    `userver_client_cleanup` fixture instance.
+
+    @ingroup userver_testsuite_fixtures
+    """
     marker = request.node.get_closest_marker('suspend_periodic_tasks')
     if marker:
         tasks_to_suspend = marker.args
@@ -124,41 +136,30 @@ def userver_client_cleanup(request, userver_flush_logs):
         tasks_to_suspend = ()
 
     @compat.asynccontextmanager
-    async def cleanup_manager(client: client.AiohttpClient):
-        async with userver_flush_logs(client):
-            await client.suspend_periodic_tasks(tasks_to_suspend)
-            try:
-                yield client
-            finally:
-                await client.resume_all_periodic_tasks()
-
-    return cleanup_manager
-
-
-@pytest.fixture
-def userver_flush_logs(request):
-    """Flush logs in case of failure."""
-
-    @compat.asynccontextmanager
-    async def flush_logs(service_client: client.AiohttpClient):
+    async def cleanup_manager(client: client.Client):
+        @_userver_logging_plugin.register_flusher
         async def do_flush():
             try:
-                await service_client.log_flush()
-            except aiohttp.client_exceptions.ClientResponseError:
+                await client.log_flush()
+            except aiohttp.client_exceptions.ClientError:
+                pass
+            except RuntimeError:
+                # TODO: find a better way to handle closed aiohttp session
                 pass
 
-        failed = False
+        # Service is already started we don't want startup logs to be shown
+        _userver_logging_plugin.update_position()
+
+        await _dynamic_config_defaults_storage.update(client, dynamic_config)
+        _check_config_marks()
+
+        await client.suspend_periodic_tasks(tasks_to_suspend)
         try:
             yield
-        except Exception:
-            failed = True
-            raise
         finally:
-            item = request.node
-            if failed or item.utestsuite_report.failed:
-                await do_flush()
+            await client.resume_all_periodic_tasks()
 
-    return flush_logs
+    return cleanup_manager
 
 
 @pytest.fixture
@@ -189,11 +190,11 @@ async def websocket_client(service_client, service_port):
 
 @pytest.fixture
 def monitor_client(
-        service_client,
-        service_client_options,
-        mockserver,
-        monitor_baseurl: str,
-        _testsuite_client_config: client.TestsuiteClientConfig,
+    service_client,
+    service_client_options,
+    mockserver,
+    monitor_baseurl: str,
+    _testsuite_client_config: client.TestsuiteClientConfig,
 ) -> client.ClientMonitor:
     """
     Main fixture that provides access to userver monitor listener.
@@ -229,16 +230,17 @@ async def _service_client_base(service_baseurl, service_client_options):
 
 @pytest.fixture
 def _service_client_testsuite(
-        service_baseurl,
-        service_client_options,
-        mocked_time,
-        userver_cache_control,
-        userver_log_capture,
-        testpoint,
-        testpoint_control,
-        cache_invalidation_state,
-        service_periodic_tasks_state,
-        _testsuite_client_config: client.TestsuiteClientConfig,
+    service_baseurl,
+    service_client_options,
+    mocked_time,
+    userver_cache_control,
+    userver_log_capture,
+    testpoint,
+    testpoint_control,
+    cache_invalidation_state,
+    service_periodic_tasks_state,
+    _testsuite_client_config: client.TestsuiteClientConfig,
+    asyncexc_check,
 ) -> typing.Callable[[DaemonInstance], client.Client]:
     def create_client(daemon):
         aiohttp_client = client.AiohttpClient(
@@ -251,6 +253,7 @@ def _service_client_testsuite(
             mocked_time=mocked_time,
             cache_invalidation_state=cache_invalidation_state,
             cache_control=userver_cache_control(daemon),
+            asyncexc_check=asyncexc_check,
             **service_client_options,
         )
         return client.Client(aiohttp_client)
@@ -291,7 +294,7 @@ def service_periodic_tasks_state() -> client.PeriodicTasksState:
 
 @pytest.fixture(scope='session')
 def _testsuite_client_config(
-        pytestconfig, service_config,
+    pytestconfig, service_config,
 ) -> client.TestsuiteClientConfig:
     components = service_config['components_manager']['components']
 

@@ -4,6 +4,7 @@ package samples.api;
 
 service GreeterService {
   rpc SayHello(GreetingRequest) returns(GreetingResponse) {}
+  rpc CallEchoNobody(GreetingRequest) returns(GreetingResponse) {}
 }
 
 message GreetingRequest {

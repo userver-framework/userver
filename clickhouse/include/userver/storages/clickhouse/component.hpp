@@ -3,7 +3,7 @@
 /// @file userver/storages/clickhouse/component.hpp
 /// @brief @copybrief components::ClickHouse
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 #include <userver/utils/statistics/storage.hpp>
 
@@ -54,23 +54,23 @@ namespace components {
 
 // clang-format on
 
-class ClickHouse : public LoggableComponentBase {
- public:
-  /// Component constructor
-  ClickHouse(const ComponentConfig&, const ComponentContext&);
-  /// Component destructor
-  ~ClickHouse() override;
+class ClickHouse : public ComponentBase {
+public:
+    /// Component constructor
+    ClickHouse(const ComponentConfig&, const ComponentContext&);
+    /// Component destructor
+    ~ClickHouse() override;
 
-  /// Cluster accessor
-  std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
+    /// Cluster accessor
+    std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Component& dns_;
+private:
+    clients::dns::Component& dns_;
 
-  std::shared_ptr<storages::clickhouse::Cluster> cluster_;
-  utils::statistics::Entry statistics_holder_;
+    std::shared_ptr<storages::clickhouse::Cluster> cluster_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

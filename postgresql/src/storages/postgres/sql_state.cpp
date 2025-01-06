@@ -432,25 +432,23 @@ const std::unordered_set<SqlState> kStateWhitelist{
 }  // namespace
 
 SqlStateClass GetSqlStateClass(SqlState sql_state) {
-  auto bits = boost::multiprecision::msb(static_cast<std::uint64_t>(sql_state));
-  auto res = static_cast<SqlStateClass>(std::uint64_t{1} << bits);
-  if (SqlStateClass::kWarning < res && res < SqlStateClass::kNoData) {
-    return SqlStateClass::kWarning;
-  }
-  return res;
+    auto bits = boost::multiprecision::msb(static_cast<std::uint64_t>(sql_state));
+    auto res = static_cast<SqlStateClass>(std::uint64_t{1} << bits);
+    if (SqlStateClass::kWarning < res && res < SqlStateClass::kNoData) {
+        return SqlStateClass::kWarning;
+    }
+    return res;
 }
 
 SqlState SqlStateFromString(std::string_view s) {
-  auto f = kCodeStrToState.find(s);
-  if (f != kCodeStrToState.end()) {
-    return f->second;
-  }
-  return SqlState::kUnknownState;
+    auto f = kCodeStrToState.find(s);
+    if (f != kCodeStrToState.end()) {
+        return f->second;
+    }
+    return SqlState::kUnknownState;
 }
 
-bool IsWhitelistedState(SqlState sql_state) {
-  return kStateWhitelist.count(sql_state) != 0;
-}
+bool IsWhitelistedState(SqlState sql_state) { return kStateWhitelist.count(sql_state) != 0; }
 
 }  // namespace storages::postgres
 

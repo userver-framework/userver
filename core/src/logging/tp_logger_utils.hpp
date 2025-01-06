@@ -15,13 +15,15 @@ class TcpSocketSink;
 
 std::shared_ptr<TpLogger> MakeTpLogger(const LoggerConfig& config);
 
-std::shared_ptr<TpLogger> GetDefaultLoggerOrMakeTpLogger(
-    const LoggerConfig& config);
+std::shared_ptr<TpLogger> GetDefaultLoggerOrMakeTpLogger(const LoggerConfig& config);
 
 TcpSocketSink* GetTcpSocketSink(TpLogger& logger);
 
-LoggerConfig ExtractDefaultLoggerConfig(
-    const components::ManagerConfig& config);
+class NoLoggerComponent final : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+std::optional<LoggerConfig> ExtractDefaultLoggerConfig(const components::ManagerConfig& config);
 
 }  // namespace logging::impl
 

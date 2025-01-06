@@ -1,0 +1,8 @@
+definitions:
+    ObjectName:
+        type: object
+        additionalProperties: false
+        properties:
+            foo:
+                x-usrv-cpp-name: bar
+                type: string

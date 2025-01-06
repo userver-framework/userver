@@ -48,6 +48,7 @@ are available at the
 * @ref scripts/docs/en/userver/tutorial/postgres_service.md
 * @ref scripts/docs/en/userver/tutorial/mongo_service.md
 * @ref scripts/docs/en/userver/tutorial/redis_service.md
+* @ref scripts/docs/en/userver/tutorial/kafka_service.md
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
@@ -63,6 +64,7 @@ are available at the
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
+* @ref scripts/docs/en/userver/chaotic.md
 * @ref scripts/docs/en/userver/logging.md
 * @ref scripts/docs/en/userver/task_processors_guide.md
 * @ref scripts/docs/en/userver/periodics.md
@@ -97,6 +99,7 @@ are available at the
 * @ref scripts/docs/en/userver/dns_control.md
 * @ref scripts/docs/en/userver/os_signals.md
 * @ref scripts/docs/en/userver/deadline_propagation.md
+* @ref scripts/docs/en/userver/congestion_control.md
 
 
 ## Caches
@@ -111,7 +114,7 @@ are available at the
 * @ref pg_transactions
 * @ref pg_run_queries
 * @ref pg_process_results
-* @ref pg_types
+* @ref scripts/docs/en/userver/pg_types.md
 * @ref pg_user_row_types
 * @ref pg_errors
 * @ref pg_topology
@@ -120,13 +123,17 @@ are available at the
 
 
 ## MySQL
-* @ref mysql_driver
+* @ref scripts/docs/en/userver/mysql/mysql_driver.md
 * @ref scripts/docs/en/userver/mysql/supported_types.md
 * @ref scripts/docs/en/userver/mysql/design_and_details.md
 
 
 ## Apache Kafka
 * @ref scripts/docs/en/userver/kafka.md
+
+
+## YDB
+* @ref scripts/docs/en/userver/ydb.md
 
 
 ## Non relational databases

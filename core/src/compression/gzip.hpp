@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include <compression/error.hpp>
+#include <userver/compression/error.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

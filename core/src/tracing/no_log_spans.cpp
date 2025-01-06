@@ -7,15 +7,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 
-NoLogSpans Parse(const formats::json::Value& value,
-                 formats::parse::To<NoLogSpans>) {
-  using Container = boost::container::flat_set<std::string>;
+NoLogSpans Parse(const formats::json::Value& value, formats::parse::To<NoLogSpans>) {
+    using Container = boost::container::flat_set<std::string>;
 
-  NoLogSpans ret;
-  ret.names = value["names"].As<Container>();
-  ret.prefixes = value["prefixes"].As<Container>();
+    NoLogSpans ret;
+    ret.names = value["names"].As<Container>();
+    ret.prefixes = value["prefixes"].As<Container>();
 
-  return ret;
+    return ret;
 }
 
 }  // namespace tracing

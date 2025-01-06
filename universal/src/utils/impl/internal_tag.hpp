@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 struct InternalTag {
-  explicit InternalTag() = default;
+    explicit InternalTag() = default;
 };
 
 }  // namespace utils::impl

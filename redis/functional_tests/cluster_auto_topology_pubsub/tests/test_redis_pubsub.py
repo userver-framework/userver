@@ -2,7 +2,6 @@ import asyncio
 
 import redis
 
-
 # Some messages may be lost (it's a Redis limitation)
 REDIS_PORT = 6379
 REQUESTS_RETRIES = 42
@@ -26,7 +25,7 @@ def _spublish_callback(redis_db, channel, message):
 
 
 async def _validate_pubsub(
-        redis_db, service_client, channel_prefix, msg, publish_method,
+    redis_db, service_client, channel_prefix, msg, publish_method,
 ):
     """
     publish to redis_db and expect data accessible in service via handler
@@ -67,7 +66,7 @@ async def _test_service_subscription(service_client, node, prefix):
 
 
 async def _test_service_sharded_subscription(
-        service_client, cluster_client, prefix,
+    service_client, cluster_client, prefix,
 ):
     msg = f'{prefix}'
     await _validate_pubsub(
@@ -96,15 +95,15 @@ async def _validate_service_publish(service_client, nodes, shards_range):
         return ret
 
     async def _ensure_published(
-            pubsub, expected_message, retries=5, delay=0.5,
+        pubsub, expected_message, retries=5, delay=0.5,
     ):
         for _ in range(retries):
             ret = pubsub.get_message()
             if (
-                    ret is not None
-                    and ret['type'] == 'message'
-                    and ret['channel'] == OUTPUT_CHANNEL_NAME.encode()
-                    and ret['data'] == expected_message
+                ret is not None
+                and ret['type'] == 'message'
+                and ret['channel'] == OUTPUT_CHANNEL_NAME.encode()
+                and ret['data'] == expected_message
             ):
                 return
             await asyncio.sleep(delay)
@@ -159,15 +158,15 @@ async def _validate_service_spublish(service_client, nodes):
         return ret
 
     async def _ensure_published(
-            pubsub, channel, expected_message, retries=5, delay=0.5,
+        pubsub, channel, expected_message, retries=5, delay=0.5,
     ):
         for _ in range(retries):
             ret = pubsub.get_sharded_message()
             if (
-                    ret is not None
-                    and ret['type'] == 'smessage'
-                    and ret['channel'] == channel
-                    and ret['data'] == expected_message
+                ret is not None
+                and ret['type'] == 'smessage'
+                and ret['channel'] == channel
+                and ret['data'] == expected_message
             ):
                 return
             await asyncio.sleep(delay)
@@ -359,7 +358,7 @@ async def test_cluster_failover_pubsub(service_client, redis_cluster_topology):
 
 # kill all replicas
 async def test_cluster_failover_pubsub2(
-        service_client, redis_cluster_topology,
+    service_client, redis_cluster_topology,
 ):
     """
     killing replicas do not trigger cluster update (topology does not change)

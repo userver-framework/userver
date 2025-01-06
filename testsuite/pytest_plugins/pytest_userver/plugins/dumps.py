@@ -18,7 +18,7 @@ def userver_dumps_root(tmp_path_factory) -> pathlib.Path:
     @see userver::dump::Dumper
     @ingroup userver_testsuite_fixtures
     """
-    path = tmp_path_factory.mktemp('userver-cache-dumps', numbered=True)
+    path = tmp_path_factory.mktemp('userver-cache-dumps', numbered=False)
     return path.resolve()
 
 

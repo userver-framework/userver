@@ -24,30 +24,27 @@ namespace engine::impl {
 
 class TaskProcessorPools;
 
-std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(
-    const TaskProcessorPoolsConfig& pools_config);
+std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(const TaskProcessorPoolsConfig& pools_config);
 
 class TaskProcessorHolder final {
- public:
-  static TaskProcessorHolder Make(std::size_t threads_num,
-                                  std::string thread_name,
-                                  std::shared_ptr<TaskProcessorPools> pools);
+public:
+    static TaskProcessorHolder
+    Make(std::size_t threads_num, std::string thread_name, std::shared_ptr<TaskProcessorPools> pools);
 
-  explicit TaskProcessorHolder(std::unique_ptr<TaskProcessor>&&);
+    explicit TaskProcessorHolder(std::unique_ptr<TaskProcessor>&&);
 
-  TaskProcessorHolder(TaskProcessorHolder&&) noexcept = default;
-  TaskProcessorHolder& operator=(TaskProcessorHolder&&) noexcept = default;
-  ~TaskProcessorHolder();
+    TaskProcessorHolder(TaskProcessorHolder&&) noexcept = default;
+    TaskProcessorHolder& operator=(TaskProcessorHolder&&) noexcept = default;
+    ~TaskProcessorHolder();
 
-  TaskProcessor& operator*() { return *task_processor_; }
-  TaskProcessor* operator->() { return &*task_processor_; }
+    TaskProcessor& operator*() { return *task_processor_; }
+    TaskProcessor* operator->() { return &*task_processor_; }
 
- private:
-  utils::UniqueRef<TaskProcessor> task_processor_;
+private:
+    utils::UniqueRef<TaskProcessor> task_processor_;
 };
 
-void RunOnTaskProcessorSync(TaskProcessor& tp,
-                            utils::function_ref<void()> user_cb);
+void RunOnTaskProcessorSync(TaskProcessor& tp, utils::function_ref<void()> user_cb);
 
 }  // namespace engine::impl
 

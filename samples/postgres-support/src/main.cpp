@@ -13,17 +13,17 @@
 #include "distlock_worker.hpp"
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      // userver components
-      components::MinimalServerComponentList()
-          .Append<clients::dns::Component>()
-          .Append<components::HttpClient>()
-          .Append<congestion_control::Component>()
-          .Append<server::handlers::Ping>()
-          .Append<server::handlers::TestsControl>()
-          .Append<components::TestsuiteSupport>()
-          .Append<components::Postgres>("postgresql-service")
-          // Project local components
-          .Append<tests::distlock::PgWorkerComponent>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list =
+        // userver components
+        components::MinimalServerComponentList()
+            .Append<clients::dns::Component>()
+            .Append<components::HttpClient>()
+            .Append<congestion_control::Component>()
+            .Append<server::handlers::Ping>()
+            .Append<server::handlers::TestsControl>()
+            .Append<components::TestsuiteSupport>()
+            .Append<components::Postgres>("postgresql-service")
+            // Project local components
+            .Append<tests::distlock::PgWorkerComponent>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

@@ -8,12 +8,10 @@ namespace utils::datetime {
 
 constexpr auto kClockFlag = kCoarseSteadyClockNativeFlag;
 
-SteadyCoarseClock::time_point SteadyCoarseClock::now() noexcept {
-  return CoarseNow<time_point, kClockFlag>();
-}
+SteadyCoarseClock::time_point SteadyCoarseClock::now() noexcept { return CoarseNow<time_point, kClockFlag>(); }
 
 SteadyCoarseClock::duration SteadyCoarseClock::resolution() noexcept {
-  return CoarseResolution<duration, kClockFlag>();
+    return CoarseResolution<duration, kClockFlag>();
 }
 
 }  // namespace utils::datetime

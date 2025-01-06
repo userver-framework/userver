@@ -309,188 +309,188 @@ EmOKfeOntrWGKRoDws82ckOkpBkZ0/9gsl8g18u+jFCcSUfmXH7FtGg=
 -----END X509 CRL-----)";
 
 struct TlsServer {
-  TlsServer() : port_(tcp_listener_.socket.Getsockname().Port()) {}
+    TlsServer() : port_(tcp_listener_.socket.Getsockname().Port()) {}
 
-  void ReceiveAndShutdown(std::initializer_list<crypto::Certificate> cas = {}) {
-    auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-    auto socket = tcp_listener_.socket.Accept(deadline);
+    void ReceiveAndShutdown(std::initializer_list<crypto::Certificate> cas = {}) {
+        auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+        auto socket = tcp_listener_.socket.Accept(deadline);
 
-    auto tls_server = engine::io::TlsWrapper::StartTlsServer(
-        std::move(socket),
-        crypto::Certificate::LoadFromString(kServerCertificate),
-        crypto::PrivateKey::LoadFromString(kRevokedServerPrivateKey), deadline,
-        cas);
+        auto tls_server = engine::io::TlsWrapper::StartTlsServer(
+            std::move(socket),
+            crypto::Certificate::LoadFromString(kServerCertificate),
+            crypto::PrivateKey::LoadFromString(kRevokedServerPrivateKey),
+            deadline,
+            cas
+        );
 
-    std::array<char, 2048> data{};
-    const auto size = tls_server.RecvSome(data.data(), data.size(), deadline);
-    EXPECT_GT(size, 0);
+        std::array<char, 2048> data{};
+        const auto size = tls_server.RecvSome(data.data(), data.size(), deadline);
+        EXPECT_GT(size, 0);
 
-    LOG_INFO() << "HTTPS Server receive: " << data.data();
+        LOG_INFO() << "HTTPS Server receive: " << data.data();
 
-    constexpr std::string_view kResp =
-        "HTTP/1.1 200 OK\r\n"
-        "Connection: close\r\n"
-        "Content-Length: 2\r\n"
-        "\r\n"
-        "OK";
-    EXPECT_GT(tls_server.SendAll(kResp.data(), kResp.size(), deadline), 0);
-    socket = tls_server.StopTls(deadline);
-    EXPECT_TRUE(socket.IsValid());
-  }
+        constexpr std::string_view kResp =
+            "HTTP/1.1 200 OK\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 2\r\n"
+            "\r\n"
+            "OK";
+        EXPECT_GT(tls_server.SendAll(kResp.data(), kResp.size(), deadline), 0);
+        socket = tls_server.StopTls(deadline);
+        EXPECT_TRUE(socket.IsValid());
+    }
 
-  internal::net::TcpListener tcp_listener_;
-  int port_;
+    internal::net::TcpListener tcp_listener_;
+    int port_;
 };
 
 auto InterceptCrlDistribution() {
-  engine::io::Socket listener{engine::io::AddrDomain::kInet6,
-                              engine::io::SocketType::kStream};
-  auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
-  addr.SetPort(kCrlDistributionPort);
-  listener.Bind(addr);
+    engine::io::Socket listener{engine::io::AddrDomain::kInet6, engine::io::SocketType::kStream};
+    auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
+    addr.SetPort(kCrlDistributionPort);
+    listener.Bind(addr);
 
-  return engine::AsyncNoSpan([listener = std::move(listener)]() mutable {
-    while (!engine::current_task::IsCancelRequested()) {
-      auto socket = listener.Accept({});
+    return engine::AsyncNoSpan([listener = std::move(listener)]() mutable {
+        while (!engine::current_task::IsCancelRequested()) {
+            auto socket = listener.Accept({});
 
-      ASSERT_FALSE(socket.IsValid())
-          << "X509v3 CRL was requested while working with the certificate";
-    }
-  });
+            ASSERT_FALSE(socket.IsValid()) << "X509v3 CRL was requested while working with the certificate";
+        }
+    });
 }
 
 }  // namespace
 
 UTEST(HttpClient, HttpsWithNoCrl) {
-  (void)kCrlFile;
-  auto task = InterceptCrlDistribution();
+    (void)kCrlFile;
+    auto task = InterceptCrlDistribution();
 
-  auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
-  auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
-  auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
 
-  auto http_client_ptr = utest::CreateHttpClient();
-  TlsServer tls_server;
-  const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    auto http_client_ptr = utest::CreateHttpClient();
+    TlsServer tls_server;
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
 
-  auto response_future = http_client_ptr->CreateRequest()
-                             .post(ssl_url)
-                             .timeout(utest::kMaxTestWaitTime)
-                             .ca(ca)
-                             .client_key_cert(pkey, cert)
-                             .verify(true)
-                             .async_perform();
+    auto response_future = http_client_ptr->CreateRequest()
+                               .post(ssl_url)
+                               .timeout(utest::kMaxTestWaitTime)
+                               .ca(ca)
+                               .client_key_cert(pkey, cert)
+                               .verify(true)
+                               .async_perform();
 
-  tls_server.ReceiveAndShutdown({ca});
-  response_future.Wait();
-  auto resp = response_future.Get();
-  EXPECT_TRUE(resp->IsOk());
-  EXPECT_EQ(resp->body_view(), "OK");
+    tls_server.ReceiveAndShutdown({ca});
+    response_future.Wait();
+    auto resp = response_future.Get();
+    EXPECT_TRUE(resp->IsOk());
+    EXPECT_EQ(resp->body_view(), "OK");
 }
 
 UTEST(HttpClient, HttpsWithCrl) {
-  auto tmp_file = fs::blocking::TempFile::Create();
-  fs::blocking::RewriteFileContents(tmp_file.GetPath(), kCrlFile);
+    auto tmp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(tmp_file.GetPath(), kCrlFile);
 
-  auto task = InterceptCrlDistribution();
+    auto task = InterceptCrlDistribution();
 
-  auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
-  auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
-  auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
 
-  auto http_client_ptr = utest::CreateHttpClient();
-  TlsServer tls_server;
-  const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    auto http_client_ptr = utest::CreateHttpClient();
+    TlsServer tls_server;
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
 
-  auto response_future = http_client_ptr->CreateRequest()
-                             .post(ssl_url)
-                             .timeout(utest::kMaxTestWaitTime)
-                             .ca(ca)
-                             .crl_file(tmp_file.GetPath())
-                             .client_key_cert(pkey, cert)
-                             .verify(true)
-                             .async_perform();
+    auto response_future = http_client_ptr->CreateRequest()
+                               .post(ssl_url)
+                               .timeout(utest::kMaxTestWaitTime)
+                               .ca(ca)
+                               .crl_file(tmp_file.GetPath())
+                               .client_key_cert(pkey, cert)
+                               .verify(true)
+                               .async_perform();
 
-  UEXPECT_THROW(tls_server.ReceiveAndShutdown({ca}), engine::io::TlsException);
-  response_future.Wait();
-  UEXPECT_THROW(response_future.Get(), clients::http::SSLException);
+    UEXPECT_THROW(tls_server.ReceiveAndShutdown({ca}), engine::io::TlsException);
+    response_future.Wait();
+    UEXPECT_THROW(response_future.Get(), clients::http::SSLException);
 }
 
 UTEST(HttpClient, HttpsWithCrlNoVerify) {
-  auto tmp_file = fs::blocking::TempFile::Create();
-  fs::blocking::RewriteFileContents(tmp_file.GetPath(), kCrlFile);
+    auto tmp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(tmp_file.GetPath(), kCrlFile);
 
-  auto task = InterceptCrlDistribution();
+    auto task = InterceptCrlDistribution();
 
-  auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
-  auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
-  auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
 
-  auto http_client_ptr = utest::CreateHttpClient();
-  TlsServer tls_server;
-  const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    auto http_client_ptr = utest::CreateHttpClient();
+    TlsServer tls_server;
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
 
-  auto response_future = http_client_ptr->CreateRequest()
-                             .post(ssl_url)
-                             .timeout(utest::kMaxTestWaitTime)
-                             .ca(ca)
-                             .crl_file(tmp_file.GetPath())
-                             .client_key_cert(pkey, cert)
-                             .verify(false)  // do not do that in production!
-                             .async_perform();
+    auto response_future = http_client_ptr->CreateRequest()
+                               .post(ssl_url)
+                               .timeout(utest::kMaxTestWaitTime)
+                               .ca(ca)
+                               .crl_file(tmp_file.GetPath())
+                               .client_key_cert(pkey, cert)
+                               .verify(false)  // do not do that in production!
+                               .async_perform();
 
-  UEXPECT_NO_THROW(tls_server.ReceiveAndShutdown({ca}));
-  response_future.Wait();
-  UEXPECT_NO_THROW(response_future.Get());
+    UEXPECT_NO_THROW(tls_server.ReceiveAndShutdown({ca}));
+    response_future.Wait();
+    UEXPECT_NO_THROW(response_future.Get());
 }
 
 UTEST(HttpClient, HttpsWithNoServerCa) {
-  (void)kCrlFile;
-  auto task = InterceptCrlDistribution();
+    (void)kCrlFile;
+    auto task = InterceptCrlDistribution();
 
-  auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
-  auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
-  auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
 
-  auto http_client_ptr = utest::CreateHttpClient();
-  TlsServer tls_server;
-  const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    auto http_client_ptr = utest::CreateHttpClient();
+    TlsServer tls_server;
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
 
-  auto response_future = http_client_ptr->CreateRequest()
-                             .post(ssl_url)
-                             .timeout(utest::kMaxTestWaitTime)
-                             .ca(ca)
-                             .client_key_cert(pkey, cert)
-                             .verify(true)
-                             .async_perform();
+    auto response_future = http_client_ptr->CreateRequest()
+                               .post(ssl_url)
+                               .timeout(utest::kMaxTestWaitTime)
+                               .ca(ca)
+                               .client_key_cert(pkey, cert)
+                               .verify(true)
+                               .async_perform();
 
-  tls_server.ReceiveAndShutdown();
-  response_future.Wait();
-  auto resp = response_future.Get();
-  EXPECT_TRUE(resp->IsOk());
-  EXPECT_EQ(resp->body_view(), "OK");
+    tls_server.ReceiveAndShutdown();
+    response_future.Wait();
+    auto resp = response_future.Get();
+    EXPECT_TRUE(resp->IsOk());
+    EXPECT_EQ(resp->body_view(), "OK");
 }
 
 UTEST(HttpClient, HttpsWithNoClientCa) {
-  auto task = InterceptCrlDistribution();
-  auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
-  auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto task = InterceptCrlDistribution();
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
 
-  auto http_client_ptr = utest::CreateHttpClient();
-  TlsServer tls_server;
-  const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    auto http_client_ptr = utest::CreateHttpClient();
+    TlsServer tls_server;
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
 
-  auto response_future = http_client_ptr->CreateRequest()
-                             .post(ssl_url)
-                             .timeout(utest::kMaxTestWaitTime)
-                             .client_key_cert(pkey, cert)
-                             .verify(true)
-                             .async_perform();
+    auto response_future = http_client_ptr->CreateRequest()
+                               .post(ssl_url)
+                               .timeout(utest::kMaxTestWaitTime)
+                               .client_key_cert(pkey, cert)
+                               .verify(true)
+                               .async_perform();
 
-  auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
-  UEXPECT_THROW(tls_server.ReceiveAndShutdown({ca}), engine::io::TlsException);
-  response_future.Wait();
-  UEXPECT_THROW(response_future.Get(), clients::http::SSLException);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+    UEXPECT_THROW(tls_server.ReceiveAndShutdown({ca}), engine::io::TlsException);
+    response_future.Wait();
+    UEXPECT_THROW(response_future.Get(), clients::http::SSLException);
 }
 
 USERVER_NAMESPACE_END

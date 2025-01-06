@@ -12,16 +12,15 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(OpenFileHelperTest, ReopenFail) {
-  const fs::blocking::TempDirectory temp_root =
-      fs::blocking::TempDirectory::Create();
-  const std::string filename = temp_root.GetPath() + "/temp_file";
-  EXPECT_NO_THROW(
-      logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename));
-  boost::filesystem::permissions(filename, boost::filesystem::perms::no_perms);
-  UASSERT_THROW_MSG(
-      logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename),
-      std::runtime_error,
-      fmt::format("Filename {} cannot be created or opened", filename));
+    const fs::blocking::TempDirectory temp_root = fs::blocking::TempDirectory::Create();
+    const std::string filename = temp_root.GetPath() + "/temp_file";
+    EXPECT_NO_THROW(logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename));
+    boost::filesystem::permissions(filename, boost::filesystem::perms::no_perms);
+    UASSERT_THROW_MSG(
+        logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename),
+        std::runtime_error,
+        fmt::format("Filename {} cannot be created or opened", filename)
+    );
 }
 
 USERVER_NAMESPACE_END

@@ -2,15 +2,22 @@ cmake_policy(SET CMP0079 NEW)
 
 option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC"
     ${USERVER_DOWNLOAD_PACKAGES})
+option(
+    USERVER_FORCE_DOWNLOAD_GRPC
+    "Download gRPC even if there is an installed system package"
+    ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+)
 
 macro(try_find_cmake_grpc)
-  find_package(gRPC QUIET)
+  find_package(gRPC QUIET CONFIG)
+  if(NOT gRPC_FOUND)
+    find_package(gRPC QUIET)
+  endif()
 
   if(gRPC_FOUND)
     # Use the found CMake-enabled gRPC package
     get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
     get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
   endif()
 endmacro()
 
@@ -33,11 +40,10 @@ macro(try_find_system_grpc)
 
     find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
     find_program(PROTO_GRPC_PYTHON_PLUGIN grpc_python_plugin)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
   endif()
 endmacro()
 
-if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+if(NOT USERVER_FORCE_DOWNLOAD_GRPC)
   try_find_cmake_grpc()
   if(gRPC_FOUND)
     return()
@@ -87,8 +93,6 @@ CPMAddPackage(
 set(gRPC_VERSION "${CPM_PACKAGE_gRPC_VERSION}")
 set(PROTO_GRPC_CPP_PLUGIN $<TARGET_FILE:grpc_cpp_plugin>)
 set(PROTO_GRPC_PYTHON_PLUGIN $<TARGET_FILE:grpc_python_plugin>)
-set(PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
-set(USERVER_GENERATE_PROTOS_AT_BUILD_TIME TRUE)
 write_package_stub(gRPC)
 if (NOT TARGET "gRPC::grpc++")
     add_library(gRPC::grpc++ ALIAS grpc++)

@@ -4,6 +4,7 @@ async def test_config(service_client):
     assert response.status == 200
     reply = response.json()
     assert reply['configs']['USERVER_LOG_REQUEST_HEADERS'] is True
+    assert 'application/json' in response.headers['Content-Type']
 
 
 async def test_config_specific_ids(service_client):
@@ -18,4 +19,5 @@ async def test_config_specific_ids(service_client):
     reply = response.json()
     assert len(reply['configs']) == 1
     assert reply['configs']['USERVER_TASK_PROCESSOR_QOS']
+    assert 'application/json' in response.headers['Content-Type']
     # /// [Functional test]

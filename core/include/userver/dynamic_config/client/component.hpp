@@ -3,7 +3,7 @@
 /// @file userver/dynamic_config/client/component.hpp
 /// @brief @copybrief components::DynamicConfigClient
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/client/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,21 +39,21 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample dynamic configs client component config
 
 // clang-format on
-class DynamicConfigClient : public LoggableComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::DynamicConfigClient
-  static constexpr std::string_view kName = "dynamic-config-client";
+class DynamicConfigClient : public ComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::DynamicConfigClient
+    static constexpr std::string_view kName = "dynamic-config-client";
 
-  DynamicConfigClient(const ComponentConfig&, const ComponentContext&);
-  ~DynamicConfigClient() override = default;
+    DynamicConfigClient(const ComponentConfig&, const ComponentContext&);
+    ~DynamicConfigClient() override = default;
 
-  [[nodiscard]] dynamic_config::Client& GetClient() const;
+    [[nodiscard]] dynamic_config::Client& GetClient() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::unique_ptr<dynamic_config::Client> config_client_;
+private:
+    std::unique_ptr<dynamic_config::Client> config_client_;
 };
 
 template <>

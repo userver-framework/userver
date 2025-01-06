@@ -6,7 +6,7 @@ set(CPACK_PACKAGE_DESCRIPTION
     services and utilities."
 )
 
-set(CPACK_PACKAGE_NAME "userver-all")
+set(CPACK_PACKAGE_NAME "libuserver-all-dev")
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_PACKAGE_VERSION "${USERVER_VERSION}")
 set(CPACK_PACKAGE_VERSION_MAJOR "${USERVER_MAJOR_VERSION}")
@@ -39,7 +39,9 @@ endif()
 
 if (DEPENDENCIES_FILE)
   execute_process(
-      COMMAND bash -c "cat ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILE} | tr '\\n' ' ' | sed 's/ \\(.\\)/, \\1/g'"
+      COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILE}"
+      COMMAND tr "\n" " "
+      COMMAND sed "s/ \\(.\\)/, \\1/g"
       OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_DEPENDS
   )
 else()

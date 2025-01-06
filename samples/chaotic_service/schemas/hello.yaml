@@ -1,0 +1,17 @@
+components:
+    schemas:
+        HelloRequestBody:
+            type: object
+            additionalProperties: false
+            properties:
+                name:
+                    type: string
+                    default: noname
+        HelloResponseBody:
+            type: object
+            additionalProperties: false
+            properties:
+                text:
+                    type: string
+                current-time:
+                    $ref: 'types.yaml#/components/schemas/DateTime'

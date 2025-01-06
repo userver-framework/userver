@@ -12,26 +12,29 @@ namespace server::handlers {
 /// JSON error message builder.
 /// Useful for handlers derived from HttpHandlerBase but responding via JSON.
 class JsonErrorBuilder {
- public:
-  static constexpr bool kIsExternalBodyFormatted = true;
+public:
+    static constexpr bool kIsExternalBodyFormatted = true;
 
-  explicit JsonErrorBuilder(const CustomHandlerException& ex);
+    explicit JsonErrorBuilder(const CustomHandlerException& ex);
 
-  JsonErrorBuilder(std::string_view error_code, std::string internal_message,
-                   std::string_view external_error_body,
-                   formats::json::Value = {});
+    JsonErrorBuilder(
+        std::string_view error_code,
+        std::string internal_message,
+        std::string_view external_error_body,
+        formats::json::Value = {}
+    );
 
-  const std::string& GetInternalMessage() const { return internal_message_; };
+    const std::string& GetInternalMessage() const { return internal_message_; };
 
-  const std::string& GetExternalBody() const { return json_error_body_; }
+    const std::string& GetExternalBody() const { return json_error_body_; }
 
-  static const USERVER_NAMESPACE::http::ContentType& GetContentType() {
-    return USERVER_NAMESPACE::http::content_type::kApplicationJson;
-  }
+    static const USERVER_NAMESPACE::http::ContentType& GetContentType() {
+        return USERVER_NAMESPACE::http::content_type::kApplicationJson;
+    }
 
- private:
-  std::string internal_message_;
-  std::string json_error_body_;
+private:
+    std::string internal_message_;
+    std::string json_error_body_;
 };
 
 }  // namespace server::handlers

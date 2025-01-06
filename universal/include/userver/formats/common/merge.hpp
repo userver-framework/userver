@@ -16,14 +16,14 @@ namespace formats::common {
 /// @note Arrays are not merged.
 template <typename Value>
 void Merge(typename Value::Builder& original, const Value& patch) {
-  if (patch.IsObject() && original.IsObject() && !original.IsEmpty()) {
-    for (const auto& [elem_key, elem_value] : common::Items(patch)) {
-      auto next_origin = original[elem_key];
-      Merge(next_origin, elem_value);
+    if (patch.IsObject() && original.IsObject() && !original.IsEmpty()) {
+        for (const auto& [elem_key, elem_value] : common::Items(patch)) {
+            auto next_origin = original[elem_key];
+            Merge(next_origin, elem_value);
+        }
+    } else if (!patch.IsMissing()) {
+        original = patch;
     }
-  } else if (!patch.IsMissing()) {
-    original = patch;
-  }
 }
 
 }  // namespace formats::common

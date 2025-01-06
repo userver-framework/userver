@@ -1,7 +1,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -25,23 +25,23 @@
 #include <components/topic_reader.hpp>
 
 int main(int argc, char* argv[]) {
-  auto component_list = ::components::MinimalServerComponentList()
-                            .Append<components::TestsuiteSupport>()
-                            .Append<server::handlers::TestsControl>()
-                            .Append<components::DynamicConfigClient>()
-                            .Append<components::DynamicConfigClientUpdater>()
-                            .Append<components::HttpClient>()
-                            .Append<clients::dns::Component>()
-                            .Append<components::DefaultSecdistProvider>()
-                            .Append<components::Secdist>()
-                            .Append<sample::BsonReadingHandler>()
-                            .Append<sample::BsonUpsertingHandler>()
-                            .Append<sample::SelectRowsHandler>()
-                            .Append<sample::Upsert2RowsHandler>()
-                            .Append<sample::UpsertRowHandler>()
-                            .Append<sample::UpsertRowsHandler>()
-                            .Append<sample::TopicReaderComponent>()
-                            .Append<ydb::YdbComponent>();
+    auto component_list = ::components::MinimalServerComponentList()
+                              .Append<components::TestsuiteSupport>()
+                              .Append<server::handlers::TestsControl>()
+                              .Append<components::DynamicConfigClient>()
+                              .Append<components::DynamicConfigClientUpdater>()
+                              .Append<components::HttpClient>()
+                              .Append<clients::dns::Component>()
+                              .Append<components::DefaultSecdistProvider>()
+                              .Append<components::Secdist>()
+                              .Append<sample::BsonReadingHandler>()
+                              .Append<sample::BsonUpsertingHandler>()
+                              .Append<sample::SelectRowsHandler>()
+                              .Append<sample::Upsert2RowsHandler>()
+                              .Append<sample::UpsertRowHandler>()
+                              .Append<sample::UpsertRowsHandler>()
+                              .Append<sample::TopicReaderComponent>()
+                              .Append<ydb::YdbComponent>();
 
-  return ::utils::DaemonMain(argc, argv, component_list);
+    return ::utils::DaemonMain(argc, argv, component_list);
 }

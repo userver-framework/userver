@@ -4,7 +4,7 @@
 /// @brief @copybrief components::ManagerControllerComponent
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -33,6 +33,7 @@ class Manager;
 /// coro_pool.initial_size | amount of coroutines to preallocate on startup | 1000
 /// coro_pool.max_size | max amount of coroutines to keep preallocated | 4000
 /// coro_pool.stack_size | size of a single coroutine | 256 * 1024
+/// coro_pool.local_cache_size | local coroutine cache size per thread | 32
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
 /// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -
@@ -50,6 +51,7 @@ class Manager;
 /// worker_threads | threads count for the task processor | -
 /// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
 /// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 1000
+/// task-processor-queue | Task queue mode for the task processor. `global-task-queue` default task queue. `work-stealing-task-queue` experimental with potentially better scalability than `global-task-queue`. | global-task-queue
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
 /// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000
@@ -63,30 +65,28 @@ class Manager;
 /// @snippet components/common_component_list_test.cpp  Sample components manager config component config
 
 // clang-format on
-class ManagerControllerComponent final : public impl::ComponentBase {
- public:
-  ManagerControllerComponent(const components::ComponentConfig& config,
-                             const components::ComponentContext& context);
+class ManagerControllerComponent final : public RawComponentBase {
+public:
+    ManagerControllerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~ManagerControllerComponent() override;
+    ~ManagerControllerComponent() override;
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::ManagerControllerComponent
-  static constexpr std::string_view kName = "manager-controller";
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::ManagerControllerComponent
+    static constexpr std::string_view kName = "manager-controller";
 
- private:
-  void WriteStatistics(utils::statistics::Writer& writer);
+private:
+    void WriteStatistics(utils::statistics::Writer& writer);
 
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  const components::Manager& components_manager_;
-  utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
+    const components::Manager& components_manager_;
+    utils::statistics::Entry statistics_holder_;
+    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <>
-inline constexpr auto kConfigFileMode<ManagerControllerComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto kConfigFileMode<ManagerControllerComponent> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

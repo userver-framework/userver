@@ -12,20 +12,18 @@ USERVER_NAMESPACE_BEGIN
 namespace server::congestion_control {
 
 class Limitee {
- public:
-  virtual void SetLimit(std::optional<size_t> new_limit) = 0;
+public:
+    virtual void SetLimit(std::optional<size_t> new_limit) = 0;
 };
 
 class Limiter final : public USERVER_NAMESPACE::congestion_control::Limiter {
- public:
-  void SetLimit(
-      const USERVER_NAMESPACE::congestion_control::Limit& new_limit) override;
+public:
+    void SetLimit(const USERVER_NAMESPACE::congestion_control::Limit& new_limit) override;
 
-  void RegisterLimitee(Limitee& limitee);
+    void RegisterLimitee(Limitee& limitee);
 
- private:
-  concurrent::Variable<std::vector<utils::NotNull<Limitee*>>, std::mutex>
-      limitees_;
+private:
+    concurrent::Variable<std::vector<utils::NotNull<Limitee*>>, std::mutex> limitees_;
 };
 
 }  // namespace server::congestion_control

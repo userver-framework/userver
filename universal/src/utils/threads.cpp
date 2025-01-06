@@ -33,50 +33,45 @@ pid_t GetTid() { return static_cast<pid_t>(syscall(SYS_gettid)); }
 #endif
 
 int QueryLowPriorityParam() {
-  // -20 - highest priority, 19 - lowest priority
-  constexpr int kLowestPriority = 19;
+    // -20 - highest priority, 19 - lowest priority
+    constexpr int kLowestPriority = 19;
 
-  const int current_priority = ::getpriority(PRIO_PROCESS, 0);
-  // errno is 0 because an error can only occur if the arguments for getpriority
-  // are not correct
-  return (kLowestPriority + current_priority + 1) / 2;
+    const int current_priority = ::getpriority(PRIO_PROCESS, 0);
+    // errno is 0 because an error can only occur if the arguments for getpriority
+    // are not correct
+    return (kLowestPriority + current_priority + 1) / 2;
 }
 
 }  // namespace
 
 bool IsMainThread() noexcept {
 #if defined(__APPLE__) || defined(BSD)
-  return !!pthread_main_np();
+    return !!pthread_main_np();
 #else
-  return getpid() == GetTid();
+    return getpid() == GetTid();
 #endif
 }
 
 void SetCurrentThreadIdleScheduling() {
 #if defined(__APPLE__)
-  static constexpr ::id_t kThisThread = 0;
-  utils::CheckSyscall(
-      ::setpriority(PRIO_DARWIN_THREAD, kThisThread, PRIO_DARWIN_BG),
-      "setting scheduler to IDLE");
+    static constexpr ::id_t kThisThread = 0;
+    utils::CheckSyscall(::setpriority(PRIO_DARWIN_THREAD, kThisThread, PRIO_DARWIN_BG), "setting scheduler to IDLE");
 #elif defined(BSD)
-  ::id_t kThisThread = ::getpid();
-  utils::CheckSyscall(::setpriority(PRIO_PROCESS, kThisThread, 20),
-                      "setting scheduler to IDLE");
+    ::id_t kThisThread = ::getpid();
+    utils::CheckSyscall(::setpriority(PRIO_PROCESS, kThisThread, 20), "setting scheduler to IDLE");
 #else
-  static constexpr ::pid_t kThisThreadPid = 0;
-  static constexpr struct sched_param kParam {};
+    static constexpr ::pid_t kThisThreadPid = 0;
+    static constexpr struct sched_param kParam {};
 
-  // Interesting fact from kernel/sched/core.c: "Treat SCHED_IDLE as nice 20"
-  utils::CheckSyscall(::sched_setscheduler(kThisThreadPid, SCHED_IDLE, &kParam),
-                      "setting scheduler to IDLE");
+    // Interesting fact from kernel/sched/core.c: "Treat SCHED_IDLE as nice 20"
+    utils::CheckSyscall(::sched_setscheduler(kThisThreadPid, SCHED_IDLE, &kParam), "setting scheduler to IDLE");
 #endif
 }
 
 void SetCurrentThreadLowPriorityScheduling() {
-  static const auto kLowPriority = QueryLowPriorityParam();
+    static const auto kLowPriority = QueryLowPriorityParam();
 
-  utils::CheckSyscall(::setpriority(PRIO_PROCESS, 0, kLowPriority),
-                      "setting thread scheduling parameters");
+    utils::CheckSyscall(::setpriority(PRIO_PROCESS, 0, kLowPriority), "setting thread scheduling parameters");
 }
 
 }  // namespace utils

@@ -9,22 +9,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::log {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context),
-      max_size_(config["msg-size-log-limit"].As<std::size_t>(512)),
-      msg_log_level_(
-          config["msg-log-level"].As<logging::Level>(logging::Level::kDebug)),
-      local_log_level_(
-          config["log-level"].As<std::optional<logging::Level>>()) {}
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : MiddlewareComponentBase(config, context), settings_(config.As<Settings>()) {}
 
-std::shared_ptr<MiddlewareBase> Component::GetMiddleware() {
-  return std::make_shared<Middleware>(
-      Middleware::Settings{max_size_, msg_log_level_, local_log_level_});
-}
+Component::~Component() = default;
+
+std::shared_ptr<MiddlewareBase> Component::GetMiddleware() { return std::make_shared<Middleware>(*settings_); }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
+    return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
 type: object
 description: gRPC service logger component
 additionalProperties: false
@@ -34,10 +27,16 @@ properties:
         description: gRPC handlers log level
     msg-log-level:
         type: string
-        description: log level of message log
+        description: gRPC message body logging level
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated
+    trim-secrets:
+        type: boolean
+        description: |
+            trim the secrets from logs as marked by the protobuf option.
+            you should set this to false if the responses contain
+            optional fields and you are using protobuf prior to 3.13
 )");
 }
 

@@ -139,6 +139,7 @@ but it frequently comes up in the context of defining configs.
 If your dynamic config is any more complex than
 a @ref dynamic_config_parsing_trivial "trivial type", then you need to ensure
 that JSON parsing is defined for it.
+You may use @ref scripts/docs/en/userver/chaotic.md if you hesitate writing the parser by yourself.
 
 @anchor dynamic_config_parsing_trivial
 #### Trivial types

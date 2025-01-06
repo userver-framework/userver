@@ -143,15 +143,15 @@ class MetricsSnapshot:
         self._values = values
 
     def __getitem__(self, path: str) -> typing.Set[Metric]:
-        """ Returns a list of metrics by specified path """
+        """Returns a list of metrics by specified path"""
         return self._values[path]
 
     def __len__(self) -> int:
-        """ Returns count of metrics paths """
+        """Returns count of metrics paths"""
         return len(self._values)
 
     def __iter__(self):
-        """ Returns a (path, list) iterable over the metrics """
+        """Returns a (path, list) iterable over the metrics"""
         return self._values.__iter__()
 
     def __contains__(self, path: str) -> bool:
@@ -182,23 +182,23 @@ class MetricsSnapshot:
         return self._values.get(path, default)
 
     def items(self):
-        """ Returns a (path, list) iterable over the metrics """
+        """Returns a (path, list) iterable over the metrics"""
         return self._values.items()
 
     def keys(self):
-        """ Returns an iterable over paths of metrics """
+        """Returns an iterable over paths of metrics"""
         return self._values.keys()
 
     def values(self):
-        """ Returns an iterable over lists of metrics """
+        """Returns an iterable over lists of metrics"""
         return self._values.values()
 
     def value_at(
-            self,
-            path: str,
-            labels: typing.Optional[typing.Dict] = None,
-            *,
-            default: typing.Optional[MetricValue] = None,
+        self,
+        path: str,
+        labels: typing.Optional[typing.Dict] = None,
+        *,
+        default: typing.Optional[MetricValue] = None,
     ) -> MetricValue:
         """
         Returns a single metric value at specified path. If a dict of labels
@@ -233,9 +233,7 @@ class MetricsSnapshot:
         return next(iter(entry)).value
 
     def metrics_at(
-            self,
-            path: str,
-            require_labels: typing.Optional[typing.Dict] = None,
+        self, path: str, require_labels: typing.Optional[typing.Dict] = None,
     ) -> typing.List[Metric]:
         """
         Metrics path must exactly equal the given `path`.
@@ -275,19 +273,17 @@ class MetricsSnapshot:
             return list(entry)
 
     def has_metrics_at(
-            self,
-            path: str,
-            require_labels: typing.Optional[typing.Dict] = None,
+        self, path: str, require_labels: typing.Optional[typing.Dict] = None,
     ) -> bool:
         # metrics_with_labels returns list, and pythonic way to check if list
         # is empty is like this:
         return bool(self.metrics_at(path, require_labels))
 
     def assert_equals(
-            self,
-            other: typing.Mapping[str, typing.Set[Metric]],
-            *,
-            ignore_zeros: bool = False,
+        self,
+        other: typing.Mapping[str, typing.Set[Metric]],
+        *,
+        ignore_zeros: bool = False,
     ) -> None:
         """
         Compares the snapshot with a dict of metrics or with
@@ -309,19 +305,17 @@ class MetricsSnapshot:
         """
 
         def _iterate_over_mset(path, mset):
-            """ print (pretty) one metrics set - for given path """
+            """print (pretty) one metrics set - for given path"""
             result = []
             for metric in sorted(mset, key=lambda x: _get_labels_tuple(x)):
                 result.append(
                     '{}: {} {} {}'.format(
                         path,
                         # labels in form (key=value)
-                        ','.join(
-                            [
-                                '({}={})'.format(k, v)
-                                for k, v in _get_labels_tuple(metric)
-                            ],
-                        ),
+                        ','.join([
+                            '({}={})'.format(k, v)
+                            for k, v in _get_labels_tuple(metric)
+                        ]),
                         metric._type.value,
                         metric.value,
                     ),
@@ -380,7 +374,7 @@ def _type_eq(lhs: MetricType, rhs: MetricType) -> bool:
 
 
 def _get_labels_tuple(metric: Metric) -> typing.Tuple:
-    """ Returns labels as a tuple of sorted items """
+    """Returns labels as a tuple of sorted items"""
     return tuple(sorted(metric.labels.items()))
 
 
@@ -432,7 +426,7 @@ def _flatten_snapshot(values, ignore_zeros: bool) -> _FlattenedSnapshot:
 
 
 def _diff_metric_snapshots(
-        lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot, ignore_zeros: bool,
+    lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot, ignore_zeros: bool,
 ) -> str:
     def extra_metrics_message(extra, base):
         return [

@@ -12,11 +12,9 @@ namespace ugrpc::impl {
 
 [[nodiscard]] grpc::Status ToGrpcStatus(const google::rpc::Status& gstatus);
 
-[[nodiscard]] std::optional<google::rpc::Status> ToGoogleRpcStatus(
-    const grpc::Status& status);
+[[nodiscard]] std::optional<google::rpc::Status> ToGoogleRpcStatus(const grpc::Status& status);
 
-[[nodiscard]] std::string GetGStatusLimitedMessage(
-    const google::rpc::Status& status);
+[[nodiscard]] std::string GetGStatusLimitedMessage(const google::rpc::Status& status);
 
 }  // namespace ugrpc::impl
 

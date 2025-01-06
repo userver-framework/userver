@@ -9,19 +9,17 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse::stats {
 
 StatementTimer::StatementTimer(PoolQueryStatistics& stats)
-    : stats_{stats},
-      exceptions_on_enter_{std::uncaught_exceptions()},
-      start_{Now()} {}
+    : stats_{stats}, exceptions_on_enter_{std::uncaught_exceptions()}, start_{Now()} {}
 
 StatementTimer::~StatementTimer() {
-  ++stats_.total;
-  if (std::uncaught_exceptions() != exceptions_on_enter_) {
-    ++stats_.error;
-  } else {
-    stats_.timings.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(Now() - start_)
-            .count());
-  }
+    ++stats_.total;
+    if (std::uncaught_exceptions() != exceptions_on_enter_) {
+        ++stats_.error;
+    } else {
+        stats_.timings.GetCurrentCounter().Account(
+            std::chrono::duration_cast<std::chrono::milliseconds>(Now() - start_).count()
+        );
+    }
 }
 
 StatementTimer::Clock::time_point StatementTimer::Now() { return Clock::now(); }

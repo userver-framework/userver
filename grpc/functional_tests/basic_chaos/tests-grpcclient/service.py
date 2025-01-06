@@ -49,7 +49,7 @@ class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
             'kernel',
             'developer',
             'core',
-            'anonim',
+            'anonymous',
             'user',
         ]
         for val in values:

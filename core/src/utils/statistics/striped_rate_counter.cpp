@@ -6,9 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-void DumpMetric(Writer& writer, const StripedRateCounter& value) {
-  writer = Rate{value.Load()};
-}
+void DumpMetric(Writer& writer, const StripedRateCounter& value) { writer = Rate{value.Load()}; }
 
 void ResetMetric(StripedRateCounter& value) { value.Store(Rate{}); }
 

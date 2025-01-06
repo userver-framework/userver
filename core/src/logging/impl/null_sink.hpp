@@ -7,11 +7,11 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 class NullSink final : public BaseSink {
- public:
-  NullSink() = default;
+public:
+    NullSink() = default;
 
- protected:
-  void Write(std::string_view /*log*/) override {}
+protected:
+    void Write(std::string_view /*log*/) override {}
 };
 
 }  // namespace logging::impl

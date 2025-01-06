@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::impl {
 
-const dynamic_config::Key<bool> kDeadlinePropagationEnabled{
-    "USERVER_DEADLINE_PROPAGATION_ENABLED", true};
+const dynamic_config::Key<bool> kDeadlinePropagationEnabled{"USERVER_DEADLINE_PROPAGATION_ENABLED", true};
 
 }  // namespace server::handlers::impl
 

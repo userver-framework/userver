@@ -38,26 +38,27 @@ class TopologyBase;
 /// @brief Client interface for a cluster of MySQL servers.
 /// Usually retrieved from components::MySQL
 class Cluster final {
- public:
-  /// @brief Cluster constructor
-  Cluster(clients::dns::Resolver& resolver,
-          const settings::MysqlSettings& settings,
-          const components::ComponentConfig& config);
-  /// @brief Cluster destructor
-  ~Cluster();
+public:
+    /// @brief Cluster constructor
+    Cluster(
+        clients::dns::Resolver& resolver,
+        const settings::MysqlSettings& settings,
+        const components::ComponentConfig& config
+    );
+    /// @brief Cluster destructor
+    ~Cluster();
 
-  /// @brief Executes a statement on a host of host_type with default deadline.
-  /// Fills placeholders of the statement with args..., `Args` are expected to
-  /// be of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
-  /// understanding of `Args` requirements.
-  ///
-  /// UINVARIANTs on params count mismatch doesn't validate types.
-  template <typename... Args>
-  StatementResultSet Execute(ClusterHostType host_type, const Query& query,
-                             const Args&... args) const;
+    /// @brief Executes a statement on a host of host_type with default deadline.
+    /// Fills placeholders of the statement with args..., `Args` are expected to
+    /// be of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+    /// understanding of `Args` requirements.
+    ///
+    /// UINVARIANTs on params count mismatch doesn't validate types.
+    template <typename... Args>
+    StatementResultSet Execute(ClusterHostType host_type, const Query& query, const Args&... args) const;
 
-  // clang-format off
+    // clang-format off
   /// @brief Executes a statement on a host of host_type with provided
   /// CommandControl.
   /// Fills placeholders of the statement with args..., `Args` are expected to
@@ -68,26 +69,28 @@ class Cluster final {
   /// UINVARIANTs on params count mismatch doesn't validate types.
   ///
   /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster Execute
-  // clang-format on
-  template <typename... Args>
-  StatementResultSet Execute(OptionalCommandControl command_control,
-                             ClusterHostType host_type, const Query& query,
-                             const Args&... args) const;
+    // clang-format on
+    template <typename... Args>
+    StatementResultSet Execute(
+        OptionalCommandControl command_control,
+        ClusterHostType host_type,
+        const Query& query,
+        const Args&... args
+    ) const;
 
-  /// @brief Executes a statement on a host of host_type with default deadline
-  ///
-  /// Basically an alias for Execute(host_type, query, AsArgs<T>(row)),
-  /// where AsArgs is an imaginary function which passes fields of T as
-  /// variadic params. Handy for one-liner inserts.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
-  /// understanding of `T` requirements.
-  ///
-  /// UINVARIANTs on params count mismatch, doesn't validate types.
-  template <typename T>
-  StatementResultSet ExecuteDecompose(ClusterHostType host_type,
-                                      const Query& query, const T& row) const;
+    /// @brief Executes a statement on a host of host_type with default deadline
+    ///
+    /// Basically an alias for Execute(host_type, query, AsArgs<T>(row)),
+    /// where AsArgs is an imaginary function which passes fields of T as
+    /// variadic params. Handy for one-liner inserts.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+    /// understanding of `T` requirements.
+    ///
+    /// UINVARIANTs on params count mismatch, doesn't validate types.
+    template <typename T>
+    StatementResultSet ExecuteDecompose(ClusterHostType host_type, const Query& query, const T& row) const;
 
-  // clang-format off
+    // clang-format off
   /// @brief Executes a statement on a host of host_type with provided
   /// CommandControl.
   ///
@@ -99,29 +102,31 @@ class Cluster final {
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   ///
   /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteDecompose
-  // clang-format on
-  template <typename T>
-  StatementResultSet ExecuteDecompose(OptionalCommandControl command_control,
-                                      ClusterHostType host_type,
-                                      const Query& query, const T& row) const;
+    // clang-format on
+    template <typename T>
+    StatementResultSet ExecuteDecompose(
+        OptionalCommandControl command_control,
+        ClusterHostType host_type,
+        const Query& query,
+        const T& row
+    ) const;
 
-  /// @brief Executes a statement on a host of host_type with default deadline.
-  /// Fills placeholders of the statements with Container::value_type in a
-  /// bulk-manner.
-  /// Container is expected to be a std::Container, Container::value_type is
-  /// expected to be an aggregate of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
-  /// understanding of `Container::value_type` requirements.
-  ///
-  /// @note Requires MariaDB 10.2.6+ as a server
-  ///
-  /// UINVARIANTs on params count mismatch, doesn't validate types.
-  /// UINVARIANTs on empty params container.
-  template <typename Container>
-  StatementResultSet ExecuteBulk(ClusterHostType host_type, const Query& query,
-                                 const Container& params) const;
+    /// @brief Executes a statement on a host of host_type with default deadline.
+    /// Fills placeholders of the statements with Container::value_type in a
+    /// bulk-manner.
+    /// Container is expected to be a std::Container, Container::value_type is
+    /// expected to be an aggregate of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+    /// understanding of `Container::value_type` requirements.
+    ///
+    /// @note Requires MariaDB 10.2.6+ as a server
+    ///
+    /// UINVARIANTs on params count mismatch, doesn't validate types.
+    /// UINVARIANTs on empty params container.
+    template <typename Container>
+    StatementResultSet ExecuteBulk(ClusterHostType host_type, const Query& query, const Container& params) const;
 
-  // clang-format off
+    // clang-format off
   /// @brief Executes a statement on a host of host_type with provided
   /// CommandControl.
   /// Fills placeholders of the statements with
@@ -136,14 +141,17 @@ class Cluster final {
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
   /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteBulk
-  // clang-format on
-  template <typename Container>
-  StatementResultSet ExecuteBulk(OptionalCommandControl command_control,
-                                 ClusterHostType host_type, const Query& query,
-                                 const Container& params) const;
+    // clang-format on
+    template <typename Container>
+    StatementResultSet ExecuteBulk(
+        OptionalCommandControl command_control,
+        ClusterHostType host_type,
+        const Query& query,
+        const Container& params
+    ) const;
 
-  // TODO : don't require Container to be const, so Convert can move
-  // clang-format off
+    // TODO : don't require Container to be const, so Convert can move
+    // clang-format off
   /// @brief Executes a statement on a host of host_type with default deadline,
   /// on the flight remapping from `Container::value_type` to `MapTo`.
   /// `Container` is expected to be a std::Container of whatever type pleases
@@ -161,10 +169,10 @@ class Cluster final {
   StatementResultSet ExecuteBulkMapped(ClusterHostType host_type,
                                        const Query& query,
                                        const Container& params) const;
-  // clang-format on
+    // clang-format on
 
-  // TODO : don't require Container to be const, so Convert can move
-  // clang-format off
+    // TODO : don't require Container to be const, so Convert can move
+    // clang-format off
   /// @brief Executes a statement on a host of host_type with provided
   /// CommandControl, on the flight remapping from `Container::value_type`
   /// to `MapTo`.
@@ -181,38 +189,38 @@ class Cluster final {
   /// UINVARIANTs on empty params container.
   ///
   /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
-  // clang-format on
-  template <typename MapTo, typename Container>
-  StatementResultSet ExecuteBulkMapped(OptionalCommandControl command_control,
-                                       ClusterHostType host_type,
-                                       const Query& query,
-                                       const Container& params) const;
+    // clang-format on
+    template <typename MapTo, typename Container>
+    StatementResultSet ExecuteBulkMapped(
+        OptionalCommandControl command_control,
+        ClusterHostType host_type,
+        const Query& query,
+        const Container& params
+    ) const;
 
-  /// @brief Begin a transaction with default deadline.
-  ///
-  /// @note The deadline is transaction-wide, not just for Begin query itself.
-  ///
-  /// @param host_type Host type on which to execute transaction.
-  Transaction Begin(ClusterHostType host_type) const;
+    /// @brief Begin a transaction with default deadline.
+    ///
+    /// @note The deadline is transaction-wide, not just for Begin query itself.
+    ///
+    /// @param host_type Host type on which to execute transaction.
+    Transaction Begin(ClusterHostType host_type) const;
 
-  /// @brief Being a transaction with specified CommandControl.
-  ///
-  /// @note The deadline is transaction-wide, not just for Begin query itself.
-  ///
-  /// @param host_type Host type on which to execute transaction.
-  Transaction Begin(OptionalCommandControl command_control,
-                    ClusterHostType host_type) const;
+    /// @brief Being a transaction with specified CommandControl.
+    ///
+    /// @note The deadline is transaction-wide, not just for Begin query itself.
+    ///
+    /// @param host_type Host type on which to execute transaction.
+    Transaction Begin(OptionalCommandControl command_control, ClusterHostType host_type) const;
 
-  /// @brief Executes a command on host of type host_type over plan-text
-  /// protocol, with default deadline.
-  ///
-  /// This method is intended to be used for statements that cannot be prepared
-  /// or as an escape hatch from typed parsing if you really need to, but such
-  /// use is neither recommended nor optimized for.
-  CommandResultSet ExecuteCommand(ClusterHostType host_type,
-                                  const Query& command) const;
+    /// @brief Executes a command on host of type host_type over plan-text
+    /// protocol, with default deadline.
+    ///
+    /// This method is intended to be used for statements that cannot be prepared
+    /// or as an escape hatch from typed parsing if you really need to, but such
+    /// use is neither recommended nor optimized for.
+    CommandResultSet ExecuteCommand(ClusterHostType host_type, const Query& command) const;
 
-  // clang-format off
+    // clang-format off
   /// @brief Executes a command on host of type host_type over plan-text
   /// protocol, with provided CommandControl.
   ///
@@ -221,26 +229,24 @@ class Cluster final {
   /// use is neither recommended nor optimized for.
   ///
   /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteCommand
-  // clang-format on
-  CommandResultSet ExecuteCommand(OptionalCommandControl command_control,
-                                  ClusterHostType host_type,
-                                  const Query& command) const;
+    // clang-format on
+    CommandResultSet
+    ExecuteCommand(OptionalCommandControl command_control, ClusterHostType host_type, const Query& command) const;
 
-  /// @brief Executes a statement with default deadline on a host of host_type,
-  /// filling statements placeholders with `args...`, and returns a read-only
-  /// cursor which fetches `batch_count` rows in each next fetch request.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
-  /// understanding of `Args` requirements.
-  ///
-  /// @note Deadline is processing-wide, not just for initial cursor creation.
-  ///
-  /// UINVARIANTs on params count mismatch, doesn't validate types.
-  template <typename T, typename... Args>
-  CursorResultSet<T> GetCursor(ClusterHostType host_type,
-                               std::size_t batch_size, const Query& query,
-                               const Args&... args) const;
+    /// @brief Executes a statement with default deadline on a host of host_type,
+    /// filling statements placeholders with `args...`, and returns a read-only
+    /// cursor which fetches `batch_count` rows in each next fetch request.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+    /// understanding of `Args` requirements.
+    ///
+    /// @note Deadline is processing-wide, not just for initial cursor creation.
+    ///
+    /// UINVARIANTs on params count mismatch, doesn't validate types.
+    template <typename T, typename... Args>
+    CursorResultSet<T>
+    GetCursor(ClusterHostType host_type, std::size_t batch_size, const Query& query, const Args&... args) const;
 
-  // clang-format off
+    // clang-format off
   /// @brief Executes a statement with provided CommandControl on
   /// a host of host_type, filling statements placeholders with `args...`, and
   /// returns a read-only cursor which fetches `batch_count` rows in each next
@@ -253,120 +259,123 @@ class Cluster final {
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   ///
   /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster GetCursor
-  // clang-format on
-  template <typename T, typename... Args>
-  CursorResultSet<T> GetCursor(OptionalCommandControl command_control,
-                               ClusterHostType host_type,
-                               std::size_t batch_size, const Query& query,
-                               const Args&... args) const;
+    // clang-format on
+    template <typename T, typename... Args>
+    CursorResultSet<T> GetCursor(
+        OptionalCommandControl command_control,
+        ClusterHostType host_type,
+        std::size_t batch_size,
+        const Query& query,
+        const Args&... args
+    ) const;
 
-  /// Write cluster statistics
-  void WriteStatistics(utils::statistics::Writer& writer) const;
+    /// Write cluster statistics
+    void WriteStatistics(utils::statistics::Writer& writer) const;
 
- private:
-  static CommandControl GetDefaultCommandControl();
+private:
+    static CommandControl GetDefaultCommandControl();
 
-  StatementResultSet DoExecute(OptionalCommandControl command_control,
-                               ClusterHostType host_type, const Query& query,
-                               impl::io::ParamsBinderBase& params,
-                               std::optional<std::size_t> batch_size) const;
+    StatementResultSet DoExecute(
+        OptionalCommandControl command_control,
+        ClusterHostType host_type,
+        const Query& query,
+        impl::io::ParamsBinderBase& params,
+        std::optional<std::size_t> batch_size
+    ) const;
 
-  std::unique_ptr<infra::topology::TopologyBase> topology_;
+    std::unique_ptr<infra::topology::TopologyBase> topology_;
 };
 
 template <typename... Args>
-StatementResultSet Cluster::Execute(ClusterHostType host_type,
-                                    const Query& query,
-                                    const Args&... args) const {
-  return Execute(std::nullopt, host_type, query, args...);
+StatementResultSet Cluster::Execute(ClusterHostType host_type, const Query& query, const Args&... args) const {
+    return Execute(std::nullopt, host_type, query, args...);
 }
 
 template <typename... Args>
-StatementResultSet Cluster::Execute(OptionalCommandControl command_control,
-                                    ClusterHostType host_type,
-                                    const Query& query,
-                                    const Args&... args) const {
-  auto params_binder = impl::BindHelper::BindParams(args...);
+StatementResultSet Cluster::Execute(
+    OptionalCommandControl command_control,
+    ClusterHostType host_type,
+    const Query& query,
+    const Args&... args
+) const {
+    auto params_binder = impl::BindHelper::BindParams(args...);
 
-  return DoExecute(command_control, host_type, query.GetStatement(),
-                   params_binder, std::nullopt);
+    return DoExecute(command_control, host_type, query.GetStatement(), params_binder, std::nullopt);
 }
 
 template <typename T>
-StatementResultSet Cluster::ExecuteDecompose(ClusterHostType host_type,
-                                             const Query& query,
-                                             const T& row) const {
-  return ExecuteDecompose(std::nullopt, host_type, query, row);
+StatementResultSet Cluster::ExecuteDecompose(ClusterHostType host_type, const Query& query, const T& row) const {
+    return ExecuteDecompose(std::nullopt, host_type, query, row);
 }
 
 template <typename T>
 StatementResultSet Cluster::ExecuteDecompose(
-    OptionalCommandControl command_control, ClusterHostType host_type,
-    const Query& query, const T& row) const {
-  auto params_binder = impl::BindHelper::BindRowAsParams(row);
+    OptionalCommandControl command_control,
+    ClusterHostType host_type,
+    const Query& query,
+    const T& row
+) const {
+    auto params_binder = impl::BindHelper::BindRowAsParams(row);
 
-  return DoExecute(command_control, host_type, query, params_binder,
-                   std::nullopt);
+    return DoExecute(command_control, host_type, query, params_binder, std::nullopt);
 }
 
 template <typename Container>
-StatementResultSet Cluster::ExecuteBulk(ClusterHostType host_type,
-                                        const Query& query,
-                                        const Container& params) const {
-  return ExecuteBulk(std::nullopt, host_type, query, params);
+StatementResultSet Cluster::ExecuteBulk(ClusterHostType host_type, const Query& query, const Container& params) const {
+    return ExecuteBulk(std::nullopt, host_type, query, params);
 }
 
 template <typename Container>
-StatementResultSet Cluster::ExecuteBulk(OptionalCommandControl command_control,
-                                        ClusterHostType host_type,
-                                        const Query& query,
-                                        const Container& params) const {
-  UINVARIANT(!params.empty(), "Empty params in bulk execution");
+StatementResultSet Cluster::ExecuteBulk(
+    OptionalCommandControl command_control,
+    ClusterHostType host_type,
+    const Query& query,
+    const Container& params
+) const {
+    UINVARIANT(!params.empty(), "Empty params in bulk execution");
 
-  auto params_binder = impl::BindHelper::BindContainerAsParams(params);
+    auto params_binder = impl::BindHelper::BindContainerAsParams(params);
 
-  return DoExecute(command_control, host_type, query.GetStatement(),
-                   params_binder, std::nullopt);
+    return DoExecute(command_control, host_type, query.GetStatement(), params_binder, std::nullopt);
 }
 
 template <typename MapTo, typename Container>
-StatementResultSet Cluster::ExecuteBulkMapped(ClusterHostType host_type,
-                                              const Query& query,
-                                              const Container& params) const {
-  return ExecuteBulkMapped<MapTo>(std::nullopt, host_type, query, params);
+StatementResultSet Cluster::ExecuteBulkMapped(ClusterHostType host_type, const Query& query, const Container& params)
+    const {
+    return ExecuteBulkMapped<MapTo>(std::nullopt, host_type, query, params);
 }
 
 template <typename MapTo, typename Container>
 StatementResultSet Cluster::ExecuteBulkMapped(
-    OptionalCommandControl command_control, ClusterHostType host_type,
-    const Query& query, const Container& params) const {
-  UINVARIANT(!params.empty(), "Empty params in bulk execution");
+    OptionalCommandControl command_control,
+    ClusterHostType host_type,
+    const Query& query,
+    const Container& params
+) const {
+    UINVARIANT(!params.empty(), "Empty params in bulk execution");
 
-  auto params_binder =
-      impl::BindHelper::BindContainerAsParamsMapped<MapTo>(params);
+    auto params_binder = impl::BindHelper::BindContainerAsParamsMapped<MapTo>(params);
 
-  return DoExecute(command_control, host_type, query.GetStatement(),
-                   params_binder, std::nullopt);
+    return DoExecute(command_control, host_type, query.GetStatement(), params_binder, std::nullopt);
 }
 
 template <typename T, typename... Args>
-CursorResultSet<T> Cluster::GetCursor(ClusterHostType host_type,
-                                      std::size_t batch_size,
-                                      const Query& query,
-                                      const Args&... args) const {
-  return GetCursor<T>(std::nullopt, host_type, batch_size, query, args...);
+CursorResultSet<T>
+Cluster::GetCursor(ClusterHostType host_type, std::size_t batch_size, const Query& query, const Args&... args) const {
+    return GetCursor<T>(std::nullopt, host_type, batch_size, query, args...);
 }
 
 template <typename T, typename... Args>
-CursorResultSet<T> Cluster::GetCursor(OptionalCommandControl command_control,
-                                      ClusterHostType host_type,
-                                      std::size_t batch_size,
-                                      const Query& query,
-                                      const Args&... args) const {
-  auto params_binder = impl::BindHelper::BindParams(args...);
+CursorResultSet<T> Cluster::GetCursor(
+    OptionalCommandControl command_control,
+    ClusterHostType host_type,
+    std::size_t batch_size,
+    const Query& query,
+    const Args&... args
+) const {
+    auto params_binder = impl::BindHelper::BindParams(args...);
 
-  return CursorResultSet<T>{
-      DoExecute(command_control, host_type, query, params_binder, batch_size)};
+    return CursorResultSet<T>{DoExecute(command_control, host_type, query, params_binder, batch_size)};
 }
 
 }  // namespace storages::mysql

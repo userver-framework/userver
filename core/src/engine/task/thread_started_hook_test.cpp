@@ -10,17 +10,17 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 class Registry final {
- public:
-  Registry() {
-    engine::RegisterThreadStartedHook([this]() { counter_.fetch_add(1); });
-  }
+public:
+    Registry() {
+        engine::RegisterThreadStartedHook([this]() { counter_.fetch_add(1); });
+    }
 
-  void ResetCounter() { counter_.store(0); }
+    void ResetCounter() { counter_.store(0); }
 
-  size_t GetCounter() { return counter_.load(); }
+    size_t GetCounter() { return counter_.load(); }
 
- private:
-  std::atomic<std::size_t> counter_{0};
+private:
+    std::atomic<std::size_t> counter_{0};
 };
 
 Registry registry;
@@ -28,13 +28,13 @@ Registry registry;
 }  // namespace
 
 TEST(ThreadStartedHook, Simple) {
-  constexpr std::size_t kWorkerThreads = 20;
+    constexpr std::size_t kWorkerThreads = 20;
 
-  registry.ResetCounter();
+    registry.ResetCounter();
 
-  engine::RunStandalone(kWorkerThreads, [] {});
+    engine::RunStandalone(kWorkerThreads, [] {});
 
-  EXPECT_EQ(registry.GetCounter(), kWorkerThreads);
+    EXPECT_EQ(registry.GetCounter(), kWorkerThreads);
 }
 
 USERVER_NAMESPACE_END

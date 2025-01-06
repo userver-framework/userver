@@ -31,8 +31,7 @@ class ReadablePtr;
 template <typename T, typename RcuTraits = DefaultRcuTraits<T>>
 class WritablePtr;
 
-template <typename Key, typename Value,
-          typename RcuMapTraits = DefaultRcuMapTraits<Key, Value>>
+template <typename Key, typename Value, typename RcuMapTraits = DefaultRcuMapTraits<Key, Value>>
 class RcuMap;
 
 }  // namespace rcu

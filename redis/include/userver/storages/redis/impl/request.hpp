@@ -17,32 +17,41 @@ class Span;
 namespace redis {
 
 class Request {
- public:
-  Request(const Request&) = delete;
-  Request(Request&& r) noexcept = default;
-  Request& operator=(const Request&) = delete;
-  Request& operator=(Request&& r) noexcept = default;
+public:
+    Request(const Request&) = delete;
+    Request(Request&& r) noexcept = default;
+    Request& operator=(const Request&) = delete;
+    Request& operator=(Request&& r) noexcept = default;
 
-  ReplyPtr Get();
+    ReplyPtr Get();
 
-  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
 
- private:
-  friend class Sentinel;
+private:
+    friend class Sentinel;
 
-  Request(Sentinel& sentinel, CmdArgs&& args, const std::string& key,
-          bool master, const CommandControl& command_control,
-          size_t replies_to_skip);
+    Request(
+        Sentinel& sentinel,
+        CmdArgs&& args,
+        const std::string& key,
+        bool master,
+        const CommandControl& command_control,
+        size_t replies_to_skip
+    );
 
-  Request(Sentinel& sentinel, CmdArgs&& args, size_t shard, bool master,
-          const CommandControl& command_control, size_t replies_to_skip);
+    Request(
+        Sentinel& sentinel,
+        CmdArgs&& args,
+        size_t shard,
+        bool master,
+        const CommandControl& command_control,
+        size_t replies_to_skip
+    );
 
-  CommandPtr PrepareRequest(CmdArgs&& args,
-                            const CommandControl& command_control,
-                            size_t replies_to_skip);
+    CommandPtr PrepareRequest(CmdArgs&& args, const CommandControl& command_control, size_t replies_to_skip);
 
-  engine::Future<ReplyPtr> future_;
-  engine::Deadline deadline_;
+    engine::Future<ReplyPtr> future_;
+    engine::Deadline deadline_;
 };
 
 }  // namespace redis

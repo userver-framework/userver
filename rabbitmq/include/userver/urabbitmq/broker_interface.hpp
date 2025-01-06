@@ -18,144 +18,156 @@ namespace urabbitmq {
 /// This class is merely an interface for convenience and you are not expected
 /// to use it directly (use `Client`/`AdminChannel` instead).
 class IAdminInterface {
- public:
-  /// @brief Declare an exchange.
-  ///
-  /// @param exchange name of the exchange
-  /// @param type exchange type
-  /// @param flags exchange flags
-  /// @param deadline execution deadline
-  virtual void DeclareExchange(const Exchange& exchange, Exchange::Type type,
-                               utils::Flags<Exchange::Flags> flags,
-                               engine::Deadline deadline) = 0;
+public:
+    /// @brief Declare an exchange.
+    ///
+    /// @param exchange name of the exchange
+    /// @param type exchange type
+    /// @param flags exchange flags
+    /// @param deadline execution deadline
+    virtual void DeclareExchange(
+        const Exchange& exchange,
+        Exchange::Type type,
+        utils::Flags<Exchange::Flags> flags,
+        engine::Deadline deadline
+    ) = 0;
 
-  /// @brief overload of DeclareExchange
-  virtual void DeclareExchange(const Exchange& exchange, Exchange::Type type,
-                               engine::Deadline deadline) = 0;
+    /// @brief overload of DeclareExchange
+    virtual void DeclareExchange(const Exchange& exchange, Exchange::Type type, engine::Deadline deadline) = 0;
 
-  /// @brief overload of DeclareExchange
-  virtual void DeclareExchange(const Exchange& exchange,
-                               engine::Deadline deadline) = 0;
+    /// @brief overload of DeclareExchange
+    virtual void DeclareExchange(const Exchange& exchange, engine::Deadline deadline) = 0;
 
-  /// @brief Declare a queue.
-  ///
-  /// @param queue name of the queue
-  /// @param flags queue flags
-  /// @param deadline execution deadline
-  virtual void DeclareQueue(const Queue& queue,
-                            utils::Flags<Queue::Flags> flags,
-                            engine::Deadline deadline) = 0;
+    /// @brief Declare a queue.
+    ///
+    /// @param queue name of the queue
+    /// @param flags queue flags
+    /// @param deadline execution deadline
+    virtual void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) = 0;
 
-  /// @brief overload of DeclareQueue
-  virtual void DeclareQueue(const Queue& queue, engine::Deadline deadline) = 0;
+    /// @brief overload of DeclareQueue
+    virtual void DeclareQueue(const Queue& queue, engine::Deadline deadline) = 0;
 
-  /// @brief Bind a queue to an exchange.
-  ///
-  /// @param exchange the source exchange
-  /// @param queue the target queue
-  /// @param routing_key the routing key
-  /// @param deadline execution deadline
-  virtual void BindQueue(const Exchange& exchange, const Queue& queue,
-                         const std::string& routing_key,
-                         engine::Deadline deadline) = 0;
+    /// @brief Bind a queue to an exchange.
+    ///
+    /// @param exchange the source exchange
+    /// @param queue the target queue
+    /// @param routing_key the routing key
+    /// @param deadline execution deadline
+    virtual void BindQueue(
+        const Exchange& exchange,
+        const Queue& queue,
+        const std::string& routing_key,
+        engine::Deadline deadline
+    ) = 0;
 
-  /// @brief Remove an exchange.
-  ///
-  /// @param exchange name of the exchange to remove
-  /// @param deadline execution deadline
-  virtual void RemoveExchange(const Exchange& exchange,
-                              engine::Deadline deadline) = 0;
+    /// @brief Remove an exchange.
+    ///
+    /// @param exchange name of the exchange to remove
+    /// @param deadline execution deadline
+    virtual void RemoveExchange(const Exchange& exchange, engine::Deadline deadline) = 0;
 
-  /// @brief Remove a queue.
-  ///
-  /// @param queue name of the queue to remove
-  /// @param deadline execution deadline
-  virtual void RemoveQueue(const Queue& queue, engine::Deadline deadline) = 0;
+    /// @brief Remove a queue.
+    ///
+    /// @param queue name of the queue to remove
+    /// @param deadline execution deadline
+    virtual void RemoveQueue(const Queue& queue, engine::Deadline deadline) = 0;
 
- protected:
-  ~IAdminInterface();
+protected:
+    ~IAdminInterface();
 };
 
 /// @brief Publisher interface for the broker.
 /// This class is merely an interface for convenience and you are not expected
 /// to use it directly (use `Client`/`Channel` instead).
 class IChannelInterface {
- public:
-  /// @brief Publish a message to an exchange
-  ///
-  /// You have to supply the name of the exchange and a routing key. RabbitMQ
-  /// will then try to send the message to one or more queues.
-  /// By default unroutable messages are silently discarded
-  ///
-  /// @param exchange the exchange to publish to
-  /// @param routing_key the routing key
-  /// @param message the message to send
-  /// @param deadline execution deadline
-  ///
-  /// @note This method is `fire and forget` (no delivery guarantees),
-  /// use `PublishReliable` for delivery guarantees.
-  virtual void Publish(const Exchange& exchange, const std::string& routing_key,
-                       const std::string& message, MessageType type,
-                       engine::Deadline deadline) = 0;
+public:
+    /// @brief Publish a message to an exchange
+    ///
+    /// You have to supply the name of the exchange and a routing key. RabbitMQ
+    /// will then try to send the message to one or more queues.
+    /// By default unroutable messages are silently discarded
+    ///
+    /// @param exchange the exchange to publish to
+    /// @param routing_key the routing key
+    /// @param message the message to send
+    /// @param deadline execution deadline
+    ///
+    /// @note This method is `fire and forget` (no delivery guarantees),
+    /// use `PublishReliable` for delivery guarantees.
+    virtual void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    ) = 0;
 
-  /// @brief overload of Publish
-  virtual void Publish(const Exchange& exchange, const std::string& routing_key,
-                       const std::string& message,
-                       engine::Deadline deadline) = 0;
+    /// @brief overload of Publish
+    virtual void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        engine::Deadline deadline
+    ) = 0;
 
-  /// @brief Gets a single message.
-  ///
-  /// You should to set `kNoAck` flag in order for server to implicitly
-  /// acknowledge gathered message.
-  /// By default the gathered message has to be explicitly acknowledged
-  /// or rejected, however there's no functionality for that yet, so the flag is
-  /// basically mandatory.
-  /// This API is a subject to change.
-  ///
-  /// @note This method uses a polling model for retrieving a message, which is
-  /// comparatively expensive and might lead to a connection reset in case of a
-  /// timeout. This method could come in handy in some cases, but in general we
-  /// recommend to set up a `Consumer` instead.
-  ///
-  /// @param queue name of the queue
-  /// @param flags queue flags
-  /// @param deadline execution deadline
-  virtual std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                          engine::Deadline deadline) = 0;
+    /// @brief Gets a single message.
+    ///
+    /// You should to set `kNoAck` flag in order for server to implicitly
+    /// acknowledge gathered message.
+    /// By default the gathered message has to be explicitly acknowledged
+    /// or rejected, however there's no functionality for that yet, so the flag is
+    /// basically mandatory.
+    /// This API is a subject to change.
+    ///
+    /// @note This method uses a polling model for retrieving a message, which is
+    /// comparatively expensive and might lead to a connection reset in case of a
+    /// timeout. This method could come in handy in some cases, but in general we
+    /// recommend to set up a `Consumer` instead.
+    ///
+    /// @param queue name of the queue
+    /// @param flags queue flags
+    /// @param deadline execution deadline
+    virtual std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) = 0;
 
- protected:
-  ~IChannelInterface();
+protected:
+    ~IChannelInterface();
 };
 
 /// @brief Reliable publisher interface for the broker.
 /// This class is merely an interface for convenience and you are not expected
 /// to use it directly (use `Client`/`ReliableChannel` instead).
 class IReliableChannelInterface {
- public:
-  /// @brief Publish a message to an exchange and
-  /// await confirmation from the broker
-  ///
-  /// You have to supply the name of the exchange and a routing key. RabbitMQ
-  /// will then try to send the message to one or more queues.
-  /// By default unroutable messages are silently discarded
-  ///
-  /// @param exchange the exchange to publish to
-  /// @param routing_key the routing key
-  /// @param message the message to send
-  /// @param deadline execution deadline
-  virtual void PublishReliable(const Exchange& exchange,
-                               const std::string& routing_key,
-                               const std::string& message, MessageType type,
-                               engine::Deadline deadline) = 0;
+public:
+    /// @brief Publish a message to an exchange and
+    /// await confirmation from the broker
+    ///
+    /// You have to supply the name of the exchange and a routing key. RabbitMQ
+    /// will then try to send the message to one or more queues.
+    /// By default unroutable messages are silently discarded
+    ///
+    /// @param exchange the exchange to publish to
+    /// @param routing_key the routing key
+    /// @param message the message to send
+    /// @param deadline execution deadline
+    virtual void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    ) = 0;
 
-  /// @brief overload of PublishReliable
-  virtual void PublishReliable(const Exchange& exchange,
-                               const std::string& routing_key,
-                               const std::string& message,
-                               engine::Deadline deadline) = 0;
+    /// @brief overload of PublishReliable
+    virtual void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        engine::Deadline deadline
+    ) = 0;
 
- protected:
-  ~IReliableChannelInterface();
+protected:
+    ~IReliableChannelInterface();
 };
 
 }  // namespace urabbitmq

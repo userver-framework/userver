@@ -100,18 +100,18 @@ constexpr char bench_bson_data[] = R"({
 }  // anonymous namespace
 
 void bson_path_first_access(benchmark::State& state) {
-  for (auto _ : state) {
-    state.PauseTiming();
-    auto bson = formats::bson::FromJsonString(bench_bson_data);
-    state.ResumeTiming();
+    for (auto _ : state) {
+        state.PauseTiming();
+        auto bson = formats::bson::FromJsonString(bench_bson_data);
+        state.ResumeTiming();
 
-    const auto res =
-        (bson["nested_very_long_long_long_long_path"]["deeply"]["deeply"]
-             ["nested"]["bson"]["value"]["with"]["some"]["data"]
-                 .As<std::string>() == "4");
-    benchmark::DoNotOptimize(res);
-    if (!res) throw std::runtime_error("unexpected");
-  }
+        const auto res =
+            (bson["nested_very_long_long_long_long_path"]["deeply"]["deeply"]["nested"]["bson"]["value"]["with"]["some"]
+                 ["data"]
+                     .As<std::string>() == "4");
+        benchmark::DoNotOptimize(res);
+        if (!res) throw std::runtime_error("unexpected");
+    }
 }
 BENCHMARK(bson_path_first_access);
 

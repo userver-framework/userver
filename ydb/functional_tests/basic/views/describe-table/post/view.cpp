@@ -10,18 +10,16 @@
 
 namespace sample {
 
-formats::json::Value DescribeTableHandler::HandleRequestJsonThrow(
-    const server::http::HttpRequest&, const formats::json::Value& request_json,
-    server::request::RequestContext&) const {
-  auto response = Ydb().DescribeTable(request_json["path"].As<std::string>());
-  const auto& key_columns =
-      response.GetTableDescription().GetPrimaryKeyColumns();
+formats::json::Value DescribeTableHandler::
+    HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request_json, server::request::RequestContext&)
+        const {
+    auto response = Ydb().DescribeTable(request_json["path"].As<std::string>());
+    const auto& key_columns = response.GetTableDescription().GetPrimaryKeyColumns();
 
-  formats::json::ValueBuilder response_builder(formats::json::Type::kObject);
-  response_builder["key_columns"] =
-      key_columns | boost::adaptors::transformed(
-                        [](const auto& string) { return std::string{string}; });
-  return response_builder.ExtractValue();
+    formats::json::ValueBuilder response_builder(formats::json::Type::kObject);
+    response_builder["key_columns"] =
+        key_columns | boost::adaptors::transformed([](const auto& string) { return std::string{string}; });
+    return response_builder.ExtractValue();
 }
 
 }  // namespace sample

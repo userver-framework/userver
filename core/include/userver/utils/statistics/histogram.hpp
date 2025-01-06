@@ -61,42 +61,42 @@ struct BoundsBlock;
 /// Histogram can be used in utils::statistics::MetricTag:
 /// @snippet utils/statistics/histogram_test.cpp  metric tag
 class Histogram final {
- public:
-  /// Sets upper bounds for each non-"infinite" bucket. The lowest bound is
-  /// always 0.
-  explicit Histogram(utils::span<const double> upper_bounds);
+public:
+    /// Sets upper bounds for each non-"infinite" bucket. The lowest bound is
+    /// always 0.
+    explicit Histogram(utils::span<const double> upper_bounds);
 
-  /// Copies an existing histogram.
-  explicit Histogram(HistogramView other);
+    /// Copies an existing histogram.
+    explicit Histogram(HistogramView other);
 
-  Histogram(Histogram&&) noexcept;
-  Histogram(const Histogram&);
-  Histogram& operator=(Histogram&&) noexcept;
-  Histogram& operator=(const Histogram&);
-  ~Histogram();
+    Histogram(Histogram&&) noexcept;
+    Histogram(const Histogram&);
+    Histogram& operator=(Histogram&&) noexcept;
+    Histogram& operator=(const Histogram&);
+    ~Histogram();
 
-  /// Atomically increment the bucket corresponding to the given value.
-  void Account(double value, std::uint64_t count = 1) noexcept;
+    /// Atomically increment the bucket corresponding to the given value.
+    void Account(double value, std::uint64_t count = 1) noexcept;
 
-  /// Atomically reset all counters to zero.
-  friend void ResetMetric(Histogram& histogram) noexcept;
+    /// Atomically reset all counters to zero.
+    friend void ResetMetric(Histogram& histogram) noexcept;
 
-  /// Allows reading the histogram.
-  HistogramView GetView() const& noexcept;
+    /// Allows reading the histogram.
+    HistogramView GetView() const& noexcept;
 
-  /// @cond
-  // Store Histogram in a variable before taking a view on it.
-  HistogramView GetView() && noexcept = delete;
-  /// @endcond
+    /// @cond
+    // Store Histogram in a variable before taking a view on it.
+    HistogramView GetView() && noexcept = delete;
+    /// @endcond
 
- private:
-  void UpdateBounds();
+private:
+    void UpdateBounds();
 
-  std::unique_ptr<impl::histogram::Bucket[]> buckets_;
-  // B+ tree of bucket bounds for optimization of Account.
-  std::unique_ptr<impl::histogram::BoundsBlock[]> bounds_;
-  // Duplicate size here to avoid loading an extra cache line in Account.
-  std::size_t bucket_count_;
+    std::unique_ptr<impl::histogram::Bucket[]> buckets_;
+    // B+ tree of bucket bounds for optimization of Account.
+    std::unique_ptr<impl::histogram::BoundsBlock[]> bounds_;
+    // Duplicate size here to avoid loading an extra cache line in Account.
+    std::size_t bucket_count_;
 };
 
 /// Metric serialization support for Histogram.

@@ -15,216 +15,196 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct Node final : public concurrent::impl::SinglyLinkedBaseHook {
-  int foo{};
+    int foo{};
 };
 
 class BoostLockfree final {
- public:
-  explicit BoostLockfree(std::size_t /*producer_count*/) {}
+public:
+    explicit BoostLockfree(std::size_t /*producer_count*/) {}
 
-  void Produce(std::size_t /*producer_id*/) { queue_.push(0); }
+    void Produce(std::size_t /*producer_id*/) { queue_.push(0); }
 
-  bool TryConsume() {
-    int result{};
-    const bool success = queue_.pop(result);
-    if (success) {
-      benchmark::DoNotOptimize(result);
+    bool TryConsume() {
+        int result{};
+        const bool success = queue_.pop(result);
+        if (success) {
+            benchmark::DoNotOptimize(result);
+        }
+        return success;
     }
-    return success;
-  }
 
- private:
-  boost::lockfree::queue<int> queue_{0};
+private:
+    boost::lockfree::queue<int> queue_{0};
 };
 
 class MoodycamelImplicit final {
- public:
-  explicit MoodycamelImplicit(std::size_t /*producer_count*/) {}
+public:
+    explicit MoodycamelImplicit(std::size_t /*producer_count*/) {}
 
-  void Produce(std::size_t /*producer_id*/) { queue_.enqueue(0); }
+    void Produce(std::size_t /*producer_id*/) { queue_.enqueue(0); }
 
-  bool TryConsume() {
-    int result{};
-    const bool success = queue_.try_dequeue(result);
-    if (success) {
-      benchmark::DoNotOptimize(result);
+    bool TryConsume() {
+        int result{};
+        const bool success = queue_.try_dequeue(result);
+        if (success) {
+            benchmark::DoNotOptimize(result);
+        }
+        return success;
     }
-    return success;
-  }
 
- private:
-  moodycamel::ConcurrentQueue<int> queue_{0};
+private:
+    moodycamel::ConcurrentQueue<int> queue_{0};
 };
 
 class MoodycamelExplicit final {
- public:
-  explicit MoodycamelExplicit(std::size_t producer_count)
-      : queue_(0, producer_count, 0),
-        producer_tokens_(producer_count, queue_),
-        consumer_token_(queue_) {}
+public:
+    explicit MoodycamelExplicit(std::size_t producer_count)
+        : queue_(0, producer_count, 0), producer_tokens_(producer_count, queue_), consumer_token_(queue_) {}
 
-  void Produce(std::size_t producer_id) {
-    queue_.enqueue(producer_tokens_[producer_id], 0);
-  }
+    void Produce(std::size_t producer_id) { queue_.enqueue(producer_tokens_[producer_id], 0); }
 
-  bool TryConsume() {
-    int result{};
-    const bool success = queue_.try_dequeue(consumer_token_, result);
-    if (success) {
-      benchmark::DoNotOptimize(result);
+    bool TryConsume() {
+        int result{};
+        const bool success = queue_.try_dequeue(consumer_token_, result);
+        if (success) {
+            benchmark::DoNotOptimize(result);
+        }
+        return success;
     }
-    return success;
-  }
 
- private:
-  moodycamel::ConcurrentQueue<int> queue_;
-  utils::FixedArray<moodycamel::ProducerToken> producer_tokens_;
-  moodycamel::ConsumerToken consumer_token_;
+private:
+    moodycamel::ConcurrentQueue<int> queue_;
+    utils::FixedArray<moodycamel::ProducerToken> producer_tokens_;
+    moodycamel::ConsumerToken consumer_token_;
 };
 
 class IntrusiveMpscQueue final {
- public:
-  explicit IntrusiveMpscQueue(std::size_t /*producer_count*/) {}
+public:
+    explicit IntrusiveMpscQueue(std::size_t /*producer_count*/) {}
 
-  ~IntrusiveMpscQueue() {
-    while (auto* const node = queue_.TryPop()) {
-      delete node;
+    ~IntrusiveMpscQueue() {
+        while (auto* const node = queue_.TryPop()) {
+            delete node;
+        }
     }
-  }
 
-  void Produce(std::size_t /*producer_id*/) { queue_.Push(*new Node()); }
+    void Produce(std::size_t /*producer_id*/) { queue_.Push(*new Node()); }
 
-  bool TryConsume() {
-    auto* const node = queue_.TryPop();
-    if (node) {
-      benchmark::DoNotOptimize(node->foo);
-      delete node;
-      return true;
-    } else {
-      return false;
+    bool TryConsume() {
+        auto* const node = queue_.TryPop();
+        if (node) {
+            benchmark::DoNotOptimize(node->foo);
+            delete node;
+            return true;
+        } else {
+            return false;
+        }
     }
-  }
 
- private:
-  concurrent::impl::IntrusiveMpscQueue<Node> queue_;
+private:
+    concurrent::impl::IntrusiveMpscQueue<Node> queue_;
 };
 
 }  // namespace
 
 template <typename Queue>
 void MpscQueueProduce(benchmark::State& state) {
-  Queue queue(state.range(0));
-  std::atomic<bool> keep_running{true};
-  std::vector<std::future<void>> producers;
-  producers.reserve(state.range(0) - 1);
+    Queue queue(state.range(0));
+    std::atomic<bool> keep_running{true};
+    std::vector<std::future<void>> producers;
+    producers.reserve(state.range(0) - 1);
 
-  for (int i = 0; i < state.range(0) - 1; ++i) {
-    producers.push_back(std::async([&, producer_id = i + 1] {
-      while (keep_running) {
-        queue.Produce(producer_id);
-      }
-    }));
-  }
-
-  auto consumer = std::async([&] {
-    compiler::RelaxCpu relax;
-    while (keep_running) {
-      if (!queue.TryConsume()) {
-        relax();
-      }
+    for (int i = 0; i < state.range(0) - 1; ++i) {
+        producers.push_back(std::async([&, producer_id = i + 1] {
+            while (keep_running) {
+                queue.Produce(producer_id);
+            }
+        }));
     }
-  });
 
-  for ([[maybe_unused]] auto _ : state) {
-    queue.Produce(0);
-  }
+    auto consumer = std::async([&] {
+        compiler::RelaxCpu relax;
+        while (keep_running) {
+            if (!queue.TryConsume()) {
+                relax();
+            }
+        }
+    });
 
-  keep_running = false;
-  for (auto& producer : producers) producer.get();
-  consumer.get();
+    for ([[maybe_unused]] auto _ : state) {
+        queue.Produce(0);
+    }
+
+    keep_running = false;
+    for (auto& producer : producers) producer.get();
+    consumer.get();
 }
 
-BENCHMARK_TEMPLATE(MpscQueueProduce, BoostLockfree)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
-BENCHMARK_TEMPLATE(MpscQueueProduce, MoodycamelImplicit)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
-BENCHMARK_TEMPLATE(MpscQueueProduce, MoodycamelExplicit)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
-BENCHMARK_TEMPLATE(MpscQueueProduce, IntrusiveMpscQueue)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueProduce, BoostLockfree)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueProduce, MoodycamelImplicit)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueProduce, MoodycamelExplicit)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueProduce, IntrusiveMpscQueue)->RangeMultiplier(2)->Range(1, 32);
 
 template <typename Queue>
 void MpscQueueConsume(benchmark::State& state) {
-  Queue queue(state.range(0));
-  std::atomic<bool> keep_running{true};
-  std::vector<std::future<void>> producers;
-  producers.reserve(state.range(0));
+    Queue queue(state.range(0));
+    std::atomic<bool> keep_running{true};
+    std::vector<std::future<void>> producers;
+    producers.reserve(state.range(0));
 
-  for (int i = 0; i < state.range(0); ++i) {
-    producers.push_back(std::async([&, producer_id = i] {
-      while (keep_running) {
-        queue.Produce(producer_id);
-      }
-    }));
-  }
-
-  for ([[maybe_unused]] auto _ : state) {
-    while (!queue.TryConsume()) {
-      // No 'pause', keep hammering until we receive an item.
+    for (int i = 0; i < state.range(0); ++i) {
+        producers.push_back(std::async([&, producer_id = i] {
+            while (keep_running) {
+                queue.Produce(producer_id);
+            }
+        }));
     }
-  }
 
-  keep_running = false;
-  for (auto& producer : producers) producer.get();
+    for ([[maybe_unused]] auto _ : state) {
+        while (!queue.TryConsume()) {
+            // No 'pause', keep hammering until we receive an item.
+        }
+    }
+
+    keep_running = false;
+    for (auto& producer : producers) producer.get();
 }
 
-BENCHMARK_TEMPLATE(MpscQueueConsume, BoostLockfree)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
-BENCHMARK_TEMPLATE(MpscQueueConsume, MoodycamelImplicit)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
-BENCHMARK_TEMPLATE(MpscQueueConsume, MoodycamelExplicit)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
-BENCHMARK_TEMPLATE(MpscQueueConsume, IntrusiveMpscQueue)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueConsume, BoostLockfree)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueConsume, MoodycamelImplicit)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueConsume, MoodycamelExplicit)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK_TEMPLATE(MpscQueueConsume, IntrusiveMpscQueue)->RangeMultiplier(2)->Range(1, 32);
 
 template <typename Queue>
 void MpscQueueProduceConsume(benchmark::State& state) {
-  static constexpr std::size_t kNodeCount = 128;
+    static constexpr std::size_t kNodeCount = 128;
 
-  Queue queue1(1);
-  Queue queue2(1);
-  std::atomic<bool> keep_running{true};
+    Queue queue1(1);
+    Queue queue2(1);
+    std::atomic<bool> keep_running{true};
 
-  for (std::size_t i = 0; i < kNodeCount; ++i) {
-    queue1.Produce(0);
-  }
-
-  auto another_worker = std::async([&] {
-    while (keep_running) {
-      while (!queue1.TryConsume()) {
-      }
-      queue2.Produce(0);
+    for (std::size_t i = 0; i < kNodeCount; ++i) {
+        queue1.Produce(0);
     }
-  });
 
-  for ([[maybe_unused]] auto _ : state) {
-    while (!queue2.TryConsume()) {
+    auto another_worker = std::async([&] {
+        while (keep_running) {
+            while (!queue1.TryConsume()) {
+            }
+            queue2.Produce(0);
+        }
+    });
+
+    for ([[maybe_unused]] auto _ : state) {
+        while (!queue2.TryConsume()) {
+        }
+        queue1.Produce(0);
     }
-    queue1.Produce(0);
-  }
 
-  keep_running = false;
-  // To unblock 'another_worker'
-  queue1.Produce(0);
-  another_worker.get();
+    keep_running = false;
+    // To unblock 'another_worker'
+    queue1.Produce(0);
+    another_worker.get();
 }
 
 BENCHMARK_TEMPLATE(MpscQueueProduceConsume, BoostLockfree);
@@ -233,54 +213,54 @@ BENCHMARK_TEMPLATE(MpscQueueProduceConsume, MoodycamelExplicit);
 BENCHMARK_TEMPLATE(MpscQueueProduceConsume, IntrusiveMpscQueue);
 
 void IntrusiveMpscQueueProduceConsumeNoAlloc(benchmark::State& state) {
-  static constexpr std::size_t kNodeCount = 128;
-  using Queue = concurrent::impl::IntrusiveMpscQueue<Node>;
+    static constexpr std::size_t kNodeCount = 128;
+    using Queue = concurrent::impl::IntrusiveMpscQueue<Node>;
 
-  utils::FixedArray<Node> nodes(kNodeCount);
-  Queue queue1;
-  Queue queue2;
-  for (auto& node : nodes) {
-    queue1.Push(node);
-  }
-
-  std::atomic<bool> keep_running{true};
-
-  auto another_worker = std::async([&] {
-    while (keep_running) {
-      Node* node = nullptr;
-      while (!node) {
-        node = queue1.TryPop();
-      }
-      queue2.Push(*node);
+    utils::FixedArray<Node> nodes(kNodeCount);
+    Queue queue1;
+    Queue queue2;
+    for (auto& node : nodes) {
+        queue1.Push(node);
     }
-  });
 
-  for ([[maybe_unused]] auto _ : state) {
-    Node* node = nullptr;
-    while (!node) {
-      node = queue2.TryPop();
+    std::atomic<bool> keep_running{true};
+
+    auto another_worker = std::async([&] {
+        while (keep_running) {
+            Node* node = nullptr;
+            while (!node) {
+                node = queue1.TryPop();
+            }
+            queue2.Push(*node);
+        }
+    });
+
+    for ([[maybe_unused]] auto _ : state) {
+        Node* node = nullptr;
+        while (!node) {
+            node = queue2.TryPop();
+        }
+        queue1.Push(*node);
     }
-    queue1.Push(*node);
-  }
 
-  keep_running = false;
+    keep_running = false;
 
-  Node extra_node;
-  // To unblock 'another_worker'
-  queue1.Push(extra_node);
-  another_worker.get();
+    Node extra_node;
+    // To unblock 'another_worker'
+    queue1.Push(extra_node);
+    another_worker.get();
 }
 
 BENCHMARK(IntrusiveMpscQueueProduceConsumeNoAlloc);
 
 template <typename Queue>
 void MpscQueueProduceConsumeNoContention(benchmark::State& state) {
-  Queue queue(1);
+    Queue queue(1);
 
-  for ([[maybe_unused]] auto _ : state) {
-    queue.Produce(0);
-    queue.TryConsume();
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        queue.Produce(0);
+        queue.TryConsume();
+    }
 }
 
 BENCHMARK_TEMPLATE(MpscQueueProduceConsumeNoContention, BoostLockfree);
@@ -288,15 +268,14 @@ BENCHMARK_TEMPLATE(MpscQueueProduceConsumeNoContention, MoodycamelImplicit);
 BENCHMARK_TEMPLATE(MpscQueueProduceConsumeNoContention, MoodycamelExplicit);
 BENCHMARK_TEMPLATE(MpscQueueProduceConsumeNoContention, IntrusiveMpscQueue);
 
-void IntrusiveMpscQueueProduceConsumeNoContentionNoAlloc(
-    benchmark::State& state) {
-  Node node;
-  concurrent::impl::IntrusiveMpscQueue<Node> queue;
+void IntrusiveMpscQueueProduceConsumeNoContentionNoAlloc(benchmark::State& state) {
+    Node node;
+    concurrent::impl::IntrusiveMpscQueue<Node> queue;
 
-  for ([[maybe_unused]] auto _ : state) {
-    queue.Push(node);
-    benchmark::DoNotOptimize(queue.TryPop());
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        queue.Push(node);
+        benchmark::DoNotOptimize(queue.TryPop());
+    }
 }
 
 BENCHMARK(IntrusiveMpscQueueProduceConsumeNoContentionNoAlloc);

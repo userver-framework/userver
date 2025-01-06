@@ -1,0 +1,14 @@
+definitions:
+    ObjectExtra:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: object
+            properties: {}
+            additionalProperties:
+                type: object
+                properties: {}
+                additionalProperties:
+                    type: object
+                    properties: {}
+                    additionalProperties: false

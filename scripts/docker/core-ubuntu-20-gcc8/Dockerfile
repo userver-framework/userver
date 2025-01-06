@@ -47,6 +47,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libbenchmark-dev \
     libgmock-dev \
     libgtest-dev \
+    libzstd-dev \
     git \
     sudo \
     gnupg \

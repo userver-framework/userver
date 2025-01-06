@@ -16,25 +16,28 @@ namespace tracing {
 /// @warning Never put InPlaceSpan on the stack! It has a large size and can
 /// cause stack overflow.
 class InPlaceSpan final {
- public:
-  explicit InPlaceSpan(std::string&& name,
-                       utils::impl::SourceLocation source_location =
-                           utils::impl::SourceLocation::Current());
+public:
+    explicit InPlaceSpan(
+        std::string&& name,
+        utils::impl::SourceLocation source_location = utils::impl::SourceLocation::Current()
+    );
 
-  explicit InPlaceSpan(std::string&& name, std::string&& trace_id,
-                       std::string&& parent_span_id,
-                       utils::impl::SourceLocation source_location =
-                           utils::impl::SourceLocation::Current());
+    explicit InPlaceSpan(
+        std::string&& name,
+        std::string&& trace_id,
+        std::string&& parent_span_id,
+        utils::impl::SourceLocation source_location = utils::impl::SourceLocation::Current()
+    );
 
-  InPlaceSpan(InPlaceSpan&&) = delete;
-  InPlaceSpan& operator=(InPlaceSpan&&) = delete;
-  ~InPlaceSpan();
+    InPlaceSpan(InPlaceSpan&&) = delete;
+    InPlaceSpan& operator=(InPlaceSpan&&) = delete;
+    ~InPlaceSpan();
 
-  tracing::Span& Get() noexcept;
+    tracing::Span& Get() noexcept;
 
- private:
-  struct Impl;
-  utils::FastPimpl<Impl, 4224, 8> impl_;
+private:
+    struct Impl;
+    utils::FastPimpl<Impl, 4224, 8> impl_;
 };
 
 }  // namespace tracing

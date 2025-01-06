@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -51,25 +51,24 @@ namespace storages::mysql {
 /// max_pool_size            | maximum connection pool size (per host)     | 10
 ///
 // clang-format on
-class Component final : public components::LoggableComponentBase {
- public:
-  /// Component constructor
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+class Component final : public components::ComponentBase {
+public:
+    /// Component constructor
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  /// Component destructor
-  ~Component() override;
+    /// Component destructor
+    ~Component() override;
 
-  /// Cluster accessor
-  std::shared_ptr<storages::mysql::Cluster> GetCluster() const;
+    /// Cluster accessor
+    std::shared_ptr<storages::mysql::Cluster> GetCluster() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Component& dns_;
+private:
+    clients::dns::Component& dns_;
 
-  const std::shared_ptr<storages::mysql::Cluster> cluster_;
-  utils::statistics::Entry statistics_holder_;
+    const std::shared_ptr<storages::mysql::Cluster> cluster_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::mysql

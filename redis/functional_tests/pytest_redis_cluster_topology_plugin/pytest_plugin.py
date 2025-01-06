@@ -69,7 +69,7 @@ def _get_data_directory():
 
 
 def _do_tries(
-        f, tries, timeout, on_single_fail_message=None, on_fail_message=None,
+    f, tries, timeout, on_single_fail_message=None, on_fail_message=None,
 ):
     for _ in range(tries):
         if f():
@@ -390,10 +390,7 @@ class RedisClusterTopology:
             self.added_replica.stop()
 
     async def _move_slot(
-            self,
-            from_node: _RedisClusterNode,
-            to_node: _RedisClusterNode,
-            slot,
+        self, from_node: _RedisClusterNode, to_node: _RedisClusterNode, slot,
     ):
         from_client = from_node.get_async_client()
         to_client = to_node.get_async_client()
@@ -428,10 +425,10 @@ class RedisClusterTopology:
         self.slots_by_node[to_node.get_address()].add(slot)
 
     async def _move_hash_slots(
-            self,
-            from_node: _RedisClusterNode,
-            to_node: _RedisClusterNode,
-            hash_slot_count,
+        self,
+        from_node: _RedisClusterNode,
+        to_node: _RedisClusterNode,
+        hash_slot_count,
     ):
         from_addr = from_node.get_address()
         from_slots = self.slots_by_node[from_addr]
@@ -447,12 +444,12 @@ class RedisClusterTopology:
         await asyncio.gather(*tasks)
 
     def _add_node_to_cluster(
-            self,
-            entry_node: _RedisClusterNode,
-            new_node: _RedisClusterNode,
-            replica=False,
+        self,
+        entry_node: _RedisClusterNode,
+        new_node: _RedisClusterNode,
+        replica=False,
     ):
-        """ Attach new_node to cluster of entry_node """
+        """Attach new_node to cluster of entry_node"""
         entry_address = entry_node.get_address()
         new_address = new_node.get_address()
         args = ['--cluster', 'add-node', new_address, entry_address]
@@ -461,7 +458,7 @@ class RedisClusterTopology:
         _call_binary(_get_prefixed_path('bin', 'redis-cli'), *args)
 
     def _wait_nodes_connect(self, ports: [tuple[int, int]]) -> bool:
-        """ Wait until every node connects to other nodes.  """
+        """Wait until every node connects to other nodes."""
         expected_ids = set()
         for port, _ in ports:
             myid = redis.Redis(port=port).cluster('myid').decode()
@@ -556,9 +553,9 @@ class RedisClusterTopology:
                         f'master_id:{master_id} : {e} '
                         f'nodes:{replica_client.cluster("nodes")}',
                     )
-                self.slots_by_node[
-                    f'{REDIS_CLUSTER_HOST}:{replicas_port}'
-                ] = self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{master_port}']
+                self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{replicas_port}'] = (
+                    self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{master_port}']
+                )
         self._wait_cluster_nodes_ready(self.nodes, CLUSTER_MINIMUM_NODES_COUNT)
 
     def _wait_cluster_nodes_known(self, nodes, expected_nodes_count) -> bool:

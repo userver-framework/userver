@@ -13,13 +13,13 @@ class ConnectionPool;
 namespace cc {
 
 class Limiter final : public congestion_control::Limiter {
- public:
-  explicit Limiter(detail::ConnectionPool& pool);
+public:
+    explicit Limiter(detail::ConnectionPool& pool);
 
-  void SetLimit(const congestion_control::Limit& new_limit) override;
+    void SetLimit(const congestion_control::Limit& new_limit) override;
 
- private:
-  detail::ConnectionPool& pool_;
+private:
+    detail::ConnectionPool& pool_;
 };
 
 }  // namespace cc

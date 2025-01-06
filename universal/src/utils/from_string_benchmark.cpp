@@ -9,18 +9,18 @@ USERVER_NAMESPACE_BEGIN
 
 template <typename T>
 void ConstFromString(benchmark::State& state) {
-  std::string str;
-  std::size_t len = state.range(0);
+    std::string str;
+    std::size_t len = state.range(0);
 
-  for (std::size_t i = 1; i < len + 1; ++i) {
-    str.push_back('0' + i % 10);
-  }
-
-  for ([[maybe_unused]] auto _ : state) {
-    for (std::size_t i = 0; i < 100; ++i) {
-      benchmark::DoNotOptimize(utils::FromString<T>(str));
+    for (std::size_t i = 1; i < len + 1; ++i) {
+        str.push_back('0' + i % 10);
     }
-  }
+
+    for ([[maybe_unused]] auto _ : state) {
+        for (std::size_t i = 0; i < 100; ++i) {
+            benchmark::DoNotOptimize(utils::FromString<T>(str));
+        }
+    }
 }
 
 BENCHMARK_TEMPLATE(ConstFromString, std::uint64_t)->DenseRange(1, 20, 1);

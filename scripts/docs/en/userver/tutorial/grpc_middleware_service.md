@@ -25,7 +25,7 @@ Derive `Middleware` and `MiddlewareFactory` from the respective base class:
 
 @snippet samples/grpc_middleware_service/src/middlewares/client/middleware.hpp gRPC middleware sample - Middleware and MiddlewareFactory declaration
 
-Handle method of `Middleware` does the actual work:
+`PreStartCall` method of `Middleware` does the actual work:
 
 @snippet samples/grpc_middleware_service/src/middlewares/client/middleware.cpp gRPC middleware sample - Middleware and MiddlewareFactory implementation
 

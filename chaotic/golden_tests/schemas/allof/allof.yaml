@@ -1,0 +1,18 @@
+components:
+    schemas:
+        AllOf:
+            type: object
+            additionalProperties: false
+            properties:
+                foo:
+                    allOf:
+                      - type: object
+                        additionalProperties: true
+                        properties:
+                            foo:
+                                type: string
+                      - type: object
+                        additionalProperties: true
+                        properties:
+                            bar:
+                                type: integer

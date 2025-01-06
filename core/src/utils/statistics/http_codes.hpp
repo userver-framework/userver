@@ -14,37 +14,37 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 class HttpCodes final {
- public:
-  using Code = int;
+public:
+    using Code = int;
 
-  static constexpr Code kMinHttpStatus = 100;
-  static constexpr Code kMaxHttpStatus = 600;
-  class Snapshot;
+    static constexpr Code kMinHttpStatus = 100;
+    static constexpr Code kMaxHttpStatus = 600;
+    class Snapshot;
 
-  HttpCodes();
-  HttpCodes(const HttpCodes&) = delete;
-  HttpCodes& operator=(const HttpCodes&) = delete;
+    HttpCodes();
+    HttpCodes(const HttpCodes&) = delete;
+    HttpCodes& operator=(const HttpCodes&) = delete;
 
-  void Account(Code code) noexcept;
+    void Account(Code code) noexcept;
 
- private:
-  std::array<RateCounter, kMaxHttpStatus - kMinHttpStatus> codes_{};
+private:
+    std::array<RateCounter, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
 
 class HttpCodes::Snapshot final {
- public:
-  Snapshot() = default;
-  Snapshot(const Snapshot&) = default;
-  Snapshot& operator=(const Snapshot&) = default;
+public:
+    Snapshot() = default;
+    Snapshot(const Snapshot&) = default;
+    Snapshot& operator=(const Snapshot&) = default;
 
-  explicit Snapshot(const HttpCodes& other) noexcept;
+    explicit Snapshot(const HttpCodes& other) noexcept;
 
-  void operator+=(const Snapshot& other);
+    void operator+=(const Snapshot& other);
 
-  friend void DumpMetric(Writer& writer, const Snapshot& snapshot);
+    friend void DumpMetric(Writer& writer, const Snapshot& snapshot);
 
- private:
-  std::array<Rate, kMaxHttpStatus - kMinHttpStatus> codes_{};
+private:
+    std::array<Rate, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
 
 }  // namespace utils::statistics

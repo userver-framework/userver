@@ -7,10 +7,10 @@ USERVER_NAMESPACE_BEGIN
 namespace redis {
 
 struct ScanReply {
-  std::optional<ScanCursor> cursor;
-  std::vector<std::string> keys;
+    std::optional<ScanCursor> cursor;
+    std::vector<std::string> keys;
 
-  static ScanReply parse(ReplyPtr reply);
+    static ScanReply parse(ReplyPtr reply);
 };
 
 }  // namespace redis

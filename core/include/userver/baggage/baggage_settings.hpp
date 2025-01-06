@@ -11,11 +11,10 @@ USERVER_NAMESPACE_BEGIN
 namespace baggage {
 
 struct BaggageSettings final {
-  std::unordered_set<std::string> allowed_keys;
+    std::unordered_set<std::string> allowed_keys;
 };
 
-BaggageSettings Parse(const formats::json::Value& value,
-                      formats::parse::To<BaggageSettings>);
+BaggageSettings Parse(const formats::json::Value& value, formats::parse::To<BaggageSettings>);
 
 extern const dynamic_config::Key<BaggageSettings> kBaggageSettings;
 

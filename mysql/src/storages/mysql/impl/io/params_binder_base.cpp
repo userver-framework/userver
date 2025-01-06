@@ -8,8 +8,7 @@ namespace storages::mysql::impl::io {
 
 ParamsBinderBase::ParamsBinderBase(std::size_t size) : binds_impl_{size} {}
 
-ParamsBinderBase::ParamsBinderBase(ParamsBinderBase&& other) noexcept
-    : binds_impl_{std::move(other.binds_impl_)} {}
+ParamsBinderBase::ParamsBinderBase(ParamsBinderBase&& other) noexcept : binds_impl_{std::move(other.binds_impl_)} {}
 
 InputBindingsFwd& ParamsBinderBase::GetBinds() { return *binds_impl_; }
 

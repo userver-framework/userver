@@ -29,37 +29,39 @@ namespace storages::redis {
 // You may want some more complicated checks or behaviours. It such a case, feel
 // free to copy this class and adapt it for your needs.
 class MockPublishWaiter {
- public:
-  // channel_name is used as PREFIX! and not as exact match
-  template <typename T>
-  MockPublishWaiter(GMockClient& redis_mock,
-                    const std::string& debug_channel_name, T&& matcher,
-                    size_t times_called = 1)
-      : debug_channel_name_(std::move(debug_channel_name)) {
-    UINVARIANT(times_called > 0, "times_called must be > 0");
+public:
+    // channel_name is used as PREFIX! and not as exact match
+    template <typename T>
+    MockPublishWaiter(
+        GMockClient& redis_mock,
+        const std::string& debug_channel_name,
+        T&& matcher,
+        size_t times_called = 1
+    )
+        : debug_channel_name_(std::move(debug_channel_name)) {
+        UINVARIANT(times_called > 0, "times_called must be > 0");
 
-    using ::testing::_;
-    EXPECT_CALL(redis_mock, Publish(std::forward<T>(matcher), _, _, _))
-        .Times(times_called)
-        .WillRepeatedly([this, times_called](auto&& channel, auto&&...) {
-          LOG_DEBUG() << "Redis mock received message to channel: " << channel
-                      << "; Called time: " << times_called_.load() + 1;
-          if ((times_called_.fetch_add(1) + 1) == times_called) {
-            on_received_.Send();
-          }
-        });
-  }
+        using ::testing::_;
+        EXPECT_CALL(redis_mock, Publish(std::forward<T>(matcher), _, _, _))
+            .Times(times_called)
+            .WillRepeatedly([this, times_called](auto&& channel, auto&&...) {
+                LOG_DEBUG() << "Redis mock received message to channel: " << channel
+                            << "; Called time: " << times_called_.load() + 1;
+                if ((times_called_.fetch_add(1) + 1) == times_called) {
+                    on_received_.Send();
+                }
+            });
+    }
 
-  void Wait() {
-    EXPECT_TRUE(on_received_.WaitForEventFor(std::chrono::seconds{30}))
-        << "Failed to detect publishing to channel " << debug_channel_name_
-        << " within 30 seconds";
-  }
+    void Wait() {
+        EXPECT_TRUE(on_received_.WaitForEventFor(std::chrono::seconds{30}))
+            << "Failed to detect publishing to channel " << debug_channel_name_ << " within 30 seconds";
+    }
 
- private:
-  engine::SingleConsumerEvent on_received_;
-  std::string debug_channel_name_;
-  std::atomic<size_t> times_called_{0};
+private:
+    engine::SingleConsumerEvent on_received_;
+    std::string debug_channel_name_;
+    std::atomic<size_t> times_called_{0};
 };
 
 }  // namespace storages::redis

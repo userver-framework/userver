@@ -7,22 +7,19 @@
 namespace samples::hello {
 
 class Hello final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-hello-sample";
+public:
+    static constexpr std::string_view kName = "handler-hello-sample";
 
-  using HttpHandlerBase::HttpHandlerBase;
+    using HttpHandlerBase::HttpHandlerBase;
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest&,
-      server::request::RequestContext&) const override {
-    return "Hello world!\n";
-  }
+    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+        return "Hello world!\n";
+    }
 };
 
 }  // namespace samples::hello
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList().Append<samples::hello::Hello>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList().Append<samples::hello::Hello>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

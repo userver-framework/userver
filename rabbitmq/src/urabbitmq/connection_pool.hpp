@@ -19,49 +19,55 @@ namespace statistics {
 class ConnectionStatistics;
 }
 
-class ConnectionPool final
-    : public drivers::impl::ConnectionPoolBase<Connection, ConnectionPool> {
- public:
-  static std::shared_ptr<ConnectionPool> Create(
-      clients::dns::Resolver& resolver, const EndpointInfo& endpoint_info,
-      const AuthSettings& auth_settings, const PoolSettings& pool_settings,
-      bool use_secure_connection, statistics::ConnectionStatistics& stats);
-  ~ConnectionPool();
+class ConnectionPool final : public drivers::impl::ConnectionPoolBase<Connection, ConnectionPool> {
+public:
+    static std::shared_ptr<ConnectionPool> Create(
+        clients::dns::Resolver& resolver,
+        const EndpointInfo& endpoint_info,
+        const AuthSettings& auth_settings,
+        const PoolSettings& pool_settings,
+        bool use_secure_connection,
+        statistics::ConnectionStatistics& stats
+    );
+    ~ConnectionPool();
 
-  ConnectionPtr Acquire(engine::Deadline deadline);
-  void Release(std::unique_ptr<Connection> connection);
+    ConnectionPtr Acquire(engine::Deadline deadline);
+    void Release(std::unique_ptr<Connection> connection);
 
-  void NotifyConnectionAdopted();
+    void NotifyConnectionAdopted();
 
-  // This should be protected in perfect world, but it gets too cumbersome and a
-  // bit bloated; this is private for the library anyway
-  ConnectionPool(clients::dns::Resolver& resolver,
-                 const EndpointInfo& endpoint_info,
-                 const AuthSettings& auth_settings,
-                 const PoolSettings& pool_settings, bool use_secure_connection,
-                 statistics::ConnectionStatistics& stats);
+    // This should be protected in perfect world, but it gets too cumbersome and a
+    // bit bloated; this is private for the library anyway
+    ConnectionPool(
+        clients::dns::Resolver& resolver,
+        const EndpointInfo& endpoint_info,
+        const AuthSettings& auth_settings,
+        const PoolSettings& pool_settings,
+        bool use_secure_connection,
+        statistics::ConnectionStatistics& stats
+    );
 
- private:
-  friend class drivers::impl::ConnectionPoolBase<Connection, ConnectionPool>;
+private:
+    friend class drivers::impl::ConnectionPoolBase<Connection, ConnectionPool>;
 
-  ConnectionUniquePtr DoCreateConnection(engine::Deadline deadline);
+    ConnectionUniquePtr DoCreateConnection(engine::Deadline deadline);
 
-  void AccountConnectionAcquired();
-  void AccountConnectionReleased();
-  void AccountConnectionCreated();
-  void AccountConnectionDestroyed() noexcept;
-  void AccountOverload();
+    void AccountConnectionAcquired();
+    void AccountConnectionReleased();
+    void AccountConnectionCreated();
+    void AccountConnectionDestroyed() noexcept;
+    void AccountOverload();
 
-  void RunMonitor();
+    void RunMonitor();
 
-  clients::dns::Resolver& resolver_;
-  const EndpointInfo endpoint_info_;
-  const AuthSettings auth_settings_;
-  const PoolSettings pool_settings_;
-  bool use_secure_connection_;
-  statistics::ConnectionStatistics& stats_;
+    clients::dns::Resolver& resolver_;
+    const EndpointInfo endpoint_info_;
+    const AuthSettings auth_settings_;
+    const PoolSettings pool_settings_;
+    bool use_secure_connection_;
+    statistics::ConnectionStatistics& stats_;
 
-  utils::PeriodicTask monitor_;
+    utils::PeriodicTask monitor_;
 };
 
 }  // namespace urabbitmq

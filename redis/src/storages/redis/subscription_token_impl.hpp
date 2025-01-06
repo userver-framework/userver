@@ -12,75 +12,81 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 
 class SubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
- public:
-  using OnMessageCb = SubscriptionToken::OnMessageCb;
+public:
+    using OnMessageCb = SubscriptionToken::OnMessageCb;
 
-  SubscriptionTokenImpl(
-      USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
-      std::string channel, OnMessageCb on_message_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control);
+    SubscriptionTokenImpl(
+        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        std::string channel,
+        OnMessageCb on_message_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    );
 
-  ~SubscriptionTokenImpl() override;
+    ~SubscriptionTokenImpl() override;
 
-  void SetMaxQueueLength(size_t length) override;
+    void SetMaxQueueLength(size_t length) override;
 
-  void Unsubscribe() override;
+    void Unsubscribe() override;
 
- private:
-  void ProcessMessages();
+private:
+    void ProcessMessages();
 
-  std::string channel_;
-  SubscriptionQueue<ChannelSubscriptionQueueItem> queue_;
-  OnMessageCb on_message_cb_;
-  engine::TaskWithResult<void> subscriber_task_;
+    std::string channel_;
+    SubscriptionQueue<ChannelSubscriptionQueueItem> queue_;
+    OnMessageCb on_message_cb_;
+    engine::TaskWithResult<void> subscriber_task_;
 };
 
 class PsubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
- public:
-  using OnPmessageCb = SubscriptionToken::OnPmessageCb;
+public:
+    using OnPmessageCb = SubscriptionToken::OnPmessageCb;
 
-  PsubscriptionTokenImpl(
-      USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
-      std::string pattern, OnPmessageCb on_pmessage_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control);
+    PsubscriptionTokenImpl(
+        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        std::string pattern,
+        OnPmessageCb on_pmessage_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    );
 
-  ~PsubscriptionTokenImpl() override;
+    ~PsubscriptionTokenImpl() override;
 
-  void SetMaxQueueLength(size_t length) override;
+    void SetMaxQueueLength(size_t length) override;
 
-  void Unsubscribe() override;
+    void Unsubscribe() override;
 
- private:
-  void ProcessMessages();
+private:
+    void ProcessMessages();
 
-  std::string pattern_;
-  SubscriptionQueue<PatternSubscriptionQueueItem> queue_;
-  OnPmessageCb on_pmessage_cb_;
-  engine::TaskWithResult<void> subscriber_task_;
+    std::string pattern_;
+    SubscriptionQueue<PatternSubscriptionQueueItem> queue_;
+    OnPmessageCb on_pmessage_cb_;
+    engine::TaskWithResult<void> subscriber_task_;
 };
 
 class SsubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
- public:
-  using OnMessageCb = SubscriptionToken::OnMessageCb;
+public:
+    using OnMessageCb = SubscriptionToken::OnMessageCb;
 
-  SsubscriptionTokenImpl(
-      USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
-      std::string channel, OnMessageCb on_message_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control);
+    SsubscriptionTokenImpl(
+        USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+        std::string channel,
+        OnMessageCb on_message_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    );
 
-  ~SsubscriptionTokenImpl() override;
+    ~SsubscriptionTokenImpl() override;
 
-  void SetMaxQueueLength(size_t length) override;
+    void SetMaxQueueLength(size_t length) override;
 
-  void Unsubscribe() override;
+    void Unsubscribe() override;
 
- private:
-  void ProcessMessages();
+private:
+    void ProcessMessages();
 
-  std::string channel_;
-  SubscriptionQueue<ShardedSubscriptionQueueItem> queue_;
-  OnMessageCb on_message_cb_;
-  engine::TaskWithResult<void> subscriber_task_;
+    std::string channel_;
+    SubscriptionQueue<ShardedSubscriptionQueueItem> queue_;
+    OnMessageCb on_message_cb_;
+    engine::TaskWithResult<void> subscriber_task_;
 };
 
 }  // namespace storages::redis

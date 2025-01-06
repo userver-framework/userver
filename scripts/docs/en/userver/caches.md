@@ -229,5 +229,5 @@ Each cache automatically collects metrics. See
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/deadline_propagation.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
+⇦ @ref scripts/docs/en/userver/congestion_control.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
 @htmlonly </div> @endhtmlonly

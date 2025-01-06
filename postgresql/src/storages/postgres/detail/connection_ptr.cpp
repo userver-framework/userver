@@ -7,24 +7,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
-ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn)
-    : conn_(std::move(conn)) {}
+ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn) : conn_(std::move(conn)) {}
 
-ConnectionPtr::ConnectionPtr(Connection* conn,
-                             std::shared_ptr<ConnectionPool>&& pool)
+ConnectionPtr::ConnectionPtr(Connection* conn, std::shared_ptr<ConnectionPool>&& pool)
     : pool_(std::move(pool)), conn_(conn) {
-  UASSERT_MSG(pool_, "This constructor requires non-empty parent pool");
+    UASSERT_MSG(pool_, "This constructor requires non-empty parent pool");
 }
 
 ConnectionPtr::~ConnectionPtr() { Reset(nullptr, nullptr); }
 
-ConnectionPtr::ConnectionPtr(ConnectionPtr&& other) noexcept {
-  Reset(std::move(other.conn_), std::move(other.pool_));
-}
+ConnectionPtr::ConnectionPtr(ConnectionPtr&& other) noexcept { Reset(std::move(other.conn_), std::move(other.pool_)); }
 
 ConnectionPtr& ConnectionPtr::operator=(ConnectionPtr&& other) noexcept {
-  Reset(std::move(other.conn_), std::move(other.pool_));
-  return *this;
+    Reset(std::move(other.conn_), std::move(other.pool_));
+    return *this;
 }
 
 ConnectionPtr::operator bool() const noexcept { return conn_ != nullptr; }
@@ -32,37 +28,36 @@ ConnectionPtr::operator bool() const noexcept { return conn_ != nullptr; }
 Connection* ConnectionPtr::get() const noexcept { return conn_.get(); }
 
 Connection& ConnectionPtr::operator*() const {
-  UASSERT_MSG(conn_, "Dereferencing null connection pointer");
-  return *conn_;
+    UASSERT_MSG(conn_, "Dereferencing null connection pointer");
+    return *conn_;
 }
 
 Connection* ConnectionPtr::operator->() const noexcept { return conn_.get(); }
 
 const StatementStatsStorage* ConnectionPtr::GetStatementStatsStorage() const {
-  if (!pool_) return nullptr;
+    if (!pool_) return nullptr;
 
-  return &pool_->GetStatementStatsStorage();
+    return &pool_->GetStatementStatsStorage();
 }
 
 std::optional<dynamic_config::Source> ConnectionPtr::GetConfigSource() const {
-  if (!pool_) return std::nullopt;
-  return {pool_->GetConfigSource()};
+    if (!pool_) return std::nullopt;
+    return {pool_->GetConfigSource()};
 }
 
-void ConnectionPtr::Reset(std::unique_ptr<Connection> conn,
-                          std::shared_ptr<ConnectionPool> pool) {
-  Release();
-  conn_ = std::move(conn);
-  pool_ = std::move(pool);
+void ConnectionPtr::Reset(std::unique_ptr<Connection> conn, std::shared_ptr<ConnectionPool> pool) {
+    Release();
+    conn_ = std::move(conn);
+    pool_ = std::move(pool);
 }
 
 void ConnectionPtr::Release() {
-  // We release pooled connection but reset standalone one
-  if (pool_) {
-    pool_->Release(conn_.release());
-  } else {
-    conn_.reset();
-  }
+    // We release pooled connection but reset standalone one
+    if (pool_) {
+        pool_->Release(conn_.release());
+    } else {
+        conn_.reset();
+    }
 }
 
 }  // namespace storages::postgres::detail

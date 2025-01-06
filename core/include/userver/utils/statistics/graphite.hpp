@@ -14,7 +14,8 @@ namespace utils::statistics {
 /// Output `statistics` in Graphite format with tags (labels).
 std::string ToGraphiteFormat(
     const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& statistics_request = {});
+    const utils::statistics::Request& statistics_request = {}
+);
 
 }  // namespace utils::statistics
 

@@ -9,30 +9,29 @@ namespace tests::handlers {
 namespace {
 
 /// [metrics definition]
-const utils::statistics::MetricTag<std::atomic<int>> kFooMetric{
-    "sample-metrics.foo"};
+const utils::statistics::MetricTag<std::atomic<int>> kFooMetric{"sample-metrics.foo"};
 /// [metrics definition]
 
 }  // namespace
 
-Metrics::Metrics(const components::ComponentConfig& config,
-                 const components::ComponentContext& context)
+Metrics::Metrics(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase(config, context),
-      metrics_(context.FindComponent<components::StatisticsStorage>()
-                   .GetMetricsStorage()) {}
+      metrics_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()) {}
 
 formats::json::Value Metrics::HandleRequestJsonThrow(
     [[maybe_unused]] const server::http::HttpRequest& request,
     [[maybe_unused]] const formats::json::Value& request_body,
-    [[maybe_unused]] server::request::RequestContext& context) const {
-  formats::json::ValueBuilder result;
+    [[maybe_unused]] server::request::RequestContext& context
+) const {
+    request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
+    formats::json::ValueBuilder result;
 
-  /// [metrics usage]
-  std::atomic<int>& foo_metric = metrics_->GetMetric(kFooMetric);
-  ++foo_metric;  // safe to increment conceurrently
-  /// [metrics usage]
+    /// [metrics usage]
+    std::atomic<int>& foo_metric = metrics_->GetMetric(kFooMetric);
+    ++foo_metric;  // safe to increment conceurrently
+    /// [metrics usage]
 
-  return result.ExtractValue();
+    return result.ExtractValue();
 }
 
 }  // namespace tests::handlers

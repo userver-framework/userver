@@ -6,11 +6,13 @@
 include(UserverTestsuite)
 # /// [testsuite - UserverTestsuite]
 
-userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirements_files)
+userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+list(APPEND requirements_files
+  "${USERVER_ROOT_DIR}/testsuite/requirements-internal-tests.txt")
+if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   list(APPEND requirements_files
-      "${USERVER_ROOT_DIR}/testsuite/requirements-net.txt")
+    "${USERVER_ROOT_DIR}/testsuite/requirements-internal-tests-linux.txt")
 endif()
 
 userver_venv_setup(
@@ -21,8 +23,8 @@ userver_venv_setup(
 
 function(userver_chaos_testsuite_add)
   set(options)
-  set(oneValueArgs TESTS_DIRECTORY ENV)
-  set(multiValueArgs PYTHONPATH)
+  set(oneValueArgs TESTS_DIRECTORY)
+  set(multiValueArgs PYTHONPATH ENV)
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 

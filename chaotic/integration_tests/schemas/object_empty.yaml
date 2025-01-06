@@ -1,0 +1,8 @@
+definitions:
+    ObjectEmpty:
+        type: object
+        description: |
+            some long
+            description
+        properties: {}
+        additionalProperties: false

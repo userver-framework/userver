@@ -20,9 +20,7 @@ char ToHexChar(int num);
 
 constexpr size_t LengthInHexForm(size_t size) noexcept { return size * 2; }
 
-constexpr size_t LengthInHexForm(std::string_view data) noexcept {
-  return LengthInHexForm(data.size());
-}
+constexpr size_t LengthInHexForm(std::string_view data) noexcept { return LengthInHexForm(data.size()); }
 /// @}
 
 /// @brief Return upper limit on number of characters required
@@ -35,10 +33,10 @@ constexpr size_t LengthInHexForm(std::string_view data) noexcept {
 ///  - FromHexUpperBound(5) = 2. First 4 chars will be unhexed into 2 bytes,
 ///    and there will be one left.
 constexpr size_t FromHexUpperBound(size_t size) noexcept {
-  // Although only even-sized input is valid, we have to support an odd
-  // number is well. Luckily for us, size / 2 will get us correct value
-  // anyway
-  return size / 2;
+    // Although only even-sized input is valid, we have to support an odd
+    // number is well. Luckily for us, size / 2 will get us correct value
+    // anyway
+    return size / 2;
 }
 
 /// @brief Converts input to hex and writes data to output \p out
@@ -49,17 +47,17 @@ void ToHex(std::string_view input, std::string& out) noexcept;
 /// @brief Allocates std::string, converts input and writes into said string
 /// @param input range of input bytes
 inline std::string ToHex(std::string_view data) noexcept {
-  std::string result;
-  ToHex(data, result);
-  return result;
+    std::string result;
+    ToHex(data, result);
+    return result;
 }
 
 /// @brief Allocates std::string, converts input and writes into said string
 /// @param data start of continuous range in memory
 /// @param len size of that range
 inline std::string ToHex(const void* encoded, size_t len) noexcept {
-  const auto* chars = reinterpret_cast<const char*>(encoded);
-  return ToHex(std::string_view{chars, len});
+    const auto* chars = reinterpret_cast<const char*>(encoded);
+    return ToHex(std::string_view{chars, len});
 }
 
 /// @brief Converts as much of input from hex as possible and writes data
@@ -78,9 +76,9 @@ size_t FromHex(std::string_view encoded, std::string& out) noexcept;
 /// @brief This FromHex overload allocates string and calls FromHex; if data
 /// is not fully a hex string, then it will be only partially processed.
 inline std::string FromHex(std::string_view encoded) noexcept {
-  std::string result;
-  FromHex(encoded, result);
-  return result;
+    std::string result;
+    FromHex(encoded, result);
+    return result;
 }
 
 /// Returns range that constitutes hex string - e.g. sub-view of encoded
@@ -95,9 +93,7 @@ std::string_view GetHexPart(std::string_view encoded) noexcept;
 bool IsHexData(std::string_view encoded) noexcept;
 
 /// @brief iterprets uint64_t value as array of bytes and applies ToHex to it
-inline std::string ToHexString(uint64_t value) {
-  return ToHex(&value, sizeof(value));
-}
+inline std::string ToHexString(uint64_t value) { return ToHex(&value, sizeof(value)); }
 
 }  // namespace utils::encoding
 

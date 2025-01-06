@@ -10,24 +10,21 @@ USERVER_NAMESPACE_BEGIN
 namespace redis {
 
 class ExpireReply final {
- public:
-  enum class ExpireReplyValue { kKeyDoesNotExist, kTimeoutWasSet };
+public:
+    enum class ExpireReplyValue { kKeyDoesNotExist, kTimeoutWasSet };
 
-  static constexpr ExpireReplyValue kKeyDoesNotExist =
-      ExpireReplyValue::kKeyDoesNotExist;
-  static constexpr ExpireReplyValue kTimeoutWasSet =
-      ExpireReplyValue::kTimeoutWasSet;
+    static constexpr ExpireReplyValue kKeyDoesNotExist = ExpireReplyValue::kKeyDoesNotExist;
+    static constexpr ExpireReplyValue kTimeoutWasSet = ExpireReplyValue::kTimeoutWasSet;
 
-  explicit ExpireReply(int64_t value);
-  ExpireReply(ExpireReplyValue value);
+    explicit ExpireReply(int64_t value);
+    ExpireReply(ExpireReplyValue value);
 
-  static ExpireReply Parse(ReplyData&& reply_data,
-                           const std::string& request_description = {});
+    static ExpireReply Parse(ReplyData&& reply_data, const std::string& request_description = {});
 
-  operator ExpireReplyValue() const;
+    operator ExpireReplyValue() const;
 
- private:
-  ExpireReplyValue value_;
+private:
+    ExpireReplyValue value_;
 };
 
 }  // namespace redis

@@ -1,6 +1,5 @@
 import pytest
 
-
 pytest_plugins = ['pytest_userver.plugins.mongo']
 
 MONGO_COLLECTIONS = {

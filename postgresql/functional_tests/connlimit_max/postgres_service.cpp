@@ -16,15 +16,14 @@
 #include <userver/storages/postgres/component.hpp>
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<server::handlers::ServerMonitor>()
-          .Append<components::DynamicConfigClient>()
-          .Append<components::DynamicConfigClientUpdater>()
-          .Append<components::HttpClient>()
-          .Append<components::Postgres>("key-value-database")
-          .Append<components::TestsuiteSupport>()
-          .Append<server::handlers::TestsControl>()
-          .Append<clients::dns::Component>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<server::handlers::ServerMonitor>()
+                                    .Append<components::DynamicConfigClient>()
+                                    .Append<components::DynamicConfigClientUpdater>()
+                                    .Append<components::HttpClient>()
+                                    .Append<components::Postgres>("key-value-database")
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<server::handlers::TestsControl>()
+                                    .Append<clients::dns::Component>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

@@ -14,13 +14,13 @@ namespace logging {
 
 /// Log levels
 enum class Level : std::uint8_t {
-  kTrace = 0,
-  kDebug = 1,
-  kInfo = 2,
-  kWarning = 3,
-  kError = 4,
-  kCritical = 5,
-  kNone = 6
+    kTrace = 0,
+    kDebug = 1,
+    kInfo = 2,
+    kWarning = 3,
+    kError = 4,
+    kCritical = 5,
+    kNone = 6
 };
 
 inline constexpr auto kLevelMax = static_cast<int>(Level::kNone);
@@ -37,8 +37,7 @@ std::string_view ToUpperCaseString(Level level) noexcept;
 
 /// @brief Returns std::nullopt if level_name is std::nullopt, otherwise
 /// behaves exactly like logging::LevelFromString.
-std::optional<Level> OptionalLevelFromString(
-    const std::optional<std::string>& level_name);
+std::optional<Level> OptionalLevelFromString(const std::optional<std::string>& level_name);
 
 }  // namespace logging
 

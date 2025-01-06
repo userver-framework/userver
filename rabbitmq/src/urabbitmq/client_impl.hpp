@@ -19,22 +19,22 @@ class ConnectionPool;
 class ConnectionPtr;
 
 class ClientImpl final {
- public:
-  ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings);
+public:
+    ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings);
 
-  ConnectionPtr GetConnection(engine::Deadline deadline);
+    ConnectionPtr GetConnection(engine::Deadline deadline);
 
-  void WriteStatistics(utils::statistics::Writer& writer) const;
+    void WriteStatistics(utils::statistics::Writer& writer) const;
 
- private:
-  const ClientSettings settings_;
+private:
+    const ClientSettings settings_;
 
-  struct PoolHolder final {
-    statistics::ConnectionStatistics stats;
-    std::shared_ptr<ConnectionPool> pool;
-  };
-  std::vector<PoolHolder> pools_;
-  std::atomic<size_t> pool_idx_{0};
+    struct PoolHolder final {
+        statistics::ConnectionStatistics stats;
+        std::shared_ptr<ConnectionPool> pool;
+    };
+    std::vector<PoolHolder> pools_;
+    std::atomic<size_t> pool_idx_{0};
 };
 
 }  // namespace urabbitmq

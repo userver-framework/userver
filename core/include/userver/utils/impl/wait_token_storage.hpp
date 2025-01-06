@@ -11,42 +11,42 @@ namespace utils::impl {
 
 // Gives out tokens and waits for all given-out tokens death
 class WaitTokenStorage final {
- public:
-  class Token final {
-   public:
-    Token() noexcept = default;
-    Token(Token&&) noexcept;
-    Token(const Token&) noexcept;
-    Token& operator=(Token&&) noexcept;
-    Token& operator=(const Token&) noexcept;
-    ~Token();
+public:
+    class Token final {
+    public:
+        Token() noexcept = default;
+        Token(Token&&) noexcept;
+        Token(const Token&) noexcept;
+        Token& operator=(Token&&) noexcept;
+        Token& operator=(const Token&) noexcept;
+        ~Token();
 
-    /// For internal use only
-    explicit Token(WaitTokenStorage& storage) noexcept;
+        /// For internal use only
+        explicit Token(WaitTokenStorage& storage) noexcept;
 
-   private:
-    WaitTokenStorage* storage_{nullptr};
-  };
+    private:
+        WaitTokenStorage* storage_{nullptr};
+    };
 
-  WaitTokenStorage();
+    WaitTokenStorage();
 
-  WaitTokenStorage(const WaitTokenStorage&) = delete;
-  WaitTokenStorage(WaitTokenStorage&&) = delete;
-  ~WaitTokenStorage();
+    WaitTokenStorage(const WaitTokenStorage&) = delete;
+    WaitTokenStorage(WaitTokenStorage&&) = delete;
+    ~WaitTokenStorage();
 
-  Token GetToken();
+    Token GetToken();
 
-  /// Approximate number of currently alive tokens
-  std::uint64_t AliveTokensApprox() const noexcept;
+    /// Approximate number of currently alive tokens
+    std::uint64_t AliveTokensApprox() const noexcept;
 
-  /// Wait until all given-out tokens are dead. Should be called at most once,
-  /// either in a coroutine environment or after the coroutine environment
-  /// stops (during static destruction).
-  void WaitForAllTokens() noexcept;
+    /// Wait until all given-out tokens are dead. Should be called at most once,
+    /// either in a coroutine environment or after the coroutine environment
+    /// stops (during static destruction).
+    void WaitForAllTokens() noexcept;
 
- private:
-  std::atomic<std::int64_t> tokens_;
-  engine::SingleUseEvent event_;
+private:
+    std::atomic<std::int64_t> tokens_;
+    engine::SingleUseEvent event_;
 };
 
 }  // namespace utils::impl

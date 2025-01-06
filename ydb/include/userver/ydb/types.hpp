@@ -50,19 +50,31 @@ class Utf8Tag {};
 using Utf8 = utils::StrongTypedef<Utf8Tag, std::string>;
 
 class JsonDocumentTag {};
-using JsonDocument =
-    utils::StrongTypedef<JsonDocumentTag, formats::json::Value>;
+using JsonDocument = utils::StrongTypedef<JsonDocumentTag, formats::json::Value>;
 
 using InsertColumnValue = std::variant<
-    std::string, bool, std::int32_t, std::uint32_t, std::int64_t, std::uint64_t,
-    double, Utf8, Timestamp, std::optional<std::string>, std::optional<bool>,
-    std::optional<std::int32_t>, std::optional<std::uint32_t>,
-    std::optional<std::int64_t>, std::optional<std::uint64_t>,
-    std::optional<double>, std::optional<Utf8>, std::optional<Timestamp>>;
+    std::string,
+    bool,
+    std::int32_t,
+    std::uint32_t,
+    std::int64_t,
+    std::uint64_t,
+    double,
+    Utf8,
+    Timestamp,
+    std::optional<std::string>,
+    std::optional<bool>,
+    std::optional<std::int32_t>,
+    std::optional<std::uint32_t>,
+    std::optional<std::int64_t>,
+    std::optional<std::uint64_t>,
+    std::optional<double>,
+    std::optional<Utf8>,
+    std::optional<Timestamp>>;
 
 struct InsertColumn {
-  std::string name;
-  InsertColumnValue value;
+    std::string name;
+    InsertColumnValue value;
 };
 
 using InsertRow = std::vector<InsertColumn>;

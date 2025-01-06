@@ -4,9 +4,10 @@ if(userver_redis_FOUND)
   return()
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-include("${USERVER_CMAKE_DIR}/FindHiredis.cmake")
+find_package(userver REQUIRED COMPONENTS
+    core
+)
 
-add_library(userver::redis ALIAS userver::userver-redis)
+include("${USERVER_CMAKE_DIR}/FindHiredis.cmake")
 
 set(userver_redis_FOUND TRUE)

@@ -9,7 +9,6 @@ import uuid
 import pytest
 from pytest_userver import chaos  # pylint: disable=import-error
 
-
 _NOTICEABLE_DELAY = 0.5
 TEST_TIMEOUT = 5
 RECV_MAX_SIZE = 4096
@@ -106,10 +105,8 @@ class UdpServer:
         Returns an address of the client as seen by the server
         """
         await self._loop.sock_sendall(client_sock, b'ping')
-        msg, addr = (
-            await chaos._get_message_task(  # pylint: disable=protected-access
-                self._sock,
-            )
+        msg, addr = await chaos._get_message_task(  # pylint: disable=protected-access
+            self._sock,
         )
         assert msg == b'ping'
         return addr
@@ -185,7 +182,7 @@ async def test_basic(udp_server, udp_client_factory, gate, loop):
 
 
 async def test_to_client_udp_message_queue(
-        udp_server, udp_client_factory, loop,
+    udp_server, udp_client_factory, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -205,7 +202,7 @@ async def test_to_client_udp_message_queue(
 
 
 async def test_to_server_udp_message_queue(
-        udp_server, udp_client_factory, loop,
+    udp_server, udp_client_factory, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -250,7 +247,7 @@ async def test_fifo_udp_message_queue(udp_server, udp_client_factory, loop):
 
 
 async def test_to_server_parallel_udp_message(
-        udp_server, udp_client_factory, loop,
+    udp_server, udp_client_factory, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -363,7 +360,7 @@ async def test_to_server_delay(udp_server, udp_client_factory, gate, loop):
 
 
 async def test_to_client_close_on_data(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -379,7 +376,7 @@ async def test_to_client_close_on_data(
 
 
 async def test_to_server_close_on_data(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -393,7 +390,7 @@ async def test_to_server_close_on_data(
 
 
 async def test_to_client_corrupt_data(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -415,7 +412,7 @@ async def test_to_client_corrupt_data(
 
 
 async def test_to_server_corrupt_data(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -477,7 +474,7 @@ async def test_to_server_limit_bps(udp_server, udp_client_factory, gate, loop):
 
 
 async def test_to_client_limit_time(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -497,7 +494,7 @@ async def test_to_client_limit_time(
 
 
 async def test_to_server_limit_time(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -515,7 +512,7 @@ async def test_to_server_limit_time(
 
 
 async def test_to_client_limit_bytes(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -544,7 +541,7 @@ async def test_to_client_limit_bytes(
 
 
 async def test_to_server_limit_bytes(
-        udp_server, udp_client_factory, gate, loop,
+    udp_server, udp_client_factory, gate, loop,
 ):
     udp_client = await udp_client_factory()
 

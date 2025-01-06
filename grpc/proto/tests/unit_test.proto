@@ -9,6 +9,9 @@ syntax = "proto3";
 package sample.ugrpc;
 
 import "tests/messages.proto";
+import "tests/protobuf.proto";
+
+import "google/protobuf/empty.proto";
 
 service UnitTestService {
   // Simple RPC
@@ -19,4 +22,7 @@ service UnitTestService {
   rpc WriteMany(stream StreamGreetingRequest) returns(StreamGreetingResponse) {}
   // Bidirectional streaming RPC
   rpc Chat(stream StreamGreetingRequest) returns(stream StreamGreetingResponse) {}
+
+  // Simple RPC with less simple response
+  rpc GetData(google.protobuf.Empty) returns(MessageWithDifferentTypes) {}
 }

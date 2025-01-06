@@ -5,7 +5,6 @@ import pytest_asyncio
 
 import taxi.integration_testing as it
 
-
 pytest_plugins = [
     'testsuite.pytest_plugin',
     'pytest_userver.plugins.caches',
@@ -25,23 +24,22 @@ USERVER_CONFIG_HOOKS = ['userver_pg_config']
 
 @pytest_asyncio.fixture(name='testenv', scope='session')
 async def _testenv(
-        service_source_dir: pathlib.Path, request: pytest.FixtureRequest,
+    service_source_dir: pathlib.Path, request: pytest.FixtureRequest,
 ) -> it.Environment:
-    env = it.Environment(
-        {
-            **it.CORE,
-            **it.DOCKER,
-            'database_common': it.databases.DatabaseCommon(),
-            **it.mockserver.create_mockserver(),
-            **it.databases.pgsql.create_pgsql(replicas=1),
-        },
-    )
+    env = it.Environment({
+        **it.CORE,
+        **it.DOCKER,
+        'database_common': it.databases.DatabaseCommon(),
+        **it.mockserver.create_mockserver(),
+        **it.databases.pgsql.create_pgsql(replicas=1),
+    })
     env.configure(it.PytestConfig(request.config))
     env.pgsql.discover_schemas(
         service_source_dir.joinpath('schemas/postgresql'), service_name='pg',
     )
     async with env.run():
         import time
+
         time.sleep(60)
         yield env
 

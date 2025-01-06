@@ -4,7 +4,7 @@
 /// @brief @copybrief components::LoggingConfigurator
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -41,24 +41,23 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp Sample logging configurator component config
 
 // clang-format on
-class LoggingConfigurator final : public impl::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::LoggingConfigurator component
-  static constexpr std::string_view kName = "logging-configurator";
+class LoggingConfigurator final : public RawComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::LoggingConfigurator component
+    static constexpr std::string_view kName = "logging-configurator";
 
-  LoggingConfigurator(const ComponentConfig& config,
-                      const ComponentContext& context);
+    LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context);
 
-  ~LoggingConfigurator() override;
+    ~LoggingConfigurator() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& config);
+private:
+    void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-  rcu::Variable<logging::DynamicDebugConfig> dynamic_debug_;
+    concurrent::AsyncEventSubscriberScope config_subscription_;
+    rcu::Variable<logging::DynamicDebugConfig> dynamic_debug_;
 };
 
 /// }@

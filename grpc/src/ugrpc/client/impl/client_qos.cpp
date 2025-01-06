@@ -1,4 +1,4 @@
-#include <userver/ugrpc/client/impl/client_qos.hpp>
+#include <userver/ugrpc/client/client_qos.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

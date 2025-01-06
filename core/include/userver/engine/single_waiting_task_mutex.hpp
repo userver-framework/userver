@@ -32,53 +32,51 @@ namespace engine {
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 class SingleWaitingTaskMutex final {
- public:
-  SingleWaitingTaskMutex();
-  ~SingleWaitingTaskMutex();
+public:
+    SingleWaitingTaskMutex();
+    ~SingleWaitingTaskMutex();
 
-  SingleWaitingTaskMutex(const SingleWaitingTaskMutex&) = delete;
-  SingleWaitingTaskMutex(SingleWaitingTaskMutex&&) = delete;
-  SingleWaitingTaskMutex& operator=(const SingleWaitingTaskMutex&) = delete;
-  SingleWaitingTaskMutex& operator=(SingleWaitingTaskMutex&&) = delete;
+    SingleWaitingTaskMutex(const SingleWaitingTaskMutex&) = delete;
+    SingleWaitingTaskMutex(SingleWaitingTaskMutex&&) = delete;
+    SingleWaitingTaskMutex& operator=(const SingleWaitingTaskMutex&) = delete;
+    SingleWaitingTaskMutex& operator=(SingleWaitingTaskMutex&&) = delete;
 
-  /// Locks the mutex. Blocks current coroutine if the mutex is locked by
-  /// another coroutine.
-  /// @note the behaviour is undefined if a coroutine tries to lock a mutex
-  /// which is already locked by the current coroutine.
-  /// @note the method waits for the mutex even if the current task is
-  /// cancelled.
-  void lock();
+    /// Locks the mutex. Blocks current coroutine if the mutex is locked by
+    /// another coroutine.
+    /// @note the behaviour is undefined if a coroutine tries to lock a mutex
+    /// which is already locked by the current coroutine.
+    /// @note the method waits for the mutex even if the current task is
+    /// cancelled.
+    void lock();
 
-  /// Unlocks the mutex. Before calling this method the mutex should be locked
-  /// by the current coroutine.
-  void unlock();
+    /// Unlocks the mutex. Before calling this method the mutex should be locked
+    /// by the current coroutine.
+    void unlock();
 
-  bool try_lock();
+    bool try_lock();
 
-  template <typename Rep, typename Period>
-  bool try_lock_for(const std::chrono::duration<Rep, Period>&);
+    template <typename Rep, typename Period>
+    bool try_lock_for(const std::chrono::duration<Rep, Period>&);
 
-  template <typename Clock, typename Duration>
-  bool try_lock_until(const std::chrono::time_point<Clock, Duration>&);
+    template <typename Clock, typename Duration>
+    bool try_lock_until(const std::chrono::time_point<Clock, Duration>&);
 
-  bool try_lock_until(Deadline deadline);
+    bool try_lock_until(Deadline deadline);
 
- private:
-  class Impl;
+private:
+    class Impl;
 
-  utils::FastPimpl<Impl, 32, 16> impl_;
+    utils::FastPimpl<Impl, 32, 16> impl_;
 };
 
 template <typename Rep, typename Period>
-bool SingleWaitingTaskMutex::try_lock_for(
-    const std::chrono::duration<Rep, Period>& duration) {
-  return try_lock_until(Deadline::FromDuration(duration));
+bool SingleWaitingTaskMutex::try_lock_for(const std::chrono::duration<Rep, Period>& duration) {
+    return try_lock_until(Deadline::FromDuration(duration));
 }
 
 template <typename Clock, typename Duration>
-bool SingleWaitingTaskMutex::try_lock_until(
-    const std::chrono::time_point<Clock, Duration>& until) {
-  return try_lock_until(Deadline::FromTimePoint(until));
+bool SingleWaitingTaskMutex::try_lock_until(const std::chrono::time_point<Clock, Duration>& until) {
+    return try_lock_until(Deadline::FromTimePoint(until));
 }
 
 }  // namespace engine

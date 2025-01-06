@@ -1,0 +1,31 @@
+components:
+    schemas:
+        OneOfDiscriminator:
+            type: object
+            additionalProperties: false
+            properties:
+                foo:
+                    oneOf:
+                      - $ref: '#/components/schemas/A'
+                      - $ref: '#/components/schemas/B'
+                    discriminator:
+                        propertyName: type
+                        mapping:
+                            aaa: '#/components/schemas/A'
+                            bbb: '#/components/schemas/B'
+        A:
+            type: object
+            additionalProperties: true
+            properties:
+                type:
+                    type: string
+                a_prop:
+                    type: integer
+        B:
+            type: object
+            additionalProperties: true
+            properties:
+                type:
+                    type: string
+                b_prop:
+                    type: integer

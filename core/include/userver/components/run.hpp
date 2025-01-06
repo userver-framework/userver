@@ -17,17 +17,19 @@ namespace components {
 /// Data type to distinguish config path and in-memory config values in
 /// components::Run() and components::RunOnce() functions.
 struct InMemoryConfig : utils::StrongTypedef<InMemoryConfig, std::string> {
-  using StrongTypedef::StrongTypedef;
+    using StrongTypedef::StrongTypedef;
 };
 
 /// Starts a server with the provided component list and config loaded from
 /// file. Reopens the logging files on SIGUSR1.
 ///
 /// @see utils::DaemonMain
-void Run(const std::string& config_path,
-         const std::optional<std::string>& config_vars_path,
-         const std::optional<std::string>& config_vars_override_path,
-         const ComponentList& component_list);
+void Run(
+    const std::string& config_path,
+    const std::optional<std::string>& config_vars_path,
+    const std::optional<std::string>& config_vars_override_path,
+    const ComponentList& component_list
+);
 
 /// Starts a server with the provided component list and config.
 /// Reopens the logging files on SIGUSR1.
@@ -38,10 +40,12 @@ void Run(const InMemoryConfig& config, const ComponentList& component_list);
 /// Runs the component list once with the config loaded from file.
 ///
 /// @see utils::DaemonMain
-void RunOnce(const std::string& config_path,
-             const std::optional<std::string>& config_vars_path,
-             const std::optional<std::string>& config_vars_override_path,
-             const ComponentList& component_list);
+void RunOnce(
+    const std::string& config_path,
+    const std::optional<std::string>& config_vars_path,
+    const std::optional<std::string>& config_vars_override_path,
+    const ComponentList& component_list
+);
 
 /// Runs the component list once with the config.
 ///

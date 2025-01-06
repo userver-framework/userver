@@ -46,8 +46,7 @@ void RewriteFileContents(const std::string& path, std::string_view contents);
 /// @param path file to rewrite
 /// @param contents new file contents
 /// @throws std::runtime_error if failed to overwrite
-void RewriteFileContentsFSync(const std::string& path,
-                              std::string_view contents);
+void RewriteFileContentsFSync(const std::string& path, std::string_view contents);
 
 /// @brief flushes directory contents on disk using sync(2)
 /// @param path directory to flush
@@ -71,9 +70,7 @@ void Rename(const std::string& source, const std::string& destination);
 /// @param contents new file contents
 /// @param perms new file permissions
 /// @throws std::runtime_error
-void RewriteFileContentsAtomically(const std::string& path,
-                                   std::string_view contents,
-                                   boost::filesystem::perms perms);
+void RewriteFileContentsAtomically(const std::string& path, std::string_view contents, boost::filesystem::perms perms);
 
 /// @brief Change file mode synchronously
 /// @param path file path to chmod

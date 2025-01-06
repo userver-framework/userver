@@ -5,6 +5,8 @@ components_manager:
             task_processor: main-task-processor               # Run it on CPU bound task processor
             method: GET,POST,PATCH,DELETE
 
+        chaos-producer:
+
         chaos-consumer:
             rabbit_name: chaos-rabbit
             queue: chaos-queue

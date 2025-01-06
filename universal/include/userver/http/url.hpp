@@ -17,8 +17,7 @@ USERVER_NAMESPACE_BEGIN
 namespace http {
 
 /// @brief Decode URL
-[[deprecated("Use a more strict http::parser::UrlDecode instead")]] std::string
-UrlDecode(std::string_view range);
+[[deprecated("Use a more strict http::parser::UrlDecode instead")]] std::string UrlDecode(std::string_view range);
 
 /// @brief Encode as URL
 std::string UrlEncode(std::string_view input_string);
@@ -30,31 +29,23 @@ using MultiArgs = std::multimap<std::string, std::string>;
 std::string MakeQuery(const Args& query_args);
 
 /// @brief Make an URL query
-std::string MakeQuery(
-    const std::unordered_map<std::string, std::string>& query_args);
+std::string MakeQuery(const std::unordered_map<std::string, std::string>& query_args);
 
 /// @brief Make an URL query
-std::string MakeQuery(
-    std::initializer_list<std::pair<std::string_view, std::string_view>>
-        query_args);
+std::string MakeQuery(std::initializer_list<std::pair<std::string_view, std::string_view>> query_args);
 
 /// @brief Make an URL with query arguments
 std::string MakeUrl(std::string_view path, const Args& query_args);
 
 /// @brief Make an URL with query arguments
-std::string MakeUrl(
-    std::string_view path,
-    const std::unordered_map<std::string, std::string>& query_args);
+std::string MakeUrl(std::string_view path, const std::unordered_map<std::string, std::string>& query_args);
 
 /// @brief Make an URL with query arguments
-std::string MakeUrl(std::string_view path, const Args& query_args,
-                    MultiArgs query_multiargs);
+std::string MakeUrl(std::string_view path, const Args& query_args, MultiArgs query_multiargs);
 
 /// @brief Make an URL with query arguments
-std::string MakeUrl(
-    std::string_view path,
-    std::initializer_list<std::pair<std::string_view, std::string_view>>
-        query_args);
+std::string
+MakeUrl(std::string_view path, std::initializer_list<std::pair<std::string_view, std::string_view>> query_args);
 
 /// @brief Returns URL part before the first '?' character
 std::string ExtractMetaTypeFromUrl(const std::string& url);

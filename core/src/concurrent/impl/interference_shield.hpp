@@ -19,18 +19,17 @@ inline constexpr std::size_t kDestructiveInterferenceSize = 64;
 /// inside, and vice-versa.
 template <typename T>
 class alignas(kDestructiveInterferenceSize) InterferenceShield final {
- public:
-  template <typename... Args>
-  constexpr InterferenceShield(Args&&... args)
-      : value_(std::forward<Args>(args)...) {}
+public:
+    template <typename... Args>
+    constexpr InterferenceShield(Args&&... args) : value_(std::forward<Args>(args)...) {}
 
-  constexpr T& operator*() { return value_; }
-  constexpr const T& operator*() const { return value_; }
-  constexpr T* operator->() { return &value_; }
-  constexpr const T* operator->() const { return &value_; }
+    constexpr T& operator*() { return value_; }
+    constexpr const T& operator*() const { return value_; }
+    constexpr T* operator->() { return &value_; }
+    constexpr const T* operator->() const { return &value_; }
 
- private:
-  T value_;
+private:
+    T value_;
 };
 
 }  // namespace concurrent::impl

@@ -20,7 +20,7 @@ namespace drivers {
 namespace impl {
 
 struct EventHolder final : boost::intrusive_ref_counter<EventHolder> {
-  engine::SingleConsumerEvent event{engine::SingleConsumerEvent::NoAutoReset{}};
+    engine::SingleConsumerEvent event{engine::SingleConsumerEvent::NoAutoReset{}};
 };
 
 }  // namespace impl
@@ -39,42 +39,38 @@ struct EventHolder final : boost::intrusive_ref_counter<EventHolder> {
 /// @see drivers::TryWaitForSubscribableFuture
 template <typename SubscribableFuture>
 class SubscribableFutureWrapper final {
- public:
-  explicit SubscribableFutureWrapper(SubscribableFuture&& future)
-      : original_future_(static_cast<SubscribableFuture&&>(future)),
-        event_holder_(utils::make_intrusive_ptr<impl::EventHolder>()) {
-    original_future_.Subscribe(
-        [event_holder = event_holder_](auto&) { event_holder->event.Send(); });
-  }
-
-  /// @returns the original future
-  SubscribableFuture& GetFuture() { return original_future_; }
-
-  /// @brief Wait for the future. The result can be retrieved from the original
-  /// future using GetFuture once ready.
-  /// @throws engine::WaitInterruptedException on task cancellation
-  void Wait() {
-    if (TryWaitUntil(engine::Deadline{}) != engine::FutureStatus::kReady) {
-      throw engine::WaitInterruptedException(
-          engine::current_task::CancellationReason());
+public:
+    explicit SubscribableFutureWrapper(SubscribableFuture&& future)
+        : original_future_(static_cast<SubscribableFuture&&>(future)),
+          event_holder_(utils::make_intrusive_ptr<impl::EventHolder>()) {
+        original_future_.Subscribe([event_holder = event_holder_](auto&) { event_holder->event.Send(); });
     }
-  }
 
-  /// @brief Wait for the future. The result can be retrieved from the original
-  /// future using GetFuture once ready.
-  /// @returns an error code if deadline is exceeded or task is cancelled
-  [[nodiscard]] engine::FutureStatus TryWaitUntil(engine::Deadline deadline) {
-    if (event_holder_->event.WaitForEventUntil(deadline)) {
-      return engine::FutureStatus::kReady;
+    /// @returns the original future
+    SubscribableFuture& GetFuture() { return original_future_; }
+
+    /// @brief Wait for the future. The result can be retrieved from the original
+    /// future using GetFuture once ready.
+    /// @throws engine::WaitInterruptedException on task cancellation
+    void Wait() {
+        if (TryWaitUntil(engine::Deadline{}) != engine::FutureStatus::kReady) {
+            throw engine::WaitInterruptedException(engine::current_task::CancellationReason());
+        }
     }
-    return engine::current_task::ShouldCancel()
-               ? engine::FutureStatus::kCancelled
-               : engine::FutureStatus::kTimeout;
-  }
 
- private:
-  SubscribableFuture original_future_;
-  boost::intrusive_ptr<impl::EventHolder> event_holder_;
+    /// @brief Wait for the future. The result can be retrieved from the original
+    /// future using GetFuture once ready.
+    /// @returns an error code if deadline is exceeded or task is cancelled
+    [[nodiscard]] engine::FutureStatus TryWaitUntil(engine::Deadline deadline) {
+        if (event_holder_->event.WaitForEventUntil(deadline)) {
+            return engine::FutureStatus::kReady;
+        }
+        return engine::current_task::ShouldCancel() ? engine::FutureStatus::kCancelled : engine::FutureStatus::kTimeout;
+    }
+
+private:
+    SubscribableFuture original_future_;
+    boost::intrusive_ptr<impl::EventHolder> event_holder_;
 };
 
 /// @ingroup userver_concurrency
@@ -87,7 +83,7 @@ class SubscribableFutureWrapper final {
 /// @throws engine::WaitInterruptedException on task cancellation
 template <typename SubscribableFuture>
 void WaitForSubscribableFuture(SubscribableFuture&& future) {
-  SubscribableFutureWrapper<SubscribableFuture&>{future}.Wait();
+    SubscribableFutureWrapper<SubscribableFuture&>{future}.Wait();
 }
 
 /// @ingroup userver_concurrency
@@ -97,10 +93,9 @@ void WaitForSubscribableFuture(SubscribableFuture&& future) {
 /// @warning Repeatedly waiting again after `deadline` expiration leads to a
 /// memory leak, use drivers::SubscribableFutureWrapper instead.
 template <typename SubscribableFuture>
-[[nodiscard]] engine::FutureStatus TryWaitForSubscribableFuture(
-    SubscribableFuture&& future, engine::Deadline deadline) {
-  return SubscribableFutureWrapper<SubscribableFuture&>{future}.TryWaitUntil(
-      deadline);
+[[nodiscard]] engine::FutureStatus
+TryWaitForSubscribableFuture(SubscribableFuture&& future, engine::Deadline deadline) {
+    return SubscribableFutureWrapper<SubscribableFuture&>{future}.TryWaitUntil(deadline);
 }
 
 }  // namespace drivers

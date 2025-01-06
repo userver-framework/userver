@@ -14,34 +14,30 @@ namespace formats::parse {
 
 template <class Value, typename T>
 boost::optional<T> Parse(const Value& value, To<boost::optional<T>>) {
-  if (value.IsMissing() || value.IsNull()) {
-    return boost::none;
-  }
-  return value.template As<T>();
+    if (value.IsMissing() || value.IsNull()) {
+        return boost::none;
+    }
+    return value.template As<T>();
 }
 
 template <class Value>
-boost::optional<std::nullptr_t> Parse(const Value&,
-                                      To<boost::optional<std::nullptr_t>>) {
-  static_assert(!sizeof(Value),
-                "optional<nullptr_t> is forbidden, check IsNull() instead");
-  return nullptr;
+boost::optional<std::nullptr_t> Parse(const Value&, To<boost::optional<std::nullptr_t>>) {
+    static_assert(!sizeof(Value), "optional<nullptr_t> is forbidden, check IsNull() instead");
+    return nullptr;
 }
 
 template <class Value, typename T>
 boost::optional<T> Convert(const Value& value, To<boost::optional<T>>) {
-  if (value.IsMissing() || value.IsNull()) {
-    return boost::none;
-  }
-  return value.template ConvertTo<T>();
+    if (value.IsMissing() || value.IsNull()) {
+        return boost::none;
+    }
+    return value.template ConvertTo<T>();
 }
 
 template <class Value>
-boost::optional<std::nullptr_t> Convert(const Value&,
-                                        To<boost::optional<std::nullptr_t>>) {
-  static_assert(!sizeof(Value),
-                "optional<nullptr_t> is forbidden, check IsNull() instead");
-  return nullptr;
+boost::optional<std::nullptr_t> Convert(const Value&, To<boost::optional<std::nullptr_t>>) {
+    static_assert(!sizeof(Value), "optional<nullptr_t> is forbidden, check IsNull() instead");
+    return nullptr;
 }
 
 }  // namespace formats::parse

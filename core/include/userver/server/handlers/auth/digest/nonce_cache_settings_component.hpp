@@ -9,7 +9,7 @@
 #include <optional>
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 
@@ -20,8 +20,8 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth::digest {
 
 struct NonceCacheSettings {
-  std::size_t ways{};
-  std::size_t way_size{};
+    std::size_t ways{};
+    std::size_t way_size{};
 };
 
 // clang-format off
@@ -37,29 +37,27 @@ struct NonceCacheSettings {
 // clang-format on
 
 class NonceCacheSettingsComponent final : public AuthCheckerSettingsComponent {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// server::handlers::auth::NonceCacheSettingsComponent
-  static constexpr std::string_view kName = "nonce-cache-settings";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// server::handlers::auth::NonceCacheSettingsComponent
+    static constexpr std::string_view kName = "nonce-cache-settings";
 
-  NonceCacheSettingsComponent(const components::ComponentConfig& config,
-                              const components::ComponentContext& context);
+    NonceCacheSettingsComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~NonceCacheSettingsComponent() final;
+    ~NonceCacheSettingsComponent() final;
 
-  const NonceCacheSettings& GetSettings() const;
+    const NonceCacheSettings& GetSettings() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  NonceCacheSettings settings_;
+private:
+    NonceCacheSettings settings_;
 };
 
 }  // namespace server::handlers::auth::digest
 
 template <>
-inline constexpr bool components::kHasValidate<
-    server::handlers::auth::digest::NonceCacheSettingsComponent> = true;
+inline constexpr bool components::kHasValidate<server::handlers::auth::digest::NonceCacheSettingsComponent> = true;
 
 USERVER_NAMESPACE_END

@@ -114,19 +114,25 @@ $ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z
 }
 ```
 
+### Unit tests
+@ref scripts/docs/en/userver/testing.md "Unit tests" for the service could be
+implemented with one of UTEST macros in the following way:
+
+@snippet samples/mongo_service/unittests/mongo_test.cpp  Unit test
+
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
 * Turn on the pytest_userver.plugins.mongo plugin and provide Mongo settings
   info for the testsuite:
-  @snippet samples/mongo_service/tests/conftest.py mongodb settings
+  @snippet samples/mongo_service/testsuite/conftest.py mongodb settings
   The pytest_userver.plugins.service_client.auto_client_deps() fixture
   already known about the mongodb fixture, so there's no need to override the
   extra_client_deps() fixture.
 
 * Write the test:
-  @snippet samples/mongo_service/tests/test_mongo.py  Functional test
+  @snippet samples/mongo_service/testsuite/test_mongo.py  Functional test
 
 ## Full sources
 
@@ -134,8 +140,8 @@ See the full example:
 * @ref samples/mongo_service/mongo_service.cpp
 * @ref samples/mongo_service/static_config.yaml
 * @ref samples/mongo_service/CMakeLists.txt
-* @ref samples/mongo_service/tests/conftest.py
-* @ref samples/mongo_service/tests/test_mongo.py
+* @ref samples/mongo_service/testsuite/conftest.py
+* @ref samples/mongo_service/testsuite/test_mongo.py
 
 ----------
 
@@ -147,5 +153,5 @@ See the full example:
 @example samples/mongo_service/mongo_service.cpp
 @example samples/mongo_service/static_config.yaml
 @example samples/mongo_service/CMakeLists.txt
-@example samples/mongo_service/tests/conftest.py
-@example samples/mongo_service/tests/test_mongo.py
+@example samples/mongo_service/testsuite/conftest.py
+@example samples/mongo_service/testsuite/test_mongo.py

@@ -14,6 +14,9 @@ components_manager:
             use_secure_connection: false
 # /// [RabbitMQ service sample - static config]
 
+        my-producer:
+            rabbit_name: my-rabbit
+
 # /// [RabbitMQ consumer sample - static config]
 # yaml
         my-consumer:

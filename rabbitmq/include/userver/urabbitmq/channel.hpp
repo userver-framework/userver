@@ -26,26 +26,33 @@ class ConnectionPtr;
 ///
 /// Usually retrieved from `Client`.
 class Channel final : IChannelInterface {
- public:
-  Channel(ConnectionPtr&& channel);
-  ~Channel();
+public:
+    Channel(ConnectionPtr&& channel);
+    ~Channel();
 
-  Channel(Channel&& other) noexcept;
+    Channel(Channel&& other) noexcept;
 
-  void Publish(const Exchange& exchange, const std::string& routing_key,
-               const std::string& message, MessageType type,
-               engine::Deadline deadline) override;
+    void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    ) override;
 
-  void Publish(const Exchange& exchange, const std::string& routing_key,
-               const std::string& message, engine::Deadline deadline) override {
-    Publish(exchange, routing_key, message, MessageType::kTransient, deadline);
-  };
+    void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        engine::Deadline deadline
+    ) override {
+        Publish(exchange, routing_key, message, MessageType::kTransient, deadline);
+    };
 
-  std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                  engine::Deadline deadline) override;
+    std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) override;
 
- private:
-  utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
+private:
+    utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };
 
 /// @brief Reliable publisher interface for the broker.
@@ -60,25 +67,31 @@ class Channel final : IChannelInterface {
 ///
 /// Usually retrieved from `Client`.
 class ReliableChannel final : IReliableChannelInterface {
- public:
-  ReliableChannel(ConnectionPtr&& channel);
-  ~ReliableChannel();
+public:
+    ReliableChannel(ConnectionPtr&& channel);
+    ~ReliableChannel();
 
-  ReliableChannel(ReliableChannel&& other) noexcept;
+    ReliableChannel(ReliableChannel&& other) noexcept;
 
-  void PublishReliable(const Exchange& exchange, const std::string& routing_key,
-                       const std::string& message, MessageType type,
-                       engine::Deadline deadline) override;
+    void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    ) override;
 
-  void PublishReliable(const Exchange& exchange, const std::string& routing_key,
-                       const std::string& message,
-                       engine::Deadline deadline) override {
-    PublishReliable(exchange, routing_key, message, MessageType::kTransient,
-                    deadline);
-  }
+    void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        engine::Deadline deadline
+    ) override {
+        PublishReliable(exchange, routing_key, message, MessageType::kTransient, deadline);
+    }
 
- private:
-  utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
+private:
+    utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };
 
 }  // namespace urabbitmq

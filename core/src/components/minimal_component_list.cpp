@@ -14,15 +14,15 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 ComponentList MinimalComponentList() {
-  return components::ComponentList()
-      .Append<os_signals::ProcessorComponent>()
-      .Append<components::Logging>()
-      .Append<components::Tracer>()
-      .Append<components::ManagerControllerComponent>()
-      .Append<components::StatisticsStorage>()
-      .Append<alerts::StorageComponent>()
-      .Append<components::DynamicConfig>()
-      .Append<tracing::DefaultTracingManagerLocator>();
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::Logging>()
+        .Append<components::Tracer>()
+        .Append<components::ManagerControllerComponent>()
+        .Append<components::StatisticsStorage>()
+        .Append<alerts::StorageComponent>()
+        .Append<components::DynamicConfig>()
+        .Append<tracing::DefaultTracingManagerLocator>();
 }
 
 }  // namespace components

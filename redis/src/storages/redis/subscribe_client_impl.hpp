@@ -30,34 +30,37 @@ namespace storages::redis {
 /// @note The first callback execution can happen before `Subscribe()` or
 /// `Psubscribe()` return as it happens in a separate task.
 class SubscribeClientImpl final : public SubscribeClient {
- public:
-  explicit SubscribeClientImpl(
-      std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel>
-          subscribe_sentinel);
+public:
+    explicit SubscribeClientImpl(std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel> subscribe_sentinel);
 
-  SubscriptionToken Subscribe(
-      std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
+    SubscriptionToken Subscribe(
+        std::string channel,
+        SubscriptionToken::OnMessageCb on_message_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    ) override;
 
-  SubscriptionToken Psubscribe(
-      std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
+    SubscriptionToken Psubscribe(
+        std::string pattern,
+        SubscriptionToken::OnPmessageCb on_pmessage_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    ) override;
 
-  SubscriptionToken Ssubscribe(
-      std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
+    SubscriptionToken Ssubscribe(
+        std::string channel,
+        SubscriptionToken::OnMessageCb on_message_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    ) override;
 
-  size_t ShardsCount() const override;
-  bool IsInClusterMode() const override;
+    size_t ShardsCount() const override;
+    bool IsInClusterMode() const override;
 
-  void WaitConnectedOnce(
-      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected);
+    void WaitConnectedOnce(USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected);
 
-  // For internal usage, don't use it
-  USERVER_NAMESPACE::redis::SubscribeSentinel& GetNative() const;
+    // For internal usage, don't use it
+    USERVER_NAMESPACE::redis::SubscribeSentinel& GetNative() const;
 
- private:
-  std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel> redis_client_;
+private:
+    std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel> redis_client_;
 };
 
 }  // namespace storages::redis

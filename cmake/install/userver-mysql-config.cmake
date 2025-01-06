@@ -4,9 +4,10 @@ if(userver_mysql_FOUND)
   return()
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-include("${USERVER_CMAKE_DIR}/Findlibmariadb.cmake")
+find_package(userver REQUIRED COMPONENTS
+    core
+)
 
-add_library(userver::mysql ALIAS userver::userver-mysql)
+include("${USERVER_CMAKE_DIR}/Findlibmariadb.cmake")
 
 set(userver_mysql_FOUND TRUE)

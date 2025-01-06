@@ -38,104 +38,94 @@ constexpr std::chrono::milliseconds kConnectTimeout{1500};
 
 template <typename T>
 class ClickhouseSocketInput final : public clickhouse_cpp::InputStream {
- public:
-  ClickhouseSocketInput(T& socket, engine::Deadline& deadline)
-      : socket_{socket}, deadline_{deadline} {}
-  ~ClickhouseSocketInput() override = default;
+public:
+    ClickhouseSocketInput(T& socket, engine::Deadline& deadline) : socket_{socket}, deadline_{deadline} {}
+    ~ClickhouseSocketInput() override = default;
 
- protected:
-  bool Skip([[maybe_unused]] size_t unused) override { return false; }
+protected:
+    bool Skip([[maybe_unused]] size_t unused) override { return false; }
 
-  size_t DoRead(void* buf, size_t len) override {
-    if (deadline_.IsReached()) throw engine::io::IoTimeout{};
+    size_t DoRead(void* buf, size_t len) override {
+        if (deadline_.IsReached()) throw engine::io::IoTimeout{};
 
-    const auto read = socket_.RecvSome(buf, len, deadline_);
+        const auto read = socket_.RecvSome(buf, len, deadline_);
 
-    if (!read) throw engine::io::IoException{"socket reset by peer"};
+        if (!read) throw engine::io::IoException{"socket reset by peer"};
 
-    return read;
-  }
+        return read;
+    }
 
- private:
-  T& socket_;
-  engine::Deadline& deadline_;
+private:
+    T& socket_;
+    engine::Deadline& deadline_;
 };
 
 template <typename T>
 class ClickhouseSocketOutput final : public clickhouse_cpp::OutputStream {
- public:
-  ClickhouseSocketOutput(T& socket, engine::Deadline& deadline)
-      : socket_{socket}, deadline_{deadline} {}
-  ~ClickhouseSocketOutput() override = default;
+public:
+    ClickhouseSocketOutput(T& socket, engine::Deadline& deadline) : socket_{socket}, deadline_{deadline} {}
+    ~ClickhouseSocketOutput() override = default;
 
- protected:
-  size_t DoWrite(const void* data, size_t len) override {
-    if (deadline_.IsReached()) throw engine::io::IoTimeout{};
+protected:
+    size_t DoWrite(const void* data, size_t len) override {
+        if (deadline_.IsReached()) throw engine::io::IoTimeout{};
 
-    const auto sent = socket_.SendAll(data, len, deadline_);
-    if (sent != len) throw engine::io::IoException{"broken pipe?"};
+        const auto sent = socket_.SendAll(data, len, deadline_);
+        if (sent != len) throw engine::io::IoException{"broken pipe?"};
 
-    return sent;
-  }
+        return sent;
+    }
 
- private:
-  T& socket_;
-  engine::Deadline& deadline_;
+private:
+    T& socket_;
+    engine::Deadline& deadline_;
 };
 
 Socket CreateSocket(engine::io::Sockaddr addr, engine::Deadline deadline) {
-  Socket socket{addr.Domain(), engine::io::SocketType::kTcp};
-  socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
-  socket.Connect(addr, deadline);
+    Socket socket{addr.Domain(), engine::io::SocketType::kTcp};
+    socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+    socket.Connect(addr, deadline);
 
-  return socket;
+    return socket;
 }
 
 class ClickhouseSocketAdapter : public clickhouse_cpp::SocketBase {
- public:
-  ClickhouseSocketAdapter(engine::io::Sockaddr addr, engine::Deadline& deadline)
-      : deadline_{deadline}, socket_{CreateSocket(addr, deadline_)} {}
+public:
+    ClickhouseSocketAdapter(engine::io::Sockaddr addr, engine::Deadline& deadline)
+        : deadline_{deadline}, socket_{CreateSocket(addr, deadline_)} {}
 
-  ~ClickhouseSocketAdapter() override { socket_.Close(); }
+    ~ClickhouseSocketAdapter() override { socket_.Close(); }
 
-  std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream()
-      const override {
-    return std::make_unique<ClickhouseSocketInput<Socket>>(socket_, deadline_);
-  }
+    std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream() const override {
+        return std::make_unique<ClickhouseSocketInput<Socket>>(socket_, deadline_);
+    }
 
-  std::unique_ptr<clickhouse_cpp::OutputStream> makeOutputStream()
-      const override {
-    return std::make_unique<ClickhouseSocketOutput<Socket>>(socket_, deadline_);
-  }
+    std::unique_ptr<clickhouse_cpp::OutputStream> makeOutputStream() const override {
+        return std::make_unique<ClickhouseSocketOutput<Socket>>(socket_, deadline_);
+    }
 
- private:
-  engine::Deadline& deadline_;
-  mutable Socket socket_;
+private:
+    engine::Deadline& deadline_;
+    mutable Socket socket_;
 };
 
 class ClickhouseTlsSocketAdapter : public clickhouse_cpp::SocketBase {
- public:
-  ClickhouseTlsSocketAdapter(engine::io::Sockaddr addr,
-                             engine::Deadline& deadline)
-      : deadline_{deadline},
-        tls_socket_{engine::io::TlsWrapper::StartTlsClient(
-            CreateSocket(addr, deadline_), {}, deadline_)} {}
+public:
+    ClickhouseTlsSocketAdapter(engine::io::Sockaddr addr, engine::Deadline& deadline)
+        : deadline_{deadline},
+          tls_socket_{engine::io::TlsWrapper::StartTlsClient(CreateSocket(addr, deadline_), {}, deadline_)} {}
 
-  std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream()
-      const override {
-    return std::make_unique<ClickhouseSocketInput<TlsSocket>>(tls_socket_,
-                                                              deadline_);
-  }
+    std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream() const override {
+        return std::make_unique<ClickhouseSocketInput<TlsSocket>>(tls_socket_, deadline_);
+    }
 
-  std::unique_ptr<clickhouse_cpp::OutputStream> makeOutputStream()
-      const override {
-    return std::make_unique<ClickhouseSocketOutput<TlsSocket>>(tls_socket_,
-                                                               deadline_);
-  }
+    std::unique_ptr<clickhouse_cpp::OutputStream> makeOutputStream() const override {
+        return std::make_unique<ClickhouseSocketOutput<TlsSocket>>(tls_socket_, deadline_);
+    }
 
- private:
-  engine::Deadline& deadline_;
-  mutable TlsSocket tls_socket_;
+private:
+    engine::Deadline& deadline_;
+    mutable TlsSocket tls_socket_;
 };
 
 // Clickhouse-cpp broke the API in 2.5.0:
@@ -144,140 +134,132 @@ class ClickhouseTlsSocketAdapter : public clickhouse_cpp::SocketBase {
 // We don't need that anyway, but have to somehow override the function,
 // so we maintain two versions which both resolve to the same logic.
 class ClickhouseCppSocketFactoryHack : public clickhouse_cpp::SocketFactory {
- public:
-  // NOLINTNEXTLINE
-  std::unique_ptr<clickhouse_cpp::SocketBase> connect(
+public:
+    // NOLINTNEXTLINE
+    std::unique_ptr<clickhouse_cpp::SocketBase> connect(
       const clickhouse_cpp::ClientOptions& opts,
       // This Endpoint value comes from 'endpoints' field in opts, which we
       // don't use, since we only have one host/port pair per connection
       const clickhouse_cpp::Endpoint&) {
-    return DoConnect(opts);
-  }
+        return DoConnect(opts);
+    }
 
-  // NOLINTNEXTLINE
-  std::unique_ptr<clickhouse_cpp::SocketBase> connect(
-      const clickhouse_cpp::ClientOptions& opts) {
-    return DoConnect(opts);
-  }
+    // NOLINTNEXTLINE
+    std::unique_ptr<clickhouse_cpp::SocketBase> connect(const clickhouse_cpp::ClientOptions& opts) {
+        return DoConnect(opts);
+    }
 
- protected:
-  virtual std::unique_ptr<clickhouse_cpp::SocketBase> DoConnect(
-      const clickhouse_cpp::ClientOptions& opts) = 0;
+protected:
+    virtual std::unique_ptr<clickhouse_cpp::SocketBase> DoConnect(const clickhouse_cpp::ClientOptions& opts) = 0;
 };
 
 class ClickhouseSocketFactory final : public ClickhouseCppSocketFactoryHack {
- public:
-  ClickhouseSocketFactory(clients::dns::Resolver& resolver, ConnectionMode mode,
-                          engine::Deadline& operations_deadline)
-      : resolver_{resolver},
-        mode_{mode},
-        operations_deadline_{operations_deadline} {}
+public:
+    ClickhouseSocketFactory(
+        clients::dns::Resolver& resolver,
+        ConnectionMode mode,
+        engine::Deadline& operations_deadline
+    )
+        : resolver_{resolver}, mode_{mode}, operations_deadline_{operations_deadline} {}
 
-  ~ClickhouseSocketFactory() override = default;
+    ~ClickhouseSocketFactory() override = default;
 
-  void sleepFor(const std::chrono::milliseconds& duration) override {
-    engine::SleepFor(duration);
-  }
+    void sleepFor(const std::chrono::milliseconds& duration) override { engine::SleepFor(duration); }
 
- private:
-  std::unique_ptr<clickhouse_cpp::SocketBase> DoConnect(
-      const clickhouse_cpp::ClientOptions& opts) override {
-    auto addrs = resolver_.Resolve(opts.host, operations_deadline_);
+private:
+    std::unique_ptr<clickhouse_cpp::SocketBase> DoConnect(const clickhouse_cpp::ClientOptions& opts) override {
+        auto addrs = resolver_.Resolve(opts.host, operations_deadline_);
 
-    for (auto&& current_addr : addrs) {
-      current_addr.SetPort(static_cast<int>(opts.port));
+        for (auto&& current_addr : addrs) {
+            current_addr.SetPort(static_cast<int>(opts.port));
 
-      try {
-        // Each connect attempt should have its own timeout to avoid situation
-        // of one attempt consuming the whole budget.
-        operations_deadline_ = engine::Deadline::FromDuration(kConnectTimeout);
+            try {
+                // Each connect attempt should have its own timeout to avoid situation
+                // of one attempt consuming the whole budget.
+                operations_deadline_ = engine::Deadline::FromDuration(kConnectTimeout);
 
-        switch (mode_) {
-          case ConnectionMode::kNonSecure:
-            return std::make_unique<ClickhouseSocketAdapter>(
-                current_addr, operations_deadline_);
-          case ConnectionMode::kSecure:
-            return std::make_unique<ClickhouseTlsSocketAdapter>(
-                current_addr, operations_deadline_);
+                switch (mode_) {
+                    case ConnectionMode::kNonSecure:
+                        return std::make_unique<ClickhouseSocketAdapter>(current_addr, operations_deadline_);
+                    case ConnectionMode::kSecure:
+                        return std::make_unique<ClickhouseTlsSocketAdapter>(current_addr, operations_deadline_);
+                }
+            } catch (const std::exception&) {
+            }
         }
-      } catch (const std::exception&) {
-      }
+
+        throw std::runtime_error{
+            fmt::format("Could not connect to any of the resolved addresses: {}", fmt::join(addrs, ", "))};
     }
 
-    throw std::runtime_error{
-        fmt::format("Could not connect to any of the resolved addresses: {}",
-                    fmt::join(addrs, ", "))};
-  }
+    clients::dns::Resolver& resolver_;
+    ConnectionMode mode_;
 
-  clients::dns::Resolver& resolver_;
-  ConnectionMode mode_;
-
-  engine::Deadline& operations_deadline_;
+    engine::Deadline& operations_deadline_;
 };
 
-clickhouse_cpp::CompressionMethod GetCompressionMethod(
-    CompressionMethod method) {
-  switch (method) {
-    case CompressionMethod::kNone:
-      return clickhouse_cpp::CompressionMethod::None;
-    case CompressionMethod::kLZ4:
-      return clickhouse_cpp::CompressionMethod::LZ4;
-  }
-  UINVARIANT(false, "Invalid value of CompressionMethod enum");
+clickhouse_cpp::CompressionMethod GetCompressionMethod(CompressionMethod method) {
+    switch (method) {
+        case CompressionMethod::kNone:
+            return clickhouse_cpp::CompressionMethod::None;
+        case CompressionMethod::kLZ4:
+            return clickhouse_cpp::CompressionMethod::LZ4;
+    }
+    UINVARIANT(false, "Invalid value of CompressionMethod enum");
 }
 
 }  // namespace
 
 NativeClientWrapper::NativeClientWrapper(
     clients::dns::Resolver& resolver,
-    const clickhouse_cpp::ClientOptions& options, ConnectionMode mode) {
-  SetDeadline(engine::Deadline::FromDuration(kConnectTimeout));
+    const clickhouse_cpp::ClientOptions& options,
+    ConnectionMode mode
+) {
+    SetDeadline(engine::Deadline::FromDuration(kConnectTimeout));
 
-  auto socket_factory = std::make_unique<ClickhouseSocketFactory>(
-      resolver, mode, operations_deadline_);
-  native_client_ = std::make_unique<clickhouse_cpp::Client>(
-      options, std::move(socket_factory));
+    auto socket_factory = std::make_unique<ClickhouseSocketFactory>(resolver, mode, operations_deadline_);
+    native_client_ = std::make_unique<clickhouse_cpp::Client>(options, std::move(socket_factory));
 }
 
 NativeClientWrapper::~NativeClientWrapper() = default;
 
-void NativeClientWrapper::Execute(const clickhouse_cpp::Query& query,
-                                  engine::Deadline deadline) {
-  SetDeadline(deadline);
-  native_client_->Execute(query);
+void NativeClientWrapper::Execute(const clickhouse_cpp::Query& query, engine::Deadline deadline) {
+    SetDeadline(deadline);
+    native_client_->Execute(query);
 }
 
-void NativeClientWrapper::Insert(const std::string& table_name,
-                                 const clickhouse_cpp::Block& block,
-                                 engine::Deadline deadline) {
-  SetDeadline(deadline);
-  native_client_->Insert(table_name, block);
+void NativeClientWrapper::Insert(
+    const std::string& table_name,
+    const clickhouse_cpp::Block& block,
+    engine::Deadline deadline
+) {
+    SetDeadline(deadline);
+    native_client_->Insert(table_name, block);
 }
 
 void NativeClientWrapper::Ping(engine::Deadline deadline) {
-  SetDeadline(deadline);
-  native_client_->Ping();
+    SetDeadline(deadline);
+    native_client_->Ping();
 }
 
-void NativeClientWrapper::SetDeadline(engine::Deadline deadline) {
-  operations_deadline_ = deadline;
-}
+void NativeClientWrapper::SetDeadline(engine::Deadline deadline) { operations_deadline_ = deadline; }
 
 NativeClientWrapper NativeClientFactory::Create(
-    clients::dns::Resolver& resolver, const EndpointSettings& endpoint,
-    const AuthSettings& auth, const ConnectionSettings& connection_settings) {
-  const auto options = clickhouse_cpp::ClientOptions{}
-                           .SetHost(endpoint.host)
-                           .SetPort(endpoint.port)
-                           .SetUser(auth.user)
-                           .SetPassword(auth.password)
-                           .SetDefaultDatabase(auth.database)
-                           .SetCompressionMethod(GetCompressionMethod(
-                               connection_settings.compression_method));
+    clients::dns::Resolver& resolver,
+    const EndpointSettings& endpoint,
+    const AuthSettings& auth,
+    const ConnectionSettings& connection_settings
+) {
+    const auto options = clickhouse_cpp::ClientOptions{}
+                             .SetHost(endpoint.host)
+                             .SetPort(endpoint.port)
+                             .SetUser(auth.user)
+                             .SetPassword(auth.password)
+                             .SetDefaultDatabase(auth.database)
+                             .SetCompressionMethod(GetCompressionMethod(connection_settings.compression_method));
 
-  tracing::Span span{scopes::kConnect};
-  return NativeClientWrapper{resolver, options,
-                             connection_settings.connection_mode};
+    tracing::Span span{scopes::kConnect};
+    return NativeClientWrapper{resolver, options, connection_settings.connection_mode};
 }
 
 }  // namespace storages::clickhouse::impl

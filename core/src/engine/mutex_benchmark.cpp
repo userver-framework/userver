@@ -22,107 +22,103 @@ namespace {
 
 template <typename Mutex>
 void generic_lock(benchmark::State& state) {
-  constexpr std::size_t kMutexCount = 256;
-  std::size_t i = 0;
-  Mutex mutexes[kMutexCount];
+    constexpr std::size_t kMutexCount = 256;
+    std::size_t i = 0;
+    Mutex mutexes[kMutexCount];
 
-  for ([[maybe_unused]] auto _ : state) {
-    mutexes[i].lock();
+    for ([[maybe_unused]] auto _ : state) {
+        mutexes[i].lock();
 
-    if (++i == kMutexCount) {
-      state.PauseTiming();
-      i = 0;
-      for (auto& m : mutexes) {
-        m.unlock();
-      }
-      state.ResumeTiming();
+        if (++i == kMutexCount) {
+            state.PauseTiming();
+            i = 0;
+            for (auto& m : mutexes) {
+                m.unlock();
+            }
+            state.ResumeTiming();
+        }
     }
-  }
 
-  for (std::size_t j = 0; j < i; ++j) {
-    mutexes[j].unlock();
-  }
+    for (std::size_t j = 0; j < i; ++j) {
+        mutexes[j].unlock();
+    }
 }
 
 template <typename Mutex>
 void generic_unlock(benchmark::State& state) {
-  constexpr std::size_t kMutexCount = 256;
-  std::size_t i = 0;
-  Mutex mutexes[kMutexCount];
+    constexpr std::size_t kMutexCount = 256;
+    std::size_t i = 0;
+    Mutex mutexes[kMutexCount];
 
-  for (auto& m : mutexes) {
-    m.lock();
-  }
-
-  for ([[maybe_unused]] auto _ : state) {
-    mutexes[i].unlock();
-
-    if (++i == kMutexCount) {
-      state.PauseTiming();
-      i = 0;
-      for (auto& m : mutexes) {
+    for (auto& m : mutexes) {
         m.lock();
-      }
-      state.ResumeTiming();
     }
-  }
 
-  for (; i < kMutexCount; ++i) {
-    mutexes[i].unlock();
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        mutexes[i].unlock();
+
+        if (++i == kMutexCount) {
+            state.PauseTiming();
+            i = 0;
+            for (auto& m : mutexes) {
+                m.lock();
+            }
+            state.ResumeTiming();
+        }
+    }
+
+    for (; i < kMutexCount; ++i) {
+        mutexes[i].unlock();
+    }
 }
 
 template <typename Mutex>
 void generic_contention(benchmark::State& state) {
-  std::atomic<std::size_t> lock_unlock_count{0};
-  concurrent::impl::InterferenceShield<Mutex> m;
+    std::atomic<std::size_t> lock_unlock_count{0};
+    concurrent::impl::InterferenceShield<Mutex> m;
 
-  RunParallelBenchmark(state, [&](auto& range) {
-    std::uint64_t local_lock_unlock_count = 0;
+    RunParallelBenchmark(state, [&](auto& range) {
+        std::uint64_t local_lock_unlock_count = 0;
 
-    for ([[maybe_unused]] auto _ : range) {
-      m->lock();
-      m->unlock();
-      ++local_lock_unlock_count;
-    }
+        for ([[maybe_unused]] auto _ : range) {
+            m->lock();
+            m->unlock();
+            ++local_lock_unlock_count;
+        }
 
-    lock_unlock_count += local_lock_unlock_count;
-  });
+        lock_unlock_count += local_lock_unlock_count;
+    });
 
-  const auto total_lock_unlock_count =
-      static_cast<double>(lock_unlock_count.load());
-  state.counters["locks"] =
-      benchmark::Counter(total_lock_unlock_count, benchmark::Counter::kIsRate);
-  state.counters["locks-per-thread"] = benchmark::Counter(
-      total_lock_unlock_count / state.range(0), benchmark::Counter::kIsRate);
+    const auto total_lock_unlock_count = static_cast<double>(lock_unlock_count.load());
+    state.counters["locks"] = benchmark::Counter(total_lock_unlock_count, benchmark::Counter::kIsRate);
+    state.counters["locks-per-thread"] =
+        benchmark::Counter(total_lock_unlock_count / state.range(0), benchmark::Counter::kIsRate);
 }
 
 template <typename Mutex>
 void generic_contention_with_payload(benchmark::State& state) {
-  std::atomic<std::uint64_t> lock_unlock_count{0};
-  concurrent::impl::InterferenceShield<Mutex> m;
+    std::atomic<std::uint64_t> lock_unlock_count{0};
+    concurrent::impl::InterferenceShield<Mutex> m;
 
-  RunParallelBenchmark(state, [&](auto& range) {
-    std::uint64_t local_lock_unlock_count = 0;
+    RunParallelBenchmark(state, [&](auto& range) {
+        std::uint64_t local_lock_unlock_count = 0;
 
-    for ([[maybe_unused]] auto _ : range) {
-      m->lock();
-      for (int i = 0; i < 10; ++i) {
-        benchmark::DoNotOptimize(utils::Rand());
-      }
-      m->unlock();
-      ++local_lock_unlock_count;
-    }
+        for ([[maybe_unused]] auto _ : range) {
+            m->lock();
+            for (int i = 0; i < 10; ++i) {
+                benchmark::DoNotOptimize(utils::Rand());
+            }
+            m->unlock();
+            ++local_lock_unlock_count;
+        }
 
-    lock_unlock_count += local_lock_unlock_count;
-  });
+        lock_unlock_count += local_lock_unlock_count;
+    });
 
-  const auto total_lock_unlock_count =
-      static_cast<double>(lock_unlock_count.load());
-  state.counters["locks"] =
-      benchmark::Counter(total_lock_unlock_count, benchmark::Counter::kIsRate);
-  state.counters["locks-per-thread"] = benchmark::Counter(
-      total_lock_unlock_count / state.range(0), benchmark::Counter::kIsRate);
+    const auto total_lock_unlock_count = static_cast<double>(lock_unlock_count.load());
+    state.counters["locks"] = benchmark::Counter(total_lock_unlock_count, benchmark::Counter::kIsRate);
+    state.counters["locks-per-thread"] =
+        benchmark::Counter(total_lock_unlock_count / state.range(0), benchmark::Counter::kIsRate);
 }
 
 //////// Benchmarks
@@ -132,61 +128,45 @@ void generic_contention_with_payload(benchmark::State& state) {
 // some synchronization primitives).
 
 void mutex_coro_lock(benchmark::State& state) {
-  engine::RunStandalone([&] { generic_lock<engine::Mutex>(state); });
+    engine::RunStandalone([&] { generic_lock<engine::Mutex>(state); });
 }
 
-void mutex_std_lock(benchmark::State& state) {
-  generic_lock<std::mutex>(state);
-}
+void mutex_std_lock(benchmark::State& state) { generic_lock<std::mutex>(state); }
 
 void single_waiting_task_mutex_lock(benchmark::State& state) {
-  engine::RunStandalone(
-      [&] { generic_lock<engine::SingleWaitingTaskMutex>(state); });
+    engine::RunStandalone([&] { generic_lock<engine::SingleWaitingTaskMutex>(state); });
 }
 
 void mutex_coro_unlock(benchmark::State& state) {
-  engine::RunStandalone([&] { generic_unlock<engine::Mutex>(state); });
+    engine::RunStandalone([&] { generic_unlock<engine::Mutex>(state); });
 }
 
-void mutex_std_unlock(benchmark::State& state) {
-  generic_lock<std::mutex>(state);
-}
+void mutex_std_unlock(benchmark::State& state) { generic_lock<std::mutex>(state); }
 
 void single_waiting_task_mutex_unlock(benchmark::State& state) {
-  engine::RunStandalone(
-      [&] { generic_unlock<engine::SingleWaitingTaskMutex>(state); });
+    engine::RunStandalone([&] { generic_unlock<engine::SingleWaitingTaskMutex>(state); });
 }
 
 void mutex_coro_contention(benchmark::State& state) {
-  engine::RunStandalone(state.range(0),
-                        [&] { generic_contention<engine::Mutex>(state); });
+    engine::RunStandalone(state.range(0), [&] { generic_contention<engine::Mutex>(state); });
 }
 
-void mutex_std_contention(benchmark::State& state) {
-  generic_contention<std::mutex>(state);
-}
+void mutex_std_contention(benchmark::State& state) { generic_contention<std::mutex>(state); }
 
 void single_waiting_task_mutex_contention(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&] {
-    generic_contention<engine::SingleWaitingTaskMutex>(state);
-  });
+    engine::RunStandalone(state.range(0), [&] { generic_contention<engine::SingleWaitingTaskMutex>(state); });
 }
 
 void mutex_coro_contention_with_payload(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&] {
-    generic_contention_with_payload<engine::Mutex>(state);
-  });
+    engine::RunStandalone(state.range(0), [&] { generic_contention_with_payload<engine::Mutex>(state); });
 }
 
-void mutex_std_contention_with_payload(benchmark::State& state) {
-  generic_contention_with_payload<std::mutex>(state);
-}
+void mutex_std_contention_with_payload(benchmark::State& state) { generic_contention_with_payload<std::mutex>(state); }
 
-void single_waiting_task_mutex_contention_with_payload(
-    benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&] {
-    generic_contention_with_payload<engine::SingleWaitingTaskMutex>(state);
-  });
+void single_waiting_task_mutex_contention_with_payload(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] {
+        generic_contention_with_payload<engine::SingleWaitingTaskMutex>(state);
+    });
 }
 
 }  // namespace

@@ -1,5 +1,7 @@
 ## Redis
 
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
+
 The redis asynchronous driver provides an interface to work with Redis
 standalone instances, as well as Redis Sentinels and Clusters.
 

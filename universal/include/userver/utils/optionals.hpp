@@ -18,15 +18,14 @@ namespace utils {
 /// Converts std::optional to a string, empty value represented as "--"
 template <class T>
 std::string ToString(const std::optional<T>& from) {
-  return from ? fmt::format(FMT_COMPILE(" {}"), *from) : "--";
+    return from ? fmt::format(FMT_COMPILE(" {}"), *from) : "--";
 }
 
 /// A polyfill for C++23 monadic operations for `std::optional`.
 template <typename T, typename Func>
-auto OptionalTransform(T&& opt, Func func)
-    -> std::optional<decltype(std::move(func)(*std::forward<T>(opt)))> {
-  if (opt) return std::move(func)(*std::forward<T>(opt));
-  return std::nullopt;
+auto OptionalTransform(T&& opt, Func func) -> std::optional<decltype(std::move(func)(*std::forward<T>(opt)))> {
+    if (opt) return std::move(func)(*std::forward<T>(opt));
+    return std::nullopt;
 }
 
 }  // namespace utils

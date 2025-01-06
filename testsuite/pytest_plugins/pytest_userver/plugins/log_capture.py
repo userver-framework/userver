@@ -6,6 +6,7 @@ Capture and work with logs.
 import asyncio
 import contextlib
 import enum
+import logging
 import sys
 import typing
 
@@ -19,6 +20,20 @@ from ..utils import tskv
 
 USERVER_CONFIG_HOOKS = ['_userver_config_logs_capture']
 DEFAULT_PORT = 2211
+
+logger = logging.getLogger(__name__)
+
+
+class BaseError(Exception):
+    pass
+
+
+class IncorrectUsageError(BaseError):
+    pass
+
+
+class ClientConnectTimeoutError(BaseError):
+    pass
 
 
 class LogLevel(enum.Enum):
@@ -40,6 +55,10 @@ class CapturedLogs:
         self._log_level = LogLevel.from_string(log_level)
         self._logs: typing.List[tskv.TskvRow] = []
         self._subscribers: typing.List = []
+        self._closed = False
+
+    def close(self):
+        self._closed = True
 
     async def publish(self, row: tskv.TskvRow) -> None:
         self._logs.append(row)
@@ -48,11 +67,16 @@ class CapturedLogs:
                 await callback(**row)
 
     def select(self, **query) -> typing.List[tskv.TskvRow]:
+        if not self._closed:
+            raise IncorrectUsageError(
+                'select() is only supported for closed captures\n'
+                'Please move select() after context manager body',
+            )
         level = query.get('level')
         if level:
             log_level = LogLevel[level]
             if log_level.value < self._log_level.value:
-                raise RuntimeError(
+                raise IncorrectUsageError(
                     f'Requested log level={log_level.name} is lower than '
                     f'service log level {self._log_level.name}',
                 )
@@ -63,6 +87,12 @@ class CapturedLogs:
         return result
 
     def subscribe(self, **query):
+        if self._closed:
+            raise IncorrectUsageError(
+                'subscribe() is not supported for closed captures\n'
+                'Please move subscribe() into context manager body',
+            )
+
         def decorator(func):
             decorated = callinfo.acallqueue(func)
             self._subscribers.append((query, decorated))
@@ -76,13 +106,24 @@ class CaptureControl:
         self.default_log_level = log_level
         self._capture: typing.Optional[CapturedLogs] = None
         self._tasks = []
+        self._client_cond = asyncio.Condition()
+
+    async def wait_for_client(self, timeout: float = 10.0):
+        async def waiter():
+            async with self._client_cond:
+                await self._client_cond.wait_for(lambda: self._tasks)
+
+        logger.debug('Waiting for logcapture client to connect...')
+        try:
+            await asyncio.wait_for(waiter(), timeout=timeout)
+        except TimeoutError:
+            raise ClientConnectTimeoutError(
+                'Timedout while waiting for logcapture client to connect',
+            )
 
     @compat.asynccontextmanager
     async def start_capture(
-            self,
-            *,
-            log_level: typing.Optional[str] = None,
-            timeout: float = 10.0,
+        self, *, log_level: typing.Optional[str] = None, timeout: float = 10.0,
     ):
         if self._capture:
             yield self._capture
@@ -95,6 +136,7 @@ class CaptureControl:
         try:
             yield self._capture
         finally:
+            self._capture.close()
             self._capture = None
             if self._tasks:
                 _, pending = await asyncio.wait(self._tasks, timeout=timeout)
@@ -119,14 +161,22 @@ class CaptureControl:
             await server.wait_closed()
 
     async def _handle_client(self, reader, writer):
-        async def log_reader():
+        logger.debug('logcapture client connected')
+
+        async def log_reader(capture: CapturedLogs):
             with contextlib.closing(writer):
                 async for line in reader:
-                    if self._capture:
-                        row = tskv.parse_line(line.decode('utf-8'))
-                        await self._capture.publish(row)
+                    row = tskv.parse_line(line.decode('utf-8'))
+                    await capture.publish(row)
+            await writer.wait_closed()
 
-        self._tasks.append(asyncio.create_task(log_reader()))
+        if not self._capture:
+            writer.close()
+            await writer.wait_closed()
+        else:
+            self._tasks.append(asyncio.create_task(log_reader(self._capture)))
+            async with self._client_cond:
+                self._client_cond.notify_all()
 
 
 def pytest_addoption(parser):
@@ -166,12 +216,10 @@ def _userver_log_capture_socket(pytestconfig):
 
 @pytest.fixture(scope='session')
 async def _userver_capture_server(
-        _userver_capture_control: CaptureControl,
-        _userver_log_capture_socket,
-        loop,
+    _userver_capture_control: CaptureControl, _userver_log_capture_socket, loop,
 ):
     async with _userver_capture_control.start_server(
-            sock=_userver_log_capture_socket, loop=loop,
+        sock=_userver_log_capture_socket, loop=loop,
     ) as server:
         yield server
 
@@ -197,3 +245,7 @@ def _match_entry(row: tskv.TskvRow, query) -> bool:
         if row.get(key) != value:
             return False
     return True
+
+
+def __tracebackhide__(excinfo):
+    return excinfo.errisinstance(BaseError)

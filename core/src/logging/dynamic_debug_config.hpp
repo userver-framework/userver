@@ -15,14 +15,13 @@ class Value;
 namespace logging {
 
 struct DynamicDebugConfig {
-  std::unordered_map<std::string, logging::Level> force_enabled;
-  std::unordered_map<std::string, logging::Level> force_disabled;
+    std::unordered_map<std::string, logging::Level> force_enabled;
+    std::unordered_map<std::string, logging::Level> force_disabled;
 };
 
 bool operator==(const DynamicDebugConfig& a, const DynamicDebugConfig& b);
 
-DynamicDebugConfig Parse(const formats::json::Value&,
-                         formats::parse::To<DynamicDebugConfig>);
+DynamicDebugConfig Parse(const formats::json::Value&, formats::parse::To<DynamicDebugConfig>);
 
 }  // namespace logging
 

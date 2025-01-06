@@ -27,12 +27,11 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth::digest {
 
 struct NonceInfo final {
-  NonceInfo();
-  NonceInfo(const std::string& nonce, TimePoint expiration_time,
-            std::int64_t nonce_count);
-  std::string nonce;
-  TimePoint expiration_time;
-  std::int64_t nonce_count;
+    NonceInfo();
+    NonceInfo(const std::string& nonce, TimePoint expiration_time, std::int64_t nonce_count);
+    std::string nonce;
+    TimePoint expiration_time;
+    std::int64_t nonce_count;
 };
 
 /// @ingroup userver_base_classes
@@ -40,35 +39,38 @@ struct NonceInfo final {
 /// @brief Class for digest authentication checker. Implements a stand-alone
 /// digest-authentication logic.
 class AuthStandaloneCheckerBase : public AuthCheckerBase {
- public:
-  AuthStandaloneCheckerBase(const AuthCheckerSettings& digest_settings,
-                            std::string&& realm,
-                            const SecdistConfig& secdist_config,
-                            std::size_t ways, std::size_t way_size);
+public:
+    AuthStandaloneCheckerBase(
+        const AuthCheckerSettings& digest_settings,
+        std::string&& realm,
+        const SecdistConfig& secdist_config,
+        std::size_t ways,
+        std::size_t way_size
+    );
 
-  [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
+    [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
-  std::optional<UserData> FetchUserData(
-      const std::string& username) const override;
-  void SetUserData(const std::string& username, const std::string& nonce,
-                   std::int64_t nonce_count,
-                   TimePoint nonce_creation_time) const override;
+    std::optional<UserData> FetchUserData(const std::string& username) const override;
+    void SetUserData(
+        const std::string& username,
+        const std::string& nonce,
+        std::int64_t nonce_count,
+        TimePoint nonce_creation_time
+    ) const override;
 
-  void PushUnnamedNonce(std::string nonce) const override;
-  std::optional<TimePoint> GetUnnamedNonceCreationTime(
-      const std::string& nonce) const override;
+    void PushUnnamedNonce(std::string nonce) const override;
+    std::optional<TimePoint> GetUnnamedNonceCreationTime(const std::string& nonce) const override;
 
-  virtual std::optional<UserData::HA1> GetHA1(
-      std::string_view username) const = 0;
+    virtual std::optional<UserData::HA1> GetHA1(std::string_view username) const = 0;
 
- private:
-  using NonceCache = cache::ExpirableLruCache<std::string, TimePoint>;
-  // potentially we store ALL user's data
-  // great chance to occupy large block of memory
-  mutable rcu::RcuMap<std::string, concurrent::Variable<NonceInfo>> user_data_;
-  // cache for "unnamed" nonces,
-  // i.e initial nonces not tied to any user
-  mutable NonceCache unnamed_nonces_;
+private:
+    using NonceCache = cache::ExpirableLruCache<std::string, TimePoint>;
+    // potentially we store ALL user's data
+    // great chance to occupy large block of memory
+    mutable rcu::RcuMap<std::string, concurrent::Variable<NonceInfo>> user_data_;
+    // cache for "unnamed" nonces,
+    // i.e initial nonces not tied to any user
+    mutable NonceCache unnamed_nonces_;
 };
 
 }  // namespace server::handlers::auth::digest

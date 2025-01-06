@@ -16,14 +16,14 @@ VALUES ($id, $doc);
 )";
 }
 
-std::string BsonUpsertingHandler::HandleRequestThrow(
-    const server::http::HttpRequest& request,
-    server::request::RequestContext&) const {
-  const auto& id = request.GetArg("id");
-  const auto& body = request.RequestBody();
+std::string
+BsonUpsertingHandler::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+    const {
+    const auto& id = request.GetArg("id");
+    const auto& body = request.RequestBody();
 
-  ydb_client_->ExecuteDataQuery(kInsertQuery, "$id", id, "$doc", body);
-  return {};
+    ydb_client_->ExecuteDataQuery(kInsertQuery, "$id", id, "$doc", body);
+    return {};
 }
 
 }  // namespace sample

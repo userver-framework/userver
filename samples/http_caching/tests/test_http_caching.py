@@ -4,6 +4,7 @@ async def test_http_caching(service_client, translations, mocked_time):
         '/samples/greet', params={'username': 'дорогой разработчик'},
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'Привет, дорогой разработчик! Добро пожаловать'
 
     translations['hello']['ru'] = 'Приветище'
@@ -15,5 +16,6 @@ async def test_http_caching(service_client, translations, mocked_time):
         '/samples/greet', params={'username': 'дорогой разработчик'},
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'Приветище, дорогой разработчик! Добро пожаловать'
     # /// [Functional test]

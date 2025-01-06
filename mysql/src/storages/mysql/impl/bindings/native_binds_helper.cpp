@@ -61,54 +61,48 @@ std::string_view FieldTypeToString(enum_field_types type) {
 }  // namespace
 
 bool NativeBindsHelper::IsFieldNumeric(enum_field_types type) {
-  return type == MYSQL_TYPE_DECIMAL || type == MYSQL_TYPE_NEWDECIMAL ||
-         type == MYSQL_TYPE_TINY || type == MYSQL_TYPE_SHORT ||
-         type == MYSQL_TYPE_INT24 || type == MYSQL_TYPE_LONG ||
-         type == MYSQL_TYPE_LONGLONG || type == MYSQL_TYPE_FLOAT ||
-         type == MYSQL_TYPE_DOUBLE;
-  // TODO : MYSQL_TYPE_BIT?
+    return type == MYSQL_TYPE_DECIMAL || type == MYSQL_TYPE_NEWDECIMAL || type == MYSQL_TYPE_TINY ||
+           type == MYSQL_TYPE_SHORT || type == MYSQL_TYPE_INT24 || type == MYSQL_TYPE_LONG ||
+           type == MYSQL_TYPE_LONGLONG || type == MYSQL_TYPE_FLOAT || type == MYSQL_TYPE_DOUBLE;
+    // TODO : MYSQL_TYPE_BIT?
 }
 
 std::size_t NativeBindsHelper::NumericFieldWidth(enum_field_types type) {
-  UASSERT(IsFieldNumeric(type));
+    UASSERT(IsFieldNumeric(type));
 
-  switch (type) {
-    case MYSQL_TYPE_DECIMAL:
-    case MYSQL_TYPE_NEWDECIMAL:
-      // it's 8 bytes in userver for all we care,
-      // this branch should be unreachable anyway
-      return 8;
-    case MYSQL_TYPE_TINY:
-      return 1;
-    case MYSQL_TYPE_SHORT:
-      return 2;
-    case MYSQL_TYPE_INT24:
-      return 3;
-    case MYSQL_TYPE_LONG:
-      return 4;
-    case MYSQL_TYPE_LONGLONG:
-      return 8;
-    case MYSQL_TYPE_FLOAT:
-      return 4;
-    case MYSQL_TYPE_DOUBLE:
-      return 8;
-    default:
-      UINVARIANT(false, "should be unreachable");
-  }
+    switch (type) {
+        case MYSQL_TYPE_DECIMAL:
+        case MYSQL_TYPE_NEWDECIMAL:
+            // it's 8 bytes in userver for all we care,
+            // this branch should be unreachable anyway
+            return 8;
+        case MYSQL_TYPE_TINY:
+            return 1;
+        case MYSQL_TYPE_SHORT:
+            return 2;
+        case MYSQL_TYPE_INT24:
+            return 3;
+        case MYSQL_TYPE_LONG:
+            return 4;
+        case MYSQL_TYPE_LONGLONG:
+            return 8;
+        case MYSQL_TYPE_FLOAT:
+            return 4;
+        case MYSQL_TYPE_DOUBLE:
+            return 8;
+        default:
+            UINVARIANT(false, "should be unreachable");
+    }
 }
 
-std::string_view NativeBindsHelper::NativeTypeToString(enum_field_types type) {
-  return FieldTypeToString(type);
+std::string_view NativeBindsHelper::NativeTypeToString(enum_field_types type) { return FieldTypeToString(type); }
+
+MYSQL_TIME NativeBindsHelper::ToNativeTime(std::chrono::system_clock::time_point tp) {
+    return TimeUtils::ToNativeTime(tp);
 }
 
-MYSQL_TIME NativeBindsHelper::ToNativeTime(
-    std::chrono::system_clock::time_point tp) {
-  return TimeUtils::ToNativeTime(tp);
-}
-
-std::chrono::system_clock::time_point NativeBindsHelper::FromNativeTime(
-    const MYSQL_TIME& native_time) {
-  return TimeUtils::FromNativeTime(native_time);
+std::chrono::system_clock::time_point NativeBindsHelper::FromNativeTime(const MYSQL_TIME& native_time) {
+    return TimeUtils::FromNativeTime(native_time);
 }
 
 }  // namespace storages::mysql::impl::bindings

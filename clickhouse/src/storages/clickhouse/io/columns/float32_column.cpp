@@ -11,16 +11,15 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnFloat32;
 }
 
 Float32Column::Float32Column(ColumnRef column)
-    : ClickhouseColumn{
-          impl::GetTypedColumn<Float32Column, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<Float32Column, NativeType>(column)} {}
 
 template <>
 Float32Column::cpp_type ColumnIterator<Float32Column>::DataHolder::Get() const {
-  return impl::NativeGetAt<NativeType>(column_, ind_);
+    return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 
 ColumnRef Float32Column::Serialize(const container_type& from) {
-  return impl::NumericColumn<Float32Column>::Serialize(from);
+    return impl::NumericColumn<Float32Column>::Serialize(from);
 }
 
 }  // namespace storages::clickhouse::io::columns

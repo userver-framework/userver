@@ -10,7 +10,6 @@ import struct
 import pytest
 from pytest_userver import chaos
 
-
 logger = logging.getLogger(__name__)
 sys_random = random.SystemRandom()
 

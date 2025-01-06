@@ -16,7 +16,7 @@ class {{service.name}}Client final {
  public:
   // For internal use only
   {{service.name}}Client(
-      USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params);
+      USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies);
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}
@@ -52,11 +52,11 @@ class {{service.name}}Client final {
   static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
 
  private:
-  {# All non-template related client data should be placed in ClientData #}
   template <typename Client>
   friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
   USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
 
+  {# All non-template related client data should be placed in ClientData #}
   USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
 };
 {% endfor %}

@@ -14,7 +14,6 @@ from testsuite.utils import url_util
 
 from ..utils import net
 
-
 logger_testsuite = logging.getLogger(__name__)
 
 
@@ -43,6 +42,11 @@ def pytest_addoption(parser) -> None:
         dest='service_logs_pretty',
         help='Disable pretty print and colorize service logs',
     )
+    group.addoption(
+        '--service-live-logs-disable',
+        action='store_true',
+        help='Disable service live logs (enabled with -s)',
+    )
 
 
 @pytest.fixture(scope='session')
@@ -50,7 +54,7 @@ def service_env():
     """
     Override this to pass extra environment variables to the service.
 
-    @snippet samples/redis_service/tests/conftest.py service_env
+    @snippet samples/redis_service/testsuite/conftest.py  service_env
     @ingroup userver_testsuite_fixtures
     """
     return None
@@ -58,7 +62,7 @@ def service_env():
 
 @pytest.fixture(scope='session')
 async def service_http_ping_url(
-        service_config, service_baseurl,
+    service_config, service_baseurl,
 ) -> typing.Optional[str]:
     """
     Returns the service HTTP ping URL that is used by the testsuite to detect
@@ -79,7 +83,7 @@ async def service_http_ping_url(
 
 @pytest.fixture(scope='session')
 def service_non_http_health_checks(  # pylint: disable=invalid-name
-        service_config,
+    service_config,
 ) -> net.HealthChecks:
     """
     Returns a health checks info.
@@ -97,15 +101,14 @@ def service_non_http_health_checks(  # pylint: disable=invalid-name
 
 @pytest.fixture(scope='session')
 async def service_daemon(
-        pytestconfig,
-        create_daemon_scope,
-        service_env,
-        service_http_ping_url,
-        service_config_path_temp,
-        service_config,
-        service_binary,
-        service_non_http_health_checks,
-        testsuite_logger,
+    pytestconfig,
+    create_daemon_scope,
+    service_env,
+    service_http_ping_url,
+    service_config_path_temp,
+    service_config,
+    service_binary,
+    service_non_http_health_checks,
 ):
     """
     Configures the health checking to use service_http_ping_url fixture value
@@ -147,13 +150,9 @@ async def service_daemon(
         health_check = None
 
     async with create_daemon_scope(
-            args=[
-                str(service_binary),
-                '--config',
-                str(service_config_path_temp),
-            ],
-            ping_url=service_http_ping_url,
-            health_check=health_check,
-            env=service_env,
+        args=[str(service_binary), '--config', str(service_config_path_temp)],
+        ping_url=service_http_ping_url,
+        health_check=health_check,
+        env=service_env,
     ) as scope:
         yield scope

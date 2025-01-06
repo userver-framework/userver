@@ -22,16 +22,15 @@ std::string Trim(std::string&& str);
 /// Split string by separators
 ///
 /// @snippet utils/text_light_test.cpp  SplitMultiple
-std::vector<std::string> Split(std::string_view str,
-                               std::string_view separators);
+std::vector<std::string>
+Split(std::string_view str, std::string_view separators, bool is_compress_adjacent_separators = true);
 
 /// Split string by separators and return a non-owning container of chunks.
 ///
 /// @warning Initial `str` should outlive the result of the function
 ///
 /// @snippet utils/text_light_test.cpp  SplitStringViewMultiple
-std::vector<std::string_view> SplitIntoStringViewVector(
-    std::string_view str, std::string_view separators);
+std::vector<std::string_view> SplitIntoStringViewVector(std::string_view str, std::string_view separators);
 
 /// Join string
 std::string Join(const std::vector<std::string>& strs, std::string_view sep);
@@ -40,16 +39,13 @@ std::string Join(const std::vector<std::string>& strs, std::string_view sep);
 std::string Format(double value, int ndigits);
 
 /// Return true if `hay` starts with `needle`, false otherwise.
-constexpr bool StartsWith(std::string_view hay,
-                          std::string_view needle) noexcept {
-  return hay.substr(0, needle.size()) == needle;
+constexpr bool StartsWith(std::string_view hay, std::string_view needle) noexcept {
+    return hay.substr(0, needle.size()) == needle;
 }
 
 /// Return true if `hay` ends with `needle`, false otherwise.
-constexpr bool EndsWith(std::string_view hay,
-                        std::string_view needle) noexcept {
-  return hay.size() >= needle.size() &&
-         hay.substr(hay.size() - needle.size()) == needle;
+constexpr bool EndsWith(std::string_view hay, std::string_view needle) noexcept {
+    return hay.size() >= needle.size() && hay.substr(hay.size() - needle.size()) == needle;
 }
 
 /// Case insensitive (ASCII only) variant of StartsWith()
@@ -85,8 +81,7 @@ namespace utf8 {
 unsigned CodePointLengthByFirstByte(unsigned char c) noexcept;
 
 /// `bytes` must not be a nullptr, `length` must not be 0.
-bool IsWellFormedCodePoint(const unsigned char* bytes,
-                           std::size_t length) noexcept;
+bool IsWellFormedCodePoint(const unsigned char* bytes, std::size_t length) noexcept;
 
 /// `bytes` must not be a nullptr, `length` must not be 0.
 bool IsValid(const unsigned char* bytes, std::size_t length) noexcept;
@@ -107,8 +102,7 @@ void TrimViewTruncatedEnding(std::string_view& view);
 /// Returns position in `text` where utf-8 code point with position `pos` starts
 /// OR `text.length()` if `text` contains less than or equal to `pos` points
 /// @warning this **does not** check if `text` is valid utf-8 text
-std::size_t GetTextPosByCodePointPos(std::string_view text,
-                                     std::size_t pos) noexcept;
+std::size_t GetTextPosByCodePointPos(std::string_view text, std::size_t pos) noexcept;
 
 /// Removes the first `count` utf-8 code points from `text`
 /// @warning this **does not** check if `text` is valid utf-8 text

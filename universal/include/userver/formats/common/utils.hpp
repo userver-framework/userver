@@ -24,21 +24,18 @@ namespace formats::common {
 namespace impl {
 
 template <typename ValueBuilder>
-ValueBuilder GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path,
-                       std::size_t path_size) {
-  UINVARIANT(path_size != 0,
-             "attempt to get a ValueBuilder element on an empty path");
-  if (path_size == 1) {
-    return parent[std::move(path[0])];
-  }
-  std::optional<ValueBuilder> current_element;
+ValueBuilder GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path, std::size_t path_size) {
+    UINVARIANT(path_size != 0, "attempt to get a ValueBuilder element on an empty path");
+    if (path_size == 1) {
+        return parent[std::move(path[0])];
+    }
+    std::optional<ValueBuilder> current_element;
 
-  current_element.emplace(TransferTag(), parent[std::move(path[0])]);
-  for (std::size_t i = 1; i < path_size - 1; i++) {
-    current_element.emplace(TransferTag(),
-                            (*current_element)[std::move(path[i])]);
-  }
-  return (*current_element)[std::move(path[path_size - 1])];
+    current_element.emplace(TransferTag(), parent[std::move(path[0])]);
+    for (std::size_t i = 1; i < path_size - 1; i++) {
+        current_element.emplace(TransferTag(), (*current_element)[std::move(path[i])]);
+    }
+    return (*current_element)[std::move(path[path_size - 1])];
 }
 
 }  // namespace impl
@@ -48,13 +45,12 @@ ValueBuilder GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path,
 /// @throws TypeMismatchException if there is a non-object node in the middle of
 /// `path`
 template <typename Value>
-std::enable_if_t<common::kIsFormatValue<Value>, Value> GetAtPath(
-    Value parent, const std::vector<std::string>& path) {
-  auto current_value = std::move(parent);
-  for (const auto& current_key : path) {
-    current_value = current_value[current_key];
-  }
-  return current_value;
+std::enable_if_t<common::kIsFormatValue<Value>, Value> GetAtPath(Value parent, const std::vector<std::string>& path) {
+    auto current_value = std::move(parent);
+    for (const auto& current_key : path) {
+        current_value = current_value[current_key];
+    }
+    return current_value;
 }
 
 /// @brief Get the `ValueBuilder` at `path` in `parent`.
@@ -62,9 +58,9 @@ std::enable_if_t<common::kIsFormatValue<Value>, Value> GetAtPath(
 /// @throws TypeMismatchException if there is a non-object node in the middle of
 /// `path`
 template <typename ValueBuilder>
-std::enable_if_t<!common::kIsFormatValue<ValueBuilder>, ValueBuilder> GetAtPath(
-    ValueBuilder& parent, std::vector<std::string>&& path) {
-  return impl::GetAtPath(parent, std::move(path), path.size());
+std::enable_if_t<!common::kIsFormatValue<ValueBuilder>, ValueBuilder>
+GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path) {
+    return impl::GetAtPath(parent, std::move(path), path.size());
 }
 
 /// @brief Set the `new_value` along the `path` in the `parent`.
@@ -72,13 +68,12 @@ std::enable_if_t<!common::kIsFormatValue<ValueBuilder>, ValueBuilder> GetAtPath(
 /// @throws TypeMismatchException if there is a non-object node in the middle of
 /// `path`
 template <typename Value>
-void SetAtPath(typename Value::Builder& parent, std::vector<std::string>&& path,
-               Value new_value) {
-  if (path.empty()) {
-    parent = std::move(new_value);
-  } else {
-    GetAtPath(parent, std::move(path)) = std::move(new_value);
-  }
+void SetAtPath(typename Value::Builder& parent, std::vector<std::string>&& path, Value new_value) {
+    if (path.empty()) {
+        parent = std::move(new_value);
+    } else {
+        GetAtPath(parent, std::move(path)) = std::move(new_value);
+    }
 }
 
 /// @brief Remove the element along the `path` in the `parent`.
@@ -88,14 +83,14 @@ void SetAtPath(typename Value::Builder& parent, std::vector<std::string>&& path,
 /// `path`
 template <typename ValueBuilder>
 void RemoveAtPath(ValueBuilder& parent, std::vector<std::string>&& path) {
-  if (path.empty()) {
-    parent = ValueBuilder();
-  } else if (path.size() == 1) {
-    parent.Remove(path[0]);
-  } else {
-    auto& key = path[path.size() - 1];
-    impl::GetAtPath(parent, std::move(path), path.size() - 1).Remove(key);
-  }
+    if (path.empty()) {
+        parent = ValueBuilder();
+    } else if (path.size() == 1) {
+        parent.Remove(path[0]);
+    } else {
+        auto& key = path[path.size() - 1];
+        impl::GetAtPath(parent, std::move(path), path.size() - 1).Remove(key);
+    }
 }
 
 /// @brief Split `path` to `vector<std::string>` by dots.

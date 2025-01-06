@@ -16,23 +16,284 @@ Changelog news also go to the
 
 ## Roadmap
 
-* ✓ Simplify dynamic configs, embed defaults into the code.
-* ✓ Add PostgreSQL connection pools autoconfiguration.
-* ✓ LISTEN/NOTIFY support for PostgreSQL
-* ✓ New landing page for the website
-* ✓ Significantly reduce network data transmission for PostgreSQL
-* ✓ Support `install` in CMake.
-* ✓ Implement middlewares for HTTP server.
-* ✓ Move most of the HTTP server functionality to middlewares.
-* ✓ Document middlewares/plugins for HTTP client.
-* 👨‍💻 Codegen parsers and serializers by JSON schema
-* 👨‍💻 Add YDB driver.
-* 👨‍💻 Add basic Kafka driver.
-* Add retry budget or retry circuit breaker for clients.
+* ✔️ Codegen parsers and serializers by JSON schema
+* ✔️ HTTP 2.0 server support
+* ✔️ Improve OpenTelemetry Protocol (OTLP) support.
+* 👨‍💻 Improve Kafka driver.
+* 👨‍💻 Add retry budget or retry circuit breaker for clients.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
+* Generate full-blown accessories for OpenAPI:
+  * clients
+  * handlers
 
 
 ## Changelog
+
+### Release v2.4
+
+* Added @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST to control the HTTP headers
+  to log.
+* OpenTelemetry protocol (OTLP) now can optionally do only logging or only
+  tracing. Thanks to [TertiumOrganum1](https://github.com/TertiumOrganum1) for
+  the PR!
+* The framework now accepts OTLP headers for tracing by default and puts those
+  headers for new requests. 
+* PostgreSQL span names are now a little bit more informative. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* Kafka now has a `client.id` static option. Many thanks to
+  [Nikolay Pervushin](https://github.com/Greenvi4) for the PR.
+* PostgreSQL type errors become more informative. Thanks to
+  [farmovit](https://github.com/farmovit) for the report!
+
+* Optimizations:
+  * HTTP/2 server implementation now does not copy data to send, saving CPU
+    and RAM.
+  * HTTP/2 now relies on open-addressing unordered map from nghttp2, leading to
+    faster stream lookup.
+  * Kafka consumer now does not block a task processor thread, allowing
+    multiple consumers to share the same OS thread. Consume cycle now can be
+    treated as an asynchronous non-blocking event loop.
+  * Kafka producer delivery acknowledgments processing is now done in parallel,
+    leading to better scalability. Also it does not block the OS thread when
+    waiting for new delivery acknowledgments.
+  * Internals of all the Sockets became smaller in size, saving some RAM.
+
+* gRPC:
+  * gRPC in testsuite now automatically calls
+    @ref pytest_userver.client.Client.update_server_state update_server_state.
+    The behavior now matches HTTP.
+  * gRPC server now supports unix-sockets via `unix-socket-path` static config
+    option.
+  * gRPC clients now log requests/responses via the
+    ugrpc::client::middlewares::log::Component middleware. Improved gRPC
+    client and server metrics.
+  * New component ugrpc::client::CommonComponent with common options for all the
+    gRPC clients.
+
+* Build, Install and CI:
+  * OTLP build is now supported in Conan. Thanks to
+    [Amina Ramazanova](https://github.com/konataa) for the PR!
+  * Chaotic now exposes less headers, leading to faster build times.
+  * Fixed compilation on modern Boost.UUID. Thanks to
+    [Alexander Botev](https://github.com/MrSteelRat) for the PR!
+  * Added `dependabot` to CI and updated the dependencies. Thanks to
+    [Dzmitry Ivaniuk](https://github.com/idzm) for the PR!
+  * Added missing `#include`. Thanks to [Nikita](https://github.com/rtkid-nik)
+    for the PR!
+  * Removed outdated defines in the core. Thanks to
+    [Sergey Kazmin](https://github.com/yerseg) for the PR!
+  * Install now does not put third party headers into the top level include
+    directory. Multiple unused files are now not installed.
+  * Started the work to enable builds in directories with whitespace in names.
+
+* Documentation:
+  * More docs for gRPC middlewares at @ref scripts/docs/en/userver/grpc.md
+    and @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md.
+  * More docs for otlp::LoggerComponent. Thanks to
+    [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+  * Set proper `Content-Type` in samples.
+
+
+### Release v2.3
+
+* Initial HTTP 2.0 server support is now implemented. Use
+  `handler-defaults.http_version` static config option of components::Server to
+  enable.
+* Logger for OpenTelemetry protocol was implemented. Could be enabled via
+  `USERVER_FEATURE_OTLP` CMake option. See @ref opentelemetry "the docs" for
+  more info.  
+* Client address in handler now could be retrieved via
+  server::http::HttpRequest::GetRemoteAddress(). Many thanks to
+  [Daniil Shvalov](https://github.com/danilshvalov) for the PR.
+* The scheduler implementation now could be adjusted for each task_processor
+  via `task-processor-queue` static option. A more efficient
+  `work-stealing-task-queue` was introduced. Many thanks to
+  [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+* Added storages::postgres::TimePointWithoutTz for more explicit declaration of
+  intent. Direct work with std::chrono::system_clock is now deprecated in
+  PostgreSQL driver.
+* Validation of static config schemas now understands `minItems` and `maxItems`
+  for arrays. Many thanks to [eparoshin](https://github.com/eparoshin) for the
+  PR.
+* Websockets now have case insensitive check of headers. Thanks to
+  [Alexander Enaldiev](https://github.com/Turim) for the PR!
+* Added engine::io::Socket::ReadNoblock() function to check if there's a
+  pending data and read it if any. server::websocket::WebSocketConnection now
+  has a TryRecv() function to receive a message if its first bytes already came.
+  Thanks to [Alexander Enaldiev](https://github.com/Turim) for the PR!
+* `#env`, `#file` and `#fallback` now could be used in `config_vars` file.
+  See yaml_config::YamlConfig for more info. Thanks to
+  [Artyom Samuylik](https://github.com/Matrix-On) for the PR.
+* gRPC
+  * Sensitive data now could be hidden in logs via applying a
+    `[(userver.field).secret = true]` option to a protobuf field in schema.
+  * Generic server now could be implemented via
+    ugrpc::server::GenericServiceBase. Generic client
+    ugrpc::client::GenericClient was also implemented. The functionality of
+    generic client/server is useful for writing gRPC proxies.
+  * gRPC server now shows aggregated `grpc.server.total` metrics
+  * More samples and docs.
+* Optimizations:
+  * IO events are now uniformly distributed between ev threads. This leads
+    to better performance on high loads in default configurations. Even number
+    of ev threads now works as good as odd number of threads.
+  * IO watchers now always start asynchronously, leading to x2 less CPU
+    consumption for each start+stop operation. As a result ev threads of HTTP
+    client and Redis driver now use less CPU.
+  * Timer events with reachable deadlines now are deferred if that does not
+    affect latencies. This gives ~5% RPS improvement for `service_template`. 
+* Build
+  * `Find*.cmake` files are not generated any more, leading to simpler code base
+    and faster configure times.
+  * Fixed incorrect handling of dots in chaotic paths. Thanks to
+    [Alexander Chernov](https://github.com/blackav) for the PR!
+  * MacOS build options are now part of the CMake files, leading to less
+    boilerplate while compiling for that platform. Many thanks to
+    [Daniil Shvalov](https://github.com/danilshvalov) for the PR.
+  * Kafka driver is now enabled in Conan. Many thanks to
+    [Aleksandr Gusev](https://github.com/ALumad) for the PR.
+  * Conan related build fixes. Thanks to [Alex](https://github.com/leha-bot) for
+    the PR.
+
+
+### Release v2.2
+
+* Added @ref scripts/docs/en/userver/chaotic.md "codegen parsers and serializers by JSON schema"
+* Improved the ability to unit test of gRPC clients and servers, Redis and
+  Mongo databases, logs. Samples and docs were improved.
+* Implemented feedback forms and likes/dislikes for each documentation page.
+  **Feedback would be appreciated!**
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR and to
+  [MariaGrinchenko](https://github.com/MariaGrinchenko) for the buttons design!
+* Added @ref scripts/docs/en/userver/ydb.md "docs on YDB".
+* Mobile header view and docs layout was improved. Many thanks to
+  [Fedor Alekseev](https://github.com/atlz253) for the PRs.
+* engine::subprocess::ProcessStarter::Exec now can lookup binaries via
+  `PATH` variable.
+* Fixed gRPC generation for nested namespaces with repetitions. Many thanks to
+  [nfrmtk](https://github.com/nfrmtk) for the PR!
+* Handle both websocket and plain HTTP requests for the same path. Many thanks
+  to [Hovard Smith](https://github.com/w15eacre) for the PR!
+* Support setting client + CA certs in RabbitMQ. Many thanks to
+  [Alexey Dyumin](https://github.com/dyumin) for  the PR!
+* yaml_config::YamlConfig now can read files via `#file`. Now the static
+  config of the service could refer to other files.
+* Added support of bit operations to Redis.
+* PostgreSQL driver now works with AWS Aurora.
+* Added quick start for beginners to @ref scripts/docs/en/userver/tutorial/build.md.
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR.
+* Improved path to sources trimming for Conan builds. Many thanks to
+  [Kirill](https://github.com/KVolodin) for the PR!
+* Multiple minor improvements to build, packaging, docs and testing.
+
+### Release v2.1 (May 2024)
+
+* Coroutines stack usage is now shown in the
+  `engine.coro-pool.stack-usage.max-usage-percent` metric. Improved
+  stack-overflow diagnostics.
+* HTTP server and HTTP client now support ZSTD decompression. Thanks
+  to [Илья Оплачкин](https://github.com/IoplachkinI)
+  and [VScdr](https://github.com/VS-CDR) for the PR!
+* Added redis::MakeBulkHedgedRedisRequestAsync() and
+  redis::MakeBulkHedgedRedisRequest().
+* OpenTelemetry parent span-id is now passed through AMQP headers along with
+  trace-id. Thanks to [TertiumOrganum1](https://github.com/TertiumOrganum1) for
+  the PR!
+* ugrpc::server::MiddlewareBase now has CallRequestHook and CallResponseHook
+  for intercepting requests and responses.
+* components::LoggableComponentBase was renamed to components::ComponentBase.
+  components::RawComponentBase was published.
+* Multiple improvements for logging in testsuite.
+* gRPC metrics are now not written for methods that were not used at runtime.
+* Mongo pools now can be adjusted at runtime via dynamic config
+  @ref MONGO_CONNECTION_POOL_SETTINGS. Congestion Control for individual Mongo
+  databases now could be controlled via
+  @ref MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS. Congestion Control is now
+  enabled by default.
+* Reduced contention in coro::Pool and added some tests and benchmarks. Many
+  thanks to [Egor Bocharov](https://github.com/egor-bystepdev) for the PRs!
+* Added urabbitmq::ConsumerComponentBase::Process() accepting the whole
+  urabbitmq::ConsumedMessage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* `human_logs.py` now supports more options and has more examples and docs
+  embedded. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* server::http::HttpStatus and client::http::Status are now aliases to
+  http::StatusCode. Many thanks to
+  [SidorovichPavel](https://github.com/SidorovichPavel) for the PR!
+
+* Docs and build:
+  * `find_package(userver)` now implicitly calls `userver_setup_environment()`,
+    includes all the helper CMake userver scripts, making the configuration simpler.
+    Added diagnostics and fix-it hints for some of the CMake missuses.
+  * In docs `Ctrl+k` hotkey now focuses on `Search` input. Many thanks to
+    [Fedor Alekseev](https://github.com/atlz253) for the PR!
+  * ODR-violations are now avoided if the userver is built with different standard
+    version than the service.
+  * Each sample is now usable as a root project.
+  * Each driver now has a @ref QUALITY_TIERS "Quality Tier".
+  * Fixed minimal version requirements for Pythons gRPC modules. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Reduced build times by avoiding inclusion of heavy headers.
+  * Added an example on PostgreSQL `bytea` usage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+  * Multiple improvements for docs, build and CI scripts.  
+
+### Release v2.0
+
+Big new features since the v1.0.0:
+
+* Simplified dynamic configs and embedded defaults into the code.
+* Added PostgreSQL connection pools auto-configuration.
+* Added YDB driver and basic Kafka driver.
+* LISTEN/NOTIFY support for PostgreSQL
+* New landing page for the website
+* Significantly reduced network data transmission for PostgreSQL
+* Supported `install` in CMake and CPack packaging.
+* Implemented middlewares for HTTP server, most of the HTTP server functionality
+  was moved to middlewares.
+* Improved documentation, added more samples and descriptions.
+* Numerous optimizations and build improvements.
+
+Detailed descriptions could be found below.
+
+Binary Ubuntu 22.04 amd64 package could be found at
+[userver Releases](https://github.com/userver-framework/userver/releases).
+
+
+### May 2024 (v2.0-rc)
+
+* Kafka driver is now documented, compiles and works. Thanks to
+  [Fedor](https://github.com/fdr896) for the work!
+* Added utils::numeric_cast for safe casting of integers of different width.
+* The userver framework is now
+  [available at Yandex Cloud Marketplace](https://yandex.cloud/en/marketplace/products/yc/userver).
+* YDB driver now can be built on modern Clang compilers in C++20 and above
+  modes.
+* Redis now allows to subscribe to master instances.
+* Improved logging of failures in testsuite.
+
+* Optimizations:
+  * rcu::Variable was optimized to use asymmetric fences and
+    concurrent::StripedCounter. x1000 performance improvement for some edge
+    cases, x3 improvement for the generic use case.
+  * Internal `TaskCounter` now uses concurrent::StripedCounter to reduce
+    contention on atomics on each async task construction and destruction.
+  * Adjusted the default spinning count in scheduler to better fit modern
+    hardware and typical loads.
+  * ~5% faster tasks queue overload detection logic. Many thanks to
+    [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+
+* Docs, tests and build
+  * Fixed build of utils/rand.hpp related source files. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Improved logic of Telegram support chats URL selection. Many thanks to
+    [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+  * Fixed multiple `@snippet` links in docs. Many thanks to
+    [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+  * Fixed flaky `ThreadLocal.SafeThreadLocalWorks` test. Many thanks to
+    [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+
 
 ### April 2024
 
@@ -70,7 +331,7 @@ Changelog news also go to the
 * Consumers of concurrent queues now have a Reset() method. Thanks to
   [akhoroshev](https://github.com/akhoroshev) for the PR!
 * Fixed gRPC builds and runs with ASAN. Thanks to
-  [Nikita](https://github.com/root-kidik) for the PR! 
+  [Nikita](https://github.com/root-kidik) for the PR!
 * Published early work on Kafka driver. API is not stable, build scripts,
   improvements and samples to come. Thanks to [Fedor](https://github.com/fdr896)
   for the work!
@@ -81,7 +342,7 @@ Changelog news also go to the
 * Optimizations:
   * WriteAll for TLS became up to 7 times faster if multiple small chunks of
     data are written. Thanks to [Илья Оплачкин](https://github.com/IoplachkinI)
-    and [VScdr](https://github.com/VS-CDR) for the PR! 
+    and [VScdr](https://github.com/VS-CDR) for the PR!
   * Binary sizes were reduced if building without LTO. All the binaries linked
     with userver became about 1MB smaller.
   * Implemented asymmetric thread fences. This opens the door for optimizations
@@ -731,7 +992,7 @@ Detailed descriptions could be found below.
 
 ### Beta (April 2023)
 
-* MySQL driver was added, see @ref mysql_driver.
+* MySQL driver was added, see @ref scripts/docs/en/userver/mysql/mysql_driver.md.
 * Experimental support for HTTP "Baggage" header is implemented, including
   verification, forwarding from HTTP handlers to client, baggage manipulation.
   See baggage::BaggageManagerComponent for more info.

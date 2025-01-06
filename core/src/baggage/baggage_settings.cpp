@@ -7,12 +7,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace baggage {
 
-BaggageSettings Parse(const formats::json::Value& value,
-                      formats::parse::To<BaggageSettings>) {
-  BaggageSettings result{};
-  result.allowed_keys =
-      value["allowed_keys"].As<std::unordered_set<std::string>>();
-  return result;
+BaggageSettings Parse(const formats::json::Value& value, formats::parse::To<BaggageSettings>) {
+    BaggageSettings result{};
+    result.allowed_keys = value["allowed_keys"].As<std::unordered_set<std::string>>();
+    return result;
 }
 
 const dynamic_config::Key<BaggageSettings> kBaggageSettings{
@@ -20,8 +18,7 @@ const dynamic_config::Key<BaggageSettings> kBaggageSettings{
     dynamic_config::DefaultAsJsonString{R"({"allowed_keys": []})"},
 };
 
-const dynamic_config::Key<bool> kBaggageEnabled{"USERVER_BAGGAGE_ENABLED",
-                                                false};
+const dynamic_config::Key<bool> kBaggageEnabled{"USERVER_BAGGAGE_ENABLED", false};
 
 }  // namespace baggage
 

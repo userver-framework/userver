@@ -11,11 +11,9 @@ namespace {
 
 namespace some_namespace {
 
-using MyString =
-    USERVER_NAMESPACE::utils::StrongTypedef<class MyStringTag, std::string>;
-struct MyString2 final
-    : USERVER_NAMESPACE::utils::StrongTypedef<MyString2, std::string> {
-  using StrongTypedef::StrongTypedef;
+using MyString = USERVER_NAMESPACE::utils::StrongTypedef<class MyStringTag, std::string>;
+struct MyString2 final : USERVER_NAMESPACE::utils::StrongTypedef<MyString2, std::string> {
+    using StrongTypedef::StrongTypedef;
 };
 
 bool OverloadResolutionRValue(MyString&&) { return true; }
@@ -31,12 +29,12 @@ using MyId = USERVER_NAMESPACE::utils::StrongTypedef<class MyIdTag, int>;
 // Comparison operators for StrongTypedef.Id* tests
 template <class T>
 constexpr bool operator==(MyId, T) {
-  return true;
+    return true;
 }
 
 template <class T>
 constexpr bool operator==(T, MyId) {
-  return true;
+    return true;
 }
 
 }  // namespace some_namespace
@@ -46,49 +44,49 @@ constexpr bool operator==(T, MyId) {
 USERVER_NAMESPACE_BEGIN
 
 TEST(StrongTypedef, StringOverloadResolutionADL) {
-  some_namespace::MyString str{"word"};
+    some_namespace::MyString str{"word"};
 
-  EXPECT_TRUE(OverloadResolutionLValue(some_namespace::MyString{"word"}));
-  EXPECT_TRUE(OverloadResolutionLValue(str));
-  EXPECT_FALSE(OverloadResolutionLValue(some_namespace::MyString2{"word"}));
+    EXPECT_TRUE(OverloadResolutionLValue(some_namespace::MyString{"word"}));
+    EXPECT_TRUE(OverloadResolutionLValue(str));
+    EXPECT_FALSE(OverloadResolutionLValue(some_namespace::MyString2{"word"}));
 
-  EXPECT_TRUE(OverloadResolutionRValue(some_namespace::MyString{"word"}));
-  EXPECT_FALSE(OverloadResolutionRValue(some_namespace::MyString2{"word"}));
+    EXPECT_TRUE(OverloadResolutionRValue(some_namespace::MyString{"word"}));
+    EXPECT_FALSE(OverloadResolutionRValue(some_namespace::MyString2{"word"}));
 }
 
 TEST(StrongTypedef, StringOverloadResolution) {
-  // NOLINTNEXTLINE(google-build-using-namespace)
-  using namespace some_namespace;
-  MyString str{"word"};
+    // NOLINTNEXTLINE(google-build-using-namespace)
+    using namespace some_namespace;
+    MyString str{"word"};
 
-  EXPECT_TRUE(OverloadResolutionLValue(MyString{"word"}));
-  EXPECT_TRUE(OverloadResolutionLValue(str));
-  EXPECT_FALSE(OverloadResolutionLValue(MyString2{"word"}));
-  EXPECT_FALSE(OverloadResolutionLValue(str.GetUnderlying()));
+    EXPECT_TRUE(OverloadResolutionLValue(MyString{"word"}));
+    EXPECT_TRUE(OverloadResolutionLValue(str));
+    EXPECT_FALSE(OverloadResolutionLValue(MyString2{"word"}));
+    EXPECT_FALSE(OverloadResolutionLValue(str.GetUnderlying()));
 
-  EXPECT_TRUE(OverloadResolutionRValue(MyString{"word"}));
-  EXPECT_FALSE(OverloadResolutionRValue(MyString2{"word"}));
-  EXPECT_FALSE(OverloadResolutionRValue(MyString{"word"}.GetUnderlying()));
+    EXPECT_TRUE(OverloadResolutionRValue(MyString{"word"}));
+    EXPECT_FALSE(OverloadResolutionRValue(MyString2{"word"}));
+    EXPECT_FALSE(OverloadResolutionRValue(MyString{"word"}.GetUnderlying()));
 }
 
 TEST(StrongTypedef, IdADL) {
-  some_namespace::MyId id{1};
+    some_namespace::MyId id{1};
 
-  // Following lines will fail to compile because of ambiguity if there are
-  // transparent comparison operators from StrongTypedef.
-  EXPECT_EQ(id, 1);
-  EXPECT_EQ(1, id);
+    // Following lines will fail to compile because of ambiguity if there are
+    // transparent comparison operators from StrongTypedef.
+    EXPECT_EQ(id, 1);
+    EXPECT_EQ(1, id);
 }
 
 TEST(StrongTypedef, Id) {
-  // NOLINTNEXTLINE(google-build-using-namespace)
-  using namespace some_namespace;
-  MyId id{1};
+    // NOLINTNEXTLINE(google-build-using-namespace)
+    using namespace some_namespace;
+    MyId id{1};
 
-  // Following lines will fail to compile because of ambiguity if there are
-  // transparent comparison operators from StrongTypedef.
-  EXPECT_EQ(id, 1);
-  EXPECT_EQ(1, id);
+    // Following lines will fail to compile because of ambiguity if there are
+    // transparent comparison operators from StrongTypedef.
+    EXPECT_EQ(id, 1);
+    EXPECT_EQ(1, id);
 }
 
 USERVER_NAMESPACE_END

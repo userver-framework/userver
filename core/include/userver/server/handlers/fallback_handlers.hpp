@@ -7,11 +7,10 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 enum class FallbackHandler {
-  kImplicitOptions,
+    kImplicitOptions,
 };
 
-constexpr size_t kFallbackHandlerMax =
-    static_cast<size_t>(FallbackHandler::kImplicitOptions);
+constexpr size_t kFallbackHandlerMax = static_cast<size_t>(FallbackHandler::kImplicitOptions);
 
 const std::string& ToString(FallbackHandler);
 

@@ -16,9 +16,10 @@ A directory with samples:
 * postgres-support - distlock using PostgreSQL
 * production_service - close to the production sample service. [Documentation](https://userver.tech/db/d69/md_en_2userver_2tutorial_2production__service.html)
 * rabbitmq_service - RabbitMQ usage sample
+* kafka_service - Kafka producer and consumer usage sample. [Documentation](https://userver.tech/d0/db8/md_en_2userver_2kafka.html)
 * redis_service - sample service that uses Redis. [Documentation](https://userver.tech/d3/da2/md_en_2userver_2tutorial_2redis__service.html)
 * static_service - HTTP server that server static data
 * tcp_full_duplex_service - low-level TCP full-duplex server implementation. [Documentation](https://userver.tech/db/db9/md_en_2userver_2tutorial_2tcp__full.html)
 * tcp_service - low-level TCP half-duplex server implementation. [Documentation](https://userver.tech/dc/d93/md_en_2userver_2tutorial_2tcp__service.html)
-* testsuite-support - small samples of testsuite functionality. [Documentation](https://userver.tech/d1/dd6/md_en_userver_functional_testing.html)
+* testsuite-support - small samples of testsuite functionality. [Documentation](https://userver.tech/df/d07/md_en_2userver_2functional__testing.html)
 * json2yaml - non coroutine console tool [Documentation](https://userver.tech/d2/dfc/md_en_2userver_2tutorial_2json__to__yaml.html)

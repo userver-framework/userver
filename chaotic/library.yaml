@@ -1,0 +1,6 @@
+project-name: userver-chaotic
+project-alt-names:
+  - yandex-userver-chaotic
+maintainers:
+  - Common components
+description: JSONSchema codegen library

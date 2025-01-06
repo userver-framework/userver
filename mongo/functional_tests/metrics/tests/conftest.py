@@ -2,7 +2,6 @@ import datetime
 
 import pytest
 
-
 _BASE_TIME_SEC = 100
 _RECENT_PERIOD_WAIT_INTERVAL_SEC = 6
 _DEFAULT_NOW = datetime.datetime.utcfromtimestamp(_BASE_TIME_SEC)
@@ -40,10 +39,10 @@ def _metrics_setup_once_flag() -> list:
 
 @pytest.fixture
 async def force_metrics_to_appear(
-        service_client,
-        mocked_time,
-        _metrics_setup_once_flag,
-        force_mocked_time_for_metrics,
+    service_client,
+    mocked_time,
+    _metrics_setup_once_flag,
+    force_mocked_time_for_metrics,
 ):
     if _metrics_setup_once_flag:
         return

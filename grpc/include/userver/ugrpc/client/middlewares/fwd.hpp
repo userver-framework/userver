@@ -16,8 +16,7 @@ class MiddlewareFactoryBase;
 /// @brief A chain of middlewares
 using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
 
-using MiddlewareFactories =
-    std::vector<std::shared_ptr<const MiddlewareFactoryBase>>;
+using MiddlewareFactories = std::vector<std::shared_ptr<const MiddlewareFactoryBase>>;
 
 }  // namespace ugrpc::client
 

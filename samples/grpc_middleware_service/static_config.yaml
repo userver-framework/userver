@@ -13,12 +13,16 @@ components_manager:
 
         grpc-auth-client:
 
-        # Creates gRPC clients
 # /// [gRPC middleware sample - static config client middleware]
         # yaml
+        # Contains machinery common to all gRPC clients
+        grpc-client-common:
+            # The TaskProcessor for blocking connection initiation
+            blocking-task-processor: grpc-blocking-task-processor
+        # Creates gRPC clients
         grpc-client-factory:
-            task-processor: grpc-blocking-task-processor
             channel-args: {}
+            # The list of gRPC client middleware components to use
             middlewares:
               - grpc-auth-client
 # /// [gRPC middleware sample - static config client middleware]

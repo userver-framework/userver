@@ -1,6 +1,14 @@
+cmake_minimum_required(VERSION 3.14)
 project(userver-samples-mongo_service CXX)
 
-add_executable(${PROJECT_NAME} "mongo_service.cpp")
-target_link_libraries(${PROJECT_NAME} userver::core userver::mongo)
+find_package(userver COMPONENTS mongo REQUIRED)
 
-userver_sample_testsuite_add()
+add_executable(${PROJECT_NAME} "mongo_service.cpp")
+target_link_libraries(${PROJECT_NAME} userver::mongo)
+
+add_executable(${PROJECT_NAME}-unittest "unittests/mongo_test.cpp")
+target_link_libraries(${PROJECT_NAME}-unittest userver::utest userver::mongo)
+
+userver_add_utest(NAME ${PROJECT_NAME}-unittest DATABASES mongo)
+
+userver_testsuite_add_simple()

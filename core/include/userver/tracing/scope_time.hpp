@@ -24,87 +24,86 @@ class TimeStorage;
 ///
 /// Use tracing::Span::CreateScopeTime() to construct
 class ScopeTime {
- public:
-  using Duration = std::chrono::nanoseconds;
-  using DurationMillis = std::chrono::duration<double, std::milli>;
+public:
+    using Duration = std::chrono::nanoseconds;
+    using DurationMillis = std::chrono::duration<double, std::milli>;
 
-  /// @brief Creates a tracing::ScopeTime attached to
-  /// tracing::Span::CurrentSpan().
-  ///
-  /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime()
-  ScopeTime();
+    /// @brief Creates a tracing::ScopeTime attached to
+    /// tracing::Span::CurrentSpan().
+    ///
+    /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime()
+    ScopeTime();
 
-  /// @brief Creates a tracing::ScopeTime attached to
-  /// tracing::Span::CurrentSpan() and starts measuring execution time.
-  ///
-  /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime(scope_name)
-  explicit ScopeTime(std::string scope_name);
+    /// @brief Creates a tracing::ScopeTime attached to
+    /// tracing::Span::CurrentSpan() and starts measuring execution time.
+    ///
+    /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime(scope_name)
+    explicit ScopeTime(std::string scope_name);
 
-  /// @brief If there exists a tracing::Span::CurrentSpan(),
-  /// Creates a tracing::ScopeTime attached to that Span,
-  /// otherwise return std::nullopt.
-  static std::optional<ScopeTime> CreateOptionalScopeTime();
+    /// @brief If there exists a tracing::Span::CurrentSpan(),
+    /// Creates a tracing::ScopeTime attached to that Span,
+    /// otherwise return std::nullopt.
+    static std::optional<ScopeTime> CreateOptionalScopeTime();
 
-  /// @brief If there exists a tracing::Span::CurrentSpan(),
-  /// Creates a tracing::ScopeTime attached to that Span and starts measuring
-  /// execution time, otherwise return std::nullopt.
-  static std::optional<ScopeTime> CreateOptionalScopeTime(
-      std::string_view name);
+    /// @brief If there exists a tracing::Span::CurrentSpan(),
+    /// Creates a tracing::ScopeTime attached to that Span and starts measuring
+    /// execution time, otherwise return std::nullopt.
+    static std::optional<ScopeTime> CreateOptionalScopeTime(std::string_view name);
 
-  /// @cond
-  // Constructors for internal use
-  explicit ScopeTime(impl::TimeStorage& ts);
-  ScopeTime(impl::TimeStorage& ts, std::string scope_name);
-  /// @endcond
+    /// @cond
+    // Constructors for internal use
+    explicit ScopeTime(impl::TimeStorage& ts);
+    ScopeTime(impl::TimeStorage& ts, std::string scope_name);
+    /// @endcond
 
-  ScopeTime(const ScopeTime&) = delete;
-  ScopeTime(ScopeTime&&) = default;
-  ~ScopeTime();
+    ScopeTime(const ScopeTime&) = delete;
+    ScopeTime(ScopeTime&&) = default;
+    ~ScopeTime();
 
-  /// Records the current scope time if the name is set, and stops the timer
-  Duration Reset();
+    /// Records the current scope time if the name is set, and stops the timer
+    Duration Reset();
 
-  /// Records the current scope time if the name is set, and starts a new one
-  Duration Reset(std::string scope_name);
+    /// Records the current scope time if the name is set, and starts a new one
+    Duration Reset(std::string scope_name);
 
-  /// Stops the timer without recording its value
-  void Discard();
+    /// Stops the timer without recording its value
+    void Discard();
 
-  /// Returns time elapsed since last reset
-  /// Will return 0 if the timer is stopped
-  Duration DurationSinceReset() const;
+    /// Returns time elapsed since last reset
+    /// Will return 0 if the timer is stopped
+    Duration DurationSinceReset() const;
 
-  /// Returns total time elapsed for a certain scope. If there is no record for
-  /// the scope, returns 0
-  Duration DurationTotal(const std::string& scope_name) const;
+    /// Returns total time elapsed for a certain scope. If there is no record for
+    /// the scope, returns 0
+    Duration DurationTotal(const std::string& scope_name) const;
 
-  /// Returns total time elapsed for current scope
-  /// Will return 0 if the timer is stopped
-  Duration DurationTotal() const;
+    /// Returns total time elapsed for current scope
+    /// Will return 0 if the timer is stopped
+    Duration DurationTotal() const;
 
-  /// Returns time elapsed since last reset, returns 0 if the timer is stopped.
-  ///
-  /// Prefer using ScopeTime::DurationSinceReset()
-  DurationMillis ElapsedSinceReset() const;
+    /// Returns time elapsed since last reset, returns 0 if the timer is stopped.
+    ///
+    /// Prefer using ScopeTime::DurationSinceReset()
+    DurationMillis ElapsedSinceReset() const;
 
-  /// Returns total time elapsed for a certain scope. If there is no record for
-  /// the scope, returns 0.
-  ///
-  /// Prefer using ScopeTime::DurationTotal()
-  DurationMillis ElapsedTotal(const std::string& scope_name) const;
+    /// Returns total time elapsed for a certain scope. If there is no record for
+    /// the scope, returns 0.
+    ///
+    /// Prefer using ScopeTime::DurationTotal()
+    DurationMillis ElapsedTotal(const std::string& scope_name) const;
 
-  /// Returns total time elapsed for current scope
-  /// Will return 0 if the timer is stopped.
-  ///
-  /// Prefer using ScopeTime::DurationTotal()
-  DurationMillis ElapsedTotal() const;
+    /// Returns total time elapsed for current scope
+    /// Will return 0 if the timer is stopped.
+    ///
+    /// Prefer using ScopeTime::DurationTotal()
+    DurationMillis ElapsedTotal() const;
 
-  const std::string& CurrentScope() const { return scope_name_; }
+    const std::string& CurrentScope() const { return scope_name_; }
 
- private:
-  impl::TimeStorage& ts_;
-  std::chrono::steady_clock::time_point start_;
-  std::string scope_name_;
+private:
+    impl::TimeStorage& ts_;
+    std::chrono::steady_clock::time_point start_;
+    std::string scope_name_;
 };
 
 }  // namespace tracing

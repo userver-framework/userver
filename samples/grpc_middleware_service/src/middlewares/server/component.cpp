@@ -7,13 +7,9 @@
 
 namespace sample::grpc::auth::server {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context),
-      middleware_(std::make_shared<Middleware>()) {}
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : MiddlewareComponentBase(config, context), middleware_(std::make_shared<Middleware>()) {}
 
-std::shared_ptr<ugrpc::server::MiddlewareBase> Component::GetMiddleware() {
-  return middleware_;
-}
+std::shared_ptr<ugrpc::server::MiddlewareBase> Component::GetMiddleware() { return middleware_; }
 
 }  // namespace sample::grpc::auth::server

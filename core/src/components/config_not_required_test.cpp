@@ -2,7 +2,7 @@
 
 #include <components/component_list_test.hpp>
 #include <userver/alerts/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/logging/component.hpp>
@@ -17,19 +17,17 @@ namespace {
 
 std::string expected_greeting;
 
-class ConfigNotRequiredComponent final
-    : public components::LoggableComponentBase {
- public:
-  static constexpr std::string_view kName = "config-not-required";
+class ConfigNotRequiredComponent final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "config-not-required";
 
-  ConfigNotRequiredComponent(const components::ComponentConfig& config,
-                             const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
-    EXPECT_EQ(config["greeting"].As<std::string>("default"), expected_greeting);
-  }
+    ConfigNotRequiredComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context) {
+        EXPECT_EQ(config["greeting"].As<std::string>("default"), expected_greeting);
+    }
 
-  static yaml_config::Schema GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+    static yaml_config::Schema GetStaticConfigSchema() {
+        return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Component with a non-required static config
 additionalProperties: false
@@ -39,18 +37,16 @@ properties:
         description: greeting
         defaultDescription: default
 )");
-  }
+    }
 };
 
 }  // namespace
 
 template <>
-inline constexpr bool components::kHasValidate<ConfigNotRequiredComponent> =
-    true;
+inline constexpr bool components::kHasValidate<ConfigNotRequiredComponent> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ConfigNotRequiredComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<ConfigNotRequiredComponent> = ConfigFileMode::kNotRequired;
 
 namespace {
 
@@ -76,29 +72,27 @@ constexpr std::string_view kCustomGreetingConfig = R"(
 )";
 
 components::ComponentList MakeComponentList() {
-  return components::ComponentList()
-      .Append<os_signals::ProcessorComponent>()
-      .Append<components::StatisticsStorage>()
-      .Append<components::Logging>()
-      .Append<components::Tracer>()
-      .Append<ConfigNotRequiredComponent>()
-      .Append<alerts::StorageComponent>();
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::StatisticsStorage>()
+        .Append<components::Logging>()
+        .Append<components::Tracer>()
+        .Append<ConfigNotRequiredComponent>()
+        .Append<alerts::StorageComponent>();
 }
 
 }  // namespace
 
 TEST_F(ComponentList, ConfigNotRequiredDefault) {
-  expected_greeting = "default";
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfigBase}},
-      MakeComponentList());
+    expected_greeting = "default";
+    components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigBase}}, MakeComponentList());
 }
 
 TEST_F(ComponentList, ConfigNotRequiredCustom) {
-  expected_greeting = "custom";
-  components::RunOnce(components::InMemoryConfig{utils::StrCat(
-                          kStaticConfigBase, kCustomGreetingConfig)},
-                      MakeComponentList());
+    expected_greeting = "custom";
+    components::RunOnce(
+        components::InMemoryConfig{utils::StrCat(kStaticConfigBase, kCustomGreetingConfig)}, MakeComponentList()
+    );
 }
 
 USERVER_NAMESPACE_END

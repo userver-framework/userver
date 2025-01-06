@@ -1,0 +1,13 @@
+definitions:
+    Objectx:
+        type: object
+        additionalProperties: false
+        properties:
+            Objectx:
+                type: object
+                additionalProperties: false
+                properties:
+                    Objectx:
+                        type: object
+                        additionalProperties: false
+                        properties: {}

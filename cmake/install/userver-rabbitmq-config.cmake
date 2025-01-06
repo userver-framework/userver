@@ -4,9 +4,10 @@ if(userver_rabbitmq_FOUND)
   return()
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-include("${USERVER_CMAKE_DIR}/SetupAmqpCPP.cmake")
+find_package(userver REQUIRED COMPONENTS
+    core
+)
 
-add_library(userver::rabbitmq ALIAS userver::userver-rabbitmq)
+include("${USERVER_CMAKE_DIR}/SetupAmqpCPP.cmake")
 
 set(userver_rabbitmq_FOUND TRUE)

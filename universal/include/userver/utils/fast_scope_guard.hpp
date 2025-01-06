@@ -24,47 +24,44 @@ namespace utils {
 /// @see ScopeGuard for type-erasure and throwing functor support
 template <typename Callback>
 class FastScopeGuard final {
- public:
-  static_assert(std::is_nothrow_move_constructible_v<Callback>);
+public:
+    static_assert(std::is_nothrow_move_constructible_v<Callback>);
 
-  static_assert(
-      std::is_nothrow_invocable_v<Callback&&>,
-      "If the functions called in the body of the lambda are all 'noexcept', "
-      "please mark the lambda itself as 'noexcept'. If however, the contents "
-      "are not 'noexcept', use 'ScopeGuard' instead of 'FastScopeGuard'.");
+    static_assert(
+        std::is_nothrow_invocable_v<Callback&&>,
+        "If the functions called in the body of the lambda are all 'noexcept', "
+        "please mark the lambda itself as 'noexcept'. If however, the contents "
+        "are not 'noexcept', use 'ScopeGuard' instead of 'FastScopeGuard'."
+    );
 
-  static_assert(std::is_void_v<std::invoke_result_t<Callback&&>>,
-                "Return type of Callback function should be void");
+    static_assert(std::is_void_v<std::invoke_result_t<Callback&&>>, "Return type of Callback function should be void");
 
-  static_assert(std::is_nothrow_destructible_v<Callback>,
-                "Callback function destructor should be noexcept");
+    static_assert(std::is_nothrow_destructible_v<Callback>, "Callback function destructor should be noexcept");
 
-  constexpr explicit FastScopeGuard(Callback callback) noexcept
-      : callback_(std::move(callback)) {}
+    constexpr explicit FastScopeGuard(Callback callback) noexcept : callback_(std::move(callback)) {}
 
-  constexpr FastScopeGuard(FastScopeGuard&& other) noexcept
-      : callback_(std::move(other.callback_)),
-        is_active_(std::exchange(other.is_active_, false)) {}
+    constexpr FastScopeGuard(FastScopeGuard&& other) noexcept
+        : callback_(std::move(other.callback_)), is_active_(std::exchange(other.is_active_, false)) {}
 
-  constexpr FastScopeGuard& operator=(FastScopeGuard&& other) noexcept {
-    if (this != &other) {
-      callback_ = std::move(other.callback_);
-      is_active_ = std::exchange(other.is_active_, false);
+    constexpr FastScopeGuard& operator=(FastScopeGuard&& other) noexcept {
+        if (this != &other) {
+            callback_ = std::move(other.callback_);
+            is_active_ = std::exchange(other.is_active_, false);
+        }
+        return *this;
     }
-    return *this;
-  }
 
-  ~FastScopeGuard() {
-    if (is_active_) std::move(callback_)();
-  }
+    ~FastScopeGuard() {
+        if (is_active_) std::move(callback_)();
+    }
 
-  constexpr void Release() noexcept { is_active_ = false; }
+    constexpr void Release() noexcept { is_active_ = false; }
 
- private:
-  Callback callback_;
+private:
+    Callback callback_;
 
-  // should be optimized out if 'Release' is not called
-  bool is_active_{true};
+    // should be optimized out if 'Release' is not called
+    bool is_active_{true};
 };
 
 }  // namespace utils

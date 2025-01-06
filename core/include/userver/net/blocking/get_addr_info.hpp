@@ -17,8 +17,7 @@ namespace net::blocking {
 /// @param service_and_port - if this argument is a service name, it is
 /// translated to the corresponding port number, otherwise treated as port
 /// number.
-std::vector<engine::io::Sockaddr> GetAddrInfo(std::string_view host,
-                                              const char* service_or_port);
+std::vector<engine::io::Sockaddr> GetAddrInfo(std::string_view host, const char* service_or_port);
 
 }  // namespace net::blocking
 

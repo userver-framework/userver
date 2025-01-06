@@ -28,25 +28,26 @@ dynamic_config::StorageMock MakeDynamicConfig();
 storages::mongo::PoolConfig MakeTestPoolConfig();
 
 class MongoPoolFixture : public ::testing::Test {
- protected:
-  MongoPoolFixture();
-  ~MongoPoolFixture() override;
+protected:
+    MongoPoolFixture();
+    ~MongoPoolFixture() override;
 
-  storages::mongo::Pool GetDefaultPool();
+    storages::mongo::Pool GetDefaultPool();
 
-  storages::mongo::Pool MakePool(
-      std::optional<std::string> db_name,
-      std::optional<storages::mongo::PoolConfig> config,
-      std::optional<clients::dns::Resolver*> dns_resolver = {});
+    storages::mongo::Pool MakePool(
+        std::optional<std::string> db_name,
+        std::optional<storages::mongo::PoolConfig> config,
+        std::optional<clients::dns::Resolver*> dns_resolver = {}
+    );
 
-  void SetDynamicConfig(const std::vector<dynamic_config::KeyValue>& config);
+    void SetDynamicConfig(const std::vector<dynamic_config::KeyValue>& config);
 
- private:
-  utils::impl::UserverExperimentsScope experiments_;
-  clients::dns::Resolver default_resolver_;
-  dynamic_config::StorageMock dynamic_config_storage_;
-  std::unordered_set<std::string> used_db_names_;
-  storages::mongo::Pool default_pool_;
+private:
+    utils::impl::UserverExperimentsScope experiments_;
+    clients::dns::Resolver default_resolver_;
+    dynamic_config::StorageMock dynamic_config_storage_;
+    std::unordered_set<std::string> used_db_names_;
+    storages::mongo::Pool default_pool_;
 };
 
 USERVER_NAMESPACE_END

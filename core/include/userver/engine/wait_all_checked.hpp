@@ -47,51 +47,45 @@ void WaitAllChecked(Tasks&... tasks);
 ///
 /// @overload void WaitAllChecked(Tasks&... tasks)
 template <typename... Tasks, typename Rep, typename Period>
-[[nodiscard]] FutureStatus WaitAllCheckedFor(
-    const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks);
+[[nodiscard]] FutureStatus WaitAllCheckedFor(const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks);
 
 /// @ingroup userver_concurrency
 ///
 /// @overload void WaitAllChecked(Tasks&... tasks)
 template <typename... Tasks, typename Clock, typename Duration>
-[[nodiscard]] FutureStatus WaitAllCheckedUntil(
-    const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks);
+[[nodiscard]] FutureStatus WaitAllCheckedUntil(const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks);
 
 /// @ingroup userver_concurrency
 ///
 /// @overload void WaitAllChecked(Tasks&... tasks)
 template <typename... Tasks>
-[[nodiscard]] FutureStatus WaitAllCheckedUntil(Deadline deadline,
-                                               Tasks&... tasks);
+[[nodiscard]] FutureStatus WaitAllCheckedUntil(Deadline deadline, Tasks&... tasks);
 
 namespace impl {
 
 class ContextAccessor;
 
-FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets,
-                              Deadline deadline);
+FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets, Deadline deadline);
 
 template <typename Container>
 FutureStatus WaitAllCheckedFromContainer(Deadline deadline, Container& tasks) {
-  std::vector<ContextAccessor*> targets;
-  targets.reserve(std::size(tasks));
+    std::vector<ContextAccessor*> targets;
+    targets.reserve(std::size(tasks));
 
-  for (auto& task : tasks) {
-    targets.push_back(task.TryGetContextAccessor());
-  }
+    for (auto& task : tasks) {
+        targets.push_back(task.TryGetContextAccessor());
+    }
 
-  return impl::DoWaitAllChecked(targets, deadline);
+    return impl::DoWaitAllChecked(targets, deadline);
 }
 
 template <typename... Tasks>
 FutureStatus WaitAllCheckedFromTasks(Deadline deadline, Tasks&... tasks) {
-  ContextAccessor* targets[]{tasks.TryGetContextAccessor()...};
-  return impl::DoWaitAllChecked(targets, deadline);
+    ContextAccessor* targets[]{tasks.TryGetContextAccessor()...};
+    return impl::DoWaitAllChecked(targets, deadline);
 }
 
-inline FutureStatus WaitAllCheckedFromTasks(Deadline /*deadline*/) {
-  return FutureStatus::kReady;
-}
+inline FutureStatus WaitAllCheckedFromTasks(Deadline /*deadline*/) { return FutureStatus::kReady; }
 
 void HandleWaitAllStatus(FutureStatus status);
 
@@ -99,29 +93,26 @@ void HandleWaitAllStatus(FutureStatus status);
 
 template <typename... Tasks>
 void WaitAllChecked(Tasks&... tasks) {
-  impl::HandleWaitAllStatus(engine::WaitAllCheckedUntil(Deadline{}, tasks...));
+    impl::HandleWaitAllStatus(engine::WaitAllCheckedUntil(Deadline{}, tasks...));
 }
 
 template <typename... Tasks, typename Rep, typename Period>
-[[nodiscard]] FutureStatus WaitAllCheckedFor(
-    const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks) {
-  return WaitAllCheckedUntil(Deadline::FromDuration(duration), tasks...);
+[[nodiscard]] FutureStatus WaitAllCheckedFor(const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks) {
+    return WaitAllCheckedUntil(Deadline::FromDuration(duration), tasks...);
 }
 
 template <typename... Tasks, typename Clock, typename Duration>
-[[nodiscard]] FutureStatus WaitAllCheckedUntil(
-    const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks) {
-  return WaitAllCheckedUntil(Deadline::FromTimePoint(until), tasks...);
+[[nodiscard]] FutureStatus WaitAllCheckedUntil(const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks) {
+    return WaitAllCheckedUntil(Deadline::FromTimePoint(until), tasks...);
 }
 
 template <typename... Tasks>
-[[nodiscard]] FutureStatus WaitAllCheckedUntil(Deadline deadline,
-                                               Tasks&... tasks) {
-  if constexpr (meta::impl::IsSingleRange<Tasks...>()) {
-    return impl::WaitAllCheckedFromContainer(deadline, tasks...);
-  } else {
-    return impl::WaitAllCheckedFromTasks(deadline, tasks...);
-  }
+[[nodiscard]] FutureStatus WaitAllCheckedUntil(Deadline deadline, Tasks&... tasks) {
+    if constexpr (meta::impl::IsSingleRange<Tasks...>()) {
+        return impl::WaitAllCheckedFromContainer(deadline, tasks...);
+    } else {
+        return impl::WaitAllCheckedFromTasks(deadline, tasks...);
+    }
 }
 
 }  // namespace engine

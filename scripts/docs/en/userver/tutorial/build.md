@@ -1,74 +1,141 @@
 ## Configure, Build and Install
 
+## Quick start for beginners
+
+1\. clone service template and userver repositories
+
+
+```shell
+git clone --depth 1 https://github.com/userver-framework/service_template.git && \
+git clone --depth 1 https://github.com/userver-framework/userver.git service_template/third_party/userver && \
+cd service_template
+```
+
+More information about the service template can be found here: @ref scripts/docs/en/userver/tutorial/hello_service.md
+
+2\. install build dependencies for userver
+
+see build dependencies here: @ref service_templates
+
+for example to install @ref ubuntu_22_04 build dependencies:
+
+```shell
+sudo apt update && \
+sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
+```
+
+3\. build and start hello service
+
+```shell
+make build-release && \
+make service-start-release
+```
+
+During the build, you can make a coffee break until approximately the following output appears:
+
+```shell
+====================================================================================================
+Started service at http://localhost:8080/, configured monitor URL is http://localhost:-1/
+====================================================================================================
+
+PASSED
+[service-runner] Service started, use C-c to terminate
+INFO     <userver> Server is started
+...
+DEBUG    <userver> Accepted connection #2/32768
+DEBUG    <userver> Incoming connection from ::ffff:127.0.0.1, fd 43
+
+```
+
+4\. try to send request
+
+```shell
+curl http://127.0.0.1:8080/hello?name=userver
+```
+
+The answer should be something like this:
+
+```shell
+> curl http://127.0.0.1:8080/hello?name=userver
+Hello, userver!
+```
+
+5\. Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
+
 ## CMake options
 
 The following CMake options are used by userver:
 
-| Option                                 | Description                                                                                                           | Default                                                |
-|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only `userver-universal`                                      | ON                                                     |
-| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\* AND NOT \*BSD |
-| USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                                                            | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                                                            | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\*               |
-| USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                                                                  | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_KAFKA               | Provide asynchronous driver for Apache Kafka                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_YDB                    | Provide asynchronous driver for YDB                                                                                   | ${USERVER_IS_THE_ROOT_PROJECT} AND C++ standard >= 20  |
-| USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                             | ${USERVER_FEATURE_CORE}                                |
-| USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                                    | ON                                                     |
-| USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                                    | ON                                                     |
-| USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                          | ON                                                     |
-| USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround                                                    | OFF                                                    |
-| USERVER_FEATURE_REDIS_TLS              | SSL/TLS support for Redis driver                                                                                      | OFF                                                    |
-| USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                                                                   | OFF if platform is not \*BSD; ON otherwise             |
-| USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                                                         | ON                                                     |
-| USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                                                                 | ON                                                     |
-| USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                                                                 | ON                                                     |
-| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                                                              | ON for "sufficiently new" gRPC versions                |
-| USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                                                                | ON                                                     |
-| USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'                                           | ''                                                     |
-| USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option                                                        | ''                                                     |
-| USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                                                                   | ''                                                     |
-| USERVER_LTO                            | Use link time optimizations                                                                                           | OFF                                                    |
-| USERVER_LTO_CACHE                      | Use LTO cache if present, disable for benchmarking build times                                                        | ON                                                     |
-| USERVER_LTO_CACHE_DIR                  | LTO cache directory                                                                                                   | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                |
-| USERVER_LTO_CACHE_SIZE_MB              | LTO cache size limit in MB                                                                                            | 6000                                                   |
-| USERVER_USE_CCACHE                     | Use ccache if present, disable for benchmarking build times                                                           | ON                                                     |
-| USERVER_COMPILATION_TIME_TRACE         | Generate Clang compilation time trace                                                                                 | OFF                                                    |
-| USERVER_NO_WERROR                      | Do not treat warnings as errors                                                                                       | ON                                                     |
-| USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                                                                 | python3                                                |
-| USERVER_FEATURE_ERASE_LOG_WITH_LEVEL   | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error            | OFF                                                    |
-| USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions                                                 | ON                                                     |
-| USERVER_PIP_USE_SYSTEM_PACKAGES        | Use system python packages inside venv                                                                                | OFF                                                    |
-| USERVER_PIP_OPTIONS                    | Options for all pip calls                                                                                             | ''                                                     |
-| USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                                                                     | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_CURL          | Download and setup libcurl if no libcurl of matching version was found                                                | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_FMT           | Download and setup Fmt if no Fmt of matching version was found                                                        | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_GBENCH        | Download and setup gbench if no gbench of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_GRPC          | Download and setup gRPC if no gRPC of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_PROTOBUF      | Download and setup Protobuf if no Protobuf of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGE_GRPC}                       |
-| USERVER_DOWNLOAD_PACKAGE_KAFKA         | Download and setup librdkafka if no librdkafka matching version was found                                             | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found                                        | ${USERVER_DOWNLOAD_PACKAGES}                           |
-| USERVER_FORCE_DOWNLOAD_PACKAGES        | Download all possible third-party packages even if there is an installed system package                               | OFF                                                    |
-| USERVER_INSTALL                        | Build userver for further installation                                                                                | OFF                                                    |
-| USERVER_IS_THE_ROOT_PROJECT            | Contributor mode: build userver tests, samples and helper tools                                                       | auto-detects if userver is the top level project       |
-| USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                                                            | Builds userver-api-common-protos                       |
-| USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                                                                     | Downloads automatically                                |
-| USERVER_PG_SERVER_INCLUDE_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", for example /usr/include/postgresql/15/server | autodetected                                           |
-| USERVER_PG_SERVER_LIBRARY_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", for example /usr/lib/postgresql/15/lib      | autodetected                                           |
-| USERVER_PG_INCLUDE_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", for example /usr/local/include                 | autodetected                                           |
-| USERVER_PG_LIBRARY_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", for example /usr/local/lib                   | autodetected                                           |
-| USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB   | Allows mysql driver to leak memory instead of aborting in some rare cases when linked against libmariadb3<3.3.4       | OFF                                                    |
-| USERVER_DISABLE_PHDR_CACHE             | Disable caching of dl_phdr_info items, which interferes with dlopen                                                   | OFF                                                    |
-| USERVER_DISABLE_RSEQ_ACCELERATION      | Disable rseq-based optimizations, which may not work depending on kernel/glibc/distro/etc version                     | OFF for x86 Linux, ON otherwise                        |
-| USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                    | ON                                                     |
+| Option                                 | Description                                                                                                     | Default                                                |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only `userver::universal`                               | ON                                                     |
+| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\* AND NOT \*BSD |
+| USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                                                      | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                           | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                                                      | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\*               |
+| USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                                                            | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_KAFKA                  | Provide asynchronous driver for Apache Kafka                                                                    | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                           | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                   | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_YDB                    | Provide asynchronous driver for YDB                                                                             | ${USERVER_IS_THE_ROOT_PROJECT} AND C++ standard >= 20  |
+| USERVER_FEATURE_OTLP                   | Provide Logger for OpenTelemetry protocol                                                                       | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                       | ${USERVER_FEATURE_CORE}                                |
+| USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                              | ON                                                     |
+| USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                              | ON                                                     |
+| USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                    | ON                                                     |
+| USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround                                              | OFF                                                    |
+| USERVER_FEATURE_REDIS_TLS              | SSL/TLS support for Redis driver                                                                                | OFF                                                    |
+| USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                                                             | OFF if platform is not \*BSD; ON otherwise             |
+| USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                                                   | ON                                                     |
+| USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                                                           | ON                                                     |
+| USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                                                           | ON                                                     |
+| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                                                        | ON for "sufficiently new" gRPC versions                |
+| USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                                                          | ON                                                     |
+| USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'                                     | ''                                                     |
+| USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option                                                  | ''                                                     |
+| USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                                                             | ''                                                     |
+| USERVER_LTO                            | Use link time optimizations                                                                                     | OFF                                                    |
+| USERVER_LTO_CACHE                      | Use LTO cache if present, disable for benchmarking build times                                                  | ON                                                     |
+| USERVER_LTO_CACHE_DIR                  | LTO cache directory                                                                                             | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                |
+| USERVER_LTO_CACHE_SIZE_MB              | LTO cache size limit in MB                                                                                      | 6000                                                   |
+| USERVER_USE_CCACHE                     | Use ccache if present, disable for benchmarking build times                                                     | ON                                                     |
+| USERVER_COMPILATION_TIME_TRACE         | Generate Clang compilation time trace                                                                           | OFF                                                    |
+| USERVER_NO_WERROR                      | Do not treat warnings as errors                                                                                 | ON                                                     |
+| USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                                                           | python3                                                |
+| USERVER_FEATURE_ERASE_LOG_WITH_LEVEL   | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error      | OFF                                                    |
+| USERVER_PIP_USE_SYSTEM_PACKAGES        | Use system python packages inside venv. Useful for Docker, CI and other controlled environments                 | OFF                                                    |
+| USERVER_PIP_OPTIONS                    | Options for all pip calls. Useful for `--no                                                                     | ''                                                     |
+| USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions                                           | ON                                                     |
+| USERVER_DOWNLOAD_PACKAGE_BROTLI        | Download and setup Brotli if no Brotli of matching version was found                                            | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                            | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                                                               | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found                                        | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_CURL          | Download and setup libcurl if no libcurl of matching version was found                                          | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_FMT           | Download and setup Fmt if no Fmt of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_GBENCH        | Download and setup gbench if no gbench of matching version was found                                            | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_GRPC          | Download and setup gRPC if no gRPC of matching version was found                                                | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_PROTOBUF      | Download and setup Protobuf if no Protobuf of matching version was found                                        | ${USERVER_DOWNLOAD_PACKAGE_GRPC}                       |
+| USERVER_DOWNLOAD_PACKAGE_KAFKA         | Download and setup librdkafka if no librdkafka matching version was found                                       | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found                                  | ${USERVER_DOWNLOAD_PACKAGES}                           |
+| USERVER_FORCE_DOWNLOAD_PACKAGES        | Download all possible third-party packages even if there is an installed system package                         | OFF                                                    |
+| USERVER_FORCE_DOWNLOAD_PROTOBUF        | Download Protobuf even if there is an installed system package                                                  | ${USERVER_FORCE_DOWNLOAD_PACKAGES}                     |
+| USERVER_FORCE_DOWNLOAD_GRPC            | Download gRPC even if there is an installed system package                                                      | ${USERVER_FORCE_DOWNLOAD_PACKAGES}                     |
+| USERVER_INSTALL                        | Build userver for further installation                                                                          | OFF                                                    |
+| USERVER_IS_THE_ROOT_PROJECT            | Contributor mode: build userver tests, samples and helper tools                                                 | auto-detects if userver is the top level project       |
+| USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                                                      | Builds userver-api-common-protos                       |
+| USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                                                               | Downloads automatically                                |
+| USERVER_PG_SERVER_INCLUDE_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", e.g. /usr/include/postgresql/15/server  | autodetected                                           |
+| USERVER_PG_SERVER_LIBRARY_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", e.g. /usr/lib/postgresql/15/lib       | autodetected                                           |
+| USERVER_PG_INCLUDE_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", e.g. /usr/local/include                  | autodetected                                           |
+| USERVER_PG_LIBRARY_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", e.g. /usr/local/lib                    | autodetected                                           |
+| USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB   | Allows mysql driver to leak memory instead of aborting in some rare cases when linked against libmariadb3<3.3.4 | OFF                                                    |
+| USERVER_DISABLE_PHDR_CACHE             | Disable caching of dl_phdr_info items, which interferes with dlopen                                             | OFF                                                    |
+| USERVER_DISABLE_RSEQ_ACCELERATION      | Disable rseq-based optimizations, which may not work depending on kernel/glibc/distro/etc version               | OFF for x86 Linux, ON otherwise                        |
+| USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds              | OFF for arm64 macOS, ON otherwise                      |
+| USERVER_GENERATE_PROTOS_AT_CONFIGURE   | Run protoc at CMake Configure time for better IDE integration                                                   | OFF for downloaded Protobuf, ON otherwise              |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
@@ -84,22 +151,26 @@ For example to use clang-12 compiler install it and add the following options to
 
 userver is split into multiple CMake libraries.
 
-| CMake target         | CMake option to enable building the library | Component for install | Main documentation page                                  |
-|----------------------|---------------------------------------------|-----------------------|----------------------------------------------------------|
-| `userver-universal`  | Always on                                   | `universal`           | @ref scripts/docs/en/index.md                            |
-| `userver-core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | `core`                | @ref scripts/docs/en/index.md                            |
-| `userver-grpc`       | `USERVER_FEATURE_GRPC`                      | `grpc`                | @ref scripts/docs/en/userver/grpc.md                     |
-| `userver-mongo`      | `USERVER_FEATURE_MONGODB`                   | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                  |
-| `userver-postgresql` | `USERVER_FEATURE_POSTGRESQL`                | `postgresql`          | @ref pg_driver                                           |
-| `userver-redis`      | `USERVER_FEATURE_REDIS`                     | `redis`               | @ref scripts/docs/en/userver/redis.md                    |
-| `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
-| `userver-kafka`      | `USERVER_FEATURE_KAFKA`                     | `kafka`               | @ref scripts/docs/en/userver/kafka.md                    |
-| `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
-| `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/design_and_details.md |
-| `userver-rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
-| `userver-ydb`        | `USERVER_FEATURE_YDB`                       | `ydb`                 | TODO                                                     |
-
-For installed userver or Conan, cmake targets are named like `userver::{component}`, for instance: `userver::core`, `userver::mysql`, etc
+| CMake target               | CMake option to enable building the library       | Component for install | Main documentation page                            |
+|----------------------------|---------------------------------------------------|-----------------------|----------------------------------------------------|
+| `userver::universal`       | Always on                                         | `universal`           | @ref scripts/docs/en/index.md                      |
+| `userver::universal-utest` | `USERVER_FEATURE_UTEST` (`ON` by default)         | `universal`           | @ref scripts/docs/en/userver/testing.md            |
+| `userver::core`            | `USERVER_FEATURE_CORE` (`ON` by default)          | `core`                | @ref scripts/docs/en/index.md                      |
+| `userver::utest`           | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST`  | `core`                | @ref scripts/docs/en/userver/testing.md            |
+| `userver::ubench`          | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST`  | `core`                | @ref scripts/docs/en/userver/testing.md            |
+| `userver::grpc`            | `USERVER_FEATURE_GRPC`                            | `grpc`                | @ref scripts/docs/en/userver/grpc.md               |
+| `userver::grpc-utest`      | `USERVER_FEATURE_GRPC` + `USERVER_FEATURE_UTEST`  | `grpc`                | @ref scripts/docs/en/userver/grpc.md               |
+| `userver::mongo`           | `USERVER_FEATURE_MONGODB`                         | `mongo`               | @ref scripts/docs/en/userver/mongodb.md            |
+| `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                      | `postgresql`          | @ref pg_driver                                     |
+| `userver::redis`           | `USERVER_FEATURE_REDIS`                           | `redis`               | @ref scripts/docs/en/userver/redis.md              |
+| `userver::clickhouse`      | `USERVER_FEATURE_CLICKHOUSE`                      | `clickhouse`          | @ref clickhouse_driver                             |
+| `userver::kafka`           | `USERVER_FEATURE_KAFKA`                           | `kafka`               | @ref scripts/docs/en/userver/kafka.md              |
+| `userver::kafka-utest`     | `USERVER_FEATURE_KAFKA` + `USERVER_FEATURE_UTEST` | `kafka`               | @ref scripts/docs/en/userver/kafka.md              |
+| `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                        | `rabbitmq`            | @ref rabbitmq_driver                               |
+| `userver::mysql`           | `USERVER_FEATURE_MYSQL`                           | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md |
+| `userver::rocks`           | `USERVER_FEATURE_ROCKS`                           | `rocks`               | TODO                                               |
+| `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | TODO                                               |
+| `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"        |
 
 Make sure to:
 
@@ -147,7 +218,7 @@ CPMAddPackage(
     "USERVER_FEATURE_GRPC ON"
 )
 
-target_link_libraries(${PROJECT_NAME} userver-grpc)
+target_link_libraries(${PROJECT_NAME} userver::grpc)
 ```
 
 Make sure to enable the CMake options to build userver libraries you need,
@@ -168,7 +239,7 @@ There are prepared and ready to use service templates at the github:
 Just use the template to make your own service:
 
 1. Press the green "Use this template" button at the top of the github template page
-2. Clone the service `git clone your-service-repo && cd your-service-repo && git submodule update --init`
+2. Clone the service `git clone your-service-repo && cd your-service-repo`
 3. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name.
 4. Feel free to tweak, adjust or fully rewrite the source code of your service.
 
@@ -181,21 +252,32 @@ For local development of your service either
 
 The service templates allow to kickstart the development of your production-ready service,
 but there can't be a repo for each and every combination of userver libraries.
-To use additional userver libraries, e.g. `userver-grpc`, add to the root `CMakeLists.txt`:
+To use additional userver libraries, e.g. `userver::grpc`, add to the root `CMakeLists.txt`:
 
 ```cmake
 set(USERVER_FEATURE_GRPC ON CACHE BOOL "" FORCE)
 # ...
 add_subdirectory(third_party/userver)
 # ...
-target_link_libraries(${PROJECT_NAME} userver-grpc)
+target_link_libraries(${PROJECT_NAME} userver::grpc)
 ```
 
 @see @ref userver_libraries
 
 See @ref tutorial_services for minimal usage examples of various userver libraries.
 
+@anchor ubuntu_24_04
+### Ubuntu 24.04 (Noble Numbat)
 
+\b Dependencies: @ref scripts/docs/en/deps/ubuntu-24.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-24.04.md"
+
+Dependencies could be installed via:
+  ```
+  bash
+  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-24.04.md | tr '\n' ' ')
+  ```
+
+@anchor ubuntu_22_04
 ### Ubuntu 22.04 (Jammy Jellyfish)
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-22.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md"
@@ -260,7 +342,7 @@ userver framework.
 If there a need to update the userver in the VM do the following:
 ```
 bash
-sudo apt remove userver-*
+sudo apt remove libuserver-*
 
 cd /app/userver
 sudo git checkout develop
@@ -292,7 +374,9 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
+      -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
   ```
 
 
@@ -308,9 +392,12 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
-    -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 \
-    -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold
+  CMAKE_COMMON_FLAGS += \
+      -DCMAKE_CXX_COMPILER=g++-8 \
+      -DCMAKE_C_COMPILER=gcc-8 \
+      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
+      -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 \
+      -DUSERVER_USE_LD=gold
   ```
 
 
@@ -325,7 +412,9 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64'
+  CMAKE_COMMON_FLAGS += \
+      -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' \
+      -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64'
   ```
 
 ### Fedora 35
@@ -340,7 +429,9 @@ Fedora dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_STACKTRACE=0 \
+      -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
 
 ### Fedora 36
@@ -355,7 +446,9 @@ Fedora dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_STACKTRACE=0 \
+      -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
 
 ### Gentoo
@@ -370,8 +463,8 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_GRPC=0 \
-    -DUSERVER_FEATURE_CLICKHOUSE=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_CHECK_PACKAGE_VERSIONS=0
   ```
 
 
@@ -402,7 +495,8 @@ Without AUR:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_PATCH_LIBPQ=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
 
 
@@ -420,15 +514,10 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      -DUSERVER_NO_WERROR=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
       -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 \
-      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
-      -DUSERVER_FEATURE_CLICKHOUSE=0 \
-      -DUSERVER_FEATURE_RABBITMQ=0 \
-      -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) \
-      -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
-      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server)
+      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
   ```
 
 After that the `make test` would build and run the service tests.
@@ -450,6 +539,9 @@ If there's a strong need to build \b only the userver and run its tests, then se
 
 You can install userver globally and then use it from anywhere with `find_package`.
 Make sure to use the same build mode as for your service, otherwise subtle linkage issues will arise.
+
+### Install with cmake --install
+
 To install userver build it with `USERVER_INSTALL=ON` flags in `Debug` and `Release` modes:
 ```
 cmake -S./ -B./build_debug \
@@ -465,6 +557,22 @@ cmake --build build_debug/
 cmake --build build_release/
 cmake --install build_debug/
 cmake --install build_release/
+```
+
+### Build and install Debian package
+
+To build `libuserver-all-dev.deb` package run the following shell command:
+
+```
+docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
+   --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
+   ./scripts/build_and_install_all.sh
+```
+
+And install the package with the following:
+
+```
+sudo dpkg -i ./libuserver-all-dev*.deb
 ```
 
 ### Use userver in your projects

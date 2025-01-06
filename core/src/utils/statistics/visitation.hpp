@@ -13,9 +13,7 @@ namespace utils::statistics {
 class BaseFormatBuilder;
 class Request;
 
-void VisitMetrics(BaseFormatBuilder& out,
-                  const formats::json::Value& statistics_storage_json,
-                  const Request& request);
+void VisitMetrics(BaseFormatBuilder& out, const formats::json::Value& statistics_storage_json, const Request& request);
 
 }  // namespace utils::statistics
 

@@ -11,6 +11,7 @@ set -euox pipefail
 ALL_FEATURES="
     -DUSERVER_FEATURE_CLICKHOUSE=1 \
     -DUSERVER_FEATURE_GRPC=1 \
+    -DUSERVER_FEATURE_OTLP=1 \
     -DUSERVER_FEATURE_MYSQL=1 \
     -DUSERVER_FEATURE_MONGODB=1 \
     -DUSERVER_FEATURE_POSTGRESQL=1 \
@@ -59,7 +60,7 @@ for BUILD_TYPE in Debug Release; do
 done
 
 cpack -G DEB --config build_release/CPackConfig.cmake -D CPACK_INSTALL_CMAKE_PROJECTS="build_debug;userver;ALL;/;build_release;userver;ALL;/" ${PACKAGE_OPTIONS:-""}
-DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ./userver-all*.deb
+DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ./libuserver-all-dev*.deb
 
 rm -rf ./build_debug/ ./build_release/
 

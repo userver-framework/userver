@@ -22,26 +22,25 @@ struct ConnectionSettings;
 class InsertionRequest;
 
 class Connection final {
- public:
-  Connection(clients::dns::Resolver&, const EndpointSettings&,
-             const AuthSettings&, const ConnectionSettings&);
+public:
+    Connection(clients::dns::Resolver&, const EndpointSettings&, const AuthSettings&, const ConnectionSettings&);
 
-  ExecutionResult Execute(OptionalCommandControl, const Query&);
+    ExecutionResult Execute(OptionalCommandControl, const Query&);
 
-  void Insert(OptionalCommandControl, const InsertionRequest&);
+    void Insert(OptionalCommandControl, const InsertionRequest&);
 
-  void Ping();
+    void Ping();
 
-  bool IsBroken() const noexcept;
+    bool IsBroken() const noexcept;
 
- private:
-  class ConnectionBrokenGuard;
-  ConnectionBrokenGuard GetBrokenGuard();
+private:
+    class ConnectionBrokenGuard;
+    ConnectionBrokenGuard GetBrokenGuard();
 
-  void DoExecute(OptionalCommandControl, const clickhouse_cpp::Query&);
+    void DoExecute(OptionalCommandControl, const clickhouse_cpp::Query&);
 
-  NativeClientWrapper client_;
-  bool broken_{false};
+    NativeClientWrapper client_;
+    bool broken_{false};
 };
 }  // namespace impl
 }  // namespace storages::clickhouse

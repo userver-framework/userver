@@ -20,34 +20,58 @@ class {{service.name}}Base
 
   {% for method in service.method %}
   {% if method.client_streaming and method.server_streaming %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::BidirectionalStream<
-          {{ method.input_type | grpc_to_cpp_name }},
-          {{ method.output_type | grpc_to_cpp_name }}>;
-  {% elif method.client_streaming %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::InputStream<
-          {{ method.input_type | grpc_to_cpp_name }},
-          {{ method.output_type | grpc_to_cpp_name }}>;
-  {% elif method.server_streaming %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::OutputStream<
-          {{ method.output_type | grpc_to_cpp_name }}>;
-  {% else %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::UnaryCall<
-          {{ method.output_type | grpc_to_cpp_name }}>;
-  {% endif %}
 
-  {% if method.client_streaming %}
+  using {{method.name}}ReaderWriter = USERVER_NAMESPACE::ugrpc::server::ReaderWriter<
+      {{ method.input_type | grpc_to_cpp_name }}, {{ method.output_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream);
+  // Legacy
+  using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::BidirectionalStream<
+      {{ method.input_type | grpc_to_cpp_name }}, {{ method.output_type | grpc_to_cpp_name }}>;
+  [[deprecated("Use '{{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream)'")]]
   virtual void {{method.name}}({{method.name}}Call& call);
-  {% else %}
-  virtual void {{method.name}}(
-      {{method.name}}Call& call,
-      {{ method.input_type | grpc_to_cpp_name }}&& request);
-  {% endif %}
 
+  {% elif method.client_streaming %}
+
+  using {{method.name}}Reader = USERVER_NAMESPACE::ugrpc::server::Reader<
+      {{ method.input_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}Reader& reader);
+  // Legacy
+  using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::InputStream<
+      {{ method.input_type | grpc_to_cpp_name }}, {{ method.output_type | grpc_to_cpp_name }}>;
+  [[deprecated("Use '{{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}Reader& reader)'")]]
+  virtual void {{method.name}}({{method.name}}Call& call);
+
+  {% elif method.server_streaming %}
+
+  using {{method.name}}Writer = USERVER_NAMESPACE::ugrpc::server::Writer<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context,
+                                                {{ method.input_type | grpc_to_cpp_name }}&& request,
+                                                {{method.name}}Writer& writer);
+  // Legacy
+  using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::OutputStream<{{ method.output_type | grpc_to_cpp_name }}>;
+  [[deprecated("Use '{{method.name}}Result {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_cpp_name }}&& request, {{method.name}}Writer& writer)'")]]
+  virtual void {{method.name}}({{method.name}}Call& call, {{ method.input_type | grpc_to_cpp_name }}&& request);
+
+  {% else %}
+
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_cpp_name }}&& request);
+  // Legacy
+  using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::UnaryCall<{{ method.output_type | grpc_to_cpp_name }}>;
+  [[deprecated("Use '{{method.name}}Result {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_cpp_name }}&& request)'")]]
+  virtual void {{method.name}}({{method.name}}Call& call, {{ method.input_type | grpc_to_cpp_name }}&& request);
+
+  {% endif %}
   {% endfor %}
+
  private:
   std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
   MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) final;

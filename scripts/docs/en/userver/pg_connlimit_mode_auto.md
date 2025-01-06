@@ -51,6 +51,24 @@ components_manager:
             connlimit_mode: manual
 ```
 
+## Error "No available connections found"
+
+This error tells that there are no available connections in the pool. But it doesn't 
+mean that the service exceeded the limit of the number of connections.
+
+The pg-driver will try to create a new connection asynchronously (with the deadline from the initial request).
+If another connection is released from another request, driver will take it. 
+If request spikes are expected, you might increase the `min_pool_size` option (default 4) in components::Postgres config to prepare
+some available connections for these request spikes.
+Also, if there are logs such as `Connecting: X. Max concurrent connecting: X.`, you might increase the `connecting_limit` option (default unlimited)
+in components::Postgres config. Also, you can change these options by the dynamic config @ref POSTGRES_CONNECTION_POOL_SETTINGS
+
+@warning No new connections will be created if there are many errors when creating a connection in the recent period. 
+The recent error period is 15 seconds. Error count is controlled by the option `recent-errors-threshold` (default 2) in the dynamic config @ref POSTGRES_CONNECTION_SETTINGS. 
+Errors accounted for the purposes of `recent-errors-threshold` are: 
+1) A timeout error when creating a connection 
+2) A ConnectionError (aborted connections and pipeline mode errors)
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

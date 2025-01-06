@@ -15,7 +15,7 @@ async def test_expired(service_client, dynamic_config):
     logs = [
         log
         for log in capture.select()
-        if log['text'].startswith('exception in \'handler-chaos-postgres\'')
+        if log['text'].startswith("exception in 'handler-chaos-postgres'")
     ]
     assert len(logs) == 1
     text = logs[0]['text']

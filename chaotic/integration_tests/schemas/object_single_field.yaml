@@ -1,0 +1,163 @@
+definitions:
+    SimpleObject:
+        description: A simple object with different required/defaults
+        type: object
+        required:
+          - int3
+        properties:
+            integer:
+                type: integer
+            int:
+                type: integer
+                format: int32
+                default: 1
+                minimum: -1
+                maximum: 10
+            int3:
+                type: integer
+                format: int64
+        additionalProperties: false
+
+    ObjectWithOptionalNoDefault:
+        type: object
+        properties:
+            int:
+                type: integer
+        additionalProperties: false
+
+    ObjectTypes:
+        description: object with different types
+        type: object
+        required:
+          - boolean
+          - integer
+          - number
+          - string
+          - object
+          - array
+        additionalProperties: false
+        properties:
+            boolean:
+                type: boolean
+            integer:
+                type: integer
+            number:
+                type: number
+            string:
+                type: string
+            object:
+                type: object
+                additionalProperties: false
+                properties: {}
+            array:
+                type: array
+                items:
+                    type: integer
+            int-enum:
+                type: integer
+                enum:
+                  - 1
+                  - 2
+                  - 3
+                default: 1
+            string-enum:
+                type: string
+                enum:
+                  - foo
+                  - bar
+                  - '1'
+                default: foo
+
+    IntegerEnum:
+        type: integer
+        enum:
+          - 1
+          - 2
+          - 3
+
+    StringEnum:
+        type: string
+        enum:
+          - foo
+          - bar
+          - some!thing
+
+    Integer:
+        type: integer
+        default: 2
+        minimum: 1
+
+    ObjectWithRef:
+        type: object
+        additionalProperties: false
+        properties:
+            integer:
+                description: Some description
+                $ref: '#/definitions/Integer'
+            object:
+                $ref: '#/definitions/SimpleObject'
+
+    ObjectWithSet:
+        type: object
+        additionalProperties: false
+        properties:
+            set:
+                type: array
+                x-usrv-cpp-container: std::unordered_set
+                items:
+                    type: integer
+
+    ObjectWithAdditionalPropertiesInt:
+        type: object
+        additionalProperties:
+            type: integer
+            minimum: 2
+        properties:
+            one:
+                type: integer
+                default: 1
+
+    ObjectWithAdditionalProperties:
+        type: object
+        additionalProperties:
+            type: object
+            additionalProperties: false
+            properties:
+                bar:
+                    type: string
+        properties:
+            foo:
+                type: string
+
+    ObjectWithAdditionalPropertiesTrue:
+        type: object
+        additionalProperties: true
+        properties:
+            one:
+                type: integer
+                default: 1
+
+    ObjectWithAdditionalPropertiesTrueExtraMemberFalse:
+        type: object
+        additionalProperties: true
+        x-taxi-cpp-extra-member: false
+        properties:
+            one:
+                type: integer
+                default: 1
+
+    ObjectWithAdditionalPropertiesFalseStrict:
+        type: object
+        additionalProperties: false
+        properties:
+            foo:
+                type: integer
+        x-usrv-strict-parsing: true
+
+    ObjectWithHyphenField:
+        type: object
+        additionalProperties: false
+        properties:
+            foo-field:
+                type: integer
+

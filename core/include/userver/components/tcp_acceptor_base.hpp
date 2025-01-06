@@ -3,7 +3,7 @@
 /// @file userver/components/tcp_acceptor_base.hpp
 /// @brief @copybrief components::TcpAcceptorBase
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task.hpp>
@@ -38,36 +38,38 @@ namespace components {
 /// @see @ref scripts/docs/en/userver/tutorial/tcp_service.md
 
 // clang-format on
-class TcpAcceptorBase : public LoggableComponentBase {
- public:
-  TcpAcceptorBase(const ComponentConfig&, const ComponentContext&);
-  ~TcpAcceptorBase() override;
+class TcpAcceptorBase : public ComponentBase {
+public:
+    TcpAcceptorBase(const ComponentConfig&, const ComponentContext&);
+    ~TcpAcceptorBase() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- protected:
-  /// Override this function to process incoming sockets.
-  ///
-  /// @warning The function is called concurrently from multiple threads on
-  /// each new socket.
-  virtual void ProcessSocket(engine::io::Socket&& sock) = 0;
+protected:
+    /// Override this function to process incoming sockets.
+    ///
+    /// @warning The function is called concurrently from multiple threads on
+    /// each new socket.
+    virtual void ProcessSocket(engine::io::Socket&& sock) = 0;
 
- private:
-  TcpAcceptorBase(const ComponentConfig& config,
-                  const ComponentContext& context,
-                  const server::net::ListenerConfig& acceptor_config);
+private:
+    TcpAcceptorBase(
+        const ComponentConfig& config,
+        const ComponentContext& context,
+        const server::net::ListenerConfig& acceptor_config
+    );
 
-  void KeepAccepting();
+    void KeepAccepting();
 
-  void OnAllComponentsLoaded() final;
-  void OnAllComponentsAreStopping() final;
+    void OnAllComponentsLoaded() final;
+    void OnAllComponentsAreStopping() final;
 
-  const bool no_delay_;
-  engine::TaskProcessor& acceptor_task_processor_;
-  engine::TaskProcessor& sockets_task_processor_;
-  concurrent::BackgroundTaskStorageCore tasks_;
-  engine::io::Socket listen_sock_;
-  engine::Task acceptor_;
+    const bool no_delay_;
+    engine::TaskProcessor& acceptor_task_processor_;
+    engine::TaskProcessor& sockets_task_processor_;
+    concurrent::BackgroundTaskStorageCore tasks_;
+    engine::io::Socket listen_sock_;
+    engine::Task acceptor_;
 };
 
 }  // namespace components

@@ -7,16 +7,16 @@
 USERVER_NAMESPACE_BEGIN
 
 void wall_clock_benchmark(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    benchmark::DoNotOptimize(std::chrono::system_clock::now());
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        benchmark::DoNotOptimize(std::chrono::system_clock::now());
+    }
 }
 BENCHMARK(wall_clock_benchmark);
 
 void wall_coarse_clock_benchmark(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    benchmark::DoNotOptimize(utils::datetime::WallCoarseClock::now());
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        benchmark::DoNotOptimize(utils::datetime::WallCoarseClock::now());
+    }
 }
 BENCHMARK(wall_coarse_clock_benchmark);
 

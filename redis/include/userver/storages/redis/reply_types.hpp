@@ -21,61 +21,48 @@ using ExpireReply = USERVER_NAMESPACE::redis::ExpireReply;
 enum class HsetReply { kCreated, kUpdated };
 
 struct Point {
-  double lon;
-  double lat;
+    double lon;
+    double lat;
 
-  bool operator==(const Point& rhs) const {
-    return std::tie(lon, lat) == std::tie(rhs.lon, rhs.lat);
-  }
+    bool operator==(const Point& rhs) const { return std::tie(lon, lat) == std::tie(rhs.lon, rhs.lat); }
 };
 
 struct GeoPoint final {
-  std::string member;
-  std::optional<double> dist;
-  std::optional<uint64_t> hash;
-  std::optional<Point> point;
+    std::string member;
+    std::optional<double> dist;
+    std::optional<uint64_t> hash;
+    std::optional<Point> point;
 
-  GeoPoint() = default;
+    GeoPoint() = default;
 
-  GeoPoint(std::string member, std::optional<double> dist,
-           std::optional<uint64_t> hash, std::optional<Point> point)
-      : member(std::move(member)), dist(dist), hash(hash), point(point) {}
+    GeoPoint(std::string member, std::optional<double> dist, std::optional<uint64_t> hash, std::optional<Point> point)
+        : member(std::move(member)), dist(dist), hash(hash), point(point) {}
 
-  bool operator==(const GeoPoint& rhs) const {
-    return std::tie(member, dist, hash, point) ==
-           std::tie(rhs.member, rhs.dist, rhs.hash, rhs.point);
-  }
+    bool operator==(const GeoPoint& rhs) const {
+        return std::tie(member, dist, hash, point) == std::tie(rhs.member, rhs.dist, rhs.hash, rhs.point);
+    }
 
-  bool operator!=(const GeoPoint& rhs) const { return !(*this == rhs); }
+    bool operator!=(const GeoPoint& rhs) const { return !(*this == rhs); }
 };
 
 struct MemberScore final {
-  std::string member;
-  double score{0.0};
+    std::string member;
+    double score{0.0};
 
-  MemberScore() = default;
-  MemberScore(std::string member, double score)
-      : member(std::move(member)), score(score) {}
+    MemberScore() = default;
+    MemberScore(std::string member, double score) : member(std::move(member)), score(score) {}
 
-  operator std::pair<std::string, double>() const& { return {member, score}; }
+    operator std::pair<std::string, double>() const& { return {member, score}; }
 
-  operator std::pair<std::string, double>() && {
-    return {std::move(member), score};
-  }
+    operator std::pair<std::string, double>() && { return {std::move(member), score}; }
 
-  operator std::pair<const std::string, double>() const& {
-    return {member, score};
-  }
+    operator std::pair<const std::string, double>() const& { return {member, score}; }
 
-  operator std::pair<const std::string, double>() && {
-    return {std::move(member), score};
-  }
+    operator std::pair<const std::string, double>() && { return {std::move(member), score}; }
 
-  bool operator==(const MemberScore& rhs) const {
-    return member == rhs.member && score == rhs.score;
-  }
+    bool operator==(const MemberScore& rhs) const { return member == rhs.member && score == rhs.score; }
 
-  bool operator!=(const MemberScore& rhs) const { return !(*this == rhs); }
+    bool operator!=(const MemberScore& rhs) const { return !(*this == rhs); }
 };
 
 enum class PersistReply { kKeyOrTimeoutNotFound, kTimeoutRemoved };
@@ -85,22 +72,22 @@ struct ScanReplyElem;
 
 template <>
 struct ScanReplyElem<ScanTag::kScan> {
-  using type = std::string;
+    using type = std::string;
 };
 
 template <>
 struct ScanReplyElem<ScanTag::kSscan> {
-  using type = std::string;
+    using type = std::string;
 };
 
 template <>
 struct ScanReplyElem<ScanTag::kHscan> {
-  using type = std::pair<std::string, std::string>;
+    using type = std::pair<std::string, std::string>;
 };
 
 template <>
 struct ScanReplyElem<ScanTag::kZscan> {
-  using type = MemberScore;
+    using type = MemberScore;
 };
 
 enum class SetReply { kSet, kNotSet };

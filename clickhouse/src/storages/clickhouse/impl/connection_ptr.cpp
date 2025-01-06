@@ -19,9 +19,9 @@ Connection& ConnectionPtr::operator*() const { return *conn_; }
 Connection* ConnectionPtr::operator->() const noexcept { return conn_.get(); }
 
 void ConnectionPtr::Release() noexcept {
-  if (!conn_) return;
+    if (!conn_) return;
 
-  pool_->Release(conn_.release());
+    pool_->Release(conn_.release());
 }
 
 }  // namespace storages::clickhouse::impl

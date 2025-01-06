@@ -13,26 +13,26 @@ namespace urabbitmq::impl {
 class DeferredWrapper;
 
 class ResponseAwaiter final {
- public:
-  ResponseAwaiter(engine::SemaphoreLock&& lock);
-  ~ResponseAwaiter();
+public:
+    ResponseAwaiter(engine::SemaphoreLock&& lock);
+    ~ResponseAwaiter();
 
-  ResponseAwaiter(const ResponseAwaiter& other) = delete;
-  ResponseAwaiter(ResponseAwaiter&& other) noexcept;
+    ResponseAwaiter(const ResponseAwaiter& other) = delete;
+    ResponseAwaiter(ResponseAwaiter&& other) noexcept;
 
-  void SetSpan(tracing::Span&& span);
-  void Wait(engine::Deadline deadline) const;
+    void SetSpan(tracing::Span&& span);
+    void Wait(engine::Deadline deadline) const;
 
-  const std::shared_ptr<DeferredWrapper>& GetWrapper() const;
+    const std::shared_ptr<DeferredWrapper>& GetWrapper() const;
 
- private:
+private:
 #ifndef NDEBUG
-  mutable bool awaited_{false};
+    mutable bool awaited_{false};
 #endif
 
-  std::optional<tracing::Span> span_;
-  engine::SemaphoreLock lock_;
-  std::shared_ptr<DeferredWrapper> wrapper_;
+    std::optional<tracing::Span> span_;
+    engine::SemaphoreLock lock_;
+    std::shared_ptr<DeferredWrapper> wrapper_;
 };
 
 }  // namespace urabbitmq::impl

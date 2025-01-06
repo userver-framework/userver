@@ -16,24 +16,30 @@
 # a direct include of this script, so the functions should not rely
 # on non-cache variables being present.
 
-include_guard()
+include_guard(GLOBAL)
 
+# Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_grpc)
   if(USERVER_CONAN)
     find_package(gRPC REQUIRED)
-    find_package(Protobuf REQUIRED)  # For Protobuf_VERSION
     get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
     get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
   else()
-    if(NOT Protobuf_FOUND)
-      include(SetupProtobuf)
-    endif()
-    include(SetupGrpc)
+    include("${CMAKE_CURRENT_LIST_DIR}/SetupGrpc.cmake")
   endif()
+  include("${CMAKE_CURRENT_LIST_DIR}/SetupProtobuf.cmake")
   set_property(GLOBAL PROPERTY userver_grpc_cpp_plugin "${PROTO_GRPC_CPP_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_grpc_python_plugin "${PROTO_GRPC_PYTHON_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_protobuf_protoc "${PROTOBUF_PROTOC}")
+  set_property(GLOBAL PROPERTY userver_protobuf_version "${Protobuf_VERSION}")
+  set(generate_protos_at_configure_description
+      "Run protoc at CMake Configure time instead of the more traditional build time. "
+      "This avoids IDE errors before the first build, but requires re-running CMake "
+      "Configure each time .proto files change"
+  )
+  option(USERVER_GENERATE_PROTOS_AT_CONFIGURE
+      "${generate_protos_at_configure_description}"
+      "${GENERATE_PROTOS_AT_CONFIGURE_DEFAULT}")
 
   if(NOT USERVER_GRPC_SCRIPTS_PATH)
     get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
@@ -59,7 +65,10 @@ function(_userver_prepare_grpc)
     message(FATAL_ERROR "Invalid Protobuf package")
   endif()
 
-  if (NOT gRPC_VERSION)
+  if(NOT Protobuf_VERSION)
+    message(FATAL_ERROR "Invalid Protobuf package")
+  endif()
+  if(NOT gRPC_VERSION)
     message(FATAL_ERROR "Invalid gRPC package")
   endif()
   if(NOT PROTOBUF_PROTOC)
@@ -72,10 +81,7 @@ function(_userver_prepare_grpc)
     message(FATAL_ERROR "grpc_python_plugin not found")
   endif()
 
-  if(NOT USERVER_CONAN)
-    # For Conan builds, UserverTestsuite is included automatically.
-    include(UserverTestsuite)
-  endif()
+  include("${CMAKE_CURRENT_LIST_DIR}/UserverTestsuite.cmake")
 
   get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
   set(requirements_name "requirements-${protobuf_category}.txt")
@@ -93,7 +99,7 @@ _userver_prepare_grpc()
 
 function(userver_generate_grpc_files)
   set(options)
-  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
+  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -102,6 +108,7 @@ function(userver_generate_grpc_files)
   get_property(PROTO_GRPC_PYTHON_PLUGIN GLOBAL PROPERTY userver_grpc_python_plugin)
   get_property(PROTOBUF_PROTOC GLOBAL PROPERTY userver_protobuf_protoc)
   get_property(USERVER_PROTOBUF_IMPORT_DIR GLOBAL PROPERTY userver_protobuf_import_dir)
+  get_property(Protobuf_VERSION GLOBAL PROPERTY userver_protobuf_version)
   set(PROTO_GRPC_USRV_PLUGIN "${USERVER_GRPC_SCRIPTS_PATH}/protoc_usrv_plugin.sh")
 
   if(GEN_RPC_INCLUDE_DIRECTORIES)
@@ -123,11 +130,19 @@ function(userver_generate_grpc_files)
     endforeach()
   endif()
 
-  set(GENERATED_PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto)
+  if (NOT "${GEN_RPC_OUTPUT_PATH}" STREQUAL "")
+    if(NOT IS_ABSOLUTE "${GEN_RPC_OUTPUT_PATH}")
+      message(SEND_ERROR "OUTPUT_PATH='${GEN_RPC_OUTPUT_PATH}' is a relative path, which is unsupported.")
+    endif()
+    set(GENERATED_PROTO_DIR "${GEN_RPC_OUTPUT_PATH}")
+  else()
+    set(GENERATED_PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
+  endif()
+  
   get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
 
   if(NOT "${GEN_RPC_SOURCE_PATH}" STREQUAL "")
-    if(NOT IS_ABSOLUTE ${GEN_RPC_SOURCE_PATH})
+    if(NOT IS_ABSOLUTE "${GEN_RPC_SOURCE_PATH}")
       message(SEND_ERROR "SOURCE_PATH='${GEN_RPC_SOURCE_PATH}' is a relative path, which is unsupported.")
     endif()
     set(root_path "${GEN_RPC_SOURCE_PATH}")
@@ -156,6 +171,10 @@ function(userver_generate_grpc_files)
       "--plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}"
       "--plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}"
   )
+  if(Protobuf_VERSION VERSION_GREATER_EQUAL "3.12.0" AND
+      Protobuf_VERSION VERSION_LESS "3.15.0")
+    list(APPEND protoc_flags "--experimental_allow_proto3_optional")
+  endif()
 
   set(proto_abs_paths)
   set(proto_rel_paths)
@@ -219,16 +238,7 @@ function(userver_generate_grpc_files)
     endif()
   endforeach()
 
-  if(USERVER_GENERATE_PROTOS_AT_BUILD_TIME)
-    add_custom_command(
-        OUTPUT ${generated_cpps} ${generated_usrv_cpps}
-        COMMAND "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
-        DEPENDS ${proto_dependencies}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
-    )
-    message(STATUS "Scheduled build-time generation of protos in ${root_path}")
-  else()
+  if(USERVER_GENERATE_PROTOS_AT_CONFIGURE)
     list(GET proto_dependencies 0 newest_proto_dependency)
     foreach(dependency ${proto_dependencies})
       if("${dependency}" IS_NEWER_THAN "${newest_proto_dependency}")
@@ -260,6 +270,16 @@ function(userver_generate_grpc_files)
     else()
       message(STATUS "Reused previously generated sources for protos in ${root_path}")
     endif()
+  else()
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/proto")
+    add_custom_command(
+        OUTPUT ${generated_cpps} ${generated_usrv_cpps}
+        COMMAND "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
+        DEPENDS ${proto_dependencies}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
+    )
+    message(STATUS "Scheduled build-time generation of protos in ${root_path}")
   endif()
 
   set_source_files_properties(
@@ -280,14 +300,15 @@ endfunction()
 
 function(userver_add_grpc_library NAME)
   set(options)
-  set(one_value_args SOURCE_PATH)
+  set(one_value_args SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(RPC_LIB "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   userver_generate_grpc_files(
       PROTOS ${RPC_LIB_PROTOS}
       INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
-      SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
+      SOURCE_PATH "${RPC_LIB_SOURCE_PATH}"
+      OUTPUT_PATH "${RPC_LIB_OUTPUT_PATH}"
       GENERATED_INCLUDES include_paths
       CPP_FILES generated_sources
       CPP_USRV_FILES generated_usrv_sources
@@ -295,12 +316,5 @@ function(userver_add_grpc_library NAME)
   add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
   target_include_directories(${NAME} SYSTEM PUBLIC $<BUILD_INTERFACE:${include_paths}>)
-
-  if(USERVER_CONAN AND NOT CMAKE_PROJECT_NAME STREQUAL userver)
-    target_link_libraries(${NAME} PUBLIC userver::grpc)
-  elseif (TARGET userver::userver-grpc)
-    target_link_libraries(${NAME} PUBLIC userver::userver-grpc)
-  else()
-    target_link_libraries(${NAME} PUBLIC userver-grpc)
-  endif()
+  target_link_libraries(${NAME} PUBLIC userver::grpc)
 endfunction()

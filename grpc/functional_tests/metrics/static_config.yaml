@@ -32,14 +32,15 @@ components_manager:
               - grpc-server-baggage
 
         # gRPC client
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
-            task-processor: grpc-blocking-task-processor
-            channel-args: {}
             middlewares:
               - grpc-client-logging
               - grpc-client-baggage
+            channel-args: {}
         greeter-client:
-            endpoint: '[::]:8081'
+            endpoint: $greeter-client-endpoint
 
         # http server
         server:

@@ -19,7 +19,7 @@ using void_t = std::void_t<T...>;
 
 template <typename... T>
 struct make_void_t {
-  using type = void;
+    using type = void;
 };
 template <typename... T>
 using void_t = typename make_void_t<T...>::type;

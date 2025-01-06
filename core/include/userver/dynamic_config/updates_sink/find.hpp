@@ -25,9 +25,8 @@ namespace dynamic_config {
 /// creation of the requested component.
 ///
 /// @note It is illegal to use the same updates sink from several components.
-components::DynamicConfigUpdatesSinkBase& FindUpdatesSink(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context);
+components::DynamicConfigUpdatesSinkBase&
+FindUpdatesSink(const components::ComponentConfig& config, const components::ComponentContext& context);
 
 }  // namespace dynamic_config
 

@@ -6,7 +6,6 @@ import typing
 from testsuite.environment import service
 from testsuite.environment import utils
 
-
 DEFAULT_HOST = 'localhost'
 DEFAULT_GRPC_TLS_PORT = 2135
 DEFAULT_GRPC_PORT = 2136
@@ -29,10 +28,10 @@ class ServiceSettings:
 
 
 def create_ydb_service(
-        service_name: str,
-        working_dir: str,
-        settings: typing.Optional[ServiceSettings] = None,
-        env: typing.Optional[typing.Dict[str, str]] = None,
+    service_name: str,
+    working_dir: str,
+    settings: typing.Optional[ServiceSettings] = None,
+    env: typing.Optional[typing.Dict[str, str]] = None,
 ):
     if settings is None:
         settings = get_service_settings()

@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-class SingleWaitingTaskMutex::Impl final
-    : public impl::MutexImpl<impl::WaitListLight> {};
+class SingleWaitingTaskMutex::Impl final : public impl::MutexImpl<impl::WaitListLight> {};
 
 SingleWaitingTaskMutex::SingleWaitingTaskMutex() = default;
 
@@ -19,9 +18,7 @@ void SingleWaitingTaskMutex::unlock() { impl_->unlock(); }
 
 bool SingleWaitingTaskMutex::try_lock() { return impl_->try_lock(); }
 
-bool SingleWaitingTaskMutex::try_lock_until(Deadline deadline) {
-  return impl_->try_lock_until(deadline);
-}
+bool SingleWaitingTaskMutex::try_lock_until(Deadline deadline) { return impl_->try_lock_until(deadline); }
 
 }  // namespace engine
 
