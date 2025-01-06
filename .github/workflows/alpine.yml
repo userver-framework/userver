@@ -37,9 +37,9 @@ jobs:
                 path: |
                   ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
-                key: 'alpine-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                key: 'alpine-cache-dir ${{github.ref}}'
                 restore-keys: |
-                  alpine-cache-dir ${{github.ref}} run-
+                  alpine-cache-dir ${{github.ref}}
                   alpine-cache-dir
 
           - name: Setup host cache dirs

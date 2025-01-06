@@ -37,6 +37,7 @@ jobs:
                         -DUSERVER_NAMESPACE_END="}}"
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
+                    id: ubuntu24_clang18_debug_sanitize-addr-ub
                     tests-flags: ''
 
                   - cmake-flags: >-
@@ -55,6 +56,7 @@ jobs:
                         -DUSERVER_NAMESPACE_END="}}"
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
+                    id: ubuntu22_clang14_debug_sanitize-addr-ub
                     tests-flags: ''
 
                   - cmake-flags: >-
@@ -71,6 +73,7 @@ jobs:
                         -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
                     os: ubuntu-20.04
                     info: g++-9 + release
+                    id: ubuntu20_gcc9_release
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
                   # GCC-8 - testing minimal required compiler
@@ -90,6 +93,7 @@ jobs:
                         -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
                     os: ubuntu-20.04
                     info: g++-8 + debug
+                    id: ubuntu20_gcc8_debug
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
@@ -107,10 +111,10 @@ jobs:
                 path: |
                   ${{env.CCACHE_DIR}}
                   ${{env.CPM_SOURCE_CACHE}}
-                key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
+                key: 'ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}'
                 restore-keys: |
-                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-
-                    ${{matrix.os}} ${{matrix.info}} ccache-
+                    ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}
+                    ubuntu-cache-dir ${{matrix.id}}
 
           - name: Setup ramdrive for testsuites
             run: |
