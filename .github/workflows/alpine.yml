@@ -70,8 +70,8 @@ jobs:
                         redis \
                         rabbitmq-server \
 
-          - name: Setup cache
-            shell: alpine.sh {0}
+          - name: Setup ccache
+            shell: alpine.sh --root {0}
             run: |
                 ccache -M 2.0GB
                 ccache -s -v
