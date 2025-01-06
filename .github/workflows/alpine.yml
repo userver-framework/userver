@@ -72,6 +72,13 @@ jobs:
           - name: Setup ccache
             shell: alpine.sh --root {0}
             run: |
+                echo "Cached CPM packages:"
+                ls -lha ${{env.CPM_SOURCE_CACHE}}
+                for d in $(ls ${{env.CPM_SOURCE_CACHE}})
+                do
+                  git config --global --add safe.directory ${{env.CPM_SOURCE_CACHE}}/$d
+                done
+
                 ccache -M 2.0GB
                 ccache -s -v
 
