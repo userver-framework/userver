@@ -106,11 +106,10 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control
 ) {
-    auto ready_callback = [](size_t shard, const std::string& shard_name,
-                            bool ready) {
+    auto ready_callback = [](size_t shard, const std::string& shard_name, bool ready) {
         LOG_INFO() << "redis: ready_callback:"
-                << "  shard = " << shard << "  shard_name = " << shard_name
-                << "  ready = " << (ready ? "true" : "false");
+                   << "  shard = " << shard << "  shard_name = " << shard_name
+                   << "  ready = " << (ready ? "true" : "false");
     };
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
@@ -150,14 +149,13 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     conns.reserve(settings.sentinels.size());
     LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
     for (const auto& sentinel : settings.sentinels) {
-        LOG_DEBUG() << "sentinel:  host = " << sentinel.host
-                    << "  port = " << sentinel.port;
+        LOG_DEBUG() << "sentinel:  host = " << sentinel.host << "  port = " << sentinel.port;
         // SENTINEL MASTERS/SLAVES works without auth, sentinel has no AUTH command.
         // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
         // sentinels in cluster mode.
-        conns.emplace_back(sentinel.host, sentinel.port,
-                        (is_cluster_mode ? password : Password("")), false,
-                        settings.secure_connection);
+        conns.emplace_back(
+            sentinel.host, sentinel.port, (is_cluster_mode ? password : Password("")), false, settings.secure_connection
+        );
     }
     LOG_DEBUG() << "redis command_control: " << command_control.ToString();
 
