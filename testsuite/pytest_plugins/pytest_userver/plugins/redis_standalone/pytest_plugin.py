@@ -74,23 +74,16 @@ def redis_standalone_settings():
 
 @pytest.fixture(scope='session')
 async def redis_standalone_service(
-    pytestconfig,
     ensure_service_started,
     redis_standalone_settings
 ):
-    if not pytestconfig.option.no_redis:
-        ensure_service_started('redis-standalone', settings=redis_standalone_settings)
+    ensure_service_started('redis-standalone', settings=redis_standalone_settings)
 
 @pytest.fixture
 def redis_standalone_store(
-    pytestconfig,
     redis_standalone_service,
     redis_standalone_settings
 ):
-    if pytestconfig.option.no_redis:
-        yield
-        return
-
     redis_db = redisdb.StrictRedis(
         host=redis_standalone_settings.host,
         port=redis_standalone_settings.port,
@@ -102,18 +95,7 @@ def redis_standalone_store(
         redis_db.flushall()
 
 @pytest.fixture(scope='session')
-def redis_standalone(pytestconfig, redis_standalone_settings, redis_standalone_service):
-    if pytestconfig.option.redis_host:
-        # external Redis instance
-        return [
-            {
-                'host': pytestconfig.option.redis_host,
-                'port': (
-                    pytestconfig.option.redis_sentinel_port
-                    or redis_standalone_settings.port
-                ),
-            },
-        ]
+def redis_standalone(redis_standalone_settings, redis_standalone_service):
     return [
         {
             'host': redis_standalone_settings.host,
