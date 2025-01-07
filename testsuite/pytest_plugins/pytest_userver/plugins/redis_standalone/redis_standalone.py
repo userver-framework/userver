@@ -1,73 +1,85 @@
-import os
-
-import subprocess
-import asyncio
 import typing
 import pytest
 import redis as redisdb
-from testsuite.utils import callinfo
-from testsuite.daemons import service_daemon
 
-from pathlib import Path
+from testsuite.databases.redis import service
+from testsuite.environment.service import ScriptService
+from testsuite.databases.redis import genredis
+from testsuite.environment import utils
 
-class StandaloneSettings(typing.NamedTuple):
+import pathlib
+import logging
+
+DEFAULT_STANDALONE_PORT = 7000
+SERVICE_SCRIPT_PATH = pathlib.Path(__file__).parent.joinpath(
+    'service-redis-standalone'
+)
+
+class StandaloneServiceSettings(typing.NamedTuple):
     host: str
     port: int
 
-@pytest.fixture(scope='session')
-async def redis_standalone_config_path():
-    return os.path.join(
-        str(Path(__file__).parent),
-        'redis_standalone.conf'
+def get_service_settings():
+    return StandaloneServiceSettings(
+        host=service._get_hostname(),
+        port=utils.getenv_int(
+            key='TESTSUITE_REDIS_STANDALONE_PORT',
+            default=DEFAULT_STANDALONE_PORT,
+        )
     )
 
-@pytest.fixture(scope='session')
-async def redis_standalone_port():
-    return 7000
+def create_redis_standalone(
+    service_name,
+    working_dir,
+    settings: typing.Optional[StandaloneServiceSettings] = None,
+    env=None,
+):
+    if settings is None:
+        settings = get_service_settings()
+    configs_dir = pathlib.Path(working_dir).joinpath('configs')
+    input_file = genredis._redis_config_directory() / genredis.MASTER_TPL_FILENAME
+    output_file = configs_dir.joinpath(f"{service_name}.conf")
+    
+    logging.debug(f"Config file for redis standalone is '{output_file}'")
 
-@pytest.fixture(scope='session')
-def redis_standalone_settings(redis_standalone_port):
-    return StandaloneSettings(
-        host='localhost',
-        port=redis_standalone_port
+    def prestart_hook():
+        configs_dir.mkdir(parents=True, exist_ok=True)
+        protected_mode_no = ''
+        if genredis.redis_version() >= (3, 2, 0):
+            protected_mode_no = 'protected-mode no'
+
+        genredis._generate_redis_config(
+            input_file, output_file, protected_mode_no, settings.host, settings.port
+        )
+
+    return ScriptService(
+        service_name=service_name,
+        script_path=str(SERVICE_SCRIPT_PATH),
+        working_dir=working_dir,
+        environment={
+            'REDIS_CONFIG_FILE': output_file,
+            **(env or {}),
+        },
+        check_host=settings.host,
+        check_ports=[settings.port],
+        prestart_hook=prestart_hook,
     )
 
-@pytest.fixture(scope='session')
-def health_check(redis_standalone_port):
-
-    @callinfo.acallqueue
-    async def health_check(*, process, session):
-        print('Healt check called!')
-        if not process:
-            pytest.fail('process does not exist')
-        if not process.pid:
-            pytest.fail('process.pid is not set')
-        return subprocess.run(["redis-cli", "-p", f"{redis_standalone_port}", "--raw", "incr", "ping"]).returncode == 0
-
-    return health_check
+def pytest_service_register(register_service):
+    register_service('redis-standalone', create_redis_standalone)
 
 @pytest.fixture(scope='session')
-async def redis_standalone_run_command(redis_standalone_settings, redis_standalone_config_path):
-    return [
-                'redis-server',
-                redis_standalone_config_path,
-                '--port',
-                f'{redis_standalone_settings.port}'
-            ]
+def redis_standalone_settings():
+    return get_service_settings()
 
 @pytest.fixture(scope='session')
 async def redis_standalone_service(
-    health_check,
-    redis_standalone_run_command
+    pytestconfig,
+    ensure_service_started,
+    redis_standalone_settings
 ):
-
-    async with service_daemon.start(
-            args=redis_standalone_run_command,
-            health_check=health_check,
-            subprocess_options={'stderr': subprocess.PIPE, 'bufsize': 0}
-    ) as scope:
-        await asyncio.sleep(1.0)
-        yield scope
+    if not pytestconfig.option.no_redis:
+        ensure_service_started('redis-standalone', settings=redis_standalone_settings)
 
 @pytest.fixture
 def redis_standalone_store(
