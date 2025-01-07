@@ -20,7 +20,6 @@
 #include <engine/ev/watcher.hpp>
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/periodic_watcher.hpp>
-#include <storages/redis/impl/cluster_topology.hpp>
 
 #include <storages/redis/impl/sentinel.hpp>
 
@@ -289,7 +288,6 @@ void StandaloneImpl::AsyncCommand(const SentinelCommand& scommand,
                       << " shard: " << shard
                       << " movedto:" << ParseMovedShard(reply->data.GetError())
                       << " args:" << args;
-          // this->topology_holder_->SendUpdateClusterTopology();
         }
         const bool retry_to_master =
             !master && reply->data.IsNil() &&
@@ -412,7 +410,12 @@ void StandaloneImpl::SetRetryBudgetSettings(
 
 SentinelStatistics StandaloneImpl::GetStatistics(
     const MetricsSettings& settings) const {
-  return {settings, {}};
+    SentinelStatistics stats(settings, statistics_internal_);
+    auto masters_it = stats.masters.emplace("master", ShardStatistics(settings));
+    auto& master_stats = masters_it.first->second;
+    master_shard_.GetStatistics(true, settings, master_stats);
+    stats.shard_group_total.Add(master_stats.shard_total);
+    return stats;
 }
 
 void StandaloneImpl::EnqueueCommand(const SentinelCommand& command) {

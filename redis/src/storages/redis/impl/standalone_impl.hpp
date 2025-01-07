@@ -1,5 +1,4 @@
-#ifndef IMPL_STANDALONE_IMPL_HPP
-#define IMPL_STANDALONE_IMPL_HPP
+#pragma once
 #include "sentinel_impl.hpp"
 
 #include <storages/redis/impl/redis_connection_holder.hpp>
@@ -108,6 +107,3 @@ class StandaloneImpl : public SentinelImplBase {
 }  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END
-
-
-#endif    /* IMPL_STANDALONE_IMPL_HPP */
