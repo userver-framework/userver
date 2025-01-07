@@ -3,13 +3,9 @@ import os
 
 import pytest
 
-pytest_plugins = [
-    'pytest_userver.plugins.redis',
-    'redis_standalone_plugin.redis_standalone'
-]
+pytest_plugins = ['pytest_userver.plugins.redis']
 
 os.environ['TESTSUITE_REDIS_HOSTNAME'] = 'localhost'
-
 @pytest.fixture(scope='session')
 def service_env(redis_sentinels, redis_cluster_nodes, redis_cluster_replicas, redis_standalone):
     cluster_shards = [

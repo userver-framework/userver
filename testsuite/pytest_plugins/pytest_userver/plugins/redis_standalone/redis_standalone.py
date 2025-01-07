@@ -66,7 +66,7 @@ async def redis_standalone_service(
             health_check=health_check,
             subprocess_options={'stderr': subprocess.PIPE, 'bufsize': 0}
     ) as scope:
-        await asyncio.sleep(1.0) # wait_service_started(args=redis_standalone_run_command, health_check=health_check)
+        await asyncio.sleep(1.0)
         yield scope
 
 @pytest.fixture
