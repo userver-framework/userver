@@ -1,5 +1,4 @@
-#ifndef IMPL_KEYSHARD_STANDALONE_IMPL_HPP
-#define IMPL_KEYSHARD_STANDALONE_IMPL_HPP
+#pragma once
 
 #include <userver/storages/redis/impl/keyshard.hpp>
 
@@ -21,5 +20,3 @@ public:
 }  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END
-
-#endif /* IMPL_KEYSHARD_STANDALONE_IMPL_HPP */
