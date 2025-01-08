@@ -1,179 +1,304 @@
 #pragma once
 
-/// @file userver/storages/sqlite/result_set.hpp
-/// @brief Result accessors
-
 #include <cstddef>
-#include <limits>
+#include <memory>
 #include <optional>
+#include <string>
+#include <tuple>
+#include <type_traits>
 #include <vector>
 
+#include <sqlite3.h>
+#include <boost/pfr.hpp>
+
+#include <userver/storages/sqlite/execution_result.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
+#include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-class Row {
- public:
-  Row() = default;
-
- private:
-  friend class ResultSet;
-};
-
-class ConstRowIterator {
- public:
-  ConstRowIterator() = default;
-
- private:
-  friend class ResultSet;
-};
-
-class ReverseConstRowIterator {
- public:
-  ReverseConstRowIterator() = default;
-
- private:
-  friend class ResultSet;
-};
-
 class ResultSet {
  public:
   using size_type = std::size_t;
-  using difference_type = std::ptrdiff_t;
-  static constexpr size_type npos = std::numeric_limits<size_type>::max();
 
-  using const_iterator = ConstRowIterator;
-  using const_reverse_iterator = ReverseConstRowIterator;
+  explicit ResultSet(sqlite3_stmt* stmt) : stmt_(stmt) {
+    if (!stmt_) throw SQLiteException("Statement cannot be null");
+  }
 
-  using value_type = Row;
-  using reference = value_type;
-  using pointer = const_iterator;
+  ~ResultSet() = default;
 
-  ResultSet();
+  struct Deleter {
+    void operator()(sqlite3_stmt* stmt) { sqlite3_finalize(stmt); }
+  };
 
-  size_type Size() const;
-  bool IsEmpty() const { return Size() == 0; }
+  // clang-format off
+  /// @brief Parse statement result set as std::vector<T>.
+  /// T is expected to be an aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  ///
+  // clang-format on
+  template <typename T>
+  std::vector<T> AsVector() && {
+    std::vector<T> result;
+    while (sqlite3_step(stmt_.get()) == SQLITE_ROW) {
+      result.push_back(convertRow<T>(stmt_.get()));
+    }
+    return result;
+  }
 
-  size_type RowsAffected() const;
+  // clang-format off
+  /// @brief Parse statement result set as std::vector<T>.
+  /// Result set is expected to have a single column, `T` is expected to be one
+  /// of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  ///
+  // clang-format on
+  template <typename T>
+  std::vector<T> AsVector(FieldTag) && {
+    static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
+                      std::is_same_v<T, std::string> ||
+                      std::is_same_v<T, std::vector<uint8_t>>,
+                  "Unsupported type for AsVector(FieldTag)");
 
-  const_iterator cbegin() const&;
-  const_iterator begin() const& { return cbegin(); }
-  const_iterator cend() const&;
-  const_iterator end() const& { return cend(); }
+    const int column_count = sqlite3_column_count(stmt_.get());
+    if (column_count != 1) {
+      throw SQLiteException(
+          "Result set must have exactly one column for AsVector(FieldTag)");
+    }
 
-  const_iterator cbegin() const&& = delete;
-  const_iterator begin() const&& = delete;
-  const_iterator cend() const&& = delete;
-  const_iterator end() const&& = delete;
+    std::vector<T> result;
+    while (sqlite3_step(stmt_.get()) == SQLITE_ROW) {
+      result.push_back(GetColumn<T>(stmt_.get(), 0));
+    }
 
-  const_reverse_iterator crbegin() const&;
-  const_reverse_iterator rbegin() const& { return crbegin(); }
-  const_reverse_iterator crend() const&;
-  const_reverse_iterator rend() const& { return crend(); }
+    return result;
+  }
 
-  const_reverse_iterator crbegin() const&& = delete;
-  const_reverse_iterator rbegin() const&& = delete;
-  const_reverse_iterator crend() const&& = delete;
-  const_reverse_iterator rend() const&& = delete;
+  // clang-format off
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have a single row, `T` is expected to be an
+  /// aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  /// throws if result set is empty or contains more than one row.
+  ///
+  // clang-format on
+  template <typename T>
+  T AsSingleRow() && {
+    static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+                  "T must be an aggregate type or tuple-like type");
 
-  reference Front() const&;
-  reference Back() const&;
+    int step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_DONE) {
+      throw SQLiteException("Result set is empty");
+    } else if (step_result != SQLITE_ROW) {
+      throw SQLiteException("Failed to fetch row");
+    }
 
-  reference Front() const&& = delete;
-  reference Back() const&& = delete;
+    T result = convertRow<T>(stmt_.get());
 
-  reference operator[](size_type index) const&;
-  reference operator[](size_type index) const&& = delete;
+    step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_ROW) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+
+    return result;
+  }
+
+  // clang-format off
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have a single row and a single column,
+  /// `T` is expected to be one of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  /// throws if result set is empty of contains more than one row.
+  ///
+  // clang-format on
+  template <typename T>
+  T AsSingleField() && {
+    static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
+                      std::is_same_v<T, std::string> ||
+                      std::is_same_v<T, std::vector<uint8_t>>,
+                  "T must be one of the supported types: int64_t, double, "
+                  "std::string, std::vector<uint8_t>");
+
+    int step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_DONE) {
+      throw SQLiteException("Result set is empty");
+    } else if (step_result != SQLITE_ROW) {
+      throw SQLiteException("Failed to fetch row");
+    }
+
+    int column_count = sqlite3_column_count(stmt_.get());
+    if (column_count != 1) {
+      throw SQLiteException("Result set must contain exactly one column");
+    }
+
+    T result = GetColumn<T>(stmt_.get(), 0);
+
+    step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_ROW) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+
+    return result;
+  }
+
+  // clang-format off
+  /// @brief Parse statement result as std::optional<T>.
+  /// Result set is expected to have not more than one row,
+  /// `T` is expected to be an aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  /// throws if result set contains more than one row.
+  ///
+  // clang-format on
+  template <typename T>
+  std::optional<T> AsOptionalSingleRow() && {
+    static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+                  "T must be an aggregate type or tuple-like type");
+
+    int step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_DONE || step_result != SQLITE_ROW) {
+      return std::nullopt;
+    }
+
+    T result = convertRow<T>(stmt_.get());
+
+    step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_ROW) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+
+    return result;
+  }
+
+  // clang-format off
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have not more than one row,
+  /// `T` is expected to be one of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  /// throws if result set contains more than one row.
+  ///
+  // clang-format on
+  template <typename T>
+  std::optional<T> AsOptionalSingleField() && {
+    static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
+                      std::is_same_v<T, std::string> ||
+                      std::is_same_v<T, std::vector<uint8_t>>,
+                  "T must be one of the supported types: int64_t, double, "
+                  "std::string, std::vector<uint8_t>");
+
+    int step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_DONE || step_result != SQLITE_ROW) {
+      return std::nullopt;
+    }
+
+    int column_count = sqlite3_column_count(stmt_.get());
+    if (column_count != 1) {
+      throw SQLiteException("Result set must contain exactly one column");
+    }
+
+    T result = GetColumn<T>(stmt_.get(), 0);
+
+    step_result = sqlite3_step(stmt_.get());
+    if (step_result == SQLITE_ROW) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+
+    return result;
+  }
+
+  /// @brief Get statement execution metadata.
+  ExecutionResult AsExecutionResult() && {
+    const auto rows_affected = sqlite3_changes(sqlite3_db_handle(stmt_.get()));
+    const auto last_insert_id =
+        sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_.get()));
+
+    ExecutionResult result{};
+    result.rows_affected = rows_affected;
+    result.last_insert_id = last_insert_id;
+    return result;
+  }
+
+ private:
+  std::unique_ptr<sqlite3_stmt, Deleter> stmt_;
+
+  template <typename FieldType>
+  static FieldType GetColumn(sqlite3_stmt* stmt, int column);
 
   template <typename T>
-  std::vector<T> AsVector() const;
-  template <typename T>
-  std::vector<T> AsVector(RowTag) const;
-  template <typename T>
-  std::vector<T> AsVector(FieldTag) const;
+  static T convertRow(sqlite3_stmt* stmt);
 
-  template <typename Container>
-  Container AsContainer() const;
-  template <typename Container>
-  Container AsContainer(RowTag) const;
-  template <typename Container>
-  Container AsContainer(FieldTag) const;
+  template <typename Tuple, std::size_t... I>
+  static Tuple ConvertToTupleImpl(sqlite3_stmt* stmt,
+                                  std::index_sequence<I...>) {
+    return Tuple{GetColumn<std::tuple_element_t<I, Tuple>>(stmt, I)...};
+  }
+
+  template <typename Tuple>
+  static Tuple ConvertToTuple(sqlite3_stmt* stmt) {
+    constexpr std::size_t N = std::tuple_size_v<Tuple>;
+    return ConvertToTupleImpl<Tuple>(stmt, std::make_index_sequence<N>{});
+  }
+
+  template <typename T, typename Func>
+  static void ForEachField(T& obj, Func&& func) {
+    boost::pfr::for_each_field(obj, std::forward<Func>(func));
+  }
 
   template <typename T>
-  auto AsSingleRow() const;
-  template <typename T>
-  auto AsSingleRow(RowTag) const;
-  template <typename T>
-  auto AsSingleRow(FieldTag) const;
-
-  template <typename T>
-  std::optional<T> AsOptionalSingleRow() const;
-  template <typename T>
-  std::optional<T> AsOptionalSingleRow(RowTag) const;
-  template <typename T>
-  std::optional<T> AsOptionalSingleRow(FieldTag) const;
+  static T ConvertToAggregate(sqlite3_stmt* stmt) {
+    T instance{};
+    int column = 0;
+    ForEachField(instance, [&column, &stmt](auto& field) {
+      using FieldType = std::decay_t<decltype(field)>;
+      field = GetColumn<FieldType>(stmt, column++);
+    });
+    return instance;
+  }
 };
 
 template <typename T>
-std::vector<T> ResultSet::AsVector() const {
-  return std::move(*this).AsContainer<std::vector<T>>();
+T ResultSet::convertRow(sqlite3_stmt* stmt) {
+  if constexpr (std::is_aggregate_v<T>) {
+    return ConvertToAggregate<T>(stmt);
+  } else {
+    return ConvertToTuple<T>(stmt);
+  }
 }
 
-template <typename T>
-std::vector<T> ResultSet::AsVector(RowTag) const {
-  return std::move(*this).AsContainer<std::vector<T>>(kRowTag);
+template <>
+inline int64_t ResultSet::GetColumn<int64_t>(sqlite3_stmt* stmt, int column) {
+  return sqlite3_column_int64(stmt, column);
 }
 
-template <typename T>
-std::vector<T> ResultSet::AsVector(FieldTag) const {
-  return std::move(*this).AsContainer<std::vector<T>>(kFieldTag);
+template <>
+inline double ResultSet::GetColumn<double>(sqlite3_stmt* stmt, int column) {
+  return sqlite3_column_double(stmt, column);
 }
 
-template <typename Container>
-Container ResultSet::AsContainer() const {
-  return AsContainer<Container>(kRowTag);
-};
-
-template <typename Container>
-Container ResultSet::AsContainer(RowTag) const {
-  return Container{};
+template <>
+inline std::string ResultSet::GetColumn<std::string>(sqlite3_stmt* stmt,
+                                                     int column) {
+  const char* text =
+      reinterpret_cast<const char*>(sqlite3_column_text(stmt, column));
+  return text ? text : "";
 }
 
-template <typename Container>
-Container ResultSet::AsContainer(FieldTag) const {
-  return Container{};
-}
-
-template <typename T>
-auto ResultSet::AsSingleRow() const {
-  return AsSingleRow<T>(kFieldTag);
-}
-
-template <typename T>
-auto ResultSet::AsSingleRow(RowTag) const {
-  return T{};
-}
-
-template <typename T>
-auto ResultSet::AsSingleRow(FieldTag) const {
-  return T{};
-}
-
-template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow() const {
-  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>()};
-}
-
-template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow(RowTag) const {
-  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kRowTag)};
-}
-
-template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
-  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kFieldTag)};
+template <>
+inline std::vector<uint8_t> ResultSet::GetColumn<std::vector<uint8_t>>(
+    sqlite3_stmt* stmt, int column) {
+  const void* blob = sqlite3_column_blob(stmt, column);
+  int size = sqlite3_column_bytes(stmt, column);
+  return blob ? std::vector<uint8_t>(static_cast<const uint8_t*>(blob),
+                                     static_cast<const uint8_t*>(blob) + size)
+              : std::vector<uint8_t>{};
 }
 
 }  // namespace storages::sqlite

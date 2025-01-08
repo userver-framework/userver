@@ -17,19 +17,19 @@ namespace storages::sqlite::tests {
 
 // Iterators invariants
 
-using SQLiteBase = SQLiteTestFixture<MockSQLiteConnection>;
+// using SQLiteBase = SQLiteTestFixture<MockSQLiteConnection>;
 
-UTEST_F(SQLiteBase, EmptyResult) {
-  EXPECT_CALL(*GetMockConnection(), Execute())
-      .Times(1)
-      .WillOnce(testing::Return(ResultSet{}));
+// UTEST_F(SQLiteBase, EmptyResult) {
+//   EXPECT_CALL(*GetMockConnection(), Execute())
+//       .Times(1)
+//       .WillOnce(testing::Return(ResultSet{}));
 
-  auto res = Execute();
-  ASSERT_EQ(0, res.Size());
-  EXPECT_THROW(res[0], std::out_of_range);
-  EXPECT_THROW(res.Front(), std::out_of_range);
-  EXPECT_THROW(res.Back(), std::out_of_range);
-}
+//   auto res = Execute();
+//   ASSERT_EQ(0, res.Size());
+//   EXPECT_THROW(res[0], std::out_of_range);
+//   EXPECT_THROW(res.Front(), std::out_of_range);
+//   EXPECT_THROW(res.Back(), std::out_of_range);
+// }
 
 }  // namespace storages::sqlite::tests
 

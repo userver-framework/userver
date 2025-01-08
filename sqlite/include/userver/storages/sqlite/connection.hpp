@@ -40,8 +40,6 @@ class Connection final {
     void operator()(sqlite3* sqlite_handle);
   };
 
-  sqlite3* getHandle() const noexcept;
-
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;
 
@@ -70,6 +68,8 @@ class Connection final {
                     const TransactionOptions&) const;
 
  private:
+  sqlite3* getHandle() const noexcept;
+
   ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
                       std::optional<std::size_t> batch_size) const;
 

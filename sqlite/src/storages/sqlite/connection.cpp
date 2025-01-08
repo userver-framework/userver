@@ -61,28 +61,13 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
                                 const Query& query [[maybe_unused]],
                                 std::optional<std::size_t> batch_size
                                 [[maybe_unused]]) const {
-  // TODO:
   sqlite3_stmt* stmt = nullptr;
   if (const int ret = sqlite3_prepare_v2(
           getHandle(), query.GetStatement().c_str(), -1, &stmt, nullptr);
       ret != SQLITE_OK) {
     throw SQLiteException(getHandle(), ret);
   }
-  ResultSet result_set;
-  int step_result = 0;
-  while ((step_result = sqlite3_step(stmt)) == SQLITE_ROW) {
-    int column_count = sqlite3_column_count(stmt);
-    for (int col = 0; col < column_count; ++col) {
-    }
-  }
-
-  if (step_result != SQLITE_DONE) {
-    sqlite3_finalize(stmt);
-    throw SQLiteException(getHandle(), step_result);
-  }
-  sqlite3_finalize(stmt);
-
-  return result_set;
+  return ResultSet(stmt);
 }
 
 }  // namespace storages::sqlite

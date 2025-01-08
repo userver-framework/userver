@@ -27,7 +27,13 @@ void Transaction::Commit() {}
 void Transaction::Rollback() {}
 
 ResultSet Transaction::DoExecute(const Query& query [[maybe_unused]]) const {
-  return ResultSet{};
+  sqlite3_stmt* stmt = nullptr;
+  if (const int ret = sqlite3_prepare_v2(handle, query.GetStatement().c_str(),
+                                         -1, &stmt, nullptr);
+      ret != SQLITE_OK) {
+    throw SQLiteException(handle, ret);
+  }
+  return ResultSet(stmt);
 }
 
 }  // namespace storages::sqlite

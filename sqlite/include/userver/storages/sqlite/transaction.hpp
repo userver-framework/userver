@@ -37,6 +37,10 @@ class Transaction final {
   void Rollback();
 
  private:
+  sqlite3* handle = nullptr;  // TODO: it's stub
+
+  
+
   ResultSet DoExecute(const Query& query) const;
 };
 

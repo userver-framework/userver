@@ -46,11 +46,11 @@ class SQLiteTest : public ::testing::Test {
   fs::path test_dir_;
 };
 
-class SQLiteConnection {
- public:
-  virtual ~SQLiteConnection() = default;
-  virtual ResultSet Execute() { return {}; }
-};
+// class SQLiteConnection {
+//  public:
+//   virtual ~SQLiteConnection() = default;
+//   virtual ResultSet Execute() { return {}; }
+// };
 
 class MockSQLite : public components::ISQLite {
  public:
