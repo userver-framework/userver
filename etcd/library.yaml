@@ -1,0 +1,9 @@
+project-name: userver-etcd
+project-alt-names:
+  - yandex-userver-etcd
+maintainers:
+  - Common components
+description: Etcd client
+
+libraries:
+  - userver-core
