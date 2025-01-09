@@ -27,6 +27,9 @@ class ResultSet {
     if (!stmt_) throw SQLiteException("Statement cannot be null");
   }
 
+  ResultSet(const ResultSet& other) = delete;
+  ResultSet(ResultSet&& other) = default;
+
   ~ResultSet() = default;
 
   struct Deleter {

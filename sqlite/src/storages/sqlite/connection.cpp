@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include "userver/engine/async.hpp"
+
 #include "userver/storages/sqlite/exceptions.hpp"
 #include "userver/storages/sqlite/options.hpp"
 #include "userver/storages/sqlite/result_set.hpp"
@@ -61,13 +63,19 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
                                 const Query& query [[maybe_unused]],
                                 std::optional<std::size_t> batch_size
                                 [[maybe_unused]]) const {
-  sqlite3_stmt* stmt = nullptr;
-  if (const int ret = sqlite3_prepare_v2(
-          getHandle(), query.GetStatement().c_str(), -1, &stmt, nullptr);
-      ret != SQLITE_OK) {
-    throw SQLiteException(getHandle(), ret);
-  }
-  return ResultSet(stmt);
+  return engine::AsyncNoSpan(
+             blocking_task_processor_,
+             [this, query] {
+               sqlite3_stmt* stmt = nullptr;
+               if (const int ret = sqlite3_prepare_v2(
+                       getHandle(), query.GetStatement().c_str(), -1, &stmt,
+                       nullptr);
+                   ret != SQLITE_OK) {
+                 throw SQLiteException(getHandle(), ret);
+               }
+               return ResultSet(stmt);
+             })
+      .Get();
 }
 
 }  // namespace storages::sqlite
