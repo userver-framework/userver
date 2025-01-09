@@ -4,6 +4,7 @@
 
 #include "userver/engine/async.hpp"
 
+#include "userver/logging/log.hpp"
 #include "userver/storages/sqlite/exceptions.hpp"
 #include "userver/storages/sqlite/options.hpp"
 #include "userver/storages/sqlite/result_set.hpp"
@@ -55,7 +56,7 @@ Transaction Connection::Begin(OptionalCommandControl command_control
                               std::string name [[maybe_unused]],
                               const TransactionOptions& options
                               [[maybe_unused]]) const {
-  return Transaction{};
+  return Transaction{getHandle(), blocking_task_processor_};
 }
 
 ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
@@ -67,9 +68,10 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
              blocking_task_processor_,
              [this, query] {
                sqlite3_stmt* stmt = nullptr;
-               if (const int ret = sqlite3_prepare_v2(
-                       getHandle(), query.GetStatement().c_str(), -1, &stmt,
-                       nullptr);
+               int ret = 0;
+               if (ret = sqlite3_prepare_v2(getHandle(),
+                                            query.GetStatement().c_str(), -1,
+                                            &stmt, nullptr);
                    ret != SQLITE_OK) {
                  throw SQLiteException(getHandle(), ret);
                }

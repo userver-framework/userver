@@ -40,7 +40,8 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
         sqlite_connection_(
             context.FindComponent<components::SQLite>("key-value-database")
                 .GetConnection()) {
-    sqlite_connection_->Execute(db::sql::kCreateTable.data());
+    sqlite_connection_->Execute(db::sql::kCreateTable.data())
+        .AsExecutionResult();
   }
 
   std::string HandleRequestThrow(const server::http::HttpRequest& request,
@@ -72,12 +73,12 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
     auto res =
         sqlite_connection_->Execute(db::sql::kSelectValueByKey.data(), key)
             .AsOptionalSingleField<std::string>();
-    if (res.has_value()) {
+    if (!res.has_value()) {
       request.SetResponseStatus(server::http::HttpStatus::kNotFound);
       return {};
     }
 
-    return std::move(*res);
+    return res.value();
   }
 
   std::string PostValue(std::string_view key,
@@ -95,15 +96,13 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
       return std::string{value};
     }
 
-    auto trx_res = transaction.Execute(db::sql::kSelectValueByKey.data(), key);
+    auto trx_res = transaction.Execute(db::sql::kSelectValueByKey.data(), key)
+                       .AsSingleField<std::string>();
     transaction.Rollback();
-
-    auto result = std::move(trx_res).AsSingleField<std::string>();
-    if (result != value) {
+    if (value != trx_res) {
       request.SetResponseStatus(server::http::HttpStatus::kConflict);
     }
-
-    return result;
+    return trx_res;
   }
 
   std::string UpdateValue(std::string_view key,
@@ -127,13 +126,13 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
 
     auto trx_res = transaction.Execute(db::sql::kSelectValueByKey.data(), key)
                        .AsOptionalSingleField<std::string>();
-    if (trx_res.has_value()) {
+    if (!trx_res.has_value()) {
       request.SetResponseStatus(server::http::HttpStatus::kNotFound);
       return {};
     }
     transaction.Rollback();
 
-    auto result = std::move(*trx_res);
+    auto result = trx_res.value();
     if (result != value) {
       request.SetResponseStatus(server::http::HttpStatus::kConflict);
     }

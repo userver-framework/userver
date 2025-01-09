@@ -19,6 +19,9 @@ void ResultSet::Deleter::operator()(sqlite3_stmt* stmt) {
 }
 
 ExecutionResult ResultSet::AsExecutionResult() && {
+  if (const int ret = sqlite3_step(stmt_.get()); ret != SQLITE_DONE) {
+    throw SQLiteException(sqlite3_db_handle(stmt_.get()), ret);
+  }
   const auto rows_affected = sqlite3_changes(sqlite3_db_handle(stmt_.get()));
   const auto last_insert_id =
       sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_.get()));

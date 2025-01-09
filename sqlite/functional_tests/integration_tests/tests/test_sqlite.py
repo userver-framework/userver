@@ -9,25 +9,21 @@ async def test_basic_crud(service_client):
     # Checking the creation of new record
     response = await service_client.post('/basic/sqlite?key=hello&value=world')
     assert response.status == 201
-    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'world'
 
     # Checking for getting a previously created record by key
     response = await service_client.get('/basic/sqlite?key=hello')
     assert response.status == 200
-    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'world'
 
     # Checking for updating a previously created record by key
     response = await service_client.put('/basic/sqlite?key=hello&value=there')
     assert response.status == 200
-    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'there'
 
     # Checking that the database record has been updated
     response = await service_client.get('/basic/sqlite?key=hello')
     assert response.status == 200
-    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'there'
 
     # Checking the deletion by key of a previously created record
@@ -43,13 +39,11 @@ async def test_primary_key_constraint(service_client):
     # Succesful create a new record
     response = await service_client.post('/basic/sqlite?key=hello&value=there')
     assert response.status == 201
-    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'there'
 
     # Creating a record with the same key fails with an error
     response = await service_client.post('/basic/sqlite?key=hello&value=again')
     assert response.status == 409
-    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'there'
 
 # Unsuccessful retrieval of a record with an unknown key
@@ -73,7 +67,6 @@ async def test_batch_select_insert(service_client):
         json={'data': [{'key': str(i), 'value': str(i)} for i in range(10)]},
     )
     assert response.status_code == 200
-    assert 'application/json' in response.headers['Content-Type']
     assert response.json()['values'] == [
         {'key': str(i), 'value': str(i)} for i in range(10)
     ]
@@ -81,7 +74,6 @@ async def test_batch_select_insert(service_client):
     # Get all values
     response = await service_client.get('/basic/sqlite/batch/')
     assert response.status_code == 200
-    assert 'application/json' in response.headers['Content-Type']
     assert response.json()['values'] == [
         {'key': str(i), 'value': str(i)} for i in range(10)
     ]

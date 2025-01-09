@@ -121,9 +121,6 @@ class ResultSet {
   template <typename Tuple>
   static Tuple ConvertToTuple(sqlite3_stmt* stmt);
 
-  template <typename T, typename Func>
-  static void ForEachField(T& obj, Func&& func);
-
   template <typename T>
   static T ConvertToAggregate(sqlite3_stmt* stmt);
 };
@@ -239,8 +236,10 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
                 "std::string, std::vector<uint8_t>");
 
   int step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_DONE || step_result != SQLITE_ROW) {
+  if (step_result == SQLITE_DONE) {
     return std::nullopt;
+  } else if (step_result != SQLITE_ROW) {
+    throw SQLiteException("Execution error");
   }
 
   int column_count = sqlite3_column_count(stmt_.get());
@@ -270,16 +269,11 @@ Tuple ResultSet::ConvertToTuple(sqlite3_stmt* stmt) {
   return ConvertToTupleImpl<Tuple>(stmt, std::make_index_sequence<N>{});
 }
 
-template <typename T, typename Func>
-void ResultSet::ForEachField(T& obj, Func&& func) {
-  boost::pfr::for_each_field(obj, std::forward<Func>(func));
-}
-
 template <typename T>
 T ResultSet::ConvertToAggregate(sqlite3_stmt* stmt) {
   T instance{};
   int column = 0;
-  ForEachField(instance, [&column, &stmt](auto& field) {
+  boost::pfr::for_each_field(instance, [&column, &stmt](auto& field) {
     using FieldType = std::decay_t<decltype(field)>;
     field = GetColumn<FieldType>(stmt, column++);
   });

@@ -2,6 +2,8 @@
 
 /// @file userver/storages/sqlite/transaction.hpp
 
+#include <userver/engine/task/task_processor_fwd.hpp>
+
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -16,7 +18,7 @@ class ConnectionPtr;
 
 class Transaction final {
  public:
-  Transaction();
+  Transaction(sqlite3* handle, engine::TaskProcessor& blocking_task_processor);
   ~Transaction();
   Transaction(const Transaction& other);
   Transaction(Transaction&& other) noexcept;
@@ -37,9 +39,8 @@ class Transaction final {
   void Rollback();
 
  private:
-  sqlite3* handle = nullptr;  // TODO: it's stub
-
-  
+  sqlite3* handle_ = nullptr;  // TODO: it's stub
+  engine::TaskProcessor& blocking_task_processor_;
 
   ResultSet DoExecute(const Query& query) const;
 };

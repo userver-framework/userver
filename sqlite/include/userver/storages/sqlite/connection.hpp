@@ -115,7 +115,7 @@ ResultSet Connection::ExecuteBulk(OptionalCommandControl optional_cc,
                                   const Query& query,
                                   const Container& params
                                   [[maybe_unused]]) const {
-  return DoExecute(optional_cc, query.GetStatement(), std::nullopt);
+  return DoExecute(optional_cc, query, std::nullopt);
 }
 
 }  // namespace storages::sqlite
