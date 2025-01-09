@@ -128,9 +128,11 @@ class ResultSet {
 
 template <typename T>
 std::vector<T> ResultSet::AsVector() && {
+  static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+                "T must be an aggregate type or tuple-like type");
   std::vector<T> result;
   while (sqlite3_step(stmt_.get()) == SQLITE_ROW) {
-    result.push_back(convertRow<T>(stmt_.get()));
+    result.emplace_back(convertRow<T>(stmt_.get()));
   }
   return result;
 }
@@ -150,7 +152,7 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
 
   std::vector<T> result;
   while (exec_status_ == SQLITE_ROW) {
-    result.push_back(GetColumn<T>(stmt_.get(), 0));
+    result.emplace_back(GetColumn<T>(stmt_.get(), 0));
     exec_status_ = sqlite3_step(stmt_.get());
   }
 
