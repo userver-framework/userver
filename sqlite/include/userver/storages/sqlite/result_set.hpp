@@ -22,7 +22,7 @@ class ResultSet {
  public:
   using size_type = std::size_t;
 
-  explicit ResultSet(sqlite3_stmt* stmt);
+  explicit ResultSet(sqlite3_stmt* stmt, int exec_status);
 
   ResultSet(const ResultSet& other) = delete;
   ResultSet(ResultSet&& other) noexcept;
@@ -107,6 +107,7 @@ class ResultSet {
   };
 
   std::unique_ptr<sqlite3_stmt, Deleter> stmt_;
+  int exec_status_;
 
   template <typename FieldType>
   static FieldType GetColumn(sqlite3_stmt* stmt, int column);
@@ -148,8 +149,9 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
   }
 
   std::vector<T> result;
-  while (sqlite3_step(stmt_.get()) == SQLITE_ROW) {
+  while (exec_status_ == SQLITE_ROW) {
     result.push_back(GetColumn<T>(stmt_.get(), 0));
+    exec_status_ = sqlite3_step(stmt_.get());
   }
 
   return result;
@@ -160,17 +162,14 @@ T ResultSet::AsSingleRow() && {
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
 
-  int step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_DONE) {
+  if (exec_status_ == SQLITE_DONE) {
     throw SQLiteException("Result set is empty");
-  } else if (step_result != SQLITE_ROW) {
-    throw SQLiteException("Failed to fetch row");
   }
 
   T result = convertRow<T>(stmt_.get());
 
-  step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_ROW) {
+  exec_status_ = sqlite3_step(stmt_.get());
+  if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
@@ -185,11 +184,8 @@ T ResultSet::AsSingleField() && {
                 "T must be one of the supported types: int64_t, double, "
                 "std::string, std::vector<uint8_t>");
 
-  int step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_DONE) {
+  if (exec_status_ == SQLITE_DONE) {
     throw SQLiteException("Result set is empty");
-  } else if (step_result != SQLITE_ROW) {
-    throw SQLiteException("Failed to fetch row");
   }
 
   int column_count = sqlite3_column_count(stmt_.get());
@@ -199,8 +195,8 @@ T ResultSet::AsSingleField() && {
 
   T result = GetColumn<T>(stmt_.get(), 0);
 
-  step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_ROW) {
+  exec_status_ = sqlite3_step(stmt_.get());
+  if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
@@ -212,15 +208,14 @@ std::optional<T> ResultSet::AsOptionalSingleRow() && {
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
 
-  int step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_DONE || step_result != SQLITE_ROW) {
+  if (exec_status_ == SQLITE_DONE) {
     return std::nullopt;
   }
 
   T result = convertRow<T>(stmt_.get());
 
-  step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_ROW) {
+  exec_status_ = sqlite3_step(stmt_.get());
+  if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
@@ -235,11 +230,8 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
                 "T must be one of the supported types: int64_t, double, "
                 "std::string, std::vector<uint8_t>");
 
-  int step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_DONE) {
+  if (exec_status_ == SQLITE_DONE) {
     return std::nullopt;
-  } else if (step_result != SQLITE_ROW) {
-    throw SQLiteException("Execution error");
   }
 
   int column_count = sqlite3_column_count(stmt_.get());
@@ -249,8 +241,8 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
 
   T result = GetColumn<T>(stmt_.get(), 0);
 
-  step_result = sqlite3_step(stmt_.get());
-  if (step_result == SQLITE_ROW) {
+  exec_status_ = sqlite3_step(stmt_.get());
+  if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 

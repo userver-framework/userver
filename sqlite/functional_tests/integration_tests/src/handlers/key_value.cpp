@@ -40,8 +40,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
         sqlite_connection_(
             context.FindComponent<components::SQLite>("key-value-database")
                 .GetConnection()) {
-    sqlite_connection_->Execute(db::sql::kCreateTable.data())
-        .AsExecutionResult();
+    sqlite_connection_->Execute(db::sql::kCreateTable.data());
   }
 
   std::string HandleRequestThrow(const server::http::HttpRequest& request,

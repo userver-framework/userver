@@ -75,7 +75,11 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
                    ret != SQLITE_OK) {
                  throw SQLiteException(getHandle(), ret);
                }
-               return ResultSet(stmt);
+               const int exec_status = sqlite3_step(stmt);
+               if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
+                 throw SQLiteException(getHandle(), exec_status);
+               }
+               return ResultSet(stmt, exec_status);
              })
       .Get();
 }

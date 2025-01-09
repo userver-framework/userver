@@ -6,7 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-ResultSet::ResultSet(sqlite3_stmt* stmt) : stmt_(stmt) {
+ResultSet::ResultSet(sqlite3_stmt* stmt, int exec_status)
+    : stmt_(stmt), exec_status_(exec_status) {
   if (!stmt_) throw SQLiteException("Statement cannot be null");
 }
 
@@ -19,9 +20,7 @@ void ResultSet::Deleter::operator()(sqlite3_stmt* stmt) {
 }
 
 ExecutionResult ResultSet::AsExecutionResult() && {
-  if (const int ret = sqlite3_step(stmt_.get()); ret != SQLITE_DONE) {
-    throw SQLiteException(sqlite3_db_handle(stmt_.get()), ret);
-  }
+  // TODO: need check on SQLITE_DONE?
   const auto rows_affected = sqlite3_changes(sqlite3_db_handle(stmt_.get()));
   const auto last_insert_id =
       sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_.get()));

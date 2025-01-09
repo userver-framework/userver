@@ -30,18 +30,23 @@ void Transaction::Commit() {}
 void Transaction::Rollback() {}
 
 ResultSet Transaction::DoExecute(const Query& query) const {
-  return engine::AsyncNoSpan(blocking_task_processor_,
-                             [this, query] {
-                               sqlite3_stmt* stmt = nullptr;
-                               int ret = 0;
-                               if (ret = sqlite3_prepare_v2(
-                                       handle_, query.GetStatement().c_str(),
-                                       -1, &stmt, nullptr);
-                                   ret != SQLITE_OK) {
-                                 throw SQLiteException(handle_, ret);
-                               }
-                               return ResultSet(stmt);
-                             })
+  return engine::AsyncNoSpan(
+             blocking_task_processor_,
+             [this, query] {
+               sqlite3_stmt* stmt = nullptr;
+               int ret = 0;
+               if (ret =
+                       sqlite3_prepare_v2(handle_, query.GetStatement().c_str(),
+                                          -1, &stmt, nullptr);
+                   ret != SQLITE_OK) {
+                 throw SQLiteException(handle_, ret);
+               }
+               const int exec_status = sqlite3_step(stmt);
+               if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
+                 throw SQLiteException(handle_, exec_status);
+               }
+               return ResultSet(stmt, exec_status);
+             })
       .Get();
 }
 
