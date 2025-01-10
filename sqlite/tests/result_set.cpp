@@ -17,7 +17,7 @@ namespace storages::sqlite::tests {
 
 // Iterators invariants todo
 
-// TODO: Add tests on As methods
+// TODO: Add tests on As methods (with mocked db)
 
 }  // namespace storages::sqlite::tests
 

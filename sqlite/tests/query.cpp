@@ -13,7 +13,7 @@ namespace storages::sqlite::tests {
 // Here we want to check the operation of Query, probably the calculation check
 // should not be done here
 
-// TODO: Add tests on Query (prepare statement logic)
+// TODO: Add tests on Query (prepare statement logic) (with mocked db)
 
 }  // namespace storages::sqlite::tests
 
