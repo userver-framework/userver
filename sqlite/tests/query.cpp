@@ -13,12 +13,7 @@ namespace storages::sqlite::tests {
 // Here we want to check the operation of Query, probably the calculation check
 // should not be done here
 
-// UTEST(Query, InvalidStatement) {
-//   ConnectionWrapper connection{};
-
-//   UEXPECT_THROW(connection->Execute("SELECT * FROM this_table_doesnt_exist"),
-//                 SQLiteStatementException);
-// }
+// TODO: Add tests on Query (prepare statement logic)
 
 }  // namespace storages::sqlite::tests
 
