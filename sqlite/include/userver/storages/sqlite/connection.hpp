@@ -87,6 +87,7 @@ ResultSet Connection::Execute(OptionalCommandControl optional_cc
                               [[maybe_unused]],
                               const Query& query,
                               const Args&... args [[maybe_unused]]) const {
+  // Add support of args like WHERE key = ?, (?, ?, ?)
   return DoExecute(optional_cc, query.GetStatement(), std::nullopt);
 }
 
@@ -104,6 +105,7 @@ ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc
   return DoExecute(optional_cc, query.GetStatement(), std::nullopt);
 }
 
+// Is this relevant or not?
 template <typename Container>
 ResultSet Connection::ExecuteBulk(const Query& query,
                                   const Container& params) const {

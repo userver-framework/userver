@@ -128,17 +128,25 @@ class ResultSet {
 
 template <typename T>
 std::vector<T> ResultSet::AsVector() && {
+  // TODO: Add more detailed verification and error description
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
   std::vector<T> result;
+  // TODO: is this an I/O bound operation? does it need to be run on
+  // blocking_task_processor_? How page_cache and wal log work?
   while (sqlite3_step(stmt_.get()) == SQLITE_ROW) {
     result.emplace_back(convertRow<T>(stmt_.get()));
   }
+
+  // Reset state to use prepared statement again
+  sqlite3_reset(stmt_.get());
+
   return result;
 }
 
 template <typename T>
 std::vector<T> ResultSet::AsVector(FieldTag) && {
+  // TODO: Add more detailed verification and error description
   static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
                     std::is_same_v<T, std::string> ||
                     std::is_same_v<T, std::vector<uint8_t>>,
@@ -153,14 +161,20 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
   std::vector<T> result;
   while (exec_status_ == SQLITE_ROW) {
     result.emplace_back(GetColumn<T>(stmt_.get(), 0));
+    // TODO: is this an I/O bound operation? does it need to be run on
+    // blocking_task_processor_? How page_cache and wal log work?
     exec_status_ = sqlite3_step(stmt_.get());
   }
+
+  // Reset state to use prepared statement again
+  sqlite3_reset(stmt_.get());
 
   return result;
 }
 
 template <typename T>
 T ResultSet::AsSingleRow() && {
+  // TODO: Add more detailed verification and error description
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
 
@@ -170,16 +184,22 @@ T ResultSet::AsSingleRow() && {
 
   T result = convertRow<T>(stmt_.get());
 
+  // TODO: is this an I/O bound operation? does it need to be run on
+  // blocking_task_processor_? How page_cache and wal log work?
   exec_status_ = sqlite3_step(stmt_.get());
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
+
+  // Reset state to use prepared statement again
+  sqlite3_reset(stmt_.get());
 
   return result;
 }
 
 template <typename T>
 T ResultSet::AsSingleField() && {
+  // TODO: Add more detailed verification and error description
   static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
                     std::is_same_v<T, std::string> ||
                     std::is_same_v<T, std::vector<uint8_t>>,
@@ -197,16 +217,22 @@ T ResultSet::AsSingleField() && {
 
   T result = GetColumn<T>(stmt_.get(), 0);
 
+  // TODO: is this an I/O bound operation? does it need to be run on
+  // blocking_task_processor_? How page_cache and wal log work?
   exec_status_ = sqlite3_step(stmt_.get());
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
+
+  // Reset state to use prepared statement again
+  sqlite3_reset(stmt_.get());
 
   return result;
 }
 
 template <typename T>
 std::optional<T> ResultSet::AsOptionalSingleRow() && {
+  // TODO: Add more detailed verification and error description
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
 
@@ -216,16 +242,22 @@ std::optional<T> ResultSet::AsOptionalSingleRow() && {
 
   T result = convertRow<T>(stmt_.get());
 
+  // TODO: is this an I/O bound operation? does it need to be run on
+  // blocking_task_processor_? How page_cache and wal log work?
   exec_status_ = sqlite3_step(stmt_.get());
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
+
+  // Reset state to use prepared statement again
+  sqlite3_reset(stmt_.get());
 
   return result;
 }
 
 template <typename T>
 std::optional<T> ResultSet::AsOptionalSingleField() && {
+  // TODO: Add more detailed verification and error description
   static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
                     std::is_same_v<T, std::string> ||
                     std::is_same_v<T, std::vector<uint8_t>>,
@@ -243,14 +275,20 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
 
   T result = GetColumn<T>(stmt_.get(), 0);
 
+  // TODO: is this an I/O bound operation? does it need to be run on
+  // blocking_task_processor_? How page_cache and wal log work?
   exec_status_ = sqlite3_step(stmt_.get());
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
+  // Reset state to use prepared statement again
+  sqlite3_reset(stmt_.get());
+
   return result;
 }
 
+// TODO: Add more detailed verification and error description
 template <typename Tuple, std::size_t... I>
 Tuple ResultSet::ConvertToTupleImpl(sqlite3_stmt* stmt,
                                     std::index_sequence<I...>) {
@@ -267,7 +305,7 @@ template <typename T>
 T ResultSet::ConvertToAggregate(sqlite3_stmt* stmt) {
   T instance{};
   int column = 0;
-  boost::pfr::for_each_field(instance, [&column, &stmt](auto& field) {
+  boost::pfr::for_each_field(instance, [&column, &stmt](auto&& field) {
     using FieldType = std::decay_t<decltype(field)>;
     field = GetColumn<FieldType>(stmt, column++);
   });

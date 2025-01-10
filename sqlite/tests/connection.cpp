@@ -1,11 +1,12 @@
-#include "userver/storages/sqlite/connection.hpp"
-#include <gtest/gtest.h>
 #include <userver/utest/utest.hpp>
 
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/storages/sqlite.hpp>
+#include <userver/storages/sqlite/connection.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
+
+#include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,6 +21,7 @@ class SQLiteCustomConnectiom : public SQLiteTest {
     return conn;
   }
 
+  // TODO: Do I need to validate the connection somehow?
   void CheckConnection(const ConnectionPtr& conn) {
     ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
     // ASSERT_TRUE(conn->getHandle() != nullptr); TODO: need more informative
