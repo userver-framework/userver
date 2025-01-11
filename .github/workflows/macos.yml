@@ -22,7 +22,6 @@ jobs:
         runs-on: macos-latest
 
         env:
-            CPM_SOURCE_CACHE: '~/Library/Caches/CPM'
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
@@ -54,16 +53,6 @@ jobs:
                 restore-keys: |
                     macos-cache-dir ${{github.ref}}
                     macos-cache-dir
-
-          - name: Reuse cached directories
-            uses: actions/cache@v4
-            with:
-                path: |
-                   '~/Library/Caches/ccache'
-                   '~/Library/Caches/CPM'
-                key: 'ccache-dir ${{github.ref}} run-${{github.run_number}}'
-                restore-keys: |
-                    ccache-dir ${{github.ref}} run-
 
           - name: Install brew packages
             run: |
