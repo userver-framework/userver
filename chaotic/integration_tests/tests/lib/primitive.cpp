@@ -69,9 +69,9 @@ TEST(Primitive, IntMinMax) {
     int x = kJson["foo"].As<Int>();
     EXPECT_EQ(x, 1);
 
-    UEXPECT_THROW_MSG(kJson["bar"].As<Int>(), chaotic::Error<userver::formats::json::Value>,
+    UEXPECT_THROW_MSG(kJson["bar"].As<Int>(), chaotic::Error<formats::json::Value>,
         "Error at path 'bar': Invalid value, minimum=1, given=0");
-    UEXPECT_THROW_MSG(kJson["zoo"].As<Int>(), chaotic::Error<userver::formats::json::Value>,
+    UEXPECT_THROW_MSG(kJson["zoo"].As<Int>(), chaotic::Error<formats::json::Value>,
         "Error at path 'zoo': Invalid value, maximum=5, given=6");
 }
 
@@ -82,9 +82,9 @@ TEST(Primitive, UserTypeMinMax) {
     MyInt x = kJson["foo"].As<Int>();
     EXPECT_EQ(x.value, 1);
 
-    UEXPECT_THROW_MSG(kJson["bar"].As<Int>(), chaotic::Error<userver::formats::json::Value>,
+    UEXPECT_THROW_MSG(kJson["bar"].As<Int>(), chaotic::Error<formats::json::Value>,
         "Error at path 'bar': Invalid value, minimum=1, given=0");
-    UEXPECT_THROW_MSG(kJson["zoo"].As<Int>(), chaotic::Error<userver::formats::json::Value>,
+    UEXPECT_THROW_MSG(kJson["zoo"].As<Int>(), chaotic::Error<formats::json::Value>,
         "Error at path 'zoo': Invalid value, maximum=5, given=6");
 }
 
@@ -97,11 +97,11 @@ TEST(Primitive, StringMinMaxLength) {
     EXPECT_EQ(x, "12");
 
     UEXPECT_THROW_MSG(
-        kLocalJson["1"].As<Str>(), chaotic::Error<userver::formats::json::Value>,
+        kLocalJson["1"].As<Str>(), chaotic::Error<formats::json::Value>,
             "Error at path '1': Too short string, minimum length=2, given=1"
     );
     UEXPECT_THROW_MSG(
-        kLocalJson["6"].As<Str>(), chaotic::Error<userver::formats::json::Value>,
+        kLocalJson["6"].As<Str>(), chaotic::Error<formats::json::Value>,
             "Error at path '6': Too long string, maximum length=5, given=6"
     );
 }
@@ -116,7 +116,7 @@ TEST(Primitive, StringPattern) {
     std::string x = kLocalJson["1"].As<Str>();
     EXPECT_EQ(x, "foo");
 
-    UEXPECT_THROW_MSG(kLocalJson["2"].As<Str>(), chaotic::Error<userver::formats::json::Value>, "doesn't match regex");
+    UEXPECT_THROW_MSG(kLocalJson["2"].As<Str>(), chaotic::Error<formats::json::Value>, "doesn't match regex");
 }
 
 USERVER_NAMESPACE_END

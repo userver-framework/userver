@@ -38,7 +38,7 @@ TEST(Array, OfIntWithValidators) {
 
     const auto kJson1 = formats::json::MakeArray("foo");
     UEXPECT_THROW_MSG(
-        kJson1.As<Arr>(), chaotic::Error<userver::formats::json::Value>, "Error at path '/': Too short array, minimum length=2, given=1"
+        kJson1.As<Arr>(), chaotic::Error<formats::json::Value>, "Error at path '/': Too short array, minimum length=2, given=1"
     );
 }
 
