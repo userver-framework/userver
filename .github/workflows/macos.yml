@@ -160,6 +160,11 @@ jobs:
                 cd build_debug/mysql
                 GTEST_FILTER="-*Transaction*" ctest -V
 
+          - name: Run tests (mongo)
+            run: |
+                cd build_debug/mongo
+                ctest -V
+
           - name: Run tests (redis)
             run: |
                 cd build_debug/redis
