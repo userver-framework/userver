@@ -25,6 +25,7 @@ libjemalloc-dev
 libkrb5-dev
 libldap2-dev
 librdkafka-dev
+liblzma-dev
 libmongoc-dev
 libnghttp2-dev
 libpq-dev=10.*

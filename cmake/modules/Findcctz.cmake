@@ -13,7 +13,6 @@ _userver_module_find_include(
 
 _userver_module_find_library(
     NAMES cctz
-    PATHS /usr/lib/x86_64-linux-gnu
 )
 
 _userver_module_end()

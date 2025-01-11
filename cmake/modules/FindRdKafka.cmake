@@ -12,7 +12,11 @@ _userver_module_find_include(
 )
 
 _userver_module_find_library(
-    NAMES librdkafka.a
+    NAMES rdkafka
 )
 
 _userver_module_end()
+
+if(NOT TARGET RdKafka::rdkafka)
+    add_library(RdKafka::rdkafka ALIAS RdKafka)
+endif()

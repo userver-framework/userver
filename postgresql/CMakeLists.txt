@@ -12,7 +12,12 @@ else()
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
-  find_package(PostgreSQL REQUIRED)
+  if(USERVER_CONAN)
+    find_package(PostgreSQL REQUIRED CONFIG)
+  else()
+    find_library(PostgreSQL_LIBRARY NAMES libpq.so libpq.dylib REQUIRED)
+    find_package(PostgreSQL REQUIRED)
+  endif()
   target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
 endif()
 

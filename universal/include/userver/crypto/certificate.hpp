@@ -3,6 +3,7 @@
 /// @file userver/crypto/certificate.hpp
 /// @brief @copybrief crypto::Certificate
 
+#include <list>
 #include <memory>
 #include <optional>
 #include <string>
@@ -43,6 +44,15 @@ private:
 
     std::shared_ptr<NativeType> cert_;
 };
+
+using CertificatesChain = std::list<Certificate>;
+
+/// Accepts a string that contains a chain of certificates (primary and intermediate), checks that
+/// it's correct, loads it into OpenSSL structures and returns as a
+/// list of 'Certificate's.
+///
+/// @throw crypto::KeyParseError if failed to load the certificate.
+CertificatesChain LoadCertficatesChainFromString(std::string_view chain);
 
 }  // namespace crypto
 

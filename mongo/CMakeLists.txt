@@ -6,10 +6,8 @@ if (USERVER_CONAN)
   set_target_properties(mongo::mongoc_static PROPERTIES IMPORTED_GLOBAL TRUE)
   add_library(bson ALIAS mongo::bson_static)
   add_library(mongoc ALIAS mongo::mongoc_static)
-  find_package(cyrus-sasl REQUIRED CONFIG)
 else()
-  find_package(bson REQUIRED)
-  find_package(mongoc REQUIRED)
+  include(SetupMongoDeps)
 endif()
 
 userver_module(mongo
@@ -23,6 +21,11 @@ userver_module(mongo
     # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo
     DBTEST_ENV TESTSUITE_MONGO_RS_INSTANCE_COUNT=5
     UBENCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
+)
+
+_userver_directory_install(COMPONENT mongo FILES
+    "${USERVER_ROOT_DIR}/cmake/SetupMongoDeps.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
 _userver_directory_install(COMPONENT mongo FILES

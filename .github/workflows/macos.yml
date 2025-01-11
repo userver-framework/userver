@@ -1,4 +1,4 @@
-name: CI
+name: MacOS
 
 'on':
     pull_request:
@@ -8,15 +8,25 @@ name: CI
           - develop
           - feature/**
 
+env:
+    CCACHE_DIR: /Users/runner/Library/Caches/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /Users/runner/Library/Caches/CPM
+
 jobs:
     macos:
-        name: MacOS
+        strategy:
+            fail-fast: false
+
+        name: macos-latest (build only)
         runs-on: macos-latest
+
         env:
             CPM_SOURCE_CACHE: '~/Library/Caches/CPM'
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
+                -DUSERVER_USE_STATIC_LIBS=1
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
@@ -32,8 +42,18 @@ jobs:
 
         steps:
           - uses: actions/checkout@v4
+
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
             with:
-                fetch-depth: 0
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'macos-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    macos-cache-dir ${{github.ref}}
+                    macos-cache-dir
 
           - name: Reuse cached directories
             uses: actions/cache@v4
@@ -54,7 +74,13 @@ jobs:
                 brew install python@3.11
                 brew install lld
 
-                brew link postgresql@16 # postgres is keg-only
+                brew link postgresql@16 # postgresql is keg-only
+                brew link --force zlib # keg-only + need for static linkage
+                brew link --force icu4c@76 # keg-only + need for static boost linkage
+                brew link --force curl # keg-only
+                brew link --force cyrus-sasl # keg-only
+                brew link --force openldap # keg-only
+                brew remove --ignore-dependencies abseil
 
           - name: Install test dependencies
             run: |
@@ -63,8 +89,9 @@ jobs:
 
           - name: Setup ccache
             run: |
-                ccache -M 4.0GB
-                ccache -s
+                ccache -M 2.0GB
+                ccache -s -v
+
 
           - name: Run cmake
             run: |
@@ -73,6 +100,20 @@ jobs:
           - name: Compile
             run: |
                 cmake --build build_debug -j$(nproc) -- -k 1
+                
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v
 
           - name: Run tests (universal)
             run: |
@@ -111,16 +152,12 @@ jobs:
                 ctest -V
 
           - name: Run tests (kafka)
-            if: false
             run: |
-                # Enable after https://github.com/yandex/yandex-taxi-testsuite/pull/109
                 cd build_debug/kafka
                 ctest -V
 
           - name: Run tests (rabbitmq)
-            if: false
             run: |
-                # Enable after https://github.com/yandex/yandex-taxi-testsuite/pull/109
                 cd build_debug/rabbitmq
                 ctest -V
 
@@ -143,3 +180,4 @@ jobs:
             run: |
                 cd build_debug/postgresql
                 ulimit -n 4096 && ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
+

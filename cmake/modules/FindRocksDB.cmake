@@ -12,7 +12,7 @@ _userver_module_find_include(
 )
 
 _userver_module_find_library(
-    NAMES librocksdb.a
+    NAMES rocksdb
 )
 
 _userver_module_end()

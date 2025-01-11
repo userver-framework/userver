@@ -125,7 +125,7 @@ properties:
                             description: path to TLS CA
                     cert:
                         type: string
-                        description: path to TLS certificate
+                        description: path to TLS certificate chain
                     private-key:
                         type: string
                         description: path to TLS certificate private key

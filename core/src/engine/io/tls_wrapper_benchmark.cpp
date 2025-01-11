@@ -97,7 +97,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
             [&reading, deadline](auto&& server) {
                 auto tls_server = io::TlsWrapper::StartTlsServer(
                     std::forward<decltype(server)>(server),
-                    crypto::Certificate::LoadFromString(cert),
+                    crypto::LoadCertficatesChainFromString(cert),
                     crypto::PrivateKey::LoadFromString(key),
                     deadline
                 );
@@ -141,7 +141,7 @@ BENCHMARK(tls_write_all_buffered)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->U
             [&reading, deadline](auto&& server) {
                 auto tls_server = io::TlsWrapper::StartTlsServer(
                     std::forward<decltype(server)>(server),
-                    crypto::Certificate::LoadFromString(cert),
+                    crypto::LoadCertficatesChainFromString(cert),
                     crypto::PrivateKey::LoadFromString(key),
                     deadline
                 );

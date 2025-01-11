@@ -106,7 +106,7 @@ void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket, const PortC
     if (port_config.tls) {
         socket = std::make_unique<engine::io::TlsWrapper>(engine::io::TlsWrapper::StartTlsServer(
             std::move(peer_socket),
-            port_config.tls_cert,
+            port_config.tls_cert_chain,
             port_config.tls_private_key,
             {},
             port_config.tls_certificate_authorities

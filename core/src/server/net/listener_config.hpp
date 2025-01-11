@@ -21,7 +21,7 @@ struct PortConfig {
     std::string address = "::";
 
     bool tls{false};
-    crypto::Certificate tls_cert;
+    crypto::CertificatesChain tls_cert_chain;
     std::string tls_private_key_path;
     std::string tls_private_key_passphrase_name;
     crypto::PrivateKey tls_private_key;

@@ -38,11 +38,4 @@ public:
 
 }  // namespace storages::redis
 
-#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
-namespace redis {
-using storages::redis::KeyHasNoExpirationException;
-using storages::redis::TtlReply;
-}  // namespace redis
-#endif
-
 USERVER_NAMESPACE_END

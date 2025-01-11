@@ -35,7 +35,7 @@ PortConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PortCo
     }
     if (!cert_path.empty()) {
         auto contents = fs::blocking::ReadFileContents(cert_path);
-        config.tls_cert = crypto::Certificate::LoadFromString(contents);
+        config.tls_cert_chain = crypto::LoadCertficatesChainFromString(contents);
         config.tls = true;
     }
     if (!pkey_path.empty()) {

@@ -29,12 +29,14 @@ libgrpc++1
 libgrpc-dev
 libgtest-dev
 libhiredis-dev
+libicu-dev
 libidn11-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
 librdkafka-dev
 liblz4-dev
+liblzma-dev
 libmariadb-dev
 libmongoc-dev
 libnghttp2-dev

@@ -14,6 +14,7 @@ libboost-regex1.71-dev
 libboost-stacktrace1.71-dev
 libboost1.71-dev
 libbson-dev
+libc-ares-dev
 libcctz-dev
 libcrypto++-dev
 libcurl4-openssl-dev
@@ -28,6 +29,7 @@ libjemalloc-dev
 libkrb5-dev
 libldap2-dev
 librdkafka-dev
+liblzma-dev
 libmariadb-dev
 libmongoc-dev
 libnghttp2-dev

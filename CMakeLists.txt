@@ -18,6 +18,9 @@ option(
     "Prepare build of userver to install in system"
     OFF
 )
+if(CMAKE_VERSION GREATER_EQUAL 3.31)
+  cmake_policy(SET CMP0177 NEW)
+endif()
 
 set(USERVER_AVAILABLE_COMPONENTS universal)
 
@@ -144,6 +147,16 @@ option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB
 set(CMAKE_DEBUG_POSTFIX d)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+option(USERVER_USE_STATIC_LIBS "Tries to find all dependencies as static libraries" OFF)
+
+if(USERVER_USE_STATIC_LIBS)
+  message(
+    WARNING
+    "USERVER_USE_STATIC_LIBS turned ON, prioritized to find static libraries. Not all dependencies may be taken into account and linkage may be broken")
+  include(UserverPreferStaticLibs)
+endif()
+
 include(UserverSetupEnvironment)
 userver_setup_environment()
 

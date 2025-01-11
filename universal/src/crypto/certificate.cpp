@@ -6,6 +6,7 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/crypto/openssl.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/text_light.hpp>
 
 #include <crypto/helpers.hpp>
@@ -53,6 +54,27 @@ Certificate Certificate::LoadFromString(std::string_view certificate) {
         throw KeyParseError(FormatSslError("Error loading cert into memory"));
     }
     return Certificate{std::move(cert)};
+}
+
+CertificatesChain LoadCertficatesChainFromString(std::string_view chain) {
+    CertificatesChain certificates;
+    constexpr std::string_view kBeginMarker = "-----BEGIN CERTIFICATE-----";
+    constexpr std::string_view kEndMarker = "-----END CERTIFICATE-----";
+
+    std::size_t start = 0;
+    while ((start = chain.find(kBeginMarker, start)) != std::string::npos) {
+        auto end = chain.find(kEndMarker, start);
+        UINVARIANT(end != std::string::npos, "No matching end marker found for certificate");
+
+        end += kEndMarker.length();
+        certificates.push_back(Certificate::LoadFromString(chain.substr(start, end - start)));
+        start = end;  // Move past the current certificate
+    }
+    if (certificates.empty()) {
+        throw KeyParseError(FormatSslError("There are no certificates in chain"));
+    }
+
+    return certificates;
 }
 
 }  // namespace crypto

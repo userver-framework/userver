@@ -1,6 +1,10 @@
 if (NOT (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test"))
   return()
 endif()
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  # There is not GDB for MacOS
+  return()
+endif()
 
 find_program(GDB_EXECUTABLE gdb DOC "GDB executable")
 if ("${GDB_EXECUTABLE}" STREQUAL GDB_EXECUTABLE-NOTFOUND)
