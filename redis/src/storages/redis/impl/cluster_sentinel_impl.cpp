@@ -23,6 +23,7 @@
 #include <storages/redis/impl/cluster_topology.hpp>
 #include <storages/redis/impl/redis_connection_holder.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/topology_holder_base.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -147,7 +148,8 @@ void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
 
 }  // namespace
 
-class ClusterTopologyHolder : public std::enable_shared_from_this<ClusterTopologyHolder> {
+class ClusterTopologyHolder : public TopologyHolderBase,
+                              public std::enable_shared_from_this<ClusterTopologyHolder> {
 public:
     using HostPort = std::string;
 
@@ -236,7 +238,9 @@ public:
         LOG_DEBUG() << "Created ClusterTopologyHolder, shard_group_name=" << shard_group_name_;
     }
 
-    void Init() {
+    virtual ~ClusterTopologyHolder() = default;
+
+    void Init() override {
         const constexpr bool kClusterMode = true;
         Shard::Options shard_options;
         shard_options.shard_name = "(sentinel)";
@@ -261,7 +265,7 @@ public:
         sentinels_->ProcessCreation(redis_thread_pool_);
     }
 
-    void Start() {
+    void Start() override {
         update_topology_watch_.Start();
         update_topology_timer_.Start();
         create_nodes_watch_.Start();
@@ -273,7 +277,7 @@ public:
         sentinels_process_creation_timer_.Start();
     }
 
-    void Stop() {
+    void Stop() override {
         ev_thread_.RunInEvLoopBlocking([this] {
             update_topology_timer_.Stop();
             explore_nodes_timer_.Stop();
@@ -285,7 +289,7 @@ public:
         nodes_.Clear();
     }
 
-    bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
+    bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override {
         std::unique_lock<std::mutex> lock(mutex_);
         return cv_.WaitUntil(lock, deadline, [this, mode]() {
             if (!IsInitialized()) return false;
@@ -294,11 +298,11 @@ public:
         });
     }
 
-    rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const { return topology_.Read(); }
+    rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const override { return topology_.Read(); }
 
-    void SendUpdateClusterTopology() { update_topology_watch_.Send(); }
+    void SendUpdateClusterTopology() override  { update_topology_watch_.Send(); }
 
-    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const {
+    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const override {
         const auto connection = nodes_.Get(host_port);
         if (connection) {
             return std::const_pointer_cast<Redis>(connection->Get());
@@ -313,9 +317,9 @@ public:
         return {};
     }
 
-    void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const;
+    void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const override;
 
-    void SetCommandsBufferingSettings(CommandsBufferingSettings settings) {
+    void SetCommandsBufferingSettings(CommandsBufferingSettings settings) override {
         {
             auto settings_ptr = commands_buffering_settings_.Lock();
             if (*settings_ptr == settings) {
@@ -328,7 +332,7 @@ public:
         }
     }
 
-    void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) {
+    void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) override {
         {
             auto settings_ptr = monitoring_settings_.Lock();
             *settings_ptr = settings;
@@ -338,7 +342,7 @@ public:
         }
     }
 
-    void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
+    void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) override {
         {
             auto settings_ptr = retry_budget_settings_.Lock();
             *settings_ptr = settings;
@@ -348,17 +352,18 @@ public:
         }
     }
 
-    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override {
         sentinels_->SetConnectionInfo(info_array);
     }
 
+    // TODO Should become virtual
     static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter_.load(std::memory_order_relaxed); }
 
-    boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() {
+    boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() override {
         return signal_node_state_change_;
     }
 
-    boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() { return signal_topology_changed_; }
+    boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override { return signal_topology_changed_; }
 
 private:
     void ProcessStateUpdate() { sentinels_->ProcessStateUpdate(); }
