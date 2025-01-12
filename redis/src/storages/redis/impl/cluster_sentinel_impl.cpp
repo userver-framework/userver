@@ -621,12 +621,12 @@ public:
 
     void Init() override {
         LOG_DEBUG() << "Init called";
-        create_node_watch_.Send();
     }
 
     void Start() override {
         LOG_DEBUG() << "Start called";
         create_node_watch_.Start();
+        create_node_watch_.Send();
     }
 
     void Stop() override {
