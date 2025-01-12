@@ -23,7 +23,7 @@ class FloatProperty(PropertyProtocol):
 
     _type_string: ClassVar[str] = "float"
     _json_type_string: ClassVar[str] = "float"
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.PATH,
         oai.ParameterLocation.COOKIE,

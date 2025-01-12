@@ -16,14 +16,14 @@ from jinja2 import BaseLoader, ChoiceLoader, Environment, FileSystemLoader, Pack
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
-from openapi_python_client import utils
+from . import utils
 
-from .config import Config, MetaType
+from .config import Config, ConfigFile, MetaType
 from .parser import GeneratorData, import_string_from_class
 from .parser.errors import ErrorLevel, GeneratorError
 from .parser.properties import LiteralEnumProperty
 
-__version__ = version(__package__)
+# __version__ = version(__package__)
 
 
 TEMPLATE_FILTERS = {

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from openapi_python_client.parser.properties.date import DateProperty
-from openapi_python_client.parser.properties.datetime import DateTimeProperty
-from openapi_python_client.parser.properties.file import FileProperty
-from openapi_python_client.parser.properties.literal_enum_property import LiteralEnumProperty
+from .date import DateProperty
+from .datetime import DateTimeProperty
+from .file import FileProperty
+from .literal_enum_property import LiteralEnumProperty
 
 __all__ = ["merge_properties"]
 

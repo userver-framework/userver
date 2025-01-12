@@ -23,7 +23,7 @@ class BooleanProperty(PropertyProtocol):
 
     _type_string: ClassVar[str] = "bool"
     _json_type_string: ClassVar[str] = "bool"
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.PATH,
         oai.ParameterLocation.COOKIE,

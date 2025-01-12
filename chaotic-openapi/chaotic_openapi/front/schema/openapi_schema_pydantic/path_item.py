@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union, List
+from typing import TYPE_CHECKING, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -33,8 +33,8 @@ class PathItem(BaseModel):
     head: Optional["Operation"] = None
     patch: Optional["Operation"] = None
     trace: Optional["Operation"] = None
-    servers: Optional[List[Server]] = None
-    parameters: Optional[List[Union[Parameter, Reference]]] = None
+    servers: Optional[list[Server]] = None
+    parameters: Optional[list[Union[Parameter, Reference]]] = None
     model_config = ConfigDict(
         # `Operation` is an unresolvable forward reference, will rebuild in `__init__.py`:
         defer_build=True,

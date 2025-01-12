@@ -21,7 +21,7 @@ class NoneProperty(PropertyProtocol):
     description: str | None
     example: str | None
 
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.COOKIE,
         oai.ParameterLocation.HEADER,

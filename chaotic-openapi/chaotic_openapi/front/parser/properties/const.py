@@ -102,7 +102,7 @@ class ConstProperty(PropertyProtocol):
             return f"Union[{lit}, Unset]"
         return lit
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 

@@ -24,7 +24,7 @@ class UuidProperty(PropertyProtocol):
 
     _type_string: ClassVar[str] = "UUID"
     _json_type_string: ClassVar[str] = "str"
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.PATH,
         oai.ParameterLocation.COOKIE,
@@ -67,7 +67,7 @@ class UuidProperty(PropertyProtocol):
             return Value(python_code=f"UUID('{value}')", raw_value=value)
         return PropertyError(f"Invalid UUID value: {value}")
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 

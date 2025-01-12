@@ -1,11 +1,11 @@
 __all__ = ["Response", "response_from_data"]
 
 from http import HTTPStatus
-from typing import Optional, TypedDict, Union, Tuple
+from typing import Optional, TypedDict, Union
 
 from attrs import define
 
-from openapi_python_client import utils
+from .. import utils
 
 from .. import Config
 from .. import schema as oai
@@ -86,7 +86,7 @@ def response_from_data(
     schemas: Schemas,
     parent_name: str,
     config: Config,
-) -> Tuple[Union[Response, ParseError], Schemas]:
+) -> tuple[Union[Response, ParseError], Schemas]:
     """Generate a Response from the OpenAPI dictionary representation of it"""
 
     response_name = f"response_{status_code}"

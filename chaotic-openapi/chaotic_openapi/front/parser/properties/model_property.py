@@ -26,13 +26,13 @@ class ModelProperty(PropertyProtocol):
     class_info: Class
     data: oai.Schema
     description: str
-    roots: Set[ReferencePath | utils.ClassName]
-    required_properties: List[Property] | None
-    optional_properties: List[Property] | None
-    relative_imports: Set[str] | None
-    lazy_imports: Set[str] | None
+    roots: set[ReferencePath | utils.ClassName]
+    required_properties: list[Property] | None
+    optional_properties: list[Property] | None
+    relative_imports: set[str] | None
+    lazy_imports: set[str] | None
     additional_properties: Property | None
-    _json_type_string: ClassVar[str] = "Dict[str,  Any]"
+    _json_type_string: ClassVar[str] = "dict[str, Any]"
 
     template: ClassVar[str] = "model_property.py.jinja"
     json_is_dict: ClassVar[bool] = True
@@ -49,8 +49,8 @@ class ModelProperty(PropertyProtocol):
         parent_name: str | None,
         config: Config,
         process_properties: bool,
-        roots: Set[ReferencePath | utils.ClassName],
-    ) -> Tuple[ModelProperty | PropertyError, Schemas]:
+        roots: set[ReferencePath | utils.ClassName],
+    ) -> tuple[ModelProperty | PropertyError, Schemas]:
         """
         A single ModelProperty from its OAI data
 
@@ -75,10 +75,10 @@ class ModelProperty(PropertyProtocol):
                 class_string = title
         class_info = Class.from_string(string=class_string, config=config)
         model_roots = {*roots, class_info.name}
-        required_properties: List[Property] | None = None
-        optional_properties: List[Property] | None = None
-        relative_imports: Set[str] | None = None
-        lazy_imports: Set[str] | None = None
+        required_properties: list[Property] | None = None
+        optional_properties: list[Property] | None = None
+        relative_imports: set[str] | None = None
+        lazy_imports: set[str] | None = None
         additional_properties: Property | None = None
         if process_properties:
             data_or_err, schemas = _process_property_data(
@@ -143,7 +143,7 @@ class ModelProperty(PropertyProtocol):
     def get_base_type_string(self, *, quoted: bool = False) -> str:
         return f'"{self.class_info.name}"' if quoted else self.class_info.name
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 
@@ -159,7 +159,7 @@ class ModelProperty(PropertyProtocol):
         )
         return imports
 
-    def get_lazy_imports(self, *, prefix: str) -> Set[str]:
+    def get_lazy_imports(self, *, prefix: str) -> set[str]:
         """Get a set of lazy import strings that should be included when this property is used somewhere
 
         Args:
@@ -168,7 +168,7 @@ class ModelProperty(PropertyProtocol):
         """
         return {f"from {prefix}{self.self_import}"}
 
-    def set_relative_imports(self, relative_imports: Set[str]) -> None:
+    def set_relative_imports(self, relative_imports: set[str]) -> None:
         """Set the relative imports set for this ModelProperty, filtering out self imports
 
         Args:
@@ -176,7 +176,7 @@ class ModelProperty(PropertyProtocol):
         """
         object.__setattr__(self, "relative_imports", {ri for ri in relative_imports if self.self_import not in ri})
 
-    def set_lazy_imports(self, lazy_imports: Set[str]) -> None:
+    def set_lazy_imports(self, lazy_imports: set[str]) -> None:
         """Set the lazy imports set for this ModelProperty, filtering out self imports
 
         Args:
@@ -202,7 +202,7 @@ class ModelProperty(PropertyProtocol):
         if json:
             type_string = self.get_base_json_type_string()
         elif multipart:
-            type_string = "Tuple[None, bytes, str]"
+            type_string = "tuple[None, bytes, str]"
         else:
             type_string = self.get_base_type_string()
 
@@ -230,10 +230,10 @@ def _resolve_naming_conflict(first: Property, second: Property, config: Config) 
 
 
 class _PropertyData(NamedTuple):
-    optional_props: List[Property]
-    required_props: List[Property]
-    relative_imports: Set[str]
-    lazy_imports: Set[str]
+    optional_props: list[Property]
+    required_props: list[Property]
+    relative_imports: set[str]
+    lazy_imports: set[str]
     schemas: Schemas
 
 
@@ -243,14 +243,14 @@ def _process_properties(  # noqa: PLR0912, PLR0911
     schemas: Schemas,
     class_name: utils.ClassName,
     config: Config,
-    roots: Set[ReferencePath | utils.ClassName],
+    roots: set[ReferencePath | utils.ClassName],
 ) -> _PropertyData | PropertyError:
     from . import property_from_data
     from .merge_properties import merge_properties
 
-    properties: Dict[str,  Property] = {}
-    relative_imports: Set[str] = set()
-    lazy_imports: Set[str] = set()
+    properties: dict[str, Property] = {}
+    relative_imports: set[str] = set()
+    lazy_imports: set[str] = set()
     required_set = set(data.required or [])
 
     def _add_if_no_conflict(new_prop: Property) -> PropertyError | None:
@@ -274,7 +274,7 @@ def _process_properties(  # noqa: PLR0912, PLR0911
         properties[merged_prop.name] = merged_prop
         return None
 
-    unprocessed_props: List[Tuple[str, oai.Reference | oai.Schema]] = (
+    unprocessed_props: list[tuple[str, oai.Reference | oai.Schema]] = (
         list(data.properties.items()) if data.properties else []
     )
     for sub_prop in data.allOf:
@@ -354,8 +354,8 @@ def _get_additional_properties(
     schemas: Schemas,
     class_name: utils.ClassName,
     config: Config,
-    roots: Set[ReferencePath | utils.ClassName],
-) -> Tuple[Property | None | PropertyError, Schemas]:
+    roots: set[ReferencePath | utils.ClassName],
+) -> tuple[Property | None | PropertyError, Schemas]:
     from . import property_from_data
 
     if schema_additional is None:
@@ -388,8 +388,8 @@ def _process_property_data(
     schemas: Schemas,
     class_info: Class,
     config: Config,
-    roots: Set[ReferencePath | utils.ClassName],
-) -> Tuple[tuple[_PropertyData, Property | None] | PropertyError, Schemas]:
+    roots: set[ReferencePath | utils.ClassName],
+) -> tuple[tuple[_PropertyData, Property | None] | PropertyError, Schemas]:
     property_data = _process_properties(
         data=data, schemas=schemas, class_name=class_info.name, config=config, roots=roots
     )

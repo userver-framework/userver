@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,7 +15,7 @@ class OAuthFlow(BaseModel):
     authorizationUrl: Optional[str] = None
     tokenUrl: Optional[str] = None
     refreshUrl: Optional[str] = None
-    scopes: Dict[str,  str]
+    scopes: dict[str, str]
     model_config = ConfigDict(
         extra="allow",
         json_schema_extra={

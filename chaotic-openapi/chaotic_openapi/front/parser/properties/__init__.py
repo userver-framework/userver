@@ -108,8 +108,8 @@ def _property_from_ref(
     data: oai.Reference,
     schemas: Schemas,
     config: Config,
-    roots: Set[ReferencePath | utils.ClassName],
-) -> Tuple[Property | PropertyError, Schemas]:
+    roots: set[ReferencePath | utils.ClassName],
+) -> tuple[Property | PropertyError, Schemas]:
     ref_path = parse_reference_path(data.ref)
     if isinstance(ref_path, ParseError):
         return PropertyError(data=data, detail=ref_path.detail), schemas
@@ -145,8 +145,8 @@ def property_from_data(  # noqa: PLR0911, PLR0912
     parent_name: str,
     config: Config,
     process_properties: bool = True,
-    roots: Set[ReferencePath | utils.ClassName] | None = None,
-) -> Tuple[Property | PropertyError, Schemas]:
+    roots: set[ReferencePath | utils.ClassName] | None = None,
+) -> tuple[Property | PropertyError, Schemas]:
     """Generate a Property from the OpenAPI dictionary representation of it"""
     roots = roots or set()
     name = utils.remove_string_escapes(name)
@@ -161,7 +161,7 @@ def property_from_data(  # noqa: PLR0911, PLR0912
             roots=roots,
         )
 
-    sub_data: List[oai.Schema | oai.Reference] = data.allOf + data.anyOf + data.oneOf
+    sub_data: list[oai.Schema | oai.Reference] = data.allOf + data.anyOf + data.oneOf
     # A union of a single reference should just be passed through to that reference (don't create copy class)
     if len(sub_data) == 1 and isinstance(sub_data[0], oai.Reference):
         prop, schemas = _property_from_ref(
@@ -312,13 +312,13 @@ def property_from_data(  # noqa: PLR0911, PLR0912
 
 def _create_schemas(
     *,
-    components: Dict[str,  oai.Reference | oai.Schema],
+    components: dict[str, oai.Reference | oai.Schema],
     schemas: Schemas,
     config: Config,
 ) -> Schemas:
-    to_process: Iterable[Tuple[str, oai.Reference | oai.Schema]] = components.items()
+    to_process: Iterable[tuple[str, oai.Reference | oai.Schema]] = components.items()
     still_making_progress = True
-    errors: List[PropertyError] = []
+    errors: list[PropertyError] = []
 
     # References could have forward References so keep going as long as we are making progress
     while still_making_progress:
@@ -360,8 +360,8 @@ def _propogate_removal(*, root: ReferencePath | utils.ClassName, schemas: Schema
 
 
 def _process_model_errors(
-    model_errors: List[Tuple[ModelProperty, PropertyError]], *, schemas: Schemas
-) -> List[PropertyError]:
+    model_errors: list[tuple[ModelProperty, PropertyError]], *, schemas: Schemas
+) -> list[PropertyError]:
     for model, error in model_errors:
         error.detail = error.detail or ""
         error.detail += "\n\nFailure to process schema has resulted in the removal of:"
@@ -373,8 +373,8 @@ def _process_model_errors(
 def _process_models(*, schemas: Schemas, config: Config) -> Schemas:
     to_process = schemas.models_to_process
     still_making_progress = True
-    final_model_errors: List[Tuple[ModelProperty, PropertyError]] = []
-    latest_model_errors: List[Tuple[ModelProperty, PropertyError]] = []
+    final_model_errors: list[tuple[ModelProperty, PropertyError]] = []
+    latest_model_errors: list[tuple[ModelProperty, PropertyError]] = []
 
     # Models which refer to other models in their allOf must be processed after their referenced models
     while still_making_progress:
@@ -407,7 +407,7 @@ def _process_models(*, schemas: Schemas, config: Config) -> Schemas:
 
 def build_schemas(
     *,
-    components: Dict[str,  oai.Reference | oai.Schema],
+    components: dict[str, oai.Reference | oai.Schema],
     schemas: Schemas,
     config: Config,
 ) -> Schemas:
@@ -419,16 +419,16 @@ def build_schemas(
 
 def build_parameters(
     *,
-    components: Dict[str,  oai.Reference | oai.Parameter],
+    components: dict[str, oai.Reference | oai.Parameter],
     parameters: Parameters,
     config: Config,
 ) -> Parameters:
     """Get a list of Parameters from an OpenAPI dict"""
-    to_process: Iterable[Tuple[str, oai.Reference | oai.Parameter]] = []
+    to_process: Iterable[tuple[str, oai.Reference | oai.Parameter]] = []
     if components is not None:
         to_process = components.items()
     still_making_progress = True
-    errors: List[ParameterError] = []
+    errors: list[ParameterError] = []
 
     # References could have forward References so keep going as long as we are making progress
     while still_making_progress:

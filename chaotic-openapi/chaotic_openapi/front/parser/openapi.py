@@ -1,9 +1,9 @@
 import re
-from typing import Iterator
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass, field
 from http import HTTPStatus
-from typing import Any, Optional, Protocol, Union, List, Dict, Tuple, Set
+from typing import Any, Optional, Protocol, Union
 
 from pydantic import ValidationError
 
@@ -41,20 +41,20 @@ class EndpointCollection:
     """A bunch of endpoints grouped under a tag that will become a module"""
 
     tag: str
-    endpoints: List["Endpoint"] = field(default_factory=list)
-    parse_errors: List[ParseError] = field(default_factory=list)
+    endpoints: list["Endpoint"] = field(default_factory=list)
+    parse_errors: list[ParseError] = field(default_factory=list)
 
     @staticmethod
     def from_data(
         *,
-        data: Dict[str,  oai.PathItem],
+        data: dict[str, oai.PathItem],
         schemas: Schemas,
         parameters: Parameters,
-        request_bodies: Dict[str, Union[oai.RequestBody,  oai.Reference]],
+        request_bodies: dict[str, Union[oai.RequestBody, oai.Reference]],
         config: Config,
-    ) -> Tuple[Dict[utils.PythonIdentifier, "EndpointCollection"], Schemas,  Parameters]:
+    ) -> tuple[dict[utils.PythonIdentifier, "EndpointCollection"], Schemas, Parameters]:
         """Parse the openapi paths data to get EndpointCollections by tag"""
-        endpoints_by_tag: Dict[utils.PythonIdentifier,  EndpointCollection] = {}
+        endpoints_by_tag: dict[utils.PythonIdentifier, EndpointCollection] = {}
 
         methods = ["get", "put", "post", "delete", "options", "head", "patch", "trace"]
 
@@ -124,7 +124,7 @@ class RequestBodyParser(Protocol):
 
     def __call__(
         self, *, body: oai.RequestBody, schemas: Schemas, parent_name: str, config: Config
-    ) -> Tuple[Union[Property, PropertyError, None], Schemas]: ...  # pragma: no cover
+    ) -> tuple[Union[Property, PropertyError, None], Schemas]: ...  # pragma: no cover
 
 
 @dataclass
@@ -138,21 +138,21 @@ class Endpoint:
     description: Optional[str]
     name: str
     requires_security: bool
-    tags: List[PythonIdentifier]
+    tags: list[PythonIdentifier]
     summary: Optional[str] = ""
-    relative_imports: Set[str] = field(default_factory=set)
-    query_parameters: List[Property] = field(default_factory=list)
-    path_parameters: List[Property] = field(default_factory=list)
-    header_parameters: List[Property] = field(default_factory=list)
-    cookie_parameters: List[Property] = field(default_factory=list)
-    responses: List[Response] = field(default_factory=list)
-    bodies: List[Body] = field(default_factory=list)
-    errors: List[ParseError] = field(default_factory=list)
+    relative_imports: set[str] = field(default_factory=set)
+    query_parameters: list[Property] = field(default_factory=list)
+    path_parameters: list[Property] = field(default_factory=list)
+    header_parameters: list[Property] = field(default_factory=list)
+    cookie_parameters: list[Property] = field(default_factory=list)
+    responses: list[Response] = field(default_factory=list)
+    bodies: list[Body] = field(default_factory=list)
+    errors: list[ParseError] = field(default_factory=list)
 
     @staticmethod
     def _add_responses(
         *, endpoint: "Endpoint", data: oai.Responses, schemas: Schemas, config: Config
-    ) -> Tuple["Endpoint", Schemas]:
+    ) -> tuple["Endpoint", Schemas]:
         endpoint = deepcopy(endpoint)
         for code, response_data in data.items():
             status_code: HTTPStatus
@@ -204,7 +204,7 @@ class Endpoint:
         schemas: Schemas,
         parameters: Parameters,
         config: Config,
-    ) -> Tuple[Union["Endpoint", ParseError], Schemas, Parameters]:
+    ) -> tuple[Union["Endpoint", ParseError], Schemas, Parameters]:
         """Process the defined `parameters` for an Endpoint.
 
         Any existing parameters will be ignored, so earlier instances of a parameter take precedence. PathItem
@@ -233,8 +233,8 @@ class Endpoint:
 
         endpoint = deepcopy(endpoint)
 
-        unique_parameters: Set[Tuple[str, oai.ParameterLocation]] = set()
-        parameters_by_location: Dict[str,  List[Property]] = {
+        unique_parameters: set[tuple[str, oai.ParameterLocation]] = set()
+        parameters_by_location: dict[str, list[Property]] = {
             oai.ParameterLocation.QUERY: endpoint.query_parameters,
             oai.ParameterLocation.PATH: endpoint.path_parameters,
             oai.ParameterLocation.HEADER: endpoint.header_parameters,
@@ -311,7 +311,7 @@ class Endpoint:
         self,
         *,
         config: Config,
-        previously_modified_params: Optional[Set[Tuple[oai.ParameterLocation, str]]] = None,
+        previously_modified_params: Optional[set[tuple[oai.ParameterLocation, str]]] = None,
     ) -> Union["Endpoint", ParseError]:
         """Check for conflicting parameters
 
@@ -323,7 +323,7 @@ class Endpoint:
         unique python_name.
         """
         modified_params = previously_modified_params or set()
-        used_python_names: Dict[PythonIdentifier, Tuple[oai.ParameterLocation,  Property]] = {}
+        used_python_names: dict[PythonIdentifier, tuple[oai.ParameterLocation, Property]] = {}
         reserved_names = ["client", "url"]
         for parameter in self.iter_all_parameters():
             location, prop = parameter
@@ -399,12 +399,12 @@ class Endpoint:
         data: oai.Operation,
         path: str,
         method: str,
-        tags: List[PythonIdentifier],
+        tags: list[PythonIdentifier],
         schemas: Schemas,
         parameters: Parameters,
-        request_bodies: Dict[str, Union[oai.RequestBody,  oai.Reference]],
+        request_bodies: dict[str, Union[oai.RequestBody, oai.Reference]],
         config: Config,
-    ) -> Tuple[Union["Endpoint", ParseError], Schemas, Parameters]:
+    ) -> tuple[Union["Endpoint", ParseError], Schemas, Parameters]:
         """Construct an endpoint from the OpenAPI data"""
 
         if data.operationId is None:
@@ -468,14 +468,14 @@ class Endpoint:
             return self.responses[0].prop.get_type_string(quoted=False)
         return f"Union[{', '.join(types)}]"
 
-    def iter_all_parameters(self) -> Iterator[Tuple[oai.ParameterLocation, Property]]:
+    def iter_all_parameters(self) -> Iterator[tuple[oai.ParameterLocation, Property]]:
         """Iterate through all the parameters of this endpoint"""
         yield from ((oai.ParameterLocation.PATH, param) for param in self.path_parameters)
         yield from ((oai.ParameterLocation.QUERY, param) for param in self.query_parameters)
         yield from ((oai.ParameterLocation.HEADER, param) for param in self.header_parameters)
         yield from ((oai.ParameterLocation.COOKIE, param) for param in self.cookie_parameters)
 
-    def list_all_parameters(self) -> List[Property]:
+    def list_all_parameters(self) -> list[Property]:
         """Return a list of all the parameters of this endpoint"""
         return (
             self.path_parameters
@@ -494,12 +494,12 @@ class GeneratorData:
     description: Optional[str]
     version: str
     models: Iterator[ModelProperty]
-    errors: List[ParseError]
-    endpoint_collections_by_tag: Dict[utils.PythonIdentifier,  EndpointCollection]
+    errors: list[ParseError]
+    endpoint_collections_by_tag: dict[utils.PythonIdentifier, EndpointCollection]
     enums: Iterator[Union[EnumProperty, LiteralEnumProperty]]
 
     @staticmethod
-    def from_dict(data: Dict[str, Any], *, config: Config) -> Union["GeneratorData",  GeneratorError]:
+    def from_dict(data: dict[str, Any], *, config: Config) -> Union["GeneratorData", GeneratorError]:
         """Create an OpenAPI from dict"""
         try:
             openapi = oai.OpenAPI.model_validate(data)

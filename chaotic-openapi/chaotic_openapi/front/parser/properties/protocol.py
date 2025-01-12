@@ -49,7 +49,7 @@ class PropertyProtocol(Protocol):
     required: bool
     _type_string: ClassVar[str] = ""
     _json_type_string: ClassVar[str] = ""  # Type of the property after JSON serialization
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.PATH,
         oai.ParameterLocation.COOKIE,
@@ -116,7 +116,7 @@ class PropertyProtocol(Protocol):
         if json:
             type_string = self.get_base_json_type_string(quoted=quoted)
         elif multipart:
-            type_string = "Tuple[None, bytes, str]"
+            type_string = "tuple[None, bytes, str]"
         else:
             type_string = self.get_base_type_string(quoted=quoted)
 
@@ -129,7 +129,7 @@ class PropertyProtocol(Protocol):
         return self.get_type_string(no_optional=True, quoted=False)
 
     # noinspection PyUnusedLocal
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 
@@ -143,7 +143,7 @@ class PropertyProtocol(Protocol):
             imports.add(f"from {prefix}types import UNSET, Unset")
         return imports
 
-    def get_lazy_imports(self, *, prefix: str) -> Set[str]:
+    def get_lazy_imports(self, *, prefix: str) -> set[str]:
         """Get a set of lazy import strings that should be included when this property is used somewhere
 
         Args:

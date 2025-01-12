@@ -34,9 +34,9 @@ the following schema classes are actually just a typing of `Dict`:
 
 | Schema Type | Implementation |
 | ----------- | -------------- |
-| Callback | `Callback = Dict[str,  PathItem]` |
-| Paths | `Paths = Dict[str,  PathItem]` |
-| Responses | `Responses = Dict[str, Union[Response,  Reference]]` |
-| SecurityRequirement | `SecurityRequirement = Dict[str,  List[str]]` |
+| Callback | `Callback = Dict[str, PathItem]` |
+| Paths | `Paths = Dict[str, PathItem]` |
+| Responses | `Responses = Dict[str, Union[Response, Reference]]` |
+| SecurityRequirement | `SecurityRequirement = Dict[str, List[str]]` |
 
 On creating such schema instances, please use python's `dict` type instead to instantiate.

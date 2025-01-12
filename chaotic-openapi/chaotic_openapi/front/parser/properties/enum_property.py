@@ -29,13 +29,13 @@ class EnumProperty(PropertyProtocol):
     python_name: utils.PythonIdentifier
     description: str | None
     example: str | None
-    values: Dict[str,  ValueType]
+    values: dict[str, ValueType]
     class_info: Class
     value_type: type[ValueType]
 
     template: ClassVar[str] = "enum_property.py.jinja"
 
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.PATH,
         oai.ParameterLocation.COOKIE,
@@ -52,7 +52,7 @@ class EnumProperty(PropertyProtocol):
         schemas: Schemas,
         parent_name: str,
         config: Config,
-    ) -> Tuple[EnumProperty | NoneProperty | UnionProperty | PropertyError, Schemas]:
+    ) -> tuple[EnumProperty | NoneProperty | UnionProperty | PropertyError, Schemas]:
         """
         Create an EnumProperty from schema data.
 
@@ -99,7 +99,7 @@ class EnumProperty(PropertyProtocol):
         if value_type not in (str, int):
             return PropertyError(header=f"Unsupported enum type {value_type}", data=data), schemas
         value_list = cast(
-            Union[List[int], list[str]], unchecked_value_list
+            Union[list[int], list[str]], unchecked_value_list
         )  # We checked this with all the value_types stuff
 
         if len(value_list) < len(enum):  # Only one of the values was None, that becomes a union
@@ -170,7 +170,7 @@ class EnumProperty(PropertyProtocol):
     def get_base_json_type_string(self, *, quoted: bool = False) -> str:
         return self.value_type.__name__
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 
@@ -183,9 +183,9 @@ class EnumProperty(PropertyProtocol):
         return imports
 
     @staticmethod
-    def values_from_list(values: List[str] | list[int], class_info: Class) -> Dict[str,  ValueType]:
+    def values_from_list(values: list[str] | list[int], class_info: Class) -> dict[str, ValueType]:
         """Convert a list of values into dict of {name: value}, where value can sometimes be None"""
-        output: Dict[str,  ValueType] = {}
+        output: dict[str, ValueType] = {}
 
         for i, value in enumerate(values):
             value = cast(Union[str, int], value)

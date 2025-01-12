@@ -1,11 +1,11 @@
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
     from .path_item import PathItem
 else:
     PathItem = "PathItem"
 
-Callback = Dict[str,  PathItem]
+Callback = dict[str, PathItem]
 """
 A map of possible out-of band callbacks related to the parent operation.
 Each value in the map is a [Path Item Object](#pathItemObject)

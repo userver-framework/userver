@@ -54,7 +54,7 @@ class FileProperty(PropertyProtocol):
             return PropertyError(detail="File properties cannot have a default value")
         return value
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 

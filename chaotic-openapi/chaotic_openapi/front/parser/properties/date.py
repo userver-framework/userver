@@ -60,7 +60,7 @@ class DateProperty(PropertyProtocol):
             return Value(python_code=f"isoparse({value!r}).date()", raw_value=value)
         return PropertyError(f"Cannot convert {value} to a date")
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 

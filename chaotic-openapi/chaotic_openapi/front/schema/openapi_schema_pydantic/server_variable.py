@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -11,7 +11,7 @@ class ServerVariable(BaseModel):
         - https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#serverVariableObject
     """
 
-    enum: Optional[List[str]] = None
+    enum: Optional[list[str]] = None
     default: str
     description: Optional[str] = None
     model_config = ConfigDict(extra="allow")

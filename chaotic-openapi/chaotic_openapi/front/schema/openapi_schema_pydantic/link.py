@@ -1,4 +1,4 @@
-from typing import Any, Optional, Dict
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -25,7 +25,7 @@ class Link(BaseModel):
 
     operationRef: Optional[str] = None
     operationId: Optional[str] = None
-    parameters: Optional[Dict[str,  Any]] = None
+    parameters: Optional[dict[str, Any]] = None
     requestBody: Optional[Any] = None
     description: Optional[str] = None
     server: Optional[Server] = None

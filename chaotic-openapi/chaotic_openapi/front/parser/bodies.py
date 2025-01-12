@@ -1,9 +1,9 @@
 import sys
-from typing import Union, Dict, List, Tuple
+from typing import Union
 
 import attr
 
-from openapi_python_client.parser.properties import (
+from .properties import (
     ModelProperty,
     Property,
     Schemas,
@@ -44,10 +44,10 @@ def body_from_data(
     *,
     data: oai.Operation,
     schemas: Schemas,
-    request_bodies: Dict[str, Union[oai.RequestBody,  oai.Reference]],
+    request_bodies: dict[str, Union[oai.RequestBody, oai.Reference]],
     config: Config,
     endpoint_name: str,
-) -> Tuple[List[Union[Body, ParseError]], Schemas]:
+) -> tuple[list[Union[Body, ParseError]], Schemas]:
     """Adds form or JSON body to Endpoint if included in data"""
     body = _resolve_reference(data.request_body, request_bodies)
     if isinstance(body, ParseError):
@@ -55,7 +55,7 @@ def body_from_data(
     if body is None:
         return [], schemas
 
-    bodies: List[Union[Body, ParseError]] = []
+    bodies: list[Union[Body, ParseError]] = []
     body_content = body.content
     prefix_type_names = len(body_content) > 1
 
@@ -131,7 +131,7 @@ def body_from_data(
 
 
 def _resolve_reference(
-    body: Union[oai.RequestBody, oai.Reference, None], request_bodies: Dict[str, Union[oai.RequestBody,  oai.Reference]]
+    body: Union[oai.RequestBody, oai.Reference, None], request_bodies: dict[str, Union[oai.RequestBody, oai.Reference]]
 ) -> Union[oai.RequestBody, ParseError, None]:
     if body is None:
         return None

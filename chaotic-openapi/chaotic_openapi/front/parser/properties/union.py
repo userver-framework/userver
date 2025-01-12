@@ -23,13 +23,13 @@ class UnionProperty(PropertyProtocol):
     python_name: PythonIdentifier
     description: str | None
     example: str | None
-    inner_properties: List[PropertyProtocol]
+    inner_properties: list[PropertyProtocol]
     template: ClassVar[str] = "union_property.py.jinja"
 
     @classmethod
     def build(
         cls, *, data: oai.Schema, name: str, required: bool, schemas: Schemas, parent_name: str, config: Config
-    ) -> Tuple[UnionProperty | PropertyError, Schemas]:
+    ) -> tuple[UnionProperty | PropertyError, Schemas]:
         """
         Create a `UnionProperty` the right way.
 
@@ -47,7 +47,7 @@ class UnionProperty(PropertyProtocol):
         """
         from . import property_from_data
 
-        sub_properties: List[PropertyProtocol] = []
+        sub_properties: list[PropertyProtocol] = []
 
         type_list_data = []
         if isinstance(data.type, list):
@@ -67,7 +67,7 @@ class UnionProperty(PropertyProtocol):
                 return PropertyError(detail=f"Invalid property in union {name}", data=sub_prop_data), schemas
             sub_properties.append(sub_prop)
 
-        def flatten_union_properties(sub_properties: List[PropertyProtocol]) -> list[PropertyProtocol]:
+        def flatten_union_properties(sub_properties: list[PropertyProtocol]) -> list[PropertyProtocol]:
             flattened = []
             for sub_prop in sub_properties:
                 if isinstance(sub_prop, UnionProperty):
@@ -106,14 +106,14 @@ class UnionProperty(PropertyProtocol):
                 return value_or_error
         return value_or_error
 
-    def _get_inner_type_strings(self, json: bool, multipart: bool) -> Set[str]:
+    def _get_inner_type_strings(self, json: bool, multipart: bool) -> set[str]:
         return {
             p.get_type_string(no_optional=True, json=json, multipart=multipart, quoted=not p.is_base_type)
             for p in self.inner_properties
         }
 
     @staticmethod
-    def _get_type_string_from_inner_type_strings(inner_types: Set[str]) -> str:
+    def _get_type_string_from_inner_type_strings(inner_types: set[str]) -> str:
         if len(inner_types) == 1:
             return inner_types.pop()
         return f"Union[{', '.join(sorted(inner_types))}]"
@@ -124,7 +124,7 @@ class UnionProperty(PropertyProtocol):
     def get_base_json_type_string(self, *, quoted: bool = False) -> str:
         return self._get_type_string_from_inner_type_strings(self._get_inner_type_strings(json=True, multipart=False))
 
-    def get_type_strings_in_union(self, *, no_optional: bool = False, json: bool, multipart: bool) -> Set[str]:
+    def get_type_strings_in_union(self, *, no_optional: bool = False, json: bool, multipart: bool) -> set[str]:
         """
         Get the set of all the types that should appear within the `Union` representing this property.
 
@@ -161,7 +161,7 @@ class UnionProperty(PropertyProtocol):
         type_strings_in_union = self.get_type_strings_in_union(no_optional=no_optional, json=json, multipart=multipart)
         return self._get_type_string_from_inner_type_strings(type_strings_in_union)
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 
@@ -175,7 +175,7 @@ class UnionProperty(PropertyProtocol):
         imports.add("from typing import cast, Union")
         return imports
 
-    def get_lazy_imports(self, *, prefix: str) -> Set[str]:
+    def get_lazy_imports(self, *, prefix: str) -> set[str]:
         lazy_imports = super().get_lazy_imports(prefix=prefix)
         for inner_prop in self.inner_properties:
             lazy_imports.update(inner_prop.get_lazy_imports(prefix=prefix))

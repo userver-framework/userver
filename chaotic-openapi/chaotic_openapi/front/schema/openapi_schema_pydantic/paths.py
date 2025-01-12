@@ -1,7 +1,6 @@
 from .path_item import PathItem
-from typing import Dict
 
-Paths = Dict[str,  PathItem]
+Paths = dict[str, PathItem]
 """
 Holds the relative paths to the individual endpoints and their operations.
 The path is appended to the URL from the [`Server Object`](#serverObject) in order to construct the full URL.

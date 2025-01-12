@@ -23,7 +23,7 @@ class IntProperty(PropertyProtocol):
 
     _type_string: ClassVar[str] = "int"
     _json_type_string: ClassVar[str] = "int"
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.PATH,
         oai.ParameterLocation.COOKIE,

@@ -1,5 +1,5 @@
 from typing import Any, Union, Dict
-from front.parser import GeneratorData
+from front.parser.openapi import GeneratorData
 from front.config import Config, ConfigFile, MetaType
 from pathlib import Path
 
@@ -13,4 +13,5 @@ from front import _get_document
 
 conf = config()
 
-print(parse(_get_document(conf.document_source), conf))
+# print(_get_document(source=conf.document_source, timeout=10))
+print(parse(_get_document(source=conf.document_source, timeout=10), conf))

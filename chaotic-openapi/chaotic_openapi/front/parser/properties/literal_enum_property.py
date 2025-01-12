@@ -29,13 +29,13 @@ class LiteralEnumProperty(PropertyProtocol):
     python_name: utils.PythonIdentifier
     description: str | None
     example: str | None
-    values: Set[ValueType]
+    values: set[ValueType]
     class_info: Class
     value_type: type[ValueType]
 
     template: ClassVar[str] = "literal_enum_property.py.jinja"
 
-    _allowed_locations: ClassVar[Set[oai.ParameterLocation]] = {
+    _allowed_locations: ClassVar[set[oai.ParameterLocation]] = {
         oai.ParameterLocation.QUERY,
         oai.ParameterLocation.PATH,
         oai.ParameterLocation.COOKIE,
@@ -52,7 +52,7 @@ class LiteralEnumProperty(PropertyProtocol):
         schemas: Schemas,
         parent_name: str,
         config: Config,
-    ) -> Tuple[LiteralEnumProperty | NoneProperty | UnionProperty | PropertyError, Schemas]:
+    ) -> tuple[LiteralEnumProperty | NoneProperty | UnionProperty | PropertyError, Schemas]:
         """
         Create a LiteralEnumProperty from schema data.
 
@@ -98,7 +98,7 @@ class LiteralEnumProperty(PropertyProtocol):
         if value_type not in (str, int):
             return PropertyError(header=f"Unsupported enum type {value_type}", data=data), schemas
         value_list = cast(
-            Union[List[int], list[str]], unchecked_value_list
+            Union[list[int], list[str]], unchecked_value_list
         )  # We checked this with all the value_types stuff
 
         if len(value_list) < len(enum):  # Only one of the values was None, that becomes a union
@@ -120,7 +120,7 @@ class LiteralEnumProperty(PropertyProtocol):
         if parent_name:
             class_name = f"{utils.pascal_case(parent_name)}{utils.pascal_case(class_name)}"
         class_info = Class.from_string(string=class_name, config=config)
-        values: Set[str | int] = set(value_list)
+        values: set[str | int] = set(value_list)
 
         if class_info.name in schemas.classes_by_name:
             existing = schemas.classes_by_name[class_info.name]
@@ -171,7 +171,7 @@ class LiteralEnumProperty(PropertyProtocol):
     def get_instance_type_string(self) -> str:
         return self.value_type.__name__
 
-    def get_imports(self, *, prefix: str) -> Set[str]:
+    def get_imports(self, *, prefix: str) -> set[str]:
         """
         Get a set of import strings that should be included when this property is used somewhere
 
