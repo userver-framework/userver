@@ -23,8 +23,6 @@
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 
 #include "command_control_impl.hpp"
-#include <storages/redis/impl/standalone_impl.hpp>
-#include "keyshard_standalone_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
