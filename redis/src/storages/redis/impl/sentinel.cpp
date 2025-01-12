@@ -70,7 +70,7 @@ Sentinel::Sentinel(
     ConnectionSecurity connection_security,
     ReadyChangeCallback ready_callback,
     dynamic_config::Source dynamic_config_source,
-    std::unique_ptr<KeyShard>&& key_shard,
+    KeyShardFactory key_shard_factory,
     CommandControl command_control,
     const testsuite::RedisControl& testsuite_redis_control,
     ConnectionMode mode
@@ -88,7 +88,7 @@ Sentinel::Sentinel(
         std::make_unique<engine::ev::ThreadControl>(thread_pools_->GetSentinelThreadPool().NextThread());
 
     sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-        if (!key_shard) {
+        if (key_shard_factory.IsClusterStrategy()) {
             impl_ = std::make_unique<ClusterSentinelImpl>(
                 *sentinel_thread_control_,
                 thread_pools_->GetRedisThreadPool(),
@@ -100,20 +100,7 @@ Sentinel::Sentinel(
                 password,
                 connection_security,
                 std::move(ready_callback),
-                std::move(key_shard),
-                dynamic_config_source,
-                mode
-            );
-        } else if(dynamic_cast<KeyShardStandalone*>(key_shard.get())) {
-            UASSERT_MSG(conns.size() == 1, "In standalone mode we expect exactly one redis node to connect!");
-            impl_ = std::make_unique<StandaloneImpl>(
-                *sentinel_thread_control_,
-                thread_pools_->GetRedisThreadPool(),
-                conns.front(),
-                std::move(shard_group_name),
-                client_name, password,
-                connection_security,
-                std::move(ready_callback),
+                key_shard_factory(shards.size()),
                 dynamic_config_source,
                 mode
             );
@@ -129,7 +116,7 @@ Sentinel::Sentinel(
                 password,
                 connection_security,
                 std::move(ready_callback),
-                std::move(key_shard),
+                key_shard_factory(shards.size()),
                 dynamic_config_source,
                 mode
             );
@@ -202,14 +189,13 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     std::vector<redis::ConnectionInfo> conns;
     conns.reserve(settings.sentinels.size());
     LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
-    auto key_shard = key_shard_factory(shards.size());
     for (const auto& sentinel : settings.sentinels) {
         LOG_DEBUG() << "sentinel:  host = " << sentinel.host << "  port = " << sentinel.port;
         // SENTINEL MASTERS/SLAVES works without auth, sentinel has no AUTH command.
         // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
         // sentinels in cluster mode.
         conns.emplace_back(
-            sentinel.host, sentinel.port, (key_shard ? Password("") : password), false, settings.secure_connection
+            sentinel.host, sentinel.port, (key_shard_factory.IsClusterStrategy() ? password : Password("")), false, settings.secure_connection
         );
     }
 
@@ -226,7 +212,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
             settings.secure_connection,
             std::move(ready_callback),
             dynamic_config_source,
-            std::move(key_shard),
+            std::move(key_shard_factory),
             command_control,
             testsuite_redis_control
         );

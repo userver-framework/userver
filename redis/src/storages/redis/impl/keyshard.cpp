@@ -112,7 +112,10 @@ std::unique_ptr<KeyShard> KeyShardFactory::operator()(size_t nshards) {
     return std::make_unique<KeyShardTaximeterCrc32>(nshards);
 }
 
-bool IsClusterStrategy(const std::string& type) { return type == kRedisCluster; }
+bool KeyShardFactory::IsClusterStrategy() const {
+    return type_ == kRedisCluster ||
+           type_ == KeyShardStandalone::kName;
+}
 
 }  // namespace storages::redis::impl
 

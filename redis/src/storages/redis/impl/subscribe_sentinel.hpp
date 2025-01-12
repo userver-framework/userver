@@ -25,7 +25,7 @@ public:
         const Password& password,
         ConnectionSecurity connection_security,
         ReadyChangeCallback ready_callback,
-        std::unique_ptr<KeyShard>&& key_shard = nullptr,
+        KeyShardFactory key_shard_factory,
         bool is_cluster_mode = false,
         CommandControl command_control = {},
         const testsuite::RedisControl& testsuite_redis_control = {}

@@ -70,7 +70,7 @@ public:
         ConnectionSecurity connection_security,
         ReadyChangeCallback ready_callback,
         dynamic_config::Source dynamic_config_source,
-        std::unique_ptr<KeyShard>&& key_shard = nullptr,
+        KeyShardFactory key_shard_factory,
         CommandControl command_control = {},
         const testsuite::RedisControl& testsuite_redis_control = {},
         ConnectionMode mode = ConnectionMode::kCommands

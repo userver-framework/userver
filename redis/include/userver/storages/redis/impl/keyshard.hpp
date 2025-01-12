@@ -22,6 +22,7 @@ class KeyShardFactory {
 public:
     KeyShardFactory(const std::string& type) : type_(type) {}
     std::unique_ptr<KeyShard> operator()(size_t nshards);
+    bool IsClusterStrategy() const;
 };
 
 enum class PubShard {
