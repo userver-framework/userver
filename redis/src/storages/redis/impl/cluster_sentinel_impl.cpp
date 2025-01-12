@@ -730,7 +730,8 @@ private:
             password_,
             buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
             *replication_monitoring_settings_ptr,
-            *retry_budget_settings_ptr
+            *retry_budget_settings_ptr,
+            redis::RedisCreationSettings{ConnectionSecurity::kNone, false}
         );
     }
 
@@ -739,7 +740,6 @@ private:
 
         auto conn_to_create = conn_to_create_.Lock();
         std::string host_port(fmt::format("{}:{}", conn_to_create->host, conn_to_create->port));
-        LOG_DEBUG() << "Create new redis instance " << host_port;
 
         auto redis_connection = CreateRedisInstance(*conn_to_create);
         redis_connection->signal_state_change.connect([host_port,
