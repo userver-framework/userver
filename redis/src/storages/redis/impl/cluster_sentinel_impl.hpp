@@ -10,6 +10,7 @@ class PeriodicWatcher;
 namespace storages::redis::impl {
 class ClusterTopologyHolder;
 class ClusterNodesHolder;
+class TopologyHolderBase;
 
 class ClusterSentinelImpl : public SentinelImplBase {
 public:
@@ -82,7 +83,7 @@ private:
     void ProcessWaitingCommands();
     void ProcessWaitingCommandsOnStop();
 
-    std::shared_ptr<ClusterTopologyHolder> topology_holder_;
+    std::shared_ptr<TopologyHolderBase> topology_holder_;
 
     std::string shard_group_name_;
     std::vector<ConnectionInfo> conns_;

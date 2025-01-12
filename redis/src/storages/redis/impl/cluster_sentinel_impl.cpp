@@ -24,6 +24,7 @@
 #include <storages/redis/impl/redis_connection_holder.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
+#include "storages/redis/impl/keyshard_standalone_impl.hpp"
 
 #include "command_control_impl.hpp"
 
@@ -989,7 +990,7 @@ ClusterSentinelImpl::ClusterSentinelImpl(
     const Password& password,
     ConnectionSecurity /*connection_security*/,
     ReadyChangeCallback ready_callback,
-    std::unique_ptr<KeyShard>&& /*key_shard*/,
+    std::unique_ptr<KeyShard>&& key_shard,
     dynamic_config::Source dynamic_config_source,
     ConnectionMode /*mode*/
 )
@@ -1000,9 +1001,6 @@ ClusterSentinelImpl::ClusterSentinelImpl(
           [this] { ProcessWaitingCommands(); },
           kSentinelGetHostsCheckInterval
       )),
-      topology_holder_(std::make_shared<
-                       ClusterTopologyHolder>(ev_thread_, redis_thread_pool, shard_group_name, password, shards, conns)
-      ),
       shard_group_name_(std::move(shard_group_name)),
       conns_(conns),
       ready_callback_(std::move(ready_callback)),
@@ -1012,6 +1010,18 @@ ClusterSentinelImpl::ClusterSentinelImpl(
       dynamic_config_source_(std::move(dynamic_config_source)) {
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+    if(dynamic_cast<KeyShardStandalone*>(key_shard.get())) {
+        LOG_DEBUG() << "Contstruct Standalone topology holder";
+        UASSERT_MSG(conns.size() == 1, "In standalone mode we expect exactly one redis node to connect!");
+        topology_holder_ = std::make_shared<StandaloneTopologyHolder>(
+            ev_thread_, redis_thread_pool, password, conns.front()
+        );
+    } else {
+        topology_holder_ = std::make_shared<ClusterTopologyHolder>(
+            ev_thread_, redis_thread_pool, shard_group_name, password, shards, conns
+        );
+    }
+
     Init();
     LOG_DEBUG() << "Created ClusterSentinelImpl, shard_group_name=" << shard_group_name_;
 }
