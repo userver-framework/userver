@@ -12,8 +12,8 @@ RedisConnectionHolder::RedisConnectionHolder(
     Password password,
     CommandsBufferingSettings buffering_settings,
     ReplicationMonitoringSettings replication_monitoring_settings,
-    utils::RetryBudgetSettings retry_budget_settings,
-    redis::RedisCreationSettings redis_creation_settings)
+    utils::RetryBudgetSettings retry_budget_settings
+)
     : commands_buffering_settings_(std::move(buffering_settings)),
       replication_monitoring_settings_(std::move(replication_monitoring_settings)),
       retry_budget_settings_(std::move(retry_budget_settings)),
@@ -26,8 +26,7 @@ RedisConnectionHolder::RedisConnectionHolder(
           ev_thread_,
           [this] { EnsureConnected(); },
           kCheckRedisConnectedInterval
-      ),
-      redis_creation_settings_(redis_creation_settings) {
+      ) {
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
     CreateConnection();
@@ -51,7 +50,11 @@ void RedisConnectionHolder::EnsureConnected() {
 }
 
 void RedisConnectionHolder::CreateConnection() {
-    auto instance = std::make_shared<Redis>(redis_thread_pool_, redis_creation_settings_);
+    RedisCreationSettings settings;
+    /// Here we allow read from replicas possibly stale data.
+    /// This does not affect connections to masters
+    settings.send_readonly = true;
+    auto instance = std::make_shared<Redis>(redis_thread_pool_, settings);
     instance->signal_state_change.connect([weak_ptr{weak_from_this()}](Redis::State state) {
         const auto ptr = weak_ptr.lock();
         if (!ptr) return;
