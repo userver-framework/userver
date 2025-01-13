@@ -1,0 +1,91 @@
+#pragma once
+
+#include <storages/redis/impl/topology_holder_base.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/storages/redis/redis_state.hpp>
+
+#include <engine/ev/watcher/async_watcher.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::redis::impl {
+
+class RedisConnectionHolder;
+
+class StandaloneTopologyHolder : public TopologyHolderBase,
+                                 public std::enable_shared_from_this<StandaloneTopologyHolder> {
+public:
+    StandaloneTopologyHolder(
+        const engine::ev::ThreadControl& sentinel_thread_control,
+        const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+        Password password,
+        ConnectionInfo conn
+    );
+
+    virtual ~StandaloneTopologyHolder() = default;
+
+    void Init() override;
+
+    void Start() override;
+
+    void Stop() override;
+
+    bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
+
+    rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const override;
+
+    void SendUpdateClusterTopology() override;
+
+    std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const override;
+
+    void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const override;
+
+    void SetCommandsBufferingSettings(CommandsBufferingSettings settings) override;
+
+    void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) override;
+
+    void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) override;
+
+    void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
+
+    boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() override;
+
+    boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override;
+
+private:
+    std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const ConnectionInfo& info) const;
+
+    void CreateNode();
+
+    struct Node {
+        HostPort host_port;
+        std::shared_ptr<RedisConnectionHolder> node;
+    };
+
+    engine::ev::ThreadControl ev_thread_;
+    std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
+    Password password_;
+    concurrent::Variable<ConnectionInfo, std::mutex> conn_to_create_;
+
+    ///{ Wait ready
+    std::mutex mutex_;
+    engine::impl::ConditionVariableAny<std::mutex> cv_;
+    rcu::Variable<std::optional<Node>, rcu::BlockingRcuTraits> node_;
+    std::atomic_size_t current_topology_version_{0};
+    rcu::Variable<ClusterTopology, rcu::BlockingRcuTraits> topology_;
+
+    engine::ev::AsyncWatcher create_node_watch_;
+
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+    boost::signals2::signal<void(HostPort, Redis::State)> signal_node_state_change_;
+    boost::signals2::signal<void(size_t shards_count)> signal_topology_changed_;
+
+    concurrent::Variable<std::optional<CommandsBufferingSettings>, std::mutex> commands_buffering_settings_;
+    concurrent::Variable<ReplicationMonitoringSettings, std::mutex> monitoring_settings_;
+    concurrent::Variable<utils::RetryBudgetSettings, std::mutex> retry_budget_settings_;
+};
+
+}
+
+USERVER_NAMESPACE_END
