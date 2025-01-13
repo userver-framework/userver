@@ -8,7 +8,9 @@ async def test_server_middleware(service_client):
 
 
 async def _check_handler_with_custom_middleware(
-    service_client, uri, expected_header_value,
+    service_client,
+    uri,
+    expected_header_value,
 ):
     response = await service_client.get(uri)
     assert response.status == 200
@@ -22,9 +24,13 @@ async def _check_handler_with_custom_middleware(
 
 async def test_custom_handler_middleware(service_client):
     await _check_handler_with_custom_middleware(
-        service_client, '/custom-hello', 'some_value',
+        service_client,
+        '/custom-hello',
+        'some_value',
     )
 
     await _check_handler_with_custom_middleware(
-        service_client, '/custom-hello-other', 'some_other_value',
+        service_client,
+        '/custom-hello-other',
+        'some_other_value',
     )

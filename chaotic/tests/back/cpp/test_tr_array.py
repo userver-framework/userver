@@ -48,7 +48,8 @@ def test_array_array_with_validators(simple_gen):
                     json_schema=None,
                     nullable=False,
                     validators=CppPrimitiveValidator(
-                        min=1, prefix='/definitions/typeAA',
+                        min=1,
+                        prefix='/definitions/typeAA',
                     ),
                 ),
                 container='std::vector',

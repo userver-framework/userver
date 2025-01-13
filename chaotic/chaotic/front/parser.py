@@ -33,7 +33,11 @@ class ParserError(error.BaseError):
 
 class SchemaParser:
     def __init__(
-        self, *, config: ParserConfig, full_filepath: str, full_vfilepath: str,
+        self,
+        *,
+        config: ParserConfig,
+        full_filepath: str,
+        full_vfilepath: str,
     ) -> None:
         self._config = config
         # Full filepath on real filesystem
@@ -62,7 +66,8 @@ class SchemaParser:
     def _parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
         data = self.do_parse_schema(input__)
         source_location = types.SourceLocation(
-            filepath=self.full_vfilepath, location=self._state.infile_path,
+            filepath=self.full_vfilepath,
+            location=self._state.infile_path,
         )
         # pylint: disable=protected-access
         data._source_location = source_location  # type: ignore
@@ -114,7 +119,9 @@ class SchemaParser:
         return self._parse_oneof_w_discriminator(variants, input__)
 
     def _parse_oneof_i(
-        self, variant: dict, discriminator_property: str,
+        self,
+        variant: dict,
+        discriminator_property: str,
     ) -> types.Ref:
         type_ = self._parse_schema(variant)
         if not isinstance(type_, types.Ref):
@@ -140,7 +147,9 @@ class SchemaParser:
         return type_
 
     def _parse_oneof_disc_mapping(
-        self, user_mapping: dict, variables: List[types.Ref],
+        self,
+        user_mapping: dict,
+        variables: List[types.Ref],
     ) -> List[List[str]]:
         idx_mapping = collections.defaultdict(list)
         with self._path_enter('discriminator/mapping') as _:
@@ -165,7 +174,9 @@ class SchemaParser:
         return mapping
 
     def _parse_oneof_w_discriminator(
-        self, variants: list, input_: dict,
+        self,
+        variants: list,
+        input_: dict,
     ) -> types.OneOfWithDiscriminator:
         with self._path_enter('discriminator') as _:
             types.OneOfDiscriminatorRaw(**input_['discriminator'])
@@ -177,7 +188,8 @@ class SchemaParser:
             for i, variant in enumerate(variants):
                 with self._path_enter(str(i)) as _:
                     type_ = self._parse_oneof_i(
-                        variant, discriminator_property,
+                        variant,
+                        discriminator_property,
                     )
                     variables.append(type_)
 
@@ -344,7 +356,9 @@ class SchemaParser:
         with self._path_enter('$ref') as _:
             abs_ref = self._make_abs_ref(ref)
             ref_value = types.Ref(
-                ref=abs_ref, indirect=indirect, self_ref=False,
+                ref=abs_ref,
+                indirect=indirect,
+                self_ref=False,
             )
 
             del input_['$ref']

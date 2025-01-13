@@ -131,9 +131,7 @@ class HumanLogs:
             if module_name in self.skip_modules:
                 return
             if self.require_fields:
-                has_required_field = any(
-                    orig_values.get(field) for field in self.require_fields
-                )
+                has_required_field = any(orig_values.get(field) for field in self.require_fields)
                 if not has_required_field:
                     return
             for field, pattern in self.skip_field_patterns.items():
@@ -149,7 +147,8 @@ class HumanLogs:
             fname = ''
         else:
             fname = '{BRIGHT_BLUE}=> {fname} '.format(
-                fname=fname, **vars(Colors),
+                fname=fname,
+                **vars(Colors),
             )
 
         if 'module' in self.ignores:
@@ -163,23 +162,14 @@ class HumanLogs:
                 values[x] = Colors.colorize(values[x], Colors.GRAY)
 
         fmt = (
-            '{time} {level_color}{level:<5} {text_color}{text} '
-            '{module}{fname}{gray_color}{remains}{default_color}\n'
+            '{time} {level_color}{level:<5} {text_color}{text} ' '{module}{fname}{gray_color}{remains}{default_color}\n'
         )
 
         level_indx = HumanLogs.LOG_LEVELS.index(level)
 
         remains = ''
         if level_indx > self.verbosity_indx:
-            remains = (
-                x
-                for x in values
-                if (
-                    x not in self.ignores
-                    and values[x] != ''
-                    and x != 'timestamp'
-                )
-            )
+            remains = (x for x in values if (x not in self.ignores and values[x] != '' and x != 'timestamp'))
             remains = '\t'.join(x + '=' + values[x] for x in sorted(remains))
 
         if level == 'WARNING':

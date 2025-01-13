@@ -9,7 +9,8 @@ from chaotic.compilers import dynamic_config
 
 
 def parse_variable_content(
-    content: Any, varname: str = 'var',
+    content: Any,
+    varname: str = 'var',
 ) -> types.CppType:
     compiler = dynamic_config.CompilerBase()
     with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8') as ofile:
@@ -28,7 +29,8 @@ def test_smoke():
         user_cpp_type=None,
         json_schema=None,
         validators=types.CppPrimitiveValidator(
-            namespace='taxi_config::var', prefix='VariableTypeRaw',
+            namespace='taxi_config::var',
+            prefix='VariableTypeRaw',
         ),
     )
     assert var.without_json_schema() == expected
@@ -100,10 +102,7 @@ def test_default_isomorphic():
         'default': {},
     })
     assert isinstance(var, types.CppStruct)
-    assert (
-        var.cpp_user_name()
-        == 'USERVER_NAMESPACE::utils::DefaultDict<std::string>'
-    )
+    assert var.cpp_user_name() == 'USERVER_NAMESPACE::utils::DefaultDict<std::string>'
 
 
 def test_variable_name_invalid_symbols():

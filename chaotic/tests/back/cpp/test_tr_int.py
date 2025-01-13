@@ -78,7 +78,8 @@ def test_int_min(simple_gen):
             json_schema=None,
             nullable=False,
             validators=CppPrimitiveValidator(
-                min=1, prefix='/definitions/type',
+                min=1,
+                prefix='/definitions/type',
             ),
         ),
     }
@@ -92,7 +93,9 @@ def test_int_min_max(simple_gen):
             user_cpp_type=None,
             json_schema=None,
             validators=CppPrimitiveValidator(
-                min=1, max=10, prefix='/definitions/type',
+                min=1,
+                max=10,
+                prefix='/definitions/type',
             ),
             nullable=False,
         ),
@@ -111,7 +114,9 @@ def test_int_min_max_exclusive(simple_gen):
             user_cpp_type=None,
             json_schema=None,
             validators=CppPrimitiveValidator(
-                exclusiveMin=1, exclusiveMax=10, prefix='/definitions/type',
+                exclusiveMin=1,
+                exclusiveMax=10,
+                prefix='/definitions/type',
             ),
             nullable=False,
         ),
@@ -149,7 +154,9 @@ def test_int_min_max_exclusive_legacy(simple_gen):
             user_cpp_type=None,
             json_schema=None,
             validators=CppPrimitiveValidator(
-                exclusiveMin=2, exclusiveMax=10, prefix='/definitions/type',
+                exclusiveMin=2,
+                exclusiveMax=10,
+                prefix='/definitions/type',
             ),
             nullable=False,
         ),

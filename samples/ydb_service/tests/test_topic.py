@@ -19,10 +19,7 @@ async def test_topic(service_client, ydb, testpoint):
 
     upsert_record_message = upsert_record_args['data']
     assert upsert_record_message['key'] == ['test-topic-id', 'test-topic-name']
-    assert (
-        base64.b64decode(upsert_record_message['newImage']['str'])
-        == b'test-topic-str'
-    )
+    assert base64.b64decode(upsert_record_message['newImage']['str']) == b'test-topic-str'
     assert upsert_record_message['newImage']['num'] == 321
 
     ydb.execute(

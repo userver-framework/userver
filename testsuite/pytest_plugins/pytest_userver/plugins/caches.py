@@ -34,8 +34,7 @@ class UserverCachePlugin:
         for cache_name, fixture_name in uhooks.items():
             if cache_name in self._hooks:
                 raise RuntimeError(
-                    f'USERVER_CACHE_CONTROL_HOOKS: hook already registered '
-                    f'for cache {cache_name}',
+                    f'USERVER_CACHE_CONTROL_HOOKS: hook already registered ' f'for cache {cache_name}',
                 )
             self._hooks[cache_name] = fixture_name
 
@@ -112,9 +111,11 @@ class CacheControl:
         self._caches_disabled = caches_disabled
 
     def query_caches(
-        self, cache_names: typing.Optional[typing.List[str]],
+        self,
+        cache_names: typing.Optional[typing.List[str]],
     ) -> typing.Tuple[
-        typing.Dict, typing.List[typing.Tuple[str, CacheControlAction]],
+        typing.Dict,
+        typing.List[typing.Tuple[str, CacheControlAction]],
     ]:
         """Query cache control handlers.
 
@@ -146,7 +147,8 @@ class CacheControl:
 def pytest_configure(config):
     config.pluginmanager.register(UserverCachePlugin(), 'userver_cache')
     config.addinivalue_line(
-        'markers', 'userver_cache_control_disabled: disable cache control',
+        'markers',
+        'userver_cache_control_disabled: disable cache control',
     )
 
 
@@ -170,7 +172,8 @@ def _userver_cache_control_context() -> typing.Dict:
 
 @pytest.fixture
 def _userver_cache_fixtures(
-    pytestconfig, request,
+    pytestconfig,
+    request,
 ) -> typing.Dict[str, typing.Callable]:
     plugin: UserverCachePlugin = pytestconfig.pluginmanager.get_plugin(
         'userver_cache',
@@ -183,7 +186,9 @@ def _userver_cache_fixtures(
 
 @pytest.fixture
 def userver_cache_control(
-    _userver_cache_control_context, _userver_cache_fixtures, request,
+    _userver_cache_control_context,
+    _userver_cache_fixtures,
+    request,
 ) -> typing.Callable[[DaemonInstance], CacheControl]:
     """Userver cache control handler.
 
@@ -215,7 +220,9 @@ def userver_cache_control(
     caches_disabled = set()
 
     def userver_cache_control_disabled(
-        caches: typing.Sequence[str] = None, *, reason: str,
+        caches: typing.Sequence[str] = None,
+        *,
+        reason: str,
     ):
         if caches is not None:
             caches_disabled.update(caches)

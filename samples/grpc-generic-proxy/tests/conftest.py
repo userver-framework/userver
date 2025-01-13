@@ -9,7 +9,8 @@ pytest_plugins = ['pytest_userver.plugins.grpc']
 def _mock_grpc_greeter_session(grpc_mockserver, create_grpc_mock):
     mock = create_grpc_mock(greeter_services.GreeterServiceServicer)
     greeter_services.add_GreeterServiceServicer_to_server(
-        mock.servicer, grpc_mockserver,
+        mock.servicer,
+        grpc_mockserver,
     )
     return mock
 

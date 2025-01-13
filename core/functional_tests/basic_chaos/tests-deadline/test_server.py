@@ -50,12 +50,16 @@ def _check_deadline_propagation_response(response):
 @pytest.fixture(name='handler_metrics')
 async def _handler_metrics(monitor_client):
     return monitor_client.metrics_diff(
-        prefix='http.handler.total', diff_gauge=True,
+        prefix='http.handler.total',
+        diff_gauge=True,
     )
 
 
 async def test_deadline_expired(
-    call, testpoint, service_client, handler_metrics,
+    call,
+    testpoint,
+    service_client,
+    handler_metrics,
 ):
     @testpoint('testpoint_request')
     async def test(_data):
@@ -67,14 +71,13 @@ async def test_deadline_expired(
     async with handler_metrics:
         response = await call(htype='sleep', headers={DP_TIMEOUT_MS: '150'})
         _check_deadline_propagation_response(response)
-        assert (
-            test.times_called == 1
-        ), 'Control flow SHOULD enter the handler body'
+        assert test.times_called == 1, 'Control flow SHOULD enter the handler body'
 
     assert handler_metrics.value_at('rps') == 1
     assert (
         handler_metrics.value_at(
-            'reply-codes', {'http_code': '504', 'version': '2'},
+            'reply-codes',
+            {'http_code': '504', 'version': '2'},
         )
         == 1
     )

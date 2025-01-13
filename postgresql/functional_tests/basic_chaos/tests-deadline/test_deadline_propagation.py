@@ -12,11 +12,7 @@ async def test_expired(service_client, dynamic_config):
         assert response.status == 498
         assert response.text == 'Deadline expired'
 
-    logs = [
-        log
-        for log in capture.select()
-        if log['text'].startswith("exception in 'handler-chaos-postgres'")
-    ]
+    logs = [log for log in capture.select() if log['text'].startswith("exception in 'handler-chaos-postgres'")]
     assert len(logs) == 1
     text = logs[0]['text']
     assert 'storages::postgres::ConnectionInterrupted' in text, text

@@ -45,7 +45,8 @@ def test_additional_properties_simple(simple_gen):
                 nullable=False,
                 user_cpp_type=None,
                 validators=CppPrimitiveValidator(
-                    namespace='/definitions/type', prefix='Extra',
+                    namespace='/definitions/type',
+                    prefix='Extra',
                 ),
             ),
         ),
@@ -103,7 +104,8 @@ def test_field_with_default(simple_gen):
                         nullable=False,
                         user_cpp_type=None,
                         validators=CppPrimitiveValidator(
-                            namespace='/definitions/type', prefix='Field',
+                            namespace='/definitions/type',
+                            prefix='Field',
                         ),
                     ),
                 ),
@@ -229,7 +231,4 @@ def test_extra_member_nonboolean(simple_gen):
         })
         assert False
     except error.BaseError as exc:
-        assert exc.msg == (
-            '"x-usrv-cpp-extra-member: false" is not allowed for non-boolean '
-            '"additionalProperties"'
-        )
+        assert exc.msg == ('"x-usrv-cpp-extra-member: false" is not allowed for non-boolean ' '"additionalProperties"')

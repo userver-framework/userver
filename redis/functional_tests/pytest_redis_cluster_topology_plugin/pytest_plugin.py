@@ -30,10 +30,7 @@ class RedisClusterTopologyError(Exception):
 
 
 def _get_base_path() -> str:
-    package_dir = (
-        'taxi/uservices/userver/redis/'
-        'functional_tests/pytest_redis_cluster_topology_plugin/package'
-    )
+    package_dir = 'taxi/uservices/userver/redis/' 'functional_tests/pytest_redis_cluster_topology_plugin/package'
     return yatest.common.build_path(package_dir)
 
 
@@ -48,9 +45,7 @@ def _call_binary(binary_name: str, *args: str) -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         env={
-            'DYLD_LIBRARY_PATH'
-            if platform.system() == 'Darwin'
-            else 'LD_LIBRARY_PATH': _get_prefixed_path('lib'),
+            'DYLD_LIBRARY_PATH' if platform.system() == 'Darwin' else 'LD_LIBRARY_PATH': _get_prefixed_path('lib'),
         },
     )
     try:
@@ -69,7 +64,11 @@ def _get_data_directory():
 
 
 def _do_tries(
-    f, tries, timeout, on_single_fail_message=None, on_fail_message=None,
+    f,
+    tries,
+    timeout,
+    on_single_fail_message=None,
+    on_fail_message=None,
 ):
     for _ in range(tries):
         if f():
@@ -88,7 +87,8 @@ class _RedisClusterNode:
         self.port = port
         self.cluster_port = cluster_port
         self.data_directory = os.path.join(
-            _get_data_directory(), f'redis_{host}:{port}',
+            _get_data_directory(),
+            f'redis_{host}:{port}',
         )
         self.pid_path = os.path.join(self.data_directory, 'redis.pid')
         self.config_path = os.path.join(self.data_directory, config_name)
@@ -190,16 +190,13 @@ class _RedisClusterNode:
             time.sleep(RETRY_TIMEOUT)
         else:
             raise RedisClusterTopologyError(
-                f'Redis cluster not ready after'
-                f' {MAX_CHECK_RETRIES} retries',
+                f'Redis cluster not ready after' f' {MAX_CHECK_RETRIES} retries',
             )
 
     def _write_config(self):
         resource_name = 'redis_cluster_config'
         content = resource.find(resource_name)
-        assert (
-            content is not None
-        ), f'Could not find resource for {resource_name}'
+        assert content is not None, f'Could not find resource for {resource_name}'
         with open(self.config_path, 'w', encoding='utf-8') as config_file:
             config_file.write(content.decode())
 
@@ -216,13 +213,8 @@ class _RedisClusterNode:
 
 class RedisClusterTopology:
     def __init__(self, ports, cluster_ports):
-        all_ports = [
-            (port, cport) for port, cport in zip(ports, cluster_ports)
-        ]
-        self.nodes = [
-            _RedisClusterNode(REDIS_CLUSTER_HOST, port, cluster_port)
-            for port, cluster_port in all_ports
-        ]
+        all_ports = [(port, cport) for port, cport in zip(ports, cluster_ports)]
+        self.nodes = [_RedisClusterNode(REDIS_CLUSTER_HOST, port, cluster_port) for port, cluster_port in all_ports]
         self.nodes_by_names = {node.get_address(): node for node in self.nodes}
         self.added_master = None
         self.added_replica = None
@@ -230,9 +222,7 @@ class RedisClusterTopology:
         self.slots_by_node = {}
         self._create_cluster(all_ports)
         self.client = redis.RedisCluster(
-            startup_nodes=[
-                redis.cluster.ClusterNode('localhost', port) for port in ports
-            ],
+            startup_nodes=[redis.cluster.ClusterNode('localhost', port) for port in ports],
         )
 
     def get_client(self):
@@ -304,9 +294,7 @@ class RedisClusterTopology:
         self._add_node_to_cluster(new_master, new_replica, replica=True)
         self._wait_cluster_nodes_known(old_masters, len(self.nodes) + 2)
 
-        nodes = (
-            old_masters + [new_master] + self.get_replicas() + [new_replica]
-        )
+        nodes = old_masters + [new_master] + self.get_replicas() + [new_replica]
         # wait until nodes know each other
         self._wait_cluster_nodes_known(nodes, len(nodes))
 
@@ -355,8 +343,7 @@ class RedisClusterTopology:
         # again
         if time1 - time0 >= 60.0:
             raise RuntimeError(
-                'Failed to notify all cluster nodes about deleted'
-                ' nodes within 1 minute',
+                'Failed to notify all cluster nodes about deleted' ' nodes within 1 minute',
             )
 
         self._wait_cluster_nodes_ready(original_masters, 6)
@@ -390,7 +377,10 @@ class RedisClusterTopology:
             self.added_replica.stop()
 
     async def _move_slot(
-        self, from_node: _RedisClusterNode, to_node: _RedisClusterNode, slot,
+        self,
+        from_node: _RedisClusterNode,
+        to_node: _RedisClusterNode,
+        slot,
     ):
         from_client = from_node.get_async_client()
         to_client = to_node.get_async_client()
@@ -408,7 +398,11 @@ class RedisClusterTopology:
                 if not keys:
                     break
                 await from_client.migrate(
-                    REDIS_CLUSTER_HOST, to_node.port, keys, db, timeout,
+                    REDIS_CLUSTER_HOST,
+                    to_node.port,
+                    keys,
+                    db,
+                    timeout,
                 )
             await to_client.cluster('SETSLOT', slot, 'NODE', to_id)
             try:
@@ -434,8 +428,7 @@ class RedisClusterTopology:
         from_slots = self.slots_by_node[from_addr]
         if len(from_slots) < hash_slot_count:
             raise Exception(
-                f'Invalid number of slots to move '
-                f'{hash_slot_count}:{len(from_slots)}',
+                f'Invalid number of slots to move ' f'{hash_slot_count}:{len(from_slots)}',
             )
         tasks = []
         for i in range(hash_slot_count):
@@ -480,8 +473,7 @@ class RedisClusterTopology:
                     ids.add(data['node_id'])
                 if ids != expected_ids:
                     logging.warning(
-                        f'failed get nodes (wrong ids) '
-                        f'{ret} {ids} {expected_ids}',
+                        f'failed get nodes (wrong ids) ' f'{ret} {ids} {expected_ids}',
                     )
                     return False
 
@@ -492,8 +484,7 @@ class RedisClusterTopology:
                 MAX_CHECK_RETRIES,
                 RETRY_TIMEOUT,
                 'Redis cluster is not up yet, waiting...',
-                f'Redis cluster not ready after'
-                f' {MAX_CHECK_RETRIES} retries',
+                f'Redis cluster not ready after' f' {MAX_CHECK_RETRIES} retries',
             )
         return True
 
@@ -516,7 +507,10 @@ class RedisClusterTopology:
             for port, cport in ports:
                 if port != client_port:
                     c.cluster(
-                        'meet', REDIS_CLUSTER_HOST, str(port), str(cport),
+                        'meet',
+                        REDIS_CLUSTER_HOST,
+                        str(port),
+                        str(cport),
                     )
 
         # assign slots to masters
@@ -527,9 +521,7 @@ class RedisClusterTopology:
             rem = SLOTS_REM if i == SHARD_COUNT - 1 else 0
             right = (i + 1) * SLOTS_PER_SHARD + rem - 1
             c.cluster('addslotsrange', left, right)
-            self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{port}'] = {
-                x for x in range(left, right + 1)
-            }
+            self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{port}'] = {x for x in range(left, right + 1)}
 
         # Wait until every one now each other
         self._wait_nodes_connect(ports)
@@ -553,9 +545,9 @@ class RedisClusterTopology:
                         f'master_id:{master_id} : {e} '
                         f'nodes:{replica_client.cluster("nodes")}',
                     )
-                self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{replicas_port}'] = (
-                    self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{master_port}']
-                )
+                self.slots_by_node[f'{REDIS_CLUSTER_HOST}:{replicas_port}'] = self.slots_by_node[
+                    f'{REDIS_CLUSTER_HOST}:{master_port}'
+                ]
         self._wait_cluster_nodes_ready(self.nodes, CLUSTER_MINIMUM_NODES_COUNT)
 
     def _wait_cluster_nodes_known(self, nodes, expected_nodes_count) -> bool:
@@ -571,8 +563,7 @@ class RedisClusterTopology:
                 time.sleep(RETRY_TIMEOUT)
             else:
                 raise RedisClusterTopologyError(
-                    f'Redis cluster not ready after'
-                    f' {MAX_CHECK_RETRIES} retries',
+                    f'Redis cluster not ready after' f' {MAX_CHECK_RETRIES} retries',
                 )
         return True
 
@@ -585,8 +576,7 @@ class RedisClusterTopology:
                 time.sleep(RETRY_TIMEOUT)
             else:
                 raise RedisClusterTopologyError(
-                    f'Redis cluster not ready after'
-                    f' {MAX_CHECK_RETRIES} retries',
+                    f'Redis cluster not ready after' f' {MAX_CHECK_RETRIES} retries',
                 )
         return True
 
@@ -620,14 +610,11 @@ class RedisClusterTopology:
 
 class RedisClusterTopologyPlugin:
     def __init__(self):
-        self.ports = [
-            port_manager.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)
-        ]
-        self.cluster_ports = [
-            port_manager.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)
-        ]
+        self.ports = [port_manager.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
+        self.cluster_ports = [port_manager.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
         self.redis_cluster = RedisClusterTopology(
-            self.ports, self.cluster_ports,
+            self.ports,
+            self.cluster_ports,
         )
 
     @pytest.fixture(scope='session')

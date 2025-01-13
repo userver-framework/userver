@@ -24,7 +24,8 @@ USERVER_CONFIG_HOOKS = ['userver_pg_config']
 
 @pytest_asyncio.fixture(name='testenv', scope='session')
 async def _testenv(
-    service_source_dir: pathlib.Path, request: pytest.FixtureRequest,
+    service_source_dir: pathlib.Path,
+    request: pytest.FixtureRequest,
 ) -> it.Environment:
     env = it.Environment({
         **it.CORE,
@@ -35,7 +36,8 @@ async def _testenv(
     })
     env.configure(it.PytestConfig(request.config))
     env.pgsql.discover_schemas(
-        service_source_dir.joinpath('schemas/postgresql'), service_name='pg',
+        service_source_dir.joinpath('schemas/postgresql'),
+        service_name='pg',
     )
     async with env.run():
         import time
@@ -53,10 +55,7 @@ async def userver_pg_config(testenv: it.Environment):
         components = config_yaml['components_manager']['components']
         db = components['key-value-database']
         db['dbconnection'] = (
-            'postgresql://'
-            f'{settings.user}:{settings.password}@'
-            f'{settings.host}:{settings.port}'
-            '/pg_key_value'
+            'postgresql://' f'{settings.user}:{settings.password}@' f'{settings.host}:{settings.port}' '/pg_key_value'
         )
 
     return _hook_db_config

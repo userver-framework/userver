@@ -40,7 +40,9 @@ class LogFile:
             max_position = None
         first_skipped = False
         for line, position in _raw_line_reader(
-            self.path, self.position, eof_handler=eof_handler,
+            self.path,
+            self.position,
+            eof_handler=eof_handler,
         ):
             # userver does not give any guarantees about log file encoding
             line = line.decode(encoding='utf-8', errors='backslashreplace')
@@ -170,7 +172,8 @@ class UserverLoggingPlugin:
 
 @pytest.fixture(scope='session')
 def service_logfile_path(
-    pytestconfig, service_tmpdir: pathlib.Path,
+    pytestconfig,
+    service_tmpdir: pathlib.Path,
 ) -> typing.Optional[pathlib.Path]:
     """
     Holds optional service logfile path. You may want to override this
@@ -192,7 +195,9 @@ def _service_logfile_path(
     if not service_logfile_path:
         return None
     userver_register_logfile(
-        service_logfile_path, title='userver/log', truncate=True,
+        service_logfile_path,
+        title='userver/log',
+        truncate=True,
     )
     return service_logfile_path
 
@@ -219,7 +224,10 @@ def userver_register_logfile(_userver_logging_plugin: UserverLoggingPlugin):
             fp.truncate()
 
     def register_logfile(
-        path: pathlib.Path, *, title: str, truncate: bool = False,
+        path: pathlib.Path,
+        *,
+        title: str,
+        truncate: bool = False,
     ) -> None:
         if truncate:
             do_truncate(path)
@@ -242,7 +250,8 @@ def pytest_configure(config):
     def colorize_factory():
         if pretty_logs:
             colorizer = colorize.Colorizer(
-                verbose=verbose, colors_enabled=colors_enabled,
+                verbose=verbose,
+                colors_enabled=colors_enabled,
             )
             return colorizer.colorize_line
 
@@ -252,7 +261,8 @@ def pytest_configure(config):
         return handle_line
 
     plugin = UserverLoggingPlugin(
-        colorize_factory=colorize_factory, config=config,
+        colorize_factory=colorize_factory,
+        config=config,
     )
     config.pluginmanager.register(plugin, 'userver_logging')
 
@@ -308,7 +318,6 @@ def _raw_line_reader(
 def _is_live_logs_enabled(config):
     if not config.option.service_live_logs_disable:
         return bool(
-            config.option.capture == 'no'
-            and config.option.showcapture in ('all', 'log'),
+            config.option.capture == 'no' and config.option.showcapture in ('all', 'log'),
         )
     return False

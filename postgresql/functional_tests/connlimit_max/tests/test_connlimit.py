@@ -34,25 +34,18 @@ async def test_single_client(monitor_client, service_client, taxi_config):
     taxi_config.set_values({'POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED': True})
     await periodic_step(service_client)
 
-    assert (
-        await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
-    )
+    assert await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
 
 
 @pytest.mark.config(POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED=True)
 async def test_second_client(monitor_client, service_client, pgsql):
-    assert (
-        await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
-    )
+    assert await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
 
     cursor = pgsql['key_value'].cursor()
     cursor.execute(
-        'INSERT INTO u_clients (hostname, updated, max_connections) '
-        "VALUES ('xxx', NOW(), 3)",
+        'INSERT INTO u_clients (hostname, updated, max_connections) ' "VALUES ('xxx', NOW(), 3)",
     )
-    assert (
-        await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
-    )
+    assert await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
     await periodic_step(service_client)
     assert await get_max_connections(monitor_client) == int(
         TESTSUITE_MAX_CONNECTIONS / 2,
@@ -60,6 +53,4 @@ async def test_second_client(monitor_client, service_client, pgsql):
 
     cursor.execute('DELETE FROM u_clients')
     await periodic_step(service_client)
-    assert (
-        await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
-    )
+    assert await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS

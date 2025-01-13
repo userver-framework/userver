@@ -51,12 +51,14 @@ class Client:
 
     def dns_flush_cache_full(self) -> None:
         self.client_send(
-            path='/service/dnsclient/flush_cache_full', method='post',
+            path='/service/dnsclient/flush_cache_full',
+            method='post',
         )
 
     def log_set_level(self) -> None:
         self.client_send(
-            path=f'/service/log-level/{self.args.level}', method='put',
+            path=f'/service/log-level/{self.args.level}',
+            method='put',
         )
 
     def log_get_level(self) -> None:
@@ -96,7 +98,9 @@ class Client:
 
     def stats(self) -> None:
         data = self.client_send(
-            path='/', method='get', params={'format': 'pretty'},
+            path='/',
+            method='get',
+            params={'format': 'pretty'},
         )
         print(data, end='')
 
@@ -180,8 +184,7 @@ class Client:
                 self.config_yaml = yaml.safe_load(ifile)
         except FileNotFoundError:
             raise RuntimeError(
-                'File "config.yaml" not found, maybe you forgot '
-                'to pass --config?',
+                'File "config.yaml" not found, maybe you forgot ' 'to pass --config?',
             )
 
         config_vars_path = self.config_yaml['config_vars']
@@ -214,10 +217,7 @@ class Client:
         return f'http://localhost:{port}'
 
     def check_config_override_supported(self) -> None:
-        if (
-            'dynamic-config-overrider'
-            not in self.config_yaml['components_manager']['components']
-        ):
+        if 'dynamic-config-overrider' not in self.config_yaml['components_manager']['components']:
             raise RuntimeError(
                 'Service does not support dynamic config overriding',
             )
@@ -255,7 +255,10 @@ def guess_config_yaml() -> str:
 def parse_args(args: typing.List[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--config', help='config.yaml', default=guess_config_yaml(), type=str,
+        '--config',
+        help='config.yaml',
+        default=guess_config_yaml(),
+        type=str,
     )
 
     subparsers = parser.add_subparsers()
@@ -264,35 +267,41 @@ def parse_args(args: typing.List[str]):
     subparsers_dns = parser_dns.add_subparsers()
 
     parser_reload_hosts = subparsers_dns.add_parser(
-        'reload-hosts', help='Reload /etc/hosts file',
+        'reload-hosts',
+        help='Reload /etc/hosts file',
     )
     parser_reload_hosts.set_defaults(func=Client.dns_reload_hosts)
 
     parser_flush_cache = subparsers_dns.add_parser(
-        'flush-cache', help='Flush DNS cache',
+        'flush-cache',
+        help='Flush DNS cache',
     )
     parser_flush_cache.add_argument('dns_name')
     parser_flush_cache.set_defaults(func=Client.dns_flush_cache)
 
     parser_flush_cache_full = subparsers_dns.add_parser(
-        'flush-cache-full', help='Flush DNS cache full',
+        'flush-cache-full',
+        help='Flush DNS cache full',
     )
     parser_flush_cache_full.set_defaults(func=Client.dns_flush_cache_full)
 
     parser_log_dynamic_debug = subparsers.add_parser(
-        'log-dynamic-debug', help='Dynamic debug log level',
+        'log-dynamic-debug',
+        help='Dynamic debug log level',
     )
     subparsers_log_dynamic = parser_log_dynamic_debug.add_subparsers()
 
     parser_log_dynamic_debug_list = subparsers_log_dynamic.add_parser(
-        'list', help='list log entries',
+        'list',
+        help='list log entries',
     )
     parser_log_dynamic_debug_list.set_defaults(
         func=Client.log_dynamic_debug_list,
     )
 
     parser_log_dynamic_debug_force_on = subparsers_log_dynamic.add_parser(
-        'force-on', help='force enable log entry',
+        'force-on',
+        help='force enable log entry',
     )
     parser_log_dynamic_debug_force_on.add_argument('location')
     parser_log_dynamic_debug_force_on.set_defaults(
@@ -300,7 +309,8 @@ def parse_args(args: typing.List[str]):
     )
 
     parser_log_dynamic_debug_force_off = subparsers_log_dynamic.add_parser(
-        'force-off', help='force disable log entry',
+        'force-off',
+        help='force disable log entry',
     )
     parser_log_dynamic_debug_force_off.add_argument('location')
     parser_log_dynamic_debug_force_off.set_defaults(
@@ -308,7 +318,8 @@ def parse_args(args: typing.List[str]):
     )
 
     parser_log_dynamic_debug_set_default = subparsers_log_dynamic.add_parser(
-        'set-default', help='drop dynamic debug log entry',
+        'set-default',
+        help='drop dynamic debug log entry',
     )
     parser_log_dynamic_debug_set_default.add_argument('location')
     parser_log_dynamic_debug_set_default.set_defaults(
@@ -319,7 +330,8 @@ def parse_args(args: typing.List[str]):
     subparsers_log = parser_log.add_subparsers()
 
     parser_log_set_level = subparsers_log.add_parser(
-        'set', help='Set log level',
+        'set',
+        help='Set log level',
     )
     parser_log_set_level.add_argument(
         'level',
@@ -337,12 +349,14 @@ def parse_args(args: typing.List[str]):
     parser_log_set_level.set_defaults(func=Client.log_set_level)
 
     parser_log_get_level = subparsers_log.add_parser(
-        'get', help='Get log level',
+        'get',
+        help='Get log level',
     )
     parser_log_get_level.set_defaults(func=Client.log_get_level)
 
     parser_logrotate = subparsers.add_parser(
-        'on-logrotate', help='Process logrotate post-actions',
+        'on-logrotate',
+        help='Process logrotate post-actions',
     )
     parser_logrotate.set_defaults(func=Client.on_logrotate)
 
@@ -350,17 +364,20 @@ def parse_args(args: typing.List[str]):
     parser_stats.set_defaults(func=Client.stats)
 
     parser_inspect_requests = subparsers.add_parser(
-        'inspect-requests', help='Show information about in-flight requests',
+        'inspect-requests',
+        help='Show information about in-flight requests',
     )
     parser_inspect_requests.set_defaults(func=Client.inspect_requests)
 
     parser_access_top = subparsers.add_parser(
-        'access-top', help='Show service handler statistics',
+        'access-top',
+        help='Show service handler statistics',
     )
     parser_access_top.set_defaults(func=Client.access_top)
 
     parser_config = subparsers.add_parser(
-        'config', help='Manage dynamic config',
+        'config',
+        help='Manage dynamic config',
     )
     subparsers_config = parser_config.add_subparsers()
 
@@ -377,7 +394,8 @@ def parse_args(args: typing.List[str]):
     parser_config_get.set_defaults(func=Client.get_config_fields)
 
     parser_config_override = subparsers_config.add_parser(
-        'override', help='Override dynamic config values',
+        'override',
+        help='Override dynamic config values',
     )
     parser_config_override.add_argument(
         'file',

@@ -53,9 +53,7 @@ def grpc_service_endpoint(service_config, grpc_service_port) -> str:
         raise RuntimeError('No grpc-server component')
     grpc_server_unix_socket = components['grpc-server'].get('unix-socket-path')
     return (
-        f'unix:{grpc_server_unix_socket}'
-        if grpc_server_unix_socket is not None
-        else f'localhost:{grpc_service_port}'
+        f'unix:{grpc_server_unix_socket}' if grpc_server_unix_socket is not None else f'localhost:{grpc_service_port}'
     )
 
 
@@ -75,7 +73,8 @@ def grpc_service_timeout(pytestconfig) -> float:
 
 @pytest.fixture
 def grpc_client_prepare(
-    service_client, _testsuite_client_config: client.TestsuiteClientConfig,
+    service_client,
+    _testsuite_client_config: client.TestsuiteClientConfig,
 ) -> Callable[[grpc.aio.ClientCallDetails], Awaitable[None]]:
     """
     Returns the function that will be called in before each gRPC request,
@@ -85,7 +84,8 @@ def grpc_client_prepare(
     """
 
     async def prepare(
-        _client_call_details: grpc.aio.ClientCallDetails, /,
+        _client_call_details: grpc.aio.ClientCallDetails,
+        /,
     ) -> None:
         if isinstance(service_client, client.AiohttpClient):
             await service_client.update_server_state()
@@ -95,10 +95,12 @@ def grpc_client_prepare(
 
 @pytest.fixture(scope='session')
 async def grpc_session_channel(
-    grpc_service_endpoint, _grpc_channel_interceptor,
+    grpc_service_endpoint,
+    _grpc_channel_interceptor,
 ):
     async with grpc.aio.insecure_channel(
-        grpc_service_endpoint, interceptors=[_grpc_channel_interceptor],
+        grpc_service_endpoint,
+        interceptors=[_grpc_channel_interceptor],
     ) as channel:
         yield channel
 
@@ -121,12 +123,12 @@ async def grpc_channel(
     _grpc_channel_interceptor.prepare_func = grpc_client_prepare
     try:
         await asyncio.wait_for(
-            grpc_session_channel.channel_ready(), timeout=grpc_service_timeout,
+            grpc_session_channel.channel_ready(),
+            timeout=grpc_service_timeout,
         )
     except asyncio.TimeoutError:
         raise RuntimeError(
-            f'Failed to connect to remote gRPC server by '
-            f'address {grpc_service_endpoint}',
+            f'Failed to connect to remote gRPC server by ' f'address {grpc_service_endpoint}',
         )
     return grpc_session_channel
 
@@ -167,30 +169,40 @@ class _GenericClientInterceptor(
     grpc.aio.StreamStreamClientInterceptor,
 ):
     def __init__(self):
-        self.prepare_func: Optional[
-            Callable[[grpc.aio.ClientCallDetails], Awaitable[None]]
-        ] = None
+        self.prepare_func: Optional[Callable[[grpc.aio.ClientCallDetails], Awaitable[None]]] = None
 
     async def intercept_unary_unary(
-        self, continuation, client_call_details, request,
+        self,
+        continuation,
+        client_call_details,
+        request,
     ):
         await self.prepare_func(client_call_details)
         return await continuation(client_call_details, request)
 
     async def intercept_unary_stream(
-        self, continuation, client_call_details, request,
+        self,
+        continuation,
+        client_call_details,
+        request,
     ):
         await self.prepare_func(client_call_details)
         return await continuation(client_call_details, next(request))
 
     async def intercept_stream_unary(
-        self, continuation, client_call_details, request_iterator,
+        self,
+        continuation,
+        client_call_details,
+        request_iterator,
     ):
         await self.prepare_func(client_call_details)
         return await continuation(client_call_details, request_iterator)
 
     async def intercept_stream_stream(
-        self, continuation, client_call_details, request_iterator,
+        self,
+        continuation,
+        client_call_details,
+        request_iterator,
     ):
         await self.prepare_func(client_call_details)
         return await continuation(client_call_details, request_iterator)

@@ -42,10 +42,7 @@ def _is_ydb_metric(line: str) -> bool:
 def _normalize_metrics(metrics: str) -> str:
     filtered = [line for line in metrics.splitlines() if _is_ydb_metric(line)]
     filtered.sort()
-    without_host = (
-        re.sub(r'YdbHost=[^,\t]*', 'YdbHost=(REDACTED)', line)
-        for line in filtered
-    )
+    without_host = (re.sub(r'YdbHost=[^,\t]*', 'YdbHost=(REDACTED)', line) for line in filtered)
     return '\n'.join(without_host)
 
 
@@ -61,7 +58,5 @@ async def test_metrics(monitor_client, load, force_metrics_to_appear):
     ground_truth_paths = _hide_metrics_values(ground_truth)
 
     assert all_metrics_paths == ground_truth_paths, (
-        '\n===== Service metrics start =====\n'
-        f'{all_metrics}\n'
-        '===== Service metrics end =====\n'
+        '\n===== Service metrics start =====\n' f'{all_metrics}\n' '===== Service metrics end =====\n'
     )

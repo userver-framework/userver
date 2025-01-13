@@ -107,9 +107,7 @@ class CppType:
             return self.cpp_global_name()
         cpp_type = self.user_cpp_type.replace('@', '::')
         if cpp_type.startswith(USERVER_COLONCOLON):
-            cpp_type = (
-                'USERVER_NAMESPACE::' + cpp_type[len(USERVER_COLONCOLON) :]
-            )
+            cpp_type = 'USERVER_NAMESPACE::' + cpp_type[len(USERVER_COLONCOLON) :]
         return cpp_type
 
     def cpp_global_struct_field_name(self) -> str:
@@ -140,27 +138,17 @@ class CppType:
 
         if cpp_type.startswith('::'):
             cpp_type = cpp_type[2:]
-        return (
-            'userver/chaotic/io/'
-            + camel_to_snake_case(cpp_type.replace('::', '/'))
-            + '.hpp'
-        )
+        return 'userver/chaotic/io/' + camel_to_snake_case(cpp_type.replace('::', '/')) + '.hpp'
 
     @classmethod
     def get_include_by_cpp_type(cls, cpp_type: str) -> List[str]:
         return [cls.cpp_type_to_user_include_path(cpp_type)]
 
     def _primitive_parser_type(self) -> str:
-        raw_cpp_type = (
-            'USERVER_NAMESPACE::chaotic::Primitive'
-            f'<{self.raw_cpp_type.in_global_scope()}>'
-        )
+        raw_cpp_type = 'USERVER_NAMESPACE::chaotic::Primitive' f'<{self.raw_cpp_type.in_global_scope()}>'
         if self.user_cpp_type:
             user_cpp_type = self.cpp_user_name()
-            return (
-                f'USERVER_NAMESPACE::chaotic::WithType<{raw_cpp_type}, '
-                f'{user_cpp_type}>'
-            )
+            return f'USERVER_NAMESPACE::chaotic::WithType<{raw_cpp_type}, ' f'{user_cpp_type}>'
         else:
             return raw_cpp_type
 
@@ -171,10 +159,7 @@ class CppType:
         return False
 
     def may_generate_for_format(self, format_: str) -> bool:
-        return (
-            format_ == 'USERVER_NAMESPACE::formats::json'
-            or not self._only_json_reason
-        )
+        return format_ == 'USERVER_NAMESPACE::formats::json' or not self._only_json_reason
 
     def only_json_reason(self) -> str:
         return self._only_json_reason
@@ -295,53 +280,30 @@ class CppPrimitiveType(CppType):
 
         validators = ''
         if self.validators.min is not None:
-            validators += (
-                ', USERVER_NAMESPACE::chaotic::Minimum'
-                f'<{type_name_ns}::k{type_name_decl}Minimum>'
-            )
+            validators += ', USERVER_NAMESPACE::chaotic::Minimum' f'<{type_name_ns}::k{type_name_decl}Minimum>'
         if self.validators.max is not None:
-            validators += (
-                ', USERVER_NAMESPACE::chaotic::Maximum'
-                f'<{type_name_ns}::k{type_name_decl}Maximum>'
-            )
+            validators += ', USERVER_NAMESPACE::chaotic::Maximum' f'<{type_name_ns}::k{type_name_decl}Maximum>'
 
         if self.validators.exclusiveMin is not None:
             validators += (
-                ', USERVER_NAMESPACE::chaotic::ExclusiveMinimum'
-                f'<{type_name_ns}::k{type_name_decl}ExclusiveMinimum>'
+                ', USERVER_NAMESPACE::chaotic::ExclusiveMinimum' f'<{type_name_ns}::k{type_name_decl}ExclusiveMinimum>'
             )
         if self.validators.exclusiveMax is not None:
             validators += (
-                ', USERVER_NAMESPACE::chaotic::ExclusiveMaximum'
-                f'<{type_name_ns}::k{type_name_decl}ExclusiveMaximum>'
+                ', USERVER_NAMESPACE::chaotic::ExclusiveMaximum' f'<{type_name_ns}::k{type_name_decl}ExclusiveMaximum>'
             )
 
         if self.validators.minLength is not None:
-            validators += (
-                ', USERVER_NAMESPACE::chaotic::MinLength'
-                f'<{self.validators.minLength}>'
-            )
+            validators += ', USERVER_NAMESPACE::chaotic::MinLength' f'<{self.validators.minLength}>'
         if self.validators.maxLength is not None:
-            validators += (
-                ', USERVER_NAMESPACE::chaotic::MaxLength'
-                f'<{self.validators.maxLength}>'
-            )
+            validators += ', USERVER_NAMESPACE::chaotic::MaxLength' f'<{self.validators.maxLength}>'
 
         if self.validators.pattern is not None:
-            validators += (
-                ', USERVER_NAMESPACE::chaotic::Pattern'
-                f'<{type_name_ns}::k{type_name_decl}Pattern>'
-            )
+            validators += ', USERVER_NAMESPACE::chaotic::Pattern' f'<{type_name_ns}::k{type_name_decl}Pattern>'
 
-        parser_type = (
-            f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}'
-            f'{validators}>'
-        )
+        parser_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}' f'{validators}>'
         if self.user_cpp_type:
-            return (
-                f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
-                f'{self.cpp_user_name()}>'
-            )
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, ' f'{self.cpp_user_name()}>'
         else:
             return parser_type
 
@@ -379,9 +341,7 @@ class CppStringWithFormat(CppType):
             cpp_type = self.format_cpp_type.replace('@', '::')
 
         if cpp_type.startswith(USERVER_COLONCOLON):
-            cpp_type = (
-                'USERVER_NAMESPACE::' + cpp_type[len(USERVER_COLONCOLON) :]
-            )
+            cpp_type = 'USERVER_NAMESPACE::' + cpp_type[len(USERVER_COLONCOLON) :]
         return cpp_type
 
     def declaration_includes(self) -> List[str]:
@@ -401,20 +361,11 @@ class CppStringWithFormat(CppType):
     def parser_type(self, ns: str, name: str) -> str:
         format_cpp_type = self.format_cpp_type
         if format_cpp_type.startswith(USERVER_COLONCOLON):
-            format_cpp_type = (
-                'USERVER_NAMESPACE::'
-                + format_cpp_type[len(USERVER_COLONCOLON) :]
-            )
+            format_cpp_type = 'USERVER_NAMESPACE::' + format_cpp_type[len(USERVER_COLONCOLON) :]
         parser_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}>'
-        parser_type = (
-            f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
-            f'{format_cpp_type}>'
-        )
+        parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, ' f'{format_cpp_type}>'
         if self.user_cpp_type:
-            parser_type = (
-                f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
-                f'{self.cpp_user_name()}>'
-            )
+            parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, ' f'{self.cpp_user_name()}>'
         return parser_type
 
     def need_using_type(self) -> bool:
@@ -441,24 +392,15 @@ class CppRef(CppType):
 
     def _cpp_name(self) -> str:
         if self.indirect:
-            return (
-                'USERVER_NAMESPACE::utils::'
-                f'Box<{self.orig_cpp_type._cpp_name()}>'
-            )
+            return 'USERVER_NAMESPACE::utils::' f'Box<{self.orig_cpp_type._cpp_name()}>'
         else:
             return self.orig_cpp_type._cpp_name()
 
     def cpp_user_name(self) -> str:
         if self.indirect:
-            return (
-                'USERVER_NAMESPACE::utils::'
-                f'Box<{self.orig_cpp_type.cpp_user_name()}>'
-            )
+            return 'USERVER_NAMESPACE::utils::' f'Box<{self.orig_cpp_type.cpp_user_name()}>'
         else:
-            if not self.cpp_name or (
-                self.orig_cpp_type.cpp_user_name()
-                != self.orig_cpp_type.cpp_global_name()
-            ):
+            if not self.cpp_name or (self.orig_cpp_type.cpp_user_name() != self.orig_cpp_type.cpp_global_name()):
                 # x-usrv-cpp-type
                 return self.orig_cpp_type.cpp_user_name()
             else:
@@ -482,10 +424,7 @@ class CppRef(CppType):
 
     def parser_type(self, ns: str, name: str) -> str:
         if self.indirect:
-            return (
-                'USERVER_NAMESPACE::chaotic::Ref'
-                f'<{self.orig_cpp_type.parser_type(ns, name)}>'
-            )
+            return 'USERVER_NAMESPACE::chaotic::Ref' f'<{self.orig_cpp_type.parser_type(ns, name)}>'
         return self.orig_cpp_type.parser_type(ns, name)
 
     def need_using_type(self) -> bool:
@@ -587,7 +526,8 @@ class CppStructField:
     def without_json_schema(self) -> 'CppStructField':
         if self.schema:
             return dataclasses.replace(
-                self, schema=self.schema.without_json_schema(),
+                self,
+                schema=self.schema.without_json_schema(),
             )
         else:
             return self
@@ -683,49 +623,30 @@ class CppStruct(CppType):
         if len(self.fields) != 1:
             return False
         default = self.fields.get('__default__')
-        if (
-            default
-            and isinstance(self.extra_type, CppType)
-            and default.schema.is_isomorphic(self.extra_type)
-        ):
+        if default and isinstance(self.extra_type, CppType) and default.schema.is_isomorphic(self.extra_type):
             return True
         return False
 
     def _is_default_dict(self) -> bool:
-        return (
-            self.autodiscover_default_dict
-            and self._is_default_dict_candidate()
-        )
+        return self.autodiscover_default_dict and self._is_default_dict_candidate()
 
     def cpp_user_name(self) -> str:
         if self._is_default_dict():
             assert isinstance(self.extra_type, CppType)
-            return (
-                'USERVER_NAMESPACE::utils::DefaultDict'
-                f'<{self.extra_type.cpp_user_name()}>'
-            )
+            return 'USERVER_NAMESPACE::utils::DefaultDict' f'<{self.extra_type.cpp_user_name()}>'
         return super().cpp_user_name()
 
     def parser_type(self, ns: str, name: str) -> str:
         parser_type = self._primitive_parser_type()
         if self._is_default_dict():
             assert isinstance(self.extra_type, CppType)
-            dict_type = (
-                'USERVER_NAMESPACE::utils::DefaultDict'
-                f'<{self.extra_type.cpp_user_name()}>'
-            )
-            return (
-                f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
-                f'{dict_type}>'
-            )
+            dict_type = 'USERVER_NAMESPACE::utils::DefaultDict' f'<{self.extra_type.cpp_user_name()}>'
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, ' f'{dict_type}>'
         return parser_type
 
     def subtypes(self) -> List[CppType]:
         types = [field.schema for field in self.fields.values()]
-        if (
-            isinstance(self.extra_type, CppType)
-            and not self._is_default_dict()
-        ):
+        if isinstance(self.extra_type, CppType) and not self._is_default_dict():
             types.append(self.extra_type)
         return types
 
@@ -831,15 +752,9 @@ class CppArray(CppType):
     def parser_type(self, ns: str, name: str) -> str:
         validators = ''
         if self.validators.minItems is not None:
-            validators += (
-                ', USERVER_NAMESPACE::chaotic::'
-                f'MinItems<{self.validators.minItems}>'
-            )
+            validators += ', USERVER_NAMESPACE::chaotic::' f'MinItems<{self.validators.minItems}>'
         if self.validators.maxItems is not None:
-            validators += (
-                ', USERVER_NAMESPACE::chaotic::'
-                f'MaxItems<{self.validators.maxItems}>'
-            )
+            validators += ', USERVER_NAMESPACE::chaotic::' f'MaxItems<{self.validators.maxItems}>'
 
         parser_type = (
             'USERVER_NAMESPACE::chaotic::Array'
@@ -848,17 +763,11 @@ class CppArray(CppType):
         )
         user_cpp_type = self.user_cpp_type
         if user_cpp_type:
-            parser_type = (
-                f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
-                f'{user_cpp_type}>'
-            )
+            parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, ' f'{user_cpp_type}>'
         return parser_type
 
     def declaration_includes(self) -> List[str]:
-        includes = (
-            self.get_include_by_cpp_type(self.container)
-            + self.items.declaration_includes()
-        )
+        includes = self.get_include_by_cpp_type(self.container) + self.items.declaration_includes()
         if self.user_cpp_type:
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
         return includes
@@ -892,9 +801,7 @@ class CppStructAllOf(CppType):
         includes = []
         if self.user_cpp_type:
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
-        includes += flatten([
-            item.declaration_includes() for item in self.parents
-        ])
+        includes += flatten([item.declaration_includes() for item in self.parents])
         return includes
 
     def definition_includes(self) -> List[str]:
@@ -948,14 +855,9 @@ class CppVariant(CppType):
         parsers = []
         for variant in self.variants:
             parsers.append(variant.parser_type(ns, name))
-        parser_type = (
-            f'USERVER_NAMESPACE::chaotic::Variant<{",".join(parsers)}>'
-        )
+        parser_type = f'USERVER_NAMESPACE::chaotic::Variant<{",".join(parsers)}>'
         if self.user_cpp_type:
-            return (
-                f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
-                f'{self.cpp_user_name()}>'
-            )
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, ' f'{self.cpp_user_name()}>'
         else:
             return parser_type
 
@@ -979,9 +881,7 @@ class CppVariantWithDiscriminator(CppType):
         includes = ['variant', 'userver/chaotic/oneof_with_discriminator.hpp']
         if self.user_cpp_type:
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
-        return includes + flatten([
-            item.declaration_includes() for item in self.variants.values()
-        ])
+        return includes + flatten([item.declaration_includes() for item in self.variants.values()])
 
     def definition_includes(self) -> List[str]:
         return ['userver/formats/json/serialize_variant.hpp'] + flatten([
@@ -1000,15 +900,9 @@ class CppVariantWithDiscriminator(CppType):
             )
         ).in_global_scope()
 
-        parser_type = (
-            'USERVER_NAMESPACE::chaotic::OneOfWithDiscriminator'
-            f'<&{settings_name}, {variants}>'
-        )
+        parser_type = 'USERVER_NAMESPACE::chaotic::OneOfWithDiscriminator' f'<&{settings_name}, {variants}>'
         if self.user_cpp_type:
-            return (
-                f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
-                f'{self.cpp_user_name()}>'
-            )
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, ' f'{self.cpp_user_name()}>'
         else:
             return parser_type
 

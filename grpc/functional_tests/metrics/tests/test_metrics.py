@@ -60,7 +60,5 @@ async def test_metrics(monitor_client, load, force_metrics_to_appear):
         await monitor_client.metrics_raw(output_format='pretty'),
     )
     assert all_metrics == reference, (
-        '\n===== Service metrics start =====\n'
-        f'{all_metrics}\n'
-        '===== Service metrics end =====\n'
+        '\n===== Service metrics start =====\n' f'{all_metrics}\n' '===== Service metrics end =====\n'
     )

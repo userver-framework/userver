@@ -91,16 +91,8 @@ class UserverConan(ConanFile):
                 'cmake/GetUserverVersion.cmake',
             ),
         )
-        major_version = (
-            re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
-            .group(1)
-            .strip()
-        )
-        minor_version = (
-            re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content)
-            .group(1)
-            .strip()
-        )
+        major_version = re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content).group(1).strip()
+        minor_version = re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content).group(1).strip()
 
         self.version = f'{major_version}.{minor_version}'
 
@@ -130,7 +122,9 @@ class UserverConan(ConanFile):
             self.requires('abseil/20240116.2', force=True)
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.65.0', transitive_headers=True, transitive_libs=True,
+                'grpc/1.65.0',
+                transitive_headers=True,
+                transitive_libs=True,
             )
             self.requires(
                 'protobuf/5.27.0',
@@ -155,7 +149,9 @@ class UserverConan(ConanFile):
             self.requires('clickhouse-cpp/2.5.1')
         if self.options.with_utest:
             self.requires(
-                'gtest/1.15.0', transitive_headers=True, transitive_libs=True,
+                'gtest/1.15.0',
+                transitive_headers=True,
+                transitive_libs=True,
             )
             self.requires(
                 'benchmark/1.9.0',
@@ -176,11 +172,7 @@ class UserverConan(ConanFile):
                 'userver cannot be built on Windows',
             )
 
-        if (
-            self.options.with_mongodb
-            and self.dependencies['mongo-c-driver'].options.with_sasl
-            != 'cyrus'
-        ):
+        if self.options.with_mongodb and self.dependencies['mongo-c-driver'].options.with_sasl != 'cyrus':
             raise ConanInvalidConfiguration(
                 f'{self.ref} requires mongo-c-driver with_sasl cyrus',
             )
@@ -194,44 +186,26 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
         tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
         tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
-        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = (
-            self.options.namespace_begin
-        )
+        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = self.options.namespace_begin
         tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
         tool_ch.variables['USERVER_PYTHON_PATH'] = self.options.python_path
 
         tool_ch.variables['USERVER_LTO'] = self.options.lto
-        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = (
-            self.options.with_jemalloc
-        )
-        tool_ch.variables['USERVER_FEATURE_MONGODB'] = (
-            self.options.with_mongodb
-        )
-        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = (
-            self.options.with_postgresql
-        )
-        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = (
-            self.options.with_postgresql_extra
-        )
+        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
+        tool_ch.variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
+        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
+        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
         tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
         tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
-        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = (
-            self.options.with_clickhouse
-        )
-        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = (
-            self.options.with_rabbitmq
-        )
+        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
+        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
         tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
-        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = (
-            self.options.with_utest
-        )
+        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
         tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
         tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
         tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
         tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
-        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = (
-            self.options.with_grpc_reflection
-        )
+        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
         tool_ch.generate()
 
         CMakeDeps(self).generate()

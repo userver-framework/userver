@@ -14,7 +14,10 @@ QUERY_NAMES = ('Begin', 'upsert-row', 'Commit')
 
 
 def assert_deadline_timeout(
-    capture, *, query_names=QUERY_NAMES, expect_dp_enabled: bool = True,
+    capture,
+    *,
+    query_names=QUERY_NAMES,
+    expect_dp_enabled: bool = True,
 ):
     for query in query_names:
         logs = capture.select(stopwatch_name='ydb_query', query_name=query)
@@ -28,7 +31,9 @@ def assert_deadline_timeout(
 async def test_on(service_client):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
-            'ydb/upsert-row', headers={DP_TIMEOUT_MS: TIMEOUT}, json=JSON,
+            'ydb/upsert-row',
+            headers={DP_TIMEOUT_MS: TIMEOUT},
+            json=JSON,
         )
         assert response.status_code == 200
 
@@ -38,7 +43,9 @@ async def test_on(service_client):
 async def test_triggered(service_client):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
-            'ydb/upsert-row', headers={DP_TIMEOUT_MS: '5'}, json=JSON,
+            'ydb/upsert-row',
+            headers={DP_TIMEOUT_MS: '5'},
+            json=JSON,
         )
         assert response.status_code == 498
 
@@ -49,7 +56,9 @@ async def test_triggered(service_client):
 async def test_config_disabled(service_client):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
-            'ydb/upsert-row', headers={DP_TIMEOUT_MS: TIMEOUT}, json=JSON,
+            'ydb/upsert-row',
+            headers={DP_TIMEOUT_MS: TIMEOUT},
+            json=JSON,
         )
         assert response.status_code == 200
 

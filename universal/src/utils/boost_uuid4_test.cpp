@@ -48,12 +48,13 @@ TEST(UUID, ParseFail) {
         "{0ad56dfc-bbbf-44af-87e3-37eb98b6452f}a",
         "0ad56dfc-bbbf-44af-",
     });
-    try {
-        std::string str{"xad56dfc-bbbf-44af-87e3-37eb98b6452f"};
-        utils::BoostUuidFromString(str);
-        FAIL() << "Must throw on invalid UUID " << str;
-    } catch (const std::runtime_error& e) {
-        EXPECT_EQ(std::string{"Invalid uuid string"}, e.what());
+    for (const auto& invalid_uuid : invalid_uuids) {
+        try {
+            utils::BoostUuidFromString(invalid_uuid);
+            FAIL() << "Must throw on invalid UUID " << invalid_uuid;
+        } catch (const std::runtime_error& e) {
+            EXPECT_EQ(std::string{"invalid uuid string"}, e.what());
+        }
     }
 }
 

@@ -14,7 +14,10 @@ def _producer_num_to_name(producer_num: int) -> str:
 
 
 def make_producer_request_body(
-    producer_num: int, topic: str, key: str, message: str,
+    producer_num: int,
+    topic: str,
+    key: str,
+    message: str,
 ) -> Dict[str, str]:
     return {
         'producer': _producer_num_to_name(producer_num),
@@ -25,7 +28,11 @@ def make_producer_request_body(
 
 
 def produce_async(
-    service_client, producer_num: int, topic: str, key: str, message: str,
+    service_client,
+    producer_num: int,
+    topic: str,
+    key: str,
+    message: str,
 ) -> Awaitable:
     return service_client.post(
         PRODUCE_ROUTE,
@@ -34,10 +41,18 @@ def produce_async(
 
 
 async def produce(
-    service_client, producer_num: int, topic: str, key: str, message: str,
+    service_client,
+    producer_num: int,
+    topic: str,
+    key: str,
+    message: str,
 ) -> Awaitable[None]:
     response = await produce_async(
-        service_client, producer_num, topic, key, message,
+        service_client,
+        producer_num,
+        topic,
+        key,
+        message,
     )
 
     assert response.status_code == 200
@@ -46,7 +61,8 @@ async def produce(
 
 
 async def produce_batch(
-    service_client, requests: List[Dict[str, str]],
+    service_client,
+    requests: List[Dict[str, str]],
 ) -> Awaitable[None]:
     response = await service_client.post(PRODUCE_ROUTE, json=requests)
 
@@ -56,7 +72,8 @@ async def produce_batch(
 
 
 async def consume(
-    service_client, topic: str,
+    service_client,
+    topic: str,
 ) -> Dict[str, List[Dict[str, str]]]:
     response = await service_client.post(f'{CONSUME_BASE_ROUTE}/{topic}')
 
@@ -66,7 +83,9 @@ async def consume(
 
 
 async def consume_topic_messages(
-    service_client, topic: str, messages: List[Dict[str, str]],
+    service_client,
+    topic: str,
+    messages: List[Dict[str, str]],
 ) -> Awaitable[None]:
     consumed = await consume(service_client, topic)
 
@@ -83,7 +102,9 @@ async def consume_topic_messages(
 
 
 async def clear_topics(
-    service_client, received_messages_func, messages_to_clear_cnt: int,
+    service_client,
+    received_messages_func,
+    messages_to_clear_cnt: int,
 ) -> Awaitable[None]:
     while messages_to_clear_cnt > 0:
         await received_messages_func.wait_call()

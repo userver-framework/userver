@@ -17,23 +17,19 @@ def pytest_addoption(parser) -> None:
 
     group = parser.getgroup('Test service')
     group.addoption(
-        '--service-binary', type=pathlib.Path, help='Path to service binary.',
+        '--service-binary',
+        type=pathlib.Path,
+        help='Path to service binary.',
     )
     group.addoption(
         '--service-port',
-        help=(
-            'Main HTTP port of the service '
-            '(default: use the port from the static config)'
-        ),
+        help=('Main HTTP port of the service ' '(default: use the port from the static config)'),
         default=None,
         type=int,
     )
     group.addoption(
         '--monitor-port',
-        help=(
-            'Monitor HTTP port of the service '
-            '(default: use the port from the static config)'
-        ),
+        help=('Monitor HTTP port of the service ' '(default: use the port from the static config)'),
         default=None,
         type=int,
     )
@@ -104,7 +100,10 @@ def service_port(pytestconfig, _original_service_config) -> int:
     @ingroup userver_testsuite_fixtures
     """
     return pytestconfig.option.service_port or _get_port(
-        _original_service_config, 'listener', service_port, '--service-port',
+        _original_service_config,
+        'listener',
+        service_port,
+        '--service-port',
     )
 
 
@@ -130,7 +129,10 @@ def monitor_port(pytestconfig, _original_service_config) -> int:
 
 
 def _get_port(
-    original_service_config, listener_name, port_fixture, option_name,
+    original_service_config,
+    listener_name,
+    port_fixture,
+    option_name,
 ) -> int:
     config_yaml = original_service_config.config_yaml
     config_vars = original_service_config.config_vars
@@ -141,7 +143,8 @@ def _get_port(
     port = listener.get('port', None)
     if isinstance(port, str) and port.startswith('$'):
         port = config_vars.get(port[1:], None) or listener.get(
-            'port#fallback', None,
+            'port#fallback',
+            None,
         )
     assert port, (
         f'Please specify '

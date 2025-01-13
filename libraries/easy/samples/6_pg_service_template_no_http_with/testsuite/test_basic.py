@@ -1,9 +1,7 @@
 async def test_log_action(service_client, pgsql, mockserver):
     @mockserver.handler('/v1/action')
     def _mock(request):
-        assert (
-            request.get_data() == b'test_1'
-        ), f'Actual data is {request.get_data()}'
+        assert request.get_data() == b'test_1', f'Actual data is {request.get_data()}'
         return mockserver.make_response()
 
     response = await service_client.post('/log?action=test_1')

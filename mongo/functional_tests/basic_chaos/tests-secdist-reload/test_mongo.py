@@ -17,7 +17,10 @@ async def rewrite_secdist(broken_secdist, mongo_connection_info):
 
 
 async def test_secdist_update(
-    service_client, broken_secdist, mongo_connection_info, testpoint,
+    service_client,
+    broken_secdist,
+    mongo_connection_info,
+    testpoint,
 ):
     @testpoint('mongo-new-connection-string')
     def tp(request):

@@ -101,7 +101,8 @@ class Colorizer:
                 extra_fields.append(
                     'request_body='
                     + self.textcolor(
-                        try_reformat_json(row.pop('body')), Colors.YELLOW,
+                        try_reformat_json(row.pop('body')),
+                        Colors.YELLOW,
                     ),
                 )
         elif entry_type == 'response':
@@ -115,7 +116,8 @@ class Colorizer:
             extra_fields.append(
                 'response_body='
                 + self.textcolor(
-                    try_reformat_json(row.pop('body')), Colors.YELLOW,
+                    try_reformat_json(row.pop('body')),
+                    Colors.YELLOW,
                 ),
             )
         elif entry_type == 'mockserver_request':
@@ -229,15 +231,15 @@ def parse_color(value):
 def colorize_main():
     parser = argparse.ArgumentParser(description='Colorize userver log file.')
     parser.add_argument(
-        '--verbose', '-v', action='store_true', help='Be verbose',
+        '--verbose',
+        '-v',
+        action='store_true',
+        help='Be verbose',
     )
     parser.add_argument(
         '--color',
         metavar='WHEN',
-        help=(
-            'Control color highlighting, WHEN is always, never or '
-            'auto (default)'
-        ),
+        help=('Control color highlighting, WHEN is always, never or ' 'auto (default)'),
         nargs='?',
         type=parse_color,
         default=ColorArg.AUTO,

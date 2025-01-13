@@ -5,8 +5,7 @@ import pytest
 pytest_plugins = [
     'pytest_userver.plugins.redis',
     'pytest_userver.plugins.dynamic_config',
-    'taxi.uservices.userver.redis.functional_tests.'
-    'pytest_redis_cluster_topology_plugin.pytest_plugin',
+    'taxi.uservices.userver.redis.functional_tests.' 'pytest_redis_cluster_topology_plugin.pytest_plugin',
 ]
 
 

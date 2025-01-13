@@ -1,6 +1,7 @@
 async def test_kv(service_client):
     response = await service_client.post(
-        '/kv', json={'key': 1, 'value': 'one'},
+        '/kv',
+        json={'key': 1, 'value': 'one'},
     )
     assert response.status == 200
     assert response.json() is None
@@ -12,7 +13,8 @@ async def test_kv(service_client):
     assert 'application/json' in response.headers['Content-Type']
 
     response = await service_client.post(
-        '/kv', json={'key': 1, 'value': 'again_1'},
+        '/kv',
+        json={'key': 1, 'value': 'again_1'},
     )
     assert response.status == 200
 

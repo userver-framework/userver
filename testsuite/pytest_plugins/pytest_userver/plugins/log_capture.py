@@ -69,16 +69,14 @@ class CapturedLogs:
     def select(self, **query) -> typing.List[tskv.TskvRow]:
         if not self._closed:
             raise IncorrectUsageError(
-                'select() is only supported for closed captures\n'
-                'Please move select() after context manager body',
+                'select() is only supported for closed captures\n' 'Please move select() after context manager body',
             )
         level = query.get('level')
         if level:
             log_level = LogLevel[level]
             if log_level.value < self._log_level.value:
                 raise IncorrectUsageError(
-                    f'Requested log level={log_level.name} is lower than '
-                    f'service log level {self._log_level.name}',
+                    f'Requested log level={log_level.name} is lower than ' f'service log level {self._log_level.name}',
                 )
         result = []
         for row in self._logs:
@@ -123,7 +121,10 @@ class CaptureControl:
 
     @compat.asynccontextmanager
     async def start_capture(
-        self, *, log_level: typing.Optional[str] = None, timeout: float = 10.0,
+        self,
+        *,
+        log_level: typing.Optional[str] = None,
+        timeout: float = 10.0,
     ):
         if self._capture:
             yield self._capture
@@ -152,7 +153,9 @@ class CaptureControl:
         if sys.version_info < (3, 8):
             extra['loop'] = loop
         server = await asyncio.start_server(
-            self._handle_client, sock=sock, **extra,
+            self._handle_client,
+            sock=sock,
+            **extra,
         )
         try:
             yield server
@@ -216,10 +219,13 @@ def _userver_log_capture_socket(pytestconfig):
 
 @pytest.fixture(scope='session')
 async def _userver_capture_server(
-    _userver_capture_control: CaptureControl, _userver_log_capture_socket, loop,
+    _userver_capture_control: CaptureControl,
+    _userver_log_capture_socket,
+    loop,
 ):
     async with _userver_capture_control.start_server(
-        sock=_userver_log_capture_socket, loop=loop,
+        sock=_userver_log_capture_socket,
+        loop=loop,
     ) as server:
         yield server
 
