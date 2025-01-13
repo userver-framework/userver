@@ -74,7 +74,7 @@ jobs:
           - name: Install test dependencies
             run: |
                 brew tap mongodb/brew
-                brew install clickhouse redis kafka mongodb-community
+                brew install clickhouse redis kafka mongodb-community rabbitmq
 
           - name: Setup ccache
             run: |
