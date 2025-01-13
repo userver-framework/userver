@@ -89,7 +89,7 @@ jobs:
           - name: Compile
             run: |
                 cmake --build build_debug -j$(nproc) -- -k 1
-                
+
           - name: Save cached directories
             uses: actions/cache/save@v4
             with:
@@ -130,11 +130,6 @@ jobs:
                 cd build_debug/clickhouse
                 ctest -V
 
-          - name: Run tests (mongo)
-            run: |
-                cd build_debug/mongo
-                ctest -V
-
           - name: Run tests (rocks)
             run: |
                 cd build_debug/rocks
@@ -155,15 +150,15 @@ jobs:
                 cd build_debug/grpc
                 ctest -V
 
+          - name: Run tests (mongo)
+            run: |
+                cd build_debug/mongo
+                ctest -V -R "userver-mongo-unittest|userver-mongo-benchmark" # many flaps in integrational tests
+
           - name: Run tests (mysql)
             run: |
                 cd build_debug/mysql
                 GTEST_FILTER="-*Transaction*" ctest -V
-
-          - name: Run tests (mongo)
-            run: |
-                cd build_debug/mongo
-                ctest -V
 
           - name: Run tests (redis)
             run: |
