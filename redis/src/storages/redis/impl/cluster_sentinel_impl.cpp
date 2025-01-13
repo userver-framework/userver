@@ -707,7 +707,21 @@ public:
     }
 
     void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override {
+        if (info_array.size() != 1) {
+            throw std::runtime_error("Single connection configuration is supported only");
+        }
 
+        auto& new_conn = info_array.front();
+        LOG_DEBUG() << "Update connection info to " << new_conn.Fulltext();
+
+        {
+            auto conn = conn_to_create_.Lock();
+            std::tie(conn->host, conn->port) = new_conn.HostPort();
+            conn->connection_security = new_conn.GetConnectionSecurity();
+            conn->read_only = new_conn.IsReadOnly();
+            // conn->password = ???
+        }
+        create_node_watch_.Send();
     }
 
     boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() override {
@@ -731,7 +745,7 @@ private:
             buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
             *replication_monitoring_settings_ptr,
             *retry_budget_settings_ptr,
-            redis::RedisCreationSettings{ConnectionSecurity::kNone, false}
+            redis::RedisCreationSettings{info.connection_security, false}
         );
     }
 
@@ -750,7 +764,6 @@ private:
             }
             topology_holder->GetSignalNodeStateChanged()(host_port, state);
         });
-
 
         // one shard
         ClusterShardHostInfos shard_infos{
@@ -775,7 +788,7 @@ private:
         );
 
         node_.Emplace(
-            Node{std::move(host_port), redis_connection}    
+            Node{std::move(host_port), redis_connection}
         );
 
         signal_topology_changed_(1);
