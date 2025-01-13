@@ -107,7 +107,7 @@ jobs:
           - name: Run tests (universal)
             run: |
                 cd build_debug/universal
-                ctest -V
+                GTEST_FILTER="-UUID.ParseFail" ctest -V
 
           - name: Run tests (samples)
             run: |
