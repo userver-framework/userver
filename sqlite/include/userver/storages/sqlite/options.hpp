@@ -32,7 +32,21 @@ constexpr inline bool operator==(const TransactionOptions& lhs,
   return lhs.mode == rhs.mode;
 }
 
-struct ConnectionSettings {};
+/// Default size limit for prepared statements cache
+inline constexpr std::size_t kDefaultMaxPreparedCacheSize = 200;
+
+struct ConnectionSettings {
+  enum PreparedStatementOptions {
+    kCachePreparedStatements,
+    kNoPreparedStatements,
+  };
+
+  /// Cache prepared statements or not
+  PreparedStatementOptions prepared_statements = kCachePreparedStatements;
+
+  /// Limits the size or prepared statements cache
+  std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
+};
 
 struct CommandControl {};
 
@@ -43,6 +57,7 @@ struct SQLiteSettings {
   ReadMode read_mode = ReadMode::kReadWrite;
   bool create_file = true;
   std::string db_name;
+  ConnectionSettings conn_settings;
 };
 
 }  // namespace storages::sqlite

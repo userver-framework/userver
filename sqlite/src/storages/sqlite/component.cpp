@@ -29,6 +29,13 @@ std::shared_ptr<storages::sqlite::Connection> CreateConnection(
       config["is_read_only"].As<bool>()
           ? storages::sqlite::SQLiteSettings::ReadMode::kReadOnly
           : storages::sqlite::SQLiteSettings::ReadMode::kReadWrite;
+  settings.conn_settings.prepared_statements =
+      config["persistent-prepared-statements"].As<bool>(true)
+          ? storages::sqlite::ConnectionSettings::kCachePreparedStatements
+          : storages::sqlite::ConnectionSettings::kNoPreparedStatements;
+  settings.conn_settings.max_prepared_cache_size =
+      config["max_prepared_cache_size"].As<std::size_t>(
+          storages::sqlite::kDefaultMaxPreparedCacheSize);
   return std::make_shared<storages::sqlite::Connection>(
       settings,
       context.GetTaskProcessor(config["task_processor"].As<std::string>()));
@@ -65,6 +72,14 @@ properties:
     is_read_only:
         type: boolean
         description: defines database access as read-only
+    persistent-prepared-statements:
+        type: boolean
+        description: cache prepared statements or not
+        defaultDescription: true
+    max_prepared_cache_size:
+        type: integer
+        description: prepared statements cache size limit
+        defaultDescription: 200
 )");
 }
 

@@ -23,6 +23,10 @@ namespace components {
 /// db-path                            | path to database file or `::memory` for in-memory mode         | -
 /// create_file                        | create a file if one is not found along the db-path            | true
 /// is_read_only                       | defines database access as read-only                           | false
+/// persistent-prepared-statements     | cache prepared statements or not                               | true
+/// max_prepared_cache_size            | prepared statements cache size limit                           | 200
+
+// TODO: Select optimal default values
 
 // clang-format on
 
