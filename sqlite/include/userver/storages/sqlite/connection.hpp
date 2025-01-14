@@ -75,6 +75,7 @@ class Connection final {
 
   std::unique_ptr<sqlite3, Deleter> db;
   engine::TaskProcessor& blocking_task_processor_;
+  
 };
 
 template <typename... Args>
@@ -87,7 +88,7 @@ ResultSet Connection::Execute(OptionalCommandControl optional_cc
                               [[maybe_unused]],
                               const Query& query,
                               const Args&... args [[maybe_unused]]) const {
-  // Add support of args like WHERE key = ?, (?, ?, ?)
+  // TODO: Add support of args like WHERE key = ?, (?, ?, ?)
   return DoExecute(optional_cc, query.GetStatement(), std::nullopt);
 }
 

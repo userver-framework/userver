@@ -138,6 +138,8 @@ std::vector<T> ResultSet::AsVector() && {
     result.emplace_back(convertRow<T>(stmt_.get()));
   }
 
+  // TODO: happens before
+
   // Reset state to use prepared statement again
   sqlite3_reset(stmt_.get());
 
