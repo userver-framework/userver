@@ -20,7 +20,6 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
             [this] {
                 // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
                 CreateNode();
-                create_node_watch_.Start();
             }
         ) {
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
@@ -46,7 +45,7 @@ bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConn
     LOG_DEBUG() << "WaitReadyOnce in mode " << ToString(mode);
     std::unique_lock<std::mutex> lock(mutex_);
     return cv_.WaitUntil(lock, deadline, [this, mode]() {
-        if(auto node = node_.Read(); !node->has_value()) return false;
+        if(!is_nodes_received_) return false;
         auto ptr = topology_.Read();
         return ptr->IsReady(mode);
     });
@@ -127,6 +126,8 @@ void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInf
         conn_to_create_.connection_security = new_conn.GetConnectionSecurity();
         conn_to_create_.read_only = new_conn.IsReadOnly();
         // conn_to_create_.password = ???
+
+        is_nodes_received_.store(false);
     }
     create_node_watch_.Send();
 }
@@ -160,18 +161,6 @@ void StandaloneTopologyHolder::CreateNode() {
 
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        std::string host_port(fmt::format("{}:{}", conn_to_create_.host, conn_to_create_.port));
-
-        auto redis_connection = CreateRedisInstance(conn_to_create_);
-        redis_connection->signal_state_change.connect([host_port,
-                                                topology_holder_wp = weak_from_this()](redis::RedisState state) {
-            auto topology_holder = topology_holder_wp.lock();
-            if (!topology_holder) {
-                return;
-            }
-            topology_holder->GetSignalNodeStateChanged()(host_port, state);
-        });
-
         // one shard
         ClusterShardHostInfos shard_infos{
             // only master, no slaves
@@ -182,6 +171,17 @@ void StandaloneTopologyHolder::CreateNode() {
             LOG_INFO() << "Current topology has the same shard";
             return;
         }
+
+        std::string host_port(fmt::format("{}:{}", conn_to_create_.host, conn_to_create_.port));
+        auto redis_connection = CreateRedisInstance(conn_to_create_);
+        redis_connection->signal_state_change.connect([host_port,
+                                                topology_holder_wp = weak_from_this()](redis::RedisState state) {
+            auto topology_holder = topology_holder_wp.lock();
+            if (!topology_holder) {
+                return;
+            }
+            topology_holder->GetSignalNodeStateChanged()(host_port, state);
+        });
 
         NodesStorage nodes;
         nodes.Insert(host_port, redis_connection);
@@ -197,6 +197,8 @@ void StandaloneTopologyHolder::CreateNode() {
         node_.Emplace(
             Node{std::move(host_port), redis_connection}
         );
+
+        is_nodes_received_.store(true);
     }
 
     signal_topology_changed_(1);
