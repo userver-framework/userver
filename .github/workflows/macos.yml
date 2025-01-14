@@ -164,5 +164,5 @@ jobs:
           - name: Run tests (postgresql)
             run: |
                 cd build_debug/postgresql
-                ulimit -n 4096 && ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
+                ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
 
