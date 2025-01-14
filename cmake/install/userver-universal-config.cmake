@@ -6,7 +6,7 @@ endif()
 
 include("${USERVER_CMAKE_DIR}/ModuleHelpers.cmake")
 
-find_package(Threads)
+find_package(Threads REQUIRED)
 find_package(Boost REQUIRED CONFIG COMPONENTS
     program_options
     filesystem
@@ -25,13 +25,6 @@ endif()
 _userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
 find_package(OpenSSL REQUIRED)
 
-find_package(fmt "8.1.1" REQUIRED)
-if(NOT TARGET fmt)
-  add_library(fmt ALIAS fmt::fmt)
-endif()
-
-find_package(cctz REQUIRED)
-
 if (USERVER_IMPL_FEATURE_JEMALLOC AND
     NOT USERVER_SANITIZE AND
     NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -39,20 +32,23 @@ if (USERVER_IMPL_FEATURE_JEMALLOC AND
   if (USERVER_CONAN)
     find_package(jemalloc REQUIRED CONFIG)
   else()
-    find_package(Jemalloc REQUIRED)
+    include("${USERVER_CMAKE_DIR}/modules/FindJemalloc.cmake")
   endif()
 endif()
 
 if (USERVER_CONAN)
+  find_package(fmt REQUIRED CONFIG)
+  find_package(cctz REQUIRED CONFIG)
   find_package(cryptopp REQUIRED CONFIG)
   find_package(yaml-cpp REQUIRED CONFIG)
   find_package(zstd REQUIRED CONFIG)
-
   find_package(RapidJSON REQUIRED CONFIG)
 else()
-  find_package(CryptoPP REQUIRED)
-  find_package(libyamlcpp REQUIRED)
-  find_package(libzstd REQUIRED)
+  include("${USERVER_CMAKE_DIR}/modules/Findfmt.cmake")
+  include("${USERVER_CMAKE_DIR}/modules/Findcctz.cmake")
+  include("${USERVER_CMAKE_DIR}/modules/FindCryptoPP.cmake")
+  include("${USERVER_CMAKE_DIR}/modules/Findlibyamlcpp.cmake")
+  include("${USERVER_CMAKE_DIR}/modules/Findlibzstd.cmake")
 endif()
 
 include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")
