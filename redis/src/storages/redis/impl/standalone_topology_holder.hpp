@@ -66,14 +66,14 @@ private:
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
     Password password_;
-    concurrent::Variable<ConnectionInfo, std::mutex> conn_to_create_;
 
     ///{ Wait ready
     std::mutex mutex_;
     engine::impl::ConditionVariableAny<std::mutex> cv_;
+    ConnectionInfo conn_to_create_;
     rcu::Variable<std::optional<Node>, rcu::BlockingRcuTraits> node_;
-    std::atomic_size_t current_topology_version_{0};
     rcu::Variable<ClusterTopology, rcu::BlockingRcuTraits> topology_;
+    std::atomic_size_t current_topology_version_{0};
 
     engine::ev::AsyncWatcher create_node_watch_;
 

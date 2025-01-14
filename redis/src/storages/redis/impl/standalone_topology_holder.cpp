@@ -122,11 +122,11 @@ void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInf
     LOG_DEBUG() << "Update connection info to " << new_conn.Fulltext();
 
     {
-        auto conn = conn_to_create_.Lock();
-        std::tie(conn->host, conn->port) = new_conn.HostPort();
-        conn->connection_security = new_conn.GetConnectionSecurity();
-        conn->read_only = new_conn.IsReadOnly();
-        // conn->password = ???
+        std::unique_lock<std::mutex> lock(mutex_);
+        std::tie(conn_to_create_.host, conn_to_create_.port) = new_conn.HostPort();
+        conn_to_create_.connection_security = new_conn.GetConnectionSecurity();
+        conn_to_create_.read_only = new_conn.IsReadOnly();
+        // conn_to_create_.password = ???
     }
     create_node_watch_.Send();
 }
@@ -158,44 +158,46 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
 void StandaloneTopologyHolder::CreateNode() {
     LOG_DEBUG() << "Create node started";
 
-    auto conn_to_create = conn_to_create_.Lock();
-    std::string host_port(fmt::format("{}:{}", conn_to_create->host, conn_to_create->port));
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        std::string host_port(fmt::format("{}:{}", conn_to_create_.host, conn_to_create_.port));
 
-    auto redis_connection = CreateRedisInstance(*conn_to_create);
-    redis_connection->signal_state_change.connect([host_port,
-                                            topology_holder_wp = weak_from_this()](redis::RedisState state) {
-        auto topology_holder = topology_holder_wp.lock();
-        if (!topology_holder) {
+        auto redis_connection = CreateRedisInstance(conn_to_create_);
+        redis_connection->signal_state_change.connect([host_port,
+                                                topology_holder_wp = weak_from_this()](redis::RedisState state) {
+            auto topology_holder = topology_holder_wp.lock();
+            if (!topology_holder) {
+                return;
+            }
+            topology_holder->GetSignalNodeStateChanged()(host_port, state);
+        });
+
+        // one shard
+        ClusterShardHostInfos shard_infos{
+            // only master, no slaves
+            ClusterShardHostInfo{ConnectionInfoInt{conn_to_create_}, {}, {}}
+        };
+        
+        if(auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
+            LOG_INFO() << "Current topology has the same shard";
             return;
         }
-        topology_holder->GetSignalNodeStateChanged()(host_port, state);
-    });
 
-    // one shard
-    ClusterShardHostInfos shard_infos{
-        // only master, no slaves
-        ClusterShardHostInfo{ConnectionInfoInt{*conn_to_create}, {}, {}}
-    };
-    
-    if(auto topology_ptr =  topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
-        LOG_INFO() << "Current topology has the same shard";
-        return;
+        NodesStorage nodes;
+        nodes.Insert(host_port, redis_connection);
+        topology_.Emplace(
+            ++current_topology_version_,
+            std::chrono::steady_clock::now(),
+            std::move(shard_infos),
+            password_,
+            redis_thread_pool_,
+            nodes
+        );
+
+        node_.Emplace(
+            Node{std::move(host_port), redis_connection}
+        );
     }
-
-    NodesStorage nodes;
-    nodes.Insert(host_port, redis_connection);
-    topology_.Emplace(
-        ++current_topology_version_,
-        std::chrono::steady_clock::now(),
-        std::move(shard_infos),
-        password_,
-        redis_thread_pool_,
-        nodes
-    );
-
-    node_.Emplace(
-        Node{std::move(host_port), redis_connection}
-    );
 
     signal_topology_changed_(1);
     cv_.NotifyAll();
