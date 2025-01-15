@@ -794,15 +794,15 @@ ClusterSentinelImpl::ClusterSentinelImpl(
       dynamic_config_source_(std::move(dynamic_config_source)) {
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-    if(dynamic_cast<KeyShardStandalone*>(key_shard.get())) {
+    if(!key_shard) {
+        topology_holder_ = std::make_shared<ClusterTopologyHolder>(
+            ev_thread_, redis_thread_pool, shard_group_name, password, shards, conns
+        );
+    } else {
         LOG_DEBUG() << "Contstruct Standalone topology holder";
         UASSERT_MSG(conns.size() == 1, "In standalone mode we expect exactly one redis node to connect!");
         topology_holder_ = std::make_shared<StandaloneTopologyHolder>(
             ev_thread_, redis_thread_pool, password, conns.front()
-        );
-    } else {
-        topology_holder_ = std::make_shared<ClusterTopologyHolder>(
-            ev_thread_, redis_thread_pool, shard_group_name, password, shards, conns
         );
     }
 
