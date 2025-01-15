@@ -10,7 +10,10 @@ default_testsuite_headers = [
 
 
 async def get_log_request_headers(
-    service_client, dynamic_config, headers, headers_whitelist,
+    service_client,
+    dynamic_config,
+    headers,
+    headers_whitelist,
 ):
     dynamic_config.set(
         USERVER_LOG_REQUEST_HEADERS=True,
@@ -20,11 +23,15 @@ async def get_log_request_headers(
 
     async with service_client.capture_logs() as capture:
         await service_client.get(
-            '/chaos/httpserver', params={'type': 'echo'}, headers=headers,
+            '/chaos/httpserver',
+            params={'type': 'echo'},
+            headers=headers,
         )
 
     logs = capture.select(
-        _type='request', meta_type='/chaos/httpserver', level='INFO',
+        _type='request',
+        meta_type='/chaos/httpserver',
+        level='INFO',
     )
 
     assert len(logs) == 1

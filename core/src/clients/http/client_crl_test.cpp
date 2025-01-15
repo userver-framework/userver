@@ -317,7 +317,7 @@ struct TlsServer {
 
         auto tls_server = engine::io::TlsWrapper::StartTlsServer(
             std::move(socket),
-            crypto::Certificate::LoadFromString(kServerCertificate),
+            crypto::LoadCertficatesChainFromString(kServerCertificate),
             crypto::PrivateKey::LoadFromString(kRevokedServerPrivateKey),
             deadline,
             cas

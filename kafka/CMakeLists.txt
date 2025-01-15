@@ -1,32 +1,14 @@
 project(userver-kafka CXX)
 
 if(USERVER_CONAN)
-  find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED CONFIG)
-  find_package(CURL REQUIRED CONFIG)
-  find_package(ZLIB REQUIRED CONFIG)
-
-  find_package(zstd REQUIRED CONFIG)
-  # According to https://conan.io/center/recipes/zstd should be
-  # zstd::libzstd_static, but it does not work that way
-  if (TARGET zstd::libzstd_static)
-    add_library(libzstd ALIAS zstd::libzstd_static)
-  else()
-    add_library(libzstd ALIAS zstd::libzstd_shared)
-  endif()
-  
   find_package(RdKafka REQUIRED CONFIG)
-  set_target_properties(RdKafka::rdkafka PROPERTIES IMPORTED_GLOBAL TRUE)
-  add_library(RdKafka ALIAS RdKafka::rdkafka)
-
-  find_package(cyrus-sasl REQUIRED CONFIG)
-  add_library(sasl2 ALIAS cyrus-sasl::cyrus-sasl)
 else()
   include(SetupRdKafka)
 endif()
 
 userver_module(kafka
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-  LINK_LIBRARIES_PRIVATE RdKafka sasl2 ZLIB::ZLIB libzstd lz4::lz4 CURL::libcurl OpenSSL::SSL OpenSSL::Crypto
+  LINK_LIBRARIES_PRIVATE RdKafka::rdkafka
   DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
   DBTEST_LINK_LIBRARIES userver::kafka-utest
   DBTEST_DATABASES kafka
@@ -49,8 +31,15 @@ endif()
 
 _userver_directory_install(COMPONENT kafka
     FILES
+    "${USERVER_ROOT_DIR}/cmake/SetupRdKafka.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+)
+
+_userver_directory_install(COMPONENT kafka
+    FILES
     "${USERVER_ROOT_DIR}/cmake/modules/FindRdKafka.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findlz4.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindSASL2.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
 

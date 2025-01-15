@@ -189,14 +189,4 @@ MakeBulkHedgedRedisRequestAsync(
 
 }  // namespace storages::redis
 
-#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
-namespace redis {
-using USERVER_NAMESPACE::storages::redis::HedgedRedisRequest;
-using USERVER_NAMESPACE::storages::redis::MakeBulkHedgedRedisRequest;
-using USERVER_NAMESPACE::storages::redis::MakeBulkHedgedRedisRequestAsync;
-using USERVER_NAMESPACE::storages::redis::MakeHedgedRedisRequest;
-using USERVER_NAMESPACE::storages::redis::MakeHedgedRedisRequestAsync;
-}  // namespace redis
-#endif
-
 USERVER_NAMESPACE_END

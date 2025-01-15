@@ -85,7 +85,7 @@ CPMAddPackage(
     "gRPC_SSL_PROVIDER package"
     "gRPC_PROTOBUF_PROVIDER package"
     "gRPC_BENCHMARK_PROVIDER none"
-    "gRPC_ABSL_PROVIDER none"
+    "gRPC_ABSL_PROVIDER package"
     "gRPC_CARES_LIBRARIES c-ares::cares"
     "gRPC_INSTALL OFF"
 )

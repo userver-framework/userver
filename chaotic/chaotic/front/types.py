@@ -31,9 +31,7 @@ def smart_fields(cls: type) -> type:
     orig_init = cls.__init__  # type: ignore
 
     def __init__(self, **kwargs) -> None:
-        known_fields = {
-            field.name for field in dataclasses.fields(self) if field.init
-        }
+        known_fields = {field.name for field in dataclasses.fields(self) if field.init}
         ignored = {}
 
         # 1. for known pattern x-* field just ignore it
@@ -45,9 +43,7 @@ def smart_fields(cls: type) -> type:
                 else:
                     raise FieldError(
                         arg,
-                        f'Unknown field: "{arg}", known fields: ["'
-                        + '", "'.join(sorted(known_fields))
-                        + '"]',
+                        f'Unknown field: "{arg}", known fields: ["' + '", "'.join(sorted(known_fields)) + '"]',
                     )
 
         for ignore in ignored:
@@ -78,7 +74,8 @@ def validate_type(field_name: str, value, type_) -> None:
             # TODO: better text
             # raise FieldError(field_name, f'{value} is not {pytype}')
             raise FieldError(
-                field_name, f'field "{field_name}" has wrong type',
+                field_name,
+                f'field "{field_name}" has wrong type',
             )
     except TypeError:
         # TODO: type=List[str]
@@ -107,7 +104,8 @@ _OptionalStr = TypeVar('_OptionalStr', str, Optional[str])
 @dataclasses.dataclass
 class Schema(Base):
     x_properties: Dict[str, Any] = dataclasses.field(
-        init=False, default_factory=dict,
+        init=False,
+        default_factory=dict,
     )
 
     def visit_children(self, cb: Callable[['Schema', 'Schema'], None]) -> None:
@@ -124,17 +122,25 @@ class Schema(Base):
             del self.x_properties[name]
 
     def get_x_property_str(
-        self, name: str, default: _OptionalStr = None,
+        self,
+        name: str,
+        default: _OptionalStr = None,
     ) -> _OptionalStr:
         return self._get_x_property_typed(name, default, str, 'string')
 
     def get_x_property_bool(
-        self, name: str, default: _OptionalBool = None,
+        self,
+        name: str,
+        default: _OptionalBool = None,
     ) -> _OptionalBool:
         return self._get_x_property_typed(name, default, bool, 'boolean')
 
     def _get_x_property_typed(
-        self, name: str, default: Any, type_: type, type_str: str,
+        self,
+        name: str,
+        default: Any,
+        type_: type,
+        type_str: str,
     ) -> Any:
         value = self.x_properties.get(name, default)
         if value is None:
@@ -215,7 +221,8 @@ class Integer(Schema):
             for item in self.enum:
                 if not isinstance(item, int):
                     raise FieldError(
-                        'enum', f'field "enum" contains non-integers ({item})',
+                        'enum',
+                        f'field "enum" contains non-integers ({item})',
                     )
 
     __hash__ = Schema.__hash__
@@ -277,7 +284,8 @@ class String(Schema):
             for item in self.enum:
                 if not isinstance(item, str):
                     raise FieldError(
-                        'enum', f'field "enum" contains non-strings ({item})',
+                        'enum',
+                        f'field "enum" contains non-strings ({item})',
                     )
 
     __hash__ = Schema.__hash__
@@ -325,8 +333,7 @@ class SchemaObject(Schema):
                 if name not in self.properties:
                     raise FieldError(
                         'required',
-                        f'Field "{name}" is set in "required", '
-                        'but missing in "properties"',
+                        f'Field "{name}" is set in "required", ' 'but missing in "properties"',
                     )
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:

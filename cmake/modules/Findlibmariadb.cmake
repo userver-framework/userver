@@ -7,12 +7,12 @@ _userver_module_begin(
 )
 
 _userver_module_find_include(
-    NAMES mysql/mysql.h mariadb/mysql.h
+    NAMES mysql.h
+    PATH_SUFFIXES mariadb mysql
 )
 
 _userver_module_find_library(
     NAMES mariadb
-    PATH_SUFFIXES lib
 )
 
 _userver_module_end()

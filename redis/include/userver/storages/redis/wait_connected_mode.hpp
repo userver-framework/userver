@@ -34,12 +34,4 @@ struct RedisWaitConnected {
 
 }  // namespace storages::redis
 
-#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
-namespace redis {
-using storages::redis::kRedisWaitConnectedDefaultTimeout;
-using storages::redis::RedisWaitConnected;
-using storages::redis::WaitConnectedMode;
-}  // namespace redis
-#endif
-
 USERVER_NAMESPACE_END

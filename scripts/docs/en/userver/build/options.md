@@ -63,10 +63,10 @@ cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 | `USERVER_FEATURE_CHAOTIC`         | Provide chaotic-codegen for jsonschema                                            | `ON`                                                        |
 | `USERVER_FEATURE_UTEST`           | Provide `utest` and `ubench` for unit testing and benchmarking coroutines         | `${USERVER_FEATURE_CORE}`                                   |
 | `USERVER_FEATURE_TESTSUITE`       | Enable functional tests via testsuite                                             | `ON`                                                        |
-| `USERVER_FEATURE_MONGODB`         | Provide asynchronous driver for MongoDB                                           | `${USERVER_BUILD_ALL_COMPONENTS}` AND `x86*` AND NOT `*BSD` |
+| `USERVER_FEATURE_MONGODB`         | Provide asynchronous driver for MongoDB                                           | `${USERVER_BUILD_ALL_COMPONENTS}`                NOT `*BSD` |
 | `USERVER_FEATURE_POSTGRESQL`      | Provide asynchronous driver for PostgreSQL                                        | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_REDIS`           | Provide asynchronous driver for Redis                                             | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
-| `USERVER_FEATURE_CLICKHOUSE`      | Provide asynchronous driver for ClickHouse                                        | `${USERVER_BUILD_ALL_COMPONENTS}` AND `x86*`                |
+| `USERVER_FEATURE_CLICKHOUSE`      | Provide asynchronous driver for ClickHouse                                        | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_GRPC`            | Provide asynchronous driver for gRPC                                              | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_KAFKA`           | Provide asynchronous driver for Apache Kafka                                      | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_RABBITMQ`        | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                             | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
@@ -128,6 +128,8 @@ cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 | `USERVER_DOWNLOAD_PACKAGE_KAFKA`         | Download and setup librdkafka if no librdkafka matching version was found               | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK`     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_FORCE_DOWNLOAD_PACKAGES`        | Download all possible third-party packages even if there is an installed system package | `OFF`                                |
+| `USERVER_FORCE_DOWNLOAD_ABSEIL`          | Download Abseil even if it exists in a system                                           | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_FORCE_DOWNLOAD_CURL`            | Download Curl even if it exists in a system                                             | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_PROTOBUF`        | Download Protobuf even if there is an installed system package                          | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_GRPC`            | Download gRPC even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 
@@ -151,13 +153,14 @@ cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 | `USERVER_SANITIZE`                     | Build with sanitizers support, allows combination of values via 'val1 val2'. Available: `addr`, `mem`, `ub` | (no sanitizers)                                             |
 | `USERVER_SANITIZE_BLACKLIST`           | Path to file that is passed to the -fsanitize-blacklist option                                              | (no blacklist)                                              |
 | `USERVER_USE_LD`                       | Linker to use, e.g. `gold` or `lld`                                                                         | `lld` for Clang, system linker otherwise (typically GNU ld) |
+| `USERVER_USE_STATIC_LIBS`              | Tries to find all dependencies as static libraries                                                          | `ON` for `Clang` not older than `14` version                |
+| `USERVER_USE_CCACHE`                   | Use ccache if present, disable for benchmarking build times                                                 | `ON`                                                        |
 | `USERVER_LTO`                          | Use link time optimizations (SEE NOTE BELOW)                                                                | `OFF`                                                       |
 | `USERVER_LTO_CACHE`                    | Use LTO cache if present, disable for benchmarking build times                                              | `ON`                                                        |
 | `USERVER_LTO_CACHE_DIR`                | LTO cache directory                                                                                         | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                     |
 | `USERVER_LTO_CACHE_SIZE_MB`            | LTO cache size limit in MB                                                                                  | `6000`                                                      |
 | `USERVER_PGO_GENERATE`                 | Generate PGO profile                                                                                        | `OFF`                                                       |
 | `USERVER_PGO_USE`                      | Path to PGO profile file                                                                                    | (no path)                                                   |
-| `USERVER_USE_CCACHE`                   | Use ccache if present, disable for benchmarking build times                                                 | `ON`                                                        |
 | `USERVER_COMPILATION_TIME_TRACE`       | Generate Clang compilation time trace                                                                       | `OFF`                                                       |
 | `USERVER_NO_WERROR`                    | Do not treat warnings as errors                                                                             | `ON`                                                        |
 | `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error  | `OFF`                                                       |
@@ -169,6 +172,22 @@ cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 
 @warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
 
+### CMake options for static linking
+
+It is possible to build userver based services with libraries statically linked in.
+
+@warning The support is platform dependant, as a result some libraies on some platforms may linked dynamically. Feel free to provide a PR to support your favourite platform.
+
+Userver does not build dynamic libraries itself, but most of its dependencies do. CMake (by default) prefers dynamic libraries on Unix-like operating systems.
+
+- Use `USERVER_USE_STATIC_LIBS=ON` CMake option to prefer static libraries for all userver dependencies (ON by default for "sufficiently new" `Clang` versions).
+With the option, CMake tries to find all dependencies as static libraries (and dependencies of dependencies), fallbacks to dynamic libraries when no static found.
+- To link statically with `libstdc++` or `libc++`, use `CMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"`.
+- To force fully static binary (with statically linked `libc`), use `CMAKE_EXE_LINKER_FLAGS="-static"`. In such case, all dependencies must be provided as static libraries. Also `userver` must be build with `USERVER_DISABLE_PHDR_CACHE=ON` (without this flag, it can lead to endless memory allocation).
+
+Some dependecies usually should be build from source for statically linked executable:
+1. `Curl`. Use `USERVER_FORCE_DOWNLOAD_CURL=ON` to download and build Curl from source.
+2. `cctz`, `yaml-cpp`, `fmt` often have no static libraries in their packages, so they should be build from source and installed in your host system (for instance, in `/usr/local`).
 
 ----------
 

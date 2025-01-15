@@ -11,21 +11,21 @@ _userver_module_find_include(
 )
 
 _userver_module_find_library(
-    NAMES grpc
+    NAMES libgrpc.so
 )
 
 _userver_module_find_library(
-    NAMES grpc++
+    NAMES libgrpc++.so
 )
 
 _userver_module_find_library(
-    NAMES gpr
+    NAMES libgpr.so
 )
 
 _userver_module_find_library(
     NAMES
     absl
-    absl_synchronization
+    libabsl_synchronization.so
     grpc  # fallback, old versions of gRPC do not link with absl
 )
 

@@ -73,4 +73,30 @@ UTEST(DumpEncFile, Long) {
     UEXPECT_NO_THROW(r.Finish());
 }
 
+UTEST(DumpEncFile, ReadBackUp) {
+    const auto dir = fs::blocking::TempDirectory::Create();
+    const auto path = dir.GetPath() + "/file";
+
+    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+    dump::EncryptedWriter w(path, kTestKey, boost::filesystem::perms::owner_read, scope_time);
+    dump::WriteStringViewUnsafe(w, "abcdefg");
+    UEXPECT_NO_THROW(w.Finish());
+
+    dump::EncryptedReader reader(path, kTestKey);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 3), "abc");
+
+    dump::BackUpReadUnsafe(reader, 2);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 4), "bcde");
+
+    dump::BackUpReadUnsafe(reader, 4);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 5), "bcdef");
+
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 1), "g");
+
+    dump::BackUpReadUnsafe(reader, 1);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 1), "g");
+
+    UEXPECT_NO_THROW(reader.Finish());
+}
+
 USERVER_NAMESPACE_END

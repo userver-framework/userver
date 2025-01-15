@@ -29,6 +29,11 @@ struct TypeNameHelper<std::string> {
 };
 
 template <>
+struct TypeNameHelper<std::string_view> {
+    static std::string Get() { return "std::string_view"; }
+};
+
+template <>
 struct TypeNameHelper<std::chrono::nanoseconds> {
     static std::string Get() { return "std::chrono::nanoseconds"; }
 };
@@ -78,8 +83,9 @@ struct TypeNameHelper<std::chrono::system_clock::time_point> {
 ///
 /// The `GetTypeName<T>()` provides a more readable output.
 template <typename T>
-std::string GetTypeName() {
-    return detail::TypeNameHelper<T>::Get();
+const std::string& GetTypeName() {
+    static const std::string name{detail::TypeNameHelper<typename std::decay<T>::type>::Get()};
+    return name;
 }
 
 }  // namespace compiler

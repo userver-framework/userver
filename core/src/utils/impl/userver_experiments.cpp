@@ -86,6 +86,7 @@ UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
 UserverExperiment kCoroutineStackUsageMonitorExperiment{"coro-stack-usage-monitor"};
 UserverExperiment kServerSelectionTimeoutExperiment{"mongo-server-selection-timeout"};
 UserverExperiment kPgCcExperiment{"pg-cc"};
+UserverExperiment kPgDeadlinePropagationExperiment{"pg-deadline-propagation"};
 UserverExperiment kYdbDeadlinePropagationExperiment{"ydb-deadline-propagation"};
 
 }  // namespace utils::impl

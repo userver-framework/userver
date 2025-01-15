@@ -24,7 +24,8 @@ class ConfigHelper:
 
     def get_updated_since(self, config, timestamp):
         updates = self.changelog.get_updated_since(
-            config.get_values_unsafe(), timestamp,
+            config.get_values_unsafe(),
+            timestamp,
         )
         return updates.timestamp, updates
 

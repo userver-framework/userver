@@ -38,7 +38,8 @@ def _ydb_client(_ydb_client_pool):
 @pytest.fixture(scope='session')
 def _ydb_client_pool(_ydb_service, ydb_service_settings):
     endpoint = '{}:{}'.format(
-        ydb_service_settings.host, ydb_service_settings.grpc_port,
+        ydb_service_settings.host,
+        ydb_service_settings.grpc_port,
     )
     pool = []
 
@@ -48,7 +49,8 @@ def _ydb_client_pool(_ydb_service, ydb_service_settings):
             ydb_client = pool.pop()
         except IndexError:
             ydb_client = client.YdbClient(
-                endpoint, ydb_service_settings.database,
+                endpoint,
+                ydb_service_settings.database,
             )
         try:
             yield ydb_client
@@ -106,7 +108,8 @@ def ydb_settings_substitute(ydb_service_settings):
     def secdist_settings(*args, **kwargs):
         return {
             'endpoint': '{}:{}'.format(
-                ydb_service_settings.host, ydb_service_settings.grpc_port,
+                ydb_service_settings.host,
+                ydb_service_settings.grpc_port,
             ),
             'database': '/{}'.format(ydb_service_settings.database),
             'token': '',
@@ -154,10 +157,7 @@ def _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path):
         '-table',
         YDB_MIGRATION_TABLE,
         'ydb',
-        (
-            f'grpc://{host}:{port}/local?go_query_mode=scripting&'
-            'go_fake_tx=scripting&go_query_bind=declare,numeric'
-        ),
+        (f'grpc://{host}:{port}/local?go_query_mode=scripting&' 'go_fake_tx=scripting&go_query_bind=declare,numeric'),
         'up',
     ]
     try:
@@ -246,8 +246,7 @@ def _ydb_prepare(
 ):
     if _ydb_service_schemas and ydb_migration_dir.exists():
         raise Exception(
-            'Both ydb/schema and ydb/migrations exist, '
-            'which are mutually exclusive',
+            'Both ydb/schema and ydb/migrations exist, ' 'which are mutually exclusive',
         )
 
     # testsuite legacy
@@ -343,9 +342,7 @@ def userver_config_ydb(ydb_service_settings):
     """
 
     endpoint = f'{ydb_service_settings.host}:{ydb_service_settings.grpc_port}'
-    database = (
-        '' if ydb_service_settings.database.startswith('/') else '/'
-    ) + ydb_service_settings.database
+    database = ('' if ydb_service_settings.database.startswith('/') else '/') + ydb_service_settings.database
 
     def patch_config(config, config_vars):
         ydb_component = config['components_manager']['components']['ydb']

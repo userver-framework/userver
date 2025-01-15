@@ -37,7 +37,7 @@ jobs:
                 path: |
                     ${{env.CCACHE_DIR}}
                     ${{env.CPM_SOURCE_CACHE}}
-                key: 'alpine-cache-dir ${{github.ref}}'
+                key: 'alpine-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     alpine-cache-dir ${{github.ref}}
                     alpine-cache-dir
@@ -59,7 +59,7 @@ jobs:
             run: |
                 pwd
                 cat /etc/alpine-release
-                apk add lld ccache git
+                apk add lld ccache git gdb
                 apk add $(cat scripts/docs/en/deps/alpine.md)
 
           - name: Install test dependencies

@@ -56,7 +56,9 @@ def main():
         help='Semicolon separated Python path',
     )
     parser.add_argument(
-        'pytest_args', nargs='*', help='Extra pytest arguments',
+        'pytest_args',
+        nargs='*',
+        help='Extra pytest arguments',
     )
     args = parser.parse_args()
 

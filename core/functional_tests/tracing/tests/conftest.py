@@ -86,6 +86,5 @@ async def assert_ids_in_file(service_client, jaeger_logs_path):
 
         await asyncio.sleep(0.5)
     assert False, (
-        f'Missing substrings {required_data} in opentracing file '
-        f'for trace id {trace_id}. Lines:\n {probable_lines}'
+        f'Missing substrings {required_data} in opentracing file ' f'for trace id {trace_id}. Lines:\n {probable_lines}'
     )

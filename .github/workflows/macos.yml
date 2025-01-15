@@ -31,8 +31,6 @@ jobs:
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                -DUSERVER_FEATURE_MONGODB=1
-                -DUSERVER_FEATURE_CLICKHOUSE=1
                 -DUSERVER_USE_LD=lld
                 -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
                 -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1
@@ -48,7 +46,7 @@ jobs:
                 path: |
                     ${{env.CCACHE_DIR}}
                     ${{env.CPM_SOURCE_CACHE}}
-                key: 'macos-cache-dir ${{github.ref}}'
+                key: 'macos-cache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     macos-cache-dir ${{github.ref}}
                     macos-cache-dir
@@ -63,11 +61,23 @@ jobs:
                 brew install lld
 
                 brew link postgresql@16 # postgresql is keg-only
+                brew link --force zlib # keg-only + need for static linkage
+                brew link --force icu4c@76 # keg-only + need for static boost linkage
+                brew link --force curl # keg-only
+                brew link --force cyrus-sasl # keg-only
+                brew link --force openldap # keg-only
+                brew remove --ignore-dependencies abseil
+
+          - name: Install test dependencies
+            run: |
+                brew tap mongodb/brew
+                brew install clickhouse redis kafka mongodb-community rabbitmq
 
           - name: Setup ccache
             run: |
                 ccache -M 2.0GB
                 ccache -s -v
+
 
           - name: Run cmake
             run: |
@@ -90,3 +100,69 @@ jobs:
                 du -h -d 1 ${{env.CCACHE_DIR}}
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v
+
+          - name: Run tests (universal)
+            run: |
+                cd build_debug/universal
+                GTEST_FILTER="-UUID.ParseFail" ctest -V
+
+          - name: Run tests (samples)
+            run: |
+                cd build_debug/samples
+                ctest -V
+
+          - name: Run tests (core)
+            run: |
+                cd build_debug/core
+                ulimit -n 4096 && ctest -V -E "userver-core-unittest|testsuite-userver-core-tests-basic-chaos-tests-deadline|testsuite-userver-core-tests-websocket|testsuite-userver-core-tests-basic-chaos"  # ~10 failed tests
+
+          - name: Run tests (libraries)
+            run: |
+                cd build_debug/libraries
+                ctest -V
+
+          - name: Run tests (clickhouse)
+            run: |
+                cd build_debug/clickhouse
+                ctest -V
+
+          - name: Run tests (rocks)
+            run: |
+                cd build_debug/rocks
+                ctest -V
+
+          - name: Run tests (kafka)
+            run: |
+                cd build_debug/kafka
+                ctest -V
+
+          - name: Run tests (rabbitmq)
+            run: |
+                cd build_debug/rabbitmq
+                ctest -V
+
+          - name: Run tests (grpc)
+            run: |
+                cd build_debug/grpc
+                ctest -V
+
+          - name: Run tests (mongo)
+            run: |
+                cd build_debug/mongo
+                ctest -V -R "userver-mongo-unittest|userver-mongo-benchmark" # many flaps in integrational tests
+
+          - name: Run tests (mysql)
+            run: |
+                cd build_debug/mysql
+                GTEST_FILTER="-*Transaction*" ctest -V
+
+          - name: Run tests (redis)
+            run: |
+                cd build_debug/redis
+                ctest -V -E testsuite-userver-redis-tests-basic-chaos
+
+          - name: Run tests (postgresql)
+            run: |
+                cd build_debug/postgresql
+                ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
+

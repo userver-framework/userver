@@ -45,9 +45,7 @@ class S3MockBucketStorage:
         key_path = pathlib.Path(key)
         if last_modified is None:
             # Timezone is needed for RFC 3339 timeformat used by S3
-            last_modified = (
-                dt.datetime.now().replace(tzinfo=tz.tzlocal()).isoformat()
-            )
+            last_modified = dt.datetime.now().replace(tzinfo=tz.tzlocal()).isoformat()
         elif isinstance(last_modified, dt.datetime):
             last_modified = last_modified.isoformat()
 
@@ -68,18 +66,12 @@ class S3MockBucketStorage:
         return self._storage.get(key_path)
 
     def get_objects(self, parent_dir='') -> Dict[str, S3Object]:
-        all_objects = {
-            str(key_path): value for key_path, value in self._storage.items()
-        }
+        all_objects = {str(key_path): value for key_path, value in self._storage.items()}
 
         if not parent_dir:
             return all_objects
 
-        return {
-            key: value
-            for key, value in all_objects.items()
-            if key.startswith(str(pathlib.Path(parent_dir)))
-        }
+        return {key: value for key, value in all_objects.items() if key.startswith(str(pathlib.Path(parent_dir)))}
 
     def delete_object(self, key) -> Optional[S3Object]:
         key = pathlib.Path(key)
@@ -120,10 +112,7 @@ class S3HandleMock:
                     from_index = i
                     break
 
-        result_objects = [
-            s3_objects_dict[key]
-            for key in keys[from_index : from_index + max_keys]
-        ]
+        result_objects = [s3_objects_dict[key] for key in keys[from_index : from_index + max_keys]]
         is_truncated = from_index + max_keys >= len(keys)
         return {'result_objects': result_objects, 'is_truncated': is_truncated}
 
@@ -168,7 +157,9 @@ class S3HandleMock:
         if not s3_object:
             return self._mockserver.make_response('Object not found', 404)
         return self._mockserver.make_response(
-            s3_object.data, 200, headers=s3_object.meta,
+            s3_object.data,
+            200,
+            headers=s3_object.meta,
         )
 
     def put_object(self, request):
@@ -214,7 +205,9 @@ class S3HandleMock:
 
         s3_objects_dict = bucket_storage.get_objects(parent_dir=prefix)
         result = self._generate_get_objects_result(
-            s3_objects_dict=s3_objects_dict, max_keys=max_keys, marker=marker,
+            s3_objects_dict=s3_objects_dict,
+            max_keys=max_keys,
+            marker=marker,
         )
         result_xml = self._generate_get_objects_xml(
             s3_objects=result['result_objects'],
@@ -244,7 +237,9 @@ class S3HandleMock:
         if not s3_object:
             return self._mockserver.make_response('Object not found', 404)
         return self._mockserver.make_response(
-            'OK', 200, headers=s3_object.meta,
+            'OK',
+            200,
+            headers=s3_object.meta,
         )
 
 
@@ -290,7 +285,8 @@ def s3_apply(request, s3_mock_storage, load):
         bucket_storage = s3_mock_storage[bucket]
         for s3_path, file_path in files.items():
             bucket_storage.put_object(
-                key=s3_path, data=load(file_path).encode('utf-8'),
+                key=s3_path,
+                data=load(file_path).encode('utf-8'),
             )
 
     for mark in request.node.iter_markers('s3'):

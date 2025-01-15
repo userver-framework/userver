@@ -1,10 +1,21 @@
 option(USERVER_DOWNLOAD_PACKAGE_CURL "Download and setup libcurl if no libcurl of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
+option(USERVER_FORCE_DOWNLOAD_CURL "Download Curl even if there is an installed system package" ${USERVER_FORCE_DOWNLOAD_PACKAGES})
 
-if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+if(NOT USERVUSERVER_FORCE_DOWNLOAD_CURL)
+  # Curl has too many dependencies to reliably
+  # link with all of them statically without CMake Config
+  if (USERVER_USE_STATIC_LIBS)
+    list(REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
+  endif()
+
   if(USERVER_DOWNLOAD_PACKAGE_CURL)
-    find_package(CURL "7.68" QUIET)
+    find_package(CURL "7.68")
   else()
-    find_package_required_version(CURL "libcurl4-openssl-dev" "7.68")
+    find_package(CURL "7.68" REQUIRED)
+  endif()
+
+  if (USERVER_USE_STATIC_LIBS)
+    list(REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
   endif()
 
   if(CURL_FOUND)
@@ -45,3 +56,6 @@ CPMAddPackage(
     "CURL_DISABLE_TESTS ON"
     ${CURL_LTO_OPTION}
 )
+
+mark_targets_as_system("${CURL_SOURCE_DIR}")
+write_package_stub(CURL)

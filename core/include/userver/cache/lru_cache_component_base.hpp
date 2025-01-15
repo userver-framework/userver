@@ -59,6 +59,7 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 /// size | max amount of items to store in cache | --
 /// ways | number of ways for associative cache | --
 /// lifetime | TTL for cache entries (0 is unlimited) | 0
+/// background-update | enables asynchronous updates for expiring values | false
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
 ///
 /// ## Example usage:

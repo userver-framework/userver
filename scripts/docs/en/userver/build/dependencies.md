@@ -224,6 +224,21 @@ Dependencies could be installed via:
 brew install $(cat third_party/userver/scripts/docs/en/deps/macos.md | tr '\n' ' ')
 ```
 
+Some Homebrew packages are keg-only (they are not symlinked to Homebrew prefix path e.g. `/opt/homebrew`),
+therefore they can not be found by CMake in configure phase.
+
+It it possible to symlink the libraries using `brew link --force`.
+
+For current MacOS build dependencies, userver expects that following packages are symlinked:
+```bash
+brew link postgresql@16 # postgresql is keg-only (required by PostgreSQL)
+brew link --force openldap # keg-only (required by PostgreSQL)
+brew link --force zlib # keg-only + need for static linkage (required by Universal)
+brew link --force icu4c@76 # keg-only + need for static boost linkage (required by Universal)
+brew link --force curl # keg-only (required by Core)
+brew link --force cyrus-sasl # keg-only (required by Mongo and Kafka)
+```
+
 \b Recommended \b Makefile.local:
   
 ```cmake
@@ -231,11 +246,16 @@ CMAKE_COMMON_FLAGS += \
     -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
     -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 \
     -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
+    -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
+    -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
+    -DUSERVER_FORCE_DOWNLOAD_GRPC=1
 ```
 
 After that the `make test` would build and run the service tests.
 
 @warning MacOS is recommended only for development as it may have performance issues in some cases.
+
+@warning If you have installed `abseil` with Homebrew, it may be required to remove it, because it can conflict with CPM installed abseil (`brew remove --ignore-dependencies abseil`)
 
 
 ### Windows (WSL2)

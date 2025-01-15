@@ -175,7 +175,9 @@ async def websocket_client(service_client, service_port):
         @compat.asynccontextmanager
         async def get(self, path):
             update_server_state = getattr(
-                service_client, 'update_server_state', None,
+                service_client,
+                'update_server_state',
+                None,
             )
             if update_server_state:
                 await update_server_state()
@@ -294,7 +296,8 @@ def service_periodic_tasks_state() -> client.PeriodicTasksState:
 
 @pytest.fixture(scope='session')
 def _testsuite_client_config(
-    pytestconfig, service_config,
+    pytestconfig,
+    service_config,
 ) -> client.TestsuiteClientConfig:
     components = service_config['components_manager']['components']
 

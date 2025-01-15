@@ -1,7 +1,7 @@
 project(userver-universal-utest CXX)
 
 if(USERVER_CONAN)
-  find_package(GTest REQUIRED)
+  find_package(GTest REQUIRED CONFIG)
 else()
   include(SetupGTest)
 endif()

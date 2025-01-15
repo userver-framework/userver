@@ -18,7 +18,8 @@ def fix_secdist(service_tmpdir, pgsql_local):
             }),
         )
     os.rename(
-        service_tmpdir / 'secdist.json.tmp', service_tmpdir / 'secdist.json',
+        service_tmpdir / 'secdist.json.tmp',
+        service_tmpdir / 'secdist.json',
     )
 
 
@@ -87,7 +88,10 @@ async def test_update(service_client, service_tmpdir, pgsql_local, testpoint):
 
 
 async def test_no_memleak(
-    service_client, service_tmpdir, pgsql_local, testpoint,
+    service_client,
+    service_tmpdir,
+    pgsql_local,
+    testpoint,
 ):
     @testpoint('postgres-new-dsn-list')
     async def tp(request):

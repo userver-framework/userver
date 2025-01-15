@@ -1,7 +1,5 @@
 #include <userver/dump/operations_file.hpp>
 
-#include <boost/regex.hpp>
-
 #include <userver/dump/unsafe.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
@@ -9,6 +7,7 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/regex.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -99,14 +98,35 @@ TEST(DumpOperationsFile, Underread) {
     try {
         reader.Finish();
     } catch (const dump::Error& ex) {
-        EXPECT_TRUE(boost::regex_match(
+        EXPECT_TRUE(utils::regex_match(
             ex.what(),
-            boost::regex{"Unexpected extra data at the end of the dump file "
+            utils::regex{"Unexpected extra data at the end of the dump file "
                          "\".+\": file-size=10, position=9, unread-size=1"}
         )) << ex.what();
         return;
     }
     FAIL();
+}
+
+TEST(DumpOperationsFile, ReadBackUp) {
+    const auto file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(file.GetPath(), "abcdefg");
+
+    dump::FileReader reader(file.GetPath());
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 3), "abc");
+
+    dump::BackUpReadUnsafe(reader, 2);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 4), "bcde");
+
+    dump::BackUpReadUnsafe(reader, 4);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 5), "bcdef");
+
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 1), "g");
+
+    dump::BackUpReadUnsafe(reader, 1);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 1), "g");
+
+    UEXPECT_NO_THROW(reader.Finish());
 }
 
 USERVER_NAMESPACE_END

@@ -63,8 +63,7 @@ class DnsServerProtocol:
 
     def datagram_received(self, data, addr):
         logger.info(
-            f'Dns server "{self.name}" received {len(data)} bytes from {addr} '
-            f'at {datetime.datetime.now()}',
+            f'Dns server "{self.name}" received {len(data)} bytes from {addr} ' f'at {datetime.datetime.now()}',
         )
         self.times_called += 1
 
@@ -91,12 +90,14 @@ class DnsServerProtocol:
         if query_type == b'\x00\x01':  # type A record
             response += struct.pack('!H', 4)  # data length (IPv4)
             response += socket.inet_pton(
-                socket.AF_INET, '77.88.55.55',
+                socket.AF_INET,
+                '77.88.55.55',
             )  # our fake IPv4 address
         elif query_type == b'\x00\x1c':  # type AAAA record
             response += struct.pack('!H', 16)  # data length (IPv6)
             response += socket.inet_pton(
-                socket.AF_INET6, '2a02:6b8:a::a',
+                socket.AF_INET6,
+                '2a02:6b8:a::a',
             )  # our fake IPv6 address
         else:
             raise Exception('unknown type')
@@ -202,9 +203,7 @@ async def _gate_ready(service_client, _gate_started):
 @pytest.fixture(scope='function')
 def gen_domain_name():
     def _gen_domain_name(length: int = 10, tld: str = '.com'):
-        domain = ''.join(
-            sys_random.choice(string.ascii_lowercase) for _ in range(length)
-        )
+        domain = ''.join(sys_random.choice(string.ascii_lowercase) for _ in range(length))
         return domain + tld
 
     return _gen_domain_name

@@ -9,7 +9,8 @@ async def test_select(service_client):
         assert response.status == 200
 
     records = capture.select(
-        text='Message to capture', link=response.headers['x-yarequestid'],
+        text='Message to capture',
+        link=response.headers['x-yarequestid'],
     )
     assert len(records) == 1, capture.select()
     # /// [select]
@@ -19,13 +20,15 @@ async def test_subscribe(service_client, mockserver):
     async with service_client.capture_logs() as capture:
 
         @capture.subscribe(
-            text='Message to capture', trace_id=mockserver.trace_id,
+            text='Message to capture',
+            trace_id=mockserver.trace_id,
         )
         def log_event(link, **other):
             pass
 
         response = await service_client.get(
-            '/logcapture', headers={'x-yatraceid': mockserver.trace_id},
+            '/logcapture',
+            headers={'x-yatraceid': mockserver.trace_id},
         )
         assert response.status == 200
 
@@ -48,14 +51,16 @@ async def test_select_error(service_client):
 async def test_subscribe_error(service_client, mockserver):
     async with service_client.capture_logs() as capture:
         response = await service_client.get(
-            '/logcapture', headers={'x-yatraceid': mockserver.trace_id},
+            '/logcapture',
+            headers={'x-yatraceid': mockserver.trace_id},
         )
         assert response.status == 200
 
     with pytest.raises(log_capture.IncorrectUsageError):
 
         @capture.subscribe(
-            text='Message to capture', trace_id=mockserver.trace_id,
+            text='Message to capture',
+            trace_id=mockserver.trace_id,
         )
         def log_event(link, **other):
             pass

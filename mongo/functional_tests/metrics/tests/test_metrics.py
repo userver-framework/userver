@@ -19,8 +19,7 @@ def _is_mongo_metric(line: str) -> bool:
     # These errors sometimes appear during service startup,
     # it's tedious to reproduce them for metrics tests.
     if 'mongo.pool.conn-init.errors' in line and (
-        'mongo_error=network' in line
-        or 'mongo_error=cluster-unavailable' in line
+        'mongo_error=network' in line or 'mongo_error=cluster-unavailable' in line
     ):
         return False
 
@@ -46,7 +45,5 @@ async def test_metrics(monitor_client, load, force_metrics_to_appear):
     ground_truth_paths = _hide_metrics_values(ground_truth)
 
     assert all_metrics_paths == ground_truth_paths, (
-        '\n===== Service metrics start =====\n'
-        f'{all_metrics}\n'
-        '===== Service metrics end =====\n'
+        '\n===== Service metrics start =====\n' f'{all_metrics}\n' '===== Service metrics end =====\n'
     )

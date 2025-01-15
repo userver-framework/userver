@@ -4,15 +4,10 @@ import datetime
 
 async def wait_for_daemon_stop(_global_daemon_store):
     deadline = datetime.datetime.now() + datetime.timedelta(seconds=10)
-    while (
-        datetime.datetime.now() < deadline
-        and _global_daemon_store.has_running_daemons()
-    ):
+    while datetime.datetime.now() < deadline and _global_daemon_store.has_running_daemons():
         await asyncio.sleep(0.05)
 
-    assert (
-        not _global_daemon_store.has_running_daemons()
-    ), 'Daemon has not stopped'
+    assert not _global_daemon_store.has_running_daemons(), 'Daemon has not stopped'
     await _global_daemon_store.aclose()
 
 

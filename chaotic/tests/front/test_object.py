@@ -27,9 +27,7 @@ def test_unknown_required(simple_parse):
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/required'
-        assert exc.msg == (
-            'Field "unknown" is set in "required", but missing in "properties"'
-        )
+        assert exc.msg == ('Field "unknown" is set in "required", but missing in "properties"')
 
 
 def test_unknown_fields(simple_parse):
@@ -80,6 +78,7 @@ def test_property_and_additional(simple_parse):
     })
     assert data.schemas == {
         'vfull#/definitions/type': SchemaObject(
-            properties={'field': Integer()}, additionalProperties=Boolean(),
+            properties={'field': Integer()},
+            additionalProperties=Boolean(),
         ),
     }

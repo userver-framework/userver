@@ -30,7 +30,9 @@ def test_duplicate_path(simple_parse):
     try:
         config = ParserConfig(erase_prefix='')
         parser = SchemaParser(
-            config=config, full_filepath='full', full_vfilepath='vfull',
+            config=config,
+            full_filepath='full',
+            full_vfilepath='vfull',
         )
         parser.parse_schema('/definitions/type', {'type': 'integer'})
         parser.parse_schema('/definitions/type', {'type': 'number'})
@@ -74,16 +76,18 @@ def test_ref(simple_parse):
     try:
         config = ParserConfig(erase_prefix='')
         parser = SchemaParser(
-            config=config, full_filepath='full', full_vfilepath='vfull',
+            config=config,
+            full_filepath='full',
+            full_vfilepath='vfull',
         )
         parser.parse_schema(
-            '/definitions/type1', {'$ref': '#/definitions/type'},
+            '/definitions/type1',
+            {'$ref': '#/definitions/type'},
         )
         rr = ref_resolver.RefResolver()
         rr.sort_schemas(parser.parsed_schemas())
         assert False
     except Exception as exc:  # pylint: disable=broad-exception-caught
         assert str(exc) == (
-            '$ref to unknown type "vfull#/definitions/type", known refs:\n'
-            '- vfull#/definitions/type1'
+            '$ref to unknown type "vfull#/definitions/type", known refs:\n' '- vfull#/definitions/type1'
         )

@@ -63,7 +63,7 @@ namespace components {
 /// task_processor | task processor to process incoming requests | -
 /// backlog | max count of new connections pending acceptance | 1024
 /// tls.ca | paths to TLS CAs for client authentication | -
-/// tls.cert | path to TLS server certificate | -
+/// tls.cert | path to TLS server certificate or certificate chain | -
 /// tls.private-key | path to TLS server certificate private key | -
 /// tls.private-key-passphrase-name | passphrase name located in secdist's "passphrases" section | -
 /// handler-defaults.max_url_size | max path/URL size or empty to not limit | 8192

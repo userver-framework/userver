@@ -273,7 +273,8 @@ async def test_partial_request(call, gate, check_restore):
     for bytes_count in range(1, 1000):
         gate.to_server_limit_bytes(bytes_count)
         response = await call(
-            data={'test': 'body'}, testsuite_skip_prepare=True,
+            data={'test': 'body'},
+            testsuite_skip_prepare=True,
         )
         if response == ErrorType.DISCONNECT:
             fail = fail + 1
@@ -297,7 +298,8 @@ async def test_network_smaller_parts_sends(call, gate):
 
     # With debug enabled in python send works a little bit longer
     response = await call(
-        timeout=INCREASED_TIMEOUT, testsuite_skip_prepare=True,
+        timeout=INCREASED_TIMEOUT,
+        testsuite_skip_prepare=True,
     )
     assert isinstance(response, http.ClientResponse)
     assert response.status == 200
@@ -320,12 +322,17 @@ async def _handler_metrics(monitor_client, gate):
     # to be written out asynchronously.
     await asyncio.sleep(0.1)
     return monitor_client.metrics_diff(
-        prefix='http.handler.total', diff_gauge=True,
+        prefix='http.handler.total',
+        diff_gauge=True,
     )
 
 
 async def test_deadline_immediately_expired(
-    call, gate, testpoint, service_client, handler_metrics,
+    call,
+    gate,
+    testpoint,
+    service_client,
+    handler_metrics,
 ):
     @testpoint('testpoint_request')
     async def test(_data):
@@ -336,21 +343,22 @@ async def test_deadline_immediately_expired(
 
     async with handler_metrics:
         gate.to_server_smaller_parts(
-            DATA_PARTS_MAX_SIZE, sleep_per_packet=0.03,
+            DATA_PARTS_MAX_SIZE,
+            sleep_per_packet=0.03,
         )
         response = await call(
-            headers={DP_TIMEOUT_MS: '20'}, timeout=INCREASED_TIMEOUT,
+            headers={DP_TIMEOUT_MS: '20'},
+            timeout=INCREASED_TIMEOUT,
         )
         _check_deadline_propagation_response(response)
-        assert (
-            test.times_called == 0
-        ), 'Control flow should NOT enter the handler body'
+        assert test.times_called == 0, 'Control flow should NOT enter the handler body'
         gate.to_server_pass()
 
     assert handler_metrics.value_at('rps') == 1
     assert (
         handler_metrics.value_at(
-            'reply-codes', {'http_code': '504', 'version': '2'},
+            'reply-codes',
+            {'http_code': '504', 'version': '2'},
         )
         == 1
     )

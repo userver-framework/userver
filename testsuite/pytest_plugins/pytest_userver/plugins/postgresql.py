@@ -33,7 +33,9 @@ class RegisteredNtrx:
         self._testpoint = testpoint
 
     def _enable_failure(
-        self, name: str, failure_type: RegisteredNtrxFailureType,
+        self,
+        name: str,
+        failure_type: RegisteredNtrxFailureType,
     ) -> None:
         self._registered_ntrx[name] = failure_type
 
@@ -80,8 +82,7 @@ def userver_pg_config(pgsql_local):
 
     if not pgsql_local:
         raise ValueError(
-            'Override the "pgsql_local" fixture so that testsuite knowns how '
-            'to start the PostgreSQL database',
+            'Override the "pgsql_local" fixture so that testsuite knowns how ' 'to start the PostgreSQL database',
         )
 
     if len(pgsql_local) > 1:
@@ -102,8 +103,7 @@ def userver_pg_config(pgsql_local):
         postgre_dbs = {
             name: params
             for name, params in components.items()
-            if params
-            and ('dbconnection' in params or 'dbconnection#env' in params)
+            if params and ('dbconnection' in params or 'dbconnection#env' in params)
         }
 
         if len(postgre_dbs) > 1:

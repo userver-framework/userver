@@ -52,9 +52,7 @@ def grpc_service_port_local(_gate_started) -> int:
 def prepare_service_config(grpc_service_port_local):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
-        components['greeter-client']['endpoint'] = (
-            f'[::]:{grpc_service_port_local}'
-        )
+        components['greeter-client']['endpoint'] = f'[::]:{grpc_service_port_local}'
 
     return patch_config
 
@@ -79,7 +77,8 @@ async def _gate_ready(service_client, _gate_started):
 async def server_run(grpc_client_port):
     server = grpc.aio.server()
     greeter_pb2_grpc.add_GreeterServiceServicer_to_server(
-        GreeterService(), server,
+        GreeterService(),
+        server,
     )
     listen_addr = f'[::]:{grpc_client_port}'
     server.add_insecure_port(listen_addr)
@@ -107,7 +106,6 @@ async def grpc_ch(_grpc_session_ch, grpc_service_port_local):
         await asyncio.wait_for(_grpc_session_ch.channel_ready(), timeout=10)
     except asyncio.TimeoutError:
         raise RuntimeError(
-            'Failed to connect to remote gRPC server by '
-            f'address [::1]:{grpc_service_port_local}',
+            'Failed to connect to remote gRPC server by ' f'address [::1]:{grpc_service_port_local}',
         )
     return _grpc_session_ch

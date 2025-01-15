@@ -54,7 +54,8 @@ class RefResolver:
         name = ''
 
         def visitor(
-            local_schema: types.Schema, parent: Optional[types.Schema],
+            local_schema: types.Schema,
+            parent: Optional[types.Schema],
         ) -> None:
             if not isinstance(local_schema, types.Ref):
                 return
@@ -73,15 +74,10 @@ class RefResolver:
                         cur_node = ref
                         is_external = True
                     else:
-                        known = '\n'.join([
-                            f'- {v}' for v in schemas.schemas.keys()
-                        ])
-                        known += '\n'.join([
-                            f'- {v}' for v in external_schemas.schemas.keys()
-                        ])
+                        known = '\n'.join([f'- {v}' for v in schemas.schemas.keys()])
+                        known += '\n'.join([f'- {v}' for v in external_schemas.schemas.keys()])
                         raise Exception(
-                            f'$ref to unknown type "{cur_node.ref}", '
-                            f'known refs:\n{known}',
+                            f'$ref to unknown type "{cur_node.ref}", ' f'known refs:\n{known}',
                         )
                 else:
                     cur_node = schemas.schemas[cur_node.ref]
@@ -150,11 +146,14 @@ class RefResolver:
                 yield ref
             for key, value in data.items():
                 yield from cls._search_refs(
-                    value, inside_items=(key == 'items'),
+                    value,
+                    inside_items=(key == 'items'),
                 )
 
     def sort_json_types(
-        self, types: Dict[str, Any], erase_path_prefix: str = '',
+        self,
+        types: Dict[str, Any],
+        erase_path_prefix: str = '',
     ) -> Dict[str, Any]:
         """
         Sorts not-yet-parsed schemas. Required for correct allOf/oneOf parsing.

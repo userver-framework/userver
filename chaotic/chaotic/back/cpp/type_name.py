@@ -38,11 +38,7 @@ class TypeName:
     def relative_to(self, ns: str) -> 'TypeName':
         namespaces = ns.split('::')
         components = self._components
-        while (
-            namespaces
-            and namespaces[0] == components[0]
-            and len(components) > 1
-        ):
+        while namespaces and namespaces[0] == components[0] and len(components) > 1:
             namespaces = namespaces[1:]
             components = components[1:]
         return TypeName('::'.join(components))

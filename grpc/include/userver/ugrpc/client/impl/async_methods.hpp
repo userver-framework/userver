@@ -1,10 +1,11 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
 #include <optional>
 #include <string_view>
 #include <utility>
+
+#include <google/rpc/status.pb.h>
 
 #include <grpcpp/client_context.h>
 #include <grpcpp/completion_queue.h>
@@ -46,16 +47,20 @@ template <typename Request, typename Response>
 using RawReaderWriter = std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>>;
 /// @}
 
-void SetStatusDetailsForSpan(
-    tracing::Span& span,
-    const grpc::Status& status,
-    const std::optional<std::string>& error_details
-);
-
 struct RpcConfigValues final {
     explicit RpcConfigValues(const dynamic_config::Snapshot& config);
 
     bool enforce_task_deadline;
+};
+
+/// @brief Contains parsed additional data for grpc status
+/// For example parsed status string
+struct ParsedGStatus final {
+    /// @brief Processes status and builds ParsedGStatus
+    static ParsedGStatus ProcessStatus(const grpc::Status& status);
+
+    std::optional<google::rpc::Status> gstatus;
+    std::optional<std::string> gstatus_string;
 };
 
 using ugrpc::client::impl::FinishAsyncMethodInvocation;
@@ -193,11 +198,13 @@ void StartCall(GrpcStream& stream, RpcData& data) {
 
 void PrepareFinish(RpcData& data);
 
+void ProcessFinish(RpcData& data, utils::function_ref<void(RpcData& data, const grpc::Status& status)> post_finish);
+
+void CheckFinishStatus(RpcData& data);
+
 void ProcessFinishResult(
     RpcData& data,
     AsyncMethodInvocation::WaitStatus wait_status,
-    grpc::Status&& status,
-    ParsedGStatus&& parsed_gstatus,
     utils::function_ref<void(RpcData& data, const grpc::Status& status)> post_finish,
     bool throw_on_error
 );
@@ -218,11 +225,13 @@ void Finish(
     const auto wait_status = Wait(finish, data.GetContext());
     if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         data.GetStatsScope().OnCancelled();
-        if (throw_on_error) throw RpcCancelledError(data.GetCallName(), "Finish");
+        if (throw_on_error) {
+            throw RpcCancelledError(data.GetCallName(), "Finish");
+        }
+        return;
     }
-    ProcessFinishResult(
-        data, wait_status, std::move(status), std::move(data.GetParsedGStatus()), post_finish, throw_on_error
-    );
+
+    ProcessFinishResult(data, wait_status, post_finish, throw_on_error);
 }
 
 void PrepareRead(RpcData& data);

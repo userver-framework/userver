@@ -93,18 +93,19 @@ engine::FutureStatus UnaryFuture::WaitUntil(engine::Deadline deadline) const noe
     const auto wait_status = impl::WaitUntil(finish, data_->GetContext(), deadline);
 
     switch (wait_status) {
-        case impl::AsyncMethodInvocation::WaitStatus::kOk: {
+        case impl::AsyncMethodInvocation::WaitStatus::kOk:
+        case impl::AsyncMethodInvocation::WaitStatus::kError:
             data_->SetFinishProcessed();
             try {
-                ProcessFinish();
+                UINVARIANT(
+                    impl::AsyncMethodInvocation::WaitStatus::kOk == wait_status,
+                    "Client-side Finish: ok should always be true"
+                );
+                ProcessFinish(*data_, post_finish_);
             } catch (...) {
                 exception_ = std::current_exception();
             }
             return engine::FutureStatus::kReady;
-        }
-
-        case impl::AsyncMethodInvocation::WaitStatus::kError:
-            utils::impl::AbortWithStacktrace("Client-side Finish: ok should always be true");
 
         case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
             data_->GetStatsScope().OnCancelled();
@@ -133,16 +134,7 @@ void UnaryFuture::Get() {
         std::rethrow_exception(std::exchange(exception_, {}));
     }
 
-    auto& status = data_->GetStatus();
-    if (!status.ok()) {
-        auto& parsed_gstatus = data_->GetParsedGStatus();
-        impl::ThrowErrorWithStatus(
-            data_->GetCallName(),
-            std::move(status),
-            std::move(parsed_gstatus.gstatus),
-            std::move(parsed_gstatus.gstatus_string)
-        );
-    }
+    CheckFinishStatus(*data_);
 }
 
 engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
@@ -156,23 +148,6 @@ engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
     // if data exists, then FinishAsyncMethodInvocation also exists
     auto& finish = data_->GetFinishAsyncMethodInvocation();
     return finish.TryGetContextAccessor();
-}
-
-void UnaryFuture::ProcessFinish() const {
-    UASSERT(data_);
-
-    const auto& status = data_->GetStatus();
-
-    data_->GetStatsScope().OnExplicitFinish(status.error_code());
-    data_->GetStatsScope().Flush();
-
-    const auto& parsed_gstatus = data_->GetParsedGStatus();
-    impl::SetStatusDetailsForSpan(data_->GetSpan(), status, parsed_gstatus.gstatus_string);
-
-    // TODO pack middleware exceptions into status
-    post_finish_(*data_, status);
-
-    data_->ResetSpan();
 }
 
 }  // namespace impl

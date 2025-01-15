@@ -18,6 +18,7 @@
 #include <userver/utils/trivial_map.hpp>
 #include <userver/utils/uuid4.hpp>
 
+#include <storages/postgres/deadline.hpp>
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/experiments.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
@@ -669,6 +670,9 @@ TimeoutDuration ConnectionImpl::CurrentExecuteTimeout() const {
 
 void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
+    if (IsPipelineActive()) {
+        timeout = AdjustTimeout(timeout);
+    }
     if (current_statement_timeout_ != timeout) {
         SetParameter(
             kStatementTimeoutParameter, std::to_string(timeout.count()), Connection::ParameterScope::kSession, deadline
@@ -679,6 +683,9 @@ void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engi
 
 void ConnectionImpl::SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
+    if (IsPipelineActive()) {
+        timeout = AdjustTimeout(timeout);
+    }
     if (current_statement_timeout_ != timeout) {
         SetParameter(
             kStatementTimeoutParameter,

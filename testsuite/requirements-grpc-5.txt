@@ -1,3 +1,4 @@
 grpcio >= 1.63.0
 grpcio-tools >= 1.63.0
+grpcio-reflection >= 1.63.0
 protobuf >= 5.26.0, < 6.0dev

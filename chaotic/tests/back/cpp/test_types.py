@@ -3,9 +3,7 @@ from chaotic.back.cpp import types
 
 def test_camel_to_snake_case_smoke():
     assert types.camel_to_snake_case('std/chrono') == 'std/chrono'
-    assert (
-        types.camel_to_snake_case('geometry/Distance') == 'geometry/distance'
-    )
+    assert types.camel_to_snake_case('geometry/Distance') == 'geometry/distance'
     assert types.camel_to_snake_case('unsigned') == 'unsigned'
 
 

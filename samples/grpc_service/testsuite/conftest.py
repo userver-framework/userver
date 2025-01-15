@@ -28,7 +28,8 @@ def _mock_grpc_greeter_session(grpc_mockserver, create_grpc_mock):
         stream_method_names=['SayHelloResponseStream', 'SayHelloStreams'],
     )
     greeter_services.add_GreeterServiceServicer_to_server(
-        mock.servicer, grpc_mockserver,
+        mock.servicer,
+        grpc_mockserver,
     )
     return mock
 

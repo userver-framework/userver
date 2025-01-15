@@ -71,6 +71,7 @@ jobs:
                         -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                         -DUSERVER_FORCE_DOWNLOAD_ABSEIL=0
                         -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
+                        -DUSERVER_MONGODB_USE_CMAKE_CONFIG=0
                     os: ubuntu-20.04
                     info: g++-9 + release
                     id: ubuntu20_gcc9_release
@@ -91,6 +92,7 @@ jobs:
                         -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                         -DUSERVER_FORCE_DOWNLOAD_ABSEIL=0
                         -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
+                        -DUSERVER_MONGODB_USE_CMAKE_CONFIG=0
                     os: ubuntu-20.04
                     info: g++-8 + debug
                     id: ubuntu20_gcc8_debug
@@ -109,7 +111,7 @@ jobs:
                 path: |
                     ${{env.CCACHE_DIR}}
                     ${{env.CPM_SOURCE_CACHE}}
-                key: 'ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}'
+                key: 'ubuntu-cache-dir ${{matrix.id}} ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}
                     ubuntu-cache-dir ${{matrix.id}}
@@ -217,7 +219,11 @@ jobs:
                 git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
                 GRPC_BUILD_ENABLE_CCACHE=true \
                   cmake -GNinja -S./new_grpc -B./new_grpc/build \
-                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
+                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON \
+                  -DgRPC_SSL_PROVIDER=package \
+                  -DgRPC_CARES_PROVIDER=package \
+                  -DgRPC_ZLIB_PROVIDER=package \
+                  -DgRPC_INSTALL=ON
                 cmake --build new_grpc/build -j$(nproc)
                 sudo cmake --install new_grpc/build
                 rm -rf new_grpc

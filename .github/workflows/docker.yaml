@@ -97,7 +97,7 @@ jobs:
                 path: |
                     .ccache
                     .cache/CPM
-                key: 'docker-cache-dir ${{matrix.id}} ${{github.ref}}'
+                key: 'docker-cache-dir ${{matrix.id}} ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     docker-cache-dir ${{matrix.id}} ${{github.ref}}
                     docker-cache-dir ${{matrix.id}}

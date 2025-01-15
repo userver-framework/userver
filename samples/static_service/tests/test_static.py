@@ -17,9 +17,7 @@ async def test_file_recursive(service_client, service_source_dir):
     assert response.status == 200
     assert response.headers['Content-Type'] == 'text/html'
     assert response.content == b'file in recurse dir\n'
-    file = (
-        service_source_dir.joinpath('public') / 'dir1' / 'dir2' / 'data.html'
-    )
+    file = service_source_dir.joinpath('public') / 'dir1' / 'dir2' / 'data.html'
     assert response.content.decode() == file.open().read()
 
 

@@ -62,7 +62,8 @@ def service_env():
 
 @pytest.fixture(scope='session')
 async def service_http_ping_url(
-    service_config, service_baseurl,
+    service_config,
+    service_baseurl,
 ) -> typing.Optional[str]:
     """
     Returns the service HTTP ping URL that is used by the testsuite to detect

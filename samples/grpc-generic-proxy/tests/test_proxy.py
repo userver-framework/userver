@@ -19,7 +19,9 @@ async def test_basic(grpc_client, mock_grpc_greeter, service_client):
 
 
 async def test_request_metadata(
-    grpc_client, mock_grpc_greeter, service_client,
+    grpc_client,
+    mock_grpc_greeter,
+    service_client,
 ):
     @mock_grpc_greeter('SayHello')
     async def mock_say_hello(request, context):
@@ -47,13 +49,13 @@ async def test_request_metadata(
 
 
 async def test_trailing_response_metadata(
-    grpc_client, mock_grpc_greeter, service_client,
+    grpc_client,
+    mock_grpc_greeter,
+    service_client,
 ):
     @mock_grpc_greeter('SayHello')
     async def mock_say_hello(request, context):
-        context.set_trailing_metadata((
-            ('response-meta-key', 'response-meta-value'),
-        ))
+        context.set_trailing_metadata((('response-meta-key', 'response-meta-value'),))
         return greeter_protos.GreetingResponse(greeting='Hi!')
 
     request = greeter_protos.GreetingRequest(name='Python')
@@ -70,9 +72,7 @@ async def test_error(grpc_client, mock_grpc_greeter, service_client):
     async def mock_say_hello(request, context):
         context.set_code(grpc.StatusCode.UNAVAILABLE)
         context.set_details(f'Failed to greet {request.name}')
-        context.set_trailing_metadata((
-            ('response-meta-key', 'response-meta-value'),
-        ))
+        context.set_trailing_metadata((('response-meta-key', 'response-meta-value'),))
         return greeter_protos.GreetingResponse()
 
     request = greeter_protos.GreetingRequest(name='Python')

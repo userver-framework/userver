@@ -56,13 +56,13 @@ endif()
 find_package_required(OpenSSL "libssl-dev")
 
 if (USERVER_CONAN)
-  find_package(cryptopp REQUIRED)
-  find_package(yaml-cpp REQUIRED)
-  find_package(fmt REQUIRED)
-  find_package(cctz REQUIRED)
-  find_package(zstd REQUIRED)
+  find_package(cryptopp REQUIRED CONFIG)
+  find_package(yaml-cpp REQUIRED CONFIG)
+  find_package(fmt REQUIRED CONFIG)
+  find_package(cctz REQUIRED CONFIG)
+  find_package(zstd REQUIRED CONFIG)
 
-  find_package(RapidJSON REQUIRED)
+  find_package(RapidJSON REQUIRED CONFIG)
   target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
 else()
   include(SetupCryptoPP)
@@ -183,6 +183,19 @@ if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME 
   endif()
 endif()
 
+option(USERVER_FEATURE_RE2 "Build userver with re2 support" OFF)
+if(USERVER_FEATURE_RE2)
+  if(USERVER_CONAN)
+    find_package(re2 REQUIRED CONFIG)
+    target_link_libraries(${PROJECT_NAME} PRIVATE re2::re2)
+  else()
+    find_package(re2 REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE re2)
+  endif()
+else()
+  target_compile_definitions(${PROJECT_NAME} PUBLIC USERVER_NO_RE2_SUPPORT=1)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE
   CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
 )
@@ -249,14 +262,8 @@ if (USERVER_CONAN)
       yaml-cpp
       cryptopp::cryptopp
       rapidjson
+      zstd::libzstd_static
   )
-  # According to https://conan.io/center/recipes/zstd should be
-  # zstd::libzstd_static, but it does not work that way
-  if (TARGET zstd::libzstd_static)
-    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_static)
-  else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_shared)
-  endif()
 else()
   include(Stacktrace)
   _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
@@ -272,6 +279,12 @@ else()
       libzstd
       CryptoPP
   )
+
+  if(Boost_USE_STATIC_LIBS AND Boost_FOUND AND Boost_VERSION VERSION_LESS 1.75)
+    # https://github.com/boostorg/locale/issues/156
+    find_package(ICU COMPONENTS uc i18n data REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ICU::uc ICU::i18n ICU::data)
+  endif()
 endif()
 
 target_include_directories(${PROJECT_NAME}
@@ -312,7 +325,7 @@ if (USERVER_FEATURE_UTEST)
 
   add_library(${PROJECT_NAME}-internal-ubench INTERFACE)
   if (USERVER_CONAN)
-    find_package(benchmark REQUIRED)
+    find_package(benchmark REQUIRED CONFIG)
   else()
     include(SetupGBench)
   endif()
@@ -376,6 +389,7 @@ endif()
 
 _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/ModuleHelpers.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupCURL.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
     "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
@@ -384,12 +398,14 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupPGO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupHomebrew.cmake"
     "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
     "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
     "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverEmbedFile.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverPreferStaticLibs.cmake"
     "${USERVER_ROOT_DIR}/cmake/embedded_config.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver

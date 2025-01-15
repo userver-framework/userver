@@ -27,6 +27,7 @@ python3-devel
 python3-jinja2
 python3-protobuf
 python3-voluptuous
+re2
 redis
 yaml-cpp-devel
 zlib-devel

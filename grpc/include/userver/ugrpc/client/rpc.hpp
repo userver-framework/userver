@@ -86,8 +86,6 @@ public:
     /// @endcond
 
 private:
-    void ProcessFinish() const;
-
     impl::RpcData* data_{};
     std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish_;
     mutable std::exception_ptr exception_;

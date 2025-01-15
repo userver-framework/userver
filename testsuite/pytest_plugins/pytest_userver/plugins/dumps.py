@@ -36,11 +36,7 @@ def read_latest_dump(userver_dumps_root):
         if not specific_dir.is_dir():
             return None
         latest_dump_filename = max(
-            (
-                f
-                for f in specific_dir.iterdir()
-                if specific_dir.joinpath(f).is_file()
-            ),
+            (f for f in specific_dir.iterdir() if specific_dir.joinpath(f).is_file()),
             default=None,
         )
         if not latest_dump_filename:

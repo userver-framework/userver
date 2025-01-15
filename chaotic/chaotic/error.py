@@ -1,6 +1,10 @@
 class BaseError(Exception):
     def __init__(
-        self, full_filepath: str, infile_path: str, schema_type: str, msg: str,
+        self,
+        full_filepath: str,
+        infile_path: str,
+        schema_type: str,
+        msg: str,
     ) -> None:
         self.full_filepath = full_filepath
         self.infile_path = infile_path

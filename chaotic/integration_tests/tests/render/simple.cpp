@@ -213,6 +213,22 @@ TEST(Simple, StringEnum) {
     }
 }
 
+TEST(Simple, StringEnumPgInteraction) {
+    auto str = ToString(ns::StringEnum::kFoo);
+    static_assert(
+        std::is_same_v<decltype(str), std::string>,
+        "storages::postgres::io::Codegen requires ToString(enum) that returns a string"
+    );
+    EXPECT_EQ(str, "foo");
+
+    auto result = Parse("foo", formats::parse::To<ns::StringEnum>{});
+    static_assert(
+        std::is_same_v<decltype(result), ns::StringEnum>,
+        "storages::postgres::io::Codegen requires Parse(string_view, To<E>) that returns an enum E"
+    );
+    EXPECT_EQ(result, ns::StringEnum::kFoo);
+}
+
 TEST(Simple, AllOf) {
     auto json = formats::json::MakeObject("foo", 1, "bar", 2);
     auto obj = json.As<ns::AllOf>();

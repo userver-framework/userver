@@ -17,13 +17,15 @@ def mock_configs_service(mockserver) -> None:
     @mockserver.json_handler('/configs-service/configs/values')
     def _mock_configs(_request):
         return mockserver.make_response(
-            'Emulating a downed dynconf service', 500,
+            'Emulating a downed dynconf service',
+            500,
         )
 
     @mockserver.json_handler('/configs-service/configs/status')
     def _mock_configs_status(_request):
         return mockserver.make_response(
-            'Emulating a downed dynconf service', 500,
+            'Emulating a downed dynconf service',
+            500,
         )
 
 
@@ -40,7 +42,8 @@ _CONFIGS_CACHE: typing.Dict[str, typing.Any] = {}
 # Overriding a built-in userver config hook
 @pytest.fixture(name='userver_config_dynconf_cache', scope='session')
 def _userver_config_dynconf_cache(
-    userver_config_dynconf_cache, service_tmpdir,
+    userver_config_dynconf_cache,
+    service_tmpdir,
 ):
     def patch_config(config_yaml, config_vars) -> None:
         userver_config_dynconf_cache(config_yaml, config_vars)

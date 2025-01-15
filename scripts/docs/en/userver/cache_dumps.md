@@ -18,30 +18,31 @@ Disadvantages:
   users (for example, logging or other caches).
 
 ## How to set up cache dumps
-0.  Make a caching component, for example as in @ref scripts/docs/en/userver/tutorial/http_caching.md.
-1.  Ensure that your data type is dumpable. To do that, add a static_assert
-    into the header file of your caching component or near your
-    type declaration:
-    \snippet core/src/dump/class_serialization_sample_test.hpp  Sample class serialization dump header
-2.  If the assertion fails:
-    - @ref dump_serialization_guide "Implement serialization"
-    - @ref dump_testing_guide "Write unit tests for it"
-3.  Enable dumps in the static configuration of your service:
-  ```
-  yaml
-  components_manager:
-    components:
-      simple-dumped-cache:
-        update-types: only-full
-        update-interval: 1m
-        # that's how we turn it on
-        dump:
-          enable: true
-          world-readable: false
-          format-version: 0
-          first-update-mode: required
-          first-update-type: full
-  ```
+
+1. Make a caching component, for example as in @ref scripts/docs/en/userver/tutorial/http_caching.md.
+2. Ensure that your data type is dumpable. To do that, add a static_assert
+   into the header file of your caching component or near your
+   type declaration:
+   @snippet core/src/dump/class_serialization_sample_test.hpp  Sample class serialization dump header
+3. If the assertion fails:
+   - @ref dump_serialization_guide "Implement serialization"
+   - @ref dump_testing_guide "Write unit tests for it"
+4. Enable dumps in the static configuration of your service:
+   ```
+   yaml
+   components_manager:
+       components:
+           simple-dumped-cache:
+               update-types: only-full
+               update-interval: 1m
+               # that's how we turn it on
+               dump:
+                   enable: true
+                   world-readable: false
+                   format-version: 0
+                   first-update-mode: required
+                   first-update-type: full
+   ```
 
 @anchor dump_serialization_guide
 ## Implementing serialization (Write / Read)
@@ -57,26 +58,27 @@ In order for a data type to be serialized for cache dumps the `Write` and
     * C++ Standard Library and Boost containers, `std::optional`,
       `utils::StrongTypedef`, `std::{unique,shared}_ptr` in
       `<userver/dump/common_containers.hpp>`
+    * Protobuf messages in `<userver/dump/protobuf.hpp>`
     * Trivial structures (aggregates) in `<userver/dump/aggregates.hpp>`, but
       you will have to enable dumps manually:
-  \snippet core/src/dump/aggregates_sample_test.cpp Sample aggregate dump
+      @snippet core/src/dump/aggregates_sample_test.cpp Sample aggregate dump
 - For more complex user types it is recommended to place only declarations in
   the header file to avoid unnecessary includes leaking into all the translation
   units that use the type:
   \snippet core/src/dump/class_serialization_sample_test.hpp  Sample class serialization dump header
   Actual definitions should go to the source file:
   \snippet core/src/dump/class_serialization_sample_test.cpp  Sample class serialization dump source
-- If JSON, protobuf or flatbuffers serialization is already implemented for the
-  structure, you can use it in `Write`/`Read` if it suites your requirements.
+- If JSON or flatbuffers serialization is already implemented for the
+  structure, you can use it in `Write`/`Read` if it suits your requirements.
 
 ### Recommendations
 
 1. Place `Write`/`Read` function declarations for your own types:
-  - in the `namespace` of the type, not into `namespace dump`
-  - in the same header, next to the type definition
+   - in the `namespace` of the type, not into `namespace dump`
+   - in the same header, next to the type definition
 2. Place serialization of third party types:
-  - in `namespace dump`
-  - if serialization may be useful to others and does not add source
+   - in `namespace dump`
+   - if serialization may be useful to others and does not add source
     dependencies, it is worth making a PR into userver
 3. When implementing serialization for multiple types, place functions in the
    order `Write1, Read1, Write2, Read2, ...`
@@ -103,26 +105,27 @@ file. Dump encryption is disabled by default.
 
 The components::CachingComponentBase uses the AES-GCM-256 encryption algorithm
 if the encryption is enabled. To enable encryption, do the following:
-1.  In the static configuration for the cache, set `dump.encrypted=true`:
+
+1. In the static configuration for the cache, set `dump.encrypted=true`:
    ```
    yaml
    components_manager:
-     components:
-       your-caching-component:
-         dump:
-           encrypted: true
+       components:
+           your-caching-component:
+               dump:
+                   encrypted: true
    ```
 2. Place a secret for encoding and decoding into `CACHE_DUMP_SECRET_KEYS`
-    section of the components::Secdist file. Use the name of your cache
-    component as a JSON key and the secret as a JSON value:
-    ```
-    json
-    {
-      "CACHE_DUMP_SECRET_KEYS": {
-          "you-cache-component-name": "your-base64encoded-secret-key"
-      }
-    }
-    ```
+   section of the components::Secdist file. Use the name of your cache
+   component as a JSON key and the secret as a JSON value:
+   ```
+   json
+   {
+     "CACHE_DUMP_SECRET_KEYS": {
+       "you-cache-component-name": "your-base64encoded-secret-key" 
+     }
+   }
+   ```
 
 ## Dump Settings
 
@@ -134,22 +137,22 @@ An example with all the options:
 ```
 yaml
 components_manager:
-  components:
-  simple-dumped-cache:
-    update-types: only-incremental
-    update-interval: 1m
-    dump:
-      enable: true
-      world-readable: false
-      format-version: 4
-      first-update-mode: skip
-      first-update-type: incremental
-      max-age: 60m
-      max-count: 1
-      min-interval: 3m
-      fs-task-processor: my-task-processor
-      wait-for-first-update: true
-      encrypted: false
+    components:
+    simple-dumped-cache:
+        update-types: only-incremental
+        update-interval: 1m
+        dump:
+            enable: true
+            world-readable: false
+            format-version: 4
+            first-update-mode: skip
+            first-update-type: incremental
+            max-age: 60m
+            max-count: 1
+            min-interval: 3m
+            fs-task-processor: my-task-processor
+            wait-for-first-update: true
+            encrypted: false
 ```
 
 ## Dynamic configuration of dumps

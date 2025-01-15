@@ -154,21 +154,4 @@ std::string_view StrategyToString(CommandControl::Strategy s);
 
 }  // namespace storages::redis
 
-#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
-namespace redis {
-using storages::redis::kDefaultMaxRetries;
-using storages::redis::kDefaultTimeoutAll;
-using storages::redis::kDefaultTimeoutSingle;
-
-using storages::redis::kRetryNilFromMaster;
-using storages::redis::RetryNilFromMaster;
-using storages::redis::ServerIdHasher;
-
-using storages::redis::CommandControl;
-using storages::redis::ServerId;
-using storages::redis::StrategyFromString;
-using storages::redis::StrategyToString;
-}  // namespace redis
-#endif
-
 USERVER_NAMESPACE_END

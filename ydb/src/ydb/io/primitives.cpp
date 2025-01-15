@@ -48,8 +48,8 @@ OptionalPrimitiveTraits<PrimitiveTrait>::Parse(NYdb::TValueParser& parser, const
             return {};
         }
     } else {
-        auto name = compiler::GetTypeName<std::optional<typename PrimitiveTrait::Type>>();
-        LOG_WARNING() << "Trying to parse " << context.column_name << " as " << name
+        LOG_WARNING() << "Trying to parse " << context.column_name << " as "
+                      << compiler::GetTypeName<std::optional<typename PrimitiveTrait::Type>>()
                       << " while actual type is not Optional";
     }
 

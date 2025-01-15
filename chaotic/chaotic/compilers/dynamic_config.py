@@ -73,7 +73,8 @@ class CompilerBase:
     def __init__(self) -> None:
         self._variables_types: Dict[str, Dict[str, types.CppType]] = {}
         self._definitions: Dict[
-            str, Tuple[ResolvedSchemas, Dict[str, types.CppType]],
+            str,
+            Tuple[ResolvedSchemas, Dict[str, types.CppType]],
         ] = {}
         self._defaults: Dict[str, Any] = {}
 
@@ -116,7 +117,10 @@ class CompilerBase:
         return name.lower().replace('/', '_').replace('-', '_').split('.')[0]
 
     def parse_definition(
-        self, filepath: str, name: str, include_dirs: List[str] = [],
+        self,
+        filepath: str,
+        name: str,
+        include_dirs: List[str] = [],
     ) -> None:
         name_lower = self.format_ns_name(name)
         name_map = [NameMapItem('/([^/]+)/={0}')]
@@ -148,7 +152,10 @@ class CompilerBase:
         return sorted(set(includes))
 
     def parse_variable(
-        self, filepath: str, name: str, include_dirs: List[str] = [],
+        self,
+        filepath: str,
+        name: str,
+        include_dirs: List[str] = [],
     ) -> None:
         name_lower = self.format_ns_name(name)
         name_map = [
@@ -202,7 +209,8 @@ class CompilerBase:
             dependencies=self._collect_schemas(),
         )
         cpp_name_func = generate_cpp_name_func(
-            name_map=name_map, erase_prefix=erase_prefix,
+            name_map=name_map,
+            erase_prefix=erase_prefix,
         )
         gen = translator.Generator(
             config=translator.GeneratorConfig(
@@ -214,7 +222,8 @@ class CompilerBase:
             ),
         )
         types = gen.generate_types(
-            schemas, external_schemas=self._collect_types(),
+            schemas,
+            external_schemas=self._collect_types(),
         )
         return schemas, types
 
@@ -236,7 +245,8 @@ class CompilerBase:
     def variables_external_includes_hpp(self, name: str) -> List[str]:
         types = self._variables_types[name]
         return self.renderer_for_variable(
-            name, False,
+            name,
+            False,
         ).extract_external_includes(types, '')
 
     def _read_default(self, filepath: str) -> Any:
@@ -248,22 +258,22 @@ class CompilerBase:
         raise NotImplementedError()
 
     def create_aliases(
-        self, types: Dict[str, types.CppType],
+        self,
+        types: Dict[str, types.CppType],
     ) -> List[Tuple[str, str]]:
         return []
 
     def renderer_for_variable(
-        self, name: str, parse_extra_formats: bool,
+        self,
+        name: str,
+        parse_extra_formats: bool,
     ) -> renderer.OneToOneFileRenderer:
         return renderer.OneToOneFileRenderer(
             relative_to='/',
             vfilepath_to_relfilepath={
                 name: f'taxi_config/variables/{name}.types.hpp',
                 **{
-                    name: (
-                        'taxi_config/definitions/'
-                        f'{name.split(".")[0].replace("/", "_")}.hpp'
-                    )
+                    name: ('taxi_config/definitions/' f'{name.split(".")[0].replace("/", "_")}.hpp')
                     for name in self._definitions
                 },
             },
@@ -280,7 +290,10 @@ class CompilerBase:
 
     # TODO: move jinja files to arcadia_compiler
     def generate_variable(
-        self, name: str, output_dir: str, parse_extra_formats: bool,
+        self,
+        name: str,
+        output_dir: str,
+        parse_extra_formats: bool,
     ) -> None:
         types = self._variables_types[name]
         outputs = self.renderer_for_variable(name, parse_extra_formats).render(
@@ -298,9 +311,7 @@ class CompilerBase:
             write_file(
                 os.path.join(
                     output_dir,
-                    file.subdir
-                    + f'taxi_config/variables/{name}.types'
-                    + file.ext,
+                    file.subdir + f'taxi_config/variables/{name}.types' + file.ext,
                 ),
                 file.content,
             )
@@ -323,10 +334,12 @@ class CompilerBase:
         tpl = self._jinja().get_template('variable.hpp.jinja')
         write_file(
             os.path.join(
-                output_dir, f'include/taxi_config/variables/{name}.hpp',
+                output_dir,
+                f'include/taxi_config/variables/{name}.hpp',
             ),
             cpp_format.format_pp(
-                tpl.render(env), binary=get_clang_format_bin(),
+                tpl.render(env),
+                binary=get_clang_format_bin(),
             ),
         )
 
@@ -334,12 +347,16 @@ class CompilerBase:
         write_file(
             os.path.join(output_dir, f'src/taxi_config/variables/{name}.cpp'),
             cpp_format.format_pp(
-                tpl.render(env), binary=get_clang_format_bin(),
+                tpl.render(env),
+                binary=get_clang_format_bin(),
             ),
         )
 
     def generate_definition(
-        self, name: str, output_dir: str, parse_extra_formats: bool,
+        self,
+        name: str,
+        output_dir: str,
+        parse_extra_formats: bool,
     ) -> None:
         _schemas, types = self._definitions[name]
         outputs = renderer.OneToOneFileRenderer(

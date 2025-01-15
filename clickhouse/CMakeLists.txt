@@ -20,6 +20,9 @@ userver_module(clickhouse
     DBTEST_DATABASES clickhouse
 )
 
+target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-error=pedantic")
+
+
 _userver_directory_install(COMPONENT clickhouse FILES
 	  "${USERVER_ROOT_DIR}/cmake/modules/Findclickhouse-cpp.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules

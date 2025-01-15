@@ -21,7 +21,9 @@ class YdbClient:
     @staticmethod
     def _init_driver(endpoint, database):
         config = ydb_native_client.DriverConfig(
-            endpoint=endpoint, database=database, auth_token='',
+            endpoint=endpoint,
+            database=database,
+            auth_token='',
         )
         driver = ydb_native_client.Driver(config)
         driver.wait(timeout=30)
@@ -56,12 +58,8 @@ def create_table(client, schema):
         '/{}/{}'.format(client.database, schema['path']),
         ydb_native_client.TableDescription()
         .with_primary_keys(*schema['primary_key'])
-        .with_columns(*[
-            _prepare_column(column, version) for column in schema['schema']
-        ])
-        .with_indexes(*[
-            _prepare_index(index) for index in schema.get('indexes', [])
-        ]),
+        .with_columns(*[_prepare_column(column, version) for column in schema['schema']])
+        .with_indexes(*[_prepare_index(index) for index in schema.get('indexes', [])]),
     )
 
 

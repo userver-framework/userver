@@ -26,6 +26,7 @@ python-jinja
 python-pip
 python-voluptuous
 python-yaml
+re2
 rocksdb
 yaml-cpp
 zlib

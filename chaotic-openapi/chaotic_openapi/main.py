@@ -10,7 +10,8 @@ def main():
     args = parse_args()
 
     ctx = renderer.Context(
-        generate_path='', clang_format_bin=args.clang_format,
+        generate_path='',
+        clang_format_bin=args.clang_format,
     )
     spec = types.ClientSpec(
         client_name=args.name,
@@ -63,7 +64,9 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        'file', nargs='+', help='openapi/swagger yaml/json schemas',
+        'file',
+        nargs='+',
+        help='openapi/swagger yaml/json schemas',
     )
     return parser.parse_args()
 

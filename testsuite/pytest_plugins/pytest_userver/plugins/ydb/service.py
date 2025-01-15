@@ -58,7 +58,8 @@ def get_service_settings():
     return ServiceSettings(
         host=os.getenv('TESTSUITE_YDB_HOST', DEFAULT_HOST),
         grpc_port=utils.getenv_int(
-            'TESTSUITE_YDB_GRPC_PORT', DEFAULT_GRPC_PORT,
+            'TESTSUITE_YDB_GRPC_PORT',
+            DEFAULT_GRPC_PORT,
         ),
         mon_port=utils.getenv_int('TESTSUITE_YDB_MON_PORT', DEFAULT_MON_PORT),
         ic_port=utils.getenv_int('TESTSUITE_YDB_IC_PORT', 0),

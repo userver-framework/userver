@@ -170,7 +170,9 @@ def _create_servicer_mock(
             )
 
     mocked_servicer_class = type(
-        f'Mock{servicer_class.__name__}', (servicer_class,), methods,
+        f'Mock{servicer_class.__name__}',
+        (servicer_class,),
+        methods,
     )
     servicer = mocked_servicer_class()
     mock = GrpcServiceMock(servicer, frozenset(methods))
