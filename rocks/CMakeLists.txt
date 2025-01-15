@@ -10,6 +10,6 @@ userver_module(rocks
 
 _userver_directory_install(COMPONENT rocks
   FILES
-  "${USERVER_ROOT_DIR}/cmake/modules/FindRocksDB.cmake"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
+  "${USERVER_ROOT_DIR}/cmake/SetupRocksDB.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )

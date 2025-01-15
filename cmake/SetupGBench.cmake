@@ -12,9 +12,6 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
     endif()
 
     if (UserverGBench_FOUND)
-        if (NOT TARGET benchmark::benchmark)
-            add_library(benchmark::benchmark ALIAS UserverGBench)  # Unify link names
-        endif()
         return()
     endif()
 endif()

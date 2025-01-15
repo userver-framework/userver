@@ -25,6 +25,25 @@ jobs:
         name: ubuntu-24.04 (build-only)
         runs-on: ubuntu-24.04
 
+        env:
+             CMAKE_PROGRAM_PATH: /usr/lib/llvm17/bin
+             CMAKE_FLAGS: >-
+                -DCMAKE_BUILD_TYPE=Debug
+                -DUSERVER_USE_LD=lld
+                -DUSERVER_NO_WERROR=OFF
+                -DUSERVER_BUILD_ALL_COMPONENTS=1
+                -DUSERVER_BUILD_SAMPLES=1
+                -DUSERVER_BUILD_TESTS=1
+                -DUSERVER_FEATURE_JEMALLOC=OFF
+                -DUSERVER_FEATURE_KAFKA=OFF
+                -DUSERVER_FEATURE_CLICKHOUSE=OFF
+                -DUSERVER_FEATURE_STACKTRACE=OFF
+                -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
+                -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES
+                -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
+                -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1
+                -DUSERVER_FORCE_DOWNLOAD_GRPC=1
+
         steps:
           - uses: actions/checkout@v4
             with:
@@ -88,24 +107,13 @@ jobs:
             shell: alpine.sh --root {0}
             run: |
                 pwd
-                CMAKE_PROGRAM_PATH=/usr/lib/llvm17/bin/ \
-                cmake -S . -B build_debug \
-                    -DCMAKE_BUILD_TYPE=Debug \
-                    -DUSERVER_USE_LD=lld \
-                    -DUSERVER_NO_WERROR=OFF \
-                    -DUSERVER_BUILD_ALL_COMPONENTS=1 \
-                    -DUSERVER_BUILD_SAMPLES=1 \
-                    -DUSERVER_BUILD_TESTS=1 \
-                    -DUSERVER_FEATURE_JEMALLOC=OFF \
-                    -DUSERVER_FEATURE_KAFKA=OFF \
-                    -DUSERVER_FEATURE_CLICKHOUSE=OFF \
-                    -DUSERVER_FEATURE_STACKTRACE=OFF \
-                    -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
-                    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
-                    -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
-                    -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
-                    -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
-                    -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \
+                cmake -S . -B build_debug $CMAKE_FLAGS
+
+          - name: Reconfigure cmake
+            shell: alpine.sh --root {0}
+            run: |
+                pwd
+                cmake -S . -B build_debug $CMAKE_FLAGS
 
           - name: Compile
             shell: alpine.sh --root {0}

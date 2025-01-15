@@ -246,6 +246,10 @@ jobs:
             run: |
                 cmake -S . -B build_debug ${{matrix.cmake-flags}}
 
+          - name: Reconfigure cmake
+            run: |
+                cmake -S . -B build_debug ${{matrix.cmake-flags}}
+
           - name: Run clang-tidy
             if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
             run: |

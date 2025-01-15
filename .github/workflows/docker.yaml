@@ -114,14 +114,21 @@ jobs:
             run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
                 }} bash -c 'ccache -M 2.0GB && ccache -s -v'
 
-          - name: CMake
+          - name: Run cmake
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image }} bash -c
                 'cd /userver && cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
-          - name: Build
+          - name: Reconfigure cmake
+            run: >-
+                docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image }} bash -c
+                'cd /userver && cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+                ${{ matrix.cmake-flags }} -B./build -S./'
+
+          - name: Compile
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image }} bash -c
