@@ -169,6 +169,7 @@ void StandaloneTopologyHolder::CreateNode() {
         
         if(auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
             LOG_INFO() << "Current topology has the same shard";
+            is_nodes_received_.store(true);
             return;
         }
 
@@ -197,7 +198,6 @@ void StandaloneTopologyHolder::CreateNode() {
         node_.Emplace(
             Node{std::move(host_port), redis_connection}
         );
-
         is_nodes_received_.store(true);
     }
 
