@@ -25,18 +25,14 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
 
-void StandaloneTopologyHolder::Init() {
-    LOG_DEBUG() << "Init called";
-}
+void StandaloneTopologyHolder::Init() {}
 
 void StandaloneTopologyHolder::Start() {
-    LOG_DEBUG() << "Start called";
     create_node_watch_.Start();
     create_node_watch_.Send();
 }
 
 void StandaloneTopologyHolder::Stop() {
-    LOG_DEBUG() << "Stop called";
     node_.Cleanup();
     topology_.Cleanup();
 }
