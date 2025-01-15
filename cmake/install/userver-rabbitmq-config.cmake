@@ -8,6 +8,10 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-include("${USERVER_CMAKE_DIR}/SetupAmqpCPP.cmake")
+if(USERVER_CONAN)
+  find_package(amqpcpp REQUIRED CONFIG)
+else()
+  find_package(amqpcpp REQUIRED)
+endif()
 
 set(userver_rabbitmq_FOUND TRUE)

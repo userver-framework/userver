@@ -16,8 +16,8 @@ userver_module(rabbitmq
 
 _userver_directory_install(
     COMPONENT rabbitmq
-    FILES "${USERVER_ROOT_DIR}/cmake/SetupAmqpCPP.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+    FILES "${USERVER_ROOT_DIR}/cmake/modules/Findamqpcpp.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
 
 if (USERVER_BUILD_TESTS)

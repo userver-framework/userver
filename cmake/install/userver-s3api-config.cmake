@@ -11,7 +11,7 @@ find_package(userver REQUIRED COMPONENTS
 if(USERVER_CONAN)
   find_package(pugixml REQUIRED CONFIG)
 else()
-  include("${USERVER_CMAKE_DIR}/modules/FindPugixml.cmake")
+  find_package(Pugixml REQUIRED)
 endif()
 
 set(userver_s3api_FOUND TRUE)

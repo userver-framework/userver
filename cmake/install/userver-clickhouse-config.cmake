@@ -11,7 +11,7 @@ find_package(userver REQUIRED COMPONENTS
 if (USERVER_CONAN)
   find_package(clickhouse-cpp REQUIRED CONFIG)
 else()
-  include("${USERVER_CMAKE_DIR}/modules/Findclickhouse-cpp.cmake")
+  find_package(clickhouse-cpp REQUIRED)
 endif()
 
 set(userver_clickhouse_FOUND TRUE)
