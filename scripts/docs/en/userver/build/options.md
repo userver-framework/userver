@@ -183,7 +183,7 @@ Userver does not build dynamic libraries itself, but most of its dependencies do
 - Use `USERVER_USE_STATIC_LIBS=ON` CMake option to prefer static libraries for all userver dependencies (ON by default for "sufficiently new" `Clang` versions).
 With the option, CMake tries to find all dependencies as static libraries (and dependencies of dependencies), fallbacks to dynamic libraries when no static found.
 - To link statically with `libstdc++` or `libc++`, use `CMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"`.
-- To force fully static binary (with statically linked `libc`), use `CMAKE_EXE_LINKER_FLAGS="-static"`. In such case, all dependencies must be provided as static libraries. Also `userver` must be build with `USERVER_DISABLE_PHDR_CACHE`
+- To force fully static binary (with statically linked `libc`), use `CMAKE_EXE_LINKER_FLAGS="-static"`. In such case, all dependencies must be provided as static libraries. Also `userver` must be build with `USERVER_DISABLE_PHDR_CACHE=ON` (without this flag, it can lead to endless memory allocation).
 
 Some dependecies usually should be build from source for statically linked executable:
 1. `Curl`. Use `USERVER_FORCE_DOWNLOAD_CURL=ON` to download and build Curl from source.
