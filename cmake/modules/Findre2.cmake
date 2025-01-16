@@ -5,7 +5,7 @@ _userver_module_begin(
     FORMULA_NAMES re2
     RPM_NAMES re2
     PACMAN_NAMES re2
-    PKG_CONFIG_NAMES dev-libs/re2
+    PKG_CONFIG_NAMES re2
 )
 
 _userver_module_find_include(
