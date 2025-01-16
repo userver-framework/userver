@@ -17,3 +17,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET re2::re2)
+  add_library(re2::re2 ALIAS re2)
+endif()
