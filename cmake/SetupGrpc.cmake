@@ -77,11 +77,10 @@ CPMAddPackage(
     "gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF"
     "gRPC_BUILD_GRPC_PHP_PLUGIN OFF"
     "gRPC_BUILD_GRPC_RUBY_PLUGIN OFF"
+    "gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF"
     "gRPC_ZLIB_PROVIDER package"
     "gRPC_CARES_PROVIDER package"
-    # TODO if we ever decide to use re2 ourselves, this will be a conflict
-    # TODO should use 'package' and download it using CPM instead
-    "gRPC_RE2_PROVIDER module"
+    "gRPC_RE2_PROVIDER package"
     "gRPC_SSL_PROVIDER package"
     "gRPC_PROTOBUF_PROVIDER package"
     "gRPC_BENCHMARK_PROVIDER none"
