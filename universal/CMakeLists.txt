@@ -183,7 +183,7 @@ if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME 
   endif()
 endif()
 
-option(USERVER_FEATURE_RE2 "Build userver with re2 support" OFF)
+option(USERVER_FEATURE_RE2 "Build userver with re2 support" ON)
 if(USERVER_FEATURE_RE2)
   if(USERVER_CONAN)
     find_package(re2 REQUIRED CONFIG)
