@@ -1,15 +1,15 @@
 #pragma once
 
-#include <userver/storages/redis/wait_connected_mode.hpp>
-#include <storages/redis/impl/shard.hpp>
 #include <storages/redis/impl/cluster_topology.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
+#include <storages/redis/impl/shard.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include <userver/storages/redis/base.hpp>
 
-#include <userver/utils/retry_budget.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,11 +32,11 @@ public:
     virtual void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) = 0;
     virtual void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) = 0;
     virtual void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) = 0;
-    
+
     virtual boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() = 0;
     virtual boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() = 0;
 };
 
-}
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

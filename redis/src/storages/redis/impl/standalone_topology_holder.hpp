@@ -88,6 +88,6 @@ private:
     concurrent::Variable<utils::RetryBudgetSettings, std::mutex> retry_budget_settings_;
 };
 
-}
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

@@ -12,16 +12,13 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     ConnectionInfo conn
 )
     : ev_thread_(sentinel_thread_control),
-        redis_thread_pool_(redis_thread_pool),
-        password_(std::move(password)),
-        conn_to_create_(conn),
-        create_node_watch_(
-            ev_thread_,
-            [this] {
-                // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-                CreateNode();
-            }
-        ) {
+      redis_thread_pool_(redis_thread_pool),
+      password_(std::move(password)),
+      conn_to_create_(conn),
+      create_node_watch_(ev_thread_, [this] {
+          // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+          CreateNode();
+      }) {
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
 
@@ -41,13 +38,15 @@ bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConn
     LOG_DEBUG() << "WaitReadyOnce in mode " << ToString(mode);
     std::unique_lock<std::mutex> lock(mutex_);
     return cv_.WaitUntil(lock, deadline, [this, mode]() {
-        if(!is_nodes_received_) return false;
+        if (!is_nodes_received_) return false;
         auto ptr = topology_.Read();
         return ptr->IsReady(mode);
     });
 }
 
-rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> StandaloneTopologyHolder::GetTopology() const { return topology_.Read(); }
+rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> StandaloneTopologyHolder::GetTopology() const {
+    return topology_.Read();
+}
 
 void StandaloneTopologyHolder::SendUpdateClusterTopology() {
     LOG_WARNING() << "SendUpdateClusterTopology is not applicable for standalone";
@@ -128,11 +127,14 @@ void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInf
     create_node_watch_.Send();
 }
 
-boost::signals2::signal<void(TopologyHolderBase::HostPort, Redis::State)>& StandaloneTopologyHolder::GetSignalNodeStateChanged() {
+boost::signals2::signal<void(TopologyHolderBase::HostPort, Redis::State)>&
+StandaloneTopologyHolder::GetSignalNodeStateChanged() {
     return signal_node_state_change_;
 }
 
-boost::signals2::signal<void(size_t)>& StandaloneTopologyHolder::GetSignalTopologyChanged() { return signal_topology_changed_; }
+boost::signals2::signal<void(size_t)>& StandaloneTopologyHolder::GetSignalTopologyChanged() {
+    return signal_topology_changed_;
+}
 
 std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInstance(const ConnectionInfo& info) const {
     const auto buffering_settings_ptr = commands_buffering_settings_.Lock();
@@ -158,12 +160,11 @@ void StandaloneTopologyHolder::CreateNode() {
     {
         std::unique_lock<std::mutex> lock(mutex_);
         // one shard
-        ClusterShardHostInfos shard_infos{
-            // only master, no slaves
-            ClusterShardHostInfo{ConnectionInfoInt{conn_to_create_}, {}, {}}
+        ClusterShardHostInfos shard_infos{// only master, no slaves
+                                          ClusterShardHostInfo{ConnectionInfoInt{conn_to_create_}, {}, {}}
         };
-        
-        if(auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
+
+        if (auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
             LOG_INFO() << "Current topology has the same shard";
             is_nodes_received_.store(true);
             return;
@@ -172,7 +173,7 @@ void StandaloneTopologyHolder::CreateNode() {
         std::string host_port(fmt::format("{}:{}", conn_to_create_.host, conn_to_create_.port));
         auto redis_connection = CreateRedisInstance(conn_to_create_);
         redis_connection->signal_state_change.connect([host_port,
-                                                topology_holder_wp = weak_from_this()](redis::RedisState state) {
+                                                       topology_holder_wp = weak_from_this()](redis::RedisState state) {
             auto topology_holder = topology_holder_wp.lock();
             if (!topology_holder) {
                 return;
@@ -191,9 +192,7 @@ void StandaloneTopologyHolder::CreateNode() {
             nodes
         );
 
-        node_.Emplace(
-            Node{std::move(host_port), redis_connection}
-        );
+        node_.Emplace(Node{std::move(host_port), redis_connection});
         is_nodes_received_.store(true);
     }
 
@@ -201,6 +200,6 @@ void StandaloneTopologyHolder::CreateNode() {
     cv_.NotifyAll();
 }
 
-}
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END
