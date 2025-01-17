@@ -357,7 +357,6 @@ public:
         sentinels_->SetConnectionInfo(info_array);
     }
 
-    // TODO Should become virtual
     static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter_.load(std::memory_order_relaxed); }
 
     boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() override {
