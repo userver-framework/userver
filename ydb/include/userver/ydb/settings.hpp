@@ -5,7 +5,7 @@
 #include <optional>
 #include <string_view>
 
-#include <ydb-cpp-sdk/client/table/query_stats/stats.h>
+#include <ydb-cpp-sdk/v2/client/table/query_stats/stats.h>
 
 #include <userver/yaml_config/fwd.hpp>
 

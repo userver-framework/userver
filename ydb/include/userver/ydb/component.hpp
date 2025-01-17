@@ -15,9 +15,7 @@
 
 #include <userver/ydb/fwd.hpp>
 
-namespace NYdb {
-class TDriver;
-}
+#include <ydb-cpp-sdk/v2/client/driver/fwd.h>
 
 USERVER_NAMESPACE_BEGIN
 

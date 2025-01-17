@@ -1,14 +1,10 @@
 #pragma once
 
-#include <ydb-cpp-sdk/client/types/status/status.h>
+#include <ydb-cpp-sdk/v2/client/types/status/status.h>
 
 #include <stdexcept>
 #include <string>
 #include <string_view>
-
-namespace NYdb {
-class TStatus;
-}  // namespace NYdb
 
 USERVER_NAMESPACE_BEGIN
 

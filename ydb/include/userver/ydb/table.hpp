@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ydb-cpp-sdk/client/query/client.h>
-#include <ydb-cpp-sdk/client/query/query.h>
-#include <ydb-cpp-sdk/client/table/table.h>
+#include <ydb-cpp-sdk/v2/client/query/client.h>
+#include <ydb-cpp-sdk/v2/client/query/query.h>
+#include <ydb-cpp-sdk/v2/client/table/table.h>
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/utils/statistics/fwd.hpp>

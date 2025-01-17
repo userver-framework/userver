@@ -1,18 +1,10 @@
 #pragma once
 
+#include <ydb-cpp-sdk/v2/client/params/fwd.h>
+#include <ydb-cpp-sdk/v2/client/value/fwd.h>
+
 #include <string_view>
 #include <type_traits>
-
-namespace NYdb {
-class TType;
-class TValue;
-class TValueParser;
-class TValueBuilder;
-class TParamValueBuilder;
-
-template <typename Builder>
-class TValueBuilderBase;
-}  // namespace NYdb
 
 USERVER_NAMESPACE_BEGIN
 
