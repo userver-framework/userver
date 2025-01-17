@@ -25,7 +25,6 @@
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
 #include <storages/redis/impl/standalone_topology_holder.hpp>
-#include "storages/redis/impl/keyshard_standalone_impl.hpp"
 
 #include "command_control_impl.hpp"
 
