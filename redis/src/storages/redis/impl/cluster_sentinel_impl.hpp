@@ -8,8 +8,6 @@ class PeriodicWatcher;
 }
 
 namespace storages::redis::impl {
-class ClusterTopologyHolder;
-class ClusterNodesHolder;
 class TopologyHolderBase;
 
 class ClusterSentinelImpl : public SentinelImplBase {
