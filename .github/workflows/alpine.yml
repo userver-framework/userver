@@ -103,6 +103,7 @@ jobs:
                     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
                     -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
                     -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
+                    -DUSERVER_FORCE_DOWNLOAD_RE2=1 \
                     -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
                     -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
                     -DUSERVER_FORCE_DOWNLOAD_GRPC=1 \

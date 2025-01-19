@@ -41,7 +41,6 @@ py3-protobuf
 python3
 python3-dev
 rabbitmq-c-dev
-re2-dev
 rocksdb-dev
 snappy-dev
 snappy-static
