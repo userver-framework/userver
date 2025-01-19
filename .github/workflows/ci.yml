@@ -226,7 +226,6 @@ jobs:
                 sudo apt install --allow-downgrades -y g++-8
 
           - name: Install Kafka
-            if: matrix.os == 'ubuntu-22.04'
             run: |
                 sudo ./scripts/kafka/ubuntu_install_kafka.sh
 
