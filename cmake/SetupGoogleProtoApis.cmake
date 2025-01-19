@@ -1,3 +1,9 @@
+if(USERVER_CONAN)
+  find_package(googleapis REQUIRED CONFIG)
+  set(api-common-proto_LIBRARY googleapis::googleapis)
+  return()
+endif()
+
 set(USERVER_GOOGLE_COMMON_PROTOS_TARGET "" CACHE STRING "Name of cmake target preparing google common proto library")
 set(USERVER_GOOGLE_COMMON_PROTOS "" CACHE PATH "Path to the folder with google common proto files")
 

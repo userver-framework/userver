@@ -75,7 +75,9 @@ _userver_directory_install(COMPONENT grpc
 )
 if (DEFINED api-common-proto_LIBRARY)
   target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${api-common-proto_LIBRARY})
-  _userver_install_targets(COMPONENT grpc TARGETS ${api-common-proto_LIBRARY})
+  if(NOT USERVER_CONAN)
+    _userver_install_targets(COMPONENT grpc TARGETS ${api-common-proto_LIBRARY})
+  endif()
 endif()
 
 userver_generate_grpc_files(

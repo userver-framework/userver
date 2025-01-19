@@ -211,11 +211,6 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
         tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
 
-        if self.options.with_grpc:
-            tool_ch.variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
-               self.dependencies['googleapis'].cpp_info.components['google_rpc_status_proto'].resdirs[0]
-            )
-
         if self.options.with_otlp:
             tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = (
                 self.dependencies["opentelemetry-proto"].conf_info.get("user.opentelemetry-proto:proto_root")
