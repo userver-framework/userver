@@ -198,6 +198,7 @@ class UserverConan(ConanFile):
 
         tool_ch.variables['USERVER_LTO'] = self.options.lto
         tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
+        tool_ch.variables['USERVER_FEATURE_RE2'] = self.options.with_re2
         tool_ch.variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
         tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
         tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
