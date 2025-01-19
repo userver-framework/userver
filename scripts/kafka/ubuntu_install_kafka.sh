@@ -7,3 +7,4 @@ mkdir -p /etc/kafka
 tar xf kafka.tgz --directory=/etc/kafka
 cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
 rm -rf /etc/kafka/kafka_2.13-3.8.0
+rm kafka.tgz
