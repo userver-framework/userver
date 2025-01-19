@@ -122,6 +122,7 @@ class UserverConan(ConanFile):
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
         if self.options.with_re2:
+            self.requires('icu/74.1', force=True)
             self.requires('re2/20230301')
         if self.options.with_grpc or self.options.with_clickhouse:
             self.requires('abseil/20240116.2', force=True)
