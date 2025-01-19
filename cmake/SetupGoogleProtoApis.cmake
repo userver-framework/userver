@@ -1,9 +1,3 @@
-if(USERVER_CONAN)
-  find_package(googleapis REQUIRED CONFIG)
-  set(api-common-proto_LIBRARY googleapis::googleapis)
-  return()
-endif()
-
 set(USERVER_GOOGLE_COMMON_PROTOS_TARGET "" CACHE STRING "Name of cmake target preparing google common proto library")
 set(USERVER_GOOGLE_COMMON_PROTOS "" CACHE PATH "Path to the folder with google common proto files")
 
@@ -30,11 +24,11 @@ if (NOT api-common-protos_SOURCE_DIR)
 endif()
 
 include(UserverGrpcTargets)
-file(GLOB_RECURSE SOURCES
-  ${api-common-protos_SOURCE_DIR}/*.proto)
 
 userver_generate_grpc_files(
   PROTOS ${SOURCES}
+    ${api-common-protos_SOURCE_DIR}/google/rpc/status.proto
+    ${api-common-protos_SOURCE_DIR}/google/rpc/error_details.proto
   INCLUDE_DIRECTORIES ${api-common-protos_SOURCE_DIR}
   SOURCE_PATH ${api-common-protos_SOURCE_DIR}
   GENERATED_INCLUDES include_paths
