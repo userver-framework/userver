@@ -182,15 +182,6 @@ jobs:
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
                 # Mongo is not officially supported on Ubuntu 24.04, so install it from jammy
 
-                # Install Kafka
-                sudo apt install -y default-jre
-                curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
-                sudo mkdir -p /etc/kafka
-                sudo tar xf kafka.tgz --directory=/etc/kafka
-                sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
-                sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
-                ls -lha /etc/kafka
-
           - name: Install common deps
             run: |
                 sudo apt update
@@ -233,6 +224,11 @@ jobs:
             if: matrix.info == 'g++-8 + debug'
             run: |
                 sudo apt install --allow-downgrades -y g++-8
+
+          - name: Install Kafka
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                ./scripts/kafka/ubuntu_install_kafka.sh
 
           - name: Install RabbitMQ packages
             run: |

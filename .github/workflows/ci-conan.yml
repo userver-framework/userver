@@ -33,11 +33,22 @@ jobs:
             run: |
                 sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv postgresql redis clang-format
 
+          - name: Install Kafka
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                ./scripts/kafka/ubuntu_install_kafka.sh
+
+          - name: Install RabbitMQ packages
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
+
           - name: Install MacOS packages
             if: matrix.os == 'macos-latest'
             run: |
                 brew update
-                brew install postgresql redis clang-format
+                brew tap mongodb/brew
+                brew install clang-format postgresql redis kafka rabbitmq mongodb-community
                 brew install python@3.11
 
           - name: Install common packages
@@ -65,8 +76,12 @@ jobs:
                     embedded_files \
                     grpc_service \
                     hello_service \
+                    https_service \
                     postgres_service \
                     redis_service \
+                    kafka_service \
+                    rabbitmq_service \
+                    mongo_service \
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/
