@@ -1,3 +1,7 @@
+if(TARGET re2::re2)
+  return()
+endif()
+
 _userver_module_begin(
     NAME re2
     VERSION 20180101
