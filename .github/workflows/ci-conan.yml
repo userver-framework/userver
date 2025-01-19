@@ -19,7 +19,7 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                  - os: ubuntu-22.04
+                  - os: ubuntu-24.04
                     conanflags: ''
                   - os: macos-latest
                     conanflags: '-o python_path=python3.11'
@@ -29,14 +29,14 @@ jobs:
             uses: actions/checkout@v4
 
           - name: Install Ubuntu packages
-            if: matrix.os == 'ubuntu-22.04'
+            if: matrix.os == 'ubuntu-24.04'
             run: |
                 sudo apt install -y \
                    gcc g++ cmake wget git clang-format \
                    python3 python3-pip python3-venv
 
           - name: Install test dependencies
-            if: matrix.os == 'ubuntu-22.04'
+            if: matrix.os == 'ubuntu-24.04'
             run: |
                 wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
                 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
