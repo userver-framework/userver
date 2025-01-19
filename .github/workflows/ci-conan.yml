@@ -44,7 +44,7 @@ jobs:
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
 
                 sudo apt update
-                sudo apt install -y postgresql redis mongodb-server mongodb-mongos mongodb-mongosh
+                sudo apt install -y postgresql redis mongodb-org mongodb-mongosh
                 sudo ./scripts/kafka/ubuntu_install_kafka.sh
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
