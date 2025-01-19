@@ -36,7 +36,7 @@ jobs:
           - name: Install Kafka
             if: matrix.os == 'ubuntu-22.04'
             run: |
-                ./scripts/kafka/ubuntu_install_kafka.sh
+                sudo ./scripts/kafka/ubuntu_install_kafka.sh
 
           - name: Install RabbitMQ packages
             if: matrix.os == 'ubuntu-22.04'
