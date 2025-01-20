@@ -26,5 +26,5 @@ CPMAddPackage(
     "RE2_USE_ICU ON"
 )
 
-mark_targets_as_system("${abseil-cpp_SOURCE_DIR}")
-write_package_stub(absl)
+mark_targets_as_system("${re2_SOURCE_DIR}")
+write_package_stub(re2)
