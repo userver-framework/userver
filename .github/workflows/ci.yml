@@ -39,6 +39,7 @@ jobs:
                     info: clang-18 + debug + sanitize addr+ub
                     id: ubuntu24_clang18_debug_sanitize-addr-ub
                     tests-flags: ''
+                    tests-env: ''
 
                   - cmake-flags: >-
                         -GNinja
@@ -58,6 +59,7 @@ jobs:
                     info: clang-14 + debug + sanitize addr+ub
                     id: ubuntu22_clang14_debug_sanitize-addr-ub
                     tests-flags: ''
+                    tests-env: ''
 
                   - cmake-flags: >-
                         -GNinja
@@ -76,6 +78,7 @@ jobs:
                     info: g++-9 + release
                     id: ubuntu20_gcc9_release
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
+                    tests-env: 'POSTGRES_PIPELINE_DISABLED=1'
 
                   # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
@@ -97,6 +100,7 @@ jobs:
                     info: g++-8 + debug
                     id: ubuntu20_gcc8_debug
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
+                    tests-env: 'POSTGRES_PIPELINE_DISABLED=1'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -316,7 +320,7 @@ jobs:
                 cd build_debug
                 mkdir postgresql || :
                 cd postgresql
-                ctest -V
+                ${{matric.tests-env}} ctest -V
 
           - name: Run tests (redis)
             run: |
