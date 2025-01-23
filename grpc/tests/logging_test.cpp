@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-ugrpc::server::ServerConfig MakeServerConfig(logging::LoggerPtr access_tskv_logger) {
+ugrpc::server::ServerConfig MakeServerConfig(logging::TextLoggerPtr access_tskv_logger) {
     ugrpc::server::ServerConfig config;
     config.port = 0;
     config.access_tskv_logger = access_tskv_logger;

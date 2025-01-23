@@ -153,8 +153,8 @@ public:
     /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
     /// if needed.
     ///
-    /// If both query_settings and settings args are passed,
-    /// query_settings.client_timeout_ms and query_settings.trace_id are ignored
+    /// If both exec_settings and settings args are passed,
+    /// exec_settings.client_timeout_ms and exec_settings.trace_id are ignored
     /// and are overwritten by settings.client_timeout_ms and settings.trace_id.
     /// @{
     template <typename... Args>
@@ -166,7 +166,7 @@ public:
     ExecuteResponse ExecuteQuery(OperationSettings settings, const Query& query, PreparedArgsBuilder&& builder);
 
     ExecuteResponse ExecuteQuery(
-        NYdb::NQuery::TExecuteQuerySettings&& query_settings,
+        NYdb::NQuery::TExecuteQuerySettings&& exec_settings,
         OperationSettings settings,
         const Query& query,
         PreparedArgsBuilder&& builder

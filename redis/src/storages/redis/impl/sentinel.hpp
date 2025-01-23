@@ -187,6 +187,8 @@ public:
     void SetConnectionInfo(std::vector<ConnectionInfo> info_array);
     const std::string& ShardGroupName() const;
 
+    void UpdatePassword(const Password& password);
+
     using UserMessageCallback = std::function<Outcome(const std::string& channel, const std::string& message)>;
     using UserPmessageCallback =
         std::function<Outcome(const std::string& pattern, const std::string& channel, const std::string& message)>;

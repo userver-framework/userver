@@ -27,7 +27,7 @@ properties:
         description: ClientFactoryComponent name to use for client creation
     dedicated-channel-counts:
         type: object
-        description: a map of a rpc method in the channel count. Used for high-load methods
+        description: a map of method names to channel counts. Used for high-load methods
         defaultDescription: '{}'
         additionalProperties:
             type: integer

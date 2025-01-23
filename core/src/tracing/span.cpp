@@ -117,9 +117,9 @@ Span::Impl::~Impl() {
 
     {
         const impl::DetachLocalSpansScope ignore_local_span;
-        logging::LogHelper lh{logging::GetDefaultLogger(), log_level_, source_location_};
-        lh.MarkAsTrace(logging::LogHelper::InternalTag{});
-        std::move(*this).PutIntoLogger(lh.GetTagWriterAfterText({}));
+        logging::LogHelper lh{
+            logging::GetDefaultLogger(), log_level_, logging::Module{source_location_}, logging::LogClass::kTrace};
+        std::move(*this).PutIntoLogger(lh.GetTagWriter());
     }
 }
 
@@ -439,7 +439,7 @@ DetachLocalSpansScope::~DetachLocalSpansScope() {
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, LogSpanAsLastNoCurrent span) {
     UASSERT(nullptr == Span::CurrentSpanUnchecked());
-    span.span.LogTo(lh.GetTagWriterAfterText({}));
+    span.span.LogTo(lh.GetTagWriter());
     return lh;
 }
 

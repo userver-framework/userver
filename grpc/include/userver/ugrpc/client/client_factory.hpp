@@ -3,25 +3,18 @@
 /// @file userver/ugrpc/client/client_factory.hpp
 /// @brief @copybrief ugrpc::client::ClientFactory
 
-#include <cstddef>
-#include <memory>
 #include <string>
-#include <unordered_map>
 #include <utility>
 
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
-#include <grpcpp/support/channel_arguments.h>
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/logging/level.hpp>
-#include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 
 #include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/client/fwd.hpp>
-#include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -104,16 +97,12 @@ public:
     /// @endcond
 
 private:
-    impl::ChannelCache::Token GetChannel(const std::string& client_name, const std::string& endpoint);
-
     impl::ClientDependencies MakeClientDependencies(ClientSettings&& settings);
 
     ClientFactorySettings settings_;
     engine::TaskProcessor& channel_task_processor_;
     MiddlewareFactories mws_;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
-    impl::ChannelCache channel_cache_;
-    std::unordered_map<std::string, impl::ChannelCache> client_channel_cache_;
     ugrpc::impl::StatisticsStorage& client_statistics_storage_;
     const dynamic_config::Source config_source_;
     testsuite::GrpcControl& testsuite_grpc_;

@@ -287,21 +287,30 @@ Alternatively see @ref userver_install "userver install"
 @anchor userver_conan
 ## Conan
 
-@note conan must have version >= 2.8
+@note Conan must have version >= 2.8
 
 Thanks to Open-Source community we have Conan support.
 
-You must run the following in the userver directory:
+To build the userver Conan package run the following in the userver root directory:
 
 ```shell
 conan profile new --detect default && conan profile update settings.compiler.libcxx=libstdc++11 default
-conan create . --build=missing -pr:b=default -tf conan/test_package/
+conan create . --build=missing -pr:b=default
 ```
 
-Make sure to pass flags corresponding to the desired userver libraries, e.g. `--with_grpc=1`
+Make sure to pass flags corresponding to the desired userver libraries, e.g. `-o with_grpc=0`.
 
-Now you can use userver as conan package and build it in your services:
+To use userver as a Conan package in your services add a `conanfile.txt` with the required version us the framework,
+for example:
+```
+[requires]
+userver/2.*
+```
 
+Run `conan install .` to actually install the required package. For more information see
+[the official Conan documentation](https://docs.conan.io/2/tutorial/consuming_packages/build_simple_cmake_project.html). 
+
+Link with userver in your `CMakeLists.txt` as usual:
 ```cmake
 target_link_libraries(${PROJECT_NAME} PUBLIC userver::grpc)
 ```

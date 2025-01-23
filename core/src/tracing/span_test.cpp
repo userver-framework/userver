@@ -87,7 +87,6 @@ UTEST_F(Span, LogFormat) {
                                                   R"(module=[\w\d ():./]+\t)"
                                                   R"(task_id=[0-9A-F]+\t)"
                                                   R"(thread_id=0x[0-9A-F]+\t)"
-                                                  R"(text=\t)"
                                                   R"(trace_id=[0-9a-f]+\t)"
                                                   R"(span_id=[0-9a-f]+\t)"
                                                   R"(parent_id=[0-9a-f]+\t)"
@@ -99,7 +98,8 @@ UTEST_F(Span, LogFormat) {
                                                   R"(my_timer_time=\d+(\.\d+)?\t)"
                                                   R"(link=[0-9a-f]+\t)"
                                                   R"(my_tag_key=my_tag_value\t)"
-                                                  R"(span_kind=internal\n)";
+                                                  R"(span_kind=internal\t)"
+                                                  R"(text=\n)";
     {
         tracing::Span span("span_name");
         span.AddTag("my_tag_key", "my_tag_value");

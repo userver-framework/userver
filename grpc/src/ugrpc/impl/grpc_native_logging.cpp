@@ -53,7 +53,7 @@ void LogFunction(::gpr_log_func_args* args) noexcept {
 
     auto& logger = logging::GetDefaultLogger();
     const auto location = utils::impl::SourceLocation::Custom(args->line, args->file, "");
-    logging::LogHelper(logger, lvl, location) << args->message;
+    logging::LogHelper(logger, lvl, logging::Module(location), logging::LogClass::kLog) << args->message;
 
     // We used to call LogFlush for kError logging level here,
     // but that might lead to a thread switch (there is a coroutine-aware

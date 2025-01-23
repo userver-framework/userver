@@ -140,10 +140,10 @@ void NewClientRepeated(GrpcClientTest& client_factory) {
     }
 }
 
-class NoopLogger : public logging::impl::LoggerBase {
+class NoopLogger : public logging::impl::TextLogger {
 public:
-    NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
-    void Log(logging::Level, std::string_view) override {}
+    NoopLogger() noexcept : TextLogger(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
+    void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
     void Flush() override {}
 };
 

@@ -129,7 +129,8 @@ UTEST_F(SocketLoggingTest, Test) {
 }
 
 TEST_F(LoggingTest, LogRaw) {
-    logging::impl::LogRaw(logging::GetDefaultLogger(), logging::Level::kInfo, "foo");
+    auto& logger = logging::GetDefaultLogger();
+    logging::impl::LogRaw(dynamic_cast<logging::impl::TextLogger&>(logger), logging::Level::kInfo, "foo");
     EXPECT_EQ(GetStreamString(), "foo\n");
 }
 

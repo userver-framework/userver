@@ -24,8 +24,10 @@ if (NOT api-common-protos_SOURCE_DIR)
 endif()
 
 include(UserverGrpcTargets)
-file(GLOB_RECURSE SOURCES
-  ${api-common-protos_SOURCE_DIR}/*.proto)
+file(GLOB SOURCES
+  ${api-common-protos_SOURCE_DIR}/google/api/*.proto
+  ${api-common-protos_SOURCE_DIR}/google/rpc/*.proto
+)
 
 userver_generate_grpc_files(
   PROTOS ${SOURCES}

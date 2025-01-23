@@ -14,7 +14,7 @@ using GrpcClientMultichannel = tests::ServiceFixtureMultichannel<sample::ugrpc::
 UTEST_P(GrpcClientMultichannel, ChannelsCount) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     auto& data = ugrpc::client::impl::GetClientData(client);
-    ASSERT_EQ(data.GetChannelToken().GetChannelCount(), GetParam());
+    ASSERT_EQ(data.GetChannels().size(), GetParam());
 }
 
 INSTANTIATE_UTEST_SUITE_P(/*no prefix*/, GrpcClientMultichannel, testing::Values(std::size_t{1}, std::size_t{4}));

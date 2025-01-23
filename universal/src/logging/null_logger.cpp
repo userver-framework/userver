@@ -9,23 +9,40 @@ namespace logging {
 
 namespace {
 
-class NullLogger final : public impl::LoggerBase {
+class NullFormatter final : public impl::formatters::Base {
 public:
-    NullLogger() noexcept : LoggerBase(Format::kRaw) { LoggerBase::SetLevel(Level::kNone); }
+    void AddTag(std::string_view, const LogExtra::Value&) override {}
 
-    void SetLevel(Level) override {}  // do nothing
-    void Log(Level, std::string_view) override {}
+    void AddTag(std::string_view, std::string_view) override {}
+
+    void SetText(std::string_view) override {}
+
+    impl::formatters::LoggerItemRef ExtractLoggerItem() override { return item_; }
+
+private:
+    static impl::formatters::LoggerItemBase item_;
+};
+
+impl::formatters::LoggerItemBase NullFormatter::item_;
+
+class NullLogger final : public impl::TextLogger {
+public:
+    NullLogger() noexcept : TextLogger(Format::kRaw) { LoggerBase::SetLevel(Level::kNone); }
+
+    void SetLevel(Level) override {}
+    void Log(Level, impl::formatters::LoggerItemRef) override {}
+    impl::formatters::BasePtr MakeFormatter(Level, LogClass) override { return std::make_unique<NullFormatter>(); }
     void Flush() override {}
 };
 
 }  // namespace
 
-LoggerRef GetNullLogger() noexcept {
+TextLoggerRef GetNullLogger() noexcept {
     static NullLogger null_logger{};
     return null_logger;
 }
 
-LoggerPtr MakeNullLogger() { return LoggerPtr(std::shared_ptr<void>{}, &logging::GetNullLogger()); }
+TextLoggerPtr MakeNullLogger() { return TextLoggerPtr(std::shared_ptr<void>{}, &logging::GetNullLogger()); }
 
 }  // namespace logging
 

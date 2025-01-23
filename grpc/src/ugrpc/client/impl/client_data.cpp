@@ -4,14 +4,16 @@
 #include <fmt/ranges.h>
 #include <grpcpp/create_channel.h>
 
+#include <userver/engine/async.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/rand.hpp>
+
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
-#include <userver/utils/algo.hpp>
-#include <userver/utils/assert.hpp>
-#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -68,11 +70,22 @@ std::size_t ClientData::GetDedicatedChannelCount(std::size_t method_id) const {
 
 std::shared_ptr<grpc::Channel>
 ClientData::CreateChannelImpl(const ClientDependencies& dependencies, const grpc::string& endpoint) {
-    return grpc::CreateCustomChannel(
-        endpoint,
-        dependencies.testsuite_grpc.IsTlsEnabled() ? GetCredentails(dependencies) : grpc::InsecureChannelCredentials(),
-        dependencies.settings.channel_args
-    );
+    return engine::AsyncNoSpan(
+               dependencies.channel_task_processor,
+               grpc::CreateCustomChannel,
+               std::ref(endpoint),
+               dependencies.testsuite_grpc.IsTlsEnabled() ? GetCredentails(dependencies)
+                                                          : grpc::InsecureChannelCredentials(),
+               std::ref(dependencies.settings.channel_args)
+    )
+        .Get();
+}
+
+utils::FixedArray<std::shared_ptr<grpc::Channel>> ClientData::CreateChannels(const ClientDependencies& dependencies) {
+    const auto endpoint_string = ugrpc::impl::ToGrpcString(dependencies.endpoint);
+    return utils::GenerateFixedArray(dependencies.settings.channel_count, [&](std::size_t) {
+        return CreateChannelImpl(dependencies, endpoint_string);
+    });
 }
 
 std::size_t ClientData::GetDedicatedChannelCountImpl(

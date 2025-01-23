@@ -183,15 +183,21 @@ if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME 
   endif()
 endif()
 
-option(USERVER_FEATURE_RE2 "Build userver with re2 support" OFF)
+if(NOT USERVER_CONAN)
+  _userver_macos_set_default_dir(ICU_ROOT "brew;--prefix;icu4c")
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    set(ICU_INCLUDE_DIR "${USERVER_BREW_PREFIX}/include" CACHE PATH "" FORCE)
+  endif()
+endif()
+
+option(USERVER_FEATURE_RE2 "Build userver with re2 support" ON)
 if(USERVER_FEATURE_RE2)
   if(USERVER_CONAN)
     find_package(re2 REQUIRED CONFIG)
-    target_link_libraries(${PROJECT_NAME} PRIVATE re2::re2)
   else()
-    find_package(re2 REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PRIVATE re2)
+    include(SetupRe2)
   endif()
+  target_link_libraries(${PROJECT_NAME} PRIVATE re2::re2)
 else()
   target_compile_definitions(${PROJECT_NAME} PUBLIC USERVER_NO_RE2_SUPPORT=1)
 endif()
@@ -392,6 +398,7 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/SetupCURL.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupRe2.cmake"
     "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
@@ -415,6 +422,7 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findre2.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules

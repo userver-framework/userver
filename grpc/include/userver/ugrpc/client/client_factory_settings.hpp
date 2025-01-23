@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-// full rpc name -> count of channels
+// method name -> count of channels
 using DedicatedMethodsConfig = std::unordered_map<std::string, std::size_t>;
 
 /// Settings relating to the ClientFactory

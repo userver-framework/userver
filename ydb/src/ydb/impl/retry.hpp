@@ -2,10 +2,13 @@
 
 #include <memory>
 
+#include <fmt/format.h>
+
 #include <ydb-cpp-sdk/client/retry/retry.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
 #include <userver/utils/retry_budget.hpp>
+#include <userver/ydb/exceptions.hpp>
 
 #include <ydb/impl/request_context.hpp>
 
@@ -13,8 +16,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-NYdb::NRetry::TRetryOperationSettings
-PrepareRetrySettings(const OperationSettings& settings, const utils::RetryBudget& retry_budget);
+NYdb::NRetry::TRetryOperationSettings PrepareRetrySettings(
+    const OperationSettings& settings,
+    const utils::RetryBudget& retry_budget,
+    engine::Deadline deadline
+);
 
 // See TRetryContextBase for an understanding of error handling
 bool IsRetryableStatus(NYdb::EStatus status);
@@ -31,16 +37,16 @@ NYdb::TAsyncStatus RetryOperation(NYdb::NQuery::TQueryClient& query_client, Args
     return query_client.RetryQuery(std::forward<Args>(args)...);
 }
 
-template <typename Client, typename Fn>
-class RetryHandler : public std::enable_shared_from_this<RetryHandler<Client, Fn>> {
+template <typename TClient, typename Fn>
+class RetryHandler : public std::enable_shared_from_this<RetryHandler<TClient, Fn>> {
 public:
-    using TSession = typename Client::TSession;
-    using ArgType = std::conditional_t<std::is_invocable_v<Fn&, TSession>, TSession, Client&>;
+    using TSession = typename TClient::TSession;
+    using ArgType = std::conditional_t<std::is_invocable_v<Fn&, TSession>, TSession, TClient&>;
     using AsyncResultType = std::invoke_result_t<Fn&, ArgType>;
     using ResultType = typename AsyncResultType::value_type;
 
     RetryHandler(
-        Client& client,
+        TClient& client,
         utils::RetryBudget& retry_budget,
         const NYdb::NRetry::TRetryOperationSettings& retry_settings,
         Fn&& fn
@@ -50,31 +56,29 @@ public:
     AsyncResultType Execute() {
         auto internal_retry_status = RetryOperation(
             client_,
-            [ctx = this->shared_from_this()](ArgType arg) {
-                return ctx->InternalRetryIteration(std::forward<ArgType>(arg));
+            [handler = this->shared_from_this()](ArgType arg) {
+                return handler->InternalRetryIteration(std::forward<ArgType>(arg));
             },
             retry_settings_
         );
 
-        return internal_retry_status.Apply([ctx = this->shared_from_this()](
+        return internal_retry_status.Apply([handler = this->shared_from_this()](
                                                const NYdb::TAsyncStatus& internal_async_status
-                                           ) { return ctx->TransformInternalRetryStatus(internal_async_status); });
+                                           ) { return handler->TransformInternalRetryStatus(internal_async_status); });
     }
 
 private:
     NYdb::TAsyncStatus InternalRetryIteration(ArgType arg) {
         const auto async_result = fn_(std::forward<ArgType>(arg));
 
-        return async_result.Apply([ctx = this->shared_from_this()](const auto& async_result) {
-            return ctx->HandleResult(async_result);
+        return async_result.Apply([handler = this->shared_from_this()](const auto& async_result) {
+            return handler->HandleResult(async_result);
         });
     }
 
     NYdb::TStatus HandleResult(const AsyncResultType& async_result) {
-        // If `async_result` contains an exception, `ExtractValue` call
-        // will rethrow it, and `Apply` will pack it into the
-        // resulting future.
-        //
+        async_result.TryRethrow();
+
         // Alternatively, we could just copy the TFuture, causing pointless refcounting overhead.
         //
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
@@ -98,13 +102,17 @@ private:
         internal_retry_status.TryRethrow();
 
         if (!result_.has_value()) {
-            throw DeadlineExceededError("Timed out before the initial attempt in RetryOperation");
+            throw DeadlineExceededError(fmt::format(
+                "Timed out before the initial attempt in RetryOperation, internal status {}: {}",
+                static_cast<std::underlying_type_t<NYdb::EStatus>>(internal_retry_status.GetValue().GetStatus()),
+                internal_retry_status.GetValue().GetIssues().ToOneLineString()
+            ));
         }
 
         return std::move(*result_);
     }
 
-    Client& client_;
+    TClient& client_;
     utils::RetryBudget& retry_budget_;
     NYdb::NRetry::TRetryOperationSettings retry_settings_;
     Fn fn_;
@@ -122,22 +130,32 @@ auto RetryOperation(impl::RequestContext& request_context, Fn&& fn) {
 
     auto& client = request_context.table_client.GetNativeTableClient();
     auto& retry_budget = request_context.table_client.GetRetryBudget();
-    auto ctx = std::make_shared<RetryHandler<NYdb::NTable::TTableClient, Fn>>(
-        client, retry_budget, PrepareRetrySettings(request_context.settings, retry_budget), std::forward<Fn>(fn)
+    auto retry_handler = std::make_shared<RetryHandler<NYdb::NTable::TTableClient, Fn>>(
+        client,
+        retry_budget,
+        PrepareRetrySettings(request_context.settings, retry_budget, request_context.deadline),
+        std::forward<Fn>(fn)
     );
-    return ctx->Execute();
+    return retry_handler->Execute();
 }
 
+// Fn: (NYdb::NQuery::TSession) -> NThreading::TFuture<T>
+//     OR
+//     (NYdb::NQuery::TQueryClient&) -> NThreading::TFuture<T>
+// RetryQuery -> NThreading::TFuture<T>
 template <typename Fn>
-auto RetryQueryOperation(impl::RequestContext& request_context, Fn&& fn) {
+auto RetryQuery(impl::RequestContext& request_context, Fn&& fn) {
     static_assert(std::is_invocable_v<Fn&, NYdb::NQuery::TSession> || std::is_invocable_v<Fn&, NYdb::NQuery::TQueryClient&>);
 
     auto& client = request_context.table_client.GetNativeQueryClient();
     auto& retry_budget = request_context.table_client.GetRetryBudget();
-    auto ctx = std::make_shared<RetryHandler<NYdb::NQuery::TQueryClient, Fn>>(
-        client, retry_budget, PrepareRetrySettings(request_context.settings, retry_budget), std::forward<Fn>(fn)
+    auto retry_handler = std::make_shared<RetryHandler<NYdb::NQuery::TQueryClient, Fn>>(
+        client,
+        retry_budget,
+        PrepareRetrySettings(request_context.settings, retry_budget, request_context.deadline),
+        std::forward<Fn>(fn)
     );
-    return ctx->Execute();
+    return retry_handler->Execute();
 }
 
 }  // namespace ydb::impl

@@ -62,7 +62,7 @@ struct ActionNode final : public concurrent::impl::SinglyLinkedBaseHook {
 }  // namespace async
 
 /// @brief Asynchronous logger that logs into a specific TaskProcessor.
-class TpLogger final : public LoggerBase {
+class TpLogger final : public TextLogger {
 public:
     TpLogger(Format format, std::string logger_name);
     ~TpLogger() override;
@@ -75,7 +75,7 @@ public:
 
     void StopConsumerTask();
 
-    void Log(Level level, std::string_view msg) override;
+    void Log(Level level, impl::formatters::LoggerItemRef msg) override;
     void Flush() override;
     void PrependCommonTags(TagWriter writer) const override;
 

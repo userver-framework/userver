@@ -414,6 +414,12 @@ inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
     }
     return false;
 }
+
+inline bool ShouldValueBeEscaped(std::string_view key) noexcept {
+    using Encoder = impl::tskv::SystemEncoder;
+    const auto block_contents = Encoder::LoadBlock(key.data());
+    return Encoder::MayNeedValueEscaping(block_contents, 0, key.size());
+}
 /// @endcond
 
 }  // namespace utils::encoding

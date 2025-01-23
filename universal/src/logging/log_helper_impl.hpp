@@ -12,6 +12,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging::impl::formatters {
+class Base;
+using BasePtr = std::unique_ptr<Base>;
+}  // namespace logging::impl::formatters
+
 namespace logging {
 
 inline constexpr std::size_t kInitialLogBufferSize = 1500;
@@ -21,38 +26,26 @@ struct LogHelper::InternalTag final {};
 
 class LogHelper::Impl final {
 public:
-    explicit Impl(LoggerRef logger, Level level) noexcept;
+    explicit Impl(LoggerRef logger, Level level, LogClass log_class) noexcept;
+
+    void AddText(std::string_view text);
+
+    size_t GetTextSize() const;
+
+    void AddTag(std::string_view key, const LogExtra::Value& value);
+
+    void AddTag(std::string_view key, std::string_view value);
+
+    void Finish();
+
+    void MarkAsBroken() {  // TODO
+    }
+
+    LogBuffer& GetBufferForRawValuePart() noexcept { return msg_; }
 
     bool IsStreamInitialized() const noexcept { return !!lazy_stream_; }
+
     std::ostream& Stream() { return GetLazyInitedStream().ostr; }
-
-    void PutMessageBegin();
-    void PutMessageEnd();
-
-    // Closes the previous tag value, puts the new tag key, opens the new value.
-    void PutKey(std::string_view key);
-    void PutRawKey(std::string_view key);
-
-    void PutValuePart(std::string_view value);
-    void PutValuePart(char text_part);
-    LogBuffer& GetBufferForRawValuePart() noexcept;
-
-    bool IsWithinValue() const noexcept { return is_within_value_; }
-    void MarkValueEnd() noexcept;
-
-    LogExtra& GetLogExtra() { return extra_; }
-
-    void StartText();
-
-    std::size_t GetTextSize() const { return msg_.size() - initial_length_; }
-
-    void LogTheMessage() const;
-
-    void MarkAsBroken() noexcept;
-
-    bool IsBroken() const noexcept;
-
-    void MarkAsTrace() noexcept;
 
 private:
     class BufferStd final : public std::streambuf {
@@ -76,20 +69,17 @@ private:
         explicit LazyInitedStream(Impl& impl) : sbuf{impl}, ostr(&sbuf) {}
     };
 
-    LazyInitedStream& GetLazyInitedStream();
+    LazyInitedStream& GetLazyInitedStream() {
+        if (!lazy_stream_) lazy_stream_.emplace(*this);
+        return *lazy_stream_;
+    }
 
-    void CheckRepeatedKeys(std::string_view raw_key);
-
-    impl::LoggerBase* logger_;
-    const Level level_;
-    const char key_value_separator_;
     LogBuffer msg_;
+    Level level_;
     std::optional<LazyInitedStream> lazy_stream_;
-    LogExtra extra_;
-    std::size_t initial_length_{0};
-    bool is_within_value_{false};
-    bool is_trace_{false};
     std::optional<std::unordered_set<std::string>> debug_tag_keys_;
+    LoggerRef logger_;
+    impl::formatters::BasePtr formatter_;
 };
 
 }  // namespace logging

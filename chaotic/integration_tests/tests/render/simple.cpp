@@ -45,14 +45,18 @@ TEST(Simple, DefaultFieldValue) {
 TEST(Simple, IntegerMinimum) {
     auto json = formats::json::MakeObject("int3", 1, "int", -10);
     UEXPECT_THROW_MSG(
-        json.As<ns::SimpleObject>(), chaotic::Error, "Error at path 'int': Invalid value, minimum=-1, given=-10"
+        json.As<ns::SimpleObject>(),
+        chaotic::Error<formats::json::Value>,
+        "Error at path 'int': Invalid value, minimum=-1, given=-10"
     );
 }
 
 TEST(Simple, IntegerMaximum) {
     auto json = formats::json::MakeObject("int3", 1, "int", 11);
     UEXPECT_THROW_MSG(
-        json.As<ns::SimpleObject>(), chaotic::Error, "Error at path 'int': Invalid value, maximum=10, given=11"
+        json.As<ns::SimpleObject>(),
+        chaotic::Error<formats::json::Value>,
+        "Error at path 'int': Invalid value, maximum=10, given=11"
     );
 }
 
@@ -78,7 +82,9 @@ TEST(Simple, IntegerFormat) {
 TEST(Simple, ObjectWithRefType) {
     auto json = formats::json::MakeObject("integer", 0);
     UEXPECT_THROW_MSG(
-        json.As<ns::ObjectWithRef>(), chaotic::Error, "Error at path 'integer': Invalid value, minimum=1, given=0"
+        json.As<ns::ObjectWithRef>(),
+        chaotic::Error<formats::json::Value>,
+        "Error at path 'integer': Invalid value, minimum=1, given=0"
     );
 }
 
@@ -141,7 +147,9 @@ TEST(Simple, ObjectExtraMemberFalse) {
 TEST(Simple, ObjectWithAdditionalPropertiesFalseStrict) {
     auto json = formats::json::MakeObject("foo", 1, "bar", 2);
     UEXPECT_THROW_MSG(
-        json.As<ns::ObjectWithAdditionalPropertiesFalseStrict>(), std::runtime_error, "Unknown property 'bar'"
+        json.As<ns::ObjectWithAdditionalPropertiesFalseStrict>(),
+        chaotic::Error<formats::json::Value>,
+        "Unknown property 'bar'"
     );
 }
 
@@ -156,7 +164,7 @@ TEST(Simple, IntegerEnum) {
     auto json2 = formats::json::MakeObject("one", 5);
     UEXPECT_THROW_MSG(
         json2["one"].As<ns::IntegerEnum>(),
-        chaotic::Error,
+        chaotic::Error<formats::json::Value>,
         "Error at path 'one': Invalid enum value (5) for type ns::IntegerEnum"
     );
 
@@ -181,7 +189,7 @@ TEST(Simple, StringEnum) {
     auto json2 = formats::json::MakeObject("one", "zoo");
     UEXPECT_THROW_MSG(
         json2["one"].As<ns::StringEnum>(),
-        chaotic::Error,
+        chaotic::Error<formats::json::Value>,
         "Error at path 'one': Invalid enum value (zoo) for type ns::StringEnum"
     );
 

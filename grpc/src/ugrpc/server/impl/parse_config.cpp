@@ -4,6 +4,7 @@
 
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/null_logger.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -119,7 +120,7 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const compo
     const auto logger_name = value["access-tskv-logger"];
     if (!logger_name.IsMissing()) {
         config.access_tskv_logger =
-            context.FindComponent<components::Logging>().GetLogger(logger_name.As<std::string>());
+            context.FindComponent<components::Logging>().GetTextLogger(logger_name.As<std::string>());
     } else {
         config.access_tskv_logger = logging::MakeNullLogger();
     }

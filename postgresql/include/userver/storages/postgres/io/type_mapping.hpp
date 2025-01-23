@@ -71,7 +71,7 @@ struct CppToSystemPgImpl {
         type_oid,
         array_oid,
         io::traits::kTypeBufferCategory<T>,
-        compiler::GetTypeName<T>()
+        std::string{compiler::GetTypeName<T>()}
     );
 
     static constexpr Oid GetOid(const UserTypes&) {
@@ -105,7 +105,7 @@ struct PgToCppPredefined {
         type_oid,
         array_oid,
         io::traits::kTypeBufferCategory<T>,
-        compiler::GetTypeName<T>()
+        std::string{compiler::GetTypeName<T>()}
     );
 };
 

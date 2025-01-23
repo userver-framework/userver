@@ -3,9 +3,9 @@
 #include <iostream>
 #include <memory>
 #include <typeinfo>
-#include <vector>
 
 #include <fmt/compile.h>
+#include <boost/container/small_vector.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
 #include <logging/log_extra_stacktrace.hpp>
@@ -105,70 +105,24 @@ private:
 
 constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 
-void Append(char*& position, std::string_view data) noexcept {
-    data.copy(position, data.size());
-    position += data.size();
-}
-
 }  // namespace
 
-struct LogHelper::Module final {
-    const utils::impl::SourceLocation& location;
+Module::Module(const utils::impl::SourceLocation& location) noexcept
+    : value(fmt::format("{} ( {}:{} )", location.GetFunctionName(), location.GetFileName(), location.GetLineString())) {
+}
 
-    void LogTo(LogHelper& lh) {
-        static constexpr std::string_view kDelimiter1 = " ( ";
-        static constexpr std::string_view kDelimiter2 = ":";
-        static constexpr std::string_view kDelimiter3 = " ) ";
-
-        auto& buffer = lh.pimpl_->GetBufferForRawValuePart();
-
-        const auto module_size = location.GetFunctionName().size() + kDelimiter1.size() +
-                                 location.GetFileName().size() + kDelimiter2.size() + location.GetLineString().size() +
-                                 kDelimiter3.size();
-        const auto old_size = buffer.size();
-        buffer.resize(old_size + module_size);
-        auto* position = buffer.data() + old_size;
-
-        Append(position, location.GetFunctionName());
-        Append(position, kDelimiter1);
-        Append(position, location.GetFileName());
-        Append(position, kDelimiter2);
-        Append(position, location.GetLineString());
-        Append(position, kDelimiter3);
-    }
-
-    friend LogHelper& operator<<(LogHelper& lh, Module module) {
-        module.LogTo(lh);
-        return lh;
-    }
-};
-
-LogHelper::LogHelper(LoggerRef logger, Level level, const utils::impl::SourceLocation& location) noexcept
-    : pimpl_(ThreadLocalMemPool<Impl>::Pop(logger, level)) {
+LogHelper::LogHelper(LoggerRef logger, Level level, const Module& module, LogClass log_class) noexcept
+    : pimpl_(ThreadLocalMemPool<Impl>::Pop(logger, level, log_class)) {
     try {
-        // The following functions actually never throw if the assertions at the
-        // bottom hold.
-        pimpl_->PutMessageBegin();
-        auto tag_writer = GetTagWriter();
-        tag_writer.PutTag("module", Module{location});
-        logger.PrependCommonTags(tag_writer);
-
-        pimpl_->StartText();
-        // Must not log further system info after this point
-
-        UASSERT_MSG(
-            !pimpl_->IsStreamInitialized(),
-            "Some function from above initialized the std::ostream. That's a "
-            "heavy operation that should be avoided. Add a breakpoint on Stream() "
-            "function and tune the implementation."
-        );
+        PutSwTag("module", module.value);
+        logger.PrependCommonTags(GetTagWriter());
     } catch (...) {
         InternalLoggingError("Failed to log initial data");
     }
 }
 
-LogHelper::LogHelper(const LoggerPtr& logger, Level level, const utils::impl::SourceLocation& location) noexcept
-    : LogHelper(logger ? *logger : logging::GetNullLogger(), level, location) {}
+LogHelper::LogHelper(const LoggerPtr& logger, Level level, const Module& module, LogClass log_class) noexcept
+    : LogHelper(logger ? *logger : logging::GetNullLogger(), level, module, log_class) {}
 
 LogHelper::~LogHelper() {
     DoLog();
@@ -177,17 +131,11 @@ LogHelper::~LogHelper() {
 
 constexpr size_t kSizeLimit = 10000;
 
-bool LogHelper::IsLimitReached() const noexcept { return pimpl_->IsBroken() || pimpl_->GetTextSize() >= kSizeLimit; }
+bool LogHelper::IsLimitReached() const noexcept { return pimpl_->GetTextSize() >= kSizeLimit; }
 
 void LogHelper::DoLog() noexcept {
     try {
-        if (pimpl_->IsWithinValue()) {
-            pimpl_->MarkValueEnd();
-        }
-        GetTagWriter().PutLogExtra(pimpl_->GetLogExtra());
-        pimpl_->PutMessageEnd();
-
-        pimpl_->LogTheMessage();
+        pimpl_->Finish();
     } catch (...) {
         InternalLoggingError("Failed to flush log");
     }
@@ -203,19 +151,7 @@ void LogHelper::InternalLoggingError(std::string_view message) noexcept {
     UASSERT_MSG(false, message);
 }
 
-impl::TagWriter LogHelper::GetTagWriter() {
-    UASSERT(!pimpl_->IsWithinValue());
-    return impl::TagWriter{*this};
-}
-
-impl::TagWriter LogHelper::GetTagWriterAfterText(InternalTag) {
-    if (pimpl_->IsWithinValue()) {
-        pimpl_->MarkValueEnd();
-    }
-    return GetTagWriter();
-}
-
-void LogHelper::MarkAsTrace(InternalTag) { pimpl_->MarkAsTrace(); }
+impl::TagWriter LogHelper::GetTagWriter() { return impl::TagWriter{*this}; }
 
 LogHelper& LogHelper::operator<<(char value) noexcept {
     try {
@@ -300,7 +236,9 @@ LogHelper& LogHelper::operator<<(const std::exception& value) noexcept {
 
 LogHelper& LogHelper::operator<<(const LogExtra& extra) noexcept {
     try {
-        pimpl_->GetLogExtra().Extend(extra);
+        for (const auto& [key, value] : *extra.extra_) {
+            PutTag(key, value.GetValue());
+        }
     } catch (...) {
         InternalLoggingError("Failed to extend log with const LogExtra&");
     }
@@ -309,7 +247,27 @@ LogHelper& LogHelper::operator<<(const LogExtra& extra) noexcept {
 
 LogHelper& LogHelper::operator<<(LogExtra&& extra) noexcept {
     try {
-        pimpl_->GetLogExtra().Extend(std::move(extra));
+        for (auto& [key, value] : *extra.extra_) {
+            PutTag(key, std::move(value.GetValue()));
+        }
+    } catch (...) {
+        InternalLoggingError("Failed to extend log with LogExtra&&");
+    }
+    return *this;
+}
+
+LogHelper& LogHelper::PutTag(std::string_view key, const LogExtra::Value& value) noexcept {
+    try {
+        pimpl_->AddTag(key, value);
+    } catch (...) {
+        InternalLoggingError("Failed to extend log with LogExtra&&");
+    }
+    return *this;
+}
+
+LogHelper& LogHelper::PutSwTag(std::string_view key, std::string_view value) noexcept {
+    try {
+        pimpl_->AddTag(key, value);
     } catch (...) {
         InternalLoggingError("Failed to extend log with LogExtra&&");
     }
@@ -367,9 +325,9 @@ LogHelper& LogHelper::operator<<(Quoted value) noexcept {
     return *this;
 }
 
-void LogHelper::Put(std::string_view value) { pimpl_->PutValuePart(value); }
+void LogHelper::Put(std::string_view value) { pimpl_->AddText(value); }
 
-void LogHelper::Put(char value) { pimpl_->PutValuePart(value); }
+void LogHelper::Put(char value) { pimpl_->AddText(std::string_view(&value, 1)); }
 
 void LogHelper::PutRaw(std::string_view value_needs_no_escaping) {
     pimpl_->GetBufferForRawValuePart().append(value_needs_no_escaping);
@@ -388,9 +346,9 @@ void LogHelper::PutException(const std::exception& ex) {
     if (traceful) {
         const auto& message_buffer = traceful->MessageBuffer();
         Put(std::string_view(message_buffer.data(), message_buffer.size()));
-        impl::ExtendLogExtraWithStacktrace(
-            pimpl_->GetLogExtra(), traceful->Trace(), impl::LogExtraStacktraceFlags::kFrozen
-        );
+        LogExtra log_extra;
+        impl::ExtendLogExtraWithStacktrace(log_extra, traceful->Trace(), impl::LogExtraStacktraceFlags::kFrozen);
+        *this << log_extra;
     } else {
         Put(ex.what());
     }

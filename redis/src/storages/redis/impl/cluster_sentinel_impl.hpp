@@ -71,6 +71,8 @@ public:
 
     void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
 
+    void UpdatePassword(const Password& password) override;
+
 private:
     void AsyncCommandFailed(const SentinelCommand& scommand);
     void EnqueueCommand(const SentinelCommand& command);
@@ -91,7 +93,6 @@ private:
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
 
     std::string client_name_;
-    Password password_{std::string()};
 
     std::vector<SentinelCommand> commands_;
     std::mutex command_mutex_;

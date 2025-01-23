@@ -157,6 +157,13 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
     return it->second;
 }
 
+logging::TextLoggerPtr Logging::GetTextLogger(const std::string& name) {
+    auto logger = GetLogger(name);
+    auto text_logger = std::dynamic_pointer_cast<logging::impl::TextLogger>(logger);
+    if (!text_logger) throw std::runtime_error(fmt::format("Invalid logger '{}' type, not a text logger", name));
+    return text_logger;
+}
+
 logging::LoggerPtr Logging::GetLoggerOptional(const std::string& name) {
     return utils::FindOrDefault(loggers_, name, nullptr);
 }
@@ -273,6 +280,8 @@ properties:
                       - tskv
                       - ltsv
                       - raw
+                      - json
+                      - json_yadeploy
                 flush_level:
                     type: string
                     description: messages of this and higher levels get flushed to the file immediately

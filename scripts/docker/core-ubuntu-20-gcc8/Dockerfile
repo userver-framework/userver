@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libboost-coroutine1.71-dev \
     libboost-stacktrace1.71-dev \
     libpugixml-dev \
+    libre2-dev \
     libev-dev \
     zlib1g-dev \
     libcurl4-openssl-dev \

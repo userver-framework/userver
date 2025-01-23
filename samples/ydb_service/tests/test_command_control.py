@@ -19,7 +19,7 @@ async def test_query_span(service_client):
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
         max_retries='3',
-        get_session_timeout_ms='5000',
+        get_session_timeout_ms='1000',
         operation_timeout_ms='1000',
         cancel_after_ms='1000',
         client_timeout_ms='1100',

@@ -1,22 +1,16 @@
 #include <userver/logging/impl/logger_base.hpp>
 
+#include <logging/impl/formatters/json.hpp>
+#include <logging/impl/formatters/tskv.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
-LoggerBase::LoggerBase(Format format) noexcept : format_(format) {}
-
 LoggerBase::~LoggerBase() = default;
 
-void LoggerBase::Trace(Level level, std::string_view msg) { Log(level, msg); }
-
-void LoggerBase::Flush() {}
-
-void LoggerBase::PrependCommonTags(TagWriter /*writer*/) const {}
-
-Format LoggerBase::GetFormat() const noexcept { return format_; }
+void LoggerBase::PrependCommonTags(TagWriter) const {}
 
 void LoggerBase::SetLevel(Level level) { level_ = level; }
 
@@ -31,6 +25,28 @@ bool LoggerBase::ShouldFlush(Level level) const { return flush_level_ <= level; 
 void LoggerBase::ForwardTo(LoggerBase*) {}
 
 bool LoggerBase::DoShouldLog(Level /*level*/) const noexcept { return true; }
+
+formatters::BasePtr TextLogger::MakeFormatter(Level level, LogClass) {
+    auto format = GetFormat();
+    switch (format) {
+        case Format::kLtsv:
+        case Format::kTskv:
+        case Format::kRaw:
+            return std::make_unique<formatters::Tskv>(level, format);
+
+        case Format::kJson:
+        case Format::kJsonYaDeploy:
+            return std::make_unique<formatters::Json>(level, format);
+
+        case Format::kStruct:
+            UINVARIANT(false, "Invalid logger type");
+            break;
+    }
+
+    throw std::runtime_error("Invalid logger type");
+}
+
+Format TextLogger::GetFormat() const noexcept { return format_; }
 
 bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept {
     return logger.GetLevel() <= level && level != Level::kNone;

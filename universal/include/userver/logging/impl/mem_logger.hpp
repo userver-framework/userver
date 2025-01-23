@@ -1,74 +1,43 @@
 #pragma once
 
-#include <cstdio>
-
-#include <mutex>
-#include <string>
-#include <vector>
-
+#include <userver/logging/impl/formatters/base.hpp>
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
-// kMaxLogItems is a hardcoded const and not config value as it is used before
-// the main logger initialization and before yaml config is parsed.
-inline constexpr auto kMaxLogItems = 10000;
+namespace formatters {
+struct LogItem;
+}
 
 class MemLogger final : public LoggerBase {
 public:
-    MemLogger() noexcept : LoggerBase(Format::kTskv) { SetLevel(Level::kDebug); }
+    MemLogger() noexcept;
     MemLogger(const MemLogger&) = delete;
     MemLogger(MemLogger&&) = delete;
 
-    ~MemLogger() override {
-        for (const auto& data : data_) {
-            fputs(data.msg.c_str(), stderr);
-        }
-    }
+    ~MemLogger() override;
 
-    static MemLogger& GetMemLogger() noexcept {
-        static MemLogger logger;
-        return logger;
-    }
+    static MemLogger& GetMemLogger() noexcept;
 
-    struct Data {
-        Level level;
-        std::string msg;
-    };
+    void Log(Level, formatters::LoggerItemRef item) override;
 
-    void Log(Level level, std::string_view msg) override {
-        std::unique_lock lock(mutex_);
-        if (forward_logger_) {
-            forward_logger_->Log(level, msg);
-            return;
-        }
+    formatters::BasePtr MakeFormatter(Level level, LogClass log_class) override;
 
-        if (data_.size() > kMaxLogItems) return;
-        data_.push_back({level, std::string{msg}});
-    }
+    void ForwardTo(LoggerBase* logger_to) override;
 
-    void Flush() override {}
-
-    void ForwardTo(LoggerBase* logger_to) override {
-        std::unique_lock lock(mutex_);
-        if (logger_to) {
-            for (const auto& log : data_) {
-                logger_to->Log(log.level, log.msg);
-            }
-            data_.clear();
-        }
-        forward_logger_ = logger_to;
-    }
+    void DropLogs();
 
 protected:
-    bool DoShouldLog(Level) const noexcept override { return true; }
+    bool DoShouldLog(Level) const noexcept override;
 
 private:
-    std::mutex mutex_;
-    std::vector<Data> data_;
-    LoggerBase* forward_logger_{nullptr};
+    void DispatchItem(formatters::LogItem& msg, formatters::Base& formatter);
+
+    struct Impl;
+    utils::FastPimpl<Impl, 96, 8> pimpl_;
 };
 
 }  // namespace logging::impl

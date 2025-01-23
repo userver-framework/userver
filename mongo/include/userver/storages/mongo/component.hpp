@@ -86,9 +86,7 @@ namespace components {
 /// {
 ///   "mongo_settings": {
 ///     "some_name_of_your_database": {
-///       "dbsettings": {
-///         "uri": "mongodb://user:password@host:port/database_name"
-///       }
+///       "uri": "mongodb://user:password@host:port/database_name"
 ///     }
 ///   }
 /// }

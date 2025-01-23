@@ -334,11 +334,11 @@ void Redis::OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg) {
         std::vector<storages::redis::ConnectionInfo> cii;
         for (const auto& host_port : settings.sentinels) {
             storages::redis::ConnectionInfo ci(host_port.host, host_port.port, settings.password);
-
             cii.push_back(ci);
         }
 
-        sentinels_.at(db)->SetConnectionInfo(cii);
+        sentinel->SetConnectionInfo(cii);
+        sentinel->UpdatePassword(settings.password);
     }
 }
 

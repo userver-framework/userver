@@ -8,16 +8,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-NYdb::NRetry::TRetryOperationSettings
-PrepareRetrySettings(const OperationSettings& operation_settings, const utils::RetryBudget& retry_budget) {
+NYdb::NRetry::TRetryOperationSettings PrepareRetrySettings(
+    const OperationSettings& operation_settings,
+    const utils::RetryBudget& retry_budget,
+    engine::Deadline deadline
+) {
     NYdb::NRetry::TRetryOperationSettings retry_settings;
 
     UASSERT(operation_settings.retries.has_value());
     retry_settings.MaxRetries(retry_budget.CanRetry() ? operation_settings.retries.value() : 0);
 
-    if (operation_settings.get_session_timeout_ms > std::chrono::milliseconds::zero()) {
-        retry_settings.GetSessionClientTimeout(operation_settings.get_session_timeout_ms);
-    }
+    retry_settings.GetSessionClientTimeout(GetBoundTimeout(operation_settings.get_session_timeout_ms, deadline));
 
     return retry_settings;
 }

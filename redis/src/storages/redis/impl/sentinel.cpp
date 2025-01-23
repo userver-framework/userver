@@ -417,6 +417,8 @@ void Sentinel::SetConfigDefaultCommandControl(const std::shared_ptr<CommandContr
 
 const std::string& Sentinel::ShardGroupName() const { return shard_group_name_; }
 
+void Sentinel::UpdatePassword(const Password& password) { impl_->UpdatePassword(password); }
+
 void Sentinel::SetConnectionInfo(std::vector<ConnectionInfo> info_array) {
     std::vector<ConnectionInfoInt> cii;
     cii.reserve(info_array.size());

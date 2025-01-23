@@ -30,6 +30,7 @@ class UserverConan(ConanFile):
         'fPIC': [True, False],
         'lto': [True, False],
         'with_jemalloc': [True, False],
+        'with_re2': [True, False],
         'with_mongodb': [True, False],
         'with_postgresql': [True, False],
         'with_postgresql_extra': [True, False],
@@ -53,6 +54,7 @@ class UserverConan(ConanFile):
         'fPIC': True,
         'lto': False,
         'with_jemalloc': (platform.system() != 'Darwin'),
+        'with_re2': True,
         'with_mongodb': True,
         'with_postgresql': True,
         'with_postgresql_extra': False,
@@ -81,6 +83,7 @@ class UserverConan(ConanFile):
         'librdkafka/*:sasl': True,
         'librdkafka/*:zlib': True,
         'librdkafka/*:zstd': True,
+        're2/*:with_icu': True,
     }
 
     def set_version(self):
@@ -118,6 +121,9 @@ class UserverConan(ConanFile):
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
+        if self.options.with_re2:
+            self.requires('icu/74.1', force=True)
+            self.requires('re2/20230301')
         if self.options.with_grpc or self.options.with_clickhouse:
             self.requires('abseil/20240116.2', force=True)
         if self.options.with_grpc:
@@ -130,7 +136,9 @@ class UserverConan(ConanFile):
                 'protobuf/5.27.0',
                 transitive_headers=True,
                 transitive_libs=True,
+                force=True,
             )
+            self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
         if self.options.with_mongodb or self.options.with_kafka:
@@ -162,6 +170,8 @@ class UserverConan(ConanFile):
             self.requires('librdkafka/2.6.0')
         if self.options.with_s3api:
             self.requires('pugixml/1.14')
+        if self.options.with_otlp:
+            self.requires('opentelemetry-proto/1.3.0')
 
     def build_requirements(self):
         self.tool_requires('protobuf/5.27.0')
@@ -192,6 +202,7 @@ class UserverConan(ConanFile):
 
         tool_ch.variables['USERVER_LTO'] = self.options.lto
         tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
+        tool_ch.variables['USERVER_FEATURE_RE2'] = self.options.with_re2
         tool_ch.variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
         tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
         tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
@@ -206,6 +217,17 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
         tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
         tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
+
+        if self.options.with_grpc:
+            tool_ch.variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
+                self.dependencies['googleapis'].cpp_info.components['google_rpc_status_proto'].resdirs[0]
+            )
+
+        if self.options.with_otlp:
+            tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
+                'user.opentelemetry-proto:proto_root'
+            )
+
         tool_ch.generate()
 
         CMakeDeps(self).generate()

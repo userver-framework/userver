@@ -41,6 +41,7 @@ Then create testsuite target:
 
 * SERVICE_TARGET, required CMake name of the target service to test. Used as
   suffix for `testsuite-` and `start-` CMake target names.
+* TEST_SUFFIX, required when many testsuite's are created for the same SERVICE_TARGET.
 * WORKING_DIRECTORY, pytest working directory. Default is ${CMAKE_CURRENT_SOURCE_DIR}.
 * PYTEST_ARGS, list of extra arguments passed to `pytest`.
 * PYTHONPATH, list of directories to be prepended to `PYTHONPATH`.
