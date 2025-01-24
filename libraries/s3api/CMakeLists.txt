@@ -14,5 +14,5 @@ _userver_directory_install(COMPONENT s3api FILES
 )
 
 if(USERVER_FEATURE_UTEST)
-  add_subdirectory(utest)
+    add_subdirectory(utest)
 endif()
