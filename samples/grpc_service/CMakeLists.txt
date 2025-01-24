@@ -14,8 +14,7 @@ add_library(
     # For test and demonstration purposes only.
     src/greeter_client.cpp src/greeter_service.cpp)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::grpc)
-target_include_directories(${PROJECT_NAME}_objs
-                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${PROJECT_NAME}_objs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # /// [ugrpc]
 
 # /// [add_grpc_library]

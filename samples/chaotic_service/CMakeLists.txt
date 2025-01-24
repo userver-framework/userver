@@ -43,15 +43,13 @@ target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_objs)
 
 # /// [unittests]
 add_executable(${PROJECT_NAME}-unittest unittests/say_hello_test.cpp)
-target_link_libraries(${PROJECT_NAME}-unittest ${PROJECT_NAME}_objs
-                      userver::utest)
+target_link_libraries(${PROJECT_NAME}-unittest ${PROJECT_NAME}_objs userver::utest)
 add_google_tests(${PROJECT_NAME}-unittest)
 # /// [unittests]
 
 # /// [benchmarks]
 add_executable(${PROJECT_NAME}_benchmark benchmarks/say_hello_bench.cpp)
-target_link_libraries(${PROJECT_NAME}_benchmark ${PROJECT_NAME}_objs
-                      userver::ubench)
+target_link_libraries(${PROJECT_NAME}_benchmark ${PROJECT_NAME}_objs userver::ubench)
 add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 # /// [benchmarks]
 

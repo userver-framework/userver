@@ -86,8 +86,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE "-w") # no warnings
 target_compile_definitions(${PROJECT_NAME} PRIVATE "BOOST_CONTEXT_SOURCE")
 
 include(Sanitizers)
-_userver_get_sanitize_options(SANITIZERS_LIST SANITIZE_COMPILE_FLAGS
-                              SANITIZE_LINK_FLAGS)
+_userver_get_sanitize_options(SANITIZERS_LIST SANITIZE_COMPILE_FLAGS SANITIZE_LINK_FLAGS)
 
 if("addr" IN_LIST SANITIZERS_LIST)
   target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_ASAN")

@@ -74,8 +74,7 @@ userver_generate_grpc_files(
   CPP_FILES generated_proto_sources)
 add_library(${PROJECT_NAME}-proto STATIC ${generated_proto_sources})
 target_link_libraries(${PROJECT_NAME}-proto PUBLIC ${PROJECT_NAME}-deps)
-target_include_directories(${PROJECT_NAME}-proto SYSTEM
-                           PUBLIC $<BUILD_INTERFACE:${proto_include_paths}>)
+target_include_directories(${PROJECT_NAME}-proto SYSTEM PUBLIC $<BUILD_INTERFACE:${proto_include_paths}>)
 _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-proto)
 
 target_link_libraries(${PROJECT_NAME}-internal PUBLIC userver-core
@@ -103,8 +102,7 @@ if(USERVER_FEATURE_GRPC_CHANNELZ)
     if(NOT TARGET gRPC::grpcpp_channelz)
       add_library(gRPC::grpcpp_channelz ALIAS GrpcChannelz)
     endif()
-  endif()
-  target_link_libraries(${PROJECT_NAME}-internal PUBLIC gRPC::grpcpp_channelz)
+    target_link_libraries(${PROJECT_NAME}-internal PUBLIC gRPC::grpcpp_channelz)
 else()
   message(
     STATUS
@@ -115,8 +113,7 @@ else()
 endif()
 
 target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${PROJECT_NAME}-deps)
-_userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-internal
-                         ${PROJECT_NAME}-deps)
+_userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-internal ${PROJECT_NAME}-deps)
 
 if(Protobuf_VERSION VERSION_GREATER_EQUAL 4.23.0)
   target_link_libraries(
