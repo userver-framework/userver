@@ -95,9 +95,14 @@ function(pacman_version version_output_var pacmanpackage)
   )
 
   if (version_result EQUAL 0)
-    if (version_output MATCHES "^(.*) (.*)-.*$")
-      set(${version_output_var} ${CMAKE_MATCH_2} PARENT_SCOPE)
-      message(STATUS "pacman version of ${pacmanpackage}: ${CMAKE_MATCH_2}")
+    # Possible output is `re2 1:20240702-2` (format spec https://wiki.archlinux.org/title/PKGBUILD#Version)
+    # `re2` is name
+    # `1` is epoch (optional)
+    # `20240702` is version
+    # `2` is release number
+    if (version_output MATCHES "^(.*) ([0-9]*:)?(.*)-.*$")
+      set(${version_output_var} ${CMAKE_MATCH_3} PARENT_SCOPE)
+      message(STATUS "pacman version of ${pacmanpackage}: ${CMAKE_MATCH_3}")
     else()
       set(${version_output_var} "NOT_FOUND")
     endif()
