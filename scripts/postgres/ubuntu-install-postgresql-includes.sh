@@ -5,7 +5,7 @@ set -euox pipefail
 
 POSTGRESQL_VERSION=${POSTGRESQL_VERSION:=16}
 
-apt remove postgresql-server-dev-${POSTGRESQL_VERSION}
+apt remove -y postgresql-server-dev-${POSTGRESQL_VERSION}
 
 # Installing postgresql-server-dev-14 without dependencies
 #
