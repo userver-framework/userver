@@ -6,6 +6,7 @@ name: Build and publish ubuntu-24.04-userver images
     workflow_dispatch:
     release:
         types: [published]
+    pull_request:
 
 jobs:
     build_and_publish_base:
