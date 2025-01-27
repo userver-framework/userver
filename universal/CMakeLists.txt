@@ -418,6 +418,7 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findre2.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findfmt.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
