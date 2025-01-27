@@ -43,4 +43,11 @@ private:
 
 }  // namespace ugrpc::server::middlewares::headers_propagator
 
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::headers_propagator::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::headers_propagator::Component> =
+    ConfigFileMode::kNotRequired;
+
 USERVER_NAMESPACE_END

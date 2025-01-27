@@ -38,12 +38,17 @@ public:
 
     std::shared_ptr<MiddlewareBase> GetMiddleware() override;
 
-    static yaml_config::Schema GetStaticConfigSchema();
-
 private:
     std::shared_ptr<Middleware> middleware_;
 };
 
 }  // namespace ugrpc::server::middlewares::congestion_control
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::congestion_control::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::congestion_control::Component> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

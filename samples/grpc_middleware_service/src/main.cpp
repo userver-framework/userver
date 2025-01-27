@@ -3,6 +3,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/server/component_list.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <client/view.hpp>
@@ -14,10 +15,10 @@
 /// [gRPC middleware sample - components registration]
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
+                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
                                     .Append<components::TestsuiteSupport>()
                                     .Append<ugrpc::client::CommonComponent>()
                                     .Append<ugrpc::client::ClientFactoryComponent>()
-                                    .Append<ugrpc::server::ServerComponent>()
                                     .Append<samples::grpc::auth::GreeterClient>()
                                     .Append<samples::grpc::auth::GreeterServiceComponent>()
                                     .Append<samples::grpc::auth::GreeterHttpHandler>()

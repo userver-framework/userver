@@ -9,17 +9,22 @@
 #include <random>
 #include <string>
 
-#include <userver/engine/condition_variable.hpp>
-#include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/testsuite/periodic_task_control.hpp>
-#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/flags.hpp>
 
+// TODO remove extra include
+#include <userver/engine/condition_variable.hpp>
+#include <userver/testsuite/periodic_task_control.hpp>
+#include <userver/tracing/span.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+namespace testsuite {
+class PeriodicTaskControl;
+}  // namespace testsuite
 
 namespace utils {
 
@@ -89,6 +94,9 @@ public:
         template <class Rep, class Period>
         constexpr /*implicit*/ Settings(std::chrono::duration<Rep, Period> period)
             : Settings(period, kDistributionPercent, {}, logging::Level::kInfo) {}
+
+        bool operator==(const Settings& other) const noexcept;
+        bool operator!=(const Settings& other) const noexcept;
 
         // Note: Tidy requires us to explicitly initialize these fields, although
         // the initializers are never used.
@@ -210,7 +218,10 @@ private:
 
     std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
 
-    rcu::Variable<std::string> name_;
+    std::string_view GetName() const noexcept;
+
+    std::string name_;
+    std::atomic<bool> is_name_set_{false};
     Callback callback_;
     engine::TaskWithResult<void> task_;
     rcu::Variable<Settings> settings_;

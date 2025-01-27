@@ -2,6 +2,8 @@ FROM ubuntu:22.04
 
 COPY scripts/docs/en/deps/ubuntu-22.04.md /userver_tmp/
 COPY scripts/docker/setup-base-ubuntu-22.04-env.sh /userver_tmp/
+COPY scripts/clickhouse/ubuntu-install-clickhouse.sh /userver_tmp/
+COPY scripts/rabbitmq/ubuntu_install_rabbitmq_dev.sh /userver_tmp/
 
 COPY scripts/grpc/requirements-3.txt                    /userver_tmp/requirements/grpc-userver.txt
 COPY scripts/chaotic/requirements.txt                   /userver_tmp/requirements/chaotic.txt

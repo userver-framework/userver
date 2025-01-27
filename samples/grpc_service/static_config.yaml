@@ -38,6 +38,7 @@ components_manager:
             factory-component: grpc-client-factory
 
 # /// [static config client]
+        grpc-server-middlewares-pipeline:
 
 # /// [static config server]
 # yaml
@@ -52,7 +53,6 @@ components_manager:
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
-            middlewares: []
 # /// [static config server]
 
         # In this example, the tests still communicate with the microservice

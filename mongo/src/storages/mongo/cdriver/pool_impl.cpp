@@ -301,7 +301,7 @@ CDriverPoolImpl::CDriverPoolImpl(
 )
     : PoolImpl(std::move(id), config, config_source),
       app_name_(config.app_name),
-      init_data_{dns_resolver, {}},
+      init_data_{dns_resolver, {}, {}},
       max_size_(config.pool_settings.max_size),
       idle_limit_(config.pool_settings.idle_limit),
       queue_timeout_(config.queue_timeout),

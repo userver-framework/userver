@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/client/generic.hpp
+/// @file userver/ugrpc/client/generic_client.hpp
 /// @brief @copybrief ugrpc::client::GenericClient
 
 #include <optional>

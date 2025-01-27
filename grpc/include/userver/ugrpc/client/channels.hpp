@@ -4,7 +4,6 @@
 /// @brief Utilities for managing gRPC connections
 
 #include <grpcpp/channel.h>
-#include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
 
 #include <userver/engine/deadline.hpp>
@@ -18,19 +17,8 @@ namespace ugrpc::client {
 
 namespace impl {
 
-[[nodiscard]] bool TryWaitForConnected(
-    grpc::Channel& channel,
-    grpc::CompletionQueue& queue,
-    engine::Deadline deadline,
-    engine::TaskProcessor& blocking_task_processor
-);
-
-[[nodiscard]] bool TryWaitForConnected(
-    impl::ChannelCache::Token& token,
-    grpc::CompletionQueue& queue,
-    engine::Deadline deadline,
-    engine::TaskProcessor& blocking_task_processor
-);
+[[nodiscard]] bool
+TryWaitForConnected(ClientData& client_data, engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor);
 
 }  // namespace impl
 
@@ -60,12 +48,7 @@ std::shared_ptr<grpc::Channel> MakeChannel(
 template <typename Client>
 [[nodiscard]] bool
 TryWaitForConnected(Client& client, engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor) {
-    return impl::TryWaitForConnected(
-        impl::GetClientData(client).GetChannelToken(),
-        impl::GetClientData(client).NextQueue(),
-        deadline,
-        blocking_task_processor
-    );
+    return impl::TryWaitForConnected(impl::GetClientData(client), deadline, blocking_task_processor);
 }
 
 }  // namespace ugrpc::client

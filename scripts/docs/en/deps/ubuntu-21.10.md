@@ -28,13 +28,14 @@ libhiredis-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
-librdkafka-dev
 liblzma-dev
 libmongoc-dev
 libnghttp2-dev
 libpq-dev
 libprotoc-dev
 libpugixml-dev
+librdkafka-dev
+libre2-dev
 libsasl2-dev
 libssl-dev
 libyaml-cpp-dev

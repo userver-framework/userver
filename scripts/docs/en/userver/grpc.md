@@ -167,40 +167,7 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
 
 ### Server middlewares
 
-The gRPC server can be extended by middlewares.
-Middleware is called on each incoming (for service) or outgoing (for client) RPC request.
-Different middlewares handle the call in the defined order.
-A middleware may decide to reject the call or call the next middleware in the stack.
-Middlewares may implement almost any enhancement to the gRPC server including authorization
-and authentication, ratelimiting, logging, tracing, audit, etc.
-
-Middlewares to use are indicated in static config in section `middlewares` of `ugrpc::server::ServiceComponentBase` descendant component.
-Default middleware list for handlers can be specified in `grpc-server.service-defaults.middlewares` config section.
-
-Example configuration:
-```
-components_manager:
-    components:
-        some-service-client:
-            middlewares:
-              - grpc-client-logging
-              - grpc-client-deadline-propagation
-              - grpc-client-baggage
-
-        grpc-server:
-            service-defaults:
-                middlewares:
-                  - grpc-server-logging
-                  - grpc-server-deadline-propagation
-                  - grpc-server-congestion-control
-                  - grpc-server-baggage
-
-        some-service:
-            middlewares:
-              # Completely overwrite the default list
-              - grpc-server-logging
-
-```
+@ref scripts/docs/en/userver/grpc_server_middlewares.md.
 
 Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
 new middlewares.
@@ -394,5 +361,12 @@ These are the metrics provided for each gRPC method:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/profile_context_switches.md | @ref rabbitmq_driver ⇨
+⇦ @ref scripts/docs/en/userver/profile_context_switches.md | @ref scripts/docs/en/userver/grpc_server_middlewares.md ⇨
 @htmlonly </div> @endhtmlonly
+
+@example grpc-generic-proxy/src/proxy_service.hpp
+@example grpc-generic-proxy/src/proxy_service.cpp
+@example grpc-generic-proxy/main.cpp
+@example grpc-generic-proxy/static_config.yaml
+@example grpc-generic-proxy/config_vars.yaml
+@example grpc-generic-proxy/CMakeLists.txt

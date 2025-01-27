@@ -367,7 +367,12 @@ std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
     const std::string& request_body
 ) const {
     try {
-        return GetRequestBodyForLogging(request, context, request_body);
+        const auto limit = GetConfig().request_body_size_log_limit;
+        if (limit == 0) {
+            return utils::log::ToLimitedUtf8(request_body, 0);
+        }
+        auto logging_request_body = GetRequestBodyForLogging(request, context, request_body);
+        return utils::log::ToLimitedUtf8(logging_request_body, limit);
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "failed to get request body for logging: " << ex;
         return "<error in GetRequestBodyForLogging>";
@@ -380,7 +385,12 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
     const std::string& response_data
 ) const {
     try {
-        return GetResponseDataForLogging(request, context, response_data);
+        const auto limit = GetConfig().response_data_size_log_limit;
+        if (limit == 0) {
+            return utils::log::ToLimitedUtf8(response_data, 0);
+        }
+        auto logging_response_data = GetResponseDataForLogging(request, context, response_data);
+        return utils::log::ToLimitedUtf8(logging_response_data, limit);
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "failed to get response data for logging: " << ex;
         return "<error in GetResponseDataForLogging>";

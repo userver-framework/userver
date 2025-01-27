@@ -7,6 +7,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
@@ -16,10 +18,12 @@ class Label;
 /// @brief Non owning label name+value storage.
 class LabelView final {
 public:
-    LabelView() = default;
+    LabelView() = delete;
     LabelView(Label&& label) = delete;
-    explicit LabelView(const Label& label) noexcept;
-    constexpr LabelView(std::string_view name, std::string_view value) noexcept : name_(name), value_(value) {}
+    explicit LabelView(const Label& label);
+    constexpr LabelView(std::string_view name, std::string_view value) : name_(name), value_(value) {
+        UINVARIANT(!name_.empty(), "The lable name must not be empty.");
+    }
 
     template <class T, std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
     constexpr LabelView(std::string_view, T) {

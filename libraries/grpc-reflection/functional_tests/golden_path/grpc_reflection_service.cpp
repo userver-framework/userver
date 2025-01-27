@@ -8,15 +8,9 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/ugrpc/server/component_list.hpp>
 #include <userver/ugrpc/server/health/component.hpp>
-#include <userver/ugrpc/server/server_component.hpp>
 #include <userver/utils/daemon_run.hpp>
-
-#include <iostream>
-#include <string>
-#include <string_view>
-
-#include <fmt/format.h>
 
 #include <userver/grpc-reflection/reflection_service_component.hpp>
 
@@ -27,7 +21,7 @@ int main(int argc, char* argv[]) {
                                     .Append<server::handlers::TestsControl>()
                                     .Append<ugrpc::server::HealthComponent>()
                                     .Append<components::HttpClient>()
-                                    .Append<ugrpc::server::ServerComponent>()
+                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
                                     .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

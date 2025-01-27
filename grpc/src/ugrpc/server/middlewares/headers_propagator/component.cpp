@@ -1,8 +1,9 @@
 #include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 
-#include <ugrpc/server/middlewares/headers_propagator/middleware.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <ugrpc/server/middlewares/headers_propagator/middleware.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

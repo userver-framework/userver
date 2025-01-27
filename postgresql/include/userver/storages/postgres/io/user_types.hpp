@@ -120,7 +120,8 @@ struct CppToUserPgImpl {
 
 template <typename T>
 const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
-    RegisterUserTypeParser::Register(kPgUserTypeName<T>, compiler::GetTypeName<T>());
+    RegisterUserTypeParser::Register(kPgUserTypeName<T>, std::string{compiler::GetTypeName<T>()});
+
 }  // namespace io::detail
 
 void LogRegisteredTypesOnce();

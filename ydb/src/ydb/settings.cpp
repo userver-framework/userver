@@ -11,7 +11,7 @@ constexpr std::uint32_t kDefaultOperationRetries{3};
 constexpr std::chrono::milliseconds kDefaultOperationTimeout{1'000};
 constexpr std::chrono::milliseconds kDefaultCancellationTimeout{1'000};
 constexpr std::chrono::milliseconds kDefaultClientTimeout{1'100};
-constexpr std::chrono::milliseconds kDefaultGetSessionTimeout{5'000};
+constexpr std::chrono::milliseconds kDefaultGetSessionTimeout{1'000};
 
 }  // namespace
 }  // namespace ydb

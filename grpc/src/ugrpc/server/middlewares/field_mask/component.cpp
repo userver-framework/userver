@@ -1,8 +1,10 @@
 #include <userver/ugrpc/server/middlewares/field_mask/component.hpp>
 
-#include <ugrpc/server/middlewares/field_mask/middleware.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <ugrpc/server/middlewares/field_mask/middleware.hpp>
+#include <userver/ugrpc/server/middlewares/baggage/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

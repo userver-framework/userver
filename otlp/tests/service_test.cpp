@@ -5,6 +5,7 @@
 #include <otlp/logs/logger.hpp>
 #include <userver/engine/sleep.hpp>
 
+#include <userver/logging/impl/mem_logger.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 #include <userver/utest/default_logger_fixture.hpp>
 
@@ -89,15 +90,19 @@ public:
 class LogServiceTest : public Service<LogService, TraceService>, public utest::DefaultLoggerFixture<::testing::Test> {
 public:
     LogServiceTest() : Service({}) {
+        otlp::LoggerConfig config;
+        config.logs_sink = otlp::SinkType::kBoth;
         logger_ = std::make_shared<otlp::Logger>(
             MakeClient<opentelemetry::proto::collector::logs::v1::LogsServiceClient>(),
             MakeClient<opentelemetry::proto::collector::trace::v1::TraceServiceClient>(),
-            otlp::LoggerConfig{}
+            otlp::LoggerConfig{config}
         );
         SetDefaultLogger(logger_);
     }
 
     ~LogServiceTest() override { logger_->Stop(); }
+
+    otlp::Logger& GetLogger() { return *logger_; }
 
 private:
     std::shared_ptr<otlp::Logger> logger_;
@@ -110,6 +115,15 @@ UTEST_F(LogServiceTest, NoInfiniteLogsInTrace) {
 
     engine::SleepFor(std::chrono::seconds(1));
     EXPECT_EQ(GetService1().logs.size(), 1);
+}
+
+UTEST_F(LogServiceTest, ForwardLogs) {
+    auto mem_logger = std::make_shared<logging::impl::MemLogger>();
+
+    GetLogger().SetDefaultLogger(mem_logger);
+    LOG_INFO() << "dummy log";
+
+    EXPECT_EQ(mem_logger->GetPendingLogsCount(), 1);
 }
 
 UTEST_F(LogServiceTest, SmokeLogs) {

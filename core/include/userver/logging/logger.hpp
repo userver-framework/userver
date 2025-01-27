@@ -16,8 +16,9 @@ namespace logging {
 
 namespace impl {
 
+class TagWriter;
 class LoggerBase;
-void LogRaw(LoggerBase& logger, Level level, std::string_view message);
+void LogRaw(TextLogger& logger, Level level, std::string_view message);
 
 }  // namespace impl
 
@@ -36,10 +37,6 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format, Level level =
 /// @param path target log file path
 /// @see components::Logging
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path, Format format, Level level = Level::kInfo);
-
-namespace impl {
-class TagWriter;
-}
 
 namespace impl::default_ {
 

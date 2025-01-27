@@ -39,6 +39,7 @@ jobs:
                     info: clang-18 + debug + sanitize addr+ub
                     id: ubuntu24_clang18_debug_sanitize-addr-ub
                     tests-flags: ''
+                    tests-env: ''
 
                   - cmake-flags: >-
                         -GNinja
@@ -58,6 +59,7 @@ jobs:
                     info: clang-14 + debug + sanitize addr+ub
                     id: ubuntu22_clang14_debug_sanitize-addr-ub
                     tests-flags: ''
+                    tests-env: ''
 
                   - cmake-flags: >-
                         -GNinja
@@ -76,6 +78,7 @@ jobs:
                     info: g++-9 + release
                     id: ubuntu20_gcc9_release
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
+                    tests-env: 'POSTGRES_PIPELINE_DISABLED=1'
 
                   # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
@@ -97,6 +100,7 @@ jobs:
                     info: g++-8 + debug
                     id: ubuntu20_gcc8_debug
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
+                    tests-env: 'POSTGRES_PIPELINE_DISABLED=1'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -182,15 +186,6 @@ jobs:
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
                 # Mongo is not officially supported on Ubuntu 24.04, so install it from jammy
 
-                # Install Kafka
-                sudo apt install -y default-jre
-                curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
-                sudo mkdir -p /etc/kafka
-                sudo tar xf kafka.tgz --directory=/etc/kafka
-                sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
-                sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
-                ls -lha /etc/kafka
-
           - name: Install common deps
             run: |
                 sudo apt update
@@ -233,6 +228,10 @@ jobs:
             if: matrix.info == 'g++-8 + debug'
             run: |
                 sudo apt install --allow-downgrades -y g++-8
+
+          - name: Install Kafka
+            run: |
+                sudo ./scripts/kafka/ubuntu_install_kafka.sh
 
           - name: Install RabbitMQ packages
             run: |
@@ -325,7 +324,7 @@ jobs:
                 cd build_debug
                 mkdir postgresql || :
                 cd postgresql
-                ctest -V
+                ${{matrix.tests-env}} ctest -V
 
           - name: Run tests (redis)
             run: |

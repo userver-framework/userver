@@ -81,6 +81,7 @@ class UserverConan(ConanFile):
         'librdkafka/*:sasl': True,
         'librdkafka/*:zlib': True,
         'librdkafka/*:zstd': True,
+        're2/*:with_icu': True,
     }
 
     def set_version(self):
@@ -115,6 +116,8 @@ class UserverConan(ConanFile):
         self.requires('yaml-cpp/0.8.0')
         self.requires('zlib/1.3.1')
         self.requires('zstd/1.5.5')
+        self.requires('icu/74.1', force=True)
+        self.requires('re2/20230301')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
@@ -130,7 +133,9 @@ class UserverConan(ConanFile):
                 'protobuf/5.27.0',
                 transitive_headers=True,
                 transitive_libs=True,
+                force=True,
             )
+            self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
         if self.options.with_mongodb or self.options.with_kafka:
@@ -162,6 +167,8 @@ class UserverConan(ConanFile):
             self.requires('librdkafka/2.6.0')
         if self.options.with_s3api:
             self.requires('pugixml/1.14')
+        if self.options.with_otlp:
+            self.requires('opentelemetry-proto/1.3.0')
 
     def build_requirements(self):
         self.tool_requires('protobuf/5.27.0')
@@ -206,6 +213,17 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
         tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
         tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
+
+        if self.options.with_grpc:
+            tool_ch.variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
+                self.dependencies['googleapis'].cpp_info.components['google_rpc_status_proto'].resdirs[0]
+            )
+
+        if self.options.with_otlp:
+            tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
+                'user.opentelemetry-proto:proto_root'
+            )
+
         tool_ch.generate()
 
         CMakeDeps(self).generate()

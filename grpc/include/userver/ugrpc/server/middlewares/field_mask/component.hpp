@@ -66,4 +66,11 @@ private:
 
 }  // namespace ugrpc::server::middlewares::field_mask
 
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::field_mask::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::field_mask::Component> =
+    ConfigFileMode::kNotRequired;
+
 USERVER_NAMESPACE_END

@@ -89,7 +89,7 @@ SentinelImpl::SentinelImpl(
         connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
     }
     client_name_ = client_name;
-    password_ = password;
+    UpdatePassword(password);
 
     Init();
     InitKeyShard();
@@ -593,7 +593,7 @@ void SentinelImpl::DoUpdateClusterSlots(ReplyPtr reply) {
 
 void SentinelImpl::ReadSentinels() {
     ProcessGetHostsRequest(
-        GetHostsRequest(*sentinels_, password_),
+        GetHostsRequest(*sentinels_, GetPassword()),
         [this](const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed) {
             if (!CheckQuorum(requests_sent, responses_parsed)) {
                 LOG_WARNING() << "Too many 'sentinel masters' requests failed: requests_sent=" << requests_sent
@@ -634,7 +634,7 @@ void SentinelImpl::ReadSentinels() {
             for (const auto& shard_conn : watcher->masters) {
                 const auto& shard = shard_conn.Name();
                 ProcessGetHostsRequest(
-                    GetHostsRequest(*sentinels_, shard_conn.Name(), password_),
+                    GetHostsRequest(*sentinels_, shard_conn.Name(), GetPassword()),
                     [this, watcher, shard](const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed) {
                         if (!CheckQuorum(requests_sent, responses_parsed)) {
                             LOG_WARNING() << "Too many 'sentinel slaves' requests "
@@ -671,7 +671,7 @@ void SentinelImpl::ReadSentinels() {
 void SentinelImpl::ReadClusterHosts() {
     ProcessGetClusterHostsRequest(
         init_shards_,
-        GetClusterHostsRequest(*sentinels_, password_),
+        GetClusterHostsRequest(*sentinels_, GetPassword()),
         [this](
             ClusterShardHostInfos shard_infos, size_t requests_sent, size_t responses_parsed, bool is_non_cluster_error
         ) {
@@ -854,6 +854,11 @@ void SentinelImpl::ProcessWaitingCommands() {
     }
 }
 
+Password SentinelImpl::GetPassword() {
+    const auto lock = password_.Lock();
+    return *lock;
+}
+
 SentinelStatistics SentinelImpl::GetStatistics(const MetricsSettings& settings) const {
     SentinelStatistics stats(settings, statistics_internal_);
     std::lock_guard<std::mutex> lock(sentinels_mutex_);
@@ -1031,6 +1036,11 @@ bool SentinelImpl::ConnectedStatus::Wait(engine::Deadline deadline, const Pred& 
 
 void SentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
     sentinels_->SetConnectionInfo(info_array);
+}
+
+void SentinelImpl::UpdatePassword(const Password& password) {
+    auto lock = password_.UniqueLock();
+    *lock = password;
 }
 
 }  // namespace storages::redis::impl

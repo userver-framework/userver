@@ -6,7 +6,7 @@
 
 #include <userver/components/component.hpp>
 #include <userver/ugrpc/byte_buffer_utils.hpp>
-#include <userver/ugrpc/client/generic.hpp>
+#include <userver/ugrpc/client/generic_client.hpp>
 #include <userver/ugrpc/client/simple_client_component.hpp>
 
 namespace samples {

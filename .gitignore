@@ -4,7 +4,7 @@
 .mypy_cache
 .pytest_cache
 *.orig
-*.local
+/Makefile.local
 *.yawiki
 .ccache/
 .cache/

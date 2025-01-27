@@ -82,7 +82,7 @@ CallParams CreateCallParams(
     const Qos& qos
 ) {
     const auto& metadata = client_data.GetMetadata();
-    const auto call_name = metadata.method_full_names[method_id];
+    const auto call_name = GetMethodFullName(metadata, method_id);
 
     if (engine::current_task::ShouldCancel()) {
         throw RpcCancelledError(call_name, "RPC construction");

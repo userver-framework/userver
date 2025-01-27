@@ -34,8 +34,11 @@ components_manager:
         greeter-service:
             echo-url: 'mockserver/v1/translations'  # Some other microservice listens on this URL
             task-processor: main-task-processor
+            disable-all-pipeline-middlewares: true
             middlewares:
-              - grpc-server-headers-propagator
+                grpc-server-headers-propagator:
+
+        grpc-server-middlewares-pipeline:
 
         http-client:
             fs-task-processor: main-task-processor
@@ -52,6 +55,8 @@ components_manager:
             headers: ["custom-header-1", "custom-header-2"]
 
         http-client-plugin-headers-propagator: {}
+
+        congestion-control:
 
         server:
             listener:

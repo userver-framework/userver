@@ -152,25 +152,22 @@ namespace {
 std::string
 GetInvalidParserCategoryMessage(std::string_view type, io::BufferCategory parser, io::BufferCategory buffer) {
     std::string message = fmt::format(
-        "Buffer category '{}' doesn't match the "
-        "category of the parser '{}' for type '{}'.",
+        "Buffer category '{}' doesn't match the category of the parser '{}' for type '{}'.",
         ToString(buffer),
         ToString(parser),
         type
     );
     if (parser == io::BufferCategory::kCompositeBuffer && buffer == io::BufferCategory::kPlainBuffer) {
         message += fmt::format(
-            " Consider using different variable type (not '{}') to store result, "
-            "passing storages::postgres::kRowTag to function args for this field "
-            "or explicitly cast to expected type in SQL query.",
+            " Consider using different variable type (not '{}') to store result, passing storages::postgres::kRowTag "
+            "to function args for this field or explicitly cast to expected type in SQL query.",
             type
         );
     }
     if (parser == io::BufferCategory::kPlainBuffer && buffer == io::BufferCategory::kCompositeBuffer) {
         message += fmt::format(
-            " Consider using different variable type (not '{}') "
-            "to store complex result or split result "
-            "tuple with 'UNNEST' in SQL query.",
+            " Consider using different variable type (not '{}') to store complex result or split result tuple with "
+            "'UNNEST' in SQL query.",
             type
         );
     }
@@ -267,23 +264,22 @@ InvalidTupleSizeRequested::InvalidTupleSizeRequested(std::size_t field_count, st
 
 NonSingleColumnResultSet::NonSingleColumnResultSet(
     std::size_t actual_size,
-    const std::string& type_name,
-    const std::string& func
+    std::string_view type_name,
+    std::string_view func
 )
-    : ResultSetError(
-          "Parsing the row consisting of " + std::to_string(actual_size) + " columns as " + type_name +
-          " is ambiguous as it can be used both for "
-          "single column type and for a row. " +
-          "Please use " + func + "<" + type_name + ">(kRowTag) or " + func + "<" + type_name +
-          ">(kFieldTag) to resolve the ambiguity."
-      ) {}
+    : ResultSetError(fmt::format(
+          "Parsing the row consisting of {} columns as {} is ambiguous as it can be used both for single column type "
+          "and for a row. Please use {}<{}>(kRowTag) or {}<{}>(kFieldTag) to resolve the ambiguity.",
+          actual_size,
+          type_name,
+          func,
+          type_name,
+          func,
+          type_name
+      )) {}
 
 NonSingleRowResultSet::NonSingleRowResultSet(std::size_t actual_size)
-    : ResultSetError(fmt::format(
-          "A single row result set was expected. "
-          "Actual result set size is {}",
-          actual_size
-      )) {}
+    : ResultSetError(fmt::format("A single row result set was expected. Actual result set size is {}", actual_size)) {}
 
 FieldTupleMismatch::FieldTupleMismatch(std::size_t field_count, std::size_t tuple_size)
     : ResultSetError(
@@ -292,8 +288,7 @@ FieldTupleMismatch::FieldTupleMismatch(std::size_t field_count, std::size_t tupl
 
 CompositeSizeMismatch::CompositeSizeMismatch(std::size_t pg_size, std::size_t cpp_size, std::string_view cpp_type)
     : UserTypeError(fmt::format(
-          "Invalid composite type size. PostgreSQL type has {} "
-          "members, C++ type '{}' has {} members",
+          "Invalid composite type size. PostgreSQL type has {} members, C++ type '{}' has {} members",
           pg_size,
           cpp_type,
           cpp_size
@@ -307,8 +302,7 @@ CompositeMemberTypeMismatch::CompositeMemberTypeMismatch(
     Oid user_oid
 )
     : UserTypeError(fmt::format(
-          "Type mismatch for '{}.{}' field '{}'. In database the type "
-          "{}, user supplied type {}",
+          "Type mismatch for '{}.{}' field '{}'. In database the type {}, user supplied type {}",
           pg_type_schema,
           pg_type_name,
           field_name,

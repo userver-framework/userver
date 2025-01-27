@@ -15,6 +15,7 @@
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/condition_variable_any.hpp>
@@ -86,6 +87,8 @@ public:
 
     virtual PublishSettings GetPublishSettings() = 0;
     virtual void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) = 0;
+
+    virtual void UpdatePassword(const Password& password) = 0;
 };
 
 bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand, const dynamic_config::Snapshot& config);
@@ -143,6 +146,8 @@ public:
     PublishSettings GetPublishSettings() override;
 
     void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
+
+    void UpdatePassword(const Password& password) override;
 
 private:
     static constexpr const std::chrono::milliseconds cluster_slots_timeout_ = std::chrono::milliseconds(4000);
@@ -237,6 +242,8 @@ private:
 
     void ProcessWaitingCommands();
 
+    Password GetPassword();
+
     Sentinel& sentinel_obj_;
     engine::ev::ThreadControl ev_thread_;
 
@@ -260,7 +267,7 @@ private:
     std::map<std::string, size_t> shards_;
     ShardInfo shard_info_;
     std::string client_name_;
-    Password password_{std::string()};
+    concurrent::Variable<Password, std::mutex> password_{std::string()};
     ConnectionSecurity connection_security_;
     double check_interval_;
     std::atomic<bool> update_cluster_slots_flag_;

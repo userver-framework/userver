@@ -4,6 +4,7 @@
 /// @brief Composite types I/O support
 /// @ingroup userver_postgres_parse_and_format
 
+#include <fmt/format.h>
 #include <boost/pfr/core.hpp>
 #include <utility>
 
@@ -86,10 +87,12 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
     void operator()(const UserTypes& types, Buffer& buffer) const {
         const auto oid = PgMapping::GetOid(types);
         if (!oid) {
-            auto msg = "Type '" + kPgUserTypeName<T>.ToString() +
-                       "' was not created in database and because of that the '" + compiler::GetTypeName<T>() +
-                       "' could not be serialized. Forgot a migration or rolled it "
-                       "after the service started?";
+            auto msg = fmt::format(
+                "Type '{}' was not created in database and because of that the '{}' could not be serialized. Forgot a "
+                "migration or rolled it after the service started?",
+                kPgUserTypeName<T>.ToString(),
+                compiler::GetTypeName<T>()
+            );
             throw UserTypeError(std::move(msg));
         }
 

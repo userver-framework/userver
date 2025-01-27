@@ -175,23 +175,12 @@ clients::dns::AddrVector GetaddrInfo(const mongoc_host_list_t& host, bson_error_
     return result;
 }
 
-engine::io::Socket ConnectTcpByName(
+engine::io::Socket DoConnectTcpByName(
     const mongoc_host_list_t& host,
     int32_t timeout_ms,
     bson_error_t* error,
     clients::dns::Resolver* dns_resolver
 ) {
-    if (!IsTcpConnectAllowed(host.host_and_port)) {
-        bson_set_error(
-            error,
-            MONGOC_ERROR_STREAM,
-            MONGOC_ERROR_STREAM_CONNECT,
-            "Too many connection errors in recent period for %s",
-            host.host_and_port
-        );
-        return {};
-    }
-
     const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
     try {
         auto addrs = dns_resolver ? dns_resolver->Resolve(host.host, deadline) : GetaddrInfo(host, error);
@@ -205,8 +194,7 @@ engine::io::Socket ConnectTcpByName(
                 ReportTcpConnectSuccess(host.host_and_port);
                 return socket;
             } catch (const engine::io::IoCancelled& ex) {
-                UASSERT_MSG(false, "Cancellation is not supported in cdriver implementation");
-
+                ReportTcpConnectError(host.host_and_port);
                 bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT, "%s", ex.what());
                 return {};
             } catch (const engine::io::IoException& ex) {
@@ -227,14 +215,57 @@ engine::io::Socket ConnectTcpByName(
     return {};
 }
 
-engine::io::Socket
-Connect(const mongoc_host_list_t* host, int32_t timeout_ms, bson_error_t* error, clients::dns::Resolver* dns_resolver) {
+engine::io::Socket ConnectTcpByName(
+    const mongoc_host_list_t& host,
+    int32_t timeout_ms,
+    bson_error_t* error,
+    clients::dns::Resolver* dns_resolver,
+    concurrent::BackgroundTaskStorage& bts
+) {
+    const auto host_state = CheckTcpConnectionState(host.host_and_port);
+    if (host_state == HostConnectionState::kChecking) {
+        /*
+         * Pessimistically check for TCP connection in background.
+         * It is needed for services with a small number of connections and a periodic task
+         * that uses the same connection every ~3 seconds. It must not experience synchronous probe
+         * delays as it obviously affects response timings.
+         * The background probe does the same check thing, but doesn't slow down the user.
+         *
+         * See https://st.yandex-team.ru/TAXICOMMON-9746 and https://st.yandex-team.ru/TAXICOMMON-9644
+         */
+        bts.AsyncDetach("mongo_probe_tcp_connection", [host, timeout_ms, dns_resolver] {
+            bson_error_t tmp_error;
+            [[maybe_unused]] auto socket = DoConnectTcpByName(host, timeout_ms, &tmp_error, dns_resolver);
+        });
+    }
+
+    if (host_state != HostConnectionState::kAlive) {
+        bson_set_error(
+            error,
+            MONGOC_ERROR_STREAM,
+            MONGOC_ERROR_STREAM_CONNECT,
+            "Too many connection errors in recent period for %s",
+            host.host_and_port
+        );
+        return {};
+    }
+
+    return DoConnectTcpByName(host, timeout_ms, error, dns_resolver);
+}
+
+engine::io::Socket Connect(
+    const mongoc_host_list_t* host,
+    int32_t timeout_ms,
+    bson_error_t* error,
+    clients::dns::Resolver* dns_resolver,
+    concurrent::BackgroundTaskStorage& bts
+) {
     UASSERT(host);
     switch (host->family) {
         case AF_UNSPEC:  // mongoc thinks this is okay
         case AF_INET:
         case AF_INET6:
-            return ConnectTcpByName(*host, timeout_ms, error, dns_resolver);
+            return ConnectTcpByName(*host, timeout_ms, error, dns_resolver, bts);
 
         case AF_UNIX:
             return ConnectUnix(*host, timeout_ms, error);
@@ -310,7 +341,7 @@ mongoc_stream_t* MakeAsyncStream(
     auto* init_data = static_cast<AsyncStreamInitiatorData*>(user_data);
 
     const auto connect_timeout_ms = mongoc_uri_get_option_as_int32(uri, MONGOC_URI_CONNECTTIMEOUTMS, 5000);
-    auto socket = Connect(host, connect_timeout_ms, error, init_data->dns_resolver);
+    auto socket = Connect(host, connect_timeout_ms, error, init_data->dns_resolver, init_data->bts);
     if (!socket) return nullptr;
 
     auto stream = AsyncStream::Create(std::move(socket));

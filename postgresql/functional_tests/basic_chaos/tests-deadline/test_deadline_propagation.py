@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 
@@ -19,7 +21,7 @@ async def test_expired(service_client, dynamic_config):
 
 
 @pytest.mark.config(POSTGRES_DEADLINE_PROPAGATION_VERSION=0)
-async def test_expired_dp_disabled(service_client):
+async def test_expired_dp_disabled(service_client, dynamic_config):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
             '/chaos/postgres?sleep_ms=1000&type=select',
@@ -28,8 +30,17 @@ async def test_expired_dp_disabled(service_client):
         assert response.status == 498
         assert response.text == 'Deadline expired'
 
-    # The postgres request should be completed ignoring the fact that
-    # deadline has already expired.
+    pipeline_enabled = dynamic_config.get(
+        'POSTGRES_CONNECTION_PIPELINE_EXPERIMENT',
+    )
+
     logs = capture.select(_type='response', meta_type='/chaos/postgres')
     assert len(logs) == 1, logs
-    assert logs[0].get('dp_original_body', None) == 'OK!', logs
+    if pipeline_enabled:
+        if os.environ.get('POSTGRES_PIPELINE_DISABLED'):
+            pytest.skip('Disabled in configuration')
+            return
+
+        assert not logs[0].get('dp_original_body', None), logs
+    else:
+        assert logs[0].get('dp_original_body', None), logs

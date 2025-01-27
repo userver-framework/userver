@@ -5,6 +5,7 @@
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/server/middlewares/pipeline.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
 #include <call_greeter_client_test_handler.hpp>
@@ -23,6 +24,7 @@ int main(int argc, char* argv[]) {
                                     .Append<ugrpc::client::ClientFactoryComponent>()
                                     // All gRPC services are registered in this component.
                                     .Append<ugrpc::server::ServerComponent>()
+                                    .Append<ugrpc::server::MiddlewarePipelineComponent>()
                                     // Custom components:
                                     .Append<samples::GreeterClientComponent>()
                                     .Append<samples::GreeterServiceComponent>()

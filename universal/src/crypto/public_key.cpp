@@ -9,11 +9,10 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include <boost/numeric/conversion/cast.hpp>
-
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/crypto/openssl.hpp>
+#include <userver/utils/numeric_cast.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/text_light.hpp>
 
@@ -31,8 +30,8 @@ using Bignum = std::unique_ptr<BIGNUM, decltype(&::BN_clear_free)>;
 Bignum LoadBignumFromBigEnd(const std::string_view raw) {
     int size = 0;
     try {
-        size = boost::numeric_cast<int>(raw.size());
-    } catch (const boost::bad_numeric_cast& ex) {
+        size = utils::numeric_cast<int>(raw.size());
+    } catch (const std::runtime_error& ex) {
         throw KeyParseError{ex.what()};
     }
 

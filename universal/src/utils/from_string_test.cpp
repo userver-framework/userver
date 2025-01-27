@@ -4,8 +4,9 @@
 #include <random>
 #include <type_traits>
 
+#include <fmt/core.h>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <boost/lexical_cast.hpp>
 
 #include <userver/compiler/demangle.hpp>
 
@@ -20,8 +21,12 @@ std::string ToString(T value) {
     if constexpr (sizeof(value) == 1) {
         // Prevent printing int8_t and uint8_t as a character
         return std::to_string(static_cast<int>(value));
+    } else if constexpr (std::is_same_v<T, long double> && FMT_VERSION < 100100) {
+        // fmt before 10.1.0 formatted long double incorrectly
+        // https://github.com/fmtlib/fmt/issues/3564
+        return fmt::format("{:.{}g}", value, std::numeric_limits<long double>::max_digits10);
     } else {
-        return boost::lexical_cast<std::string>(value);
+        return fmt::to_string(value);
     }
 }
 
@@ -42,7 +47,7 @@ auto CheckConverts(StringType input, T expectedResult) {
 
 template <typename T>
 auto TestConverts(const std::string& input, T expectedResult) {
-    CheckConverts(input.data(), expectedResult);
+    CheckConverts(input.c_str(), expectedResult);
     CheckConverts(input, expectedResult);
     CheckConverts(std::string_view{input}, expectedResult);
 }
@@ -226,7 +231,8 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
 
     ASSERT_FALSE(what.empty());
     ASSERT_NE(what.find(".blah"), std::string::npos);
-    ASSERT_NE(what.find(compiler::GetTypeName<T>()), std::string::npos);
+    // NOTE: GetTypeName(typeid(T)) for old version of GCC
+    ASSERT_NE(what.find(compiler::GetTypeName(typeid(T))), std::string::npos);
 }
 
 TEST(FromString, StringViewToFloatingPointSmall) {

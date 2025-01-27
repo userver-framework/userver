@@ -41,7 +41,6 @@ public:
         size_t version,
         std::chrono::steady_clock::time_point timestamp,
         ClusterShardHostInfos infos,
-        Password password,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
         const NodesStorage& nodes
     );
@@ -86,7 +85,6 @@ public:
 
 private:
     ClusterShardHostInfos infos_;
-    Password password_;
     std::array<uint16_t, kClusterHashSlots> slot_to_shard_{};
 
     /// Special "Shard" containing all instances of cluster, master - is 0-shard

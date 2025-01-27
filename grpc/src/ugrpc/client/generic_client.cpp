@@ -1,4 +1,4 @@
-#include <userver/ugrpc/client/generic.hpp>
+#include <userver/ugrpc/client/generic_client.hpp>
 
 #include <grpcpp/generic/generic_stub.h>
 

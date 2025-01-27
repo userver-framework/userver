@@ -38,6 +38,7 @@ TEST(FormatsItems, LvalueReference) {
 }
 
 TEST(FormatsItems, ConstLvalueReference) {
+    /// [Items Example Usage - Simple object]
     const auto value = formats::json::FromString(R"({"key": "value"})");
     int iterations = 0;
     for (const auto& [key, value] : Items(value)) {
@@ -47,6 +48,7 @@ TEST(FormatsItems, ConstLvalueReference) {
 
         ++iterations;
     }
+    /// [Items Example Usage - Simple object]
 
     iterations = 0;
     for (auto [key, value] : Items(value)) {

@@ -37,6 +37,8 @@ class ValueBuilder;
 /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
+///
+/// To iterate over `Value` as object use formats::common::Items.
 class Value {
 public:
     struct DefaultConstructed {};
@@ -94,6 +96,8 @@ public:
 
     /// @brief Returns an iterator to the first array element/document field
     /// @throws TypeMismatchException if value is not a document, array or `null`
+    ///
+    /// To iterate over `Value` as object use formats::common::Items.
     const_iterator begin() const;
 
     /// @brief Returns an iterator following the last array element/document field

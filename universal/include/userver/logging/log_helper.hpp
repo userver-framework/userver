@@ -62,6 +62,17 @@ struct Quoted final {
     std::string_view string;
 };
 
+struct Module {
+    explicit Module(const utils::impl::SourceLocation& location) noexcept;
+
+    std::string value;
+};
+
+enum class LogClass {
+    kLog,
+    kTrace,
+};
+
 /// Stream-like tskv-formatted log message builder.
 ///
 /// Users can add LogHelper& operator<<(LogHelper&, ) overloads to use a faster
@@ -76,18 +87,15 @@ public:
     LogHelper(
         LoggerRef logger,
         Level level,
-        const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
+        const Module& module = Module{utils::impl::SourceLocation::Current()},
+        LogClass log_class = LogClass::kLog
     ) noexcept;
 
     /// @brief Constructs LogHelper with span logging
     /// @param logger to log to (logging to nullptr does not output messages)
     /// @param level message log level
     /// @param location source location that will be written to logs
-    LogHelper(
-        const LoggerPtr& logger,
-        Level level,
-        const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
-    ) noexcept;
+    LogHelper(const LoggerPtr& logger, Level level, const Module& module, LogClass log_class = LogClass::kLog) noexcept;
 
     ~LogHelper();
 
@@ -157,6 +165,9 @@ public:
 
     LogHelper& operator<<(Quoted value) noexcept;
 
+    LogHelper& PutTag(std::string_view key, const LogExtra::Value& value) noexcept;
+    LogHelper& PutSwTag(std::string_view key, std::string_view value) noexcept;
+
     /// @cond
     // For internal use only!
     operator impl::Noop() const noexcept { return {}; }
@@ -164,21 +175,16 @@ public:
     struct InternalTag;
 
     // For internal use only!
-    impl::TagWriter GetTagWriterAfterText(InternalTag);
+    impl::TagWriter GetTagWriter();
 
-    void MarkAsTrace(InternalTag);
     /// @endcond
 
 private:
     friend class impl::TagWriter;
 
-    struct Module;
-
     void DoLog() noexcept;
 
     void InternalLoggingError(std::string_view message) noexcept;
-
-    impl::TagWriter GetTagWriter();
 
     void PutFloatingPoint(float value);
     void PutFloatingPoint(double value);

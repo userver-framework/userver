@@ -56,16 +56,14 @@ components_manager:
             port: $grpc-server-port
             service-defaults:
                 task-processor: main-task-processor
-                middlewares:
-                  - grpc-server-logging
-                  - grpc-server-deadline-propagation
-                  - grpc-server-congestion-control
-                  - grpc-server-field-mask
 
-        grpc-server-logging:
-        grpc-server-deadline-propagation:
-        grpc-server-congestion-control:
-        grpc-server-field-mask:
+        grpc-server-middlewares-pipeline:
+            middlewares:
+                grpc-server-baggage:
+                    enabled: false
+                grpc-server-headers-propagator:
+                    enabled: false
+
 
         proxy-service:
 

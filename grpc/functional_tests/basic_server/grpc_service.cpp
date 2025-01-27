@@ -16,8 +16,7 @@
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
-#include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
-#include <userver/ugrpc/server/server_component.hpp>
+#include <userver/ugrpc/server/component_list.hpp>
 #include <userver/ugrpc/server/service_component_base.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
@@ -79,13 +78,12 @@ yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<components::TestsuiteSupport>()
+                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
                                     .Append<ugrpc::client::CommonComponent>()
                                     .Append<ugrpc::client::ClientFactoryComponent>()
-                                    .Append<ugrpc::server::ServerComponent>()
                                     .Append<samples::GreeterServiceComponent>()
                                     .Append<clients::dns::Component>()
                                     .Append<server::middlewares::HeadersPropagatorFactory>()
-                                    .Append<ugrpc::server::middlewares::headers_propagator::Component>()
                                     .Append<clients::http::plugins::headers_propagator::Component>()
                                     .Append<components::HttpClient>();
     return utils::DaemonMain(argc, argv, component_list);

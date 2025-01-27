@@ -34,10 +34,15 @@ public:
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
     std::shared_ptr<MiddlewareBase> GetMiddleware() override;
-
-    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace ugrpc::server::middlewares::baggage
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::baggage::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::baggage::Component> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

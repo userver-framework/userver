@@ -15,10 +15,6 @@ components_manager:
             port: 8091
             service-defaults:
                 task-processor: main-task-processor
-                middlewares:
-                  - grpc-server-logging
-                  - grpc-server-baggage
-                  - grpc-server-congestion-control
 # /// [Sample grpc server logging middleware component config]
         grpc-server-logging:
             log-level: info
@@ -45,6 +41,16 @@ components_manager:
         grpc-server-field-mask:
             metadata-field-name: field-mask
 # /// [Sample grpc server field-mask middleware component config]
+
+        grpc-server-middlewares-pipeline:
+            middlewares:
+                grpc-server-headers-propagator:
+                    enabled: false
+                grpc-server-field-mask:
+                    enabled: false
+                grpc-server-deadline-propagation:
+                    enabled: false
+
         greeter-service:
             greeting-prefix: Hello
 

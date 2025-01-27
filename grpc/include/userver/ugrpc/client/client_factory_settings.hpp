@@ -16,9 +16,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-// full rpc name -> count of channels
-using DedicatedMethodsConfig = std::unordered_map<std::string, std::size_t>;
-
 /// Settings relating to the ClientFactory
 struct ClientFactorySettings final {
     /// gRPC channel credentials, none by default
@@ -40,6 +37,9 @@ struct ClientFactorySettings final {
     /// in this factory.
     std::size_t channel_count{1};
 };
+
+std::shared_ptr<grpc::ChannelCredentials>
+GetClientCredentials(const ClientFactorySettings& client_factory_settings, const std::string& client_name);
 
 }  // namespace ugrpc::client
 

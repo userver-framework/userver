@@ -110,8 +110,8 @@ private:
 
     TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
 
-    [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock);
-    bool DoConnect(engine::SemaphoreLock);
+    [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock, ConnectionSettings&&);
+    bool DoConnect(engine::SemaphoreLock, ConnectionSettings&&);
 
     void TryCreateConnectionAsync();
     void CheckMinPoolSizeUnderflow();

@@ -88,6 +88,7 @@ are available at the
 
 ## Protocols
 * @ref scripts/docs/en/userver/grpc.md
+    * @ref scripts/docs/en/userver/grpc_server_middlewares.md
 * HTTP:
     * @ref clients::http::Client "Client"
     * @ref scripts/docs/en/userver/http_server.md

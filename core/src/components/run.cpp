@@ -24,6 +24,7 @@
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/regex.hpp>
 #include <userver/utils/strerror.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
@@ -200,6 +201,9 @@ void DoRun(
         ParseManagerConfigAndSetupLogging(log_scope, config, config_vars_path, config_vars_override_path);
 
     utils::impl::UserverExperimentsScope experiments_scope;
+    const utils::FastScopeGuard boost_regex_guard([old = utils::IsImplicitBoostRegexFallbackAllowed()]() noexcept {
+        utils::SetImplicitBoostRegexFallbackAllowed(old);
+    });
     std::optional<Manager> manager;
 
     try {
@@ -209,6 +213,7 @@ void DoRun(
         if (manager_config.preheat_stacktrace_collector) {
             PreheatStacktraceCollector();
         }
+        utils::SetImplicitBoostRegexFallbackAllowed(manager_config.implicit_boost_regex_fallback_allowed);
 
         manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), component_list);
     } catch (const std::exception& ex) {

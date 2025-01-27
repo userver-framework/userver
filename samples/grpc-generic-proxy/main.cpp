@@ -11,14 +11,11 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
-#include <userver/ugrpc/client/generic.hpp>
+#include <userver/ugrpc/client/generic_client.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
 #include <userver/ugrpc/client/simple_client_component.hpp>
-#include <userver/ugrpc/server/middlewares/congestion_control/component.hpp>
-#include <userver/ugrpc/server/middlewares/deadline_propagation/component.hpp>
-#include <userver/ugrpc/server/middlewares/field_mask/component.hpp>
-#include <userver/ugrpc/server/middlewares/log/component.hpp>
+#include <userver/ugrpc/server/component_list.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -29,7 +26,6 @@ int main(int argc, char* argv[]) {
         components::MinimalServerComponentList()
             // Base userver components
             .Append<components::TestsuiteSupport>()
-            .Append<congestion_control::Component>()
             // HTTP client and server are (sadly) needed for testsuite support
             .Append<components::HttpClient>()
             .Append<clients::dns::Component>()
@@ -41,11 +37,7 @@ int main(int argc, char* argv[]) {
             .Append<ugrpc::client::middlewares::log::Component>()
             .Append<ugrpc::client::SimpleClientComponent<ugrpc::client::GenericClient>>("generic-client")
             // gRPC server setup
-            .Append<ugrpc::server::ServerComponent>()
-            .Append<ugrpc::server::middlewares::congestion_control::Component>()
-            .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
-            .Append<ugrpc::server::middlewares::log::Component>()
-            .Append<ugrpc::server::middlewares::field_mask::Component>()
+            .AppendComponentList(ugrpc::server::DefaultComponentList())
             .Append<samples::ProxyService>();
 
     return utils::DaemonMain(argc, argv, component_list);

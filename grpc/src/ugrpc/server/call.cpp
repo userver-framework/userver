@@ -34,14 +34,14 @@ void CallAnyBase::LogFinish(grpc::Status status) const {
         return;
     }
 
-    auto str = impl::FormatLogMessage(
+    logging::impl::TextLogItem str{impl::FormatLogMessage(
         params_.context.client_metadata(),
         params_.context.peer(),
         params_.call_span.GetStartSystemTime(),
         params_.call_name,
         status.error_code()
-    );
-    params_.access_tskv_logger.Log(logging::Level::kInfo, std::move(str));
+    )};
+    params_.access_tskv_logger.Log(logging::Level::kInfo, str);
 }
 
 void CallAnyBase::ApplyRequestHook(google::protobuf::Message* request) {

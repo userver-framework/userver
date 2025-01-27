@@ -1,9 +1,13 @@
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 
-#include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <ugrpc/server/middlewares/log/middleware.hpp>
+#include <userver/ugrpc/server/middlewares/groups.hpp>
+#include <userver/ugrpc/server/middlewares/log/component.hpp>
+#include <userver/ugrpc/server/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,7 +23,8 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
 }
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context), settings_(config.As<Settings>()) {}
+    : MiddlewareComponentBase(config, context, MiddlewareDependencyBuilder().InGroup<groups::Logging>()),
+      settings_(config.As<Settings>()) {}
 
 Component::~Component() = default;
 

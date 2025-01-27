@@ -14,6 +14,13 @@ Usage Example:
 @snippet formats/json/value_test.cpp  Sample formats::json::Value usage
 
 
+### Iterate over formats
+
+To iterate over `formats::*::Value` as object use formats::common::Items:
+
+@snippet universal/utest/src/formats/common/items_test.cpp  Items Example Usage - Simple object
+
+
 ### Customization of formats::*::Value::As<T>()
 
 In order for `formats::*::Value` to be able to represent data as a C++ type,

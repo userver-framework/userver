@@ -1,5 +1,8 @@
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+
 #include <userver/ugrpc/server/impl/exceptions.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -57,6 +60,15 @@ const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
 void MiddlewareBase::CallRequestHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
 
 void MiddlewareBase::CallResponseHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
+
+MiddlewareComponentBase::MiddlewareComponentBase(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context,
+    MiddlewareDependencyBuilder&& dependency
+)
+    : components::ComponentBase(config, context), dependency_(std::move(dependency).Extract(config.Name())) {}
+
+const impl::MiddlewareDependency& MiddlewareComponentBase::GetMiddlewareDependency() const { return dependency_; }
 
 }  // namespace ugrpc::server
 

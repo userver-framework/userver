@@ -14,7 +14,6 @@ namespace ugrpc::server::impl {
 struct ServiceDefaults final {
     // using boost::optional to easily generalize to references
     boost::optional<engine::TaskProcessor&> task_processor;
-    boost::optional<std::vector<std::string>> middleware_names;
 };
 
 }  // namespace ugrpc::server::impl

@@ -11,10 +11,7 @@
 #include <userver/ugrpc/client/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
-#include <userver/ugrpc/server/middlewares/baggage/component.hpp>
-#include <userver/ugrpc/server/middlewares/deadline_propagation/component.hpp>
-#include <userver/ugrpc/server/middlewares/log/component.hpp>
-#include <userver/ugrpc/server/server_component.hpp>
+#include <userver/ugrpc/server/component_list.hpp>
 
 #include "greeter_client.hpp"
 #include "greeter_service.hpp"
@@ -22,11 +19,8 @@
 int main(int argc, const char* const argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<server::handlers::ServerMonitor>()
+                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
                                     .Append<components::TestsuiteSupport>()
-                                    .Append<ugrpc::server::ServerComponent>()
-                                    .Append<ugrpc::server::middlewares::log::Component>()
-                                    .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
-                                    .Append<ugrpc::server::middlewares::baggage::Component>()
                                     .Append<ugrpc::client::middlewares::baggage::Component>()
                                     .Append<ugrpc::client::middlewares::log::Component>()
                                     .Append<ugrpc::client::middlewares::deadline_propagation::Component>()

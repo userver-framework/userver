@@ -13,6 +13,7 @@
 
 #include <userver/ugrpc/server/call.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
+#include <userver/ugrpc/server/middlewares/groups.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -83,11 +84,23 @@ public:
 ///
 /// @brief Base class for middleware component
 class MiddlewareComponentBase : public components::ComponentBase {
-    using components::ComponentBase::ComponentBase;
-
 public:
+    MiddlewareComponentBase(
+        const components::ComponentConfig&,
+        const components::ComponentContext&,
+        MiddlewareDependencyBuilder&& builder = MiddlewareDependencyBuilder().InGroup<groups::User>()
+    );
+
     /// @brief Returns a middleware according to the component's settings
     virtual std::shared_ptr<MiddlewareBase> GetMiddleware() = 0;
+
+    /// @cond
+    /// Only for internal use.
+    const impl::MiddlewareDependency& GetMiddlewareDependency() const;
+    /// @endcond
+
+private:
+    impl::MiddlewareDependency dependency_;
 };
 
 }  // namespace ugrpc::server

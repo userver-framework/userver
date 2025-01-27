@@ -9,9 +9,7 @@
 #include <userver/components/component_base.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-namespace NYdb {
-class ICredentialsProviderFactory;
-}  // namespace NYdb
+#include <ydb-cpp-sdk/v2/client/types/fwd.h>
 
 USERVER_NAMESPACE_BEGIN
 

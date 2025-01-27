@@ -184,7 +184,7 @@ ServiceStatistics::ServiceStatistics(
     StatisticsDomain domain,
     utils::statistics::StripedRateCounter& global_started
 )
-    : metadata_(metadata), method_statistics_(metadata.method_full_names.size(), domain, global_started) {}
+    : metadata_(metadata), method_statistics_(GetMethodsCount(metadata), domain, global_started) {}
 
 MethodStatistics& ServiceStatistics::GetMethodStatistics(std::size_t method_id) {
     return method_statistics_[method_id];

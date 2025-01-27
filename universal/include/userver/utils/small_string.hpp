@@ -48,6 +48,16 @@ public:
     /// @brief Assign the value of other string to this string.
     SmallString& operator=(SmallString&&) noexcept = default;
 
+    SmallString& operator+=(std::string_view sv) {
+        append(sv);
+        return *this;
+    }
+
+    SmallString& operator+=(char c) {
+        push_back(c);
+        return *this;
+    }
+
     /// @brief Convert string to a std::string_view.
     operator std::string_view() const;
 
@@ -87,6 +97,10 @@ public:
     /// @brief Resize the string. If its length is increased,
     /// fill new chars with %c.
     void resize(std::size_t n, char c);
+
+    /// @brief Resize the string. If its length is increased,
+    /// fill new chars with \0.
+    void resize(std::size_t n);
 
     /// @brief Resize the string. Use op to write into the string and replace a
     /// sequence of characters
@@ -268,6 +282,11 @@ void SmallString<N>::pop_back() {
 template <std::size_t N>
 void SmallString<N>::resize(std::size_t n, char c) {
     data_.resize(n, c);
+}
+
+template <std::size_t N>
+void SmallString<N>::resize(std::size_t n) {
+    resize(n, '\0');
 }
 
 template <std::size_t N>

@@ -64,19 +64,25 @@ TableClient::TableClient(
                                             : impl::kDefaultPerQueryBounds
       )),
       driver_(std::move(driver)) {
-    NYdb::NTable::TSessionPoolSettings session_config;
-    session_config.MaxActiveSessions(settings.max_pool_size).MinPoolSize(settings.min_pool_size);
-    session_config.RetryLimit(settings.get_session_retry_limit);
+    {
+        NYdb::NTable::TSessionPoolSettings session_pool_settings;
+        session_pool_settings.MaxActiveSessions(settings.max_pool_size)
+            .MinPoolSize(settings.min_pool_size)
+            .RetryLimit(settings.get_session_retry_limit);
+        NYdb::NTable::TClientSettings client_settings;
+        client_settings.SessionPoolSettings(session_pool_settings);
+        table_client_ = std::make_unique<NYdb::NTable::TTableClient>(driver_->GetNativeDriver(), client_settings);
+        scheme_client_ = std::make_unique<NYdb::NScheme::TSchemeClient>(driver_->GetNativeDriver(), client_settings);
+    }
 
-    NYdb::NTable::TClientSettings client_config;
-    client_config.SessionPoolSettings(session_config);
+    {
+        NYdb::NQuery::TSessionPoolSettings session_pool_settings;
+        session_pool_settings.MaxActiveSessions(settings.max_pool_size).MinPoolSize(settings.min_pool_size);
+        NYdb::NQuery::TClientSettings client_settings;
+        client_settings.SessionPoolSettings(session_pool_settings);
+        query_client_ = std::make_unique<NYdb::NQuery::TQueryClient>(driver_->GetNativeDriver(), client_settings);
+    }
 
-    NYdb::NQuery::TClientSettings query_client_config;
-    client_config.SessionPoolSettings(session_config);
-
-    table_client_ = std::make_unique<NYdb::NTable::TTableClient>(driver_->GetNativeDriver(), client_config);
-    scheme_client_ = std::make_unique<NYdb::NScheme::TSchemeClient>(driver_->GetNativeDriver(), client_config);
-    query_client_ = std::make_unique<NYdb::NQuery::TQueryClient>(driver_->GetNativeDriver(), query_client_config);
     if (settings.sync_start) {
         LOG_DEBUG() << "Synchronously starting ydb client with name '" << driver_->GetDbName() << "'";
         Select1();
@@ -352,7 +358,7 @@ TableClient::ExecuteQuery(OperationSettings settings, const Query& query, Prepar
 }
 
 ExecuteResponse TableClient::ExecuteQuery(
-    NYdb::NQuery::TExecuteQuerySettings&& query_settings,
+    NYdb::NQuery::TExecuteQuerySettings&& exec_settings,
     OperationSettings settings,
     const Query& query,
     PreparedArgsBuilder&& builder
@@ -366,17 +372,17 @@ ExecuteResponse TableClient::ExecuteQuery(
 
     impl::RequestContext context{*this, query, settings};
 
-    auto future = impl::RetryQueryOperation(
+    auto future = impl::RetryQuery(
         context,
         [query = query.Statement(),
          params = std::move(builder).Build(),
-         query_settings = std::move(query_settings),
+         exec_settings = std::move(exec_settings),
          settings = std::move(settings),
          deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
-            impl::ApplyToRequestSettings(query_settings, settings, deadline);
+            impl::ApplyToRequestSettings(exec_settings, settings, deadline);
             const auto tx_settings = PrepareQueryTxSettings(settings);
             const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();
-            return session.ExecuteQuery(impl::ToString(query), tx, params, query_settings);
+            return session.ExecuteQuery(impl::ToString(query), tx, params, exec_settings);
         }
     );
 
@@ -388,9 +394,14 @@ std::string TableClient::JoinDbPath(std::string_view path) const { return impl::
 void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_client) {
     writer = *table_client.stats_;
 
-    writer["pool"]["current-size"] = table_client.table_client_->GetCurrentPoolSize();
-    writer["pool"]["active-sessions"] = table_client.table_client_->GetActiveSessionCount();
-    writer["pool"]["max-size"] = table_client.table_client_->GetActiveSessionsLimit();
+    writer["pool"]["current-size"] =
+        std::max(table_client.table_client_->GetCurrentPoolSize(), table_client.query_client_->GetCurrentPoolSize());
+    writer["pool"]["active-sessions"] = std::max(
+        table_client.table_client_->GetActiveSessionCount(), table_client.query_client_->GetActiveSessionCount()
+    );
+    writer["pool"]["max-size"] = std::max(
+        table_client.table_client_->GetActiveSessionsLimit(), table_client.query_client_->GetActiveSessionsLimit()
+    );
 }
 
 PreparedArgsBuilder TableClient::GetBuilder() const { return PreparedArgsBuilder(table_client_->GetParamsBuilder()); }

@@ -28,7 +28,6 @@ libhiredis-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
-librdkafka-dev
 liblzma-dev
 libmariadb-dev
 libmongoc-dev
@@ -37,6 +36,8 @@ libpq-dev=12.*
 libpq5=12.*
 libprotoc-dev
 libpugixml-dev
+librdkafka-dev
+libre2-dev
 libsasl2-dev
 libssl-dev
 libyaml-cpp-dev

@@ -14,13 +14,13 @@
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <userver/ugrpc/server/component_list.hpp>
 #include <userver/ugrpc/server/health/component.hpp>
-#include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_component_base.hpp>
 
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
-                                    .Append<ugrpc::server::ServerComponent>()
+                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
                                     .Append<ugrpc::server::HealthComponent>();
     return utils::DaemonMain(argc, argv, component_list);
 }

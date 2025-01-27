@@ -19,9 +19,9 @@ namespace {}  // namespace
 
 namespace impl {
 
-class ToStringLogger : public logging::impl::LoggerBase {
+class ToStringLogger : public logging::impl::TextLogger {
 public:
-    ToStringLogger(logging::Format format) : logging::impl::LoggerBase(format) {
+    ToStringLogger(logging::Format format) : logging::impl::TextLogger(format) {
         UINVARIANT(
             format == logging::Format::kTskv || format == logging::Format::kRaw,
             "Parsing for this logging::Format is not supported"
@@ -29,9 +29,11 @@ public:
         logging::impl::LoggerBase::SetLevel(logging::Level::kInfo);
     }
 
-    void Log(logging::Level level, std::string_view str) override {
+    void Log(logging::Level level, logging::impl::formatters::LoggerItemRef item) override {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        auto& str = static_cast<logging::impl::TextLogItem&>(item);
         const std::lock_guard lock{mutex_};
-        records_.push_back(LogRecord{utils::impl::InternalTag{}, level, std::string{str}});
+        records_.push_back(LogRecord{utils::impl::InternalTag{}, level, std::string{str.log_line}});
     }
 
     std::vector<LogRecord> GetAll() const {
@@ -149,7 +151,7 @@ LogRecord GetSingleLog(utils::span<const LogRecord> log, const utils::impl::Sour
 LogCaptureLogger::LogCaptureLogger(logging::Format format)
     : logger_(utils::MakeSharedRef<impl::ToStringLogger>(format)) {}
 
-logging::LoggerPtr LogCaptureLogger::GetLogger() const { return logger_.GetBase(); }
+logging::TextLoggerPtr LogCaptureLogger::GetLogger() const { return logger_.GetBase(); }
 
 std::vector<LogRecord> LogCaptureLogger::GetAll() const { return logger_->GetAll(); }
 

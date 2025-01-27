@@ -28,7 +28,9 @@ class GenericServiceBase;
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// task-processor | the task processor to use for responses | taken from grpc-server.service-defaults
-/// middlewares | middleware component names to use for each RPC call, can be empty array ([]) | taken from grpc-server.service-defaults
+/// disable-user-pipeline-middlewares | flag to disable `groups::User` middlewares from pipeline | false
+/// disable-all-pipeline-middlewares | flag to disable all middlewares from pipline | false
+/// middlewares | middlewares names to use | `{}` (use server defaults)
 
 // clang-format on
 

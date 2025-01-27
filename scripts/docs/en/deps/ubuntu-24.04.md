@@ -34,6 +34,7 @@ libjemalloc-dev
 libkrb5-dev
 libldap2-dev
 librdkafka-dev
+libre2-dev
 librocksdb-dev
 liblz4-dev
 liblzma-dev

@@ -334,8 +334,8 @@ void HttpRequest::SetFinishSendResponseTime() {
 }
 
 void HttpRequest::WriteAccessLogs(
-    const logging::LoggerPtr& logger_access,
-    const logging::LoggerPtr& logger_access_tskv,
+    const logging::TextLoggerPtr& logger_access,
+    const logging::TextLoggerPtr& logger_access_tskv,
     const std::string& remote_address
 ) const {
     if (!logger_access && !logger_access_tskv) return;
@@ -346,14 +346,13 @@ void HttpRequest::WriteAccessLogs(
 }
 
 void HttpRequest::WriteAccessLog(
-    const logging::LoggerPtr& logger_access,
+    const logging::TextLoggerPtr& logger_access,
     utils::datetime::WallCoarseClock::time_point tp,
     const std::string& remote_address
 ) const {
     if (!logger_access) return;
 
-    logger_access->Log(
-        logging::Level::kInfo,
+    logging::impl::TextLogItem item{
         fmt::format(
             R"([{}] {} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
             utils::datetime::LocalTimezoneTimestring(tp, "%Y-%m-%d %H:%M:%E6S %Ez"),
@@ -370,60 +369,59 @@ void HttpRequest::WriteAccessLog(
             GetRequestTime().count(),
             GetHttpResponse().BytesSent(),
             GetResponseTime().count()
-        )
-    );
+        ),
+    };
+    logger_access->Log(logging::Level::kInfo, item);
 }
 
 void HttpRequest::WriteAccessTskvLog(
-    const logging::LoggerPtr& logger_access_tskv,
+    const logging::TextLoggerPtr& logger_access_tskv,
     utils::datetime::WallCoarseClock::time_point tp,
     const std::string& remote_address
 ) const {
     if (!logger_access_tskv) return;
 
-    logger_access_tskv->Log(
-        logging::Level::kInfo,
-        fmt::format(
-            "tskv"
-            "\t{}"
-            "\tstatus={}"
-            "\tprotocol=HTTP/{}.{}"
-            "\tmethod={}"
-            "\trequest={}"
-            "\treferer={}"
-            "\tcookies={}"
-            "\tuser_agent={}"
-            "\tvhost={}"
-            "\tip={}"
-            "\tx_forwarded_for={}"
-            "\tx_real_ip={}"
-            "\tupstream_http_x_yarequestid={}"
-            "\thttp_host={}"
-            "\tremote_addr={}"
-            "\trequest_time={:0.3f}"
-            "\tupstream_response_time={:0.3f}"
-            "\trequest_body={}",
-            utils::datetime::LocalTimezoneTimestring(tp, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
-            static_cast<int>(pimpl_->response_.GetStatus()),
-            GetHttpMajor(),
-            GetHttpMinor(),
-            EscapeForAccessTskvLog(GetMethodStr()),
-            EscapeForAccessTskvLog(GetUrl()),
-            EscapeForAccessTskvLog(GetHeader("Referer")),
-            EscapeForAccessTskvLog(GetHeader("Cookie")),
-            EscapeForAccessTskvLog(GetHeader("User-Agent")),
-            EscapeForAccessTskvLog(GetHost()),
-            EscapeForAccessTskvLog(remote_address),
-            EscapeForAccessTskvLog(GetHeader("X-Forwarded-For")),
-            EscapeForAccessTskvLog(GetHeader("X-Real-IP")),
-            EscapeForAccessTskvLog(GetHeader("X-YaRequestId")),
-            EscapeForAccessTskvLog(GetHost()),
-            EscapeForAccessTskvLog(remote_address),
-            GetRequestTime().count(),
-            GetResponseTime().count(),
-            EscapeForAccessTskvLog(RequestBody())
-        )
-    );
+    logging::impl::TextLogItem item{fmt::format(
+        "tskv"
+        "\t{}"
+        "\tstatus={}"
+        "\tprotocol=HTTP/{}.{}"
+        "\tmethod={}"
+        "\trequest={}"
+        "\treferer={}"
+        "\tcookies={}"
+        "\tuser_agent={}"
+        "\tvhost={}"
+        "\tip={}"
+        "\tx_forwarded_for={}"
+        "\tx_real_ip={}"
+        "\tupstream_http_x_yarequestid={}"
+        "\thttp_host={}"
+        "\tremote_addr={}"
+        "\trequest_time={:0.3f}"
+        "\tupstream_response_time={:0.3f}"
+        "\trequest_body={}",
+        utils::datetime::LocalTimezoneTimestring(tp, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
+        static_cast<int>(pimpl_->response_.GetStatus()),
+        GetHttpMajor(),
+        GetHttpMinor(),
+        EscapeForAccessTskvLog(GetMethodStr()),
+        EscapeForAccessTskvLog(GetUrl()),
+        EscapeForAccessTskvLog(GetHeader("Referer")),
+        EscapeForAccessTskvLog(GetHeader("Cookie")),
+        EscapeForAccessTskvLog(GetHeader("User-Agent")),
+        EscapeForAccessTskvLog(GetHost()),
+        EscapeForAccessTskvLog(remote_address),
+        EscapeForAccessTskvLog(GetHeader("X-Forwarded-For")),
+        EscapeForAccessTskvLog(GetHeader("X-Real-IP")),
+        EscapeForAccessTskvLog(GetHeader("X-YaRequestId")),
+        EscapeForAccessTskvLog(GetHost()),
+        EscapeForAccessTskvLog(remote_address),
+        GetRequestTime().count(),
+        GetResponseTime().count(),
+        EscapeForAccessTskvLog(RequestBody())
+    )};
+    logger_access_tskv->Log(logging::Level::kInfo, item);
 }
 
 }  // namespace server::http

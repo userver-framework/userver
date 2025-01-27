@@ -7,11 +7,11 @@
 #include <sys/param.h>
 
 #include <cctz/time_zone.h>
-#include <boost/lexical_cast.hpp>
-#include <boost/numeric/conversion/cast.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/from_string.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/utils/numeric_cast.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -186,10 +186,10 @@ std::uint32_t ParseDayTime(const std::string& str) {
     std::uint8_t seconds = 0;
 
     try {
-        hours = boost::numeric_cast<std::uint8_t>(boost::lexical_cast<int>(std::string(str, 0, 2)));
-        minutes = boost::numeric_cast<std::uint8_t>(boost::lexical_cast<int>(std::string(str, 3, 2)));
+        hours = utils::numeric_cast<std::uint8_t>(utils::FromString<int>(std::string_view{str}.substr(0, 2)));
+        minutes = utils::numeric_cast<std::uint8_t>(utils::FromString<int>(std::string_view{str}.substr(3, 2)));
         if (str.size() == 8)
-            seconds = boost::numeric_cast<std::uint8_t>(boost::lexical_cast<int>(std::string(str, 6, 2)));
+            seconds = utils::numeric_cast<std::uint8_t>(utils::FromString<int>(std::string_view{str}.substr(6, 2)));
 
     } catch (const std::exception& ex) {
         throw std::invalid_argument(std::string("Failed to parse time from ") + str);
