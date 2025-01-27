@@ -8,10 +8,6 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-if (USERVER_CONAN)
-  find_package(clickhouse-cpp REQUIRED CONFIG)
-else()
-  find_package(clickhouse-cpp REQUIRED)
-endif()
+find_package(clickhouse-cpp REQUIRED)
 
 set(userver_clickhouse_FOUND TRUE)

@@ -1,7 +1,7 @@
 project(userver-rabbitmq CXX)
 
 if (USERVER_CONAN)
-  find_package(amqpcpp REQUIRED CONFIG)
+  find_package(amqpcpp REQUIRED)
 else()
   include(SetupAmqpCPP)
 endif()

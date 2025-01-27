@@ -1,7 +1,7 @@
 project(userver-kafka CXX)
 
 if(USERVER_CONAN)
-  find_package(RdKafka REQUIRED CONFIG)
+  find_package(RdKafka REQUIRED)
 else()
   include(SetupRdKafka)
 endif()

@@ -1,16 +1,14 @@
 project(userver-clickhouse CXX)
 
 if (USERVER_CONAN)
-  find_package(clickhouse-cpp REQUIRED CONFIG)
-  set(CLICKHOUSE_CPP_TARGET clickhouse-cpp-lib::clickhouse-cpp-lib)
+  find_package(clickhouse-cpp REQUIRED)
 else()
   include(SetupClickhouseCPP)
-  set(CLICKHOUSE_CPP_TARGET clickhouse-cpp)
 endif()
 
 userver_module(clickhouse
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE "${CLICKHOUSE_CPP_TARGET}"
+    LINK_LIBRARIES_PRIVATE clickhouse-cpp-lib::clickhouse-cpp-lib
 
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DBTEST_SOURCES

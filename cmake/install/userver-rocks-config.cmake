@@ -8,6 +8,6 @@ find_package(userver REQUIRED COMPONENTS
   core
 )
 
-find_package(RocksDB REQUIRED CONFIG)
+find_package(RocksDB REQUIRED)
 
 set(userver_rocks_FOUND TRUE)

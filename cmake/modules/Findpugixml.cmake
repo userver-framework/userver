@@ -1,5 +1,5 @@
 _userver_module_begin(
-  NAME Pugixml
+  NAME pugixml
   DEBIAN_NAMES libpugixml-dev
   FORMULA_NAMES pugixml
   PACMAN_NAMES pugixml
@@ -15,3 +15,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET pugixml::pugixml)
+  add_library(pugixml::pugixml ALIAS pugixml)
+endif()

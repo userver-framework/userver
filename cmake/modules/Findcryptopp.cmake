@@ -1,5 +1,5 @@
 _userver_module_begin(
-    NAME CryptoPP
+    NAME cryptopp
     DEBIAN_NAMES libcrypto++-dev
     FORMULA_NAMES cryptopp
     RPM_NAMES cryptopp-devel
@@ -18,3 +18,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET cryptopp::cryptopp)
+  add_library(cryptopp::cryptopp ALIAS cryptopp)
+endif()

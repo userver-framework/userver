@@ -1,5 +1,5 @@
 _userver_module_begin(
-    NAME libyamlcpp
+    NAME yaml-cpp
     DEBIAN_NAMES libyaml-cpp-dev
     FORMULA_NAMES yaml-cpp
     PACMAN_NAMES yaml-cpp

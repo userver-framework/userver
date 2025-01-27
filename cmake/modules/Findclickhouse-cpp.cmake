@@ -25,3 +25,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 endif()
 
 _userver_module_end()
+
+if(NOT TARGET clickhouse-cpp-lib::clickhouse-cpp-lib)
+  add_library(clickhouse-cpp-lib::clickhouse-cpp-lib ALIAS clickhouse-cpp)
+endif()

@@ -6,7 +6,7 @@ if(USERVER_SANITIZE)
 endif()
 
 _userver_module_begin(
-    NAME Jemalloc
+    NAME jemalloc
     DEBIAN_NAMES libjemalloc-dev
     FORMULA_NAMES jemalloc
     RPM_NAMES jemalloc-devel
@@ -23,3 +23,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET jemalloc::jemalloc)
+  add_library(jemalloc::jemalloc ALIAS jemalloc)
+endif()

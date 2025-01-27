@@ -1,5 +1,5 @@
 _userver_module_begin(
-    NAME Hiredis
+    NAME hiredis
     VERSION 0.13.3
     DEBIAN_NAMES libhiredis-dev
     FORMULA_NAMES hiredis
@@ -18,3 +18,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET hiredis::hiredis)
+  add_library(hiredis::hiredis ALIAS hiredis)
+endif()

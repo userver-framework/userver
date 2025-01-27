@@ -18,7 +18,7 @@ find_package(libgflags REQUIRED)
 find_package(libsnappy REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(BZip2 REQUIRED)
-find_package(libzstd REQUIRED)
+find_package(zstd REQUIRED)
 
 include(DownloadUsingCPM)
 

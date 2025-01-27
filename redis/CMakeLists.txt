@@ -1,8 +1,10 @@
 project(userver-redis CXX)
 
+find_package(hiredis REQUIRED)
+
 userver_module(redis
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-
+    LINK_LIBRARIES hiredis::hiredis
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     UTEST_LINK_LIBRARIES ${PROJECT_NAME}-utest
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_redistest.cpp"
@@ -34,14 +36,6 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-if (USERVER_CONAN)
-  find_package(hiredis REQUIRED CONFIG)
-  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
-else()
-  find_package(Hiredis REQUIRED)
-  target_link_libraries(${PROJECT_NAME} PUBLIC Hiredis)
-endif()
-
 if (USERVER_FEATURE_REDIS_TLS)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
 endif()
@@ -50,7 +44,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 _userver_directory_install(COMPONENT redis FILES
-	  "${USERVER_ROOT_DIR}/cmake/modules/FindHiredis.cmake"
+	  "${USERVER_ROOT_DIR}/cmake/modules/Findhiredis.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 

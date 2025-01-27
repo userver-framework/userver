@@ -14,20 +14,17 @@ find_package(Boost REQUIRED CONFIG COMPONENTS
 )
 
 find_package(ZLIB REQUIRED)
-
-include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
+find_package(c-ares REQUIRED)
+find_package(libnghttp2 REQUIRED)
+find_package(libev REQUIRED)
 
 if (USERVER_CONAN)
-  find_package(c-ares REQUIRED CONFIG)
-  find_package(libnghttp2 REQUIRED CONFIG)
-  find_package(libev REQUIRED CONFIG)
-  find_package(concurrentqueue REQUIRED CONFIG)
-  find_package(CURL "7.68" REQUIRED CONFIG)
+  find_package(concurrentqueue REQUIRED)
+  find_package(CURL "7.68" REQUIRED)
 else()
-  find_package(Nghttp2 REQUIRED)
-  find_package(LibEv REQUIRED)
-  find_package(c-ares REQUIRED)
   include("${USERVER_CMAKE_DIR}/SetupCURL.cmake")
 endif()
+
+include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
 
 set(userver_core_FOUND TRUE)

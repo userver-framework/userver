@@ -9,7 +9,7 @@ find_package(userver REQUIRED COMPONENTS
 )
 
 if (USERVER_CONAN)
-  find_package(mongoc-1.0 REQUIRED CONFIG)
+  find_package(mongoc-1.0 REQUIRED)
 else()
   include("${USERVER_CMAKE_DIR}/SetupMongoDeps.cmake")
 endif()

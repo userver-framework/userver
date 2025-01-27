@@ -13,7 +13,7 @@ else()
   )
 
   if(USERVER_CONAN)
-    find_package(PostgreSQL REQUIRED CONFIG)
+    find_package(PostgreSQL REQUIRED)
   else()
     find_library(PostgreSQL_LIBRARY NAMES libpq.so libpq.dylib REQUIRED)
     find_package(PostgreSQL REQUIRED)
