@@ -411,7 +411,7 @@ _userver_directory_install(COMPONENT universal FILES
 _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/modules/Findcryptopp.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findyaml-cpp.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findstd.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findzstd.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findre2.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findfmt.cmake"

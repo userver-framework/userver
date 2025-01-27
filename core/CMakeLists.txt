@@ -297,8 +297,8 @@ _userver_directory_install(COMPONENT core FILES
 )
 _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/modules/Findc-ares.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindNghttp2.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindLibEv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibnghttp2.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibev.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
