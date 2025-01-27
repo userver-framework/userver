@@ -1,4 +1,4 @@
-FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
+FROM ghcr.io/userver-framework/ubuntu-24.04-userver-base:latest
 
 # The Dockerfile contains:
 #  * all userver build dependencies
