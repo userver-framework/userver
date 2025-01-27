@@ -34,4 +34,6 @@ CPMAddPackage(
     "DEBUG_DEPENDENCIES OFF"
 )
 
-add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib)
+if(NOT TARGET clickhouse-cpp-lib::clickhouse-cpp-lib)
+  add_library(clickhouse-cpp-lib::clickhouse-cpp-lib ALIAS clickhouse-cpp-lib)
+endif()
