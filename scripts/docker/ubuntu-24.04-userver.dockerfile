@@ -7,7 +7,6 @@ FROM ghcr.io/userver-framework/ubuntu-24.04-userver-base:latest
 
 RUN git clone https://github.com/userver-framework/userver \
   && cd userver \
-  && BUILD_OPTIONS='-DUSERVER_FEATURE_CLICKHOUSE=OFF' \
-     ./scripts/build_and_install_all.sh \
+  && ./scripts/build_and_install_all.sh \
   && cd .. \
   && rm -rf userver/
