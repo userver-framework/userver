@@ -131,7 +131,7 @@ apt clean all
 
 # You could override those versions from command line
 export AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
-export CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.3.0}
+export CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.5.1}
 export ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
 export POSTGRESQL_VERSION=${POSTGRESQL_VERSION:=14}
 

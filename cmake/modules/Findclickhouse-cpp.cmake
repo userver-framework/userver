@@ -11,7 +11,10 @@ _userver_module_find_include(
 )
 
 _userver_module_find_library(
-    NAMES clickhouse-cpp-lib
+    # on Linux, clickhouse should be linked dynamically
+    # because new clickhouse versions have broker install
+    # with static libraries
+    NAMES libclickhouse-cpp-lib.so clickhouse-cpp-lib
     PATH_SUFFIXES
       clickhouse-cpp
       yandex/clickhouse-cpp
