@@ -2,8 +2,6 @@
 
 #include <optional>
 
-#include <userver/engine/async.hpp>
-
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -14,9 +12,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Connection::Connection(const SQLiteSettings& settings [[maybe_unused]],
+Connection::Connection(const SQLiteSettings& settings,
                        engine::TaskProcessor& blocking_task_processor)
-    : blocking_task_processor_(blocking_task_processor) {
+    : blocking_task_processor_{blocking_task_processor},
+      db_handler_{OpenDatabase(settings)},
+      statements_cache_{db_handler_.get(),
+                        settings.conn_settings.max_prepared_cache_size} {}
+Connection::~Connection() = default;
+
+void Connection::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {
+  // TODO: is this an I/O bound operation, does it need to be run on
+  // blocking_task_processor_?
+  sqlite3_close(sqlite_handle);
+
+  // TODO: error is SQLITE_BUSY: "database is locked"
+}
+
+sqlite3* Connection::OpenDatabase(const SQLiteSettings& settings) const {
   int flags = 0;
   if (settings.read_mode == SQLiteSettings::ReadMode::kReadOnly) {
     flags |= SQLITE_OPEN_READONLY;
@@ -34,20 +46,10 @@ Connection::Connection(const SQLiteSettings& settings [[maybe_unused]],
       ret != SQLITE_OK) {
     throw SQLiteException(getHandle(), ret);
   }
-  db.reset(handle);
+  return handle;
 }
 
-Connection::~Connection() = default;
-
-void Connection::Deleter::operator()(sqlite3* sqlite_handle) {
-  // TODO: is this an I/O bound operation, does it need to be run on
-  // blocking_task_processor_?
-  sqlite3_close(sqlite_handle);
-
-  // TODO: error is SQLITE_BUSY: "database is locked"
-}
-
-sqlite3* Connection::getHandle() const noexcept { return db.get(); };
+sqlite3* Connection::getHandle() const noexcept { return db_handler_.get(); };
 
 Transaction Connection::Begin(std::string name,
                               const TransactionOptions& options) const {
@@ -60,44 +62,6 @@ Transaction Connection::Begin(OptionalCommandControl command_control
                               const TransactionOptions& options
                               [[maybe_unused]]) const {
   return Transaction{getHandle(), blocking_task_processor_};
-}
-
-ResultSet Connection::DoExecute(OptionalCommandControl command_controlWWWW
-                                [[maybe_unused]],
-                                const Query& query [[maybe_unused]],
-                                std::optional<std::size_t> batch_size
-                                [[maybe_unused]]) const {
-  // Prepare statement and execute first step
-  // TODO: For simple INSERT, DELETE, UPDATE this works, but for example using
-  // RETURNING clauses, obviously repeated calls to sqlite3_step are required to
-  // get all rows https://www.sqlite.org/lang_returning.html
-  // Based on circumstantial evidence, nested and complex DML queries execute in
-  // one sqlite3_step, but this requires inspection and profiling
-  return engine::AsyncNoSpan(
-             blocking_task_processor_,
-             [this, query] {
-               sqlite3_stmt* stmt = nullptr;
-               int ret = 0;
-               // TODO: is this an CPU bound operation, does it need to be run
-               // on
-               // main_task_processor_?
-               if (ret = sqlite3_prepare_v2(getHandle(),
-                                            query.GetStatement().c_str(), -1,
-                                            &stmt, nullptr);
-                   ret != SQLITE_OK) {
-                 throw SQLiteException(getHandle(), ret);
-               }
-               //
-               const int exec_status =
-                   sqlite3_step(stmt);  // TODO: is this an first-call I/O bound
-                                        // operation, does it need to be run on
-                                        // blocking_task_processor_?
-               if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
-                 throw SQLiteException(getHandle(), exec_status);
-               }
-               return ResultSet(stmt, exec_status);
-             })
-      .Get();
 }
 
 }  // namespace storages::sqlite

@@ -80,12 +80,12 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
       return {};
     }
 
-    if (rows.size() > 1) {
-      sqlite_connection_->ExecuteBulk(db::sql::kInsertKeyValue.data(), rows);
-    } else {
-      sqlite_connection_->ExecuteDecompose(db::sql::kInsertKeyValue.data(),
-                                           rows.back());
-    }
+    // if (rows.size() > 1) {
+    //   sqlite_connection_->ExecuteBulk(db::sql::kInsertKeyValue.data(), rows);
+    // } else {
+    //   sqlite_connection_->ExecuteDecompose(db::sql::kInsertKeyValue.data(),
+    //                                        rows.back());
+    // }
 
     auto records =
         sqlite_connection_->Execute(db::sql::kSelectAllKeyValue.data())

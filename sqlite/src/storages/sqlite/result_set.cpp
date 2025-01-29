@@ -1,6 +1,7 @@
 #include <userver/storages/sqlite/result_set.hpp>
 
 #include <userver/storages/sqlite/exceptions.hpp>
+#include "userver/logging/log.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -9,6 +10,7 @@ namespace storages::sqlite {
 ResultSet::ResultSet(sqlite3_stmt* stmt, int exec_status)
     : stmt_(stmt), exec_status_(exec_status) {
   if (!stmt_) throw SQLiteException("Statement cannot be null");
+  LOG_DEBUG() << "MAL: " << sqlite3_sql(stmt_);
 }
 
 ResultSet::ResultSet(ResultSet&& other) noexcept = default;
@@ -25,12 +27,12 @@ ExecutionResult ResultSet::AsExecutionResult() && {
   // TODO: need check on SQLITE_DONE?
   // TODO: is this an CPU bound operation? does it need to be run on
   // blocking_task_processor_?
-  const auto rows_affected = sqlite3_changes(sqlite3_db_handle(stmt_.get()));
+  const auto rows_affected = sqlite3_changes(sqlite3_db_handle(stmt_));
   const auto last_insert_id =
-      sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_.get()));
+      sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_));
 
   // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
+  // sqlite3_reset(stmt_);
 
   ExecutionResult result{};
   result.rows_affected = rows_affected;
@@ -53,9 +55,18 @@ double ResultSet::GetColumn<double>(sqlite3_stmt* stmt, int column) {
 
 template <>
 std::string ResultSet::GetColumn<std::string>(sqlite3_stmt* stmt, int column) {
-  const char* text =
-      reinterpret_cast<const char*>(sqlite3_column_text(stmt, column));
-  return text ? text : "";
+  // Note: using sqlite3_column_blob and not sqlite3_column_text
+  // - no need for sqlite3_column_text to add a \0 on the end, as we're getting
+  // the bytes length directly
+  //   however, we need to call sqlite3_column_bytes() to ensure correct format.
+  //   It's a noop on a BLOB or a TEXT value with the correct encoding (UTF-8).
+  //   Otherwise it'll do a conversion to TEXT (UTF-8).
+  // (void)sqlite3_column_bytes(stmt, column);
+  auto data = static_cast<const char*>(sqlite3_column_blob(stmt, column));
+  // SQLite docs: "The safest policy is to invoke… sqlite3_column_blob()
+  // followed by sqlite3_column_bytes()"
+  // Note: std::string is ok to pass nullptr as first arg, if length is 0
+  return std::string(data, sqlite3_column_bytes(stmt, column));
 }
 
 template <>

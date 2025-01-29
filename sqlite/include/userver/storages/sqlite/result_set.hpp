@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <memory>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -12,6 +11,7 @@
 
 #include <userver/storages/sqlite/execution_result.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
+#include "userver/logging/log.hpp"
 #include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -106,7 +106,7 @@ class ResultSet {
     void operator()(sqlite3_stmt* stmt);
   };
 
-  std::unique_ptr<sqlite3_stmt, Deleter> stmt_;
+  sqlite3_stmt* stmt_;
   int exec_status_;
 
   template <typename FieldType>
@@ -134,14 +134,14 @@ std::vector<T> ResultSet::AsVector() && {
   std::vector<T> result;
   // TODO: is this an I/O bound operation? does it need to be run on
   // blocking_task_processor_? How page_cache and wal log work?
-  while (sqlite3_step(stmt_.get()) == SQLITE_ROW) {
-    result.emplace_back(convertRow<T>(stmt_.get()));
+  while (sqlite3_step(stmt_) == SQLITE_ROW) {
+    result.emplace_back(convertRow<T>(stmt_));
   }
 
   // TODO: happens before
 
   // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
+  sqlite3_reset(stmt_);
 
   return result;
 }
@@ -154,7 +154,7 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
                     std::is_same_v<T, std::vector<uint8_t>>,
                 "Unsupported type for AsVector(FieldTag)");
 
-  const int column_count = sqlite3_column_count(stmt_.get());
+  const int column_count = sqlite3_column_count(stmt_);
   if (column_count != 1) {
     throw SQLiteException(
         "Result set must have exactly one column for AsVector(FieldTag)");
@@ -162,14 +162,14 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
 
   std::vector<T> result;
   while (exec_status_ == SQLITE_ROW) {
-    result.emplace_back(GetColumn<T>(stmt_.get(), 0));
+    result.emplace_back(GetColumn<T>(stmt_, 0));
     // TODO: is this an I/O bound operation? does it need to be run on
     // blocking_task_processor_? How page_cache and wal log work?
-    exec_status_ = sqlite3_step(stmt_.get());
+    exec_status_ = sqlite3_step(stmt_);
   }
 
   // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
+  sqlite3_reset(stmt_);
 
   return result;
 }
@@ -184,17 +184,17 @@ T ResultSet::AsSingleRow() && {
     throw SQLiteException("Result set is empty");
   }
 
-  T result = convertRow<T>(stmt_.get());
+  T result = convertRow<T>(stmt_);
 
   // TODO: is this an I/O bound operation? does it need to be run on
   // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
+  exec_status_ = sqlite3_step(stmt_);
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
   // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
+  sqlite3_reset(stmt_);
 
   return result;
 }
@@ -212,22 +212,22 @@ T ResultSet::AsSingleField() && {
     throw SQLiteException("Result set is empty");
   }
 
-  int column_count = sqlite3_column_count(stmt_.get());
+  int column_count = sqlite3_column_count(stmt_);
   if (column_count != 1) {
     throw SQLiteException("Result set must contain exactly one column");
   }
 
-  T result = GetColumn<T>(stmt_.get(), 0);
+  T result = GetColumn<T>(stmt_, 0);
 
   // TODO: is this an I/O bound operation? does it need to be run on
   // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
+  exec_status_ = sqlite3_step(stmt_);
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
   // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
+  sqlite3_reset(stmt_);
 
   return result;
 }
@@ -242,17 +242,17 @@ std::optional<T> ResultSet::AsOptionalSingleRow() && {
     return std::nullopt;
   }
 
-  T result = convertRow<T>(stmt_.get());
+  T result = convertRow<T>(stmt_);
 
   // TODO: is this an I/O bound operation? does it need to be run on
   // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
+  exec_status_ = sqlite3_step(stmt_);
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
   // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
+  sqlite3_reset(stmt_);
 
   return result;
 }
@@ -270,22 +270,23 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
     return std::nullopt;
   }
 
-  int column_count = sqlite3_column_count(stmt_.get());
+  int column_count = sqlite3_column_count(stmt_);
+  LOG_DEBUG() << "I AM HERE!!!";
   if (column_count != 1) {
     throw SQLiteException("Result set must contain exactly one column");
   }
 
-  T result = GetColumn<T>(stmt_.get(), 0);
+  T result = GetColumn<T>(stmt_, 0);
 
   // TODO: is this an I/O bound operation? does it need to be run on
   // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
+  exec_status_ = sqlite3_step(stmt_);
   if (exec_status_ == SQLITE_ROW) {
     throw SQLiteException("Result set contains more than one row");
   }
 
   // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
+  sqlite3_reset(stmt_);
 
   return result;
 }

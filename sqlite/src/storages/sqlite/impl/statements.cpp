@@ -20,6 +20,12 @@ Statement::~Statement() = default;
 
 Statement::Statement(Statement&& other) noexcept = default;
 
+void Statement::SQLiteStatementDeleter::operator()(sqlite3_stmt* stmt) {
+  // TODO: is this an I/O bound operation, does it need to be run on
+  // blocking_task_processor_?
+  sqlite3_finalize(stmt);
+}
+
 const std::string& Statement::GetStatementText() const { return statement_; }
 
 std::string Statement::getExpandedStatementText() const {
@@ -38,15 +44,15 @@ Statement::NativeStatementPtr Statement::prepareStatement() {
     throw SQLiteException(db_handler_, ret);
   }
 
-  return Statement::NativeStatementPtr(
-      statement, [](sqlite3_stmt* stmt) { sqlite3_finalize(stmt); });
+  return Statement::NativeStatementPtr(statement);
 }
 
 void Statement::Reset() {
+  //  it is important that applications check the return code from
+  //  sqlite3_reset(S) even if no prior call to sqlite3_step(S) indicated a
+  //  problem.
   sqlite3_reset(prepare_statement_.get());
   sqlite3_clear_bindings(prepare_statement_.get());
-  has_row_ = false;
-  done_ = false;
 }
 
 void Statement::Bind(const int index, const int32_t value) {

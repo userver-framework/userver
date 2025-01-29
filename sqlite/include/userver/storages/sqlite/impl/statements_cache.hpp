@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <userver/cache/lru_map.hpp>
 #include <userver/utils/str_icase.hpp>
 
@@ -18,13 +19,14 @@ class StatementsCache final {
   StatementsCache(sqlite3* db_handler, std::size_t capacity);
   ~StatementsCache();
 
-  Statement& PrepareStatement(const std::string& statement);
+  std::shared_ptr<Statement> PrepareStatement(
+      const std::string& statement) const;
 
  private:
   sqlite3* db_handler_;
 
-  cache::LruMap<std::string, Statement, utils::StrIcaseHash,
-                utils::StrIcaseEqual>
+  mutable cache::LruMap<std::string, std::shared_ptr<Statement>,
+                        utils::StrIcaseHash, utils::StrIcaseEqual>
       cache_;
 };
 

@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <iostream>
 #include <memory>
 #include <string>
 
@@ -29,7 +28,12 @@ class Statement final {
   ResultSet Execute(const Args&... args [[maybe_unused]]);
 
  private:
-  using NativeStatementPtr = std::shared_ptr<sqlite3_stmt>;
+  struct SQLiteStatementDeleter {
+    void operator()(sqlite3_stmt* stmt);
+  };
+
+  using NativeStatementPtr =
+      std::unique_ptr<sqlite3_stmt, SQLiteStatementDeleter>;
 
   void Reset();
 
@@ -61,11 +65,8 @@ class Statement final {
   std::string statement_;  // UTF-8 SQL Query
   NativeStatementPtr prepare_statement_;  //  Shared Pointer to the prepared
                                           //  SQLite Statement Object
-  size_t column_count_;   // Number of columns in the result of the prepared
-                          // statement
-  bool has_row_ = false;  // true when a row has been fetched with executeStep()
-  bool done_ =
-      false;  // true when the last executeStep() had no more row to fetch
+  size_t column_count_;  // Number of columns in the result of the prepared
+                         // statement
 };
 
 template <typename... Args>
@@ -73,15 +74,14 @@ ResultSet Statement::Execute(const Args&... args [[maybe_unused]]) {
   Reset();
   UpdateParamsBindings(args...);
 
-  std::cout << "HI: " << GetStatementText() << " "
-            << getExpandedStatementText();
-
+  LOG_DEBUG() << "TG: " << prepare_statement_.get();
   const int exec_status = sqlite3_step(prepare_statement_.get());
   // TODO: is this an first-call I/O bound
   // operation, does it need to be run on blocking_task_processor_?
   if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
     throw SQLiteException(db_handler_, exec_status);
   }
+  LOG_DEBUG() << "HAVE YOU: " << getExpandedStatementText();
   return ResultSet(prepare_statement_.get(), exec_status);
 }
 
