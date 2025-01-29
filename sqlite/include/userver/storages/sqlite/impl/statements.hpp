@@ -20,9 +20,9 @@ class Statement final {
   Statement(const Statement& other) = delete;
   Statement(Statement&& other) noexcept;
 
-  const std::string& GetStatementText() const;
+  const std::string& GetStatementText() const noexcept;
 
-  std::string getExpandedStatementText() const;
+  std::string getExpandedStatementText() const noexcept;
 
   template <typename... Args>
   ResultSet Execute(const Args&... args [[maybe_unused]]);
@@ -35,7 +35,7 @@ class Statement final {
   using NativeStatementPtr =
       std::unique_ptr<sqlite3_stmt, SQLiteStatementDeleter>;
 
-  void Reset();
+  void Reset() noexcept;
 
   void Bind(const int index, const int32_t value);
 
