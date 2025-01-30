@@ -142,6 +142,10 @@ public:
     /// @brief Append contents of a string_view to the string.
     void append(std::string_view str);
 
+    /// @brief Append contents of a string_view to the string.
+    template <class InputIt>
+    void insert(const_iterator pos, InputIt begin, InputIt end);
+
     /// @brief Remove the last character from the string.
     void pop_back();
 
@@ -274,6 +278,12 @@ template <std::size_t N>
 void SmallString<N>::append(std::string_view str) {
     std::size_t old_size = data_.size();
     data_.insert(data_.begin() + old_size, str.begin(), str.end());
+}
+
+template <std::size_t N>
+template <class InputIt>
+void SmallString<N>::insert(SmallString::const_iterator pos, InputIt begin, InputIt end) {
+    data_.insert(pos, begin, end);
 }
 
 template <std::size_t N>
