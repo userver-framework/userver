@@ -19,6 +19,12 @@ class StatementsCache final {
   StatementsCache(sqlite3* db_handler, std::size_t capacity);
   ~StatementsCache();
 
+  StatementsCache(StatementsCache&&) noexcept = default;
+  StatementsCache(const StatementsCache&) = delete;
+
+  StatementsCache& operator=(StatementsCache&&) noexcept = default;
+  StatementsCache& operator=(const StatementsCache&) = delete;
+
   // TODO: Why we can't use Statement& here?
   // CRITICAL <userver> ERROR at
   // userver/universal/include/userver/cache/impl/lru.hpp:344:InsertNode.

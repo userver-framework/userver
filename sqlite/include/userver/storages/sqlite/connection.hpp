@@ -9,15 +9,12 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
-#include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,10 +58,10 @@ class Connection final {
   // query,
   //                       const Container& params) const;
 
-  Transaction Begin(std::string name, const TransactionOptions&) const;
+  Transaction Begin(std::string name, const TransactionOptions&);
 
   Transaction Begin(OptionalCommandControl optional_cc, std::string name,
-                    const TransactionOptions&) const;
+                    const TransactionOptions&);
 
  private:
   struct SQLiteHandlerDeleter {
@@ -82,10 +79,6 @@ class Connection final {
                       std::optional<std::size_t> batch_size,
                       const Args&... args) const;
 
-  template <typename... Args>
-  void UpdateParamsBindings(sqlite3_stmt* prepare_statement_,
-                            const Args&... args) const;
-
   engine::TaskProcessor& blocking_task_processor_;
   NativeHandlerPtr db_handler_;
   impl::StatementsCache statements_cache_;
@@ -102,7 +95,7 @@ ResultSet Connection::Execute(OptionalCommandControl optional_cc
                               const Query& query,
                               const Args&... args [[maybe_unused]]) const {
   // TODO: Add support of args like WHERE key = ?, (?, ?, ?)
-  return DoExecute(optional_cc, query.GetStatement(), std::nullopt, args...);
+  return DoExecute(optional_cc, query, std::nullopt, args...);
 }
 
 template <typename... Args>
@@ -125,13 +118,6 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_control
                                return stmt->Execute(args...);
                              })
       .Get();
-}
-
-template <typename... Args>
-void Connection::UpdateParamsBindings(sqlite3_stmt* prepare_statement_,
-                                      const Args&... args) const {
-  int index = 1;
-  (Bind(prepare_statement_, index++, args), ...);
 }
 
 // template <typename T>

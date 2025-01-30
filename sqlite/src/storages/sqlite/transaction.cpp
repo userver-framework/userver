@@ -3,14 +3,33 @@
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/sqlite/query.hpp>
+#include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
 Transaction::Transaction(sqlite3* handle,
-                         engine::TaskProcessor& blocking_task_processor)
-    : handle_(handle), blocking_task_processor_(blocking_task_processor) {}
+                         engine::TaskProcessor& blocking_task_processor,
+                         const TransactionOptions& options,
+                         impl::StatementsCache& statements_cache)
+    : handle_(handle),
+      blocking_task_processor_(blocking_task_processor),
+      statements_cache_(statements_cache) {
+  switch (options.mode) {
+    case TransactionOptions::kDeferred:
+      Execute("BEGIN DEFERRED");
+      break;
+    case TransactionOptions::kImmediate:
+      Execute("BEGIN IMMEDIATE");
+      break;
+    case TransactionOptions::kExclusive:
+      Execute("BEGIN EXCLUSIVE");
+      break;
+    default:
+      throw SQLiteException("invalid/unknown transaction mode");
+  }
+}
 
 Transaction::Transaction(const Transaction& other) = default;
 
@@ -24,29 +43,19 @@ Transaction::~Transaction() {
   }
 }
 
-void Transaction::Commit() {}
+void Transaction::Commit() {
+  if (commited_) {
+    throw SQLiteException("Transaction already commited");
+  }
+  Execute("COMMIT TRANSACTION");
+  commited_ = true;
+}
 
-void Transaction::Rollback() {}
-
-ResultSet Transaction::DoExecute(const Query& query) const {
-  return engine::AsyncNoSpan(
-             blocking_task_processor_,
-             [this, query] {
-               sqlite3_stmt* stmt = nullptr;
-               int ret = 0;
-               if (ret =
-                       sqlite3_prepare_v2(handle_, query.GetStatement().c_str(),
-                                          -1, &stmt, nullptr);
-                   ret != SQLITE_OK) {
-                 throw SQLiteException(handle_, ret);
-               }
-               const int exec_status = sqlite3_step(stmt);
-               if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
-                 throw SQLiteException(handle_, exec_status);
-               }
-               return ResultSet(stmt, exec_status);
-             })
-      .Get();
+void Transaction::Rollback() {
+  if (commited_) {
+    throw SQLiteException("Transaction already commited");
+  }
+  Execute("ROLLBACK TRANSACTION");
 }
 
 }  // namespace storages::sqlite

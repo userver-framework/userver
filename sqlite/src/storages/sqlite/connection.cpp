@@ -52,7 +52,7 @@ sqlite3* Connection::OpenDatabase(const SQLiteSettings& settings) const {
 sqlite3* Connection::getHandle() const noexcept { return db_handler_.get(); };
 
 Transaction Connection::Begin(std::string name,
-                              const TransactionOptions& options) const {
+                              const TransactionOptions& options) {
   return Begin(std::nullopt, name, options);
 }
 
@@ -60,8 +60,9 @@ Transaction Connection::Begin(OptionalCommandControl command_control
                               [[maybe_unused]],
                               std::string name [[maybe_unused]],
                               const TransactionOptions& options
-                              [[maybe_unused]]) const {
-  return Transaction{getHandle(), blocking_task_processor_};
+                              [[maybe_unused]]) {
+  return Transaction{getHandle(), blocking_task_processor_, options,
+                     statements_cache_};
 }
 
 }  // namespace storages::sqlite

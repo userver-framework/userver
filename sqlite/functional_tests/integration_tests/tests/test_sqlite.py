@@ -50,8 +50,44 @@ async def test_update_by_unknown_key(service_client):
     response = await service_client.put('/basic/sqlite?key=unknown&value=foo')
     assert response.status == 404
 
-# TODO: Improve batch and decompose tests
+# A test for checking succesful execute standard transactions with deferred mode
+async def test_trx_deffered_ok(service_client):
+    # TODO: What to do with the memorization of values ​​in the database table?
+    response = await service_client.delete('/basic/sqlite?key=foo')
+    assert response.status == 200
 
+    response = await service_client.post('/basic/sqlite?key=foo&value=bar')
+    assert response.status == 201
+    assert response.content == b'bar'
+
+    response = await service_client.get('/basic/sqlite?key=foo')
+    assert response.status == 200
+    assert response.content == b'bar'
+
+    response = await service_client.delete('/basic/sqlite?key=foo')
+    assert response.status == 200
+
+# A test for checking standard transactions with immediate mode
+async def test_trx_immediate_ok(service_client):
+    response = await service_client.delete('/basic/sqlite?key=foo')
+    assert response.status == 200
+
+    response = await service_client.post('/basic/sqlite?key=foo&value=bar')
+    assert response.status == 201
+    assert response.content == b'bar'
+
+    response = await service_client.put('/basic/sqlite?key=foo&value=bar')
+    assert response.status == 201
+    assert response.content == b'bar'
+
+    response = await service_client.get('/basic/sqlite?key=foo')
+    assert response.status == 200
+    assert response.content == b'bar'
+
+    response = await service_client.delete('/basic/sqlite?key=foo')
+    assert response.status == 200
+
+# TODO: Improve batch and decompose tests
 # # A test for working with data batch, inserting and getting several records
 # # These tests also check work with ResultSet
 # async def test_batch_select_insert(service_client):
@@ -72,18 +108,7 @@ async def test_update_by_unknown_key(service_client):
 #         {'key': str(i), 'value': str(i)} for i in range(10)
 #     ]
 
-# TODO: Improve transaction tests
-
-# # A test for checking succesful execute standard transactions with deferred mode
-# async def test_trx_deffered_ok(service_client):
-#     response = await service_client.post('/basic/sqlite?key=foo&value=bar')
-#     assert response.status == 201
-#     assert response.content == b'bar'
-
-#     response = await service_client.get('/basic/sqlite?key=foo')
-#     assert response.status == 200
-#     assert response.content == b'bar'
-
+# TODO: how to check auto-rollback and failure trx logic?
 # # A test for checking fail execute standard transactions with deferred mode
 # async def test_trx_fail(service_client):
 #     response = await service_client.delete('/basic/sqlite?key=foo')
@@ -97,20 +122,7 @@ async def test_update_by_unknown_key(service_client):
 #     response = await service_client.get('/basic/sqlite?key=foo')
 #     assert response.status == 404
 
-# # A test for checking standard transactions with immediate mode
-# async def test_trx_immediate_ok(service_client):
-#     response = await service_client.post('/basic/sqlite?key=foo&value=bar')
-#     assert response.status == 201
-#     assert response.content == b'bar'
-
-#     response = await service_client.put('/basic/sqlite?key=foo&value=bar')
-#     assert response.status == 201
-#     assert response.content == b'bar'
-
-#     response = await service_client.get('/basic/sqlite?key=foo')
-#     assert response.status == 200
-#     assert response.content == b'bar'
-
+# TODO: how to check exclusive trx?
 # async def test_trx_exclusive_ok(service_client):
 #     # test backup, periodic task (summary or deleting old rows)
 #     pass
