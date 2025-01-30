@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <boost/container/small_vector.hpp>
+#include <fmt/ranges.h>
 
 #include <userver/logging/fwd.hpp>
 #include <userver/utils/assert.hpp>
