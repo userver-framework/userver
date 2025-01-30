@@ -1,10 +1,10 @@
 #include <userver/utest/utest.hpp>
 
-#include <userver/storages/sqlite.hpp>
-#include <userver/storages/sqlite/tests/utils.hpp>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <userver/storages/sqlite.hpp>
+#include <userver/storages/sqlite/tests/utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

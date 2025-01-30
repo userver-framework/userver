@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include <fmt/format.h>
+
 #include <userver/components/component_config.hpp>
 #include <userver/engine/subprocess/process_starter.hpp>
 #include <userver/engine/task/task.hpp>

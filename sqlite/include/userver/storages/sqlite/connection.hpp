@@ -5,21 +5,19 @@
 
 #include <memory>
 
+#include <sqlite3.h>
+
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/logging/log.hpp>
-#include <userver/utils/statistics/writer.hpp>
-
 #include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
-
-#include <sqlite3.h>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -124,24 +122,7 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_control
                              [this, query, args...] {
                                auto stmt = statements_cache_.PrepareStatement(
                                    query.GetStatement());
-                               //  auto stmt = impl::Statement{
-                               //      db_handler_.get(), query.GetStatement()};
                                return stmt->Execute(args...);
-                               //  Reset(stmt);
-                               //  UpdateParamsBindings(stmt, args...);
-                               //  const int exec_status =
-                               //      sqlite3_step(stmt);  // TODO: is this an
-                               //      first-call I/O bound
-                               //                           // operation, does
-                               //                           it need to be run on
-                               //                           //
-                               //                           blocking_task_processor_?
-                               //  if (exec_status != SQLITE_ROW && exec_status
-                               //  != SQLITE_DONE) {
-                               //    throw SQLiteException(getHandle(),
-                               //    exec_status);
-                               //  }
-                               //  return ResultSet(stmt, exec_status);
                              })
       .Get();
 }

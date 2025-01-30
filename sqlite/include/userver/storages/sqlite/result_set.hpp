@@ -9,10 +9,9 @@
 #include <sqlite3.h>
 #include <boost/pfr.hpp>
 
+#include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/execution_result.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
-#include "userver/logging/log.hpp"
-#include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -271,7 +270,6 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
   }
 
   int column_count = sqlite3_column_count(stmt_);
-  LOG_DEBUG() << "I AM HERE!!!";
   if (column_count != 1) {
     throw SQLiteException("Result set must contain exactly one column");
   }

@@ -1,8 +1,10 @@
-#include <sqlite3.h>
-#include <memory>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
-#include "userver/logging/log.hpp"
-#include "userver/storages/sqlite/impl/statements.hpp"
+
+#include <memory>
+
+#include <sqlite3.h>
+
+#include <userver/storages/sqlite/impl/statements.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +19,7 @@ StatementsCache::~StatementsCache() = default;
 
 std::shared_ptr<Statement> StatementsCache::PrepareStatement(
     const std::string& statement) const {
-  auto val_ptr = cache_.Get(statement);
+  auto* val_ptr = cache_.Get(statement);
   if (val_ptr) {
     return *val_ptr;
   }

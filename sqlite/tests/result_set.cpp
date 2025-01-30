@@ -1,10 +1,7 @@
 #include <userver/utest/utest.hpp>
 
-#include <exception>
-
 #include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-#include "userver/storages/sqlite/result_set.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

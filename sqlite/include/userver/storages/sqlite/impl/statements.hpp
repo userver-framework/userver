@@ -3,10 +3,9 @@
 #include <memory>
 #include <string>
 
-#include <userver/storages/sqlite/result_set.hpp>
-#include "userver/logging/log.hpp"
-
 #include <sqlite3.h>
+
+#include <userver/storages/sqlite/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -74,14 +73,12 @@ ResultSet Statement::Execute(const Args&... args [[maybe_unused]]) {
   Reset();
   UpdateParamsBindings(args...);
 
-  LOG_DEBUG() << "TG: " << prepare_statement_.get();
   const int exec_status = sqlite3_step(prepare_statement_.get());
   // TODO: is this an first-call I/O bound
   // operation, does it need to be run on blocking_task_processor_?
   if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
     throw SQLiteException(db_handler_, exec_status);
   }
-  LOG_DEBUG() << "HAVE YOU: " << getExpandedStatementText();
   return ResultSet(prepare_statement_.get(), exec_status);
 }
 

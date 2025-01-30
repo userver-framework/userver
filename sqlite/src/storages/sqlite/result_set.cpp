@@ -1,7 +1,6 @@
 #include <userver/storages/sqlite/result_set.hpp>
 
 #include <userver/storages/sqlite/exceptions.hpp>
-#include "userver/logging/log.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,7 +9,6 @@ namespace storages::sqlite {
 ResultSet::ResultSet(sqlite3_stmt* stmt, int exec_status)
     : stmt_(stmt), exec_status_(exec_status) {
   if (!stmt_) throw SQLiteException("Statement cannot be null");
-  LOG_DEBUG() << "MAL: " << sqlite3_sql(stmt_);
 }
 
 ResultSet::ResultSet(ResultSet&& other) noexcept = default;

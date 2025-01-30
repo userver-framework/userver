@@ -1,12 +1,12 @@
 #include <userver/utest/utest.hpp>
 
+#include <gtest/gtest.h>
+
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/connection.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-
-#include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 

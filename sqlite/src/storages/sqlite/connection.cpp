@@ -2,11 +2,11 @@
 
 #include <optional>
 
+#include <sqlite3.h>
+
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
-
-#include <sqlite3.h>
 
 USERVER_NAMESPACE_BEGIN
 
