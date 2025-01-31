@@ -43,8 +43,9 @@ class Transaction final {
   void Rollback();
 
  private:
-  sqlite3* handle_ = nullptr;  // TODO: it's stub
-  bool commited_ = false;      // TODO: Is it safe?
+  // TODO: Take into the class Connectionimpl
+  sqlite3* handle_ = nullptr;
+  bool commited_ = false;  // TODO: Is it safe?
   engine::TaskProcessor& blocking_task_processor_;
   impl::StatementsCache& statements_cache_;
 
