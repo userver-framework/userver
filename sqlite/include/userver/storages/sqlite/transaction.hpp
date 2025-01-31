@@ -2,6 +2,7 @@
 
 /// @file userver/storages/sqlite/transaction.hpp
 
+#include <memory>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/engine/async.hpp>
@@ -9,6 +10,7 @@
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include "userver/storages/sqlite/impl/connection_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,9 +22,8 @@ class ConnectionPtr;
 
 class Transaction final {
  public:
-  Transaction(sqlite3* handle, engine::TaskProcessor& blocking_task_processor,
-              const TransactionOptions& options,
-              impl::StatementsCache& statements_cache);
+  Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
+              const TransactionOptions& options);
   ~Transaction();
   Transaction(const Transaction& other);
   Transaction(Transaction&& other) noexcept;
@@ -43,11 +44,7 @@ class Transaction final {
   void Rollback();
 
  private:
-  // TODO: Take into the class Connectionimpl
-  sqlite3* handle_ = nullptr;
-  bool commited_ = false;  // TODO: Is it safe?
-  engine::TaskProcessor& blocking_task_processor_;
-  impl::StatementsCache& statements_cache_;
+  std::shared_ptr<impl::ConnectionImpl> pimpl_;
 
   template <typename... Args>
   ResultSet DoExecute(OptionalCommandControl option_cc [[maybe_unused]],
@@ -73,13 +70,7 @@ ResultSet Transaction::DoExecute(OptionalCommandControl option_cc
                                  [[maybe_unused]],
                                  const Query& query,
                                  const Args&... args [[maybe_unused]]) const {
-  return engine::AsyncNoSpan(blocking_task_processor_,
-                             [this, query, args...] {
-                               auto stmt = statements_cache_.PrepareStatement(
-                                   query.GetStatement());
-                               return stmt->Execute(args...);
-                             })
-      .Get();
+  return pimpl_->ExecuteCommand(option_cc, query, args...);
 }
 
 }  // namespace storages::sqlite

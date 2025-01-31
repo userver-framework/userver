@@ -9,13 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Transaction::Transaction(sqlite3* handle,
-                         engine::TaskProcessor& blocking_task_processor,
-                         const TransactionOptions& options,
-                         impl::StatementsCache& statements_cache)
-    : handle_(handle),
-      blocking_task_processor_(blocking_task_processor),
-      statements_cache_(statements_cache) {
+Transaction::Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
+                         const TransactionOptions& options)
+    : pimpl_(std::move(pimpl)) {
   switch (options.mode) {
     case TransactionOptions::kDeferred:
       Execute("BEGIN DEFERRED");
@@ -43,20 +39,9 @@ Transaction::~Transaction() {
   }
 }
 
-void Transaction::Commit() {
-  if (commited_) {
-    throw SQLiteException("Transaction already commited");
-  }
-  Execute("COMMIT TRANSACTION");
-  commited_ = true;
-}
+void Transaction::Commit() { pimpl_->Commit(); }
 
-void Transaction::Rollback() {
-  if (commited_) {
-    throw SQLiteException("Transaction already commited");
-  }
-  Execute("ROLLBACK TRANSACTION");
-}
+void Transaction::Rollback() { pimpl_->Rollback(); }
 
 }  // namespace storages::sqlite
 

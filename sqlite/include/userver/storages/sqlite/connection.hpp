@@ -15,6 +15,7 @@
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
+#include "userver/storages/sqlite/impl/connection_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,24 +65,12 @@ class Connection final {
                     const TransactionOptions&);
 
  private:
-  struct SQLiteHandlerDeleter {
-    void operator()(sqlite3* sqlite_handle);
-  };
-
-  using NativeHandlerPtr = std::unique_ptr<sqlite3, SQLiteHandlerDeleter>;
-
-  sqlite3* getHandle() const noexcept;
-
-  sqlite3* OpenDatabase(const SQLiteSettings& settings) const;
-
   template <typename... Args>
   ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
                       std::optional<std::size_t> batch_size,
                       const Args&... args) const;
 
-  engine::TaskProcessor& blocking_task_processor_;
-  NativeHandlerPtr db_handler_;
-  impl::StatementsCache statements_cache_;
+  std::shared_ptr<impl::ConnectionImpl> pimpl_;
 };
 
 template <typename... Args>
@@ -94,7 +83,6 @@ ResultSet Connection::Execute(OptionalCommandControl optional_cc
                               [[maybe_unused]],
                               const Query& query,
                               const Args&... args [[maybe_unused]]) const {
-  // TODO: Add support of args like WHERE key = ?, (?, ?, ?)
   return DoExecute(optional_cc, query, std::nullopt, args...);
 }
 
@@ -105,19 +93,7 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_control
                                 std::optional<std::size_t> batch_size
                                 [[maybe_unused]],
                                 const Args&... args [[maybe_unused]]) const {
-  // Prepare statement and execute first step
-  // TODO: For simple INSERT, DELETE, UPDATE this works, but for example using
-  // RETURNING clauses, obviously repeated calls to sqlite3_step are required to
-  // get all rows https://www.sqlite.org/lang_returning.html
-  // Based on circumstantial evidence, nested and complex DML queries execute in
-  // one sqlite3_step, but this requires inspection and profiling
-  return engine::AsyncNoSpan(blocking_task_processor_,
-                             [this, query, args...] {
-                               auto stmt = statements_cache_.PrepareStatement(
-                                   query.GetStatement());
-                               return stmt->Execute(args...);
-                             })
-      .Get();
+  return pimpl_->ExecuteCommand(command_control, query, args...);
 }
 
 // template <typename T>
