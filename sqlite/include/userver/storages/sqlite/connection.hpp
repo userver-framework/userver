@@ -4,8 +4,10 @@
 /// @copybrief @copybrief storages::sqlite::Connection
 
 #include <memory>
-
 #include <optional>
+
+#include <boost/pfr/core.hpp>
+
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -42,8 +44,6 @@ class Connection final {
   ResultSet Execute(OptionalCommandControl optional_cc, const Query& query,
                     const Args&... args) const;
 
-  // TODO: Implement the binding of the structure/tuple in a set of parameters
-  // for request
   template <typename T>
   ResultSet ExecuteDecompose(const Query& query,
                              const T& row [[maybe_unused]]) const;
@@ -52,10 +52,7 @@ class Connection final {
   ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
                              const Query& query, const T& row) const;
 
-  // TODO: ExecuteBulk will work similarly to executemany in Python, that is,
-  // a consistent call of ordinary execute
   // https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executemany
-
   template <typename Container>
   void ExecuteBulk(const Query& query, const Container& params) const;
 
