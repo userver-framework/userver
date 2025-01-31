@@ -31,13 +31,13 @@ jobs:
                 docker buildx use my-builder
                 docker buildx build \
                     -f scripts/docker/ubuntu-24.04-base.dockerfile \
-                    --output type=image,name=ghcr.io/userver-framework/ubuntu-24.04-userver-base:${USERVER_IMAGE_TAG},oci-mediatypes=true,compression=zstd,force-compression=true,push=true \
+                    --output type=image,name=ghcr.io/userver-framework/ubuntu-24.04-userver-base:${USERVER_IMAGE_TAG},oci-mediatypes=true,compression=zstd,force-compression=true,compression-level=20,push=true \
                     .
           - name: Build the ubuntu-24.04-userver Docker image
             run: |
+                docker buildx create --name my-builder --driver docker-container
+                docker buildx use my-builder
                 docker buildx build \
-                    -t ghcr.io/userver-framework/ubuntu-24.04-userver:${USERVER_IMAGE_TAG} \
                     -f scripts/docker/ubuntu-24.04-userver.dockerfile \
-                    --output type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true \
+                    --output type=image,name=ghcr.io/userver-framework/ubuntu-24.04-userver:${USERVER_IMAGE_TAG},oci-mediatypes=true,compression=zstd,force-compression=true,compression-level=20,push=true \
                     .
-                docker push ghcr.io/userver-framework/ubuntu-24.04-userver:${USERVER_IMAGE_TAG}
