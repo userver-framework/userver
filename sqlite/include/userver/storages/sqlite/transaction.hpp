@@ -44,7 +44,7 @@ class Transaction final {
 
  private:
   sqlite3* handle_ = nullptr;  // TODO: it's stub
-  bool commited_ = false;
+  bool commited_ = false;      // TODO: Is it safe?
   engine::TaskProcessor& blocking_task_processor_;
   impl::StatementsCache& statements_cache_;
 
