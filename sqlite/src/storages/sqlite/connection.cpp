@@ -1,6 +1,6 @@
-#include <memory>
 #include <userver/storages/sqlite/connection.hpp>
 
+#include <memory>
 #include <optional>
 
 #include <sqlite3.h>

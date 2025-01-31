@@ -80,6 +80,7 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
       return {};
     }
 
+    // TODO: impl
     // if (rows.size() > 1) {
     //   sqlite_connection_->ExecuteBulk(db::sql::kInsertKeyValue.data(), rows);
     // } else {

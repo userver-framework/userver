@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 
 #include <memory>
+
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>

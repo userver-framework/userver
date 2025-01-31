@@ -3,9 +3,9 @@
 /// @file userver/storages/sqlite/transaction.hpp
 
 #include <memory>
-#include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
@@ -44,6 +44,8 @@ class Transaction final {
   void Rollback();
 
  private:
+  // TODO: maybe it is better to use a class of an index for implementation or
+  // fastpimpl
   std::shared_ptr<impl::ConnectionImpl> pimpl_;
 
   template <typename... Args>
