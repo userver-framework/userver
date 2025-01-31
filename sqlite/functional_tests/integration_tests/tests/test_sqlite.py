@@ -87,26 +87,23 @@ async def test_trx_immediate_ok(service_client):
     response = await service_client.delete('/basic/sqlite?key=foo')
     assert response.status == 200
 
-# TODO: Improve batch and decompose tests
-# # A test for working with data batch, inserting and getting several records
-# # These tests also check work with ResultSet
-# async def test_batch_select_insert(service_client):
-#     # Insert 10 pairs and as result get values
-#     response = await service_client.post(
-#         '/basic/sqlite/batch/',
-#         json={'data': [{'key': str(i), 'value': str(i)} for i in range(10)]},
-#     )
-#     assert response.status_code == 200
-#     assert response.json()['values'] == [
-#         {'key': str(i), 'value': str(i)} for i in range(10)
-#     ]
+# A test for working with data batch, inserting and getting several records
+# These tests also check work with ResultSet
+async def test_batch_select_insert(service_client):
+    values = [{'key': str(i), 'value': str(i)} for i in range(10)]
 
-#     # Get all values
-#     response = await service_client.get('/basic/sqlite/batch/')
-#     assert response.status_code == 200
-#     assert response.json()['values'] == [
-#         {'key': str(i), 'value': str(i)} for i in range(10)
-#     ]
+    # Insert 10 pairs and as result get values
+    response = await service_client.post(
+        '/basic/sqlite/batch/',
+        json={'data': values},
+    )
+    assert response.status_code == 200
+    assert response.json()['values'] == values
+
+    # Get all values
+    response = await service_client.get('/basic/sqlite/batch/')
+    assert response.status_code == 200
+    assert response.json()['values'] == values
 
 # TODO: how to check auto-rollback and failure trx logic?
 # # A test for checking fail execute standard transactions with deferred mode

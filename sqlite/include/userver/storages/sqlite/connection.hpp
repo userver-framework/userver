@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include <optional>
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -42,32 +43,31 @@ class Connection final {
                     const Args&... args) const;
 
   // TODO: Implement the binding of the structure/tuple in a set of parameters
-  // for request template <typename T> ResultSet ExecuteDecompose(const Query&
-  // query,
-  //                            const T& row [[maybe_unused]]) const;
+  // for request
+  template <typename T>
+  ResultSet ExecuteDecompose(const Query& query,
+                             const T& row [[maybe_unused]]) const;
 
-  // template <typename T>
-  // ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
-  //                            const Query& query, const T& row) const;
+  template <typename T>
+  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
+                             const Query& query, const T& row) const;
 
   // TODO: ExecuteBulk will work similarly to executemany in Python, that is,
   // a consistent call of ordinary execute
   // https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executemany
 
-  // template <typename Container>
-  // ResultSet ExecuteBulk(const Query& query, const Container& params) const;
+  template <typename Container>
+  void ExecuteBulk(const Query& query, const Container& params) const;
 
-  // template <typename Container>
-  // ResultSet ExecuteBulk(OptionalCommandControl optional_cc, const Query&
-  // query,
-  //                       const Container& params) const;
+  template <typename Container>
+  void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
+                   const Container& params) const;
 
   Transaction Begin(std::string name, const TransactionOptions&);
 
   Transaction Begin(OptionalCommandControl optional_cc, std::string name,
                     const TransactionOptions&);
 
- private:
   template <typename... Args>
   ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
                       std::optional<std::size_t> batch_size,
@@ -99,6 +99,39 @@ ResultSet Connection::DoExecute(OptionalCommandControl command_control
                                 [[maybe_unused]],
                                 const Args&... args [[maybe_unused]]) const {
   return pimpl_->ExecuteCommand(command_control, query, args...);
+}
+
+template <typename T>
+ResultSet Connection::ExecuteDecompose(const Query& query, const T& row) const {
+  return ExecuteDecompose(std::nullopt, query, row);
+}
+
+template <typename T>
+ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc
+                                       [[maybe_unused]],
+                                       const Query& query, const T& row) const {
+  auto fields = boost::pfr::structure_to_tuple(row);
+  return std::apply(
+      [this, &query](const auto&... args) {
+        return this->Execute(query, args...);
+      },
+      fields);
+}
+
+template <typename Container>
+void Connection::ExecuteBulk(const Query& query,
+                             const Container& params) const {
+  return ExecuteBulk(std::nullopt, query, params);
+}
+
+template <typename Container>
+void Connection::ExecuteBulk(OptionalCommandControl optional_cc
+                             [[maybe_unused]],
+                             const Query& query,
+                             const Container& params) const {
+  for (const auto& row : params) {
+    ExecuteDecompose(query, row).AsExecutionResult();
+  }
 }
 
 }  // namespace storages::sqlite

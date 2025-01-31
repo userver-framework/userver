@@ -131,10 +131,12 @@ std::vector<T> ResultSet::AsVector() && {
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
   std::vector<T> result;
-  // TODO: is this an I/O bound operation? does it need to be run on
-  // blocking_task_processor_? How page_cache and wal log work?
-  while (sqlite3_step(stmt_) == SQLITE_ROW) {
+
+  while (exec_status_ == SQLITE_ROW) {
     result.emplace_back(convertRow<T>(stmt_));
+    // TODO: is this an I/O bound operation? does it need to be run on
+    // blocking_task_processor_? How page_cache and wal log work?
+    exec_status_ = sqlite3_step(stmt_);
   }
 
   // TODO: happens before
