@@ -4,6 +4,7 @@ name: Build and publish ubuntu-24.04-userver images
     schedule:
       - cron: '30 5 * * 6'  # Every Saturday at 5:30
     workflow_dispatch:
+    pull_request:
     release:
         types: [published]
 
