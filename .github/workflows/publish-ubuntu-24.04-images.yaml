@@ -35,7 +35,6 @@ jobs:
                     .
           - name: Build the ubuntu-24.04-userver Docker image
             run: |
-                docker buildx create --name my-builder --driver docker-container
                 docker buildx use my-builder
                 docker buildx build \
                     -f scripts/docker/ubuntu-24.04-userver.dockerfile \
