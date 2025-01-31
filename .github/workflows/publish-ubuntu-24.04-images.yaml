@@ -26,9 +26,17 @@ jobs:
                 password: ${{ secrets.GITHUB_TOKEN }}
           - name: Build the ubuntu-24.04-userver-base Docker image
             run: |
-                docker build -t ghcr.io/userver-framework/ubuntu-24.04-userver-base:${USERVER_IMAGE_TAG} -f scripts/docker/ubuntu-24.04-base.dockerfile .
+                docker buildx build \
+                    -t ghcr.io/userver-framework/ubuntu-24.04-userver-base:${USERVER_IMAGE_TAG} \
+                    -f scripts/docker/ubuntu-24.04-base.dockerfile \
+                    --output type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true \
+                    .
                 docker push ghcr.io/userver-framework/ubuntu-24.04-userver-base:${USERVER_IMAGE_TAG}
           - name: Build the ubuntu-24.04-userver Docker image
             run: |
-                docker build -t ghcr.io/userver-framework/ubuntu-24.04-userver:${USERVER_IMAGE_TAG} -f scripts/docker/ubuntu-24.04-userver.dockerfile .
+                docker buildx build \
+                    -t ghcr.io/userver-framework/ubuntu-24.04-userver:${USERVER_IMAGE_TAG} \
+                    -f scripts/docker/ubuntu-24.04-userver.dockerfile \
+                    --output type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true \
+                    .
                 docker push ghcr.io/userver-framework/ubuntu-24.04-userver:${USERVER_IMAGE_TAG}
