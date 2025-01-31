@@ -10,7 +10,7 @@ ENV COMPILER=$COMPILER
 COPY scripts/select-compiler.sh /userver_tmp/
 
 RUN if [ "$COMPILER" = clang ]; then \
-      apt install -y clang-18; \
+      apt install -y clang-18 lld-18; \
     fi
 
 RUN git clone https://github.com/userver-framework/userver \
