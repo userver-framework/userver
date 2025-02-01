@@ -272,7 +272,7 @@ After that the `make test` would build and run the service tests.
 
 Windows native development is not supported, there is no plan to support Windows native development in the near future. You need to use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/).
 
-First, install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/) with Ubuntu 24.04. Next, follow @ref ubuntu_24_04 "Ubunty 24.04" instructions.
+First, install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/) with Ubuntu 24.04. Next, follow @ref ubuntu_24_04 "Ubuntu 24.04" instructions.
 
 ### Other POSIX based platforms
 
