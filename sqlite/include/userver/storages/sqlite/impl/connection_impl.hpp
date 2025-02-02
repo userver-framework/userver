@@ -29,6 +29,14 @@ class ConnectionImpl {
   ResultSet ExecuteCommand(OptionalCommandControl optional_cc,
                            const Query& query, const Args&... args) const;
 
+  template <typename T>
+  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
+                             const Query& query, const T& row) const;
+
+  template <typename Container>
+  void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
+                   const Container& params) const;
+
   void Commit();
   void Rollback();
 
@@ -68,6 +76,38 @@ ResultSet ConnectionImpl::ExecuteCommand(OptionalCommandControl optional_cc
     return ExecuteCommandNoPrepare(query, args...);
   }
   return ExecuteCommand(query, args...);
+}
+
+template <typename T>
+ResultSet ConnectionImpl::ExecuteDecompose(OptionalCommandControl optional_cc,
+                                           const Query& query,
+                                           const T& row) const {
+  // TODO: Add more detailed verification and error description
+  static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+                "T must be an aggregate type or tuple-like type");
+  if constexpr (std::is_aggregate_v<T>) {
+    auto fields = boost::pfr::structure_to_tuple(row);
+    return std::apply(
+        [this, &query, &optional_cc](const auto&... args) {
+          return this->ExecuteCommand(optional_cc, query, args...);
+        },
+        fields);
+  } else {
+    return std::apply(
+        [this, &query, &optional_cc](const auto&... args) {
+          return this->ExecuteCommand(optional_cc, query, args...);
+        },
+        row);
+  }
+}
+
+template <typename Container>
+void ConnectionImpl::ExecuteBulk(OptionalCommandControl optional_cc,
+                                 const Query& query,
+                                 const Container& params) const {
+  for (const auto& row : params) {
+    ExecuteDecompose(optional_cc, query, row);
+  }
 }
 
 template <typename... Args>

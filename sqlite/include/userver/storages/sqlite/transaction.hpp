@@ -35,7 +35,19 @@ class Transaction final {
   ResultSet Execute(OptionalCommandControl option_cc, const Query& query,
                     const Args&... args) const;
 
-  // TODO: need more diffrent Execute?
+  template <typename T>
+  ResultSet ExecuteDecompose(const Query& query, const T& row) const;
+
+  template <typename T>
+  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
+                             const Query& query, const T& row) const;
+
+  template <typename Container>
+  void ExecuteBulk(const Query& query, const Container& params) const;
+
+  template <typename Container>
+  void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
+                   const Container& params) const;
 
   // TODO: need Portal?
 
@@ -49,30 +61,52 @@ class Transaction final {
   std::shared_ptr<impl::ConnectionImpl> pimpl_;
 
   template <typename... Args>
-  ResultSet DoExecute(OptionalCommandControl option_cc [[maybe_unused]],
-                      const Query& query,
-                      const Args&... args [[maybe_unused]]) const;
+  ResultSet DoExecute(OptionalCommandControl option_cc, const Query& query,
+                      const Args&... args) const;
 };
 
 template <typename... Args>
 ResultSet Transaction::Execute(const Query& query, const Args&... args) const {
-  return Execute(OptionalCommandControl{}, query, args...);
+  return Execute(std::nullopt, query, args...);
 }
 
 template <typename... Args>
-ResultSet Transaction::Execute(OptionalCommandControl option_cc
-                               [[maybe_unused]],
-                               const Query& query,
-                               const Args&... args [[maybe_unused]]) const {
+ResultSet Transaction::Execute(OptionalCommandControl option_cc,
+                               const Query& query, const Args&... args) const {
   return DoExecute(option_cc, query, args...);
 }
 
 template <typename... Args>
-ResultSet Transaction::DoExecute(OptionalCommandControl option_cc
-                                 [[maybe_unused]],
+ResultSet Transaction::DoExecute(OptionalCommandControl option_cc,
                                  const Query& query,
-                                 const Args&... args [[maybe_unused]]) const {
+                                 const Args&... args) const {
   return pimpl_->ExecuteCommand(option_cc, query, args...);
+}
+
+template <typename T>
+ResultSet Transaction::ExecuteDecompose(const Query& query,
+                                        const T& row) const {
+  return ExecuteDecompose(std::nullopt, query, row);
+}
+
+template <typename T>
+ResultSet Transaction::ExecuteDecompose(OptionalCommandControl optional_cc,
+                                        const Query& query,
+                                        const T& row) const {
+  return pimpl_->ExecuteDecompose(optional_cc, query, row);
+}
+
+template <typename Container>
+void Transaction::ExecuteBulk(const Query& query,
+                              const Container& params) const {
+  return ExecuteBulk(std::nullopt, query, params);
+}
+
+template <typename Container>
+void Transaction::ExecuteBulk(OptionalCommandControl optional_cc,
+                              const Query& query,
+                              const Container& params) const {
+  return pimpl_->ExecuteBulk(optional_cc, query, params);
 }
 
 }  // namespace storages::sqlite

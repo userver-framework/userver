@@ -45,8 +45,7 @@ class Connection final {
                     const Args&... args) const;
 
   template <typename T>
-  ResultSet ExecuteDecompose(const Query& query,
-                             const T& row [[maybe_unused]]) const;
+  ResultSet ExecuteDecompose(const Query& query, const T& row) const;
 
   template <typename T>
   ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
@@ -81,20 +80,17 @@ ResultSet Connection::Execute(const Query& query, const Args&... args) const {
 }
 
 template <typename... Args>
-ResultSet Connection::Execute(OptionalCommandControl optional_cc
-                              [[maybe_unused]],
-                              const Query& query,
-                              const Args&... args [[maybe_unused]]) const {
+ResultSet Connection::Execute(OptionalCommandControl optional_cc,
+                              const Query& query, const Args&... args) const {
   return DoExecute(optional_cc, query, std::nullopt, args...);
 }
 
 template <typename... Args>
-ResultSet Connection::DoExecute(OptionalCommandControl command_control
-                                [[maybe_unused]],
-                                const Query& query [[maybe_unused]],
+ResultSet Connection::DoExecute(OptionalCommandControl command_control,
+                                const Query& query,
                                 std::optional<std::size_t> batch_size
                                 [[maybe_unused]],
-                                const Args&... args [[maybe_unused]]) const {
+                                const Args&... args) const {
   return pimpl_->ExecuteCommand(command_control, query, args...);
 }
 
@@ -104,15 +100,9 @@ ResultSet Connection::ExecuteDecompose(const Query& query, const T& row) const {
 }
 
 template <typename T>
-ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc
-                                       [[maybe_unused]],
+ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc,
                                        const Query& query, const T& row) const {
-  auto fields = boost::pfr::structure_to_tuple(row);
-  return std::apply(
-      [this, &query](const auto&... args) {
-        return this->Execute(query, args...);
-      },
-      fields);
+  return pimpl_->ExecuteDecompose(optional_cc, query, row);
 }
 
 template <typename Container>
@@ -122,13 +112,10 @@ void Connection::ExecuteBulk(const Query& query,
 }
 
 template <typename Container>
-void Connection::ExecuteBulk(OptionalCommandControl optional_cc
-                             [[maybe_unused]],
+void Connection::ExecuteBulk(OptionalCommandControl optional_cc,
                              const Query& query,
                              const Container& params) const {
-  for (const auto& row : params) {
-    ExecuteDecompose(query, row).AsExecutionResult();
-  }
+  return pimpl_->ExecuteBulk(optional_cc, query, params);
 }
 
 }  // namespace storages::sqlite
