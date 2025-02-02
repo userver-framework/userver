@@ -27,8 +27,6 @@ Transaction::Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
   }
 }
 
-Transaction::Transaction(const Transaction& other) = default;
-
 Transaction::Transaction(Transaction&& other) noexcept = default;
 
 Transaction::~Transaction() {

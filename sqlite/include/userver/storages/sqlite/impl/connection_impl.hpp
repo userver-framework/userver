@@ -27,15 +27,15 @@ class ConnectionImpl {
 
   template <typename... Args>
   ResultSet ExecuteCommand(OptionalCommandControl optional_cc,
-                           const Query& query, const Args&... args) const;
+                           const Query& query, const Args&... args);
 
   template <typename T>
   ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
-                             const Query& query, const T& row) const;
+                             const Query& query, const T& row);
 
   template <typename Container>
   void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
-                   const Container& params) const;
+                   const Container& params);
 
   void Commit();
   void Rollback();
@@ -52,7 +52,7 @@ class ConnectionImpl {
   std::shared_ptr<Statement> MakeStatement(const std::string& statement) const;
 
   template <typename... Args>
-  ResultSet ExecuteCommand(const Query& query, const Args&... args) const;
+  ResultSet ExecuteCommand(const Query& query, const Args&... args);
 
   template <typename... Args>
   ResultSet ExecuteCommandNoPrepare(const Query& query,
@@ -69,7 +69,7 @@ template <typename... Args>
 ResultSet ConnectionImpl::ExecuteCommand(OptionalCommandControl optional_cc
                                          [[maybe_unused]],
                                          const Query& query,
-                                         const Args&... args) const {
+                                         const Args&... args) {
   // TODO Process optional_cc
   if (settings_.prepared_statements ==
       ConnectionSettings::kNoPreparedStatements) {
@@ -80,8 +80,7 @@ ResultSet ConnectionImpl::ExecuteCommand(OptionalCommandControl optional_cc
 
 template <typename T>
 ResultSet ConnectionImpl::ExecuteDecompose(OptionalCommandControl optional_cc,
-                                           const Query& query,
-                                           const T& row) const {
+                                           const Query& query, const T& row) {
   // TODO: Add more detailed verification and error description
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
@@ -103,8 +102,7 @@ ResultSet ConnectionImpl::ExecuteDecompose(OptionalCommandControl optional_cc,
 
 template <typename Container>
 void ConnectionImpl::ExecuteBulk(OptionalCommandControl optional_cc,
-                                 const Query& query,
-                                 const Container& params) const {
+                                 const Query& query, const Container& params) {
   for (const auto& row : params) {
     ExecuteDecompose(optional_cc, query, row);
   }
@@ -112,7 +110,7 @@ void ConnectionImpl::ExecuteBulk(OptionalCommandControl optional_cc,
 
 template <typename... Args>
 ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
-                                         const Args&... args) const {
+                                         const Args&... args) {
   // Prepare statement and execute first step
   // TODO: For simple INSERT, DELETE, UPDATE this works, but for example using
   // RETURNING clauses, obviously repeated calls to sqlite3_step are required to

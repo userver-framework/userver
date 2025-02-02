@@ -22,15 +22,14 @@ Connection::Connection(const SQLiteSettings& settings,
 Connection::~Connection() = default;
 
 Transaction Connection::Begin(std::string name,
-                              const TransactionOptions& options) {
+                              const TransactionOptions& options) const {
   return Begin(std::nullopt, name, options);
 }
 
 Transaction Connection::Begin(OptionalCommandControl command_control
                               [[maybe_unused]],
                               std::string name [[maybe_unused]],
-                              const TransactionOptions& options
-                              [[maybe_unused]]) {
+                              const TransactionOptions& options) const {
   // TODO: use name
   return Transaction{pimpl_, options};
 }

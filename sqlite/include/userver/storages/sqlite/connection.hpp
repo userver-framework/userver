@@ -59,11 +59,12 @@ class Connection final {
   void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
                    const Container& params) const;
 
-  Transaction Begin(std::string name, const TransactionOptions&);
+  Transaction Begin(std::string name, const TransactionOptions&) const;
 
   Transaction Begin(OptionalCommandControl optional_cc, std::string name,
-                    const TransactionOptions&);
+                    const TransactionOptions&) const;
 
+ private:
   template <typename... Args>
   ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
                       std::optional<std::size_t> batch_size,

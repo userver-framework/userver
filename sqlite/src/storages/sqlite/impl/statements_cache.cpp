@@ -18,7 +18,7 @@ StatementsCache::StatementsCache(sqlite3* db_handler, std::size_t capacity)
 StatementsCache::~StatementsCache() = default;
 
 std::shared_ptr<Statement> StatementsCache::PrepareStatement(
-    const std::string& statement) const {
+    const std::string& statement) {
   auto* val_ptr = cache_.Get(statement);
   if (val_ptr) {
     return *val_ptr;

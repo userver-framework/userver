@@ -25,7 +25,7 @@ class Transaction final {
   Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
               const TransactionOptions& options);
   ~Transaction();
-  Transaction(const Transaction& other);
+  Transaction(const Transaction& other) = delete;
   Transaction(Transaction&& other) noexcept;
 
   template <typename... Args>
@@ -56,13 +56,13 @@ class Transaction final {
   void Rollback();
 
  private:
-  // TODO: maybe it is better to use a class of an index for implementation or
-  // fastpimpl
-  std::shared_ptr<impl::ConnectionImpl> pimpl_;
-
   template <typename... Args>
   ResultSet DoExecute(OptionalCommandControl option_cc, const Query& query,
                       const Args&... args) const;
+
+  // TODO: maybe it is better to use a class of an index for implementation or
+  // fastpimpl
+  std::shared_ptr<impl::ConnectionImpl> pimpl_;
 };
 
 template <typename... Args>
