@@ -29,26 +29,44 @@ ExecutionResult ResultSet::AsExecutionResult() && {
   const auto last_insert_id =
       sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_));
 
-  // Reset state to use prepared statement again
-  // sqlite3_reset(stmt_);
-
   ExecutionResult result{};
   result.rows_affected = rows_affected;
   result.last_insert_id = last_insert_id;
   return result;
 }
 
-// Add support of NULL and NULLABLE types?
+// TODO: Add support of NULL and NULLABLE types?
+
 template <>
-int64_t ResultSet::GetColumn<int64_t>(sqlite3_stmt* stmt, int column) {
+int32_t ResultSet::GetColumn<int32_t>(sqlite3_stmt* stmt, int column) {
   // TODO: is this an CPU bound operation? does it need to be run on
   // blocking_task_processor_?
+  return sqlite3_column_int(stmt, column);
+}
+
+template <>
+uint32_t ResultSet::GetColumn<uint32_t>(sqlite3_stmt* stmt, int column) {
+  // TODO: Check for null, what to return if the value is null, not 0
+  return sqlite3_column_int64(stmt, column);
+}
+
+template <>
+int64_t ResultSet::GetColumn<int64_t>(sqlite3_stmt* stmt, int column) {
   return sqlite3_column_int64(stmt, column);
 }
 
 template <>
 double ResultSet::GetColumn<double>(sqlite3_stmt* stmt, int column) {
   return sqlite3_column_double(stmt, column);
+}
+
+template <>
+const char* ResultSet::GetColumn<const char*>(sqlite3_stmt* stmt, int column) {
+  // Return a pointer to the text value (NULL terminated string) of the column
+  // specified by its index starting at 0
+  auto text_ptr =
+      reinterpret_cast<const char*>(sqlite3_column_text(stmt, column));
+  return text_ptr ? text_ptr : "";
 }
 
 template <>
@@ -65,6 +83,11 @@ std::string ResultSet::GetColumn<std::string>(sqlite3_stmt* stmt, int column) {
   // followed by sqlite3_column_bytes()"
   // Note: std::string is ok to pass nullptr as first arg, if length is 0
   return std::string(data, sqlite3_column_bytes(stmt, column));
+}
+
+template <>
+const void* ResultSet::GetColumn<const void*>(sqlite3_stmt* stmt, int column) {
+  return sqlite3_column_blob(stmt, column);
 }
 
 template <>
