@@ -34,7 +34,7 @@ class ConnectionImpl {
                              const Query& query, const T& row);
 
   template <typename Container>
-  void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
+  void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
                    const Container& params);
 
   void Commit();
@@ -101,7 +101,7 @@ ResultSet ConnectionImpl::ExecuteDecompose(OptionalCommandControl optional_cc,
 }
 
 template <typename Container>
-void ConnectionImpl::ExecuteBulk(OptionalCommandControl optional_cc,
+void ConnectionImpl::ExecuteMany(OptionalCommandControl optional_cc,
                                  const Query& query, const Container& params) {
   for (const auto& row : params) {
     ExecuteDecompose(optional_cc, query, row);

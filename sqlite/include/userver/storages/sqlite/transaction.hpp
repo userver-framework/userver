@@ -43,10 +43,10 @@ class Transaction final {
                              const Query& query, const T& row) const;
 
   template <typename Container>
-  void ExecuteBulk(const Query& query, const Container& params) const;
+  void ExecuteMany(const Query& query, const Container& params) const;
 
   template <typename Container>
-  void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
+  void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
                    const Container& params) const;
 
   // TODO: need Portal?
@@ -97,16 +97,16 @@ ResultSet Transaction::ExecuteDecompose(OptionalCommandControl optional_cc,
 }
 
 template <typename Container>
-void Transaction::ExecuteBulk(const Query& query,
+void Transaction::ExecuteMany(const Query& query,
                               const Container& params) const {
-  return ExecuteBulk(std::nullopt, query, params);
+  return ExecuteMany(std::nullopt, query, params);
 }
 
 template <typename Container>
-void Transaction::ExecuteBulk(OptionalCommandControl optional_cc,
+void Transaction::ExecuteMany(OptionalCommandControl optional_cc,
                               const Query& query,
                               const Container& params) const {
-  return pimpl_->ExecuteBulk(optional_cc, query, params);
+  return pimpl_->ExecuteMany(optional_cc, query, params);
 }
 
 }  // namespace storages::sqlite

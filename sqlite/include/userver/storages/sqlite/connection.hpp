@@ -53,10 +53,10 @@ class Connection final {
 
   // https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executemany
   template <typename Container>
-  void ExecuteBulk(const Query& query, const Container& params) const;
+  void ExecuteMany(const Query& query, const Container& params) const;
 
   template <typename Container>
-  void ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
+  void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
                    const Container& params) const;
 
   Transaction Begin(std::string name, const TransactionOptions&) const;
@@ -67,7 +67,6 @@ class Connection final {
  private:
   template <typename... Args>
   ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
-                      std::optional<std::size_t> batch_size,
                       const Args&... args) const;
 
   // TODO: maybe it is better to use a class of an index for implementation or
@@ -83,15 +82,12 @@ ResultSet Connection::Execute(const Query& query, const Args&... args) const {
 template <typename... Args>
 ResultSet Connection::Execute(OptionalCommandControl optional_cc,
                               const Query& query, const Args&... args) const {
-  return DoExecute(optional_cc, query, std::nullopt, args...);
+  return DoExecute(optional_cc, query, args...);
 }
 
 template <typename... Args>
 ResultSet Connection::DoExecute(OptionalCommandControl command_control,
-                                const Query& query,
-                                std::optional<std::size_t> batch_size
-                                [[maybe_unused]],
-                                const Args&... args) const {
+                                const Query& query, const Args&... args) const {
   return pimpl_->ExecuteCommand(command_control, query, args...);
 }
 
@@ -107,16 +103,16 @@ ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc,
 }
 
 template <typename Container>
-void Connection::ExecuteBulk(const Query& query,
+void Connection::ExecuteMany(const Query& query,
                              const Container& params) const {
-  return ExecuteBulk(std::nullopt, query, params);
+  return ExecuteMany(std::nullopt, query, params);
 }
 
 template <typename Container>
-void Connection::ExecuteBulk(OptionalCommandControl optional_cc,
+void Connection::ExecuteMany(OptionalCommandControl optional_cc,
                              const Query& query,
                              const Container& params) const {
-  return pimpl_->ExecuteBulk(optional_cc, query, params);
+  return pimpl_->ExecuteMany(optional_cc, query, params);
 }
 
 }  // namespace storages::sqlite
