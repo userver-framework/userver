@@ -119,9 +119,9 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
   // one sqlite3_step, but this requires inspection and profiling
   return engine::AsyncNoSpan(blocking_task_processor_,
                              [this, query, args...] {
-                               auto stmt = statements_cache_.PrepareStatement(
+                               auto& stmt = statements_cache_.PrepareStatement(
                                    query.GetStatement());
-                               return stmt->Execute(args...);
+                               return stmt.Execute(args...);
                              })
       .Get();
 }
@@ -131,8 +131,9 @@ ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   const Args&... args) const {
   return engine::AsyncNoSpan(blocking_task_processor_,
                              [this, query, args...] {
-                               auto stmt = MakeStatement(query.GetStatement());
-                               return stmt->Execute(args...);
+                               return impl::Statement{db_handler_.get(),
+                                                      query.GetStatement()}
+                                   .Execute(args...);
                              })
       .Get();
 }

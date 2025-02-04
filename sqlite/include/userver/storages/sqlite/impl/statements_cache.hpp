@@ -1,12 +1,11 @@
 #pragma once
 
-#include <memory>
-
 #include <sqlite3.h>
 
 #include <userver/cache/lru_map.hpp>
 #include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/utils/str_icase.hpp>
+#include "userver/concurrent/variable.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,20 +21,23 @@ class StatementsCache final {
   StatementsCache(StatementsCache&&) noexcept = default;
   StatementsCache(const StatementsCache&) = delete;
 
-  StatementsCache& operator=(StatementsCache&&) noexcept = default;
+  StatementsCache& operator=(StatementsCache&&) noexcept = delete;
   StatementsCache& operator=(const StatementsCache&) = delete;
 
   // TODO: Why we can't use Statement& here?
   // CRITICAL <userver> ERROR at
   // userver/universal/include/userver/cache/impl/lru.hpp:344:InsertNode.
   // Assertion 'ok' failed
-  std::shared_ptr<Statement> PrepareStatement(const std::string& statement);
+  Statement& PrepareStatement(const std::string& statement);
 
  private:
   sqlite3* db_handler_;
 
-  cache::LruMap<std::string, std::shared_ptr<Statement>, utils::StrIcaseHash,
-                utils::StrIcaseEqual>
+  // TODO: Is synchronization needed?
+  // Non-expirable container cache::LruMap that provides the same concurrency
+  // guarantees as the standard library containers.
+  concurrent::Variable<cache::LruMap<std::string, Statement,
+                                     utils::StrIcaseHash, utils::StrIcaseEqual>>
       cache_;
 };
 

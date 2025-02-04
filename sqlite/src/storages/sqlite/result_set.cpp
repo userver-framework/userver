@@ -6,8 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-ResultSet::ResultSet(sqlite3_stmt* stmt, int exec_status)
-    : stmt_(stmt), exec_status_(exec_status) {
+ResultSet::ResultSet(std::shared_ptr<sqlite3_stmt> stmt, int exec_status)
+    : stmt_(std::move(stmt)), exec_status_(exec_status) {
   if (!stmt_) throw SQLiteException("Statement cannot be null");
 }
 
@@ -15,19 +15,13 @@ ResultSet::ResultSet(ResultSet&& other) noexcept = default;
 
 ResultSet::~ResultSet() = default;
 
-void ResultSet::Deleter::operator()(sqlite3_stmt* stmt) {
-  // TODO: is this an CPU bound operation? does it need to be run on
-  // blocking_task_processor_?
-  sqlite3_finalize(stmt);
-}
-
 ExecutionResult ResultSet::AsExecutionResult() && {
   // TODO: need check on SQLITE_DONE?
   // TODO: is this an CPU bound operation? does it need to be run on
   // blocking_task_processor_?
-  const auto rows_affected = sqlite3_changes(sqlite3_db_handle(stmt_));
+  const auto rows_affected = sqlite3_changes(sqlite3_db_handle(stmt_.get()));
   const auto last_insert_id =
-      sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_));
+      sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_.get()));
 
   ExecutionResult result{};
   result.rows_affected = rows_affected;

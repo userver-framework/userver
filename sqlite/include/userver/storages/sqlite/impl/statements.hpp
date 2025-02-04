@@ -24,15 +24,14 @@ class Statement final {
   std::string getExpandedStatementText() const noexcept;
 
   template <typename... Args>
-  ResultSet Execute(const Args&... args [[maybe_unused]]);
+  ResultSet Execute(const Args&... args);
 
  private:
   struct SQLiteStatementDeleter {
     void operator()(sqlite3_stmt* stmt);
   };
 
-  using NativeStatementPtr =
-      std::unique_ptr<sqlite3_stmt, SQLiteStatementDeleter>;
+  using NativeStatementPtr = std::shared_ptr<sqlite3_stmt>;
 
   void Reset() noexcept;
 
@@ -69,7 +68,7 @@ class Statement final {
 };
 
 template <typename... Args>
-ResultSet Statement::Execute(const Args&... args [[maybe_unused]]) {
+ResultSet Statement::Execute(const Args&... args) {
   Reset();
   UpdateParamsBindings(args...);
 
@@ -79,7 +78,7 @@ ResultSet Statement::Execute(const Args&... args [[maybe_unused]]) {
   if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
     throw SQLiteException(db_handler_, exec_status);
   }
-  return ResultSet(prepare_statement_.get(), exec_status);
+  return ResultSet(prepare_statement_, exec_status);
 }
 
 }  // namespace storages::sqlite::impl

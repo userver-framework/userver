@@ -50,7 +50,7 @@ Statement::NativeStatementPtr Statement::prepareStatement() {
     throw SQLiteException(db_handler_, ret_code);
   }
 
-  return Statement::NativeStatementPtr(statement);
+  return Statement::NativeStatementPtr(statement, SQLiteStatementDeleter());
 }
 
 void Statement::Reset() noexcept {
