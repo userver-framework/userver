@@ -59,9 +59,12 @@ sqlite3* ConnectionImpl::OpenDatabase(const SQLiteSettings& settings) const {
   sqlite3* handle = nullptr;
   // TODO: is this an I/O bound operation, does it need to be run on
   // blocking_task_processor_?
+  // TODO: sqlite3_open_v2 thread-safe?
   if (const int ret =
           sqlite3_open_v2(settings.db_name.c_str(), &handle, flags, nullptr);
       ret != SQLITE_OK) {
+    // TODO: Take logic into the NativeInterface class and make full RAII
+    sqlite3_close(handle);
     throw SQLiteException(handle, ret);
   }
   return handle;
