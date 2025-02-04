@@ -59,7 +59,7 @@ UTEST_F(SQLiteCustomConnectiom, CreateOpen) {
 UTEST_F(SQLiteCustomConnectiom, InMemory) {
   // Try to open in-memory database
   sqlite::SQLiteSettings settings;
-  settings.db_name = "::memory";
+  settings.db_name = ":memory:";
 
   UEXPECT_NO_THROW(CreateConnection(settings))
       << "Connect to in-memory database";
