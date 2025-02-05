@@ -1,9 +1,28 @@
 #include <userver/storages/sqlite/impl/connection_impl.hpp>
-#include "userver/storages/sqlite/impl/statements.hpp"
+#include <userver/storages/sqlite/impl/statements.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
+
+namespace {
+
+constexpr std::string_view kStatementTransactionBeginDeferred =
+    "BEGIN DEFERRED";
+constexpr std::string_view kStatementTransactionBeginImmediate =
+    "BEGIN IMMEDIATE";
+constexpr std::string_view kStatementTransactionBeginExclusive =
+    "BEGIN EXCLUSIVE";
+constexpr std::string_view kStatementTransactionCommit = "COMMIT TRANSACTION";
+constexpr std::string_view kStatementTransactionRollback =
+    "ROLLBACK TRANSACTION";
+constexpr std::string_view kStatementSavepointBegin = "SAVEPOINT ";
+constexpr std::string_view kStatementSavepointRelease = "RELEASE SAVEPOINT ";
+constexpr std::string_view kStatementSavepointRollbackTo =
+    "ROLLBACK TO SAVEPOINT ";
+constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
+
+}  // namespace
 
 ConnectionImpl::ConnectionImpl(const SQLiteSettings& settings,
                                engine::TaskProcessor& blocking_task_processor)
@@ -24,39 +43,41 @@ sqlite3* ConnectionImpl::GetHandle() const noexcept {
 void ConnectionImpl::Begin(const TransactionOptions& options) {
   switch (options.mode) {
     case TransactionOptions::kDeferred:
-      ExecuteCommandNoPrepare("BEGIN DEFERRED");
+      ExecuteCommandNoPrepare(kStatementTransactionBeginDeferred.data());
       break;
     case TransactionOptions::kImmediate:
-      ExecuteCommandNoPrepare("BEGIN IMMEDIATE");
+      ExecuteCommandNoPrepare(kStatementTransactionBeginImmediate.data());
       break;
     case TransactionOptions::kExclusive:
-      ExecuteCommandNoPrepare("BEGIN EXCLUSIVE");
+      ExecuteCommandNoPrepare(kStatementTransactionBeginExclusive.data());
       break;
     default:
       throw SQLiteException("invalid/unknown transaction mode");
   }
 }
 
-void ConnectionImpl::Commit() { ExecuteCommandNoPrepare("COMMIT TRANSACTION"); }
+void ConnectionImpl::Commit() {
+  ExecuteCommandNoPrepare(kStatementTransactionCommit.data());
+}
 
 void ConnectionImpl::Rollback() {
-  ExecuteCommandNoPrepare("ROLLBACK TRANSACTION");
+  ExecuteCommandNoPrepare(kStatementTransactionRollback.data());
 }
 
 void ConnectionImpl::Savepoint(const std::string& name) {
-  ExecuteCommandNoPrepare(std::string("SAVEPOINT ") + name);
+  ExecuteCommandNoPrepare(std::string(kStatementSavepointBegin) + name);
 }
 
 void ConnectionImpl::Release(const std::string& name) {
-  ExecuteCommandNoPrepare(std::string("RELEASE SAVEPOINT") + name);
+  ExecuteCommandNoPrepare(std::string(kStatementSavepointRelease) + name);
 }
 
 void ConnectionImpl::RollbackTo(const std::string& name) {
-  ExecuteCommandNoPrepare(std::string("ROLLBACK TO SAVEPOINT") + name);
+  ExecuteCommandNoPrepare(std::string(kStatementSavepointRollbackTo) + name);
 }
 
 std::string ConnectionImpl::PrepareString(const std::string& str) {
-  return ExecuteCommandNoPrepare("SELECT quote(?)", str)
+  return ExecuteCommandNoPrepare(kStatementPrepeareString.data(), str)
       .AsSingleField<std::string>();
 }
 
