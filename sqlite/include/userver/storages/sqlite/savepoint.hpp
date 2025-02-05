@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/sqlite/transaction.hpp
+/// @file userver/storages/sqlite/savepoint.hpp
 
 #include <memory>
 
@@ -16,13 +16,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-class Transaction final {
+class Savepoint final {
  public:
-  Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
-              const TransactionOptions& options);
-  ~Transaction();
-  Transaction(const Transaction& other) = delete;
-  Transaction(Transaction&& other) noexcept;
+  Savepoint(std::shared_ptr<impl::ConnectionImpl> pimpl, std::string name);
+  ~Savepoint();
+  Savepoint(const Savepoint& other) = delete;
+  Savepoint(Savepoint&& other) noexcept;
 
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;
@@ -45,11 +44,9 @@ class Transaction final {
   void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
                    const Container& params) const;
 
-  // TODO: need Portal?
+  void Release();
 
-  void Commit();
-
-  void Rollback();
+  void RollbackTo();
 
  private:
   template <typename... Args>
@@ -59,49 +56,45 @@ class Transaction final {
   // TODO: maybe it is better to use a class of an index for implementation or
   // fastpimpl
   std::shared_ptr<impl::ConnectionImpl> pimpl_;
+  std::string name_;
 };
 
 template <typename... Args>
-ResultSet Transaction::Execute(const Query& query, const Args&... args) const {
+ResultSet Savepoint::Execute(const Query& query, const Args&... args) const {
   return Execute(std::nullopt, query, args...);
 }
 
 template <typename... Args>
-ResultSet Transaction::Execute(OptionalCommandControl option_cc,
-                               const Query& query, const Args&... args) const {
+ResultSet Savepoint::Execute(OptionalCommandControl option_cc,
+                             const Query& query, const Args&... args) const {
   return DoExecute(option_cc, query, args...);
 }
 
 template <typename... Args>
-ResultSet Transaction::DoExecute(OptionalCommandControl option_cc,
-                                 const Query& query,
-                                 const Args&... args) const {
+ResultSet Savepoint::DoExecute(OptionalCommandControl option_cc,
+                               const Query& query, const Args&... args) const {
   return pimpl_->ExecuteCommand(option_cc, query, args...);
 }
 
 template <typename T>
-ResultSet Transaction::ExecuteDecompose(const Query& query,
-                                        const T& row) const {
+ResultSet Savepoint::ExecuteDecompose(const Query& query, const T& row) const {
   return ExecuteDecompose(std::nullopt, query, row);
 }
 
 template <typename T>
-ResultSet Transaction::ExecuteDecompose(OptionalCommandControl optional_cc,
-                                        const Query& query,
-                                        const T& row) const {
+ResultSet Savepoint::ExecuteDecompose(OptionalCommandControl optional_cc,
+                                      const Query& query, const T& row) const {
   return pimpl_->ExecuteDecompose(optional_cc, query, row);
 }
 
 template <typename Container>
-void Transaction::ExecuteMany(const Query& query,
-                              const Container& params) const {
+void Savepoint::ExecuteMany(const Query& query, const Container& params) const {
   return ExecuteMany(std::nullopt, query, params);
 }
 
 template <typename Container>
-void Transaction::ExecuteMany(OptionalCommandControl optional_cc,
-                              const Query& query,
-                              const Container& params) const {
+void Savepoint::ExecuteMany(OptionalCommandControl optional_cc,
+                            const Query& query, const Container& params) const {
   return pimpl_->ExecuteMany(optional_cc, query, params);
 }
 

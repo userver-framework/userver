@@ -1,4 +1,5 @@
 #include <userver/storages/sqlite/impl/connection_impl.hpp>
+#include "userver/storages/sqlite/impl/statements.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,22 +21,43 @@ sqlite3* ConnectionImpl::GetHandle() const noexcept {
   return db_handler_.get();
 }
 
-void ConnectionImpl::Commit() {
-  // TODO: Process the case of a call outside the transaction
-  // TODO: How to check already commited?
-  //   if (transaction_commited_) {
-  //     throw SQLiteException("Transaction already commited");
-  //   }
-  ExecuteCommandNoPrepare("COMMIT TRANSACTION");
+void ConnectionImpl::Begin(const TransactionOptions& options) {
+  switch (options.mode) {
+    case TransactionOptions::kDeferred:
+      ExecuteCommandNoPrepare("BEGIN DEFERRED");
+      break;
+    case TransactionOptions::kImmediate:
+      ExecuteCommandNoPrepare("BEGIN IMMEDIATE");
+      break;
+    case TransactionOptions::kExclusive:
+      ExecuteCommandNoPrepare("BEGIN EXCLUSIVE");
+      break;
+    default:
+      throw SQLiteException("invalid/unknown transaction mode");
+  }
 }
 
+void ConnectionImpl::Commit() { ExecuteCommandNoPrepare("COMMIT TRANSACTION"); }
+
 void ConnectionImpl::Rollback() {
-  // TODO: Process the case of a call outside the transaction
-  // TODO: How to check already commited?
-  //   if (transaction_commited_) {
-  //     throw SQLiteException("Transaction already commited");
-  //   }
   ExecuteCommandNoPrepare("ROLLBACK TRANSACTION");
+}
+
+void ConnectionImpl::Savepoint(const std::string& name) {
+  ExecuteCommandNoPrepare(std::string("SAVEPOINT ") + name);
+}
+
+void ConnectionImpl::Release(const std::string& name) {
+  ExecuteCommandNoPrepare(std::string("RELEASE SAVEPOINT") + name);
+}
+
+void ConnectionImpl::RollbackTo(const std::string& name) {
+  ExecuteCommandNoPrepare(std::string("ROLLBACK TO SAVEPOINT") + name);
+}
+
+std::string ConnectionImpl::PrepareString(const std::string& str) {
+  return ExecuteCommandNoPrepare("SELECT quote(?)", str)
+      .AsSingleField<std::string>();
 }
 
 void ConnectionImpl::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {

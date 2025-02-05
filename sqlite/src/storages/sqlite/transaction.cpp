@@ -3,7 +3,6 @@
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/sqlite/query.hpp>
-#include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,19 +11,7 @@ namespace storages::sqlite {
 Transaction::Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
                          const TransactionOptions& options)
     : pimpl_(std::move(pimpl)) {
-  switch (options.mode) {
-    case TransactionOptions::kDeferred:
-      Execute("BEGIN DEFERRED");
-      break;
-    case TransactionOptions::kImmediate:
-      Execute("BEGIN IMMEDIATE");
-      break;
-    case TransactionOptions::kExclusive:
-      Execute("BEGIN EXCLUSIVE");
-      break;
-    default:
-      throw SQLiteException("invalid/unknown transaction mode");
-  }
+  pimpl_->Begin(options);
 }
 
 Transaction::Transaction(Transaction&& other) noexcept = default;

@@ -37,8 +37,19 @@ class ConnectionImpl {
   void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
                    const Container& params);
 
+  void Begin(const TransactionOptions& options);
+
   void Commit();
+
   void Rollback();
+
+  void Savepoint(const std::string& name);
+
+  void Release(const std::string& name);
+
+  void RollbackTo(const std::string& name);
+
+  std::string PrepareString(const std::string& str);
 
  private:
   struct SQLiteHandlerDeleter {
