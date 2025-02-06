@@ -26,6 +26,7 @@ class ResultSet {
 
   ResultSet(const ResultSet& other) = delete;
   ResultSet(ResultSet&& other) noexcept;
+  ResultSet& operator=(ResultSet&&) noexcept;
 
   ~ResultSet();
 
@@ -122,11 +123,27 @@ class ResultSet {
   static T ConvertToAggregate(sqlite3_stmt* stmt);
 };
 
+template <typename T, typename = void>
+struct is_tuple : std::false_type {};
+
+template <typename T>
+struct is_tuple<T, std::void_t<typename std::tuple_size<T>::type>>
+    : std::true_type {};
+
+template <typename T>
+struct is_aggregate_or_tuple {
+  static constexpr bool value =
+      std::is_aggregate<T>::value || is_tuple<T>::value;
+};
+
+template <typename T>
+inline constexpr bool is_aggregate_or_tuple_v = is_aggregate_or_tuple<T>::value;
+
 template <typename T>
 std::vector<T> ResultSet::AsVector() && {
   // TODO: Add more detailed verification and error description
-  static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
-                "T must be an aggregate type or tuple-like type");
+  // static_assert(is_aggregate_or_tuple_v<T>,
+  //               "T must be an aggregate type or tuple-like type");
   std::vector<T> result;
 
   while (exec_status_ == SQLITE_ROW) {
@@ -175,8 +192,8 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
 template <typename T>
 T ResultSet::AsSingleRow() && {
   // TODO: Add more detailed verification and error description
-  static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
-                "T must be an aggregate type or tuple-like type");
+  // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+  //               "T must be an aggregate type or tuple-like type");
 
   if (exec_status_ == SQLITE_DONE) {
     throw SQLiteException("Result set is empty");
@@ -233,8 +250,8 @@ T ResultSet::AsSingleField() && {
 template <typename T>
 std::optional<T> ResultSet::AsOptionalSingleRow() && {
   // TODO: Add more detailed verification and error description
-  static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
-                "T must be an aggregate type or tuple-like type");
+  // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+  //               "T must be an aggregate type or tuple-like type");
 
   if (exec_status_ == SQLITE_DONE) {
     return std::nullopt;

@@ -13,6 +13,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/storages/sqlite.hpp>
+#include <userver/storages/sqlite/connection.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN

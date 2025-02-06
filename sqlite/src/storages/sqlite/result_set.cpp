@@ -13,6 +13,8 @@ ResultSet::ResultSet(std::shared_ptr<sqlite3_stmt> stmt, int exec_status)
 
 ResultSet::ResultSet(ResultSet&& other) noexcept = default;
 
+ResultSet& ResultSet::operator=(ResultSet&&) noexcept = default;
+
 ResultSet::~ResultSet() = default;
 
 ExecutionResult ResultSet::AsExecutionResult() && {
