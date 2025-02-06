@@ -73,7 +73,6 @@ class ConnectionImpl {
   ConnectionSettings settings_;
   NativeHandlerPtr db_handler_;
   impl::StatementsCache statements_cache_;
-  bool transaction_commited_ = false;  // TODO: Is it safe?
 };
 
 template <typename... Args>

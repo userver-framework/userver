@@ -45,6 +45,43 @@ class SQLiteTest : public ::testing::Test {
   fs::path test_dir_;
 };
 
+class SQLiteCustomConnection : public SQLiteTest {
+ public:
+  ConnectionPtr CreateConnection(storages::sqlite::SQLiteSettings settings) {
+    auto conn = std::make_shared<storages::sqlite::Connection>(
+        settings, engine::current_task::GetTaskProcessor());
+    CheckConnection(conn);
+    return conn;
+  }
+
+  // TODO: Do I need to validate the connection somehow?
+  void CheckConnection(const ConnectionPtr& conn) {
+    ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
+    // ASSERT_TRUE(conn->getHandle() != nullptr); TODO: need more informative
+    // methods
+  }
+};
+
+class SQLiteInMemoryConnection : public SQLiteCustomConnection {
+ public:
+  ConnectionPtr CreateConnection() {
+    sqlite::SQLiteSettings settings;
+    settings.db_name = ":memory:";
+    return SQLiteCustomConnection::CreateConnection(settings);
+  }
+};
+
+class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
+ public:
+  ConnectionPtr CreateConnection() {
+    sqlite::SQLiteSettings settings;
+    settings.db_name = ":memory:";
+    auto conn = SQLiteInMemoryConnection::CreateConnection();
+    conn->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+    return conn;
+  }
+};
+
 // class SQLiteConnection {
 //  public:
 //   virtual ~SQLiteConnection() = default;

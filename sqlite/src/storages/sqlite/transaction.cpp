@@ -11,10 +11,14 @@ namespace storages::sqlite {
 Transaction::Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
                          const TransactionOptions& options)
     : pimpl_(std::move(pimpl)) {
-  pimpl_->Begin(options);
+  if (pimpl_) {
+    pimpl_->Begin(options);
+  }
 }
 
 Transaction::Transaction(Transaction&& other) noexcept = default;
+
+Transaction& Transaction::operator=(Transaction&&) noexcept = default;
 
 Transaction::~Transaction() {
   try {
@@ -24,9 +28,17 @@ Transaction::~Transaction() {
   }
 }
 
-void Transaction::Commit() { pimpl_->Commit(); }
+void Transaction::Commit() {
+  if (pimpl_) {
+    pimpl_->Commit();
+  }
+}
 
-void Transaction::Rollback() { pimpl_->Rollback(); }
+void Transaction::Rollback() {
+  if (pimpl_) {
+    pimpl_->Rollback();
+  }
+}
 
 }  // namespace storages::sqlite
 

@@ -23,6 +23,7 @@ class Transaction final {
   ~Transaction();
   Transaction(const Transaction& other) = delete;
   Transaction(Transaction&& other) noexcept;
+  Transaction& operator=(Transaction&&) noexcept;
 
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;

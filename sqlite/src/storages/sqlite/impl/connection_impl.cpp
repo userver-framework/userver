@@ -52,7 +52,7 @@ void ConnectionImpl::Begin(const TransactionOptions& options) {
       ExecuteCommandNoPrepare(kStatementTransactionBeginExclusive.data());
       break;
     default:
-      throw SQLiteException("invalid/unknown transaction mode");
+      break;
   }
 }
 

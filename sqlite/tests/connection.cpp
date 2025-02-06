@@ -12,24 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
-class SQLiteCustomConnectiom : public SQLiteTest {
- public:
-  ConnectionPtr CreateConnection(storages::sqlite::SQLiteSettings settings) {
-    auto conn = std::make_shared<storages::sqlite::Connection>(
-        settings, engine::current_task::GetTaskProcessor());
-    CheckConnection(conn);
-    return conn;
-  }
-
-  // TODO: Do I need to validate the connection somehow?
-  void CheckConnection(const ConnectionPtr& conn) {
-    ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
-    // ASSERT_TRUE(conn->getHandle() != nullptr); TODO: need more informative
-    // methods
-  }
-};
-
-UTEST_F(SQLiteCustomConnectiom, NonExistent) {
+UTEST_F(SQLiteCustomConnection, NonExistent) {
   // Try to open a non-existing database
   sqlite::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
@@ -39,7 +22,7 @@ UTEST_F(SQLiteCustomConnectiom, NonExistent) {
       << "Connecting to a non-existent database";
 }
 
-UTEST_F(SQLiteCustomConnectiom, CreateOpen) {
+UTEST_F(SQLiteCustomConnection, CreateOpen) {
   // Try to open a non-existing database
   sqlite::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
@@ -56,7 +39,7 @@ UTEST_F(SQLiteCustomConnectiom, CreateOpen) {
          "automatically";
 }
 
-UTEST_F(SQLiteCustomConnectiom, InMemory) {
+UTEST_F(SQLiteCustomConnection, InMemory) {
   // Try to open in-memory database
   sqlite::SQLiteSettings settings;
   settings.db_name = ":memory:";
