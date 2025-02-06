@@ -1,4 +1,5 @@
 #include <userver/storages/sqlite/impl/connection_impl.hpp>
+
 #include <userver/storages/sqlite/impl/statements.hpp>
 
 USERVER_NAMESPACE_BEGIN

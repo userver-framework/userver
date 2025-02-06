@@ -3,7 +3,9 @@
 #include <string_view>
 #include <vector>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <sqlite3.h>
 
 #include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/exceptions.hpp>
@@ -53,6 +55,16 @@ class SQLiteResultSet : public SQLiteInMemoryInitConnection {
 };
 
 }  // namespace
+
+// class MockStatement : public sqlite3_stmt {
+//  public:
+//   MOCK_METHOD(int, sqlite3_step, (), (override));
+//   MOCK_METHOD(int, sqlite3_column_int, (int column), (override));
+//   MOCK_METHOD(const unsigned char*, sqlite3_column_text, (int column),
+//               (override));
+//   // Добавьте другие методы SQLite API, которые используются в ResultSet
+// };
+
 
 UTEST_F(SQLiteResultSet, AsVectorRowTag) {
   ConnectionPtr conn = CreateConnection();

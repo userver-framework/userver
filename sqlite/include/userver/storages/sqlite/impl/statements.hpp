@@ -1,10 +1,12 @@
 #pragma once
+
 #include <cstdint>
 #include <memory>
 #include <string>
 
 #include <sqlite3.h>
 
+#include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -78,7 +80,8 @@ ResultSet Statement::Execute(const Args&... args) {
   if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
     throw SQLiteException(db_handler_, exec_status);
   }
-  return ResultSet(prepare_statement_, exec_status);
+  return ResultSet(
+      std::make_shared<impl::ResultWrapper>(prepare_statement_, exec_status));
 }
 
 }  // namespace storages::sqlite::impl

@@ -7,11 +7,9 @@
 #include <type_traits>
 #include <vector>
 
-#include <sqlite3.h>
-#include <boost/pfr.hpp>
-
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/execution_result.hpp>
+#include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,7 +20,7 @@ class ResultSet {
  public:
   using size_type = std::size_t;
 
-  explicit ResultSet(std::shared_ptr<sqlite3_stmt> stmt, int exec_status);
+  explicit ResultSet(std::shared_ptr<impl::ResultWrapper> pimpl);
 
   ResultSet(const ResultSet& other) = delete;
   ResultSet(ResultSet&& other) noexcept;
@@ -103,41 +101,8 @@ class ResultSet {
   ExecutionResult AsExecutionResult() &&;
 
  private:
-  std::shared_ptr<sqlite3_stmt> stmt_;
-  int exec_status_;
-
-  template <typename FieldType>
-  static FieldType GetColumn(sqlite3_stmt* stmt, int column);
-
-  template <typename T>
-  static T convertRow(sqlite3_stmt* stmt);
-
-  template <typename Tuple, std::size_t... I>
-  static Tuple ConvertToTupleImpl(sqlite3_stmt* stmt,
-                                  std::index_sequence<I...>);
-
-  template <typename Tuple>
-  static Tuple ConvertToTuple(sqlite3_stmt* stmt);
-
-  template <typename T>
-  static T ConvertToAggregate(sqlite3_stmt* stmt);
+  std::shared_ptr<impl::ResultWrapper> pimpl_;
 };
-
-template <typename T, typename = void>
-struct is_tuple : std::false_type {};
-
-template <typename T>
-struct is_tuple<T, std::void_t<typename std::tuple_size<T>::type>>
-    : std::true_type {};
-
-template <typename T>
-struct is_aggregate_or_tuple {
-  static constexpr bool value =
-      std::is_aggregate<T>::value || is_tuple<T>::value;
-};
-
-template <typename T>
-inline constexpr bool is_aggregate_or_tuple_v = is_aggregate_or_tuple<T>::value;
 
 template <typename T>
 std::vector<T> ResultSet::AsVector() && {
@@ -145,19 +110,9 @@ std::vector<T> ResultSet::AsVector() && {
   // static_assert(is_aggregate_or_tuple_v<T>,
   //               "T must be an aggregate type or tuple-like type");
   std::vector<T> result;
-
-  while (exec_status_ == SQLITE_ROW) {
-    result.emplace_back(convertRow<T>(stmt_.get()));
-    // TODO: is this an I/O bound operation? does it need to be run on
-    // blocking_task_processor_? How page_cache and wal log work?
-    exec_status_ = sqlite3_step(stmt_.get());
+  while (pimpl_->HasNext()) {
+    result.emplace_back(pimpl_->FetchNext<T>());
   }
-
-  // TODO: happens before
-
-  // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
-
   return result;
 }
 
@@ -168,24 +123,15 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
                     std::is_same_v<T, std::string> ||
                     std::is_same_v<T, std::vector<uint8_t>>,
                 "Unsupported type for AsVector(FieldTag)");
-
-  const int column_count = sqlite3_column_count(stmt_.get());
+  const int column_count = pimpl_->ColumnCount();
   if (column_count != 1) {
     throw SQLiteException(
         "Result set must have exactly one column for AsVector(FieldTag)");
   }
-
   std::vector<T> result;
-  while (exec_status_ == SQLITE_ROW) {
-    result.emplace_back(GetColumn<T>(stmt_.get(), 0));
-    // TODO: is this an I/O bound operation? does it need to be run on
-    // blocking_task_processor_? How page_cache and wal log work?
-    exec_status_ = sqlite3_step(stmt_.get());
+  while (pimpl_->HasNext()) {
+    result.emplace_back(pimpl_->FetchNext<T>(kFieldTag));
   }
-
-  // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
-
   return result;
 }
 
@@ -195,22 +141,13 @@ T ResultSet::AsSingleRow() && {
   // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
   //               "T must be an aggregate type or tuple-like type");
 
-  if (exec_status_ == SQLITE_DONE) {
+  if (pimpl_->IsDone()) {
     throw SQLiteException("Result set is empty");
   }
-
-  T result = convertRow<T>(stmt_.get());
-
-  // TODO: is this an I/O bound operation? does it need to be run on
-  // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
-  if (exec_status_ == SQLITE_ROW) {
+  auto result = pimpl_->FetchNext<T>();
+  if (pimpl_->HasNext()) {
     throw SQLiteException("Result set contains more than one row");
   }
-
-  // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
-
   return result;
 }
 
@@ -223,27 +160,17 @@ T ResultSet::AsSingleField() && {
                 "T must be one of the supported types: int64_t, double, "
                 "std::string, std::vector<uint8_t>");
 
-  if (exec_status_ == SQLITE_DONE) {
+  if (pimpl_->IsDone()) {
     throw SQLiteException("Result set is empty");
   }
-
-  int column_count = sqlite3_column_count(stmt_.get());
+  int column_count = pimpl_->ColumnCount();
   if (column_count != 1) {
     throw SQLiteException("Result set must contain exactly one column");
   }
-
-  T result = GetColumn<T>(stmt_.get(), 0);
-
-  // TODO: is this an I/O bound operation? does it need to be run on
-  // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
-  if (exec_status_ == SQLITE_ROW) {
+  auto result = pimpl_->FetchNext<T>(kFieldTag);
+  if (pimpl_->HasNext()) {
     throw SQLiteException("Result set contains more than one row");
   }
-
-  // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
-
   return result;
 }
 
@@ -253,22 +180,13 @@ std::optional<T> ResultSet::AsOptionalSingleRow() && {
   // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
   //               "T must be an aggregate type or tuple-like type");
 
-  if (exec_status_ == SQLITE_DONE) {
+  if (pimpl_->IsDone()) {
     return std::nullopt;
   }
-
-  T result = convertRow<T>(stmt_.get());
-
-  // TODO: is this an I/O bound operation? does it need to be run on
-  // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
-  if (exec_status_ == SQLITE_ROW) {
+  auto result = pimpl_->FetchNext<T>();
+  if (pimpl_->HasNext()) {
     throw SQLiteException("Result set contains more than one row");
   }
-
-  // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
-
   return result;
 }
 
@@ -281,61 +199,18 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
                 "T must be one of the supported types: int64_t, double, "
                 "std::string, std::vector<uint8_t>");
 
-  if (exec_status_ == SQLITE_DONE) {
+  if (pimpl_->IsDone()) {
     return std::nullopt;
   }
-
-  int column_count = sqlite3_column_count(stmt_.get());
+  int column_count = pimpl_->ColumnCount();
   if (column_count != 1) {
     throw SQLiteException("Result set must contain exactly one column");
   }
-
-  T result = GetColumn<T>(stmt_.get(), 0);
-
-  // TODO: is this an I/O bound operation? does it need to be run on
-  // blocking_task_processor_? How page_cache and wal log work?
-  exec_status_ = sqlite3_step(stmt_.get());
-  if (exec_status_ == SQLITE_ROW) {
+  auto result = pimpl_->FetchNext<T>(kFieldTag);
+  if (pimpl_->HasNext()) {
     throw SQLiteException("Result set contains more than one row");
   }
-
-  // Reset state to use prepared statement again
-  sqlite3_reset(stmt_.get());
-
   return result;
-}
-
-// TODO: Add more detailed verification and error description
-template <typename Tuple, std::size_t... I>
-Tuple ResultSet::ConvertToTupleImpl(sqlite3_stmt* stmt,
-                                    std::index_sequence<I...>) {
-  return Tuple{GetColumn<std::tuple_element_t<I, Tuple>>(stmt, I)...};
-}
-
-template <typename Tuple>
-Tuple ResultSet::ConvertToTuple(sqlite3_stmt* stmt) {
-  constexpr std::size_t N = std::tuple_size_v<Tuple>;
-  return ConvertToTupleImpl<Tuple>(stmt, std::make_index_sequence<N>{});
-}
-
-template <typename T>
-T ResultSet::ConvertToAggregate(sqlite3_stmt* stmt) {
-  T instance{};
-  int column = 0;
-  boost::pfr::for_each_field(instance, [&column, &stmt](auto&& field) {
-    using FieldType = std::decay_t<decltype(field)>;
-    field = GetColumn<FieldType>(stmt, column++);
-  });
-  return instance;
-}
-
-template <typename T>
-T ResultSet::convertRow(sqlite3_stmt* stmt) {
-  if constexpr (std::is_aggregate_v<T>) {
-    return ConvertToAggregate<T>(stmt);
-  } else {
-    return ConvertToTuple<T>(stmt);
-  }
 }
 
 }  // namespace storages::sqlite
