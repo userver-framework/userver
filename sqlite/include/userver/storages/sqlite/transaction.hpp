@@ -77,6 +77,9 @@ template <typename... Args>
 ResultSet Transaction::DoExecute(OptionalCommandControl option_cc,
                                  const Query& query,
                                  const Args&... args) const {
+  if (!pimpl_) {
+    throw SQLiteException("Transaction handle is not valid");
+  }
   return pimpl_->ExecuteCommand(option_cc, query, args...);
 }
 
@@ -90,6 +93,9 @@ template <typename T>
 ResultSet Transaction::ExecuteDecompose(OptionalCommandControl optional_cc,
                                         const Query& query,
                                         const T& row) const {
+  if (!pimpl_) {
+    throw SQLiteException("Transaction handle is not valid");
+  }
   return pimpl_->ExecuteDecompose(optional_cc, query, row);
 }
 
@@ -103,6 +109,9 @@ template <typename Container>
 void Transaction::ExecuteMany(OptionalCommandControl optional_cc,
                               const Query& query,
                               const Container& params) const {
+  if (!pimpl_) {
+    throw SQLiteException("Transaction handle is not valid");
+  }
   return pimpl_->ExecuteMany(optional_cc, query, params);
 }
 

@@ -11,6 +11,7 @@
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,6 +23,7 @@ class Savepoint final {
   ~Savepoint();
   Savepoint(const Savepoint& other) = delete;
   Savepoint(Savepoint&& other) noexcept;
+  Savepoint& operator=(Savepoint&&) noexcept;
 
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;
@@ -73,6 +75,9 @@ ResultSet Savepoint::Execute(OptionalCommandControl option_cc,
 template <typename... Args>
 ResultSet Savepoint::DoExecute(OptionalCommandControl option_cc,
                                const Query& query, const Args&... args) const {
+  if (!pimpl_) {
+    throw SQLiteException("Savepoint handle is not valid");
+  }
   return pimpl_->ExecuteCommand(option_cc, query, args...);
 }
 
@@ -84,6 +89,9 @@ ResultSet Savepoint::ExecuteDecompose(const Query& query, const T& row) const {
 template <typename T>
 ResultSet Savepoint::ExecuteDecompose(OptionalCommandControl optional_cc,
                                       const Query& query, const T& row) const {
+  if (!pimpl_) {
+    throw SQLiteException("Savepoint handle is not valid");
+  }
   return pimpl_->ExecuteDecompose(optional_cc, query, row);
 }
 
@@ -95,6 +103,9 @@ void Savepoint::ExecuteMany(const Query& query, const Container& params) const {
 template <typename Container>
 void Savepoint::ExecuteMany(OptionalCommandControl optional_cc,
                             const Query& query, const Container& params) const {
+  if (!pimpl_) {
+    throw SQLiteException("Savepoint handle is not valid");
+  }
   return pimpl_->ExecuteMany(optional_cc, query, params);
 }
 

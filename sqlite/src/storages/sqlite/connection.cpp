@@ -6,10 +6,6 @@
 #include <sqlite3.h>
 
 #include <userver/storages/sqlite/exceptions.hpp>
-#include <userver/storages/sqlite/options.hpp>
-#include <userver/storages/sqlite/result_set.hpp>
-#include "userver/storages/sqlite/impl/connection_impl.hpp"
-#include "userver/storages/sqlite/transaction.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,6 +28,10 @@ Transaction Connection::Begin(OptionalCommandControl command_control
                               const TransactionOptions& options) const {
   // TODO: use name
   return Transaction{pimpl_, options};
+}
+
+Savepoint Connection::Save(std::string name) const {
+  return Savepoint{pimpl_, std::move(name)};
 }
 
 }  // namespace storages::sqlite

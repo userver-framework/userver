@@ -10,11 +10,16 @@ namespace storages::sqlite {
 
 Savepoint::Savepoint(std::shared_ptr<impl::ConnectionImpl> pimpl,
                      std::string name)
-    : pimpl_(std::move(pimpl)), name_(pimpl->PrepareString(std::move(name))) {
-  pimpl->Savepoint(name_);
+    : pimpl_(std::move(pimpl)) {
+  if (pimpl_) {
+    name_ = pimpl_->PrepareString(name);
+    pimpl_->Savepoint(name_);
+  }
 }
 
 Savepoint::Savepoint(Savepoint&& other) noexcept = default;
+
+Savepoint& Savepoint::operator=(Savepoint&&) noexcept = default;
 
 Savepoint::~Savepoint() {
   try {
@@ -25,9 +30,17 @@ Savepoint::~Savepoint() {
   }
 }
 
-void Savepoint::Release() { pimpl_->Release(name_); }
+void Savepoint::Release() {
+  if (pimpl_) {
+    pimpl_->Release(name_);
+  }
+}
 
-void Savepoint::RollbackTo() { pimpl_->RollbackTo(name_); }
+void Savepoint::RollbackTo() {
+  if (pimpl_) {
+    pimpl_->RollbackTo(name_);
+  }
+}
 
 }  // namespace storages::sqlite
 

@@ -11,12 +11,13 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/storages/sqlite/impl/connection_impl.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include <userver/storages/sqlite/savepoint.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
-#include "userver/storages/sqlite/impl/connection_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,6 +64,8 @@ class Connection final {
 
   Transaction Begin(OptionalCommandControl optional_cc, std::string name,
                     const TransactionOptions&) const;
+
+  Savepoint Save(std::string name) const;
 
  private:
   template <typename... Args>

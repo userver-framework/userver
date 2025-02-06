@@ -22,8 +22,6 @@ namespace storages::sqlite::tests {
 // Here we check the high-level operation of transactions; this requires a test
 // connection to the database
 
-// TODO: Add tests on transactions
-
 class SQLiteTransactions : public SQLiteInMemoryInitConnection {};
 
 UTEST_F(SQLiteTransactions, Commit) {
