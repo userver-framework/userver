@@ -4,7 +4,8 @@ project(userver-samples-json2yaml CXX)
 find_package(
     userver
     COMPONENTS universal
-    REQUIRED)
+    REQUIRED
+)
 
 add_library(${PROJECT_NAME}-lib STATIC src/json2yaml.cpp)
 target_include_directories(${PROJECT_NAME}-lib PUBLIC src)
@@ -26,5 +27,6 @@ add_test(
     NAME "${PROJECT_NAME}-pytest"
     COMMAND "${json2yaml_venv}" -m pytest "--test-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
             "-c /dev/null" # Do not search for pytest.ini
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 # /// [add_test]

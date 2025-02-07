@@ -4,7 +4,8 @@ project(userver-samples-otlp_service CXX)
 find_package(
     userver
     COMPONENTS otlp
-    REQUIRED)
+    REQUIRED
+)
 
 add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::otlp)

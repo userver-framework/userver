@@ -4,7 +4,8 @@ project(userver-samples-chaotic-openapi_service CXX)
 find_package(
     userver
     COMPONENTS core chaotic
-    REQUIRED)
+    REQUIRED
+)
 
 add_library(${PROJECT_NAME}_objs OBJECT src/say_hello.hpp src/say_hello.cpp src/hello_handler.hpp src/hello_handler.cpp)
 target_link_libraries(${PROJECT_NAME}_objs userver::core)
@@ -21,7 +22,8 @@ userver_target_generate_openapi_client(
     OUTPUT_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/client/test"
     SCHEMAS
-    ${CMAKE_CURRENT_SOURCE_DIR}/clients/test.yaml)
+    ${CMAKE_CURRENT_SOURCE_DIR}/clients/test.yaml
+)
 target_link_libraries(${PROJECT_NAME}_objs ${PROJECT_NAME}-client-test_objs)
 # /// [chaotic]
 

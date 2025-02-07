@@ -5,7 +5,8 @@ project(userver-samples-s3api CXX)
 find_package(
     userver
     COMPONENTS core s3api
-    REQUIRED)
+    REQUIRED
+)
 
 add_library(${PROJECT_NAME}_objs OBJECT src/s3api_client.cpp)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::s3api)

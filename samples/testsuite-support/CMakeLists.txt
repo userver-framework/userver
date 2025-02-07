@@ -4,7 +4,8 @@ project(userver-samples-testsuite-support CXX)
 find_package(
     userver
     COMPONENTS core
-    REQUIRED)
+    REQUIRED
+)
 
 file(GLOB_RECURSE SOURCES main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
@@ -22,5 +23,6 @@ userver_testsuite_add(
     PYTEST_ARGS
     --service-config=${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml
     --service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
-    --service-config-vars=${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml)
+    --service-config-vars=${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml
+)
 # /// [testsuite - cmake]

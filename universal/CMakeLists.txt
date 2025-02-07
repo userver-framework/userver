@@ -385,7 +385,7 @@ if (USERVER_BUILD_TESTS)
                                PRIVATE HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
   endif()
 
-    add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
+  add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
 _userver_directory_install(COMPONENT universal FILES

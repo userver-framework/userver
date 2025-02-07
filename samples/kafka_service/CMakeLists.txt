@@ -4,7 +4,8 @@ project(userver-samples-kafka_service CXX)
 find_package(
     userver
     COMPONENTS core kafka
-    REQUIRED)
+    REQUIRED
+)
 
 add_library(
     ${PROJECT_NAME}_objs OBJECT
@@ -15,7 +16,8 @@ add_library(
     src/consumer_handler.hpp
     src/consumer_handler.cpp
     src/producer_handler.hpp
-    src/producer_handler.cpp)
+    src/producer_handler.cpp
+)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::core userver::kafka)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC src/)
 
@@ -33,12 +35,15 @@ userver_add_utest(
     TEST_ENV
     "TESTSUITE_KAFKA_SERVER_START_TIMEOUT=120.0"
     "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
-    "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-1:1,test-topic-2:1")
+    "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-1:1,test-topic-2:1"
+)
 
 # /// [Kafka service sample - kafka unit test cmake]
 
 # /// [Kafka service sample - kafka functional test cmake]
-userver_testsuite_add_simple(TEST_ENV "TESTSUITE_KAFKA_SERVER_START_TIMEOUT=120.0" "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
-                             "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-1:1,test-topic-2:1")
+userver_testsuite_add_simple(
+    TEST_ENV "TESTSUITE_KAFKA_SERVER_START_TIMEOUT=120.0" "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
+    "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-1:1,test-topic-2:1"
+)
 
 # /// [Kafka service sample - kafka functional test cmake]

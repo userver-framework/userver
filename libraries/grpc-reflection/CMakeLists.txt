@@ -12,7 +12,8 @@ userver_module(
     ${PROJECT_NAME}-proto
     userver::grpc
     UTEST_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+)
 
 if(USERVER_BUILD_TESTS)
     add_subdirectory(functional_tests)

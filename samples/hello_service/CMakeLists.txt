@@ -5,7 +5,8 @@ project(userver-samples-hello_service CXX)
 find_package(
     userver
     COMPONENTS core
-    REQUIRED)
+    REQUIRED
+)
 # Note: If userver was added via add_subdirectory(path/to/userver), then the userver_setup_environment() should be
 # called here. /// [find_userver]
 

@@ -28,8 +28,9 @@ macro(add_gdb_test_program NAME SOURCE DEPS)
     get_directory_property(TEST_SOURCES DIRECTORY "${GDB_TESTS_DIR}" TEST_SOURCES)
 
     set_property(DIRECTORY "${GDB_TESTS_DIR}" PROPERTY TEST_PROGRAMS "${TEST_PROGRAMS}:$<TARGET_FILE:${PROJECT_NAME}>")
-    set_property(DIRECTORY "${GDB_TESTS_DIR}" PROPERTY TEST_SOURCES
-                                                       "${TEST_SOURCES}:${CMAKE_CURRENT_LIST_DIR}/${SOURCE}")
+    set_property(
+        DIRECTORY "${GDB_TESTS_DIR}" PROPERTY TEST_SOURCES "${TEST_SOURCES}:${CMAKE_CURRENT_LIST_DIR}/${SOURCE}"
+    )
 endmacro()
 
 add_subdirectory(src)
@@ -37,11 +38,13 @@ add_subdirectory(src)
 add_test(
     NAME ${PROJECT_NAME}
     COMMAND "${TESTSUITE_PYTHON_BINARY}" -m pytest
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
 get_directory_property(TEST_PROGRAMS TEST_PROGRAMS)
 get_directory_property(TEST_SOURCES TEST_SOURCES)
 
 set_tests_properties(
     ${PROJECT_NAME} PROPERTIES ENVIRONMENT
-                               "TEST_PROGRAMS=${TEST_PROGRAMS};TEST_SOURCES=${TEST_SOURCES};GDB_BIN=${GDB_EXECUTABLE}")
+                               "TEST_PROGRAMS=${TEST_PROGRAMS};TEST_SOURCES=${TEST_SOURCES};GDB_BIN=${GDB_EXECUTABLE}"
+)

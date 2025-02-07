@@ -5,14 +5,16 @@ project(userver-samples-grpc_service CXX)
 find_package(
     userver
     COMPONENTS grpc
-    REQUIRED)
+    REQUIRED
+)
 
 add_library(
     ${PROJECT_NAME}_objs OBJECT
     # Note: it's nonsense to have the same client and service in the same
     # executable.
     # For test and demonstration purposes only.
-    src/greeter_client.cpp src/greeter_service.cpp)
+    src/greeter_client.cpp src/greeter_service.cpp
+)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::grpc)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # /// [ugrpc]

@@ -13,7 +13,8 @@ userver_module(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     UTEST_LINK_LIBRARIES
     userver-core
-    userver-chaotic)
+    userver-chaotic
+)
 
 if(USERVER_BUILD_TESTS)
     # userver_venv_setup( NAME userver-chaotic-tests PYTHON_OUTPUT_VAR USERVER_CHAOTIC_PYTEST_PYTHON_BINARY REQUIREMENTS
@@ -25,5 +26,7 @@ if(USERVER_BUILD_TESTS)
     add_subdirectory(golden_tests)
 endif()
 
-_userver_directory_install(COMPONENT chaotic-openapi DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/chaotic_openapi"
-                           DESTINATION "${CMAKE_INSTALL_LIBDIR}/userver")
+_userver_directory_install(
+    COMPONENT chaotic-openapi DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/chaotic_openapi" DESTINATION
+    "${CMAKE_INSTALL_LIBDIR}/userver"
+)

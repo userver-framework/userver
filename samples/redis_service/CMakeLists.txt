@@ -4,7 +4,8 @@ project(userver-samples-redis_service CXX)
 find_package(
     userver
     COMPONENTS redis
-    REQUIRED)
+    REQUIRED
+)
 
 add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::redis)

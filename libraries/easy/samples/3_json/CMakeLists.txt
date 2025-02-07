@@ -4,7 +4,8 @@ project(userver-easy-samples-json CXX)
 find_package(
     userver
     COMPONENTS easy chaotic
-    REQUIRED)
+    REQUIRED
+)
 
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(
@@ -20,7 +21,8 @@ userver_target_generate_chaotic(
     SCHEMAS
     ${SCHEMAS}
     RELATIVE_TO
-    ${CMAKE_CURRENT_SOURCE_DIR})
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::easy ${PROJECT_NAME}-chgen)

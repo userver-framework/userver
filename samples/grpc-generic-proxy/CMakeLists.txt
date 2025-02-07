@@ -4,7 +4,8 @@ project(userver-samples-grpc-generic-proxy CXX)
 find_package(
     userver
     COMPONENTS grpc
-    REQUIRED)
+    REQUIRED
+)
 
 add_executable(${PROJECT_NAME} main.cpp src/proxy_service.cpp)
 

@@ -4,7 +4,8 @@ project(userver-samples-embedded_files CXX)
 find_package(
     userver
     COMPONENTS core
-    REQUIRED)
+    REQUIRED
+)
 
 add_library(${PROJECT_NAME}_objs OBJECT src/say_hello.hpp src/say_hello.cpp src/hello_handler.hpp src/hello_handler.cpp)
 target_link_libraries(${PROJECT_NAME}_objs userver::core)

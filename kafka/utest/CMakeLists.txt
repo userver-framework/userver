@@ -10,6 +10,7 @@ if(KAFKA_CPM)
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../wrapper/include)
 endif()
 
-_userver_directory_install(COMPONENT kafka DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include" DESTINATION
-                           "${CMAKE_INSTALL_INCLUDEDIR}/..")
+_userver_directory_install(
+    COMPONENT kafka DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
+)
 _userver_install_targets(COMPONENT kafka TARGETS ${PROJECT_NAME})

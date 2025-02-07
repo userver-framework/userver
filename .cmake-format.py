@@ -24,3 +24,7 @@ with section("format"):
   # to `round-up` fractional indentation is replaced with a single tab character
   # (utf-8 0x09) effectively shifting the column to the next tabstop
   fractional_tab_policy = 'use-space'
+
+  # If a statement is wrapped to more than one line, than dangle the closing
+  # parenthesis on its own line.
+  dangle_parens = True

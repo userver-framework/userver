@@ -4,7 +4,8 @@ project(userver-samples-postgres_service CXX)
 find_package(
     userver
     COMPONENTS postgresql
-    REQUIRED)
+    REQUIRED
+)
 
 add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::postgresql)
@@ -17,7 +18,8 @@ userver_add_sql_library(
     OUTPUT_DIR
     ${CMAKE_CURRENT_BINARY_DIR}
     SQL_FILES
-    *.sql)
+    *.sql
+)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_sql)
 # /// [Postgres service sample - CMakeLists.txt]
 

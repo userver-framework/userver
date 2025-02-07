@@ -18,7 +18,8 @@ target_include_directories(
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-grpc-internal)
 
-userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS healthchecking/healthchecking.proto)
+userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS
+                         healthchecking/healthchecking.proto)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-proto)
 
 if (USERVER_BUILD_TESTS)
@@ -34,7 +35,7 @@ if (USERVER_BUILD_TESTS)
     )
     add_google_tests(${PROJECT_NAME}-unittest)
 
-    add_subdirectory(functional_tests)
+  add_subdirectory(functional_tests)
 endif()
 _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}
                          ${PROJECT_NAME}-proto)
