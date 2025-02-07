@@ -49,10 +49,10 @@ class SQLiteTest : public ::testing::Test {
 class SQLiteCustomConnection : public SQLiteTest {
  public:
   ConnectionPtr CreateConnection(storages::sqlite::SQLiteSettings settings) {
-    auto conn = std::make_shared<storages::sqlite::Connection>(
+    conn_ = std::make_shared<storages::sqlite::Connection>(
         settings, engine::current_task::GetTaskProcessor());
-    CheckConnection(conn);
-    return conn;
+    CheckConnection(conn_);
+    return conn_;
   }
 
   // TODO: Do I need to validate the connection somehow?
@@ -61,6 +61,9 @@ class SQLiteCustomConnection : public SQLiteTest {
     // ASSERT_TRUE(conn->getHandle() != nullptr); TODO: need more informative
     // methods
   }
+
+ private:
+  ConnectionPtr conn_;
 };
 
 class SQLiteInMemoryConnection : public SQLiteCustomConnection {
@@ -81,39 +84,6 @@ class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
     conn->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
     return conn;
   }
-};
-
-// class SQLiteConnection {
-//  public:
-//   virtual ~SQLiteConnection() = default;
-//   virtual ResultSet Execute() { return {}; }
-// };
-
-class MockSQLite : public components::ISQLite {
- public:
-  MOCK_METHOD(storages::sqlite::ConnectionPtr, GetConnection, (),
-              (const, override));
-};
-
-class MockSQLiteConnection {
- public:
-  MOCK_METHOD(ResultSet, Execute, (), ());
-};
-
-template <typename Connection>
-class SQLiteTestFixture : public ::testing::Test {
- private:
-  std::shared_ptr<MockSQLiteConnection> mock_connection_;
-
- protected:
-  SQLiteTestFixture()
-      : mock_connection_(std::make_shared<MockSQLiteConnection>()) {}
-
-  std::shared_ptr<MockSQLiteConnection> GetMockConnection() {
-    return mock_connection_;
-  }
-
-  ResultSet Execute() { return mock_connection_->Execute(); }
 };
 
 }  // namespace storages::sqlite::tests

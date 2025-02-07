@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -10,6 +12,7 @@
 #include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/execution_result.hpp>
+#include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
@@ -56,15 +59,58 @@ class SQLiteResultSet : public SQLiteInMemoryInitConnection {
 
 }  // namespace
 
-// class MockStatement : public sqlite3_stmt {
-//  public:
-//   MOCK_METHOD(int, sqlite3_step, (), (override));
-//   MOCK_METHOD(int, sqlite3_column_int, (int column), (override));
-//   MOCK_METHOD(const unsigned char*, sqlite3_column_text, (int column),
-//               (override));
-//   // Добавьте другие методы SQLite API, которые используются в ResultSet
+// struct MockResultWrapper {
+//   MOCK_METHOD(int, RowsAffected, (), (const, noexcept));
+//   MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept));
+//   MOCK_METHOD(bool, HasNext, (), (const, noexcept));
+//   MOCK_METHOD(bool, IsDone, (), (const, noexcept));
+//   MOCK_METHOD(void, Next, (), (noexcept));
+//   MOCK_METHOD(int, ColumnCount, (), (const, noexcept));
+//   MOCK_METHOD(int, FetchNextInt, (), ());
+//   MOCK_METHOD(std::string, FetchNextString, (), ());
+//   MOCK_METHOD(RowTuple, FetchNextRow, (), ());
+//   template <typename T>
+//   T FetchNext();
+//   template <typename FieldType>
+//   FieldType FetchNext(FieldTag);
 // };
 
+// template <>
+// int MockResultWrapper::FetchNext<int>(FieldTag) {
+//   return FetchNextInt();
+// }
+
+// template <>
+// std::string MockResultWrapper::FetchNext<std::string>(FieldTag) {
+//   return FetchNextString();
+// }
+
+// template <>
+// RowTuple MockResultWrapper::FetchNext<RowTuple>() {
+//   return FetchNextRow();
+// }
+
+// TEST(ResultSetTest, AsVectorRowTagUsingMock) {
+//   auto mockWrapper = std::make_shared<MockResultWrapper>();
+//   EXPECT_CALL(*mockWrapper, HasNext())
+//       .Times(3)
+//       .WillOnce(::testing::Return(true))
+//       .WillOnce(::testing::Return(true))
+//       .WillOnce(::testing::Return(false));
+
+//   EXPECT_CALL(*mockWrapper, FetchNextRow())
+//       .Times(2)
+//       .WillOnce(::testing::Return(std::make_tuple(1, std::string("first"))))
+//       .WillOnce(::testing::Return(std::make_tuple(2,
+//       std::string("second"))));
+
+//   ResultSet res(mockWrapper);
+//   std::vector<RowTuple> actual = std::move(res).AsVector<RowTuple>();
+
+//   EXPECT_EQ(actual.size(), 2);
+//   EXPECT_EQ(actual[0], std::make_tuple(1, std::string("first")));
+//   EXPECT_EQ(actual[1], std::make_tuple(2, std::string("second")));
+// }
 
 UTEST_F(SQLiteResultSet, AsVectorRowTag) {
   ConnectionPtr conn = CreateConnection();
