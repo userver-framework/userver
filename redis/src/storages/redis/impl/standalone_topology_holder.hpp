@@ -54,7 +54,7 @@ public:
     boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override;
 
 private:
-    std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const ConnectionInfo& info) const;
+    std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const ConnectionInfoInt& info) const;
 
     void CreateNode();
 
@@ -70,7 +70,7 @@ private:
     ///{ Wait ready
     std::mutex mutex_;
     engine::impl::ConditionVariableAny<std::mutex> cv_;
-    ConnectionInfo conn_to_create_;
+    ConnectionInfoInt conn_to_create_;
     std::atomic<bool> is_nodes_received_{false};
 
     rcu::Variable<std::optional<Node>, rcu::BlockingRcuTraits> node_;

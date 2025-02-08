@@ -117,11 +117,7 @@ void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInf
 
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        std::tie(conn_to_create_.host, conn_to_create_.port) = new_conn.HostPort();
-        conn_to_create_.connection_security = new_conn.GetConnectionSecurity();
-        conn_to_create_.read_only = new_conn.IsReadOnly();
-        // conn_to_create_.password = ???
-
+        conn_to_create_ = new_conn;
         is_nodes_received_.store(false);
     }
     create_node_watch_.Send();
@@ -136,21 +132,21 @@ boost::signals2::signal<void(size_t)>& StandaloneTopologyHolder::GetSignalTopolo
     return signal_topology_changed_;
 }
 
-std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInstance(const ConnectionInfo& info) const {
+std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInstance(const ConnectionInfoInt& info) const {
     const auto buffering_settings_ptr = commands_buffering_settings_.Lock();
     const auto replication_monitoring_settings_ptr = monitoring_settings_.Lock();
     const auto retry_budget_settings_ptr = retry_budget_settings_.Lock();
-    LOG_DEBUG() << "Create new redis instance " << info.host << ":" << info.port;
+    LOG_DEBUG() << "Create new redis instance " << info.Fulltext();
     return std::make_shared<RedisConnectionHolder>(
         ev_thread_,
         redis_thread_pool_,
-        info.host,
-        info.port,
+        info.HostPort().first,
+        info.HostPort().second,
         password_,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr,
-        redis::RedisCreationSettings{info.connection_security, false}
+        redis::RedisCreationSettings{info.GetConnectionSecurity(), false}
     );
 }
 
@@ -161,7 +157,7 @@ void StandaloneTopologyHolder::CreateNode() {
         std::unique_lock<std::mutex> lock(mutex_);
         // one shard
         ClusterShardHostInfos shard_infos{// only master, no slaves
-                                          ClusterShardHostInfo{ConnectionInfoInt{conn_to_create_}, {}, {}}
+                                          ClusterShardHostInfo{conn_to_create_, {}, {}}
         };
 
         if (auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
@@ -170,7 +166,7 @@ void StandaloneTopologyHolder::CreateNode() {
             return;
         }
 
-        std::string host_port(fmt::format("{}:{}", conn_to_create_.host, conn_to_create_.port));
+        auto& host_port = conn_to_create_.Fulltext();
         auto redis_connection = CreateRedisInstance(conn_to_create_);
         redis_connection->signal_state_change.connect([host_port,
                                                        topology_holder_wp = weak_from_this()](redis::RedisState state) {
