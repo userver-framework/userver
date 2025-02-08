@@ -26,6 +26,9 @@ endif()
 if(NOT TARGET userver-api-common-protos)
   include(SetupGoogleProtoApis)
 endif()
+if(NOT TARGET userver-grpc-proto-contrib)
+  include(SetupGrpcProto)
+endif()
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/*pp
@@ -73,9 +76,13 @@ _userver_directory_install(COMPONENT grpc
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
 )
-if (DEFINED api-common-proto_LIBRARY)
+if(DEFINED api-common-proto_LIBRARY)
   target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${api-common-proto_LIBRARY})
   _userver_install_targets(COMPONENT grpc TARGETS ${api-common-proto_LIBRARY})
+endif()
+if(DEFINED grpc-proto_LIBRARY)
+  target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${grpc-proto_LIBRARY})
+  _userver_install_targets(COMPONENT grpc TARGETS ${grpc-proto_LIBRARY})
 endif()
 
 userver_generate_grpc_files(

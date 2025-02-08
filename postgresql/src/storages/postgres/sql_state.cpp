@@ -1,9 +1,10 @@
 #include <userver/storages/postgres/sql_state.hpp>
 
 #include <unordered_map>
-#include <unordered_set>
 
 #include <boost/multiprecision/integer.hpp>
+
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -402,32 +403,31 @@ const std::unordered_map<std::string_view, SqlState> kCodeStrToState{
     //@}
 };
 
-// clang format makes it inconvenient to read with several values per line
-// clang-format off
-const std::unordered_set<SqlState> kStateWhitelist{
-    //@{
-    /** @name Class 00 — Successful Completion */
-    SqlState::kSuccessfulCompletion,
-    //@}
-    //@{
-    /** @name Class 01 — Warning */
-    SqlState::kWarning,
-    SqlState::kDynamicResultSetsReturned,
-    SqlState::kImplicitZeroBitPadding,
-    SqlState::kNullValueEliminatedInSetFunction,
-    SqlState::kPrivilegeNotGranted,
-    SqlState::kPrivilegeNotRevoked,
-    SqlState::kStringDataRightTruncationWarn,
-    SqlState::kDeprecatedFeature,
-    //@}
-    //@{
-    /** @name Misc errors that are logged to LOG_WARNING instead of LOG_ERROR */
-    SqlState::kUniqueViolation,
-    SqlState::kForeignKeyViolation,
-    SqlState::kDuplicatePreparedStatement,
-    //@}
+constexpr utils::TrivialSet kStateWhitelist = [](auto selector) {
+    return selector()
+        //@{
+        /** @name Class 00 — Successful Completion */
+        .Case(SqlState::kSuccessfulCompletion)
+        //@}
+        //@{
+        /** @name Class 01 — Warning */
+        .Case(SqlState::kWarning)
+        .Case(SqlState::kDynamicResultSetsReturned)
+        .Case(SqlState::kImplicitZeroBitPadding)
+        .Case(SqlState::kNullValueEliminatedInSetFunction)
+        .Case(SqlState::kPrivilegeNotGranted)
+        .Case(SqlState::kPrivilegeNotRevoked)
+        .Case(SqlState::kStringDataRightTruncationWarn)
+        .Case(SqlState::kDeprecatedFeature)
+        //@}
+        //@{
+        /** @name Misc errors that are logged to LOG_WARNING instead of LOG_ERROR */
+        .Case(SqlState::kUniqueViolation)
+        .Case(SqlState::kForeignKeyViolation)
+        .Case(SqlState::kDuplicatePreparedStatement)
+        //@}
+        ;
 };
-// clang-format on
 
 }  // namespace
 
@@ -448,7 +448,7 @@ SqlState SqlStateFromString(std::string_view s) {
     return SqlState::kUnknownState;
 }
 
-bool IsWhitelistedState(SqlState sql_state) { return kStateWhitelist.count(sql_state) != 0; }
+bool IsWhitelistedState(SqlState sql_state) { return kStateWhitelist.Contains(sql_state); }
 
 }  // namespace storages::postgres
 

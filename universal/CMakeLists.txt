@@ -55,21 +55,20 @@ endif()
 
 find_package_required(OpenSSL "libssl-dev")
 
-if (USERVER_CONAN)
-  find_package(cryptopp REQUIRED CONFIG)
-  find_package(yaml-cpp REQUIRED CONFIG)
-  find_package(fmt REQUIRED CONFIG)
-  find_package(cctz REQUIRED CONFIG)
-  find_package(zstd REQUIRED CONFIG)
+find_package(yaml-cpp REQUIRED)
+find_package(zstd REQUIRED)
 
-  find_package(RapidJSON REQUIRED CONFIG)
+if (USERVER_CONAN)
+  find_package(cryptopp REQUIRED)
+  find_package(fmt REQUIRED)
+  find_package(cctz REQUIRED)
+
+  find_package(RapidJSON REQUIRED)
   target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
 else()
   include(SetupCryptoPP)
-  find_package_required(libyamlcpp "libyaml-cpp-dev")
   include(SetupFmt)
   include(SetupCCTZ)
-  find_package(libzstd REQUIRED)
 endif()
 
 # Compiler flags for userver code. Flags for all the code
@@ -174,27 +173,23 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  if (USERVER_CONAN)
-    find_package(jemalloc REQUIRED CONFIG)
-    target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
-  else()
-    find_package_required(Jemalloc "libjemalloc-dev")
-    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
+  find_package(jemalloc REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
+endif()
+
+if(NOT USERVER_CONAN)
+  _userver_macos_set_default_dir(ICU_ROOT "brew;--prefix;icu4c")
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    set(ICU_INCLUDE_DIR "${USERVER_BREW_PREFIX}/include" CACHE PATH "" FORCE)
   endif()
 endif()
 
-option(USERVER_FEATURE_RE2 "Build userver with re2 support" OFF)
-if(USERVER_FEATURE_RE2)
-  if(USERVER_CONAN)
-    find_package(re2 REQUIRED CONFIG)
-    target_link_libraries(${PROJECT_NAME} PRIVATE re2::re2)
-  else()
-    find_package(re2 REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PRIVATE re2)
-  endif()
+if(USERVER_CONAN)
+  find_package(re2 REQUIRED)
 else()
-  target_compile_definitions(${PROJECT_NAME} PUBLIC USERVER_NO_RE2_SUPPORT=1)
+  include(SetupRe2)
 endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE re2::re2)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
   CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
@@ -275,9 +270,9 @@ else()
       cctz
       userver-stacktrace
     PRIVATE
-      libyamlcpp
-      libzstd
-      CryptoPP
+      yaml-cpp
+      zstd::zstd
+      cryptopp::cryptopp
   )
 
   if(Boost_USE_STATIC_LIBS AND Boost_FOUND AND Boost_VERSION VERSION_LESS 1.75)
@@ -325,13 +320,15 @@ if (USERVER_FEATURE_UTEST)
 
   add_library(${PROJECT_NAME}-internal-ubench INTERFACE)
   if (USERVER_CONAN)
-    find_package(benchmark REQUIRED CONFIG)
+    find_package(benchmark REQUIRED)
+    set(_benchmark_target benchmark::benchmark_main)
   else()
     include(SetupGBench)
+    set(_benchmark_target benchmark::benchmark)
   endif()
   target_link_libraries(${PROJECT_NAME}-internal-ubench
       INTERFACE
-      benchmark::benchmark
+      ${_benchmark_target}
       ${PROJECT_NAME}
   )
 endif()
@@ -392,14 +389,17 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/SetupCURL.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupRe2.cmake"
     "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupPGO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupDebugInfoCompression.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupHomebrew.cmake"
     "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverCxxCompileOptionsIfSupported.cmake"
     "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
     "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
@@ -411,11 +411,13 @@ _userver_directory_install(COMPONENT universal FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 _userver_directory_install(COMPONENT universal FILES
-    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findcryptopp.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findyaml-cpp.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findzstd.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findre2.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findfmt.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findjemalloc.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )

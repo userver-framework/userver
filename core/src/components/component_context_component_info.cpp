@@ -6,13 +6,14 @@
 #include <userver/components/component_context.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracer.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-const std::string kComponentName = "component_name";
-const std::string kStopComponentRootName = "component_stop";
-const std::string kOnAllComponentsAreStopping = "on_all_components_are_stopping";
+constexpr utils::StringLiteral kComponentName = "component_name";
+constexpr utils::StringLiteral kStopComponentRootName = "component_stop";
+constexpr utils::StringLiteral kOnAllComponentsAreStopping = "on_all_components_are_stopping";
 }  // namespace
 
 namespace components::impl {
@@ -36,8 +37,8 @@ void ComponentInfo::SetComponent(std::unique_ptr<RawComponentBase>&& component) 
 
 void ComponentInfo::ClearComponent() {
     if (!HasComponent()) return;
-    tracing::Span span(kStopComponentRootName);
-    span.AddTag(kComponentName, name_);
+    tracing::Span span(std::string{kStopComponentRootName});
+    span.AddTag(std::string{kComponentName}, name_);
 
     auto component = ExtractComponent();
     LOG_DEBUG() << "Stopping component";
@@ -123,7 +124,7 @@ void ComponentInfo::OnAllComponentsLoaded() {
 void ComponentInfo::OnAllComponentsAreStopping() {
     if (!HasComponent()) return;
     try {
-        tracing::Span span(kOnAllComponentsAreStopping);
+        tracing::Span span(std::string{kOnAllComponentsAreStopping});
         component_->OnAllComponentsAreStopping();
     } catch (const std::exception& ex) {
         LOG_ERROR() << "OnAllComponentsAreStopping() failed for component " << name_ << ": " << ex;

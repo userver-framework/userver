@@ -8,13 +8,14 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 namespace {
 
-const std::string kTraceKey = "stacktrace";
+constexpr utils::StringLiteral kTraceKey = "stacktrace";
 
 }  // namespace
 
@@ -25,7 +26,7 @@ void ExtendLogExtraWithStacktrace(
 ) noexcept {
     try {
         log_extra.Extend(
-            kTraceKey,
+            std::string{kTraceKey},
             (flags & LogExtraStacktraceFlags::kNoCache) ? boost::stacktrace::to_string(trace)
                                                         : stacktrace_cache::to_string(trace),
             (flags & LogExtraStacktraceFlags::kFrozen) ? LogExtra::ExtendType::kFrozen : LogExtra::ExtendType::kNormal

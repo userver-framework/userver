@@ -8,10 +8,6 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-if (USERVER_CONAN)
-  find_package(libmariadb REQUIRED CONFIG)
-else()
-  include("${USERVER_CMAKE_DIR}/modules/Findlibmariadb.cmake")
-endif()
+find_package(libmariadb REQUIRED)
 
 set(userver_mysql_FOUND TRUE)

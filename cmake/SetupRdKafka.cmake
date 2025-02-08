@@ -8,7 +8,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/SetupCURL.cmake")
 
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(libzstd REQUIRED)
+find_package(zstd REQUIRED)
 find_package(lz4 REQUIRED)
 find_package(SASL2 REQUIRED)
 

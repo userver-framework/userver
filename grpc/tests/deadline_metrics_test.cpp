@@ -14,8 +14,8 @@
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
-#include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
 #include <tests/messages.pb.h>
 #include <tests/deadline_helpers.hpp>

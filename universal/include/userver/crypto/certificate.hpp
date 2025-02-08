@@ -52,7 +52,7 @@ using CertificatesChain = std::list<Certificate>;
 /// list of 'Certificate's.
 ///
 /// @throw crypto::KeyParseError if failed to load the certificate.
-CertificatesChain LoadCertficatesChainFromString(std::string_view chain);
+CertificatesChain LoadCertificatesChainFromString(std::string_view chain);
 
 }  // namespace crypto
 

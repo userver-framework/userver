@@ -76,7 +76,7 @@ void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) con
     LOG_DEBUG() << fmt::format(
         "Message delivery report: err: {}, status: {}, latency: {}ms",
         rd_kafka_err2str(message->err),
-        kMessageStatus.TryFind(message_status).value_or("<bad status>"),
+        kMessageStatus.TryFind(message_status).value_or(utils::StringLiteral{"<bad status>"}),
         message_latency_ms.count()
     );
 

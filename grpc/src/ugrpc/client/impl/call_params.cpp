@@ -82,7 +82,7 @@ CallParams CreateCallParams(
     const Qos& qos
 ) {
     const auto& metadata = client_data.GetMetadata();
-    const auto call_name = metadata.method_full_names[method_id];
+    const auto call_name = GetMethodFullName(metadata, method_id);
 
     if (engine::current_task::ShouldCancel()) {
         throw RpcCancelledError(call_name, "RPC construction");
@@ -95,6 +95,7 @@ CallParams CreateCallParams(
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
         {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
+        client_data.NextStubFromMethodId(method_id),
         std::move(client_context),
         client_data.GetStatistics(method_id),
         client_data.GetMiddlewares(),
@@ -124,6 +125,7 @@ CallParams CreateGenericCallParams(
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
         ugrpc::impl::MaybeOwnedString{std::string{call_name}},
+        client_data.NextStub(),
         std::move(client_context),
         client_data.GetGenericStatistics(metrics_call_name.value_or(call_name)),
         client_data.GetMiddlewares(),

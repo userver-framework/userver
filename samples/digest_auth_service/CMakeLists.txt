@@ -3,7 +3,7 @@ project(userver-samples-digest_auth CXX)
 
 find_package(userver COMPONENTS postgresql REQUIRED)
 
-add_executable(${PROJECT_NAME} digest_auth_service.cpp auth_digest.cpp)
+add_executable(${PROJECT_NAME} main.cpp auth_digest.cpp)
 target_link_libraries(${PROJECT_NAME} userver::postgresql)
 
 userver_testsuite_add_simple()

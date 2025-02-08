@@ -42,7 +42,6 @@ namespace ugrpc::client {
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// task-processor | the task processor for blocking channel creation | -
 /// channel-args | a map of channel arguments, see gRPC Core docs | {}
 /// auth-type | authentication method, see above | -
 /// default-service-config | default service config, see above | -

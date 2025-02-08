@@ -24,6 +24,9 @@ void MySecondMiddleware::CallResponseHook(
 
 void MySecondMiddleware::Handle(ugrpc::server::MiddlewareCallContext& context) const { context.Next(); }
 
-std::shared_ptr<ugrpc::server::MiddlewareBase> MySecondMiddlewareComponent::GetMiddleware() { return middleware_; }
+std::shared_ptr<ugrpc::server::MiddlewareBase>
+MySecondMiddlewareComponent::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig&) const {
+    return middleware_;
+}
 
 }  // namespace functional_tests

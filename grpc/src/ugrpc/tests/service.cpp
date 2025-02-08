@@ -4,9 +4,9 @@
 
 #include <ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/client/middlewares/log/middleware.hpp>
-#include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

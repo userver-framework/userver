@@ -47,15 +47,15 @@ public:
 
     const server::http::HandlerInfoIndex& GetHandlerInfoIndex() const override { return handler_info_index_; }
 
-    const logging::LoggerPtr& LoggerAccess() const noexcept override { return no_logger_; };
-    const logging::LoggerPtr& LoggerAccessTskv() const noexcept override { return no_logger_; };
+    const logging::TextLoggerPtr& LoggerAccess() const noexcept override { return no_logger_; };
+    const logging::TextLoggerPtr& LoggerAccessTskv() const noexcept override { return no_logger_; };
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     mutable std::atomic<std::size_t> asyncs_finished{0};
 
 private:
     const Behaviors behavior_;
-    logging::LoggerPtr no_logger_;
+    logging::TextLoggerPtr no_logger_;
     server::http::HandlerInfoIndex handler_info_index_;
 };
 

@@ -6,13 +6,11 @@
 #include <userver/utils/retry_budget.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
+#include <ydb-cpp-sdk/v2/client/driver/fwd.h>
+
 namespace NMonitoring {
 class TMetricRegistry;
 }  // namespace NMonitoring
-
-namespace NYdb {
-class TDriver;
-}
 
 USERVER_NAMESPACE_BEGIN
 

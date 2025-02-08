@@ -24,11 +24,23 @@ class RegexError : public std::exception {};
 /// @brief A drop-in replacement for `std::regex` without huge includes
 /// and with better performance characteristics.
 ///
-/// Is currently implemented using either Boost.Regex or re2, depending on `USERVER_FEATURE_RE2` flag.
+/// utils::regex is currently implemented using re2.
 ///
 /// @see @ref utils::regex_match
 /// @see @ref utils::regex_search
 /// @see @ref utils::regex_replace
+///
+/// Read [re2 documentation](https://github.com/google/re2/wiki/syntax) on the limitations of re2 engine.
+/// Notably, it does not support:
+///
+/// 1. lookahead and lookbehind;
+/// 2. quantifiers over 1000, regexes with large repetition counts consume more memory;
+/// 3. spaces in quantifiers like `\w{1, 5}`;
+/// 4. possessive quantifiers.
+///
+/// ## An example of complex string parsing using `utils::regex`
+///
+/// @snippet utils/regex_test.cpp  split text
 class regex final {
 public:
     /// Constructs a null regex, any usage except for copy/move is UB.
@@ -99,9 +111,24 @@ public:
     /// @note Group 0 always matches the whole pattern. User groups start with index 1.
     std::string_view operator[](std::size_t sub) const;
 
+    /// @returns the position of the first character of the capturing group @a sub within the target (haystack) string.
+    /// @note Group 0 always matches the whole pattern. User groups start with index 1.
+    /// @warning For empty groups, calling this method is UB. Group 0 is always valid.
+    std::size_t position(std::size_t sub) const;
+
+    /// @returns the length of the capturing group at @a sub.
+    /// @note Group 0 always matches the whole pattern. User groups start with index 1.
+    std::size_t length(std::size_t sub) const;
+
+    /// @returns the substring from the beginning of the target (haystack) string to the beginning of the full match.
+    std::string_view prefix() const;
+
+    /// @returns the substring from the end of the full match to the end of the target (haystack) string.
+    std::string_view suffix() const;
+
 private:
     struct Impl;
-    utils::FastPimpl<Impl, 104, 8> impl_;
+    utils::FastPimpl<Impl, 120, 8> impl_;
 
     friend bool regex_match(std::string_view str, const regex& pattern);
     friend bool regex_match(std::string_view str, match_results& m, const regex& pattern);
@@ -158,13 +185,9 @@ struct Re2Replacement final {
     std::string_view replacement;
 };
 
-#if !defined(USERVER_NO_RE2_SUPPORT) || defined(DOXYGEN)
-
 /// @overload
 /// @see utils::Re2Replacement
 std::string regex_replace(std::string_view str, const regex& pattern, Re2Replacement repl);
-
-#endif
 
 /// @cond
 bool IsImplicitBoostRegexFallbackAllowed() noexcept;

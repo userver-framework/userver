@@ -217,7 +217,8 @@ struct EntryStorage final {
 #endif
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOG_TO(logger, level) USERVER_NAMESPACE::logging::LogHelper(logger, level).AsLvalue()
+#define USERVER_IMPL_LOG_TO(logger, level) \
+    USERVER_NAMESPACE::logging::LogHelper(logger, level, USERVER_NAMESPACE::logging::LogClass::kLog).AsLvalue()
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                                                 \
@@ -228,7 +229,7 @@ struct EntryStorage final {
         const auto& entry = USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder, __LINE__>::entry; \
         return entry;                                                                                    \
     }
-/// @endcond
+   /// @endcond
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the specified logger.

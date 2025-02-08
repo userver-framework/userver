@@ -51,10 +51,10 @@ struct ExecuteQuery {
 
     template <typename... Args>
     static auto DoExecuteWithBasicStats(ydb::TableClient& client, Args&&... args) {
-        NYdb::NQuery::TExecuteQuerySettings query_settings;
-        query_settings.StatsMode(NYdb::NQuery::EStatsMode::Basic);
+        NYdb::NQuery::TExecuteQuerySettings exec_settings;
+        exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Basic);
 
-        return client.ExecuteQuery(std::move(query_settings), std::forward<Args>(args)...);
+        return client.ExecuteQuery(std::move(exec_settings), std::forward<Args>(args)...);
     }
 };
 }  // namespace

@@ -18,8 +18,6 @@ from pytest_userver import client
 
 DEFAULT_TIMEOUT = 15.0
 
-USERVER_CONFIG_HOOKS = ['userver_config_grpc_mockserver']
-
 
 @pytest.fixture(scope='session')
 def grpc_service_port(service_config) -> int:
@@ -87,7 +85,7 @@ def grpc_client_prepare(
         _client_call_details: grpc.aio.ClientCallDetails,
         /,
     ) -> None:
-        if isinstance(service_client, client.AiohttpClient):
+        if hasattr(service_client, 'update_server_state'):
             await service_client.update_server_state()
 
     return prepare
@@ -95,6 +93,7 @@ def grpc_client_prepare(
 
 @pytest.fixture(scope='session')
 async def grpc_session_channel(
+    daemon_scoped_mark,
     grpc_service_endpoint,
     _grpc_channel_interceptor,
 ):
@@ -142,24 +141,6 @@ def grpc_service_deps(service_client):
     """
 
 
-@pytest.fixture(scope='session')
-def userver_config_grpc_mockserver(grpc_mockserver_endpoint):
-    """
-    Returns a function that adjusts the static config for testsuite.
-    Walks through config_vars *values* equal to `$grpc_mockserver`,
-    and replaces them with @ref grpc_mockserver_endpoint.
-
-    @ingroup userver_testsuite_fixtures
-    """
-
-    def patch_config(_config_yaml, config_vars):
-        for name in config_vars:
-            if config_vars[name] == '$grpc_mockserver':
-                config_vars[name] = grpc_mockserver_endpoint
-
-    return patch_config
-
-
 # Taken from
 # https://github.com/grpc/grpc/blob/master/examples/python/interceptors/headers/generic_client_interceptor.py
 class _GenericClientInterceptor(
@@ -187,7 +168,7 @@ class _GenericClientInterceptor(
         request,
     ):
         await self.prepare_func(client_call_details)
-        return await continuation(client_call_details, next(request))
+        return continuation(client_call_details, next(request))
 
     async def intercept_stream_unary(
         self,
@@ -205,9 +186,9 @@ class _GenericClientInterceptor(
         request_iterator,
     ):
         await self.prepare_func(client_call_details)
-        return await continuation(client_call_details, request_iterator)
+        return continuation(client_call_details, request_iterator)
 
 
 @pytest.fixture(scope='session')
-def _grpc_channel_interceptor() -> _GenericClientInterceptor:
+def _grpc_channel_interceptor(daemon_scoped_mark) -> _GenericClientInterceptor:
     return _GenericClientInterceptor()

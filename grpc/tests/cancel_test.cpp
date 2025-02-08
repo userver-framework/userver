@@ -9,10 +9,10 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
 
-#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/tests/standalone_client.hpp>
@@ -313,7 +313,9 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
 
     UEXPECT_THROW(
         client.SayHello(
-            {}, std::make_unique<::grpc::ClientContext>(), ugrpc::client::Qos{std::chrono::milliseconds(100)}
+            {},
+            std::make_unique<::grpc::ClientContext>(),
+            ugrpc::client::Qos{std::nullopt, std::chrono::milliseconds(100)}
         ),
         ugrpc::client::DeadlineExceededError
     );

@@ -31,6 +31,7 @@ namespace server::handlers {
 /// Name               | Description                   | Default value
 /// ------------------ | ----------------------------- | -------------
 /// fs-cache-component | Name of the FsCache component | fs-cache-component
+/// expires            | Cache age in seconds          | 600
 ///
 /// ## Example usage:
 ///
@@ -55,6 +56,7 @@ public:
 private:
     dynamic_config::Source config_;
     const fs::FsCacheClient& storage_;
+    const std::chrono::seconds cache_age_;
 };
 
 }  // namespace server::handlers

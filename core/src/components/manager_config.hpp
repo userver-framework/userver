@@ -29,7 +29,7 @@ struct ManagerConfig {
     bool mlock_debug_info{true};
     bool disable_phdr_cache{false};
     bool preheat_stacktrace_collector{true};
-    bool implicit_boost_regex_fallback_allowed{true};
+    bool implicit_boost_regex_fallback_allowed{false};
 
     static ManagerConfig FromString(
         const std::string&,

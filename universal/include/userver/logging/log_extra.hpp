@@ -109,6 +109,7 @@ public:
     /// be silently ignored.
     void SetFrozen(const std::string& key);
 
+    friend class LogHelper;
     friend class impl::TagWriter;
     friend class tracing::Span;
     friend class tracing::TagScope;

@@ -16,7 +16,7 @@ class {{service.name}}Client final {
 public:
     // For internal use only
     {{service.name}}Client(
-        USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies);
+        USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals);
 {% for method in service.method %}
 
 {% if method.client_streaming and method.server_streaming %}

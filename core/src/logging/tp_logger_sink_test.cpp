@@ -68,7 +68,8 @@ UTEST_MT(TpLogger, SerializesSinkOperations, 4) {
         return std::async([&] {
             Backoff backoff;
             while (keep_running) {
-                logger.Log(logging::Level::kInfo, "foo");
+                logging::impl::TextLogItem item{{"foo"}};
+                logger.Log(logging::Level::kInfo, item);
                 backoff();
             }
         });

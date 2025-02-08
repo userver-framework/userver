@@ -8,6 +8,6 @@ find_package(userver REQUIRED COMPONENTS
   core
 )
 
-include("${USERVER_CMAKE_DIR}/modules/FindRocksDB.cmake")
+find_package(RocksDB REQUIRED)
 
 set(userver_rocks_FOUND TRUE)

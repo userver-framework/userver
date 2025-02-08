@@ -91,7 +91,9 @@ ConnectionPool::ConnectionPool(
       settings_{settings},
       conn_settings_{conn_settings},
       bg_task_processor_{bg_task_processor},
-      queue_{settings.max_size},
+      queue_{ConnectionQueue::Create()},
+      conn_consumer_{queue_->GetMultiConsumer()},
+      conn_producer_{queue_->GetMultiProducer()},
       size_semaphore_{settings.max_size},
       connecting_semaphore_{settings.connecting_limit ? settings.connecting_limit : kUnlimitedConnecting},
       wait_count_{0},
@@ -178,12 +180,14 @@ void ConnectionPool::Init(InitMode mode) {
 
     std::vector<engine::TaskWithResult<bool>> tasks;
     tasks.reserve(settings->min_size);
+    const auto conn_settings = conn_settings_.ReadCopy();
     for (std::size_t i = 0; i < settings->min_size; ++i) {
-        tasks.push_back(Connect(engine::SemaphoreLock{size_semaphore_, std::try_to_lock}));
+        tasks.push_back(
+            Connect(engine::SemaphoreLock{size_semaphore_, std::try_to_lock}, ConnectionSettings{conn_settings})
+        );
     }
 
-    auto conn_settings = conn_settings_.Read();
-    if (conn_settings->user_types == ConnectionSettings::kUserTypesEnforced) {
+    if (conn_settings.user_types == ConnectionSettings::kUserTypesEnforced) {
         CheckUserTypes();
     }
 
@@ -388,16 +392,16 @@ dynamic_config::Source ConnectionPool::GetConfigSource() const { return config_s
 
 const Dsn& ConnectionPool::GetDsn() const { return dsn_; }
 
-engine::TaskWithResult<bool> ConnectionPool::Connect(engine::SemaphoreLock lock) {
-    return engine::AsyncNoSpan([this, size_lock = std::move(lock)]() mutable {
+engine::TaskWithResult<bool> ConnectionPool::Connect(engine::SemaphoreLock lock, ConnectionSettings&& conn_settings) {
+    return engine::AsyncNoSpan([this, size_lock = std::move(lock), conn_settings = std::move(conn_settings)]() mutable {
         if (!size_lock) {
             size_lock = engine::SemaphoreLock{size_semaphore_, kConnectingTimeout};
         }
-        return DoConnect(std::move(size_lock));
+        return DoConnect(std::move(size_lock), std::move(conn_settings));
     });
 }
 
-bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
+bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock, ConnectionSettings&& conn_settings) {
     if (!size_lock) return false;
     LOG_TRACE() << "Creating PostgreSQL connection, current pool size: " << size_semaphore_.UsedApprox();
     engine::SemaphoreLock connecting_lock{connecting_semaphore_, kConnectingTimeout};
@@ -406,7 +410,6 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
         return false;
     }
     const uint32_t conn_id = ++stats_.connection.open_total;
-    auto conn_settings = conn_settings_.Read();
     std::unique_ptr<Connection> connection;
     Stopwatch st{stats_.connection_percentile};
     try {
@@ -416,7 +419,7 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
             bg_task_processor_,
             close_task_storage_,
             conn_id,
-            *conn_settings,
+            std::move(conn_settings),
             default_cmd_ctls_,
             testsuite_pg_ctl_,
             ei_settings_,
@@ -451,13 +454,13 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
 }
 
 void ConnectionPool::TryCreateConnectionAsync() {
-    auto conn_settings = conn_settings_.Read();
+    auto conn_settings = conn_settings_.ReadCopy();
     // Checking errors is more expensive than incrementing an atomic, so we
     // check it only if we can start a new connection.
-    if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) < conn_settings->recent_errors_threshold) {
+    if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) < conn_settings.recent_errors_threshold) {
         engine::SemaphoreLock size_lock{size_semaphore_, std::try_to_lock};
         if (size_lock || connect_task_storage_.ActiveTasksApprox() <= kPendingConnectsMax) {
-            connect_task_storage_.Detach(Connect(std::move(size_lock)));
+            connect_task_storage_.Detach(Connect(std::move(size_lock), std::move(conn_settings)));
         }
     } else {
         LOG_DEBUG() << "Too many connection errors in recent period";
@@ -494,10 +497,7 @@ void ConnectionPool::Push(Connection* connection) {
         return;
     }
 
-    if (queue_.push(connection)) {
-        { const std::lock_guard lock{wait_mutex_}; }
-        conn_available_.NotifyOne();
-    } else {
+    if (!conn_producer_.PushNoblock(std::move(connection))) {
         // TODO Reflect this as a statistics error
         LOG_WARNING() << "Couldn't push connection back to the pool. Deleting...";
         DeleteConnection(connection);
@@ -516,7 +516,7 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
     Stopwatch st{stats_.acquire_percentile};
     Connection* connection = nullptr;
     auto conn_settings = conn_settings_.Read();
-    while (queue_.pop(connection)) {
+    while (conn_consumer_.PopNoblock(connection)) {
         if (connection->GetSettings().version < conn_settings->version) {
             DropOutdatedConnection(connection);
             continue;
@@ -539,12 +539,8 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
 
     TryCreateConnectionAsync();
 
-    {
-        std::unique_lock<engine::Mutex> lock{wait_mutex_};
-        // Wait for a connection
-        if (conn_available_.WaitUntil(lock, deadline, [&] { return queue_.pop(connection); })) {
-            return connection;
-        }
+    if (conn_consumer_.Pop(connection, deadline)) {
+        return connection;
     }
 
     if (engine::current_task::ShouldCancel()) {
@@ -567,7 +563,7 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
 
 void ConnectionPool::Clear() {
     Connection* connection = nullptr;
-    while (queue_.pop(connection)) {
+    while (conn_consumer_.PopNoblock(connection)) {
         delete connection;
     }
     close_task_storage_.CancelAndWait();
@@ -631,7 +627,7 @@ void ConnectionPool::DropOutdatedConnection(Connection* connection) {
 Connection* ConnectionPool::AcquireImmediate() {
     Connection* conn = nullptr;
     auto conn_settings = conn_settings_.Read();
-    while (queue_.pop(conn)) {
+    while (conn_consumer_.PopNoblock(conn)) {
         if (conn->GetSettings().version < conn_settings->version) {
             DropOutdatedConnection(conn);
             continue;

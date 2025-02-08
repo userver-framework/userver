@@ -240,6 +240,8 @@ function(userver_testsuite_add)
       "${USERVER_TESTSUITE_DIR}/create_runner.py"
       "--output=${TESTSUITE_RUNNER}"
       "--python=${python_binary}"
+      "--tests-path=${ARG_WORKING_DIRECTORY}"
+      "--working-dir=${CMAKE_CURRENT_BINARY_DIR}"
       "--python-path=${ARG_PYTHONPATH}"
       --
       "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
@@ -265,7 +267,6 @@ function(userver_testsuite_add)
   list(APPEND testsuite_test_command "${TESTSUITE_RUNNER}")
   list(APPEND testsuite_test_command ${PRETTY_LOGS_MODE})
   list(APPEND testsuite_test_command -vv)
-  list(APPEND testsuite_test_command "${ARG_WORKING_DIRECTORY}")
   # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
       NAME "${testsuite_test_name}"
@@ -284,7 +285,6 @@ function(userver_testsuite_add)
   list(APPEND testsuite_start_command ${PRETTY_LOGS_MODE})
   list(APPEND testsuite_start_command --service-runner-mode)
   list(APPEND testsuite_start_command -vvs)
-  list(APPEND testsuite_start_command "${ARG_WORKING_DIRECTORY}")
   add_custom_target(
       "start-${service_target_with_suffix}"
       COMMAND ${testsuite_start_command}

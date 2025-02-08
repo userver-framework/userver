@@ -3,7 +3,7 @@ project(userver-samples-grpc_middleware_service CXX)
 
 find_package(userver COMPONENTS grpc REQUIRED)
 
-add_executable(${PROJECT_NAME} src/main.cpp
+add_executable(${PROJECT_NAME} main.cpp
                                src/client/view.cpp
                                src/http_handlers/say-hello/view.cpp
                                src/service/view.cpp

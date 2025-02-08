@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/server/handlers/impl/deadline_propagation_config.hpp>

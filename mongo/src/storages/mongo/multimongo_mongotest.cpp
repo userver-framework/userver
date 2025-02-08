@@ -20,6 +20,7 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/storages/secdist/secdist.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -97,10 +98,10 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
     UEXPECT_NO_THROW(multi_mongo.AddPool("admin"));
     auto admin_pool = multi_mongo.GetPool("admin");
 
-    static const std::string kSysVerCollName = "system.version";
+    static constexpr utils::StringLiteral kSysVerCollName = "system.version";
 
     EXPECT_TRUE(admin_pool->HasCollection(kSysVerCollName));
-    UEXPECT_NO_THROW(admin_pool->GetCollection(kSysVerCollName));
+    UEXPECT_NO_THROW(admin_pool->GetCollection(std::string{kSysVerCollName}));
 }
 
 USERVER_NAMESPACE_END

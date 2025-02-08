@@ -27,7 +27,7 @@ class Middleware;
 
 // clang-format on
 
-class Component final : public MiddlewareComponentBase {
+class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of
@@ -36,14 +36,20 @@ public:
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::shared_ptr<MiddlewareBase> GetMiddleware() override;
-
-    static yaml_config::Schema GetStaticConfigSchema();
+    std::shared_ptr<MiddlewareBase>
+    CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const override;
 
 private:
     std::shared_ptr<Middleware> middleware_;
 };
 
 }  // namespace ugrpc::server::middlewares::congestion_control
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::congestion_control::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::congestion_control::Component> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

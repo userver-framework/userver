@@ -7,7 +7,7 @@
 #include <string_view>
 
 #include <userver/ugrpc/impl/code_statistics.hpp>
-#include <userver/ugrpc/impl/static_metadata.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>

@@ -1,11 +1,13 @@
 #include "multipart_form_data_parser.hpp"
 
+#include <array>
+
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-
-#include <array>
+#include <userver/utils/str_icase.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,12 +15,12 @@ namespace server::http {
 
 namespace {
 
-const std::string kMultipartFormData = "multipart/form-data";
+constexpr utils::StringLiteral kMultipartFormData = "multipart/form-data";
 
-const char kCr = '\r';
-const char kLf = '\n';
+constexpr char kCr = '\r';
+constexpr char kLf = '\n';
 
-const std::string kOwsChars = " \t";
+constexpr utils::StringLiteral kOwsChars = " \t";
 
 [[nodiscard]] std::string_view LtrimOws(std::string_view str) {
     const auto first_pchar_pos = str.find_first_not_of(kOwsChars);
@@ -52,13 +54,7 @@ const std::string kOwsChars = " \t";
     return true;
 }
 
-bool IEquals(std::string_view l, std::string_view r) {
-    if (l.size() != r.size()) return false;
-    for (size_t pos = 0; pos < l.size(); pos++) {
-        if (tolower(l[pos]) != tolower(r[pos])) return false;
-    }
-    return true;
-}
+bool IEquals(std::string_view l, std::string_view r) { return utils::StrIcaseEqual{}(l, r); }
 
 [[nodiscard]] bool SkipDoubleHyphen(std::string_view& str) {
     return SkipSymbol(str, '-') && !!SkipSymbol(str, '-');  // !!-for clang-tidy
@@ -162,9 +158,9 @@ bool ParseHeaderParamValue(std::string_view& str, std::string* value) {
 }
 
 bool ParseContentDisposition(std::string_view content_disposition, FormDataArgInfo& arg_info) {
-    static const std::string_view kFormData = "form-data";
-    static const std::string_view kName = "name";
-    static const std::string_view kFilename = "filename";
+    static constexpr utils::StringLiteral kFormData = "form-data";
+    static constexpr utils::StringLiteral kName = "name";
+    static constexpr utils::StringLiteral kFilename = "filename";
 
     auto str = content_disposition;
     auto value = ReadToken(str);
@@ -205,8 +201,8 @@ bool ParseContentDisposition(std::string_view content_disposition, FormDataArgIn
 }
 
 bool ProcessMultipartFormDataHeader(std::string_view name, std::string_view value, FormDataArgInfo& arg_info) {
-    static const std::string kContentDisposition = "Content-Disposition";
-    static const std::string kContentType = "Content-Type";
+    static constexpr utils::StringLiteral kContentDisposition = "Content-Disposition";
+    static constexpr utils::StringLiteral kContentType = "Content-Type";
 
     LOG_TRACE() << "Process header: name=" << name << ", value=" << value;
     if (IEquals(name, kContentDisposition)) {
@@ -280,7 +276,7 @@ bool ParseMultipartFormDataValue(
     FormDataArgs& form_data_args,
     std::string_view crlf
 ) {
-    static const std::string kCharset = "_charset_";
+    static constexpr utils::StringLiteral kCharset = "_charset_";
 
     if (arg_info.arg.content_disposition.empty()) {
         LOG_WARNING() << "Missing Content-Disposition header";
@@ -390,9 +386,9 @@ bool ParseMultipartFormData(
     FormDataArgs& form_data_args,
     bool strict_cr_lf
 ) {
-    static const std::string kBoundary = "boundary";
-    static const std::string kCharset = "charset";
-    static const std::string kBoundaryNotFound = "'boundary' parameter of multipart/form-data not found";
+    static constexpr utils::StringLiteral kBoundary = "boundary";
+    static constexpr utils::StringLiteral kCharset = "charset";
+    static constexpr utils::StringLiteral kBoundaryNotFound = "'boundary' parameter of multipart/form-data not found";
 
     if (!IsMultipartFormDataContentType(content_type)) {
         LOG_WARNING() << "Content type is not 'multipart/form-data'";

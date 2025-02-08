@@ -44,6 +44,8 @@ std::string AssertThrow(
 
 std::string AssertNoThrow(std::function<void()> statement, std::string_view statement_text);
 
+testing::Matcher<const std::string&> MakeHasSubstrMatcher(std::string_view expected);
+
 }  // namespace utest::impl
 
 USERVER_NAMESPACE_END
@@ -129,7 +131,8 @@ USERVER_NAMESPACE_END
     UEXPECT_THROW_MSG(statement, USERVER_NAMESPACE::utils::InvariantError, message_substring)
 #else
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define EXPECT_UINVARIANT_FAILURE_MSG(statement, message_substring) UEXPECT_DEATH(statement, message_substring)
+#define EXPECT_UINVARIANT_FAILURE_MSG(statement, message_substring) \
+    UEXPECT_DEATH(statement, USERVER_NAMESPACE::utest::impl::MakeHasSubstrMatcher(message_substring))
 #endif
 /// @endcond
 

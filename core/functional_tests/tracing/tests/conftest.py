@@ -39,6 +39,13 @@ def _userver_config_logging(userver_config_logging, jaeger_logs_path):
     return _patch_config
 
 
+# Overriding userver fixture
+@pytest.fixture(name='userver_service_client_options')
+def _userver_service_client_options(userver_service_client_options):
+    userver_service_client_options['headers'] = {}
+    return userver_service_client_options
+
+
 @pytest.fixture(scope='function')
 async def assert_ids_in_file(service_client, jaeger_logs_path):
     with open(jaeger_logs_path, 'w') as jaeger_file:

@@ -94,6 +94,12 @@ void QueryQueue::DoPush(CommandControl cc, const Query& query, ParamsHolder&& pa
 
 void QueryQueue::ValidateUsage() const { UINVARIANT(conn_, "The query queue is finalized and no longer usable."); }
 
+void QueryQueue::Push(CommandControl cc, const Query& query, const ParameterStore& store) {
+    DoPush(cc, query, ParamsHolder{{}, detail::QueryParameters(store.GetInternalData())});
+}
+
+void QueryQueue::Push(const Query& query, const ParameterStore& store) { Push(default_cc_, query, store); }
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

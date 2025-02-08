@@ -4,10 +4,9 @@
 #include <memory>
 #include <vector>
 
-#include <boost/lockfree/queue.hpp>
-
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/semaphore.hpp>
@@ -110,8 +109,8 @@ private:
 
     TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
 
-    [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock);
-    bool DoConnect(engine::SemaphoreLock);
+    [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock, ConnectionSettings&&);
+    bool DoConnect(engine::SemaphoreLock, ConnectionSettings&&);
 
     void TryCreateConnectionAsync();
     void CheckMinPoolSizeUnderflow();
@@ -140,6 +139,8 @@ private:
     using RecentCounter = USERVER_NAMESPACE::utils::statistics::
         RecentPeriod<USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
 
+    using ConnectionQueue = concurrent::NonFifoMpmcQueue<Connection*>;
+
     mutable InstanceStatistics stats_;
     Dsn dsn_;
     clients::dns::Resolver* resolver_;
@@ -150,9 +151,9 @@ private:
     concurrent::BackgroundTaskStorageCore connect_task_storage_;
     concurrent::BackgroundTaskStorageCore close_task_storage_;
     USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
-    engine::Mutex wait_mutex_;
-    engine::ConditionVariable conn_available_;
-    boost::lockfree::queue<Connection*> queue_;
+    std::shared_ptr<ConnectionQueue> queue_;
+    ConnectionQueue::MultiConsumer conn_consumer_;
+    ConnectionQueue::MultiProducer conn_producer_;
     engine::Semaphore size_semaphore_;
     engine::Semaphore connecting_semaphore_;
     std::atomic<size_t> wait_count_;

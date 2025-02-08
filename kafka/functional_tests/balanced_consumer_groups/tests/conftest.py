@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 import common
@@ -13,8 +14,13 @@ def kafka_local(_patched_bootstrap_servers_internal):
 
 
 @pytest.fixture(scope='session')
+def kafka_components():
+    return ['kafka-consumer-first', 'kafka-consumer-second']
+
+
+@pytest.fixture(scope='session')
 def service_env(kafka_secdist):
-    return {'SECDIST_CONFIG': kafka_secdist}
+    return {'SECDIST_CONFIG': json.dumps(kafka_secdist)}
 
 
 @pytest.fixture(name='stop_consumers', autouse=True)

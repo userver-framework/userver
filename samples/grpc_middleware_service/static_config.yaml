@@ -9,8 +9,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        grpc-auth-server:
-
         grpc-auth-client:
 
 # /// [gRPC middleware sample - static config client middleware]
@@ -33,6 +31,17 @@ components_manager:
             # which is kind of pointless, but works for an example
             endpoint: '[::1]:8091'
 
+        congestion-control:
+
+# /// [gRPC middleware sample - static config middleware-pipeline]
+        grpc-auth-server:
+
+        grpc-server-middlewares-pipeline:
+            middlewares:
+                grpc-auth-server:
+                    enabled: true
+# /// [gRPC middleware sample - static config middleware-pipeline]
+
         # Common configuration for gRPC server
         grpc-server:
             # The single listening port for incoming RPCs
@@ -45,8 +54,6 @@ components_manager:
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
-            middlewares:
-              - grpc-auth-server
 # /// [gRPC middleware sample - static config server middleware]
 
         # In this example, the tests still communicate with the microservice

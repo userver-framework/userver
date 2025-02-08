@@ -92,7 +92,8 @@ ParsedGStatus ParsedGStatus::ProcessStatus(const grpc::Status& status) {
 }
 
 RpcData::RpcData(impl::CallParams&& params, CallKind call_kind)
-    : context_(std::move(params.context)),
+    : stub_(std::move(params.stub)),
+      context_(std::move(params.context)),
       client_name_(params.client_name),
       call_name_(std::move(params.call_name)),
       stats_scope_(params.statistics),
@@ -114,6 +115,8 @@ RpcData::~RpcData() {
         context_->TryCancel();
     }
 }
+
+ClientData::StubHandle& RpcData::GetStub() noexcept { return stub_; }
 
 const grpc::ClientContext& RpcData::GetContext() const noexcept {
     UASSERT(context_);

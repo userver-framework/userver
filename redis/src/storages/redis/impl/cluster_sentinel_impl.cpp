@@ -365,6 +365,16 @@ public:
 
     boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override { return signal_topology_changed_; }
 
+    void UpdatePassword(const Password& password) {
+        auto lock = password_.UniqueLock();
+        *lock = password;
+    }
+
+    Password GetPassword() {
+        const auto lock = password_.Lock();
+        return *lock;
+    }
+
 private:
     void ProcessStateUpdate() { sentinels_->ProcessStateUpdate(); }
     std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const HostPort& host_port);
@@ -373,7 +383,7 @@ private:
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
 
     std::string shard_group_name_;
-    Password password_;
+    concurrent::Variable<Password, std::mutex> password_;
     std::shared_ptr<const std::vector<std::string>> shards_names_;
     std::vector<ConnectionInfo> conns_;
     std::shared_ptr<Shard> sentinels_;
@@ -657,7 +667,7 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         redis_thread_pool_,
         host,
         port,
-        password_,
+        GetPassword(),
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr
@@ -687,7 +697,7 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
     /// ...
     ProcessGetClusterHostsRequest(
         shards_names_,
-        GetClusterHostsRequest(*sentinels_, password_),
+        GetClusterHostsRequest(*sentinels_, GetPassword()),
         [this, reset{std::move(reset_update_cluster_slots_)}](
             ClusterShardHostInfos shard_infos, size_t requests_sent, size_t responses_parsed, bool is_non_cluster_error
         ) {
@@ -721,7 +731,6 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
                 ++current_topology_version_,
                 std::chrono::steady_clock::now(),
                 std::move(shard_infos),
-                password_,
                 redis_thread_pool_,
                 nodes_
             );
@@ -788,7 +797,6 @@ ClusterSentinelImpl::ClusterSentinelImpl(
       ready_callback_(std::move(ready_callback)),
       redis_thread_pool_(redis_thread_pool),
       client_name_(client_name),
-      password_(password),
       dynamic_config_source_(std::move(dynamic_config_source)) {
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
@@ -1072,6 +1080,8 @@ size_t ClusterSentinelImpl::GetClusterSlotsCalledCounter() {
 void ClusterSentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
     topology_holder_->SetConnectionInfo(info_array);
 }
+
+void ClusterSentinelImpl::UpdatePassword(const Password& password) { topology_holder_->UpdatePassword(password); }
 
 PublishSettings ClusterSentinelImpl::GetPublishSettings() {
     return PublishSettings{kUnknownShard, false, CommandControl::Strategy::kEveryDc};

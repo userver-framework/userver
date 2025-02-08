@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <userver/ugrpc/server/middlewares/baggage/middleware.hpp>
 
 #include <userver/baggage/baggage.hpp>
 #include <userver/baggage/baggage_settings.hpp>

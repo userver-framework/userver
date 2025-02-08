@@ -92,7 +92,7 @@ constexpr utils::TrivialBiMap kHugeTrivialBiMap = [](auto selector) {
         .Case("aaaaaaaaaaaaaaaa_x9", 42);
 };
 
-constexpr std::string_view kHugeTrivialBiMapKeys[] = {
+constexpr utils::StringLiteral kHugeTrivialBiMapKeys[] = {
     "aaaaaaaaaaaaaaaa_hello", "aaaaaaaaaaaaaaaa_world", "aaaaaaaaaaaaaaaa_a",  "aaaaaaaaaaaaaaaa_b",
     "aaaaaaaaaaaaaaaa_c",     "aaaaaaaaaaaaaaaa_d",     "aaaaaaaaaaaaaaaa_e",  "aaaaaaaaaaaaaaaa_f",
     "aaaaaaaaaaaaaaaa_f1",    "aaaaaaaaaaaaaaaa_f2",    "aaaaaaaaaaaaaaaa_f3", "aaaaaaaaaaaaaaaa_f4",

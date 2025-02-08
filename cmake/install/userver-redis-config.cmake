@@ -8,10 +8,6 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-if (USERVER_CONAN)  
-  find_package(hiredis REQUIRED CONFIG)
-else()
-  include("${USERVER_CMAKE_DIR}/modules/FindHiredis.cmake")
-endif()
+find_package(hiredis REQUIRED)
 
 set(userver_redis_FOUND TRUE)

@@ -39,7 +39,7 @@ Make sure to:
 
 The details vary depending on the method of building userver:
 
-* `add_subdirectory(userver)` as used in @ref service_templates "service templates"
+* `find_package` + CPM + CMake Presets as used in @ref service_templates "service templates"
 * @ref userver_install "userver install"
 * @ref userver_cpm "CPM"
 * @ref userver_conan "Conan"
@@ -54,6 +54,11 @@ For example, to use `clang-12` compiler, install it and add the following option
 ```shell
 cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 ```
+
+The exact format of setting cmake options varies depending on the method of building userver:
+
+* `find_package` + CPM + CMake Presets as used in @ref service_templates "service templates"
+* @ref userver_install "userver install"
 
 ### CMake options for selecting userver libraries to build
 
@@ -135,15 +140,17 @@ cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 
 ### CMake options for paths to dependencies
 
-| Option                                | Description                                                                                                    | Default                            |
-|---------------------------------------|----------------------------------------------------------------------------------------------------------------|------------------------------------|
-| `USERVER_PYTHON_PATH`                 | Path to the python3 binary for use in testsuite tests                                                          | `python3`                          |
-| `USERVER_PG_SERVER_INCLUDE_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", e.g. /usr/include/postgresql/15/server | autodetected                       |
-| `USERVER_PG_SERVER_LIBRARY_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", e.g. /usr/lib/postgresql/15/lib      | autodetected                       |
-| `USERVER_PG_INCLUDE_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", e.g. /usr/local/include                 | autodetected                       |
-| `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                       |
-| `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                     | Builds `userver-api-common-protos` |
-| `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                              | Downloads automatically            |
+| Option                                | Description                                                                                                    | Default                             |
+|---------------------------------------|----------------------------------------------------------------------------------------------------------------|-------------------------------------|
+| `USERVER_PYTHON_PATH`                 | Path to the python3 binary for use in testsuite tests                                                          | `python3`                           |
+| `USERVER_PG_SERVER_INCLUDE_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", e.g. /usr/include/postgresql/15/server | autodetected                        |
+| `USERVER_PG_SERVER_LIBRARY_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", e.g. /usr/lib/postgresql/15/lib      | autodetected                        |
+| `USERVER_PG_INCLUDE_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", e.g. /usr/local/include                 | autodetected                        |
+| `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                        |
+| `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                     | Builds `userver-api-common-protos`  |
+| `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                              | Downloads automatically             |
+| `USERVER_GRPC_PROTO_TARGET`           | Name of cmake target preparing grpc proto library                                                              | Builds `userver-grpc-proto-contrib` |
+| `USERVER_GRPC_PROTO`                  | Path to the folder with grpc proto files                                                                       | Downloads automatically             |
 
 ### CMake options for various compilation modes
 
@@ -176,7 +183,7 @@ cmake ... -DCMAKE_C_COMPILER=clang-12 -DCMAKE_CXX_COMPILER=clang++-12
 
 It is possible to build userver based services with libraries statically linked in.
 
-@warning The support is platform dependant, as a result some libraies on some platforms may linked dynamically. Feel free to provide a PR to support your favourite platform.
+@warning The support is platform dependant, as a result some libraries on some platforms may linked dynamically. Feel free to provide a PR to support your favourite platform.
 
 Userver does not build dynamic libraries itself, but most of its dependencies do. CMake (by default) prefers dynamic libraries on Unix-like operating systems.
 
@@ -185,7 +192,7 @@ With the option, CMake tries to find all dependencies as static libraries (and d
 - To link statically with `libstdc++` or `libc++`, use `CMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"`.
 - To force fully static binary (with statically linked `libc`), use `CMAKE_EXE_LINKER_FLAGS="-static"`. In such case, all dependencies must be provided as static libraries. Also `userver` must be build with `USERVER_DISABLE_PHDR_CACHE=ON` (without this flag, it can lead to endless memory allocation).
 
-Some dependecies usually should be build from source for statically linked executable:
+Some dependencies usually should be build from source for statically linked executable:
 1. `Curl`. Use `USERVER_FORCE_DOWNLOAD_CURL=ON` to download and build Curl from source.
 2. `cctz`, `yaml-cpp`, `fmt` often have no static libraries in their packages, so they should be build from source and installed in your host system (for instance, in `/usr/local`).
 

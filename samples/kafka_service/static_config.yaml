@@ -37,7 +37,7 @@ components_manager:
 
         # /// [Kafka service sample - producer static config]
         # yaml
-        kafka-producer:                   # Kafka producer component name must start with kafka-consumer
+        kafka-producer:                   # Kafka producer component name must start with kafka-producer
             delivery_timeout: 10s         # Timeout for message delivery
             queue_buffering_max: 100ms    # Time, producer waits before sending a message
             enable_idempotence: true      # Whether to enable idempotence mode

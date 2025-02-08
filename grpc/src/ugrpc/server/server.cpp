@@ -122,7 +122,7 @@ private:
 
     ugrpc::impl::StatisticsStorage statistics_storage_;
     const dynamic_config::Source config_source_;
-    logging::LoggerPtr access_tskv_logger_;
+    logging::TextLoggerPtr access_tskv_logger_;
 };
 
 Server::Impl::Impl(

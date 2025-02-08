@@ -31,7 +31,7 @@ def grpc_client(grpc_channel):
 
 
 @pytest.fixture(scope='session')
-async def grpc_session_channel(grpc_service_endpoint):
+async def grpc_session_channel(grpc_service_endpoint, daemon_scoped_mark):
     with open(TESTDIR / 'cert.crt', 'rb') as fi:
         root_ca = fi.read()
     credentials = grpc.ssl_channel_credentials(root_ca)

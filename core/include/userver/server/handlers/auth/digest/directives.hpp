@@ -3,26 +3,26 @@
 /// @file userver/server/handlers/auth/digest/directives.hpp
 /// @brief Various digest authentication directives
 
-#include <string>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::digest::directives {
 
-inline const std::string kUsername = "username";
-inline const std::string kRealm = "realm";
-inline const std::string kNonce = "nonce";
-inline const std::string kNextNonce = "nextnonce";
-inline const std::string kStale = "stale";
-inline const std::string kUri = "uri";
-inline const std::string kDomain = "domain";
-inline const std::string kResponse = "response";
-inline const std::string kAlgorithm = "algorithm";
-inline const std::string kCnonce = "cnonce";
-inline const std::string kOpaque = "opaque";
-inline const std::string kQop = "qop";
-inline const std::string kNonceCount = "nc";
-inline const std::string kAuthParam = "auth-param";
+inline constexpr utils::StringLiteral kUsername = "username";
+inline constexpr utils::StringLiteral kRealm = "realm";
+inline constexpr utils::StringLiteral kNonce = "nonce";
+inline constexpr utils::StringLiteral kNextNonce = "nextnonce";
+inline constexpr utils::StringLiteral kStale = "stale";
+inline constexpr utils::StringLiteral kUri = "uri";
+inline constexpr utils::StringLiteral kDomain = "domain";
+inline constexpr utils::StringLiteral kResponse = "response";
+inline constexpr utils::StringLiteral kAlgorithm = "algorithm";
+inline constexpr utils::StringLiteral kCnonce = "cnonce";
+inline constexpr utils::StringLiteral kOpaque = "opaque";
+inline constexpr utils::StringLiteral kQop = "qop";
+inline constexpr utils::StringLiteral kNonceCount = "nc";
+inline constexpr utils::StringLiteral kAuthParam = "auth-param";
 
 }  // namespace server::handlers::auth::digest::directives
 

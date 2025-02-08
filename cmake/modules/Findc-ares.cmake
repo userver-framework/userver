@@ -17,3 +17,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(c-ares_FOUND AND NOT TARGET c-ares::cares)
+  add_library(c-ares::cares ALIAS c-ares)
+endif()

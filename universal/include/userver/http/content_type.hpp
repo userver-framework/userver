@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 
+#include <userver/logging/fwd.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -59,6 +60,9 @@ public:
     std::string ToString() const;
 
 private:
+    friend logging::LogHelper& operator<<(logging::LogHelper&, const ContentType&);
+    friend std::ostream& operator<<(std::ostream&, const ContentType&);
+
     void BuildStringRepresentation();
 
     std::string type_;
@@ -84,8 +88,6 @@ public:
 private:
     utils::StrIcaseHash str_hasher_;
 };
-
-std::ostream& operator<<(std::ostream&, const ContentType&);
 
 namespace content_type {
 

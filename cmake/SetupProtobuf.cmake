@@ -25,7 +25,7 @@ function(_userver_set_protobuf_version_category)
 endfunction()
 
 if(USERVER_CONAN)
-  find_package(Protobuf REQUIRED CONFIG)
+  find_package(Protobuf REQUIRED)
   _userver_set_protobuf_version_category()
   set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
   return()

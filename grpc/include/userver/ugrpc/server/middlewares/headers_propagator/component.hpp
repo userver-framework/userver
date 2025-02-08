@@ -24,7 +24,7 @@ namespace ugrpc::server::middlewares::headers_propagator {
 
 // clang-format on
 
-class Component final : public MiddlewareComponentBase {
+class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of
@@ -33,14 +33,21 @@ public:
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::shared_ptr<MiddlewareBase> GetMiddleware() override;
-
     static yaml_config::Schema GetStaticConfigSchema();
 
-private:
-    const std::vector<std::string> headers_;
+    yaml_config::Schema GetMiddlewareConfigSchema() const override;
+
+    std::shared_ptr<MiddlewareBase>
+    CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::headers_propagator
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::headers_propagator::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::headers_propagator::Component> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

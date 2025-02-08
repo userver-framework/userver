@@ -31,13 +31,29 @@ jobs:
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
             run: |
-                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip python3-venv postgresql redis clang-format
+                sudo apt update
+                sudo apt install -y \
+                   gcc g++ cmake wget git clang-format \
+                   python3 python3-pip python3-venv
+
+          - name: Install test dependencies
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
+                echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+                      | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+                sudo apt update
+                sudo apt install -y postgresql redis mongodb-org mongodb-mongosh
+                sudo ./scripts/kafka/ubuntu_install_kafka.sh
+                ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
           - name: Install MacOS packages
             if: matrix.os == 'macos-latest'
             run: |
                 brew update
-                brew install postgresql redis clang-format
+                brew tap mongodb/brew
+                brew install clang-format postgresql redis kafka rabbitmq mongodb-community
                 brew install python@3.11
 
           - name: Install common packages
@@ -64,9 +80,14 @@ jobs:
                     chaotic_service \
                     embedded_files \
                     grpc_service \
+                    otlp_service \
                     hello_service \
+                    https_service \
                     postgres_service \
                     redis_service \
+                    kafka_service \
+                    rabbitmq_service \
+                    mongo_service \
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/

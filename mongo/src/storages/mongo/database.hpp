@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <userver/storages/mongo/collection.hpp>
+#include <userver/utils/null_terminated_view.hpp>
 
 #include <storages/mongo/pool_impl.hpp>
 
@@ -17,7 +18,7 @@ public:
 
     void DropDatabase();
 
-    bool HasCollection(const std::string& collection_name) const;
+    bool HasCollection(utils::NullTerminatedView collection_name) const;
 
     Collection GetCollection(std::string collection_name) const;
 

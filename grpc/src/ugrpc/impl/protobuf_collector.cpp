@@ -29,8 +29,10 @@ void RegisterMessageTypes(std::initializer_list<std::string> type_names) {
 DescriptorList GetGeneratedMessages() {
     utils::impl::AssertStaticRegistrationFinished();
 
+    const auto& generated_messages = GetGeneratedMessagesImpl();
     DescriptorList result;
-    for (const std::string& service_name : GetGeneratedMessagesImpl()) {
+    result.reserve(generated_messages.size());
+    for (const std::string& service_name : generated_messages) {
         const google::protobuf::Descriptor* descriptor = ugrpc::FindGeneratedMessage(service_name);
         UINVARIANT(descriptor, "descriptor is nullptr");
         result.push_back(descriptor);

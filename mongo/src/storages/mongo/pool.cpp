@@ -43,7 +43,7 @@ void Pool::DropDatabase() { impl::Database(impl_, impl_->DefaultDatabaseName()).
 
 void Pool::Ping() { impl_->Ping(); }
 
-bool Pool::HasCollection(const std::string& name) const {
+bool Pool::HasCollection(utils::NullTerminatedView name) const {
     return impl::Database(impl_, impl_->DefaultDatabaseName()).HasCollection(name);
 }
 

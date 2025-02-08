@@ -6,7 +6,7 @@
 #include <memory>
 #include <string_view>
 
-#include <ydb-cpp-sdk/client/coordination/coordination.h>
+#include <ydb-cpp-sdk/v2/client/coordination/coordination.h>
 
 USERVER_NAMESPACE_BEGIN
 

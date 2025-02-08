@@ -10,6 +10,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/testsuite/grpc_control.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>

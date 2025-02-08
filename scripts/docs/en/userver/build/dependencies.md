@@ -1,10 +1,7 @@
 # Build dependencies
 
-@note In case you struggle with setting up userver dependencies there are other options:
-
-* Prebuilt `.deb` package in each release of userver framework
-* @ref docker_with_ubuntu_22_04 "Docker"
-* @ref userver_conan "Conan"
+@note In case you struggle with setting up userver dependencies,
+there are @ref ways_to_get_userver "options to use prebuilt userver".
 
 
 ## Platform-specific build dependencies
@@ -16,10 +13,11 @@ Paths to dependencies start from the @ref service_templates "directory of your s
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-24.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-24.04.md"
 
-Dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-24.04.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-24.04.md" && \
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
 @anchor ubuntu_22_04
@@ -27,20 +25,22 @@ sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-22.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md"
 
-Dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-22.04.md" && \
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
 ### Ubuntu 21.10 (Impish Indri)
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-21.10.md "third_party/userver/scripts/docs/en/deps/ubuntu-21.10.md"
 
-Dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-21.10.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-21.10.md" && \
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
 
@@ -48,18 +48,18 @@ sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-20.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-20.04.md"
 
-Dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-20.04.md" && \
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
-\b Recommended \b Makefile.local:
+Recommended CMake options:
 
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
-    -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+```
+USERVER_FEATURE_CRYPTOPP_BLAKE2=0
+USERVER_FEATURE_REDIS_HI_MALLOC=1
 ```
 
 
@@ -67,21 +67,21 @@ CMAKE_COMMON_FLAGS += \
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-18.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-18.04.md"
 
-Dependencies could be installed via:
-  ```
-  bash
-  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
-  ```
+Dependencies can be installed via:
 
-\b Recommended \b Makefile.local:
+```bash
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-18.04.md" && \
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
+```
 
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DCMAKE_CXX_COMPILER=g++-8 \
-    -DCMAKE_C_COMPILER=gcc-8 \
-    -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
-    -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 \
-    -DUSERVER_USE_LD=gold
+Recommended CMake options:
+
+```
+CMAKE_CXX_COMPILER=g++-8
+CMAKE_C_COMPILER=gcc-8
+USERVER_FEATURE_CRYPTOPP_BLAKE2=0
+USERVER_FEATURE_CRYPTOPP_BASE64_URL=0
+USERVER_USE_LD=gold
 ```
 
 
@@ -89,14 +89,21 @@ CMAKE_COMMON_FLAGS += \
 
 \b Dependencies: @ref scripts/docs/en/deps/debian-11.md "third_party/userver/scripts/docs/en/deps/debian-11.md"
 
+Dependencies can be installed via:
+
+```bash
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/debian-11.md" && \
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
+```
+
 
 ### Debian 11 32-bit
 
-\b Dependencies: @ref scripts/docs/en/deps/debian-11.md "third_party/userver/scripts/docs/en/deps/debian-11.md" (same as above)
+\b Dependencies are the same as above.
 
-\b Recommended \b Makefile.local:
+Recommended CMake options:
 
-```cmake
+```Makefile
 CMAKE_COMMON_FLAGS += \
     -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' \
     -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64'
@@ -106,53 +113,53 @@ CMAKE_COMMON_FLAGS += \
 
 \b Dependencies: @ref scripts/docs/en/deps/fedora-36.md "third_party/userver/scripts/docs/en/deps/fedora-35.md"
 
-Fedora dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo dnf install -y $(cat third_party/userver/scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/fedora-35.md" && \
+sudo dnf install -y $(wget -q -O - ${DEPS_FILE})
 ```
 
-\b Recommended \b Makefile.local:
+Recommended CMake options:
 
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DUSERVER_FEATURE_STACKTRACE=0 \
-    -DUSERVER_FEATURE_PATCH_LIBPQ=0
+```
+USERVER_FEATURE_STACKTRACE=0
+USERVER_FEATURE_PATCH_LIBPQ=0
 ```
 
 ### Fedora 36
 
 \b Dependencies: @ref scripts/docs/en/deps/fedora-36.md "third_party/userver/scripts/docs/en/deps/fedora-36.md"
 
-Fedora dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo dnf install -y $(cat third_party/userver/scripts/docs/en/deps/fedora-36.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/fedora-36.md" && \
+sudo dnf install -y $(wget -q -O - ${DEPS_FILE})
 ```
 
-\b Recommended \b Makefile.local:
+Recommended CMake options:
 
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DUSERVER_FEATURE_STACKTRACE=0 \
-    -DUSERVER_FEATURE_PATCH_LIBPQ=0
+```
+USERVER_FEATURE_STACKTRACE=0
+USERVER_FEATURE_PATCH_LIBPQ=0
 ```
 
 ### Gentoo
 
 \b Dependencies: @ref scripts/docs/en/deps/gentoo.md "third_party/userver/scripts/docs/en/deps/gentoo.md"
 
-Dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo emerge --ask --update --oneshot $(cat scripts/docs/en/deps/gentoo.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/gentoo.md" && \
+sudo emerge --ask --update --oneshot $(wget -q -O - ${DEPS_FILE})
 ```
 
-\b Recommended \b Makefile.local:
+Recommended CMake options:
 
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DUSERVER_CHECK_PACKAGE_VERSIONS=0
+```
+USERVER_CHECK_PACKAGE_VERSIONS=0
 ```
 
 
@@ -160,21 +167,21 @@ CMAKE_COMMON_FLAGS += \
 
 \b Dependencies: @ref scripts/docs/en/deps/alpine.md "third_party/userver/scripts/docs/en/deps/alpine.md"
 
-Dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-sudo apk add $(cat scripts/docs/en/deps/alpine.md)
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/alpine.md" && \
+sudo apk add $(wget -q -O - ${DEPS_FILE})
 ```
 
-\b Recommended \b Makefile.local:
+Recommended CMake options:
 
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DUSERVER_FEATURE_JEMALLOC=OFF \
-    -DUSERVER_FEATURE_STACKTRACE=OFF \
-    -DUSERVER_FEATURE_KAFKA=OFF \
-    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
-    -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES
+```
+USERVER_FEATURE_JEMALLOC=OFF
+USERVER_FEATURE_STACKTRACE=OFF
+USERVER_FEATURE_KAFKA=OFF
+USERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON
+USERVER_DISABLE_RSEQ_ACCELERATION=YES
 ```
 
 
@@ -182,17 +189,19 @@ CMAKE_COMMON_FLAGS += \
 
 \b Dependencies: @ref scripts/docs/en/deps/arch.md "third_party/userver/scripts/docs/en/deps/arch.md"
 
-Using an AUR helper (pikaur in this example) the dependencies could be installed as:
+Using an AUR helper (pikaur in this example) the dependencies can be installed as:
 
 ```bash
-pikaur -S $(cat third_party/userver/scripts/docs/en/deps/arch.md | sed 's/^makepkg|//g' | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/arch.md" && \
+pikaur -S $(wget -q -O - ${DEPS_FILE} | sed 's/^makepkg|//g')
 ```
 
 Without AUR:
 
 ```bash
-sudo pacman -S $(cat third_party/userver/scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' | tr '\n' ' ')
-cat third_party/userver/scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/arch.md" && \
+sudo pacman -S $(wget -q -O - ${DEPS_FILE} | grep -v -- 'makepkg|')
+wget -q -O - ${DEPS_FILE} | grep -oP '^makepkg\|\K.*' | while read ;\
   do \
     DIR=$(mktemp -d) ;\
     git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
@@ -203,33 +212,34 @@ cat third_party/userver/scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*'
   done
 ```
 
-\b Recommended \b Makefile.local:
-  
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DUSERVER_FEATURE_PATCH_LIBPQ=0
+Recommended CMake options:
+
+```
+USERVER_FEATURE_PATCH_LIBPQ=0
 ```
 
 
-### MacOS
+### macOS
 
 \b Dependencies: @ref scripts/docs/en/deps/macos.md "third_party/userver/scripts/docs/en/deps/macos.md".
-At least MacOS 10.15 required with
+At least macOS 10.15 required with
 [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and
 [Homebrew](https://brew.sh/).
 
-Dependencies could be installed via:
+Dependencies can be installed via:
 
 ```bash
-brew install $(cat third_party/userver/scripts/docs/en/deps/macos.md | tr '\n' ' ')
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/arch.md" && \
+brew install $(wget -q -O - ${DEPS_FILE})
 ```
 
 Some Homebrew packages are keg-only (they are not symlinked to Homebrew prefix path e.g. `/opt/homebrew`),
 therefore they can not be found by CMake in configure phase.
 
-It it possible to symlink the libraries using `brew link --force`.
+It is possible to symlink the libraries using `brew link --force`.
 
-For current MacOS build dependencies, userver expects that following packages are symlinked:
+For current macOS build dependencies, userver expects that following packages are symlinked:
+
 ```bash
 brew link postgresql@16 # postgresql is keg-only (required by PostgreSQL)
 brew link --force openldap # keg-only (required by PostgreSQL)
@@ -239,16 +249,16 @@ brew link --force curl # keg-only (required by Core)
 brew link --force cyrus-sasl # keg-only (required by Mongo and Kafka)
 ```
 
-\b Recommended \b Makefile.local:
-  
-```cmake
-CMAKE_COMMON_FLAGS += \
-    -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
-    -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 \
-    -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-    -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1 \
-    -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 \
-    -DUSERVER_FORCE_DOWNLOAD_GRPC=1
+Recommended CMake options:
+
+```Makefile
+USERVER_CHECK_PACKAGE_VERSIONS=0
+USERVER_FEATURE_REDIS_HI_MALLOC=1
+USERVER_FEATURE_CRYPTOPP_BLAKE2=0
+USERVER_FORCE_DOWNLOAD_ABSEIL=1
+USERVER_FORCE_DOWNLOAD_RE2=1
+USERVER_FORCE_DOWNLOAD_PROTOBUF=1
+USERVER_FORCE_DOWNLOAD_GRPC=1
 ```
 
 After that the `make test` would build and run the service tests.

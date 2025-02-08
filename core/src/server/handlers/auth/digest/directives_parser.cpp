@@ -16,7 +16,7 @@ namespace server::handlers::auth::digest {
 
 namespace {
 
-constexpr std::string_view kDigestWord = "Digest";
+constexpr utils::StringLiteral kDigestWord = "Digest";
 
 enum class kClientDirectiveTypes {
     kUsername,
@@ -215,18 +215,15 @@ void Parser::PushToClientContext(std::string&& directive, std::string&& value, C
 
 void Parser::CheckMandatoryDirectivesPresent() const {
     std::vector<std::string> missing_directives;
-    std::for_each(
-        kMandatoryDirectives.begin(),
-        kMandatoryDirectives.end(),
-        [this, &missing_directives](const kClientDirectiveTypes directive_type) {
-            const auto index = static_cast<std::size_t>(directive_type);
-            if (directives_counter_[index] == 0) {
-                auto directive = kClientDirectivesMap.TryFind(directive_type).value_or("unknown_directive");
-                UASSERT(directive != "unknown_directive");
-                missing_directives.emplace_back(directive);
-            }
+    for (auto directive_type : kMandatoryDirectives) {
+        const auto index = static_cast<std::size_t>(directive_type);
+        if (directives_counter_[index] == 0) {
+            auto directive =
+                kClientDirectivesMap.TryFind(directive_type).value_or(utils::StringLiteral{"unknown_directive"});
+            UASSERT(directive != "unknown_directive");
+            missing_directives.emplace_back(directive);
         }
-    );
+    }
     if (!missing_directives.empty()) {
         throw MissingDirectivesException(std::move(missing_directives));
     }
@@ -241,7 +238,8 @@ void Parser::CheckDuplicateDirectivesExist() const {
     if (it != directives_counter_.end()) {
         const auto index = std::distance(directives_counter_.begin(), it);
         const auto directive_type = static_cast<kClientDirectiveTypes>(index);
-        auto directive = kClientDirectivesMap.TryFind(directive_type).value_or("unknown_directive");
+        auto directive =
+            kClientDirectivesMap.TryFind(directive_type).value_or(utils::StringLiteral{"unknown_directive"});
         UASSERT(directive != "unknown_directive");
         throw DuplicateDirectiveException(fmt::format("Duplicate '{}' directive found", directive));
     }

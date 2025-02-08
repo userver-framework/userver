@@ -192,11 +192,10 @@ TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
     // This is a golden test that shows how exactly dynamic config parsing failure
     // may look. Feel free to change this test if those messages ever change.
     const auto expected_exception_message = fmt::format(
-        "Cannot start component dynamic-config: {} "
-        "while parsing dynamic config values. Error at path "
-        "'USERVER_LOG_DYNAMIC_DEBUG.force-enabled': Wrong type. "
-        "Expected: arrayValue, actual: intValue",
-        compiler::GetTypeName<formats::json::TypeMismatchException>()
+        "Cannot start component dynamic-config: {} while parsing dynamic config values. Error at path "
+        "'USERVER_LOG_DYNAMIC_DEBUG.force-enabled': Wrong type. Expected: arrayValue, actual: intValue",
+        // NOTE: GetTypeName(typeid(T)) for old version of compilators
+        compiler::GetTypeName(typeid(formats::json::TypeMismatchException))
     );
 
     UEXPECT_THROW_MSG(

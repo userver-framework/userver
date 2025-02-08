@@ -1,19 +1,38 @@
 import json
 
-default_testsuite_headers = [
-    'User-Agent',
-    'Accept-Encoding',
-    'Accept',
-    'X-YaSpanId',
-    'Host',
-]
+import pytest
+
+DEFAULT_TESTSUITE_HEADERS = frozenset([
+    'user-agent',
+    'accept-encoding',
+    'accept',
+    'x-yaspanid',
+    'x-yatraceid',
+    'host',
+])
 
 
+@pytest.mark.parametrize(
+    'headers, headers_whitelist, expected_logged_headers',
+    [
+        (  #
+            {'secret_header': 'secret'},
+            [],
+            {'secret_header': '***'},
+        ),
+        (
+            {'legal_header': 'userver best framework'},
+            ['legal_header'],
+            {'legal_header': 'userver best framework'},
+        ),
+    ],
+)
 async def get_log_request_headers(
     service_client,
     dynamic_config,
     headers,
     headers_whitelist,
+    expected_logged_headers,
 ):
     dynamic_config.set(
         USERVER_LOG_REQUEST_HEADERS=True,
@@ -40,21 +59,10 @@ async def get_log_request_headers(
 
     request_headers = json.loads(request_headers_raw)
 
-    for header_name in default_testsuite_headers:
-        del request_headers[header_name]
-    return request_headers
+    request_headers = {
+        header_name: header_value
+        for header_name, header_value in request_headers.items()
+        if header_name.lowercase() not in DEFAULT_TESTSUITE_HEADERS
+    }
 
-
-async def test_headers(service_client, dynamic_config):
-    assert await get_log_request_headers(
-        service_client,
-        dynamic_config,
-        headers={'secret_header': 'secret'},
-        headers_whitelist=[],
-    ) == {'secret_header': '***'}
-    assert await get_log_request_headers(
-        service_client,
-        dynamic_config,
-        headers={'legal_header': 'userver best framework'},
-        headers_whitelist=['legal_header'],
-    ) == {'legal_header': 'userver best framework'}
+    assert request_headers == expected_logged_headers

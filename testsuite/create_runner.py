@@ -9,6 +9,8 @@ import sys
 
 import pytest
 
+TESTSUITE_TESTS_PATH = {tests_path}
+TESTSUITE_WORKING_DIR = {working_dir}
 TESTSUITE_PYTHONPATH = {python_path}
 TESTSUITE_PYTEST_ARGS = {pytest_args}
 
@@ -16,10 +18,11 @@ TESTSUITE_PYTEST_ARGS = {pytest_args}
 def testsuite_runner():
     args = [
         # Put path to test sources as the first argument to work around pytest issue #12802
-        sys.argv[-1],
+        TESTSUITE_TESTS_PATH,
         *TESTSUITE_PYTEST_ARGS,
-        *sys.argv[1:-1],
+        *sys.argv[1:],
     ]
+    os.chdir(TESTSUITE_WORKING_DIR)
     sys.path.extend(TESTSUITE_PYTHONPATH)
     os.environ['PATH'] = os.path.dirname('{python}') + ':' + os.environ['PATH']
     return pytest.main(args=args)
@@ -50,6 +53,15 @@ def main():
         default=sys.executable,
     )
     parser.add_argument(
+        '--tests-path',
+        type=pathlib.Path,
+        required=True,
+        help='Path to the directory with tests',
+    )
+    parser.add_argument(
+        '--working-dir', type=pathlib.Path, required=True, help='Path to the working directory (build dir)'
+    )
+    parser.add_argument(
         '--python-path',
         type=cmake_list,
         default=[],
@@ -70,6 +82,8 @@ def main():
 
     script = TEMPLATE.format(
         python=args.python,
+        tests_path=pprint.pformat(str(args.tests_path)),
+        working_dir=pprint.pformat(str(args.working_dir)),
         python_path=pprint.pformat(args.python_path),
         pytest_args=pprint.pformat(args.pytest_args),
     )

@@ -11,6 +11,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -89,21 +90,22 @@ TypeBufferCategory& TypeCategories() {
     return cats_;
 }
 
-const std::unordered_map<BufferCategory, std::string, BufferCategoryHash> kBufferCategoryToString{
-    {BufferCategory::kKeepCategory, "parent buffer category"},
-    {BufferCategory::kNoParser, "no parser"},
-    {BufferCategory::kVoid, "void result"},
-    {BufferCategory::kPlainBuffer, "plain buffer"},
-    {BufferCategory::kArrayBuffer, "array buffer"},
-    {BufferCategory::kCompositeBuffer, "composite buffer"},
-    {BufferCategory::kRangeBuffer, "range buffer"},
+constexpr USERVER_NAMESPACE::utils::TrivialBiMap kBufferCategoryToString = [](auto selector) {
+    return selector()
+        .Case(BufferCategory::kKeepCategory, "parent buffer category")
+        .Case(BufferCategory::kNoParser, "no parser")
+        .Case(BufferCategory::kVoid, "void result")
+        .Case(BufferCategory::kPlainBuffer, "plain buffer")
+        .Case(BufferCategory::kArrayBuffer, "array buffer")
+        .Case(BufferCategory::kCompositeBuffer, "composite buffer")
+        .Case(BufferCategory::kRangeBuffer, "range buffer");
 };
 
 }  // namespace
 
-const std::string& ToString(BufferCategory val) {
-    if (auto f = kBufferCategoryToString.find(val); f != kBufferCategoryToString.end()) {
-        return f->second;
+std::string_view ToString(BufferCategory val) {
+    if (auto opt_value = kBufferCategoryToString.TryFindByFirst(val)) {
+        return *opt_value;
     }
     throw LogicError(fmt::format("Invalid buffer category value {}", USERVER_NAMESPACE::utils::UnderlyingValue(val)));
 }

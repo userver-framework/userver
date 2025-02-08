@@ -6,15 +6,27 @@ USERVER_NAMESPACE_BEGIN
 
 /// [sample string bimap]
 constexpr utils::TrivialBiMap kToInt = [](auto selector) {
-    return selector().Case("zero", 0).Case("one", 1).Case("two", 2).Case("three", 3).Case("four", 4);
+    return selector()
+        .Case("zero", 0)
+        .Case("one", 1)
+        .Case("two", 2)
+        .Case("three", 3)
+        .Case("four", 4)
+        .Case("fifty five", 55);
 };
 
 TEST(TrivialBiMap, StringBasic) {
+    EXPECT_TRUE(kToInt.TryFind(0));
     EXPECT_FALSE(kToInt.TryFind(42));
 
     EXPECT_EQ(kToInt.TryFind("one"), 1);
-    EXPECT_EQ(kToInt.TryFind(2), "two");
+    EXPECT_EQ(kToInt.TryFind("one"), 1);
 
+    const std::optional<utils::StringLiteral> res = kToInt.TryFind(2);
+    ASSERT_TRUE(res);
+    EXPECT_EQ(*res, "two");
+
+    EXPECT_EQ(kToInt.TryFind(2).value_or(utils::StringLiteral{"unknown"}), "two");
     EXPECT_EQ(kToInt.TryFind("ten").value_or(-1), -1);
 }
 /// [sample string bimap]
@@ -31,9 +43,9 @@ TEST(TrivialBiMap, StringBasicDescribe) {
     EXPECT_EQ(
         kToInt.Describe(),
         "('zero', '0'), ('one', '1'), ('two', '2'), ('three', '3'), "
-        "('four', '4')"
+        "('four', '4'), ('fifty five', '55')"
     );
-    EXPECT_EQ(kToInt.DescribeFirst(), "'zero', 'one', 'two', 'three', 'four'");
+    EXPECT_EQ(kToInt.DescribeFirst(), "'zero', 'one', 'two', 'three', 'four', 'fifty five'");
 }
 
 /// [sample bidir bimap]
@@ -69,7 +81,13 @@ TEST(TrivialBiMap, EnumToEnumConstexpr) {
 
 /// [sample contains switch]
 constexpr utils::TrivialSet kKnownLanguages = [](auto selector) {
-    return selector().Case("c++").Case("python").Case("javascript").Case("kotlin");
+    return selector()
+        .Case("c++")
+        .Case("python")
+        .Case("javascript")
+        .Case("kotlin")
+        .Case("algebraic logic functional")
+        .Case("c");
 };
 
 TEST(TrivialBiMap, Contains) {
@@ -78,7 +96,7 @@ TEST(TrivialBiMap, Contains) {
     EXPECT_TRUE(kKnownLanguages.Contains("kotlin"));
     EXPECT_FALSE(kKnownLanguages.ContainsICase("HTML"));
 
-    EXPECT_EQ(kKnownLanguages.Describe(), "'c++', 'python', 'javascript', 'kotlin'");
+    EXPECT_EQ(kKnownLanguages.Describe(), "'c++', 'python', 'javascript', 'kotlin', 'algebraic logic functional', 'c'");
 }
 /// [sample contains switch]
 
@@ -131,30 +149,73 @@ TEST(TrivialBiMap, StringToString) {
     EXPECT_EQ(kEnglishToGerman.TryFindICaseByFirst("ZeRo"), "null");
     EXPECT_EQ(kEnglishToGerman.TryFindICaseByFirst("three"), "drei");
     EXPECT_EQ(kEnglishToGerman.TryFindICaseByFirst("Three"), "drei");
+    static_assert(kEnglishToGerman.TryFindICaseByFirst("Three") == "drei");
 
     EXPECT_EQ(kEnglishToGerman.TryFindBySecond("null"), "zero");
     EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("NULL"), "zero");
     EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("DrEi"), "three");
     EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("Drei"), "three");
+
+    // utils::NullTerminatedView related checks
+    utils::StringLiteral res = kEnglishToGerman.TryFindBySecond(std::string{"drei"}).value();
+    EXPECT_EQ(res.c_str(), std::string_view{"three"});
+
+    res = kEnglishToGerman.TryFindByFirst(std::string{"three"}).value();
+    EXPECT_EQ(res.c_str(), std::string_view{"drei"});
+
+    res = kEnglishToGerman.TryFindICaseBySecond(std::string{"Drei"}).value();
+    EXPECT_EQ(res.c_str(), std::string_view{"three"});
+
+    res = kEnglishToGerman.TryFindICaseByFirst(std::string{"Three"}).value();
+    EXPECT_EQ(res.c_str(), std::string_view{"drei"});
 }
 
-constexpr std::string_view kToIntKeys[] = {"zero", "one", "two", "three"};
+constexpr utils::StringLiteral kToIntKeys[] = {"zero", "one", "two", "three"};
 constexpr int kToIntValues[] = {0, 1, 2, 3};
 
 TEST(TrivialBiMap, MakeTrivialBiMap) {
     static constexpr auto kMap = utils::MakeTrivialBiMap<kToIntKeys, kToIntValues>();
 
     EXPECT_EQ(kMap.TryFind("one"), 1);
-    EXPECT_EQ(kMap.TryFind("ten"), std::nullopt);
+    EXPECT_EQ(kMap.TryFind(std::string_view{"one"}), 1);
+    EXPECT_EQ(kMap.TryFind(std::string("ten")), std::nullopt);
     EXPECT_EQ(kMap.TryFind(2), "two");
+    utils::StringLiteral res = kMap.TryFind(2).value();
+    EXPECT_EQ(res.c_str(), std::string_view{"two"});
     EXPECT_EQ(kMap.TryFind(42), std::nullopt);
+
+    EXPECT_EQ(kMap.GetValuesByIndex(1).second, 1);
+    static_assert(kMap.GetValuesByIndex(1).second == 1);
+
+    EXPECT_EQ(kMap.DescribeFirst(), "'zero', 'one', 'two', 'three'");
+    EXPECT_EQ(kMap.DescribeByType<std::string_view>(), "'zero', 'one', 'two', 'three'");
+}
+
+constexpr utils::NullTerminatedView kToIntKeysZeroTerm[] = {"zero", "one", "two", "three"};
+
+TEST(TrivialBiMap, MakeTrivialBiMap2) {
+    static constexpr auto kMap = utils::MakeTrivialBiMap<kToIntKeysZeroTerm, kToIntValues>();
+
+    EXPECT_EQ(kMap.TryFind("one"), 1);
+    EXPECT_EQ(kMap.TryFind(std::string("ten")), std::nullopt);
+    EXPECT_EQ(kMap.TryFind(2), "two");
+
+    utils::NullTerminatedView res = kMap.TryFind(2).value();
+    EXPECT_EQ(res.c_str(), std::string_view{"two"});
+    EXPECT_EQ(kMap.TryFind(42), std::nullopt);
+
+    EXPECT_EQ(kMap.GetValuesByIndex(1).second, 1);
+    static_assert(kMap.GetValuesByIndex(1).second == 1);
+
+    EXPECT_EQ(kMap.DescribeFirst(), "'zero', 'one', 'two', 'three'");
+    EXPECT_EQ(kMap.DescribeByType<std::string_view>(), "'zero', 'one', 'two', 'three'");
 }
 
 TEST(TrivialBiMap, MakeTrivialSet) {
     static constexpr auto kSet = utils::MakeTrivialSet<kToIntKeys>();
 
     EXPECT_EQ(kSet.GetIndex("zero"), 0);
-    EXPECT_EQ(kSet.GetIndex("three"), 3);
+    EXPECT_EQ(kSet.GetIndex(std::string{"three"}), 3);
     EXPECT_EQ(kSet.GetIndex("ten"), std::nullopt);
 }
 
@@ -167,6 +228,7 @@ TEST(TrivialBiMap, FindICaseBySecond) {
     EXPECT_EQ(kNumToGerman.TryFindICase("NULL"), 0);
     EXPECT_EQ(kNumToGerman.TryFindICase("DrEi"), 3);
     EXPECT_EQ(kNumToGerman.TryFindICase("Drei"), 3);
+    static_assert(kNumToGerman.TryFindICase("Drei") == 3);
 }
 
 constexpr utils::TrivialBiMap kICaseCheck = [](auto selector) {
@@ -288,6 +350,7 @@ TEST(TrivialBiMap, GetIndex) {
     };
 
     EXPECT_EQ(kNames.GetIndex("bar"), 1);
+    EXPECT_EQ(kNames.GetIndex(std::string{"bar"}), 1);
     EXPECT_EQ(kNames.GetIndex("aba"), std::nullopt);
 }
 

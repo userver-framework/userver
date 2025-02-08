@@ -23,6 +23,7 @@ struct CallParams {
     grpc::CompletionQueue& queue;
     dynamic_config::Snapshot config;
     ugrpc::impl::MaybeOwnedString call_name;
+    ClientData::StubHandle stub;
     std::unique_ptr<grpc::ClientContext> context;
     ugrpc::impl::MethodStatistics& statistics;
     const Middlewares& mws;

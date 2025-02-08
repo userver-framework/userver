@@ -92,6 +92,6 @@ struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value> : fmt::formatter<
     auto format(const USERVER_NAMESPACE::formats::json::Value& value, FormatContext& ctx)
         USERVER_FMT_CONST->decltype(ctx.out()) {
         const USERVER_NAMESPACE::formats::json::impl::StringBuffer buffer(value);
-        return formatter<string_view>::format(buffer.GetStringView(), ctx);
+        return fmt::format_to(ctx.out(), "{}", buffer.GetStringView());
     }
 };

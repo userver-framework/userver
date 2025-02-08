@@ -1,8 +1,8 @@
 #include <userver/ydb/response.hpp>
 
-#include <ydb-cpp-sdk/client/proto/accessor.h>
-#include <ydb-cpp-sdk/client/result/result.h>
-#include <ydb-cpp-sdk/client/table/table.h>
+#include <ydb-cpp-sdk/v2/client/proto/accessor.h>
+#include <ydb-cpp-sdk/v2/client/result/result.h>
+#include <ydb-cpp-sdk/v2/client/table/table.h>
 
 #include <userver/ydb/builder.hpp>
 #include <userver/ydb/exceptions.hpp>

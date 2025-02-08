@@ -56,7 +56,7 @@ Certificate Certificate::LoadFromString(std::string_view certificate) {
     return Certificate{std::move(cert)};
 }
 
-CertificatesChain LoadCertficatesChainFromString(std::string_view chain) {
+CertificatesChain LoadCertificatesChainFromString(std::string_view chain) {
     CertificatesChain certificates;
     constexpr std::string_view kBeginMarker = "-----BEGIN CERTIFICATE-----";
     constexpr std::string_view kEndMarker = "-----END CERTIFICATE-----";

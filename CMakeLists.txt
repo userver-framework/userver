@@ -7,6 +7,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0028 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 project(userver)
@@ -143,6 +144,9 @@ option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB
 set(CMAKE_DEBUG_POSTFIX d)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+if(USERVER_CONAN AND NOT DEFINED CMAKE_FIND_PACKAGE_PREFER_CONFIG)
+  set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+endif()
 
 set(USERVER_USE_STATIC_LIBS_DEFAULT OFF)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0)
@@ -151,8 +155,13 @@ endif()
 option(USERVER_USE_STATIC_LIBS "Tries to find all dependencies as static libraries" "${USERVER_USE_STATIC_LIBS_DEFAULT}")
 
 if(USERVER_USE_STATIC_LIBS)
+  if(USERVER_USE_STATIC_LIBS_DEFAULT)
+    set(_use_static_log_level STATUS)
+  else()
+    set(_use_static_log_level WARNING)
+  endif()
   message(
-    WARNING
+    ${_use_static_log_level}
     "USERVER_USE_STATIC_LIBS turned ON, prioritized to find static libraries. Not all dependencies may be taken into account and linkage may be broken")
 endif()
 include(UserverPreferStaticLibs)

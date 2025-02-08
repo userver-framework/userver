@@ -14,6 +14,7 @@
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/log.hpp>
 #include <userver/utils/scope_guard.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,12 +22,12 @@ namespace server::middlewares {
 
 namespace {
 
-const std::string kTracingTypeRequest = "request";
-const std::string kTracingBody = "body";
-const std::string kTracingUri = "uri";
+constexpr utils::StringLiteral kTracingTypeRequest = "request";
+constexpr utils::StringLiteral kTracingBody = "body";
+constexpr utils::StringLiteral kTracingUri = "uri";
 
-const std::string kUserAgentTag = "useragent";
-const std::string kAcceptLanguageTag = "acceptlang";
+constexpr utils::StringLiteral kUserAgentTag = "useragent";
+constexpr utils::StringLiteral kAcceptLanguageTag = "acceptlang";
 
 std::string GetHeadersLogString(
     const http::HttpRequest& request,
@@ -79,11 +80,11 @@ logging::LogExtra LogRequestExtra(
         );
     }
     log_extra.Extend(tracing::kHttpMetaType, std::string{meta_type});
-    log_extra.Extend(tracing::kType, kTracingTypeRequest);
+    log_extra.Extend(tracing::kType, std::string{kTracingTypeRequest});
     log_extra.Extend("request_body_length", body_length);
-    log_extra.Extend(kTracingBody, body_to_log);
-    log_extra.Extend(kTracingUri, http_request.GetUrl());
-    log_extra.Extend(tracing::kHttpMethod, http_request.GetMethodStr());
+    log_extra.Extend(std::string{kTracingBody}, body_to_log);
+    log_extra.Extend(std::string{kTracingUri}, http_request.GetUrl());
+    log_extra.Extend(tracing::kHttpMethod, std::string{http_request.GetMethodStr()});
 
     const auto& request_application = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestApplication);
     if (!request_application.empty()) {
@@ -92,11 +93,11 @@ logging::LogExtra LogRequestExtra(
 
     const auto& user_agent = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
     if (!user_agent.empty()) {
-        log_extra.Extend(kUserAgentTag, user_agent);
+        log_extra.Extend(std::string{kUserAgentTag}, user_agent);
     }
     const auto& accept_language = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kAcceptLanguage);
     if (!accept_language.empty()) {
-        log_extra.Extend(kAcceptLanguageTag, accept_language);
+        log_extra.Extend(std::string{kAcceptLanguageTag}, accept_language);
     }
 
     return log_extra;

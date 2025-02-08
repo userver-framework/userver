@@ -45,7 +45,7 @@ public:
         utils::impl::SourceLocation source_location
     );
 
-    Impl(Impl&&) = default;
+    Impl(Impl&&) noexcept = default;
 
     ~Impl();
 
@@ -104,6 +104,8 @@ private:
     std::string parent_id_;
     const ReferenceType reference_type_;
     utils::impl::SourceLocation source_location_;
+
+    std::vector<SpanEvent> events_;
 
     friend class Span;
     friend class SpanBuilder;

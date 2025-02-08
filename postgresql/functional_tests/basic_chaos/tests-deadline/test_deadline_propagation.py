@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 
@@ -35,6 +37,10 @@ async def test_expired_dp_disabled(service_client, dynamic_config):
     logs = capture.select(_type='response', meta_type='/chaos/postgres')
     assert len(logs) == 1, logs
     if pipeline_enabled:
+        if os.environ.get('POSTGRES_PIPELINE_DISABLED'):
+            pytest.skip('Disabled in configuration')
+            return
+
         assert not logs[0].get('dp_original_body', None), logs
     else:
         assert logs[0].get('dp_original_body', None), logs

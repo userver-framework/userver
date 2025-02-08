@@ -74,6 +74,8 @@ public:
     RpcData& operator=(RpcData&&) noexcept = delete;
     ~RpcData();
 
+    ClientData::StubHandle& GetStub() noexcept;
+
     const grpc::ClientContext& GetContext() const noexcept;
 
     grpc::ClientContext& GetContext() noexcept;
@@ -154,6 +156,7 @@ public:
     };
 
 private:
+    ClientData::StubHandle stub_;
     std::unique_ptr<grpc::ClientContext> context_;
     std::string client_name_;
     ugrpc::impl::MaybeOwnedString call_name_;

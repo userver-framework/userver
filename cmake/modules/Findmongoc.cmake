@@ -25,3 +25,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET mongo::mongoc_static)
+  add_library(mongo::mongoc_static ALIAS mongoc)
+endif()

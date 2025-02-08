@@ -238,19 +238,19 @@ public:
     void SetFinishSendResponseTime();
 
     void WriteAccessLogs(
-        const logging::LoggerPtr& logger_access,
-        const logging::LoggerPtr& logger_access_tskv,
+        const logging::TextLoggerPtr& logger_access,
+        const logging::TextLoggerPtr& logger_access_tskv,
         const std::string& remote_address
     ) const;
 
     void WriteAccessLog(
-        const logging::LoggerPtr& logger_access,
+        const logging::TextLoggerPtr& logger_access,
         utils::datetime::WallCoarseClock::time_point tp,
         const std::string& remote_address
     ) const;
 
     void WriteAccessTskvLog(
-        const logging::LoggerPtr& logger_access_tskv,
+        const logging::TextLoggerPtr& logger_access_tskv,
         utils::datetime::WallCoarseClock::time_point tp,
         const std::string& remote_address
     ) const;

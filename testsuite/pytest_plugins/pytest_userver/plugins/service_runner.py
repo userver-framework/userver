@@ -57,6 +57,7 @@ def test_service_default(
     service_client,
     service_baseurl,
     monitor_baseurl,
+    request,
 ) -> None:
     """
     This is default service runner testcase. Feel free to override it
@@ -74,7 +75,10 @@ def test_service_default(
     delimiter = '=' * 100
     message = f'\n{delimiter}\nStarted service at {service_baseurl}'
     if monitor_baseurl:
-        message += f', configured monitor URL is {monitor_baseurl}'
+        message += f'\nMonitor URL is {monitor_baseurl}'
+    if 'grpc_service_endpoint' in request.fixturenames:
+        grpc_endpoint = request.getfixturevalue('grpc_service_endpoint')
+        message += f'\ngRPC endpoint is {grpc_endpoint}'
     message += f'\n{delimiter}\n'
     print(message)
 

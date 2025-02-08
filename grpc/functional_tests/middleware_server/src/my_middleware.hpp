@@ -20,14 +20,17 @@ public:
     void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
 };
 
-class MyMiddlewareComponent final : public ugrpc::server::MiddlewareComponentBase {
+class MyMiddlewareComponent final : public ugrpc::server::MiddlewareFactoryComponentBase {
 public:
     static constexpr std::string_view kName = "my-middleware-server";
 
     MyMiddlewareComponent(const components::ComponentConfig& config, const components::ComponentContext& ctx)
-        : ugrpc::server::MiddlewareComponentBase(config, ctx), middleware_(std::make_shared<MyMiddleware>()) {}
+        : ugrpc::server::MiddlewareFactoryComponentBase(config, ctx), middleware_(std::make_shared<MyMiddleware>()) {}
 
-    std::shared_ptr<ugrpc::server::MiddlewareBase> GetMiddleware() override;
+    std::shared_ptr<ugrpc::server::MiddlewareBase> CreateMiddleware(
+        const ugrpc::server::ServiceInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 
 private:
     std::shared_ptr<ugrpc::server::MiddlewareBase> middleware_;

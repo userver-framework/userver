@@ -22,7 +22,7 @@
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
-#include <userver/ugrpc/impl/static_metadata.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
@@ -84,7 +84,7 @@ struct ServiceData final {
 
     const ServiceSettings settings;
     const ugrpc::impl::StaticServiceMetadata metadata;
-    AsyncService<GrpcppService> async_service{metadata.method_full_names.size()};
+    AsyncService<GrpcppService> async_service{GetMethodsCount(metadata)};
     utils::impl::WaitTokenStorage wait_tokens;
     ugrpc::impl::ServiceStatistics& service_statistics{
         settings.statistics_storage.GetServiceStatistics(metadata, std::nullopt)};
@@ -99,9 +99,9 @@ struct MethodData final {
     typename CallTraits::ServiceBase& service;
     const typename CallTraits::ServiceMethod service_method;
 
-    std::string_view call_name{service_data.metadata.method_full_names[method_id]};
+    std::string_view call_name{GetMethodFullName(service_data.metadata, method_id)};
     // Remove name of the service and slash
-    std::string_view method_name{call_name.substr(service_data.metadata.service_full_name.size() + 1)};
+    std::string_view method_name{GetMethodName(service_data.metadata, method_id)};
     ugrpc::impl::MethodStatistics& statistics{service_data.service_statistics.GetMethodStatistics(method_id)};
 };
 
@@ -110,7 +110,7 @@ class CallData final {
 public:
     explicit CallData(const MethodData<GrpcppService, CallTraits>& method_data)
         : wait_token_(method_data.service_data.wait_tokens.GetToken()), method_data_(method_data) {
-        UASSERT(method_data.method_id < method_data.service_data.metadata.method_full_names.size());
+        UASSERT(method_data.method_id < GetMethodsCount(method_data.service_data.metadata));
     }
 
     void operator()() && {

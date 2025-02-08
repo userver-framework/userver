@@ -16,6 +16,7 @@
 #include <userver/tracing/span_builder.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,9 +24,9 @@ namespace server::middlewares {
 
 namespace {
 
-const std::string kTracingTypeResponse = "response";
-const std::string kTracingBody = "body";
-const std::string kTracingUri = "uri";
+constexpr utils::StringLiteral kTracingTypeResponse = "response";
+constexpr utils::StringLiteral kTracingBody = "body";
+constexpr utils::StringLiteral kTracingUri = "uri";
 
 std::string GetHeadersLogString(const http::HttpResponse& response) {
     formats::json::ValueBuilder json_headers(formats::json::Type::kObject);
@@ -94,9 +95,9 @@ tracing::Span Tracing::MakeSpan(const http::HttpRequest& http_request, std::stri
     span.SetLocalLogLevel(log_level_);
 
     span.AddNonInheritableTag(tracing::kHttpMetaType, std::string{meta_type});
-    span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
+    span.AddNonInheritableTag(tracing::kType, std::string{kTracingTypeResponse});
     span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
-    span.AddNonInheritableTag(tracing::kHttpMethod, http_request.GetMethodStr());
+    span.AddNonInheritableTag(tracing::kHttpMethod, std::string{http_request.GetMethodStr()});
 
     return span;
 }
@@ -141,10 +142,11 @@ void Tracing::EnrichLogs(
                 span.AddNonInheritableTag("response_headers", GetHeadersLogString(response));
             }
             span.AddNonInheritableTag(
-                kTracingBody, handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
+                std::string{kTracingBody},
+                handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
             );
         }
-        span.AddNonInheritableTag(kTracingUri, request.GetUrl());
+        span.AddNonInheritableTag(std::string{kTracingUri}, request.GetUrl());
     } catch (const std::exception& ex) {
         LOG_ERROR() << "can't finalize request processing: " << ex;
     }

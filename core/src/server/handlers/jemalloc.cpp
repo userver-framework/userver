@@ -60,7 +60,7 @@ std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request, reque
         case Command::kStat:
             return utils::jemalloc::Stats();
         case Command::kEnable:
-            if (!utils::jemalloc::IsProfilingEnbledViaEnv()) {
+            if (!utils::jemalloc::IsProfilingEnabledViaEnv()) {
                 request.SetResponseStatus(server::http::HttpStatus::kServiceUnavailable);
                 return "'jemalloc' profiling is not available because the service was not started with a 'MALLOC_CONF' "
                        "environment variable that contain 'prof:true'";

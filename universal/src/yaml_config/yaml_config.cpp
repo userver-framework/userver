@@ -305,6 +305,27 @@ formats::json::Value Parse(const YamlConfig& value, formats::parse::To<formats::
     return formats::common::PerformMinimalFormatConversion<formats::json::Value>(value);
 }
 
+formats::yaml::Value Parse(const YamlConfig& value, formats::parse::To<formats::yaml::Value>) {
+    if (value.IsMissing()) {
+        throw YamlConfig::Exception(fmt::format(
+            "Failed to convert value at '{}' from {} to {}: missing value",
+            value.GetPath(),
+            compiler::GetTypeName<YamlConfig>(),
+            compiler::GetTypeName<formats::yaml::Value>()
+        ));
+    }
+    formats::common::ConversionStack<YamlConfig, formats::yaml::ValueBuilder> conversion_stack{value};
+    while (!conversion_stack.IsParsed()) {
+        const auto& from = conversion_stack.GetNextFrom();
+        if (from.IsArray() || from.IsObject()) {
+            conversion_stack.EnterItems();
+        } else {
+            conversion_stack.SetCurrent(from.yaml_);
+        }
+    }
+    return std::move(conversion_stack).GetParsed().ExtractValue();
+}
+
 }  // namespace yaml_config
 
 USERVER_NAMESPACE_END

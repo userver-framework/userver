@@ -1,5 +1,9 @@
 include_guard()
 
+if(USERVER_CONAN)
+  message(FATAL_ERROR "Do not use CPM in Conan")
+endif()
+
 if(NOT DEFINED CPM_USE_NAMED_CACHE_DIRECTORIES)
   set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
 endif()

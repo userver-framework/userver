@@ -2,15 +2,17 @@
 
 #include <cstdlib>
 #include <functional>
-#include <iostream>
+#include <ostream>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <boost/functional/hash.hpp>
 
+#include <userver/logging/log_helper.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,12 +23,12 @@ namespace {
 constexpr int kMaxQuality = 1000;
 const std::string kDefaultCharset = "UTF-8";
 
-const std::string kOwsChars = " \t";
-const std::string kTypeTokenInvalidChars = kOwsChars + '/';
-const std::string kCharsetParamName = "charset";
-const std::string kQualityParamName = "q";
+constexpr utils::StringLiteral kOwsChars = " \t";
+constexpr utils::StringLiteral kTypeTokenInvalidChars = " \t/";  // kOwsChars + '/'
+constexpr utils::StringLiteral kCharsetParamName = "charset";
+constexpr utils::StringLiteral kQualityParamName = "q";
 
-const std::string kTokenAny = "*";
+constexpr utils::StringLiteral kTokenAny = "*";
 
 std::string_view LtrimOws(std::string_view view) {
     const auto first_pchar_pos = view.find_first_not_of(kOwsChars);
@@ -231,7 +233,13 @@ size_t ContentTypeHash::operator()(const ContentType& content_type) const {
     return hash;
 }
 
-std::ostream& operator<<(std::ostream& os, const ContentType& content_type) { return os << content_type.ToString(); }
+std::ostream& operator<<(std::ostream& os, const ContentType& content_type) {
+    return os << content_type.string_representation_;
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const ContentType& content_type) {
+    return lh << content_type.string_representation_;
+}
 
 namespace content_type {
 

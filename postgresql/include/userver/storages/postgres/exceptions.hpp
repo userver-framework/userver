@@ -654,8 +654,7 @@ public:
     template <typename T>
     FieldValueIsNull(std::size_t field_index, std::string_view field_name, const T&)
         : ResultSetError(fmt::format(
-              "Field #{} name `{}` C++ type `{}` value is "
-              "null, forgot `std::optional`?",
+              "Field #{} name `{}` C++ type `{}` value is null, forgot `std::optional`?",
               field_index,
               field_name,
               compiler::GetTypeName<T>()
@@ -718,7 +717,7 @@ public:
 /// contains more than one column.
 class NonSingleColumnResultSet : public ResultSetError {
 public:
-    NonSingleColumnResultSet(std::size_t actual_size, const std::string& type_name, const std::string& func);
+    NonSingleColumnResultSet(std::size_t actual_size, std::string_view type_name, std::string_view func);
 };
 
 /// @brief A result set containing a single row was expected

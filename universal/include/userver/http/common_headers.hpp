@@ -161,6 +161,7 @@ inline constexpr PredefinedHeader kXBaggage{"baggage"};
 /// @name Generic Yandex headers
 /// @{
 inline constexpr PredefinedHeader kXYandexUid{"X-Yandex-UID"};
+inline constexpr PredefinedHeader kXYandexLogin{"X-Yandex-Login"};
 
 // IP address of mobile client, not an IP address of single-hop client.
 inline constexpr PredefinedHeader kXRemoteIp{"X-Remote-IP"};

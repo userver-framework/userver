@@ -4,7 +4,7 @@ project(userver-samples-ydb_service CXX)
 find_package(userver COMPONENTS core REQUIRED)
 
 add_executable(${PROJECT_NAME}
-  "ydb_service.cpp"
+  "main.cpp"
   "views/bson-reading/post/view.cpp"
   "views/bson-upserting/post/view.cpp"
   "views/select-rows/post/view.cpp"
