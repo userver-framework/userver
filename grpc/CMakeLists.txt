@@ -134,18 +134,16 @@ endif()
 if(USERVER_BUILD_TESTS)
     userver_add_grpc_library(
         ${PROJECT_NAME}-unittest-proto
-        PROTOS
-        # Absolute paths are allowed
-        ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
-        # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
-        tests/messages.proto
-        tests/protobuf.proto
-        tests/same_service_and_method_name.proto
-        tests/global_package.proto
-        tests/repeating_word_in_package_name.proto
-        tests/secret_fields.proto
-        INCLUDE_DIRECTORIES
-        ${CMAKE_CURRENT_SOURCE_DIR}/proto
+        PROTOS # Absolute paths are allowed
+               ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
+               # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
+               tests/messages.proto
+               tests/protobuf.proto
+               tests/same_service_and_method_name.proto
+               tests/global_package.proto
+               tests/repeating_word_in_package_name.proto
+               tests/secret_fields.proto
+        INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
     )
 
     add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})

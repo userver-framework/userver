@@ -67,6 +67,13 @@ with section("parse"):
             },
             "flags": ["UNIQUE"],
         },
+        "userver_add_grpc_library": {
+            "pargs": 1,
+            "kwargs": {
+                "PROTOS": "*",
+                "INCLUDE_DIRECTORIES": "*",
+            },
+        },
     }
 
 # -----------------------------
