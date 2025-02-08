@@ -42,15 +42,12 @@ userver_module(
     LINK_LIBRARIES_PRIVATE userver-libpq INCLUDE_DIRS_PRIVATE "${LIBPQ_VERSION_DIR}"
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_pgtest.cpp"
-    DBTEST_DATABASES
-        postgresql
-        DBTEST_ENV
-        POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
-        UBENCH_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
-        UBENCH_LINK_LIBRARIES
-        userver-libpq
-    UBENCH_DATABASES postgresql UBENCH_ENV POSTGRES_DSN_BENCH=postgresql://testsuite@localhost:15433/postgres
+    DBTEST_DATABASES postgresql
+    DBTEST_ENV POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
+    UBENCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
+    UBENCH_LINK_LIBRARIES userver-libpq
+    UBENCH_DATABASES postgresql
+    UBENCH_ENV POSTGRES_DSN_BENCH=postgresql://testsuite@localhost:15433/postgres
 )
 
 target_sources(${PROJECT_NAME} PRIVATE "${LIBPQ_VERSION_DIR}/userver_libpq_version.hpp")

@@ -11,7 +11,8 @@ userver_module(
                            "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     UTEST_LINK_LIBRARIES libmariadb
     DBTEST_DATABASES mysql
-    UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks" UBENCH_LINK_LIBRARIES libmariadb
+    UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks"
+    UBENCH_LINK_LIBRARIES libmariadb
     UBENCH_DATABASES mysql
 )
 

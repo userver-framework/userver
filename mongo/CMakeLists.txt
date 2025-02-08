@@ -13,10 +13,10 @@ userver_module(
     LINK_LIBRARIES_PRIVATE mongo::mongoc_static
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_mongotest.cpp"
-    DBTEST_DATABASES
-        mongo
-        # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo
-        DBTEST_ENV TESTSUITE_MONGO_RS_INSTANCE_COUNT=5 UBENCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
+    DBTEST_DATABASES mongo
+                     # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo
+    DBTEST_ENV TESTSUITE_MONGO_RS_INSTANCE_COUNT=5
+    UBENCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
 )
 
 _userver_directory_install(
