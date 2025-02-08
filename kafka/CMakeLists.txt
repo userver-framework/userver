@@ -9,8 +9,9 @@ endif()
 userver_module(
     kafka
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE RdKafka::rdkafka DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests" DBTEST_LINK_LIBRARIES
-                           userver::kafka-utest
+    LINK_LIBRARIES_PRIVATE RdKafka::rdkafka
+    DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
+    DBTEST_LINK_LIBRARIES userver::kafka-utest
     DBTEST_DATABASES kafka
     DBTEST_ENV
         "TESTSUITE_KAFKA_SERVER_START_TIMEOUT=120.0" "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
