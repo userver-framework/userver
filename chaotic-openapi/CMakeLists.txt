@@ -4,16 +4,10 @@ include(ChaoticGen)
 
 userver_module(
     chaotic-openapi
-    SOURCE_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES
-    userver-core
-    userver-chaotic
-    UTEST_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
-    UTEST_LINK_LIBRARIES
-    userver-core
-    userver-chaotic
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+    LINK_LIBRARIES userver-core userver-chaotic
+    UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+    UTEST_LINK_LIBRARIES userver-core userver-chaotic
 )
 
 if(USERVER_BUILD_TESTS)
@@ -27,6 +21,7 @@ if(USERVER_BUILD_TESTS)
 endif()
 
 _userver_directory_install(
-    COMPONENT chaotic-openapi DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/chaotic_openapi" DESTINATION
-    "${CMAKE_INSTALL_LIBDIR}/userver"
+    COMPONENT chaotic-openapi
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/chaotic_openapi"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/userver"
 )

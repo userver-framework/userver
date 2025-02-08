@@ -18,7 +18,9 @@ target_include_directories(
     PRIVATE $<TARGET_PROPERTY:userver-universal,INCLUDE_DIRECTORIES> ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 _userver_directory_install(
-    COMPONENT universal DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+    COMPONENT universal
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
 )
 _userver_install_targets(COMPONENT universal TARGETS userver-universal-utest-base)
 

@@ -6,13 +6,9 @@ _userver_install_targets(COMPONENT grpc-reflection TARGETS ${PROJECT_NAME}-proto
 
 userver_module(
     grpc-reflection
-    SOURCE_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES
-    ${PROJECT_NAME}-proto
-    userver::grpc
-    UTEST_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+    LINK_LIBRARIES ${PROJECT_NAME}-proto userver::grpc
+    UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
 )
 
 if(USERVER_BUILD_TESTS)

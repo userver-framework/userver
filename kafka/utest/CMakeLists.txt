@@ -11,6 +11,8 @@ if(KAFKA_CPM)
 endif()
 
 _userver_directory_install(
-    COMPONENT kafka DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
+    COMPONENT kafka
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
 )
 _userver_install_targets(COMPONENT kafka TARGETS ${PROJECT_NAME})

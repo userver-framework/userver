@@ -6,12 +6,9 @@ include(ChaoticGen)
 file(GLOB_RECURSE SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml")
 userver_target_generate_openapi_client(
     ${PROJECT_NAME}-chgen
-    NAME
-    test
-    OUTPUT_DIR
-    "${CMAKE_CURRENT_BINARY_DIR}/src"
-    SCHEMAS
-    ${SCHEMAS}
+    NAME test
+    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/src"
+    SCHEMAS ${SCHEMAS}
 )
 
 add_test(NAME chaotic-openapi-golden
