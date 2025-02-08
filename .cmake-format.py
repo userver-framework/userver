@@ -45,11 +45,7 @@ with section("parse"):
         "userver_target_generate_chaotic": {
             "pargs": 1,
             "kwargs": {
-                "ARGS": {
-                    "kwargs": {
-                        "-n": 1,
-                    }
-                },
+                "ARGS": "*",
                 "FORMAT": "*",
                 "OUTPUT_DIR": "*",
                 "SCHEMAS": "*",
