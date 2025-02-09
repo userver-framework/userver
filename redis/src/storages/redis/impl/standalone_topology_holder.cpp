@@ -8,7 +8,7 @@ namespace storages::redis::impl {
 StandaloneTopologyHolder::StandaloneTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
-    Password password,
+    const Password& password,
     ConnectionInfo conn
 )
     : ev_thread_(sentinel_thread_control),
@@ -132,7 +132,7 @@ boost::signals2::signal<void(size_t)>& StandaloneTopologyHolder::GetSignalTopolo
     return signal_topology_changed_;
 }
 
-std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInstance(const ConnectionInfoInt& info) const {
+std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInstance(const ConnectionInfoInt& info) {
     const auto buffering_settings_ptr = commands_buffering_settings_.Lock();
     const auto replication_monitoring_settings_ptr = monitoring_settings_.Lock();
     const auto retry_budget_settings_ptr = retry_budget_settings_.Lock();
@@ -142,7 +142,7 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
         redis_thread_pool_,
         info.HostPort().first,
         info.HostPort().second,
-        password_,
+        GetPassword(),
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr,
@@ -183,7 +183,6 @@ void StandaloneTopologyHolder::CreateNode() {
             ++current_topology_version_,
             std::chrono::steady_clock::now(),
             std::move(shard_infos),
-            password_,
             redis_thread_pool_,
             nodes
         );
@@ -194,6 +193,16 @@ void StandaloneTopologyHolder::CreateNode() {
 
     signal_topology_changed_(1);
     cv_.NotifyAll();
+}
+
+void StandaloneTopologyHolder::UpdatePassword(const Password& password) {
+    auto lock = password_.UniqueLock();
+    *lock = password;
+}
+
+Password StandaloneTopologyHolder::GetPassword() {
+    const auto lock = password_.Lock();
+    return *lock;
 }
 
 }  // namespace storages::redis::impl

@@ -365,12 +365,12 @@ public:
 
     boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override { return signal_topology_changed_; }
 
-    void UpdatePassword(const Password& password) {
+    void UpdatePassword(const Password& password) override {
         auto lock = password_.UniqueLock();
         *lock = password;
     }
 
-    Password GetPassword() {
+    Password GetPassword() override {
         const auto lock = password_.Lock();
         return *lock;
     }

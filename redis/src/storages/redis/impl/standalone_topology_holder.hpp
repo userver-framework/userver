@@ -19,7 +19,7 @@ public:
     StandaloneTopologyHolder(
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
-        Password password,
+        const Password& password,
         ConnectionInfo conn
     );
 
@@ -53,8 +53,11 @@ public:
 
     boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override;
 
+    void UpdatePassword(const Password& password) override;
+
+    Password GetPassword() override;
 private:
-    std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const ConnectionInfoInt& info) const;
+    std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const ConnectionInfoInt& info);
 
     void CreateNode();
 
@@ -65,7 +68,7 @@ private:
 
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
-    Password password_;
+    concurrent::Variable<Password, std::mutex> password_;
 
     ///{ Wait ready
     std::mutex mutex_;
