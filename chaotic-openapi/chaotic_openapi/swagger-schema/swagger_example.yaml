@@ -1,0 +1,148 @@
+swagger: '2.0'
+info:
+  title: Key-Value Storage API
+  description: An API to manage a key-value store with CRUD operations and basic authentication.
+  version: 1.0.0
+host: api.kvstore.example.com
+basePath: /v1
+schemes:
+  - https
+  - http
+securityDefinitions:
+  BasicAuth:
+    type: basic
+definitions:
+  KeyValuePair:
+    type: object
+    properties:
+      key:
+        type: string
+        description: Unique key for the item
+      value:
+        type: string
+        description: Value associated with the key
+    required:
+      - key
+      - value
+  ErrorResponse:
+    type: object
+    properties:
+      error:
+        type: string
+        description: Error message
+paths:
+  /kv:
+    get:
+      summary: Get all key-value pairs
+      description: Retrieve all key-value pairs in the store.
+      security:
+        - BasicAuth: []
+      responses:
+        200:
+          description: A list of key-value pairs
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/KeyValuePair'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      summary: Create a new key-value pair
+      description: Add a new key-value pair to the store.
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/KeyValuePair'
+      responses:
+        201:
+          description: Key-value pair created successfully
+        400:
+          description: Bad request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /kv/{key}:
+    get:
+      summary: Get a key-value pair
+      description: Retrieve a value by its key.
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          type: string
+          description: The key to retrieve
+      responses:
+        200:
+          description: Key-value pair retrieved successfully
+          schema:
+            $ref: '#/definitions/KeyValuePair'
+        404:
+          description: Key not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      summary: Update a key-value pair
+      description: Update the value associated with a specific key.
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          type: string
+          description: The key to update
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/KeyValuePair'
+      responses:
+        200:
+          description: Key-value pair updated successfully
+        404:
+          description: Key not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      summary: Delete a key-value pair
+      description: Remove a key-value pair from the store.
+      security:
+        - BasicAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          type: string
+          description: The key to delete
+      responses:
+        204:
+          description: Key-value pair deleted successfully
+        404:
+          description: Key not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+security:
+  - BasicAuth: []
