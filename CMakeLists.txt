@@ -12,6 +12,15 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 project(userver)
 
+# Generate compile_commands.json by default
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+  # Make sure the file is generated with all implicit paths spelled out explicitly
+  # This makes clangd usable on nix-based setups
+  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
+    ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+endif()
+
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 option(
