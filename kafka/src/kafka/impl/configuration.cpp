@@ -155,8 +155,19 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     producer.security = config.As<SecurityConfiguration>();
     producer.rd_kafka_options = config["rd_kafka_custom_options"].As<RdKafkaOptions>({});
     producer.delivery_timeout = config["delivery_timeout"].As<std::chrono::milliseconds>(producer.delivery_timeout);
-    producer.queue_buffering_max =
-        config["queue_buffering_max"].As<std::chrono::milliseconds>(producer.queue_buffering_max);
+    // Handle gradual transition of renaming, done in versions 2.3 -> 2.4
+    // https://github.com/userver-framework/userver/issues/856
+    if (config.HasMember("queue_buffering_max_ms")) {
+        if (config.HasMember("queue_buffering_max")) {
+            throw std::runtime_error{"ProducerConfiguration options 'queue_buffering_max_ms' and 'queue_buffering_max' are mutually exclusive. Use 'queue_buffering_max' instead, since other is deprecated"};
+        }
+        LOG_WARNING() << "ProducerConfiguration option 'queue_buffering_max_ms' is deprecated. Use 'queue_buffering_max' instead";
+        producer.queue_buffering_max =
+            config["queue_buffering_max_ms"].As<std::chrono::milliseconds>(producer.queue_buffering_max);
+    } else {
+        producer.queue_buffering_max =
+            config["queue_buffering_max"].As<std::chrono::milliseconds>(producer.queue_buffering_max);
+    }
     producer.enable_idempotence = config["enable_idempotence"].As<bool>(producer.enable_idempotence);
     producer.queue_buffering_max_messages =
         config["queue_buffering_max_messages"].As<std::uint32_t>(producer.queue_buffering_max_messages);
