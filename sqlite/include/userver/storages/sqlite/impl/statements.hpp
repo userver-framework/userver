@@ -80,8 +80,9 @@ ResultSet Statement::Execute(const Args&... args) {
   if (exec_status != SQLITE_ROW && exec_status != SQLITE_DONE) {
     throw SQLiteException(db_handler_, exec_status);
   }
-  return ResultSet(
-      std::make_shared<impl::ResultWrapper>(prepare_statement_, exec_status));
+  return ResultSet{std::make_shared<impl::ResultWrapper>(
+      std::make_shared<FieldExtractor>(prepare_statement_), prepare_statement_,
+      exec_status)};
 }
 
 }  // namespace storages::sqlite::impl

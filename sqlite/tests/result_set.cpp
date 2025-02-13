@@ -17,6 +17,7 @@
 #include <userver/storages/sqlite/row_types.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
 #include <userver/utest/assert_macros.hpp>
+#include "gmock/gmock.h"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -40,315 +41,312 @@ struct Row final {
 
 using RowTuple = std::tuple<int, std::string>;
 
-constexpr std::string_view kSelectAllRows = "SELECT * FROM test";
-constexpr std::string_view kSelectOneRow = "SELECT * FROM test WHERE id=1";
-constexpr std::string_view kSelectNullRow = "SELECT * FROM test WHERE id=NULL";
-constexpr std::string_view kSelectAllFields = "SELECT value FROM test";
-constexpr std::string_view kSelectOneField =
-    "SELECT value FROM test WHERE id=1";
-constexpr std::string_view kSelectNullField =
-    "SELECT value FROM test WHERE id=NULL";
-
-class SQLiteResultSet : public SQLiteInMemoryInitConnection {
- public:
-  void Init(ConnectionPtr connection) {
-    connection->Execute("INSERT INTO test VALUES (1, 'first')");
-    connection->Execute("INSERT INTO test VALUES (2, 'second')");
-  }
-};
-
 }  // namespace
 
-// struct MockResultWrapper {
-//   MOCK_METHOD(int, RowsAffected, (), (const, noexcept));
-//   MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept));
-//   MOCK_METHOD(bool, HasNext, (), (const, noexcept));
-//   MOCK_METHOD(bool, IsDone, (), (const, noexcept));
-//   MOCK_METHOD(void, Next, (), (noexcept));
-//   MOCK_METHOD(int, ColumnCount, (), (const, noexcept));
-//   MOCK_METHOD(int, FetchNextInt, (), ());
-//   MOCK_METHOD(std::string, FetchNextString, (), ());
-//   MOCK_METHOD(RowTuple, FetchNextRow, (), ());
-//   template <typename T>
-//   T FetchNext();
-//   template <typename FieldType>
-//   FieldType FetchNext(FieldTag);
-// };
+class MockFieldExtractor : public impl::FieldExtractorBase {
+ public:
+  MOCK_METHOD(int32_t, GetInt32Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(uint32_t, GetUInt32Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(int64_t, GetInt64Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(double, GetDoubleColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(const char*, GetCStringColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(std::string, GetStringColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(const void*, GetBlobColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(std::vector<uint8_t>, GetBytesColumn, (int column),
+              (const, noexcept, override));
+};
 
-// template <>
-// int MockResultWrapper::FetchNext<int>(FieldTag) {
-//   return FetchNextInt();
-// }
+class MockResultWrapper : public impl::ResultWrapperBase {
+ public:
+  MockResultWrapper(std::shared_ptr<impl::FieldExtractorBase> fieldExtractor)
+      : ResultWrapperBase(fieldExtractor) {}
+  MOCK_METHOD(int, RowsAffected, (), (const, noexcept, override));
+  MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept, override));
+  MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
+  MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
+  MOCK_METHOD(void, Next, (), (noexcept, override));
+  MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
+};
 
-// template <>
-// std::string MockResultWrapper::FetchNext<std::string>(FieldTag) {
-//   return FetchNextString();
-// }
+TEST(ResultSetTest, AsVectorRowTag) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
 
-// template <>
-// RowTuple MockResultWrapper::FetchNext<RowTuple>() {
-//   return FetchNextRow();
-// }
+  EXPECT_CALL(*mock_wrapper, HasNext())
+      .Times(3)
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(2);
+  EXPECT_CALL(*mock_field_extractor, GetInt32Column(0))
+      .WillOnce(::testing::Return(1))
+      .WillOnce(::testing::Return(2));
+  EXPECT_CALL(*mock_field_extractor, GetStringColumn(1))
+      .WillOnce(::testing::Return("first"))
+      .WillOnce(::testing::Return("second"));
 
-// TEST(ResultSetTest, AsVectorRowTagUsingMock) {
-//   auto mockWrapper = std::make_shared<MockResultWrapper>();
-//   EXPECT_CALL(*mockWrapper, HasNext())
-//       .Times(3)
-//       .WillOnce(::testing::Return(true))
-//       .WillOnce(::testing::Return(true))
-//       .WillOnce(::testing::Return(false));
+  ResultSet res(mock_wrapper);
+  std::vector<RowTuple> actual = std::move(res).AsVector<RowTuple>();
 
-//   EXPECT_CALL(*mockWrapper, FetchNextRow())
-//       .Times(2)
-//       .WillOnce(::testing::Return(std::make_tuple(1, std::string("first"))))
-//       .WillOnce(::testing::Return(std::make_tuple(2,
-//       std::string("second"))));
-
-//   ResultSet res(mockWrapper);
-//   std::vector<RowTuple> actual = std::move(res).AsVector<RowTuple>();
-
-//   EXPECT_EQ(actual.size(), 2);
-//   EXPECT_EQ(actual[0], std::make_tuple(1, std::string("first")));
-//   EXPECT_EQ(actual[1], std::make_tuple(2, std::string("second")));
-// }
-
-UTEST_F(SQLiteResultSet, AsVectorRowTag) {
-  ConnectionPtr conn = CreateConnection();
-  Init(conn);
-
-  // Get result as vector of tuples
-  {
-    std::vector<RowTuple> actual;
-    UEXPECT_NO_THROW(
-        actual = conn->Execute(kSelectAllRows.data()).AsVector<RowTuple>());
-
-    EXPECT_EQ(actual.size(), 2);
-    EXPECT_EQ(actual[0], std::make_tuple(1, "first"));
-    EXPECT_EQ(actual[1], std::make_tuple(2, "second"));
-  }
-
-  // Get result as vector of structures
-  {
-    std::vector<Row> actual;
-    UEXPECT_NO_THROW(actual =
-                         conn->Execute(kSelectAllRows.data()).AsVector<Row>());
-
-    EXPECT_EQ(actual.size(), 2);
-
-    Row first_expected{1, "first"};
-    EXPECT_EQ(actual[0], first_expected);
-
-    Row second_expected{2, "second"};
-    EXPECT_EQ(actual[1], second_expected);
-  }
-
-  // Get empty result as vector of rows
-  {
-    std::vector<Row> actual;
-    UEXPECT_NO_THROW(actual =
-                         conn->Execute(kSelectNullRow.data()).AsVector<Row>());
-
-    EXPECT_TRUE(actual.empty());
-  }
+  EXPECT_EQ(actual.size(), 2);
+  EXPECT_EQ(actual[0], std::make_tuple(1, std::string("first")));
+  EXPECT_EQ(actual[1], std::make_tuple(2, std::string("second")));
 }
 
-UTEST_F(SQLiteResultSet, AsVectorFieldTag) {
-  ConnectionPtr conn = CreateConnection();
-  Init(conn);
+TEST(ResultSetTest, AsVectorRowEmpty) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
 
-  // Get result as vector of fields
-  {
-    std::vector<std::string> actual;
-    UEXPECT_NO_THROW(actual = conn->Execute(kSelectAllFields.data())
-                                  .AsVector<std::string>(kFieldTag));
+  EXPECT_CALL(*mock_wrapper, HasNext()).WillOnce(::testing::Return(false));
 
-    EXPECT_EQ(actual.size(), 2);
-    EXPECT_EQ(actual[0], "first");
-    EXPECT_EQ(actual[1], "second");
-  }
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsVector<Row>();
 
-  // Get empty result as vector of rows
-  {
-    std::vector<std::string> actual;
-    UEXPECT_NO_THROW(conn->Execute(kSelectNullField.data())
-                         .AsVector<std::string>(kFieldTag));
-    EXPECT_TRUE(actual.empty());
-  }
-
-  // Throw exception if try to get set of row as vector of fields
-  {
-    UEXPECT_THROW(
-        conn->Execute(kSelectAllRows.data()).AsVector<std::string>(kFieldTag),
-        SQLiteException);
-  }
+  EXPECT_TRUE(actual.empty());
 }
 
-UTEST_F(SQLiteResultSet, AsSingleRow) {
-  ConnectionPtr conn = CreateConnection();
-  Init(conn);
+TEST(ResultSetTest, AsVectorFieldTag) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
 
-  // Get result as a single tuple
-  {
-    RowTuple actual;
-    UEXPECT_NO_THROW(
-        actual = conn->Execute(kSelectOneRow.data()).AsSingleRow<RowTuple>());
+  EXPECT_CALL(*mock_wrapper, HasNext())
+      .Times(3)
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(2);
+  EXPECT_CALL(*mock_wrapper, ColumnCount())
+      .WillRepeatedly(::testing::Return(1));
+  EXPECT_CALL(*mock_field_extractor, GetStringColumn(0))
+      .WillOnce(::testing::Return("first"))
+      .WillOnce(::testing::Return("second"));
 
-    EXPECT_EQ(actual, std::make_tuple(1, "first"));
-  }
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsVector<std::string>(kFieldTag);
 
-  // Get result as a single struct
-  {
-    Row actual;
-    UEXPECT_NO_THROW(
-        actual = conn->Execute(kSelectOneRow.data()).AsSingleRow<Row>());
-
-    Row expected{1, "first"};
-    EXPECT_EQ(actual, expected);
-  }
-
-  // Throw exception if try to get single row from empty result
-  {
-    UEXPECT_THROW(conn->Execute(kSelectNullRow.data()).AsSingleRow<Row>(),
-                  SQLiteException);
-  }
-
-  // TODO: What behavior is more preferable here?
-  // Throw exception if try to get single row from result with more than one
-  // rows
-  {
-    UEXPECT_THROW(conn->Execute(kSelectAllRows.data()).AsSingleRow<Row>(),
-                  SQLiteException);
-  }
+  EXPECT_EQ(actual.size(), 2);
+  EXPECT_EQ(actual[0], "first");
+  EXPECT_EQ(actual[1], "second");
 }
 
-UTEST_F(SQLiteResultSet, AsSingleField) {
-  ConnectionPtr conn = CreateConnection();
-  Init(conn);
+TEST(ResultSetTest, AsVectorFieldTagThrowsOnMultipleColumns) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper =
+      std::make_shared<::testing::StrictMock<MockResultWrapper>>(
+          mock_field_extractor);
 
-  // Get result as a single field
-  {
-    std::string actual;
-    UEXPECT_NO_THROW(
-        actual =
-            conn->Execute(kSelectOneField.data()).AsSingleField<std::string>());
+  EXPECT_CALL(*mock_wrapper, ColumnCount()).WillOnce(::testing::Return(2));
 
-    EXPECT_EQ(actual, "first");
-  }
-
-  // Throw exception if result is empty
-  {
-    UEXPECT_THROW(
-        conn->Execute(kSelectNullField.data()).AsSingleField<std::string>(),
-        SQLiteException);
-  }
-
-  // Throw exception if try to get result row as single field
-  {
-    UEXPECT_THROW(
-        conn->Execute(kSelectOneRow.data()).AsSingleField<std::string>(),
-        SQLiteException);
-  }
-
-  // Throw exception if try to get result with more than one fields as single
-  // field
-  {
-    UEXPECT_THROW(
-        conn->Execute(kSelectAllFields.data()).AsSingleField<std::string>(),
-        SQLiteException);
-  }
+  ResultSet res(mock_wrapper);
+  EXPECT_THROW(std::move(res).AsVector<std::string>(kFieldTag),
+               SQLiteException);
 }
 
-UTEST_F(SQLiteResultSet, AsOptionalSingleRow) {
-  ConnectionPtr conn = CreateConnection();
-  Init(conn);
+TEST(ResultSetTest, AsSingleRow) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
 
-  // Get empty result as an optional single tuple
-  {
-    std::optional<RowTuple> actual;
-    UEXPECT_NO_THROW(actual = conn->Execute(kSelectNullRow.data())
-                                  .AsOptionalSingleRow<RowTuple>());
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(1);
+  EXPECT_CALL(*mock_field_extractor, GetInt32Column(0))
+      .WillOnce(::testing::Return(1));
+  EXPECT_CALL(*mock_field_extractor, GetStringColumn(1))
+      .WillOnce(::testing::Return("first"));
+  EXPECT_CALL(*mock_wrapper, HasNext()).WillOnce(::testing::Return(false));
 
-    EXPECT_FALSE(actual.has_value());
-  }
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsSingleRow<Row>();
 
-  // Get non-empty result as an optional single struct
-  {
-    std::optional<Row> actual;
-    UEXPECT_NO_THROW(
-        actual =
-            conn->Execute(kSelectOneRow.data()).AsOptionalSingleRow<Row>());
-
-    EXPECT_TRUE(actual.has_value());
-    Row expected{1, "first"};
-    EXPECT_EQ(actual.value(), expected);
-  }
-
-  // TODO: What behavior is more preferable here?
-  // Throw exception if try to get result with more than one
-  // rows as optional single row
-  {
-    UEXPECT_THROW(
-        conn->Execute(kSelectAllRows.data()).AsOptionalSingleRow<Row>(),
-        SQLiteException);
-  }
+  EXPECT_EQ(actual, (Row{1, "first"}));
 }
 
-UTEST_F(SQLiteResultSet, AsOptionalSingleField) {
-  ConnectionPtr conn = CreateConnection();
-  Init(conn);
+TEST(ResultSetTest, AsSingleRowThrowsWhenEmpty) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper =
+      std::make_shared<::testing::StrictMock<MockResultWrapper>>(
+          mock_field_extractor);
 
-  // Get empty result as a optional single field
-  {
-    std::optional<std::string> actual;
-    UEXPECT_NO_THROW(actual = conn->Execute(kSelectNullField.data())
-                                  .AsOptionalSingleField<std::string>());
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(true));
 
-    EXPECT_FALSE(actual.has_value());
-  }
-
-  // Get non-empty result as a optional single field
-  {
-    std::optional<std::string> actual;
-    UEXPECT_NO_THROW(actual = conn->Execute(kSelectOneField.data())
-                                  .AsOptionalSingleField<std::string>());
-
-    EXPECT_TRUE(actual.has_value());
-    EXPECT_EQ(actual.value(), "first");
-  }
-
-  // Throw exception if try to get result with more than one fields as single
-  // field
-  {
-    UEXPECT_THROW(conn->Execute(kSelectAllFields.data())
-                      .AsOptionalSingleField<std::string>(),
-                  SQLiteException);
-  }
-
-  // Throw exception if try to get result row as single field
-  {
-    UEXPECT_THROW(conn->Execute(kSelectOneRow.data())
-                      .AsOptionalSingleField<std::string>(),
-                  SQLiteException);
-  }
+  ResultSet res(mock_wrapper);
+  EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
 }
 
-UTEST_F(SQLiteResultSet, AsExecutionResult) {
-  ConnectionPtr conn = CreateConnection();
+TEST(ResultSetTest, AsSingleRowThrowsWhenMultipleRows) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
 
-  // Get execution result for INSERT query
-  {
-    ExecutionResult actual;
-    UEXPECT_NO_THROW(actual =
-                         conn->Execute("INSERT INTO test VALUES (1, 'first')")
-                             .AsExecutionResult());
-    EXPECT_EQ(actual.rows_affected, 1);
-    EXPECT_EQ(actual.last_insert_id, 1);
-  }
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(1);
+  EXPECT_CALL(*mock_wrapper, HasNext()).WillOnce(::testing::Return(true));
 
-  // Call execution result on read-only query is safe
-  {
-    UEXPECT_NO_THROW(conn->Execute(kSelectAllRows.data()).AsExecutionResult());
-  }
+  ResultSet res(mock_wrapper);
+  EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
+}
+
+TEST(ResultSetTest, AsSingleField) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
+
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, ColumnCount())
+      .WillRepeatedly(::testing::Return(1));
+  EXPECT_CALL(*mock_field_extractor, GetStringColumn(0))
+      .WillOnce(::testing::Return("first"));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(1);
+  EXPECT_CALL(*mock_wrapper, HasNext()).WillOnce(::testing::Return(false));
+
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsSingleField<std::string>();
+
+  EXPECT_EQ(actual, "first");
+}
+
+TEST(ResultSetTest, AsSingleFieldThrowsOnMultipleColumns) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper =
+      std::make_shared<::testing::StrictMock<MockResultWrapper>>(
+          mock_field_extractor);
+
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, ColumnCount()).WillOnce(::testing::Return(2));
+
+  ResultSet res(mock_wrapper);
+  EXPECT_THROW(std::move(res).AsSingleField<std::string>(), SQLiteException);
+}
+
+TEST(ResultSetTest, AsOptionalSingleRow) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
+
+  // Non-empty case
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(1);
+  EXPECT_CALL(*mock_field_extractor, GetInt32Column(0))
+      .WillOnce(::testing::Return(1));
+  EXPECT_CALL(*mock_field_extractor, GetStringColumn(1))
+      .WillOnce(::testing::Return("first"));
+  EXPECT_CALL(*mock_wrapper, HasNext()).WillOnce(::testing::Return(false));
+
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsOptionalSingleRow<Row>();
+
+  EXPECT_TRUE(actual.has_value());
+  EXPECT_EQ(actual.value(), (Row{1, "first"}));
+}
+
+TEST(ResultSetTest, AsOptionalSingleRowEmpty) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
+
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillRepeatedly(::testing::Return(true));
+
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsOptionalSingleRow<Row>();
+
+  EXPECT_FALSE(actual.has_value());
+}
+
+TEST(ResultSetTest, AsOptionalSingleRowThrowsOnMultipleRows) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
+
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(1);
+  EXPECT_CALL(*mock_wrapper, HasNext()).WillOnce(::testing::Return(true));
+
+  ResultSet res(mock_wrapper);
+  EXPECT_THROW(std::move(res).AsOptionalSingleRow<Row>(), SQLiteException);
+}
+
+TEST(ResultSetTest, AsOptionalSingleField) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
+
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_wrapper, ColumnCount())
+      .WillRepeatedly(::testing::Return(1));
+  EXPECT_CALL(*mock_wrapper, Next()).Times(1);
+  EXPECT_CALL(*mock_field_extractor, GetStringColumn(0))
+      .WillOnce(::testing::Return("first"));
+  EXPECT_CALL(*mock_wrapper, HasNext()).WillOnce(::testing::Return(false));
+
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsOptionalSingleField<std::string>();
+
+  EXPECT_TRUE(actual.has_value());
+  EXPECT_EQ(actual.value(), "first");
+}
+
+TEST(ResultSetTest, AsOptionalSingleFieldEmpty) {
+  auto mock_field_extractor =
+      std::make_shared<::testing::NiceMock<MockFieldExtractor>>();
+  auto mock_wrapper = std::make_shared<::testing::NiceMock<MockResultWrapper>>(
+      mock_field_extractor);
+
+  EXPECT_CALL(*mock_wrapper, IsDone()).WillOnce(::testing::Return(true));
+
+  ResultSet res(mock_wrapper);
+  auto actual = std::move(res).AsOptionalSingleField<std::string>();
+
+  EXPECT_FALSE(actual.has_value());
+}
+
+TEST(ResultSetTest, AsExecutionResult) {
+  auto mock_wrapper =
+      std::make_shared<::testing::StrictMock<MockResultWrapper>>(
+          std::make_shared<MockFieldExtractor>());
+
+  EXPECT_CALL(*mock_wrapper, RowsAffected()).WillOnce(::testing::Return(1));
+  EXPECT_CALL(*mock_wrapper, LastInsertRowId()).WillOnce(::testing::Return(1));
+
+  ResultSet res(mock_wrapper);
+  auto exec_result = std::move(res).AsExecutionResult();
+
+  EXPECT_EQ(exec_result.rows_affected, 1);
+  EXPECT_EQ(exec_result.last_insert_id, 1);
+}
+
+TEST(ResultSetTest, AsExecutionResultOnReadOnly) {
+  auto mock_wrapper =
+      std::make_shared<::testing::StrictMock<MockResultWrapper>>(
+          std::make_shared<MockFieldExtractor>());
+
+  EXPECT_CALL(*mock_wrapper, RowsAffected()).WillOnce(::testing::Return(0));
+  EXPECT_CALL(*mock_wrapper, LastInsertRowId()).WillOnce(::testing::Return(0));
+
+  ResultSet res(mock_wrapper);
+  EXPECT_NO_THROW(std::move(res).AsExecutionResult());
 }
 
 }  // namespace storages::sqlite::tests

@@ -7,6 +7,7 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 #include <userver/storages/sqlite/options.hpp>

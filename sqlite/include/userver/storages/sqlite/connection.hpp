@@ -39,18 +39,22 @@ class Connection final {
   ~Connection();
 
   template <typename... Args>
-  ResultSet Execute(const Query& query, const Args&... args) const;
+  ResultSet Execute(const Query& query,
+                                         const Args&... args) const;
 
   template <typename... Args>
-  ResultSet Execute(OptionalCommandControl optional_cc, const Query& query,
-                    const Args&... args) const;
+  ResultSet Execute(OptionalCommandControl optional_cc,
+                                         const Query& query,
+                                         const Args&... args) const;
 
   template <typename T>
-  ResultSet ExecuteDecompose(const Query& query, const T& row) const;
+  ResultSet ExecuteDecompose(const Query& query,
+                                                  const T& row) const;
 
   template <typename T>
-  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
-                             const Query& query, const T& row) const;
+  ResultSet ExecuteDecompose(
+      OptionalCommandControl optional_cc, const Query& query,
+      const T& row) const;
 
   // https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executemany
   template <typename Container>
@@ -69,8 +73,9 @@ class Connection final {
 
  private:
   template <typename... Args>
-  ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
-                      const Args&... args) const;
+  ResultSet DoExecute(OptionalCommandControl optional_cc,
+                                           const Query& query,
+                                           const Args&... args) const;
 
   // TODO: maybe it is better to use a class of an index for implementation or
   // fastpimpl
@@ -78,30 +83,35 @@ class Connection final {
 };
 
 template <typename... Args>
-ResultSet Connection::Execute(const Query& query, const Args&... args) const {
+ResultSet Connection::Execute(const Query& query,
+                                                   const Args&... args) const {
   return Execute(std::nullopt, query, args...);
 }
 
 template <typename... Args>
-ResultSet Connection::Execute(OptionalCommandControl optional_cc,
-                              const Query& query, const Args&... args) const {
+ResultSet Connection::Execute(
+    OptionalCommandControl optional_cc, const Query& query,
+    const Args&... args) const {
   return DoExecute(optional_cc, query, args...);
 }
 
 template <typename... Args>
-ResultSet Connection::DoExecute(OptionalCommandControl command_control,
-                                const Query& query, const Args&... args) const {
+ResultSet Connection::DoExecute(
+    OptionalCommandControl command_control, const Query& query,
+    const Args&... args) const {
   return pimpl_->ExecuteCommand(command_control, query, args...);
 }
 
 template <typename T>
-ResultSet Connection::ExecuteDecompose(const Query& query, const T& row) const {
+ResultSet Connection::ExecuteDecompose(
+    const Query& query, const T& row) const {
   return ExecuteDecompose(std::nullopt, query, row);
 }
 
 template <typename T>
-ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc,
-                                       const Query& query, const T& row) const {
+ResultSet Connection::ExecuteDecompose(
+    OptionalCommandControl optional_cc, const Query& query,
+    const T& row) const {
   return pimpl_->ExecuteDecompose(optional_cc, query, row);
 }
 
