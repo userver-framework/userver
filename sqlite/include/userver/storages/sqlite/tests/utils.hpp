@@ -122,6 +122,25 @@ class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
   }
 };
 
+class SQLiteResultSet : public SQLiteInMemoryInitConnection {
+ public:
+  void Init(ConnectionPtr connection) {
+    connection->Execute("INSERT INTO test VALUES (1, 'first')");
+    connection->Execute("INSERT INTO test VALUES (2, 'second')");
+  }
+};
+
+struct Row final {
+  int id{};
+  std::string value;
+
+  bool operator==(const Row& other) const {
+    return std::tie(id, value) == std::tie(other.id, other.value);
+  }
+};
+
+using RowTuple = std::tuple<int, std::string>;
+
 }  // namespace storages::sqlite::tests
 
 USERVER_NAMESPACE_END

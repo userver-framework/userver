@@ -27,22 +27,7 @@ namespace storages::sqlite::tests {
 // container elements into the correct types, including user-defined types).
 // All this can be done without being tied to the way we getting the ResultSet
 
-namespace {
-
-struct Row final {
-  int id{};
-  std::string value;
-
-  bool operator==(const Row& other) const {
-    return std::tie(id, value) == std::tie(other.id, other.value);
-  }
-};
-
-using RowTuple = std::tuple<int, std::string>;
-
-}  // namespace
-
-TEST(ResultSetTest, AsVectorRowTag) {
+UTEST(SQLiteResultSetTest, AsVectorRowTag) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -68,7 +53,7 @@ TEST(ResultSetTest, AsVectorRowTag) {
   EXPECT_EQ(actual[1], std::make_tuple(2, std::string("second")));
 }
 
-TEST(ResultSetTest, AsVectorRowEmpty) {
+UTEST(SQLiteResultSetTest, AsVectorRowEmpty) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -82,7 +67,7 @@ TEST(ResultSetTest, AsVectorRowEmpty) {
   EXPECT_TRUE(actual.empty());
 }
 
-TEST(ResultSetTest, AsVectorFieldTag) {
+UTEST(SQLiteResultSetTest, AsVectorFieldTag) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -107,7 +92,7 @@ TEST(ResultSetTest, AsVectorFieldTag) {
   EXPECT_EQ(actual[1], "second");
 }
 
-TEST(ResultSetTest, AsVectorFieldTagThrowsOnMultipleColumns) {
+UTEST(SQLiteResultSetTest, AsVectorFieldTagThrowsOnMultipleColumns) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -119,7 +104,7 @@ TEST(ResultSetTest, AsVectorFieldTagThrowsOnMultipleColumns) {
                SQLiteException);
 }
 
-TEST(ResultSetTest, AsSingleRow) {
+UTEST(SQLiteResultSetTest, AsSingleRow) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -139,7 +124,7 @@ TEST(ResultSetTest, AsSingleRow) {
   EXPECT_EQ(actual, (Row{1, "first"}));
 }
 
-TEST(ResultSetTest, AsSingleRowThrowsWhenEmpty) {
+UTEST(SQLiteResultSetTest, AsSingleRowThrowsWhenEmpty) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -150,7 +135,7 @@ TEST(ResultSetTest, AsSingleRowThrowsWhenEmpty) {
   EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
 }
 
-TEST(ResultSetTest, AsSingleRowThrowsWhenMultipleRows) {
+UTEST(SQLiteResultSetTest, AsSingleRowThrowsWhenMultipleRows) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -164,7 +149,7 @@ TEST(ResultSetTest, AsSingleRowThrowsWhenMultipleRows) {
   EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
 }
 
-TEST(ResultSetTest, AsSingleField) {
+UTEST(SQLiteResultSetTest, AsSingleField) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -184,7 +169,7 @@ TEST(ResultSetTest, AsSingleField) {
   EXPECT_EQ(actual, "first");
 }
 
-TEST(ResultSetTest, AsSingleFieldThrowsOnMultipleColumns) {
+UTEST(SQLiteResultSetTest, AsSingleFieldThrowsOnMultipleColumns) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -197,7 +182,7 @@ TEST(ResultSetTest, AsSingleFieldThrowsOnMultipleColumns) {
   EXPECT_THROW(std::move(res).AsSingleField<std::string>(), SQLiteException);
 }
 
-TEST(ResultSetTest, AsOptionalSingleRow) {
+UTEST(SQLiteResultSetTest, AsOptionalSingleRow) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -219,7 +204,7 @@ TEST(ResultSetTest, AsOptionalSingleRow) {
   EXPECT_EQ(actual.value(), (Row{1, "first"}));
 }
 
-TEST(ResultSetTest, AsOptionalSingleRowEmpty) {
+UTEST(SQLiteResultSetTest, AsOptionalSingleRowEmpty) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -232,7 +217,7 @@ TEST(ResultSetTest, AsOptionalSingleRowEmpty) {
   EXPECT_FALSE(actual.has_value());
 }
 
-TEST(ResultSetTest, AsOptionalSingleRowThrowsOnMultipleRows) {
+UTEST(SQLiteResultSetTest, AsOptionalSingleRowThrowsOnMultipleRows) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -246,7 +231,7 @@ TEST(ResultSetTest, AsOptionalSingleRowThrowsOnMultipleRows) {
   EXPECT_THROW(std::move(res).AsOptionalSingleRow<Row>(), SQLiteException);
 }
 
-TEST(ResultSetTest, AsOptionalSingleField) {
+UTEST(SQLiteResultSetTest, AsOptionalSingleField) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -267,7 +252,7 @@ TEST(ResultSetTest, AsOptionalSingleField) {
   EXPECT_EQ(actual.value(), "first");
 }
 
-TEST(ResultSetTest, AsOptionalSingleFieldEmpty) {
+UTEST(SQLiteResultSetTest, AsOptionalSingleFieldEmpty) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -280,7 +265,7 @@ TEST(ResultSetTest, AsOptionalSingleFieldEmpty) {
   EXPECT_FALSE(actual.has_value());
 }
 
-TEST(ResultSetTest, AsExecutionResult) {
+UTEST(SQLiteResultSetTest, AsExecutionResult) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
@@ -297,7 +282,7 @@ TEST(ResultSetTest, AsExecutionResult) {
   EXPECT_EQ(exec_result.last_insert_id, 1);
 }
 
-TEST(ResultSetTest, AsExecutionResultOnReadOnly) {
+UTEST(SQLiteResultSetTest, AsExecutionResultOnReadOnly) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
