@@ -95,8 +95,7 @@ class SQLiteCustomConnection : public SQLiteTest {
   // TODO: Do I need to validate the connection somehow?
   void CheckConnection(const ConnectionPtr& conn) {
     ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
-    // ASSERT_TRUE(conn->getHandle() != nullptr); TODO: need more informative
-    // methods
+    EXPECT_NO_THROW(conn->Execute("SELECT 42"));
   }
 
  private:

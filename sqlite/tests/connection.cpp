@@ -12,6 +12,33 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
+namespace {
+
+struct Row final {
+  int id{};
+  std::string value;
+
+  bool operator==(const Row& other) const {
+    return std::tie(id, value) == std::tie(other.id, other.value);
+  }
+};
+
+using RowTuple = std::tuple<int, std::string>;
+
+constexpr std::string_view kSelectAllRows = "SELECT * FROM test";
+constexpr std::string_view kSelectOneRow = "SELECT * FROM test WHERE id=1";
+constexpr std::string_view kSelectNullRow = "SELECT * FROM test WHERE id=NULL";
+
+class SQLiteResultSet : public SQLiteInMemoryInitConnection {
+ public:
+  void Init(ConnectionPtr connection) {
+    connection->Execute("INSERT INTO test VALUES (1, 'first')");
+    connection->Execute("INSERT INTO test VALUES (2, 'second')");
+  }
+};
+
+}  // namespace
+
 UTEST_F(SQLiteCustomConnection, NonExistent) {
   // Try to open a non-existing database
   sqlite::SQLiteSettings settings;
@@ -46,6 +73,40 @@ UTEST_F(SQLiteCustomConnection, InMemory) {
 
   UEXPECT_NO_THROW(CreateConnection(settings))
       << "Connect to in-memory database";
+}
+
+UTEST_F(SQLiteResultSet, Execute) {
+  ConnectionPtr conn = CreateConnection();
+  Init(conn);
+
+  // Get result as vector of tuples
+  {
+    std::vector<RowTuple> actual;
+    UEXPECT_NO_THROW(
+        actual = conn->Execute(kSelectAllRows.data()).AsVector<RowTuple>());
+
+    EXPECT_EQ(actual.size(), 2);
+    EXPECT_EQ(actual[0], std::make_tuple(1, "first"));
+    EXPECT_EQ(actual[1], std::make_tuple(2, "second"));
+  }
+
+  // Get result as struct
+  {
+    Row actual;
+    UEXPECT_NO_THROW(
+        actual = conn->Execute(kSelectOneRow.data()).AsSingleRow<Row>());
+
+    EXPECT_EQ(actual, (Row{1, "first"}));
+  }
+
+  // Get empty result as vector of rows
+  {
+    std::vector<Row> actual;
+    UEXPECT_NO_THROW(actual =
+                         conn->Execute(kSelectNullRow.data()).AsVector<Row>());
+
+    EXPECT_TRUE(actual.empty());
+  }
 }
 
 }  // namespace storages::sqlite::tests
