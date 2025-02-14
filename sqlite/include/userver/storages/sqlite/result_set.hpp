@@ -20,7 +20,7 @@ class ResultSet {
  public:
   using size_type = std::size_t;
 
-  explicit ResultSet(std::shared_ptr<impl::ResultWrapperBase> pimpl);
+  explicit ResultSet(std::shared_ptr<impl::ResultWrapper> pimpl);
 
   ResultSet(const ResultSet& other) = delete;
   ResultSet(ResultSet&& other) noexcept;
@@ -192,7 +192,7 @@ class ResultSet {
   ExecutionResult AsExecutionResult() &&;
 
  private:
-  std::shared_ptr<impl::ResultWrapperBase> pimpl_;
+  std::shared_ptr<impl::ResultWrapper> pimpl_;
 };
 
 }  // namespace storages::sqlite

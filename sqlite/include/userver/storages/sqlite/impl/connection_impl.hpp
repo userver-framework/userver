@@ -128,24 +128,35 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
   // get all rows https://www.sqlite.org/lang_returning.html
   // Based on circumstantial evidence, nested and complex DML queries execute in
   // one sqlite3_step, but this requires inspection and profiling
-  return engine::AsyncNoSpan(blocking_task_processor_,
-                             [this, query, args...] {
-                               auto& stmt = statements_cache_.PrepareStatement(
-                                   query.GetStatement());
-                               return stmt.Execute(args...);
-                             })
+  return engine::AsyncNoSpan(
+             blocking_task_processor_,
+             [this, query, args...] {
+               auto stmt =
+                   statements_cache_.PrepareStatement(query.GetStatement());
+               stmt->Reset();
+               stmt->UpdateParamsBindings(args...);
+
+               stmt->Next();
+               stmt->CheckFail();
+               return ResultSet{std::make_shared<impl::ResultWrapper>(stmt)};
+             })
       .Get();
 }
 
 template <typename... Args>
 ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   const Args&... args) const {
-  return engine::AsyncNoSpan(blocking_task_processor_,
-                             [this, query, args...] {
-                               return impl::Statement{db_handler_.get(),
-                                                      query.GetStatement()}
-                                   .Execute(args...);
-                             })
+  return engine::AsyncNoSpan(
+             blocking_task_processor_,
+             [this, query, args...] {
+               auto stmt = std::make_shared<impl::Statement>(
+                   db_handler_.get(), query.GetStatement());
+               stmt->UpdateParamsBindings(args...);
+
+               stmt->Next();
+               stmt->CheckFail();
+               return ResultSet{std::make_shared<impl::ResultWrapper>(stmt)};
+             })
       .Get();
 }
 
