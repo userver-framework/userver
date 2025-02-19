@@ -26,7 +26,7 @@ async def test_timeout(service_client, dynamic_config):
     pipeline_enabled = dynamic_config.get(
         'POSTGRES_CONNECTION_PIPELINE_EXPERIMENT',
     )
-    if not pipeline_enabled:
+    if not pipeline_enabled or os.environ.get('POSTGRES_PIPELINE_DISABLED'):
         pytest.skip('Disabled in configuration')
         return
 
