@@ -1,5 +1,7 @@
-#include <tuple>
 #include <userver/utest/utest.hpp>
+
+#include <tuple>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -7,9 +9,10 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/connection.hpp>
+#include <userver/storages/sqlite/exceptions.hpp>
+#include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-#include <vector>
-#include "userver/storages/sqlite/exceptions.hpp"
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,6 +41,37 @@ UTEST_F(SQLiteCustomConnection, NonExistent) {
 
   UEXPECT_THROW(CreateConnection(settings), sqlite::SQLiteException)
       << "Connecting to a non-existent database";
+}
+
+UTEST_F(SQLiteCustomConnection, CheckRO) {
+  // Try to open a non-existing database
+  sqlite::SQLiteSettings read_settings;
+  read_settings.db_name = GetTestDbPath("test.db");
+  read_settings.create_file = false;
+  read_settings.read_mode = SQLiteSettings::ReadMode::kReadOnly;
+  sqlite::SQLiteSettings write_settings;
+  write_settings.db_name = GetTestDbPath("test.db");
+  write_settings.create_file = true;
+  write_settings.read_mode = SQLiteSettings::ReadMode::kReadWrite;
+
+  auto write_conn = CreateConnection(write_settings);
+  auto read_conn = CreateConnection(read_settings);
+  UEXPECT_NO_THROW(write_conn->Execute(
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+  UEXPECT_NO_THROW(write_conn->Execute("INSERT INTO test VALUES (1, 'first')"));
+  UEXPECT_NO_THROW(
+      write_conn->Execute("INSERT INTO test VALUES (2, 'second')"));
+  UEXPECT_THROW(read_conn->Execute("INSERT INTO test VALUES (3, 'third')"),
+                SQLiteException);
+  UEXPECT_THROW(
+      (read_conn->Execute("INSERT INTO test VALUES (3, 'third') RETURNING *")
+           .AsVector<std::tuple<int, std::string>>()),
+      SQLiteException);
+  UEXPECT_NO_THROW(
+      (write_conn->Execute("INSERT INTO test VALUES (3, 'third') RETURNING *")
+           .AsVector<std::tuple<int, std::string>>()));
+  UEXPECT_NO_THROW((read_conn->Execute("SELECT * FROM test")
+                        .AsVector<std::tuple<int, std::string>>()));
 }
 
 UTEST_F(SQLiteCustomConnection, CreateOpen) {
