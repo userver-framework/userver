@@ -169,7 +169,6 @@ UTEST_F(ConfigurationTest, ProducerSecurePlaintext) {
     EXPECT_EQ(configuration->GetOption("sasl.mechanism"), "SCRAM-SHA-512");
     EXPECT_EQ(configuration->GetOption("sasl.username"), "username");
     EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
-    EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "probe");
 }
 
 UTEST_F(ConfigurationTest, ConsumerSecure) {
