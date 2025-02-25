@@ -25,12 +25,15 @@ struct CommonConfiguration final {
 
 struct SecurityConfiguration final {
     struct Plaintext {};
+    struct SaslPlaintext {
+        std::string security_mechanism;
+    };
     struct SaslSsl {
         std::string security_mechanism;
         std::string ssl_ca_location;
     };
 
-    using SecurityProtocol = std::variant<Plaintext, SaslSsl>;
+    using SecurityProtocol = std::variant<Plaintext, SaslPlaintext, SaslSsl>;
     SecurityProtocol security_protocol{};
 };
 
