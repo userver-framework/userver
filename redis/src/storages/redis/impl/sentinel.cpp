@@ -326,6 +326,7 @@ void Sentinel::CheckShardIdx(size_t shard_idx) const { CheckShardIdx(shard_idx, 
 
 void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
     if (shard_idx >= shard_count && shard_idx != ClusterSentinelImpl::kUnknownShard) {
+        UASSERT_MSG(false, "invalid shard (" + std::to_string(shard_idx) + " >= " + std::to_string(shard_count) + ')');
         throw InvalidArgumentException(
             "invalid shard (" + std::to_string(shard_idx) + " >= " + std::to_string(shard_count) + ')'
         );
