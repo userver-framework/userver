@@ -107,6 +107,7 @@ properties:
         enum:
           - PLAINTEXT
           - SASL_SSL
+          - SASL_PLAINTEXT
     sasl_mechanisms:
         type: string
         description: |
