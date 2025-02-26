@@ -118,6 +118,9 @@ PostgresHandler::HandleRequestThrow(const server::http::HttpRequest& request, se
 
         transaction.Commit();
         return fmt::format("[{}]", fmt::join(result, ", "));
+    } else if (type == "sleep") {
+        pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster, "SELECT pg_sleep(1);");
+        return {};
     } else {
         UINVARIANT(false, fmt::format("Unknown chaos test request type '{}'", type));
     }

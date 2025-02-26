@@ -17,10 +17,7 @@ async def test_mongo(service_client, mongodb):
         assert response.status == 201
 
         # Checking content of the database via direct access
-        assert (
-            translations_db.find_one({'key': key, 'lang': lang})['value']
-            == value
-        )
+        assert translations_db.find_one({'key': key, 'lang': lang})['value'] == value
 
     response = await service_client.get('/v1/translations')
     assert response.status_code == 200

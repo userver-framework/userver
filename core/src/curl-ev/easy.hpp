@@ -304,7 +304,11 @@ public:
     // network options
 
     void set_url(std::string url_str);
-    void set_url(std::string url_str, std::error_code& ec);
+
+    /// @overload `set_url`
+    /// @note Doesn't perform a move from `url_str`, if error occurs.
+    void set_url(std::string&& url_str, std::error_code& ec);
+
     const std::string& get_original_url() const;
     const url& get_easy_url() const;
 

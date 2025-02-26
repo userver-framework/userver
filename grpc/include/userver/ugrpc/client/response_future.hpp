@@ -12,11 +12,6 @@ namespace ugrpc::client {
 template <typename Response>
 class [[nodiscard]] ResponseFuture final {
 public:
-    /// @cond
-    // For internal use only
-    explicit ResponseFuture(UnaryCall<Response>&& call);
-    /// @endcond
-
     /// @brief Checks if the asynchronous call has completed
     ///        Note, that once user gets result, IsReady should not be called
     /// @return true if result ready
@@ -42,19 +37,26 @@ public:
     CallAnyBase& GetCall();
 
     /// @cond
+    // For internal use only
+    template <typename PrepareFunc, typename Request>
+    ResponseFuture(impl::CallParams&& params, PrepareFunc prepare_func, const Request& req);
+
     // For internal use only.
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
     /// @endcond
 
 private:
-    UnaryCall<Response> call_;
+    impl::UnaryCall<Response> call_;
     std::unique_ptr<Response> response_;
-    UnaryFuture future_;
+    impl::UnaryFuture future_;
 };
 
 template <typename Response>
-ResponseFuture<Response>::ResponseFuture(UnaryCall<Response>&& call)
-    : call_{std::move(call)}, response_{std::make_unique<Response>()}, future_{call_.FinishAsync(*response_)} {}
+template <typename PrepareFunc, typename Request>
+ResponseFuture<Response>::ResponseFuture(impl::CallParams&& params, PrepareFunc prepare_func, const Request& req)
+    : call_(std::move(params), prepare_func, req),
+      response_{std::make_unique<Response>()},
+      future_{call_.FinishAsync(*response_)} {}
 
 template <typename Response>
 bool ResponseFuture<Response>::IsReady() const noexcept {

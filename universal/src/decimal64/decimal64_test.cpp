@@ -217,7 +217,7 @@ TEST(Decimal64, DivisionByZero) {
     EXPECT_THROW(Dec4{1} / 0, decimal64::DivisionByZeroError);
 }
 
-#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(Decimal64, ThreeWayComparison) {
     EXPECT_EQ(Dec4{1} <=> Dec4{1}, 1 <=> 1);
     EXPECT_EQ(Dec4{1} <=> Dec4{2}, 1 <=> 2);

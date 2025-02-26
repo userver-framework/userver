@@ -80,7 +80,8 @@ def _make_socket() -> socket.socket:
 async def _assert_receive_timeout(sock: socket.socket, loop) -> None:
     try:
         data = await asyncio.wait_for(
-            loop.sock_recv(sock, 1), _NOTICEABLE_DELAY,
+            loop.sock_recv(sock, 1),
+            _NOTICEABLE_DELAY,
         )
         assert not data
     except asyncio.TimeoutError:
@@ -182,7 +183,9 @@ async def test_basic(udp_server, udp_client_factory, gate, loop):
 
 
 async def test_to_client_udp_message_queue(
-    udp_server, udp_client_factory, loop,
+    udp_server,
+    udp_client_factory,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -197,24 +200,29 @@ async def test_to_client_udp_message_queue(
 
     for i in range(messages_count):
         assert await loop.sock_recv(
-            udp_client.sock, RECV_MAX_SIZE,
+            udp_client.sock,
+            RECV_MAX_SIZE,
         ) == b'message' + i.to_bytes(1, 'big')
 
 
 async def test_to_server_udp_message_queue(
-    udp_server, udp_client_factory, loop,
+    udp_server,
+    udp_client_factory,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
     messages_count = 5
     for i in range(messages_count):
         await loop.sock_sendall(
-            udp_client.sock, b'message' + i.to_bytes(1, 'big'),
+            udp_client.sock,
+            b'message' + i.to_bytes(1, 'big'),
         )
 
     for i in range(messages_count):
         assert await loop.sock_recv(
-            udp_server.sock, RECV_MAX_SIZE,
+            udp_server.sock,
+            RECV_MAX_SIZE,
         ) == b'message' + i.to_bytes(1, 'big')
 
 
@@ -224,7 +232,8 @@ async def test_fifo_udp_message_queue(udp_server, udp_client_factory, loop):
     messages_count = 5
     for i in range(messages_count):
         await loop.sock_sendall(
-            udp_client.sock, b'message' + i.to_bytes(1, 'big'),
+            udp_client.sock,
+            b'message' + i.to_bytes(1, 'big'),
         )
 
     for i in range(messages_count):
@@ -237,17 +246,21 @@ async def test_fifo_udp_message_queue(udp_server, udp_client_factory, loop):
 
     for i in range(messages_count):
         assert await loop.sock_recv(
-            udp_client.sock, RECV_MAX_SIZE,
+            udp_client.sock,
+            RECV_MAX_SIZE,
         ) == b'message' + i.to_bytes(1, 'big')
 
     for i in range(messages_count):
         assert await loop.sock_recv(
-            udp_server.sock, RECV_MAX_SIZE,
+            udp_server.sock,
+            RECV_MAX_SIZE,
         ) == b'message' + i.to_bytes(1, 'big')
 
 
 async def test_to_server_parallel_udp_message(
-    udp_server, udp_client_factory, loop,
+    udp_server,
+    udp_client_factory,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -257,7 +270,8 @@ async def test_to_server_parallel_udp_message(
     for i in range(messages_count):
         tasks.append(
             loop.sock_sendall(
-                udp_client.sock, b'message' + i.to_bytes(1, 'big'),
+                udp_client.sock,
+                b'message' + i.to_bytes(1, 'big'),
             ),
         )
 
@@ -279,7 +293,10 @@ async def test_to_client_noop(udp_server, udp_client_factory, gate, loop):
     gate.to_client_noop()
 
     await uvloop_sendto(
-        udp_server.sock, b'ping', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'ping',
+        udp_client.addr_at_server,
+        loop,
     )
     await _assert_data_from_client(udp_client, udp_server, loop)
     assert not _has_data(udp_client.sock)
@@ -313,7 +330,10 @@ async def test_to_client_drop(udp_server, udp_client_factory, gate, loop):
     gate.to_client_drop()
 
     await uvloop_sendto(
-        udp_server.sock, b'ping', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'ping',
+        udp_client.addr_at_server,
+        loop,
     )
     await _assert_data_from_client(udp_client, udp_server, loop)
     assert not _has_data(udp_client.sock)
@@ -360,7 +380,10 @@ async def test_to_server_delay(udp_server, udp_client_factory, gate, loop):
 
 
 async def test_to_client_close_on_data(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -369,14 +392,20 @@ async def test_to_client_close_on_data(
     await _assert_data_from_client(udp_client, udp_server, loop)
     assert gate.is_connected()
     await uvloop_sendto(
-        udp_server.sock, b'die', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'die',
+        udp_client.addr_at_server,
+        loop,
     )
 
     await _assert_receive_timeout(udp_client.sock, loop)
 
 
 async def test_to_server_close_on_data(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -390,7 +419,10 @@ async def test_to_server_close_on_data(
 
 
 async def test_to_client_corrupt_data(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -400,7 +432,10 @@ async def test_to_client_corrupt_data(
     assert gate.is_connected()
 
     await uvloop_sendto(
-        udp_server.sock, b'break me', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'break me',
+        udp_client.addr_at_server,
+        loop,
     )
     data = await loop.sock_recv(udp_client.sock, 512)
     assert data
@@ -412,7 +447,10 @@ async def test_to_client_corrupt_data(
 
 
 async def test_to_server_corrupt_data(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -444,7 +482,10 @@ async def test_to_client_limit_bps(udp_server, udp_client_factory, gate, loop):
     # was read on first try
     for _ in range(5):
         await uvloop_sendto(
-            udp_server.sock, message, udp_client.addr_at_server, loop,
+            udp_server.sock,
+            message,
+            udp_client.addr_at_server,
+            loop,
         )
         data = await loop.sock_recv(udp_client.sock, 5)
         assert data
@@ -474,7 +515,10 @@ async def test_to_server_limit_bps(udp_server, udp_client_factory, gate, loop):
 
 
 async def test_to_client_limit_time(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -488,13 +532,19 @@ async def test_to_client_limit_time(
     await _assert_data_to_client(udp_server, udp_client, loop)
     await asyncio.sleep(_NOTICEABLE_DELAY * 2)
     await uvloop_sendto(
-        udp_server.sock, b'die', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'die',
+        udp_client.addr_at_server,
+        loop,
     )
     await _assert_receive_timeout(udp_client.sock, loop)
 
 
 async def test_to_server_limit_time(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -512,7 +562,10 @@ async def test_to_server_limit_time(
 
 
 async def test_to_client_limit_bytes(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -522,26 +575,38 @@ async def test_to_client_limit_bytes(
     assert gate.is_connected()
 
     await uvloop_sendto(
-        udp_server.sock, b'hello', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'hello',
+        udp_client.addr_at_server,
+        loop,
     )
     data = await loop.sock_recv(udp_client.sock, 10)
     assert data == b'hello'
 
     await uvloop_sendto(
-        udp_server.sock, b'die after', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'die after',
+        udp_client.addr_at_server,
+        loop,
     )
     data = await loop.sock_recv(udp_client.sock, 10)
     assert data == b'die after'
 
     await uvloop_sendto(
-        udp_server.sock, b'dead now', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'dead now',
+        udp_client.addr_at_server,
+        loop,
     )
 
     await _assert_receive_timeout(udp_client.sock, loop)
 
 
 async def test_to_server_limit_bytes(
-    udp_server, udp_client_factory, gate, loop,
+    udp_server,
+    udp_client_factory,
+    gate,
+    loop,
 ):
     udp_client = await udp_client_factory()
 
@@ -575,7 +640,10 @@ async def test_substitute(udp_server, udp_client_factory, gate, loop):
     assert data == b'die'
 
     await uvloop_sendto(
-        udp_server.sock, b'hello', udp_client.addr_at_server, loop,
+        udp_server.sock,
+        b'hello',
+        udp_client.addr_at_server,
+        loop,
     )
     data = await loop.sock_recv(udp_client.sock, 10)
     assert data == b'die'

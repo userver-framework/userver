@@ -68,7 +68,15 @@ protected:
     /// @throws `Error` on read operation failure
     virtual std::string_view ReadRaw(std::size_t max_size) = 0;
 
+    /// @brief Moves the internal cursor back by `size` bytes
+    /// so that the next call to @ref ReadRaw returns the same data again
+    /// @note If there has been no previous call to @ref ReadRaw,
+    /// or `size` is greater than the number of bytes returned from that call,
+    /// the behavior is undefined.
+    virtual void BackUp(std::size_t size);
+
     friend std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t size);
+    friend void BackUpReadUnsafe(Reader& reader, std::size_t size);
 };
 
 namespace impl {

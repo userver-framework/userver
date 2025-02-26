@@ -54,7 +54,8 @@ def _call(service_client, gen_domain_name, dns_mock_stats):
 def _flush_resolver_cache(service_client):
     async def _flush_resolver_cache():
         result = await service_client.get(
-            '/chaos/resolver', params={'type': 'flush'},
+            '/chaos/resolver',
+            params={'type': 'flush'},
         )
 
         assert result.status == 200

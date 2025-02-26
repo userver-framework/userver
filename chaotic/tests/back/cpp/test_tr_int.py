@@ -1,6 +1,7 @@
 from chaotic import error
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp.types import CppIntEnum
+from chaotic.back.cpp.types import CppIntEnumItem
 from chaotic.back.cpp.types import CppPrimitiveType
 from chaotic.back.cpp.types import CppPrimitiveValidator
 
@@ -78,7 +79,8 @@ def test_int_min(simple_gen):
             json_schema=None,
             nullable=False,
             validators=CppPrimitiveValidator(
-                min=1, prefix='/definitions/type',
+                min=1,
+                prefix='/definitions/type',
             ),
         ),
     }
@@ -92,7 +94,9 @@ def test_int_min_max(simple_gen):
             user_cpp_type=None,
             json_schema=None,
             validators=CppPrimitiveValidator(
-                min=1, max=10, prefix='/definitions/type',
+                min=1,
+                max=10,
+                prefix='/definitions/type',
             ),
             nullable=False,
         ),
@@ -111,7 +115,9 @@ def test_int_min_max_exclusive(simple_gen):
             user_cpp_type=None,
             json_schema=None,
             validators=CppPrimitiveValidator(
-                exclusiveMin=1, exclusiveMax=10, prefix='/definitions/type',
+                exclusiveMin=1,
+                exclusiveMax=10,
+                prefix='/definitions/type',
             ),
             nullable=False,
         ),
@@ -149,7 +155,9 @@ def test_int_min_max_exclusive_legacy(simple_gen):
             user_cpp_type=None,
             json_schema=None,
             validators=CppPrimitiveValidator(
-                exclusiveMin=2, exclusiveMax=10, prefix='/definitions/type',
+                exclusiveMin=2,
+                exclusiveMax=10,
+                prefix='/definitions/type',
             ),
             nullable=False,
         ),
@@ -183,7 +191,11 @@ def test_int_format_int64(simple_gen):
 
 
 def test_int_enum(simple_gen):
-    types = simple_gen({'type': 'integer', 'enum': [1, 2, 3]})
+    types = simple_gen({
+        'type': 'integer',
+        'enum': [0, 1, 2, 3, 5],
+        'x-enum-varnames': ['CamelCase', 'snake_case', 'UPPER', 'lower'],
+    })
     assert types == {
         '/definitions/type': CppIntEnum(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -191,6 +203,12 @@ def test_int_enum(simple_gen):
             name='/definitions/type',
             json_schema=None,
             nullable=False,
-            enums=[1, 2, 3],
+            enums=[
+                CppIntEnumItem(value=0, raw_name='CamelCase', cpp_name='CamelCase'),
+                CppIntEnumItem(value=1, raw_name='snake_case', cpp_name='SnakeCase'),
+                CppIntEnumItem(value=2, raw_name='UPPER', cpp_name='Upper'),
+                CppIntEnumItem(value=3, raw_name='lower', cpp_name='Lower'),
+                CppIntEnumItem(value=5, raw_name='5', cpp_name='5'),
+            ],
         ),
     }

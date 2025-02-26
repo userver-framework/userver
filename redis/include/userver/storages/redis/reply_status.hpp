@@ -17,10 +17,4 @@ enum class ReplyStatus {
 
 }  // namespace storages::redis
 
-#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
-namespace redis {
-using storages::redis::ReplyStatus;
-}
-#endif
-
 USERVER_NAMESPACE_END

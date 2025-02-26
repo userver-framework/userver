@@ -4,12 +4,16 @@ Work with the configuration files of the service in testsuite.
 
 # pylint: disable=redefined-outer-name
 import copy
+import dataclasses
 import logging
 import os
 import pathlib
 import subprocess
 import types
-import typing
+from typing import Any
+from typing import Callable
+from typing import List
+from typing import Optional
 
 import pytest
 import yaml
@@ -62,7 +66,8 @@ class _UserverConfigPlugin:
             self._config_hooks.extend(uhooks)
 
 
-class _UserverConfig(typing.NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class _UserverConfig:
     config_yaml: dict
     config_vars: dict
 
@@ -149,7 +154,7 @@ def db_dump_schema_path(service_binary, service_tmpdir) -> pathlib.Path:
 
 
 @pytest.fixture(scope='session')
-def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+def service_config_vars_path(pytestconfig) -> Optional[pathlib.Path]:
     """
     Returns the path to config_vars.yaml file set by command line
     `--service-config-vars` option.
@@ -163,7 +168,7 @@ def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
 
 
 @pytest.fixture(scope='session')
-def service_secdist_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+def service_secdist_path(pytestconfig) -> Optional[pathlib.Path]:
     """
     Returns the path to secure_data.json file set by command line
     `--service-secdist` option.
@@ -200,13 +205,16 @@ def service_tmpdir(service_binary, tmp_path_factory):
     @ingroup userver_testsuite_fixtures
     """
     return tmp_path_factory.mktemp(
-        pathlib.Path(service_binary).name, numbered=False,
+        pathlib.Path(service_binary).name,
+        numbered=False,
     )
 
 
 @pytest.fixture(scope='session')
 def service_config_path_temp(
-    service_tmpdir, service_config, service_config_yaml,
+    service_tmpdir,
+    service_config,
+    service_config_yaml,
 ) -> pathlib.Path:
     """
     Dumps the contents of the service_config_yaml into a static config for
@@ -217,8 +225,7 @@ def service_config_path_temp(
     dst_path = service_tmpdir / 'config.yaml'
 
     logger.debug(
-        'userver fixture "service_config_path_temp" writes the patched static '
-        'config to "%s" equivalent to:\n%s',
+        'userver fixture "service_config_path_temp" writes the patched static config to "%s" equivalent to:\n%s',
         dst_path,
         yaml.dump(service_config),
     )
@@ -269,7 +276,7 @@ def _substitute_values(config, service_config_vars: dict, service_env) -> None:
             env = config.get(f'{key}#env')
             if env:
                 if service_env:
-                    new_value = service_env.get(service_env)
+                    new_value = service_env.get(env)
                 if not new_value:
                     new_value = os.environ.get(env)
                 if new_value:
@@ -279,6 +286,9 @@ def _substitute_values(config, service_config_vars: dict, service_env) -> None:
             fallback = config.get(f'{key}#fallback')
             if fallback:
                 config[key] = fallback
+                continue
+
+            config[key] = None
 
     if isinstance(config, list):
         for i, value in enumerate(config):
@@ -295,8 +305,41 @@ def _substitute_values(config, service_config_vars: dict, service_env) -> None:
 
 
 @pytest.fixture(scope='session')
+def substitute_config_vars(service_env) -> Callable[[Any, dict], Any]:
+    """
+    A function that takes `config_yaml`, `config_vars` and applies all
+    substitutions just like the service would.
+
+    Useful when patching the service config. It's a good idea to pass
+    a component's config instead of the whole `config_yaml` to avoid
+    unnecessary work.
+
+    @warning The returned YAML is a clone, mutating it will not modify
+    the actual config while in a config hook!
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def substitute(config_yaml, config_vars, /):
+        if config_yaml is not None and not isinstance(config_yaml, dict) and not isinstance(config_yaml, list):
+            raise TypeError(
+                f'{substitute_config_vars.__name__} can only be meaningfully '
+                'called with dict and list nodes of config_yaml, while given: '
+                f'{config_yaml!r}. Pass a containing object instead.',
+            )
+
+        config = copy.deepcopy(config_yaml)
+        _substitute_values(config, config_vars, service_env)
+        return config
+
+    return substitute
+
+
+@pytest.fixture(scope='session')
 def service_config(
-    service_config_yaml, service_config_vars, service_env,
+    service_config_yaml,
+    service_config_vars,
+    substitute_config_vars,
 ) -> dict:
     """
     Returns the static config values after the USERVER_CONFIG_HOOKS were
@@ -305,15 +348,15 @@ def service_config(
 
     @ingroup userver_testsuite_fixtures
     """
-    config = copy.deepcopy(service_config_yaml)
-    _substitute_values(config, service_config_vars, service_env)
+    config = substitute_config_vars(service_config_yaml, service_config_vars)
     config.pop('config_vars', None)
     return config
 
 
 @pytest.fixture(scope='session')
 def _original_service_config(
-    service_config_path, service_config_vars_path,
+    service_config_path,
+    service_config_vars_path,
 ) -> _UserverConfig:
     config_vars: dict
     config_yaml: dict
@@ -332,7 +375,10 @@ def _original_service_config(
 
 @pytest.fixture(scope='session')
 def _service_config_hooked(
-    pytestconfig, request, service_tmpdir, _original_service_config,
+    pytestconfig,
+    request,
+    service_tmpdir,
+    _original_service_config,
 ) -> _UserverConfig:
     config_yaml = copy.deepcopy(_original_service_config.config_yaml)
     config_vars = copy.deepcopy(_original_service_config.config_vars)
@@ -351,8 +397,7 @@ def _service_config_hooked(
         config_vars_path = service_tmpdir / 'config_vars.yaml'
         config_vars_text = yaml.dump(config_vars)
         logger.debug(
-            'userver fixture "service_config" writes the patched static '
-            'config vars to "%s":\n%s',
+            'userver fixture "service_config" writes the patched static config vars to "%s":\n%s',
             config_vars_path,
             config_vars_text,
         )
@@ -389,7 +434,7 @@ def userver_config_http_server(service_port, monitor_port):
 
 
 @pytest.fixture(scope='session')
-def allowed_url_prefixes_extra() -> typing.List[str]:
+def allowed_url_prefixes_extra() -> List[str]:
     """
     By default, userver HTTP client is only allowed to talk to mockserver
     when running in testsuite. This makes tests repeatable and encapsulated.
@@ -404,7 +449,9 @@ def allowed_url_prefixes_extra() -> typing.List[str]:
 
 @pytest.fixture(scope='session')
 def userver_config_http_client(
-    mockserver_info, mockserver_ssl_info, allowed_url_prefixes_extra,
+    mockserver_info,
+    mockserver_ssl_info,
+    allowed_url_prefixes_extra,
 ):
     """
     Returns a function that adjusts the static configuration file for testsuite.
@@ -547,13 +594,11 @@ def userver_config_testsuite(pytestconfig, mockserver_info):
         testsuite_support['testsuite-grpc-is-tls-enabled'] = False
         _set_postgresql_options(testsuite_support)
         _set_redis_timeout(testsuite_support)
-        service_runner = pytestconfig.getoption('--service-runner-mode', False)
+        service_runner = pytestconfig.option.service_runner_mode
         if not service_runner:
             _disable_cache_periodic_update(testsuite_support)
         testsuite_support['testsuite-tasks-enabled'] = not service_runner
-        testsuite_support['testsuite-periodic-dumps-enabled'] = (
-            '$userver-dumps-periodic'
-        )
+        testsuite_support['testsuite-periodic-dumps-enabled'] = '$userver-dumps-periodic'
         components['testsuite-support'] = testsuite_support
 
         config_vars['testsuite-enabled'] = True
@@ -610,7 +655,8 @@ def userver_config_testsuite_middleware(
             return
 
         pipeline_builder = components.setdefault(
-            'default-server-middleware-pipeline-builder', {},
+            'default-server-middleware-pipeline-builder',
+            {},
         )
         middlewares = pipeline_builder.setdefault('append', [])
         middlewares.append('testsuite-exceptions-handling-middleware')

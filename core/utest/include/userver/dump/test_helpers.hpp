@@ -21,9 +21,9 @@ std::string ToBinary(const T& value) {
 
 /// Converts from binary using `Read(Reader&, To<T>)`
 template <typename T>
-T FromBinary(std::string data) {
+std::remove_const_t<T> FromBinary(std::string data) {
     MockReader reader(std::move(data));
-    T value = reader.Read<T>();
+    auto value = reader.Read<std::remove_const_t<T>>();
     reader.Finish();
     return value;
 }

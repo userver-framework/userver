@@ -24,7 +24,9 @@
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/regex.hpp>
 #include <userver/utils/strerror.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 #include <components/manager.hpp>
@@ -107,7 +109,7 @@ void PreheatStacktraceCollector() {
 }
 
 bool IsTraced() {
-    static const std::string kTracerField = "TracerPid:\t";
+    static constexpr utils::StringLiteral kTracerField = "TracerPid:\t";
 
     try {
         // /proc is only available on linux,

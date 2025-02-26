@@ -95,7 +95,7 @@ UTEST_F(GrpcClientCancel, UnaryCall) {
 
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
-        UEXPECT_THROW(client.SyncSayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW(client.SayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =

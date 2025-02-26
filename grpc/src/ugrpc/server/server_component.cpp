@@ -104,12 +104,6 @@ properties:
             task-processor:
                 type: string
                 description: the task processor to use for responses
-            middlewares:
-                type: array
-                description: middlewares names to use
-                items:
-                    type: string
-                    description: middleware component name
 )");
 }
 

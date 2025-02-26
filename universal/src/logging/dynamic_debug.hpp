@@ -30,7 +30,7 @@ using LogEntryContentHook = bi::set_base_hook<bi::optimize_size<true>, bi::link_
 struct LogEntryContent {
     LogEntryContent(const char* path, int line) noexcept : line(line), path(path) {}
 
-    std::atomic<EntryState> state{};
+    std::atomic<EntryState> state{EntryState{}};
     const int line;
     const char* const path;
     LogEntryContentHook hook;

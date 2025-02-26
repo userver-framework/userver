@@ -4,6 +4,7 @@
 #include <storages/postgres/postgres_config.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +17,31 @@ void CheckDeadlineIsExpired(const dynamic_config::Snapshot& config) {
 
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
     if (inherited_deadline.IsReached()) {
+        server::request::MarkTaskInheritedDeadlineExpired();
         throw ConnectionInterrupted("Cancelled by deadline");
+    }
+}
+
+TimeoutDuration AdjustTimeout(TimeoutDuration timeout, bool& adjusted) {
+    adjusted = false;
+    if (!USERVER_NAMESPACE::utils::impl::kPgDeadlinePropagationExperiment.IsEnabled()) {
+        return timeout;
+    }
+
+    const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
+    if (!inherited_deadline.IsReachable()) return timeout;
+
+    auto left = std::chrono::duration_cast<TimeoutDuration>(inherited_deadline.TimeLeft());
+    if (left.count() < 0) {
+        server::request::MarkTaskInheritedDeadlineExpired();
+        throw ConnectionInterrupted("Cancelled by deadline");
+    }
+
+    if (timeout > left) {
+        adjusted = true;
+        return left;
+    } else {
+        return timeout;
     }
 }
 

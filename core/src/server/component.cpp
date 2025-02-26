@@ -101,6 +101,10 @@ properties:
                 type: string
                 description: unix socket to listen on instead of listening on a port
                 defaultDescription: ''
+            unix-socket-permissions: &ports-unix-socket-permissions
+                type: string
+                description: unix socket file permissions
+                defaultDescription: '600'
             max_connections:
                 type: integer
                 description: max connections count to keep
@@ -125,7 +129,7 @@ properties:
                             description: path to TLS CA
                     cert:
                         type: string
-                        description: path to TLS certificate
+                        description: path to TLS certificate chain
                     private-key:
                         type: string
                         description: path to TLS certificate private key
@@ -143,6 +147,7 @@ properties:
                        address: *ports-address
                        port: *ports-port
                        unix-socket: *ports-unix-socket
+                       unix-socket-permissions: *ports-unix-socket-permissions
                        tls: *ports-tls
             handler-defaults:
                 type: object

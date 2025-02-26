@@ -201,6 +201,6 @@ struct fmt::formatter<USERVER_NAMESPACE::http::headers::PredefinedHeader> : fmt:
     template <typename FormatContext>
     auto format(const USERVER_NAMESPACE::http::headers::PredefinedHeader& value, FormatContext& ctx) const
         -> decltype(ctx.out()) {
-        return formatter<std::string_view>::format(std::string_view{value}, ctx);
+        return fmt::format_to(ctx.out(), "{}", std::string_view{value});
     }
 };

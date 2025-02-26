@@ -31,7 +31,8 @@ def initial_data_path(service_source_dir):
 def pgsql_local(service_source_dir, pgsql_local_create):
     """Create schemas databases for tests"""
     databases = discover.find_schemas(
-        'auth', [service_source_dir.joinpath('postgresql/schemas')],
+        'auth',
+        [service_source_dir.joinpath('postgresql/schemas')],
     )
     return pgsql_local_create(list(databases.values()))
 
@@ -39,7 +40,5 @@ def pgsql_local(service_source_dir, pgsql_local_create):
 @pytest.fixture(scope='session')
 def service_env():
     return {
-        'SERVER_DIGEST_AUTH_SECRET': (
-            '{ "http_server_digest_auth_secret": "some-private-key" }'
-        ),
+        'SERVER_DIGEST_AUTH_SECRET': ('{ "http_server_digest_auth_secret": "some-private-key" }'),
     }

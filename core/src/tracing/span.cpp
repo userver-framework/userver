@@ -11,6 +11,7 @@
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/span_event.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/assert.hpp>
@@ -68,6 +69,12 @@ std::string GenerateSpanId() {
     return utils::encoding::ToHex(&random_value, 8);
 }
 
+std::string MakeTagFromEvents(const std::vector<SpanEvent>& events) {
+    formats::json::StringBuilder builder;
+    formats::serialize::WriteToStream(events, builder);
+    return builder.GetString();
+}
+
 }  // namespace
 
 Span::Impl::Impl(
@@ -117,9 +124,8 @@ Span::Impl::~Impl() {
 
     {
         const impl::DetachLocalSpansScope ignore_local_span;
-        logging::LogHelper lh{logging::GetDefaultLogger(), log_level_, source_location_};
-        lh.MarkAsTrace(logging::LogHelper::InternalTag{});
-        std::move(*this).PutIntoLogger(lh.GetTagWriterAfterText({}));
+        logging::LogHelper lh{logging::GetDefaultLogger(), log_level_, logging::LogClass::kTrace, source_location_};
+        std::move(*this).PutIntoLogger(lh.GetTagWriter());
     }
 }
 
@@ -144,10 +150,16 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
         //  and log_extra_local_. Merge to deduplicate such tags.
         log_extra_inheritable_.Extend(std::move(*log_extra_local_));
     }
-    if (log_extra_inheritable_.GetValue(tracing::kSpanKind) == logging::LogExtra::Value{}) {
+    if (auto& value = log_extra_inheritable_.GetValue(tracing::kSpanKind);
+        std::holds_alternative<std::string>(value) && std::get<std::string>(value).empty()) {
         log_extra_inheritable_.Extend(tracing::kSpanKind, tracing::kSpanKindInternal);
     }
     writer.PutLogExtra(log_extra_inheritable_);
+
+    if (!events_.empty()) {
+        const auto events_tag = MakeTagFromEvents(events_);
+        writer.PutTag("events", events_tag);
+    }
 
     LogOpenTracing();
 }
@@ -368,6 +380,10 @@ void Span::AddTagFrozen(std::string key, logging::LogExtra::Value value) {
     pimpl_->log_extra_inheritable_.Extend(std::move(key), std::move(value), logging::LogExtra::ExtendType::kFrozen);
 }
 
+void Span::AddEvent(std::string_view event_name) { pimpl_->events_.emplace_back(event_name); }
+
+void Span::AddEvent(SpanEvent&& event) { pimpl_->events_.emplace_back(std::move(event)); }
+
 void Span::SetLink(std::string link) { AddTagFrozen(kLinkTag, std::move(link)); }
 
 void Span::SetParentLink(std::string parent_link) { AddTagFrozen(kParentLinkTag, std::move(parent_link)); }
@@ -402,8 +418,8 @@ ScopeTime::DurationMillis Span::GetTotalElapsedTime(const std::string& scope_nam
     return std::chrono::duration_cast<ScopeTime::DurationMillis>(GetTotalDuration(scope_name));
 }
 
-static_assert(!std::is_copy_assignable<Span>::value, "tracing::Span must not be copy assignable");
-static_assert(!std::is_move_assignable<Span>::value, "tracing::Span must not be move assignable");
+static_assert(!std::is_copy_assignable_v<Span>, "tracing::Span must not be copy assignable");
+static_assert(!std::is_move_assignable_v<Span>, "tracing::Span must not be move assignable");
 
 const Span::Impl* GetParentSpanImpl() {
     if (!engine::current_task::IsTaskProcessorThread()) return nullptr;
@@ -439,7 +455,7 @@ DetachLocalSpansScope::~DetachLocalSpansScope() {
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, LogSpanAsLastNoCurrent span) {
     UASSERT(nullptr == Span::CurrentSpanUnchecked());
-    span.span.LogTo(lh.GetTagWriterAfterText({}));
+    span.span.LogTo(lh.GetTagWriter());
     return lh;
 }
 

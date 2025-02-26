@@ -6,6 +6,7 @@
 #include <mongoc/mongoc.h>
 
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/utils/string_literal.hpp>
 
 #include <formats/bson/wrappers.hpp>
 
@@ -70,7 +71,7 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(const options::WriteConcern& wc
 }
 
 void AppendUpsert(formats::bson::impl::BsonBuilder& builder) {
-    static const std::string kOptionName = "upsert";
+    static constexpr utils::StringLiteral kOptionName = "upsert";
     builder.Append(kOptionName, true);
 }
 

@@ -10,19 +10,23 @@ from chaotic.front import types
 def parse(path, input_, external_schemas, external_types):
     config = parser.ParserConfig(erase_prefix='')
     schema_parser = parser.SchemaParser(
-        config=config, full_filepath='full', full_vfilepath='vfull',
+        config=config,
+        full_filepath='full',
+        full_vfilepath='vfull',
     )
     schema_parser.parse_schema(path, input_)
     schemas = schema_parser.parsed_schemas()
     rr = ref_resolver.RefResolver()
     resolved_schemas = rr.sort_schemas(
-        schemas, external_schemas=external_schemas,
+        schemas,
+        external_schemas=external_schemas,
     )
     gen = Generator(
         config=GeneratorConfig(namespaces={'vfull': ''}, include_dirs=None),
     )
     types = gen.generate_types(
-        resolved_schemas, external_schemas=external_types,
+        resolved_schemas,
+        external_schemas=external_types,
     )
 
     return resolved_schemas, types
@@ -30,7 +34,10 @@ def parse(path, input_, external_schemas, external_types):
 
 def test_import(simple_gen):
     ext_schemas, ext_types = parse(
-        '/type1', {'type': 'string'}, types.ResolvedSchemas(schemas={}), {},
+        '/type1',
+        {'type': 'string'},
+        types.ResolvedSchemas(schemas={}),
+        {},
     )
     assert ext_schemas.schemas == {'vfull#/type1': types.String(type='string')}
     assert ext_types == {
@@ -44,7 +51,10 @@ def test_import(simple_gen):
     }
 
     new_schemas, new_types = parse(
-        '/type2', {'$ref': 'vfull#/type1'}, ext_schemas, ext_types,
+        '/type2',
+        {'$ref': 'vfull#/type1'},
+        ext_schemas,
+        ext_types,
     )
     assert new_schemas.schemas == {
         'vfull#/type2': types.Ref(

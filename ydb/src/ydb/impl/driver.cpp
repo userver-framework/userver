@@ -1,9 +1,9 @@
 #include "driver.hpp"
 
-#include <ydb-cpp-sdk/client/driver/driver.h>
-#include <ydb-cpp-sdk/client/extensions/solomon_stats/pull_connector.h>
-#include <ydb-cpp-sdk/client/iam/iam.h>
-#include <ydb-cpp-sdk/client/types/credentials/credentials.h>
+#include <ydb-cpp-sdk/v2/client/driver/driver.h>
+#include <ydb-cpp-sdk/v2/client/extensions/solomon_stats/pull_connector.h>
+#include <ydb-cpp-sdk/v2/client/iam/iam.h>
+#include <ydb-cpp-sdk/v2/client/types/credentials/credentials.h>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/text_light.hpp>

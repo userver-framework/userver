@@ -1,5 +1,7 @@
 project(userver-easy-samples-hello-world CXX)
 
+find_package(userver COMPONENTS easy REQUIRED)
+
 add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::easy)
 

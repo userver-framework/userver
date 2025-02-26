@@ -82,15 +82,6 @@ std::string ServerId::GetDescription() const { return GetServerIdDescriptionMap(
 std::atomic<int64_t> ServerId::next_id_{0};
 ServerId ServerId::invalid_ = ServerId::Generate();
 
-CommandControl::CommandControl(
-    const std::optional<std::chrono::milliseconds>& timeout_single,
-    const std::optional<std::chrono::milliseconds>& timeout_all,
-    const std::optional<size_t>& max_retries
-)
-    : timeout_single(timeout_single), timeout_all(timeout_all), max_retries(max_retries) {}
-
-bool CommandControl::operator==(const CommandControl& other) const { return std::tie(*this) == std::tie(other); }
-
 CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     CommandControl res(*this);
     if (b.timeout_single.has_value() && *b.timeout_single > std::chrono::milliseconds::zero()) {
@@ -136,7 +127,7 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
 }
 
 CommandControl CommandControl::MergeWith(const testsuite::RedisControl& t) const {
-    CommandControl res(*this);
+    auto res = *this;
     if (t.min_timeout_single > std::chrono::milliseconds::zero()) {
         res.timeout_single =
             (res.timeout_single.has_value() ? std::max(*res.timeout_single, t.min_timeout_single) : t.min_timeout_single
@@ -150,7 +141,7 @@ CommandControl CommandControl::MergeWith(const testsuite::RedisControl& t) const
 }
 
 CommandControl CommandControl::MergeWith(RetryNilFromMaster) const {
-    CommandControl res(*this);
+    auto res = *this;
     res.force_retries_to_master_on_nil_reply = true;
     return res;
 }

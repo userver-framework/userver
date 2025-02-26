@@ -1,7 +1,5 @@
 project(userver-kafka-tests CXX)
 
-message(STATUS "Configuring Kafka functional_tests")
-
 add_custom_target(${PROJECT_NAME})
 
 add_subdirectory(balanced_consumer_groups)

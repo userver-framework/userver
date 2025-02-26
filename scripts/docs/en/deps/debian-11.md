@@ -6,7 +6,6 @@ libboost-filesystem1.74-dev
 libboost-iostreams1.74-dev
 libboost-locale1.74-dev
 libboost-program-options1.74-dev
-libboost-regex1.74-dev
 libboost-stacktrace1.74-dev
 libboost1.74-dev
 libbson-dev
@@ -26,6 +25,7 @@ libjemalloc-dev
 libkrb5-dev
 libldap2-dev
 librdkafka-dev
+libre2-dev
 librocksdb-dev
 libmongoc-dev
 libnghttp2-dev

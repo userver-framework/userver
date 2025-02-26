@@ -1513,6 +1513,33 @@ UTEST(HttpClient, CheckSchema) {
     UEXPECT_THROW(http_client_ptr->CreateRequest().url("telnet://localhost"), clients::http::BadArgumentException);
 }
 
+UTEST(HttpClient, ShortUrl) {
+    const std::shared_ptr<clients::http::Client> client = utest::CreateHttpClient();
+    clients::http::Request request = client->CreateRequest();
+    request.url("http://ex");
+
+    EXPECT_EQ(request.GetUrl(), "http://ex");
+}
+
+UTEST(HttpClient, LongUrl) {
+    const std::shared_ptr<clients::http::Client> client = utest::CreateHttpClient();
+    clients::http::Request request = client->CreateRequest();
+    request.url("http://large_enough_to_kick_the_sso_out.com");
+
+    EXPECT_EQ(request.GetUrl(), "http://large_enough_to_kick_the_sso_out.com");
+}
+
+UTEST(HttpRequest, GracefulExceptionOnInvalidUrl) {
+    const std::shared_ptr<clients::http::Client> client = utest::CreateHttpClient();
+    clients::http::Request request = client->CreateRequest();
+
+    UASSERT_THROW_MSG(
+        request.url("https://port_number_is_too_large.com:99999/yandsearch"),
+        clients::http::BadArgumentException,
+        "https://port_number_is_too_large.com:99999/yandsearch"
+    );
+}
+
 UTEST(HttpClient, DigestAuth) {
     AuthCallback auth_callback;
     const utest::SimpleServer http_server{auth_callback};

@@ -29,7 +29,7 @@ struct CallParams {
     const std::string_view method_name;
     ugrpc::impl::RpcStatisticsScope& statistics;
     ugrpc::impl::StatisticsStorage& statistics_storage;
-    logging::LoggerRef access_tskv_logger;
+    logging::TextLoggerRef access_tskv_logger;
     tracing::Span& call_span;
     utils::AnyStorage<StorageContext>& storage_context;
     const Middlewares& middlewares;

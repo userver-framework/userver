@@ -1,7 +1,5 @@
 #include <userver/crypto/public_key.hpp>
 
-#include <unordered_map>
-
 #include <userver/crypto/certificate.hpp>
 
 #include <openssl/bn.h>
@@ -9,13 +7,13 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include <boost/numeric/conversion/cast.hpp>
-
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/crypto/openssl.hpp>
+#include <userver/utils/numeric_cast.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/text_light.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <crypto/helpers.hpp>
 
@@ -31,8 +29,8 @@ using Bignum = std::unique_ptr<BIGNUM, decltype(&::BN_clear_free)>;
 Bignum LoadBignumFromBigEnd(const std::string_view raw) {
     int size = 0;
     try {
-        size = boost::numeric_cast<int>(raw.size());
-    } catch (const boost::bad_numeric_cast& ex) {
+        size = utils::numeric_cast<int>(raw.size());
+    } catch (const std::runtime_error& ex) {
         throw KeyParseError{ex.what()};
     }
 
@@ -63,17 +61,16 @@ std::unique_ptr<RSA, decltype(&::RSA_free)> LoadRsa([[maybe_unused]] Bignum n, [
     return rsa;
 }
 
-const std::unordered_map<std::string_view, int, utils::StrIcaseHash, utils::StrIcaseEqual> kCurveToNid = {
-    {"P-256", NID_X9_62_prime256v1},
-    {"P-384", NID_secp384r1},
-    {"P-521", NID_secp521r1}};
+constexpr utils::TrivialBiMap kCurveToNid = [](auto selector) {
+    return selector().Case("p-256", NID_X9_62_prime256v1).Case("p-384", NID_secp384r1).Case("p-521", NID_secp521r1);
+};
 
 int CurveStringToNid(const std::string_view& curve_str) {
-    auto it = kCurveToNid.find(curve_str);
-    if (it == kCurveToNid.end()) {
+    auto opt_value = kCurveToNid.TryFindICaseByFirst(curve_str);
+    if (!opt_value) {
         throw KeyParseError{FormatSslError(fmt::format("Unsupported curve type {}", curve_str))};
     }
-    return it->second;
+    return *opt_value;
 }
 
 std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> LoadEc(int curve_type, Bignum x, Bignum y) {

@@ -1,6 +1,6 @@
 #include "test_utils.hpp"
 
-#include <ydb-cpp-sdk/library/issue/yql_issue.h>
+#include <ydb-cpp-sdk/v2/library/issue/yql_issue.h>
 
 #include <ydb/impl/future.hpp>
 #include <ydb/impl/retry.hpp>

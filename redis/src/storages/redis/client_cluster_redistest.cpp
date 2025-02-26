@@ -17,7 +17,7 @@ std::string MakeKey2(size_t idx, int add) {
     return "{" + MakeKey(idx) + "}not_hashed_suffix_" + std::to_string(add - idx);
 }
 
-storages::redis::CommandControl kDefaultCc(std::chrono::milliseconds(300), std::chrono::milliseconds(300), 1);
+constexpr storages::redis::CommandControl kDefaultCc{std::chrono::milliseconds(300), std::chrono::milliseconds(300), 1};
 
 }  // namespace
 

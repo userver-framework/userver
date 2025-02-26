@@ -22,7 +22,7 @@ std::string GreeterClient::SayHello(std::string name) const {
     request.set_name(std::move(name));
 
     // Perform RPC by sending the request and receiving the response.
-    api::GreetingResponse response = raw_client_.SyncSayHello(request, MakeClientContext());
+    api::GreetingResponse response = raw_client_.SayHello(request, MakeClientContext());
     return std::move(*response.mutable_greeting());
 }
 

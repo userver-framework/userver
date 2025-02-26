@@ -22,12 +22,12 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libboost-program-options1.71-dev \
     libboost-filesystem1.71-dev \
     libboost-locale1.71-dev \
-    libboost-regex1.71-dev \
     libboost-iostreams1.71-dev \
     libboost-context1.71-dev \
     libboost-coroutine1.71-dev \
     libboost-stacktrace1.71-dev \
     libpugixml-dev \
+    libre2-dev \
     libev-dev \
     zlib1g-dev \
     libcurl4-openssl-dev \

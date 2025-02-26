@@ -5,7 +5,6 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 #include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
 
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>

@@ -20,18 +20,70 @@ Changelog news also go to the
 * ✔️ HTTP 2.0 server support
 * ✔️ Improve OpenTelemetry Protocol (OTLP) support.
 * ✔️ Improve Kafka driver.
+* ✔️ Logging format customization, including JSON logging.
+* ✔️ Secdist simplification and functionality improvement.
+* ✔️ Improved MacOS build support.
+* ✔️ Improved Conan support.
 * 👨‍💻 gRPC simplification and functionality improvement.
-* 👨‍💻 Logging format customization, including JSON logging.
-* 👨‍💻 Secdist simplification and functionality improvement.
 * 👨‍💻 Add retry budget or retry circuit breaker for clients.
-* Improved MacOS build support.
-* Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
-* Generate full-blown accessories for OpenAPI:
+* 👨‍💻 Generate full-blown accessories for OpenAPI:
   * clients
   * handlers
+* Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 
 
 ## Changelog
+
+### Release v2.7
+
+* Logging in JSON format was implemented. See static option `format` at components::Logging.
+* utils::regex now uses `Re2` under the hood, leading to at least x2 faster regular expression matching and guaranteed
+  absence of backtracking. Updating is highly recommended.
+* Mongo connection state checking algorithms was adjusted to work well on small RPS.
+* Conan packages now support all the userver features. Conan package build now reuses the CMake install targets and
+  CMake config files.
+* Full feature support for MacOS, including testing and Conan package build and usage on that platform. 
+* Added support for TLS certificate chains. See `tls.cert` static option at components::Server. Many thanks to
+  [aklyuchev](https://github.com/aklyuchev) for the PR!
+* Chaotic exceptions now do not depend on JSON. Thanks to [Artyom](https://github.com/Lookingforcommit) for the PR!
+
+* gRPC
+  * Retries are now supported and controlled via dynamic config. See ugrpc::client::Qos for more info.
+  * Out-the-box cache dump support for Protobuf messages. See
+    @ref dump_serialization_guide "Implementing serialization (Write / Read)" for more info.
+  * Removed deprecated `*Sync` methods.
+
+* Optimizations
+  * Speed up configuration reads on creating new PostgreSQL connections.
+  * utils::PeriodicTask now calls RCU Read two times less on each iteration.
+  * Reduced memory allocations count on each Redis request.
+
+* Build
+  * Fixed build with `USERVER_FEATURE_JEMALLOC=ON`. Many thanks to [Aleksey Ignatiev](https://github.com/ae-ignatiev)
+    for the PR!
+  * Service templates [service_template](https://github.com/userver-framework/service_template),
+    [pg_service_template](https://github.com/userver-framework/pg_service_template),
+    [pg_grpc_service_template](https://github.com/userver-framework/pg_grpc_service_template),
+    [mongo_grpc_service_template](https://github.com/userver-framework/mongo_grpc_service_template) now use
+    @ref service_templates_presets "cmake presets" and @ref devcontainers "devcontainers" for out-of-the-box support
+    of VSCode and Clion IDEs.
+  * Started the work on Ubuntu 24.04 images.
+  * Added `ubuntu-22.04-userver-pg-dev` image with all the tools for development. Planning to switch to Ubuntu-24.04 and
+    leave only 2 containers: with build dependencies to build userver, and with prebuild userver.
+  * Added missing fmt11 headers. Thanks to [Pavel Sidorovich](https://github.com/RayeS2070) for the PR!
+  * Added `USERVER_USE_STATIC_LIBS` to link third-party libraries statically.
+  * Support `pacman` epoch in CMake version detection. Many thanks to [Konstantin Goncharik](https://github.com/botanegg)
+    for the PR.
+
+* Documentation
+  * Significant update of the @ref scripts/docs/en/userver/build/build.md
+  * More docs for tracing::Span::SetLogLevel() and tracing::Span::SetLocalLogLevel()
+  * Fixed secdist example at components::Mongo. Thank to [Nikita Puteev](https://github.com/Malfak) for the PR!
+  * Highlight the functionality of formats::common::Item in each supported format.
+  * Add info about full static linkage. Thanks to [Nikita](https://github.com/root-kidik) for the PR!
+  * Better `runtests` documentation at @ref scripts/docs/en/userver/functional_testing.md
+  * Documentation and samples for storages::postgres::io::Codegen{}.
+
 
 ### Release v2.6
 

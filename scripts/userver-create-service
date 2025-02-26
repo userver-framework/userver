@@ -1,0 +1,98 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import pathlib
+import re
+import subprocess
+import sys
+
+
+BINDIR = pathlib.Path(__file__).parent
+FEATURES = [
+    'mongo',
+    'postgres',
+    'grpc',
+]
+TEMPLATE_ON_REGEX = re.compile(r'.* ([a-z]+) template on.*')
+TEMPLATE_CURRENT_REGEX = re.compile(r'(.*) (//|#) ([a-z]+) template current$')
+
+def is_system_installed() -> bool:
+    return BINDIR.name == 'bin'
+
+def template_path() -> pathlib.Path:
+    if is_system_installed():
+        return BINDIR / '..' / 'share' / 'userver' / 'service_template'
+    return BINDIR / 'service_template'
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Create new C++ userver-based service')
+    for feature in FEATURES:
+        parser.add_argument(f'--{feature}', action='store_true')
+    parser.add_argument('service_name')
+    return parser.parse_args()
+
+def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
+    orig_text = src.read_text()
+    text = []
+    skip = False
+    for line in orig_text.splitlines():
+        line = line.replace('service_template', args.service_name)
+        match_on = TEMPLATE_ON_REGEX.match(line)
+        match_current = TEMPLATE_CURRENT_REGEX.match(line)
+        if match_on:
+            feature = match_on.group(1)
+            assert feature in FEATURES
+            skip = not getattr(args, feature)
+        elif 'template off' in line:
+            skip = False
+        elif match_current:
+            feature = match_current.group(3)
+            assert feature in FEATURES
+            if getattr(args, feature):
+                text.append(match_current.group(1))
+        else:
+            if not skip:
+                text.append(line)
+    if text:
+        dst.write_text('\n'.join(text))
+        dst.chmod(src.lstat().st_mode)
+        return True
+    return False
+
+def copy_tree(src: pathlib.Path, dst: pathlib.Path, args) -> None:
+    for root, _, files in os.walk(src):
+        dst_root = dst / pathlib.Path(root).relative_to(src)
+        os.makedirs(dst_root, exist_ok=True)
+        dst_root_is_empty = True
+
+        for file in files:
+            src_filepath = pathlib.Path(root) / file
+            dst_filepath = dst_root / file
+            if handle_file(src_filepath, dst_filepath, args):
+                dst_root_is_empty = False
+
+        if dst_root_is_empty:
+            dst_root.rmdir()
+
+def run_ruff(src: pathlib.Path) -> None:
+    try:
+        subprocess.check_call(['ruff', 'format', str(src)])
+    except BaseException as exc:
+        print(f'Failed to run ruff ({exc}), skipping.')
+
+
+def check_dst_non_existing(service_name: str):
+    if pathlib.Path(service_name).exists():
+        print(f'Error: {service_name} directory already exists.', file=sys.stderr)
+        sys.exit(1)
+
+def main() -> None:
+    args = parse_args()
+    check_dst_non_existing(args.service_name)
+    copy_tree(template_path(), args.service_name, args)
+    run_ruff(pathlib.Path(args.service_name))
+
+
+if __name__ == '__main__':
+    main()

@@ -31,6 +31,8 @@ class ValueBuilder;
 /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
+///
+/// To iterate over `Value` as object use formats::common::Items.
 class Value final {
 public:
     struct IterTraits {

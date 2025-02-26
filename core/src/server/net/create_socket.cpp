@@ -4,7 +4,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <boost/filesystem/operations.hpp>
 
 #include <userver/engine/io/socket.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -17,7 +16,7 @@ namespace server::net {
 
 namespace {
 
-engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
+engine::io::Socket CreateUnixSocket(const std::string& path, int backlog, boost::filesystem::perms perms) {
     const auto addr = engine::io::Sockaddr::MakeUnixSocketAddress(path);
 
     /* Use blocking API here, it is not critical as CreateUnixSocket() is called
@@ -30,7 +29,6 @@ engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
     socket.Bind(addr);
     socket.Listen(backlog);
 
-    constexpr auto perms = static_cast<boost::filesystem::perms>(0666);
     fs::blocking::Chmod(path, perms);
     return socket;
 }
@@ -68,7 +66,7 @@ engine::io::Socket CreateSocket(const ListenerConfig& config, const PortConfig& 
     if (port_config.unix_socket_path.empty())
         return CreateIpv6Socket(port_config.address, port_config.port, config.backlog);
     else
-        return CreateUnixSocket(port_config.unix_socket_path, config.backlog);
+        return CreateUnixSocket(port_config.unix_socket_path, config.backlog, port_config.unix_socket_perms);
 }
 
 }  // namespace server::net

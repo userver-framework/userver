@@ -7,6 +7,7 @@
 #include <string_view>
 #include <userver/error_injection/hook.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
@@ -18,6 +19,7 @@
 #include <userver/utils/trivial_map.hpp>
 #include <userver/utils/uuid4.hpp>
 
+#include <storages/postgres/deadline.hpp>
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/experiments.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
@@ -162,7 +164,7 @@ void CheckQueryParameters(const std::string& statement, const QueryParameters& p
     }
 }
 
-constexpr std::string_view kCommands[] = {
+constexpr USERVER_NAMESPACE::utils::StringLiteral kCommands[] = {
     "select",
     "insert",
     "update",
@@ -390,9 +392,9 @@ void ConnectionImpl::Begin(
     stats_.work_start_time = SteadyClock::now();
     ++stats_.trx_total;
     if (IsPipelineActive()) {
-        SendCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
+        SendCommandNoPrepare(Query{std::string{BeginStatement(options)}}, MakeCurrentDeadline());
     } else {
-        ExecuteCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
+        ExecuteCommandNoPrepare(Query{std::string{BeginStatement(options)}}, MakeCurrentDeadline());
     }
     if (trx_cmd_ctl) {
         SetTransactionCommandControl(*trx_cmd_ctl);
@@ -669,6 +671,9 @@ TimeoutDuration ConnectionImpl::CurrentExecuteTimeout() const {
 
 void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
+    if (IsPipelineActive()) {
+        timeout = AdjustTimeout(timeout, deadline_propagation_is_active_);
+    }
     if (current_statement_timeout_ != timeout) {
         SetParameter(
             kStatementTimeoutParameter, std::to_string(timeout.count()), Connection::ParameterScope::kSession, deadline
@@ -679,6 +684,9 @@ void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engi
 
 void ConnectionImpl::SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
+    if (IsPipelineActive()) {
+        timeout = AdjustTimeout(timeout, deadline_propagation_is_active_);
+    }
     if (current_statement_timeout_ != timeout) {
         SetParameter(
             kStatementTimeoutParameter,
@@ -691,6 +699,8 @@ void ConnectionImpl::SetStatementTimeout(TimeoutDuration timeout, engine::Deadli
 }
 
 void ConnectionImpl::SetStatementTimeout(OptionalCommandControl cmd_ctl) {
+    deadline_propagation_is_active_ = false;
+
     if (!!cmd_ctl) {
         SetConnectionStatementTimeout(cmd_ctl->statement, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl->execute));
     } else if (!!transaction_cmd_ctl_) {
@@ -961,29 +971,34 @@ void ConnectionImpl::SetParameter(
 void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
     UASSERT(settings_.user_types != ConnectionSettings::kPredefinedTypesOnly);
     try {
-        // kSetLocalWorkMem help users with many user types to avoid
-        // ConnectionInterrupted because there are `LEFT JOIN`s in queries
+        std::optional<TypedResultSet<DBTypeDescription, RowTag>> types{};
+        UserTypes::CompositeFieldDefs attribs{};
+        {
+            tracing::ScopeTime scope_time{"pg_load_user_types"};
 #if LIBPQ_HAS_PIPELINING
-        conn_wrapper_.EnterPipelineMode();
-        SendCommandNoPrepare("BEGIN", deadline);
-        SendCommandNoPrepare(kSetLocalWorkMem, deadline);
+            conn_wrapper_.EnterPipelineMode();
+            SendCommandNoPrepare("BEGIN", deadline);
+            // kSetLocalWorkMem help users with many user types to avoid
+            // ConnectionInterrupted because there are `LEFT JOIN`s in queries
+            SendCommandNoPrepare(kSetLocalWorkMem, deadline);
 #else
-        ExecuteCommandNoPrepare("BEGIN", deadline);
-        ExecuteCommandNoPrepare(kSetLocalWorkMem, deadline);
+            ExecuteCommandNoPrepare("BEGIN", deadline);
+            ExecuteCommandNoPrepare(kSetLocalWorkMem, deadline);
 #endif
-        auto types = ExecuteCommand(kGetUserTypesSQL, deadline).AsSetOf<DBTypeDescription>(kRowTag);
-        auto attribs =
-            ExecuteCommand(kGetCompositeAttribsSQL, deadline).AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
-        ExecuteCommandNoPrepare("COMMIT", deadline);
+            types.emplace(ExecuteCommand(kGetUserTypesSQL, deadline).AsSetOf<DBTypeDescription>(kRowTag));
+            attribs =
+                ExecuteCommand(kGetCompositeAttribsSQL, deadline).AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
+            ExecuteCommandNoPrepare("COMMIT", deadline);
 #if LIBPQ_HAS_PIPELINING
-        conn_wrapper_.ExitPipelineMode();
+            conn_wrapper_.ExitPipelineMode();
 #else
 #endif
+        }
 
         // End of definitions marker, to simplify processing
         attribs.push_back(CompositeFieldDef::EmptyDef());
         UserTypes db_types;
-        for (auto desc : types) {
+        for (auto desc : types.value()) {
             db_types.AddType(std::move(desc));
         }
         db_types.AddCompositeFields(std::move(attribs));
@@ -1046,8 +1061,13 @@ ResultSet ConnectionImpl::WaitResult(
         throw;
     } catch (const QueryCancelled& e) {
         ++stats_.execute_timeout;
-        LOG_LIMITED_WARNING() << "Statement `" << statement << "` was cancelled: " << e << ". Statement timeout was "
-                              << current_statement_timeout_.count() << "ms";
+        bool cancelled_by_dp = deadline_propagation_is_active_;
+        if (cancelled_by_dp) {
+            server::request::MarkTaskInheritedDeadlineExpired();
+        }
+        LOG_LIMITED_WARNING() << "Statement `" << statement << "` was cancelled"
+                              << (cancelled_by_dp ? " by deadline propagation" : "") << ": " << e
+                              << ". Statement timeout was " << current_statement_timeout_.count() << "ms";
         span.AddTag(tracing::kErrorFlag, true);
         throw;
     } catch (const FeatureNotSupported& e) {

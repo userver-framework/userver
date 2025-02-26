@@ -37,7 +37,7 @@ UTEST_F(GreeterServiceTest, SayHelloDirectCall) {
 
     samples::api::GreetingRequest request;
     request.set_name("gtest");
-    const auto response = client.SyncSayHello(request);
+    const auto response = client.SayHello(request);
 
     EXPECT_EQ(response.greeting(), "Hello, gtest!");
 }

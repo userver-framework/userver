@@ -141,7 +141,7 @@ RedisConnectionState::RedisConnectionState() {
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
     subscribe_sentinel_ = SubscribeSentinel::Create(
-        thread_pools_, GetRedisSettings(), "none", dynamic_config::GetDefaultSource(), "pub", false, {}, {}
+        thread_pools_, GetRedisSettings(), "none", dynamic_config::GetDefaultSource(), "pub", "KeyShardZero", {}, {}
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<SubscribeClientImpl>(subscribe_sentinel_);
@@ -167,7 +167,7 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
     subscribe_sentinel_ = storages::redis::impl::SubscribeSentinel::Create(
-        thread_pools_, GetRedisClusterSettings(), "none", configs_source, "pub", true, {}, {}
+        thread_pools_, GetRedisClusterSettings(), "none", configs_source, "pub", "RedisCluster", {}, {}
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(subscribe_sentinel_);

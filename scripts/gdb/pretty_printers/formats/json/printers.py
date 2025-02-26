@@ -13,9 +13,7 @@ class Constants:
     RJ_TENCODING = 'rapidjson::UTF8<char>'
 
     RJ_GENERIC_VALUE = f'rapidjson::GenericValue<{RJ_TENCODING}, {RJ_TALLOC}>'
-    RJ_GENERIC_MEMBER = (
-        f'rapidjson::GenericMember<{RJ_TENCODING}, {RJ_TALLOC}>'
-    )
+    RJ_GENERIC_MEMBER = f'rapidjson::GenericMember<{RJ_TENCODING}, {RJ_TALLOC}>'
     RG_ENCODING_CH = 'char'
 
     RJ_GENERIC_OBJECT = f'rapidjson::GenericObject<true, {RJ_GENERIC_VALUE} >'
@@ -48,28 +46,13 @@ class Constants:
     RJFlag_kTrueFlag = RJType_kTrueType | RJFlag_kBoolFlag
     RJFlag_kFalseFlag = RJType_kFalseType | RJFlag_kBoolFlag
 
-    RJFlag_kNumberIntFlag = (
-        RJType_kNumberType
-        | RJFlag_kNumberFlag
-        | RJFlag_kIntFlag
-        | RJFlag_kInt64Flag
-    )
+    RJFlag_kNumberIntFlag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kIntFlag | RJFlag_kInt64Flag
     RJFlag_kNumberUintFlag = (
-        RJType_kNumberType
-        | RJFlag_kNumberFlag
-        | RJFlag_kUintFlag
-        | RJFlag_kUint64Flag
-        | RJFlag_kInt64Flag
+        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kUintFlag | RJFlag_kUint64Flag | RJFlag_kInt64Flag
     )
-    RJFlag_kNumberInt64Flag = (
-        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kInt64Flag
-    )
-    RJFlag_kNumberUint64Flag = (
-        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kUint64Flag
-    )
-    RJFlag_kNumberDoubleFlag = (
-        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kDoubleFlag
-    )
+    RJFlag_kNumberInt64Flag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kInt64Flag
+    RJFlag_kNumberUint64Flag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kUint64Flag
+    RJFlag_kNumberDoubleFlag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kDoubleFlag
     RJFlag_kNumberAnyFlag = (
         RJType_kNumberType
         | RJFlag_kNumberFlag
@@ -83,15 +66,8 @@ class Constants:
     RJFlag_kObjectFlag = RJType_kObjectType
     RJFlag_kArrayFlag = RJType_kArrayType
     RJFlag_kConstStringFlag = RJType_kStringType | RJFlag_kStringFlag
-    RJFlag_kCopyStringFlag = (
-        RJType_kStringType | RJFlag_kStringFlag | RJFlag_kCopyFlag
-    )
-    RJFlag_kShortStringFlag = (
-        RJType_kStringType
-        | RJFlag_kStringFlag
-        | RJFlag_kCopyFlag
-        | RJFlag_kInlineStrFlag
-    )
+    RJFlag_kCopyStringFlag = RJType_kStringType | RJFlag_kStringFlag | RJFlag_kCopyFlag
+    RJFlag_kShortStringFlag = RJType_kStringType | RJFlag_kStringFlag | RJFlag_kCopyFlag | RJFlag_kInlineStrFlag
 
     RJFlag_kTypeMask = 0x07
 
@@ -119,7 +95,8 @@ class RJObjectType(RJBaseType):
         data = val['data_']['o']
         self.size = int(data['size'])
         self.members = rj_get_pointer(
-            data['members'], Constants.RJ_GENERIC_MEMBER,
+            data['members'],
+            Constants.RJ_GENERIC_MEMBER,
         )
         if self.size:
             self.children = self.children_impl
@@ -143,7 +120,8 @@ class RJArrayType(RJBaseType):
         data = self.val['data_']['a']
         self.size = int(data['size'])
         self.elements = rj_get_pointer(
-            data['elements'], Constants.RJ_GENERIC_VALUE,
+            data['elements'],
+            Constants.RJ_GENERIC_VALUE,
         )
         if self.size:
             self.children = self.children_impl
@@ -191,7 +169,8 @@ class RJStringType(RJBaseType):
             return data['ss']['str'].string()
         else:
             str_ptr = rj_get_pointer(
-                data['s']['str'], Constants.RG_ENCODING_CH,
+                data['s']['str'],
+                Constants.RG_ENCODING_CH,
             )
             length = int(data['s']['length'])
             return str_ptr.string(length=length)

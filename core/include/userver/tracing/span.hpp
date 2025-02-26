@@ -18,11 +18,12 @@ USERVER_NAMESPACE_BEGIN
 namespace tracing {
 
 class SpanBuilder;
+struct SpanEvent;
 
 /// @brief Measures the execution time of the current code block, links it with
 /// the parent tracing::Spans and stores that info in the log.
 ///
-/// Logging of spans can be controled at runtime via @ref USERVER_NO_LOG_SPANS.
+/// Logging of spans can be controlled at runtime via @ref USERVER_NO_LOG_SPANS.
 ///
 /// See @ref scripts/docs/en/userver/logging.md for usage examples and more
 /// descriptions.
@@ -157,14 +158,36 @@ public:
     /// @overload AddNonInheritableTag
     void AddNonInheritableTags(const logging::LogExtra&);
 
-    /// @brief Sets level for tags logging
+    /// Add an event to Span.
+    void AddEvent(SpanEvent&& event);
+
+    /// Add an event (without attributes) to Span.
+    /// @overload AddEvent
+    void AddEvent(std::string_view event_name);
+
+    /// @brief Sets log level with which the current span itself is written into the tracing
+    /// system.
+    ///
+    /// If `Span`'s log level is less than the global logger's log level, then the span is
+    /// not written out. In that case, nested logs are still written to the logging system
+    /// as usual, inheriting `trace_id`, `link`, `span_id` and inheritable tags of the current
+    /// `Span` object.
     void SetLogLevel(logging::Level log_level);
 
     /// @brief Returns level for tags logging
     logging::Level GetLogLevel() const;
 
-    /// @brief Sets the local log level that disables logging of this span if
-    /// the local log level set and greater than the main log level of the Span.
+    /// @brief Sets an additional cutoff for the logs written in the scope of this `Span`,
+    /// and in nested scopes recursively.
+    ///
+    /// For example, if the global log level is `info`, and the current `Span` has
+    /// (own or inherited) local log level `warning`, then all `LOG_INFO`s within the current
+    /// scope will be thrown away.
+    ///
+    /// Currently, local log level cannot override the global log level of the logger.
+    /// For example, if the global log level is `info`, and the current `Span` has
+    /// (own or inherited) local log level `debug`, then all `LOG_DEBUG`s within the current
+    /// scope will **still** be thrown away.
     void SetLocalLogLevel(std::optional<logging::Level> log_level);
 
     /// @brief Returns the local log level that disables logging of this span if

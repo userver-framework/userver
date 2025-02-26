@@ -1,16 +1,16 @@
 #include "sink_helper_test.hpp"
 
 #include <boost/locale.hpp>
-#include <boost/regex.hpp>
 
 #include <userver/fs/blocking/read.hpp>
+#include <userver/utils/regex.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace test {
 
-const boost::regex regexp_pattern{R"(\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}\])"};
+const utils::regex regexp_pattern{R"(\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}\])"};
 const std::string result_pattern{"[DATETIME]"};
 
 std::vector<std::string> NormalizeLogs(const std::string& data) {
@@ -21,8 +21,7 @@ std::vector<std::string> NormalizeLogs(const std::string& data) {
     boost::locale::generator gen;
     std::locale loc = gen("");
     for (const auto& log : logs) {
-        auto replace_datetime =
-            boost::regex_replace(log, regexp_pattern, result_pattern, boost::match_default | boost::format_sed);
+        auto replace_datetime = utils::regex_replace(log, regexp_pattern, result_pattern);
         if (!replace_datetime.empty()) {
             result.push_back(boost::locale::to_lower(replace_datetime, loc));
         }

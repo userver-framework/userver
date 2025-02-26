@@ -39,7 +39,8 @@ async def test_engine_metrics(service_client, monitor_client):
     assert metric.labels == {'task_processor': 'main-task-processor'}
 
     metrics_dict = await monitor_client.metrics(
-        prefix='http.', labels={'http_path': '/ping'},
+        prefix='http.',
+        labels={'http_path': '/ping'},
     )
 
     assert metrics_dict

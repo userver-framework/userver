@@ -14,7 +14,9 @@ async def test_ok(service_client, load_binary):
     # Adding JSON payload
     address = {'street': '3, Garden St', 'city': 'Hillsbery, UT'}
     form_data.add_field(
-        'address', json.dumps(address), content_type='application/json',
+        'address',
+        json.dumps(address),
+        content_type='application/json',
     )
 
     # Making a request and checking the result

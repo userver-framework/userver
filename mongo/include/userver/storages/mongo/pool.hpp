@@ -11,6 +11,7 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/utils/null_terminated_view.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,7 +40,7 @@ public:
     ~Pool();
 
     /// Checks whether a collection exists
-    bool HasCollection(const std::string& name) const;
+    bool HasCollection(utils::NullTerminatedView name) const;
 
     /// Returns a handle for the specified collection
     Collection GetCollection(std::string name) const;

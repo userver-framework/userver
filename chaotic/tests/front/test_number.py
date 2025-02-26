@@ -38,7 +38,8 @@ def test_number_minmax_exclusive(simple_parse):
     })
     assert parsed.schemas == {
         'vfull#/definitions/type': Number(
-            exclusiveMinimum=1, exclusiveMaximum=2.2,
+            exclusiveMinimum=1,
+            exclusiveMaximum=2.2,
         ),
     }
 
@@ -67,7 +68,8 @@ def test_integer_minmax_exclusive(simple_parse):
     })
     assert parsed.schemas == {
         'vfull#/definitions/type': Integer(
-            exclusiveMinimum=1, exclusiveMaximum=10,
+            exclusiveMinimum=1,
+            exclusiveMaximum=10,
         ),
     }
 

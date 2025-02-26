@@ -57,8 +57,6 @@ private:
 
 inline constexpr char kRedisCluster[] = "RedisCluster";
 
-bool IsClusterStrategy(const std::string& type);
-
 }  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

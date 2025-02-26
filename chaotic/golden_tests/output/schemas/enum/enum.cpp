@@ -74,7 +74,12 @@ std::string ToString(ns::Enum::Foo value) {
     if (result.has_value()) {
         return std::string{*result};
     }
-    throw std::runtime_error("Bad enum value");
+    throw std::runtime_error(fmt::format("Invalid enum value: {}", static_cast<int>(value)));
 }
 
 }  // namespace ns
+
+fmt::format_context::iterator
+fmt::formatter<ns::Enum::Foo>::format(const ns::Enum::Foo& value, fmt::format_context& ctx) const {
+    return fmt::format_to(ctx.out(), "{}", ToString(value));
+}

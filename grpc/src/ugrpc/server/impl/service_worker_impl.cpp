@@ -123,10 +123,6 @@ void SetupSpan(
     if (parent_link) {
         span.SetParentLink(ugrpc::impl::ToString(*parent_link));
     }
-
-    context.AddInitialMetadata(ugrpc::impl::kXYaTraceId, ugrpc::impl::ToGrpcString(span.GetTraceId()));
-    context.AddInitialMetadata(ugrpc::impl::kXYaSpanId, ugrpc::impl::ToGrpcString(span.GetSpanId()));
-    context.AddInitialMetadata(ugrpc::impl::kXYaRequestId, ugrpc::impl::ToGrpcString(span.GetLink()));
 }
 
 void ParseGenericCallName(

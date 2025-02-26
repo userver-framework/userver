@@ -14,7 +14,7 @@
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
-#include <userver/ugrpc/impl/static_metadata.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -29,7 +29,7 @@ struct ServiceSettings final {
     engine::TaskProcessor& task_processor;
     ugrpc::impl::StatisticsStorage& statistics_storage;
     Middlewares middlewares;
-    logging::LoggerPtr access_tskv_logger;
+    logging::TextLoggerPtr access_tskv_logger;
     const dynamic_config::Source config_source;
 };
 

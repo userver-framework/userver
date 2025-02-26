@@ -289,6 +289,72 @@ UTEST(ExpirableLruCache, InvalidateByKey) {
     EXPECT_EQ(Counter::One(), *counter);
 }
 
+UTEST(ExpirableLruCache, InvalidateByKeyConditionalTrue) {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
+    SimpleCacheKey key = "my-key";
+
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
+
+    cache.InvalidateByKeyIf(key, [](const SimpleCacheValue&) -> bool { return true; });
+
+    WriteAndReadFromDump(cache);
+
+    counter->Flush();
+    EXPECT_EQ(2, cache.Get(key, UpdateValue(counter, 2)));
+    EXPECT_EQ(Counter::One(), *counter);
+}
+
+UTEST(ExpirableLruCache, InvalidateByKeyConditionalFalse) {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
+    SimpleCacheKey key = "my-key";
+
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
+
+    cache.InvalidateByKeyIf(key, [](const SimpleCacheValue&) -> bool { return false; });
+
+    WriteAndReadFromDump(cache);
+
+    // The old value should remain in the cache
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 2)));
+    EXPECT_EQ(Counter::Zero(), *counter);
+}
+
+UTEST(ExpirableLruCache, InvalidateByKeyConditionalExpired) {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
+    cache.SetMaxLifetime(std::chrono::seconds(2));
+    SimpleCacheKey key = "my-key";
+
+    utils::datetime::MockNowSet(std::chrono::system_clock::now());
+
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
+
+    WriteAndReadFromDump(cache);
+
+    EXPECT_EQ(1, cache.Get(key, UpdateNever()));
+
+    utils::datetime::MockSleep(std::chrono::seconds(3));
+
+    // The predicate should not be called as the value is expired
+    counter->Flush();
+    cache.InvalidateByKeyIf(key, [&counter](const SimpleCacheValue&) -> bool {
+        ++(*counter);
+        return true;
+    });
+    EXPECT_EQ(Counter::Zero(), *counter);
+}
+
 UTEST(ExpirableLruCache, BackgroundUpdate) {
     auto counter = std::make_shared<Counter>();
 

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 
+#include <boost/filesystem/operations.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/server/request/request_config.hpp>
@@ -17,11 +18,12 @@ namespace server::net {
 
 struct PortConfig {
     std::string unix_socket_path;
+    boost::filesystem::perms unix_socket_perms{static_cast<boost::filesystem::perms>(0600)};
     uint16_t port = 0;
     std::string address = "::";
 
     bool tls{false};
-    crypto::Certificate tls_cert;
+    crypto::CertificatesChain tls_cert_chain;
     std::string tls_private_key_path;
     std::string tls_private_key_passphrase_name;
     crypto::PrivateKey tls_private_key;

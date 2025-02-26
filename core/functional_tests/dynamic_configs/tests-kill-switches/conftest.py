@@ -25,10 +25,12 @@ class MockKillSwitchStorage:
         config_cache_components: Iterable[str],
     ) -> None:
         self._state = DynamicConfigState(
-            value='initial_value', is_enabled=is_enabled,
+            value='initial_value',
+            is_enabled=is_enabled,
         )
         self._updated_at = datetime.datetime.fromtimestamp(
-            0, datetime.timezone.utc,
+            0,
+            datetime.timezone.utc,
         )
         self._cache_invalidation_state = cache_invalidation_state
         self._config_cache_components = config_cache_components
@@ -52,25 +54,24 @@ class MockKillSwitchStorage:
     @config_value.setter
     def config_value(self, config_value: str) -> None:
         self._state = DynamicConfigState(
-            value=config_value, is_enabled=self.is_enabled,
+            value=config_value,
+            is_enabled=self.is_enabled,
         )
         self._sync_with_service()
 
     @is_enabled.setter
     def is_enabled(self, is_enabled: bool) -> None:
         self._state = DynamicConfigState(
-            value=self.config_value, is_enabled=is_enabled,
+            value=self.config_value,
+            is_enabled=is_enabled,
         )
         self._sync_with_service()
 
     def has_updates(self, client_updated_at: Optional[str]) -> bool:
-        return (
-            client_updated_at is None
-            or self._updated_at
-            > datetime.datetime.strptime(
-                client_updated_at, '%Y-%m-%dT%H:%M:%SZ',
-            ).replace(tzinfo=datetime.timezone.utc)
-        )
+        return client_updated_at is None or self._updated_at > datetime.datetime.strptime(
+            client_updated_at,
+            '%Y-%m-%dT%H:%M:%SZ',
+        ).replace(tzinfo=datetime.timezone.utc)
 
     def _sync_with_service(self) -> None:
         self._updated_at += datetime.timedelta(seconds=1)
@@ -81,7 +82,9 @@ class MockKillSwitchStorage:
 
 @pytest.fixture
 def mock_kill_switch_storage(
-    initial_kill_switch_flag, cache_invalidation_state, dynconf_cache_names,
+    initial_kill_switch_flag,
+    cache_invalidation_state,
+    dynconf_cache_names,
 ) -> MockKillSwitchStorage:
     return MockKillSwitchStorage(
         is_enabled=initial_kill_switch_flag,
@@ -136,7 +139,8 @@ def config_update_testpoint(testpoint):
 
 @pytest.fixture(name='clean_cache_and_flush_testpoint')
 async def _clean_cache_and_flush_testpoint(
-    config_update_testpoint, service_client,
+    config_update_testpoint,
+    service_client,
 ):
     await service_client.update_server_state()
     config_update_testpoint.flush()
@@ -144,7 +148,9 @@ async def _clean_cache_and_flush_testpoint(
 
 @pytest.fixture
 async def check_fresh_update(
-    service_client, config_update_testpoint, mock_kill_switch_storage,
+    service_client,
+    config_update_testpoint,
+    mock_kill_switch_storage,
 ):
     async def check():
         await service_client.update_server_state()
@@ -166,7 +172,9 @@ async def check_no_update(service_client, config_update_testpoint):
 
 @pytest.fixture
 async def check_reset_to_default(
-    service_client, config_update_testpoint, mock_kill_switch_storage,
+    service_client,
+    config_update_testpoint,
+    mock_kill_switch_storage,
 ):
     async def check():
         await service_client.update_server_state()

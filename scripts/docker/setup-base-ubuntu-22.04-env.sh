@@ -6,7 +6,7 @@ set -euox pipefail
 # Preparing to add new repos
 apt update
 DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-  apt-transport-https ca-certificates dirmngr wget curl software-properties-common \
+  apt-utils apt-transport-https ca-certificates dirmngr wget curl software-properties-common \
   gnupg gnupg2
 
 gpg_retrieve_curl() {
@@ -38,6 +38,11 @@ printf "\
 deb [signed-by=/usr/share/keyrings/ubuntu-toolchain-r.gpg] https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu $(lsb_release -cs) main \n\
 deb-src [signed-by=/usr/share/keyrings/ubuntu-toolchain-r.gpg] https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu $(lsb_release -cs) main \n" \
   > /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+
+# Adding cmake repository
+gpg_retrieve_curl https://apt.kitware.com/keys/kitware-archive-latest.asc kitware-archive-keyring
+echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' \
+    | tee /etc/apt/sources.list.d/kitware.list
 
 # Adding clickhouse repositories as in https://clickhouse.com/docs/en/install#setup-the-debian-repository
 gpg_retrieve_keyserver 8919F6BD2B48D754 clickhouse-keyring
@@ -109,7 +114,8 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
   chrpath \
   sudo \
   python3-pip \
-  locales
+  locales \
+  kitware-archive-keyring
 
 # Installing postgresql-server-dev-14 without dependencies
 #
@@ -124,19 +130,16 @@ rm -rf postgresql-server-dev-14* tmp_postgresql
 apt clean all
 
 # You could override those versions from command line
-AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
-CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.3.0}
-ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
+export AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
+export CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.5.1}
+export ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
+export POSTGRESQL_VERSION=${POSTGRESQL_VERSION:=14}
 
 # Installing amqp/rabbitmq client libraries from sources
-git clone --depth 1 -b ${AMQP_VERSION} https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git amqp-cpp
-(cd amqp-cpp && mkdir build && cd build && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
+./ubuntu_install_rabbitmq_dev.sh
 
 # Installing Clickhouse C++ client libraries from sources
-git clone --depth 1 -b ${CLICKHOUSE_VERSION} https://github.com/ClickHouse/clickhouse-cpp.git
-(cd clickhouse-cpp && mkdir build && cd build && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
+./ubuntu-install-clickhouse.sh
 
 # Installing RocksDB client libraries from sources
 git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb

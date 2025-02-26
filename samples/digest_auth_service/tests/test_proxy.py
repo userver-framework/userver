@@ -16,7 +16,8 @@ async def test_authenticate_base_proxy(service_client):
     auth_header = auth_utils.construct_header('username', 'pswd', challenge)
 
     response = await service_client.get(
-        '/v1/hello-proxy', headers={'Proxy-Authorization': auth_header},
+        '/v1/hello-proxy',
+        headers={'Proxy-Authorization': auth_header},
     )
     assert response.status == 200
     assert 'Proxy-Authentication-Info' in response.headers
@@ -34,11 +35,14 @@ async def test_postgres_wrong_data_proxy(service_client):
 
     challenge = auth_utils.construct_challenge(auth_directives)
     auth_header = auth_utils.construct_header(
-        'username', 'wrong-password', challenge,
+        'username',
+        'wrong-password',
+        challenge,
     )
 
     response = await service_client.get(
-        '/v1/hello-proxy', headers={'Proxy-Authorization': auth_header},
+        '/v1/hello-proxy',
+        headers={'Proxy-Authorization': auth_header},
     )
     assert response.status == 401
     assert 'Proxy-Authenticate' in response.headers

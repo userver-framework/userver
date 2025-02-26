@@ -18,12 +18,14 @@ if gdb_exe := os.environ.get('GDB_BIN'):
 
 test_sources = list(
     filter(
-        lambda path: len(path), os.environ.get('TEST_SOURCES', '').split(':'),
+        lambda path: len(path),
+        os.environ.get('TEST_SOURCES', '').split(':'),
     ),
 )
 test_programs = list(
     filter(
-        lambda path: len(path), os.environ.get('TEST_PROGRAMS', '').split(':'),
+        lambda path: len(path),
+        os.environ.get('TEST_PROGRAMS', '').split(':'),
     ),
 )
 assert len(test_sources) == len(test_programs)
@@ -43,16 +45,16 @@ for i in range(len(test_programs)):
         test_sources[i],
     ), f'Test source {test_sources[i]} does not exist'
 
-test_sources = {
-    test_program: test_source
-    for test_program, test_source in zip(test_programs, test_sources)
-}
+test_sources = {test_program: test_source for test_program, test_source in zip(test_programs, test_sources)}
 
 
 @pytest.mark.parametrize('test_program', test_programs)
 def test_gdb_printers(test_program):
     tester = tempfile.NamedTemporaryFile(
-        'w', encoding='utf-8', delete=False, suffix='.py',
+        'w',
+        encoding='utf-8',
+        delete=False,
+        suffix='.py',
     ).name
     generate_test_script(test_sources[test_program], tester)
     cmd = [

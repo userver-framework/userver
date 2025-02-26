@@ -1,12 +1,14 @@
 #include <userver/dump/operations_file.hpp>
 
 #include <algorithm>
+#include <cstdio>
 #include <stdexcept>
 #include <utility>
 
 #include <fmt/format.h>
 
 #include <userver/fs/blocking/write.hpp>
+#include <userver/utils/numeric_cast.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -77,6 +79,16 @@ std::string_view FileReader::ReadRaw(std::size_t max_size) {
     }
 
     return {curr_chunk_.data(), bytes_read};
+}
+
+void FileReader::BackUp(std::size_t size) {
+    if (std::fseek(file_.GetNative(), -utils::numeric_cast<long>(size), SEEK_CUR)) {
+        throw std::system_error(
+            std::ferror(file_.GetNative()),
+            std::generic_category(),
+            "calling fseek, probably trying to BackUp more bytes than returned by the last ReadRaw"
+        );
+    }
 }
 
 void FileReader::Finish() {

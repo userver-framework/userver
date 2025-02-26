@@ -1,0 +1,16 @@
+worker-threads: 4
+worker-fs-threads: 2
+logger-level: info
+
+is_testing: false
+
+server-port: 8080
+
+# postgres template on
+# change to URI of your postgres database
+pg_connection: postgresql://testsuite@localhost:15433/service_template_db_1
+# postgres template off
+# mongo template on
+# change to URI of your mongo database
+mongo_connection: mongodb://localhost:27217/admin
+# mongo template off

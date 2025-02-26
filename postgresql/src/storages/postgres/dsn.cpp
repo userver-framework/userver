@@ -239,13 +239,14 @@ std::string DsnCutPassword(const Dsn& dsn) {
 }
 
 std::string DsnMaskPassword(const Dsn& dsn) {
-    static const std::string pg_url_start = "postgresql://";
-    static const std::string replace = "${1}***$2";
+    static constexpr std::string_view pg_url_start = "postgresql://";
+    static constexpr USERVER_NAMESPACE::utils::Re2Replacement url_replace{"\\1***\\2"};
+    static constexpr USERVER_NAMESPACE::utils::Re2Replacement option_replace{"\\1***"};
     if (USERVER_NAMESPACE::utils::text::StartsWith(dsn.GetUnderlying(), pg_url_start)) {
         static const USERVER_NAMESPACE::utils::regex url_re("^(postgresql://[^:]*:)[^@]+(@)");
         static const USERVER_NAMESPACE::utils::regex option_re("\\b(password=)[^&]+");
-        auto masked = regex_replace(dsn.GetUnderlying(), url_re, replace);
-        masked = regex_replace(masked, option_re, replace);
+        auto masked = regex_replace(dsn.GetUnderlying(), url_re, url_replace);
+        masked = regex_replace(masked, option_re, option_replace);
         return masked;
     } else {
         // (\bpassword\s*=\s*)            # option keyword
@@ -258,7 +259,7 @@ std::string DsnMaskPassword(const Dsn& dsn) {
         static const USERVER_NAMESPACE::utils::regex option_re(
             R"~((\bpassword\s*=\s*)(?:(?:'(?:(?:\\['\\])|[^'])+')|\S+))~"
         );
-        auto masked = regex_replace(dsn.GetUnderlying(), option_re, replace);
+        auto masked = regex_replace(dsn.GetUnderlying(), option_re, option_replace);
         return masked;
     }
 }

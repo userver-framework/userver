@@ -26,7 +26,8 @@ def _master_gate_settings(get_free_port) -> typing.Tuple[str, int]:
 
 @pytest.fixture(scope='session')
 def service_env(
-    sentinel_gate_settings, _redis_service_settings: service.ServiceSettings,
+    sentinel_gate_settings,
+    _redis_service_settings: service.ServiceSettings,
 ):
     secdist_config = {
         'redis_settings': {

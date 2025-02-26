@@ -1,7 +1,8 @@
 # /// [Functional test]
 async def test_http_caching(service_client, translations, mocked_time):
     response = await service_client.post(
-        '/samples/greet', params={'username': 'дорогой разработчик'},
+        '/samples/greet',
+        params={'username': 'дорогой разработчик'},
     )
     assert response.status == 200
     assert 'text/plain' in response.headers['Content-Type']
@@ -13,7 +14,8 @@ async def test_http_caching(service_client, translations, mocked_time):
     await service_client.invalidate_caches()
 
     response = await service_client.post(
-        '/samples/greet', params={'username': 'дорогой разработчик'},
+        '/samples/greet',
+        params={'username': 'дорогой разработчик'},
     )
     assert response.status == 200
     assert 'text/plain' in response.headers['Content-Type']

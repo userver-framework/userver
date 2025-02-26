@@ -10,6 +10,10 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
+        congestion-control:
+
+        grpc-server-middlewares-pipeline:
+
         grpc-server:
             port: 8091
 
@@ -20,7 +24,7 @@ components_manager:
 
         grpc-health:
             task-processor: main-task-processor
-            middlewares: []
+            disable-all-pipeline-middlewares: true
 
     default_task_processor: main-task-processor
 

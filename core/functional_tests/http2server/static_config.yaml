@@ -78,5 +78,12 @@ components_manager:
             task_processor: main-task-processor
             throttling_enabled: false
             max_request_size: 2097152 #  2Mib
+
+        handler-http2-stream:
+            path: /http2server-stream
+            method: GET,POST,PUT,DELETE
+            task_processor: main-task-processor
+            throttling_enabled: false
+            max_request_size: 2097152 #  2Mib
             response-body-stream: true
 

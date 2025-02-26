@@ -2,6 +2,7 @@
 
 #include "enum_fwd.hpp"
 
+#include <fmt/core.h>
 #include <optional>
 #include <string>
 
@@ -57,3 +58,10 @@ Serialize(const ns::Enum& value, USERVER_NAMESPACE::formats::serialize::To<USERV
 std::string ToString(ns::Enum::Foo value);
 
 }  // namespace ns
+
+template <>
+struct fmt::formatter<ns::Enum::Foo> {
+    fmt::format_context::iterator format(const ns::Enum::Foo&, fmt::format_context&) const;
+
+    constexpr fmt::format_parse_context::iterator parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+};

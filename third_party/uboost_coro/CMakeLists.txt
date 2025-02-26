@@ -14,6 +14,7 @@ endif()
 
 set(SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/context/posix/stack_traits.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/context/fcontext.cpp
 )
 
 enable_language(ASM)

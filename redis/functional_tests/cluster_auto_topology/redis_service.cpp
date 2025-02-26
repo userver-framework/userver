@@ -91,7 +91,7 @@ std::string KeyValue::GetValue(std::string_view key, const server::http::HttpReq
             return {};
         }
         return *result;
-    } catch (const redis::RequestFailedException& e) {
+    } catch (const storages::redis::RequestFailedException& e) {
         std::cout << "!!! EXCEPTION GET: " << e.what() << ", " << e.GetStatusString() << "\n";
         throw;
     }
@@ -108,7 +108,7 @@ std::string KeyValue::PostValue(std::string_view key, const server::http::HttpRe
 
         request.SetResponseStatus(server::http::HttpStatus::kCreated);
         return std::string{value};
-    } catch (const redis::RequestFailedException& e) {
+    } catch (const storages::redis::RequestFailedException& e) {
         std::cout << "!!! EXCEPTION POST: " << e.what() << ", " << e.GetStatusString() << "\n";
         throw;
     }

@@ -138,7 +138,7 @@ UTEST_F(GrpcMiddlewares, HappyPath) {
 
     sample::ugrpc::GreetingRequest request;
     request.set_name("userver");
-    auto response = GetClient().SyncSayHello(request);
+    auto response = GetClient().SayHello(request);
 
     EXPECT_EQ(GetMiddleware().times_called, 1);
     EXPECT_EQ(response.name(), "Hello userver");

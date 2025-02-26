@@ -33,7 +33,6 @@ endif()
 
 if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
   # Use the builtin CMake FindProtobuf
-  set(Protobuf_USE_STATIC_LIBS ON)
   if(USERVER_DOWNLOAD_PACKAGE_PROTOBUF)
     find_package(Protobuf QUIET)
   else()
@@ -69,7 +68,7 @@ CPMAddPackage(
     "protobuf_BUILD_TESTS OFF"
     "protobuf_INSTALL OFF"
     "protobuf_MSVC_STATIC_RUNTIME OFF"
-    "protobuf_ABSL_PROVIDER none"
+    "protobuf_ABSL_PROVIDER package"
 )
 
 set(Protobuf_VERSION "${CPM_PACKAGE_Protobuf_VERSION}")

@@ -1,0 +1,13 @@
+worker-threads: 2
+worker-fs-threads: 2
+logger-level: info
+
+is_testing: true
+
+# postgres template on
+pg_connection: postgresql://testsuite@localhost:15433/service_template_db_1
+# postgres template off
+
+# mongo template on
+mongo_connection: mongodb://localhost:27217/admin
+# mongo template off

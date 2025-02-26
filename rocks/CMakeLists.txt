@@ -7,9 +7,3 @@ userver_module(rocks
     LINK_LIBRARIES RocksDB::rocksdb
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
 )
-
-_userver_directory_install(COMPONENT rocks
-  FILES
-  "${USERVER_ROOT_DIR}/cmake/modules/FindRocksDB.cmake"
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
-)

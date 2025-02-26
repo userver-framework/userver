@@ -3,6 +3,7 @@
 #include <userver/formats/bson/inline.hpp>
 #include <userver/formats/bson/value_builder.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -89,7 +90,7 @@ Projection& Projection::Exclude(std::string_view field) {
 }
 
 Projection& Projection::Slice(std::string_view field, int32_t limit, int32_t skip) {
-    static const std::string kSliceOp = "$slice";
+    static constexpr utils::StringLiteral kSliceOp = "$slice";
     formats::bson::Value slice;
     if (!skip) {
         slice = formats::bson::MakeDoc(kSliceOp, limit);
@@ -106,7 +107,7 @@ Projection& Projection::Slice(std::string_view field, int32_t limit, int32_t ski
 }
 
 Projection& Projection::ElemMatch(std::string_view field, const formats::bson::Document& pred) {
-    static const std::string kElemMatchOp = "$elemMatch";
+    static constexpr utils::StringLiteral kElemMatchOp = "$elemMatch";
     projection_builder_.Append(field, formats::bson::MakeDoc(kElemMatchOp, pred));
     return *this;
 }

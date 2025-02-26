@@ -160,7 +160,7 @@ TEST(TimeOfDay, Arithmetic) {
     EXPECT_EQ(Mins{"06:30"}, Mins{"06:30"} - std::chrono::hours{24});
 }
 
-#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(TimeOfDay, ThreeWay) {
     EXPECT_EQ(Mins{"05:45"} <=> Mins{"05:45"}, std::chrono::minutes{1} <=> std::chrono::minutes{1});
 }

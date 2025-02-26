@@ -62,6 +62,11 @@ struct Quoted final {
     std::string_view string;
 };
 
+enum class LogClass {
+    kLog,
+    kTrace,
+};
+
 /// Stream-like tskv-formatted log message builder.
 ///
 /// Users can add LogHelper& operator<<(LogHelper&, ) overloads to use a faster
@@ -76,6 +81,7 @@ public:
     LogHelper(
         LoggerRef logger,
         Level level,
+        LogClass log_class = LogClass::kLog,
         const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
     ) noexcept;
 
@@ -86,6 +92,7 @@ public:
     LogHelper(
         const LoggerPtr& logger,
         Level level,
+        LogClass log_class = LogClass::kLog,
         const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
     ) noexcept;
 
@@ -149,13 +156,14 @@ public:
     /// Extends internal LogExtra
     LogHelper& operator<<(LogExtra&& extra) noexcept;
 
-    LogHelper& operator<<(const LogExtra::Value& value) noexcept;
-
     LogHelper& operator<<(Hex hex) noexcept;
 
     LogHelper& operator<<(HexShort hex) noexcept;
 
     LogHelper& operator<<(Quoted value) noexcept;
+
+    LogHelper& PutTag(std::string_view key, const LogExtra::Value& value) noexcept;
+    LogHelper& PutSwTag(std::string_view key, std::string_view value) noexcept;
 
     /// @cond
     // For internal use only!
@@ -164,21 +172,16 @@ public:
     struct InternalTag;
 
     // For internal use only!
-    impl::TagWriter GetTagWriterAfterText(InternalTag);
+    impl::TagWriter GetTagWriter();
 
-    void MarkAsTrace(InternalTag);
     /// @endcond
 
 private:
     friend class impl::TagWriter;
 
-    struct Module;
-
     void DoLog() noexcept;
 
     void InternalLoggingError(std::string_view message) noexcept;
-
-    impl::TagWriter GetTagWriter();
 
     void PutFloatingPoint(float value);
     void PutFloatingPoint(double value);
@@ -233,6 +236,10 @@ LogHelper& operator<<(LogHelper& lh, const T* value) noexcept {
 
 template <typename T>
 LogHelper& operator<<(LogHelper& lh, T* value) {
+    static_assert(
+        !std::is_function_v<T>,
+        "An attempt to log the function address is denied. If you really know what you're doing, cast it to void*."
+    );
     return lh << static_cast<const T*>(value);
 }
 

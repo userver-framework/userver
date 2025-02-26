@@ -12,6 +12,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -87,7 +88,7 @@ public:
     //@{
     /** @name Comparison operators */
 
-#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
     constexpr auto operator<=>(const TimeOfDay&) const = default;
 #else
     constexpr bool operator==(const TimeOfDay&) const;
@@ -397,7 +398,7 @@ template <typename Rep, typename Period>
 constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(std::string_view str)
     : since_midnight_{detail::TimeOfDayParser<Rep, Period>{}(str)} {}
 
-#if !(__cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT))
+#ifndef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 template <typename Rep, typename Period>
 constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator==(const TimeOfDay& rhs) const {
     return since_midnight_ == rhs.since_midnight_;

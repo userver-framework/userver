@@ -92,8 +92,10 @@ Component::Component(const components::ComponentConfig& config, const components
     pimpl_->server.SetRpsRatelimitStatusCode(static_cast<server::http::HttpStatus>(config["status-code"].As<int>(429)));
 
     if (!pimpl_->fake_mode && only_rtc && !hostinfo::IsInRtc()) {
-        LOG_WARNING() << "Started outside of RTC, forcing fake-mode";
-        pimpl_->fake_mode = true;
+        throw std::runtime_error(
+            "Started outside of RTC, don't know how to get number of CPU cores. You have to pass CPU_LIMIT environment "
+            "variable with the correct value in order CC to work properly."
+        );
     }
 
     auto cpu_limit = hostinfo::CpuLimit().value_or(0);

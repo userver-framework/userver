@@ -62,8 +62,6 @@ void SetErrorAndResetSpan(RpcData& data, const std::string& error_message) {
     data.ResetSpan();
 }
 
-}  // namespace
-
 void SetStatusDetailsForSpan(
     tracing::Span& span,
     const grpc::Status& status,
@@ -75,11 +73,27 @@ void SetStatusDetailsForSpan(
     }
 }
 
+}  // namespace
+
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
     : enforce_task_deadline(config[kEnforceClientTaskDeadline]) {}
 
+ParsedGStatus ParsedGStatus::ProcessStatus(const grpc::Status& status) {
+    if (status.ok()) {
+        return {};
+    }
+    auto gstatus = ugrpc::impl::ToGoogleRpcStatus(status);
+    std::optional<std::string> gstatus_string;
+    if (gstatus) {
+        gstatus_string = ugrpc::impl::GetGStatusLimitedMessage(*gstatus);
+    }
+
+    return ParsedGStatus{std::move(gstatus), std::move(gstatus_string)};
+}
+
 RpcData::RpcData(impl::CallParams&& params, CallKind call_kind)
-    : context_(std::move(params.context)),
+    : stub_(std::move(params.stub)),
+      context_(std::move(params.context)),
       client_name_(params.client_name),
       call_name_(std::move(params.call_name)),
       stats_scope_(params.statistics),
@@ -101,6 +115,8 @@ RpcData::~RpcData() {
         context_->TryCancel();
     }
 }
+
+ClientData::StubHandle& RpcData::GetStub() noexcept { return stub_; }
 
 const grpc::ClientContext& RpcData::GetContext() const noexcept {
     UASSERT(context_);
@@ -272,11 +288,37 @@ void PrepareFinish(RpcData& data) {
     data.SetFinished();
 }
 
+void ProcessFinish(RpcData& data, utils::function_ref<void(RpcData& data, const grpc::Status& status)> post_finish) {
+    const auto& status = data.GetStatus();
+
+    data.GetStatsScope().OnExplicitFinish(status.error_code());
+    data.GetStatsScope().Flush();
+
+    post_finish(data, status);
+
+    auto& parsed_gstatus = data.GetParsedGStatus();
+    parsed_gstatus = ParsedGStatus::ProcessStatus(status);
+
+    SetStatusDetailsForSpan(data.GetSpan(), status, parsed_gstatus.gstatus_string);
+    data.ResetSpan();
+}
+
+void CheckFinishStatus(RpcData& data) {
+    auto& status = data.GetStatus();
+    if (!status.ok()) {
+        auto& parsed_gstatus = data.GetParsedGStatus();
+        impl::ThrowErrorWithStatus(
+            data.GetCallName(),
+            std::move(status),
+            std::move(parsed_gstatus.gstatus),
+            std::move(parsed_gstatus.gstatus_string)
+        );
+    }
+}
+
 void ProcessFinishResult(
     RpcData& data,
     AsyncMethodInvocation::WaitStatus wait_status,
-    grpc::Status&& status,
-    ParsedGStatus&& parsed_gstatus,
     utils::function_ref<void(RpcData& data, const grpc::Status& status)> post_finish,
     bool throw_on_error
 ) {
@@ -286,23 +328,11 @@ void ProcessFinishResult(
         "ok=false in async Finish method invocation is prohibited "
         "by gRPC docs, see grpc::CompletionQueue::Next"
     );
-    data.GetStatsScope().OnExplicitFinish(status.error_code());
-    data.GetStatsScope().Flush();
 
-    post_finish(data, status);
+    ProcessFinish(data, post_finish);
 
-    SetStatusDetailsForSpan(data.GetSpan(), status, parsed_gstatus.gstatus_string);
-    data.ResetSpan();
-
-    if (!status.ok()) {
-        if (throw_on_error) {
-            impl::ThrowErrorWithStatus(
-                data.GetCallName(),
-                std::move(status),
-                std::move(parsed_gstatus.gstatus),
-                std::move(parsed_gstatus.gstatus_string)
-            );
-        }
+    if (throw_on_error) {
+        CheckFinishStatus(data);
     }
 }
 

@@ -38,8 +38,8 @@ public:
     bool IsAddHandlerDisabled() const noexcept;
     const HandlerInfoIndex& GetHandlerInfoIndex() const override;
 
-    const logging::LoggerPtr& LoggerAccess() const noexcept override { return logger_access_; }
-    const logging::LoggerPtr& LoggerAccessTskv() const noexcept override { return logger_access_tskv_; }
+    const logging::TextLoggerPtr& LoggerAccess() const noexcept override { return logger_access_; }
+    const logging::TextLoggerPtr& LoggerAccessTskv() const noexcept override { return logger_access_tskv_; }
 
     void SetRpsRatelimit(std::optional<size_t> rps);
 
@@ -48,8 +48,8 @@ public:
 private:
     engine::TaskWithResult<void> StartFailsafeTask(std::shared_ptr<http::HttpRequest> http_request) const;
 
-    logging::LoggerPtr logger_access_;
-    logging::LoggerPtr logger_access_tskv_;
+    logging::TextLoggerPtr logger_access_;
+    logging::TextLoggerPtr logger_access_tskv_;
 
     // handler_infos_mutex_ is used for pushing handlers into handler_info_index_
     // before server start. After start handler_info_index_ is read only and

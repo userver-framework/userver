@@ -31,11 +31,13 @@ public:
         // Tests dedicated-channel-count from SimpleClientComponent
         auto& client =
             context.FindComponent<ugrpc::client::SimpleClientComponent<Client>>("greeter-client-component").GetClient();
-        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(0) == 3);
-        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(1) == 0);
-        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(2) == 2);
-        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(3) == 0);
-        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(4) == 0);
+        const auto& data = ugrpc::client::impl::GetClientData(client);
+        const auto stub_state = data.GetStubState();
+        UASSERT(stub_state->dedicated_stubs[0].Size() == 3);
+        UASSERT(stub_state->dedicated_stubs[1].Size() == 0);
+        UASSERT(stub_state->dedicated_stubs[2].Size() == 2);
+        UASSERT(stub_state->dedicated_stubs[3].Size() == 0);
+        UASSERT(stub_state->dedicated_stubs[4].Size() == 0);
     }
 
     inline std::string SayHello(std::string name, bool is_small_timeout);
@@ -84,7 +86,7 @@ std::string GreeterClient::SayHello(std::string name, bool is_small_timeout) {
     api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    api::GreetingResponse response = client_.SyncSayHello(request, CreateClientContext(is_small_timeout));
+    api::GreetingResponse response = client_.SayHello(request, CreateClientContext(is_small_timeout));
 
     return std::move(*response.mutable_greeting());
 }

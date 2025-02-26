@@ -14,7 +14,9 @@ from chaotic.main import NameMapItem
 def test_simple_ref(clean):
     config = ParserConfig(erase_prefix='')
     parser = SchemaParser(
-        config=config, full_filepath='full', full_vfilepath='vfull',
+        config=config,
+        full_filepath='full',
+        full_vfilepath='vfull',
     )
 
     parser.parse_schema(
@@ -24,7 +26,8 @@ def test_simple_ref(clean):
     parser.parse_schema('/definitions/ref', {'$ref': '#/definitions/Type'})
 
     cpp_name_func = generate_cpp_name_func(
-        [NameMapItem('/definitions/([^/]*)/={0}')], '',
+        [NameMapItem('/definitions/([^/]*)/={0}')],
+        '',
     )
 
     schemas = parser.parsed_schemas()
@@ -32,7 +35,8 @@ def test_simple_ref(clean):
     resolved_schemas = rr.sort_schemas(schemas)
     gen = Generator(
         config=GeneratorConfig(
-            namespaces={'vfull': ''}, infile_to_name_func=cpp_name_func,
+            namespaces={'vfull': ''},
+            infile_to_name_func=cpp_name_func,
         ),
     )
     cpp_types = gen.generate_types(resolved_schemas)
@@ -57,7 +61,8 @@ def test_simple_ref(clean):
             orig_cpp_type=CppStruct(
                 raw_cpp_type=type_name.TypeName('Type'),
                 json_schema=SchemaObject(
-                    additionalProperties=False, properties={},
+                    additionalProperties=False,
+                    properties={},
                 ),
                 nullable=False,
                 user_cpp_type=None,

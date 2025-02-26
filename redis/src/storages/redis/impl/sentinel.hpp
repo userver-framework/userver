@@ -70,7 +70,7 @@ public:
         ConnectionSecurity connection_security,
         ReadyChangeCallback ready_callback,
         dynamic_config::Source dynamic_config_source,
-        std::unique_ptr<KeyShard>&& key_shard = nullptr,
+        KeyShardFactory key_shard_factory,
         CommandControl command_control = {},
         const testsuite::RedisControl& testsuite_redis_control = {},
         ConnectionMode mode = ConnectionMode::kCommands
@@ -186,6 +186,8 @@ public:
 
     void SetConnectionInfo(std::vector<ConnectionInfo> info_array);
     const std::string& ShardGroupName() const;
+
+    void UpdatePassword(const Password& password);
 
     using UserMessageCallback = std::function<Outcome(const std::string& channel, const std::string& message)>;
     using UserPmessageCallback =

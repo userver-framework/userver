@@ -19,6 +19,8 @@ from testsuite.utils import callinfo
 
 DEFAULT_PORT = 8091
 
+USERVER_CONFIG_HOOKS = ['userver_config_grpc_mockserver']
+
 
 class GrpcServiceMock:
     def __init__(self, servicer, methods):
@@ -106,6 +108,24 @@ async def grpc_mockserver(grpc_mockserver_endpoint) -> grpc.aio.Server:
 
 
 @pytest.fixture(scope='session')
+def userver_config_grpc_mockserver(grpc_mockserver_endpoint):
+    """
+    Returns a function that adjusts the static config for testsuite.
+    Walks through config_vars *values* equal to `$grpc_mockserver`,
+    and replaces them with @ref grpc_mockserver_endpoint.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def patch_config(_config_yaml, config_vars):
+        for name in config_vars:
+            if config_vars[name] == '$grpc_mockserver':
+                config_vars[name] = grpc_mockserver_endpoint
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
 def create_grpc_mock():
     """
     Creates the gRPC mock server for the provided type.
@@ -170,7 +190,9 @@ def _create_servicer_mock(
             )
 
     mocked_servicer_class = type(
-        f'Mock{servicer_class.__name__}', (servicer_class,), methods,
+        f'Mock{servicer_class.__name__}',
+        (servicer_class,),
+        methods,
     )
     servicer = mocked_servicer_class()
     mock = GrpcServiceMock(servicer, frozenset(methods))

@@ -8,6 +8,6 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-include("${USERVER_CMAKE_DIR}/modules/Findclickhouse-cpp.cmake")
+find_package(clickhouse-cpp REQUIRED)
 
 set(userver_clickhouse_FOUND TRUE)

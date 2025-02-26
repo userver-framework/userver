@@ -82,8 +82,14 @@ namespace storages::postgres {
 ///
 /// The cluster also provides interface for single queries
 /// @code
-/// auto res = cluster->Execute(/* transaction options */, /* the statement */);
+/// #include <service/sql_queries.hpp>
+///
+/// auto res = cluster->Execute(/* transaction options */, sql::kMyQuery);
 /// @endcode
+///
+/// You may store SQL queries in separate `.sql` files and access them via
+/// sql_queries.hpp include header. See @ref scripts/docs/en/userver/sql_files.md
+/// for more information.
 ///
 /// @par Queries with parameters
 ///
@@ -101,6 +107,8 @@ namespace storages::postgres {
 /// trx.Commit();
 /// @endcode
 ///
+/// @note You may write a query in `.sql` file and generate a header file with Query from it.
+///       See @ref scripts/docs/en/userver/sql_files.md for more information.
 /// @see Transaction
 /// @see ResultSet
 ///
@@ -171,6 +179,9 @@ public:
     ///
     /// Suspends coroutine for execution.
     ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
     /// @snippet storages/postgres/tests/landing_test.cpp TransacExec
     template <typename... Args>
     ResultSet Execute(const Query& query, const Args&... args) {
@@ -181,6 +192,9 @@ public:
     /// control.
     ///
     /// Suspends coroutine for execution.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments
@@ -196,6 +210,9 @@ public:
     ///
     /// Suspends coroutine for execution.
     ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments
     /// separately, or use storages::postgres::ParameterScope.
@@ -208,6 +225,9 @@ public:
     ///
     /// Suspends coroutine for execution.
     ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments
     /// separately, or use storages::postgres::ParameterScope.
@@ -218,6 +238,9 @@ public:
     ///
     /// Useful for statements that unnest their arguments to avoid the need to
     /// increase timeouts due to data amount growth.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     template <typename Container>
     void ExecuteBulk(const Query& query, const Container& args, std::size_t chunk_rows = kDefaultRowsInChunk);
 
@@ -226,6 +249,9 @@ public:
     ///
     /// Useful for statements that unnest their arguments to avoid the need to
     /// increase timeouts due to data amount growth.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     template <typename Container>
     void ExecuteBulk(
         OptionalCommandControl statement_cmd_ctl,
@@ -244,6 +270,9 @@ public:
     /// mapping from `Container::value_type` to PG type is infeasible for some
     /// reason (otherwise, use ExecuteBulk).
     ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
     /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
     template <typename Container>
     void ExecuteDecomposeBulk(const Query& query, const Container& args, std::size_t chunk_rows = kDefaultRowsInChunk);
@@ -258,6 +287,9 @@ public:
     /// mapping from `Container::value_type` to PG type is infeasible for some
     /// reason (otherwise, use ExecuteBulk).
     ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
     /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
     template <typename Container>
     void ExecuteDecomposeBulk(
@@ -267,15 +299,21 @@ public:
         std::size_t chunk_rows = kDefaultRowsInChunk
     );
 
-    /// Create a portal for fetching results of a statement with arbitrary
+    /// @brief Create a portal for fetching results of a statement with arbitrary
     /// parameters.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     template <typename... Args>
     Portal MakePortal(const Query& query, const Args&... args) {
         return MakePortal(OptionalCommandControl{}, query, args...);
     }
 
-    /// Create a portal for fetching results of a statement with arbitrary
+    /// @brief Create a portal for fetching results of a statement with arbitrary
     /// parameters and per-statement command control.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     template <typename... Args>
     Portal MakePortal(OptionalCommandControl statement_cmd_ctl, const Query& query, const Args&... args) {
         detail::StaticQueryParameters<sizeof...(args)> params;
@@ -283,14 +321,20 @@ public:
         return MakePortal(PortalName{}, query, detail::QueryParameters{params}, statement_cmd_ctl);
     }
 
-    /// Create a portal for fetching results of a statement with stored
+    /// @brief Create a portal for fetching results of a statement with stored
     /// parameters.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     Portal MakePortal(const Query& query, const ParameterStore& store) {
         return MakePortal(OptionalCommandControl{}, query, store);
     }
 
-    /// Create a portal for fetching results of a statement with stored parameters
+    /// @brief Create a portal for fetching results of a statement with stored parameters
     /// and per-statement command control.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     Portal MakePortal(OptionalCommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store);
 
     /// Set a connection parameter

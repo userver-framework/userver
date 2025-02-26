@@ -29,10 +29,4 @@ private:
 
 }  // namespace storages::redis
 
-#ifdef USERVER_FEATURE_LEGACY_REDIS_NAMESPACE
-namespace redis {
-using storages::redis::ExpireReply;
-}
-#endif
-
 USERVER_NAMESPACE_END

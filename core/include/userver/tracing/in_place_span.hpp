@@ -37,7 +37,7 @@ public:
 
 private:
     struct Impl;
-    utils::FastPimpl<Impl, 4224, 8> impl_;
+    utils::FastPimpl<Impl, 4240, 8> impl_;
 };
 
 }  // namespace tracing

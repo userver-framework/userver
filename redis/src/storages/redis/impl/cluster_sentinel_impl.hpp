@@ -8,8 +8,7 @@ class PeriodicWatcher;
 }
 
 namespace storages::redis::impl {
-class ClusterTopologyHolder;
-class ClusterNodesHolder;
+class TopologyHolderBase;
 
 class ClusterSentinelImpl : public SentinelImplBase {
 public:
@@ -71,6 +70,8 @@ public:
 
     void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
 
+    void UpdatePassword(const Password& password) override;
+
 private:
     void AsyncCommandFailed(const SentinelCommand& scommand);
     void EnqueueCommand(const SentinelCommand& command);
@@ -82,7 +83,7 @@ private:
     void ProcessWaitingCommands();
     void ProcessWaitingCommandsOnStop();
 
-    std::shared_ptr<ClusterTopologyHolder> topology_holder_;
+    std::shared_ptr<TopologyHolderBase> topology_holder_;
 
     std::string shard_group_name_;
     std::vector<ConnectionInfo> conns_;
@@ -91,7 +92,6 @@ private:
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
 
     std::string client_name_;
-    Password password_{std::string()};
 
     std::vector<SentinelCommand> commands_;
     std::mutex command_mutex_;

@@ -29,8 +29,6 @@ CcCustomStatus Parse(const formats::json::Value& value, formats::parse::To<CcCus
 
 extern const dynamic_config::Key<CcCustomStatus> kCcCustomStatus;
 
-extern const dynamic_config::Key<bool> kStreamApiEnabled;
-
 }  // namespace server::handlers
 
 USERVER_NAMESPACE_END

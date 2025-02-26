@@ -11,7 +11,11 @@ components_manager:
 
     components:
         grpc-reflection-service:
+            disable-all-pipeline-middlewares: true
         grpc-health:
+            disable-all-pipeline-middlewares: true
+        grpc-server-middlewares-pipeline:
+        congestion-control:
 
         testsuite-support:
 
@@ -22,7 +26,6 @@ components_manager:
             completion-queue-count: 3
             service-defaults:
                 task-processor: main-task-processor
-                middlewares: []
 
 
 

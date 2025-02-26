@@ -13,7 +13,9 @@ _RETRIES = 10
 
 async def _request_without_case(grpc_ch, service_client, gate):
     response = await service_client.post(
-        '/hello', data='Python', headers={'Content-type': 'text/plain'},
+        '/hello',
+        data='Python',
+        headers={'Content-type': 'text/plain'},
     )
     assert response.status == 200
     assert response.content == b'Case not found'

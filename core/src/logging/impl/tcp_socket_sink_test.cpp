@@ -1,7 +1,5 @@
 #include "tcp_socket_sink.hpp"
 
-#include <boost/regex.hpp>
-
 #include <userver/internal/net/net_listener.hpp>
 #include <userver/net/blocking/get_addr_info.hpp>
 

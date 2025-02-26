@@ -1,5 +1,7 @@
 # yaml
 components_manager:
+    userver_experiments:
+        pg-deadline-propagation: true
     components:
         handler-chaos-postgres:
             path: /chaos/postgres

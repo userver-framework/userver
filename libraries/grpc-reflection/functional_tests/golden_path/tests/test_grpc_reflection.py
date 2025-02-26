@@ -1,8 +1,6 @@
 import logging
 
-from grpc_reflection.v1alpha.proto_reflection_descriptor_database import (
-    ServerReflectionRequest,
-)
+from grpc_reflection.v1alpha.proto_reflection_descriptor_database import ServerReflectionRequest
 
 logger = logging.getLogger(__name__)
 

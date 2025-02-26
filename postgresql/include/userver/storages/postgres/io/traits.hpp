@@ -32,7 +32,7 @@ enum class BufferCategory {
     kRangeBuffer         //!< kRangeBuffer the buffer contains a range type
 };
 
-const std::string& ToString(BufferCategory);
+std::string_view ToString(BufferCategory);
 
 template <BufferCategory Category>
 using BufferCategoryConstant = std::integral_constant<BufferCategory, Category>;

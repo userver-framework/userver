@@ -7,6 +7,7 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/graphite.hpp>
+#include <userver/utils/string_literal.hpp>
 
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
@@ -106,7 +107,7 @@ void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder, const options
     }
 }
 
-void AppendUint64Option(formats::bson::impl::BsonBuilder& builder, const std::string& name, std::uint64_t value) {
+void AppendUint64Option(formats::bson::impl::BsonBuilder& builder, std::string_view name, std::uint64_t value) {
     if (value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
         throw InvalidQueryArgumentException("Value ") << value << " of '" << name << "' is too high";
     }
@@ -116,24 +117,24 @@ void AppendUint64Option(formats::bson::impl::BsonBuilder& builder, const std::st
 void AppendSkip(formats::bson::impl::BsonBuilder& builder, options::Skip skip) {
     if (!skip.Value()) return;
 
-    static const std::string kOptionName = "skip";
+    static constexpr utils::StringLiteral kOptionName = "skip";
     AppendUint64Option(builder, kOptionName, skip.Value());
 }
 
 void AppendLimit(formats::bson::impl::BsonBuilder& builder, options::Limit limit) {
     if (!limit.Value()) return;
 
-    static const std::string kOptionName = "limit";
+    static constexpr utils::StringLiteral kOptionName = "limit";
     AppendUint64Option(builder, kOptionName, limit.Value());
 }
 
 void AppendHint(formats::bson::impl::BsonBuilder& builder, const options::Hint& hint) {
-    static const std::string kOptionName = "hint";
+    static constexpr utils::StringLiteral kOptionName = "hint";
     builder.Append(kOptionName, hint.Value());
 }
 
 void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder, const options::ArrayFilters& filters) {
-    static const std::string kOptionName = "arrayFilters";
+    static constexpr utils::StringLiteral kOptionName = "arrayFilters";
     builder.Append(kOptionName, filters.Value());
 }
 
@@ -230,7 +231,7 @@ void Find::SetOption(options::Projection projection) {
     const bson_t* projection_bson = projection.GetProjectionBson();
     if (bson_empty0(projection_bson)) return;
 
-    static const std::string kOptionName = "projection";
+    static constexpr utils::StringLiteral kOptionName = "projection";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, projection_bson);
 }
 
@@ -239,21 +240,21 @@ void Find::SetOption(const options::Sort& sort) {
     const bson_t* sort_bson = sort.GetSortBson();
     if (bson_empty0(sort_bson)) return;
 
-    static const std::string kOptionName = "sort";
+    static constexpr utils::StringLiteral kOptionName = "sort";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, sort_bson);
 }
 
 void Find::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 void Find::SetOption(options::AllowPartialResults) {
-    static const std::string kOptionName = "allowPartialResults";
+    static constexpr utils::StringLiteral kOptionName = "allowPartialResults";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, true);
 }
 
 void Find::SetOption(options::Tailable) {
-    static const std::string kTailable = "tailable";
-    static const std::string kAwaitData = "awaitData";
-    static const std::string kNoCursorTimeout = "noCursorTimeout";
+    static constexpr utils::StringLiteral kTailable = "tailable";
+    static constexpr utils::StringLiteral kAwaitData = "awaitData";
+    static constexpr utils::StringLiteral kNoCursorTimeout = "noCursorTimeout";
 
     for (const auto& option : {kTailable, kAwaitData, kNoCursorTimeout}) {
         impl::EnsureBuilder(impl_->options).Append(option, true);
@@ -301,7 +302,7 @@ InsertMany& InsertMany::operator=(InsertMany&&) noexcept = default;
 void InsertMany::Append(formats::bson::Document document) { impl_->documents.push_back(std::move(document)); }
 
 void InsertMany::SetOption(options::Unordered) {
-    static const std::string kOptionName = "ordered";
+    static constexpr utils::StringLiteral kOptionName = "ordered";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, false);
 }
 

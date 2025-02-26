@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <map>
 #include <string_view>
 
 #include <cryptopp/osrng.h>
@@ -11,7 +10,6 @@
 #include <fmt/ranges.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
-#include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <curl-ev/error_code.hpp>
@@ -52,13 +50,20 @@ constexpr Status kLeastHttpCodeForDeadlineExpired{400};
 
 constexpr Status kFakeHttpErrorCode{599};
 
-const std::string kTracingClientName = "external";
+constexpr std::string_view kTracingClientName = "external";
 
-const std::map<std::string, std::error_code> kTestsuiteActions = {
-    {"timeout", {curl::errc::EasyErrorCode::kOperationTimedout}},
-    {"network", {curl::errc::EasyErrorCode::kCouldNotConnect}}};
-const std::string kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
-const std::string kTestsuiteSupportedErrors = fmt::to_string(fmt::join(boost::adaptors::keys(kTestsuiteActions), ","));
+constexpr utils::TrivialBiMap kTestsuiteActions = [](auto selector) {
+    return selector()
+        .Case("timeout", curl::errc::EasyErrorCode::kOperationTimedout)
+        .Case("network", curl::errc::EasyErrorCode::kCouldNotConnect);
+};
+
+constexpr std::string_view kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
+
+std::string_view GetTestsuiteSupportedErrors() {
+    static_assert(kTestsuiteActions.size() == 2, "Fix the below line");
+    return "network,timeout";
+}
 
 std::error_code TestsuiteResponseHook(Status status_code, const Headers& headers, tracing::Span& span) {
     if (status_code == kFakeHttpErrorCode) {
@@ -68,9 +73,9 @@ std::error_code TestsuiteResponseHook(Status status_code, const Headers& headers
             LOG_INFO() << "Mockserver faked error of type " << it->second
                        << tracing::impl::LogSpanAsLastNoCurrent{span};
 
-            const auto error_it = kTestsuiteActions.find(it->second);
-            if (error_it != kTestsuiteActions.end()) {
-                return error_it->second;
+            const auto opt_value = kTestsuiteActions.TryFindByFirst(it->second);
+            if (opt_value) {
+                return std::error_code{*opt_value};
             }
 
             utils::impl::AbortWithStacktrace(fmt::format(
@@ -962,7 +967,7 @@ void RequestState::ApplyTestsuiteConfig() {
         set_timeout(std::chrono::milliseconds(*timeout).count());
     }
 
-    easy().add_header(kTestsuiteSupportedErrorsKey, kTestsuiteSupportedErrors);
+    easy().add_header(kTestsuiteSupportedErrorsKey, GetTestsuiteSupportedErrors());
 }
 
 void RequestState::StartNewSpan(utils::impl::SourceLocation location) {

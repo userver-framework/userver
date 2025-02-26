@@ -12,6 +12,8 @@
 #include <typeinfo>
 #include <variant>
 
+#include <fmt/format.h>
+
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/parse/to.hpp>
 
@@ -24,17 +26,19 @@ class Value;
 namespace formats::parse {
 
 template <typename ParseException, typename Variant, typename TypeA>
-[[noreturn]] void ThrowVariantAmbiguousParse(const std::string& path, std::type_index type_b) {
-    throw ParseException(
-        "Value of '" + path + "' is ambiguous, it is parseable into multiple variants of '" +
-        compiler::GetTypeName<Variant>() + "', at least '" + compiler::GetTypeName<TypeA>() + "' and '" +
-        compiler::GetTypeName(type_b) + "'"
-    );
+[[noreturn]] void ThrowVariantAmbiguousParse(std::string_view path, std::type_index type_b) {
+    throw ParseException(fmt::format(
+        "Value of '{}' is ambiguous, it is parseable into multiple variants of '{}', at least '{}' and '{}'",
+        path,
+        compiler::GetTypeName<Variant>(),
+        compiler::GetTypeName<TypeA>(),
+        compiler::GetTypeName(type_b)
+    ));
 }
 
 template <class ParseException, typename Variant>
-[[noreturn]] void ThrowVariantParseException(const std::string& path) {
-    throw ParseException("Value of '" + path + "' cannot be parsed as " + compiler::GetTypeName<Variant>());
+[[noreturn]] void ThrowVariantParseException(std::string_view path) {
+    throw ParseException(fmt::format("Value of '{}' cannot be parsed as {}", path, compiler::GetTypeName<Variant>()));
 }
 
 namespace impl {

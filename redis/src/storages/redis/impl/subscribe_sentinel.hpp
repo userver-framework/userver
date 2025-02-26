@@ -25,7 +25,7 @@ public:
         const Password& password,
         ConnectionSecurity connection_security,
         ReadyChangeCallback ready_callback,
-        std::unique_ptr<KeyShard>&& key_shard = nullptr,
+        KeyShardFactory key_shard_factory,
         bool is_cluster_mode = false,
         CommandControl command_control = {},
         const testsuite::RedisControl& testsuite_redis_control = {}
@@ -38,7 +38,7 @@ public:
         std::string shard_group_name,
         dynamic_config::Source dynamic_config_source,
         const std::string& client_name,
-        bool is_cluster_mode,
+        std::string sharding_strategy,
         const CommandControl& command_control,
         const testsuite::RedisControl& testsuite_redis_control
     );
@@ -49,7 +49,7 @@ public:
         dynamic_config::Source dynamic_config_source,
         const std::string& client_name,
         ReadyChangeCallback ready_callback,
-        bool is_cluster_mode,
+        std::string sharding_strategy,
         const CommandControl& command_control,
         const testsuite::RedisControl& testsuite_redis_control
     );
@@ -57,17 +57,17 @@ public:
     SubscriptionToken Subscribe(
         const std::string& channel,
         const Sentinel::UserMessageCallback& message_callback,
-        CommandControl control = CommandControl()
+        CommandControl control = {}
     );
     SubscriptionToken Psubscribe(
         const std::string& pattern,
         const Sentinel::UserPmessageCallback& message_callback,
-        CommandControl control = CommandControl()
+        CommandControl control = {}
     );
     SubscriptionToken Ssubscribe(
         const std::string& channel,
         const Sentinel::UserMessageCallback& message_callback,
-        CommandControl control = CommandControl()
+        CommandControl control = {}
     );
 
     PubsubClusterStatistics GetSubscriberStatistics(const PubsubMetricsSettings& settings) const;

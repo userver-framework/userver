@@ -214,6 +214,7 @@ private:
     bool is_discard_prepared_pending_ = false;
     ConnectionSettings settings_;
     std::optional<std::chrono::steady_clock::time_point> expires_at_;
+    bool deadline_propagation_is_active_{false};
 
     CommandControl default_cmd_ctl_{{}, {}};
     DefaultCommandControls default_cmd_ctls_;

@@ -12,28 +12,21 @@ try:
     import yatest.common  # noqa: F401
 
     # arcadia
-    USERVER_LOCATION_FILE = (
-        'taxi/uservices/userver/core/src/server/http/http_request_parser.cpp'
-    )
-    SERVICE_LOCATION_BAD = (
-        'taxi/uservices/userver/core/src/server/handlers/ping.cpp:99'
-    )
-    SERVICE_LOCATION = (
-        'taxi/uservices/userver/core/src/server/handlers/ping.cpp:100'
-    )
+    USERVER_LOCATION_FILE = 'taxi/uservices/userver/core/src/server/http/http_request_parser.cpp'
+    SERVICE_LOCATION_BAD = 'taxi/uservices/userver/core/src/server/handlers/ping.cpp:99'
+    SERVICE_LOCATION = 'taxi/uservices/userver/core/src/server/handlers/ping.cpp:100'
     PREFIX = 'taxi/'
 except ModuleNotFoundError:
     # cmake
-    USERVER_LOCATION_FILE = (
-        'userver/core/src/server/http/http_request_parser.cpp'
-    )
+    USERVER_LOCATION_FILE = 'userver/core/src/server/http/http_request_parser.cpp'
     SERVICE_LOCATION_BAD = 'userver/core/src/server/handlers/ping.cpp:99'
     SERVICE_LOCATION = 'userver/core/src/server/handlers/ping.cpp:100'
     PREFIX = 'userver/'
 
 
 SKIP_BROKEN_LOGS = pytest.mark.skipif(
-    os.environ.get('TESTSUITE_SKIP_BROKEN_LOGS'), reason='TAXICOMMON-9730',
+    os.environ.get('TESTSUITE_SKIP_BROKEN_LOGS'),
+    reason='TAXICOMMON-9730',
 )
 
 
@@ -48,7 +41,8 @@ def _taxi_bodyless_headers_mock(mockserver):
 
 @SKIP_BROKEN_LOGS
 async def test_service_debug_logs_off(
-    service_client, taxi_bodyless_headers_mock,
+    service_client,
+    taxi_bodyless_headers_mock,
 ):
     async with service_client.capture_logs() as capture:
         response = await service_client.get('/ping')
@@ -59,10 +53,13 @@ async def test_service_debug_logs_off(
 
 @SKIP_BROKEN_LOGS
 async def test_service_debug_logs_on(
-    service_client, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.put(
-        '/log/dynamic-debug', params={'location': SERVICE_LOCATION},
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION},
     )
     assert resp.status_code == 200
 
@@ -75,17 +72,22 @@ async def test_service_debug_logs_on(
 
 @SKIP_BROKEN_LOGS
 async def test_invalid_line(
-    service_client, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.put(
-        '/log/dynamic-debug', params={'location': SERVICE_LOCATION_BAD},
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION_BAD},
     )
     assert resp.status_code == 500
 
 
 @SKIP_BROKEN_LOGS
 async def test_service_debug_logs_prefix(
-    service_client, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.get('/log/dynamic-debug')
 
@@ -101,14 +103,18 @@ async def test_service_debug_logs_prefix(
 
 @SKIP_BROKEN_LOGS
 async def test_service_debug_logs_on_off(
-    service_client, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.put(
-        '/log/dynamic-debug', params={'location': SERVICE_LOCATION},
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION},
     )
     assert resp.status_code == 200
     resp = await monitor_client.delete(
-        '/log/dynamic-debug', params={'location': SERVICE_LOCATION},
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION},
     )
     assert resp.status_code == 200
 
@@ -121,7 +127,8 @@ async def test_service_debug_logs_on_off(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_debug_logs_file_off(
-    service_client, taxi_bodyless_headers_mock,
+    service_client,
+    taxi_bodyless_headers_mock,
 ):
     async with service_client.capture_logs() as capture:
         response = await service_client.get('/ping')
@@ -132,10 +139,13 @@ async def test_userver_debug_logs_file_off(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_debug_logs_file(
-    service_client, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.put(
-        '/log/dynamic-debug', params={'location': USERVER_LOCATION_FILE},
+        '/log/dynamic-debug',
+        params={'location': USERVER_LOCATION_FILE},
     )
     assert resp.status_code == 200
 
@@ -148,7 +158,10 @@ async def test_userver_debug_logs_file(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_on(
-    service_client, dynamic_config, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    dynamic_config,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     dynamic_config.set_values({
         'USERVER_LOG_DYNAMIC_DEBUG': {
@@ -166,7 +179,10 @@ async def test_userver_dynamic_config_debug_logs_on(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_file_on(
-    service_client, dynamic_config, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    dynamic_config,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     dynamic_config.set_values({
         'USERVER_LOG_DYNAMIC_DEBUG': {
@@ -184,7 +200,10 @@ async def test_userver_dynamic_config_debug_logs_file_on(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_level_on(
-    service_client, dynamic_config, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    dynamic_config,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     dynamic_config.set_values({
         'USERVER_LOG_DYNAMIC_DEBUG': {
@@ -215,10 +234,14 @@ async def test_userver_dynamic_config_debug_logs_level_on(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_off(
-    service_client, dynamic_config, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    dynamic_config,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.put(
-        '/log/dynamic-debug', params={'location': SERVICE_LOCATION},
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION},
     )
     assert resp.status_code == 200
 
@@ -238,10 +261,14 @@ async def test_userver_dynamic_config_debug_logs_off(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_file_off(
-    service_client, dynamic_config, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    dynamic_config,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.put(
-        '/log/dynamic-debug', params={'location': USERVER_LOCATION_FILE},
+        '/log/dynamic-debug',
+        params={'location': USERVER_LOCATION_FILE},
     )
     assert resp.status_code == 200
 
@@ -261,10 +288,14 @@ async def test_userver_dynamic_config_debug_logs_file_off(
 
 @SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_level_off(
-    service_client, dynamic_config, monitor_client, taxi_bodyless_headers_mock,
+    service_client,
+    dynamic_config,
+    monitor_client,
+    taxi_bodyless_headers_mock,
 ):
     resp = await monitor_client.put(
-        '/log/dynamic-debug', params={'location': SERVICE_LOCATION},
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION},
     )
     assert resp.status_code == 200
 

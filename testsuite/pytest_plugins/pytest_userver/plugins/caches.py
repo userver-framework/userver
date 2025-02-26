@@ -9,8 +9,6 @@ import typing
 
 import pytest
 
-from testsuite.daemons.pytest_plugin import DaemonInstance
-
 
 class UserverCachePlugin:
     def __init__(self):
@@ -28,14 +26,12 @@ class UserverCachePlugin:
             return
         if not isinstance(uhooks, dict):
             raise RuntimeError(
-                f'USERVER_CACHE_CONTROL_HOOKS must be dictionary: '
-                f'{{cache_name: fixture_name}}, got {uhooks} instead',
+                f'USERVER_CACHE_CONTROL_HOOKS must be dictionary: {{cache_name: fixture_name}}, got {uhooks} instead',
             )
         for cache_name, fixture_name in uhooks.items():
             if cache_name in self._hooks:
                 raise RuntimeError(
-                    f'USERVER_CACHE_CONTROL_HOOKS: hook already registered '
-                    f'for cache {cache_name}',
+                    f'USERVER_CACHE_CONTROL_HOOKS: hook already registered for cache {cache_name}',
                 )
             self._hooks[cache_name] = fixture_name
 
@@ -103,7 +99,7 @@ class CacheControl:
         *,
         enabled: bool,
         context: typing.Dict,
-        fixtures: typing.List[str],
+        fixtures: typing.Dict[str, typing.Callable],
         caches_disabled: typing.Set[str],
     ):
         self._enabled = enabled
@@ -112,9 +108,11 @@ class CacheControl:
         self._caches_disabled = caches_disabled
 
     def query_caches(
-        self, cache_names: typing.Optional[typing.List[str]],
+        self,
+        cache_names: typing.Optional[typing.List[str]],
     ) -> typing.Tuple[
-        typing.Dict, typing.List[typing.Tuple[str, CacheControlAction]],
+        typing.Dict,
+        typing.List[typing.Tuple[str, CacheControlAction]],
     ]:
         """Query cache control handlers.
 
@@ -146,7 +144,8 @@ class CacheControl:
 def pytest_configure(config):
     config.pluginmanager.register(UserverCachePlugin(), 'userver_cache')
     config.addinivalue_line(
-        'markers', 'userver_cache_control_disabled: disable cache control',
+        'markers',
+        'userver_cache_control_disabled: disable cache control',
     )
 
 
@@ -164,13 +163,14 @@ def cache_invalidation_state() -> InvalidationState:
 
 
 @pytest.fixture(scope='session')
-def _userver_cache_control_context() -> typing.Dict:
+def _userver_cache_control_context(daemon_scoped_mark) -> typing.Dict:
     return {}
 
 
 @pytest.fixture
 def _userver_cache_fixtures(
-    pytestconfig, request,
+    pytestconfig,
+    request,
 ) -> typing.Dict[str, typing.Callable]:
     plugin: UserverCachePlugin = pytestconfig.pluginmanager.get_plugin(
         'userver_cache',
@@ -183,8 +183,10 @@ def _userver_cache_fixtures(
 
 @pytest.fixture
 def userver_cache_control(
-    _userver_cache_control_context, _userver_cache_fixtures, request,
-) -> typing.Callable[[DaemonInstance], CacheControl]:
+    _userver_cache_control_context,
+    _userver_cache_fixtures,
+    request,
+) -> CacheControl:
     """Userver cache control handler.
 
     To install per cache handler use USERVER_CACHE_CONTROL_HOOKS variable
@@ -215,7 +217,9 @@ def userver_cache_control(
     caches_disabled = set()
 
     def userver_cache_control_disabled(
-        caches: typing.Sequence[str] = None, *, reason: str,
+        caches: typing.Sequence[str] = None,
+        *,
+        reason: str,
     ):
         if caches is not None:
             caches_disabled.update(caches)
@@ -225,13 +229,17 @@ def userver_cache_control(
     for mark in request.node.iter_markers('userver_cache_control_disabled'):
         enabled = userver_cache_control_disabled(*mark.args, **mark.kwargs)
 
-    def get_cache_control(daemon: DaemonInstance):
-        context = _userver_cache_control_context.setdefault(daemon.id, {})
-        return CacheControl(
-            context=context,
-            fixtures=_userver_cache_fixtures,
-            enabled=enabled,
-            caches_disabled=caches_disabled,
-        )
+    return CacheControl(
+        context=_userver_cache_control_context,
+        fixtures=_userver_cache_fixtures,
+        enabled=enabled,
+        caches_disabled=caches_disabled,
+    )
 
-    return get_cache_control
+
+@pytest.fixture(scope='session')
+def userver_allow_all_caches_invalidation():
+    """
+    Allows use of invalidate_caches() without cache_names.
+    """
+    return True

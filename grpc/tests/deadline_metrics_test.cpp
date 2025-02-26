@@ -14,8 +14,8 @@
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
-#include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
 #include <tests/messages.pb.h>
 #include <tests/deadline_helpers.hpp>
@@ -73,7 +73,7 @@ public:
 
         auto client_context = tests::MakeClientContext(set_deadline);
         try {
-            response = client.SyncSayHello(request, std::move(client_context));
+            response = client.SayHello(request, std::move(client_context));
             EXPECT_EQ(response.name(), "Hello abacaba");
             return true;
         } catch (const ugrpc::client::DeadlineExceededError& /*exception*/) {

@@ -17,6 +17,8 @@ class Span;
 namespace storages {
 
 /// @brief Holds a query, its name and logging mode
+/// @note You may write a query in `.sql` file and generate a header file with Query from it.
+///       See @ref scripts/docs/en/userver/sql_files.md for more information.
 class Query {
 public:
     using Name = USERVER_NAMESPACE::utils::StrongTypedef<struct NameTag, std::string>;

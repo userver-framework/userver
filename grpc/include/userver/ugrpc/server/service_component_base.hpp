@@ -7,7 +7,10 @@
 
 #include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
+#include <userver/ugrpc/middlewares/runner.hpp>
+#include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
@@ -17,6 +20,21 @@ namespace ugrpc::server {
 
 class ServerComponent;
 class GenericServiceBase;
+
+namespace impl {
+
+using MiddlewareRunner = USERVER_NAMESPACE::ugrpc::middlewares::RunnerComponentBase<MiddlewareBase, ServiceInfo>;
+
+}
+
+/// @brief Service info for the middleware
+struct ServiceInfo final {
+    std::string full_service_name{};
+};
+
+/// @ingroup userver_component_names
+/// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the server side
+inline constexpr std::string_view kMiddlewarePipelineName = "grpc-server-middlewares-pipeline";
 
 // clang-format off
 
@@ -28,11 +46,13 @@ class GenericServiceBase;
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// task-processor | the task processor to use for responses | taken from grpc-server.service-defaults
-/// middlewares | middleware component names to use for each RPC call, can be empty array ([]) | taken from grpc-server.service-defaults
+/// disable-user-pipeline-middlewares | flag to disable `groups::User` middlewares from pipeline | false
+/// disable-all-pipeline-middlewares | flag to disable all middlewares from pipline | false
+/// middlewares | middlewares names to use | `{}` (use server defaults)
 
 // clang-format on
 
-class ServiceComponentBase : public components::ComponentBase {
+class ServiceComponentBase : public impl::MiddlewareRunner {
 public:
     ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context);
 
@@ -50,6 +70,7 @@ private:
     ServerComponent& server_;
     ServiceConfig config_;
     std::atomic<bool> registered_{false};
+    ServiceInfo info_{};
 };
 
 namespace impl {

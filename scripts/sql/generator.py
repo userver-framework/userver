@@ -28,7 +28,10 @@ class QueryLogMode(enum.Enum):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--namespace', type=str, required=True, help='C++ namespace to use',
+        '--namespace',
+        type=str,
+        required=True,
+        help='C++ namespace to use',
     )
     parser.add_argument(
         '--output-dir',
@@ -100,7 +103,9 @@ def raise_error(*args) -> NoReturn:
 
 
 def render(
-    params: SqlParams, sql_items: List[SqlQuery], yql_items: List[SqlQuery],
+    params: SqlParams,
+    sql_items: List[SqlQuery],
+    yql_items: List[SqlQuery],
 ) -> None:
     os.makedirs(
         pathlib.Path(f'{params.src_root}/include/{params.namespace}'),
@@ -124,14 +129,16 @@ def render(
     }
 
     with open(
-        f'{params.src_root}/include/{params.namespace}/sql_queries.hpp', 'w',
+        f'{params.src_root}/include/{params.namespace}/sql_queries.hpp',
+        'w',
     ) as hpp_file:
         tpl = env.get_template('templates/sql.hpp.jinja')
         content = tpl.render(**context)
         hpp_file.write(content)
 
     with open(
-        f'{params.src_root}/src/{params.namespace}/sql_queries.cpp', 'w',
+        f'{params.src_root}/src/{params.namespace}/sql_queries.cpp',
+        'w',
     ) as cpp_file:
         tpl = env.get_template('templates/sql.cpp.jinja')
         content = tpl.render(**context)

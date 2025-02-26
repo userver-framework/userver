@@ -121,7 +121,7 @@ TEST(StrongTypedef, IntTransparentComparisons) {
     EXPECT_EQ(UnderlyingValue(i), 1);
 }
 
-#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(StrongTypedef, IntThreeWayTransparentComparison) {
     MySpecialInt i;
     ASSERT_EQ(0 <=> i, 0 <=> 0);

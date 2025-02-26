@@ -49,7 +49,7 @@ impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
     return secrets;
 }
 
-impl::ProducerConfiguration PatchDeliveryTimeout(impl::ProducerConfiguration&& configuration) {
+impl::ProducerConfiguration PatchDeliveryTimeout(impl::ProducerConfiguration configuration) {
     static const impl::ProducerConfiguration kDefaultProducerConfiguration{};
 
     if (configuration.delivery_timeout == kDefaultProducerConfiguration.delivery_timeout) {
@@ -102,7 +102,7 @@ Producer KafkaCluster::MakeProducer(const std::string& name, impl::ProducerConfi
         engine::current_task::GetTaskProcessor(),
         PatchDeliveryTimeout(std::move(configuration)),
         MakeSecrets(bootstrap_servers_)};
-};
+}
 
 std::deque<Producer> KafkaCluster::MakeProducers(
     std::size_t count,

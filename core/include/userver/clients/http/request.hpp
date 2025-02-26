@@ -97,54 +97,54 @@ public:
     Request& get() &;
     Request get() &&;
     /// GET request with url
-    Request& get(const std::string& url) &;
-    Request get(const std::string& url) &&;
+    Request& get(std::string url) &;
+    Request get(std::string url) &&;
     /// HEAD request
     Request& head() &;
     Request head() &&;
     /// HEAD request with url
-    Request& head(const std::string& url) &;
-    Request head(const std::string& url) &&;
+    Request& head(std::string url) &;
+    Request head(std::string url) &&;
     /// POST request
     Request& post() &;
     Request post() &&;
     /// POST request with url and data
-    Request& post(const std::string& url, std::string data = {}) &;
-    Request post(const std::string& url, std::string data = {}) &&;
+    Request& post(std::string url, std::string data = {}) &;
+    Request post(std::string url, std::string data = {}) &&;
     /// POST request with url and multipart/form-data
-    Request& post(const std::string& url, Form&& form) &;
-    Request post(const std::string& url, Form&& form) &&;
+    Request& post(std::string url, Form&& form) &;
+    Request post(std::string url, Form&& form) &&;
     /// PUT request
     Request& put() &;
     Request put() &&;
     /// PUT request with url and data
-    Request& put(const std::string& url, std::string data = {}) &;
-    Request put(const std::string& url, std::string data = {}) &&;
+    Request& put(std::string url, std::string data = {}) &;
+    Request put(std::string url, std::string data = {}) &&;
 
     /// PATCH request
     Request& patch() &;
     Request patch() &&;
     /// PATCH request with url and data
-    Request& patch(const std::string& url, std::string data = {}) &;
-    Request patch(const std::string& url, std::string data = {}) &&;
+    Request& patch(std::string url, std::string data = {}) &;
+    Request patch(std::string url, std::string data = {}) &&;
 
     /// DELETE request
     Request& delete_method() &;
     Request delete_method() &&;
     /// DELETE request with url
-    Request& delete_method(const std::string& url) &;
-    Request delete_method(const std::string& url) &&;
+    Request& delete_method(std::string url) &;
+    Request delete_method(std::string url) &&;
     /// DELETE request with url and data
-    Request& delete_method(const std::string& url, std::string data) &;
-    Request delete_method(const std::string& url, std::string data) &&;
+    Request& delete_method(std::string url, std::string data) &;
+    Request delete_method(std::string url, std::string data) &&;
 
     /// Set custom request method. Only replaces name of the HTTP method
     Request& set_custom_http_request_method(std::string method) &;
     Request set_custom_http_request_method(std::string method) &&;
 
     /// url if you don't specify request type with url
-    Request& url(const std::string& url) &;
-    Request url(const std::string& url) &&;
+    Request& url(std::string url) &;
+    Request url(std::string url) &&;
     /// data for POST request
     Request& data(std::string data) &;
     Request data(std::string data) &&;

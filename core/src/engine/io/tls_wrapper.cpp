@@ -498,7 +498,7 @@ TlsWrapper TlsWrapper::StartTlsClient(
 
 TlsWrapper TlsWrapper::StartTlsServer(
     Socket&& socket,
-    const crypto::Certificate& cert,
+    const crypto::CertificatesChain& cert_chain,
     const crypto::PrivateKey& key,
     Deadline deadline,
     const std::vector<crypto::Certificate>& extra_cert_authorities
@@ -513,8 +513,29 @@ TlsWrapper TlsWrapper::StartTlsServer(
         LOG_INFO() << "Client SSL cert will not be verified";
     }
 
-    if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert.GetNative())) {
+    if (cert_chain.empty()) {
+        throw TlsException(crypto::FormatSslError("Empty certificate chain provided"));
+    }
+
+    if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert_chain.begin()->GetNative())) {
         throw TlsException(crypto::FormatSslError("Failed to set up server TLS wrapper: SSL_CTX_use_certificate"));
+    }
+
+    if (cert_chain.size() > 1) {
+        auto cert_it = std::next(cert_chain.begin());
+        for (; cert_it != cert_chain.end(); ++cert_it) {
+            // cast in openssl1.0 macro expansion
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+            if (SSL_CTX_add_extra_chain_cert(ssl_ctx.get(), cert_it->GetNative()) <= 0) {
+                throw TlsException(
+                    crypto::FormatSslError("Failed to set up server TLS wrapper: SSL_CTX_add_extra_chain_cert")
+                );
+            }
+
+            // After SSL_CTX_add_extra_chain_cert we should not free the cert
+            const auto ret = X509_up_ref(cert_it->GetNative());
+            UASSERT(ret == 1);
+        }
     }
 
     if (1 != SSL_CTX_use_PrivateKey(ssl_ctx.get(), key.GetNative())) {

@@ -20,20 +20,21 @@ function(userver_embed_file TARGET)
     COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/embedded &&
             touch ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
   )
+
+  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
   add_custom_command(
     OUTPUT
         ${CONFIG_HPP}
     DEPENDS
-        ${USERVER_ROOT_DIR}/cmake/embedded_config.cmake
+        ${USERVER_CMAKE_DIR}/embedded_config.cmake
         ${ARG_FILEPATH}
     COMMAND
         ${CMAKE_COMMAND}
-	    -DUSERVER_ROOT_DIR=${USERVER_ROOT_DIR}
 	    -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
 	    -DFILEPATH=${ARG_FILEPATH}
 	    -DOUTPUT=${CONFIG_HPP}
 	    -DNAME=${ARG_NAME}
-	    -P ${USERVER_ROOT_DIR}/cmake/embedded_config.cmake
+	    -P ${USERVER_CMAKE_DIR}/embedded_config.cmake
     ${CODEGEN}
   )
   add_library(${TARGET} STATIC ${CONFIG_HPP} ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp)

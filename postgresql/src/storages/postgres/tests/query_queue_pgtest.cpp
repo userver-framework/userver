@@ -51,6 +51,28 @@ UTEST_P(PostgreConnection, QueryQueueSelectMultiple) {
     }
 }
 
+UTEST_P(PostgreConnection, QueryQueueParametersStore) {
+    CheckConnection(GetConn());
+    if (!GetConn()->IsPipelineActive()) {
+        return;
+    }
+
+    using RowTuple = std::tuple<int, std::string>;
+    const auto values = RowTuple{1, "str"};
+
+    pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
+    pg::ParameterStore store;
+    store.PushBack(std::get<0>(values));
+    store.PushBack(std::get<1>(values));
+
+    UEXPECT_NO_THROW(query_queue.Push(kDefaultCC, "SELECT $1, $2", store));
+    QueryQueueResult result{};
+    UEXPECT_NO_THROW(result = query_queue.Collect(kCollectTimeout));
+
+    ASSERT_EQ(1, result.size());
+    EXPECT_EQ(values, result.front().AsSingleRow<RowTuple>(pg::kRowTag));
+}
+
 UTEST_P(PostgreConnection, QueryQueueTimeout) {
     CheckConnection(GetConn());
     if (!GetConn()->IsPipelineActive()) {

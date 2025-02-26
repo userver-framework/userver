@@ -9,11 +9,12 @@
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/impl/types.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-const std::string kInvalidPathStr = "<not-part-of-json-tree>";
+constexpr utils::StringLiteral kInvalidPathStr = "<not-part-of-json-tree>";
 
 using Value = formats::json::impl::Value;
 using Member = formats::json::impl::Value::MemberIterator::value_type;
@@ -99,7 +100,7 @@ std::string MakePath(const Value* root, const Value* node, int node_depth) {
 
         while (!stack.back().HasMoreElements()) {
             stack.pop_back();
-            if (stack.empty()) return kInvalidPathStr;
+            if (stack.empty()) return std::string{kInvalidPathStr};
         }
 
         value = stack.back().CurrentValue();

@@ -4,6 +4,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/http/common_headers.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -43,17 +44,20 @@ HttpHandlerStatic::HttpHandlerStatic(
       storage_(
           context.FindComponent<components::FsCache>(config["fs-cache-component"].As<std::string>("fs-cache-component"))
               .GetClient()
-      ) {}
+      ),
+      cache_age_(config["expires"].As<std::chrono::seconds>(600)) {}
 
 std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
     LOG_DEBUG() << "Handler: " << request.GetRequestPath();
+    auto& response = request.GetHttpResponse();
     const auto file = storage_.TryGetFile(request.GetRequestPath());
     if (file) {
         const auto config = config_.GetSnapshot();
-        request.GetHttpResponse().SetContentType(config[kContentTypeMap][file->extension]);
+        response.SetHeader(USERVER_NAMESPACE::http::headers::kExpires, std::to_string(cache_age_.count()));
+        response.SetContentType(config[kContentTypeMap][file->extension]);
         return file->data;
     }
-    request.GetHttpResponse().SetStatusNotFound();
+    response.SetStatusNotFound();
     return "File not found";
 }
 
@@ -69,6 +73,10 @@ properties:
         type: string
         description: Name of the FsCache component
         defaultDescription: fs-cache-component
+    expires:
+        type: string
+        description: Cache age in seconds
+        defaultDescription: 600
 )");
 }
 

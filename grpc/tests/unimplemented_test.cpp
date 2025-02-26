@@ -29,7 +29,7 @@ UTEST_F(GrpcServerAllUnimplementedTest, Unimplemented) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    UEXPECT_THROW(client.SyncSayHello(out, ContextWithDeadline()), ugrpc::client::UnimplementedError);
+    UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()), ugrpc::client::UnimplementedError);
 }
 
 class ChatOnlyService final : public sample::ugrpc::UnitTestServiceBase {
@@ -54,9 +54,9 @@ UTEST_F_DEATH(GrpcServerSomeUnimplementedDeathTest, Unimplemented) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
 #ifdef NDEBUG
-    UEXPECT_THROW(client.SyncSayHello(out, ContextWithDeadline()), ugrpc::client::UnimplementedError);
+    UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()), ugrpc::client::UnimplementedError);
 #else
-    UEXPECT_DEATH(client.SyncSayHello(out, ContextWithDeadline()), "Called not implemented");
+    UEXPECT_DEATH(client.SayHello(out, ContextWithDeadline()), "Called not implemented");
 #endif
 }
 

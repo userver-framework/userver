@@ -123,6 +123,7 @@ int main(int argc, char* argv[]) {
                                     .Append<chaos::ReadStoreReturn>("handler-cluster")
                                     .Append<chaos::ReadStoreReturn>("handler-sentinel")
                                     .Append<chaos::ReadStoreReturn>("handler-sentinel-with-master")
+                                    .Append<chaos::ReadStoreReturn>("handler-standalone")
                                     .Append<components::HttpClient>()
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()

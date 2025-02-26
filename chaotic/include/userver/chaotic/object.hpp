@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/chaotic/exception.hpp>
 #include <userver/formats/common/items.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/trivial_map.hpp>
@@ -30,7 +31,7 @@ void ValidateNoAdditionalProperties(const Value& json, const utils::TrivialSet<B
     for (const auto& [name, value] : formats::common::Items(json)) {
         if (names_to_exclude.Contains(name)) continue;
 
-        throw std::runtime_error(fmt::format("Unknown property '{}'", name));
+        throw Error<Value>(fmt::format("Unknown property '{}'", name));
     }
 }
 

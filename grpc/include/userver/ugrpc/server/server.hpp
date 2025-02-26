@@ -72,7 +72,7 @@ struct ServerConfig final {
     bool enable_channelz{false};
 
     /// 'access-tskv.log' logger
-    logging::LoggerPtr access_tskv_logger{logging::MakeNullLogger()};
+    logging::TextLoggerPtr access_tskv_logger{logging::MakeNullLogger()};
 
     /// TLS settings
     TlsConfig tls;

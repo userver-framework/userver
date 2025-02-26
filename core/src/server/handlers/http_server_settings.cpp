@@ -31,8 +31,6 @@ const dynamic_config::Key<CcCustomStatus> kCcCustomStatus{
     dynamic_config::DefaultAsJsonString{"{}"},
 };
 
-const dynamic_config::Key<bool> kStreamApiEnabled{"USERVER_HANDLER_STREAM_API_ENABLED", false};
-
 }  // namespace server::handlers
 
 USERVER_NAMESPACE_END

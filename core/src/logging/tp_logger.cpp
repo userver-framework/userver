@@ -45,7 +45,8 @@ struct TpLogger::ActionVisitor final {
     }
 };
 
-TpLogger::TpLogger(Format format, std::string logger_name) : LoggerBase(format), logger_name_(std::move(logger_name)) {
+TpLogger::TpLogger(Format format, std::string logger_name)
+    : impl::TextLogger(format), logger_name_(std::move(logger_name)) {
     SetLevel(logging::Level::kInfo);
 }
 
@@ -125,7 +126,10 @@ void TpLogger::Flush() {
 
 impl::LogStatistics& TpLogger::GetStatistics() noexcept { return stats_; }
 
-void TpLogger::Log(Level level, std::string_view msg) {
+void TpLogger::Log(Level level, impl::formatters::LoggerItemRef item) {
+    UASSERT(dynamic_cast<impl::TextLogItem*>(&item));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto& msg = static_cast<impl::TextLogItem&>(item);
     ++stats_.by_level[static_cast<std::size_t>(level)];
 
     if (GetSinks().empty()) {
@@ -139,7 +143,7 @@ void TpLogger::Log(Level level, std::string_view msg) {
         produced_->fetch_add(1);
 
         try {
-            Push(impl::async::Log{level, std::string{msg}});
+            Push(impl::async::Log{level, std::string{msg.log_line}});
         } catch (const std::exception&) {
             // failed to construct a Log action or a node in Push
             produced_->fetch_sub(1);

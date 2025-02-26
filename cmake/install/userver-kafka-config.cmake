@@ -8,8 +8,10 @@ find_package(userver REQUIRED COMPONENTS
   core
 )
 
-include("${USERVER_CMAKE_DIR}/modules/Findlibz.cmake")
-include("${USERVER_CMAKE_DIR}/modules/Findlz4.cmake")
-include("${USERVER_CMAKE_DIR}/modules/FindRdKafka.cmake")
+if(USERVER_CONAN)
+  find_package(RdKafka REQUIRED)
+else()
+  include("${USERVER_CMAKE_DIR}/SetupRdKafka.cmake")
+endif()
 
 set(userver_kafka_FOUND TRUE)

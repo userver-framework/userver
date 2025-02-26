@@ -93,7 +93,7 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config, cons
     const utils::PeriodicTask::Settings settings(std::chrono::milliseconds(1000));
     publisher_task_.Start("publisher", settings, [this] {
         redis_client_->Publish(
-            "periodic_publish", "42", redis::CommandControl(), storages::redis::PubShard::kRoundRobin
+            "periodic_publish", "42", storages::redis::CommandControl(), storages::redis::PubShard::kRoundRobin
         );
     });
 }
@@ -148,11 +148,11 @@ std::string ReadStoreReturn::Get(const server::http::HttpRequest& request) const
                         fmt::format("Shard is out of range shard:{} count:{}", shard, shard_count)});
                 }
                 auto shard_client = redis_client_->GetClientForShard(shard);
-                shard_client->Publish("output_channel", publish_msg, redis::CommandControl());
+                shard_client->Publish("output_channel", publish_msg, storages::redis::CommandControl());
                 return {};
             }
             /// Publish to any accessible shard
-            redis_client_->Publish("output_channel", publish_msg, redis::CommandControl());
+            redis_client_->Publish("output_channel", publish_msg, storages::redis::CommandControl());
             return {};
         }
     }
@@ -162,7 +162,7 @@ std::string ReadStoreReturn::Get(const server::http::HttpRequest& request) const
         if (!publish_msg.empty()) {
             const auto& channel = request.GetArg("channel");
             if (!channel.empty()) {
-                redis_client_->Spublish(channel, publish_msg, redis::CommandControl());
+                redis_client_->Spublish(channel, publish_msg, storages::redis::CommandControl());
                 return {};
             }
             return {};

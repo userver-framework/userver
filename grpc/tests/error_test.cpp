@@ -76,7 +76,7 @@ UTEST_F(GrpcClientErrorTest, UnaryRPC) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    UEXPECT_THROW(client.SyncSayHello(out), ugrpc::client::InternalError);
+    UEXPECT_THROW(client.SayHello(out), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, InputStream) {
@@ -142,7 +142,7 @@ UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
     try {
-        client.SyncSayHello(out);
+        client.SayHello(out);
     } catch (ugrpc::client::ResourceExhaustedError& e) {
         EXPECT_EQ(*(e.GetGStatusString()), kExpectedMessage);
     }

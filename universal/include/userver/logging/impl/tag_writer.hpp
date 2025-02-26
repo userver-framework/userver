@@ -41,6 +41,9 @@ public:
     template <typename T>
     void PutTag(TagKey key, const T& value);
 
+    void PutTag(TagKey key, std::string_view value);
+    void PutTag(RuntimeTagKey key, std::string_view value);
+
     template <typename T>
     void PutTag(RuntimeTagKey key, const T& value);
 
@@ -84,16 +87,12 @@ USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key) : escaped_k
 
 template <typename T>
 void TagWriter::PutTag(TagKey key, const T& value) {
-    PutKey(key);
-    lh_ << value;
-    MarkValueEnd();
+    lh_.PutTag(key.GetEscapedKey(), value);
 }
 
 template <typename T>
 void TagWriter::PutTag(RuntimeTagKey key, const T& value) {
-    PutKey(key);
-    lh_ << value;
-    MarkValueEnd();
+    lh_.PutTag(key.GetUnescapedKey(), std::variant{value});
 }
 
 }  // namespace logging::impl

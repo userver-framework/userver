@@ -12,7 +12,9 @@ MESSAGE_TO_FAIL = 'please-start-failing'
 
 
 async def test_rebalance_after_failure(
-    service_client, testpoint, kafka_producer,
+    service_client,
+    testpoint,
+    kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):
@@ -56,22 +58,24 @@ async def test_rebalance_after_failure(
     await second_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     second_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[1],
+        service_client,
+        CONSUMERS[1],
     )
-    assert (
-        len(first_consumer_messages) == 1
-        and len(second_consumer_messages) == 1
-    )
+    assert len(first_consumer_messages) == 1 and len(second_consumer_messages) == 1
     second_consumer_partition = second_consumer_messages[0]['partition']
     logging.info(
         f'Second consumer was subscribed to {second_consumer_partition} partition',
     )
 
     await kafka_producer.send(
-        TOPIC, 'key-3', MESSAGE_TO_FAIL, second_consumer_partition,
+        TOPIC,
+        'key-3',
+        MESSAGE_TO_FAIL,
+        second_consumer_partition,
     )
     await second_consumer_polled.wait_call()
     await second_consumer_failed.wait_call()
@@ -83,13 +87,17 @@ async def test_rebalance_after_failure(
     await first_consumer_subscribed.wait_call()
 
     await kafka_producer.send(
-        TOPIC, 'key-4', 'message-4', second_consumer_partition,
+        TOPIC,
+        'key-4',
+        'message-4',
+        second_consumer_partition,
     )
     await first_consumer_received.wait_call()
     await first_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     assert len(first_consumer_messages) == 2
 
@@ -99,7 +107,9 @@ async def test_rebalance_after_failure(
 
 
 async def test_message_reprocessed_after_failure(
-    service_client, testpoint, kafka_producer,
+    service_client,
+    testpoint,
+    kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-second')
     def second_consumer_received(_data):
@@ -131,7 +141,8 @@ async def test_message_reprocessed_after_failure(
     await second_consumer_received.wait_call()
 
     second_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[1],
+        service_client,
+        CONSUMERS[1],
     )
     assert len(second_consumer_messages) == 2
 
@@ -144,7 +155,8 @@ async def test_message_reprocessed_after_failure(
     await second_consumer_received.wait_call()
 
     second_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[1],
+        service_client,
+        CONSUMERS[1],
     )
     assert len(second_consumer_messages) == 1
 

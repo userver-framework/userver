@@ -54,22 +54,23 @@ find_package(Boost REQUIRED CONFIG COMPONENTS
 find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
+
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
 find_package_required(OpenSSL "libssl-dev")
+
+find_package(libnghttp2 REQUIRED)
+find_package(libev REQUIRED)
 
 if (USERVER_CONAN)
     find_package(c-ares REQUIRED)
     find_package(CURL REQUIRED)
     find_package(cryptopp REQUIRED)
-    find_package(libnghttp2 REQUIRED)
-    find_package(libev REQUIRED)
 
     find_package(concurrentqueue REQUIRED)
 else()
     include(SetupCAres)
     include(SetupCURL)
     include(SetupCryptoPP)
-    find_package(Nghttp2 REQUIRED)
-    find_package(LibEv REQUIRED)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -92,7 +93,7 @@ endif()
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set_property(
-    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/jemalloc.cpp
+    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/jemalloc.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/server/handlers/jemalloc.cpp
     APPEND PROPERTY COMPILE_FLAGS -DUSERVER_FEATURE_JEMALLOC_ENABLED=1
   )
 endif()
@@ -106,7 +107,6 @@ target_link_libraries(${PROJECT_NAME}
     Boost::filesystem
     Boost::program_options
     Boost::iostreams
-    Boost::regex
     Iconv::Iconv
     OpenSSL::Crypto
     OpenSSL::SSL
@@ -161,26 +161,20 @@ else()
     )
 endif()
 
+target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    c-ares::cares
+  PRIVATE
+    cryptopp::cryptopp
+    libev::libev
+    libnghttp2::nghttp2
+)
+
 if (USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME}
-      PUBLIC
-        c-ares::cares
-        concurrentqueue::concurrentqueue
-      PRIVATE
-        cryptopp::cryptopp
-        libev::libev
-        libnghttp2::nghttp2
+      PUBLIC concurrentqueue::concurrentqueue
     )
 else()
-    target_link_libraries(${PROJECT_NAME}
-      PUBLIC
-        c-ares::cares
-      PRIVATE
-        CryptoPP
-        Nghttp2
-        LibEv
-    )
-
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
          $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
     )
@@ -302,8 +296,8 @@ _userver_directory_install(COMPONENT core FILES
 )
 _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/modules/Findc-ares.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindNghttp2.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindLibEv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibnghttp2.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibev.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 

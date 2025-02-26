@@ -7,9 +7,9 @@
 
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/io/sockaddr.hpp>
+#include <userver/testsuite/grpc_control.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
-#include <userver/testsuite/grpc_control.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>

@@ -6,16 +6,18 @@
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+#include <userver/formats/common/items.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
 CommandControl Parse(const formats::json::Value& elem, formats::parse::To<CommandControl>) {
     CommandControl result{components::Postgres::kDefaultCommandControl};
-    for (auto it = elem.begin(); it != elem.end(); ++it) {
-        const auto& name = it.GetName();
+    for (const auto& [name, val] : formats::common::Items(elem)) {
+        const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
         if (name == "network_timeout_ms") {
-            result.execute = std::chrono::milliseconds{it->As<int64_t>()};
+            result.execute = ms;
             if (result.execute.count() <= 0) {
                 throw InvalidConfig{
                     "Invalid network_timeout_ms `" + std::to_string(result.execute.count()) +
@@ -23,7 +25,7 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
                     "greater than 0."};
             }
         } else if (name == "statement_timeout_ms") {
-            result.statement = std::chrono::milliseconds{it->As<int64_t>()};
+            result.statement = ms;
             if (result.statement.count() <= 0) {
                 throw InvalidConfig{
                     "Invalid statement_timeout_ms `" + std::to_string(result.statement.count()) +

@@ -13,9 +13,9 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 namespace {
 
-const std::string kLogger = "logger";
-const std::string kLevel = "level";
-const std::string kReset = "reset";
+constexpr utils::StringLiteral kLogger = "logger";
+constexpr utils::StringLiteral kLevel = "level";
+constexpr utils::StringLiteral kReset = "reset";
 
 }  // namespace
 

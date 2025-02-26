@@ -36,6 +36,7 @@ async def grpc_session_channel(grpc_service_endpoint):
         root_ca = fi.read()
     credentials = grpc.ssl_channel_credentials(root_ca)
     async with grpc.aio.secure_channel(
-        grpc_service_endpoint, credentials,
+        grpc_service_endpoint,
+        credentials,
     ) as channel:
         yield channel

@@ -29,15 +29,12 @@ void CheckValidCallName(std::string_view call_name) {
 // We'll support that use case and consider such timeouts infinite.
 constexpr std::chrono::hours kMaxSafeDeadline{24 * 365};
 
-void SetTimeout(
-    grpc::ClientContext& context,
-    std::optional<std::chrono::milliseconds> timeout,
-    const testsuite::GrpcControl& testsuite_control
-) {
-    if (timeout && *timeout <= kMaxSafeDeadline) {
-        context.set_deadline(std::chrono::system_clock::now() + testsuite_control.MakeTimeout(*timeout));
+void SetDeadline(grpc::ClientContext& client_context, const Qos& qos, const testsuite::GrpcControl& testsuite_control) {
+    const auto total_timeout = GetTotalTimeout(qos);
+    if (total_timeout.has_value() && *total_timeout <= kMaxSafeDeadline) {
+        client_context.set_deadline(std::chrono::system_clock::now() + testsuite_control.MakeTimeout(*total_timeout));
     } else {
-        context.set_deadline(std::chrono::system_clock::time_point::max());
+        client_context.set_deadline(std::chrono::system_clock::time_point::max());
     }
 }
 
@@ -55,7 +52,7 @@ void ApplyQosConfigs(
         // Consider the explicit Qos parameter the highest-priority source.
         // TODO there is no way to override other sources by setting this timeout
         // to infinity (we treat it as "not set")
-        SetTimeout(client_context, user_qos.timeout, client_data.GetTestsuiteControl());
+        SetDeadline(client_context, user_qos, client_data.GetTestsuiteControl());
         return;
     }
 
@@ -68,7 +65,7 @@ void ApplyQosConfigs(
     if (const auto* const config_key = client_data.GetClientQos()) {
         const auto config = client_data.GetConfigSnapshot();
         if (const auto dynamic_qos = config[*config_key].GetOptional(call_name)) {
-            SetTimeout(client_context, dynamic_qos->timeout, client_data.GetTestsuiteControl());
+            SetDeadline(client_context, *dynamic_qos, client_data.GetTestsuiteControl());
         }
     }
 }
@@ -82,7 +79,7 @@ CallParams CreateCallParams(
     const Qos& qos
 ) {
     const auto& metadata = client_data.GetMetadata();
-    const auto call_name = metadata.method_full_names[method_id];
+    const auto call_name = GetMethodFullName(metadata, method_id);
 
     if (engine::current_task::ShouldCancel()) {
         throw RpcCancelledError(call_name, "RPC construction");
@@ -95,6 +92,7 @@ CallParams CreateCallParams(
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
         {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
+        client_data.NextStubFromMethodId(method_id),
         std::move(client_context),
         client_data.GetStatistics(method_id),
         client_data.GetMiddlewares(),
@@ -124,6 +122,7 @@ CallParams CreateGenericCallParams(
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
         ugrpc::impl::MaybeOwnedString{std::string{call_name}},
+        client_data.NextStub(),
         std::move(client_context),
         client_data.GetGenericStatistics(metrics_call_name.value_or(call_name)),
         client_data.GetMiddlewares(),

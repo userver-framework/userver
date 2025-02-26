@@ -160,6 +160,11 @@ std::string_view EncryptedReader::ReadRaw(std::size_t max_size) {
     return {impl_->raw.data(), result_size};
 }
 
+void EncryptedReader::BackUp(std::size_t size) {
+    UASSERT_MSG(size <= impl_->next_skip, "Trying to BackUp more bytes than returned by the last ReadRaw");
+    impl_->next_skip -= size;
+}
+
 void EncryptedReader::Finish() {
     if (impl_->file->GetStream()->eof()) return;
 

@@ -9,8 +9,10 @@
 #include <userver/crypto/openssl.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/manager.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <clients/http/destination_statistics.hpp>
@@ -26,8 +28,8 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 namespace {
 
-const std::string kIoThreadName = "curl";
-const auto kEasyReinitPeriod = std::chrono::minutes{1};
+constexpr utils::StringLiteral kIoThreadName = "curl";
+constexpr std::chrono::minutes kEasyReinitPeriod{1};
 
 // cURL accepts options as long, but we use size_t to avoid writing checks.
 // Clamp too high values to LONG_MAX, it shouldn't matter for these magnitudes.
@@ -59,7 +61,9 @@ Client::Client(
 
     engine::ev::ThreadPoolConfig ev_config;
     ev_config.threads = io_threads;
-    ev_config.thread_name = kIoThreadName + (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
+    ev_config.thread_name.assign(
+        thread_name_prefix.empty() ? std::string{kIoThreadName} : utils::StrCat(kIoThreadName, "-", thread_name_prefix)
+    );
     thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
     ReinitEasy();

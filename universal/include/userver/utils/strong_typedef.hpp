@@ -14,6 +14,7 @@
 
 #include <boost/functional/hash_fwd.hpp>
 
+#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/underlying_value.hpp>
@@ -308,7 +309,7 @@ UTILS_STRONG_TYPEDEF_REL_OP(>)
 UTILS_STRONG_TYPEDEF_REL_OP(<=)
 UTILS_STRONG_TYPEDEF_REL_OP(>=)
 
-#if __cpp_lib_three_way_comparison >= 201711L || defined(ARCADIA_ROOT)
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 UTILS_STRONG_TYPEDEF_REL_OP(<=>)
 #endif
 

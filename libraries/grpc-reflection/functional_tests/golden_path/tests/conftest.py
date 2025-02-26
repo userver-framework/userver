@@ -1,9 +1,7 @@
 import pathlib
 import tempfile
 
-from grpc_reflection.v1alpha.proto_reflection_descriptor_database import (
-    ServerReflectionStub,
-)
+from grpc_reflection.v1alpha.proto_reflection_descriptor_database import ServerReflectionStub
 import pytest
 
 pytest_plugins = ['pytest_userver.plugins.grpc']

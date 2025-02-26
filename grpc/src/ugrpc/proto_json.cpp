@@ -1,5 +1,7 @@
 #include <userver/ugrpc/proto_json.hpp>
 
+#include <google/protobuf/util/json_util.h>
+
 #include <grpcpp/support/config.h>
 #include <boost/container/small_vector.hpp>
 

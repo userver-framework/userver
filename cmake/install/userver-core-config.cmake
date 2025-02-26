@@ -13,15 +13,18 @@ find_package(Boost REQUIRED CONFIG COMPONENTS
     iostreams
 )
 
-find_package(CURL "7.68" REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(Nghttp2 REQUIRED)
-find_package(LibEv REQUIRED)
+find_package(c-ares REQUIRED)
+find_package(libnghttp2 REQUIRED)
+find_package(libev REQUIRED)
+
+if (USERVER_CONAN)
+  find_package(concurrentqueue REQUIRED)
+  find_package(CURL "7.68" REQUIRED)
+else()
+  include("${USERVER_CMAKE_DIR}/SetupCURL.cmake")
+endif()
 
 include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
-include("${USERVER_CMAKE_DIR}/modules/Findc-ares.cmake")
-if (c-ares_FOUND AND NOT TARGET c-ares::cares)
-  add_library(c-ares::cares ALIAS c-ares)
-endif()
 
 set(userver_core_FOUND TRUE)

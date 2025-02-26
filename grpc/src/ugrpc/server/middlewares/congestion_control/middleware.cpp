@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <ugrpc/server/middlewares/congestion_control/middleware.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
 

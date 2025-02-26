@@ -10,12 +10,6 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   endif()
 
   if (Brotli_FOUND)
-    if(NOT TARGET Brotli::dec)
-      add_library(Brotli::dec ALIAS brotlidec)
-    endif()
-    if(NOT TARGET Brotli::enc)
-      add_library(Brotli::enc ALIAS brotlienc)
-    endif()
     return()
   endif()
 endif()
@@ -25,6 +19,9 @@ CPMAddPackage(
   NAME Brotli
   VERSION ${USERVER_BROTLI_VERSION}
   GITHUB_REPOSITORY google/brotli
+  OPTIONS
+  "BROTLI_DISABLE_TESTS TRUE"
+  "BUILD_SHARED_LIBS OFF"
 )
 
 set(Brotli_FOUND TRUE)

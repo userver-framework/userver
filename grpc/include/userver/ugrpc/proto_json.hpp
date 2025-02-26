@@ -5,7 +5,6 @@
 /// @ingroup userver_formats_serialize userver_formats_parse
 
 #include <google/protobuf/struct.pb.h>
-#include <google/protobuf/util/json_util.h>
 
 #include <userver/formats/json.hpp>
 #include <userver/formats/json/serialize.hpp>

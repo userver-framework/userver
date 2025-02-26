@@ -11,9 +11,14 @@ _userver_module_find_include(
 )
 
 _userver_module_find_library(
-    NAMES liblz4.a
+    NAMES lz4
 )
 
 _userver_module_end()
 
-add_library(lz4::lz4 ALIAS lz4)
+if(NOT TARGET lz4::lz4)
+  add_library(lz4::lz4 ALIAS lz4)
+endif()
+if(NOT TARGET LZ4::LZ4)
+  add_library(LZ4::LZ4 ALIAS lz4)
+endif()

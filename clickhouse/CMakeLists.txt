@@ -2,15 +2,13 @@ project(userver-clickhouse CXX)
 
 if (USERVER_CONAN)
   find_package(clickhouse-cpp REQUIRED)
-  set(CLICKHOUSE_CPP_TARGET clickhouse-cpp-lib::clickhouse-cpp-lib)
 else()
   include(SetupClickhouseCPP)
-  set(CLICKHOUSE_CPP_TARGET clickhouse-cpp)
 endif()
 
 userver_module(clickhouse
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE "${CLICKHOUSE_CPP_TARGET}"
+    LINK_LIBRARIES_PRIVATE clickhouse-cpp-lib::clickhouse-cpp-lib
 
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DBTEST_SOURCES
@@ -19,6 +17,9 @@ userver_module(clickhouse
     "${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_test.cpp"
     DBTEST_DATABASES clickhouse
 )
+
+target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-error=pedantic")
+
 
 _userver_directory_install(COMPONENT clickhouse FILES
 	  "${USERVER_ROOT_DIR}/cmake/modules/Findclickhouse-cpp.cmake"

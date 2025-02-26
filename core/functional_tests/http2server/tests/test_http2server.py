@@ -38,14 +38,18 @@ async def test_http2_ping(http2_client):
 async def test_big_body(http2_client):
     s = 'x' * 2**22  # request - 4Mib. limit - 2Mib
     r = await http2_client.get(
-        DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
+        DEFAULT_PATH,
+        params={'type': 'echo-body'},
+        data=s,
     )
     assert 413 == r.status_code
     assert 'too large request' == r.text
 
     s = 'x' * 2**20  # request - 1Mib. limit - 2Mib
     r = await http2_client.get(
-        DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
+        DEFAULT_PATH,
+        params={'type': 'echo-body'},
+        data=s,
     )
     assert 200 == r.status_code
     assert s == r.text
@@ -55,7 +59,9 @@ async def test_body_different_size(http2_client):
     s = ''
     for _ in range(1026):
         r = await http2_client.get(
-            DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
+            DEFAULT_PATH,
+            params={'type': 'echo-body'},
+            data=s,
         )
         assert 200 == r.status_code
         assert s == r.text
@@ -65,7 +71,9 @@ async def test_body_different_size(http2_client):
 async def test_json_body(http2_client):
     data = {'x': 'X', 'y': 'Y', 'd': 0.123, 'b': True, 'arr': [1, 2, 3, 4]}
     r = await http2_client.get(
-        DEFAULT_PATH, params={'type': 'json'}, json=data,
+        DEFAULT_PATH,
+        params={'type': 'json'},
+        json=data,
     )
     assert 200 == r.status_code
     assert data == r.json()
@@ -95,24 +103,27 @@ async def _request(client, req_per_client, count=1):
         data = str(uuid.uuid4())
         data *= count
         r = await client.put(
-            DEFAULT_PATH, params={'type': 'echo-body'}, data=data,
+            DEFAULT_PATH,
+            params={'type': 'echo-body'},
+            data=data,
         )
         assert 200 == r.status_code
         assert data == r.text
 
 
 async def test_concurrent_requests(
-    http2_client, service_client, monitor_client,
+    http2_client,
+    service_client,
+    monitor_client,
 ):
     current_streams = await _get_metric(monitor_client, 'streams-count')
     streams_parse_error = await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
     clients_count = 10
     req_per_client = 100
-    tasks = [
-        _request(http2_client, req_per_client) for _ in range(clients_count)
-    ]
+    tasks = [_request(http2_client, req_per_client) for _ in range(clients_count)]
     await asyncio.gather(*tasks)
 
     await service_client.update_server_state()
@@ -125,24 +136,25 @@ async def test_concurrent_requests(
     assert 0 == await _get_metric(monitor_client, 'reset-streams')
     assert 0 == await _get_metric(monitor_client, 'goaway')
     assert streams_parse_error == await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
 
 
 async def test_concurrent_requests_with_big_body(
-    http2_client, service_client, monitor_client,
+    http2_client,
+    service_client,
+    monitor_client,
 ):
     current_streams = await _get_metric(monitor_client, 'streams-count')
     streams_parse_error = await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
     clients_count = 5
     req_per_client = 10
     count = int((2**20) / 128)  # 1Mib / size(uuid)
-    tasks = [
-        _request(http2_client, req_per_client, count)
-        for _ in range(clients_count)
-    ]
+    tasks = [_request(http2_client, req_per_client, count) for _ in range(clients_count)]
     await asyncio.gather(*tasks)
 
     await service_client.update_server_state()
@@ -155,7 +167,8 @@ async def test_concurrent_requests_with_big_body(
     assert 0 == await _get_metric(monitor_client, 'reset-streams')
     assert 0 == await _get_metric(monitor_client, 'goaway')
     assert streams_parse_error == await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
 
 
@@ -252,14 +265,18 @@ async def test_invalid_stream(service_client, loop, service_port):
     (sock, conn) = await _create_connection(loop, service_port)
 
     invalid_data_frame = _create_frame(
-        DATA_FRAME, EMPTY_FLAGS, stream_id=42, payload=b'This is some data',
+        DATA_FRAME,
+        EMPTY_FLAGS,
+        stream_id=42,
+        payload=b'This is some data',
     )
     await loop.sock_sendall(sock, invalid_data_frame)
     receive = sock.recv(RECEIVE_SIZE)
     events = conn.receive_data(receive)
     assert 1 == len(events)
     assert isinstance(
-        events[0], h2.events.ConnectionTerminated,
+        events[0],
+        h2.events.ConnectionTerminated,
     )  # Is the GOAWAY frame
     sock.close()
 
@@ -288,11 +305,7 @@ def _encode_header(name, value):
     value_encoded = value.encode('utf-8')
     zero = struct.pack('>B', 0x0)
     return (
-        zero
-        + struct.pack('B', len(name_encoded))
-        + name_encoded
-        + struct.pack('B', len(value_encoded))
-        + value_encoded
+        zero + struct.pack('B', len(name_encoded)) + name_encoded + struct.pack('B', len(value_encoded)) + value_encoded
     )
 
 
@@ -305,10 +318,14 @@ def _assert_responses(events):
 
 
 async def test_many_in_flight(
-    service_client, loop, service_port, monitor_client,
+    service_client,
+    loop,
+    service_port,
+    monitor_client,
 ):
     assert await _get_metric(
-        monitor_client, 'streams-close',
+        monitor_client,
+        'streams-close',
     ) == await _get_metric(monitor_client, 'streams-count')
 
     (sock, conn) = await _create_connection(loop, service_port)
@@ -328,9 +345,7 @@ async def test_many_in_flight(
         await loop.sock_sendall(sock, conn.data_to_send())
 
     events = []
-    expected_frames_count = (
-        MAX_CONCURRENT_STREAMS * 3
-    )  # 1 response =  (ResponseReceived, DataReceived, StreamEnded)
+    expected_frames_count = MAX_CONCURRENT_STREAMS * 3  # 1 response =  (ResponseReceived, DataReceived, StreamEnded)
     while len(events) != expected_frames_count:
         receive = sock.recv(RECEIVE_SIZE)
         events += conn.receive_data(receive)
@@ -359,7 +374,10 @@ async def test_many_in_flight(
 
 
 async def test_limit_concurrent_streams(
-    service_client, loop, service_port, monitor_client,
+    service_client,
+    loop,
+    service_port,
+    monitor_client,
 ):
     streams_count = await _get_metric(monitor_client, 'streams-count')
     streams_close = await _get_metric(monitor_client, 'streams-close')
@@ -375,7 +393,8 @@ async def test_limit_concurrent_streams(
     await service_client.update_server_state()
 
     assert streams_count + MAX_CONCURRENT_STREAMS == await _get_metric(
-        monitor_client, 'streams-count',
+        monitor_client,
+        'streams-count',
     )
     assert streams_close == await _get_metric(monitor_client, 'streams-close')
 
@@ -383,7 +402,10 @@ async def test_limit_concurrent_streams(
     stream_id = 203
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     begin_stream_frame = _create_frame(
-        HEADERS_FRAME, EMPTY_FLAGS, stream_id, payload,
+        HEADERS_FRAME,
+        EMPTY_FLAGS,
+        stream_id,
+        payload,
     )
 
     await loop.sock_sendall(sock, begin_stream_frame)
@@ -407,7 +429,10 @@ async def test_stream_already_closed(service_client, loop, service_port):
 
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     double_stream = _create_frame(
-        HEADERS_FRAME, END_HEADER_AND_STREAM, stream_id, payload,
+        HEADERS_FRAME,
+        END_HEADER_AND_STREAM,
+        stream_id,
+        payload,
     )
 
     # Send the stream that already cloced
@@ -424,7 +449,10 @@ async def test_streams_with_the_same_id(service_client, loop, service_port):
     stream_id = 1
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     begin_stream_frame = _create_frame(
-        HEADERS_FRAME, EMPTY_FLAGS, stream_id, payload,
+        HEADERS_FRAME,
+        EMPTY_FLAGS,
+        stream_id,
+        payload,
     )
     await loop.sock_sendall(sock, begin_stream_frame)
     await loop.sock_sendall(sock, begin_stream_frame)

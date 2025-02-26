@@ -75,7 +75,11 @@ void ValidateConfigs(
         const auto it = component_config_map.find(adder->GetComponentName());
         UINVARIANT(
             it != component_config_map.cend(),
-            fmt::format("Component-config map does not have name of component '{}'", adder->GetComponentName())
+            fmt::format(
+                "Component '{}' is registered , but not present in components_manager.components section of "
+                "config.yaml.",
+                adder->GetComponentName()
+            )
         );
         try {
             adder->ValidateStaticConfig(it->second, validation_condition);

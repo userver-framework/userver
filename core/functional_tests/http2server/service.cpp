@@ -34,7 +34,14 @@ public:
         }
         return "";
     };
+};
 
+class HandlerHttp2Stream final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName = "handler-http2-stream";
+
+    HandlerHttp2Stream(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerBase(config, context) {}
     void HandleStreamRequest(
         server::http::HttpRequest& req,
         server::request::RequestContext&,
@@ -86,6 +93,7 @@ int main(int argc, char* argv[]) {
                               .Append<components::DynamicConfigClientUpdater>()
                               .Append<components::DynamicConfigClient>()
                               .Append<HandlerHttp2>()
+                              .Append<HandlerHttp2Stream>()
                               .Append<server::handlers::Ping>();
 
     return utils::DaemonMain(argc, argv, component_list);

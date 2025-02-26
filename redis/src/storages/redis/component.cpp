@@ -235,7 +235,6 @@ void Redis::Connect(
     for (const auto& redis_group : subscribe_redis_groups) {
         auto settings = GetSecdistSettings(secdist_component, redis_group);
 
-        bool is_cluster_mode = storages::redis::impl::IsClusterStrategy(redis_group.sharding_strategy);
         storages::redis::CommandControl cc{};
         cc.allow_reads_from_master = redis_group.allow_reads_from_master;
 
@@ -245,7 +244,7 @@ void Redis::Connect(
             redis_group.config_name,
             config_source,
             redis_group.db,
-            is_cluster_mode,
+            redis_group.sharding_strategy,
             cc,
             testsuite_redis_control
         );
@@ -334,11 +333,11 @@ void Redis::OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg) {
         std::vector<storages::redis::ConnectionInfo> cii;
         for (const auto& host_port : settings.sentinels) {
             storages::redis::ConnectionInfo ci(host_port.host, host_port.port, settings.password);
-
             cii.push_back(ci);
         }
 
-        sentinels_.at(db)->SetConnectionInfo(cii);
+        sentinel->SetConnectionInfo(cii);
+        sentinel->UpdatePassword(settings.password);
     }
 }
 
@@ -375,13 +374,14 @@ properties:
                     description: name to refer to the cluster in components::Redis::GetClient()
                 sharding_strategy:
                     type: string
-                    description: one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver
+                    description: one of RedisStandalone, RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver
                     defaultDescription: "KeyShardTaximeterCrc32"
                     enum:
                       - RedisCluster
                       - KeyShardCrc32
                       - KeyShardTaximeterCrc32
                       - KeyShardGpsStorageDriver
+                      - RedisStandalone
                 allow_reads_from_master:
                     type: boolean
                     description: allows read requests from master instance
@@ -415,6 +415,7 @@ properties:
                     enum:
                       - RedisCluster
                       - KeyShardTaximeterCrc32
+                      - RedisStandalone
                 allow_reads_from_master:
                     type: boolean
                     description: allows subscriptions to master instance to distribute load

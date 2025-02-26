@@ -40,7 +40,8 @@ async def _get_current_metric(monitor_client, metric_name):
 
 async def test_retry_budget(dynamic_config, service_client, monitor_client):
     approx_token_count = await _get_current_metric(
-        monitor_client, 'approx_token_count',
+        monitor_client,
+        'approx_token_count',
     )
     account_ok = await _get_current_metric(monitor_client, 'account_ok')
 
@@ -99,14 +100,18 @@ async def test_retry_budget(dynamic_config, service_client, monitor_client):
 
 
 async def test_retry_budget_success_limit(
-    dynamic_config, service_client, monitor_client,
+    dynamic_config,
+    service_client,
+    monitor_client,
 ):
     approx_token_count = await _get_current_metric(
-        monitor_client, 'approx_token_count',
+        monitor_client,
+        'approx_token_count',
     )
     account_ok = await _get_current_metric(monitor_client, 'account_ok')
     max_token_count = await _get_current_metric(
-        monitor_client, 'max_token_count',
+        monitor_client,
+        'max_token_count',
     )
 
     await _check_metrics(

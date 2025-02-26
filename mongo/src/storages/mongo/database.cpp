@@ -2,6 +2,7 @@
 
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/text.hpp>
 
 #include <formats/bson/wrappers.hpp>
@@ -34,9 +35,9 @@ void Database::DropDatabase() {
     }
 }
 
-bool Database::HasCollection(const std::string& collection_name) const {
+bool Database::HasCollection(utils::NullTerminatedView collection_name) const {
     if (!utils::text::IsCString(collection_name)) {
-        throw MongoException("Invalid collection name: '" + collection_name + '\'');
+        throw MongoException(utils::StrCat("Invalid collection name: '", collection_name, "\'"));
     }
 
     auto* pool = dynamic_cast<cdriver::CDriverPoolImpl*>(pool_.get());

@@ -21,3 +21,7 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET benchmark::benchmark)
+    add_library(benchmark::benchmark ALIAS UserverGBench)
+endif()

@@ -11,13 +11,7 @@ if len(sys.argv) != 3:
 
 printers_header = sys.argv[1]
 printers_script = sys.argv[2]
-protection_macro = (
-    os.path.relpath(printers_script, os.getcwd())
-    .lstrip('/')
-    .replace('/', '_')
-    .replace('.', '_')
-    .upper()
-)
+protection_macro = os.path.relpath(printers_script, os.getcwd()).lstrip('/').replace('/', '_').replace('.', '_').upper()
 
 # Grab the entire script
 with open(printers_script, 'r') as script:
@@ -25,8 +19,7 @@ with open(printers_script, 'r') as script:
 marshalized = base64.encodebytes(zlib.compress(marshal.dumps(bytecode)))
 string_len = 80
 marshalized_splitted = '\n' + '\n'.join(
-    str(marshalized[i : i + string_len])
-    for i in range(0, len(marshalized), string_len)
+    str(marshalized[i : i + string_len]) for i in range(0, len(marshalized), string_len)
 )
 new_script = f'import marshal, zlib, base64\nexec(marshal.loads(zlib.decompress(base64.decodebytes({marshalized_splitted}))))'.split(
     '\n',
@@ -65,10 +58,7 @@ bottom_matter = f"""
 with open(printers_header, 'wt') as header:
     print(
         top_matter,
-        *(
-            f'    ".ascii \\"{json.dumps(json.dumps(line)[1:-1])[1:-1]}\\\\n\\"\\n"'
-            for line in new_script
-        ),
+        *(f'    ".ascii \\"{json.dumps(json.dumps(line)[1:-1])[1:-1]}\\\\n\\"\\n"' for line in new_script),
         bottom_matter,
         sep='\n',
         file=header,

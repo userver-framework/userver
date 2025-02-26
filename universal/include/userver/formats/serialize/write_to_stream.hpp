@@ -14,6 +14,10 @@
 
 #include <userver/formats/common/meta.hpp>
 
+namespace boost::uuids {
+struct uuid;
+}
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl::strong_typedef {
@@ -85,6 +89,10 @@ WriteToStream(const T& value, StringBuilder& sw) {
     if constexpr (meta::kIsMap<T>) {
         impl::WriteToStreamDict(value, sw);
     } else if constexpr (meta::kIsRange<T>) {
+        static_assert(
+            !std::is_same_v<T, boost::uuids::uuid>,
+            "Include <userver/formats/serialize/boost_uuid.hpp> to serialize 'boost::uuids::uuid"
+        );
         static_assert(
             !meta::kIsRecursiveRange<T>,
             "Trying to log a recursive range, which can be dangerous. "

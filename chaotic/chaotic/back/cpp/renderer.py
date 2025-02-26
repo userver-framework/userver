@@ -110,7 +110,8 @@ def cpp_struct_is_strict_parsing(struct: cpp_types.CppStruct) -> bool:
 
 def make_env() -> jinja2.Environment:
     env = jinja_env.make_env(
-        'chaotic/chaotic/back/cpp', os.path.join(PARENT_DIR),
+        'chaotic/chaotic/back/cpp',
+        os.path.join(PARENT_DIR),
     )
 
     env.globals['enumerate'] = enumerate
@@ -168,7 +169,8 @@ class OneToOneFileRenderer:
         result = set()
 
         def visitor(
-            schema: types.Schema, _parent: Optional[types.Schema],
+            schema: types.Schema,
+            _parent: Optional[types.Schema],
         ) -> None:
             if not isinstance(schema, types.Ref):
                 return
@@ -200,9 +202,7 @@ class OneToOneFileRenderer:
         local_pair_header=True,
         pair_header: Optional[str] = None,
     ) -> List[CppOutput]:
-        files: Dict[str, Dict[str, cpp_types.CppType]] = (
-            collections.defaultdict(dict)
-        )
+        files: Dict[str, Dict[str, cpp_types.CppType]] = collections.defaultdict(dict)
 
         for name, type_ in types.items():
             assert type_.json_schema
@@ -225,7 +225,8 @@ class OneToOneFileRenderer:
         output = []
         for filepath_wo_ext, types_cpp in files.items():
             external_includes = self.extract_external_includes(
-                types_cpp, filepath_wo_ext,
+                types_cpp,
+                filepath_wo_ext,
             )
 
             if pair_header:
@@ -248,7 +249,8 @@ class OneToOneFileRenderer:
             tpl = JINJA_ENV.get_template('templates/type_fwd.hpp.jinja')
             fwd_hpp = tpl.render(types=types_cpp)
             fwd_hpp = cpp_format.format_pp(
-                fwd_hpp, binary=self._clang_format_bin,
+                fwd_hpp,
+                binary=self._clang_format_bin,
             )
 
             tpl = JINJA_ENV.get_template('templates/type.hpp.jinja')
@@ -258,7 +260,8 @@ class OneToOneFileRenderer:
             tpl = JINJA_ENV.get_template('templates/type_parsers.ipp.jinja')
             parsers_ipp = tpl.render(**env)
             parsers_ipp = cpp_format.format_pp(
-                parsers_ipp, binary=self._clang_format_bin,
+                parsers_ipp,
+                binary=self._clang_format_bin,
             )
 
             tpl = JINJA_ENV.get_template('templates/type.cpp.jinja')
@@ -270,10 +273,14 @@ class OneToOneFileRenderer:
                     filepath_wo_ext=filepath_wo_ext,
                     files=[
                         CppOutputFile(
-                            content=fwd_hpp, ext='_fwd.hpp', subdir='include/',
+                            content=fwd_hpp,
+                            ext='_fwd.hpp',
+                            subdir='include/',
                         ),
                         CppOutputFile(
-                            content=hpp, ext='.hpp', subdir='include/',
+                            content=hpp,
+                            ext='.hpp',
+                            subdir='include/',
                         ),
                         CppOutputFile(
                             content=parsers_ipp,

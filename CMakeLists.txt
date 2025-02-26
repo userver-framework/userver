@@ -7,6 +7,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0028 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 project(userver)
@@ -18,6 +19,9 @@ option(
     "Prepare build of userver to install in system"
     OFF
 )
+if(CMAKE_VERSION GREATER_EQUAL 3.31)
+  cmake_policy(SET CMP0177 NEW)
+endif()
 
 set(USERVER_AVAILABLE_COMPONENTS universal)
 
@@ -74,12 +78,8 @@ if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS)
 endif()
 
 set(USERVER_MONGODB_DEFAULT OFF)
-set(USERVER_CLICKHOUSE_DEFAULT OFF)
-if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS AND USERVER_BUILD_PLATFORM_X86)
-  if(NOT CMAKE_SYSTEM_NAME MATCHES "BSD")
-    set(USERVER_MONGODB_DEFAULT ON)
-  endif()
-  set(USERVER_CLICKHOUSE_DEFAULT ON)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS AND NOT CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(USERVER_MONGODB_DEFAULT ON)
 endif()
 
 set(USERVER_YDB_DEFAULT OFF)
@@ -133,7 +133,7 @@ option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" "${USER
 option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_CLICKHOUSE_DEFAULT}")
+option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_KAFKA "Provide asynchronous driver for Apache Kafka" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
@@ -144,6 +144,28 @@ option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB
 set(CMAKE_DEBUG_POSTFIX d)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+if(USERVER_CONAN AND NOT DEFINED CMAKE_FIND_PACKAGE_PREFER_CONFIG)
+  set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+endif()
+
+set(USERVER_USE_STATIC_LIBS_DEFAULT OFF)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0)
+  set(USERVER_USE_STATIC_LIBS_DEFAULT ON)
+endif()
+option(USERVER_USE_STATIC_LIBS "Tries to find all dependencies as static libraries" "${USERVER_USE_STATIC_LIBS_DEFAULT}")
+
+if(USERVER_USE_STATIC_LIBS)
+  if(USERVER_USE_STATIC_LIBS_DEFAULT)
+    set(_use_static_log_level STATUS)
+  else()
+    set(_use_static_log_level WARNING)
+  endif()
+  message(
+    ${_use_static_log_level}
+    "USERVER_USE_STATIC_LIBS turned ON, prioritized to find static libraries. Not all dependencies may be taken into account and linkage may be broken")
+endif()
+include(UserverPreferStaticLibs)
+
 include(UserverSetupEnvironment)
 userver_setup_environment()
 
@@ -205,7 +227,7 @@ endif()
 if (USERVER_FEATURE_POSTGRESQL)
   _require_userver_core("USERVER_FEATURE_POSTGRESQL")
   add_subdirectory(postgresql)
-  list(APPEND USERVER_AVAILABLE_COMPONENTS postgres)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS postgresql)
 endif()
 
 if (USERVER_FEATURE_REDIS)
@@ -282,6 +304,19 @@ endif()
 
 if(USERVER_INSTALL)
   include(cmake/UserverPack.cmake)
+endif()
+
+if(USERVER_FEATURE_CORE)
+  _userver_directory_install(
+      COMPONENT core
+      PROGRAMS "${USERVER_ROOT_DIR}/scripts/userver-create-service"
+      DESTINATION ${CMAKE_INSTALL_BINDIR}/
+  )
+  _userver_directory_install(
+      COMPONENT core
+      DIRECTORY "${USERVER_ROOT_DIR}/service_template"
+      DESTINATION ${CMAKE_INSTALL_DATADIR}/userver/
+  )
 endif()
 
 _userver_print_features_list()

@@ -38,7 +38,5 @@ async def test_metrics(monitor_client, load):
     )
 
     assert all_metrics == ethalon, (
-        '\n===== Service metrics start =====\n'
-        f'{all_metrics}\n'
-        '===== Service metrics end =====\n'
+        f'\n===== Service metrics start =====\n{all_metrics}\n===== Service metrics end =====\n'
     )

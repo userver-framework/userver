@@ -10,7 +10,6 @@ libboost-filesystem1.65-dev
 libboost-iostreams1.65-dev
 libboost-locale1.65-dev
 libboost-program-options1.65-dev
-libboost-regex1.65-dev
 libboost-stacktrace1.65-dev
 libboost1.65-dev
 libbson-dev
@@ -24,13 +23,15 @@ libhiredis-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
-librdkafka-dev
+liblzma-dev
 libmongoc-dev
 libnghttp2-dev
 libpq-dev=10.*
 libpq5=10.*
 libprotoc-dev
 libpugixml-dev
+librdkafka-dev
+libre2-dev
 libsasl2-dev
 libssl-dev
 libyaml-cpp-dev

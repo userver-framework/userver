@@ -1,5 +1,7 @@
 #include <server/http/handler_method_index.hpp>
 
+#include <userver/utils/algo.hpp>
+
 #include <stdexcept>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,11 +41,14 @@ void HandlerMethodIndex::AddHandlerInfoData(HttpMethod method, HandlerInfoData& 
     if (pmethods_[index]) {
         const auto& new_handler = handler_info_data.handler_info.handler;
         const auto& old_handler = pmethods_[index]->handler_info.handler;
-        throw std::runtime_error(
-            "duplicate handler method+path: method=" + ToString(method) +
-            " path1=" + std::get<std::string>(new_handler.GetConfig().path) +
-            " path2=" + std::get<std::string>(old_handler.GetConfig().path)
-        );
+        throw std::runtime_error(utils::StrCat(
+            "duplicate handler method+path: method=",
+            ToString(method),
+            " path1=",
+            std::get<std::string>(new_handler.GetConfig().path),
+            " path2=",
+            std::get<std::string>(old_handler.GetConfig().path)
+        ));
     }
     pmethods_[index] = &handler_info_data;
 }

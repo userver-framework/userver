@@ -124,8 +124,10 @@ SnapshotData::SnapshotData(const DocsMap& defaults, const std::vector<KeyValue>&
             try {
                 user_configs_[id] = metadata.factory(defaults);
             } catch (const std::exception& ex) {
+                const auto name =
+                    metadata.name.empty() ? "with custom DocsMap parser" : std::string_view{metadata.name};
                 throw ConfigParseError(fmt::format(
-                    "{} while parsing dynamic config values. {}", compiler::GetTypeName(typeid(ex)), ex.what()
+                    "{} while parsing dynamic config {}. {}", compiler::GetTypeName(typeid(ex)), name, ex.what()
                 ));
             }
         }

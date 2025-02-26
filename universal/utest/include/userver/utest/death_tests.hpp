@@ -36,8 +36,8 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define UEXPECT_DEATH(statement, message)                                            \
+#define UEXPECT_DEATH(statement, regex_or_matcher)                                   \
     for (USERVER_NAMESPACE::utest::impl::DeathTestScope utest_impl_death_test_scope; \
          utest_impl_death_test_scope.ShouldKeepIterating();                          \
          utest_impl_death_test_scope.StopIterating())                                \
-    EXPECT_DEATH(statement, message)
+    EXPECT_DEATH(statement, regex_or_matcher)

@@ -13,10 +13,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class NoopLogger : public logging::impl::LoggerBase {
+class NoopLogger : public logging::impl::TextLogger {
 public:
-    NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
-    void Log(logging::Level, std::string_view) override {}
+    NoopLogger() noexcept : TextLogger(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
+    void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
     void Flush() override {}
 };
 
@@ -26,7 +26,7 @@ public:
         writer.PutTag("aaaaaaaaaaaaaaaaaa", "value");
         writer.PutTag("bbbbbbbbbb", 42);
         writer.PutTag("ccccccccccccccccccccccc", 42.0);
-        writer.PutTag("dddddddddddddddd", std::chrono::milliseconds{42});
+        writer.PutTag("dddddddddddddddd", 42LL);
         writer.PutTag("eeeeeeeee", true);
         writer.PutTag("ffffffffffffffffffffff", "foo");
         writer.PutTag("gggggggggggggggggggg", "bar");

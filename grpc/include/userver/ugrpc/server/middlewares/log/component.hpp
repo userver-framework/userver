@@ -42,7 +42,7 @@ struct Settings;
 
 // clang-format on
 
-class Component final : public MiddlewareComponentBase {
+class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of ugrpc::server::middlewares::log::Component
@@ -52,14 +52,21 @@ public:
 
     ~Component() override;
 
-    std::shared_ptr<MiddlewareBase> GetMiddleware() override;
-
     static yaml_config::Schema GetStaticConfigSchema();
 
-private:
-    const utils::Box<Settings> settings_;
+    yaml_config::Schema GetMiddlewareConfigSchema() const override;
+
+    std::shared_ptr<MiddlewareBase>
+    CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::log
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::log::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::log::Component> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

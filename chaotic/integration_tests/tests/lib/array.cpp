@@ -7,6 +7,7 @@
 #include <userver/chaotic/array.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/validators.hpp>
+#include <userver/formats/json.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,7 +38,9 @@ TEST(Array, OfIntWithValidators) {
 
     const auto kJson1 = formats::json::MakeArray("foo");
     UEXPECT_THROW_MSG(
-        kJson1.As<Arr>(), chaotic::Error, "Error at path '/': Too short array, minimum length=2, given=1"
+        kJson1.As<Arr>(),
+        chaotic::Error<formats::json::Value>,
+        "Error at path '/': Too short array, minimum length=2, given=1"
     );
 }
 

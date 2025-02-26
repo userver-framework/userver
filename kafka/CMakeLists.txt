@@ -1,19 +1,14 @@
 project(userver-kafka CXX)
 
 if(USERVER_CONAN)
-  find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
-  find_package(CURL REQUIRED)
-  find_package(libz REQUIRED)
   find_package(RdKafka REQUIRED)
-  set_target_properties(RdKafka::rdkafka PROPERTIES IMPORTED_GLOBAL TRUE)
-  add_library(RdKafka ALIAS RdKafka::rdkafka)
 else()
   include(SetupRdKafka)
 endif()
 
 userver_module(kafka
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-  LINK_LIBRARIES_PRIVATE RdKafka sasl2 libz libzstd lz4::lz4 CURL::libcurl OpenSSL::SSL OpenSSL::Crypto
+  LINK_LIBRARIES_PRIVATE RdKafka::rdkafka
   DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
   DBTEST_LINK_LIBRARIES userver::kafka-utest
   DBTEST_DATABASES kafka
@@ -36,9 +31,15 @@ endif()
 
 _userver_directory_install(COMPONENT kafka
     FILES
+    "${USERVER_ROOT_DIR}/cmake/SetupRdKafka.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+)
+
+_userver_directory_install(COMPONENT kafka
+    FILES
     "${USERVER_ROOT_DIR}/cmake/modules/FindRdKafka.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findlibz.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findlz4.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindSASL2.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
 

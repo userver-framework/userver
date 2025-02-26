@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::impl {
 
 void ReportErrorWhileCancelling(std::string_view call_name) noexcept {
-    LOG_ERROR() << "Connection error while cancelling call '" << call_name << "'";
+    LOG_WARNING() << "Connection error while cancelling call '" << call_name << "'";
 }
 
 void ThrowOnError(

@@ -21,3 +21,8 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET Snappy::snappy)
+  add_library(Snappy::snappy ALIAS libsnappy)
+  add_library(Snappy::snappy-static ALIAS libsnappy)
+endif()

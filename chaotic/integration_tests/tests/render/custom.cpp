@@ -71,9 +71,9 @@ TEST(Custom, XCppContainer) {
 }
 
 TEST(Custom, XCppType) {
-    auto json = formats::json::MakeObject("custom_array", formats::json::MakeArray("foo", "bar"));
+    auto json = formats::json::MakeObject("custom_array", formats::json::MakeArray("bar", "foo"));
     auto custom = json.As<ns::ObjWithCustom>();
-    EXPECT_EQ(custom.custom_array, (my::CustomArray<std::string>{std::set{"foo", "bar"}}));
+    EXPECT_EQ(custom.custom_array, (my::CustomArray<std::string>{std::set<std::string>{"foo", "bar"}}));
 
     auto json_back = formats::json::ValueBuilder{custom}.ExtractValue();
     EXPECT_EQ(json_back, json);

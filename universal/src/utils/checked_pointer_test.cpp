@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <gtest/gtest.h>
 
@@ -35,7 +36,7 @@ TEST(CheckedPtr, ThrowOnNull) {
     EXPECT_THROW([[maybe_unused]] auto v = empty->value, std::runtime_error);
 }
 
-TEST(CheckedPtr, Find) {
+TEST(CheckedPtr, FindMap) {
     std::map<std::string, int> m{{"foo", 0xf00}, {"bar", 0xba7}};
     std::unordered_map<std::string, int> um{{"foo", 0xf00}, {"bar", 0xba7}};
     const auto& cm = m;
@@ -51,13 +52,38 @@ TEST(CheckedPtr, Find) {
     EXPECT_FALSE(utils::CheckedFind(um, "bla"));
 
     auto mf = utils::CheckedFind(m, "foo");
-    auto umf = utils::CheckedFind(m, "bar");
+    auto umf = utils::CheckedFind(um, "bar");
 
     ASSERT_TRUE(mf);
     ASSERT_TRUE(umf);
 
     EXPECT_EQ(*mf, m["foo"]);
     EXPECT_EQ(*umf, um["bar"]);
+}
+
+TEST(CheckedPtr, FindSet) {
+    std::set<std::string> s{"foo", "bar"};
+    std::unordered_set<std::string> us{"foo", "bar"};
+    const auto& cs = s;
+    static_assert(
+        std::is_same_v<decltype(utils::CheckedFind(s, "bla")), utils::CheckedPtr<const std::string>>,
+        "Expect a `pointer` to a const key in a non-const set"
+    );
+    static_assert(
+        std::is_same_v<decltype(utils::CheckedFind(cs, "bla")), utils::CheckedPtr<const std::string>>,
+        "Expect a `pointer` to a const key in a const set"
+    );
+    EXPECT_FALSE(utils::CheckedFind(s, "bla"));
+    EXPECT_FALSE(utils::CheckedFind(us, "bla"));
+
+    auto sf = utils::CheckedFind(s, "foo");
+    auto usf = utils::CheckedFind(us, "bar");
+
+    ASSERT_TRUE(sf);
+    ASSERT_TRUE(usf);
+
+    EXPECT_EQ(*sf, "foo");
+    EXPECT_EQ(*usf, "bar");
 }
 
 TEST(CheckedPtr, PointerToPointer) {

@@ -174,6 +174,8 @@ public:
 
     /// @brief Execute a statement at host of specified type.
     /// @note You must specify at least one role from ClusterHostType here
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
     /// @snippet storages/postgres/tests/landing_test.cpp Exec sample
     ///
@@ -186,6 +188,8 @@ public:
     /// @brief Execute a statement with specified host selection rules and command
     /// control settings.
     /// @note You must specify at least one role from ClusterHostType here
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments
@@ -195,6 +199,8 @@ public:
 
     /// @brief Execute a statement with stored arguments and specified host
     /// selection rules.
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments
@@ -203,6 +209,8 @@ public:
 
     /// @brief Execute a statement with stored arguments, specified host selection
     /// rules and command control settings.
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments

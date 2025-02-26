@@ -102,7 +102,7 @@ public:
 protected:
     ugrpc::impl::RpcStatisticsScope& GetStatistics() { return params_.statistics; }
 
-    logging::LoggerRef AccessTskvLogger() { return params_.access_tskv_logger; }
+    logging::TextLoggerRef AccessTskvLogger() { return params_.access_tskv_logger; }
 
     void LogFinish(grpc::Status status) const;
 
