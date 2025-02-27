@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <unordered_map>
 
 #include <librdkafka/rdkafka.h>
 
@@ -21,6 +22,9 @@ class Configuration;
 
 class ProducerImpl final {
 public:
+    using Headers = std::unordered_map<std::string, std::string>;
+
+public:
     explicit ProducerImpl(Configuration&& configuration);
 
     const Stats& GetStats() const;
@@ -31,6 +35,7 @@ public:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
+        const Headers& headers,
         std::optional<std::uint32_t> partition
     ) const;
 
@@ -51,6 +56,7 @@ private:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
+        const Headers& headers,
         std::optional<std::uint32_t> partition
     ) const;
 

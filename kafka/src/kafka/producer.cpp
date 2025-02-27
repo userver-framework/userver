@@ -86,11 +86,16 @@ void Producer::Send(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
+    Headers headers,
     std::optional<std::uint32_t> partition
 ) const {
-    utils::Async(producer_task_processor_, "producer_send", [this, &topic_name, key, message, partition] {
-        SendImpl(topic_name, key, message, partition);
-    }).Get();
+    utils::Async(
+        producer_task_processor_,
+        "producer_send",
+        [this, &topic_name, key, message, headers = std::move(headers), partition] {
+            SendImpl(topic_name, key, headers, message, headers, partition);
+        }
+    ).Get();
 }
 
 engine::TaskWithResult<void> Producer::SendAsync(
@@ -102,9 +107,12 @@ engine::TaskWithResult<void> Producer::SendAsync(
     return utils::Async(
         producer_task_processor_,
         "producer_send_async",
-        [this, topic_name = std::move(topic_name), key = std::move(key), message = std::move(message), partition] {
-            SendImpl(topic_name, key, message, partition);
-        }
+        [this,
+         topic_name = std::move(topic_name),
+         key = std::move(key),
+         message = std::move(message),
+         headers = std::move(headers),
+         partition] { SendImpl(topic_name, key, message, headers, partition); }
     );
 }
 
@@ -114,11 +122,12 @@ void Producer::SendImpl(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
+    const Headers& headers,
     std::optional<std::uint32_t> partition
 ) const {
     tracing::Span::CurrentSpan().AddTag("kafka_producer", name_);
 
-    const impl::DeliveryResult delivery_result = producer_->Send(topic_name, key, message, partition);
+    const impl::DeliveryResult delivery_result = producer_->Send(topic_name, key, message, headers, partition);
     if (!delivery_result.IsSuccess()) {
         ThrowSendError(delivery_result);
     }

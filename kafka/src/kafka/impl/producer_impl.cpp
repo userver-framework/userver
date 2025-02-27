@@ -126,10 +126,11 @@ DeliveryResult ProducerImpl::Send(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
+    const Headers& headers,
     std::optional<std::uint32_t> partition
 ) const {
     LOG_INFO() << fmt::format("Message to topic '{}' is requested to send", topic_name);
-    auto delivery_result_future = ScheduleMessageDelivery(topic_name, key, message, partition);
+    auto delivery_result_future = ScheduleMessageDelivery(topic_name, key, message, headers, partition);
 
     WaitUntilDeliveryReported(delivery_result_future);
 
@@ -140,6 +141,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
+    const Headers& headers,
     std::optional<std::uint32_t> partition
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
@@ -173,6 +175,18 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
 #endif
 
+    // We assume that message takes ownership of headers, if rd_kafka_producev()
+    // succeeded. See rd_kafka RD_KAFKA_V_HEADERS reference for details
+    struct KafkaHeaders final {
+        using Ptr = std::unique_ptr<rd_kafka_headers_t, KafkaHeaders>;
+        void operator()(rd_kafka_headers_t* headers) const { rd_kafka_headers_destroy(headers); }
+    };
+
+    KafkaHeaders::Ptr kafka_headers{rd_kafka_headers_new(headers.size())};
+    for (const auto& [header, value] : headers) {
+        rd_kafka_header_add(kafka_headers.get(), header.c_str(), header.size(), value.c_str(), value.size());
+    }
+
     // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
     const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
         producer_.GetHandle(),
@@ -180,6 +194,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
         RD_KAFKA_V_KEY(key.data(), key.size()),
         RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
         RD_KAFKA_V_MSGFLAGS(0),
+        RD_KAFKA_V_HEADERS(kafka_headers.get()),
         RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
         RD_KAFKA_V_OPAQUE(waiter.get()),
         RD_KAFKA_V_END
@@ -191,6 +206,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #endif
 
     if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
+        [[maybe_unused]] const auto released = kafka_headers.release();
         [[maybe_unused]] auto _ = waiter.release();
     } else {
         LOG_WARNING(
