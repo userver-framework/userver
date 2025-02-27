@@ -182,6 +182,8 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(subscribe_sentinel_);
+    UASSERT(sentinel_->ShardsCount() != 0);
+    UASSERT(sentinel_->IsInClusterMode());
 }
 
 }  // namespace storages::redis::utest::impl
