@@ -18,6 +18,13 @@ namespace kafka::impl {
 
 namespace {
 
+// We assume that message takes ownership of headers, if rd_kafka_producev()
+// succeeded. See rd_kafka RD_KAFKA_V_HEADERS reference for details
+struct KafkaHeaders final {
+    using Ptr = std::unique_ptr<rd_kafka_headers_t, KafkaHeaders>;
+    void operator()(rd_kafka_headers_t* headers) const { rd_kafka_headers_destroy(headers); }
+};
+
 std::chrono::milliseconds GetMessageLatency(const rd_kafka_message_t* message) {
     const std::chrono::microseconds message_latency_micro{rd_kafka_message_latency(message)};
 
@@ -126,11 +133,11 @@ DeliveryResult ProducerImpl::Send(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
-    const Headers& headers,
-    std::optional<std::uint32_t> partition
+    std::optional<std::uint32_t> partition,
+    const Headers& headers
 ) const {
     LOG_INFO() << fmt::format("Message to topic '{}' is requested to send", topic_name);
-    auto delivery_result_future = ScheduleMessageDelivery(topic_name, key, message, headers, partition);
+    auto delivery_result_future = ScheduleMessageDelivery(topic_name, key, message, partition, headers);
 
     WaitUntilDeliveryReported(delivery_result_future);
 
@@ -141,8 +148,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
-    const Headers& headers,
-    std::optional<std::uint32_t> partition
+    std::optional<std::uint32_t> partition,
+    const Headers& headers
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
     auto wait_handle = waiter->GetFuture();
@@ -175,16 +182,11 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
 #endif
 
-    // We assume that message takes ownership of headers, if rd_kafka_producev()
-    // succeeded. See rd_kafka RD_KAFKA_V_HEADERS reference for details
-    struct KafkaHeaders final {
-        using Ptr = std::unique_ptr<rd_kafka_headers_t, KafkaHeaders>;
-        void operator()(rd_kafka_headers_t* headers) const { rd_kafka_headers_destroy(headers); }
-    };
-
     KafkaHeaders::Ptr kafka_headers{rd_kafka_headers_new(headers.size())};
-    for (const auto& [header, value] : headers) {
-        rd_kafka_header_add(kafka_headers.get(), header.c_str(), header.size(), value.c_str(), value.size());
+    for (const auto& header : headers) {
+        rd_kafka_header_add(
+            kafka_headers.get(), header.name.c_str(), header.name.size(), header.value.c_str(), header.value.size()
+        );
     }
 
     // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)

@@ -3,10 +3,10 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
-#include <unordered_map>
 
 #include <librdkafka/rdkafka.h>
 
+#include <userver/kafka/headers.hpp>
 #include <userver/kafka/impl/stats.hpp>
 #include <userver/utils/periodic_task.hpp>
 
@@ -22,9 +22,6 @@ class Configuration;
 
 class ProducerImpl final {
 public:
-    using Headers = std::unordered_map<std::string, std::string>;
-
-public:
     explicit ProducerImpl(Configuration&& configuration);
 
     const Stats& GetStats() const;
@@ -35,8 +32,8 @@ public:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        const Headers& headers,
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        const Headers& headers
     ) const;
 
     /// @brief Waits until scheduled messages are delivered for
@@ -56,8 +53,8 @@ private:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        const Headers& headers,
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        const Headers& headers
     ) const;
 
     /// @brief Poll a delivery or error event from producer's queue.

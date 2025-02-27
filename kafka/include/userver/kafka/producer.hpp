@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <unordered_map>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/kafka/exceptions.hpp>
+#include <userver/kafka/headers.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
@@ -45,9 +45,6 @@ struct Secret;
 ///
 /// @see https://docs.confluent.io/platform/current/clients/producer.html
 class Producer final {
-public:
-    using Headers = std::unordered_map<std::string, std::string>;
-
 public:
     /// @brief Creates the Kafka Producer.
     ///
@@ -99,8 +96,8 @@ public:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        Headers headers = {},
-        std::optional<std::uint32_t> partition = std::nullopt
+        std::optional<std::uint32_t> partition = std::nullopt,
+        const Headers& headers = {}
     ) const;
 
     /// @brief Same as Producer::Send, but returns the task which can be
@@ -116,8 +113,8 @@ public:
         std::string topic_name,
         std::string key,
         std::string message,
-        Headers headers = {},
-        std::optional<std::uint32_t> partition = std::nullopt
+        std::optional<std::uint32_t> partition = std::nullopt,
+        Headers headers = {}
     ) const;
 
     /// @brief Dumps per topic messages produce statistics. No expected to be
@@ -130,8 +127,8 @@ private:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        Headers headers = {},
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        const Headers& headers
     ) const;
 
 private:
