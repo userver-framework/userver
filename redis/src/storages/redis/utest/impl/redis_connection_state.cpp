@@ -173,6 +173,8 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         KeyShardFactory{storages::redis::impl::kRedisCluster}
     );
     sentinel_->WaitConnectedDebug();
+    UASSERT(sentinel_->ShardsCount() != 0);
+    UASSERT(sentinel_->IsInClusterMode());
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
     subscribe_sentinel_ = storages::redis::impl::SubscribeSentinel::Create(
