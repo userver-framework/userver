@@ -1069,7 +1069,10 @@ void ClusterSentinelImpl::EnqueueCommand(const SentinelCommand& command) {
 
 size_t ClusterSentinelImpl::ShardsCount() const {
     const auto ptr = topology_holder_->GetTopology();
-    return ptr->GetShardsCount();
+    UASSERT(ptr);
+    const auto res = ptr->GetShardsCount();
+    UASSERT(res != 0);
+    return res;
 }
 
 size_t ClusterSentinelImpl::GetClusterSlotsCalledCounter() {
