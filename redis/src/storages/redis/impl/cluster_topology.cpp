@@ -14,7 +14,7 @@ ClusterTopology::ClusterTopology(
     const NodesStorage& nodes
 )
     : infos_(std::move(infos)), version_(version), timestamp_(timestamp) {
-    slot_to_shard_.fill(kUnknownShard);
+    slot_to_shard_.fill(static_cast<uint16_t>(kUnknownShard));
     {
         size_t all_instances_count = 0;
         for (const auto& info : infos_) {
