@@ -831,7 +831,7 @@ std::unordered_map<ServerId, size_t, ServerIdHasher> ClusterSentinelImpl::GetAva
 
 void ClusterSentinelImpl::WaitConnectedDebug(bool /*allow_empty_slaves*/) {
     const RedisWaitConnected wait_connected{
-        WaitConnectedMode::kMasterAndSlave, false, kRedisWaitConnectedDefaultTimeout};
+        WaitConnectedMode::kMasterAndSlave, true, std::chrono::seconds(110)};
     WaitConnectedOnce(wait_connected);
 }
 
