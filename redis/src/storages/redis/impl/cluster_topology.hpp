@@ -46,7 +46,13 @@ public:
     );
     ~ClusterTopology();
 
-    size_t GetShardIndexBySlot(uint16_t slot) const { return slot_to_shard_.at(slot); }
+    size_t GetShardIndexBySlot(uint16_t slot) const {
+      const auto shard = slot_to_shard_.at(slot);
+      if (shard == static_cast<uint16_t>(kUnknownShard)) {
+        return kUnknownShard;
+      }
+      return kUnknownShard;
+    }
 
     std::optional<size_t> GetShardByHostPort(const std::string& host_port) const {
         auto it = host_port_to_shard_.find(host_port);
