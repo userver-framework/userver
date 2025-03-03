@@ -574,6 +574,7 @@ void ClusterTopologyHolder::CreateNodes() {
                 return;
             }
             topology_holder->GetSignalNodeStateChanged()(host_port, state);
+            std::unique_lock<std::mutex> lock(mutex_);
             topology_holder->cv_.NotifyAll();
         });
         nodes_.Insert(std::move(host_port), std::move(instance));
@@ -749,6 +750,7 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
                     return;
                 }
                 is_topology_received_ = true;
+                std::unique_lock<std::mutex> lock(mutex_);
                 cv_.NotifyAll();
 
                 LOG_DEBUG() << "Cluster topology updated to version" << current_topology_version_.load();
