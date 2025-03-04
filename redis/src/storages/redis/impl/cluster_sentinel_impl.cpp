@@ -508,6 +508,7 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply, Node
 
 void ClusterTopologyHolder::ExploreNodes() {
     /// Call cluster nodes, parse, prepare list of new hosts to create
+    UASSERT(sentinels_);
     if (!sentinels_) {
         return;
     }
@@ -518,6 +519,7 @@ void ClusterTopologyHolder::ExploreNodes() {
 
         if (ParseClusterNodesResponse(reply, host_ports) != ClusterNodesResponseStatus::kOk) {
             LOG_WARNING() << "Failed to parse CLUSTER NODES response";
+            UASSERT_MSG(false, "Failed to parse CLUSTER NODES response");
             return;
         }
 
@@ -526,6 +528,7 @@ void ClusterTopologyHolder::ExploreNodes() {
                 host_ports_to_create.insert(host_port.ip);
             }
         }
+        UASSERT(!host_ports.empty());
         if (!host_ports.empty()) {
             for (const auto& [ip, fqdn] : host_ports) {
                 if (!fqdn.has_value()) {
@@ -547,6 +550,7 @@ void ClusterTopologyHolder::ExploreNodes() {
             }
         }
 
+        UASSERT(!host_ports_to_create.empty());
         if (!host_ports_to_create.empty()) {
             {
                 auto ptr = nodes_to_create_.Lock();
