@@ -15,6 +15,7 @@ ClusterTopology::ClusterTopology(
 )
     : infos_(std::move(infos)), version_(version), timestamp_(timestamp) {
     {
+        UASSERT(!infos_.empty());
         size_t all_instances_count = 0;
         for (const auto& info : infos_) {
             /// +1 for master
