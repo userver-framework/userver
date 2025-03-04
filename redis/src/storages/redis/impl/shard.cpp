@@ -202,6 +202,7 @@ bool Shard::AsyncCommand(CommandPtr command) {
 
     std::shared_lock lock(mutex_);  // protects instances_ and destroying_
     if (destroying_) return false;
+    UASSERT(!instances_.empty());
 
     const CommandControlImpl cc{command->control};
     const auto& available_servers =
