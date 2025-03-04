@@ -174,6 +174,8 @@ void StandaloneTopologyHolder::CreateNode() {
                 return;
             }
             topology_holder->GetSignalNodeStateChanged()(host_port, state);
+            { std::lock_guard lock{topology_holder->mutex_}; }
+            topology_holder->cv_.NotifyAll();
         });
 
         NodesStorage nodes;
@@ -191,7 +193,6 @@ void StandaloneTopologyHolder::CreateNode() {
     }
 
     signal_topology_changed_(1);
-    cv_.NotifyAll();
 }
 
 void StandaloneTopologyHolder::UpdatePassword(const Password& password) {
