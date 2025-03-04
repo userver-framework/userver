@@ -709,16 +709,19 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
             const auto deferred = utils::FastScopeGuard([&]() noexcept { ++cluster_slots_call_counter_; });
             if (is_non_cluster_error) {
                 LOG_DEBUG() << "Non cluster error: shard_infos.size(): " << shard_infos.size();
+                UASSERT_MSG(false, "Redis must be in cluster mode");
                 throw std::runtime_error("Redis must be in cluster mode");
             }
             if (shard_infos.empty()) {
                 LOG_WARNING() << "Received empty topology";
+                UASSERT_MSG(false, "Received empty topology");
                 return;
             }
 
             if (!CheckQuorum(requests_sent, responses_parsed)) {
                 LOG_WARNING() << "Too many 'cluster slots' requests failed: requests_sent=" << requests_sent
                               << " responses_parsed=" << responses_parsed;
+                UASSERT_MSG(false, fmt::format("Too many 'cluster slots' requests failed: requests_sent={} responses_parsed={}", requests_sent, responses_parsed));
                 return;
             }
 
