@@ -559,7 +559,8 @@ void ClusterTopologyHolder::ExploreNodes() {
             create_nodes_watch_.Send();
         }
     });
-    sentinels_->AsyncCommand(cmd);
+    const auto res = sentinels_->AsyncCommand(cmd);
+    UASSERT(res);
 }
 
 void ClusterTopologyHolder::CreateNodes() {
