@@ -379,7 +379,9 @@ public:
     }
 
     std::string GetReadinessInfo() const override {
-        return fmt::format("Nodes received: {}; topology received: {}.", is_nodes_received_, is_topology_received_);
+        return fmt::format(
+            "Nodes received: {}; topology received: {}.", is_nodes_received_.load(), is_topology_received_.load()
+        );
     }
 
 private:

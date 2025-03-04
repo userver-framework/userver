@@ -1,4 +1,7 @@
 #include <storages/redis/impl/standalone_topology_holder.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -206,7 +209,7 @@ Password StandaloneTopologyHolder::GetPassword() {
 }
 
 std::string StandaloneTopologyHolder::GetReadinessInfo() const {
-    return fmt::format("Nodes received: {}.", is_nodes_received_);
+    return fmt::format("Nodes received: {}.", is_nodes_received_.load());
 }
 
 }  // namespace storages::redis::impl
