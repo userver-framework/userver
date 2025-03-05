@@ -70,6 +70,7 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
     settings.discard_on_connect = config["discard-all-on-connect"].template As<bool>(true)
                                       ? ConnectionSettings::kDiscardAll
                                       : ConnectionSettings::kDiscardNone;
+    settings.deadline_propagation_enabled = config["deadline-propagation-enabled"].template As<bool>(true);
 
     return settings;
 }

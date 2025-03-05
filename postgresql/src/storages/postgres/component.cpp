@@ -268,6 +268,10 @@ properties:
         type: boolean
         description: execute discard all on new connections
         defaultDescription: true
+    deadline-propagation-enabled:
+        type: boolean
+        description: whether statement timeout is affected by deadline propagation
+        defaultDescription: true
     monitoring-dbalias:
         type: string
         description: name of the database for monitorings

@@ -676,7 +676,7 @@ TimeoutDuration ConnectionImpl::CurrentNetworkTimeout() const {
 
 void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
-    if (IsPipelineActive()) {
+    if (IsPipelineActive() && settings_.deadline_propagation_enabled) {
         timeout = AdjustTimeout(timeout, deadline_propagation_is_active_);
     }
     if (current_statement_timeout_ != timeout) {
@@ -689,7 +689,7 @@ void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engi
 
 void ConnectionImpl::SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
-    if (IsPipelineActive()) {
+    if (IsPipelineActive() && settings_.deadline_propagation_enabled) {
         timeout = AdjustTimeout(timeout, deadline_propagation_is_active_);
     }
     if (current_statement_timeout_ != timeout) {

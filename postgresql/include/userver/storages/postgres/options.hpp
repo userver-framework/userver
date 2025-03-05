@@ -253,6 +253,8 @@ struct ConnectionSettings {
     /// Execute discard all after establishing a new connection
     DiscardOnConnectOptions discard_on_connect = kDiscardAll;
 
+    bool deadline_propagation_enabled = true;
+
     /// Helps keep track of the changes in settings
     SettingsVersion version{0U};
 

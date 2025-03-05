@@ -24,9 +24,6 @@ void CheckDeadlineIsExpired(const dynamic_config::Snapshot& config) {
 
 TimeoutDuration AdjustTimeout(TimeoutDuration timeout, bool& adjusted) {
     adjusted = false;
-    if (!USERVER_NAMESPACE::utils::impl::kPgDeadlinePropagationExperiment.IsEnabled()) {
-        return timeout;
-    }
 
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
     if (!inherited_deadline.IsReachable()) return timeout;

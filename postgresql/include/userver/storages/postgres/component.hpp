@@ -136,6 +136,7 @@ namespace components {
 /// connecting_limit        | limit for concurrent establishing connections number per pool (0 - unlimited) | 0
 /// connlimit_mode          | max_connections setup mode (manual or auto), also see @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | auto
 /// error-injection         | artificial error injection settings, error_injection::Settings                | --
+/// deadline-propagation-enabled | whether deadline propagation sets statement timeout                      | true
 
 // clang-format on
 

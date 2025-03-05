@@ -55,6 +55,16 @@ TEST(UrlDecode, Invalid) {
     EXPECT_EQ("Q11", UrlDecode(str));
 }
 
+TEST(MakeQuery, MultiArgs) {
+    const http::MultiArgs multi_args = {
+        {"arg", "123"},
+        {"arg", "456"},
+        {"text", "green apple"},
+    };
+
+    EXPECT_EQ("arg=123&arg=456&text=green%20apple", http::MakeQuery(multi_args));
+}
+
 TEST(MakeUrl, InitializerList) { EXPECT_EQ("path?a=b&c=d", http::MakeUrl("path", {{"a", "b"}, {"c", "d"}})); }
 
 TEST(MakeUrl, InitializerList2) {
