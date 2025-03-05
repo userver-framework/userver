@@ -39,29 +39,38 @@ ClusterHostType Fallback(ClusterHostType ht) {
 }
 
 size_t SelectDsnIndex(
-    const topology::TopologyBase::DsnIndices& indices,
+    const topology::TopologyBase::DsnIndices& dsn_indices,
     ClusterHostTypeFlags flags,
     std::atomic<uint32_t>& rr_host_idx
 ) {
-    UASSERT(!indices.empty());
-    if (indices.empty()) {
+    UASSERT(!dsn_indices.indicies.empty());
+    UASSERT(dsn_indices.nearest.has_value());
+
+    const auto& indicies = dsn_indices.indicies;
+
+    if (indicies.empty()) {
         throw ClusterError("Cannot select host from an empty list");
     }
 
     const auto strategy_flags = flags & kClusterHostStrategyMask;
     LOG_TRACE() << "Applying " << strategy_flags << " strategy";
 
-    size_t idx_pos = 0;
     if (!strategy_flags || strategy_flags == ClusterHostType::kRoundRobin) {
-        if (indices.size() != 1) {
-            idx_pos = rr_host_idx.fetch_add(1, std::memory_order_relaxed) % indices.size();
+        size_t idx_pos = 0;
+        if (indicies.size() != 1) {
+            idx_pos = rr_host_idx.fetch_add(1, std::memory_order_relaxed) % indicies.size();
         }
-    } else if (strategy_flags != ClusterHostType::kNearest) {
-        throw LogicError(
-            fmt::format("Invalid strategy requested: {}, ensure only one is used", ToString(strategy_flags))
-        );
+        return indicies[idx_pos];
     }
-    return indices[idx_pos];
+
+    if (strategy_flags == ClusterHostType::kNearest) {
+        if (!dsn_indices.nearest.has_value()) {
+            throw ClusterError("Nearest host is unknown");
+        }
+        return dsn_indices.nearest.value();
+    }
+
+    throw LogicError(fmt::format("Invalid strategy requested: {}, ensure only one is used", ToString(strategy_flags)));
 }
 
 }  // namespace
@@ -188,8 +197,8 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     UASSERT(host_pools.size() == dsns.size());
 
     auto master_dsn_indices_it = dsn_indices_by_type->find(ClusterHostType::kMaster);
-    if (master_dsn_indices_it != dsn_indices_by_type->end() && !master_dsn_indices_it->second.empty()) {
-        auto dsn_index = master_dsn_indices_it->second.front();
+    if (master_dsn_indices_it != dsn_indices_by_type->end() && !master_dsn_indices_it->second.indicies.empty()) {
+        auto dsn_index = master_dsn_indices_it->second.indicies.front();
         UASSERT(dsn_index < dsns.size());
         cluster_stats->master.host_port = GetHostPort(dsns[dsn_index]);
         UASSERT(dsn_index < host_pools.size());
@@ -200,8 +209,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     }
 
     auto sync_slave_dsn_indices_it = dsn_indices_by_type->find(ClusterHostType::kSyncSlave);
-    if (sync_slave_dsn_indices_it != dsn_indices_by_type->end() && !sync_slave_dsn_indices_it->second.empty()) {
-        auto dsn_index = sync_slave_dsn_indices_it->second.front();
+    if (sync_slave_dsn_indices_it != dsn_indices_by_type->end() &&
+        !sync_slave_dsn_indices_it->second.indicies.empty()) {
+        auto dsn_index = sync_slave_dsn_indices_it->second.indicies.front();
         UASSERT(dsn_index < dsns.size());
         cluster_stats->sync_slave.host_port = GetHostPort(dsns[dsn_index]);
         UASSERT(dsn_index < host_pools.size());
@@ -212,9 +222,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     }
 
     auto slaves_dsn_indices_it = dsn_indices_by_type->find(ClusterHostType::kSlave);
-    if (slaves_dsn_indices_it != dsn_indices_by_type->end() && !slaves_dsn_indices_it->second.empty()) {
-        cluster_stats->slaves.reserve(slaves_dsn_indices_it->second.size());
-        for (auto dsn_index : slaves_dsn_indices_it->second) {
+    if (slaves_dsn_indices_it != dsn_indices_by_type->end() && !slaves_dsn_indices_it->second.indicies.empty()) {
+        cluster_stats->slaves.reserve(slaves_dsn_indices_it->second.indicies.size());
+        for (auto dsn_index : slaves_dsn_indices_it->second.indicies) {
             if (is_host_pool_seen[dsn_index]) continue;
 
             auto& slave_desc = cluster_stats->slaves.emplace_back();
@@ -263,7 +273,7 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostTypeFlags flags)
     if ((role_flags & ClusterHostType::kMaster) && (role_flags & ClusterHostType::kSlave)) {
         LOG_TRACE() << "Starting transaction on " << role_flags;
         auto alive_dsn_indices = topology->GetAliveDsnIndices();
-        if (alive_dsn_indices->empty()) {
+        if (alive_dsn_indices->indicies.empty()) {
             throw ClusterUnavailable("None of cluster hosts are available");
         }
         dsn_index = SelectDsnIndex(*alive_dsn_indices, flags, rr_host_idx_);
@@ -272,14 +282,14 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostTypeFlags flags)
         auto dsn_indices_by_type = topology->GetDsnIndicesByType();
         auto dsn_indices_it = dsn_indices_by_type->find(host_role);
         while (host_role != ClusterHostType::kMaster &&
-               (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.empty())) {
+               (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indicies.empty())) {
             auto fb = Fallback(host_role);
             LOG_WARNING() << "There is no pool for " << host_role << ", falling back to " << fb;
             host_role = fb;
             dsn_indices_it = dsn_indices_by_type->find(host_role);
         }
 
-        if (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.empty()) {
+        if (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indicies.empty()) {
             throw ClusterUnavailable(
                 fmt::format("Pool for {} (requested: {}) is not available", ToString(host_role), ToString(role_flags))
             );

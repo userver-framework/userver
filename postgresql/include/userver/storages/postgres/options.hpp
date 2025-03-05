@@ -108,18 +108,20 @@ USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) 
 /// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
     /// Overall timeout for a command being executed
-    TimeoutDuration execute{};
+    TimeoutDuration network_timeout_ms{};
     /// PostgreSQL server-side timeout
-    TimeoutDuration statement{};
+    TimeoutDuration statement_timeout_ms{};
 
-    constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
-        : execute(execute), statement(statement) {}
+    constexpr CommandControl(TimeoutDuration network_timeout_ms, TimeoutDuration statement_timeout_ms)
+        : network_timeout_ms(network_timeout_ms), statement_timeout_ms(statement_timeout_ms) {}
 
-    constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const noexcept { return {n, statement}; }
+    constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const noexcept { return {n, statement_timeout_ms}; }
 
-    constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const noexcept { return {execute, s}; }
+    constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const noexcept { return {network_timeout_ms, s}; }
 
-    bool operator==(const CommandControl& rhs) const { return execute == rhs.execute && statement == rhs.statement; }
+    bool operator==(const CommandControl& rhs) const {
+        return network_timeout_ms == rhs.network_timeout_ms && statement_timeout_ms == rhs.statement_timeout_ms;
+    }
 
     bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
 };

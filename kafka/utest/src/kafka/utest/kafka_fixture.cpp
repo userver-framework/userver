@@ -68,7 +68,9 @@ bool operator==(const Message& lhs, const Message& rhs) {
 
 KafkaCluster::KafkaCluster() : bootstrap_servers_(FetchBrokerList()) {}
 
-std::string KafkaCluster::GenerateTopic() { return fmt::format("tt-{}", topics_count_.fetch_add(1)); }
+std::atomic<std::size_t> KafkaCluster::kTopicsCount{0};
+
+std::string KafkaCluster::GenerateTopic() { return fmt::format("tt-{}", kTopicsCount.fetch_add(1)); }
 
 std::vector<std::string> KafkaCluster::GenerateTopics(std::size_t count) {
     std::vector<std::string> topics{count};
@@ -123,7 +125,15 @@ void KafkaCluster::SendMessages(utils::span<const Message> messages) {
     std::vector<engine::TaskWithResult<void>> results;
     results.reserve(messages.size());
     for (const auto& message : messages) {
-        results.emplace_back(producer.SendAsync(message.topic, message.key, message.payload, message.partition));
+        std::vector<HeaderView> header_views;
+        header_views.reserve(message.headers.size());
+        for (const auto& header : message.headers) {
+            header_views.push_back(HeaderView{header.GetName(), header.GetValue()});
+        }
+
+        results.emplace_back(
+            producer.SendAsync(message.topic, message.key, message.payload, message.partition, header_views)
+        );
     }
 
     engine::WaitAllChecked(results);
@@ -166,11 +176,13 @@ std::vector<Message> KafkaCluster::ReceiveMessages(
                           &user_callback,
                           commit = commit_after_receive](MessageBatchView messages) {
         for (const auto& message : messages) {
-            received_messages.push_back(Message{
+            auto reader = message.GetHeaders();
+            received_messages.emplace_back(kafka::utest::Message{
                 message.GetTopic(),
                 std::string{message.GetKey()},
                 std::string{message.GetPayload()},
-                message.GetPartition()});
+                message.GetPartition(),
+                std::vector<kafka::OwningHeader>{reader.begin(), reader.end()}});
         }
         if (user_callback) {
             (*user_callback)(messages);

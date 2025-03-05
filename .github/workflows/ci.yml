@@ -43,6 +43,22 @@ jobs:
 
                   - cmake-flags: >-
                         -GNinja
+                        -DCMAKE_CXX_COMPILER=g++-13
+                        -DCMAKE_C_COMPILER=gcc-13
+                        -DCMAKE_BUILD_TYPE=Release
+                        -DUSERVER_SANITIZE=""
+                        -DUSERVER_NO_WERROR=1
+                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_BUILD_TESTS=1
+                    os: ubuntu-24.04
+                    info: gcc-13 + release
+                    id: ubuntu24_gcc13_release
+                    tests-flags: '--gtest_filter=-StackUsageMonitorTest.BacktraceLogging'
+                    tests-env: ''
+
+                  - cmake-flags: >-
+                        -GNinja
                         -DCMAKE_CXX_COMPILER=clang++-14
                         -DCMAKE_C_COMPILER=clang-14
                         -DCMAKE_BUILD_TYPE=Debug
@@ -61,46 +77,22 @@ jobs:
                     tests-flags: ''
                     tests-env: ''
 
+                  # GCC-9 - testing minimal required compiler
                   - cmake-flags: >-
                         -GNinja
+                        -DCMAKE_CXX_COMPILER=g++-9
+                        -DCMAKE_C_COMPILER=gcc-9
                         -DCMAKE_BUILD_TYPE=Release
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_NO_WERROR=1
-                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                        -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_FORCE_DOWNLOAD_ABSEIL=0
-                        -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
-                        -DUSERVER_MONGODB_USE_CMAKE_CONFIG=0
-                    os: ubuntu-20.04
+                    os: ubuntu-22.04
                     info: g++-9 + release
-                    id: ubuntu20_gcc9_release
-                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
-                    tests-env: 'POSTGRES_PIPELINE_DISABLED=1'
-
-                  # GCC-8 - testing minimal required compiler
-                  - cmake-flags: >-
-                        -GNinja
-                        -DCMAKE_CXX_COMPILER=g++-8
-                        -DCMAKE_C_COMPILER=gcc-8
-                        -DCMAKE_BUILD_TYPE=Debug
-                        -DUSERVER_USE_LD=gold
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
-                        -DUSERVER_BUILD_SAMPLES=1
-                        -DUSERVER_BUILD_TESTS=1
-                        -DUSERVER_NO_WERROR=1
-                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                        -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_FORCE_DOWNLOAD_ABSEIL=0
-                        -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
-                        -DUSERVER_MONGODB_USE_CMAKE_CONFIG=0
-                    os: ubuntu-20.04
-                    info: g++-8 + debug
-                    id: ubuntu20_gcc8_debug
-                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
-                    tests-env: 'POSTGRES_PIPELINE_DISABLED=1'
+                    id: ubuntu22_gcc9_release
+                    tests-flags: ''
+                    tests-env: ''
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -152,18 +144,6 @@ jobs:
                 deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
                   | sudo tee /etc/apt/sources.list.d/confluent.list
 
-          - name: Install clang-format
-            if: matrix.os == 'ubuntu-20.04'
-            run: |
-                sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-                sudo apt update
-                wget https://apt.llvm.org/llvm.sh
-                chmod +x llvm.sh
-                sudo ./llvm.sh 14
-                sudo apt install -y clang-format-14
-                sudo ln -sf /usr/bin/clang-format-14 /usr/bin/clang-format
-                clang-format --version
-
           - name: Add missing repositories
             run: |
                 sudo apt update
@@ -192,42 +172,10 @@ jobs:
                 sudo apt purge -y libpq5 libpq-dev postgresql-*
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
 
-          - name: Install ccache
-            if: matrix.os == 'ubuntu-20.04'
-            run: |
-                sudo apt remove --purge -y ccache
-                git clone --depth 1 -b v4.10.2 https://github.com/ccache/ccache.git
-                cd ccache
-                cmake -S . -B build -GNinja -DENABLE_TESTING=OFF -DSTATIC_LINK=ON -DCMAKE_BUILD_TYPE=Release
-                cmake --build build -j$(nproc)
-                sudo cmake --install build
-
           - name: Setup ccache
             run: |
                 ccache -M 2.0GB
                 ccache -s -v
-
-          - name: Install grpc, protobuf and abseil
-            if: matrix.os == 'ubuntu-20.04'
-            run: |
-                sudo apt install -y ninja-build
-                git clone --recursive --depth 1 -b v1.45.0 https://github.com/grpc/grpc new_grpc
-                GRPC_BUILD_ENABLE_CCACHE=true \
-                  cmake -GNinja -S./new_grpc -B./new_grpc/build \
-                  -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON \
-                  -DgRPC_SSL_PROVIDER=package \
-                  -DgRPC_CARES_PROVIDER=package \
-                  -DgRPC_ZLIB_PROVIDER=package \
-                  -DgRPC_INSTALL=ON
-                cmake --build new_grpc/build -j$(nproc)
-                sudo cmake --install new_grpc/build
-                rm -rf new_grpc
-                ccache -s -v
-
-          - name: Install g++-8
-            if: matrix.info == 'g++-8 + debug'
-            run: |
-                sudo apt install --allow-downgrades -y g++-8
 
           - name: Install Kafka
             run: |

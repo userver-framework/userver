@@ -17,18 +17,18 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
     for (const auto& [name, val] : formats::common::Items(elem)) {
         const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
         if (name == "network_timeout_ms") {
-            result.execute = ms;
-            if (result.execute.count() <= 0) {
+            result.network_timeout_ms = ms;
+            if (result.network_timeout_ms.count() <= 0) {
                 throw InvalidConfig{
-                    "Invalid network_timeout_ms `" + std::to_string(result.execute.count()) +
+                    "Invalid network_timeout_ms `" + std::to_string(result.network_timeout_ms.count()) +
                     "` in postgres CommandControl. The timeout must be "
                     "greater than 0."};
             }
         } else if (name == "statement_timeout_ms") {
-            result.statement = ms;
-            if (result.statement.count() <= 0) {
+            result.statement_timeout_ms = ms;
+            if (result.statement_timeout_ms.count() <= 0) {
                 throw InvalidConfig{
-                    "Invalid statement_timeout_ms `" + std::to_string(result.statement.count()) +
+                    "Invalid statement_timeout_ms `" + std::to_string(result.statement_timeout_ms.count()) +
                     "` in postgres CommandControl. The timeout must be "
                     "greater than 0."};
             }

@@ -3,7 +3,9 @@
 #include <chrono>
 #include <optional>
 
+#include <userver/kafka/headers.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/null_terminated_view.hpp>
 #include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -34,6 +36,28 @@ public:
     std::optional<std::chrono::milliseconds> GetTimestamp() const;
     int GetPartition() const;
     std::int64_t GetOffset() const;
+
+    /// @note Headers are parsed only when accessed first time.
+    ///
+    /// If name `name` passed, only headers with such name returns
+    ///
+    /// Usage example:
+    ///
+    /// - All headers:
+    /// @code
+    /// for (auto header : message.GetHeaders()) { /* use ...header... */}
+    /// @endcode
+    /// - Start own headers
+    /// @code
+    /// auto reader = message.GetHeaders();
+    /// auto headers = std::vector<kafka::OwningHeader>{reader.begin(), reader.end()};
+    /// @endcode
+    HeadersReader GetHeaders() const&;
+    HeadersReader GetHeaders() && = delete;
+
+    /// @brief Returns **last** header with given name.
+    /// @warning This operation has O(N) complexity, where N == number of all message headers.
+    std::optional<std::string_view> GetHeader(utils::NullTerminatedView name) const;
 
 private:
     friend class impl::ConsumerImpl;

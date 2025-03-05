@@ -29,6 +29,9 @@ using MultiArgs = std::multimap<std::string, std::string>;
 std::string MakeQuery(const Args& query_args);
 
 /// @brief Make an URL query
+std::string MakeQuery(const MultiArgs& query_args);
+
+/// @brief Make an URL query
 std::string MakeQuery(const std::unordered_map<std::string, std::string>& query_args);
 
 /// @brief Make an URL query

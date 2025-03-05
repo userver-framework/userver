@@ -39,7 +39,8 @@ void PoolTransaction(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
 namespace storages::postgres {
 
 static void PrintTo(const CommandControl& cmd_ctl, std::ostream* os) {
-    *os << "CommandControl{execute=" << cmd_ctl.execute.count() << ", statement=" << cmd_ctl.statement.count() << '}';
+    *os << "CommandControl{network_timeout_ms=" << cmd_ctl.network_timeout_ms.count()
+        << ", statement_timeout_ms=" << cmd_ctl.statement_timeout_ms.count() << '}';
 }
 
 }  // namespace storages::postgres
@@ -605,7 +606,7 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
         query_queue.Push(kDefaultCC, "INSERT INTO qq_non_transactional_test(id) VALUES($1)", 1);
 
         std::vector<pg::ResultSet> result{};
-        EXPECT_ANY_THROW(result = query_queue.Collect(kDefaultCC.execute));
+        EXPECT_ANY_THROW(result = query_queue.Collect(kDefaultCC.network_timeout_ms));
     }
 
     const auto inserted_values = pool->Acquire(MakeDeadline())

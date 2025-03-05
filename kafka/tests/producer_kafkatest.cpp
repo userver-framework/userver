@@ -1,5 +1,6 @@
 #include <userver/kafka/utest/kafka_fixture.hpp>
 
+#include <array>
 #include <deque>
 #include <vector>
 
@@ -75,7 +76,7 @@ UTEST_F(ProducerTest, OneProducerHeadersSendAsyncMemorySafety) {
     {
         const std::vector<kafka::HeaderView> headers_vector{
             {"key-1", "value-1"}, {"key-1", "value-2"}, {"key-3", "value-3"}};
-        const std::deque<kafka::HeaderView> headers_deque{{"key-deque", "value-deque"}};
+        constexpr std::array headers_array{kafka::HeaderView{"key-deque", "value-deque"}};
         const boost::container::small_vector<kafka::HeaderView, 2> headers_small_vector{
             {"key-small", "value-big"}, {"key-big", "value-small"}};
 
@@ -83,7 +84,7 @@ UTEST_F(ProducerTest, OneProducerHeadersSendAsyncMemorySafety) {
             GenerateTopic(), "test-key", "test-msg", /*partition=*/kafka::kUnassignedPartition, headers_vector
         );
         task_deque = producer.SendAsync(
-            GenerateTopic(), "test-key", "test-msg", /*partition=*/kafka::kUnassignedPartition, headers_vector
+            GenerateTopic(), "test-key", "test-msg", /*partition=*/kafka::kUnassignedPartition, headers_array
         );
         task_small_vector = producer.SendAsync(
             GenerateTopic(), "test-key", "test-msg", /*partition=*/kafka::kUnassignedPartition, headers_small_vector

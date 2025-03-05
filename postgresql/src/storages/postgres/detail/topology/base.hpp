@@ -23,7 +23,13 @@ namespace storages::postgres::detail::topology {
 class TopologyBase {
 public:
     using DsnIndex = size_t;
-    using DsnIndices = std::vector<DsnIndex>;
+    struct DsnIndices final {
+        // all alive indicies
+        std::vector<DsnIndex> indicies{};
+
+        // index with lowest rrt
+        std::optional<DsnIndex> nearest{};
+    };
     using DsnIndicesByType = std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
 
     TopologyBase(

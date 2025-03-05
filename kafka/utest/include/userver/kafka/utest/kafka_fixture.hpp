@@ -5,6 +5,7 @@
 #include <deque>
 #include <vector>
 
+#include <userver/kafka/headers.hpp>
 #include <userver/kafka/impl/broker_secrets.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/kafka/impl/consumer.hpp>
@@ -23,7 +24,8 @@ struct Message {
     std::string topic;
     std::string key;
     std::string payload;
-    std::optional<std::uint32_t> partition;
+    std::optional<std::uint32_t> partition{};
+    std::vector<OwningHeader> headers{};
 };
 
 bool operator==(const Message& lhs, const Message& rhs);
@@ -113,7 +115,7 @@ private:
     impl::Secret AddBootstrapServers(impl::Secret secrets) const;
 
 private:
-    std::atomic<std::size_t> topics_count_{0};
+    static std::atomic<std::size_t> kTopicsCount;
 
     const std::string bootstrap_servers_;
 };

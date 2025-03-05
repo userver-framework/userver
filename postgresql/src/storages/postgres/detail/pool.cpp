@@ -343,9 +343,9 @@ NotifyScope ConnectionPool::Listen(std::string_view channel, OptionalCommandCont
 }
 
 TimeoutDuration ConnectionPool::GetExecuteTimeout(OptionalCommandControl cmd_ctl) const {
-    if (cmd_ctl) return cmd_ctl->execute;
+    if (cmd_ctl) return cmd_ctl->network_timeout_ms;
 
-    return GetDefaultCommandControl().execute;
+    return GetDefaultCommandControl().network_timeout_ms;
 }
 
 CommandControl ConnectionPool::GetDefaultCommandControl() const { return default_cmd_ctls_.GetDefaultCmdCtl(); }

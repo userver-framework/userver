@@ -1,6 +1,7 @@
 #include <userver/kafka/producer.hpp>
 
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/kafka/impl/stats.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -16,6 +17,10 @@ namespace kafka {
 
 const std::optional<std::uint32_t> kUnassignedPartition{std::nullopt};
 
+formats::json::Value Serialize(const OwningHeader& header, formats::serialize::To<formats::json::Value>) {
+    return formats::json::MakeObject("name", header.GetName(), "value", std::string{header.GetValue()});
+}
+
 namespace {
 
 constexpr std::string_view kNonUtf8MessagePlaceholder = "<non-utf8-message>";
@@ -25,7 +30,8 @@ void SendToTestPoint(
     std::string_view topic_name,
     std::string_view key,
     std::string_view message,
-    std::optional<std::uint32_t> partition
+    std::optional<std::uint32_t> partition,
+    const std::vector<OwningHeader>& headers
 ) {
     // Testpoint server does not accept non-utf8 data
     TESTPOINT(fmt::format("tp_{}", component_name), [&] {
@@ -39,6 +45,9 @@ void SendToTestPoint(
         }
         if (partition.has_value()) {
             builder["partition"] = partition.value();
+        }
+        if (!headers.empty()) {
+            builder["headers"] = headers;
         }
         return builder.ExtractValue();
     }());
@@ -128,13 +137,21 @@ void Producer::SendImpl(
 ) const {
     tracing::Span::CurrentSpan().AddTag("kafka_producer", name_);
 
+    std::vector<OwningHeader> headers_copy;
+    if (testsuite::AreTestpointsAvailable()) {
+        auto reader = HeadersReader{headers_holder.GetHandle()};
+        headers_copy = std::vector<OwningHeader>{reader.begin(), reader.end()};
+    }
+
     const impl::DeliveryResult delivery_result =
         producer_->Send(topic_name, key, message, partition, std::move(headers_holder));
     if (!delivery_result.IsSuccess()) {
         ThrowSendError(delivery_result);
     }
 
-    SendToTestPoint(name_, topic_name, key, message, partition);
+    if (testsuite::AreTestpointsAvailable()) {
+        SendToTestPoint(name_, topic_name, key, message, partition, headers_copy);
+    }
 }
 
 }  // namespace kafka

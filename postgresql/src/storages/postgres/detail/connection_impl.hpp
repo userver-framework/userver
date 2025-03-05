@@ -146,8 +146,8 @@ private:
 
     void SetTransactionCommandControl(CommandControl cmd_ctl);
 
-    TimeoutDuration ExecuteTimeout(OptionalCommandControl) const;
-    TimeoutDuration CurrentExecuteTimeout() const;
+    TimeoutDuration NetworkTimeout(OptionalCommandControl) const;
+    TimeoutDuration CurrentNetworkTimeout() const;
 
     void SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
 

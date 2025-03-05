@@ -26,8 +26,16 @@ Standalone::Standalone(
           testsuite_pg_ctl,
           std::move(ei_settings)
       ),
-      dsn_indices_by_type_(DsnIndicesByType{{ClusterHostType::kMaster, {0}}}),
-      alive_dsn_indices_(DsnIndices{0}),
+      dsn_indices_by_type_(DsnIndicesByType{
+          {
+              ClusterHostType::kMaster,
+              DsnIndices{std::vector<DsnIndex>{0}, DsnIndex{0}},
+          },
+      }),
+      alive_dsn_indices_(DsnIndices{
+          std::vector<DsnIndex>{0},
+          DsnIndex{0},
+      }),
       dsn_stats_(GetDsnList().size()) {
     UASSERT(GetDsnList().size() == 1);
 }

@@ -31,7 +31,7 @@ DefaultCommandControlScope::DefaultCommandControlScope(storages::postgres::Comma
 
 DefaultCommandControlScope::~DefaultCommandControlScope() { GetTestCmdCtls().UpdateDefaultCmdCtl(old_cmd_ctl_); }
 
-engine::Deadline MakeDeadline() { return engine::Deadline::FromDuration(kTestCmdCtl.execute); }
+engine::Deadline MakeDeadline() { return engine::Deadline::FromDuration(kTestCmdCtl.network_timeout_ms); }
 
 void PrintBuffer(std::ostream& os, const std::uint8_t* buffer, std::size_t size) {
     os << "Buffer size " << size << '\n';
