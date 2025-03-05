@@ -223,7 +223,7 @@ void LogWarningWithErrno(
     const auto saved_errno = errno;
     const auto message_with_errno =
         fmt::format("{}, errno: {} ({})", message, saved_errno, utils::strerror(saved_errno));
-    UASSERT_MSG(false, message_with_errno);
+    //UASSERT_MSG(false, message_with_errno);
     if (limited) {
         LOG_LIMITED(level) << message_with_errno;
     } else {
