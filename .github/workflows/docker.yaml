@@ -159,4 +159,4 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
                 'cd /userver/build && ulimit -n 4096 && GTEST_FILTER="${{ matrix.gtest-filter
-                }}" ctest -V'
+                }}" TESTSUITE_REDIS_HOSTNAME=::1 ctest -V'
