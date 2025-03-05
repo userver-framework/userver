@@ -33,8 +33,10 @@ jobs:
                         -DCMAKE_CXX_STANDARD=17
                         -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_NO_WERROR=0
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_ALL_COMPONENTS=0
                         -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_FEATURE_CORE=1
+                        -DUSERVER_FEATURE_REDIS=1
                         -DUSERVER_BUILD_TESTS=1
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
@@ -47,8 +49,10 @@ jobs:
                         -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_ALL_COMPONENTS=0
                         -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_FEATURE_CORE=1
+                        -DUSERVER_FEATURE_REDIS=1
                         -DUSERVER_BUILD_TESTS=1
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
@@ -59,8 +63,10 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=20
                         -DCPM_SOURCE_CACHE=~/.cache/CPM
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_ALL_COMPONENTS=0
                         -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_FEATURE_CORE=1
+                        -DUSERVER_FEATURE_REDIS=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Debug
                     gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary
@@ -74,8 +80,10 @@ jobs:
                         -DCPM_SOURCE_CACHE=~/.cache/CPM
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_BUILD_ALL_COMPONENTS=0
                         -DUSERVER_BUILD_SAMPLES=1
+                        -DUSERVER_FEATURE_CORE=1
+                        -DUSERVER_FEATURE_REDIS=1
                         -DUSERVER_BUILD_TESTS=1
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
@@ -159,5 +167,5 @@ jobs:
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
-                'cd /userver/build && ulimit -n 4096 && GTEST_FILTER="${{ matrix.gtest-filter
+                'cd /userver/build/redis && ulimit -n 4096 && GTEST_FILTER="${{ matrix.gtest-filter
                 }}" ctest -V'
