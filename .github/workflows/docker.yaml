@@ -23,6 +23,7 @@ jobs:
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_FEATURE_CORE=1
                         -DUSERVER_FEATURE_CHAOTIC=0
+                        -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base
                     info: ubuntu + gcc + cxx17 + core
@@ -36,6 +37,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx17
@@ -50,6 +52,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx17
@@ -62,6 +65,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx20
@@ -76,6 +80,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx20
