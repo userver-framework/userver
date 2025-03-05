@@ -508,7 +508,6 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply, Node
 
 void ClusterTopologyHolder::ExploreNodes() {
     /// Call cluster nodes, parse, prepare list of new hosts to create
-    UASSERT(false);
     UASSERT(sentinels_);
     if (!sentinels_) {
         return;
