@@ -16,6 +16,7 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
+#include <userver/ugrpc/tests/client_middleware_pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -65,7 +66,7 @@ public:
     void SetServerMiddlewares(server::Middlewares middlewares);
 
     /// Client middlewares can be modified before the first RegisterService call.
-    void SetClientMiddlewareFactories(client::MiddlewareFactories middleware_factories);
+    void SetClientMiddlewares(client::Middlewares middlewares);
 
     /// Modifies the internal dynamic configs storage. It is used by the server
     /// and clients, and is accessible through @ref GetConfigSource.
@@ -94,7 +95,7 @@ private:
     std::optional<std::string> unix_socket_path_;
     server::Server server_;
     server::Middlewares server_middlewares_;
-    client::MiddlewareFactories client_middleware_factories_;
+    SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
     bool middlewares_change_allowed_{true};
     testsuite::GrpcControl testsuite_;
     std::optional<std::string> endpoint_;
@@ -106,7 +107,7 @@ private:
 server::Middlewares GetDefaultServerMiddlewares();
 
 /// @brief return list of default client middleware factories for tests
-client::MiddlewareFactories GetDefaultClientMiddlewareFactories();
+client::Middlewares GetDefaultClientMiddlewares();
 
 /// @brief Sets up a mini gRPC server using a single service implementation.
 /// @see @ref ugrpc::tests::ServiceBase
@@ -126,7 +127,7 @@ public:
     Service(server::ServerConfig&& server_config, std::in_place_t = std::in_place, Args&&... args)
         : ServiceBase(std::move(server_config)), service_(std::forward<Args>(args)...) {
         SetServerMiddlewares(GetDefaultServerMiddlewares());
-        SetClientMiddlewareFactories(GetDefaultClientMiddlewareFactories());
+        SetClientMiddlewares(GetDefaultClientMiddlewares());
         RegisterService(service_);
         StartServer();
     }

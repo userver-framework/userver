@@ -4,7 +4,6 @@
 /// @brief @copybrief ugrpc::server::middlewares::log::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
-#include <userver/utils/box.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

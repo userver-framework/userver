@@ -36,20 +36,19 @@ tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return data_.GetSpan(
 
 impl::RpcData& MiddlewareCallContext::GetData(ugrpc::impl::InternalTag) { return data_; }
 
-MiddlewareFactoryBase::~MiddlewareFactoryBase() = default;
-
-namespace impl {
-
-Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories, const std::string& client_name) {
-    Middlewares mws;
-    mws.reserve(factories.size());
-    for (const auto& mw_factory : factories) {
-        mws.push_back(mw_factory->GetMiddleware(client_name));
-    }
-    return mws;
-}
-
-}  // namespace impl
+MiddlewarePipelineComponent::MiddlewarePipelineComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : middlewares::impl::AnyMiddlewarePipelineComponent(
+          config,
+          context,
+          {{
+              {"grpc-client-logging", {}},
+              {"grpc-client-baggage", {}},
+              {"grpc-client-deadline-propagation", {}},
+          }}
+      ) {}
 
 }  // namespace ugrpc::client
 

@@ -27,6 +27,11 @@ public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
         return grpc::Status{grpc::StatusCode::UNIMPLEMENTED, "message", "details"};
     }
+
+    GetCustomStatusCodeResult GetCustomStatusCode(CallContext& /*context*/, ::google::protobuf::Empty&& /*request*/)
+        override {
+        return grpc::Status{static_cast<grpc::StatusCode>(4242), "message", "details"};
+    }
 };
 
 }  // namespace
@@ -162,5 +167,33 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
         EXPECT_EQ(get_status_code_count(chat_label, "INVALID_ARGUMENT"), std::nullopt);
     }
 }
+
+#if defined(__has_feature) && defined(__clang__)
+#if !__has_feature(undefined_behavior_sanitizer)
+// at the moment, codes out of range are UB. See https://github.com/grpc/grpc/issues/38882
+UTEST_F(GrpcStatistics, CustomCodes) {
+    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+    UEXPECT_THROW(client.GetCustomStatusCode(google::protobuf::Empty{}), ugrpc::client::UnknownError);
+    GetServer().StopServing();
+
+    for (const auto& domain : {"client", "server"}) {
+        const auto stats = GetStatistics(
+            fmt::format("grpc.{}.by-destination", domain),
+            {{"grpc_destination", "sample.ugrpc.UnitTestService/GetCustomStatusCode"}}
+        );
+
+        const auto get_status_code_count = [&](const std::string& code) {
+            const auto metric_optional = stats.SingleMetricOptional("status", {{"grpc_code", code}});
+            return metric_optional ? std::make_optional(metric_optional->AsRate()) : std::nullopt;
+        };
+
+        EXPECT_EQ(get_status_code_count("OK"), 0);
+        EXPECT_EQ(get_status_code_count("non_standard"), 1);
+        EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
+        EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 1);
+    }
+}
+#endif
+#endif
 
 USERVER_NAMESPACE_END

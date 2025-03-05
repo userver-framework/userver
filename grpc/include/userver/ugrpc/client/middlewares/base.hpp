@@ -10,10 +10,17 @@
 
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/rpc.hpp>
+#include <userver/ugrpc/impl/simple_middleware_pipeline.hpp>
+#include <userver/ugrpc/middlewares/runner.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+/// @brief Client meta info for building a middleware.
+struct ClientInfo final {
+    std::string client_name{};
+};
 
 /// @brief Context for middleware-specific data during gRPC call
 ///
@@ -88,35 +95,79 @@ protected:
     MiddlewareBase();
 };
 
-/// @ingroup userver_base_classes
+/// @ingroup userver_components userver_base_classes
 ///
-/// @brief Factory that creates specific client middlewares for clients
-class MiddlewareFactoryBase {
-public:
-    virtual ~MiddlewareFactoryBase();
+/// @brief Factory that creates specific client middlewares for clients.
+using MiddlewareFactoryComponentBase = middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ClientInfo>;
 
-    virtual std::shared_ptr<const MiddlewareBase> GetMiddleware(std::string_view client_name) const = 0;
-};
+// clang-format off
 
-using MiddlewareFactories = std::vector<std::shared_ptr<const MiddlewareFactoryBase>>;
-
-/// @ingroup userver_base_classes
+/// @ingroup userver_components
 ///
-/// @brief Base class for client middleware component
-class MiddlewareComponentBase : public components::ComponentBase {
-    using components::ComponentBase::ComponentBase;
+/// @brief The alias for a short-cut client factory.
+///
+/// ## Static options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// enabled | the flag to enable/disable middleware in the pipeline | true
+///
+/// ## Example usage:
+///
+/// @snippet samples/grpc_middleware_service/src/middlewares/client/middleware.hpp gRPC middleware sample - Middleware declaration
+///
+/// ## Static config example
+///
+/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config grpc-auth-client
 
+// clang-format on
+
+template <typename Middleware>
+using SimpleMiddlewareFactoryComponent =
+    middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ClientInfo>;
+
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief Component to create middlewares pipeline.
+///
+/// You must register your client middleware in this component.
+/// Use `MiddlewareDependencyBuilder` to set a dependency of your middleware from others.
+///
+/// ## Static options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// middlewares | middlewares names and configs to use | `{}`
+///
+/// ## Static config example
+///
+/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config grpc-auth-client
+
+// clang-format on
+
+class MiddlewarePipelineComponent final : public middlewares::impl::AnyMiddlewarePipelineComponent {
 public:
-    /// @brief Returns a middleware according to the component's settings
-    virtual std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() = 0;
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the client side.
+    static constexpr std::string_view kName = "grpc-client-middlewares-pipeline";
+
+    MiddlewarePipelineComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 };
 
 namespace impl {
 
-Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories, const std::string& client_name);
+/// @brief specialization of PipelineCreatorInterface interface to create client middlewares.
+using MiddlewarePipelineCreator = USERVER_NAMESPACE::ugrpc::impl::PipelineCreatorInterface<MiddlewareBase, ClientInfo>;
 
 }  // namespace impl
 
 }  // namespace ugrpc::client
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::client::MiddlewarePipelineComponent> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::client::MiddlewarePipelineComponent> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

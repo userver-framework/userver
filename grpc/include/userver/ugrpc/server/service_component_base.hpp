@@ -23,18 +23,15 @@ class GenericServiceBase;
 
 namespace impl {
 
+/// @brief The interface for a `ServerComponentBase` component. So, `ServerComponentBase` runs with middlewares.
 using MiddlewareRunner = USERVER_NAMESPACE::ugrpc::middlewares::RunnerComponentBase<MiddlewareBase, ServiceInfo>;
 
-}
+}  // namespace impl
 
-/// @brief Service info for the middleware
+/// @brief Service meta info for a middleware construction.
 struct ServiceInfo final {
     std::string full_service_name{};
 };
-
-/// @ingroup userver_component_names
-/// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the server side
-inline constexpr std::string_view kMiddlewarePipelineName = "grpc-server-middlewares-pipeline";
 
 // clang-format off
 

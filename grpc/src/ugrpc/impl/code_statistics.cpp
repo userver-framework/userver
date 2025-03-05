@@ -31,7 +31,8 @@ void CodeStatistics::Account(grpc::StatusCode code) noexcept {
     if (static_cast<std::size_t>(code) < kCodesCount) {
         ++codes_[static_cast<std::size_t>(code)];
     } else {
-        LOG_ERROR() << "Invalid grpc::StatusCode " << utils::UnderlyingValue(code);
+        ++non_standard_codes_;
+        LOG_DEBUG() << "Custom grpc::StatusCode " << utils::UnderlyingValue(code);
     }
 }
 
@@ -39,6 +40,7 @@ CodeStatistics::Snapshot::Snapshot(const CodeStatistics& other) noexcept {
     for (std::size_t i = 0; i < kCodesCount; ++i) {
         codes_[i] = other.codes_[i].Load();
     }
+    non_standard_codes_ = other.non_standard_codes_.Load();
 }
 
 CodeStatistics::Snapshot& CodeStatistics::Snapshot::operator+=(const Snapshot& other) {
@@ -60,6 +62,15 @@ CodeStatisticsSummary CodeStatistics::Snapshot::DumpMetricAndGetSummary(utils::s
         if (count || IsZeroWritten(code)) {
             status_writer.ValueWithLabels(count, {"grpc_code", ugrpc::ToString(code)});
         }
+    }
+
+    // handle non-standard codes. Non-standard codes are treated as errors,
+    // because what else could that be?
+    if (non_standard_codes_) {
+        summary.total_requests += non_standard_codes_;
+        summary.error_requests += non_standard_codes_;
+
+        status_writer.ValueWithLabels(non_standard_codes_, {"grpc_code", "non_standard"});
     }
 
     return summary;

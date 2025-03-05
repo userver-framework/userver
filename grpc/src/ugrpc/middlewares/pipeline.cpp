@@ -8,7 +8,8 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/impl/middlewares_graph.hpp>
-#include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/middlewares/pipeline.hpp>
+#include <userver/ugrpc/middlewares/runner.hpp>
 #include <userver/ugrpc/server/middlewares/groups.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,21 +18,25 @@ namespace ugrpc::middlewares {
 
 namespace {
 
-impl::Dependencies
-MakeDependencies(const components::ComponentContext& context, impl::MiddlewarePipelineConfig&& pipeline_config) {
-    auto userver_deps = impl::UserverMiddlewares();
-    pipeline_config.middlewares.merge(userver_deps);
+impl::Dependencies MakeDependencies(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context,
+    impl::BasePipelineConfig&& base_config
+) {
+    impl::BasePipelineConfig userver_deps{base_config};
+    auto pipeline_config = config.As<impl::MiddlewarePipelineConfig>();
+    pipeline_config.middlewares.merge(userver_deps.middlewares);
     impl::Dependencies dependencies{};
     dependencies.reserve(pipeline_config.middlewares.size());
     for (const auto& [mname, conf] : pipeline_config.middlewares) {
-        const auto* middleware = context.FindComponentOptional<server::MiddlewareFactoryComponentBase>(mname);
+        const auto* middleware = context.FindComponentOptional<impl::WithMiddlewareDependencyComponentBase>(mname);
         if (middleware) {
             auto dep = middleware->GetMiddlewareDependency(utils::impl::InternalTag{});
             dep.enabled = conf.enabled;
             dependencies.emplace(mname, std::move(dep));
         } else {
             UINVARIANT(
-                impl::UserverMiddlewares().count(mname) != 0,
+                base_config.middlewares.count(mname) != 0,
                 fmt::format("The User middleware '{}' is not registered in the component system", mname)
             );
         }
@@ -72,20 +77,17 @@ std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl
     return res;
 }
 
-}  // namespace impl
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-MiddlewarePipelineComponent::MiddlewarePipelineComponent(
+AnyMiddlewarePipelineComponent::AnyMiddlewarePipelineComponent(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context
+    const components::ComponentContext& context,
+    impl::BasePipelineConfig&& base_config
 )
     : components::ComponentBase(config, context),
-      pipeline_(MakeDependencies(context, config.As<impl::MiddlewarePipelineConfig>())) {}
+      pipeline_(MakeDependencies(config, context, std::move(base_config))) {}
 
-const impl::MiddlewarePipeline& MiddlewarePipelineComponent::GetPipeline() const { return pipeline_; }
+const impl::MiddlewarePipeline& AnyMiddlewarePipelineComponent::GetPipeline() const { return pipeline_; }
 
-yaml_config::Schema MiddlewarePipelineComponent::GetStaticConfigSchema() {
+yaml_config::Schema AnyMiddlewarePipelineComponent::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: base class for all the gRPC service components
@@ -93,7 +95,7 @@ additionalProperties: false
 properties:
     middlewares:
         type: object
-        description: middlewares names to use
+        description: middlewares names and configs to use
         additionalProperties:
             type: object
             description: a middleware config
@@ -106,7 +108,9 @@ properties:
 )");
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+}  // namespace impl
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 MiddlewareDependencyBuilder MiddlewareDependencyBuilder::Before(std::string_view before, DependencyType type) && {
     dep_.befores.push_back(impl::Connect{std::string{before}, type});

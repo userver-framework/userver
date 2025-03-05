@@ -8,9 +8,12 @@
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/impl/middleware_pipeline_config.hpp>
+#include <userver/ugrpc/impl/simple_middleware_pipeline.hpp>
 #include <userver/ugrpc/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,14 +22,27 @@ namespace ugrpc::middlewares {
 
 namespace impl {
 
-yaml_config::YamlConfig MakeMiddlewareConfig(
+yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
     const formats::yaml::Value& global,
     const yaml_config::YamlConfig& local,
     yaml_config::Schema schema
 );
 
-/// Make the default builder for `group::User` group.
+/// Make the default builder for `ugrpc::middlewares::groups::User` group.
 MiddlewareDependencyBuilder MakeDefaultUserDependency();
+
+class WithMiddlewareDependencyComponentBase : public components::ComponentBase {
+public:
+    WithMiddlewareDependencyComponentBase(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context
+
+    )
+        : components::ComponentBase(config, context) {}
+
+    virtual const ugrpc::middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag
+    ) const = 0;
+};
 
 }  // namespace impl
 
@@ -34,7 +50,7 @@ MiddlewareDependencyBuilder MakeDefaultUserDependency();
 ///
 /// @brief Base class for middleware factory component.
 template <typename MiddlewareBaseType, typename HandlerInfo>
-class MiddlewareFactoryComponentBase : public components::ComponentBase {
+class MiddlewareFactoryComponentBase : public impl::WithMiddlewareDependencyComponentBase {
 public:
     using MiddlewareBase = MiddlewareBaseType;
 
@@ -43,14 +59,16 @@ public:
         const components::ComponentContext& context,
         MiddlewareDependencyBuilder&& builder = impl::MakeDefaultUserDependency()
     )
-        : components::ComponentBase(config, context),
-          dependency_(std::move(builder).Extract(config.Name())),
-          global_config_(config.As<formats::yaml::Value>()) {}
+        : impl::WithMiddlewareDependencyComponentBase(config, context),
+          global_config_(config.As<formats::yaml::Value>()),
+          dependency_(std::move(builder).Extract(config.Name())) {}
 
     /// @brief Returns a middleware according to the component's settings.
     ///
     /// @param info is a handler info for the middleware.
     /// @param middleware_config config for the middleware.
+    ///
+    /// @warning Don't store `info` by reference. `info` object will be dropped after the `CreateMiddleware` call.
     virtual std::shared_ptr<MiddlewareBase>
     CreateMiddleware(const HandlerInfo& info, const yaml_config::YamlConfig& middleware_config) const = 0;
 
@@ -73,7 +91,8 @@ properties:
 
     /// @cond
     /// Only for internal use.
-    const ugrpc::middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag) const {
+    const ugrpc::middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag
+    ) const override {
         return dependency_;
     }
 
@@ -81,19 +100,24 @@ properties:
     /// @endcond
 
 private:
-    const ugrpc::middlewares::impl::MiddlewareDependency dependency_;
     const formats::yaml::Value global_config_;
+    ugrpc::middlewares::impl::MiddlewareDependency dependency_;
 };
 
 /// @brief Base class for a component that runs middlewares.
 ///
 /// There are a local and global configs of middlewares.
 /// Global config of middleware is a classic config in `components_manager.components`.
-/// You can override the global by local config in the config of this component. See the middlewares option.
+/// You can override the global config for the specific service/client by the local config in the config of this
+/// component: see the 'middlewares' option.
 ///
-/// RunnerComponentBase creates middleware instances using `MiddlewareFactoryComponentBase`.
+/// `RunnerComponentBase` creates middleware instances using `MiddlewareFactoryComponentBase`.
+/// The Ordered list of middlewares `RunnerComponentBase` takes from Pipeline component.
+/// So, 'Pipeline' is responsible for the order of middlewares. `RunnerComponentBase` is responsible for creating
+/// middlewares and overriding configs.
 template <typename MiddlewareBase, typename HandlerInfo>
-class RunnerComponentBase : public components::ComponentBase {
+class RunnerComponentBase : public components::ComponentBase,
+                            public ugrpc::impl::PipelineCreatorInterface<MiddlewareBase, HandlerInfo> {
 public:
     static yaml_config::Schema GetStaticConfigSchema() {
         return yaml_config::MergeSchemas<components::ComponentBase>(R"(
@@ -130,44 +154,88 @@ protected:
     RunnerComponentBase(
         const components::ComponentConfig& config,
         const components::ComponentContext& context,
-        std::string_view pipeline_component_name
-    )
-        : components::ComponentBase(config, context) {
-        const auto& middlewares = config["middlewares"];
-        const auto& pipeline =
-            context.FindComponent<middlewares::MiddlewarePipelineComponent>(pipeline_component_name).GetPipeline();
-        for (const auto& mid : pipeline.GetPerServiceMiddlewares(config.As<impl::MiddlewareRunnerConfig>())) {
-            const auto* factory = context.FindComponentOptional<MiddlewareFactory>(mid);
-            UINVARIANT(factory != nullptr, "Middleware must be exists");
-            middleware_infos_.push_back(MiddlewareInfo{factory, middlewares[mid]});
-        }
-    }
+        std::string_view pipeline_name
+    );
 
     /// @cond
     /// Only for internal use.
-    std::vector<std::shared_ptr<MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) {
-        std::vector<std::shared_ptr<MiddlewareBase>> middlewares;
-        middlewares.reserve(middleware_infos_.size());
-        for (const auto& [factory, local_config] : middleware_infos_) {
-            auto config = impl::MakeMiddlewareConfig(
-                factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
-            );
-            middlewares.push_back(factory->CreateMiddleware(info, config));
-        }
-        middleware_infos_.clear();
-        return middlewares;
-    }
+    std::vector<std::shared_ptr<MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const override;
     /// @endcond
 
 private:
     struct MiddlewareInfo final {
-        const MiddlewareFactory* const factory{nullptr};
+        const MiddlewareFactory* factory{nullptr};
         yaml_config::YamlConfig local_config{};
     };
 
     std::vector<MiddlewareInfo> middleware_infos_{};
 };
 
+template <typename MiddlewareBase, typename HandlerInfo>
+RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context,
+    std::string_view pipeline_name
+)
+    : components::ComponentBase(config, context) {
+    const auto& middlewares = config["middlewares"];
+    const auto& pipeline = context.FindComponent<impl::AnyMiddlewarePipelineComponent>(pipeline_name).GetPipeline();
+    for (const auto& mid : pipeline.GetPerServiceMiddlewares(config.As<impl::MiddlewareRunnerConfig>())) {
+        const auto* factory = context.FindComponentOptional<MiddlewareFactory>(mid);
+        UINVARIANT(factory != nullptr, fmt::format("The middleware '{}' must exist", mid));
+        middleware_infos_.push_back(MiddlewareInfo{factory, middlewares[mid]});
+    }
+}
+
+template <typename MiddlewareBase, typename HandlerInfo>
+std::vector<std::shared_ptr<MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
+    const HandlerInfo& info
+) const {
+    std::vector<std::shared_ptr<MiddlewareBase>> middlewares{};
+    middlewares.reserve(middleware_infos_.size());
+    for (const auto& [factory, local_config] : middleware_infos_) {
+        auto config = impl::ValidateAndMergeMiddlewareConfigs(
+            factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
+        );
+        middlewares.push_back(factory->CreateMiddleware(info, config));
+    }
+    return middlewares;
+}
+
+namespace impl {
+
+/// @brief A short-cut for defining a middleware-factory.
+///
+/// `MiddlewareBase` type is a interface of middleware, so `Middleware` type is a implementation of this interface.
+/// Your middleware will be created with a default constructor and will be in `ugrpc::middlewares::groups::User` group.
+template <typename MiddlewareBase, typename Middleware, typename HandlerInfo>
+class SimpleMiddlewareFactoryComponent final : public MiddlewareFactoryComponentBase<MiddlewareBase, HandlerInfo> {
+public:
+    static constexpr std::string_view kName = Middleware::kName;
+
+    SimpleMiddlewareFactoryComponent(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context
+    )
+        : MiddlewareFactoryComponentBase<MiddlewareBase, HandlerInfo>(
+              config,
+              context,
+              ugrpc::middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}
+          ) {}
+
+private:
+    std::shared_ptr<MiddlewareBase> CreateMiddleware(const HandlerInfo&, const yaml_config::YamlConfig&)
+        const override {
+        return std::make_shared<Middleware>();
+    }
+};
+
+}  // namespace impl
+
 }  // namespace ugrpc::middlewares
+
+template <typename MiddlewareBase, typename Middleware, typename HandlerInfo>
+inline constexpr bool components::kHasValidate<
+    ugrpc::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, HandlerInfo>> = true;
 
 USERVER_NAMESPACE_END

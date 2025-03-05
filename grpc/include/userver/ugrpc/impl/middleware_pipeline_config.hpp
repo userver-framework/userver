@@ -14,6 +14,10 @@ struct BaseMiddlewareConfig final {
     bool enabled{true};
 };
 
+struct BasePipelineConfig final {
+    std::unordered_map<std::string, BaseMiddlewareConfig> middlewares{};
+};
+
 BaseMiddlewareConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<BaseMiddlewareConfig>);
 
 struct MiddlewarePipelineConfig final {
@@ -21,8 +25,6 @@ struct MiddlewarePipelineConfig final {
 };
 
 MiddlewarePipelineConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<MiddlewarePipelineConfig>);
-
-const std::unordered_map<std::string, BaseMiddlewareConfig>& UserverMiddlewares();
 
 struct MiddlewareRunnerConfig final {
     std::unordered_map<std::string, yaml_config::YamlConfig> middlewares{};

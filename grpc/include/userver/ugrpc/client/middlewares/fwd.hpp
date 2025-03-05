@@ -11,12 +11,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client {
 
 class MiddlewareBase;
-class MiddlewareFactoryBase;
 
 /// @brief A chain of middlewares
-using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
-
-using MiddlewareFactories = std::vector<std::shared_ptr<const MiddlewareFactoryBase>>;
+using Middlewares = std::vector<std::shared_ptr<MiddlewareBase>>;
 
 }  // namespace ugrpc::client
 

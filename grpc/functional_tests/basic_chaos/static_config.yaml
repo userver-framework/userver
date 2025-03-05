@@ -37,6 +37,7 @@ components_manager:
             # Nothing
 # /// [Sample grpc server congestion control middleware component config]
 
+        grpc-client-middlewares-pipeline:
         grpc-server-middlewares-pipeline:
             middlewares:
                 grpc-server-headers-propagator:
@@ -52,8 +53,8 @@ components_manager:
             blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
             middlewares:
-              - grpc-client-logging
-              - grpc-client-baggage
+                grpc-client-deadline-propagation:
+                    enabled: false
             channel-args: {}
         greeter-client:
             endpoint: '[::]:8081'

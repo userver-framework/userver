@@ -6,10 +6,19 @@
 #include <userver/components/component_base.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/middlewares/runner.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+namespace impl {
+
+/// @brief The interface for a `ClientFactoryComponent` component. So, `ClientFactoryComponent` runs with middlewares.
+using MiddlewareRunner = USERVER_NAMESPACE::ugrpc::middlewares::RunnerComponentBase<MiddlewareBase, ClientInfo>;
+
+}  // namespace impl
 
 // clang-format off
 
@@ -47,12 +56,14 @@ namespace ugrpc::client {
 /// default-service-config | default service config, see above | -
 /// channel-count | Number of underlying grpc::Channel objects | 1
 /// middlewares | middlewares names to use | -
+/// disable-user-pipeline-middlewares | a flag to disable groups::User middlewares from pipeline | false
+/// disable-all-pipeline-middlewares | a flag to disable all middlewares from the pipline | false
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 
 // clang-format on
 
-class ClientFactoryComponent final : public components::ComponentBase {
+class ClientFactoryComponent final : public impl::MiddlewareRunner {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of ugrpc::client::middlewares::log::Component
@@ -66,6 +77,7 @@ public:
 
 private:
     std::optional<ClientFactory> factory_;
+    ClientInfo info_{};
 };
 
 }  // namespace ugrpc::client

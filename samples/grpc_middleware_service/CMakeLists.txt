@@ -7,9 +7,7 @@ add_executable(${PROJECT_NAME} main.cpp
                                src/client/view.cpp
                                src/http_handlers/say-hello/view.cpp
                                src/service/view.cpp
-                               src/middlewares/client/component.cpp
                                src/middlewares/client/middleware.cpp
-                               src/middlewares/server/component.cpp
                                src/middlewares/server/middleware.cpp
                                src/middlewares/auth.cpp)
 

@@ -9,8 +9,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        grpc-auth-client:
-
 # /// [gRPC middleware sample - static config client middleware]
         # yaml
         # Contains machinery common to all gRPC clients
@@ -20,9 +18,12 @@ components_manager:
         # Creates gRPC clients
         grpc-client-factory:
             channel-args: {}
-            # The list of gRPC client middleware components to use
+            # Disable all middlewares. But we can force enable some
+            disable-all-pipeline-middlewares: true
+            # The object of gRPC client middleware components to use
             middlewares:
-              - grpc-auth-client
+                grpc-auth-client:
+                    enabled: true
 # /// [gRPC middleware sample - static config client middleware]
 
         # Our wrapper around the generated client for GreeterService
@@ -33,14 +34,23 @@ components_manager:
 
         congestion-control:
 
-# /// [gRPC middleware sample - static config middleware-pipeline]
+# /// [gRPC middleware sample - static config grpc-auth-client]
+        grpc-auth-client:
+
+        grpc-client-middlewares-pipeline:
+            middlewares:
+                grpc-auth-client:
+                    enabled: true  # register the middleware in the pipeline
+# /// [gRPC middleware sample - static config grpc-auth-client]
+
+# /// [gRPC middleware sample - static config grpc-server-middlewares-pipeline]
         grpc-auth-server:
 
         grpc-server-middlewares-pipeline:
             middlewares:
-                grpc-auth-server:
+                grpc-auth-server:  # register the middleware in the pipeline
                     enabled: true
-# /// [gRPC middleware sample - static config middleware-pipeline]
+# /// [gRPC middleware sample - static config grpc-server-middlewares-pipeline]
 
         # Common configuration for gRPC server
         grpc-server:

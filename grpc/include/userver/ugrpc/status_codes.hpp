@@ -14,7 +14,7 @@ namespace ugrpc {
 grpc::StatusCode StatusCodeFromString(std::string_view str);
 
 /// @brief Convert grpc::StatusCode to string
-std::string_view ToString(grpc::StatusCode code) noexcept;
+std::string ToString(grpc::StatusCode code) noexcept;
 
 /// @brief Whether a given status code is definitely a server-side error
 ///

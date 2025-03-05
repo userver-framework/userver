@@ -2,10 +2,10 @@
 
 #include <fmt/format.h>
 
-#include <ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,7 +48,7 @@ void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_set
     client_factory_.emplace(
         std::move(client_factory_settings),
         engine::current_task::GetTaskProcessor(),
-        client_middleware_factories_,
+        simple_client_middleware_pipeline_,
         server_.GetCompletionQueues(utils::impl::InternalTag{}),
         client_statistics_storage_,
         testsuite_,
@@ -81,13 +81,13 @@ void ServiceBase::SetServerMiddlewares(server::Middlewares middlewares) {
     server_middlewares_ = std::move(middlewares);
 }
 
-void ServiceBase::SetClientMiddlewareFactories(client::MiddlewareFactories middleware_factories) {
+void ServiceBase::SetClientMiddlewares(client::Middlewares middlewares) {
     UINVARIANT(
         middlewares_change_allowed_,
         "Set client middleware factories after StartServer call "
         "is not allowed"
     );
-    client_middleware_factories_ = std::move(middleware_factories);
+    simple_client_middleware_pipeline_.SetMiddlewares(std::move(middlewares));
 }
 
 client::ClientFactory& ServiceBase::GetClientFactory() {
@@ -104,10 +104,11 @@ server::Middlewares GetDefaultServerMiddlewares() {
     return {std::make_shared<server::middlewares::deadline_propagation::Middleware>()};
 }
 
-client::MiddlewareFactories GetDefaultClientMiddlewareFactories() {
+client::Middlewares GetDefaultClientMiddlewares() {
+    static const ugrpc::client::middlewares::log::Settings kLogSettings{};
     return {
-        std::make_shared<client::middlewares::log::MiddlewareFactory>(client::middlewares::log::Settings{}),
-        std::make_shared<client::middlewares::deadline_propagation::MiddlewareFactory>()};
+        std::make_shared<client::middlewares::log::Middleware>(kLogSettings),
+        std::make_shared<client::middlewares::deadline_propagation::Middleware>()};
 }
 
 }  // namespace ugrpc::tests

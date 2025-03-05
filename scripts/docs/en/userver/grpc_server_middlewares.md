@@ -47,7 +47,7 @@ If you implement your server middleware, you must register it in config `grpc-se
 
 Example:
 
-@snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config middleware-pipeline
+@snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config grpc-server-middlewares-pipeline
 
 Your middleware will be called after all userver middlewares. Your middlewares will be lexicographic ordered.
 
@@ -98,7 +98,7 @@ The middlewares pipeline consists of groups (ordered from begin to end):
 
 All user middlewares will be in `ugrpc::server::groups::User` group by default. But you can register your middleware in any group such as:
 
-@snippet samples/grpc_middleware_service/src/middlewares/server/component.cpp gRPC middleware sample - middleware registration
+@snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware declaration
 
 You can don't pass `ugrpc::server::MiddlewareDependencyBuilder` in `ugrpc::server::MiddlewareComponentBase` and middleware will be in the group `User` by default.
 

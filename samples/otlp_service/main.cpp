@@ -11,7 +11,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
-#include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/client/component_list.hpp>
 
 #include <userver/otlp/logs/component.hpp>
 
@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::ServerMonitor>()
-                                    .Append<ugrpc::client::CommonComponent>()
                                     .Append<ugrpc::client::ClientFactoryComponent>()
+                                    .AppendComponentList(ugrpc::client::MinimalComponentList())
                                     .Append<server::handlers::Ping>()
                                     .Append<otlp::LoggerComponent>();
     return utils::DaemonMain(argc, argv, component_list);

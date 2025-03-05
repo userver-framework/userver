@@ -62,6 +62,22 @@ void MiddlewareBase::CallRequestHook(const MiddlewareCallContext&, google::proto
 
 void MiddlewareBase::CallResponseHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
 
+MiddlewarePipelineComponent::MiddlewarePipelineComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : middlewares::impl::AnyMiddlewarePipelineComponent(
+          config,
+          context,
+          {/*middlewares=*/{
+              {"grpc-server-logging", {}},
+              {"grpc-server-baggage", {}},
+              {"grpc-server-congestion-control", {}},
+              {"grpc-server-deadline-propagation", {}},
+              {"grpc-server-headers-propagator", {}},
+          }}
+      ) {}
+
 }  // namespace ugrpc::server
 
 USERVER_NAMESPACE_END

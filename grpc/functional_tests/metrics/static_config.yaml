@@ -25,6 +25,7 @@ components_manager:
         grpc-server-logging:
             msg-size-log-limit: 10
 
+        grpc-client-middlewares-pipeline:
         grpc-server-middlewares-pipeline:
 
         greeter-service:
@@ -41,8 +42,8 @@ components_manager:
             blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
             middlewares:
-              - grpc-client-logging
-              - grpc-client-baggage
+                grpc-client-deadline-propagation:
+                    enabled: false
             channel-args: {}
         greeter-client:
             endpoint: $greeter-client-endpoint

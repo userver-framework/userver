@@ -16,10 +16,11 @@ components_manager:
             # Optional channel parameters for gRPC Core
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
             channel-args: {}
-            # The list of gRPC client middleware components to use.
             # Ensure that there is no logging middleware, otherwise it will
             # cause infinite recursion: handling logs will trigger more logs.
-            middlewares: []
+            middlewares:
+                grpc-client-logging:
+                    enabled: false
 
 # /// [otlp logger]
         otlp-logger:

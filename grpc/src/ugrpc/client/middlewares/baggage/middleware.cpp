@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <userver/ugrpc/client/middlewares/baggage/middleware.hpp>
 
 #include <userver/baggage/baggage_manager.hpp>
 #include <userver/logging/log.hpp>
@@ -19,10 +19,6 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
         auto& client_context = context.GetContext();
         client_context.AddMetadata(ugrpc::impl::kXBaggage, ugrpc::impl::ToGrpcString(bg->ToString()));
     }
-}
-
-std::shared_ptr<const MiddlewareBase> MiddlewareFactory::GetMiddleware(std::string_view /*client_name*/) const {
-    return std::make_shared<Middleware>();
 }
 
 }  // namespace ugrpc::client::middlewares::baggage

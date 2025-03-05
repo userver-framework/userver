@@ -5,6 +5,8 @@
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <userver/ugrpc/server/middlewares/groups.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::log {
@@ -19,16 +21,23 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
 }
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context), settings_(config.As<Settings>()) {}
-
-std::shared_ptr<const MiddlewareFactoryBase> Component::GetMiddlewareFactory() {
-    return std::make_shared<MiddlewareFactory>(*settings_);
-}
+    : MiddlewareFactoryComponentBase(
+          config,
+          context,
+          ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<server::groups::Logging>()
+      ) {}
 
 Component::~Component() = default;
 
+std::shared_ptr<MiddlewareBase>
+Component::CreateMiddleware(const ClientInfo& /*client_info*/, const yaml_config::YamlConfig& middleware_config) const {
+    return std::make_shared<Middleware>(middleware_config.As<Settings>());
+}
+
+yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
+
 yaml_config::Schema Component::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
+    return yaml_config::MergeSchemas<MiddlewareFactoryComponentBase>(R"(
 type: object
 description: gRPC service logger component
 additionalProperties: false

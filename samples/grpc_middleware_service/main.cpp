@@ -3,24 +3,24 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/client/component_list.hpp>
 #include <userver/ugrpc/server/component_list.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <client/view.hpp>
 #include <http_handlers/say-hello/view.hpp>
-#include <middlewares/client/component.hpp>
-#include <middlewares/server/component.hpp>
+#include <middlewares/client/middleware.hpp>
+#include <middlewares/server/middleware.hpp>
 #include <service/view.hpp>
 
 /// [gRPC middleware sample - components registration]
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .AppendComponentList(ugrpc::server::DefaultComponentList())
+                                    .AppendComponentList(ugrpc::client::MinimalComponentList())
+                                    .Append<ugrpc::client::ClientFactoryComponent>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<congestion_control::Component>()
-                                    .Append<ugrpc::client::CommonComponent>()
-                                    .Append<ugrpc::client::ClientFactoryComponent>()
                                     .Append<samples::grpc::auth::GreeterClient>()
                                     .Append<samples::grpc::auth::GreeterServiceComponent>()
                                     .Append<samples::grpc::auth::GreeterHttpHandler>()

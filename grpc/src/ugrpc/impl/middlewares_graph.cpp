@@ -4,6 +4,8 @@
 #include <fmt/ranges.h>
 
 #include <ugrpc/impl/topology_sort.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/server/middlewares/groups.hpp>
 #include <userver/utils/text_light.hpp>

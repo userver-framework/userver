@@ -11,8 +11,6 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/impl/middleware_pipeline_config.hpp>
-#include <userver/ugrpc/server/middlewares/fwd.hpp>
-#include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -67,20 +65,28 @@ std::string EndOfGroup() {
     return std::string{Group::kName} + "#end";
 }
 
-}  // namespace impl
+// clang-format off
 
-/// @brief Component to create middlewares pipeline.
-///
-/// Your must register your grpc-server middleware in this component.
-/// Use `MiddlewareDependencyBuilder` to set a dependency of your middleware from others.
+/// @brief A base component to create middlewares pipeline.
 ///
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// middlewares | middlewares names to use | `{}`
-class MiddlewarePipelineComponent final : public components::ComponentBase {
+/// middlewares | middlewares names and configs to use | `{}`
+///
+/// ## Config example:
+///
+/// @snippet grpc/functional_tests/middleware_server/static_config.yaml Sample grpc server middleware pipeline component config
+
+// clang-format on
+
+class AnyMiddlewarePipelineComponent : public components::ComponentBase {
 public:
-    MiddlewarePipelineComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+    AnyMiddlewarePipelineComponent(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context,
+        impl::BasePipelineConfig&& base_config
+    );
 
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -92,6 +98,8 @@ public:
 private:
     impl::MiddlewarePipeline pipeline_;
 };
+
+}  // namespace impl
 
 /// @brief class for building a middleware dependency.
 ///
@@ -177,12 +185,5 @@ MiddlewareDependencyBuilder MiddlewareDependencyBuilder::InGroup() && {
 }
 
 }  // namespace ugrpc::middlewares
-
-template <>
-inline constexpr bool components::kHasValidate<ugrpc::middlewares::MiddlewarePipelineComponent> = true;
-
-template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::middlewares::MiddlewarePipelineComponent> =
-    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

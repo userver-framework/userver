@@ -23,7 +23,7 @@ ServiceComponentBase::ServiceComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : impl::MiddlewareRunner(config, context, kMiddlewarePipelineName),
+    : impl::MiddlewareRunner(config, context, MiddlewarePipelineComponent::kName),
       server_(context.FindComponent<ServerComponent>()),
       config_(server_.ParseServiceConfig(config, context)),
       info_{config.Name()} {

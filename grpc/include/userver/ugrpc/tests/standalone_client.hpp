@@ -13,6 +13,7 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/tests/client_middleware_pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,6 +50,8 @@ private:
     dynamic_config::StorageMock config_storage_{dynamic_config::MakeDefaultStorage({})};
     client::impl::CompletionQueuePool completion_queues_{1};
     testsuite::GrpcControl testsuite_control_{{}, false};
+    SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
+    // must be the last filed.
     client::ClientFactory client_factory_;
 };
 

@@ -14,6 +14,7 @@
 #include <userver/ugrpc/client/client_settings.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/middlewares/runner.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,7 +54,7 @@ public:
     ClientFactory(
         ClientFactorySettings&& client_factory_settings,
         engine::TaskProcessor& channel_task_processor,
-        MiddlewareFactories mws,
+        impl::MiddlewarePipelineCreator& pipeline_creator,
         ugrpc::impl::CompletionQueuePoolBase& completion_queues,
         ugrpc::impl::StatisticsStorage& statistics_storage,
         testsuite::GrpcControl& testsuite_grpc,
@@ -66,7 +67,7 @@ private:
 
     ClientFactorySettings client_factory_settings_;
     engine::TaskProcessor& channel_task_processor_;
-    MiddlewareFactories mws_;
+    impl::MiddlewarePipelineCreator& pipeline_creator_;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
     ugrpc::impl::StatisticsStorage& client_statistics_storage_;
     const dynamic_config::Source config_source_;

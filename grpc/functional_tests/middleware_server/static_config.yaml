@@ -20,13 +20,17 @@ components_manager:
         grpc-server:
             port: 8091
 
-        grpc-server-logging:
-            msg-size-log-limit: 15
 
         congestion-control:
 
+
+# /// [Sample grpc server middleware pipeline component config]
+        grpc-server-logging:
+            msg-size-log-limit: 15
+
         grpc-server-middlewares-pipeline:
             middlewares:
+                # We must register our middlewares in the pipeline:
                 my-middleware-server:
                     enabled: true
                 my-second-middleware-server:
@@ -37,12 +41,13 @@ components_manager:
             disable-all-pipeline-middlewares: true
             middlewares:
                 grpc-server-logging:
-                    msg-size-log-limit: 10
+                    msg-size-log-limit: 10  # you can override a config per service
                     enabled: true
                 my-middleware-server:
                     enabled: true
                 my-second-middleware-server:
                     enabled: true
+# /// [Sample grpc server middleware pipeline component config]
 
 
         # http server

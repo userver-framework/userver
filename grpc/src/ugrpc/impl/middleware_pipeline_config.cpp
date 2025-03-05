@@ -12,17 +12,6 @@ MiddlewarePipelineConfig Parse(const yaml_config::YamlConfig& value, formats::pa
     return config;
 }
 
-const std::unordered_map<std::string, BaseMiddlewareConfig>& UserverMiddlewares() {
-    static std::unordered_map<std::string, BaseMiddlewareConfig> core_pipeline{
-        {"grpc-server-logging", {}},
-        {"grpc-server-baggage", {}},
-        {"grpc-server-congestion-control", {}},
-        {"grpc-server-deadline-propagation", {}},
-        {"grpc-server-headers-propagator", {}},
-    };
-    return core_pipeline;
-}
-
 BaseMiddlewareConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<BaseMiddlewareConfig>) {
     BaseMiddlewareConfig config{};
     config.enabled = value["enabled"].As<bool>(config.enabled);

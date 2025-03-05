@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -27,7 +27,7 @@ void UpdateDeadline(impl::RpcData& data) {
     auto& context = data.GetContext();
 
     const auto context_time_left = ugrpc::impl::ExtractDeadlineDuration(context.raw_deadline());
-    const engine::Deadline task_deadline = server::request::GetTaskInheritedDeadline();
+    const engine::Deadline task_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
 
     const auto client_deadline_reachable = (context_time_left != engine::Deadline::Duration::max());
     if (!task_deadline.IsReachable() && !client_deadline_reachable) {
@@ -60,10 +60,6 @@ void UpdateDeadline(impl::RpcData& data) {
 
 void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     UpdateDeadline(context.GetData(ugrpc::impl::InternalTag{}));
-}
-
-std::shared_ptr<const MiddlewareBase> MiddlewareFactory::GetMiddleware(std::string_view /*client_name*/) const {
-    return std::make_shared<Middleware>();
 }
 
 }  // namespace ugrpc::client::middlewares::deadline_propagation

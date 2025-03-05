@@ -11,11 +11,11 @@
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
-#include <ugrpc/client/middlewares/baggage/middleware.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
+#include <userver/ugrpc/client/middlewares/baggage/middleware.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/middlewares/baggage/middleware.hpp>
 
@@ -139,7 +139,7 @@ public:
             {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
             {baggage::kBaggageEnabled, true},
         });
-        SetClientMiddlewareFactories({std::make_shared<ugrpc::client::middlewares::baggage::MiddlewareFactory>()});
+        SetClientMiddlewares({std::make_shared<ugrpc::client::middlewares::baggage::Middleware>()});
         RegisterService(service_);
         StartServer();
     };

@@ -9,6 +9,11 @@ namespace functional_tests {
 
 class MyMiddleware final : public ugrpc::server::MiddlewareBase {
 public:
+    static constexpr std::string_view kName = "my-middleware-server";
+
+    static inline const auto kDependency =
+        ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<ugrpc::server::groups::User>();
+
     explicit MyMiddleware() = default;
 
     void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
@@ -20,20 +25,6 @@ public:
     void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
 };
 
-class MyMiddlewareComponent final : public ugrpc::server::MiddlewareFactoryComponentBase {
-public:
-    static constexpr std::string_view kName = "my-middleware-server";
-
-    MyMiddlewareComponent(const components::ComponentConfig& config, const components::ComponentContext& ctx)
-        : ugrpc::server::MiddlewareFactoryComponentBase(config, ctx), middleware_(std::make_shared<MyMiddleware>()) {}
-
-    std::shared_ptr<ugrpc::server::MiddlewareBase> CreateMiddleware(
-        const ugrpc::server::ServiceInfo&,
-        const yaml_config::YamlConfig& middleware_config
-    ) const override;
-
-private:
-    std::shared_ptr<ugrpc::server::MiddlewareBase> middleware_;
-};
+using MyMiddlewareComponent = ugrpc::server::SimpleMiddlewareFactoryComponent<MyMiddleware>;
 
 }  // namespace functional_tests

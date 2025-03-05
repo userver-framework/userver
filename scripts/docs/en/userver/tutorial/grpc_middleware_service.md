@@ -21,17 +21,13 @@ Generate and link with necessary libraries:
 
 Client middleware will add metadata to every `GreeterClient` call.
 
-Derive `Middleware` and `MiddlewareFactory` from the respective base class:
+Derive `Middleware` and `MiddlewareFactory` from the respective base class and declare a middleware-factory:
 
-@snippet samples/grpc_middleware_service/src/middlewares/client/middleware.hpp gRPC middleware sample - Middleware and MiddlewareFactory declaration
+@snippet samples/grpc_middleware_service/src/middlewares/client/middleware.hpp gRPC middleware sample - Middleware declaration
 
 `PreStartCall` method of `Middleware` does the actual work:
 
-@snippet samples/grpc_middleware_service/src/middlewares/client/middleware.cpp gRPC middleware sample - Middleware and MiddlewareFactory implementation
-
-Then, wrap it into component, which just stores `MiddlewareFactory`:
-
-@snippet samples/grpc_middleware_service/src/middlewares/client/component.hpp gRPC middleware sample - Middleware component declaration
+@snippet samples/grpc_middleware_service/src/middlewares/client/middleware.cpp gRPC middleware sample - Middleware implementation
 
 Lastly, add this component to the static config:
 
@@ -150,13 +146,9 @@ See the full example at:
 
 * @ref samples/grpc_middleware_service/src/middlewares/client/middleware.hpp
 * @ref samples/grpc_middleware_service/src/middlewares/client/middleware.cpp
-* @ref samples/grpc_middleware_service/src/middlewares/client/component.hpp
-* @ref samples/grpc_middleware_service/src/middlewares/client/component.cpp
 
 * @ref samples/grpc_middleware_service/src/middlewares/server/middleware.hpp
 * @ref samples/grpc_middleware_service/src/middlewares/server/middleware.cpp
-* @ref samples/grpc_middleware_service/src/middlewares/server/component.hpp
-* @ref samples/grpc_middleware_service/src/middlewares/server/component.cpp
 
 * @ref samples/grpc_middleware_service/src/middlewares/auth.hpp
 * @ref samples/grpc_middleware_service/src/middlewares/auth.cpp
@@ -176,12 +168,8 @@ See the full example at:
 
 @example samples/grpc_middleware_service/src/middlewares/client/middleware.hpp
 @example samples/grpc_middleware_service/src/middlewares/client/middleware.cpp
-@example samples/grpc_middleware_service/src/middlewares/client/component.hpp
-@example samples/grpc_middleware_service/src/middlewares/client/component.cpp
 @example samples/grpc_middleware_service/src/middlewares/server/middleware.hpp
 @example samples/grpc_middleware_service/src/middlewares/server/middleware.cpp
-@example samples/grpc_middleware_service/src/middlewares/server/component.hpp
-@example samples/grpc_middleware_service/src/middlewares/server/component.cpp
 @example samples/grpc_middleware_service/src/middlewares/auth.hpp
 @example samples/grpc_middleware_service/src/middlewares/auth.cpp
 @example samples/grpc_middleware_service/src/main.cpp

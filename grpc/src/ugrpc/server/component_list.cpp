@@ -1,8 +1,5 @@
 #include <userver/ugrpc/server/component_list.hpp>
 
-#include <userver/components/minimal_component_list.hpp>
-#include <userver/components/minimal_server_component_list.hpp>
-
 #include <userver/ugrpc/middlewares/pipeline.hpp>
 #include <userver/ugrpc/server/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/server/middlewares/congestion_control/component.hpp>
@@ -19,7 +16,7 @@ namespace ugrpc::server {
 components::ComponentList MinimalComponentList() {
     return components::ComponentList()
         .Append<ServerComponent>()
-        .Append<ugrpc::middlewares::MiddlewarePipelineComponent>(kMiddlewarePipelineName)
+        .Append<ugrpc::server::MiddlewarePipelineComponent>()
         .Append<middlewares::congestion_control::Component>()
         .Append<middlewares::deadline_propagation::Component>()
         .Append<middlewares::log::Component>();

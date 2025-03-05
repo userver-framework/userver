@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::middlewares::impl {
 
-yaml_config::YamlConfig MakeMiddlewareConfig(
+yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
     const formats::yaml::Value& global,
     const yaml_config::YamlConfig& local,
     yaml_config::Schema schema

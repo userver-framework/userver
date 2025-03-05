@@ -23,8 +23,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-struct ServiceInfo;
-
 /// @brief Context for middleware-specific data during gRPC call.
 class MiddlewareCallContext final {
 public:
@@ -86,36 +84,74 @@ public:
     virtual void CallResponseHook(const MiddlewareCallContext& context, google::protobuf::Message& response);
 };
 
+struct ServiceInfo;
+
+/// @ingroup userver_components userver_base_classes
+///
+/// @brief Factory that creates specific server middlewares for services.
 using MiddlewareFactoryComponentBase = middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ServiceInfo>;
 
-/// @ingroup userver_middlewares
+// clang-format off
+
+/// @ingroup userver_components
 ///
-/// @brief A short-cut for defining a middleware-factory.
+/// @brief The alias for a short-cut server middleware factory.
+///
+/// ## Static options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// enabled | the flag to enable/disable middleware in the pipeline | true
+///
+/// ## Example usage:
+///
+/// @snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware declaration
+///
+/// ## Static config example
+///
+/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config grpc-server-middlewares-pipeline
+
+// clang-format on
+
 template <typename Middleware>
-class SimpleMiddlewareFactoryComponent final : public MiddlewareFactoryComponentBase {
+using SimpleMiddlewareFactoryComponent =
+    middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
+
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief Component to create middlewares pipeline.
+///
+/// You must register your server middleware in this component.
+/// Use `MiddlewareDependencyBuilder` to set a dependency of your middleware from others.
+///
+/// ## Static options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// middlewares | middlewares names and configs to use | `{}`
+///
+/// ## Static config example
+///
+/// @snippet grpc/functional_tests/middleware_server/static_config.yaml Sample grpc server middleware pipeline component config
+
+// clang-format on
+
+class MiddlewarePipelineComponent final : public middlewares::impl::AnyMiddlewarePipelineComponent {
 public:
-    static constexpr std::string_view kName = Middleware::kName;
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the server side.
+    static constexpr std::string_view kName = "grpc-server-middlewares-pipeline";
 
-    SimpleMiddlewareFactoryComponent(
-        const components::ComponentConfig& config,
-        const components::ComponentContext& context
-    )
-        : MiddlewareFactoryComponentBase(
-              config,
-              context,
-              ugrpc::middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}
-          ) {}
-
-private:
-    std::shared_ptr<MiddlewareBase> CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig&)
-        const override {
-        return std::make_shared<Middleware>();
-    }
+    MiddlewarePipelineComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 };
 
 }  // namespace ugrpc::server
 
-template <typename Middleware>
-inline constexpr bool components::kHasValidate<ugrpc::server::SimpleMiddlewareFactoryComponent<Middleware>> = true;
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::MiddlewarePipelineComponent> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::MiddlewarePipelineComponent> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

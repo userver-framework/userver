@@ -40,18 +40,6 @@ private:
     Settings settings_;
 };
 
-/// @cond
-class MiddlewareFactory final : public MiddlewareFactoryBase {
-public:
-    explicit MiddlewareFactory(const Settings& settings);
-
-    std::shared_ptr<const MiddlewareBase> GetMiddleware(std::string_view client_name) const override;
-
-private:
-    Settings settings_;
-};
-/// @endcond
-
 }  // namespace ugrpc::client::middlewares::log
 
 USERVER_NAMESPACE_END

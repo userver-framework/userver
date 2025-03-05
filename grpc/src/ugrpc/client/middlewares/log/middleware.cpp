@@ -82,12 +82,6 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status& 
     }
 }
 
-MiddlewareFactory::MiddlewareFactory(const Settings& settings) : settings_(settings) {}
-
-std::shared_ptr<const MiddlewareBase> MiddlewareFactory::GetMiddleware(std::string_view /*client_name*/) const {
-    return std::make_shared<Middleware>(settings_);
-}
-
 }  // namespace ugrpc::client::middlewares::log
 
 USERVER_NAMESPACE_END
