@@ -62,6 +62,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DCMAKE_BUILD_TYPE=Debug
                     gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx20
