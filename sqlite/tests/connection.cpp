@@ -35,7 +35,7 @@ constexpr std::string_view kDatatypeMismatchInsert =
 
 UTEST_F(SQLiteCustomConnection, NonExistent) {
   // Try to open a non-existing database
-  sqlite::SQLiteSettings settings;
+  settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.create_file = false;
 
@@ -45,38 +45,37 @@ UTEST_F(SQLiteCustomConnection, NonExistent) {
 
 UTEST_F(SQLiteCustomConnection, CheckRO) {
   // Try to open a non-existing database
-  sqlite::SQLiteSettings read_settings;
-  read_settings.db_name = GetTestDbPath("test.db");
-  read_settings.create_file = false;
-  read_settings.read_mode = SQLiteSettings::ReadMode::kReadOnly;
-  sqlite::SQLiteSettings write_settings;
-  write_settings.db_name = GetTestDbPath("test.db");
-  write_settings.create_file = true;
-  write_settings.read_mode = SQLiteSettings::ReadMode::kReadWrite;
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+  settings.create_file = true;
 
-  auto write_conn = CreateConnection(write_settings);
-  auto read_conn = CreateConnection(read_settings);
-  UEXPECT_NO_THROW(write_conn->Execute(
-      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
-  UEXPECT_NO_THROW(write_conn->Execute("INSERT INTO test VALUES (1, 'first')"));
+  ConnectionPtr conn;
+  UEXPECT_NO_THROW(conn = CreateConnection(settings));
   UEXPECT_NO_THROW(
-      write_conn->Execute("INSERT INTO test VALUES (2, 'second')"));
-  UEXPECT_THROW(read_conn->Execute("INSERT INTO test VALUES (3, 'third')"),
+      conn->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+  UEXPECT_NO_THROW(conn->Execute("INSERT INTO test VALUES (1, 'first') "));
+  UEXPECT_NO_THROW(conn->Execute("INSERT INTO test VALUES (2, 'second')"));
+  UEXPECT_THROW(conn->Execute(settings::CommandControl::ReadOnly(),
+                              "INSERT INTO test VALUES (3, 'third')"),
                 SQLiteException);
   UEXPECT_THROW(
-      (read_conn->Execute("INSERT INTO test VALUES (3, 'third') RETURNING *")
+      (conn->Execute(settings::CommandControl::ReadOnly(),
+                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
            .AsVector<std::tuple<int, std::string>>()),
       SQLiteException);
   UEXPECT_NO_THROW(
-      (write_conn->Execute("INSERT INTO test VALUES (3, 'third') RETURNING *")
+      (conn->Execute("INSERT INTO test VALUES (3, 'third') RETURNING *")
            .AsVector<std::tuple<int, std::string>>()));
-  UEXPECT_NO_THROW((read_conn->Execute("SELECT * FROM test")
+  UEXPECT_NO_THROW((conn->Execute("SELECT * FROM test")
                         .AsVector<std::tuple<int, std::string>>()));
+  UEXPECT_NO_THROW(
+      (conn->Execute(settings::CommandControl::ReadOnly(), "SELECT * FROM test")
+           .AsVector<std::tuple<int, std::string>>()));
 }
 
 UTEST_F(SQLiteCustomConnection, CreateOpen) {
   // Try to open a non-existing database
-  sqlite::SQLiteSettings settings;
+  settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.create_file = true;
 
@@ -93,7 +92,7 @@ UTEST_F(SQLiteCustomConnection, CreateOpen) {
 
 UTEST_F(SQLiteCustomConnection, InMemory) {
   // Try to open in-memory database
-  sqlite::SQLiteSettings settings;
+  settings::SQLiteSettings settings;
   settings.db_name = ":memory:";
 
   UEXPECT_NO_THROW(CreateConnection(settings))
@@ -107,8 +106,10 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   // Get result as vector of tuples
   {
     std::vector<RowTuple> actual;
-    UEXPECT_NO_THROW(
-        actual = conn->Execute(kSelectAllRows.data()).AsVector<RowTuple>());
+    UEXPECT_NO_THROW(actual =
+                         conn->Execute(settings::CommandControl::ReadOnly(),
+                                       kSelectAllRows.data())
+                             .AsVector<RowTuple>());
 
     EXPECT_EQ(actual.size(), 2);
     EXPECT_EQ(actual[0], std::make_tuple(1, "first"));
@@ -118,8 +119,10 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   // Get result as struct
   {
     Row actual;
-    UEXPECT_NO_THROW(
-        actual = conn->Execute(kSelectOneRow.data()).AsSingleRow<Row>());
+    UEXPECT_NO_THROW(actual =
+                         conn->Execute(settings::CommandControl::ReadOnly(),
+                                       kSelectOneRow.data())
+                             .AsSingleRow<Row>());
 
     EXPECT_EQ(actual, (Row{1, "first"}));
   }
@@ -128,7 +131,9 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   {
     std::vector<Row> actual;
     UEXPECT_NO_THROW(actual =
-                         conn->Execute(kSelectNullRow.data()).AsVector<Row>());
+                         conn->Execute(settings::CommandControl::ReadOnly(),
+                                       kSelectNullRow.data())
+                             .AsVector<Row>());
 
     EXPECT_TRUE(actual.empty());
   }
@@ -136,9 +141,10 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   // Get result as a single field
   {
     std::string actual;
-    UEXPECT_NO_THROW(
-        actual =
-            conn->Execute(kSelectOneField.data()).AsSingleField<std::string>());
+    UEXPECT_NO_THROW(actual =
+                         conn->Execute(settings::CommandControl::ReadOnly(),
+                                       kSelectOneField.data())
+                             .AsSingleField<std::string>());
 
     EXPECT_EQ(actual, "first");
   }
@@ -149,8 +155,10 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   {
     using UnexpectedRowTuple = std::tuple<std::string, int>;
     std::vector<UnexpectedRowTuple> actual;
-    UEXPECT_NO_THROW(actual = conn->Execute(kSelectAllRows.data())
-                                  .AsVector<UnexpectedRowTuple>());
+    UEXPECT_NO_THROW(actual =
+                         conn->Execute(settings::CommandControl::ReadOnly(),
+                                       kSelectAllRows.data())
+                             .AsVector<UnexpectedRowTuple>());
     EXPECT_EQ(actual[0], std::make_tuple("1", 0));
     EXPECT_EQ(actual[1], std::make_tuple("2", 0));
   }
@@ -162,36 +170,41 @@ UTEST_F(SQLiteResultSet, FailureExecute) {
 
   // Throw exception if try to get set of row as vector of fields
   {
-    UEXPECT_THROW(
-        conn->Execute(kSelectAllRows.data()).AsVector<std::string>(kFieldTag),
-        SQLiteException);
+    UEXPECT_THROW(conn->Execute(settings::CommandControl::ReadOnly(),
+                                kSelectAllRows.data())
+                      .AsVector<std::string>(kFieldTag),
+                  SQLiteException);
   }
 
   // Throw exception if try to get single row from empty result
   {
-    UEXPECT_THROW(conn->Execute(kSelectNullRow.data()).AsSingleRow<Row>(),
+    UEXPECT_THROW(conn->Execute(settings::CommandControl::ReadOnly(),
+                                kSelectNullRow.data())
+                      .AsSingleRow<Row>(),
                   SQLiteException);
   }
 
   // Throw exception if result is empty
   {
-    UEXPECT_THROW(
-        conn->Execute(kSelectNullField.data()).AsSingleField<std::string>(),
-        SQLiteException);
+    UEXPECT_THROW(conn->Execute(settings::CommandControl::ReadOnly(),
+                                kSelectNullField.data())
+                      .AsSingleField<std::string>(),
+                  SQLiteException);
   }
 
   // Select with unexpected fields
   {
     std::vector<RowTuple> actual;
-    UEXPECT_THROW(
-        actual =
-            conn->Execute(kUnexpectedFieldsSelect.data()).AsVector<RowTuple>(),
-        SQLiteException);
+    UEXPECT_THROW(actual = conn->Execute(settings::CommandControl::ReadOnly(),
+                                         kUnexpectedFieldsSelect.data())
+                               .AsVector<RowTuple>(),
+                  SQLiteException);
   }
 
   // Insert unexpected fields (datatype mismatch)
   {
-    UEXPECT_THROW(conn->Execute(kDatatypeMismatchInsert.data()),
+    UEXPECT_THROW(conn->Execute(settings::CommandControl::ReadOnly(),
+                                kDatatypeMismatchInsert.data()),
                   SQLiteException);
   }
 }

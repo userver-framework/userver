@@ -3,16 +3,15 @@
 #include <sqlite3.h>
 
 #include <memory>
+
 #include <userver/cache/lru_map.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/utils/str_icase.hpp>
-#include "userver/concurrent/variable.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
-
-class Connection;
 
 class StatementsCache final {
  public:

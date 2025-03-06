@@ -85,7 +85,7 @@ class SQLiteTest : public ::testing::Test {
 
 class SQLiteCustomConnection : public SQLiteTest {
  public:
-  ConnectionPtr CreateConnection(storages::sqlite::SQLiteSettings settings) {
+  ConnectionPtr CreateConnection(settings::SQLiteSettings settings) {
     conn_ = std::make_shared<storages::sqlite::Connection>(
         settings, engine::current_task::GetTaskProcessor());
     CheckConnection(conn_);
@@ -105,8 +105,9 @@ class SQLiteCustomConnection : public SQLiteTest {
 class SQLiteInMemoryConnection : public SQLiteCustomConnection {
  public:
   ConnectionPtr CreateConnection() {
-    sqlite::SQLiteSettings settings;
-    settings.db_name = ":memory:";
+    settings::SQLiteSettings settings;
+    settings.db_name = "file::memory:";
+    settings.shared_cashe = true;
     return SQLiteCustomConnection::CreateConnection(settings);
   }
 };
@@ -114,8 +115,6 @@ class SQLiteInMemoryConnection : public SQLiteCustomConnection {
 class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
  public:
   ConnectionPtr CreateConnection() {
-    sqlite::SQLiteSettings settings;
-    settings.db_name = ":memory:";
     auto conn = SQLiteInMemoryConnection::CreateConnection();
     conn->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
     return conn;

@@ -21,20 +21,20 @@ namespace {
 std::shared_ptr<storages::sqlite::Connection> CreateConnection(
     const components::ComponentConfig& config,
     const components::ComponentContext& context) {
-  storages::sqlite::SQLiteSettings settings;
+  storages::sqlite::settings::SQLiteSettings settings;
   settings.db_name = config["db-path"].As<std::string>();
   settings.create_file = config["create_file"].As<bool>();
   settings.read_mode =
       config["is_read_only"].As<bool>()
-          ? storages::sqlite::SQLiteSettings::ReadMode::kReadOnly
-          : storages::sqlite::SQLiteSettings::ReadMode::kReadWrite;
-  settings.conn_settings.prepared_statements =
-      config["persistent-prepared-statements"].As<bool>(true)
-          ? storages::sqlite::ConnectionSettings::kCachePreparedStatements
-          : storages::sqlite::ConnectionSettings::kNoPreparedStatements;
-  settings.conn_settings.max_prepared_cache_size =
-      config["max_prepared_cache_size"].As<std::size_t>(
-          storages::sqlite::kDefaultMaxPreparedCacheSize);
+          ? storages::sqlite::settings::SQLiteSettings::ReadMode::kReadOnly
+          : storages::sqlite::settings::SQLiteSettings::ReadMode::kReadWrite;
+  settings.shared_cashe =
+      config["shared_cashe"].As<bool>(settings.shared_cashe);
+  settings.shared_cashe = config["wal_mode"].As<bool>(settings.wal_mode);
+  settings.conn_settings =
+      storages::sqlite::settings::ConnectionSettings::Create(config);
+  settings.pool_settings =
+      storages::sqlite::settings::PoolSettings::Create(config);
   return std::make_shared<storages::sqlite::Connection>(
       settings,
       context.GetTaskProcessor(config["task_processor"].As<std::string>()));
@@ -43,7 +43,7 @@ std::shared_ptr<storages::sqlite::Connection> CreateConnection(
 }  // namespace
 
 SQLite::SQLite(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase(config, context),
+    : ComponentBase{config, context},
       name_{config.Name()},
       connection_(CreateConnection(config, context)) {}
 
@@ -71,6 +71,14 @@ properties:
     is_read_only:
         type: boolean
         description: defines database access as read-only
+    shared_cashe:
+        type: boolean
+        description: open database with shared in-memory cashe
+        defaultDescription: false
+    wal_mode:
+        type: boolean
+        description: WAL journal mode
+        defaultDescription: true
     persistent-prepared-statements:
         type: boolean
         description: cache prepared statements or not
@@ -79,6 +87,14 @@ properties:
         type: integer
         description: prepared statements cache size limit
         defaultDescription: 200
+    initial_read_only_pool_size:
+        type: integer
+        description: number of read only connections created initially
+        defaultDescription: 5
+    max_read_only_pool_size:
+        type: integer
+        description: maximum number of created read only connections
+        defaultDescription: 10
 )");
 }
 

@@ -20,25 +20,27 @@ namespace storages::sqlite::impl {
 
 class ConnectionImpl {
  public:
-  ConnectionImpl(const SQLiteSettings& settings,
+  ConnectionImpl(const settings::SQLiteSettings& settings,
                  engine::TaskProcessor& blocking_task_processor);
 
-  ConnectionSettings const& GetSettings() const noexcept;
+  ~ConnectionImpl();
+
+  settings::ConnectionSettings const& GetSettings() const noexcept;
   sqlite3* GetHandle() const noexcept;
 
   template <typename... Args>
-  ResultSet ExecuteCommand(OptionalCommandControl optional_cc,
+  ResultSet ExecuteCommand(settings::OptionalCommandControl optional_cc,
                            const Query& query, const Args&... args);
 
   template <typename T>
-  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
+  ResultSet ExecuteDecompose(settings::OptionalCommandControl optional_cc,
                              const Query& query, const T& row);
 
   template <typename Container>
-  void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
-                   const Container& params);
+  void ExecuteMany(settings::OptionalCommandControl optional_cc,
+                   const Query& query, const Container& params);
 
-  void Begin(const TransactionOptions& options);
+  void Begin(const settings::TransactionOptions& options);
 
   void Commit();
 
@@ -52,6 +54,15 @@ class ConnectionImpl {
 
   std::string PrepareString(const std::string& str);
 
+  bool IsBroken() const;
+
+  // There are places (destructors, basically) where we want to run some
+  // function even if connection is already broken, because that function frees
+  // resources no matter what. Can't use BrokenGuard for that, 'cause it will
+  // throw on construction, but still need a way no notify a connection that it
+  // broke.
+  void NotifyBroken();
+
  private:
   struct SQLiteHandlerDeleter {
     void operator()(sqlite3* sqlite_handle);
@@ -59,7 +70,7 @@ class ConnectionImpl {
 
   using NativeHandlerPtr = std::unique_ptr<sqlite3, SQLiteHandlerDeleter>;
 
-  sqlite3* OpenDatabase(const SQLiteSettings& settings) const;
+  sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);
 
   std::shared_ptr<Statement> MakeStatement(const std::string& statement) const;
 
@@ -71,27 +82,28 @@ class ConnectionImpl {
                                     const Args&... args) const;
 
   engine::TaskProcessor& blocking_task_processor_;
-  ConnectionSettings settings_;
+  settings::ConnectionSettings settings_;
   NativeHandlerPtr db_handler_;
   impl::StatementsCache statements_cache_;
+  std::atomic<bool> broken_{false};
 };
 
 template <typename... Args>
-ResultSet ConnectionImpl::ExecuteCommand(OptionalCommandControl optional_cc
-                                         [[maybe_unused]],
-                                         const Query& query,
-                                         const Args&... args) {
+ResultSet ConnectionImpl::ExecuteCommand(
+    settings::OptionalCommandControl optional_cc [[maybe_unused]],
+    const Query& query, const Args&... args) {
   // TODO Process optional_cc
   if (settings_.prepared_statements ==
-      ConnectionSettings::kNoPreparedStatements) {
+      settings::ConnectionSettings::kNoPreparedStatements) {
     return ExecuteCommandNoPrepare(query, args...);
   }
   return ExecuteCommand(query, args...);
 }
 
 template <typename T>
-ResultSet ConnectionImpl::ExecuteDecompose(OptionalCommandControl optional_cc,
-                                           const Query& query, const T& row) {
+ResultSet ConnectionImpl::ExecuteDecompose(
+    settings::OptionalCommandControl optional_cc, const Query& query,
+    const T& row) {
   // TODO: Add more detailed verification and error description
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
@@ -112,7 +124,7 @@ ResultSet ConnectionImpl::ExecuteDecompose(OptionalCommandControl optional_cc,
 }
 
 template <typename Container>
-void ConnectionImpl::ExecuteMany(OptionalCommandControl optional_cc,
+void ConnectionImpl::ExecuteMany(settings::OptionalCommandControl optional_cc,
                                  const Query& query, const Container& params) {
   for (const auto& row : params) {
     ExecuteDecompose(optional_cc, query, row);
