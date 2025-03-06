@@ -8,12 +8,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Savepoint::Savepoint(std::shared_ptr<impl::ConnectionImpl> pimpl,
+Savepoint::Savepoint(std::shared_ptr<infra::ConnectionPtr> connection,
                      std::string name)
-    : pimpl_(std::move(pimpl)) {
-  if (pimpl_) {
-    name_ = pimpl_->PrepareString(name);
-    pimpl_->Savepoint(name_);
+    : connection_{std::move(connection)} {
+  if (connection_ && connection_->IsValid()) {
+    name_ = (*connection_)->PrepareString(name);
+    (*connection_)->Savepoint(name_);
   }
 }
 
@@ -22,24 +22,37 @@ Savepoint::Savepoint(Savepoint&& other) noexcept = default;
 Savepoint& Savepoint::operator=(Savepoint&&) noexcept = default;
 
 Savepoint::~Savepoint() {
-  try {
-    RollbackTo();
-    Release();
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "Failed to auto rollback a savepoint: " << ex.what();
+  if (connection_ && connection_->IsValid()) {
+    try {
+      RollbackTo();
+      Release();
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Failed to auto rollback a savepoint: " << ex.what();
+    }
   }
 }
 
+void Savepoint::AssertValid() const {
+  UINVARIANT(connection_ && connection_->IsValid(),
+             "Savepoint accessed after it's been released");
+}
+
 void Savepoint::Release() {
-  if (pimpl_) {
-    pimpl_->Release(name_);
+  AssertValid();
+  {
+    auto connection = std::move(connection_);
+    (*connection)->Release(name_);
   }
 }
 
 void Savepoint::RollbackTo() {
-  if (pimpl_) {
-    pimpl_->RollbackTo(name_);
-  }
+  AssertValid();
+  (*connection_)->RollbackTo(name_);
+}
+
+Savepoint Savepoint::Save(std::string name) {
+  AssertValid();
+  return Savepoint{connection_, std::move(name)};
 }
 
 }  // namespace storages::sqlite

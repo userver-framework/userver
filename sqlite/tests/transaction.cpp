@@ -14,6 +14,7 @@
 #include <userver/storages/sqlite/tests/utils.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
 #include <userver/utest/assert_macros.hpp>
+#include "userver/storages/sqlite/infra/connection_ptr.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +30,7 @@ UTEST_F(SQLiteTransactions, Commit) {
   UEXPECT_NO_THROW(conn = CreateConnection())
       << "Connect to in-memory database";
 
-  Transaction trx{nullptr, {}};
+  Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
   UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
       << "Begin default transaction";
   ExecutionResult exec_result;
@@ -40,10 +41,6 @@ UTEST_F(SQLiteTransactions, Commit) {
   EXPECT_EQ(1, exec_result.rows_affected);
   EXPECT_EQ(1, exec_result.last_insert_id);
   UEXPECT_NO_THROW(trx.Commit()) << "Commit transaction";
-  UEXPECT_THROW(trx.Commit(), sqlite::SQLiteException)
-      << "Commit again throw an exception";
-  UEXPECT_THROW(trx.Rollback(), sqlite::SQLiteException)
-      << "Rollback after commit throw an exception";
 
   std::string res;
   UEXPECT_NO_THROW(
@@ -57,7 +54,7 @@ UTEST_F(SQLiteTransactions, Rollback) {
   UEXPECT_NO_THROW(conn = CreateConnection())
       << "Connect to in-memory database";
 
-  Transaction trx{nullptr, {}};
+  Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
   UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
       << "Begin default transaction";
   int last_insert_id{};
@@ -68,15 +65,45 @@ UTEST_F(SQLiteTransactions, Rollback) {
       << "Insert row in transaction";
   EXPECT_EQ(1, last_insert_id);
   UEXPECT_NO_THROW(trx.Rollback()) << "Rollback transaction";
-  UEXPECT_THROW(trx.Commit(), sqlite::SQLiteException)
-      << "Commit again throw an exception";
-  UEXPECT_THROW(trx.Rollback(), sqlite::SQLiteException)
-      << "Rollback after commit throw an exception";
 
   std::vector<std::string> res;
   UEXPECT_NO_THROW(res = conn->Execute("SELECT value FROM test")
                              .AsVector<std::string>(kFieldTag));
   EXPECT_TRUE(res.empty());
+}
+
+class SQLiteTransactionDeathTest : public SQLiteTransactions {};
+
+UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
+  ConnectionPtr conn;
+  UEXPECT_NO_THROW(conn = CreateConnection())
+      << "Connect to in-memory database";
+
+  // Use trx after commit would be abort
+  {
+    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+        << "Begin default transaction";
+    UEXPECT_NO_THROW(trx.Commit()) << "Commit transaction";
+    UEXPECT_DEATH(
+        trx.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult(),
+        "");
+    UEXPECT_DEATH(trx.Commit(), "");
+    UEXPECT_DEATH(trx.Rollback(), "");
+  }
+
+  // Use trx after rollback would be abort
+  {
+    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+        << "Begin default transaction";
+    UEXPECT_NO_THROW(trx.Rollback()) << "Rollback transaction";
+    UEXPECT_DEATH(
+        trx.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult(),
+        "");
+    UEXPECT_DEATH(trx.Commit(), "");
+    UEXPECT_DEATH(trx.Rollback(), "");
+  }
 }
 
 UTEST_F(SQLiteTransactions, AutoRollback) {
@@ -86,7 +113,7 @@ UTEST_F(SQLiteTransactions, AutoRollback) {
 
   // Insert a row and not commit the transaction
   {
-    Transaction trx{nullptr, {}};
+    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
         << "Begin default transaction";
     int last_insert_id{};
@@ -101,7 +128,7 @@ UTEST_F(SQLiteTransactions, AutoRollback) {
   // Insert a row and rollback the transaction -> auto rollback not throw
   // exception
   {
-    Transaction trx{nullptr, {}};
+    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
         << "Begin default transaction";
     int last_insert_id{};
@@ -116,7 +143,7 @@ UTEST_F(SQLiteTransactions, AutoRollback) {
 
   // Failure (exception) in transaction is safe
   try {
-    Transaction trx{nullptr, {}};
+    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
         << "Begin default transaction";
     int last_insert_id{};

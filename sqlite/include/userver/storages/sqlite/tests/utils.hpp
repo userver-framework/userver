@@ -25,6 +25,43 @@ namespace storages::sqlite::tests {
 
 namespace fs = std::filesystem;
 
+class MockSQLiteStatement : public impl::StatementBase {
+ public:
+  MOCK_METHOD(void, Bind, (const int index, const int32_t value));
+  MOCK_METHOD(void, Bind, (const int index, const int64_t value));
+  MOCK_METHOD(void, Bind, (const int index, const uint32_t value));
+  MOCK_METHOD(void, Bind, (const int index, const uint64_t value));
+  MOCK_METHOD(void, Bind, (const int index, const double value));
+  MOCK_METHOD(void, Bind, (const int index, const std::string& value));
+  MOCK_METHOD(void, Bind, (const int index, const std::string_view value));
+  MOCK_METHOD(void, Bind, (const int index, const char* value, const int size));
+  MOCK_METHOD(void, Bind, (const int index));
+
+  MOCK_METHOD(int, RowsAffected, (), (const, noexcept, override));
+  MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept, override));
+  MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
+  MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
+  MOCK_METHOD(void, Next, (), (noexcept, override));
+  MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
+
+  MOCK_METHOD(int32_t, GetInt32Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(uint32_t, GetUInt32Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(int64_t, GetInt64Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(double, GetDoubleColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(const char*, GetCStringColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(std::string, GetStringColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(const void*, GetBlobColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(std::vector<uint8_t>, GetBytesColumn, (int column),
+              (const, noexcept, override));
+};
+
 class SQLiteTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -48,7 +85,7 @@ class SQLiteTest : public ::testing::Test {
 
 class SQLiteCustomConnection : public SQLiteTest {
  public:
-  ConnectionPtr CreateConnection(storages::sqlite::SQLiteSettings settings) {
+  ConnectionPtr CreateConnection(settings::SQLiteSettings settings) {
     conn_ = std::make_shared<storages::sqlite::Connection>(
         settings, engine::current_task::GetTaskProcessor());
     CheckConnection(conn_);
@@ -58,8 +95,7 @@ class SQLiteCustomConnection : public SQLiteTest {
   // TODO: Do I need to validate the connection somehow?
   void CheckConnection(const ConnectionPtr& conn) {
     ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
-    // ASSERT_TRUE(conn->getHandle() != nullptr); TODO: need more informative
-    // methods
+    EXPECT_NO_THROW(conn->Execute("SELECT 42"));
   }
 
  private:
@@ -69,8 +105,9 @@ class SQLiteCustomConnection : public SQLiteTest {
 class SQLiteInMemoryConnection : public SQLiteCustomConnection {
  public:
   ConnectionPtr CreateConnection() {
-    sqlite::SQLiteSettings settings;
-    settings.db_name = ":memory:";
+    settings::SQLiteSettings settings;
+    settings.db_name = "file::memory:";
+    settings.shared_cashe = true;
     return SQLiteCustomConnection::CreateConnection(settings);
   }
 };
@@ -78,13 +115,30 @@ class SQLiteInMemoryConnection : public SQLiteCustomConnection {
 class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
  public:
   ConnectionPtr CreateConnection() {
-    sqlite::SQLiteSettings settings;
-    settings.db_name = ":memory:";
     auto conn = SQLiteInMemoryConnection::CreateConnection();
     conn->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
     return conn;
   }
 };
+
+class SQLiteResultSet : public SQLiteInMemoryInitConnection {
+ public:
+  void Init(ConnectionPtr connection) {
+    connection->Execute("INSERT INTO test VALUES (1, 'first')");
+    connection->Execute("INSERT INTO test VALUES (2, 'second')");
+  }
+};
+
+struct Row final {
+  int id{};
+  std::string value;
+
+  bool operator==(const Row& other) const {
+    return std::tie(id, value) == std::tie(other.id, other.value);
+  }
+};
+
+using RowTuple = std::tuple<int, std::string>;
 
 }  // namespace storages::sqlite::tests
 

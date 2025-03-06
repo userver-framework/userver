@@ -2,15 +2,14 @@
 
 /// @file userver/storages/sqlite/transaction.hpp
 
-#include <memory>
-
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/storages/sqlite/impl/connection_impl.hpp>
-#include <userver/storages/sqlite/impl/statements_cache.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,8 +17,8 @@ namespace storages::sqlite {
 
 class Transaction final {
  public:
-  Transaction(std::shared_ptr<impl::ConnectionImpl> pimpl,
-              const TransactionOptions& options);
+  Transaction(infra::ConnectionPtr&& connection,
+              const settings::TransactionOptions& options);
   ~Transaction();
   Transaction(const Transaction& other) = delete;
   Transaction(Transaction&& other) noexcept;
@@ -29,24 +28,22 @@ class Transaction final {
   ResultSet Execute(const Query& query, const Args&... args) const;
 
   template <typename... Args>
-  ResultSet Execute(OptionalCommandControl option_cc, const Query& query,
-                    const Args&... args) const;
+  ResultSet Execute(settings::OptionalCommandControl option_cc,
+                    const Query& query, const Args&... args) const;
 
   template <typename T>
   ResultSet ExecuteDecompose(const Query& query, const T& row) const;
 
   template <typename T>
-  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
+  ResultSet ExecuteDecompose(settings::OptionalCommandControl optional_cc,
                              const Query& query, const T& row) const;
 
   template <typename Container>
   void ExecuteMany(const Query& query, const Container& params) const;
 
   template <typename Container>
-  void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
-                   const Container& params) const;
-
-  // TODO: need Portal?
+  void ExecuteMany(settings::OptionalCommandControl optional_cc,
+                   const Query& query, const Container& params) const;
 
   void Commit();
 
@@ -54,12 +51,12 @@ class Transaction final {
 
  private:
   template <typename... Args>
-  ResultSet DoExecute(OptionalCommandControl option_cc, const Query& query,
-                      const Args&... args) const;
+  ResultSet DoExecute(settings::OptionalCommandControl option_cc,
+                      const Query& query, const Args&... args) const;
 
-  // TODO: maybe it is better to use a class of an index for implementation or
-  // fastpimpl
-  std::shared_ptr<impl::ConnectionImpl> pimpl_;
+  void AssertValid() const;
+
+  utils::FastPimpl<infra::ConnectionPtr, 24, 8> connection_;
 };
 
 template <typename... Args>
@@ -68,19 +65,9 @@ ResultSet Transaction::Execute(const Query& query, const Args&... args) const {
 }
 
 template <typename... Args>
-ResultSet Transaction::Execute(OptionalCommandControl option_cc,
+ResultSet Transaction::Execute(settings::OptionalCommandControl option_cc,
                                const Query& query, const Args&... args) const {
   return DoExecute(option_cc, query, args...);
-}
-
-template <typename... Args>
-ResultSet Transaction::DoExecute(OptionalCommandControl option_cc,
-                                 const Query& query,
-                                 const Args&... args) const {
-  if (!pimpl_) {
-    throw SQLiteException("Transaction handle is not valid");
-  }
-  return pimpl_->ExecuteCommand(option_cc, query, args...);
 }
 
 template <typename T>
@@ -89,30 +76,34 @@ ResultSet Transaction::ExecuteDecompose(const Query& query,
   return ExecuteDecompose(std::nullopt, query, row);
 }
 
-template <typename T>
-ResultSet Transaction::ExecuteDecompose(OptionalCommandControl optional_cc,
-                                        const Query& query,
-                                        const T& row) const {
-  if (!pimpl_) {
-    throw SQLiteException("Transaction handle is not valid");
-  }
-  return pimpl_->ExecuteDecompose(optional_cc, query, row);
-}
-
 template <typename Container>
 void Transaction::ExecuteMany(const Query& query,
                               const Container& params) const {
   return ExecuteMany(std::nullopt, query, params);
 }
 
+template <typename... Args>
+ResultSet Transaction::DoExecute(settings::OptionalCommandControl option_cc,
+                                 const Query& query,
+                                 const Args&... args) const {
+  AssertValid();
+  return (*connection_)->ExecuteCommand(option_cc, query, args...);
+}
+
+template <typename T>
+ResultSet Transaction::ExecuteDecompose(
+    settings::OptionalCommandControl optional_cc, const Query& query,
+    const T& row) const {
+  AssertValid();
+  return (*connection_)->ExecuteDecompose(optional_cc, query, row);
+}
+
 template <typename Container>
-void Transaction::ExecuteMany(OptionalCommandControl optional_cc,
+void Transaction::ExecuteMany(settings::OptionalCommandControl optional_cc,
                               const Query& query,
                               const Container& params) const {
-  if (!pimpl_) {
-    throw SQLiteException("Transaction handle is not valid");
-  }
-  return pimpl_->ExecuteMany(optional_cc, query, params);
+  AssertValid();
+  return (*connection_)->ExecuteMany(optional_cc, query, params);
 }
 
 }  // namespace storages::sqlite

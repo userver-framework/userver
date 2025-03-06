@@ -11,8 +11,11 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/storages/sqlite/impl/connection_impl.hpp>
-#include <userver/storages/sqlite/impl/statements_cache.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/infra/pool.hpp>
+#include <userver/storages/sqlite/infra/topology_base.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -26,6 +29,11 @@ namespace storages::sqlite {
 class Connection;
 using ConnectionPtr = std::shared_ptr<Connection>;
 
+namespace infra {
+class Pool;
+using PoolPtr = std::shared_ptr<Pool>;
+}  // namespace infra
+
 /// @ingroup userver_clients
 ///
 /// @brief Client interface for a SQLite connection.
@@ -33,7 +41,7 @@ using ConnectionPtr = std::shared_ptr<Connection>;
 class Connection final {
  public:
   /// @brief Connection constructor
-  Connection(const SQLiteSettings& settings,
+  Connection(const settings::SQLiteSettings& settings,
              engine::TaskProcessor& blocking_task_processor);
   /// @brief Connection destructor
   ~Connection();
@@ -42,39 +50,45 @@ class Connection final {
   ResultSet Execute(const Query& query, const Args&... args) const;
 
   template <typename... Args>
-  ResultSet Execute(OptionalCommandControl optional_cc, const Query& query,
-                    const Args&... args) const;
+  ResultSet Execute(settings::OptionalCommandControl optional_cc,
+                    const Query& query, const Args&... args) const;
 
   template <typename T>
   ResultSet ExecuteDecompose(const Query& query, const T& row) const;
 
   template <typename T>
-  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
+  ResultSet ExecuteDecompose(settings::OptionalCommandControl optional_cc,
                              const Query& query, const T& row) const;
 
+  // like
   // https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executemany
   template <typename Container>
   void ExecuteMany(const Query& query, const Container& params) const;
 
   template <typename Container>
-  void ExecuteMany(OptionalCommandControl optional_cc, const Query& query,
-                   const Container& params) const;
+  void ExecuteMany(settings::OptionalCommandControl optional_cc,
+                   const Query& query, const Container& params) const;
 
-  Transaction Begin(std::string name, const TransactionOptions&) const;
+  Transaction Begin(std::string name,
+                    const settings::TransactionOptions&) const;
 
-  Transaction Begin(OptionalCommandControl optional_cc, std::string name,
-                    const TransactionOptions&) const;
+  Transaction Begin(settings::OptionalCommandControl optional_cc,
+                    std::string name,
+                    const settings::TransactionOptions&) const;
 
   Savepoint Save(std::string name) const;
 
+  Savepoint Save(settings::OptionalCommandControl optional_cc,
+                 std::string name) const;
+
+  infra::ConnectionPtr GetConnection() const;
+
  private:
   template <typename... Args>
-  ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
-                      const Args&... args) const;
+  inline ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
+                             const Query& query, const Args&... args) const;
 
-  // TODO: maybe it is better to use a class of an index for implementation or
-  // fastpimpl
-  std::shared_ptr<impl::ConnectionImpl> pimpl_;
+  std::unique_ptr<infra::TopologyBase> topology_;
 };
 
 template <typename... Args>
@@ -83,15 +97,21 @@ ResultSet Connection::Execute(const Query& query, const Args&... args) const {
 }
 
 template <typename... Args>
-ResultSet Connection::Execute(OptionalCommandControl optional_cc,
+ResultSet Connection::Execute(settings::OptionalCommandControl optional_cc,
                               const Query& query, const Args&... args) const {
   return DoExecute(optional_cc, query, args...);
 }
 
 template <typename... Args>
-ResultSet Connection::DoExecute(OptionalCommandControl command_control,
+ResultSet Connection::DoExecute(settings::OptionalCommandControl optional_cc,
                                 const Query& query, const Args&... args) const {
-  return pimpl_->ExecuteCommand(command_control, query, args...);
+  if (!optional_cc.has_value()) {
+    optional_cc = settings::CommandControl::GetDefault();
+  }
+  auto connection =
+      topology_->SelectPool(optional_cc->operation_type).Acquire();
+  LOG_DEBUG() << "HI: " << query.GetStatement();
+  return connection->ExecuteCommand(optional_cc, query, args...);
 }
 
 template <typename T>
@@ -100,9 +120,15 @@ ResultSet Connection::ExecuteDecompose(const Query& query, const T& row) const {
 }
 
 template <typename T>
-ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc,
-                                       const Query& query, const T& row) const {
-  return pimpl_->ExecuteDecompose(optional_cc, query, row);
+ResultSet Connection::ExecuteDecompose(
+    settings::OptionalCommandControl optional_cc, const Query& query,
+    const T& row) const {
+  if (!optional_cc.has_value()) {
+    optional_cc = settings::CommandControl::GetDefault();
+  }
+  auto connection =
+      topology_->SelectPool(optional_cc->operation_type).Acquire();
+  return connection->ExecuteDecompose(optional_cc, query, row);
 }
 
 template <typename Container>
@@ -112,10 +138,15 @@ void Connection::ExecuteMany(const Query& query,
 }
 
 template <typename Container>
-void Connection::ExecuteMany(OptionalCommandControl optional_cc,
+void Connection::ExecuteMany(settings::OptionalCommandControl optional_cc,
                              const Query& query,
                              const Container& params) const {
-  return pimpl_->ExecuteMany(optional_cc, query, params);
+  if (!optional_cc.has_value()) {
+    optional_cc = settings::CommandControl::GetDefault();
+  }
+  auto connection =
+      topology_->SelectPool(optional_cc->operation_type).Acquire();
+  return connection->ExecuteMany(optional_cc, query, params);
 }
 
 }  // namespace storages::sqlite

@@ -2,16 +2,16 @@
 
 #include <sqlite3.h>
 
+#include <memory>
+
 #include <userver/cache/lru_map.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/utils/str_icase.hpp>
-#include "userver/concurrent/variable.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
-
-class Connection;
 
 class StatementsCache final {
  public:
@@ -28,7 +28,7 @@ class StatementsCache final {
   // CRITICAL <userver> ERROR at
   // userver/universal/include/userver/cache/impl/lru.hpp:344:InsertNode.
   // Assertion 'ok' failed
-  Statement& PrepareStatement(const std::string& statement);
+  std::shared_ptr<Statement> PrepareStatement(const std::string& statement);
 
  private:
   sqlite3* db_handler_;
@@ -36,8 +36,8 @@ class StatementsCache final {
   // TODO: Is synchronization needed?
   // Non-expirable container cache::LruMap that provides the same concurrency
   // guarantees as the standard library containers.
-  concurrent::Variable<cache::LruMap<std::string, Statement,
-                                     utils::StrIcaseHash, utils::StrIcaseEqual>>
+  cache::LruMap<std::string, std::shared_ptr<Statement>, utils::StrIcaseHash,
+                utils::StrIcaseEqual>
       cache_;
 };
 

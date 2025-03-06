@@ -7,12 +7,14 @@
 #include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/connection.hpp>
 #include <userver/storages/sqlite/execution_result.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
 #include <userver/storages/sqlite/savepoint.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
 #include <userver/utest/assert_macros.hpp>
+#include "userver/utest/death_tests.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,23 +31,40 @@ UTEST_F(SQLiteSavepoints, Release) {
   UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
       << "Begin savepoint";
   ExecutionResult exec_result;
-  UEXPECT_NO_THROW(exec_result =
-                       savepoint.Execute("INSERT INTO test VALUES (1, 'first')")
-                           .AsExecutionResult())
+  UEXPECT_NO_THROW(
+      exec_result = savepoint.Execute("INSERT INTO test VALUES (1, 'first') ")
+                        .AsExecutionResult())
       << "Insert row in savepoint";
   EXPECT_EQ(1, exec_result.rows_affected);
   EXPECT_EQ(1, exec_result.last_insert_id);
   UEXPECT_NO_THROW(savepoint.Release()) << "Release savepoint";
-  UEXPECT_THROW(savepoint.Release(), sqlite::SQLiteException)
-      << "Release again throw an exception";
-  UEXPECT_THROW(savepoint.RollbackTo(), sqlite::SQLiteException)
-      << "Rollback after release throw an exception";
+  // After that savepoint has been released it's invalid to use
 
   std::string res;
   UEXPECT_NO_THROW(
       res =
           conn->Execute("SELECT value FROM test").AsSingleField<std::string>());
   EXPECT_EQ("first", res);
+}
+
+class SQLiteSavepointsDeathTest : public SQLiteSavepoints {};
+
+UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
+  ConnectionPtr conn;
+  UEXPECT_NO_THROW(conn = CreateConnection())
+      << "Connect to in-memory database";
+
+  Savepoint savepoint{nullptr, {}};
+  UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
+      << "Begin savepoint";
+  UEXPECT_NO_THROW(savepoint.Release()) << "Release savepoint";
+
+  // After that savepoint has been released it's invalid to use
+  UEXPECT_DEATH(savepoint.Execute("INSERT INTO test VALUES (1, 'first')")
+                    .AsExecutionResult(),
+                "");
+  UEXPECT_DEATH(savepoint.Release(), "");
+  UEXPECT_DEATH(savepoint.RollbackTo(), "");
 }
 
 UTEST_F(SQLiteSavepoints, RollbackTo) {
@@ -57,9 +76,9 @@ UTEST_F(SQLiteSavepoints, RollbackTo) {
   UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
       << "Begin savepoint";
   ExecutionResult exec_result;
-  UEXPECT_NO_THROW(exec_result =
-                       savepoint.Execute("INSERT INTO test VALUES (1, 'first')")
-                           .AsExecutionResult())
+  UEXPECT_NO_THROW(
+      exec_result = savepoint.Execute("INSERT INTO test VALUES (1, 'first') ")
+                        .AsExecutionResult())
       << "Insert row in savepoint";
   EXPECT_EQ(1, exec_result.rows_affected);
   EXPECT_EQ(1, exec_result.last_insert_id);
@@ -149,7 +168,7 @@ UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
         << "Insert first row in savepoint";
 
     Savepoint savepoint2{nullptr, {}};
-    UEXPECT_NO_THROW(savepoint2 = conn->Save("test_savepoint2"))
+    UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2"))
         << "Begin second savepoint";
     UEXPECT_NO_THROW(
         savepoint2.Execute("INSERT INTO test VALUES (NULL, 'second')"))
@@ -169,14 +188,15 @@ UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
         << "Insert first row in savepoint";
 
     Savepoint savepoint2{nullptr, {}};
-    UEXPECT_NO_THROW(savepoint2 = conn->Save("test_savepoint2"))
+    UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2"))
         << "Begin second savepoint";
     UEXPECT_NO_THROW(
         savepoint2.Execute("INSERT INTO test VALUES (NULL, 'second')"))
         << "Insert second row in savepoint";
 
-    UEXPECT_NO_THROW(savepoint2.RollbackTo()) << "Rollback iternal transaction";
-    UEXPECT_NO_THROW(savepoint1.Release()) << "Commit iternal transaction";
+    UEXPECT_NO_THROW(savepoint2.RollbackTo())
+        << "Rollback iternal transaction ";
+    UEXPECT_NO_THROW(savepoint1.Release()) << "Commit iternal transaction ";
   }
 
   std::vector<std::string> res;

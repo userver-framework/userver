@@ -1,16 +1,14 @@
 #include <userver/storages/sqlite/impl/result_wrapper.hpp>
 
+#include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-ResultWrapper::ResultWrapper(std::shared_ptr<sqlite3_stmt> stmt,
-                             int exec_status)
-    : stmt_(std::move(stmt)), exec_status_(exec_status) {
-  UASSERT(stmt_);
-}
+ResultWrapper::ResultWrapper(std::shared_ptr<StatementBase> prepare_statement)
+    : prepare_statement_(std::move(prepare_statement)) {}
 
 ResultWrapper::~ResultWrapper() = default;
 
@@ -18,30 +16,25 @@ int ResultWrapper::RowsAffected() const noexcept {
   // TODO: need check on SQLITE_DONE?
   // TODO: is this an CPU bound operation? does it need to be run on
   // blocking_task_processor_?
-  return sqlite3_changes(sqlite3_db_handle(stmt_.get()));
+  return prepare_statement_->RowsAffected();
 }
 
 int ResultWrapper::LastInsertRowId() const noexcept {
-  return sqlite3_last_insert_rowid(sqlite3_db_handle(stmt_.get()));
+  return prepare_statement_->LastInsertRowId();
 }
 
 bool ResultWrapper::HasNext() const noexcept {
-  return exec_status_ == SQLITE_ROW;
+  return prepare_statement_->HasNext();
 }
 
 bool ResultWrapper::IsDone() const noexcept {
-  return exec_status_ == SQLITE_DONE;
+  return prepare_statement_->IsDone();
 }
 
-void ResultWrapper::Next() noexcept {
-  exec_status_ = sqlite3_step(stmt_.get());
-  if (IsDone()) {
-    sqlite3_reset(stmt_.get());
-  }
-}
+void ResultWrapper::Next() noexcept { prepare_statement_->Next(); }
 
 int ResultWrapper::ColumnCount() const noexcept {
-  return sqlite3_column_count(stmt_.get());
+  return prepare_statement_->ColumnCount();
 }
 
 }  // namespace storages::sqlite::impl

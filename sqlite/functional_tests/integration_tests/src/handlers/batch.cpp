@@ -88,7 +88,9 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
     }
 
     auto records =
-        sqlite_connection_->Execute(db::sql::kSelectAllKeyValue.data())
+        sqlite_connection_
+            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
+                      db::sql::kSelectAllKeyValue.data())
             .AsVector<Row>();
 
     std::sort(
@@ -102,8 +104,11 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
   }
 
   formats::json::Value GetValues() const {
-    auto rows = sqlite_connection_->Execute(db::sql::kSelectAllKeyValue.data())
-                    .AsVector<Row>();
+    auto rows =
+        sqlite_connection_
+            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
+                      db::sql::kSelectAllKeyValue.data())
+            .AsVector<Row>();
     std::sort(rows.begin(), rows.end(),
               [](const Row& lhs, const Row& rhs) -> bool {
                 return lhs.key < rhs.key;

@@ -25,7 +25,7 @@ constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
 
 }  // namespace
 
-ConnectionImpl::ConnectionImpl(const SQLiteSettings& settings,
+ConnectionImpl::ConnectionImpl(const settings::SQLiteSettings& settings,
                                engine::TaskProcessor& blocking_task_processor)
     : blocking_task_processor_{blocking_task_processor},
       settings_{settings.conn_settings},
@@ -33,7 +33,10 @@ ConnectionImpl::ConnectionImpl(const SQLiteSettings& settings,
       statements_cache_{db_handler_.get(),
                         settings.conn_settings.max_prepared_cache_size} {}
 
-ConnectionSettings const& ConnectionImpl::GetSettings() const noexcept {
+ConnectionImpl::~ConnectionImpl() = default;
+
+settings::ConnectionSettings const& ConnectionImpl::GetSettings()
+    const noexcept {
   return settings_;
 }
 
@@ -41,15 +44,15 @@ sqlite3* ConnectionImpl::GetHandle() const noexcept {
   return db_handler_.get();
 }
 
-void ConnectionImpl::Begin(const TransactionOptions& options) {
+void ConnectionImpl::Begin(const settings::TransactionOptions& options) {
   switch (options.mode) {
-    case TransactionOptions::kDeferred:
+    case settings::TransactionOptions::kDeferred:
       ExecuteCommandNoPrepare(kStatementTransactionBeginDeferred.data());
       break;
-    case TransactionOptions::kImmediate:
+    case settings::TransactionOptions::kImmediate:
       ExecuteCommandNoPrepare(kStatementTransactionBeginImmediate.data());
       break;
-    case TransactionOptions::kExclusive:
+    case settings::TransactionOptions::kExclusive:
       ExecuteCommandNoPrepare(kStatementTransactionBeginExclusive.data());
       break;
     default:
@@ -71,6 +74,7 @@ void ConnectionImpl::Savepoint(const std::string& name) {
 
 void ConnectionImpl::Release(const std::string& name) {
   ExecuteCommandNoPrepare(std::string(kStatementSavepointRelease) + name);
+  NotifyBroken();
 }
 
 void ConnectionImpl::RollbackTo(const std::string& name) {
@@ -90,15 +94,20 @@ void ConnectionImpl::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {
   // TODO: error is SQLITE_BUSY: "database is locked"
 }
 
-sqlite3* ConnectionImpl::OpenDatabase(const SQLiteSettings& settings) const {
+sqlite3* ConnectionImpl::OpenDatabase(
+    const settings::SQLiteSettings& settings) {
   int flags = 0;
-  if (settings.read_mode == SQLiteSettings::ReadMode::kReadOnly) {
+  if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadOnly) {
     flags |= SQLITE_OPEN_READONLY;
   } else {
     flags |= SQLITE_OPEN_READWRITE;
   }
-  if (settings.create_file) {
+  if (settings.create_file &&
+      settings.read_mode == settings::SQLiteSettings::ReadMode::kReadWrite) {
     flags |= SQLITE_OPEN_CREATE;
+  }
+  if (settings.shared_cashe) {
+    flags |= SQLITE_OPEN_SHAREDCACHE;
   }
   sqlite3* handle = nullptr;
   // TODO: is this an I/O bound operation, does it need to be run on
@@ -109,8 +118,10 @@ sqlite3* ConnectionImpl::OpenDatabase(const SQLiteSettings& settings) const {
       ret != SQLITE_OK) {
     // TODO: Take logic into the NativeInterface class and make full RAII
     sqlite3_close(handle);
+    NotifyBroken();
     throw SQLiteException(handle, ret);
   }
+  sqlite3_wal_checkpoint(handle, nullptr);
   return handle;
 }
 
@@ -118,6 +129,10 @@ std::shared_ptr<Statement> ConnectionImpl::MakeStatement(
     const std::string& statement) const {
   return std::make_shared<Statement>(db_handler_.get(), statement);
 }
+
+bool ConnectionImpl::IsBroken() const { return broken_.load(); }
+
+void ConnectionImpl::NotifyBroken() { broken_.store(true); }
 
 }  // namespace storages::sqlite::impl
 

@@ -6,10 +6,10 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/server/http/http_method.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
-#include "userver/server/http/http_method.hpp"
 
 #include <userver/storages/sqlite/component.hpp>
 #include <userver/storages/sqlite/connection.hpp>
@@ -70,7 +70,9 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string GetValue(std::string_view key,
                        const server::http::HttpRequest& request) const {
     auto res =
-        sqlite_connection_->Execute(db::sql::kSelectValueByKey.data(), key)
+        sqlite_connection_
+            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
+                      db::sql::kSelectValueByKey.data(), key)
             .AsOptionalSingleField<std::string>();
     if (!res.has_value()) {
       request.SetResponseStatus(server::http::HttpStatus::kNotFound);
@@ -108,15 +110,14 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
                           const server::http::HttpRequest& request) const {
     const auto& value = request.GetArg("value");
 
-    using storages::sqlite::TransactionOptions;
+    using userver::storages::sqlite::settings::TransactionOptions;
 
     storages::sqlite::Transaction transaction = sqlite_connection_->Begin(
         kUpdateKeyValueTransactionName.data(),
         TransactionOptions{TransactionOptions::Mode::kImmediate});
 
-    auto res =
-        sqlite_connection_->Execute(db::sql::kUpdateKeyValue.data(), value, key)
-            .AsExecutionResult();
+    auto res = transaction.Execute(db::sql::kUpdateKeyValue.data(), value, key)
+                   .AsExecutionResult();
     if (res.rows_affected) {
       transaction.Commit();
       request.SetResponseStatus(server::http::HttpStatus::kCreated);
