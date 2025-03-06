@@ -9,7 +9,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 
-#include <userver/storages/sqlite/connection.hpp>
+#include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/options.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,7 +18,7 @@ namespace components {
 
 namespace {
 
-std::shared_ptr<storages::sqlite::Connection> CreateConnection(
+std::shared_ptr<storages::sqlite::Client> CreateConnection(
     const components::ComponentConfig& config,
     const components::ComponentContext& context) {
   storages::sqlite::settings::SQLiteSettings settings;
@@ -35,7 +35,7 @@ std::shared_ptr<storages::sqlite::Connection> CreateConnection(
       storages::sqlite::settings::ConnectionSettings::Create(config);
   settings.pool_settings =
       storages::sqlite::settings::PoolSettings::Create(config);
-  return std::make_shared<storages::sqlite::Connection>(
+  return std::make_shared<storages::sqlite::Client>(
       settings,
       context.GetTaskProcessor(config["task_processor"].As<std::string>()));
 }
@@ -45,13 +45,11 @@ std::shared_ptr<storages::sqlite::Connection> CreateConnection(
 SQLite::SQLite(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
       name_{config.Name()},
-      connection_(CreateConnection(config, context)) {}
+      client_(CreateConnection(config, context)) {}
 
 SQLite::~SQLite() = default;
 
-storages::sqlite::ConnectionPtr SQLite::GetConnection() const {
-  return connection_;
-}
+storages::sqlite::ClientPtr SQLite::GetClient() const { return client_; }
 
 yaml_config::Schema SQLite::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<ComponentBase>(R"(

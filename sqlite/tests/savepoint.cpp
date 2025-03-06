@@ -5,7 +5,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/storages/sqlite.hpp>
-#include <userver/storages/sqlite/connection.hpp>
+#include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/execution_result.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
@@ -14,7 +14,7 @@
 #include <userver/storages/sqlite/tests/utils.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
 #include <userver/utest/assert_macros.hpp>
-#include "userver/utest/death_tests.hpp"
+#include <userver/utest/death_tests.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,12 +23,11 @@ namespace storages::sqlite::tests {
 class SQLiteSavepoints : public SQLiteInMemoryInitConnection {};
 
 UTEST_F(SQLiteSavepoints, Release) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
   Savepoint savepoint{nullptr, {}};
-  UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
+  UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
       << "Begin savepoint";
   ExecutionResult exec_result;
   UEXPECT_NO_THROW(
@@ -41,21 +40,19 @@ UTEST_F(SQLiteSavepoints, Release) {
   // After that savepoint has been released it's invalid to use
 
   std::string res;
-  UEXPECT_NO_THROW(
-      res =
-          conn->Execute("SELECT value FROM test").AsSingleField<std::string>());
+  UEXPECT_NO_THROW(res = client->Execute("SELECT value FROM test")
+                             .AsSingleField<std::string>());
   EXPECT_EQ("first", res);
 }
 
 class SQLiteSavepointsDeathTest : public SQLiteSavepoints {};
 
 UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
   Savepoint savepoint{nullptr, {}};
-  UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
+  UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
       << "Begin savepoint";
   UEXPECT_NO_THROW(savepoint.Release()) << "Release savepoint";
 
@@ -68,12 +65,11 @@ UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
 }
 
 UTEST_F(SQLiteSavepoints, RollbackTo) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
   Savepoint savepoint{nullptr, {}};
-  UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
+  UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
       << "Begin savepoint";
   ExecutionResult exec_result;
   UEXPECT_NO_THROW(
@@ -89,21 +85,20 @@ UTEST_F(SQLiteSavepoints, RollbackTo) {
       << "Release after rollback not throw any exception";
 
   std::vector<std::string> res;
-  UEXPECT_NO_THROW(res = conn->Execute("SELECT value FROM test")
+  UEXPECT_NO_THROW(res = client->Execute("SELECT value FROM test")
                              .AsVector<std::string>(kFieldTag));
   EXPECT_TRUE(res.empty());
   // After it transaction (savepoint would be end)
 }
 
 UTEST_F(SQLiteSavepoints, AutoRollback) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
   // Insert a row and not release the savepoint
   {
     Savepoint savepoint{nullptr, {}};
-    UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
+    UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
         << "Begin savepoint";
     int last_insert_id{};
     UEXPECT_NO_THROW(
@@ -119,7 +114,7 @@ UTEST_F(SQLiteSavepoints, AutoRollback) {
   // exception
   {
     Savepoint savepoint{nullptr, {}};
-    UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
+    UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
         << "Begin savepoint";
     int last_insert_id{};
     UEXPECT_NO_THROW(
@@ -135,7 +130,7 @@ UTEST_F(SQLiteSavepoints, AutoRollback) {
   // Failure (exception) in savepoint is safe
   try {
     Savepoint savepoint{nullptr, {}};
-    UEXPECT_NO_THROW(savepoint = conn->Save("test_savepoint"))
+    UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
         << "Begin default savepoint";
     int last_insert_id{};
     UEXPECT_NO_THROW(
@@ -154,14 +149,13 @@ UTEST_F(SQLiteSavepoints, AutoRollback) {
 }
 
 UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
   // Release both savepoints
   {
     Savepoint savepoint1{nullptr, {}};
-    UEXPECT_NO_THROW(savepoint1 = conn->Save("test_savepoint1"))
+    UEXPECT_NO_THROW(savepoint1 = client->Save("test_savepoint1"))
         << "Begin first savepoint";
     UEXPECT_NO_THROW(
         savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
@@ -181,7 +175,7 @@ UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
   // one release, one rollback
   {
     Savepoint savepoint1{nullptr, {}};
-    UEXPECT_NO_THROW(savepoint1 = conn->Save("test_savepoint1"))
+    UEXPECT_NO_THROW(savepoint1 = client->Save("test_savepoint1"))
         << "Begin first savepoint";
     UEXPECT_NO_THROW(
         savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
@@ -200,7 +194,7 @@ UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
   }
 
   std::vector<std::string> res;
-  UEXPECT_NO_THROW(res = conn->Execute("SELECT value FROM test")
+  UEXPECT_NO_THROW(res = client->Execute("SELECT value FROM test")
                              .AsVector<std::string>(kFieldTag));
   EXPECT_EQ(3, res.size());
 }

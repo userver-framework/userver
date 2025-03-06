@@ -4,7 +4,6 @@
 /// @brief Utilities for testing logic working with SQLite.
 
 #include <filesystem>
-#include <memory>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -13,7 +12,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/storages/sqlite.hpp>
-#include <userver/storages/sqlite/connection.hpp>
+#include <userver/storages/sqlite/client.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -85,47 +84,47 @@ class SQLiteTest : public ::testing::Test {
 
 class SQLiteCustomConnection : public SQLiteTest {
  public:
-  ConnectionPtr CreateConnection(settings::SQLiteSettings settings) {
-    conn_ = std::make_shared<storages::sqlite::Connection>(
+  ClientPtr CreateClient(settings::SQLiteSettings settings) {
+    client_ = std::make_shared<storages::sqlite::Client>(
         settings, engine::current_task::GetTaskProcessor());
-    CheckConnection(conn_);
-    return conn_;
+    CreateClient(client_);
+    return client_;
   }
 
   // TODO: Do I need to validate the connection somehow?
-  void CheckConnection(const ConnectionPtr& conn) {
-    ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
-    EXPECT_NO_THROW(conn->Execute("SELECT 42"));
+  void CreateClient(const ClientPtr& client) {
+    ASSERT_TRUE(client) << "Expected non-empty connection pointer";
+    EXPECT_NO_THROW(client->Execute("SELECT 42"));
   }
 
  private:
-  ConnectionPtr conn_;
+  ClientPtr client_;
 };
 
 class SQLiteInMemoryConnection : public SQLiteCustomConnection {
  public:
-  ConnectionPtr CreateConnection() {
+  ClientPtr CreateClient() {
     settings::SQLiteSettings settings;
     settings.db_name = "file::memory:";
     settings.shared_cashe = true;
-    return SQLiteCustomConnection::CreateConnection(settings);
+    return SQLiteCustomConnection::CreateClient(settings);
   }
 };
 
 class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
  public:
-  ConnectionPtr CreateConnection() {
-    auto conn = SQLiteInMemoryConnection::CreateConnection();
-    conn->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
-    return conn;
+  ClientPtr CreateClient() {
+    auto client = SQLiteInMemoryConnection::CreateClient();
+    client->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+    return client;
   }
 };
 
 class SQLiteResultSet : public SQLiteInMemoryInitConnection {
  public:
-  void Init(ConnectionPtr connection) {
-    connection->Execute("INSERT INTO test VALUES (1, 'first')");
-    connection->Execute("INSERT INTO test VALUES (2, 'second')");
+  void Init(ClientPtr client) {
+    client->Execute("INSERT INTO test VALUES (1, 'first')");
+    client->Execute("INSERT INTO test VALUES (2, 'second')");
   }
 };
 

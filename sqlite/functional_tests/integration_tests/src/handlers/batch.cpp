@@ -1,25 +1,26 @@
 #include "batch.hpp"
 
+#include <vector>
+
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/server/http/http_method.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
-#include "userver/server/http/http_method.hpp"
 
+#include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/component.hpp>
-#include <userver/storages/sqlite/connection.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include <db/sql.hpp>
-#include <vector>
 
 namespace functional_tests {
 
@@ -50,10 +51,10 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
   BatchSelectInsert(const components::ComponentConfig& config,
                     const components::ComponentContext& context)
       : HttpHandlerJsonBase(config, context),
-        sqlite_connection_(
+        sqlite_client_(
             context.FindComponent<components::SQLite>("key-value-database")
-                .GetConnection()) {
-    sqlite_connection_->Execute(db::sql::kCreateTable.data());
+                .GetClient()) {
+    sqlite_client_->Execute(db::sql::kCreateTable.data());
   }
 
   formats::json::Value HandleRequestJsonThrow(
@@ -81,14 +82,14 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
     }
 
     if (rows.size() > 1) {
-      sqlite_connection_->ExecuteMany(db::sql::kInsertKeyValue.data(), rows);
+      sqlite_client_->ExecuteMany(db::sql::kInsertKeyValue.data(), rows);
     } else {
-      sqlite_connection_->ExecuteDecompose(db::sql::kInsertKeyValue.data(),
-                                           rows.back());
+      sqlite_client_->ExecuteDecompose(db::sql::kInsertKeyValue.data(),
+                                       rows.back());
     }
 
     auto records =
-        sqlite_connection_
+        sqlite_client_
             ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
                       db::sql::kSelectAllKeyValue.data())
             .AsVector<Row>();
@@ -105,7 +106,7 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
 
   formats::json::Value GetValues() const {
     auto rows =
-        sqlite_connection_
+        sqlite_client_
             ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
                       db::sql::kSelectAllKeyValue.data())
             .AsVector<Row>();
@@ -121,7 +122,7 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
   }
 
  private:
-  storages::sqlite::ConnectionPtr sqlite_connection_;
+  storages::sqlite::ClientPtr sqlite_client_;
 };
 
 }  // namespace

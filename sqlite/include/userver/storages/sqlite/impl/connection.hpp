@@ -18,12 +18,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-class ConnectionImpl {
+class Connection {
  public:
-  ConnectionImpl(const settings::SQLiteSettings& settings,
-                 engine::TaskProcessor& blocking_task_processor);
+  Connection(const settings::SQLiteSettings& settings,
+             engine::TaskProcessor& blocking_task_processor);
 
-  ~ConnectionImpl();
+  ~Connection();
 
   settings::ConnectionSettings const& GetSettings() const noexcept;
   sqlite3* GetHandle() const noexcept;
@@ -89,7 +89,7 @@ class ConnectionImpl {
 };
 
 template <typename... Args>
-ResultSet ConnectionImpl::ExecuteCommand(
+ResultSet Connection::ExecuteCommand(
     settings::OptionalCommandControl optional_cc [[maybe_unused]],
     const Query& query, const Args&... args) {
   // TODO Process optional_cc
@@ -101,7 +101,7 @@ ResultSet ConnectionImpl::ExecuteCommand(
 }
 
 template <typename T>
-ResultSet ConnectionImpl::ExecuteDecompose(
+ResultSet Connection::ExecuteDecompose(
     settings::OptionalCommandControl optional_cc, const Query& query,
     const T& row) {
   // TODO: Add more detailed verification and error description
@@ -124,16 +124,15 @@ ResultSet ConnectionImpl::ExecuteDecompose(
 }
 
 template <typename Container>
-void ConnectionImpl::ExecuteMany(settings::OptionalCommandControl optional_cc,
-                                 const Query& query, const Container& params) {
+void Connection::ExecuteMany(settings::OptionalCommandControl optional_cc,
+                             const Query& query, const Container& params) {
   for (const auto& row : params) {
     ExecuteDecompose(optional_cc, query, row);
   }
 }
 
 template <typename... Args>
-ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
-                                         const Args&... args) {
+ResultSet Connection::ExecuteCommand(const Query& query, const Args&... args) {
   // Prepare statement and execute first step
   // TODO: For simple INSERT, DELETE, UPDATE this works, but for example using
   // RETURNING clauses, obviously repeated calls to sqlite3_step are required to
@@ -156,8 +155,8 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
 }
 
 template <typename... Args>
-ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
-                                                  const Args&... args) const {
+ResultSet Connection::ExecuteCommandNoPrepare(const Query& query,
+                                              const Args&... args) const {
   return engine::AsyncNoSpan(
              blocking_task_processor_,
              [this, query, args...] {

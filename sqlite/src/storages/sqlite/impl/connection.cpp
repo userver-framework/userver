@@ -1,4 +1,4 @@
-#include <userver/storages/sqlite/impl/connection_impl.hpp>
+#include <userver/storages/sqlite/impl/connection.hpp>
 
 #include <userver/storages/sqlite/impl/statements.hpp>
 
@@ -25,26 +25,23 @@ constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
 
 }  // namespace
 
-ConnectionImpl::ConnectionImpl(const settings::SQLiteSettings& settings,
-                               engine::TaskProcessor& blocking_task_processor)
+Connection::Connection(const settings::SQLiteSettings& settings,
+                       engine::TaskProcessor& blocking_task_processor)
     : blocking_task_processor_{blocking_task_processor},
       settings_{settings.conn_settings},
       db_handler_{OpenDatabase(settings)},
       statements_cache_{db_handler_.get(),
                         settings.conn_settings.max_prepared_cache_size} {}
 
-ConnectionImpl::~ConnectionImpl() = default;
+Connection::~Connection() = default;
 
-settings::ConnectionSettings const& ConnectionImpl::GetSettings()
-    const noexcept {
+settings::ConnectionSettings const& Connection::GetSettings() const noexcept {
   return settings_;
 }
 
-sqlite3* ConnectionImpl::GetHandle() const noexcept {
-  return db_handler_.get();
-}
+sqlite3* Connection::GetHandle() const noexcept { return db_handler_.get(); }
 
-void ConnectionImpl::Begin(const settings::TransactionOptions& options) {
+void Connection::Begin(const settings::TransactionOptions& options) {
   switch (options.mode) {
     case settings::TransactionOptions::kDeferred:
       ExecuteCommandNoPrepare(kStatementTransactionBeginDeferred.data());
@@ -60,33 +57,33 @@ void ConnectionImpl::Begin(const settings::TransactionOptions& options) {
   }
 }
 
-void ConnectionImpl::Commit() {
+void Connection::Commit() {
   ExecuteCommandNoPrepare(kStatementTransactionCommit.data());
 }
 
-void ConnectionImpl::Rollback() {
+void Connection::Rollback() {
   ExecuteCommandNoPrepare(kStatementTransactionRollback.data());
 }
 
-void ConnectionImpl::Savepoint(const std::string& name) {
+void Connection::Savepoint(const std::string& name) {
   ExecuteCommandNoPrepare(std::string(kStatementSavepointBegin) + name);
 }
 
-void ConnectionImpl::Release(const std::string& name) {
+void Connection::Release(const std::string& name) {
   ExecuteCommandNoPrepare(std::string(kStatementSavepointRelease) + name);
   NotifyBroken();
 }
 
-void ConnectionImpl::RollbackTo(const std::string& name) {
+void Connection::RollbackTo(const std::string& name) {
   ExecuteCommandNoPrepare(std::string(kStatementSavepointRollbackTo) + name);
 }
 
-std::string ConnectionImpl::PrepareString(const std::string& str) {
+std::string Connection::PrepareString(const std::string& str) {
   return ExecuteCommandNoPrepare(kStatementPrepeareString.data(), str)
       .AsSingleField<std::string>();
 }
 
-void ConnectionImpl::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {
+void Connection::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {
   // TODO: is this an I/O bound operation, does it need to be run on
   // blocking_task_processor_?
   sqlite3_close(sqlite_handle);
@@ -94,8 +91,7 @@ void ConnectionImpl::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {
   // TODO: error is SQLITE_BUSY: "database is locked"
 }
 
-sqlite3* ConnectionImpl::OpenDatabase(
-    const settings::SQLiteSettings& settings) {
+sqlite3* Connection::OpenDatabase(const settings::SQLiteSettings& settings) {
   int flags = 0;
   if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadOnly) {
     flags |= SQLITE_OPEN_READONLY;
@@ -125,14 +121,14 @@ sqlite3* ConnectionImpl::OpenDatabase(
   return handle;
 }
 
-std::shared_ptr<Statement> ConnectionImpl::MakeStatement(
+std::shared_ptr<Statement> Connection::MakeStatement(
     const std::string& statement) const {
   return std::make_shared<Statement>(db_handler_.get(), statement);
 }
 
-bool ConnectionImpl::IsBroken() const { return broken_.load(); }
+bool Connection::IsBroken() const { return broken_.load(); }
 
-void ConnectionImpl::NotifyBroken() { broken_.store(true); }
+void Connection::NotifyBroken() { broken_.store(true); }
 
 }  // namespace storages::sqlite::impl
 

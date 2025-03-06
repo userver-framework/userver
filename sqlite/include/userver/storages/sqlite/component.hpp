@@ -5,7 +5,7 @@
 
 #include <userver/components/component_base.hpp>
 
-#include <userver/storages/sqlite/connection.hpp>
+#include <userver/storages/sqlite/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,13 +39,13 @@ class SQLite final : public components::ComponentBase {
   /// Component destructor
   ~SQLite() override;
 
-  storages::sqlite::ConnectionPtr GetConnection() const;
+  storages::sqlite::ClientPtr GetClient() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   std::string name_;
-  const storages::sqlite::ConnectionPtr connection_;
+  const storages::sqlite::ClientPtr client_;
 };
 
 template <>

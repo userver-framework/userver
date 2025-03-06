@@ -12,7 +12,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/sqlite/impl/connection_impl.hpp>
+#include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
@@ -26,8 +26,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-class Connection;
-using ConnectionPtr = std::shared_ptr<Connection>;
+class Client;
+using ClientPtr = std::shared_ptr<Client>;
 
 namespace infra {
 class Pool;
@@ -38,13 +38,13 @@ using PoolPtr = std::shared_ptr<Pool>;
 ///
 /// @brief Client interface for a SQLite connection.
 /// Usually retrieved from components::SQLite
-class Connection final {
+class Client final {
  public:
   /// @brief Connection constructor
-  Connection(const settings::SQLiteSettings& settings,
-             engine::TaskProcessor& blocking_task_processor);
+  Client(const settings::SQLiteSettings& settings,
+         engine::TaskProcessor& blocking_task_processor);
   /// @brief Connection destructor
-  ~Connection();
+  ~Client();
 
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;
@@ -92,19 +92,19 @@ class Connection final {
 };
 
 template <typename... Args>
-ResultSet Connection::Execute(const Query& query, const Args&... args) const {
+ResultSet Client::Execute(const Query& query, const Args&... args) const {
   return Execute(std::nullopt, query, args...);
 }
 
 template <typename... Args>
-ResultSet Connection::Execute(settings::OptionalCommandControl optional_cc,
-                              const Query& query, const Args&... args) const {
+ResultSet Client::Execute(settings::OptionalCommandControl optional_cc,
+                          const Query& query, const Args&... args) const {
   return DoExecute(optional_cc, query, args...);
 }
 
 template <typename... Args>
-ResultSet Connection::DoExecute(settings::OptionalCommandControl optional_cc,
-                                const Query& query, const Args&... args) const {
+ResultSet Client::DoExecute(settings::OptionalCommandControl optional_cc,
+                            const Query& query, const Args&... args) const {
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
@@ -114,14 +114,13 @@ ResultSet Connection::DoExecute(settings::OptionalCommandControl optional_cc,
 }
 
 template <typename T>
-ResultSet Connection::ExecuteDecompose(const Query& query, const T& row) const {
+ResultSet Client::ExecuteDecompose(const Query& query, const T& row) const {
   return ExecuteDecompose(std::nullopt, query, row);
 }
 
 template <typename T>
-ResultSet Connection::ExecuteDecompose(
-    settings::OptionalCommandControl optional_cc, const Query& query,
-    const T& row) const {
+ResultSet Client::ExecuteDecompose(settings::OptionalCommandControl optional_cc,
+                                   const Query& query, const T& row) const {
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
@@ -131,15 +130,13 @@ ResultSet Connection::ExecuteDecompose(
 }
 
 template <typename Container>
-void Connection::ExecuteMany(const Query& query,
-                             const Container& params) const {
+void Client::ExecuteMany(const Query& query, const Container& params) const {
   return ExecuteMany(std::nullopt, query, params);
 }
 
 template <typename Container>
-void Connection::ExecuteMany(settings::OptionalCommandControl optional_cc,
-                             const Query& query,
-                             const Container& params) const {
+void Client::ExecuteMany(settings::OptionalCommandControl optional_cc,
+                         const Query& query, const Container& params) const {
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }

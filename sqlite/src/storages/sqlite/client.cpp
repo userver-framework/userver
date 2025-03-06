@@ -1,4 +1,4 @@
-#include <userver/storages/sqlite/connection.hpp>
+#include <userver/storages/sqlite/client.hpp>
 
 #include <optional>
 
@@ -18,21 +18,20 @@ std::unique_ptr<infra::strategy::PoolStrategyBase> CreatePoolStrategy(
                                                    blocking_task_processor);
 }
 
-Connection::Connection(const settings::SQLiteSettings& settings,
-                       engine::TaskProcessor& blocking_task_processor)
+Client::Client(const settings::SQLiteSettings& settings,
+               engine::TaskProcessor& blocking_task_processor)
     : pool_strategy_(CreatePoolStrategy(settings, blocking_task_processor)) {}
 
-Connection::~Connection() = default;
+Client::~Client() = default;
 
-Transaction Connection::Begin(
-    std::string name, const settings::TransactionOptions& options) const {
+Transaction Client::Begin(std::string name,
+                          const settings::TransactionOptions& options) const {
   return Begin(std::nullopt, name, options);
 }
 
-Transaction Connection::Begin(
-    settings::OptionalCommandControl optional_cc,
-    std::string name [[maybe_unused]],
-    const settings::TransactionOptions& options) const {
+Transaction Client::Begin(settings::OptionalCommandControl optional_cc,
+                          std::string name [[maybe_unused]],
+                          const settings::TransactionOptions& options) const {
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
@@ -41,12 +40,12 @@ Transaction Connection::Begin(
   return Transaction{std::move(connection), options};
 }
 
-Savepoint Connection::Save(std::string name) const {
+Savepoint Client::Save(std::string name) const {
   return Save(std::nullopt, name);
 }
 
-Savepoint Connection::Save(settings::OptionalCommandControl optional_cc,
-                           std::string name) const {
+Savepoint Client::Save(settings::OptionalCommandControl optional_cc,
+                       std::string name) const {
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
