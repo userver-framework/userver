@@ -71,7 +71,6 @@ void Connection::Savepoint(const std::string& name) {
 
 void Connection::Release(const std::string& name) {
   ExecuteCommandNoPrepare(std::string(kStatementSavepointRelease) + name);
-  NotifyBroken();
 }
 
 void Connection::RollbackTo(const std::string& name) {
