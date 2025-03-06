@@ -21,6 +21,7 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
       create_node_watch_(ev_thread_, [this] {
           // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
           CreateNode();
+          create_node_watch_.Start();
       }) {
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
