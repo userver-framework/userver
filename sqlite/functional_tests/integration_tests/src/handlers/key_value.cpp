@@ -6,10 +6,10 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/server/http/http_method.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
-#include "userver/server/http/http_method.hpp"
 
 #include <userver/storages/sqlite/component.hpp>
 #include <userver/storages/sqlite/connection.hpp>
@@ -69,14 +69,17 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
  private:
   std::string GetValue(std::string_view key,
                        const server::http::HttpRequest& request) const {
-    storages::sqlite::ResultSet res =
-        sqlite_connection_->Execute(db::sql::kSelectValueByKey.data(), key);
-    if (res.IsEmpty()) {
+    auto res =
+        sqlite_connection_
+            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
+                      db::sql::kSelectValueByKey.data(), key)
+            .AsOptionalSingleField<std::string>();
+    if (!res.has_value()) {
       request.SetResponseStatus(server::http::HttpStatus::kNotFound);
       return {};
     }
 
-    return res.AsSingleRow<std::string>();
+    return res.value();
   }
 
   std::string PostValue(std::string_view key,
@@ -86,50 +89,50 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
     storages::sqlite::Transaction transaction =
         sqlite_connection_->Begin(kInsertKeyValueTransactionName.data(), {});
 
-    auto res = transaction.Execute(db::sql::kInsertKeyValue.data(), key, value);
-    if (res.RowsAffected()) {
+    auto res = transaction.Execute(db::sql::kInsertKeyValue.data(), key, value)
+                   .AsExecutionResult();
+    if (res.rows_affected) {
       transaction.Commit();
       request.SetResponseStatus(server::http::HttpStatus::kCreated);
       return std::string{value};
     }
 
-    res = transaction.Execute(db::sql::kSelectValueByKey.data(), key);
+    auto trx_res = transaction.Execute(db::sql::kSelectValueByKey.data(), key)
+                       .AsSingleField<std::string>();
     transaction.Rollback();
-
-    auto result = res.AsSingleRow<std::string>();
-    if (result != value) {
+    if (value != trx_res) {
       request.SetResponseStatus(server::http::HttpStatus::kConflict);
     }
-
-    return result;
+    return trx_res;
   }
 
   std::string UpdateValue(std::string_view key,
                           const server::http::HttpRequest& request) const {
     const auto& value = request.GetArg("value");
 
-    using storages::sqlite::TransactionOptions;
+    using userver::storages::sqlite::settings::TransactionOptions;
 
     storages::sqlite::Transaction transaction = sqlite_connection_->Begin(
         kUpdateKeyValueTransactionName.data(),
         TransactionOptions{TransactionOptions::Mode::kImmediate});
 
-    auto res = sqlite_connection_->Execute(db::sql::kUpdateKeyValue.data(),
-                                           value, key);
-    if (res.RowsAffected()) {
+    auto res = transaction.Execute(db::sql::kUpdateKeyValue.data(), value, key)
+                   .AsExecutionResult();
+    if (res.rows_affected) {
       transaction.Commit();
       request.SetResponseStatus(server::http::HttpStatus::kCreated);
       return std::string{value};
     }
 
-    res = transaction.Execute(db::sql::kSelectValueByKey.data(), key);
-    if (res.IsEmpty()) {
+    auto trx_res = transaction.Execute(db::sql::kSelectValueByKey.data(), key)
+                       .AsOptionalSingleField<std::string>();
+    if (!trx_res.has_value()) {
       request.SetResponseStatus(server::http::HttpStatus::kNotFound);
       return {};
     }
     transaction.Rollback();
 
-    auto result = res.AsSingleRow<std::string>();
+    auto result = trx_res.value();
     if (result != value) {
       request.SetResponseStatus(server::http::HttpStatus::kConflict);
     }
@@ -143,8 +146,9 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
         storages::sqlite::Query::Name{kDeleteQueryName},
     };
 
-    auto res = sqlite_connection_->Execute(kDeleteValue, key);
-    return std::to_string(res.RowsAffected());
+    auto res =
+        sqlite_connection_->Execute(kDeleteValue, key).AsExecutionResult();
+    return std::to_string(res.rows_affected);
   }
 
   storages::sqlite::ConnectionPtr sqlite_connection_;

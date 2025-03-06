@@ -1,180 +1,199 @@
 #pragma once
 
-/// @file userver/storages/sqlite/result_set.hpp
-/// @brief Result accessors
-
 #include <cstddef>
-#include <limits>
+#include <memory>
 #include <optional>
+#include <string>
+#include <type_traits>
 #include <vector>
 
+#include <userver/storages/sqlite/exceptions.hpp>
+#include <userver/storages/sqlite/execution_result.hpp>
+#include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-class Row {
- public:
-  Row() = default;
-
- private:
-  friend class ResultSet;
-};
-
-class ConstRowIterator {
- public:
-  ConstRowIterator() = default;
-
- private:
-  friend class ResultSet;
-};
-
-class ReverseConstRowIterator {
- public:
-  ReverseConstRowIterator() = default;
-
- private:
-  friend class ResultSet;
-};
-
 class ResultSet {
  public:
   using size_type = std::size_t;
-  using difference_type = std::ptrdiff_t;
-  static constexpr size_type npos = std::numeric_limits<size_type>::max();
 
-  using const_iterator = ConstRowIterator;
-  using const_reverse_iterator = ReverseConstRowIterator;
+  explicit ResultSet(std::shared_ptr<impl::ResultWrapper> pimpl);
 
-  using value_type = Row;
-  using reference = value_type;
-  using pointer = const_iterator;
+  ResultSet(const ResultSet& other) = delete;
+  ResultSet(ResultSet&& other) noexcept;
+  ResultSet& operator=(ResultSet&&) noexcept;
 
-  ResultSet();
+  ~ResultSet();
 
-  size_type Size() const;
-  bool IsEmpty() const { return Size() == 0; }
-
-  size_type RowsAffected() const;
-
-  const_iterator cbegin() const&;
-  const_iterator begin() const& { return cbegin(); }
-  const_iterator cend() const&;
-  const_iterator end() const& { return cend(); }
-
-  const_iterator cbegin() const&& = delete;
-  const_iterator begin() const&& = delete;
-  const_iterator cend() const&& = delete;
-  const_iterator end() const&& = delete;
-
-  const_reverse_iterator crbegin() const&;
-  const_reverse_iterator rbegin() const& { return crbegin(); }
-  const_reverse_iterator crend() const&;
-  const_reverse_iterator rend() const& { return crend(); }
-
-  const_reverse_iterator crbegin() const&& = delete;
-  const_reverse_iterator rbegin() const&& = delete;
-  const_reverse_iterator crend() const&& = delete;
-  const_reverse_iterator rend() const&& = delete;
-
-  reference Front() const&;
-  reference Back() const&;
-
-  reference Front() const&& = delete;
-  reference Back() const&& = delete;
-
-  reference operator[](size_type index) const&;
-  reference operator[](size_type index) const&& = delete;
-
+  // clang-format off
+  /// @brief Parse statement result set as std::vector<T>.
+  /// T is expected to be an aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  ///
+  // clang-format on
   template <typename T>
-  std::vector<T> AsVector() const;
-  template <typename T>
-  std::vector<T> AsVector(RowTag) const;
-  template <typename T>
-  std::vector<T> AsVector(FieldTag) const;
+  std::vector<T> AsVector() && {
+    // TODO: Add more detailed verification and error description
+    // static_assert(is_aggregate_or_tuple_v<T>,
+    //               "T must be an aggregate type or tuple-like type");
+    std::vector<T> result;
+    while (pimpl_->HasNext()) {
+      result.emplace_back(pimpl_->FetchNext<T>());
+    }
+    return result;
+  }
 
-  template <typename Container>
-  Container AsContainer() const;
-  template <typename Container>
-  Container AsContainer(RowTag) const;
-  template <typename Container>
-  Container AsContainer(FieldTag) const;
+  // clang-format off
+  /// @brief Parse statement result set as std::vector<T>.
+  /// Result set is expected to have a single column, `T` is expected to be one
+  /// of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  ///
+  // clang-format on
+  template <typename T>
+  std::vector<T> AsVector(FieldTag) && {
+    // TODO: Add more detailed verification and error description
+    static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
+                      std::is_same_v<T, std::string> ||
+                      std::is_same_v<T, std::vector<uint8_t>>,
+                  "Unsupported type for AsVector(FieldTag)");
+    const int column_count = pimpl_->ColumnCount();
+    if (column_count != 1) {
+      throw SQLiteException(
+          "Result set must have exactly one column for AsVector(FieldTag)");
+    }
+    std::vector<T> result;
+    while (pimpl_->HasNext()) {
+      result.emplace_back(pimpl_->FetchNext<T>(kFieldTag));
+    }
+    return result;
+  }
 
+  // clang-format off
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have a single row, `T` is expected to be an
+  /// aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  /// throws if result set is empty or contains more than one row.
+  ///
+  // clang-format on
   template <typename T>
-  auto AsSingleRow() const;
-  template <typename T>
-  auto AsSingleRow(RowTag) const;
-  template <typename T>
-  auto AsSingleRow(FieldTag) const;
+  T AsSingleRow() && {
+    // TODO: Add more detailed verification and error description
+    // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+    //               "T must be an aggregate type or tuple-like type");
 
+    if (pimpl_->IsDone()) {
+      throw SQLiteException("Result set is empty");
+    }
+    auto result = pimpl_->FetchNext<T>();
+    if (pimpl_->HasNext()) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+    return result;
+  }
+
+  // clang-format off
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have a single row and a single column,
+  /// `T` is expected to be one of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  /// throws if result set is empty of contains more than one row.
+  ///
+  // clang-format on
   template <typename T>
-  std::optional<T> AsOptionalSingleRow() const;
+  T AsSingleField() && {
+    // TODO: Add more detailed verification and error description
+    static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
+                      std::is_same_v<T, std::string> ||
+                      std::is_same_v<T, std::vector<uint8_t>>,
+                  "T must be one of the supported types: int64_t, double, "
+                  "std::string, std::vector<uint8_t>");
+
+    if (pimpl_->IsDone()) {
+      throw SQLiteException("Result set is empty");
+    }
+    int column_count = pimpl_->ColumnCount();
+    if (column_count != 1) {
+      throw SQLiteException("Result set must contain exactly one column");
+    }
+    auto result = pimpl_->FetchNext<T>(kFieldTag);
+    if (pimpl_->HasNext()) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+    return result;
+  }
+
+  // clang-format off
+  /// @brief Parse statement result as std::optional<T>.
+  /// Result set is expected to have not more than one row,
+  /// `T` is expected to be an aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  /// throws if result set contains more than one row.
+  ///
+  // clang-format on
   template <typename T>
-  std::optional<T> AsOptionalSingleRow(RowTag) const;
+  std::optional<T> AsOptionalSingleRow() && {
+    // TODO: Add more detailed verification and error description
+    // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+    //               "T must be an aggregate type or tuple-like type");
+
+    if (pimpl_->IsDone()) {
+      return std::nullopt;
+    }
+    auto result = pimpl_->FetchNext<T>();
+    if (pimpl_->HasNext()) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+    return result;
+  }
+
+  // clang-format off
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have not more than one row,
+  /// `T` is expected to be one of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  /// throws if result set contains more than one row.
+  ///
+  // clang-format on
   template <typename T>
-  std::optional<T> AsOptionalSingleRow(FieldTag) const;
+  std::optional<T> AsOptionalSingleField() && {
+    // TODO: Add more detailed verification and error description
+    static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
+                      std::is_same_v<T, std::string> ||
+                      std::is_same_v<T, std::vector<uint8_t>>,
+                  "T must be one of the supported types: int64_t, double, "
+                  "std::string, std::vector<uint8_t>");
+
+    if (pimpl_->IsDone()) {
+      return std::nullopt;
+    }
+    int column_count = pimpl_->ColumnCount();
+    if (column_count != 1) {
+      throw SQLiteException("Result set must contain exactly one column");
+    }
+    auto result = pimpl_->FetchNext<T>(kFieldTag);
+    if (pimpl_->HasNext()) {
+      throw SQLiteException("Result set contains more than one row");
+    }
+    return result;
+  }
+
+  /// @brief Get statement execution metadata.
+  ExecutionResult AsExecutionResult() &&;
+
+ private:
+  std::shared_ptr<impl::ResultWrapper> pimpl_;
 };
-
-template <typename T>
-std::vector<T> ResultSet::AsVector() const {
-  return std::move(*this).AsContainer<std::vector<T>>();
-}
-
-template <typename T>
-std::vector<T> ResultSet::AsVector(RowTag) const {
-  return std::move(*this).AsContainer<std::vector<T>>(kRowTag);
-}
-
-template <typename T>
-std::vector<T> ResultSet::AsVector(FieldTag) const {
-  return std::move(*this).AsContainer<std::vector<T>>(kFieldTag);
-}
-
-template <typename Container>
-Container ResultSet::AsContainer() const {
-  return AsContainer<Container>(kRowTag);
-};
-
-template <typename Container>
-Container ResultSet::AsContainer(RowTag) const {
-  return Container{};
-}
-
-template <typename Container>
-Container ResultSet::AsContainer(FieldTag) const {
-  return Container{};
-}
-
-template <typename T>
-auto ResultSet::AsSingleRow() const {
-  return AsSingleRow<T>(kFieldTag);
-}
-
-template <typename T>
-auto ResultSet::AsSingleRow(RowTag) const {
-  return T{};
-}
-
-template <typename T>
-auto ResultSet::AsSingleRow(FieldTag) const {
-  return T{};
-}
-
-template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow() const {
-  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>()};
-}
-
-template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow(RowTag) const {
-  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kRowTag)};
-}
-
-template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
-  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kFieldTag)};
-}
 
 }  // namespace storages::sqlite
 

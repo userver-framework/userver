@@ -1,33 +1,53 @@
 #include <userver/storages/sqlite/transaction.hpp>
 
-#include "userver/logging/log.hpp"
-
-#include "userver/storages/sqlite/query.hpp"
+#include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/sqlite/query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Transaction::Transaction() = default;
-
-Transaction::Transaction(const Transaction& other) = default;
-
-Transaction::Transaction(Transaction&& other) noexcept = default;
-
-Transaction::~Transaction() {
-  try {
-    Rollback();
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "Failed to auto rollback a transaction: " << ex.what();
+Transaction::Transaction(infra::ConnectionPtr&& connection,
+                         const settings::TransactionOptions& options)
+    : connection_{std::move(connection)} {
+  if (connection_->IsValid()) {
+    (*connection_)->Begin(options);
   }
 }
 
-void Transaction::Commit() {}
+Transaction::Transaction(Transaction&& other) noexcept = default;
+Transaction& Transaction::operator=(Transaction&&) noexcept = default;
 
-void Transaction::Rollback() {}
+Transaction::~Transaction() {
+  if (connection_->IsValid()) {
+    try {
+      Rollback();
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Failed to auto rollback a transaction: " << ex.what();
+    }
+  }
+}
 
-ResultSet Transaction::DoExecute(const Query& query [[maybe_unused]]) const {
-  return ResultSet{};
+void Transaction::AssertValid() const {
+  UINVARIANT(connection_->IsValid(),
+             "Transaction accessed after it's been released");
+}
+
+void Transaction::Commit() {
+  AssertValid();
+  {
+    auto connection = std::move(connection_);
+    (*connection)->Commit();
+  }
+}
+
+void Transaction::Rollback() {
+  AssertValid();
+  {
+    auto connection = std::move(connection_);
+    (*connection)->Rollback();
+  }
 }
 
 }  // namespace storages::sqlite

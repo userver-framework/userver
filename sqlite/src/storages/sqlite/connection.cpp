@@ -2,37 +2,57 @@
 
 #include <optional>
 
-#include "userver/storages/sqlite/result_set.hpp"
+#include <sqlite3.h>
+
+#include <userver/storages/sqlite/exceptions.hpp>
+#include <userver/storages/sqlite/infra/pool.hpp>
+#include "userver/storages/sqlite/infra/connection_ptr.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Connection::Connection(const SQLiteSettings& settings [[maybe_unused]],
-                       const components::ComponentConfig& config
-                       [[maybe_unused]]) {}
+std::unique_ptr<infra::TopologyBase> CreateTopology(
+    const settings::SQLiteSettings& settings,
+    engine::TaskProcessor& blocking_task_processor) {
+  return infra::TopologyBase::Create(settings, blocking_task_processor);
+}
+
+Connection::Connection(const settings::SQLiteSettings& settings,
+                       engine::TaskProcessor& blocking_task_processor)
+    : topology_(CreateTopology(settings, blocking_task_processor)) {}
 
 Connection::~Connection() = default;
 
-Transaction Connection::Begin(std::string name,
-                              const TransactionOptions& options) const {
+Transaction Connection::Begin(
+    std::string name, const settings::TransactionOptions& options) const {
   return Begin(std::nullopt, name, options);
 }
 
-Transaction Connection::Begin(OptionalCommandControl command_control
-                              [[maybe_unused]],
-                              std::string name [[maybe_unused]],
-                              const TransactionOptions& options
-                              [[maybe_unused]]) const {
-  return Transaction{};
+Transaction Connection::Begin(
+    settings::OptionalCommandControl optional_cc,
+    std::string name [[maybe_unused]],
+    const settings::TransactionOptions& options) const {
+  if (!optional_cc.has_value()) {
+    optional_cc = settings::CommandControl::GetDefault();
+  }
+  auto connection =
+      topology_->SelectPool(optional_cc->operation_type).Acquire();
+  return Transaction{std::move(connection), options};
 }
 
-ResultSet Connection::DoExecute(OptionalCommandControl command_control
-                                [[maybe_unused]],
-                                const Query& query [[maybe_unused]],
-                                std::optional<std::size_t> batch_size
-                                [[maybe_unused]]) const {
-  return ResultSet{};
+Savepoint Connection::Save(std::string name) const {
+  return Save(std::nullopt, name);
+}
+
+Savepoint Connection::Save(settings::OptionalCommandControl optional_cc,
+                           std::string name) const {
+  if (!optional_cc.has_value()) {
+    optional_cc = settings::CommandControl::GetDefault();
+  }
+  auto connection = std::make_shared<infra::ConnectionPtr>(
+      topology_->SelectPool(optional_cc->operation_type).Acquire());
+  return Savepoint{connection, std::move(name)};
 }
 
 }  // namespace storages::sqlite

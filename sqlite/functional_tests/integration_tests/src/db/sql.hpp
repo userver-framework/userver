@@ -6,7 +6,7 @@ namespace functional_tests::db::sql {
 
 inline constexpr std::string_view kCreateTable = R"~(
 CREATE TABLE IF NOT EXISTS key_value_table (
-key TEXT PRIMARY KEY,
+key PRIMARY KEY,
 value TEXT
 )
 )~";

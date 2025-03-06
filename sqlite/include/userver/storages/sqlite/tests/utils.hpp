@@ -3,11 +3,18 @@
 /// @file userver/storages/sqlite/tests/utils.hpp
 /// @brief Utilities for testing logic working with SQLite.
 
+#include <filesystem>
 #include <memory>
-#include <userver/storages/sqlite.hpp>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <userver/components/component_fwd.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/storages/sqlite.hpp>
+#include <userver/storages/sqlite/connection.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,94 +23,122 @@ namespace storages::sqlite::tests {
 // TODO: write a mock function or class to obtain the correct ResultSet from the
 // given data
 
-class SQLiteConnection {
+namespace fs = std::filesystem;
+
+class MockSQLiteStatement : public impl::StatementBase {
  public:
-  virtual ~SQLiteConnection() = default;
-  virtual ResultSet Execute() { return {}; }
+  MOCK_METHOD(void, Bind, (const int index, const int32_t value));
+  MOCK_METHOD(void, Bind, (const int index, const int64_t value));
+  MOCK_METHOD(void, Bind, (const int index, const uint32_t value));
+  MOCK_METHOD(void, Bind, (const int index, const uint64_t value));
+  MOCK_METHOD(void, Bind, (const int index, const double value));
+  MOCK_METHOD(void, Bind, (const int index, const std::string& value));
+  MOCK_METHOD(void, Bind, (const int index, const std::string_view value));
+  MOCK_METHOD(void, Bind, (const int index, const char* value, const int size));
+  MOCK_METHOD(void, Bind, (const int index));
+
+  MOCK_METHOD(int, RowsAffected, (), (const, noexcept, override));
+  MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept, override));
+  MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
+  MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
+  MOCK_METHOD(void, Next, (), (noexcept, override));
+  MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
+
+  MOCK_METHOD(int32_t, GetInt32Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(uint32_t, GetUInt32Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(int64_t, GetInt64Column, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(double, GetDoubleColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(const char*, GetCStringColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(std::string, GetStringColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(const void*, GetBlobColumn, (int column),
+              (const, noexcept, override));
+  MOCK_METHOD(std::vector<uint8_t>, GetBytesColumn, (int column),
+              (const, noexcept, override));
 };
 
-class MockSQLiteConnection {
- public:
-  MOCK_METHOD(ResultSet, Execute, (), ());
-};
-
-template <typename Connection>
-class SQLiteTestFixture : public ::testing::Test {
- private:
-  std::shared_ptr<MockSQLiteConnection> mock_connection_;
-
+class SQLiteTest : public ::testing::Test {
  protected:
-  SQLiteTestFixture()
-      : mock_connection_(std::make_shared<MockSQLiteConnection>()) {}
-
-  std::shared_ptr<MockSQLiteConnection> GetMockConnection() {
-    return mock_connection_;
+  void SetUp() override {
+    test_dir_ = fs::temp_directory_path() / "sqlite_test";
+    fs::create_directory(test_dir_);
   }
 
-  ResultSet Execute() { return mock_connection_->Execute(); }
-};
+  void TearDown() override {
+    if (fs::exists(test_dir_)) {
+      fs::remove_all(test_dir_);
+    }
+  }
 
-class ConnectionWrapper final {
- public:
-  ConnectionWrapper();
-  ~ConnectionWrapper();
-
-  Connection& operator*() const;
-  Connection* operator->() const;
-
-  template <typename... Args>
-  ResultSet DefaultExecute(const std::string& query, const Args&... args) const;
+  std::string GetTestDbPath(const std::string& db_name) const {
+    return (test_dir_ / db_name).string();
+  }
 
  private:
-  ConnectionPtr connection_;
+  fs::path test_dir_;
 };
 
-template <typename... Args>
-ResultSet ConnectionWrapper::DefaultExecute(const std::string& query,
-                                            const Args&... args) const {
-  return connection_->Execute(query, args...);
-}
-
-class TmpTable final {
+class SQLiteCustomConnection : public SQLiteTest {
  public:
-  explicit TmpTable(std::string_view definition);
-  TmpTable(ConnectionWrapper& connection, std::string_view definition);
-  ~TmpTable();
+  ConnectionPtr CreateConnection(settings::SQLiteSettings settings) {
+    conn_ = std::make_shared<storages::sqlite::Connection>(
+        settings, engine::current_task::GetTaskProcessor());
+    CheckConnection(conn_);
+    return conn_;
+  }
 
-  template <typename... Args>
-  std::string FormatWithTableName(std::string_view source,
-                                  const Args&... args) const;
-
-  template <typename... Args>
-  ResultSet DefaultExecute(std::string_view source, const Args&... args);
-
-  ConnectionWrapper& GetConnection() const;
-
-  Transaction Begin(const std::string& name, TransactionOptions options);
+  // TODO: Do I need to validate the connection somehow?
+  void CheckConnection(const ConnectionPtr& conn) {
+    ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
+    EXPECT_NO_THROW(conn->Execute("SELECT 42"));
+  }
 
  private:
-  static constexpr std::string_view kCreateTableQueryTemplate =
-      "CREATE TABLE {} ({})";
-
-  void CreateTable(std::string_view definition);
-
-  std::optional<ConnectionWrapper> owned_connection_;
-  ConnectionWrapper& connection_;
-  std::string table_name_;
+  ConnectionPtr conn_;
 };
 
-template <typename... Args>
-std::string TmpTable::FormatWithTableName(std::string_view source,
-                                          const Args&... args) const {
-  return fmt::format(fmt::runtime(source), table_name_, args...);
-}
+class SQLiteInMemoryConnection : public SQLiteCustomConnection {
+ public:
+  ConnectionPtr CreateConnection() {
+    settings::SQLiteSettings settings;
+    settings.db_name = "file::memory:";
+    settings.shared_cashe = true;
+    return SQLiteCustomConnection::CreateConnection(settings);
+  }
+};
 
-template <typename... Args>
-ResultSet TmpTable::DefaultExecute(std::string_view source,
-                                   const Args&... args) {
-  return connection_.DefaultExecute(FormatWithTableName(source, table_name_),
-                                    args...);
-}
+class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
+ public:
+  ConnectionPtr CreateConnection() {
+    auto conn = SQLiteInMemoryConnection::CreateConnection();
+    conn->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+    return conn;
+  }
+};
+
+class SQLiteResultSet : public SQLiteInMemoryInitConnection {
+ public:
+  void Init(ConnectionPtr connection) {
+    connection->Execute("INSERT INTO test VALUES (1, 'first')");
+    connection->Execute("INSERT INTO test VALUES (2, 'second')");
+  }
+};
+
+struct Row final {
+  int id{};
+  std::string value;
+
+  bool operator==(const Row& other) const {
+    return std::tie(id, value) == std::tie(other.id, other.value);
+  }
+};
+
+using RowTuple = std::tuple<int, std::string>;
 
 }  // namespace storages::sqlite::tests
 

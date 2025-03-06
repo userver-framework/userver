@@ -6,27 +6,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-ResultSet::ResultSet() = default;
+ResultSet::ResultSet(std::shared_ptr<impl::ResultWrapper> pimpl)
+    : pimpl_{std::move(pimpl)} {}
 
-ResultSet::size_type ResultSet::Size() const { return 0; }
+ResultSet::ResultSet(ResultSet&& other) noexcept = default;
 
-ResultSet::size_type ResultSet::RowsAffected() const { return 0; }
+ResultSet& ResultSet::operator=(ResultSet&&) noexcept = default;
 
-ResultSet::const_iterator ResultSet::cbegin() const& { return {}; }
+ResultSet::~ResultSet() = default;
 
-ResultSet::const_iterator ResultSet::cend() const& { return {}; }
+ExecutionResult ResultSet::AsExecutionResult() && {
+  const int rows_affected = pimpl_->RowsAffected();
+  const int last_insert_id = pimpl_->LastInsertRowId();
 
-ResultSet::const_reverse_iterator ResultSet::crbegin() const& { return {}; }
-
-ResultSet::const_reverse_iterator ResultSet::crend() const& { return {}; }
-
-ResultSet::reference ResultSet::Front() const& { return (*this)[0]; }
-
-ResultSet::reference ResultSet::Back() const& { return (*this)[Size() - 1]; }
-
-ResultSet::reference ResultSet::operator[](size_type index) const& {
-  if (index >= Size()) throw SQLiteException{0, ""};
-  return {};
+  ExecutionResult result{};
+  result.rows_affected = rows_affected;
+  result.last_insert_id = last_insert_id;
+  return result;
 }
 
 }  // namespace storages::sqlite

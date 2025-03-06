@@ -11,6 +11,27 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief SQLite client component.
+/// ## Static options:
+/// Name                               | Description                                                    | Default value
+/// ---------------------------------- | -------------------------------------------------------------- | ---------------
+/// task_processor                     | name of the task processor to run the blocking file operations | -
+/// db-path                            | path to database file or `::memory` for in-memory mode         | -
+/// create_file                        | create a file if one is not found along the db-path            | true
+/// is_read_only                       | defines database access as read-only                           | false
+/// shared_cashe                       | open database with shared in-memory cashe                      | false
+/// wal_mode                           | WAL journal mode                                               | true
+/// persistent-prepared-statements     | cache prepared statements or not                               | true
+/// max_prepared_cache_size            | prepared statements cache size limit                           | 200
+/// initial_read_only_pool_size        | initial read only connection pool size                         | 5
+/// max_read_only_pool_size            | maximum read only connection pool size                         | 10
+
+// clang-format on
+
 class SQLite final : public components::ComponentBase {
  public:
   /// Component constructor

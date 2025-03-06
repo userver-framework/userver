@@ -81,37 +81,38 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
     }
 
     if (rows.size() > 1) {
-      sqlite_connection_->ExecuteBulk(db::sql::kInsertKeyValue.data(), rows);
+      sqlite_connection_->ExecuteMany(db::sql::kInsertKeyValue.data(), rows);
     } else {
       sqlite_connection_->ExecuteDecompose(db::sql::kInsertKeyValue.data(),
                                            rows.back());
     }
 
     auto records =
-        sqlite_connection_->Execute(db::sql::kSelectAllKeyValue.data());
-
-    std::vector<Row> result;
-    for (size_t i = 0; i < records.Size(); ++i) {
-      // TODO: Add conversion from sqlite::Row to user-defined structures
-      result.push_back(Row{});
-    }
+        sqlite_connection_
+            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
+                      db::sql::kSelectAllKeyValue.data())
+            .AsVector<Row>();
 
     std::sort(
-        result.begin(), result.end(),
+        records.begin(), records.end(),
         [](const auto& lhs, const auto& rhs) { return lhs.key < rhs.key; });
 
     formats::json::ValueBuilder builder{};
-    builder["values"] = result;
+    builder["values"] = records;
 
     return builder.ExtractValue();
   }
 
   formats::json::Value GetValues() const {
-    auto rows = sqlite_connection_->Execute(db::sql::kSelectAllKeyValue.data())
-                    .AsVector<Row>();
-    std::sort(rows.begin(), rows.end(), [](const auto& lhs, const auto& rhs) {
-      return lhs.key < rhs.key;
-    });
+    auto rows =
+        sqlite_connection_
+            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
+                      db::sql::kSelectAllKeyValue.data())
+            .AsVector<Row>();
+    std::sort(rows.begin(), rows.end(),
+              [](const Row& lhs, const Row& rhs) -> bool {
+                return lhs.key < rhs.key;
+              });
 
     formats::json::ValueBuilder builder{};
     builder["values"] = rows;
