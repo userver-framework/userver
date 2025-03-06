@@ -15,7 +15,7 @@
 #include <userver/storages/sqlite/impl/connection_impl.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
-#include <userver/storages/sqlite/infra/topology_base.hpp>
+#include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -88,7 +88,7 @@ class Connection final {
   inline ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
                              const Query& query, const Args&... args) const;
 
-  std::unique_ptr<infra::TopologyBase> topology_;
+  std::unique_ptr<infra::strategy::PoolStrategyBase> pool_strategy_;
 };
 
 template <typename... Args>
@@ -109,8 +109,7 @@ ResultSet Connection::DoExecute(settings::OptionalCommandControl optional_cc,
     optional_cc = settings::CommandControl::GetDefault();
   }
   auto connection =
-      topology_->SelectPool(optional_cc->operation_type).Acquire();
-  LOG_DEBUG() << "HI: " << query.GetStatement();
+      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire();
   return connection->ExecuteCommand(optional_cc, query, args...);
 }
 
@@ -127,7 +126,7 @@ ResultSet Connection::ExecuteDecompose(
     optional_cc = settings::CommandControl::GetDefault();
   }
   auto connection =
-      topology_->SelectPool(optional_cc->operation_type).Acquire();
+      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire();
   return connection->ExecuteDecompose(optional_cc, query, row);
 }
 
@@ -145,7 +144,7 @@ void Connection::ExecuteMany(settings::OptionalCommandControl optional_cc,
     optional_cc = settings::CommandControl::GetDefault();
   }
   auto connection =
-      topology_->SelectPool(optional_cc->operation_type).Acquire();
+      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire();
   return connection->ExecuteMany(optional_cc, query, params);
 }
 

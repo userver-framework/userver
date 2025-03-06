@@ -1,26 +1,29 @@
-#include <userver/storages/sqlite/infra/read_write_topology.hpp>
+#include <userver/storages/sqlite/infra/strategy/read_write_strategy.hpp>
 
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite::infra {
+namespace storages::sqlite::infra::strategy {
 
-ReadWrite::ReadWrite(const settings::SQLiteSettings& settings,
-                     engine::TaskProcessor& blocking_task_processor)
+ReadWriteStrategy::ReadWriteStrategy(
+    const settings::SQLiteSettings& settings,
+    engine::TaskProcessor& blocking_task_processor)
     : write_connection_pool_{InitializeReadWritePoolReference(
           settings, blocking_task_processor)},
       read_connection_pool_{
           InitializeReadOnlyPoolReference(settings, blocking_task_processor)} {}
 
-ReadWrite::~ReadWrite() = default;
+ReadWriteStrategy::~ReadWriteStrategy() = default;
 
-Pool& ReadWrite::GetReadOnly() const { return *read_connection_pool_; }
+Pool& ReadWriteStrategy::GetReadOnly() const { return *read_connection_pool_; }
 
-Pool& ReadWrite::GetReadWrite() const { return *write_connection_pool_; }
+Pool& ReadWriteStrategy::GetReadWrite() const {
+  return *write_connection_pool_;
+}
 
-PoolPtr ReadWrite::InitializeReadOnlyPoolReference(
+PoolPtr ReadWriteStrategy::InitializeReadOnlyPoolReference(
     settings::SQLiteSettings settings,
     engine::TaskProcessor& blocking_task_processor) {
   settings.read_mode =
@@ -35,7 +38,7 @@ PoolPtr ReadWrite::InitializeReadOnlyPoolReference(
   return read_connection_pool;
 }
 
-PoolPtr ReadWrite::InitializeReadWritePoolReference(
+PoolPtr ReadWriteStrategy::InitializeReadWritePoolReference(
     settings::SQLiteSettings settings,
     engine::TaskProcessor& blocking_task_processor) {
   settings.read_mode =
@@ -52,6 +55,6 @@ PoolPtr ReadWrite::InitializeReadWritePoolReference(
   return write_connection_pool;
 }
 
-}  // namespace storages::sqlite::infra
+}  // namespace storages::sqlite::infra::strategy
 
 USERVER_NAMESPACE_END

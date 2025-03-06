@@ -13,11 +13,13 @@ namespace storages::sqlite::infra {
 class Pool;
 using PoolPtr = std::shared_ptr<Pool>;
 
-class TopologyBase {
- public:
-  virtual ~TopologyBase();
+namespace strategy {
 
-  static std::unique_ptr<TopologyBase> Create(
+class PoolStrategyBase {
+ public:
+  virtual ~PoolStrategyBase();
+
+  static std::unique_ptr<PoolStrategyBase> Create(
       const settings::SQLiteSettings& settings,
       engine::TaskProcessor& blocking_task_processor);
 
@@ -27,6 +29,8 @@ class TopologyBase {
   virtual Pool& GetReadOnly() const = 0;
   virtual Pool& GetReadWrite() const = 0;
 };
+
+}  // namespace strategy
 
 }  // namespace storages::sqlite::infra
 

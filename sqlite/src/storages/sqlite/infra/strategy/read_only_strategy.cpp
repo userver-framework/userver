@@ -1,25 +1,26 @@
-#include <userver/storages/sqlite/infra/read_only_topology.hpp>
+#include <userver/storages/sqlite/infra/strategy/read_only_strategy.hpp>
 
 #include <userver/storages/sqlite/infra/pool.hpp>
+#include <userver/storages/sqlite/options.hpp>
 #include <userver/utils/assert.hpp>
-#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite::infra {
+namespace storages::sqlite::infra::strategy {
 
-ReadOnly::ReadOnly(const settings::SQLiteSettings& settings,
-                   engine::TaskProcessor& blocking_task_processor)
+ReadOnlyStrategy::ReadOnlyStrategy(
+    const settings::SQLiteSettings& settings,
+    engine::TaskProcessor& blocking_task_processor)
     : read_connection_pool_{
           InitializeReadOnlyPoolReference(settings, blocking_task_processor)} {}
 
-ReadOnly::~ReadOnly() = default;
+ReadOnlyStrategy::~ReadOnlyStrategy() = default;
 
-Pool& ReadOnly::GetReadOnly() const { return *read_connection_pool_; }
+Pool& ReadOnlyStrategy::GetReadOnly() const { return *read_connection_pool_; }
 
-Pool& ReadOnly::GetReadWrite() const { return GetReadOnly(); }
+Pool& ReadOnlyStrategy::GetReadWrite() const { return GetReadOnly(); }
 
-PoolPtr ReadOnly::InitializeReadOnlyPoolReference(
+PoolPtr ReadOnlyStrategy::InitializeReadOnlyPoolReference(
     settings::SQLiteSettings settings,
     engine::TaskProcessor& blocking_task_processor) {
   settings.read_mode =
@@ -34,6 +35,6 @@ PoolPtr ReadOnly::InitializeReadOnlyPoolReference(
   return read_connection_pool;
 }
 
-}  // namespace storages::sqlite::infra
+}  // namespace storages::sqlite::infra::strategy
 
 USERVER_NAMESPACE_END
