@@ -1,13 +1,21 @@
 worker-threads: 2
 worker-fs-threads: 2
-logger-level: info
+logger-level: debug
 
-is_testing: true
+is-testing: true
 
+server-port: 8080
+# grpc template on
+
+grpc-server-port: 8081
+# grpc template off
 # postgres template on
-pg_connection: postgresql://testsuite@localhost:15433/service_template_db_1
-# postgres template off
 
+# change to URI of your postgres database
+pg-connection: postgresql://testsuite@localhost:15433/service_template_db_1
+# postgres template off
 # mongo template on
-mongo_connection: mongodb://localhost:27217/admin
+
+# change to URI of your mongo database
+mongo-connection: mongodb://localhost:27217/admin
 # mongo template off

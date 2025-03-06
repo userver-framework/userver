@@ -1,4 +1,4 @@
-#include "hello.hpp"
+#include <greeting.hpp>
 
 #include <cstdint>   // for std::uint64_t
 #include <iterator>  // for std::size
@@ -7,6 +7,8 @@
 #include <benchmark/benchmark.h>
 #include <userver/engine/run_standalone.hpp>
 
+using service_template::UserType;
+
 void HelloBenchmark(benchmark::State& state) {
     userver::engine::RunStandalone([&] {
         constexpr std::string_view kNames[] = {"userver", "is", "awesome", "!"};
@@ -14,7 +16,7 @@ void HelloBenchmark(benchmark::State& state) {
 
         for (auto _ : state) {
             const auto name = kNames[i++ % std::size(kNames)];
-            auto result = service_template::SayHelloTo(name);
+            auto result = service_template::SayHelloTo(name, UserType::kFirstTime);
             benchmark::DoNotOptimize(result);
         }
     });
