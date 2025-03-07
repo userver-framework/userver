@@ -2149,6 +2149,7 @@
   "grpc/tests/logging_test.cpp":"taxi/uservices/userver/grpc/tests/logging_test.cpp",
   "grpc/tests/middleware_pipeline_test.cpp":"taxi/uservices/userver/grpc/tests/middleware_pipeline_test.cpp",
   "grpc/tests/middlewares_test.cpp":"taxi/uservices/userver/grpc/tests/middlewares_test.cpp",
+  "grpc/tests/proto_json.cpp":"taxi/uservices/userver/grpc/tests/proto_json.cpp",
   "grpc/tests/protobuf_collector_test.cpp":"taxi/uservices/userver/grpc/tests/protobuf_collector_test.cpp",
   "grpc/tests/protobuf_visit_test.cpp":"taxi/uservices/userver/grpc/tests/protobuf_visit_test.cpp",
   "grpc/tests/retry_test.cpp":"taxi/uservices/userver/grpc/tests/retry_test.cpp",

@@ -5,6 +5,7 @@
 /// @ingroup userver_formats_serialize userver_formats_parse
 
 #include <google/protobuf/struct.pb.h>
+#include <google/protobuf/util/json_util.h>
 
 #include <userver/formats/json.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -23,6 +24,16 @@ std::string ToString(const google::protobuf::Message& message);
 /// @brief Returns Json-string representation of protobuf message
 /// @throws formats::json::Exception
 std::string ToJsonString(const google::protobuf::Message& message);
+
+/// @brief Returns formats::json::Value representation of protobuf message
+/// @throws SerializationError
+formats::json::Value
+MessageToJson(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
+
+/// @brief Returns Json-string representation of protobuf message
+/// @throws formats::json::Exception
+std::string
+ToJsonString(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
 
 }  // namespace ugrpc
 
