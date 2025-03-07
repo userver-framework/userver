@@ -43,7 +43,32 @@ UTEST_F(SQLiteCustomConnection, NonExistent) {
       << "Connecting to a non-existent database";
 }
 
-UTEST_F(SQLiteCustomConnection, CheckRO) {
+UTEST_F(SQLiteCustomConnection, CreateOpen) {
+  // Try to open a non-existing database
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+  settings.create_file = true;
+
+  UEXPECT_NO_THROW(CreateClient(settings))
+      << "Connect to a non-existent database, but the file will be created "
+         "automatically";
+
+  // Try to open existing database
+  settings.create_file = false;
+  UEXPECT_NO_THROW(CreateClient(settings))
+      << "Connect to a existent database, but the file will be created "
+         "automatically";
+}
+
+UTEST_F(SQLiteCustomConnection, InMemory) {
+  // Try to open in-memory database
+  settings::SQLiteSettings settings;
+  settings.db_name = ":memory:";
+
+  UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to in-memory database";
+}
+
+UTEST_F(SQLiteCustomConnection, ReadWrite) {
   // Try to open a non-existing database
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
@@ -75,29 +100,48 @@ UTEST_F(SQLiteCustomConnection, CheckRO) {
            .AsVector<std::tuple<int, std::string>>()));
 }
 
-UTEST_F(SQLiteCustomConnection, CreateOpen) {
-  // Try to open a non-existing database
+UTEST_F(SQLiteCustomConnection, ReadOnly) {
+  {
+    settings::SQLiteSettings settings;
+    settings.db_name = GetTestDbPath("test.db");
+    settings.create_file = true;
+    ClientPtr client;
+    UEXPECT_NO_THROW(client = CreateClient(settings))
+        << "Connect to a non-existent database, but the file will be created "
+           "automatically";
+    UEXPECT_NO_THROW(client->Execute(
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+    UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (1, 'first')"));
+    UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (2, 'second')"));
+  }
+
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
-  settings.create_file = true;
-
-  UEXPECT_NO_THROW(CreateClient(settings))
-      << "Connect to a non-existent database, but the file will be created "
-         "automatically";
-
-  // Try to open existing database
   settings.create_file = false;
-  UEXPECT_NO_THROW(CreateClient(settings))
-      << "Connect to a existent database, but the file will be created "
-         "automatically";
-}
+  settings.read_mode = settings::SQLiteSettings::ReadMode::kReadOnly;
 
-UTEST_F(SQLiteCustomConnection, InMemory) {
-  // Try to open in-memory database
-  settings::SQLiteSettings settings;
-  settings.db_name = ":memory:";
-
-  UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to in-memory database";
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+  UEXPECT_THROW(
+      (client
+           ->Execute(settings::CommandControl::ReadOnly(),
+                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
+           .AsVector<std::tuple<int, std::string>>()),
+      SQLiteException);
+  UEXPECT_THROW(
+      (client
+           ->Execute(settings::CommandControl::ReadWrite(),
+                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
+           .AsVector<std::tuple<int, std::string>>()),
+      SQLiteException);
+  UEXPECT_NO_THROW(
+      (client
+           ->Execute(settings::CommandControl::ReadOnly(), "SELECT * FROM test")
+           .AsVector<std::tuple<int, std::string>>()));
+  UEXPECT_NO_THROW((
+      client
+          ->Execute(settings::CommandControl::ReadWrite(), "SELECT * FROM test")
+          .AsVector<std::tuple<int, std::string>>()));
 }
 
 UTEST_F(SQLiteResultSet, SuccessExecute) {
