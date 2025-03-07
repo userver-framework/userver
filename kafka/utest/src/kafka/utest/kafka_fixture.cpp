@@ -157,7 +157,7 @@ impl::Consumer KafkaCluster::MakeConsumer(
         configuration,
         MakeSecrets(bootstrap_servers_),
         std::move(params)};
-};
+}
 
 std::vector<Message> KafkaCluster::ReceiveMessages(
     impl::Consumer& consumer,

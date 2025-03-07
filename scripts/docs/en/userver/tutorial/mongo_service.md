@@ -24,7 +24,7 @@ database. The service would have the following Rest API:
 Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a component for
 handling HTTP requests:
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - component
+@snippet samples/mongo_service/main.cpp  Mongo service sample - component
 
 Note that the component holds a storages::mongo::PoolPtr - a client to the Mongo.
 That client is thread safe, you can use it concurrently from different threads
@@ -36,7 +36,7 @@ and tasks.
 In the `Translations::InsertNew` function we get the request arguments and form
 a BSON document for insertion.
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - InsertNew
+@snippet samples/mongo_service/main.cpp  Mongo service sample - InsertNew
 
 There are different ways to form a document, see @ref scripts/docs/en/userver/formats.md.
 
@@ -50,7 +50,7 @@ after `update_time`. Query sorts the documents by modification times (by `_id`),
 so when the results are written into formats::json::ValueBuilder latter writes
 rewrite previous data for the same key.
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - ReturnDiff
+@snippet samples/mongo_service/main.cpp  Mongo service sample - ReturnDiff
 
 See @ref scripts/docs/en/userver/mongodb.md for MongoDB hints and more usage samples.
 
@@ -72,7 +72,7 @@ Finally, we add our component to the
 components::MinimalServerComponentList(),
 and start the server with static configuration `kStaticConfig`.
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - main
+@snippet samples/mongo_service/main.cpp  Mongo service sample - main
 
 
 ### Build and Run
@@ -137,7 +137,7 @@ implemented using the testsuite. To do that you have to:
 ## Full sources
 
 See the full example:
-* @ref samples/mongo_service/mongo_service.cpp
+* @ref samples/mongo_service/main.cpp
 * @ref samples/mongo_service/static_config.yaml
 * @ref samples/mongo_service/CMakeLists.txt
 * @ref samples/mongo_service/testsuite/conftest.py
@@ -150,7 +150,7 @@ See the full example:
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/mongo_service/mongo_service.cpp
+@example samples/mongo_service/main.cpp
 @example samples/mongo_service/static_config.yaml
 @example samples/mongo_service/CMakeLists.txt
 @example samples/mongo_service/testsuite/conftest.py

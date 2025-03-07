@@ -23,6 +23,11 @@ UTEST_F(KafkaServiceTest, Produce) {
 }
 /// [Kafka service sample - producer unit test]
 
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress"
+#endif
+
 /// [Kafka service sample - consumer unit test]
 UTEST_F(KafkaServiceTest, Consume) {
     const std::string kTestTopic1{"test-topic-1"};
@@ -48,3 +53,7 @@ UTEST_F(KafkaServiceTest, Consume) {
     EXPECT_THAT(received_messages, ::testing::UnorderedElementsAreArray(kTestMessages));
 }
 /// [Kafka service sample - consumer unit test]
+
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 9
+#pragma GCC diagnostic pop
+#endif

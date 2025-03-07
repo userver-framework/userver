@@ -221,7 +221,7 @@ std::optional<Enum1> Enum1From2Switch(Enum2 value) {
         case Enum2::C13:
             return Enum1::C16;
         default:
-            return {};
+            return std::nullopt;
     }
 }
 

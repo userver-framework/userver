@@ -18,7 +18,7 @@ Usage Example:
 
 To iterate over `formats::*::Value` as object use formats::common::Items:
 
-@snippet universal/utest/src/formats/common/items_test.cpp  Items Example Usage - Simple object
+@snippet universal/src/formats/common/items_test.cpp  Items Example Usage - Simple object
 
 
 ### Customization of formats::*::Value::As<T>()

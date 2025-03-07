@@ -26,7 +26,7 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 utils::DaemonMain initializes and starts the component system with the provided command line arguments:
 
-@snippet samples/production_service/production_service.cpp Production service sample - main
+@snippet samples/production_service/main.cpp Production service sample - main
 
 A path to the static config file should be passed from a command line to start the service:
 
@@ -261,7 +261,7 @@ tests.
 ## Full sources
 
 See the full example at 
-* @ref samples/production_service/production_service.cpp
+* @ref samples/production_service/main.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml
 * @ref samples/production_service/CMakeLists.txt
@@ -275,7 +275,7 @@ See the full example at
 ⇦ @ref scripts/docs/en/userver/tutorial/config_service.md | @ref scripts/docs/en/userver/tutorial/tcp_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/production_service/production_service.cpp
+@example samples/production_service/main.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/CMakeLists.txt

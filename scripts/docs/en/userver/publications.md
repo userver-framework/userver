@@ -55,5 +55,5 @@
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/build/userver.md |
+⇦ @ref scripts/docs/en/userver/driver_guide.md |
 @htmlonly </div> @endhtmlonly

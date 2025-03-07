@@ -110,7 +110,7 @@ private:
 ///
 /// ## Example usage:
 ///
-/// @snippet universal/utest/src/formats/common/items_test.cpp  Items Example Usage - Simple object
+/// @snippet universal/src/formats/common/items_test.cpp  Items Example Usage - Simple object
 template <typename Value>
 ItemsWrapper<Value> Items(Value&& value) {
     // when passed an lvalue, store by reference

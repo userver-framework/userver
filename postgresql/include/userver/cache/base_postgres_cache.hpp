@@ -41,11 +41,11 @@ namespace components {
 ///
 /// A typical components::PostgreCache usage consists of trait definition:
 ///
-/// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Trivial
+/// @snippet postgresql/src/cache/postgres_cache_test.cpp Pg Cache Policy Trivial
 ///
 /// and registration of the component in components::ComponentList:
 ///
-/// @snippet cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
+/// @snippet postgresql/src/cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
 ///
 /// See @ref scripts/docs/en/userver/caches.md for introduction into caches.
 ///

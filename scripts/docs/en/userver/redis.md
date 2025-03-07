@@ -23,7 +23,7 @@ versa.
 
 ## Redis Guarantees
 
-Redis is not a reliable database by design. In case of problems on the server
+Redis is not a reliable database by design. In case of problems on the database
 side, partial or complete loss of data is possible. When a master migrates, the
 entire Redis cluster may become unavailable for several tens of seconds. The
 specific latency value should be determined for each Redis configuration
@@ -67,6 +67,9 @@ according to the documentation. After that you can make requests via
 storages::redis::Client:
 
 @snippet storages/redis/client_redistest.cpp Sample Redis Client usage
+
+Also see @ref scripts/docs/en/userver/tutorial/redis_service.md for a complete example.
+
 
 ### Timeouts
 

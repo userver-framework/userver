@@ -22,7 +22,7 @@ In this tutorial we will write a service that is a simple key-value storage on t
 
 Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a component for handling HTTP requests:
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component
+@snippet samples/postgres_service/main.cpp  Postgres service sample - component
 
 Note that the component holds a storages::postgres::ClusterPtr - a client to the PostgreSQL DB. That client is thread
 safe, you can use it concurrently from different threads and tasks.
@@ -32,7 +32,7 @@ safe, you can use it concurrently from different threads and tasks.
 To access the database from our new component we need to find the PostgreSQL component and request a client to the DB.
 After that we may create the required tables.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component constructor
+@snippet samples/postgres_service/main.cpp  Postgres service sample - component constructor
 
 To create a table we just execute an SQL statement, mentioning that it should go to the master instance. After that, our
 component is ready to process incoming requests in the KeyValue::HandleRequestThrow function. 
@@ -43,7 +43,7 @@ component is ready to process incoming requests in the KeyValue::HandleRequestTh
 In this sample we use a single handler to deal with all the HTTP methods. The KeyValue::HandleRequestThrow member
 function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic: 
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - HandleRequestThrow
+@snippet samples/postgres_service/main.cpp  Postgres service sample - HandleRequestThrow
 
 @warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the
 KeyValue component only uses the thread safe DB client. In more complex cases
@@ -61,7 +61,7 @@ variables along with query names and reused across the functions. Name of the qu
 set the execution timeouts (see @ref POSTGRES_QUERIES_COMMAND_CONTROL).
 You can ease query definition by using @ref scripts/docs/en/userver/sql_files.md.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - GetValue
+@snippet samples/postgres_service/main.cpp  Postgres service sample - GetValue
 
 
 ### KeyValue::PostValue
@@ -73,14 +73,14 @@ Execute, you can pass string or storages::postgres::Query, you could reuse the
 same query in different functions. Transactions also could be named, and those names could be used in @ref POSTGRES_QUERIES_COMMAND_CONTROL.
 You can ease query definition by using @ref scripts/docs/en/userver/sql_files.md.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - PostValue
+@snippet samples/postgres_service/main.cpp  Postgres service sample - PostValue
 
 
 ### KeyValue::DeleteValue
 
 Note that mutating queries should be executed on a master instance.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - DeleteValue
+@snippet samples/postgres_service/main.cpp  Postgres service sample - DeleteValue
 
 ### Static config
 
@@ -102,7 +102,7 @@ Finally, we
 add our component to the components::MinimalServerComponentList(),
 and start the server with static config `kStaticConfig`.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - main
+@snippet samples/postgres_service/main.cpp  Postgres service sample - main
 
 
 ### Build and Run
@@ -185,7 +185,7 @@ implemented using the testsuite. To do that you have to:
 ## Full sources
 
 See the full example:
-* @ref samples/postgres_service/postgres_service.cpp
+* @ref samples/postgres_service/main.cpp
 * @ref samples/postgres_service/static_config.yaml
 * @ref samples/postgres_service/CMakeLists.txt
 * @ref samples/postgres_service/tests/conftest.py
@@ -197,7 +197,7 @@ See the full example:
 ⇦ @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md | @ref scripts/docs/en/userver/tutorial/mongo_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/postgres_service/postgres_service.cpp
+@example samples/postgres_service/main.cpp
 @example samples/postgres_service/static_config.yaml
 @example samples/postgres_service/CMakeLists.txt
 @example samples/postgres_service/tests/conftest.py

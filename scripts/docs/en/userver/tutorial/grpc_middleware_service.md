@@ -78,7 +78,7 @@ And connect it with `Service`:
 
 Finally, register components and start the server.
 
-@snippet samples/grpc_middleware_service/src/main.cpp gRPC middleware sample - components registration
+@snippet samples/grpc_middleware_service/main.cpp gRPC middleware sample - components registration
 
 
 ### Build and Run
@@ -153,7 +153,7 @@ See the full example at:
 * @ref samples/grpc_middleware_service/src/middlewares/auth.hpp
 * @ref samples/grpc_middleware_service/src/middlewares/auth.cpp
 
-* @ref samples/grpc_middleware_service/src/main.cpp
+* @ref samples/grpc_middleware_service/main.cpp
 * @ref samples/grpc_middleware_service/proto/samples/greeter.proto
 * @ref samples/grpc_middleware_service/static_config.yaml
 * @ref samples/grpc_middleware_service/tests/conftest.py
@@ -172,7 +172,7 @@ See the full example at:
 @example samples/grpc_middleware_service/src/middlewares/server/middleware.cpp
 @example samples/grpc_middleware_service/src/middlewares/auth.hpp
 @example samples/grpc_middleware_service/src/middlewares/auth.cpp
-@example samples/grpc_middleware_service/src/main.cpp
+@example samples/grpc_middleware_service/main.cpp
 @example samples/grpc_middleware_service/proto/samples/greeter.proto
 @example samples/grpc_middleware_service/static_config.yaml
 @example samples/grpc_middleware_service/tests/conftest.py

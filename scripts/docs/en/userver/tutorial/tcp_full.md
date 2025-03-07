@@ -22,7 +22,7 @@ We would also need production quality metrics and logs for the service.
 Derive from components::TcpAcceptorBase and override the `ProcessSocket`
 function to get the new sockets:
 
-@snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - component
+@snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - component
 
 @warning `ProcessSocket` functions are invoked concurrently on the same 
 instance of the class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"
@@ -30,7 +30,7 @@ or do not modify shared data in `ProcessSocket`.
 
 `struct Stats` holds the statistics for the component and is defined as:
 
-@snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - Stats definition
+@snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats definition
 
 
 ### Statistics registration
@@ -39,12 +39,12 @@ To automatically deliver the metrics they should be registered via
 utils::statistics::MetricTag and DumpMetric+ResetMetric functions should be
 defined:
 
-@snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - Stats tag
+@snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
 
 Now the tag could be used in component constructor to get a reference to the
 `struct Stats`:
 
-@snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - constructor
+@snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - constructor
 
 
 ### Static config
@@ -69,7 +69,7 @@ read and write into socket. We would need two functions:
 
 Those two functions could be implemented in the following way:
 
-@snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - SendRecv
+@snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - SendRecv
 
 Now it's time to handle new sockets. In the ProcessSocket function consists of
 the following steps:
@@ -80,7 +80,7 @@ the following steps:
 * create a new task that sends the messages from the queue
 * run the receiving function
 
-@snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - ProcessSocket
+@snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - ProcessSocket
 
 The tracing::Span and utils::Async work together to produce nice logs that
 allow you to trace particular file descriptor:
@@ -105,7 +105,7 @@ would work in the following order:
 Finally, add the component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - main
+@snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - main
 
 
 ### Build and Run
@@ -153,7 +153,7 @@ is ready to accept requests. To do that, override the
 ## Full sources
 
 See the full example at:
-* @ref samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp
+* @ref samples/tcp_full_duplex_service/main.cpp
 * @ref samples/tcp_full_duplex_service/static_config.yaml
 * @ref samples/tcp_full_duplex_service/CMakeLists.txt
 * @ref samples/tcp_full_duplex_service/tests/conftest.py
@@ -165,7 +165,7 @@ See the full example at:
 ⇦ @ref scripts/docs/en/userver/tutorial/tcp_service.md | @ref scripts/docs/en/userver/tutorial/http_caching.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp
+@example samples/tcp_full_duplex_service/main.cpp
 @example samples/tcp_full_duplex_service/static_config.yaml
 @example samples/tcp_full_duplex_service/CMakeLists.txt
 @example samples/tcp_full_duplex_service/tests/conftest.py
