@@ -296,6 +296,14 @@ This could be achieved by patching static config as described in
 
 @snippet samples/http_caching/tests/conftest.py patch configs
 
+Alternatively, use `$mockserver`
+@ref pytest_userver.plugins.config.service_config_substitutions "substitution var"
+in `config_vars.testsuite.yaml`:
+
+@code{.yaml}
+translations-url: $mockserver/v1/translations
+@endcode
+
 #### Mock time
 
 Userver provides a way to mock internal datetime value. It only works for datetime retrieved

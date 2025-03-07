@@ -9,11 +9,13 @@ import itertools
 import logging
 import os
 import pathlib
+import string
 import subprocess
 import types
 from typing import Any
 from typing import Callable
 from typing import List
+from typing import Mapping
 from typing import Optional
 
 import pytest
@@ -35,6 +37,7 @@ import yaml
 ##
 ## @hideinitializer
 USERVER_CONFIG_HOOKS = [
+    'userver_config_substitutions',
     'userver_config_http_server',
     'userver_config_http_client',
     'userver_config_logging',
@@ -43,6 +46,8 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_secdist',
     'userver_config_testsuite_middleware',
 ]
+
+ServiceConfigPatch = Callable[[dict, dict], None]
 
 
 # @cond
@@ -414,7 +419,61 @@ def _service_config_hooked(
 
 
 @pytest.fixture(scope='session')
-def userver_config_http_server(service_port, monitor_port):
+def _service_config_substitution_vars(request, mockserver_info) -> Mapping[str, str]:
+    substitution_vars = {
+        'mockserver': mockserver_info.base_url.removesuffix('/'),
+    }
+    if request.config.pluginmanager.hasplugin('pytest_userver.plugins.grpc.mockserver'):
+        grpc_mockserver_endpoint = request.getfixturevalue('grpc_mockserver_endpoint')
+        substitution_vars['grpc_mockserver'] = grpc_mockserver_endpoint
+    return substitution_vars
+
+
+@pytest.fixture(scope='session')
+def userver_config_substitutions(_service_config_substitution_vars) -> ServiceConfigPatch:
+    """
+    Replaces substitution vars in all strings within `config_vars` using
+    @ref https://docs.python.org/3/library/string.html#string.Template.substitute "string.Template.substitute".
+
+    Substitution vars can be used as a shorthand for writing a full-fledged @ref SERVICE_CONFIG_HOOKS "config hook"
+    in many common cases.
+
+    Unlike normal `config_vars`, substitution vars can also apply to a part of a string.
+    For example, for `config_vars` entry
+
+    @code{.yaml}
+    frobnicator-url: $mockserver/frobnicator
+    @endcode
+
+    a possible patching result is as follows:
+
+    @code{.yaml}
+    frobnicator-url: http://127.0.0.1:1234/frobnicator
+    @endcode
+
+    Currently, the following substitution vars are supported:
+
+    * `mockserver` - mockserver url
+    * `grpc_mockserver` - grpc mockserver endpoint
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _substitute(obj: dict) -> None:
+        for key, value in obj.items():
+            if isinstance(value, str):
+                obj[key] = string.Template(value).safe_substitute(_service_config_substitution_vars)
+            elif isinstance(value, dict):
+                _substitute(value)
+
+    def patch_config(config_yaml, config_vars):
+        _substitute(config_vars)
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `server.listener.port` to listen on
@@ -458,7 +517,7 @@ def userver_config_http_client(
     mockserver_info,
     mockserver_ssl_info,
     allowed_url_prefixes_extra,
-):
+) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets increased timeout and limits allowed URLs for `http-client` component.
@@ -488,7 +547,7 @@ def userver_config_http_client(
 @pytest.fixture(scope='session')
 def userver_default_log_level() -> str:
     """
-    Default log level to use in userver if no caoomand line option was provided.
+    Default log level to use in userver if no command line option was provided.
 
     Returns 'debug'.
 
@@ -511,7 +570,7 @@ def userver_log_level(pytestconfig, userver_default_log_level) -> str:
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging(userver_log_level, _service_logfile_path):
+def userver_config_logging(userver_log_level, _service_logfile_path) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `logging.loggers.default` to log to `@stderr` with level set
@@ -542,7 +601,7 @@ def userver_config_logging(userver_log_level, _service_logfile_path):
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging_otlp():
+def userver_config_logging_otlp() -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `otlp-logger.load-enabled` to `false` to disable OTLP logging and
@@ -560,7 +619,7 @@ def userver_config_logging_otlp():
 
 
 @pytest.fixture(scope='session')
-def userver_config_testsuite(pytestconfig, mockserver_info):
+def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
 
@@ -617,7 +676,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info):
 
 
 @pytest.fixture(scope='session')
-def userver_config_secdist(service_secdist_path):
+def userver_config_secdist(service_secdist_path) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `default-secdist-provider.config` to the value of
@@ -649,9 +708,7 @@ def userver_config_secdist(service_secdist_path):
 
 
 @pytest.fixture(scope='session')
-def userver_config_testsuite_middleware(
-    userver_testsuite_middleware_enabled: bool,
-):
+def userver_config_testsuite_middleware(userver_testsuite_middleware_enabled: bool) -> ServiceConfigPatch:
     def patch_config(config_yaml, config_vars):
         if not userver_testsuite_middleware_enabled:
             return
@@ -672,5 +729,5 @@ def userver_config_testsuite_middleware(
 
 @pytest.fixture(scope='session')
 def userver_testsuite_middleware_enabled() -> bool:
-    """Enabled testsuite middleware."""
+    """Whether testsuite middleware is enabled."""
     return True

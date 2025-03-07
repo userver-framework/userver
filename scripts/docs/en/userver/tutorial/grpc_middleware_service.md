@@ -123,6 +123,14 @@ the endpoint:
 
 @snippet samples/grpc_middleware_service/tests/conftest.py  Prepare configs
 
+Alternatively, use `$grpc_mockserver`
+@ref pytest_userver.plugins.config.service_config_substitutions "substitution var"
+in `config_vars.testsuite.yaml`:
+
+@code{.yaml}
+greeter-client-endpoint: $grpc_mockserver
+@endcode
+
 Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grpc_mockserver "grpc_mockserver":
 
 @snippet samples/grpc_middleware_service/tests/conftest.py  Prepare server mock

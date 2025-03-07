@@ -236,6 +236,14 @@ implemented using the testsuite. To do that you have to:
   patch the service config to use the mocked URL:
   @snippet samples/http_caching/tests/conftest.py patch configs
 
+  Alternatively, use `$mockserver`
+  @ref pytest_userver.plugins.config.service_config_substitutions "substitute var"
+  in `config_vars.testsuite.yaml`:
+
+  @code{.yaml}
+  translations-url: $mockserver/v1/translations
+  @endcode
+
 * Write the test:
   @snippet samples/http_caching/tests/test_http_caching.py  Functional test
 

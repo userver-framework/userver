@@ -1,6 +1,6 @@
 import pytest
 
-import samples.greeter_pb2_grpc as greeter_services  # noqa: E402, E501
+import samples.greeter_pb2_grpc as greeter_services
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 

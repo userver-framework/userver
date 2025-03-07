@@ -10,8 +10,8 @@
 
 namespace samples {
 
-// Our Python tests use HTTP for all the samples, so we add an HTTP handler,
-// through which we test both the client side and the server side.
+// To demonstrate the possibility to use gRPC clients separately from gRPC handlers,
+// we use a simple HTTP handler.
 class CallGreeterClientTestHandler final : public server::handlers::HttpHandlerBase {
 public:
     static constexpr std::string_view kName = "greeter-http-handler";

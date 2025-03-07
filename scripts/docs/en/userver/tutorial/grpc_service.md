@@ -62,9 +62,13 @@ Stream request - stream response RPC handling:
 
 Fill in the static config entries for the client side:
 
-@snippet samples/grpc_service/static_config.yaml  static config client
+@snippet samples/grpc_service/configs/static_config.yaml  static config client
 
-@snippet samples/grpc_service/static_config.yaml  task processor
+@snippet samples/grpc_service/configs/static_config.yaml  task processor
+
+gRPC client endpoint is defined in `config_vars` for easy redefinition in testsuite:
+
+@include samples/grpc_service/configs/config_vars.yaml
 
 ### The server side
 
@@ -102,7 +106,7 @@ Stream request - stream response RPC handling:
 
 Fill in the static config entries for the server side:
 
-@snippet samples/grpc_service/static_config.yaml  static config server
+@snippet samples/grpc_service/configs/static_config.yaml  static config server
 
 ### int main()
 
@@ -128,7 +132,7 @@ The sample could be started by running
 that sets proper paths in the configuration files and starts the service.
 
 To start the service manually run
-`./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml>`.
+`./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml> --config-vars </path/to/config_vars.yaml>`.
 
 The service is available locally at port 8091 (as per our `static_config.yaml`).
 
@@ -146,12 +150,14 @@ pytest_userver.plugins.grpc pytest plugin:
 
 #### gRPC server mock
 
-To mock the gRPC server provide a hook for the static config to change
-the endpoint:
+To allow userver gRPC client to work in testsuite, we need to mock the gRPC service.
+First, change the gRPC endpoint to `$grpc_mockserver`
+@ref pytest_userver.plugins.config.service_config_substitutions "substitution var"
+in `config_vars.testsuite.yaml`:
 
-@snippet samples/grpc_service/testsuite/conftest.py  Prepare configs
+@include samples/grpc_service/configs/config_vars.testsuite.yaml
 
-Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grpc_mockserver "grpc_mockserver":
+Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver":
 
 @snippet samples/grpc_service/testsuite/conftest.py  Prepare server mock
 
@@ -257,7 +263,9 @@ See the full example at:
 * @ref samples/grpc_service/src/greeter_service.hpp
 * @ref samples/grpc_service/src/greeter_service.cpp
 * @ref samples/grpc_service/main.cpp
-* @ref samples/grpc_service/static_config.yaml
+* @ref samples/grpc_service/configs/static_config.yaml
+* @ref samples/grpc_service/configs/config_vars.yaml
+* @ref samples/grpc_service/configs/config_vars.testsuite.yaml
 * @ref samples/grpc_service/testsuite/conftest.py
 * @ref samples/grpc_service/testsuite/test_grpc.py
 * @ref samples/grpc_service/CMakeLists.txt
@@ -274,8 +282,9 @@ See the full example at:
 @example samples/grpc_service/src/greeter_service.hpp
 @example samples/grpc_service/src/greeter_service.cpp
 @example samples/grpc_service/main.cpp
-@example samples/grpc_service/grpc_service.cpp
-@example samples/grpc_service/static_config.yaml
+@example samples/grpc_service/configs/static_config.yaml
+@example samples/grpc_service/configs/config_vars.yaml
+@example samples/grpc_service/configs/config_vars.testsuite.yaml
 @example samples/grpc_service/testsuite/conftest.py
 @example samples/grpc_service/testsuite/test_grpc.py
 @example samples/grpc_service/CMakeLists.txt
