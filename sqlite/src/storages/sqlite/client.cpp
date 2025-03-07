@@ -1,13 +1,8 @@
-#include <memory>
 #include <userver/storages/sqlite/client.hpp>
-
-#include <optional>
 
 #include <sqlite3.h>
 
-#include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/impl/client_impl.hpp>
-#include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 
@@ -27,7 +22,7 @@ Transaction Client::Begin(std::string name,
   return Begin(std::nullopt, name, options);
 }
 
-impl::StatementPtr Client::PrepareStatement(
+impl::StatementBasePtr Client::PrepareStatement(
     const Query& query, infra::ConnectionPtr& connection) const {
   return pimpl_->PrepareStatement(query, connection);
 }
@@ -62,7 +57,7 @@ Savepoint Client::Save(settings::OptionalCommandControl optional_cc,
 }
 
 ResultSet Client::DoExecute(settings::OptionalCommandControl optional_cc,
-                            impl::StatementPtr prepare_statement,
+                            impl::StatementBasePtr prepare_statement,
                             const infra::ConnectionPtr& connection) const {
   return connection->ExecuteCommand(optional_cc, prepare_statement);
 }

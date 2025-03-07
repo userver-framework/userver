@@ -20,7 +20,7 @@ infra::ConnectionPtr ClientImpl::GetConnection(
   return pool_strategy_->SelectPool(op_type).Acquire();
 }
 
-impl::StatementPtr ClientImpl::PrepareStatement(
+impl::StatementBasePtr ClientImpl::PrepareStatement(
     const Query& query, infra::ConnectionPtr& connection) const {
   return connection->PrepareStatement(query);
 }

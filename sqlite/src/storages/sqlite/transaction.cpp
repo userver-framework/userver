@@ -29,7 +29,7 @@ Transaction::~Transaction() {
   }
 }
 
-impl::StatementPtr Transaction::PrepareStatement(const Query& query) const {
+impl::StatementBasePtr Transaction::PrepareStatement(const Query& query) const {
   return (*connection_)->PrepareStatement(query);
 }
 
@@ -55,8 +55,9 @@ void Transaction::Rollback() {
   }
 }
 
-ResultSet Transaction::DoExecute(settings::OptionalCommandControl optional_cc,
-                                 impl::StatementPtr prepare_statement) const {
+ResultSet Transaction::DoExecute(
+    settings::OptionalCommandControl optional_cc,
+    impl::StatementBasePtr prepare_statement) const {
   return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
 }
 

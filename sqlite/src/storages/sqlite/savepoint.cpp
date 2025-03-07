@@ -33,7 +33,7 @@ Savepoint::~Savepoint() {
   }
 }
 
-impl::StatementPtr Savepoint::PrepareStatement(const Query& query) const {
+impl::StatementBasePtr Savepoint::PrepareStatement(const Query& query) const {
   return (*connection_)->PrepareStatement(query);
 }
 
@@ -61,7 +61,7 @@ Savepoint Savepoint::Save(std::string name) {
 }
 
 ResultSet Savepoint::DoExecute(settings::OptionalCommandControl optional_cc,
-                               impl::StatementPtr prepare_statement) const {
+                               impl::StatementBasePtr prepare_statement) const {
   return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
 }
 

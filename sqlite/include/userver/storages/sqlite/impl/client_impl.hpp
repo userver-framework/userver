@@ -7,7 +7,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/storages/sqlite/impl/statements.hpp>
+#include <userver/storages/sqlite/impl/statements_base.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 
@@ -43,8 +43,8 @@ class ClientImpl final {
   infra::ConnectionPtr GetConnection(
       settings::CommandControl::OperationType op_type) const;
 
-  impl::StatementPtr PrepareStatement(const Query& query,
-                                      infra::ConnectionPtr& connection) const;
+  impl::StatementBasePtr PrepareStatement(
+      const Query& query, infra::ConnectionPtr& connection) const;
 
  private:
   infra::strategy::PoolStrategyBasePtr pool_strategy_;

@@ -73,7 +73,7 @@ sqlite3* Connection::GetHandle() const noexcept { return db_handler_.get(); }
 
 ResultSet Connection::ExecuteCommand(
     settings::OptionalCommandControl optional_cc [[maybe_unused]],
-    impl::StatementPtr prepare_statement) const {
+    impl::StatementBasePtr prepare_statement) const {
   return engine::AsyncNoSpan(
              blocking_task_processor_,
              [prepare_statement] {
@@ -126,7 +126,7 @@ std::string Connection::PrepareString(const std::string& str) {
       .AsSingleField<std::string>();
 }
 
-StatementPtr Connection::PrepareStatement(const Query& query) {
+StatementBasePtr Connection::PrepareStatement(const Query& query) {
   if (connection_settings_.prepared_statements ==
       settings::ConnectionSettings::kNoPreparedStatements) {
     return MakeStatement(query.GetStatement());
@@ -137,7 +137,7 @@ StatementPtr Connection::PrepareStatement(const Query& query) {
   }
 }
 
-StatementPtr Connection::MakeStatement(const std::string& query) const {
+StatementBasePtr Connection::MakeStatement(const std::string& query) const {
   return std::make_shared<Statement>(db_handler_.get(), query);
 }
 void Connection::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {

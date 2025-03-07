@@ -46,7 +46,7 @@ class Statement final : public StatementBase {
   bool IsFail() const noexcept;
   void Next() noexcept override;
   int ColumnCount() const noexcept override;
-  void CheckFail() const;
+  void CheckFail() const override;
 
   int32_t GetInt32Column(int column) const noexcept override;
   uint32_t GetUInt32Column(int column) const noexcept override;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -10,6 +11,9 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
+
+class StatementBase;
+using StatementBasePtr = std::shared_ptr<StatementBase>;
 
 class StatementBase {
  public:
@@ -37,6 +41,7 @@ class StatementBase {
   virtual bool IsDone() const noexcept = 0;
   virtual void Next() noexcept = 0;
   virtual int ColumnCount() const noexcept = 0;
+  virtual void CheckFail() const = 0;
 
   // Extract result methods
   virtual int32_t GetInt32Column(int column) const noexcept = 0;
@@ -47,6 +52,8 @@ class StatementBase {
   virtual std::string GetStringColumn(int column) const noexcept = 0;
   virtual const void* GetBlobColumn(int column) const noexcept = 0;
   virtual std::vector<uint8_t> GetBytesColumn(int column) const noexcept = 0;
+
+  // TODO: Add BindingsPimpl
 };
 
 template <typename... Args>

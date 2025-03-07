@@ -4,12 +4,11 @@
 /// @copybrief @copybrief storages::sqlite::Connection
 
 #include <memory>
-#include <optional>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/storages/sqlite/impl/statements.hpp>  // it's not allow to access methods of incomplete type
-#include <userver/storages/sqlite/infra/connection_ptr.hpp>  // it's not allow to return incomplete type
+#include <userver/storages/sqlite/impl/statements_base.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -77,11 +76,11 @@ class Client final {
 
  private:
   ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::StatementPtr prepare_statement,
+                      impl::StatementBasePtr prepare_statement,
                       const infra::ConnectionPtr& connection) const;
 
-  impl::StatementPtr PrepareStatement(const Query& query,
-                                      infra::ConnectionPtr& connection) const;
+  impl::StatementBasePtr PrepareStatement(
+      const Query& query, infra::ConnectionPtr& connection) const;
 
   infra::ConnectionPtr GetConnection(
       settings::CommandControl::OperationType op_type) const;

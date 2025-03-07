@@ -4,7 +4,7 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/sqlite/impl/statements.hpp>  // it's not allow to access methods of incomplete type
+#include <userver/storages/sqlite/impl/statements_base.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -53,9 +53,9 @@ class Transaction final {
 
  private:
   ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::StatementPtr prepare_statement) const;
+                      impl::StatementBasePtr prepare_statement) const;
 
-  impl::StatementPtr PrepareStatement(const Query& query) const;
+  impl::StatementBasePtr PrepareStatement(const Query& query) const;
 
   void AssertValid() const;
 

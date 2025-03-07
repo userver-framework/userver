@@ -30,7 +30,7 @@ class Connection {
   sqlite3* GetHandle() const noexcept;
 
   ResultSet ExecuteCommand(settings::OptionalCommandControl optional_cc,
-                           impl::StatementPtr prepare_statement) const;
+                           impl::StatementBasePtr prepare_statement) const;
 
   void Begin(const settings::TransactionOptions& options);
 
@@ -46,7 +46,7 @@ class Connection {
 
   std::string PrepareString(const std::string& str);
 
-  StatementPtr PrepareStatement(const Query& query);
+  StatementBasePtr PrepareStatement(const Query& query);
 
   bool IsBroken() const;
 
@@ -66,7 +66,7 @@ class Connection {
 
   sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);
 
-  StatementPtr MakeStatement(const std::string& query) const;
+  StatementBasePtr MakeStatement(const std::string& query) const;
 
   template <typename... Args>
   ResultSet ExecuteCommandNoPrepare(const std::string& query,
