@@ -19,7 +19,7 @@ class StatementBase {
   template <typename... Args>
   void UpdateParamsBindings(const Args&... args);
   template <typename T>
-  void UpdateRowsBindings(const T& row);
+  void UpdateRowAsParamsBindings(const T& row);
   virtual void Bind(const int index, const int32_t value) = 0;
   virtual void Bind(const int index, const int64_t value) = 0;
   virtual void Bind(const int index, const uint32_t value) = 0;
@@ -56,7 +56,7 @@ void StatementBase::UpdateParamsBindings(const Args&... args) {
 }
 
 template <typename T>
-void StatementBase::UpdateRowsBindings(const T& row) {
+void StatementBase::UpdateRowAsParamsBindings(const T& row) {
   // TODO: Add more detailed verification and error description
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");

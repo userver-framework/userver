@@ -88,7 +88,7 @@ ResultSet Savepoint::ExecuteDecompose(
     const T& row) const {
   AssertValid();
   auto prepare_statement = PrepareStatement(query);
-  prepare_statement->UpdateRowsBindings(row);
+  prepare_statement->UpdateRowAsParamsBindings(row);
 
   return DoExecute(optional_cc, prepare_statement);
 }
@@ -104,7 +104,7 @@ void Savepoint::ExecuteMany(settings::OptionalCommandControl optional_cc,
   AssertValid();
   for (const auto& row : params) {
     auto prepare_statement = PrepareStatement(query);
-    prepare_statement->UpdateRowsBindings(row);
+    prepare_statement->UpdateRowAsParamsBindings(row);
     DoExecute(optional_cc, prepare_statement);
   }
 }

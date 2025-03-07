@@ -120,7 +120,7 @@ ResultSet Client::ExecuteDecompose(settings::OptionalCommandControl optional_cc,
   }
   auto connection = GetConnection(optional_cc->operation_type);
   auto prepare_statement = PrepareStatement(query, connection);
-  prepare_statement->UpdateRowsBindings(row);
+  prepare_statement->UpdateRowAsParamsBindings(row);
 
   return DoExecute(optional_cc, prepare_statement, connection);
 }
@@ -140,7 +140,7 @@ void Client::ExecuteMany(settings::OptionalCommandControl optional_cc,
   auto connection = GetConnection(optional_cc->operation_type);
   for (const auto& row : params) {
     auto prepare_statement = PrepareStatement(query, connection);
-    prepare_statement->UpdateRowsBindings(row);
+    prepare_statement->UpdateRowAsParamsBindings(row);
     DoExecute(optional_cc, prepare_statement, connection);
   }
 }
