@@ -8,7 +8,8 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/storages/sqlite/impl/connection.hpp>  // TODO: remove heavy include
+#include <userver/storages/sqlite/impl/statements.hpp>  // it's not allow to access methods of incomplete type
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>  // it's not allow to return incomplete type
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -22,16 +23,10 @@ namespace storages::sqlite {
 class Client;
 using ClientPtr = std::shared_ptr<Client>;
 
-namespace infra {
-class Pool;
-using PoolPtr = std::shared_ptr<Pool>;
-
-namespace strategy {
-class PoolStrategyBase;
-using PoolStrategyBasePtr = std::unique_ptr<PoolStrategyBase>;
-}  // namespace strategy
-
-}  // namespace infra
+namespace impl {
+class ClientImpl;
+using ClientImplPtr = std::unique_ptr<ClientImpl>;
+}  // namespace impl
 
 /// @ingroup userver_clients
 ///
@@ -80,15 +75,18 @@ class Client final {
   Savepoint Save(settings::OptionalCommandControl optional_cc,
                  std::string name) const;
 
+ private:
+  ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
+                      impl::StatementPtr prepare_statement,
+                      const infra::ConnectionPtr& connection) const;
+
+  impl::StatementPtr PrepareStatement(const Query& query,
+                                      infra::ConnectionPtr& connection) const;
+
   infra::ConnectionPtr GetConnection(
       settings::CommandControl::OperationType op_type) const;
 
- private:
-  template <typename... Args>
-  ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      const Query& query, const Args&... args) const;
-
-  infra::strategy::PoolStrategyBasePtr pool_strategy_;
+  impl::ClientImplPtr pimpl_;
 };
 
 template <typename... Args>
@@ -99,17 +97,14 @@ ResultSet Client::Execute(const Query& query, const Args&... args) const {
 template <typename... Args>
 ResultSet Client::Execute(settings::OptionalCommandControl optional_cc,
                           const Query& query, const Args&... args) const {
-  return DoExecute(optional_cc, query, args...);
-}
-
-template <typename... Args>
-ResultSet Client::DoExecute(settings::OptionalCommandControl optional_cc,
-                            const Query& query, const Args&... args) const {
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
   auto connection = GetConnection(optional_cc->operation_type);
-  return connection->ExecuteCommand(optional_cc, query, args...);
+  auto prepare_statement = PrepareStatement(query, connection);
+  prepare_statement->UpdateParamsBindings(args...);
+
+  return DoExecute(optional_cc, prepare_statement, connection);
 }
 
 template <typename T>
@@ -124,7 +119,10 @@ ResultSet Client::ExecuteDecompose(settings::OptionalCommandControl optional_cc,
     optional_cc = settings::CommandControl::GetDefault();
   }
   auto connection = GetConnection(optional_cc->operation_type);
-  return connection->ExecuteDecompose(optional_cc, query, row);
+  auto prepare_statement = PrepareStatement(query, connection);
+  prepare_statement->UpdateRowsBindings(row);
+
+  return DoExecute(optional_cc, prepare_statement, connection);
 }
 
 template <typename Container>
@@ -138,8 +136,13 @@ void Client::ExecuteMany(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
+  // TODO: Move logic to non-trx class helper
   auto connection = GetConnection(optional_cc->operation_type);
-  return connection->ExecuteMany(optional_cc, query, params);
+  for (const auto& row : params) {
+    auto prepare_statement = PrepareStatement(query, connection);
+    prepare_statement->UpdateRowsBindings(row);
+    DoExecute(optional_cc, prepare_statement, connection);
+  }
 }
 
 }  // namespace storages::sqlite

@@ -82,7 +82,7 @@ class ResultWrapper final {
     int column = 0;
     boost::pfr::for_each_field(instance, [&column, this](auto&& field) {
       using FieldType = std::decay_t<decltype(field)>;
-      field = GetColumn<FieldType>(column++);
+      field = this->GetColumn<FieldType>(column++);
     });
     return instance;
   }

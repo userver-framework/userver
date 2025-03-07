@@ -4,8 +4,7 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/sqlite/impl/connection.hpp>  // TODO: remove heavy include
-#include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/impl/statements.hpp>  // it's not allow to access methods of incomplete type
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -13,6 +12,10 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
+
+namespace infra {
+class ConnectionPtr;
+}  // namespace infra
 
 class Transaction final {
  public:
@@ -27,7 +30,7 @@ class Transaction final {
   ResultSet Execute(const Query& query, const Args&... args) const;
 
   template <typename... Args>
-  ResultSet Execute(settings::OptionalCommandControl option_cc,
+  ResultSet Execute(settings::OptionalCommandControl optional_cc,
                     const Query& query, const Args&... args) const;
 
   template <typename T>
@@ -49,9 +52,10 @@ class Transaction final {
   void Rollback();
 
  private:
-  template <typename... Args>
-  ResultSet DoExecute(settings::OptionalCommandControl option_cc,
-                      const Query& query, const Args&... args) const;
+  ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
+                      impl::StatementPtr prepare_statement) const;
+
+  impl::StatementPtr PrepareStatement(const Query& query) const;
 
   void AssertValid() const;
 
@@ -64,9 +68,11 @@ ResultSet Transaction::Execute(const Query& query, const Args&... args) const {
 }
 
 template <typename... Args>
-ResultSet Transaction::Execute(settings::OptionalCommandControl option_cc,
+ResultSet Transaction::Execute(settings::OptionalCommandControl optional_cc,
                                const Query& query, const Args&... args) const {
-  return DoExecute(option_cc, query, args...);
+  auto prepare_statement = PrepareStatement(query);
+  prepare_statement->UpdateParamsBindings(args...);
+  return DoExecute(optional_cc, prepare_statement);
 }
 
 template <typename T>
@@ -81,20 +87,15 @@ void Transaction::ExecuteMany(const Query& query,
   return ExecuteMany(std::nullopt, query, params);
 }
 
-template <typename... Args>
-ResultSet Transaction::DoExecute(settings::OptionalCommandControl option_cc,
-                                 const Query& query,
-                                 const Args&... args) const {
-  AssertValid();
-  return (*connection_)->ExecuteCommand(option_cc, query, args...);
-}
-
 template <typename T>
 ResultSet Transaction::ExecuteDecompose(
     settings::OptionalCommandControl optional_cc, const Query& query,
     const T& row) const {
   AssertValid();
-  return (*connection_)->ExecuteDecompose(optional_cc, query, row);
+  auto prepare_statement = PrepareStatement(query);
+  prepare_statement->UpdateRowsBindings(row);
+
+  return DoExecute(optional_cc, prepare_statement);
 }
 
 template <typename Container>
@@ -102,7 +103,11 @@ void Transaction::ExecuteMany(settings::OptionalCommandControl optional_cc,
                               const Query& query,
                               const Container& params) const {
   AssertValid();
-  return (*connection_)->ExecuteMany(optional_cc, query, params);
+  for (const auto& row : params) {
+    auto prepare_statement = PrepareStatement(query);
+    prepare_statement->UpdateRowsBindings(row);
+    DoExecute(optional_cc, prepare_statement);
+  }
 }
 
 }  // namespace storages::sqlite

@@ -2,6 +2,9 @@
 
 #include <userver/logging/log.hpp>
 
+#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
@@ -30,6 +33,10 @@ Savepoint::~Savepoint() {
   }
 }
 
+impl::StatementPtr Savepoint::PrepareStatement(const Query& query) const {
+  return (*connection_)->PrepareStatement(query);
+}
+
 void Savepoint::AssertValid() const {
   UINVARIANT(connection_ && connection_->IsValid(),
              "Savepoint accessed after it's been released");
@@ -51,6 +58,11 @@ void Savepoint::RollbackTo() {
 Savepoint Savepoint::Save(std::string name) {
   AssertValid();
   return Savepoint{connection_, std::move(name)};
+}
+
+ResultSet Savepoint::DoExecute(settings::OptionalCommandControl optional_cc,
+                               impl::StatementPtr prepare_statement) const {
+  return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
 }
 
 }  // namespace storages::sqlite

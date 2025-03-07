@@ -1,6 +1,8 @@
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,9 +29,14 @@ Transaction::~Transaction() {
   }
 }
 
+impl::StatementPtr Transaction::PrepareStatement(const Query& query) const {
+  return (*connection_)->PrepareStatement(query);
+}
+
 void Transaction::AssertValid() const {
+  // TODO: exception or abort?
   UINVARIANT(connection_->IsValid(),
-             "Transaction accessed after it's been released");
+             "Transaction accessed after it's been commited");
 }
 
 void Transaction::Commit() {
@@ -46,6 +53,11 @@ void Transaction::Rollback() {
     auto connection = std::move(connection_);
     (*connection)->Rollback();
   }
+}
+
+ResultSet Transaction::DoExecute(settings::OptionalCommandControl optional_cc,
+                                 impl::StatementPtr prepare_statement) const {
+  return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
 }
 
 }  // namespace storages::sqlite

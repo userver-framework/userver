@@ -2,8 +2,9 @@
 
 #include <fmt/format.h>
 
-#include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/tracing/scope_time.hpp>
+
+#include <userver/storages/sqlite/exceptions.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

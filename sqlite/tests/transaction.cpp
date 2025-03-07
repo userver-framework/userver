@@ -9,6 +9,7 @@
 #include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/execution_result.hpp>
+#include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/row_types.hpp>

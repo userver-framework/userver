@@ -1,6 +1,6 @@
 #include <userver/storages/sqlite/impl/connection.hpp>
 
-#include <userver/storages/sqlite/impl/statements.hpp>
+#include <memory>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,21 +25,65 @@ constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
 
 }  // namespace
 
+sqlite3* Connection::OpenDatabase(const settings::SQLiteSettings& settings) {
+  int flags = 0;
+  if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadOnly) {
+    flags |= SQLITE_OPEN_READONLY;
+  } else {
+    flags |= SQLITE_OPEN_READWRITE;
+  }
+  if (settings.create_file &&
+      settings.read_mode == settings::SQLiteSettings::ReadMode::kReadWrite) {
+    flags |= SQLITE_OPEN_CREATE;
+  }
+  if (settings.shared_cashe) {
+    flags |= SQLITE_OPEN_SHAREDCACHE;
+  }
+  sqlite3* handle = nullptr;
+  // TODO: is this an I/O bound operation, does it need to be run on
+  // blocking_task_processor_?
+  // TODO: sqlite3_open_v2 thread-safe?
+  if (const int ret =
+          sqlite3_open_v2(settings.db_name.c_str(), &handle, flags, nullptr);
+      ret != SQLITE_OK) {
+    // TODO: Take logic into the NativeInterface class and make full RAII
+    sqlite3_close(handle);
+    NotifyBroken();
+    throw SQLiteException(handle, ret);
+  }
+  sqlite3_wal_checkpoint(handle, nullptr);
+  return handle;
+}
+
 Connection::Connection(const settings::SQLiteSettings& settings,
                        engine::TaskProcessor& blocking_task_processor)
     : blocking_task_processor_{blocking_task_processor},
-      settings_{settings.conn_settings},
       db_handler_{OpenDatabase(settings)},
+      connection_settings_{settings.conn_settings},
       statements_cache_{db_handler_.get(),
-                        settings.conn_settings.max_prepared_cache_size} {}
+                        connection_settings_.max_prepared_cache_size} {}
 
 Connection::~Connection() = default;
 
 settings::ConnectionSettings const& Connection::GetSettings() const noexcept {
-  return settings_;
+  return connection_settings_;
 }
 
 sqlite3* Connection::GetHandle() const noexcept { return db_handler_.get(); }
+
+ResultSet Connection::ExecuteCommand(
+    settings::OptionalCommandControl optional_cc [[maybe_unused]],
+    impl::StatementPtr prepare_statement) const {
+  return engine::AsyncNoSpan(
+             blocking_task_processor_,
+             [prepare_statement] {
+               prepare_statement->Next();
+               prepare_statement->CheckFail();
+               return ResultSet{
+                   std::make_shared<impl::ResultWrapper>(prepare_statement)};
+             })
+      .Get();
+}
 
 void Connection::Begin(const settings::TransactionOptions& options) {
   switch (options.mode) {
@@ -82,47 +126,26 @@ std::string Connection::PrepareString(const std::string& str) {
       .AsSingleField<std::string>();
 }
 
+StatementPtr Connection::PrepareStatement(const Query& query) {
+  if (connection_settings_.prepared_statements ==
+      settings::ConnectionSettings::kNoPreparedStatements) {
+    return MakeStatement(query.GetStatement());
+  } else {
+    auto stmt = statements_cache_.PrepareStatement(query.GetStatement());
+    stmt->Reset();
+    return stmt;
+  }
+}
+
+StatementPtr Connection::MakeStatement(const std::string& query) const {
+  return std::make_shared<Statement>(db_handler_.get(), query);
+}
 void Connection::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {
   // TODO: is this an I/O bound operation, does it need to be run on
   // blocking_task_processor_?
   sqlite3_close(sqlite_handle);
 
   // TODO: error is SQLITE_BUSY: "database is locked"
-}
-
-sqlite3* Connection::OpenDatabase(const settings::SQLiteSettings& settings) {
-  int flags = 0;
-  if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadOnly) {
-    flags |= SQLITE_OPEN_READONLY;
-  } else {
-    flags |= SQLITE_OPEN_READWRITE;
-  }
-  if (settings.create_file &&
-      settings.read_mode == settings::SQLiteSettings::ReadMode::kReadWrite) {
-    flags |= SQLITE_OPEN_CREATE;
-  }
-  if (settings.shared_cashe) {
-    flags |= SQLITE_OPEN_SHAREDCACHE;
-  }
-  sqlite3* handle = nullptr;
-  // TODO: is this an I/O bound operation, does it need to be run on
-  // blocking_task_processor_?
-  // TODO: sqlite3_open_v2 thread-safe?
-  if (const int ret =
-          sqlite3_open_v2(settings.db_name.c_str(), &handle, flags, nullptr);
-      ret != SQLITE_OK) {
-    // TODO: Take logic into the NativeInterface class and make full RAII
-    sqlite3_close(handle);
-    NotifyBroken();
-    throw SQLiteException(handle, ret);
-  }
-  sqlite3_wal_checkpoint(handle, nullptr);
-  return handle;
-}
-
-std::shared_ptr<Statement> Connection::MakeStatement(
-    const std::string& statement) const {
-  return std::make_shared<Statement>(db_handler_.get(), statement);
 }
 
 bool Connection::IsBroken() const { return broken_.load(); }

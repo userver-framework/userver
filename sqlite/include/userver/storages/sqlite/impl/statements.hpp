@@ -6,13 +6,14 @@
 
 #include <sqlite3.h>
 
-#include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/impl/statements_base.hpp>
-#include <userver/storages/sqlite/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
+
+class Statement;
+using StatementPtr = std::shared_ptr<Statement>;
 
 class Statement final : public StatementBase {
  public:
@@ -22,6 +23,10 @@ class Statement final : public StatementBase {
   Statement(const Statement& other) = delete;
   Statement(Statement&& other) noexcept;
 
+  const std::string& GetStatementText() const noexcept;
+  std::string getExpandedStatementText() const noexcept;
+
+  // Prepare statement logic
   void Bind(const int index, const int32_t value) override;
   void Bind(const int index, const int64_t value) override;
   void Bind(const int index, const uint32_t value) override;
@@ -33,9 +38,7 @@ class Statement final : public StatementBase {
   void Bind(const int index) override;
   void Reset() noexcept;
 
-  const std::string& GetStatementText() const noexcept;
-  std::string getExpandedStatementText() const noexcept;
-
+  // Execution and extract result logic
   int RowsAffected() const noexcept override;
   int LastInsertRowId() const noexcept override;
   bool HasNext() const noexcept override;
