@@ -6,6 +6,7 @@
 
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
+#include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,14 +30,18 @@ Transaction Client::Begin(std::string name,
   return Begin(std::nullopt, name, options);
 }
 
+infra::ConnectionPtr Client::GetConnection(
+    settings::CommandControl::OperationType op_type) const {
+  return pool_strategy_->SelectPool(op_type).Acquire();
+}
+
 Transaction Client::Begin(settings::OptionalCommandControl optional_cc,
                           std::string name [[maybe_unused]],
                           const settings::TransactionOptions& options) const {
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  auto connection =
-      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire();
+  auto connection = GetConnection(optional_cc->operation_type);
   return Transaction{std::move(connection), options};
 }
 
@@ -49,9 +54,9 @@ Savepoint Client::Save(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  auto connection = std::make_shared<infra::ConnectionPtr>(
-      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire());
-  return Savepoint{connection, std::move(name)};
+  auto shared_connection = std::make_shared<infra::ConnectionPtr>(
+      GetConnection(optional_cc->operation_type));
+  return Savepoint{shared_connection, std::move(name)};
 }
 
 }  // namespace storages::sqlite

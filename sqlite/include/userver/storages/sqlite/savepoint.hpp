@@ -4,10 +4,7 @@
 
 #include <memory>
 
-#include <userver/engine/async.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/storages/sqlite/exceptions.hpp>
-#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/impl/connection.hpp>  // TODO: remove heavy include
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>

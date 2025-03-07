@@ -1,8 +1,6 @@
 #include <userver/storages/sqlite/savepoint.hpp>
 
-#include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/sqlite/query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

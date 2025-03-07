@@ -6,16 +6,9 @@
 #include <memory>
 #include <optional>
 
-#include <boost/pfr/core.hpp>
-
-#include <userver/components/component_fwd.hpp>
-#include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/logging/log.hpp>
-#include <userver/storages/sqlite/impl/connection.hpp>
-#include <userver/storages/sqlite/infra/connection_ptr.hpp>
-#include <userver/storages/sqlite/infra/pool.hpp>
-#include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
+
+#include <userver/storages/sqlite/impl/connection.hpp>  // TODO: remove heavy include
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -32,6 +25,12 @@ using ClientPtr = std::shared_ptr<Client>;
 namespace infra {
 class Pool;
 using PoolPtr = std::shared_ptr<Pool>;
+
+namespace strategy {
+class PoolStrategyBase;
+using PoolStrategyBasePtr = std::unique_ptr<PoolStrategyBase>;
+}  // namespace strategy
+
 }  // namespace infra
 
 /// @ingroup userver_clients
@@ -81,14 +80,15 @@ class Client final {
   Savepoint Save(settings::OptionalCommandControl optional_cc,
                  std::string name) const;
 
-  infra::ConnectionPtr GetConnection() const;
+  infra::ConnectionPtr GetConnection(
+      settings::CommandControl::OperationType op_type) const;
 
  private:
   template <typename... Args>
-  inline ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                             const Query& query, const Args&... args) const;
+  ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
+                      const Query& query, const Args&... args) const;
 
-  std::unique_ptr<infra::strategy::PoolStrategyBase> pool_strategy_;
+  infra::strategy::PoolStrategyBasePtr pool_strategy_;
 };
 
 template <typename... Args>
@@ -108,8 +108,7 @@ ResultSet Client::DoExecute(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  auto connection =
-      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire();
+  auto connection = GetConnection(optional_cc->operation_type);
   return connection->ExecuteCommand(optional_cc, query, args...);
 }
 
@@ -124,8 +123,7 @@ ResultSet Client::ExecuteDecompose(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  auto connection =
-      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire();
+  auto connection = GetConnection(optional_cc->operation_type);
   return connection->ExecuteDecompose(optional_cc, query, row);
 }
 
@@ -140,8 +138,7 @@ void Client::ExecuteMany(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  auto connection =
-      pool_strategy_->SelectPool(optional_cc->operation_type).Acquire();
+  auto connection = GetConnection(optional_cc->operation_type);
   return connection->ExecuteMany(optional_cc, query, params);
 }
 
