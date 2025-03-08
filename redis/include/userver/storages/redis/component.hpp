@@ -63,7 +63,7 @@ namespace components {
 /// groups | array of redis clusters to work with excluding subscribers | -
 /// groups.[].config_name | key name in secdist with options for this cluster | -
 /// groups.[].db | name to refer to the cluster in components::Redis::GetClient() | -
-/// groups.[].sharding_strategy | one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver | "KeyShardTaximeterCrc32"
+/// groups.[].sharding_strategy | one of RedisCluster, RedisStandalone, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver | "KeyShardTaximeterCrc32"
 /// groups.[].allow_reads_from_master | allows read requests from master instance | false
 /// subscribe_groups | array of redis clusters to work with in subscribe mode | -
 /// subscribe_groups.[].config_name | key name in secdist with options for this cluster | -
@@ -109,6 +109,10 @@ namespace components {
 ///   }
 /// }
 /// @endcode
+///
+/// For an example of Secdist setup for standalone, sentinel and cluster testsuite configurations see the snippet:
+///
+/// @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
 ///
 /// ## Cluster Redis setup
 ///

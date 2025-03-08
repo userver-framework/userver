@@ -29,7 +29,7 @@ public:
         LOG_DEBUG() << request_counter_ << " request attempt: now=" << std::chrono::system_clock::now()
                     << ", deadline=" << context.GetServerContext().deadline();
         if (++request_counter_ % 4) {
-            engine::InterruptibleSleepFor(tests::kShortTimeout + tests::kAddSleep);
+            engine::InterruptibleSleepFor(tests::kShortTimeout * 2);
             EXPECT_TRUE(context.GetServerContext().IsCancelled());
             // this status should not reach client because of 'perAttemptRecvTimeout'
             LOG_DEBUG() << request_counter_ << ": return ABORTED";

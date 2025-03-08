@@ -34,6 +34,63 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.8
+
+* `sharding_strategy` of the components::Redis now supports `RedisStandalone` configuration, that may be useful for
+  tests or unimportant caches. Many thanks to [Aleksey Ignatiev](https://github.com/ae-ignatiev) for the PR!
+* kafka::Producer now has the API for sending Kafka headers. Many thanks
+  to [Mikhail Romaneev](https://github.com/melonaerial) for the PR and to [Fedor Lobanov](https://github.com/fslobanov)
+  for the fix!
+* kafka::ConsumerScope now has the API for receiving Kafka headers.
+* Add span events to OpenTelemetry via tracing::Span::AddEvent(). Many thanks
+  to [Dudnik Pavel](https://github.com/nepridumalnik) for the PR.
+* Added logging::JsonString to explicitly describe in type system that a string contains loggable JSON. Many thanks
+  to [akhoroshev](https://github.com/akhoroshev) for the PR!
+* Deadline Propagation for PostgreSQL is now enabled by default and can be controlled via `deadline-propagation-enabled`
+  static option of the components::Postgres.
+* Testsuite now supports `@pytest.mark.uservice_oneshot`.
+* utils::regex now always uses a faster and safer Re2 instead of boost::regex.
+* Dynamic config `USERVER_HANDLER_STREAM_API_ENABLED` is not used any more.
+* server::handlers::HttpHandlerStatic now has a `expires` static config option.
+* kafka::ProducerComponent and kafka::ConsumerComponent now supprt 'SASL_PLAINTEXT'
+  security protocol. Many thanks to [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
+* Implemented OneOf discriminator mapping to integer and generation of fmt::formatters for enums in chaotic.
+* Load `kRoundRobin` load distribution in PostgreSQL is now uniform
+
+* gRPC
+  * Retries are now supported and controlled via dynamic config. See ugrpc::client::Qos for more info.
+  * Clients and servers now use the same configuration approach for middlewares, allowing granular overrides
+    of settings.
+
+* Optimizations
+  * Postgres driver now uses `moodycamel` queue instead of boost::lockfree. Up to 2 times faster retrieval of
+    connection from pool.
+  * utils::TrivialBiMap is used in more cases, leading to faster runtime search and minor decrease in binaries size.
+  * Multiple std::string constants were replaced with `constinit` types, leading to faster startup times and
+    smaller binaries.
+  * Avoid `url` copies in clients::http::Request
+
+* Documentation and Diagnostics:
+  * Fixed typo at @ref scripts/docs/en/userver/build/dependencies.md. Many thanks
+    to [Konstantin Goncharik](https://github.com/botanegg) for the PR.
+  * More docs on @ref scripts/docs/en/userver/sql_files.md
+  * Improved parse failure messages for @ref scripts/docs/en/userver/dynamic_config.md
+  * Improved diagnostics for corrupted tracing::Span
+  * Erroneous attempt to log function address is now captured at build time.
+
+* Testing
+  * Easy grpc mock registration in testsuite.
+  * Daemon-scoped fixtures implemented via `@pytest.mark.uservice_oneshot`.
+
+* Build
+  * Debug symbols of userver libraries are now compressed with `zstd` if the toolset supports it, leading to
+    smaller binaries size.
+  * Docker images now use `zstd` compression too.
+  * Dropped CI testing on Ubuntu 20.04 which lifetime almost ended.
+  * Improved build type matching for installed userver. Many thanks
+    to [Aleksey Ignatiev](https://github.com/ae-ignatiev) for the PR!
+
+
 ### Release v2.7
 
 * Logging in JSON format was implemented. See static option `format` at components::Logging.
@@ -48,15 +105,13 @@ Changelog news also go to the
 * Chaotic exceptions now do not depend on JSON. Thanks to [Artyom](https://github.com/Lookingforcommit) for the PR!
 
 * gRPC
-  * Retries are now supported and controlled via dynamic config. See ugrpc::client::Qos for more info.
-  * Out-the-box cache dump support for Protobuf messages. See
+  * Out-the-box cache dump support for Protobuf messages.
     @ref dump_serialization_guide "Implementing serialization (Write / Read)" for more info.
   * Removed deprecated `*Sync` methods.
 
 * Optimizations
   * Speed up configuration reads on creating new PostgreSQL connections.
   * utils::PeriodicTask now calls RCU Read two times less on each iteration.
-  * Reduced memory allocations count on each Redis request.
 
 * Build
   * Fixed build with `USERVER_FEATURE_JEMALLOC=ON`. Many thanks to [Aleksey Ignatiev](https://github.com/ae-ignatiev)
