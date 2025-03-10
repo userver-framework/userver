@@ -34,5 +34,16 @@ function(setup_compiler_debug_info_compression)
     endif()
 endfunction()
 
-setup_linker_debug_info_compression()
-setup_compiler_debug_info_compression()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(USERVER_DISABLE_DEBUG_INFO_COMPRESSION_DEFAULT ON)
+else()
+    set(USERVER_DISABLE_DEBUG_INFO_COMPRESSION_DEFAULT OFF)
+endif()
+
+option(USERVER_DISABLE_DEBUG_INFO_COMPRESSION "Disable linker and compiler debug info compression" ${USERVER_DISABLE_DEBUG_INFO_COMPRESSION_DEFAULT})
+
+if(NOT USERVER_DISABLE_DEBUG_INFO_COMPRESSION)
+    setup_linker_debug_info_compression()
+    setup_compiler_debug_info_compression()
+endif()
