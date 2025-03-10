@@ -6,10 +6,10 @@
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/utils/text.hpp>
 
 #include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/secdist_redis.hpp>
 #include <storages/redis/redis_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN

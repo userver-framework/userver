@@ -5,9 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/storages/redis/impl/secdist_redis.hpp>
-
 #include <userver/formats/json/value.hpp>
+
+#include <storages/redis/impl/secdist_redis.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
