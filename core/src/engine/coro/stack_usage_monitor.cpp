@@ -269,11 +269,6 @@ public:
     ~Impl() { Stop(); }
 
     void Start() {
-        if (!utils::impl::kCoroutineStackUsageMonitorExperiment.IsEnabled()) {
-            LOG_INFO() << "StackUsageMonitor is not enabled, skipping initialization";
-            return;
-        }
-
         const auto monitor_fd = CreateUserfaultFd();
         if (monitor_fd == -1) {
             LogWarningWithErrno("Failed to initialize StackUsageMonitor(userfaultfd)");

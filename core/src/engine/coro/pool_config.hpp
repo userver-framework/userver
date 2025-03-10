@@ -14,6 +14,7 @@ struct PoolConfig {
     std::size_t max_size = 4000;
     std::size_t stack_size = 256 * 1024ULL;
     std::size_t local_cache_size = 8;
+    bool is_stack_usage_monitor_enabled = true;
 };
 
 PoolConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PoolConfig>);

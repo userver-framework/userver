@@ -26,7 +26,9 @@ Pool::Pool(PoolConfig config, Executor executor)
     UASSERT(local_coroutine_move_size_ <= config_.local_cache_size);
     moodycamel::ProducerToken token(initial_coroutines_);
 
-    stack_usage_monitor_.Start();
+    if (config_.is_stack_usage_monitor_enabled) {
+        stack_usage_monitor_.Start();
+    }
 
     for (std::size_t i = 0; i < config_.initial_size; ++i) {
         bool ok = initial_coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
@@ -193,7 +195,11 @@ PoolConfig Pool::FixupConfig(PoolConfig&& config) {
     return std::move(config);
 }
 
-void Pool::RegisterThread() { stack_usage_monitor_.RegisterThread(); }
+void Pool::RegisterThread() {
+    if (stack_usage_monitor_.IsActive()) {
+        stack_usage_monitor_.RegisterThread();
+    }
+}
 
 void Pool::AccountStackUsage() { stack_usage_monitor_.AccountStackUsage(); }
 
