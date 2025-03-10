@@ -34,5 +34,10 @@ function(setup_compiler_debug_info_compression)
     endif()
 endfunction()
 
-setup_linker_debug_info_compression()
-setup_compiler_debug_info_compression()
+
+option(USERVER_ENABLE_DEBUG_INFO_COMPRESSION "Enable linker and compiler debug info compression" ON)
+
+if(USERVER_ENABLE_DEBUG_INFO_COMPRESSION)
+    setup_linker_debug_info_compression()
+    setup_compiler_debug_info_compression()
+endif()
