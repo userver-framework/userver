@@ -3,8 +3,6 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
-#include <string>
-#include <type_traits>
 #include <vector>
 
 #include <userver/storages/sqlite/exceptions.hpp>
@@ -106,9 +104,6 @@ class ResultSet {
 
 template <typename T>
 std::vector<T> ResultSet::AsVector() && {
-  // TODO: Add more detailed verification and error description
-  // static_assert(is_aggregate_or_tuple_v<T>,
-  //               "T must be an aggregate type or tuple-like type");
   std::vector<T> result;
   while (pimpl_->HasNext()) {
     result.emplace_back(pimpl_->FetchNext<T>());
@@ -118,15 +113,10 @@ std::vector<T> ResultSet::AsVector() && {
 
 template <typename T>
 std::vector<T> ResultSet::AsVector(FieldTag) && {
-  // TODO: Add more detailed verification and error description
-  static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
-                    std::is_same_v<T, std::string> ||
-                    std::is_same_v<T, std::vector<uint8_t>>,
-                "Unsupported type for AsVector(FieldTag)");
   const int column_count = pimpl_->ColumnCount();
-  if (column_count != 1) {
-    throw SQLiteException(
-        "Result set must have exactly one column for AsVector(FieldTag)");
+  if (column_count > 1) {
+    throw SQLiteException{
+        "Result set must have exactly one column for AsVector(FieldTag)"};
   }
   std::vector<T> result;
   while (pimpl_->HasNext()) {
@@ -137,80 +127,44 @@ std::vector<T> ResultSet::AsVector(FieldTag) && {
 
 template <typename T>
 T ResultSet::AsSingleRow() && {
-  // TODO: Add more detailed verification and error description
-  // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
-  //               "T must be an aggregate type or tuple-like type");
-
-  if (pimpl_->IsDone()) {
-    throw SQLiteException("Result set is empty");
+  auto optional_data = std::move(*this).AsOptionalSingleRow<T>();
+  if (!optional_data.has_value()) {
+    throw SQLiteException{"Result set is empty"};
   }
-  auto result = pimpl_->FetchNext<T>();
-  if (pimpl_->HasNext()) {
-    throw SQLiteException("Result set contains more than one row");
-  }
-  return result;
+  return std::move(*optional_data);
 }
 
 template <typename T>
 T ResultSet::AsSingleField() && {
-  // TODO: Add more detailed verification and error description
-  static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
-                    std::is_same_v<T, std::string> ||
-                    std::is_same_v<T, std::vector<uint8_t>>,
-                "T must be one of the supported types: int64_t, double, "
-                "std::string, std::vector<uint8_t>");
-
-  if (pimpl_->IsDone()) {
-    throw SQLiteException("Result set is empty");
+  auto optional_data = std::move(*this).AsOptionalSingleField<T>();
+  if (!optional_data.has_value()) {
+    throw SQLiteException{"Result set is empty"};
   }
-  int column_count = pimpl_->ColumnCount();
-  if (column_count != 1) {
-    throw SQLiteException("Result set must contain exactly one column");
-  }
-  auto result = pimpl_->FetchNext<T>(kFieldTag);
-  if (pimpl_->HasNext()) {
-    throw SQLiteException("Result set contains more than one row");
-  }
-  return result;
+  return std::move(*optional_data);
 }
 
 template <typename T>
 std::optional<T> ResultSet::AsOptionalSingleRow() && {
-  // TODO: Add more detailed verification and error description
-  // static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
-  //               "T must be an aggregate type or tuple-like type");
-
-  if (pimpl_->IsDone()) {
+  auto rows = std::move(*this).AsVector<T>();
+  if (rows.empty()) {
     return std::nullopt;
   }
-  auto result = pimpl_->FetchNext<T>();
-  if (pimpl_->HasNext()) {
+  if (rows.size() > 1) {
     throw SQLiteException("Result set contains more than one row");
   }
-  return result;
+  return {{std::move(rows.front())}};
 }
 
 template <typename T>
 std::optional<T> ResultSet::AsOptionalSingleField() && {
-  // TODO: Add more detailed verification and error description
-  static_assert(std::is_same_v<T, int64_t> || std::is_same_v<T, double> ||
-                    std::is_same_v<T, std::string> ||
-                    std::is_same_v<T, std::vector<uint8_t>>,
-                "T must be one of the supported types: int64_t, double, "
-                "std::string, std::vector<uint8_t>");
-
-  if (pimpl_->IsDone()) {
+  auto rows = std::move(*this).AsVector<T>(kFieldTag);
+  if (rows.empty()) {
     return std::nullopt;
   }
-  int column_count = pimpl_->ColumnCount();
-  if (column_count != 1) {
-    throw SQLiteException("Result set must contain exactly one column");
-  }
-  auto result = pimpl_->FetchNext<T>(kFieldTag);
-  if (pimpl_->HasNext()) {
+  if (rows.size() > 1) {
     throw SQLiteException("Result set contains more than one row");
   }
-  return result;
+  return {{std::move(rows.front())}};
 }
 
 }  // namespace storages::sqlite

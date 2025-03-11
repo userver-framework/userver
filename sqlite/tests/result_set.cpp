@@ -108,15 +108,14 @@ UTEST(SQLiteResultSetTest, AsSingleRow) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
+  EXPECT_CALL(*mock_sqlite_statement, HasNext())
+      .WillOnce(::testing::Return(true))
       .WillOnce(::testing::Return(false));
   EXPECT_CALL(*mock_sqlite_statement, Next()).Times(1);
   EXPECT_CALL(*mock_sqlite_statement, GetInt32Column(0))
       .WillOnce(::testing::Return(1));
   EXPECT_CALL(*mock_sqlite_statement, GetStringColumn(1))
       .WillOnce(::testing::Return("first"));
-  EXPECT_CALL(*mock_sqlite_statement, HasNext())
-      .WillOnce(::testing::Return(false));
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   auto actual = std::move(res).AsSingleRow<Row>();
@@ -128,8 +127,8 @@ UTEST(SQLiteResultSetTest, AsSingleRowThrowsWhenEmpty) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
-      .WillOnce(::testing::Return(true));
+  EXPECT_CALL(*mock_sqlite_statement, HasNext())
+      .WillOnce(::testing::Return(false));
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
@@ -139,11 +138,11 @@ UTEST(SQLiteResultSetTest, AsSingleRowThrowsWhenMultipleRows) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
-      .WillOnce(::testing::Return(false));
-  EXPECT_CALL(*mock_sqlite_statement, Next()).Times(1);
   EXPECT_CALL(*mock_sqlite_statement, HasNext())
-      .WillOnce(::testing::Return(true));
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_sqlite_statement, Next()).Times(2);
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
@@ -153,15 +152,14 @@ UTEST(SQLiteResultSetTest, AsSingleField) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
+  EXPECT_CALL(*mock_sqlite_statement, HasNext())
+      .WillOnce(::testing::Return(true))
       .WillOnce(::testing::Return(false));
   EXPECT_CALL(*mock_sqlite_statement, ColumnCount())
       .WillRepeatedly(::testing::Return(1));
   EXPECT_CALL(*mock_sqlite_statement, GetStringColumn(0))
       .WillOnce(::testing::Return("first"));
   EXPECT_CALL(*mock_sqlite_statement, Next()).Times(1);
-  EXPECT_CALL(*mock_sqlite_statement, HasNext())
-      .WillOnce(::testing::Return(false));
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   auto actual = std::move(res).AsSingleField<std::string>();
@@ -173,8 +171,6 @@ UTEST(SQLiteResultSetTest, AsSingleFieldThrowsOnMultipleColumns) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
-      .WillOnce(::testing::Return(false));
   EXPECT_CALL(*mock_sqlite_statement, ColumnCount())
       .WillOnce(::testing::Return(2));
 
@@ -187,15 +183,14 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleRow) {
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
   // Non-empty case
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
+  EXPECT_CALL(*mock_sqlite_statement, HasNext())
+      .WillOnce(::testing::Return(true))
       .WillOnce(::testing::Return(false));
   EXPECT_CALL(*mock_sqlite_statement, Next()).Times(1);
   EXPECT_CALL(*mock_sqlite_statement, GetInt32Column(0))
       .WillOnce(::testing::Return(1));
   EXPECT_CALL(*mock_sqlite_statement, GetStringColumn(1))
       .WillOnce(::testing::Return("first"));
-  EXPECT_CALL(*mock_sqlite_statement, HasNext())
-      .WillOnce(::testing::Return(false));
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   auto actual = std::move(res).AsOptionalSingleRow<Row>();
@@ -221,11 +216,11 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleRowThrowsOnMultipleRows) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
-      .WillOnce(::testing::Return(false));
-  EXPECT_CALL(*mock_sqlite_statement, Next()).Times(1);
   EXPECT_CALL(*mock_sqlite_statement, HasNext())
-      .WillOnce(::testing::Return(true));
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(true))
+      .WillOnce(::testing::Return(false));
+  EXPECT_CALL(*mock_sqlite_statement, Next()).Times(2);
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   EXPECT_THROW(std::move(res).AsOptionalSingleRow<Row>(), SQLiteException);
@@ -235,15 +230,14 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleField) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
+  EXPECT_CALL(*mock_sqlite_statement, HasNext())
+      .WillOnce(::testing::Return(true))
       .WillOnce(::testing::Return(false));
   EXPECT_CALL(*mock_sqlite_statement, ColumnCount())
       .WillRepeatedly(::testing::Return(1));
   EXPECT_CALL(*mock_sqlite_statement, Next()).Times(1);
   EXPECT_CALL(*mock_sqlite_statement, GetStringColumn(0))
       .WillOnce(::testing::Return("first"));
-  EXPECT_CALL(*mock_sqlite_statement, HasNext())
-      .WillOnce(::testing::Return(false));
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   auto actual = std::move(res).AsOptionalSingleField<std::string>();
@@ -256,8 +250,8 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleFieldEmpty) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();
 
-  EXPECT_CALL(*mock_sqlite_statement, IsDone())
-      .WillOnce(::testing::Return(true));
+  EXPECT_CALL(*mock_sqlite_statement, ColumnCount())
+      .WillOnce(::testing::Return(0));
 
   ResultSet res(std::make_shared<impl::ResultWrapper>(mock_sqlite_statement));
   auto actual = std::move(res).AsOptionalSingleField<std::string>();
