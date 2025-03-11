@@ -1,3 +1,6 @@
+import pytest
+
+
 async def test_basic(service_client, monitor_client):
     response = await service_client.get('/metrics')
     assert response.status_code == 200
@@ -5,6 +8,14 @@ async def test_basic(service_client, monitor_client):
 
     metric = await monitor_client.single_metric('sample-metrics.foo')
     assert metric.value > 0
+
+
+# /// [uservice_oneshot sample]
+@pytest.mark.uservice_oneshot
+async def test_initial_metrics(service_client, monitor_client):
+    metric = await monitor_client.single_metric('sample-metrics.foo')
+    assert metric.value == 0
+    # /// [uservice_oneshot sample]
 
 
 # /// [metrics reset]

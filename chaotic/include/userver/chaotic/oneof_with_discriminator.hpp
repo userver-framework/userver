@@ -1,13 +1,11 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <variant>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/serialize/to.hpp>
-#include <userver/utils/algo.hpp>
 #include <userver/utils/constexpr_indices.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/trivial_map.hpp>
@@ -23,24 +21,24 @@ struct OneOfStringSettings {
     std::string_view property_name;
     utils::TrivialSet<BuilderFunc> mapping;
 
-    constexpr std::optional<std::size_t> GetIndex(std::string_view key) const { return mapping.GetIndex(key); }
-
     static std::string_view FieldToString(const KeyType& key) { return key; }
 };
 
 template <typename BuilderFunc>
 OneOfStringSettings(const char*, utils::TrivialSet<BuilderFunc>) -> OneOfStringSettings<BuilderFunc>;
 
+template <typename BuilderFunc>
 struct OneOfIntegerSettings {
     using KeyType = int64_t;
 
     std::string_view property_name;
-    std::unordered_map<KeyType, std::size_t> mapping;
+    utils::TrivialSet<BuilderFunc> mapping;
 
-    std::optional<std::size_t> GetIndex(KeyType key) const { return utils::FindOptional(mapping, key); }
-
-    static std::string FieldToString(const KeyType& key) { return std::to_string(key); }
+    static std::string FieldToString(KeyType key) { return std::to_string(key); }
 };
+
+template <typename BuilderFunc>
+OneOfIntegerSettings(const char*, utils::TrivialSet<BuilderFunc>) -> OneOfIntegerSettings<BuilderFunc>;
 
 template <const auto* Settings, typename... T>
 struct OneOfWithDiscriminator {
@@ -53,7 +51,7 @@ Parse(Value value, formats::parse::To<OneOfWithDiscriminator<Settings, T...>>) {
     using SettingsType = std::decay_t<decltype(*Settings)>;
     const auto field = value[Settings->property_name].template As<typename SettingsType::KeyType>();
 
-    const auto index = Settings->GetIndex(field);
+    const auto index = Settings->mapping.GetIndex(field);
     if (!index.has_value()) {
         throw formats::json::UnknownDiscriminatorException(value.GetPath(), SettingsType::FieldToString(field));
     }

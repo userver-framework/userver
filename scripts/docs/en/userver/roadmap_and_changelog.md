@@ -48,7 +48,7 @@ Changelog news also go to the
   to [akhoroshev](https://github.com/akhoroshev) for the PR!
 * Deadline Propagation for PostgreSQL is now enabled by default and can be controlled via `deadline-propagation-enabled`
   static option of the components::Postgres.
-* Testsuite now supports `@pytest.mark.uservice_oneshot`.
+* Testsuite now supports @ref uservice_oneshot "@pytest.mark.uservice_oneshot".
 * utils::regex now always uses a faster and safer Re2 instead of boost::regex.
 * Dynamic config `USERVER_HANDLER_STREAM_API_ENABLED` is not used any more.
 * server::handlers::HttpHandlerStatic now has a `expires` static config option.

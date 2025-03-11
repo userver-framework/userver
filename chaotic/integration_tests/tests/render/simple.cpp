@@ -270,9 +270,7 @@ TEST(Simple, OneOfWithDiscriminator) {
 }
 
 TEST(Simple, OneOfWithDiscriminatorMapping) {
-    std::unordered_map<int64_t, size_t> expected{{42, 0}, {52, 1}};
-    EXPECT_EQ(ns::IntegerOneOfDiscriminator::kFoo_Settings.mapping, expected);
-
+    EXPECT_EQ(ns::IntegerOneOfDiscriminator::kFoo_Settings.mapping.Describe(), "'42', '52'");
     EXPECT_EQ(ns::OneOfDiscriminator::kFoo_Settings.mapping.Describe(), "'aaa', 'bbb'");
 }
 

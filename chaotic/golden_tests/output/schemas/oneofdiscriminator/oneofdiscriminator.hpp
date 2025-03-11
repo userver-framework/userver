@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <userver/chaotic/oneof_with_discriminator.hpp>
 #include <userver/formats/json/value.hpp>
 #include <variant>
@@ -89,12 +88,11 @@ USERVER_NAMESPACE::formats::json::Value
 Serialize(const ns::D& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 struct IntegerOneOfDiscriminator {
-    inline static const USERVER_NAMESPACE::chaotic::OneOfIntegerSettings kFoo_Settings{
+    [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfIntegerSettings kFoo_Settings = {
         "version",
-        std::unordered_map<int64_t, size_t>{
-            {42, 0},
-            {52, 1},
-        }};
+        USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
+            return selector().template Type<int64_t>().Case(42).Case(52);
+        })};
 
     using Foo = std::variant<ns::C, ns::D>;
 

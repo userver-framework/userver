@@ -890,9 +890,6 @@ class CppVariantWithDiscriminator(CppType):
     def declaration_includes(self) -> List[str]:
         includes = ['variant', 'userver/chaotic/oneof_with_discriminator.hpp']
 
-        if self.is_int_discriminator():
-            includes.append('unordered_map')
-
         if self.user_cpp_type:
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
         return includes + flatten([item.declaration_includes() for item in self.variants.values()])

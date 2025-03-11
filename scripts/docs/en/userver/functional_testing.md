@@ -195,11 +195,11 @@ In order to use it you need to register corresponding components:
 
 Headers:
 
-@snippet samples/testsuite-support/src/main.cpp testsuite - include components
+@snippet samples/testsuite-support/main.cpp testsuite - include components
 
 Add components to components list:
 
-@snippet samples/testsuite-support/src/main.cpp testsuite - register components
+@snippet samples/testsuite-support/main.cpp testsuite - register components
 
 Add testsuite components to `config.yaml`:
 
@@ -490,6 +490,21 @@ In order to override it you have to add your own testcase with `@pytest.mark.ser
 def test_service(service_client):
     ...
 @endcode
+
+@anchor uservice_oneshot
+#### uservice_oneshot testsuite tests
+
+Testsuite allows to create tests that start a new service instance for the test and stop it on test finish:
+
+@snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample 
+
+Such functionality slows down the tests run, but it may be required
+* to test service state right after the service start,
+* or to test that the service stops fine at some point,
+* or the test breaks the service for some time and restarting it is faster than waiting for recovery.
+
+For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_mark "daemon_scoped_mark" fixture.
+
 
 ----------
 

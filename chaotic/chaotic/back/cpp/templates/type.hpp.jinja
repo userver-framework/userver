@@ -125,13 +125,17 @@
                 )
             };
         {% elif type.is_int_discriminator() %}
-            inline static const {{ userver }}::chaotic::OneOfIntegerSettings k{{ type.cpp_local_name() }}_Settings {
+            [[maybe_unused]] static constexpr {{ userver }}::chaotic::OneOfIntegerSettings k{{ type.cpp_local_name() }}_Settings = {
                 "{{ type.property_name }}",
-                std::unordered_map<int64_t, size_t>{
-                    {%- for idx, var_name in enumerate(type.variants) -%}
-                        { {{ var_name }}, {{idx}} },
-                    {%- endfor -%}
-                }
+                {{ userver }}::utils::TrivialSet(
+                    [](auto selector) {
+                return selector().template Type<int64_t>()
+                            {%- for var_name in type.variants -%}
+                                .Case({{ var_name }})
+                            {%- endfor -%}
+                            ;
+                    }
+                )
             };
         {% endif %}
 

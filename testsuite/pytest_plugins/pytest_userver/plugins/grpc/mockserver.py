@@ -21,6 +21,7 @@ from typing import Tuple
 
 import grpc
 import pytest
+from typing_extensions import Final  # TODO use typing in Python 3.8
 
 from testsuite.utils import callinfo
 
@@ -36,36 +37,46 @@ USERVER_CONFIG_HOOKS = ['userver_config_grpc_mockserver']
 
 
 class GrpcServiceMock:
-    def __init__(self, servicer, adder: Callable, service_name: str, methods: Collection[str]):
+    def __init__(
+        self,
+        *,
+        servicer: object,
+        adder: Callable,
+        service_name: str,
+        known_methods: Collection[str],
+        mocked_methods: Dict[str, Callable],
+    ) -> None:
         self._servicer = servicer
         self._adder = adder
         self._service_name = service_name
-        self._known_methods = methods
-        self._methods = {}
+        self._known_methods = known_methods
+        # Note: methods of `servicer` look into `mocked_methods` for implementations.
+        # (Specifically into the instance our constructor is given.)
+        self._methods: Final[Dict[str, Callable]] = mocked_methods
 
     @property
-    def servicer(self):
+    def servicer(self) -> object:
         return self._servicer
 
     @property
     def service_name(self) -> str:
         return self._service_name
 
-    def get(self, method_name, default, /):
+    def get(self, method_name, default, /) -> Callable:
         return self._methods.get(method_name, default)
 
     def add_to_server(self, server: grpc.aio.Server) -> None:
         self._adder(self._servicer, server)
 
-    def reset_handlers(self):
-        self._methods = {}
+    def reset_handlers(self) -> None:
+        self._methods.clear()
 
     @contextlib.contextmanager
     def mock(self):
         try:
             yield self.install_handler
         finally:
-            self._methods = {}
+            self._methods.clear()
 
     def install_handler(self, method_name: str, /) -> MockDecorator:
         def decorator(func):
@@ -120,7 +131,7 @@ class GrpcMockserverSession:
         self._auto_service_mocks: Dict[type, GrpcServiceMock] = {}
 
     def get_auto_service_mock(self, servicer_class: type, /) -> GrpcServiceMock:
-        existing_mock = self._auto_service_mocks.get(servicer_class, None)
+        existing_mock = self._auto_service_mocks.get(servicer_class)
         if existing_mock:
             return existing_mock
         new_mock = _create_servicer_mock(servicer_class)
@@ -212,8 +223,12 @@ class GrpcMockserver:
         """
 
         def factory(method_name):
-            return self(getattr(servicer_class, method_name))
+            method = getattr(servicer_class, method_name, None)
+            if method is None:
+                raise ValueError(f'No method "{method_name}" in servicer class "{servicer_class.__name__}"')
+            return self(method)
 
+        _check_is_servicer_class(servicer_class)
         return factory
 
 
@@ -304,10 +319,55 @@ def pytest_addoption(parser):
     )
 
 
-def _raise_unimplemented_error(context: grpc.aio.ServicerContext) -> NoReturn:
+def _raise_unimplemented_error(context: grpc.aio.ServicerContext, full_rpc_name: str) -> NoReturn:
+    message = f'Trying to call grpc_mockserver method "{full_rpc_name}", which is not mocked'
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
+    context.set_details(message)
+    raise NotImplementedError(message)
+
+
+def _wrap_grpc_method(
+    python_method_name: str,
+    full_rpc_name: str,
+    default_unimplemented_method: Callable,
+    response_streaming: bool,
+    mocked_methods: Dict[str, Callable],
+    before_call_hook: Optional[Callable[..., None]],
+):
+    if response_streaming:
+
+        @functools.wraps(default_unimplemented_method)
+        async def run_stream_response_method(self, request_or_stream, context: grpc.aio.ServicerContext):
+            method = mocked_methods.get(python_method_name)
+            if method is None:
+                _raise_unimplemented_error(context, full_rpc_name)
+
+            if before_call_hook is not None:
+                before_call_hook(request_or_stream, context)
+            async for response in await method(request_or_stream, context):
+                yield response
+
+        return run_stream_response_method
+    else:
+
+        @functools.wraps(default_unimplemented_method)
+        async def run_unary_response_method(self, request_or_stream, context: grpc.aio.ServicerContext):
+            method = mocked_methods.get(python_method_name)
+            if method is None:
+                _raise_unimplemented_error(context, full_rpc_name)
+
+            if before_call_hook is not None:
+                before_call_hook(request_or_stream, context)
+            return await method(request_or_stream, context)
+
+        return run_unary_response_method
+
+
+def _check_is_servicer_class(servicer_class: type) -> None:
+    if not isinstance(servicer_class, type):
+        raise ValueError(f'Expected *Servicer class (type), got: {servicer_class} ({type(servicer_class)})')
+    if not servicer_class.__name__.endswith('Servicer'):
+        raise ValueError(f'Expected *Servicer class, got: {servicer_class}')
 
 
 def _create_servicer_mock(
@@ -317,42 +377,8 @@ def _create_servicer_mock(
     stream_method_names: Optional[List[str]] = None,
     before_call_hook: Optional[Callable[..., None]] = None,
 ) -> GrpcServiceMock:
-    def wrap_grpc_method(name, default_method, is_stream):
-        @functools.wraps(default_method)
-        async def run_unary_response_method(self, request_or_stream, context: grpc.aio.ServicerContext):
-            method = mock.get(name, None)
-            if method is None:
-                _raise_unimplemented_error(context)
-
-            if before_call_hook is not None:
-                before_call_hook(request_or_stream, context)
-            return await method(request_or_stream, context)
-
-        @functools.wraps(default_method)
-        async def run_stream_response_method(self, request_or_stream, context: grpc.aio.ServicerContext):
-            method = mock.get(name, None)
-            if method is None:
-                _raise_unimplemented_error(context)
-
-            if before_call_hook is not None:
-                before_call_hook(request_or_stream, context)
-            async for response in await method(request_or_stream, context):
-                yield response
-
-        return run_stream_response_method if is_stream else run_unary_response_method
-
-    if not servicer_class.__name__.endswith('Servicer'):
-        raise ValueError(f'Expected *Servicer class, got: {servicer_class.__name__}')
+    _check_is_servicer_class(servicer_class)
     reflection = _reflect_servicer(servicer_class)
-
-    methods = {}
-    for attname, value in servicer_class.__dict__.items():
-        if callable(value):
-            methods[attname] = wrap_grpc_method(
-                name=attname,
-                default_method=value,
-                is_stream=reflection[attname].response_streaming,
-            )
 
     if reflection:
         service_name, _ = _split_rpc_name(next(iter(reflection.values())).name)
@@ -360,14 +386,33 @@ def _create_servicer_mock(
         service_name = 'UNKNOWN'
     adder = getattr(inspect.getmodule(servicer_class), f'add_{servicer_class.__name__}_to_server')
 
+    mocked_methods: Dict[str, Callable] = {}
+
+    methods = {}
+    for attname, value in servicer_class.__dict__.items():
+        if callable(value):
+            methods[attname] = _wrap_grpc_method(
+                python_method_name=attname,
+                full_rpc_name=reflection[attname].name,
+                default_unimplemented_method=value,
+                response_streaming=reflection[attname].response_streaming,
+                mocked_methods=mocked_methods,
+                before_call_hook=before_call_hook,
+            )
     mocked_servicer_class = type(
         f'Mock{servicer_class.__name__}',
         (servicer_class,),
         methods,
     )
     servicer = mocked_servicer_class()
-    mock = GrpcServiceMock(servicer, adder, service_name, frozenset(methods))
-    return mock
+
+    return GrpcServiceMock(
+        servicer=servicer,
+        adder=adder,
+        service_name=service_name,
+        known_methods=frozenset(methods),
+        mocked_methods=mocked_methods,
+    )
 
 
 @dataclasses.dataclass(frozen=True)

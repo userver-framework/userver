@@ -17,6 +17,7 @@ from typing import Callable
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Union
 
 import pytest
 import yaml
@@ -399,7 +400,6 @@ def _service_config_hooked(
     daemon_scoped_mark,
     pytestconfig,
     request,
-    service_tmpdir,
     _original_service_config,
 ) -> _UserverConfig:
     config_yaml = copy.deepcopy(_original_service_config.config_yaml)
@@ -459,15 +459,19 @@ def userver_config_substitutions(_service_config_substitution_vars) -> ServiceCo
     @ingroup userver_testsuite_fixtures
     """
 
-    def _substitute(obj: dict) -> None:
-        for key, value in obj.items():
-            if isinstance(value, str):
-                obj[key] = string.Template(value).safe_substitute(_service_config_substitution_vars)
-            elif isinstance(value, dict):
-                _substitute(value)
+    def _substitute(key, value, parent: Union[list, dict]) -> None:
+        if isinstance(value, str):
+            parent[key] = string.Template(value).safe_substitute(_service_config_substitution_vars)
+        elif isinstance(value, dict):
+            for child_key, child_value in value.items():
+                _substitute(child_key, child_value, value)
+        elif isinstance(value, list):
+            for child_key, child_value in enumerate(value):
+                _substitute(child_key, child_value, value)
 
     def patch_config(config_yaml, config_vars):
-        _substitute(config_vars)
+        for key, value in config_vars.items():
+            _substitute(key, value, config_vars)
 
     return patch_config
 

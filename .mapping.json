@@ -3811,6 +3811,7 @@
   "testsuite/requirements.txt":"taxi/uservices/userver/testsuite/requirements.txt",
   "testsuite/tests/CMakeLists.txt":"taxi/uservices/userver/testsuite/tests/CMakeLists.txt",
   "testsuite/tests/conftest.py":"taxi/uservices/userver/testsuite/tests/conftest.py",
+  "testsuite/tests/test_config_substitutions.py":"taxi/uservices/userver/testsuite/tests/test_config_substitutions.py",
   "testsuite/tests/test_metrics.py":"taxi/uservices/userver/testsuite/tests/test_metrics.py",
   "testsuite/tests/test_tcp_chaos.py":"taxi/uservices/userver/testsuite/tests/test_tcp_chaos.py",
   "testsuite/tests/test_udp_chaos.py":"taxi/uservices/userver/testsuite/tests/test_udp_chaos.py",
