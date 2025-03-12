@@ -1,7 +1,6 @@
 #pragma once
 
 // !TODO this @file curl-ev/mime.cpp create in 2025 year                    //
-// !@author <<< xensmo >>> Taras Litvinenko <taraslitvinenko@yandex.kz>     //
 
 #include <memory>
 #include <string>
@@ -30,8 +29,6 @@ public:
 private:
     native::curl_mime*      mime_ { nullptr };
     native::curl_mimepart*  part_ { nullptr };
-
-    //std::vector<std::shared_ptr<std::string>> buffers_;
 };
 
 } // namespace curl
