@@ -303,16 +303,16 @@ if(USERVER_INSTALL)
 endif()
 
 if(USERVER_FEATURE_CORE)
-  _userver_directory_install(
-      COMPONENT core
-      PROGRAMS "${USERVER_ROOT_DIR}/scripts/userver-create-service"
-      DESTINATION ${CMAKE_INSTALL_BINDIR}/
-  )
-  _userver_directory_install(
-      COMPONENT core
-      DIRECTORY "${USERVER_ROOT_DIR}/service_template"
-      DESTINATION ${CMAKE_INSTALL_DATADIR}/userver/
-  )
+    _userver_directory_install(
+        COMPONENT core
+        PROGRAMS "${USERVER_ROOT_DIR}/scripts/userver-create-service"
+        DESTINATION ${CMAKE_INSTALL_BINDIR}/
+    )
+    _userver_directory_install(
+        COMPONENT core
+        DIRECTORY "${USERVER_ROOT_DIR}/service_template"
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/userver/
+    )
 endif()
 
 _userver_print_features_list()
