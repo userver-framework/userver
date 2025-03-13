@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/engine/single_waiter_mutex.hpp
+/// @file userver/engine/single_waiting_task_mutex.hpp
 /// @brief @copybrief engine::SingleWaitingTaskMutex
 
 #include <atomic>

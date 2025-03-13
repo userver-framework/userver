@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/mongo/utest/mongo_local.hpp
-/// @brief @copybrief storages::mongo::MongoLocal
+/// @brief @copybrief storages::mongo::utest::MongoLocal
 
 #include <userver/storages/mongo/pool.hpp>
 

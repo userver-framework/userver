@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/utils/statistics/testing_utils.hpp
+/// @file userver/utils/statistics/testing.hpp
 /// @brief Utilities for analyzing emitted metrics in unit tests
 
 #include <iosfwd>

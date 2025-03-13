@@ -20,12 +20,13 @@ public:
 
     void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
 };
+/// [gRPC middleware sample - Middleware declaration]
 
+/// [gRPC middleware sample - Middleware component declaration]
 // This component creates Middleware. Name of component is 'Middleware::kName'.
 // In this case we use a short-cut for defining a middleware-factory, but you can declare your own factory by
 // inheritance from 'ugrpc::server::MiddlewareFactoryComponentBase'
 using Component = ugrpc::server::SimpleMiddlewareFactoryComponent<Middleware>;
-
-/// [gRPC middleware sample - Middleware declaration]
+/// [gRPC middleware sample - Middleware component declaration]
 
 }  // namespace sample::grpc::auth::server

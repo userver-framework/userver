@@ -433,7 +433,7 @@ def _service_config_substitution_vars(request, mockserver_info) -> Mapping[str, 
 def userver_config_substitutions(_service_config_substitution_vars) -> ServiceConfigPatch:
     """
     Replaces substitution vars in all strings within `config_vars` using
-    @ref https://docs.python.org/3/library/string.html#string.Template.substitute "string.Template.substitute".
+    [string.Template.substitute](https://docs.python.org/3/library/string.html#string.Template.substitute).
 
     Substitution vars can be used as a shorthand for writing a full-fledged @ref SERVICE_CONFIG_HOOKS "config hook"
     in many common cases.

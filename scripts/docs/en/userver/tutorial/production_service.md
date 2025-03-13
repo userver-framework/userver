@@ -190,7 +190,7 @@ the @ref TESTSUITE_METRICS_TESTING "testsuite metrics testing".
 List of userver built-in metrics could be found at
 @ref scripts/docs/en/userver/service_monitor.md.
 
-# Alerts
+### Alerts
 
 Alerts is a way to propagate critical errors from your service to a monitoring system.
 

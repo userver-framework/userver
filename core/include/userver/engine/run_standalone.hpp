@@ -32,14 +32,19 @@ struct TaskProcessorPoolsConfig final {
 /// running.
 ///
 /// @param payload Code to be run in a Task
-/// @param worker_threads Engine thread pool size, 1 by default
-/// @param config A lightweight TaskProcessor config
 void RunStandalone(utils::function_ref<void()> payload);
 
-/// @overload
+/// @see @ref void RunStandalone(utils::function_ref<void()> payload)
+///
+/// @param worker_threads Engine thread pool size, 1 by default
+/// @param payload Code to be run in a Task
 void RunStandalone(std::size_t worker_threads, utils::function_ref<void()> payload);
 
-/// @overload
+/// @see @ref void RunStandalone(utils::function_ref<void()> payload)
+///
+/// @param worker_threads Engine thread pool size, 1 by default
+/// @param config A lightweight TaskProcessor config
+/// @param payload Code to be run in a Task
 void RunStandalone(
     std::size_t worker_threads,
     const TaskProcessorPoolsConfig& config,

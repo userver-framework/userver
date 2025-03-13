@@ -140,15 +140,15 @@ The exact format of setting cmake options varies depending on the method of buil
 
 ### CMake options for paths to dependencies
 
-| Option                                | Description                                                                                                    | Default                            |
-|---------------------------------------|----------------------------------------------------------------------------------------------------------------|------------------------------------|
-| `USERVER_PYTHON_PATH`                 | Path to the python3 binary for use in testsuite tests                                                          | `python3`                          |
-| `USERVER_PG_SERVER_INCLUDE_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", e.g. /usr/include/postgresql/15/server | autodetected                       |
-| `USERVER_PG_SERVER_LIBRARY_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", e.g. /usr/lib/postgresql/15/lib      | autodetected                       |
-| `USERVER_PG_INCLUDE_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", e.g. /usr/local/include                 | autodetected                       |
-| `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                       |
-| `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                     | Builds `userver-api-common-protos` |
-| `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                              | Downloads automatically            |
+| Option                                | Description                                                                                                             | Default                            |
+|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------------|
+| `USERVER_PYTHON_PATH`                 | Path to the python3 binary for use in testsuite tests                                                                   | `python3`                          |
+| `USERVER_PG_SERVER_INCLUDE_DIR`       | Path to the folder with @ref postgres_deps_versions "PostgreSQL server headers", e.g. /usr/include/postgresql/15/server | autodetected                       |
+| `USERVER_PG_SERVER_LIBRARY_DIR`       | Path to the folder with @ref postgres_deps_versions "PostgreSQL server libraries", e.g. /usr/lib/postgresql/15/lib      | autodetected                       |
+| `USERVER_PG_INCLUDE_DIR`              | Path to the folder with @ref postgres_deps_versions "PostgreSQL libpq headers", e.g. /usr/local/include                 | autodetected                       |
+| `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref postgres_deps_versions "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                       |
+| `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                              | Builds `userver-api-common-protos` |
+| `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                                       | Downloads automatically            |
 
 ### CMake options for various compilation modes
 

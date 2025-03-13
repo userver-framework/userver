@@ -6,7 +6,7 @@
 components::MySQL. The uMySQL driver is asynchronous, and with it one can
 write queries like this:
 
-@snippet storages/tests/unittests/showcase_mysqltest.cpp  uMySQL usage sample - main page
+@snippet storages/tests/unittests/showcase.cpp  uMySQL usage sample - main page
 
 No macros, no meta-structs, no boilerplate, just your types used directly.
 

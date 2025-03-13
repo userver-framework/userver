@@ -6,7 +6,7 @@
 1\. Press the "Use this template" button at the top right of the
 [GitHub template page](https://github.com/userver-framework/service_template).
 
-@warning @ref https://github.com/userver-framework/service_template "service_template" has no databases and uses HTTP.
+@warning [service_template](https://github.com/userver-framework/service_template) has no databases and uses HTTP.
 If you need gRPC or a database, please use other @ref service_templates "templates".
 
 2\. Clone the service:
@@ -100,7 +100,7 @@ See @ref tutorial_services for minimal usage examples of various userver librari
 @anchor service_templates_presets
 ### Managing cmake options in service templates
 
-@note If you use @userver_install "installed userver", then for most options to take effect, you need to uninstall
+@note If you use @ref userver_install "installed userver", then for most options to take effect, you need to uninstall
 userver (if already installed), then install again, passing the desired cmake options.
 
 Service templates use [cmake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) for managing
@@ -252,7 +252,7 @@ docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver 
 Pass the @ref cmake_options "cmake options" inside `BUILD_OPTIONS`.
 Make sure to at least:
 
-1. enable the desired @ref userver libraries "userver_libraries";
+1. enable the desired @ref userver_libraries "userver libraries";
 2. pass the required options for @ref scripts/docs/en/userver/build/dependencies.md "build dependencies", if any.
 
 And install the package with the following:
@@ -428,11 +428,13 @@ sudo ./scripts/build_and_install_all.sh
 PGO compilation consists of 2 compilation stages: profile collecting and compilation with PGO.
 You can use PGO compilation doing the following steps:
 
-1) configure userver AND your service with cmake option -DUSERVER_PGO_GENERATE=ON, compile the service;
+1) configure userver AND your service with cmake option `-DUSERVER_PGO_GENERATE=ON`, compile the service;
 2) run the resulting binary under the production-like workload to collect profile;
 3) run llvm-profdata to convert profraw profile data format into profdata:
+   ```sh
    llvm-profdata merge -output=code.profdata default.profraw
-4) configure userver AND your service with cmake option -DUSERVER_PGO_USE=<path_to_profdata>, compile the service.
+   ```
+4) configure userver AND your service with cmake option `-DUSERVER_PGO_USE=<path_to_profdata>`, compile the service.
 
 The resulting binary should be 2-15% faster than without PGO, depending on the code and workload.
 
@@ -445,4 +447,3 @@ The resulting binary should be 2-15% faster than without PGO, depending on the c
 @htmlonly </div> @endhtmlonly
 
 @example service-template/CMakeUserPresets.json.example
-@example service-template/Makefile.local

@@ -60,6 +60,7 @@ public:
 
     /// @brief Reads the stream until the predicate returns `true`.
     /// @param pred predicate that will be called for each byte read and EOF.
+    /// @param deadline if specified, interrupts reading upon reaching this deadline
     std::string ReadUntil(utils::function_ref<bool(int) const> pred, Deadline deadline = {});
 
     /// Reads one byte from the stream or reports an EOF (-1).

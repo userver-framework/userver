@@ -161,7 +161,7 @@ CommandControl::Strategy StrategyFromString(std::string_view strategy) {
     auto result = kToStrategy.TryFind(strategy);
     if (!result) {
         throw std::runtime_error(fmt::format(
-            "redis::CommandControl::Strategy should be one of [{}], "
+            "storages::redis::CommandControl::Strategy should be one of [{}], "
             "but '{}' was given",
             kToStrategy.DescribeFirst(),
             strategy

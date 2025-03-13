@@ -77,10 +77,10 @@ inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
 ///
 /// The Writer is usable by the utils::statistics::MetricTag. For example, for
 /// the following structure:
-/// @snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - Stats definition
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats definition
 ///
 /// The DumpMetric function may look like:
-/// @snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - Stats tag
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
 ///
 /// For information on metrics testing in testsuite refer to
 /// @ref TESTSUITE_METRICS_TESTING "Testsuite - Metrics".

@@ -14,6 +14,7 @@ namespace crypto::base64 {
 enum class Pad { kWith, kWithout };
 
 /// @brief Encodes data to Base64, add padding by default
+/// @param data binary data to encode
 /// @param pad controls if pad should be added or not
 /// @throws CryptoException internal library exception
 std::string Base64Encode(std::string_view data, Pad pad = Pad::kWith);
@@ -25,6 +26,7 @@ std::string Base64Decode(std::string_view data);
 #ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 
 /// @brief Encodes data to Base64 (using URL alphabet), add padding by default
+/// @param data binary data to encode
 /// @param pad controls if pad should be added or not
 /// @throws CryptoException internal library exception
 std::string Base64UrlEncode(std::string_view data, Pad pad = Pad::kWith);

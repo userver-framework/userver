@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/client/middlewares/middleware_base.hpp
+/// @file userver/ugrpc/client/middlewares/base.hpp
 /// @brief @copybrief ugrpc::client::MiddlewareBase
 
 #include <memory>

@@ -677,7 +677,7 @@ public:
     //@{
     /** @name Typed results */
     /// @brief Get a wrapper for iterating over a set of typed results.
-    /// For more information see @ref psql_typed_results
+    /// For more information see @ref pg_user_row_types
     template <typename T>
     auto AsSetOf() const;
     template <typename T>
@@ -686,7 +686,7 @@ public:
     auto AsSetOf(FieldTag) const;
 
     /// @brief Extract data into a container.
-    /// For more information see @ref psql_typed_results
+    /// For more information see @ref pg_user_row_types
     template <typename Container>
     Container AsContainer() const;
     template <typename Container>

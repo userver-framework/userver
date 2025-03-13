@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/alert/handler.hpp
-/// @brief @copybrief alert::Handler
+/// @file userver/alerts/handler.hpp
+/// @brief @copybrief alerts::Handler
 
 #include <userver/alerts/storage.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>

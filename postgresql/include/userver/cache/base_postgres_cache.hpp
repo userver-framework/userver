@@ -57,8 +57,8 @@ namespace components {
 ///
 /// Optionally the operation timeouts for cache loading can be specified.
 ///
-/// ### Avoiding memory leaks
-/// components::CachingComponentBase
+/// For avoiding "memory leaks", see the respective section
+/// in @ref components::CachingComponentBase.
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------

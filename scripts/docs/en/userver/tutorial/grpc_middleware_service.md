@@ -58,7 +58,7 @@ Handle method of `Middleware` does the actual work:
 
 Respective component:
 
-@snippet samples/grpc_middleware_service/src/middlewares/server/component.hpp gRPC middleware sample - Middleware component declaration
+@snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware component declaration
 
 Lastly, add this component to the static config:
 
@@ -124,14 +124,14 @@ the endpoint:
 @snippet samples/grpc_middleware_service/tests/conftest.py  Prepare configs
 
 Alternatively, use `$grpc_mockserver`
-@ref pytest_userver.plugins.config.service_config_substitutions "substitution var"
+@ref pytest_userver.plugins.config.userver_config_substitutions "substitution var"
 in `config_vars.testsuite.yaml`:
 
 @code{.yaml}
 greeter-client-endpoint: $grpc_mockserver
 @endcode
 
-Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grpc_mockserver "grpc_mockserver":
+Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver":
 
 @snippet samples/grpc_middleware_service/tests/conftest.py  Prepare server mock
 
@@ -139,7 +139,7 @@ Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grp
 #### gRPC client
 
 To do the gRPC requests write a client fixture using
-@ref pytest_userver.plugins.grpc_client.grpc_channel "grpc_channel":
+@ref pytest_userver.plugins.grpc.client.grpc_channel "grpc_channel":
 
 @snippet samples/grpc_middleware_service/tests/conftest.py  grpc client
 

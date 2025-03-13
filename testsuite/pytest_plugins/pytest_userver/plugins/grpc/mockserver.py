@@ -148,7 +148,7 @@ class GrpcMockserverSession:
     @property
     def server(self) -> grpc.aio.Server:
         """
-        The underlying @ref https://grpc.github.io/grpc/python/grpc_asyncio.html#grpc.aio.Server "grpc.aio.Server".
+        The underlying [grpc.aio.Server](https://grpc.github.io/grpc/python/grpc_asyncio.html#grpc.aio.Server).
         """
         return self._server
 

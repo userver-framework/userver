@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/baggage/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::baggage::Component
+/// @brief @copybrief ugrpc::server::middlewares::baggage::Component
 
 #include <userver/ugrpc/server/middlewares/baggage/middleware.hpp>
 
