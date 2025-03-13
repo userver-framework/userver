@@ -1,10 +1,12 @@
 #include <userver/storages/sqlite/result_set.hpp>
 
+#include <userver/storages/sqlite/impl/result_wrapper.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-ResultSet::ResultSet(std::shared_ptr<impl::ResultWrapper> pimpl)
+ResultSet::ResultSet(std::unique_ptr<impl::ResultWrapper> pimpl)
     : pimpl_{std::move(pimpl)} {}
 
 ResultSet::ResultSet(ResultSet&& other) noexcept = default;
@@ -21,6 +23,12 @@ ExecutionResult ResultSet::AsExecutionResult() && {
   result.rows_affected = rows_affected;
   result.last_insert_id = last_insert_id;
   return result;
+}
+
+void ResultSet::FetchResult(impl::ExtractorBase& extractor) {
+  while (pimpl_->HasNext()) {
+    extractor.BindNextRow();
+  }
 }
 
 }  // namespace storages::sqlite

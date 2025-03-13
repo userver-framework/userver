@@ -1,13 +1,14 @@
 #pragma once
 
-#include <sqlite3.h>
-
 #include <memory>
 
 #include <userver/cache/lru_map.hpp>
 #include <userver/concurrent/variable.hpp>
-#include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/utils/str_icase.hpp>
+
+#include <userver/storages/sqlite/impl/native_handler.hpp>
+#include <userver/storages/sqlite/impl/sqlite3_include.hpp>
+#include <userver/storages/sqlite/impl/statements.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +16,7 @@ namespace storages::sqlite::impl {
 
 class StatementsCache final {
  public:
-  StatementsCache(sqlite3* db_handler, std::size_t capacity);
+  StatementsCache(const NativeHandler& db_handler, std::size_t capacity);
   ~StatementsCache();
 
   StatementsCache(StatementsCache&&) noexcept = default;
@@ -31,7 +32,7 @@ class StatementsCache final {
   std::shared_ptr<Statement> PrepareStatement(const std::string& statement);
 
  private:
-  sqlite3* db_handler_;
+  const NativeHandler& db_handler_;
 
   // TODO: Is synchronization needed?
   // Non-expirable container cache::LruMap that provides the same concurrency

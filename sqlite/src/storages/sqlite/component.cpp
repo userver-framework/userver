@@ -2,9 +2,6 @@
 
 #include <memory>
 
-#include <sqlite3.h>
-#include <sqlite3ext.h>
-
 #include <userver/components/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>

@@ -4,8 +4,7 @@
 #include <memory>
 #include <string>
 
-#include <sqlite3.h>
-
+#include <userver/storages/sqlite/impl/native_handler.hpp>
 #include <userver/storages/sqlite/impl/statements_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,7 +16,7 @@ using StatementPtr = std::shared_ptr<Statement>;
 
 class Statement final : public StatementBase {
  public:
-  Statement(sqlite3* db_handler, const std::string& statement);
+  Statement(const NativeHandler& db_handler, const std::string& statement);
   ~Statement() override;
 
   Statement(const Statement& other) = delete;
@@ -61,11 +60,13 @@ class Statement final : public StatementBase {
   struct SQLiteStatementDeleter {
     void operator()(sqlite3_stmt* stmt);
   };
+
   using NativeStatementPtr = std::shared_ptr<sqlite3_stmt>;
 
   NativeStatementPtr prepareStatement();
 
-  sqlite3* db_handler_;    // Pointer to SQLite Database Connection Handle
+  const NativeHandler&
+      db_handler_;         // Pointer to SQLite Database Connection Handle
   std::string statement_;  // UTF-8 SQL Query
   NativeStatementPtr prepare_statement_;  //  Shared Pointer to the prepared
                                           //  SQLite Statement Object

@@ -1,8 +1,7 @@
 #include <userver/storages/sqlite/client.hpp>
 
-#include <sqlite3.h>
-
 #include <userver/storages/sqlite/impl/client_impl.hpp>
+#include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 

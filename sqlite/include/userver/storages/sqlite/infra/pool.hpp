@@ -5,11 +5,12 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/drivers/impl/connection_pool_base.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/storages/sqlite/infra/connection_ptr.hpp>
-#include <userver/storages/sqlite/options.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
+
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/options.hpp>
 #include "userver/storages/sqlite/impl/connection.hpp"
 
 USERVER_NAMESPACE_BEGIN

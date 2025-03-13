@@ -1,7 +1,5 @@
 #include <userver/storages/sqlite/impl/connection.hpp>
 
-#include <memory>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
@@ -25,42 +23,12 @@ constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
 
 }  // namespace
 
-sqlite3* Connection::OpenDatabase(const settings::SQLiteSettings& settings) {
-  int flags = 0;
-  if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadOnly) {
-    flags |= SQLITE_OPEN_READONLY;
-  } else {
-    flags |= SQLITE_OPEN_READWRITE;
-  }
-  if (settings.create_file &&
-      settings.read_mode == settings::SQLiteSettings::ReadMode::kReadWrite) {
-    flags |= SQLITE_OPEN_CREATE;
-  }
-  if (settings.shared_cashe) {
-    flags |= SQLITE_OPEN_SHAREDCACHE;
-  }
-  sqlite3* handle = nullptr;
-  // TODO: is this an I/O bound operation, does it need to be run on
-  // blocking_task_processor_?
-  // TODO: sqlite3_open_v2 thread-safe?
-  if (const int ret =
-          sqlite3_open_v2(settings.db_name.c_str(), &handle, flags, nullptr);
-      ret != SQLITE_OK) {
-    // TODO: Take logic into the NativeInterface class and make full RAII
-    sqlite3_close(handle);
-    NotifyBroken();
-    throw SQLiteException(handle, ret);
-  }
-  sqlite3_wal_checkpoint(handle, nullptr);
-  return handle;
-}
-
 Connection::Connection(const settings::SQLiteSettings& settings,
                        engine::TaskProcessor& blocking_task_processor)
     : blocking_task_processor_{blocking_task_processor},
-      db_handler_{OpenDatabase(settings)},
+      db_handler_{settings},
       connection_settings_{settings.conn_settings},
-      statements_cache_{db_handler_.get(),
+      statements_cache_{db_handler_,
                         connection_settings_.max_prepared_cache_size} {}
 
 Connection::~Connection() = default;
@@ -68,8 +36,6 @@ Connection::~Connection() = default;
 settings::ConnectionSettings const& Connection::GetSettings() const noexcept {
   return connection_settings_;
 }
-
-sqlite3* Connection::GetHandle() const noexcept { return db_handler_.get(); }
 
 ResultSet Connection::ExecuteCommand(
     settings::OptionalCommandControl optional_cc [[maybe_unused]],
@@ -80,7 +46,7 @@ ResultSet Connection::ExecuteCommand(
                prepare_statement->Next();
                prepare_statement->CheckFail();
                return ResultSet{
-                   std::make_shared<impl::ResultWrapper>(prepare_statement)};
+                   std::make_unique<impl::ResultWrapper>(prepare_statement)};
              })
       .Get();
 }
@@ -129,23 +95,12 @@ std::string Connection::PrepareString(const std::string& str) {
 StatementBasePtr Connection::PrepareStatement(const Query& query) {
   if (connection_settings_.prepared_statements ==
       settings::ConnectionSettings::kNoPreparedStatements) {
-    return MakeStatement(query.GetStatement());
+    return std::make_shared<Statement>(db_handler_, query.GetStatement());
   } else {
     auto stmt = statements_cache_.PrepareStatement(query.GetStatement());
     stmt->Reset();
     return stmt;
   }
-}
-
-StatementBasePtr Connection::MakeStatement(const std::string& query) const {
-  return std::make_shared<Statement>(db_handler_.get(), query);
-}
-void Connection::SQLiteHandlerDeleter::operator()(sqlite3* sqlite_handle) {
-  // TODO: is this an I/O bound operation, does it need to be run on
-  // blocking_task_processor_?
-  sqlite3_close(sqlite_handle);
-
-  // TODO: error is SQLITE_BUSY: "database is locked"
 }
 
 bool Connection::IsBroken() const { return broken_.load(); }

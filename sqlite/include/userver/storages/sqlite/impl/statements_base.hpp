@@ -52,8 +52,6 @@ class StatementBase {
   virtual std::string GetStringColumn(int column) const noexcept = 0;
   virtual const void* GetBlobColumn(int column) const noexcept = 0;
   virtual std::vector<uint8_t> GetBytesColumn(int column) const noexcept = 0;
-
-  // TODO: Add BindingsPimpl
 };
 
 template <typename... Args>
@@ -64,7 +62,6 @@ void StatementBase::UpdateParamsBindings(const Args&... args) {
 
 template <typename T>
 void StatementBase::UpdateRowAsParamsBindings(const T& row) {
-  // TODO: Add more detailed verification and error description
   static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
                 "T must be an aggregate type or tuple-like type");
   if constexpr (std::is_aggregate_v<T>) {

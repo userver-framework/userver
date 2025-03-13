@@ -1,13 +1,10 @@
 #pragma once
 
-#include <memory>
-
-#include <sqlite3.h>
-
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+#include <userver/storages/sqlite/impl/native_handler.hpp>
 #include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/impl/statements.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
@@ -27,7 +24,6 @@ class Connection {
   ~Connection();
 
   settings::ConnectionSettings const& GetSettings() const noexcept;
-  sqlite3* GetHandle() const noexcept;
 
   ResultSet ExecuteCommand(settings::OptionalCommandControl optional_cc,
                            impl::StatementBasePtr prepare_statement) const;
@@ -50,30 +46,15 @@ class Connection {
 
   bool IsBroken() const;
 
-  // There are places (destructors, basically) where we want to run some
-  // function even if connection is already broken, because that function frees
-  // resources no matter what. Can't use BrokenGuard for that, 'cause it will
-  // throw on construction, but still need a way no notify a connection that it
-  // broke.
   void NotifyBroken();
 
  private:
-  struct SQLiteHandlerDeleter {
-    void operator()(sqlite3* sqlite_handle);
-  };
-
-  using NativeHandlerPtr = std::unique_ptr<sqlite3, SQLiteHandlerDeleter>;
-
-  sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);
-
-  StatementBasePtr MakeStatement(const std::string& query) const;
-
   template <typename... Args>
   ResultSet ExecuteCommandNoPrepare(const std::string& query,
                                     const Args&... args) const;
 
   engine::TaskProcessor& blocking_task_processor_;
-  NativeHandlerPtr db_handler_;
+  impl::NativeHandler db_handler_;
   settings::ConnectionSettings connection_settings_;
   impl::StatementsCache statements_cache_;
   std::atomic<bool> broken_{false};
@@ -82,7 +63,7 @@ class Connection {
 template <typename... Args>
 ResultSet Connection::ExecuteCommandNoPrepare(const std::string& query,
                                               const Args&... args) const {
-  auto statement = MakeStatement(query);
+  auto statement = std::make_shared<Statement>(db_handler_, query);
   statement->UpdateParamsBindings(args...);
   return ExecuteCommand(std::nullopt, statement);
 }

@@ -7,7 +7,6 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/storages/sqlite/impl/statements_base.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 
@@ -28,11 +27,11 @@ using PoolStrategyBasePtr = std::unique_ptr<PoolStrategyBase>;
 
 namespace impl {
 
-class Statement;
-using StatementPtr = std::shared_ptr<Statement>;
-
 class ClientImpl;
 using ClientImplPtr = std::unique_ptr<ClientImpl>;
+
+class StatementBase;
+using StatementBasePtr = std::shared_ptr<StatementBase>;
 
 class ClientImpl final {
  public:

@@ -5,12 +5,14 @@
 #include <userver/tracing/scope_time.hpp>
 
 #include <userver/storages/sqlite/exceptions.hpp>
+#include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-Statement::Statement(sqlite3* db_handler, const std::string& statement)
+Statement::Statement(const NativeHandler& db_handler,
+                     const std::string& statement)
     : db_handler_{db_handler},
       statement_{statement},
       prepare_statement_(prepareStatement()),
@@ -44,11 +46,12 @@ std::string Statement::getExpandedStatementText() const noexcept {
 
 Statement::NativeStatementPtr Statement::prepareStatement() {
   sqlite3_stmt* statement = nullptr;
-  const int ret_code = sqlite3_prepare_v2(db_handler_, statement_.c_str(),
-                                          static_cast<int>(statement_.size()),
-                                          &statement, nullptr);
+  const int ret_code = sqlite3_prepare_v2(
+      db_handler_.GetHandle(), statement_.c_str(),
+      static_cast<int>(statement_.size()), &statement, nullptr);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 
   return Statement::NativeStatementPtr(statement, SQLiteStatementDeleter());
@@ -128,7 +131,8 @@ bool Statement::IsFail() const noexcept { return !IsDone() && !HasNext(); }
 
 void Statement::CheckFail() const {
   if (IsFail()) {
-    throw SQLiteException(db_handler_, exec_status_);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), exec_status_,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
@@ -153,7 +157,8 @@ void Statement::Reset() noexcept {
 void Statement::Bind(const int index, const int32_t value) {
   const int ret_code = sqlite3_bind_int(prepare_statement_.get(), index, value);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
@@ -161,7 +166,8 @@ void Statement::Bind(const int index, const int64_t value) {
   const int ret_code =
       sqlite3_bind_int64(prepare_statement_.get(), index, value);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
@@ -169,7 +175,8 @@ void Statement::Bind(const int index, const uint32_t value) {
   const int ret_code =
       sqlite3_bind_int64(prepare_statement_.get(), index, value);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
@@ -177,7 +184,8 @@ void Statement::Bind(const int index, const uint64_t value) {
   const int ret_code =
       sqlite3_bind_int64(prepare_statement_.get(), index, value);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
@@ -185,7 +193,8 @@ void Statement::Bind(const int index, const double value) {
   const int ret_code =
       sqlite3_bind_double(prepare_statement_.get(), index, value);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
@@ -195,7 +204,8 @@ void Statement::Bind(const int index, const std::string& value) {
       sqlite3_bind_text(prepare_statement_.get(), index, value.c_str(),
                         static_cast<int>(value.size()), SQLITE_TRANSIENT);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
@@ -208,14 +218,16 @@ void Statement::Bind(const int index, const char* value, const int size) {
   const int ret_code = sqlite3_bind_blob(prepare_statement_.get(), index, value,
                                          size, SQLITE_TRANSIENT);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 
 void Statement::Bind(const int index) {
   const int ret_code = sqlite3_bind_null(prepare_statement_.get(), index);
   if (ret_code != SQLITE_OK) {
-    throw SQLiteException(db_handler_, ret_code);
+    throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
+                          sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
 }
 

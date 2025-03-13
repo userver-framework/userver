@@ -7,18 +7,22 @@
 
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/execution_result.hpp>
-#include <userver/storages/sqlite/impl/result_wrapper.hpp>  // TODO: remove heavy include
+#include <userver/storages/sqlite/impl/extractor.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
+namespace impl {
+class ResultWrapper;
+}
+
 class ResultSet {
  public:
   using size_type = std::size_t;
 
-  explicit ResultSet(std::shared_ptr<impl::ResultWrapper> pimpl);
+  explicit ResultSet(std::unique_ptr<impl::ResultWrapper> pimpl);
 
   ResultSet(const ResultSet& other) = delete;
   ResultSet(ResultSet&& other) noexcept;
@@ -99,30 +103,23 @@ class ResultSet {
   ExecutionResult AsExecutionResult() &&;
 
  private:
-  std::shared_ptr<impl::ResultWrapper> pimpl_;
+  void FetchResult(impl::ExtractorBase& extractor);
+
+  std::unique_ptr<impl::ResultWrapper> pimpl_;
 };
 
 template <typename T>
 std::vector<T> ResultSet::AsVector() && {
-  std::vector<T> result;
-  while (pimpl_->HasNext()) {
-    result.emplace_back(pimpl_->FetchNext<T>());
-  }
-  return result;
+  impl::TypedExtractor<T, RowTag> extractor{*pimpl_};
+  FetchResult(extractor);
+  return extractor.ExtractData();
 }
 
 template <typename T>
 std::vector<T> ResultSet::AsVector(FieldTag) && {
-  const int column_count = pimpl_->ColumnCount();
-  if (column_count > 1) {
-    throw SQLiteException{
-        "Result set must have exactly one column for AsVector(FieldTag)"};
-  }
-  std::vector<T> result;
-  while (pimpl_->HasNext()) {
-    result.emplace_back(pimpl_->FetchNext<T>(kFieldTag));
-  }
-  return result;
+  impl::TypedExtractor<T, FieldTag> extractor{*pimpl_};
+  FetchResult(extractor);
+  return extractor.ExtractData();
 }
 
 template <typename T>

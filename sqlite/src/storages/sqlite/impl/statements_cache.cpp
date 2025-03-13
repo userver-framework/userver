@@ -2,15 +2,15 @@
 
 #include <memory>
 
-#include <sqlite3.h>
-
+#include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 #include <userver/storages/sqlite/impl/statements.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-StatementsCache::StatementsCache(sqlite3* db_handler, std::size_t capacity)
+StatementsCache::StatementsCache(const NativeHandler& db_handler,
+                                 std::size_t capacity)
     : db_handler_{db_handler}, cache_(capacity) {
   UASSERT(capacity > 0);
 }

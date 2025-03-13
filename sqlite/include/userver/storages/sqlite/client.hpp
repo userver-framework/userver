@@ -135,7 +135,6 @@ void Client::ExecuteMany(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  // TODO: Move logic to non-trx class helper
   auto connection = GetConnection(optional_cc->operation_type);
   for (const auto& row : params) {
     auto prepare_statement = PrepareStatement(query, connection);

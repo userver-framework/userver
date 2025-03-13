@@ -8,13 +8,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <userver/components/component_fwd.hpp>
-#include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_base.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
-#include <userver/storages/sqlite.hpp>
 #include <userver/storages/sqlite/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
