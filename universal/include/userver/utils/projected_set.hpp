@@ -69,7 +69,7 @@ void DoInsert(Set& set, Value&& value) {
 
 }  // namespace impl::projected_set
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 /// @brief A `std::unordered_set` that compares its elements (of type @a Value)
 /// based on their @a Projection. It allows to create, essentially, an
 /// equivalent of `std::unordered_map` where keys are stored inside values.
@@ -89,7 +89,7 @@ using ProjectedUnorderedSet = std::unordered_set<
     impl::projected_set::Compare<Value, Projection, Equal>,
     Allocator>;
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 /// @brief Same as ProjectedUnorderedSet, but for `std::set`.
 template <typename Value, auto Projection, typename Compare = std::less<>, typename Allocator = std::allocator<Value>>
 using ProjectedSet = std::set<Value, impl::projected_set::Compare<Value, Projection, Compare>, Allocator>;

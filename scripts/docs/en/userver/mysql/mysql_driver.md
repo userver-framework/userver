@@ -58,7 +58,7 @@ leaking in some hopefully rare cases is acceptable, <br>cmake variable
 `USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB` could be set to force the driver
 to leak memory instead of aborting in such cases.
 
-@section info More information
+@section mysql_info More information
 - For configuring see storages::mysql::Component
 - For cluster operations see storages::mysql::Cluster
 - For C++ <-> MySQL mapping see @ref scripts/docs/en/userver/mysql/supported_types.md
