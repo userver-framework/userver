@@ -1,10 +1,6 @@
 import os
 import collections
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Set
+from typing import Any, Dict, List, Optional, Set
 
 from chaotic import error
 from chaotic.front import types
@@ -39,14 +35,22 @@ def sort_dfs(nodes: Set[str], edges: Dict[str, List[str]]) -> List[str]:
     return sorted_nodes
 
 
-def normalize_ref(ref: str) -> str:
+def normalize_ref(ref: str, base: str = None) -> str:
     """
-    Normalizes a link by converting relative paths to canonical form.
-    For example, "../test.yaml#/definitions/test" becomes "test.yaml#/definitions/test".
+    Normalizes a link, converting relative paths to canonical form.
+    If the link contains an anchor ("#/"):
+    - If the part before '#' is empty and base is specified, then base is used.
+    - Otherwise, the part of the path is normalized via os.path.normpath.
+    Examples:
+    "../role.yaml#/definitions/role" -> "role.yaml#/definitions/role"
+    "#/definitions/type" (with base="vfull") -> "vfull#/definitions/type"
     """
     if '#/' in ref:
         file_path, fragment = ref.split('#', 1)
-        file_path = os.path.normpath(file_path)
+        if not file_path and base:
+            file_path = base
+        else:
+            file_path = os.path.normpath(file_path)
         return file_path + '#' + fragment
     return os.path.normpath(ref)
 
@@ -66,16 +70,10 @@ class RefResolver:
         nodes = set()
         name = ''
 
-        # Let's build a map: normalized value of $ref -> original value of the schema key
-        norm_to_orig = {}
-        for key in schemas.schemas.keys():
-            norm_to_orig[normalize_ref(key)] = key
-
         def visitor(
             local_schema: types.Schema,
             parent: Optional[types.Schema],
         ) -> None:
-            nonlocal name
             if not isinstance(local_schema, types.Ref):
                 return
 
@@ -87,23 +85,23 @@ class RefResolver:
                 if cur_node.indirect:
                     indirect = True
 
-                norm_ref = normalize_ref(cur_node.ref)
-                if norm_ref not in norm_to_orig:
+                norm_ref = normalize_ref(cur_node.ref, base=name.split('#')[0] if cur_node.ref.startswith('#') else None)
+                if norm_ref not in schemas.schemas:
                     ref = external_schemas.schemas.get(norm_ref)
                     if ref:
                         cur_node = ref
                         is_external = True
                     else:
-                        known = '\n'.join([f'- {v}' for v in norm_to_orig.keys()])
-                        known += '\n' + '\n'.join([f'- {v}' for v in external_schemas.schemas.keys()])
+                        known = '\n'.join([f'- {v}' for v in schemas.schemas.keys()])
+                        known += '\n'.join([f'- {v}' for v in external_schemas.schemas.keys()])
                         raise Exception(
                             f'$ref to unknown type "{norm_ref}", known refs:\n{known}',
                         )
                 else:
-                    orig = norm_to_orig[norm_ref]
-                    cur_node = schemas.schemas[orig]
+                    cur_node = schemas.schemas[norm_ref]
                 if cur_node in seen:
-                    # cycle is detected; an exception will be raised later in sort_dfs()
+                    # cycle is detected
+                    # an exception will be raised later in sort_dfs()
                     break
                 seen.add(cur_node)
             local_schema.schema = cur_node
@@ -111,7 +109,7 @@ class RefResolver:
                 local_schema.indirect = indirect
 
             if isinstance(parent, types.Array):
-                if name == normalize_ref(local_schema.ref):
+                if name == normalize_ref(local_schema.ref, base=name.split('#')[0] if local_schema.ref.startswith('#') else None):
                     if indirect:
                         raise error.BaseError(
                             full_filepath=local_schema.source_location().filepath,
@@ -131,13 +129,15 @@ class RefResolver:
             )
             if not indirect:
                 if not is_external:
-                    edges[name].append(normalize_ref(local_schema.ref))
+                    if local_schema.ref.startswith('#'):
+                        edges[name].append(normalize_ref(local_schema.ref, base=name.split('#')[0]))
+                    else:
+                        edges[name].append(normalize_ref(local_schema.ref))
             else:
                 # skip indirect link
                 pass
 
-        for key, schema_item in schemas.schemas.items():
-            name = normalize_ref(key)
+        for name, schema_item in schemas.schemas.items():
             visitor(schema_item, None)
             schema_item.visit_children(visitor)
             nodes.add(name)
@@ -146,8 +146,7 @@ class RefResolver:
 
         sorted_schemas = types.ResolvedSchemas(schemas={})
         for node in sorted_nodes:
-            orig = norm_to_orig[node]
-            sorted_schemas.schemas[node] = schemas.schemas[orig]
+            sorted_schemas.schemas[node] = schemas.schemas[node]
         return sorted_schemas
 
     @classmethod
@@ -182,14 +181,13 @@ class RefResolver:
         edges = collections.defaultdict(list)
 
         for name, value in types.items():
-            norm_name = normalize_ref(name.rstrip('/'))
-            nodes.append(norm_name)
+            nodes.append(name.rstrip('/'))
 
             refs = self._search_refs(value, inside_items=False)
             for ref in refs:
                 if ref.startswith('#/'):
-                    edges[norm_name].append(erase_path_prefix + ref[1:])
+                    edges[name.rstrip('/')].append(erase_path_prefix + ref[1:])
 
         sorted_nodes = sort_dfs(set(nodes), edges)
 
-        return {key + '/': types[normalize_ref(key) + '/'] for key in sorted_nodes}
+        return {key + '/': types[key + '/'] for key in sorted_nodes}
