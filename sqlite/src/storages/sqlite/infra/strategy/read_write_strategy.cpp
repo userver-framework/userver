@@ -1,7 +1,8 @@
 #include <userver/storages/sqlite/infra/strategy/read_write_strategy.hpp>
 
-#include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <userver/storages/sqlite/infra/pool.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -13,7 +13,7 @@ namespace storages::sqlite::impl {
 /// @brief Wrapper for executed sqlite3_stmt
 class ResultWrapper final {
  public:
-  ResultWrapper(std::shared_ptr<StatementBase> prepare_statement);
+  ResultWrapper(StatementBasePtr prepare_statement);
   ~ResultWrapper();
 
   int RowsAffected() const noexcept;

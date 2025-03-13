@@ -11,12 +11,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
 
-#include <userver/storages/sqlite/client.hpp>
-#include <userver/storages/sqlite/component.hpp>
-#include <userver/storages/sqlite/options.hpp>
-#include <userver/storages/sqlite/query.hpp>
-#include <userver/storages/sqlite/result_set.hpp>
-#include <userver/storages/sqlite/transaction.hpp>
+#include <userver/storages/sqlite.hpp>
 
 #include <db/sql.hpp>
 

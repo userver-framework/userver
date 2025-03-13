@@ -1,8 +1,9 @@
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 
+#include <userver/utils/assert.hpp>
+
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

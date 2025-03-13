@@ -16,7 +16,7 @@ namespace storages::sqlite {
 
 class ResultSet {
  public:
-  explicit ResultSet(std::unique_ptr<impl::ResultWrapper> pimpl);
+  explicit ResultSet(impl::ResultWrapperPtr pimpl);
 
   ResultSet(const ResultSet& other) = delete;
   ResultSet(ResultSet&& other) noexcept;

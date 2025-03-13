@@ -1,8 +1,9 @@
 #include <userver/storages/sqlite/infra/strategy/read_only_strategy.hpp>
 
+#include <userver/utils/assert.hpp>
+
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/options.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

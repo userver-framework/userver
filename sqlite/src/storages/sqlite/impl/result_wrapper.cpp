@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-ResultWrapper::ResultWrapper(std::shared_ptr<StatementBase> prepare_statement)
+ResultWrapper::ResultWrapper(StatementBasePtr prepare_statement)
     : prepare_statement_(std::move(prepare_statement)) {}
 
 ResultWrapper::~ResultWrapper() = default;

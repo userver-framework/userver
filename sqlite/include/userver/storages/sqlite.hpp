@@ -10,6 +10,7 @@
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include <userver/storages/sqlite/savepoint.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN

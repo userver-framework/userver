@@ -4,10 +4,11 @@
 #include <memory>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/statistics/writer.hpp>
+
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/options.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
