@@ -9,19 +9,14 @@
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
+#include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
-#include "userver/storages/sqlite/impl/connection.hpp"
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite {
-
-namespace impl {
-class Connection;
-}
-
-namespace infra {
+namespace storages::sqlite::infra {
 
 using Counter = utils::statistics::RelaxedCounter<std::uint64_t>;
 
@@ -68,8 +63,6 @@ class Pool final
   PoolConnectionStatistics stats_{};
 };
 
-}  // namespace infra
-
-}  // namespace storages::sqlite
+}  // namespace storages::sqlite::infra
 
 USERVER_NAMESPACE_END

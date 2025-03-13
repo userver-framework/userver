@@ -1,6 +1,5 @@
-#include <stdexcept>
-
 #include <userver/storages/sqlite/exceptions.hpp>
+
 #include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 
 USERVER_NAMESPACE_BEGIN

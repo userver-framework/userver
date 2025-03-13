@@ -3,8 +3,6 @@
 /// @file userver/storages/sqlite/connection.hpp
 /// @copybrief @copybrief storages::sqlite::Connection
 
-#include <memory>
-
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/storages/sqlite/impl/statements_base.hpp>
@@ -13,19 +11,12 @@
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/savepoint.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
-
-class Client;
-using ClientPtr = std::shared_ptr<Client>;
-
-namespace impl {
-class ClientImpl;
-using ClientImplPtr = std::unique_ptr<ClientImpl>;
-}  // namespace impl
 
 /// @ingroup userver_clients
 ///

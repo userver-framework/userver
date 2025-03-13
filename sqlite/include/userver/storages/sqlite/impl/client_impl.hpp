@@ -3,35 +3,15 @@
 /// @file userver/storages/sqlite/connection.hpp
 /// @copybrief @copybrief storages::sqlite::Connection
 
-#include <memory>
-
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite {
-
-namespace infra {
-
-class ConnectionPtr;
-
-namespace strategy {
-class PoolStrategyBase;
-using PoolStrategyBasePtr = std::unique_ptr<PoolStrategyBase>;
-}  // namespace strategy
-
-}  // namespace infra
-
-namespace impl {
-
-class ClientImpl;
-using ClientImplPtr = std::unique_ptr<ClientImpl>;
-
-class StatementBase;
-using StatementBasePtr = std::shared_ptr<StatementBase>;
+namespace storages::sqlite::impl {
 
 class ClientImpl final {
  public:
@@ -49,8 +29,6 @@ class ClientImpl final {
   infra::strategy::PoolStrategyBasePtr pool_strategy_;
 };
 
-}  // namespace impl
-
-}  // namespace storages::sqlite
+}  // namespace storages::sqlite::impl
 
 USERVER_NAMESPACE_END

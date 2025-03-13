@@ -8,14 +8,11 @@
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
-
-namespace infra {
-class ConnectionPtr;
-}  // namespace infra
 
 class Savepoint final {
  public:

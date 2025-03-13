@@ -1,18 +1,12 @@
 #include <userver/utest/utest.hpp>
 
+#include <string_view>
 #include <tuple>
 #include <vector>
 
 #include <gtest/gtest.h>
 
-#include <userver/concurrent/background_task_storage.hpp>
-#include <userver/engine/task/task.hpp>
-#include <userver/storages/sqlite.hpp>
-#include <userver/storages/sqlite/client.hpp>
-#include <userver/storages/sqlite/exceptions.hpp>
-#include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

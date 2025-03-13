@@ -1,7 +1,7 @@
-#include <memory>
 #include <userver/storages/sqlite/infra/pool.hpp>
 
 #include <chrono>
+#include <memory>
 
 #include <userver/logging/log.hpp>
 #include <userver/storages/sqlite/exceptions.hpp>

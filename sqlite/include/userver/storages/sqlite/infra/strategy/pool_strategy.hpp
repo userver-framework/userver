@@ -6,15 +6,11 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/storages/sqlite/options.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite::infra {
-
-class Pool;
-using PoolPtr = std::shared_ptr<Pool>;
-
-namespace strategy {
+namespace storages::sqlite::infra::strategy {
 
 class PoolStrategyBase {
  public:
@@ -31,8 +27,6 @@ class PoolStrategyBase {
   virtual Pool& GetReadWrite() const = 0;
 };
 
-}  // namespace strategy
-
-}  // namespace storages::sqlite::infra
+}  // namespace storages::sqlite::infra::strategy
 
 USERVER_NAMESPACE_END

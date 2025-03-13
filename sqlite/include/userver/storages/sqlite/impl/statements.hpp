@@ -11,9 +11,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-class Statement;
-using StatementPtr = std::shared_ptr<Statement>;
-
 class Statement final : public StatementBase {
  public:
   Statement(const NativeHandler& db_handler, const std::string& statement);

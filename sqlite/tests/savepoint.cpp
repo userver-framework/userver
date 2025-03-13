@@ -4,17 +4,9 @@
 #include <gtest/gtest.h>
 
 #include <userver/logging/log.hpp>
-#include <userver/storages/sqlite.hpp>
-#include <userver/storages/sqlite/client.hpp>
-#include <userver/storages/sqlite/execution_result.hpp>
-#include <userver/storages/sqlite/infra/connection_ptr.hpp>
-#include <userver/storages/sqlite/options.hpp>
-#include <userver/storages/sqlite/row_types.hpp>
-#include <userver/storages/sqlite/savepoint.hpp>
-#include <userver/storages/sqlite/tests/utils.hpp>
-#include <userver/storages/sqlite/transaction.hpp>
-#include <userver/utest/assert_macros.hpp>
 #include <userver/utest/death_tests.hpp>
+
+#include <userver/storages/sqlite/tests/utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

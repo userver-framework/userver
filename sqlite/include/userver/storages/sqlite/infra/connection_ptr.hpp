@@ -2,17 +2,11 @@
 
 #include <memory>
 
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite {
-
-namespace impl {
-class Connection;
-}
-
-namespace infra {
-
-class Pool;
+namespace storages::sqlite::infra {
 
 /// Pointer-like class that controls lifetime of a parent pool by keeping smart
 /// pointer to it.
@@ -40,8 +34,6 @@ class ConnectionPtr {
   std::unique_ptr<impl::Connection> conn_;
 };
 
-}  // namespace infra
-
-}  // namespace storages::sqlite
+}  // namespace storages::sqlite::infra
 
 USERVER_NAMESPACE_END

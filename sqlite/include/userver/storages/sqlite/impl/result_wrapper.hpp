@@ -1,17 +1,14 @@
 #pragma once
 
-#include <memory>
-
 #include <boost/pfr.hpp>
 
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
-
-class StatementBase;
 
 /// @brief Wrapper for executed sqlite3_stmt
 class ResultWrapper final {

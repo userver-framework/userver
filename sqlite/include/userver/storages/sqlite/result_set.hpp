@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -9,19 +8,14 @@
 #include <userver/storages/sqlite/execution_result.hpp>
 #include <userver/storages/sqlite/impl/extractor.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-namespace impl {
-class ResultWrapper;
-}
-
 class ResultSet {
  public:
-  using size_type = std::size_t;
-
   explicit ResultSet(std::unique_ptr<impl::ResultWrapper> pimpl);
 
   ResultSet(const ResultSet& other) = delete;
