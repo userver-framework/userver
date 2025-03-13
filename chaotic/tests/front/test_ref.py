@@ -201,3 +201,47 @@ def test_cycle():
         assert str(exc) == '$ref cycle: vfull#/definitions/type1, vfull#/definitions/type2'
     else:
         assert False
+        
+def test_relative_path():
+    config = ParserConfig(erase_prefix='')
+    schemas = []
+
+    parser = SchemaParser(
+        config=config,
+        full_filepath='folder/full',
+        full_vfilepath='folder/vfull',
+    )
+    parser.parse_schema('/definitions/vfull', {'type': 'integer'})
+    schemas.append(parser.parsed_schemas())
+
+    parser = SchemaParser(
+        config=config,
+        full_filepath='folder/obj/full2',
+        full_vfilepath='folder/obj/vfull2',
+    )
+    parser.parse_schema('/definitions/vfull2', {
+        'type': 'object',
+        'properties': {
+            'test': {'$ref': '../vfull#/definitions/vfull'}
+        },
+        'additionalProperties': False,
+    })
+    schemas.append(parser.parsed_schemas())
+
+    rr = ref_resolver.RefResolver()
+    parsed_schemas = rr.sort_schemas(types.ParsedSchemas.merge(schemas))
+
+    assert parsed_schemas.schemas == {
+        'folder/vfull#/definitions/vfull': Integer(),
+        'folder/obj/vfull2#/definitions/vfull2': SchemaObject(
+            properties={
+                'test': Ref(
+                    ref='folder/obj/../vfull#/definitions/vfull',
+                    schema=Integer(),
+                    indirect=False,
+                    self_ref=False,
+                )
+            },
+            additionalProperties=False,
+        ),
+    }
