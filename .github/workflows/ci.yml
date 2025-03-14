@@ -98,26 +98,55 @@ jobs:
         runs-on: ${{matrix.os}}
 
         steps:
-          - uses: actions/checkout@v4
+          - name: Checkout repository
+            uses: actions/checkout@v4
             with:
               fetch-depth: 2
 
           - name: Check CMake files format
             if: github.event_name == 'pull_request'
             run: |    
-              LIST_CHECK_FILES=$(git diff --name-only --diff-filter=d HEAD^1 HEAD | grep -E 'CMakeLists.txt$' | tr '\n' ' ')
-             
-              echo "Changed files:"
-              echo    "$LIST_CHECK_FILES"
-              if [[ -n ${LIST_CHECK_FILES} ]]
-              then
-                pip install cmake-format                  
-                for FILE in $LIST_CHECK_FILES; do
-                  cmake-format --check $FILE
-                done
-              else
-                echo "Nothing to check with cmake-format"
-              fi
+                LIST_CHECK_FILES=$(git diff --name-only --diff-filter=d HEAD^1 HEAD | grep -E 'CMakeLists.txt$' | tr '\n' ' ')
+
+                echo "Changed files:"
+                echo     "$LIST_CHECK_FILES"
+                if [[ -n ${LIST_CHECK_FILES} ]]
+                then
+                  pip install cmake-format
+                  for FILE in $LIST_CHECK_FILES; do
+                    cmake-format --check $FILE &> output.txt || true
+                    if grep -q "ERROR" output.txt; then
+                      echo "Formatting issues found in $FILE. Running cmake-format to fix."
+                      cmake-format -i $FILE
+                      DIFF=$(git diff $FILE)
+                      DIFF_OUTPUT="$DIFF_OUTPUT\n\nDiff for $FILE:\n\`\`\`diff\n$DIFF\n\`\`\`"
+                    else
+                      echo "No formatting issues in $FILE."
+                    fi
+                  done
+                  if [[ -n ${DIFF_OUTPUT} ]]; then
+                    DIFF_OUTPUT="## ❌ Check with [cmake-format](https:\/\/github.com\/cheshirekow\/cmake_format) failed\n\n$DIFF_OUTPUT"
+                  fi
+                  echo -e "$DIFF_OUTPUT" > diff_output.txt
+                else
+                  echo "Nothing to check with cmake-format"
+                fi
+
+          - name: Create pull request comment with formatting issues
+            if: github.event_name == 'pull_request'
+            env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: |
+                if [ -f diff_output.txt ]; then
+                  DIFF_OUTPUT=$(cat diff_output.txt)
+                  if [ -n "$DIFF_OUTPUT" ]; then
+                    echo "Creating pull request comment with diff output..."
+                    echo "$DIFF_OUTPUT" > comment.md
+                    gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
+                    echo "Failing the workflow due to formatting issues."
+                    exit 1
+                  fi
+                fi
 
           - name: Restore cached directories
             id: restore-cache
