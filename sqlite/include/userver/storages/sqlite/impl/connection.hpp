@@ -6,7 +6,7 @@
 
 #include <userver/storages/sqlite/impl/native_handler.hpp>
 #include <userver/storages/sqlite/impl/result_wrapper.hpp>
-#include <userver/storages/sqlite/impl/statements.hpp>
+#include <userver/storages/sqlite/impl/statement.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>

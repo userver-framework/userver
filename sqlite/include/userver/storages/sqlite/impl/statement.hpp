@@ -5,7 +5,7 @@
 #include <string>
 
 #include <userver/storages/sqlite/impl/native_handler.hpp>
-#include <userver/storages/sqlite/impl/statements_base.hpp>
+#include <userver/storages/sqlite/impl/statement_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

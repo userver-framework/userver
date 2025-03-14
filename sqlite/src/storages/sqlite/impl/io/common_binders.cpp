@@ -1,6 +1,6 @@
 #include <userver/storages/sqlite/impl/io/common_binders.hpp>
 
-#include <userver/storages/sqlite/impl/statements.hpp>
+#include <userver/storages/sqlite/impl/statement.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

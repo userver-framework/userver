@@ -1,6 +1,6 @@
 #include <userver/storages/sqlite/impl/io/params_binder_base.hpp>
 
-#include <userver/storages/sqlite/impl/statements.hpp>
+#include <userver/storages/sqlite/impl/statement.hpp>
 
 #include <userver/storages/sqlite/impl/connection.hpp>
 

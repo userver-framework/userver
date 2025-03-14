@@ -4,7 +4,7 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/sqlite/impl/statements_base.hpp>
+#include <userver/storages/sqlite/impl/statement_base.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>

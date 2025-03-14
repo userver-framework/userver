@@ -2,7 +2,7 @@
 
 #include <userver/utils/assert.hpp>
 
-#include <userver/storages/sqlite/impl/statements.hpp>
+#include <userver/storages/sqlite/impl/statement.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

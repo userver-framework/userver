@@ -1,4 +1,4 @@
-#include <userver/storages/sqlite/impl/statements.hpp>
+#include <userver/storages/sqlite/impl/statement.hpp>
 
 #include <fmt/format.h>
 
