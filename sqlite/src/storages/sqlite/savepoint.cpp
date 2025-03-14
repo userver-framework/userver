@@ -61,7 +61,8 @@ Savepoint Savepoint::Save(std::string name) {
 }
 
 ResultSet Savepoint::DoExecute(settings::OptionalCommandControl optional_cc,
-                               impl::StatementBasePtr prepare_statement) const {
+                               impl::io::ParamsBinderBase& params) const {
+  auto prepare_statement = params.GetBindsPtr();
   return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
 }
 

@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include <boost/pfr/core.hpp>
+
 #include <userver/storages/sqlite/impl/native_handler.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
 
@@ -23,6 +25,10 @@ class Statement final : public StatementBase {
   std::string getExpandedStatementText() const noexcept;
 
   // Prepare statement logic
+  template <typename... Args>
+  void UpdateParamsBindings(const Args&... args);
+  template <typename T>
+  void UpdateRowAsParamsBindings(const T& row);
   void Bind(const int index, const int32_t value) override;
   void Bind(const int index, const int64_t value) override;
   void Bind(const int index, const uint32_t value) override;
@@ -58,7 +64,8 @@ class Statement final : public StatementBase {
     void operator()(sqlite3_stmt* stmt);
   };
 
-  using NativeStatementPtr = std::shared_ptr<sqlite3_stmt>;
+  using NativeStatementPtr =
+      std::unique_ptr<sqlite3_stmt, SQLiteStatementDeleter>;
 
   NativeStatementPtr prepareStatement(const std::string& statement_str);
 
@@ -67,6 +74,28 @@ class Statement final : public StatementBase {
   size_t column_count_;
   int exec_status_ = 0;
 };
+
+template <typename... Args>
+void Statement::UpdateParamsBindings(const Args&... args) {
+  int index = 1;
+  (Bind(index++, args), ...);
+}
+
+template <typename T>
+void Statement::UpdateRowAsParamsBindings(const T& row) {
+  static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+                "T must be an aggregate type or tuple-like type");
+  if constexpr (std::is_aggregate_v<T>) {
+    auto fields = boost::pfr::structure_to_tuple(row);
+    std::apply(
+        [this](const auto&... args) { this->UpdateParamsBindings(args...); },
+        fields);
+  } else {
+    return std::apply(
+        [this](const auto&... args) { this->UpdateParamsBindings(args...); },
+        row);
+  }
+}
 
 }  // namespace storages::sqlite::impl
 

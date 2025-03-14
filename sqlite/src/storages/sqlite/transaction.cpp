@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Transaction::Transaction(infra::ConnectionPtr&& connection,
+Transaction::Transaction(std::shared_ptr<infra::ConnectionPtr> connection,
                          const settings::TransactionOptions& options)
     : connection_{std::move(connection)} {
   if (connection_->IsValid()) {
@@ -28,10 +28,6 @@ Transaction::~Transaction() {
       LOG_ERROR() << "Failed to auto rollback a transaction: " << ex.what();
     }
   }
-}
-
-impl::StatementBasePtr Transaction::PrepareStatement(const Query& query) const {
-  return (*connection_)->PrepareStatement(query);
 }
 
 void Transaction::AssertValid() const {
@@ -56,9 +52,9 @@ void Transaction::Rollback() {
   }
 }
 
-ResultSet Transaction::DoExecute(
-    settings::OptionalCommandControl optional_cc,
-    impl::StatementBasePtr prepare_statement) const {
+ResultSet Transaction::DoExecute(settings::OptionalCommandControl optional_cc,
+                                 impl::io::ParamsBinderBase& params) const {
+  auto prepare_statement = params.GetBindsPtr();
   return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
 }
 

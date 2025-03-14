@@ -62,9 +62,7 @@ void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
   binds.Bind(pos, val.Get());
 }
 
-void BindNull(InputBindingsFwd& binds, std::size_t pos) {
-  // binds.BindNull(pos);
-}
+void BindNull(InputBindingsFwd& binds, std::size_t pos) { binds.Bind(pos); }
 
 }  // namespace storages::sqlite::impl::io
 

@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include <userver/storages/sqlite/impl/statement_base.hpp>
+#include <userver/storages/sqlite/impl/binder_help.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -51,7 +51,7 @@ class Savepoint final {
 
  private:
   ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::StatementBasePtr prepare_statement) const;
+                      impl::io::ParamsBinderBase& params) const;
 
   impl::StatementBasePtr PrepareStatement(const Query& query) const;
 
@@ -69,9 +69,10 @@ ResultSet Savepoint::Execute(const Query& query, const Args&... args) const {
 template <typename... Args>
 ResultSet Savepoint::Execute(settings::OptionalCommandControl optional_cc,
                              const Query& query, const Args&... args) const {
-  auto prepare_statement = PrepareStatement(query);
-  prepare_statement->UpdateParamsBindings(args...);
-  return DoExecute(optional_cc, prepare_statement);
+  AssertValid();
+  auto params_binder = impl::BindHelper::UpdateParamsBindings(
+      query.GetStatement(), *connection_, args...);
+  return DoExecute(optional_cc, params_binder);
 }
 
 template <typename T>
@@ -84,10 +85,9 @@ ResultSet Savepoint::ExecuteDecompose(
     settings::OptionalCommandControl optional_cc, const Query& query,
     const T& row) const {
   AssertValid();
-  auto prepare_statement = PrepareStatement(query);
-  prepare_statement->UpdateRowAsParamsBindings(row);
-
-  return DoExecute(optional_cc, prepare_statement);
+  auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+      query.GetStatement(), *connection_, row);
+  return DoExecute(optional_cc, params_binder);
 }
 
 template <typename Container>
@@ -100,9 +100,9 @@ void Savepoint::ExecuteMany(settings::OptionalCommandControl optional_cc,
                             const Query& query, const Container& params) const {
   AssertValid();
   for (const auto& row : params) {
-    auto prepare_statement = PrepareStatement(query);
-    prepare_statement->UpdateRowAsParamsBindings(row);
-    DoExecute(optional_cc, prepare_statement);
+    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+        query.GetStatement(), *connection_, row);
+    DoExecute(optional_cc, params_binder);
   }
 }
 

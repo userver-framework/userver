@@ -4,7 +4,7 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/sqlite/impl/statement_base.hpp>
+#include <userver/storages/sqlite/impl/binder_help.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -16,7 +16,7 @@ namespace storages::sqlite {
 
 class Transaction final {
  public:
-  Transaction(infra::ConnectionPtr&& connection,
+  Transaction(std::shared_ptr<infra::ConnectionPtr> connection,
               const settings::TransactionOptions& options);
   ~Transaction();
   Transaction(const Transaction& other) = delete;
@@ -50,13 +50,11 @@ class Transaction final {
 
  private:
   ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::StatementBasePtr prepare_statement) const;
-
-  impl::StatementBasePtr PrepareStatement(const Query& query) const;
+                      impl::io::ParamsBinderBase& params) const;
 
   void AssertValid() const;
 
-  utils::FastPimpl<infra::ConnectionPtr, 24, 8> connection_;
+  std::shared_ptr<infra::ConnectionPtr> connection_;
 };
 
 template <typename... Args>
@@ -67,9 +65,10 @@ ResultSet Transaction::Execute(const Query& query, const Args&... args) const {
 template <typename... Args>
 ResultSet Transaction::Execute(settings::OptionalCommandControl optional_cc,
                                const Query& query, const Args&... args) const {
-  auto prepare_statement = PrepareStatement(query);
-  prepare_statement->UpdateParamsBindings(args...);
-  return DoExecute(optional_cc, prepare_statement);
+  AssertValid();
+  auto params_binder = impl::BindHelper::UpdateParamsBindings(
+      query.GetStatement(), *connection_, args...);
+  return DoExecute(optional_cc, params_binder);
 }
 
 template <typename T>
@@ -89,10 +88,9 @@ ResultSet Transaction::ExecuteDecompose(
     settings::OptionalCommandControl optional_cc, const Query& query,
     const T& row) const {
   AssertValid();
-  auto prepare_statement = PrepareStatement(query);
-  prepare_statement->UpdateRowAsParamsBindings(row);
-
-  return DoExecute(optional_cc, prepare_statement);
+  auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+      query.GetStatement(), *connection_, row);
+  return DoExecute(optional_cc, params_binder);
 }
 
 template <typename Container>
@@ -101,9 +99,9 @@ void Transaction::ExecuteMany(settings::OptionalCommandControl optional_cc,
                               const Container& params) const {
   AssertValid();
   for (const auto& row : params) {
-    auto prepare_statement = PrepareStatement(query);
-    prepare_statement->UpdateRowAsParamsBindings(row);
-    DoExecute(optional_cc, prepare_statement);
+    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+        query.GetStatement(), *connection_, row);
+    DoExecute(optional_cc, params_binder);
   }
 }
 

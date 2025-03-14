@@ -11,6 +11,7 @@
 #include <userver/engine/task/task_base.hpp>
 
 #include <userver/storages/sqlite/client.hpp>
+#include <userver/storages/sqlite/impl/statement_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
