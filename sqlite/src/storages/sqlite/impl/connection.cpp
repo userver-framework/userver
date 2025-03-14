@@ -1,4 +1,5 @@
 #include <userver/storages/sqlite/impl/connection.hpp>
+#include "userver/storages/sqlite/sqlite_fwd.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,7 +43,7 @@ ResultSet Connection::ExecuteCommand(
     impl::StatementBasePtr prepare_statement) const {
   return engine::AsyncNoSpan(
              blocking_task_processor_,
-             [prepare_statement] {
+             [&prepare_statement] {
                prepare_statement->Next();
                prepare_statement->CheckFail();
                return ResultSet{
@@ -92,7 +93,7 @@ std::string Connection::PrepareString(const std::string& str) {
       .AsSingleField<std::string>();
 }
 
-StatementBasePtr Connection::PrepareStatement(const Query& query) {
+StatementPtr Connection::PrepareStatement(const Query& query) {
   if (connection_settings_.prepared_statements ==
       settings::ConnectionSettings::kNoPreparedStatements) {
     return std::make_shared<Statement>(db_handler_, query.GetStatement());

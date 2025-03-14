@@ -20,11 +20,6 @@ infra::ConnectionPtr ClientImpl::GetConnection(
   return pool_strategy_->SelectPool(op_type).Acquire();
 }
 
-impl::StatementBasePtr ClientImpl::PrepareStatement(
-    const Query& query, infra::ConnectionPtr& connection) const {
-  return connection->PrepareStatement(query);
-}
-
 }  // namespace storages::sqlite::impl
 
 USERVER_NAMESPACE_END

@@ -14,8 +14,7 @@ namespace storages::sqlite::impl {
 Statement::Statement(const NativeHandler& db_handler,
                      const std::string& statement)
     : db_handler_{db_handler},
-      statement_{statement},
-      prepare_statement_(prepareStatement()),
+      prepare_statement_(prepareStatement(statement)),
       column_count_(sqlite3_column_count(prepare_statement_.get())) {}
 
 Statement::~Statement() = default;
@@ -30,8 +29,13 @@ void Statement::SQLiteStatementDeleter::operator()(sqlite3_stmt* stmt) {
   sqlite3_finalize(stmt);
 }
 
-const std::string& Statement::GetStatementText() const noexcept {
-  return statement_;
+std::string Statement::GetStatementText() const noexcept {
+  const char* query = sqlite3_sql(prepare_statement_.get());
+  if (!query) {
+    return std::string{};
+  }
+  std::string queryString{query};
+  return queryString;
 }
 
 std::string Statement::getExpandedStatementText() const noexcept {
@@ -44,11 +48,12 @@ std::string Statement::getExpandedStatementText() const noexcept {
   return expandedString;
 }
 
-Statement::NativeStatementPtr Statement::prepareStatement() {
+Statement::NativeStatementPtr Statement::prepareStatement(
+    const std::string& statement_str) {
   sqlite3_stmt* statement = nullptr;
   const int ret_code = sqlite3_prepare_v2(
-      db_handler_.GetHandle(), statement_.c_str(),
-      static_cast<int>(statement_.size()), &statement, nullptr);
+      db_handler_.GetHandle(), statement_str.c_str(),
+      static_cast<int>(statement_str.size()), &statement, nullptr);
   if (ret_code != SQLITE_OK) {
     throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), ret_code,
                           sqlite3_extended_errcode(db_handler_.GetHandle()));

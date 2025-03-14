@@ -22,9 +22,6 @@ class ClientImpl final {
   infra::ConnectionPtr GetConnection(
       settings::CommandControl::OperationType op_type) const;
 
-  impl::StatementBasePtr PrepareStatement(
-      const Query& query, infra::ConnectionPtr& connection) const;
-
  private:
   infra::strategy::PoolStrategyBasePtr pool_strategy_;
 };

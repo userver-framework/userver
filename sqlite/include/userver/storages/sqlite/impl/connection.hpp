@@ -42,7 +42,7 @@ class Connection {
 
   std::string PrepareString(const std::string& str);
 
-  StatementBasePtr PrepareStatement(const Query& query);
+  StatementPtr PrepareStatement(const Query& query);
 
   bool IsBroken() const;
 

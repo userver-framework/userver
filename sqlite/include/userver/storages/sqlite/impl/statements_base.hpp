@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -11,9 +10,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
-
-class StatementBase;
-using StatementBasePtr = std::shared_ptr<StatementBase>;
 
 class StatementBase {
  public:

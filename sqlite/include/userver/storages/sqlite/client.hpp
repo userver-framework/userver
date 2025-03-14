@@ -5,7 +5,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/storages/sqlite/impl/statements_base.hpp>
+#include <userver/storages/sqlite/impl/binder_help.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
@@ -67,11 +67,8 @@ class Client final {
 
  private:
   ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::StatementBasePtr prepare_statement,
+                      impl::io::ParamsBinderBase& params,
                       const infra::ConnectionPtr& connection) const;
-
-  impl::StatementBasePtr PrepareStatement(
-      const Query& query, infra::ConnectionPtr& connection) const;
 
   infra::ConnectionPtr GetConnection(
       settings::CommandControl::OperationType op_type) const;
@@ -91,10 +88,9 @@ ResultSet Client::Execute(settings::OptionalCommandControl optional_cc,
     optional_cc = settings::CommandControl::GetDefault();
   }
   auto connection = GetConnection(optional_cc->operation_type);
-  auto prepare_statement = PrepareStatement(query, connection);
-  prepare_statement->UpdateParamsBindings(args...);
-
-  return DoExecute(optional_cc, prepare_statement, connection);
+  auto params_binder = impl::BindHelper::UpdateParamsBindings(
+      query.GetStatement(), connection, args...);
+  return DoExecute(optional_cc, params_binder, connection);
 }
 
 template <typename T>
@@ -109,10 +105,10 @@ ResultSet Client::ExecuteDecompose(settings::OptionalCommandControl optional_cc,
     optional_cc = settings::CommandControl::GetDefault();
   }
   auto connection = GetConnection(optional_cc->operation_type);
-  auto prepare_statement = PrepareStatement(query, connection);
-  prepare_statement->UpdateRowAsParamsBindings(row);
+  auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+      query.GetStatement(), connection, row);
 
-  return DoExecute(optional_cc, prepare_statement, connection);
+  return DoExecute(optional_cc, params_binder, connection);
 }
 
 template <typename Container>
@@ -128,9 +124,9 @@ void Client::ExecuteMany(settings::OptionalCommandControl optional_cc,
   }
   auto connection = GetConnection(optional_cc->operation_type);
   for (const auto& row : params) {
-    auto prepare_statement = PrepareStatement(query, connection);
-    prepare_statement->UpdateRowAsParamsBindings(row);
-    DoExecute(optional_cc, prepare_statement, connection);
+    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+        query.GetStatement(), connection, row);
+    DoExecute(optional_cc, params_binder, connection);
   }
 }
 

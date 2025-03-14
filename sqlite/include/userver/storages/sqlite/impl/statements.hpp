@@ -19,7 +19,7 @@ class Statement final : public StatementBase {
   Statement(const Statement& other) = delete;
   Statement(Statement&& other) noexcept;
 
-  const std::string& GetStatementText() const noexcept;
+  std::string GetStatementText() const noexcept;
   std::string getExpandedStatementText() const noexcept;
 
   // Prepare statement logic
@@ -60,18 +60,12 @@ class Statement final : public StatementBase {
 
   using NativeStatementPtr = std::shared_ptr<sqlite3_stmt>;
 
-  NativeStatementPtr prepareStatement();
+  NativeStatementPtr prepareStatement(const std::string& statement_str);
 
-  const NativeHandler&
-      db_handler_;         // Pointer to SQLite Database Connection Handle
-  std::string statement_;  // UTF-8 SQL Query
-  NativeStatementPtr prepare_statement_;  //  Shared Pointer to the prepared
-                                          //  SQLite Statement Object
-  size_t column_count_;  // Number of columns in the result of the prepared
-  // statement
-  int exec_status_ = 0;  // TODO: We can get it from sqlite3_errcode, but it
-  // maybe unsafe in a multi-thread environment or with
-  // invested queries
+  const NativeHandler& db_handler_;
+  NativeStatementPtr prepare_statement_;
+  size_t column_count_;
+  int exec_status_ = 0;
 };
 
 }  // namespace storages::sqlite::impl

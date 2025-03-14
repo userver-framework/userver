@@ -1,8 +1,5 @@
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 
-#include <memory>
-
-#include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 #include <userver/storages/sqlite/impl/statements.hpp>
 
 USERVER_NAMESPACE_BEGIN

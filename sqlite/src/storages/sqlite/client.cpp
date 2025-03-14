@@ -1,7 +1,6 @@
 #include <userver/storages/sqlite/client.hpp>
 
 #include <userver/storages/sqlite/impl/client_impl.hpp>
-#include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 
@@ -19,11 +18,6 @@ Client::~Client() = default;
 Transaction Client::Begin(std::string name,
                           const settings::TransactionOptions& options) const {
   return Begin(std::nullopt, name, options);
-}
-
-impl::StatementBasePtr Client::PrepareStatement(
-    const Query& query, infra::ConnectionPtr& connection) const {
-  return pimpl_->PrepareStatement(query, connection);
 }
 
 infra::ConnectionPtr Client::GetConnection(
@@ -56,8 +50,9 @@ Savepoint Client::Save(settings::OptionalCommandControl optional_cc,
 }
 
 ResultSet Client::DoExecute(settings::OptionalCommandControl optional_cc,
-                            impl::StatementBasePtr prepare_statement,
+                            impl::io::ParamsBinderBase& params,
                             const infra::ConnectionPtr& connection) const {
+  auto prepare_statement = params.GetBindsPtr();
   return connection->ExecuteCommand(optional_cc, prepare_statement);
 }
 
