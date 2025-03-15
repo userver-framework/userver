@@ -12,7 +12,7 @@ namespace storages::sqlite {
 Transaction::Transaction(std::shared_ptr<infra::ConnectionPtr> connection,
                          const settings::TransactionOptions& options)
     : connection_{std::move(connection)} {
-  if (connection_->IsValid()) {
+  if (connection_ && connection_->IsValid()) {
     (*connection_)->Begin(options);
   }
 }
@@ -21,7 +21,7 @@ Transaction::Transaction(Transaction&& other) noexcept = default;
 Transaction& Transaction::operator=(Transaction&&) noexcept = default;
 
 Transaction::~Transaction() {
-  if (connection_->IsValid()) {
+  if (connection_ && connection_->IsValid()) {
     try {
       Rollback();
     } catch (const std::exception& ex) {
@@ -32,7 +32,7 @@ Transaction::~Transaction() {
 
 void Transaction::AssertValid() const {
   // TODO: exception or abort?
-  UINVARIANT(connection_->IsValid(),
+  UINVARIANT(connection_ && connection_->IsValid(),
              "Transaction accessed after it's been commited");
 }
 

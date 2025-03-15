@@ -33,7 +33,7 @@ Transaction Client::Begin(settings::OptionalCommandControl optional_cc,
   }
   auto shared_connection = std::make_shared<infra::ConnectionPtr>(
       pimpl_->GetConnection(optional_cc->operation_type));
-  return Transaction{std::move(shared_connection), options};
+  return Transaction{shared_connection, options};
 }
 
 Savepoint Client::Save(std::string name) const {
