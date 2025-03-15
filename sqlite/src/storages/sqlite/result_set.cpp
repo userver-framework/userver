@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-ResultSet::ResultSet(std::unique_ptr<impl::ResultWrapper> pimpl)
-    : pimpl_{std::move(pimpl)} {}
+ResultSet::ResultSet(impl::ResultWrapperPtr pimpl) : pimpl_{std::move(pimpl)} {}
 
 ResultSet::ResultSet(ResultSet&& other) noexcept = default;
 
@@ -28,6 +27,7 @@ ExecutionResult ResultSet::AsExecutionResult() && {
 void ResultSet::FetchResult(impl::ExtractorBase& extractor) {
   while (pimpl_->HasNext()) {
     extractor.BindNextRow();
+    pimpl_->Next();
   }
 }
 

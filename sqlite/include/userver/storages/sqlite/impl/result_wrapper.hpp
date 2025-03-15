@@ -10,48 +10,38 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-/// @brief Wrapper for executed sqlite3_stmt
+/// @brief Result wrapper and fetch helper
 class ResultWrapper final {
  public:
   ResultWrapper(StatementBasePtr prepare_statement);
   ~ResultWrapper();
 
   int RowsAffected() const noexcept;
-
   int LastInsertRowId() const noexcept;
-
   bool HasNext() const noexcept;
-
   bool IsDone() const noexcept;
-
   void Next() noexcept;
-
   int ColumnCount() const noexcept;
 
+  // TODO: move to separate class
   template <typename T>
   T FetchNext();
-
   template <typename RowType>
   RowType FetchNext(RowTag);
-
   template <typename FieldType>
   FieldType FetchNext(FieldTag);
-
   template <typename T>
   T ConvertRow();
-
   template <typename FieldType>
   FieldType GetColumn(int column);
 
  private:
-  std::shared_ptr<StatementBase> prepare_statement_;
+  StatementBasePtr prepare_statement_;
 
   template <typename Tuple, std::size_t... I>
   Tuple ConvertToTupleImpl(std::index_sequence<I...>);
-
   template <typename Tuple>
   Tuple ConvertToTuple();
-
   template <typename T>
   T ConvertToAggregate();
 };
@@ -64,7 +54,6 @@ T ResultWrapper::FetchNext() {
 template <typename RowType>
 RowType ResultWrapper::FetchNext(RowTag) {
   auto row = ConvertRow<RowType>();
-  Next();
   return row;
 }
 
@@ -76,7 +65,6 @@ FieldType ResultWrapper::FetchNext(FieldTag) {
         "Result set must have exactly one column for AsVector(FieldTag)"};
   }
   auto column = GetColumn<FieldType>(0);
-  Next();
   return column;
 }
 
