@@ -31,7 +31,7 @@ class SwaggerSchema(BaseModel):
 
 def parse_swagger_file(file_path: str) -> SwaggerSchema:
     with open(file_path, "r") as file:
-        data = yaml.load(file)
+        data = yaml.safe_load(file)
     return SwaggerSchema(**data)
 
 parsed_schema = parse_swagger_file("swagger_example.yaml")
