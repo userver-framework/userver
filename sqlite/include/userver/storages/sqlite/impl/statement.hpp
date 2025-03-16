@@ -60,6 +60,8 @@ class Statement final : public StatementBase {
   std::vector<uint8_t> GetBytesColumn(int column) const noexcept override;
 
  private:
+  void CheckCode(const int ret_code) const;
+
   struct SQLiteStatementDeleter {
     void operator()(sqlite3_stmt* stmt);
   };
