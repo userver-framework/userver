@@ -34,10 +34,11 @@ class TypedExtractor final : public impl::ExtractorBase {
   impl::ResultWrapper& result_wrapper_;
 
   T ExtractRow() {
-    if constexpr (std::is_same_v<ExtractionTag, FieldTag>) {
-      return result_wrapper_.FetchNext<T>(kFieldTag);
-    } else {
+    if constexpr (std::is_same_v<ExtractionTag, RowTag>) {
       return result_wrapper_.FetchNext<T>(kRowTag);
+    } else {
+      static_assert(std::is_same_v<ExtractionTag, FieldTag>);
+      return result_wrapper_.FetchNext<T>(kFieldTag);
     }
   }
 };
