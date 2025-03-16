@@ -15,14 +15,14 @@ Client::Client(const settings::SQLiteSettings& settings,
 
 Client::~Client() = default;
 
-Transaction Client::Begin(std::string name,
-                          const settings::TransactionOptions& options) const {
-  return Begin(std::nullopt, name, options);
-}
-
 infra::ConnectionPtr Client::GetConnection(
     settings::CommandControl::OperationType op_type) const {
   return pimpl_->GetConnection(op_type);
+}
+
+Transaction Client::Begin(std::string name,
+                          const settings::TransactionOptions& options) const {
+  return Begin(std::nullopt, name, options);
 }
 
 Transaction Client::Begin(settings::OptionalCommandControl optional_cc,
@@ -31,9 +31,8 @@ Transaction Client::Begin(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  auto shared_connection = std::make_shared<infra::ConnectionPtr>(
-      pimpl_->GetConnection(optional_cc->operation_type));
-  return Transaction{shared_connection, options};
+  auto connection = pimpl_->GetConnection(optional_cc->operation_type);
+  return Transaction{std::move(connection), options};
 }
 
 Savepoint Client::Save(std::string name) const {
@@ -45,9 +44,8 @@ Savepoint Client::Save(settings::OptionalCommandControl optional_cc,
   if (!optional_cc.has_value()) {
     optional_cc = settings::CommandControl::GetDefault();
   }
-  auto shared_connection = std::make_shared<infra::ConnectionPtr>(
-      pimpl_->GetConnection(optional_cc->operation_type));
-  return Savepoint{shared_connection, std::move(name)};
+  auto connection = pimpl_->GetConnection(optional_cc->operation_type);
+  return Savepoint{std::move(connection), std::move(name)};
 }
 
 ResultSet Client::DoExecute(settings::OptionalCommandControl optional_cc,

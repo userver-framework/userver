@@ -1,3 +1,4 @@
+#include <memory>
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include <userver/logging/log.hpp>
@@ -9,9 +10,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Transaction::Transaction(std::shared_ptr<infra::ConnectionPtr> connection,
+Transaction::Transaction(infra::ConnectionPtr&& connection,
                          const settings::TransactionOptions& options)
-    : connection_{std::move(connection)} {
+    : connection_{
+          std::make_shared<infra::ConnectionPtr>(std::move(connection))} {
   if (connection_ && connection_->IsValid()) {
     (*connection_)->Begin(options);
   }
@@ -34,6 +36,11 @@ void Transaction::AssertValid() const {
   // TODO: exception or abort?
   UINVARIANT(connection_ && connection_->IsValid(),
              "Transaction accessed after it's been commited");
+}
+
+Savepoint Transaction::Save(std::string name) const {
+  AssertValid();
+  return Savepoint{connection_, std::move(name)};
 }
 
 void Transaction::Commit() {

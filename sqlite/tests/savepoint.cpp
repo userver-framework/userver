@@ -6,6 +6,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utest/death_tests.hpp>
 
+#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,7 +20,7 @@ UTEST_F(SQLiteSavepoints, Release) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Savepoint savepoint{nullptr, {}};
+  Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
   UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
       << "Begin savepoint";
   ExecutionResult exec_result;
@@ -43,7 +45,7 @@ UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Savepoint savepoint{nullptr, {}};
+  Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
   UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
       << "Begin savepoint";
   UEXPECT_NO_THROW(savepoint.Release()) << "Release savepoint";
@@ -60,7 +62,7 @@ UTEST_F(SQLiteSavepoints, RollbackTo) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Savepoint savepoint{nullptr, {}};
+  Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
   UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
       << "Begin savepoint";
   ExecutionResult exec_result;
@@ -89,7 +91,7 @@ UTEST_F(SQLiteSavepoints, AutoRollback) {
 
   // Insert a row and not release the savepoint
   {
-    Savepoint savepoint{nullptr, {}};
+    Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
         << "Begin savepoint";
     int last_insert_id{};
@@ -105,7 +107,7 @@ UTEST_F(SQLiteSavepoints, AutoRollback) {
   // Insert a row and rollback the savepoint -> auto rollback not throw
   // exception
   {
-    Savepoint savepoint{nullptr, {}};
+    Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
         << "Begin savepoint";
     int last_insert_id{};
@@ -121,7 +123,7 @@ UTEST_F(SQLiteSavepoints, AutoRollback) {
 
   // Failure (exception) in savepoint is safe
   try {
-    Savepoint savepoint{nullptr, {}};
+    Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(savepoint = client->Save("test_savepoint"))
         << "Begin default savepoint";
     int last_insert_id{};
@@ -146,14 +148,14 @@ UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
 
   // Release both savepoints
   {
-    Savepoint savepoint1{nullptr, {}};
+    Savepoint savepoint1{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(savepoint1 = client->Save("test_savepoint1"))
         << "Begin first savepoint";
     UEXPECT_NO_THROW(
         savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
         << "Insert first row in savepoint";
 
-    Savepoint savepoint2{nullptr, {}};
+    Savepoint savepoint2{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2"))
         << "Begin second savepoint";
     UEXPECT_NO_THROW(
@@ -166,14 +168,14 @@ UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
 
   // one release, one rollback
   {
-    Savepoint savepoint1{nullptr, {}};
+    Savepoint savepoint1{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(savepoint1 = client->Save("test_savepoint1"))
         << "Begin first savepoint";
     UEXPECT_NO_THROW(
         savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
         << "Insert first row in savepoint";
 
-    Savepoint savepoint2{nullptr, {}};
+    Savepoint savepoint2{infra::ConnectionPtr{nullptr, nullptr}, {}};
     UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2"))
         << "Begin second savepoint";
     UEXPECT_NO_THROW(

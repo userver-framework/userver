@@ -9,9 +9,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Savepoint::Savepoint(std::shared_ptr<infra::ConnectionPtr> connection,
+Savepoint::Savepoint(infra::ConnectionPtr&& connection, std::string name)
+    : connection_{
+          std::make_shared<infra::ConnectionPtr>(std::move(connection))} {
+  if (connection_ && connection_->IsValid()) {
+    name_ = (*connection_)->PrepareString(name);
+    (*connection_)->Savepoint(name_);
+  }
+}
+
+Savepoint::Savepoint(std::shared_ptr<infra::ConnectionPtr> shared_connection,
                      std::string name)
-    : connection_{std::move(connection)} {
+    : connection_(std::move(shared_connection)) {
   if (connection_ && connection_->IsValid()) {
     name_ = (*connection_)->PrepareString(name);
     (*connection_)->Savepoint(name_);
@@ -55,7 +64,7 @@ void Savepoint::RollbackTo() {
   (*connection_)->RollbackTo(name_);
 }
 
-Savepoint Savepoint::Save(std::string name) {
+Savepoint Savepoint::Save(std::string name) const {
   AssertValid();
   return Savepoint{connection_, std::move(name)};
 }

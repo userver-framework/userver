@@ -8,6 +8,7 @@
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include <userver/storages/sqlite/savepoint.hpp>
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,7 +17,7 @@ namespace storages::sqlite {
 
 class Transaction final {
  public:
-  Transaction(std::shared_ptr<infra::ConnectionPtr> connection,
+  Transaction(infra::ConnectionPtr&& connection,
               const settings::TransactionOptions& options);
   ~Transaction();
   Transaction(const Transaction& other) = delete;
@@ -43,6 +44,8 @@ class Transaction final {
   template <typename Container>
   void ExecuteMany(settings::OptionalCommandControl optional_cc,
                    const Query& query, const Container& params) const;
+
+  Savepoint Save(std::string name) const;
 
   void Commit();
 
