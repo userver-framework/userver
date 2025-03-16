@@ -1,13 +1,17 @@
 #include <userver/storages/sqlite/impl/result_wrapper.hpp>
 
-#include <userver/storages/sqlite/impl/statement.hpp>
+#include <userver/engine/async.hpp>
+
+#include <userver/storages/sqlite/impl/statement_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-ResultWrapper::ResultWrapper(StatementBasePtr prepare_statement)
-    : prepare_statement_(std::move(prepare_statement)) {}
+ResultWrapper::ResultWrapper(StatementBasePtr prepare_statement,
+                             engine::TaskProcessor& blocking_task_processor_)
+    : prepare_statement_{std::move(prepare_statement)},
+      blocking_task_processor_(blocking_task_processor_) {}
 
 ResultWrapper::~ResultWrapper() = default;
 
@@ -27,11 +31,17 @@ bool ResultWrapper::IsDone() const noexcept {
   return prepare_statement_->IsDone();
 }
 
-void ResultWrapper::Next() noexcept { prepare_statement_->Next(); }
+void ResultWrapper::Next() noexcept {
+  return engine::AsyncNoSpan(blocking_task_processor_,
+                             [this] { prepare_statement_->Next(); })
+      .Get();
+}
 
 int ResultWrapper::ColumnCount() const noexcept {
   return prepare_statement_->ColumnCount();
 }
+
+void ResultWrapper::CheckFail() const { prepare_statement_->CheckFail(); }
 
 template <>
 int32_t ResultWrapper::GetColumn<int32_t>(int column) {

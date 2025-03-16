@@ -2,6 +2,8 @@
 
 #include <boost/pfr.hpp>
 
+#include <userver/engine/task/task_processor_fwd.hpp>
+
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/row_types.hpp>
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
@@ -13,7 +15,8 @@ namespace storages::sqlite::impl {
 /// @brief Result wrapper and fetch helper
 class ResultWrapper final {
  public:
-  ResultWrapper(StatementBasePtr prepare_statement);
+  ResultWrapper(StatementBasePtr prepare_statement,
+                engine::TaskProcessor& blocking_task_processor);
   ~ResultWrapper();
 
   int RowsAffected() const noexcept;
@@ -22,6 +25,7 @@ class ResultWrapper final {
   bool IsDone() const noexcept;
   void Next() noexcept;
   int ColumnCount() const noexcept;
+  void CheckFail() const;
 
   // TODO: move to separate class
   template <typename T>
@@ -37,6 +41,7 @@ class ResultWrapper final {
 
  private:
   StatementBasePtr prepare_statement_;
+  engine::TaskProcessor& blocking_task_processor_;
 
   template <typename Tuple, std::size_t... I>
   Tuple ConvertToTupleImpl(std::index_sequence<I...>);

@@ -71,7 +71,7 @@ class Statement final : public StatementBase {
 
   const NativeHandler& db_handler_;
   NativeStatementPtr prepare_statement_;
-  size_t column_count_;
+  int column_count_;
   int exec_status_ = 0;
 };
 

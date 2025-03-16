@@ -1,5 +1,7 @@
 #pragma once
 
+#include <userver/engine/task/task_processor_fwd.hpp>
+
 #include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 #include <userver/storages/sqlite/options.hpp>
 
@@ -9,19 +11,18 @@ namespace storages::sqlite::impl {
 
 class NativeHandler final {
  public:
-  explicit NativeHandler(const settings::SQLiteSettings& settings);
+  explicit NativeHandler(const settings::SQLiteSettings& settings,
+                         engine::TaskProcessor& blocking_task_processor);
 
   struct sqlite3* GetHandle() const noexcept;
 
+  ~NativeHandler();
+
  private:
-  struct SQLiteHandlerDeleter {
-    void operator()(struct sqlite3* sqlite_handle);
-  };
+  struct sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);
 
-  using NativeHandlerPtr =
-      std::unique_ptr<struct sqlite3, SQLiteHandlerDeleter>;
-
-  NativeHandlerPtr db_handler_;
+  engine::TaskProcessor& blocking_task_processor_;
+  struct sqlite3* db_handler_;
 };
 
 }  // namespace storages::sqlite::impl

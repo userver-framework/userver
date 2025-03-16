@@ -36,7 +36,8 @@ UTEST(SQLiteResultSetTest, AsVectorRowTag) {
       .WillOnce(::testing::Return("first"))
       .WillOnce(::testing::Return("second"));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   std::vector<RowTuple> actual = std::move(res).AsVector<RowTuple>();
 
   EXPECT_EQ(actual.size(), 2);
@@ -52,7 +53,8 @@ UTEST(SQLiteResultSetTest, AsVectorRowEmpty) {
   EXPECT_CALL(*mock_sqlite_statement, HasNext())
       .WillOnce(::testing::Return(false));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsVector<Row>();
 
   EXPECT_TRUE(actual.empty());
@@ -75,7 +77,8 @@ UTEST(SQLiteResultSetTest, AsVectorFieldTag) {
       .WillOnce(::testing::Return("first"))
       .WillOnce(::testing::Return("second"));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsVector<std::string>(kFieldTag);
 
   EXPECT_EQ(actual.size(), 2);
@@ -92,7 +95,8 @@ UTEST(SQLiteResultSetTest, AsVectorFieldTagThrowsOnMultipleColumns) {
   EXPECT_CALL(*mock_sqlite_statement, ColumnCount())
       .WillOnce(::testing::Return(2));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   EXPECT_THROW(std::move(res).AsVector<std::string>(kFieldTag),
                SQLiteException);
 }
@@ -110,7 +114,8 @@ UTEST(SQLiteResultSetTest, AsSingleRow) {
   EXPECT_CALL(*mock_sqlite_statement, GetStringColumn(1))
       .WillOnce(::testing::Return("first"));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsSingleRow<Row>();
 
   EXPECT_EQ(actual, (Row{1, "first"}));
@@ -123,7 +128,8 @@ UTEST(SQLiteResultSetTest, AsSingleRowThrowsWhenEmpty) {
   EXPECT_CALL(*mock_sqlite_statement, HasNext())
       .WillOnce(::testing::Return(false));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
 }
 
@@ -137,7 +143,8 @@ UTEST(SQLiteResultSetTest, AsSingleRowThrowsWhenMultipleRows) {
       .WillOnce(::testing::Return(false));
   EXPECT_CALL(*mock_sqlite_statement, Next()).Times(2);
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   EXPECT_THROW(std::move(res).AsSingleRow<Row>(), SQLiteException);
 }
 
@@ -154,7 +161,8 @@ UTEST(SQLiteResultSetTest, AsSingleField) {
       .WillOnce(::testing::Return("first"));
   EXPECT_CALL(*mock_sqlite_statement, Next()).Times(1);
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsSingleField<std::string>();
 
   EXPECT_EQ(actual, "first");
@@ -169,7 +177,8 @@ UTEST(SQLiteResultSetTest, AsSingleFieldThrowsOnMultipleColumns) {
   EXPECT_CALL(*mock_sqlite_statement, ColumnCount())
       .WillOnce(::testing::Return(2));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   EXPECT_THROW(std::move(res).AsSingleField<std::string>(), SQLiteException);
 }
 
@@ -187,7 +196,8 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleRow) {
   EXPECT_CALL(*mock_sqlite_statement, GetStringColumn(1))
       .WillOnce(::testing::Return("first"));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsOptionalSingleRow<Row>();
 
   EXPECT_TRUE(actual.has_value());
@@ -201,7 +211,8 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleRowEmpty) {
   EXPECT_CALL(*mock_sqlite_statement, IsDone())
       .WillRepeatedly(::testing::Return(true));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsOptionalSingleRow<Row>();
 
   EXPECT_FALSE(actual.has_value());
@@ -217,7 +228,8 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleRowThrowsOnMultipleRows) {
       .WillOnce(::testing::Return(false));
   EXPECT_CALL(*mock_sqlite_statement, Next()).Times(2);
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   EXPECT_THROW(std::move(res).AsOptionalSingleRow<Row>(), SQLiteException);
 }
 
@@ -234,7 +246,8 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleField) {
   EXPECT_CALL(*mock_sqlite_statement, GetStringColumn(0))
       .WillOnce(::testing::Return("first"));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsOptionalSingleField<std::string>();
 
   EXPECT_TRUE(actual.has_value());
@@ -248,7 +261,8 @@ UTEST(SQLiteResultSetTest, AsOptionalSingleFieldEmpty) {
   EXPECT_CALL(*mock_sqlite_statement, HasNext())
       .WillOnce(::testing::Return(false));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   auto actual = std::move(res).AsOptionalSingleField<std::string>();
 
   EXPECT_FALSE(actual.has_value());
@@ -263,7 +277,8 @@ UTEST(SQLiteResultSetTest, AsExecutionResult) {
   EXPECT_CALL(*mock_sqlite_statement, LastInsertRowId())
       .WillOnce(::testing::Return(1));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   ExecutionResult exec_result;
   EXPECT_NO_THROW(exec_result = std::move(res).AsExecutionResult());
 
@@ -280,7 +295,8 @@ UTEST(SQLiteResultSetTest, AsExecutionResultOnReadOnly) {
   EXPECT_CALL(*mock_sqlite_statement, LastInsertRowId())
       .WillOnce(::testing::Return(0));
 
-  ResultSet res(std::make_unique<impl::ResultWrapper>(mock_sqlite_statement));
+  ResultSet res(std::make_unique<impl::ResultWrapper>(
+      mock_sqlite_statement, engine::current_task::GetTaskProcessor()));
   EXPECT_NO_THROW(std::move(res).AsExecutionResult());
 }
 

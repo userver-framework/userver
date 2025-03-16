@@ -51,6 +51,7 @@ std::string Statement::getExpandedStatementText() const noexcept {
 Statement::NativeStatementPtr Statement::prepareStatement(
     const std::string& statement_str) {
   sqlite3_stmt* statement = nullptr;
+  // TODO: It can indirectly triggers I/O?
   const int ret_code = sqlite3_prepare_v2(
       db_handler_.GetHandle(), statement_str.c_str(),
       static_cast<int>(statement_str.size()), &statement, nullptr);

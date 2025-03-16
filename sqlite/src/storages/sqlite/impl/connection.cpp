@@ -1,5 +1,6 @@
 #include <userver/storages/sqlite/impl/connection.hpp>
-#include "userver/storages/sqlite/sqlite_fwd.hpp"
+
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,7 +28,7 @@ constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
 Connection::Connection(const settings::SQLiteSettings& settings,
                        engine::TaskProcessor& blocking_task_processor)
     : blocking_task_processor_{blocking_task_processor},
-      db_handler_{settings},
+      db_handler_{settings, blocking_task_processor_},
       connection_settings_{settings.conn_settings},
       statements_cache_{db_handler_,
                         connection_settings_.max_prepared_cache_size} {}
@@ -41,15 +42,11 @@ settings::ConnectionSettings const& Connection::GetSettings() const noexcept {
 ResultSet Connection::ExecuteCommand(
     settings::OptionalCommandControl optional_cc [[maybe_unused]],
     impl::StatementBasePtr prepare_statement) const {
-  return engine::AsyncNoSpan(
-             blocking_task_processor_,
-             [&prepare_statement] {
-               prepare_statement->Next();
-               prepare_statement->CheckFail();
-               return ResultSet{
-                   std::make_unique<impl::ResultWrapper>(prepare_statement)};
-             })
-      .Get();
+  auto result_wrapper = std::make_unique<impl::ResultWrapper>(
+      prepare_statement, blocking_task_processor_);
+  result_wrapper->Next();  // blocking IO operation
+  result_wrapper->CheckFail();
+  return ResultSet{std::move(result_wrapper)};
 }
 
 void Connection::Begin(const settings::TransactionOptions& options) {
