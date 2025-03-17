@@ -42,10 +42,6 @@ Savepoint::~Savepoint() {
   }
 }
 
-impl::StatementBasePtr Savepoint::PrepareStatement(const Query& query) const {
-  return (*connection_)->PrepareStatement(query);
-}
-
 void Savepoint::AssertValid() const {
   UINVARIANT(connection_ && connection_->IsValid(),
              "Savepoint accessed after it's been released");

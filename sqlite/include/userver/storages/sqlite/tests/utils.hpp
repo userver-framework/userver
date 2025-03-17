@@ -17,11 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
-// TODO: write a mock function or class to obtain the correct ResultSet from the
-// given data
-
-namespace fs = std::filesystem;
-
 class MockSQLiteStatement : public impl::StatementBase {
  public:
   MOCK_METHOD(void, Bind, (const int index, const int32_t value));
@@ -34,31 +29,40 @@ class MockSQLiteStatement : public impl::StatementBase {
   MOCK_METHOD(void, Bind, (const int index, const char* value, const int size));
   MOCK_METHOD(void, Bind, (const int index));
 
+  MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
   MOCK_METHOD(int, RowsAffected, (), (const, noexcept, override));
   MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept, override));
   MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
   MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
-  MOCK_METHOD(void, Next, (), (noexcept, override));
-  MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
-  MOCK_METHOD(void, CheckFail, (), (const, override));
+  MOCK_METHOD(void, Next, (), (override));
 
-  MOCK_METHOD(int32_t, GetInt32Column, (int column),
+  MOCK_METHOD(void, Extract, (int column, int8_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(uint32_t, GetUInt32Column, (int column),
+  MOCK_METHOD(void, Extract, (int column, uint8_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(int64_t, GetInt64Column, (int column),
+  MOCK_METHOD(void, Extract, (int column, int16_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(double, GetDoubleColumn, (int column),
+  MOCK_METHOD(void, Extract, (int column, uint16_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(const char*, GetCStringColumn, (int column),
+  MOCK_METHOD(void, Extract, (int column, int32_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(std::string, GetStringColumn, (int column),
+  MOCK_METHOD(void, Extract, (int column, uint32_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(const void*, GetBlobColumn, (int column),
+  MOCK_METHOD(void, Extract, (int column, int64_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(std::vector<uint8_t>, GetBytesColumn, (int column),
+  MOCK_METHOD(void, Extract, (int column, uint64_t& val),
+              (const, noexcept, override));
+  MOCK_METHOD(void, Extract, (int column, float& val),
+              (const, noexcept, override));
+  MOCK_METHOD(void, Extract, (int column, double& val),
+              (const, noexcept, override));
+  MOCK_METHOD(void, Extract, (int column, std::string& val),
+              (const, noexcept, override));
+  MOCK_METHOD(void, Extract, (int column, std::vector<uint8_t>& val),
               (const, noexcept, override));
 };
+
+namespace fs = std::filesystem;
 
 class SQLiteTest : public ::testing::Test {
  protected:

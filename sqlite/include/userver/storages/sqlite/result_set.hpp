@@ -99,7 +99,7 @@ class ResultSet {
  private:
   void FetchResult(impl::ExtractorBase& extractor);
 
-  std::unique_ptr<impl::ResultWrapper> pimpl_;
+  impl::ResultWrapperPtr pimpl_;
 };
 
 template <typename T>

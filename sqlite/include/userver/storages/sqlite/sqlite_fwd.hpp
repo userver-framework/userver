@@ -12,6 +12,7 @@ namespace storages::sqlite {
 class Transaction;
 class Savepoint;
 class ResultSet;
+class ExecutionResult;
 
 class Client;
 using ClientPtr = std::shared_ptr<Client>;

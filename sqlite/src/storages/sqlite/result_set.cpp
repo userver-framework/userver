@@ -15,20 +15,11 @@ ResultSet& ResultSet::operator=(ResultSet&&) noexcept = default;
 ResultSet::~ResultSet() = default;
 
 ExecutionResult ResultSet::AsExecutionResult() && {
-  const int rows_affected = pimpl_->RowsAffected();
-  const int last_insert_id = pimpl_->LastInsertRowId();
-
-  ExecutionResult result{};
-  result.rows_affected = rows_affected;
-  result.last_insert_id = last_insert_id;
-  return result;
+  return pimpl_->GetExecutionResult();
 }
 
 void ResultSet::FetchResult(impl::ExtractorBase& extractor) {
-  while (pimpl_->HasNext()) {
-    extractor.BindNextRow();
-    pimpl_->Next();
-  }
+  pimpl_->FetchResult(extractor);
 }
 
 }  // namespace storages::sqlite

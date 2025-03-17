@@ -14,6 +14,13 @@ void BindInput(sqlite::impl::InputBindingsFwd& binds, std::size_t pos,
                                                ExplicitCRef<T>{field});
 }
 
+template <typename T>
+void BindOutput(sqlite::impl::OutputBindingsFwd& binds, std::size_t pos,
+                T& field) {
+  storages::sqlite::impl::io::FreestandingBind(binds, pos,
+                                               ExplicitRef<T>{field});
+}
+
 }  // namespace storages::sqlite::impl::io
 
 USERVER_NAMESPACE_END

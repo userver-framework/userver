@@ -6,6 +6,69 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl::io {
 
+// -------------------------- Output Bindings ---------------------------------
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint8_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int8_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint16_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int16_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint32_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int32_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint64_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int64_t> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<float> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<double> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::string> val) {
+  binds.Extract(pos, val.Get());
+}
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::vector<uint8_t>> val) {
+  binds.Extract(pos, val.Get());
+}
+
 // --------------------------- Input Bindings ---------------------------------
 
 void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,

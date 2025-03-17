@@ -4,6 +4,7 @@
 #include <optional>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 
 #include <userver/storages/sqlite/impl/binder_fwd.hpp>
 
@@ -36,6 +37,43 @@ class ExplicitCRef final {
  private:
   const T& ref_;
 };
+
+// -------------------------- Output Bindings ---------------------------------
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint8_t> val);
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int8_t> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint16_t> val);
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int16_t> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint32_t> val);
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int32_t> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::uint64_t> val);
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::int64_t> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<float> val);
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<double> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::string> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::vector<uint8_t>> val);
+
+template <typename T>
+void FreestandingBind(OutputBindingsFwd&, std::size_t, ExplicitRef<T>) {
+  static_assert(!sizeof(T), "IO support for the type is not implemented.");
+}
 
 // --------------------------- Input Bindings ---------------------------------
 void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,

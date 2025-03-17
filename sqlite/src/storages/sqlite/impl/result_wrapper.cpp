@@ -2,6 +2,7 @@
 
 #include <userver/engine/async.hpp>
 
+#include <userver/storages/sqlite/execution_result.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,77 +12,37 @@ namespace storages::sqlite::impl {
 ResultWrapper::ResultWrapper(StatementBasePtr prepare_statement,
                              engine::TaskProcessor& blocking_task_processor_)
     : prepare_statement_{std::move(prepare_statement)},
-      blocking_task_processor_(blocking_task_processor_) {}
+      blocking_task_processor_(blocking_task_processor_) {
+  ExecutionStep();
+}
 
 ResultWrapper::~ResultWrapper() = default;
 
-int ResultWrapper::RowsAffected() const noexcept {
-  return prepare_statement_->RowsAffected();
+StatementBasePtr ResultWrapper::GetStatement() noexcept {
+  return prepare_statement_;
 }
 
-int ResultWrapper::LastInsertRowId() const noexcept {
-  return prepare_statement_->LastInsertRowId();
+void ResultWrapper::FetchResult(impl::ExtractorBase& extractor) {
+  while (prepare_statement_->HasNext()) {
+    extractor.BindNextRow();
+    ExecutionStep();  // blocking IO
+  }
 }
 
-bool ResultWrapper::HasNext() const noexcept {
-  return prepare_statement_->HasNext();
+ExecutionResult ResultWrapper::GetExecutionResult() noexcept {
+  const int rows_affected = prepare_statement_->RowsAffected();
+  const int last_insert_id = prepare_statement_->LastInsertRowId();
+
+  ExecutionResult result{};
+  result.rows_affected = rows_affected;
+  result.last_insert_id = last_insert_id;
+  return result;
 }
 
-bool ResultWrapper::IsDone() const noexcept {
-  return prepare_statement_->IsDone();
-}
-
-void ResultWrapper::Next() noexcept {
-  return engine::AsyncNoSpan(blocking_task_processor_,
-                             [this] { prepare_statement_->Next(); })
-      .Get();
-}
-
-int ResultWrapper::ColumnCount() const noexcept {
-  return prepare_statement_->ColumnCount();
-}
-
-void ResultWrapper::CheckFail() const { prepare_statement_->CheckFail(); }
-
-template <>
-int32_t ResultWrapper::GetColumn<int32_t>(int column) {
-  return prepare_statement_->GetInt32Column(column);
-}
-
-template <>
-uint32_t ResultWrapper::GetColumn<uint32_t>(int column) {
-  return prepare_statement_->GetUInt32Column(column);
-}
-
-template <>
-int64_t ResultWrapper::GetColumn<int64_t>(int column) {
-  return prepare_statement_->GetInt64Column(column);
-}
-
-template <>
-double ResultWrapper::GetColumn<double>(int column) {
-  return prepare_statement_->GetDoubleColumn(column);
-}
-
-template <>
-const char* ResultWrapper::GetColumn<const char*>(int column) {
-  return prepare_statement_->GetCStringColumn(column);
-}
-
-template <>
-const void* ResultWrapper::GetColumn<const void*>(int column) {
-  return prepare_statement_->GetBlobColumn(column);
-}
-
-template <>
-std::string ResultWrapper::GetColumn<std::string>(int column) {
-  return prepare_statement_->GetStringColumn(column);
-}
-
-template <>
-std::vector<uint8_t> ResultWrapper::GetColumn<std::vector<uint8_t>>(
-    int column) {
-  return prepare_statement_->GetBytesColumn(column);
+void ResultWrapper::ExecutionStep() {
+  engine::AsyncNoSpan(blocking_task_processor_, [this] {
+    prepare_statement_->Next();
+  }).Get();
 }
 
 }  // namespace storages::sqlite::impl

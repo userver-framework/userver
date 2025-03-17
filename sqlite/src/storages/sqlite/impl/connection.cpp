@@ -44,8 +44,6 @@ ResultSet Connection::ExecuteCommand(
     impl::StatementBasePtr prepare_statement) const {
   auto result_wrapper = std::make_unique<impl::ResultWrapper>(
       prepare_statement, blocking_task_processor_);
-  result_wrapper->Next();  // blocking IO operation
-  result_wrapper->CheckFail();
   return ResultSet{std::move(result_wrapper)};
 }
 

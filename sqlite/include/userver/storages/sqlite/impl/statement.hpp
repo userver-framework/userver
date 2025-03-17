@@ -24,14 +24,14 @@ class Statement final : public StatementBase {
   std::string GetStatementText() const noexcept;
   std::string getExpandedStatementText() const noexcept;
 
-  // Prepare statement logic
+  // Prepare statement
   template <typename... Args>
   void UpdateParamsBindings(const Args&... args);
   template <typename T>
   void UpdateRowAsParamsBindings(const T& row);
   void Bind(const int index, const int32_t value) override;
-  void Bind(const int index, const int64_t value) override;
   void Bind(const int index, const uint32_t value) override;
+  void Bind(const int index, const int64_t value) override;
   void Bind(const int index, const uint64_t value) override;
   void Bind(const int index, const double value) override;
   void Bind(const int index, const std::string& value) override;
@@ -40,24 +40,29 @@ class Statement final : public StatementBase {
   void Bind(const int index) override;
   void Reset() noexcept;
 
-  // Execution and extract result logic
+  // Execution
+  int ColumnCount() const noexcept override;
   int RowsAffected() const noexcept override;
   int LastInsertRowId() const noexcept override;
   bool HasNext() const noexcept override;
   bool IsDone() const noexcept override;
   bool IsFail() const noexcept;
-  void Next() noexcept override;
-  int ColumnCount() const noexcept override;
-  void CheckFail() const override;
+  void Next() override;
+  void CheckFail() const;
 
-  int32_t GetInt32Column(int column) const noexcept override;
-  uint32_t GetUInt32Column(int column) const noexcept override;
-  int64_t GetInt64Column(int column) const noexcept override;
-  double GetDoubleColumn(int column) const noexcept override;
-  const char* GetCStringColumn(int column) const noexcept override;
-  std::string GetStringColumn(int column) const noexcept override;
-  const void* GetBlobColumn(int column) const noexcept override;
-  std::vector<uint8_t> GetBytesColumn(int column) const noexcept override;
+  // Extract
+  void Extract(int column, int8_t& val) const noexcept override;
+  void Extract(int column, uint8_t& val) const noexcept override;
+  void Extract(int column, int16_t& val) const noexcept override;
+  void Extract(int column, uint16_t& val) const noexcept override;
+  void Extract(int column, int32_t& val) const noexcept override;
+  void Extract(int column, uint32_t& val) const noexcept override;
+  void Extract(int column, int64_t& val) const noexcept override;
+  void Extract(int column, uint64_t& val) const noexcept override;
+  void Extract(int column, float& val) const noexcept override;
+  void Extract(int column, double& val) const noexcept override;
+  void Extract(int column, std::string& val) const noexcept override;
+  void Extract(int column, std::vector<uint8_t>& val) const noexcept override;
 
  private:
   void CheckCode(const int ret_code) const;
