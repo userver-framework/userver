@@ -308,6 +308,7 @@ template <typename Function, typename... Args>
 ///
 /// @param task_processor Task processor to run on
 /// @param name Name of the task to show in logs
+/// @param deadline Deadline to set for the child task, upon reaching it the task will be cancelled
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
 /// @returns engine::TaskWithResult
@@ -336,6 +337,7 @@ template <typename Function, typename... Args>
 ///
 /// @param task_processor Task processor to run on
 /// @param name Name of the task to show in logs
+/// @param deadline Deadline to set for the child task, upon reaching it the task will be cancelled
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
 /// @returns engine::SharedTaskWithResult
@@ -423,6 +425,7 @@ template <typename Function, typename... Args>
 /// in case of TaskProcessor overload.
 ///
 /// @param name Name of the task to show in logs
+/// @param deadline Deadline to set for the child task, upon reaching it the task will be cancelled
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
 /// @returns engine::TaskWithResult
@@ -444,6 +447,7 @@ template <typename Function, typename... Args>
 /// in case of TaskProcessor overload.
 ///
 /// @param name Name of the task to show in logs
+/// @param deadline Deadline to set for the child task, upon reaching it the task will be cancelled
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
 /// @returns engine::SharedTaskWithResult

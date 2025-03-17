@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/postgres/io/network.hpp
+/// @file userver/storages/postgres/io/ip.hpp
 /// @brief utils::ip::NetworkV4 I/O support
 /// @ingroup userver_postgres_parse_and_format
 

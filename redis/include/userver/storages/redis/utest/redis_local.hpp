@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/redis/utest/redis_local.hpp
-/// @brief @copybrief storages::redis::RedisLocal
+/// @brief @copybrief storages::redis::utest::RedisLocal
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>

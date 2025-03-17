@@ -127,7 +127,7 @@ async def grpc_channel(
 ):
     """
     Returns the gRPC channel configured by the parameters from the
-    @ref plugins.grpc.grpc_service_endpoint "grpc_service_endpoint" fixture.
+    @ref pytest_userver.plugins.grpc.client.grpc_service_endpoint "grpc_service_endpoint" fixture.
 
     @ingroup userver_testsuite_fixtures
     """

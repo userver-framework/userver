@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/deadline_propagation/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::deadline_propagation::Component
+/// @brief @copybrief ugrpc::server::middlewares::deadline_propagation::Component
 
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 

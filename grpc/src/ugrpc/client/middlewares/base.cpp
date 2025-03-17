@@ -40,7 +40,7 @@ MiddlewarePipelineComponent::MiddlewarePipelineComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : middlewares::impl::AnyMiddlewarePipelineComponent(
+    : USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent(
           config,
           context,
           {{

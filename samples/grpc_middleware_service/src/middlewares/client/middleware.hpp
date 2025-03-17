@@ -2,8 +2,9 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
+#include <userver/middlewares/groups.hpp>
+#include <userver/middlewares/pipeline.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
 
 namespace sample::grpc::auth::client {
 
@@ -15,7 +16,7 @@ public:
 
     // 'User' is a default group of user middlewares. See middlewares groups for more information.
     static inline const auto kDependency =
-        ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<ugrpc::server::groups::User>();
+        middlewares::MiddlewareDependencyBuilder().InGroup<middlewares::groups::User>();
 
     Middleware();
 

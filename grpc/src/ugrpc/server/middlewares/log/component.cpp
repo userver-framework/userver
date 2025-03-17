@@ -5,8 +5,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/server/middlewares/log/middleware.hpp>
-#include <userver/ugrpc/middlewares/pipeline.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
+#include <userver/middlewares/groups.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,13 +25,14 @@ Component::Component(const components::ComponentConfig& config, const components
     : MiddlewareFactoryComponentBase(
           config,
           context,
-          ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<groups::Logging>()
+          USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
+              .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
       ) {}
 
 Component::~Component() = default;
 
 std::shared_ptr<MiddlewareBase>
-Component::CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
     return std::make_shared<Middleware>(middleware_config.As<Settings>());
 }
 

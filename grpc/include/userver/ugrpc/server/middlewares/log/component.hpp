@@ -55,8 +55,10 @@ public:
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<MiddlewareBase>
-    CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<MiddlewareBase> CreateMiddleware(
+        const ugrpc::server::ServiceInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::log

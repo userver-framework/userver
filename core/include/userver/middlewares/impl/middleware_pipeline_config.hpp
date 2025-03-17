@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares::impl {
+namespace middlewares::impl {
 
 struct BaseMiddlewareConfig final {
     bool enabled{true};
@@ -43,6 +43,6 @@ bool operator==(const MiddlewareEnabled& l, const MiddlewareEnabled& r);
 
 using MiddlewareOrderedList = std::vector<MiddlewareEnabled>;
 
-}  // namespace ugrpc::middlewares::impl
+}  // namespace middlewares::impl
 
 USERVER_NAMESPACE_END

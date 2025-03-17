@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/utils/encoding/tskv_parser_read.hpp
-/// @brief @copybrief utils::encoding::TskvReadKeysValues
+/// @brief @copybrief utils::encoding::TskvReadRecord
 
 #include <utility>
 

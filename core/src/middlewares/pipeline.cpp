@@ -1,4 +1,4 @@
-#include <userver/ugrpc/middlewares/pipeline.hpp>
+#include <userver/middlewares/pipeline.hpp>
 
 #include <fmt/format.h>
 
@@ -7,14 +7,14 @@
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <ugrpc/impl/middlewares_graph.hpp>
-#include <userver/ugrpc/middlewares/pipeline.hpp>
-#include <userver/ugrpc/middlewares/runner.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
+#include <userver/middlewares/groups.hpp>
+#include <userver/middlewares/pipeline.hpp>
+#include <userver/middlewares/runner.hpp>
+#include "impl/middlewares_graph.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares {
+namespace middlewares {
 
 namespace {
 
@@ -127,6 +127,6 @@ impl::MiddlewareDependency MiddlewareDependencyBuilder::Extract(std::string_view
     return std::move(dep_);
 }
 
-}  // namespace ugrpc::middlewares
+}  // namespace middlewares
 
 USERVER_NAMESPACE_END

@@ -1,4 +1,4 @@
-#include <ugrpc/impl/topology_sort.hpp>
+#include "topology_sort.hpp"
 
 #include <algorithm>
 #include <unordered_set>
@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares::impl {
+namespace middlewares::impl {
 
 std::vector<std::string> BuildTopologySortOfMiddlewares(
     std::unordered_map<std::string, std::vector<std::string>>&& graph
@@ -57,6 +57,6 @@ std::vector<std::string> BuildTopologySortOfMiddlewares(
     return topology_order;
 }
 
-}  // namespace ugrpc::middlewares::impl
+}  // namespace middlewares::impl
 
 USERVER_NAMESPACE_END

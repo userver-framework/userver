@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/tracing/scope_tag.hpp
+/// @file userver/tracing/tag_scope.hpp
 /// @brief @copybrief tracing::TagScope
 
 #include <string>
@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 
-/// @brief RAII object that calls Span::AddTag/Span::AddTagFrozen function
+/// @brief RAII object that calls Span::AddTag / Span::AddTagFrozen function
 /// in constructor and reverts these actions in destructor.
 ///
 /// ## Example usage:

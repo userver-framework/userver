@@ -5,7 +5,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::impl {
+namespace middlewares::impl {
 
 // Interface for creating middlewares.
 template <typename MiddlewareBase, typename HandlerInfo>
@@ -21,19 +21,18 @@ class SimpleMiddlewarePipeline : public PipelineCreatorInterface<MiddlewareBase,
 public:
     using Middlewares = typename PipelineCreatorInterface<MiddlewareBase, HandlerInfo>::Middlewares;
 
-    SimpleMiddlewarePipeline(Middlewares&& mids) : mids_(std::move(mids)) {}
+    SimpleMiddlewarePipeline() = default;
 
-    Middlewares CreateMiddlewares(const HandlerInfo& /*handler_info*/
-    ) const override {
-        return mids_;
-    }
+    explicit SimpleMiddlewarePipeline(Middlewares&& middlewares) : middlewares_(std::move(middlewares)) {}
 
-    void SetMiddlewares(Middlewares&& middlewares) { mids_ = std::move(middlewares); }
+    Middlewares CreateMiddlewares(const HandlerInfo& /*handler_info*/) const override { return middlewares_; }
+
+    void SetMiddlewares(Middlewares&& middlewares) { middlewares_ = std::move(middlewares); }
 
 private:
-    Middlewares mids_;
+    Middlewares middlewares_;
 };
 
-}  // namespace ugrpc::impl
+}  // namespace middlewares::impl
 
 USERVER_NAMESPACE_END

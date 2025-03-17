@@ -3,10 +3,10 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/congestion_control/component.hpp>
+#include <userver/middlewares/groups.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/server/middlewares/congestion_control/middleware.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
@@ -18,7 +18,8 @@ Component::Component(const components::ComponentConfig& config, const components
     : MiddlewareFactoryComponentBase(
           config,
           context,
-          ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<groups::Core>()
+          USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
+              .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
       ),
       middleware_(std::make_shared<Middleware>()) {
     auto& cc_component = context.FindComponent<USERVER_NAMESPACE::congestion_control::Component>();
@@ -31,7 +32,8 @@ Component::Component(const components::ComponentConfig& config, const components
     server_sensor.RegisterRequestsSource(server);
 }
 
-std::shared_ptr<MiddlewareBase> Component::CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig&) const {
+std::shared_ptr<MiddlewareBase>
+Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig&) const {
     return middleware_;
 }
 

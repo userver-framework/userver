@@ -29,7 +29,7 @@ public:
         LOG_DEBUG() << request_counter_ << " request attempt: now=" << std::chrono::system_clock::now()
                     << ", deadline=" << context.GetServerContext().deadline();
         if (++request_counter_ % 4) {
-            engine::InterruptibleSleepFor(tests::kShortTimeout * 2);
+            engine::InterruptibleSleepFor(tests::kLongTimeout + tests::kShortTimeout);
             EXPECT_TRUE(context.GetServerContext().IsCancelled());
             // this status should not reach client because of 'perAttemptRecvTimeout'
             LOG_DEBUG() << request_counter_ << ": return ABORTED";
@@ -52,7 +52,7 @@ using TimeoutTest = ugrpc::tests::ServiceFixture<UnitTestService>;
 UTEST_F(TimeoutTest, DISABLED_IN_OLD_GRPC_TEST_NAME(PerAttemptTimeout)) {
     ugrpc::client::Qos qos;
     qos.attempts = 4;
-    qos.timeout = tests::kShortTimeout;
+    qos.timeout = tests::kLongTimeout;
     ugrpc::client::ClientQos client_qos;
     client_qos.SetDefault(qos);
     const auto config = std::vector<dynamic_config::KeyValue>{{tests::kUnitTestClientQos, client_qos}};

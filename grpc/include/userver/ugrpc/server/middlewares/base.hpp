@@ -9,19 +9,24 @@
 #include <google/protobuf/message.h>
 
 #include <userver/components/component_base.hpp>
+#include <userver/middlewares/groups.hpp>
+#include <userver/middlewares/runner.hpp>
 #include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/yaml_config/schema.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <userver/ugrpc/middlewares/runner.hpp>
 #include <userver/ugrpc/server/call.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
+
+/// @brief Service meta info for a middleware construction.
+struct ServiceInfo final {
+    std::string full_service_name{};
+};
 
 /// @brief Context for middleware-specific data during gRPC call.
 class MiddlewareCallContext final {
@@ -84,12 +89,11 @@ public:
     virtual void CallResponseHook(const MiddlewareCallContext& context, google::protobuf::Message& response);
 };
 
-struct ServiceInfo;
-
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Factory that creates specific server middlewares for services.
-using MiddlewareFactoryComponentBase = middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ServiceInfo>;
+using MiddlewareFactoryComponentBase =
+    USERVER_NAMESPACE::middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ServiceInfo>;
 
 // clang-format off
 
@@ -114,7 +118,7 @@ using MiddlewareFactoryComponentBase = middlewares::MiddlewareFactoryComponentBa
 
 template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
-    middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
+    USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
 
 // clang-format off
 
@@ -136,7 +140,7 @@ using SimpleMiddlewareFactoryComponent =
 
 // clang-format on
 
-class MiddlewarePipelineComponent final : public middlewares::impl::AnyMiddlewarePipelineComponent {
+class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the server side.

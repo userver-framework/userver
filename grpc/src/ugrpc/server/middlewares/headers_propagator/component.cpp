@@ -13,7 +13,7 @@ Component::Component(const components::ComponentConfig& config, const components
     : MiddlewareFactoryComponentBase(config, context) {}
 
 std::shared_ptr<MiddlewareBase>
-Component::CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
     return std::make_shared<Middleware>(middleware_config["headers"].As<std::vector<std::string>>({}));
 }
 

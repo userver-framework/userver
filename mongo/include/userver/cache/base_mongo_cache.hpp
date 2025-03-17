@@ -44,8 +44,8 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 ///
 /// You have to provide a traits class in order to use this.
 ///
-/// ### Avoiding memory leaks
-/// See components::CachingComponentBase
+/// For avoiding "memory leaks", see the respective section
+/// in @ref components::CachingComponentBase.
 ///
 /// ## Static options:
 /// All options of CachingComponentBase and

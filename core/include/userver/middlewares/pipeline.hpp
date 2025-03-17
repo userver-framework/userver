@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/middlewares/pipeline.hpp
+/// @file userver/middlewares/pipeline.hpp
 /// @brief Lists all available middlewares and builds their order of execution.
 
 #include <unordered_map>
@@ -10,11 +10,11 @@
 #include <userver/utils/meta_light.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-#include <userver/ugrpc/impl/middleware_pipeline_config.hpp>
+#include <userver/middlewares/impl/middleware_pipeline_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares {
+namespace middlewares {
 
 /// @brief The dependency type between middlewares.
 ///
@@ -184,6 +184,6 @@ MiddlewareDependencyBuilder MiddlewareDependencyBuilder::InGroup() && {
     return std::move(*this).Before(impl::EndOfGroup<Group>(), DependencyType::kWeak);
 }
 
-}  // namespace ugrpc::middlewares
+}  // namespace middlewares
 
 USERVER_NAMESPACE_END

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/server/metadta_utils.hpp
+/// @file userver/ugrpc/server/metadata_utils.hpp
 /// @brief Utilities to work with the request metadata
 
 #include <map>

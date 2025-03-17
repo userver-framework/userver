@@ -4,10 +4,10 @@
 /// @brief @copybrief ugrpc::client::ClientFactoryComponent
 
 #include <userver/components/component_base.hpp>
+#include <userver/middlewares/runner.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
-#include <userver/ugrpc/middlewares/runner.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +16,7 @@ namespace ugrpc::client {
 namespace impl {
 
 /// @brief The interface for a `ClientFactoryComponent` component. So, `ClientFactoryComponent` runs with middlewares.
-using MiddlewareRunner = USERVER_NAMESPACE::ugrpc::middlewares::RunnerComponentBase<MiddlewareBase, ClientInfo>;
+using MiddlewareRunner = USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ClientInfo>;
 
 }  // namespace impl
 

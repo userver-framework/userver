@@ -51,7 +51,7 @@ public:
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsVector
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsVector
     // clang-format on
     template <typename T>
     std::vector<T> AsVector() &&;
@@ -64,7 +64,7 @@ public:
   ///
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsVectorFieldTag
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsVectorFieldTag
     // clang-format on
     template <typename T>
     std::vector<T> AsVector(FieldTag) &&;
@@ -78,7 +78,7 @@ public:
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsContainer
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsContainer
     // clang-format on
     template <typename Container>
     Container AsContainer() &&;
@@ -92,7 +92,7 @@ public:
   ///
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsContainerFieldTag
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsContainerFieldTag
     // clang-format on
     template <typename Container>
     Container AsContainer(FieldTag) &&;
@@ -107,7 +107,7 @@ public:
   /// UINVARIANTs on columns count mismatch or types mismatch.
   /// throws if result set is empty or contains more than one row.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsSingleRow
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsSingleRow
     // clang-format on
     template <typename T>
     T AsSingleRow() &&;
@@ -121,7 +121,7 @@ public:
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   /// throws if result set is empty of contains more than one row.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsSingleField
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsSingleField
     // clang-format on
     template <typename T>
     T AsSingleField() &&;
@@ -136,7 +136,7 @@ public:
   /// UINVARIANTs on columns count mismatch or types mismatch.
   /// throws if result set contains more than one row.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleRow
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleRow
     // clang-format on
     template <typename T>
     std::optional<T> AsOptionalSingleRow() &&;
@@ -150,7 +150,7 @@ public:
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   /// throws if result set contains more than one row.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleField
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleField
     // clang-format on
     template <typename T>
     std::optional<T> AsOptionalSingleField() &&;
@@ -162,7 +162,7 @@ public:
   /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
   /// `DbType` requirements.
   ///
-  /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet MapFrom
+  /// @snippet storages/tests/unittests/statement_result_set.cpp uMySQL usage sample - StatementResultSet MapFrom
     // clang-format on
     template <typename DbType>
     MappedStatementResultSet<DbType> MapFrom() &&;

@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <ydb-cpp-sdk/v2/client/types/credentials/credentials.h>
+#include <ydb-cpp-sdk/client/types/credentials/credentials.h>
 
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/formats/json_fwd.hpp>

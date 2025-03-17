@@ -1,7 +1,7 @@
 #pragma once
 
+#include <userver/middlewares/groups.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,8 +16,8 @@ public:
     static constexpr std::string_view kName = "grpc-client-deadline-propagation";
 
     /// @brief dependency of this middleware. Core group.
-    static inline const auto kDependency =
-        ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<server::groups::Core>();
+    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
+                                               .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>();
 
     Middleware() = default;
 

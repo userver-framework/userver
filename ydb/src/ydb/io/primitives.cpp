@@ -1,7 +1,7 @@
 #include <userver/ydb/io/primitives.hpp>
 
-#include <ydb-cpp-sdk/v2/client/params/params.h>
-#include <ydb-cpp-sdk/v2/client/value/value.h>
+#include <ydb-cpp-sdk/client/params/params.h>
+#include <ydb-cpp-sdk/client/value/value.h>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/json/serialize.hpp>

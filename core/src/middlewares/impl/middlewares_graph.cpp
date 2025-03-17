@@ -1,18 +1,17 @@
-#include <ugrpc/impl/middlewares_graph.hpp>
+#include "middlewares_graph.hpp"
+#include "topology_sort.hpp"
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include <ugrpc/impl/topology_sort.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/middlewares/groups.hpp>
 #include <userver/utils/assert.hpp>
-
-#include <userver/ugrpc/server/middlewares/groups.hpp>
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares::impl {
+namespace middlewares::impl {
 
 namespace {
 
@@ -94,7 +93,7 @@ void AddEdgesForGroup(Graph& graph, const MiddlewareDependency& dep) {
 
 template <typename Group>
 void AddEdgesGroup(Graph& graph) {
-    const MiddlewareDependency dep = MiddlewareDependencyBuilder{Group::kDependency}.Extract(Group::kName);
+    const MiddlewareDependency dep = middlewares::MiddlewareDependencyBuilder{Group::kDependency}.Extract(Group::kName);
     AddEdgesForGroup<Group>(graph, dep);
 }
 
@@ -143,12 +142,12 @@ MiddlewareOrderedList BuildPipeline(Dependencies&& dependencies) {
 
     Graph graph{};
 
-    AddEdgesGroup<server::groups::PreCore>(graph);
-    AddEdgesGroup<server::groups::Logging>(graph);
-    AddEdgesGroup<server::groups::Auth>(graph);
-    AddEdgesGroup<server::groups::Core>(graph);
-    AddEdgesGroup<server::groups::PostCore>(graph);
-    AddEdgesGroup<server::groups::User>(graph);
+    AddEdgesGroup<groups::PreCore>(graph);
+    AddEdgesGroup<groups::Logging>(graph);
+    AddEdgesGroup<groups::Auth>(graph);
+    AddEdgesGroup<groups::Core>(graph);
+    AddEdgesGroup<groups::PostCore>(graph);
+    AddEdgesGroup<groups::User>(graph);
 
     for (const auto& [name, dep] : dependencies) {
         AddEdges(graph, dep);
@@ -171,6 +170,6 @@ MiddlewareOrderedList BuildPipeline(Dependencies&& dependencies) {
     return list;
 }
 
-}  // namespace ugrpc::middlewares::impl
+}  // namespace middlewares::impl
 
 USERVER_NAMESPACE_END

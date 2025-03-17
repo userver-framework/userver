@@ -68,7 +68,7 @@ MiddlewareComponent::MiddlewareComponent(const components::ComponentConfig& conf
 ```
 Then the middleware of the component `MiddlewareComponent` will be after `path_to_my_middleware::Component` in the pipeline.
 
-@warn Middlewares that ordered with `ugrpc::server::MiddlewareDependencyBuilder::Before` and `ugrpc::server::MiddlewareDependencyBuilder::After` must be in the same group.
+@warning Middlewares that ordered with `ugrpc::server::MiddlewareDependencyBuilder::Before` and `ugrpc::server::MiddlewareDependencyBuilder::After` must be in the same group.
 
 If then someone disable middleware `path_to_my_middleware::Component`, userver does not start, because `MiddlewareComponent` requested this middleware. So, this connection is strong (`ugrpc::server::DependencyType::kStrong`). You can set `ugrpc::server::DependencyType::kWeak` to ignore disabling of `path_to_my_middleware::Component`.
 
@@ -84,17 +84,17 @@ MiddlewareComponent::MiddlewareComponent(const components::ComponentConfig& conf
       ) {}
 ```
 
-@warn The middlewares pipeline can't has a cycles. Userver does not start. So, be careful when order middlewares.
+@warning The middlewares pipeline can't has a cycles. Userver does not start. So, be careful when order middlewares.
 
 ## Middlewares groups
 
 The middlewares pipeline consists of groups (ordered from begin to end):
- - `ugrpc::server::groups::PreCore`
- - `ugrpc::server::groups::Logging`
- - `ugrpc::server::groups::Auth`
- - `ugrpc::server::groups::Core`
- - `ugrpc::server::groups::PostCore`
- - `ugrpc::server::groups::User`
+ - `ugrpc::groups::PreCore`
+ - `ugrpc::groups::Logging`
+ - `ugrpc::groups::Auth`
+ - `ugrpc::groups::Core`
+ - `ugrpc::groups::PostCore`
+ - `ugrpc::groups::User`
 
 All user middlewares will be in `ugrpc::server::groups::User` group by default. But you can register your middleware in any group such as:
 

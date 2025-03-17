@@ -12,7 +12,7 @@ public:
     static constexpr std::string_view kName = "my-middleware-server";
 
     static inline const auto kDependency =
-        ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<ugrpc::server::groups::User>();
+        middlewares::MiddlewareDependencyBuilder().InGroup<middlewares::groups::User>();
 
     explicit MyMiddleware() = default;
 

@@ -251,8 +251,8 @@ MyStruct Parse(const formats::json::Value& value,
 
 3. Make sure to check feasible invariants while parsing, e.g. minimum and
    maximum values of numbers.
-   For that you occasionally may need to use
-   @ref dynamic_config::Key::Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json)
+   For that you occasionally may need to use @ref dynamic_config::Key
+   constructor with `JsonParser`.
    Don't leave strings that are semantically enums as strings, parse them
    to C++ `enum class`.
 
@@ -578,7 +578,8 @@ globally in the following ways:
    `userver_testsuite_add_simple` to setup tests in CMake, it is enough
    to place the `dynamic_config_fallback.json` file next to the static config.
 2. Providing a patch directly in "Python JSON" format by overriding
-   @ref dynamic_config_fallback_patch fixture
+   @ref pytest_userver.plugins.dynamic_config.dynamic_config_fallback_patch "dynamic_config_fallback_patch"
+   fixture.
 
 The various config patches are applied in the following order, going
 from the lowest to the highest priority:
@@ -604,7 +605,9 @@ per-test as follows:
 async def test_whatever(service_client, ...):
 ```
 
-Dynamic config can also be modified mid-test using @ref dynamic_config fixture.
+Dynamic config can also be modified mid-test using
+@ref pytest_userver.plugins.dynamic_config.dynamic_config "dynamic_config"
+fixture.
 
 Such dynamic config changes are applied (sent to the service) at the first
 `service_client` request in the test, or manually:

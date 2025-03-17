@@ -1,23 +1,24 @@
 #pragma once
 
-/// @file userver/ugrpc/client/middlewares/middleware_base.hpp
+/// @file userver/ugrpc/client/middlewares/base.hpp
 /// @brief @copybrief ugrpc::client::MiddlewareBase
 
 #include <memory>
 #include <vector>
 
 #include <userver/components/component_base.hpp>
+#include <userver/middlewares/groups.hpp>
+#include <userver/middlewares/impl/simple_middleware_pipeline.hpp>
+#include <userver/middlewares/runner.hpp>
 
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/rpc.hpp>
-#include <userver/ugrpc/impl/simple_middleware_pipeline.hpp>
-#include <userver/ugrpc/middlewares/runner.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-/// @brief Client meta info for building a middleware.
+/// @brief Client meta info for a middleware construction.
 struct ClientInfo final {
     std::string client_name{};
 };
@@ -98,7 +99,8 @@ protected:
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Factory that creates specific client middlewares for clients.
-using MiddlewareFactoryComponentBase = middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ClientInfo>;
+using MiddlewareFactoryComponentBase =
+    USERVER_NAMESPACE::middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ClientInfo>;
 
 // clang-format off
 
@@ -123,7 +125,7 @@ using MiddlewareFactoryComponentBase = middlewares::MiddlewareFactoryComponentBa
 
 template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
-    middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ClientInfo>;
+    USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ClientInfo>;
 
 // clang-format off
 
@@ -145,7 +147,7 @@ using SimpleMiddlewareFactoryComponent =
 
 // clang-format on
 
-class MiddlewarePipelineComponent final : public middlewares::impl::AnyMiddlewarePipelineComponent {
+class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the client side.
@@ -157,7 +159,8 @@ public:
 namespace impl {
 
 /// @brief specialization of PipelineCreatorInterface interface to create client middlewares.
-using MiddlewarePipelineCreator = USERVER_NAMESPACE::ugrpc::impl::PipelineCreatorInterface<MiddlewareBase, ClientInfo>;
+using MiddlewarePipelineCreator =
+    USERVER_NAMESPACE::middlewares::impl::PipelineCreatorInterface<MiddlewareBase, ClientInfo>;
 
 }  // namespace impl
 

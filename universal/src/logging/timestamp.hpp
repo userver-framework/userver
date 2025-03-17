@@ -27,7 +27,8 @@ struct CachedTime final {
     TimeString string{};
 };
 
-TimeString GetCurrentTimeString(TimePoint now) noexcept;
+TimeString GetCurrentGMTimeString(TimePoint now) noexcept;
+TimeString GetCurrentLocalTimeString(TimePoint now) noexcept;
 
 }  // namespace logging
 

@@ -16,9 +16,9 @@ public:
 
     /// @brief dependency of this middleware
     static inline const auto kDependency =
-        ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<groups::Core>().After<congestion_control::Component>(
-            ugrpc::middlewares::DependencyType::kWeak
-        );
+        USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
+            .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
+            .After<congestion_control::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak);
 
     void Handle(MiddlewareCallContext& context) const override;
 };

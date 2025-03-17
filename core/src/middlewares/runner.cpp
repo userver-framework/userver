@@ -1,14 +1,14 @@
-#include <userver/ugrpc/middlewares/runner.hpp>
+#include <userver/middlewares/runner.hpp>
 
 #include <userver/formats/common/merge.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
-#include <userver/ugrpc/server/middlewares/groups.hpp>
+#include <userver/middlewares/groups.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares::impl {
+namespace middlewares::impl {
 
 yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
     const formats::yaml::Value& global,
@@ -26,9 +26,9 @@ yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
 }
 
 MiddlewareDependencyBuilder MakeDefaultUserDependency() {
-    return MiddlewareDependencyBuilder().InGroup<server::groups::User>();
+    return MiddlewareDependencyBuilder().InGroup<groups::User>();
 }
 
-}  // namespace ugrpc::middlewares::impl
+}  // namespace middlewares::impl
 
 USERVER_NAMESPACE_END

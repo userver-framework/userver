@@ -1,7 +1,7 @@
 #pragma once
 
+#include <userver/middlewares/groups.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,8 +15,8 @@ public:
     static constexpr std::string_view kName = "grpc-client-baggage";
 
     /// @brief dependency of this middleware. User group as default.
-    static inline const auto kDependency =
-        ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<server::groups::User>();
+    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
+                                               .InGroup<USERVER_NAMESPACE::middlewares::groups::User>();
 
     void PreStartCall(MiddlewareCallContext& context) const override;
 };

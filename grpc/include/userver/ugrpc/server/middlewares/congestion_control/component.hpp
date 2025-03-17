@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/congestion_control/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::congestion_control::Component
+/// @brief @copybrief ugrpc::server::middlewares::congestion_control::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
@@ -36,8 +35,10 @@ public:
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::shared_ptr<MiddlewareBase>
-    CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<MiddlewareBase> CreateMiddleware(
+        const ugrpc::server::ServiceInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 
 private:
     std::shared_ptr<Middleware> middleware_;

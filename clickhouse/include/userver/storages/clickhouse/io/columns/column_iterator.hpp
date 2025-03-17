@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/clickhouse/io/columns/column_iterator.hpp
-/// @brief @copybrief storages::clickhouse::io::columns::BaseIterator
+/// @brief @copybrief storages::clickhouse::io::columns::ColumnIterator
 
 #include <iterator>
 #include <optional>

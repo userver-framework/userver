@@ -902,7 +902,7 @@ template <typename BuilderFunc>
 TrivialSet(BuilderFunc) -> TrivialSet<BuilderFunc>;
 
 /// @brief Parses and returns whatever is specified by `map` from a
-/// `formats::*::Value`.
+/// `formats::json::Value` or another format's `Value`.
 /// @throws ExceptionType or `Value::Exception` by default, if `value` is not a
 /// string, or if `value` is not contained in `map`.
 /// @see @ref scripts/docs/en/userver/formats.md

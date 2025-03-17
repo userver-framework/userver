@@ -4,11 +4,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/ugrpc/middlewares/pipeline.hpp>
+#include <userver/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares::impl {
+namespace middlewares::impl {
 
 class Graph final {
 public:
@@ -43,6 +43,6 @@ private:
 
 MiddlewareOrderedList BuildPipeline(Dependencies&& dependencies);
 
-}  // namespace ugrpc::middlewares::impl
+}  // namespace middlewares::impl
 
 USERVER_NAMESPACE_END

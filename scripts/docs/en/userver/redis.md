@@ -40,7 +40,7 @@ Redis command has a timeout, number of replays, and a global timeout. If a
 response is not received from the server within the timeout, then the same
 command is sent to another server in the cluster, and so on either until the
 limit on the number of repetitions is reached, or when the global timeout is
-reached. These settings can be changed via redis::CommandControl.
+reached. These settings can be changed via storages::redis::CommandControl.
 
 @warning For the above reasons, it is recommended to prefer PostgreSQL database
          over Redis. However it is fine to use Redis as a distributed cache.
@@ -73,7 +73,7 @@ Also see @ref scripts/docs/en/userver/tutorial/redis_service.md for a complete e
 
 ### Timeouts
 
-Request timeout can be set for a single request via redis::CommandControl 
+Request timeout can be set for a single request via storages::redis::CommandControl 
 argument.
 
 Dynamic option @ref REDIS_DEFAULT_COMMAND_CONTROL can be used to set default 

@@ -140,40 +140,41 @@ The exact format of setting cmake options varies depending on the method of buil
 
 ### CMake options for paths to dependencies
 
-| Option                                | Description                                                                                                    | Default                            |
-|---------------------------------------|----------------------------------------------------------------------------------------------------------------|------------------------------------|
-| `USERVER_PYTHON_PATH`                 | Path to the python3 binary for use in testsuite tests                                                          | `python3`                          |
-| `USERVER_PG_SERVER_INCLUDE_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", e.g. /usr/include/postgresql/15/server | autodetected                       |
-| `USERVER_PG_SERVER_LIBRARY_DIR`       | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", e.g. /usr/lib/postgresql/15/lib      | autodetected                       |
-| `USERVER_PG_INCLUDE_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", e.g. /usr/local/include                 | autodetected                       |
-| `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                       |
-| `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                     | Builds `userver-api-common-protos` |
-| `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                              | Downloads automatically            |
+| Option                                | Description                                                                                                             | Default                            |
+|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------------|
+| `USERVER_PYTHON_PATH`                 | Path to the python3 binary for use in testsuite tests                                                                   | `python3`                          |
+| `USERVER_PG_SERVER_INCLUDE_DIR`       | Path to the folder with @ref postgres_deps_versions "PostgreSQL server headers", e.g. /usr/include/postgresql/15/server | autodetected                       |
+| `USERVER_PG_SERVER_LIBRARY_DIR`       | Path to the folder with @ref postgres_deps_versions "PostgreSQL server libraries", e.g. /usr/lib/postgresql/15/lib      | autodetected                       |
+| `USERVER_PG_INCLUDE_DIR`              | Path to the folder with @ref postgres_deps_versions "PostgreSQL libpq headers", e.g. /usr/local/include                 | autodetected                       |
+| `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref postgres_deps_versions "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                       |
+| `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                              | Builds `userver-api-common-protos` |
+| `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                                       | Downloads automatically            |
 
 ### CMake options for various compilation modes
 
-| Option                                 | Description                                                                                                 | Default                                                     |
-|----------------------------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| `USERVER_CHECK_PACKAGE_VERSIONS`       | Check package versions                                                                                      | `ON`                                                        |
-| `USERVER_SANITIZE`                     | Build with sanitizers support, allows combination of values via 'val1 val2'. Available: `addr`, `mem`, `ub` | (no sanitizers)                                             |
-| `USERVER_SANITIZE_BLACKLIST`           | Path to file that is passed to the -fsanitize-blacklist option                                              | (no blacklist)                                              |
-| `USERVER_USE_LD`                       | Linker to use, e.g. `gold` or `lld`                                                                         | `lld` for Clang, system linker otherwise (typically GNU ld) |
-| `USERVER_USE_STATIC_LIBS`              | Tries to find all dependencies as static libraries                                                          | `ON` for `Clang` not older than `14` version                |
-| `USERVER_USE_CCACHE`                   | Use ccache if present, disable for benchmarking build times                                                 | `ON`                                                        |
-| `USERVER_LTO`                          | Use link time optimizations (SEE NOTE BELOW)                                                                | `OFF`                                                       |
-| `USERVER_LTO_CACHE`                    | Use LTO cache if present, disable for benchmarking build times                                              | `ON`                                                        |
-| `USERVER_LTO_CACHE_DIR`                | LTO cache directory                                                                                         | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                     |
-| `USERVER_LTO_CACHE_SIZE_MB`            | LTO cache size limit in MB                                                                                  | `6000`                                                      |
-| `USERVER_PGO_GENERATE`                 | Generate PGO profile                                                                                        | `OFF`                                                       |
-| `USERVER_PGO_USE`                      | Path to PGO profile file                                                                                    | (no path)                                                   |
-| `USERVER_COMPILATION_TIME_TRACE`       | Generate Clang compilation time trace                                                                       | `OFF`                                                       |
-| `USERVER_NO_WERROR`                    | Do not treat warnings as errors                                                                             | `ON`                                                        |
-| `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error  | `OFF`                                                       |
-| `USERVER_PIP_USE_SYSTEM_PACKAGES`      | Use system python packages inside venv. Useful for Docker, CI and other controlled environments             | `OFF`                                                       |
-| `USERVER_PIP_OPTIONS`                  | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                  | (no options)                                                |
-| `USERVER_INSTALL`                      | Build userver for further installation                                                                      | `OFF`                                                       |
-| `USERVER_CONAN`                        | Build userver using Conan packages                                                                          | `ON` if build is launched from Conan, `OFF` otherwise       |
-| `USERVER_CHAOTIC_FORMAT`               | Whether to format generated code if FORMAT option is missing                                                | `ON`                                                        |
+| Option                                  | Description                                                                                                 | Default                                                     |
+|-----------------------------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| `USERVER_CHECK_PACKAGE_VERSIONS`        | Check package versions                                                                                      | `ON`                                                        |
+| `USERVER_SANITIZE`                      | Build with sanitizers support, allows combination of values via 'val1 val2'. Available: `addr`, `mem`, `ub` | (no sanitizers)                                             |
+| `USERVER_SANITIZE_BLACKLIST`            | Path to file that is passed to the -fsanitize-blacklist option                                              | (no blacklist)                                              |
+| `USERVER_USE_LD`                        | Linker to use, e.g. `gold` or `lld`                                                                         | `lld` for Clang, system linker otherwise (typically GNU ld) |
+| `USERVER_USE_STATIC_LIBS`               | Tries to find all dependencies as static libraries                                                          | `ON` for `Clang` not older than `14` version                |
+| `USERVER_USE_CCACHE`                    | Use ccache if present, disable for benchmarking build times                                                 | `ON`                                                        |
+| `USERVER_LTO`                           | Use link time optimizations (SEE NOTE BELOW)                                                                | `OFF`                                                       |
+| `USERVER_LTO_CACHE`                     | Use LTO cache if present, disable for benchmarking build times                                              | `ON`                                                        |
+| `USERVER_LTO_CACHE_DIR`                 | LTO cache directory                                                                                         | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                     |
+| `USERVER_LTO_CACHE_SIZE_MB`             | LTO cache size limit in MB                                                                                  | `6000`                                                      |
+| `USERVER_ENABLE_DEBUG_INFO_COMPRESSION` | Enable linker and compiler debug info compression                                                           | `ON`                                                        |
+| `USERVER_PGO_GENERATE`                  | Generate PGO profile                                                                                        | `OFF`                                                       |
+| `USERVER_PGO_USE`                       | Path to PGO profile file                                                                                    | (no path)                                                   |
+| `USERVER_COMPILATION_TIME_TRACE`        | Generate Clang compilation time trace                                                                       | `OFF`                                                       |
+| `USERVER_NO_WERROR`                     | Do not treat warnings as errors                                                                             | `ON`                                                        |
+| `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL`  | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error  | `OFF`                                                       |
+| `USERVER_PIP_USE_SYSTEM_PACKAGES`       | Use system python packages inside venv. Useful for Docker, CI and other controlled environments             | `OFF`                                                       |
+| `USERVER_PIP_OPTIONS`                   | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                  | (no options)                                                |
+| `USERVER_INSTALL`                       | Build userver for further installation                                                                      | `OFF`                                                       |
+| `USERVER_CONAN`                         | Build userver using Conan packages                                                                          | `ON` if build is launched from Conan, `OFF` otherwise       |
+| `USERVER_CHAOTIC_FORMAT`                | Whether to format generated code if FORMAT option is missing                                                | `ON`                                                        |
 
 @warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
 

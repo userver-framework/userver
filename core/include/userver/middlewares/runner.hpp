@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/ugrpc/middlewares/runner.hpp
-/// @brief @copybrief ugrpc::middlewares::RunnerComponentBase
+/// @file userver/middlewares/runner.hpp
+/// @brief @copybrief middlewares::RunnerComponentBase
 
 #include <vector>
 
@@ -12,13 +12,13 @@
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <userver/ugrpc/impl/middleware_pipeline_config.hpp>
-#include <userver/ugrpc/impl/simple_middleware_pipeline.hpp>
-#include <userver/ugrpc/middlewares/pipeline.hpp>
+#include <userver/middlewares/impl/middleware_pipeline_config.hpp>
+#include <userver/middlewares/impl/simple_middleware_pipeline.hpp>
+#include <userver/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::middlewares {
+namespace middlewares {
 
 namespace impl {
 
@@ -28,7 +28,7 @@ yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
     yaml_config::Schema schema
 );
 
-/// Make the default builder for `ugrpc::middlewares::groups::User` group.
+/// Make the default builder for `middlewares::groups::User` group.
 MiddlewareDependencyBuilder MakeDefaultUserDependency();
 
 class WithMiddlewareDependencyComponentBase : public components::ComponentBase {
@@ -40,8 +40,7 @@ public:
     )
         : components::ComponentBase(config, context) {}
 
-    virtual const ugrpc::middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag
-    ) const = 0;
+    virtual const middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag) const = 0;
 };
 
 }  // namespace impl
@@ -91,8 +90,7 @@ properties:
 
     /// @cond
     /// Only for internal use.
-    const ugrpc::middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag
-    ) const override {
+    const middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag) const override {
         return dependency_;
     }
 
@@ -101,7 +99,7 @@ properties:
 
 private:
     const formats::yaml::Value global_config_;
-    ugrpc::middlewares::impl::MiddlewareDependency dependency_;
+    middlewares::impl::MiddlewareDependency dependency_;
 };
 
 /// @brief Base class for a component that runs middlewares.
@@ -117,7 +115,7 @@ private:
 /// middlewares and overriding configs.
 template <typename MiddlewareBase, typename HandlerInfo>
 class RunnerComponentBase : public components::ComponentBase,
-                            public ugrpc::impl::PipelineCreatorInterface<MiddlewareBase, HandlerInfo> {
+                            public impl::PipelineCreatorInterface<MiddlewareBase, HandlerInfo> {
 public:
     static yaml_config::Schema GetStaticConfigSchema() {
         return yaml_config::MergeSchemas<components::ComponentBase>(R"(
@@ -207,7 +205,7 @@ namespace impl {
 /// @brief A short-cut for defining a middleware-factory.
 ///
 /// `MiddlewareBase` type is a interface of middleware, so `Middleware` type is a implementation of this interface.
-/// Your middleware will be created with a default constructor and will be in `ugrpc::middlewares::groups::User` group.
+/// Your middleware will be created with a default constructor and will be in `middlewares::groups::User` group.
 template <typename MiddlewareBase, typename Middleware, typename HandlerInfo>
 class SimpleMiddlewareFactoryComponent final : public MiddlewareFactoryComponentBase<MiddlewareBase, HandlerInfo> {
 public:
@@ -220,7 +218,7 @@ public:
         : MiddlewareFactoryComponentBase<MiddlewareBase, HandlerInfo>(
               config,
               context,
-              ugrpc::middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}
+              middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}
           ) {}
 
 private:
@@ -232,10 +230,10 @@ private:
 
 }  // namespace impl
 
-}  // namespace ugrpc::middlewares
+}  // namespace middlewares
 
 template <typename MiddlewareBase, typename Middleware, typename HandlerInfo>
 inline constexpr bool components::kHasValidate<
-    ugrpc::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, HandlerInfo>> = true;
+    middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, HandlerInfo>> = true;
 
 USERVER_NAMESPACE_END

@@ -7,9 +7,9 @@
 
 #include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/middlewares/runner.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-#include <userver/ugrpc/middlewares/runner.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
@@ -24,14 +24,10 @@ class GenericServiceBase;
 namespace impl {
 
 /// @brief The interface for a `ServerComponentBase` component. So, `ServerComponentBase` runs with middlewares.
-using MiddlewareRunner = USERVER_NAMESPACE::ugrpc::middlewares::RunnerComponentBase<MiddlewareBase, ServiceInfo>;
+using MiddlewareRunner =
+    USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ugrpc::server::ServiceInfo>;
 
 }  // namespace impl
-
-/// @brief Service meta info for a middleware construction.
-struct ServiceInfo final {
-    std::string full_service_name{};
-};
 
 // clang-format off
 
