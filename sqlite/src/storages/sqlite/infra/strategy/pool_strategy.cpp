@@ -18,12 +18,23 @@ std::unique_ptr<PoolStrategyBase> PoolStrategyBase::Create(
     const settings::SQLiteSettings& settings,
     engine::TaskProcessor& blocking_task_processor) {
   if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadOnly) {
+    // many readers and null writers in one time
     return std::make_unique<ReadOnlyStrategy>(settings,
                                               blocking_task_processor);
-  } else {
-    return std::make_unique<ReadWriteStrategy>(settings,
-                                               blocking_task_processor);
   }
+  return std::make_unique<ReadWriteStrategy>(settings, blocking_task_processor);
+  // TODO: in case of rollback journal it need more advanced pool strategy with
+  // waiting on pools iternal state or sqlite lock state
+  //  else if (settings.journal_mode ==
+  //            settings::SQLiteSettings::JournalMode::kWal) {
+  //   // many readers and one writer in one time
+  //   return std::make_unique<ReadWriteStrategy>(settings,
+  //                                              blocking_task_processor);
+  // } else {
+  //   // many readers or one writer in one time
+  //   return std::make_unique<ExclusiveReadWriteStrategy>(settings,
+  //                                              blocking_task_processor);
+  // }
 }
 
 Pool& PoolStrategyBase::SelectPool(

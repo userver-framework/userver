@@ -50,37 +50,35 @@ ResultSet Connection::ExecuteCommand(
 void Connection::Begin(const settings::TransactionOptions& options) {
   switch (options.mode) {
     case settings::TransactionOptions::kDeferred:
-      ExecuteCommandNoPrepare(kStatementTransactionBeginDeferred.data());
+      ExecuteQuery(kStatementTransactionBeginDeferred.data());
       break;
     case settings::TransactionOptions::kImmediate:
-      ExecuteCommandNoPrepare(kStatementTransactionBeginImmediate.data());
+      ExecuteQuery(kStatementTransactionBeginImmediate.data());
       break;
     case settings::TransactionOptions::kExclusive:
-      ExecuteCommandNoPrepare(kStatementTransactionBeginExclusive.data());
+      ExecuteQuery(kStatementTransactionBeginExclusive.data());
       break;
     default:
       break;
   }
 }
 
-void Connection::Commit() {
-  ExecuteCommandNoPrepare(kStatementTransactionCommit.data());
-}
+void Connection::Commit() { ExecuteQuery(kStatementTransactionCommit.data()); }
 
 void Connection::Rollback() {
-  ExecuteCommandNoPrepare(kStatementTransactionRollback.data());
+  ExecuteQuery(kStatementTransactionRollback.data());
 }
 
 void Connection::Savepoint(const std::string& name) {
-  ExecuteCommandNoPrepare(std::string(kStatementSavepointBegin) + name);
+  ExecuteQuery(std::string(kStatementSavepointBegin) + name);
 }
 
 void Connection::Release(const std::string& name) {
-  ExecuteCommandNoPrepare(std::string(kStatementSavepointRelease) + name);
+  ExecuteQuery(std::string(kStatementSavepointRelease) + name);
 }
 
 void Connection::RollbackTo(const std::string& name) {
-  ExecuteCommandNoPrepare(std::string(kStatementSavepointRollbackTo) + name);
+  ExecuteQuery(std::string(kStatementSavepointRollbackTo) + name);
 }
 
 std::string Connection::PrepareString(const std::string& str) {
@@ -102,6 +100,10 @@ StatementPtr Connection::PrepareStatement(const Query& query) {
 bool Connection::IsBroken() const { return broken_.load(); }
 
 void Connection::NotifyBroken() { broken_.store(true); }
+
+void Connection::ExecuteQuery(const std::string& query) const {
+  db_handler_.Exec(query);
+}
 
 }  // namespace storages::sqlite::impl
 

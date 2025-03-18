@@ -14,12 +14,14 @@ class NativeHandler final {
   explicit NativeHandler(const settings::SQLiteSettings& settings,
                          engine::TaskProcessor& blocking_task_processor);
 
-  struct sqlite3* GetHandle() const noexcept;
-
   ~NativeHandler();
+
+  struct sqlite3* GetHandle() const noexcept;
+  void Exec(const std::string& query) const;
 
  private:
   struct sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);
+  void SetSettings(const settings::SQLiteSettings& settings);
 
   engine::TaskProcessor& blocking_task_processor_;
   struct sqlite3* db_handler_;

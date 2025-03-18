@@ -51,6 +51,10 @@ class Connection {
   ResultSet ExecuteCommandNoPrepare(const std::string& query,
                                     const Args&... args) const;
 
+  void ExecuteQuery(const std::string& query) const;
+
+  void SetSettings(const settings::SQLiteSettings& settings);
+
   engine::TaskProcessor& blocking_task_processor_;
   impl::NativeHandler db_handler_;
   settings::ConnectionSettings connection_settings_;

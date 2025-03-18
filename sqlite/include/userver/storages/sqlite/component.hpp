@@ -24,7 +24,15 @@ namespace components {
 /// create_file                        | create a file if one is not found along the db-path            | true
 /// is_read_only                       | defines database access as read-only                           | false
 /// shared_cashe                       | open database with shared in-memory cashe                      | false
-/// wal_mode                           | WAL journal mode                                               | true
+/// journal_mode                       | journal mode                                                   | wal
+/// busy_timeout                       | queries busy timeout                                           | 5000
+/// foreign_keys                       | enable foreign keys                                            | true
+/// synchronous                        | durability level                                               | normal
+/// cache_size                         | maximum cache size. In page or in kibibytes (negative)         | -2000
+/// journal_size_limit                 | limit the size of rollback-journal and WAL files               | 67108864
+/// mmap_size                          | max number of bytes that are set aside for memory-mapped I/O   | 134217728
+/// page_size                          | page size of the database                                      | 4096
+/// temp_store                         | where temporary tables and indices are stored                  | memory
 /// persistent-prepared-statements     | cache prepared statements or not                               | true
 /// max_prepared_cache_size            | prepared statements cache size limit                           | 200
 /// initial_read_only_pool_size        | initial read only connection pool size                         | 5

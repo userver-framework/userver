@@ -142,7 +142,7 @@ void Statement::CheckFail() const {
 
 void Statement::Next() {
   exec_status_ = sqlite3_step(prepare_statement_.get());
-  if (IsDone()) {
+  if (!HasNext()) {
     Reset();
   }
   CheckFail();
