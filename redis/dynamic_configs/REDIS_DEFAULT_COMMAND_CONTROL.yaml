@@ -1,0 +1,28 @@
+default: {}
+description: ''
+schema:
+    additionalProperties: false
+    properties:
+        best_dc_count:
+            type: integer
+        max_ping_latency_ms:
+            type: integer
+        max_retries:
+            type: integer
+        strategy:
+            enum:
+              - default
+              - every_dc
+              - local_dc_conductor
+              - nearest_server_ping
+            type: string
+        timeout_all_ms:
+            type: integer
+        timeout_single_ms:
+            type: integer
+        force_request_to_master:
+            type: boolean
+        allow_reads_from_master:
+            type: boolean
+    type: object
+

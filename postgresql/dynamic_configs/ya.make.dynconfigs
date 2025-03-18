@@ -1,0 +1,146 @@
+RUN_PROGRAM(
+    taxi/uservices/userver/chaotic/bin-dynamic-configs
+        -o ${BINDIR}/dynamic_configs/
+        -I ${CURDIR}/include
+        -I ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic/include
+        --clang-format ''
+        
+            dynamic_configs/POSTGRES_CONGESTION_CONTROL_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.yaml
+        
+            dynamic_configs/POSTGRES_CONNECTION_POOL_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.yaml
+        
+            dynamic_configs/POSTGRES_DEADLINE_PROPAGATION_VERSION.yaml
+        
+            dynamic_configs/POSTGRES_DEFAULT_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/POSTGRES_HANDLERS_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.yaml
+        
+            dynamic_configs/POSTGRES_QUERIES_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/POSTGRES_STATEMENT_METRICS_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_TOPOLOGY_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_CONNECTION_SETTINGS.yaml
+        
+    OUTPUT_INCLUDES  # Note: the list is handmade :-(
+        userver/chaotic/array.hpp
+        userver/chaotic/validators.hpp
+        userver/chaotic/object.hpp
+        userver/chaotic/oneof_with_discriminator.hpp
+        userver/chaotic/primitive.hpp
+        userver/chaotic/with_type.hpp
+        userver/chaotic/ref.hpp
+        userver/chaotic/variant.hpp
+        userver/chaotic/io/std/chrono/milliseconds.hpp
+        userver/chaotic/io/std/chrono/seconds.hpp
+        userver/chaotic/io/std/chrono/microseconds.hpp
+        userver/chaotic/io/std/chrono/minutes.hpp
+        userver/chaotic/io/std/chrono/days.hpp
+        userver/chaotic/io/std/set.hpp
+        userver/chaotic/io/std/unordered_set.hpp
+        userver/chaotic/io/std/size_t.hpp
+        userver/chaotic/io/userver/decimal64/decimal.hpp
+        userver/chaotic/io/userver/utils/default_dict.hpp
+        userver/chaotic/io/userver/utils/datetime/date.hpp
+        userver/chaotic/io/userver/utils/datetime/time_point_tz.hpp
+        userver/chaotic/io/userver/utils/datetime/time_point_tz_iso_basic.hpp
+        userver/chaotic/io/boost/uuids/uuid.hpp
+    IN_NOPARSE
+        
+            dynamic_configs/POSTGRES_CONGESTION_CONTROL_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.yaml
+        
+            dynamic_configs/POSTGRES_CONNECTION_POOL_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.yaml
+        
+            dynamic_configs/POSTGRES_DEADLINE_PROPAGATION_VERSION.yaml
+        
+            dynamic_configs/POSTGRES_DEFAULT_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/POSTGRES_HANDLERS_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.yaml
+        
+            dynamic_configs/POSTGRES_QUERIES_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/POSTGRES_STATEMENT_METRICS_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_TOPOLOGY_SETTINGS.yaml
+        
+            dynamic_configs/POSTGRES_CONNECTION_SETTINGS.yaml
+        
+    OUT
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_CONGESTION_CONTROL_SETTINGS.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONGESTION_CONTROL_SETTINGS.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONGESTION_CONTROL_SETTINGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONGESTION_CONTROL_SETTINGS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_CONNECTION_POOL_SETTINGS.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_POOL_SETTINGS.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_POOL_SETTINGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_POOL_SETTINGS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_DEADLINE_PROPAGATION_VERSION.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_DEADLINE_PROPAGATION_VERSION.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_DEADLINE_PROPAGATION_VERSION.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_DEADLINE_PROPAGATION_VERSION.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_DEFAULT_COMMAND_CONTROL.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_DEFAULT_COMMAND_CONTROL.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_DEFAULT_COMMAND_CONTROL.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_DEFAULT_COMMAND_CONTROL.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_HANDLERS_COMMAND_CONTROL.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_HANDLERS_COMMAND_CONTROL.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_HANDLERS_COMMAND_CONTROL.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_HANDLERS_COMMAND_CONTROL.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_QUERIES_COMMAND_CONTROL.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_QUERIES_COMMAND_CONTROL.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_QUERIES_COMMAND_CONTROL.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_QUERIES_COMMAND_CONTROL.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_STATEMENT_METRICS_SETTINGS.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_STATEMENT_METRICS_SETTINGS.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_STATEMENT_METRICS_SETTINGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_STATEMENT_METRICS_SETTINGS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_TOPOLOGY_SETTINGS.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_TOPOLOGY_SETTINGS.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_TOPOLOGY_SETTINGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_TOPOLOGY_SETTINGS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/POSTGRES_CONNECTION_SETTINGS.cpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_SETTINGS.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_SETTINGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/POSTGRES_CONNECTION_SETTINGS.types_fwd.hpp
+        
+)
+ADDINCL(
+    GLOBAL ${ARCADIA_BUILD_ROOT}/taxi/uservices/userver/postgresql/dynamic_configs/include
+)

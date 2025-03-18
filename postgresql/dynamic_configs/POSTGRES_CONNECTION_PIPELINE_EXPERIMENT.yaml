@@ -1,0 +1,5 @@
+default: 0
+description: ''
+schema:
+    type: integer
+    minimum: 0

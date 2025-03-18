@@ -1,0 +1,19 @@
+default:
+    buffering_enabled: false
+    watch_command_timer_interval_us: 0
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        buffering_enabled:
+            type: boolean
+        commands_buffering_threshold:
+            type: integer
+            minimum: 1
+        watch_command_timer_interval_us:
+            type: integer
+            minimum: 0
+    required:
+      - buffering_enabled
+      - watch_command_timer_interval_us

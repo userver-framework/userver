@@ -1,5 +1,6 @@
 #include <server/handlers/http_server_settings.hpp>
 
+#include <dynamic_config/variables/USERVER_LOG_REQUEST.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 

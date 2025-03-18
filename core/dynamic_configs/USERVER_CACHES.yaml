@@ -1,0 +1,40 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties:
+        type: object
+        additionalProperties: false
+        properties:
+            update-interval-ms:
+                type: integer
+                minimum: 1
+                x-taxi-cpp-type: std::chrono::milliseconds
+            update-jitter-ms:
+                type: integer
+                minimum: 0
+                x-taxi-cpp-type: std::chrono::milliseconds
+            full-update-interval-ms:
+                type: integer
+                minimum: 0
+                x-taxi-cpp-type: std::chrono::milliseconds
+            full-update-jitter-ms:
+                type: integer
+                minimum: 0
+                x-taxi-cpp-type: std::chrono::milliseconds
+            updates-enabled:
+                type: boolean
+                default: true
+            exception-interval-ms:
+                type: integer
+                minimum: 0
+                x-taxi-cpp-type: std::chrono::milliseconds
+            alert-on-failing-to-update-times:
+                type: integer
+                minimum: 0
+                x-taxi-cpp-type: std::uint32_t
+        required:
+          - update-interval-ms
+          - update-jitter-ms
+          - full-update-interval-ms
+          - full-update-jitter-ms

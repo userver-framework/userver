@@ -1,0 +1,56 @@
+RUN_PROGRAM(
+    taxi/uservices/userver/chaotic/bin-dynamic-configs
+        -o ${BINDIR}/dynamic_configs/
+        -I ${CURDIR}/include
+        -I ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic/include
+        --clang-format ''
+        
+            dynamic_configs/YDB_QUERIES_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/YDB_RETRY_BUDGET.yaml
+        
+    OUTPUT_INCLUDES  # Note: the list is handmade :-(
+        userver/chaotic/array.hpp
+        userver/chaotic/validators.hpp
+        userver/chaotic/object.hpp
+        userver/chaotic/oneof_with_discriminator.hpp
+        userver/chaotic/primitive.hpp
+        userver/chaotic/with_type.hpp
+        userver/chaotic/ref.hpp
+        userver/chaotic/variant.hpp
+        userver/chaotic/io/std/chrono/milliseconds.hpp
+        userver/chaotic/io/std/chrono/seconds.hpp
+        userver/chaotic/io/std/chrono/microseconds.hpp
+        userver/chaotic/io/std/chrono/minutes.hpp
+        userver/chaotic/io/std/chrono/days.hpp
+        userver/chaotic/io/std/set.hpp
+        userver/chaotic/io/std/unordered_set.hpp
+        userver/chaotic/io/std/size_t.hpp
+        userver/chaotic/io/userver/decimal64/decimal.hpp
+        userver/chaotic/io/userver/utils/default_dict.hpp
+        userver/chaotic/io/userver/utils/datetime/date.hpp
+        userver/chaotic/io/userver/utils/datetime/time_point_tz.hpp
+        userver/chaotic/io/userver/utils/datetime/time_point_tz_iso_basic.hpp
+        userver/chaotic/io/boost/uuids/uuid.hpp
+    IN_NOPARSE
+        
+            dynamic_configs/YDB_QUERIES_COMMAND_CONTROL.yaml
+        
+            dynamic_configs/YDB_RETRY_BUDGET.yaml
+        
+    OUT
+        
+            dynamic_configs/src/dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.cpp
+            dynamic_configs/include/dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.hpp
+            dynamic_configs/include/dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.types.hpp
+            dynamic_configs/include/dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/YDB_RETRY_BUDGET.cpp
+            dynamic_configs/include/dynamic_config/variables/YDB_RETRY_BUDGET.hpp
+            dynamic_configs/include/dynamic_config/variables/YDB_RETRY_BUDGET.types.hpp
+            dynamic_configs/include/dynamic_config/variables/YDB_RETRY_BUDGET.types_fwd.hpp
+        
+)
+ADDINCL(
+    GLOBAL ${ARCADIA_BUILD_ROOT}/taxi/uservices/userver/ydb/dynamic_configs/include
+)

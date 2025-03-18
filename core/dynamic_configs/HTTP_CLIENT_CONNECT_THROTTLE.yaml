@@ -1,0 +1,40 @@
+default:
+    max-size: 100
+    token-update-interval-ms: 0
+description: ''
+schema:
+    type: object
+    properties:
+        http-limit:
+            type: integer
+            minimum: 0
+        http-per-second:
+            type: integer
+            minimum: 0
+        https-limit:
+            type: integer
+            minimum: 0
+        https-per-second:
+            type: integer
+            minimum: 0
+        per-host-limit:
+            type: integer
+            minimum: 0
+        per-host-per-second:
+            type: integer
+            minimum: 0
+        max-size:
+            type: integer
+            minimum: 1
+        token-update-interval-ms:
+            type: integer
+            minimum: 0
+        http-max-size:
+            type: integer
+            minimum: 1
+            default: 100
+        http-token-update-interval-ms:
+            type: integer
+            minimum: 0
+            default: 100
+    additionalProperties: false

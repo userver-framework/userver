@@ -11,6 +11,7 @@ userver_module(redis
     DBTEST_DATABASES redis redis-cluster
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmark"
     UBENCH_DATABASES redis
+    GENERATE_DYNAMIC_CONFIGS
 )
 
 # for libev

@@ -1,0 +1,236 @@
+RUN_PROGRAM(
+    taxi/uservices/userver/chaotic/bin-dynamic-configs
+        -o ${BINDIR}/dynamic_configs/
+        -I ${CURDIR}/include
+        -I ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic/include
+        --clang-format ''
+        
+            dynamic_configs/BAGGAGE_SETTINGS.yaml
+        
+            dynamic_configs/HTTP_CLIENT_CONNECTION_POOL_SIZE.yaml
+        
+            dynamic_configs/HTTP_CLIENT_CONNECT_THROTTLE.yaml
+        
+            dynamic_configs/USERVER_BAGGAGE_ENABLED.yaml
+        
+            dynamic_configs/USERVER_CACHES.yaml
+        
+            dynamic_configs/USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE.yaml
+        
+            dynamic_configs/USERVER_DEADLINE_PROPAGATION_ENABLED.yaml
+        
+            dynamic_configs/USERVER_DUMPS.yaml
+        
+            dynamic_configs/USERVER_FILES_CONTENT_TYPE_MAP.yaml
+        
+            dynamic_configs/USERVER_HTTP_PROXY.yaml
+        
+            dynamic_configs/USERVER_LOG_DYNAMIC_DEBUG.yaml
+        
+            dynamic_configs/USERVER_LOG_REQUEST.yaml
+        
+            dynamic_configs/USERVER_LRU_CACHES.yaml
+        
+            dynamic_configs/USERVER_NO_LOG_SPANS.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL_CUSTOM_STATUS.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL_ENABLED.yaml
+        
+            dynamic_configs/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.yaml
+        
+            dynamic_configs/USERVER_TASK_PROCESSOR_QOS.yaml
+        
+            dynamic_configs/USERVER_LOG_REQUEST_HEADERS.yaml
+        
+            dynamic_configs/USERVER_LOG_REQUEST_HEADERS_WHITELIST.yaml
+        
+    OUTPUT_INCLUDES  # Note: the list is handmade :-(
+        userver/chaotic/array.hpp
+        userver/chaotic/validators.hpp
+        userver/chaotic/object.hpp
+        userver/chaotic/oneof_with_discriminator.hpp
+        userver/chaotic/primitive.hpp
+        userver/chaotic/with_type.hpp
+        userver/chaotic/ref.hpp
+        userver/chaotic/variant.hpp
+        userver/chaotic/io/std/chrono/milliseconds.hpp
+        userver/chaotic/io/std/chrono/seconds.hpp
+        userver/chaotic/io/std/chrono/microseconds.hpp
+        userver/chaotic/io/std/chrono/minutes.hpp
+        userver/chaotic/io/std/chrono/days.hpp
+        userver/chaotic/io/std/set.hpp
+        userver/chaotic/io/std/unordered_set.hpp
+        userver/chaotic/io/std/size_t.hpp
+        userver/chaotic/io/userver/decimal64/decimal.hpp
+        userver/chaotic/io/userver/utils/default_dict.hpp
+        userver/chaotic/io/userver/utils/datetime/date.hpp
+        userver/chaotic/io/userver/utils/datetime/time_point_tz.hpp
+        userver/chaotic/io/userver/utils/datetime/time_point_tz_iso_basic.hpp
+        userver/chaotic/io/boost/uuids/uuid.hpp
+    IN_NOPARSE
+        
+            dynamic_configs/BAGGAGE_SETTINGS.yaml
+        
+            dynamic_configs/HTTP_CLIENT_CONNECTION_POOL_SIZE.yaml
+        
+            dynamic_configs/HTTP_CLIENT_CONNECT_THROTTLE.yaml
+        
+            dynamic_configs/USERVER_BAGGAGE_ENABLED.yaml
+        
+            dynamic_configs/USERVER_CACHES.yaml
+        
+            dynamic_configs/USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE.yaml
+        
+            dynamic_configs/USERVER_DEADLINE_PROPAGATION_ENABLED.yaml
+        
+            dynamic_configs/USERVER_DUMPS.yaml
+        
+            dynamic_configs/USERVER_FILES_CONTENT_TYPE_MAP.yaml
+        
+            dynamic_configs/USERVER_HTTP_PROXY.yaml
+        
+            dynamic_configs/USERVER_LOG_DYNAMIC_DEBUG.yaml
+        
+            dynamic_configs/USERVER_LOG_REQUEST.yaml
+        
+            dynamic_configs/USERVER_LRU_CACHES.yaml
+        
+            dynamic_configs/USERVER_NO_LOG_SPANS.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL_CUSTOM_STATUS.yaml
+        
+            dynamic_configs/USERVER_RPS_CCONTROL_ENABLED.yaml
+        
+            dynamic_configs/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.yaml
+        
+            dynamic_configs/USERVER_TASK_PROCESSOR_QOS.yaml
+        
+            dynamic_configs/USERVER_LOG_REQUEST_HEADERS.yaml
+        
+            dynamic_configs/USERVER_LOG_REQUEST_HEADERS_WHITELIST.yaml
+        
+    OUT
+        
+            dynamic_configs/src/dynamic_config/variables/BAGGAGE_SETTINGS.cpp
+            dynamic_configs/include/dynamic_config/variables/BAGGAGE_SETTINGS.hpp
+            dynamic_configs/include/dynamic_config/variables/BAGGAGE_SETTINGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/BAGGAGE_SETTINGS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/HTTP_CLIENT_CONNECTION_POOL_SIZE.cpp
+            dynamic_configs/include/dynamic_config/variables/HTTP_CLIENT_CONNECTION_POOL_SIZE.hpp
+            dynamic_configs/include/dynamic_config/variables/HTTP_CLIENT_CONNECTION_POOL_SIZE.types.hpp
+            dynamic_configs/include/dynamic_config/variables/HTTP_CLIENT_CONNECTION_POOL_SIZE.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.cpp
+            dynamic_configs/include/dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.hpp
+            dynamic_configs/include/dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.types.hpp
+            dynamic_configs/include/dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_BAGGAGE_ENABLED.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_BAGGAGE_ENABLED.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_BAGGAGE_ENABLED.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_CACHES.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_CACHES.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_CACHES.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_CACHES.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_DUMPS.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_DUMPS.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_DUMPS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_DUMPS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_FILES_CONTENT_TYPE_MAP.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_FILES_CONTENT_TYPE_MAP.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_FILES_CONTENT_TYPE_MAP.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_FILES_CONTENT_TYPE_MAP.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_HTTP_PROXY.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_HTTP_PROXY.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_HTTP_PROXY.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_HTTP_PROXY.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_LOG_REQUEST.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_LRU_CACHES.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LRU_CACHES.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LRU_CACHES.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LRU_CACHES.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_NO_LOG_SPANS.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_NO_LOG_SPANS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_NO_LOG_SPANS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_RPS_CCONTROL.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_RPS_CCONTROL_CUSTOM_STATUS.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_CUSTOM_STATUS.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_CUSTOM_STATUS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_CUSTOM_STATUS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_RPS_CCONTROL_ENABLED.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_ENABLED.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_ENABLED.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_RPS_CCONTROL_ENABLED.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS.types_fwd.hpp
+        
+            dynamic_configs/src/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS_WHITELIST.cpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS_WHITELIST.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS_WHITELIST.types.hpp
+            dynamic_configs/include/dynamic_config/variables/USERVER_LOG_REQUEST_HEADERS_WHITELIST.types_fwd.hpp
+        
+)
+ADDINCL(
+    GLOBAL ${ARCADIA_BUILD_ROOT}/taxi/uservices/userver/core/dynamic_configs/include
+)

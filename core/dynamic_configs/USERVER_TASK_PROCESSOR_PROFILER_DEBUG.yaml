@@ -1,0 +1,31 @@
+default:
+    main-task-processor:
+        enabled: false
+        # 2ms
+        execution-slice-threshold-us: 2000
+    fs-task-processor:
+        enabled: false
+        # 1sec
+        execution-slice-threshold-us: 1000000
+description: ''
+schema:
+    type: object
+    properties: {}
+    additionalProperties:
+        $ref: '#/definitions/TaskProcessorSettings'
+    definitions:
+        TaskProcessorSettings:
+            type: object
+            required:
+              - enabled
+              - execution-slice-threshold-us
+            additionalProperties: false
+            properties:
+                enabled:
+                    type: boolean
+                execution-slice-threshold-us:
+                    type: integer
+                    minimum: 1
+                    x-taxi-cpp-type: std::chrono::microseconds
+                profiler-force-stacktrace:
+                    type: boolean
