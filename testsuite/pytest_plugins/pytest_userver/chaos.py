@@ -557,7 +557,7 @@ class BaseGate:
                 port_for_client=self._accept_sockets[0].getsockname()[1],
             )
 
-        BaseGate.start_accepting(self)
+        self.start_accepting()
 
     def start_accepting(self) -> None:
         """Start accepting tasks"""
@@ -589,7 +589,7 @@ class BaseGate:
         self.to_server_pass()
         self.to_client_pass()
 
-        await BaseGate.stop_accepting(self)
+        await self.stop_accepting()
         logger.info('Before close() %s', self.info())
         await self.sockets_close()
         assert not self._sockets

@@ -24,8 +24,3 @@ def service_non_http_health_checks(
     checks.tcp.append(net.HostPort(host='localhost', port=tcp_service_port))
     return checks
     # /// [service_non_http_health_checker]
-
-
-@pytest.fixture(name='asyncio_loop')
-async def _asyncio_loop():
-    return asyncio.get_running_loop()
