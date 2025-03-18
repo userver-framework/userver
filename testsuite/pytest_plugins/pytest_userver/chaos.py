@@ -901,6 +901,7 @@ class TcpGate(BaseGate):
     async def _do_accept(self, accept_sock: asyncio_socket.AsyncioSocket) -> None:
         while accept_sock:
             client, _ = await accept_sock.accept()
+            _enable_tcp_nodelay(client)
             logging.debug('new client connected: %r', client)
             server = await self._connect_to_server()
             if server:

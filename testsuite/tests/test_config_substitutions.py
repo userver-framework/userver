@@ -3,7 +3,10 @@ import pytest
 
 @pytest.fixture(scope='session')
 def _service_config_substitution_vars():
-    return {'mockserver': '127.0.0.1:1234', 'foo': 'foo_value'}
+    return {
+        'mockserver': '127.0.0.1:1234',
+        'foo': 'foo_value',
+    }
 
 
 def test_simple(userver_config_substitutions):
@@ -33,7 +36,15 @@ def test_substitute_nested(userver_config_substitutions):
         'list': ['what', '$foo', '$foo'],
         'dict': {'something': 10, 'what': '$foo'},
         'nested-list-of': [
-            {'dicts-of': {'lists': ['what', '$foo'], 'and-strings': '$foo'}},
+            {
+                'dicts-of': {
+                    'lists': [
+                        'what',
+                        '$foo',
+                    ],
+                    'and-strings': '$foo',
+                }
+            }
         ],
     }
 
@@ -45,9 +56,12 @@ def test_substitute_nested(userver_config_substitutions):
         'nested-list-of': [
             {
                 'dicts-of': {
-                    'lists': ['what', 'foo_value'],
+                    'lists': [
+                        'what',
+                        'foo_value',
+                    ],
                     'and-strings': 'foo_value',
-                },
-            },
+                }
+            }
         ],
     }
