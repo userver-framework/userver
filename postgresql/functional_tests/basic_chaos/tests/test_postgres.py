@@ -4,6 +4,7 @@ import socket
 
 import pytest
 from pytest_userver import chaos
+from pytest_userver import asyncio_socket
 
 import utils
 
@@ -299,9 +300,8 @@ async def test_network_limit_bytes(service_client, gate):
 
 
 async def _intercept_server_terminated(
-    loop,
-    socket_from: socket.socket,
-    socket_to: socket.socket,
+    socket_from: asyncio_socket.AsyncioSocket,
+    socket_to: asyncio_socket.AsyncioSocket,
 ) -> None:
     error_msg = (
         b'E\x00\x00\x00tSFATAL\x00VFATAL\x00C57P01\x00'
@@ -316,10 +316,10 @@ async def _intercept_server_terminated(
     data = b''
     n_bytes = -1
     while n_bytes < 0:
-        data += await loop.sock_recv(socket_from, 4096)
+        data += await socket_from.recv(4096)
         n_bytes = data.find(ready_for_query)
-    await loop.sock_sendall(socket_to, data[:n_bytes])
-    await loop.sock_sendall(socket_to, error_msg)
+    await socket_to.sendall(data[:n_bytes])
+    await socket_to.sendall(error_msg)
     raise chaos.GateInterceptException('Closing socket after error')
 
 

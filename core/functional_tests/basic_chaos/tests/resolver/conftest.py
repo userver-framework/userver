@@ -10,6 +10,7 @@ import struct
 
 import pytest
 from pytest_userver import chaos
+from pytest_userver import asyncio_socket
 
 logger = logging.getLogger(__name__)
 sys_random = random.SystemRandom()
@@ -111,10 +112,10 @@ class DnsServerProtocol:
 
 
 def _bind_udp_socket(hostname, port, family=socket.AF_INET6):
-    sock = socket.socket(family, socket.SOCK_DGRAM)
+    sock = asyncio_socket.create_socket(family, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((hostname, port))
-    logger.info(f'socket for udp_server {sock}')
+    logger.info('socket for udp_server %s', sock)
     return sock
 
 
