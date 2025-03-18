@@ -72,12 +72,12 @@ async def _yield() -> None:
     await asyncio.sleep(min_delay)
 
 
-def _try_get_message(
+async def _try_get_message(
     recv_socket: asyncio_socket.AsyncioSocket,
     flags: int,
 ) -> typing.Tuple[typing.Optional[bytes], typing.Optional[Address]]:
     try:
-        return recv_socket.recvfrom(RECV_MAX_SIZE, flags)
+        return await recv_socket.recvfrom(RECV_MAX_SIZE, flags)
     except (BlockingIOError, InterruptedError):
         return None, None
 
@@ -92,7 +92,7 @@ async def _get_message_task(
 
 async def _incoming_data_size(recv_socket: asyncio_socket.AsyncioSocket) -> int:
     from pdb import set_trace; set_trace()
-    msg, _ = _try_get_message(recv_socket, socket.MSG_PEEK)
+    msg, _ = await _try_get_message(recv_socket, socket.MSG_PEEK)
     return len(msg) if msg else 0
 
 
@@ -309,7 +309,7 @@ async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
     except asyncio.CancelledError:
         return
     except Exception as exc:  # pylint: disable=broad-except
-        logger.error('Exception in _cancel_and_join: %s', exc)
+        logger.exception('Exception in _cancel_and_join')
 
 
 def _enable_tcp_nodelay(sock: asyncio_socket.AsyncioSocket) -> None:
@@ -327,9 +327,7 @@ class _UdpDemuxSocketMock:
         self._sock: asyncio_socket.AsyncioSocket = sock
         self._peeraddr: Address = peer_address
 
-        sockpair = asyncio_socket.socketpair(type=socket.SOCK_DGRAM)
-        self._demux_in: asyncio_socket.AsyncioSocket = sockpair[0]
-        self._demux_out: asyncio_socket.AsyncioSocket = sockpair[1]
+        self._demux_in, self._demux_out = asyncio_socket.socketpair(type=socket.SOCK_DGRAM)
         _enable_tcp_nodelay(self._demux_in)
         _enable_tcp_nodelay(self._demux_out)
         self._is_active: bool = True
@@ -889,6 +887,7 @@ class TcpGate(BaseGate):
         )
         for addr in addrs:
             server = asyncio_socket.create_socket(addr[0], addr[1])
+            _enable_tcp_nodelay(server)
             try:
                 logging.trace('Connecting to %s...', addr[4])
                 await server.connect(addr[4])
@@ -896,7 +895,7 @@ class TcpGate(BaseGate):
                 return server
             except Exception as exc:  # pylint: disable=broad-except
                 server.close()
-                logging.warning('Could not connect to %s: %s', addr[4], exc)
+                logging.exception('Could not connect to %s', addr[4])
 
     async def _do_accept(self, accept_sock: asyncio_socket.AsyncioSocket) -> None:
         while accept_sock:
@@ -973,7 +972,7 @@ class UdpGate(BaseGate):
                 logging.trace('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
-                logging.warning('Could not connect to %s: %s', addr[4], exc)
+                logging.exception('Could not connect to %s', addr[4])
 
     def _collect_garbage(self) -> None:
         super()._collect_garbage()
