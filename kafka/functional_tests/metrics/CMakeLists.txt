@@ -1,7 +1,7 @@
-project(userver-kafka-tests-integrational-tests CXX)
+project(userver-kafka-tests-metrics CXX)
 
 add_executable(${PROJECT_NAME} "kafka_service.cpp")
-target_link_libraries(${PROJECT_NAME} userver::core userver::kafka)
+target_link_libraries(${PROJECT_NAME} userver::kafka)
 
 userver_chaos_testsuite_add(
   ENV
