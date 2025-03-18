@@ -22,10 +22,8 @@ async def _assert_data_from_to(
     logger.debug('_assert_data_from_to sendall to %s', sock_from.getsockname())
     expected = b'pong_' + uuid.uuid4().bytes
     await sock_from.sendall(expected)
-    from pdb import set_trace; set_trace()
     logger.debug('_assert_data_from_to recv from %s', sock_to.getsockname())
     data = await sock_to.recv(len(expected))
-    from pdb import set_trace; set_trace()
     assert data == expected
     logger.debug('_assert_data_from_to done')
 

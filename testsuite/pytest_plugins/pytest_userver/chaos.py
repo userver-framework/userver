@@ -16,6 +16,7 @@ import socket
 import sys
 import time
 import typing
+import collections
 
 from pytest_userver import asyncio_socket
 
@@ -72,28 +73,12 @@ async def _yield() -> None:
     await asyncio.sleep(min_delay)
 
 
-async def _try_get_message(
-    recv_socket: asyncio_socket.AsyncioSocket,
-    flags: int,
-) -> typing.Tuple[typing.Optional[bytes], typing.Optional[Address]]:
-    try:
-        return await recv_socket.recvfrom(RECV_MAX_SIZE, flags)
-    except (BlockingIOError, InterruptedError):
-        return None, None
-
-
 async def _get_message_task(
     recv_socket: asyncio_socket.AsyncioSocket,
 ) -> typing.Tuple[bytes, Address]:
     msg, addr = await recv_socket.recvfrom(RECV_MAX_SIZE)
     assert addr
     return msg, addr
-
-
-async def _incoming_data_size(recv_socket: asyncio_socket.AsyncioSocket) -> int:
-    from pdb import set_trace; set_trace()
-    msg, _ = await _try_get_message(recv_socket, socket.MSG_PEEK)
-    return len(msg) if msg else 0
 
 
 async def _intercept_ok(
@@ -218,10 +203,7 @@ class _InterceptSmallerParts:
         socket_from: asyncio_socket.AsyncioSocket,
         socket_to: asyncio_socket.AsyncioSocket,
     ) -> None:
-        # TODO: we don't need it
-        incoming_size = _incoming_data_size(socket_from)
-        chunk_size = min(incoming_size, self._max_size)
-        data = await socket_from.recv(chunk_size)
+        data = await socket_from.recv(self._max_size)
         await asyncio.sleep(self._sleep_per_packet)
         await socket_to.sendall(data)
 
@@ -231,6 +213,7 @@ class _InterceptConcatPackets:
         assert packet_size >= 0
         self._packet_size = packet_size
         self._expire_at: typing.Optional[float] = None
+        self._buf = collections.defaultdict(str)
 
     async def __call__(
         self,
@@ -241,17 +224,19 @@ class _InterceptConcatPackets:
             self._expire_at = time.monotonic() + MAX_DELAY
 
         if self._expire_at <= time.monotonic():
-            logger.error(
+            raise RuntimeError(
                 f'Failed to make a packet of sufficient size in {MAX_DELAY} '
                 'seconds. Check the test logic, it should end with checking '
                 'that the data was sent and by calling TcpGate function '
                 'to_client_pass() to pass the remaining packets.',
             )
-            sys.exit(2)
 
-        incoming_size = _incoming_data_size(socket_from)
-        if incoming_size >= self._packet_size:
-            data = await socket_from.recv(RECV_MAX_SIZE)
+        if socket_from.has_data():
+            self._buf[socket_from] += await socket_from.recv(
+                RECV_MAX_SIZE - len(self._buf[socket_from]))
+
+        if len(self._buf[socket_from]) >= self._packet_size:
+            data = self._buf.pop(socket_from)
             await socket_to.sendall(data)
             self._expire_at = None
 
@@ -401,7 +386,7 @@ class _SocketsPaired:
                 # To avoid long awaiting on sock_recv in an outdated
                 # interceptor we wait for data before grabbing and applying
                 # the interceptor.
-                if not _incoming_data_size(socket_from):
+                if not socket_from.has_data():
                     await _yield()
                     continue
 
@@ -507,6 +492,9 @@ class BaseGate:
 
     async def __aexit__(self, exc_type, exc_value, traceback) -> None:
         await self.stop()
+        for task in self._accept_tasks:
+            if task.done():
+                task.result()
 
     def _create_accepting_sockets(self) -> typing.List[asyncio_socket.AsyncioSocket]:
         raise NotImplementedError(self._NOT_IMPLEMENTED_MESSAGE)
@@ -880,7 +868,8 @@ class TcpGate(BaseGate):
         return res
 
     async def _connect_to_server(self):
-        addrs = await self._loop.getaddrinfo(
+        loop = asyncio.get_running_loop()
+        addrs = await loop.getaddrinfo(
             self._route.host_to_server,
             self._route.port_to_server,
             type=socket.SOCK_STREAM,
@@ -898,7 +887,7 @@ class TcpGate(BaseGate):
                 logging.exception('Could not connect to %s', addr[4])
 
     async def _do_accept(self, accept_sock: asyncio_socket.AsyncioSocket) -> None:
-        while accept_sock:
+        while True:
             client, _ = await accept_sock.accept()
             _enable_tcp_nodelay(client)
             logging.debug('new client connected: %r', client)
@@ -907,7 +896,6 @@ class TcpGate(BaseGate):
                 self._sockets.add(
                     _SocketsPaired(
                         self._route.name,
-                        self._loop,
                         client,
                         server,
                         self._to_server_intercept,
@@ -958,7 +946,8 @@ class UdpGate(BaseGate):
         return res
 
     async def _connect_to_server(self):
-        addrs = await self._loop.getaddrinfo(
+        loop = asyncio.get_running_loop()
+        addrs = await loop.getaddrinfo(
             self._route.host_to_server,
             self._route.port_to_server,
             type=socket.SOCK_DGRAM,
@@ -971,7 +960,7 @@ class UdpGate(BaseGate):
                 await server.connect(addr[4])
                 logging.trace('Connected to %s', addr[4])
                 return server
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 logging.exception('Could not connect to %s', addr[4])
 
     def _collect_garbage(self) -> None:
@@ -1000,7 +989,6 @@ class UdpGate(BaseGate):
                 self._sockets.add(
                     _SocketsPaired(
                         self._route.name,
-                        self._loop,
                         client,
                         server,
                         self._to_server_intercept,
@@ -1008,7 +996,7 @@ class UdpGate(BaseGate):
                     ),
                 )
 
-            await client.push(self._loop, data)
+            await client.push(data)
             self._collect_garbage()
 
     def to_server_concat_packets(self, packet_size: int) -> None:
