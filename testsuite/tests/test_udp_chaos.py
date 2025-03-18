@@ -5,9 +5,8 @@ import typing
 import uuid
 
 import pytest
-from pytest_userver import chaos
 
-# pylint: disable=import-error
+from pytest_userver import chaos
 from pytest_userver.asyncio_socket import AsyncioSocket
 from pytest_userver.asyncio_socket import AsyncioSocketsFactory
 
@@ -41,8 +40,8 @@ class UdpServer:
         Returns an address of the client as seen by the server
         """
         await client_sock.sendall(b'ping')
-        msg, addr = await chaos._get_message_task(  # pylint: disable=protected-access
-            self._sock._sock,  # XXX
+        msg, addr = await chaos._get_message_task(
+            self._sock
         )
         assert msg == b'ping'
         return addr
@@ -84,7 +83,7 @@ def _make_socket(asyncio_socket: AsyncioSocketsFactory):
 
 @pytest.fixture(name='udp_client_factory')
 async def _client_factory(gate, udp_server: UdpServer, make_socket):
-    client_sockets: typing.List[socket.socket] = []
+    client_sockets: typing.List[AsyncioSocket] = []
 
     async def _client_factory_impl():
         sock = make_socket()

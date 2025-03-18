@@ -9,15 +9,16 @@ chaos tests; see
 
 import asyncio
 import dataclasses
-import fcntl
 import logging
-import os
 import random
 import re
 import socket
 import sys
 import time
 import typing
+
+from pytest_userver import asyncio_socket
+
 
 
 @dataclasses.dataclass(frozen=True)
@@ -49,10 +50,8 @@ logger = logging.getLogger(__name__)
 
 
 Address = typing.Tuple[str, int]
-EvLoop = typing.Any
-Socket = socket.socket
 Interceptor = typing.Callable[
-    [EvLoop, Socket, Socket],
+    [asyncio_socket.AsyncioSocket],
     typing.Coroutine[typing.Any, typing.Any, None],
 ]
 
@@ -74,7 +73,7 @@ async def _yield() -> None:
 
 
 def _try_get_message(
-    recv_socket: Socket,
+    recv_socket: asyncio_socket.AsyncioSocket,
     flags: int,
 ) -> typing.Tuple[typing.Optional[bytes], typing.Optional[Address]]:
     try:
@@ -84,74 +83,65 @@ def _try_get_message(
 
 
 async def _get_message_task(
-    recv_socket: Socket,
+    recv_socket: asyncio_socket.AsyncioSocket,
 ) -> typing.Tuple[bytes, Address]:
-    while True:
-        msg, addr = _try_get_message(recv_socket, 0)
-        if msg:
-            assert addr
-            return msg, addr
-
-        await _yield()
+    msg, addr = await recv_socket.recvfrom(RECV_MAX_SIZE)
+    assert addr
+    return msg, addr
 
 
-def _incoming_data_size(recv_socket: Socket) -> int:
+async def _incoming_data_size(recv_socket: asyncio_socket.AsyncioSocket) -> int:
+    from pdb import set_trace; set_trace()
     msg, _ = _try_get_message(recv_socket, socket.MSG_PEEK)
     return len(msg) if msg else 0
 
 
 async def _intercept_ok(
-    loop: EvLoop,
-    socket_from: Socket,
-    socket_to: Socket,
+    socket_from: asyncio_socket.AsyncioSocket,
+    socket_to: asyncio_socket.AsyncioSocket,
 ) -> None:
-    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
-    await loop.sock_sendall(socket_to, data)
+    data = await socket_from.recv(RECV_MAX_SIZE)
+    await socket_to.sendall(data)
 
 
 async def _intercept_noop(
-    loop: EvLoop,
-    socket_from: Socket,
-    socket_to: Socket,
+    socket_from: asyncio_socket.AsyncioSocket,
+    socket_to: asyncio_socket.AsyncioSocket,
 ) -> None:
     pass
 
 
 async def _intercept_drop(
-    loop: EvLoop,
-    socket_from: Socket,
-    socket_to: Socket,
+    socket_from: asyncio_socket.AsyncioSocket,
+    socket_to: asyncio_socket.AsyncioSocket,
 ) -> None:
-    await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+    await socket_from.recv(RECV_MAX_SIZE)
 
 
 async def _intercept_delay(
     delay: float,
-    loop: EvLoop,
-    socket_from: Socket,
-    socket_to: Socket,
+    socket_from: asyncio_socket.AsyncioSocket,
+    socket_to: asyncio_socket.AsyncioSocket,
 ) -> None:
-    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+    data = await socket_from.recv(RECV_MAX_SIZE)
     await asyncio.sleep(delay)
-    await loop.sock_sendall(socket_to, data)
+    await socket_to.sendall(data)
 
 
 async def _intercept_close_on_data(
-    loop: EvLoop,
-    socket_from: Socket,
-    socket_to: Socket,
+    socket_from: asyncio_socket.AsyncioSocket,
+    socket_to: asyncio_socket.AsyncioSocket,
 ) -> None:
-    await loop.sock_recv(socket_from, 1)
+    await socket_from.recv(1)
     raise GateInterceptException('Closing socket on data')
 
 
 async def _intercept_corrupt(
-    loop: EvLoop,
-    socket_from: Socket,
-    socket_to: Socket,
+    socket_from: asyncio_socket.AsyncioSocket,
+    socket_to: asyncio_socket.AsyncioSocket,
 ) -> None:
-    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
-    await loop.sock_sendall(socket_to, bytearray([not x for x in data]))
+    data = await socket_from.recv(RECV_MAX_SIZE)
+    await socket_to.sendall(bytearray([not x for x in data]))
 
 
 class _InterceptBpsLimit:
@@ -174,18 +164,17 @@ class _InterceptBpsLimit:
 
     async def __call__(
         self,
-        loop: EvLoop,
-        socket_from: Socket,
-        socket_to: Socket,
+        socket_from: asyncio_socket.AsyncioSocket,
+        socket_to: asyncio_socket.AsyncioSocket,
     ) -> None:
         self._update_limit()
 
         bytes_to_recv = min(int(self._bytes_left), RECV_MAX_SIZE)
         if bytes_to_recv > 0:
-            data = await loop.sock_recv(socket_from, bytes_to_recv)
+            data = await socket_from.recv(bytes_to_recv)
             self._bytes_left -= len(data)
 
-            await loop.sock_sendall(socket_to, data)
+            await socket_to.sendall(data)
         else:
             logger.info('Socket hits the bytes per second limit')
             await asyncio.sleep(1.0 / self._bytes_per_second)
@@ -193,13 +182,13 @@ class _InterceptBpsLimit:
 
 class _InterceptTimeLimit:
     def __init__(self, timeout: float, jitter: float):
-        self._sockets: typing.Dict[Socket, float] = {}
+        self._sockets: typing.Dict[asyncio_socket.AsyncioSocket, float] = {}
         assert timeout >= 0.0
         self._timeout = timeout
         assert jitter >= 0.0
         self._jitter = jitter
 
-    def raise_if_timed_out(self, socket_from: Socket) -> None:
+    def raise_if_timed_out(self, socket_from: asyncio_socket.AsyncioSocket) -> None:
         if socket_from not in self._sockets:
             jitter = self._jitter * random.random()
             expire_at = time.monotonic() + self._timeout + jitter
@@ -211,12 +200,11 @@ class _InterceptTimeLimit:
 
     async def __call__(
         self,
-        loop: EvLoop,
-        socket_from: Socket,
-        socket_to: Socket,
+        socket_from: asyncio_socket.AsyncioSocket,
+        socket_to: asyncio_socket.AsyncioSocket,
     ) -> None:
         self.raise_if_timed_out(socket_from)
-        await _intercept_ok(loop, socket_from, socket_to)
+        await _intercept_ok(socket_from, socket_to)
 
 
 class _InterceptSmallerParts:
@@ -227,15 +215,15 @@ class _InterceptSmallerParts:
 
     async def __call__(
         self,
-        loop: EvLoop,
-        socket_from: Socket,
-        socket_to: Socket,
+        socket_from: asyncio_socket.AsyncioSocket,
+        socket_to: asyncio_socket.AsyncioSocket,
     ) -> None:
+        # TODO: we don't need it
         incoming_size = _incoming_data_size(socket_from)
         chunk_size = min(incoming_size, self._max_size)
-        data = await loop.sock_recv(socket_from, chunk_size)
+        data = await socket_from.recv(chunk_size)
         await asyncio.sleep(self._sleep_per_packet)
-        await loop.sock_sendall(socket_to, data)
+        await socket_to.sendall(data)
 
 
 class _InterceptConcatPackets:
@@ -246,9 +234,8 @@ class _InterceptConcatPackets:
 
     async def __call__(
         self,
-        loop: EvLoop,
-        socket_from: Socket,
-        socket_to: Socket,
+        socket_from: asyncio_socket.AsyncioSocket,
+        socket_to: asyncio_socket.AsyncioSocket,
     ) -> None:
         if self._expire_at is None:
             self._expire_at = time.monotonic() + MAX_DELAY
@@ -264,8 +251,8 @@ class _InterceptConcatPackets:
 
         incoming_size = _incoming_data_size(socket_from)
         if incoming_size >= self._packet_size:
-            data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
-            await loop.sock_sendall(socket_to, data)
+            data = await socket_from.recv(RECV_MAX_SIZE)
+            await socket_to.sendall(data)
             self._expire_at = None
 
 
@@ -278,19 +265,18 @@ class _InterceptBytesLimit:
 
     async def __call__(
         self,
-        loop: EvLoop,
-        socket_from: Socket,
-        socket_to: Socket,
+        socket_from: asyncio_socket.AsyncioSocket,
+        socket_to: asyncio_socket.AsyncioSocket,
     ) -> None:
-        data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+        data = await socket_from.recv(RECV_MAX_SIZE)
         if self._bytes_remain <= len(data):
-            await loop.sock_sendall(socket_to, data[0 : self._bytes_remain])
+            await socket_to.sendall(data[:self._bytes_remain])
             await self._gate.sockets_close()
             self._bytes_remain = self._bytes_limit
             raise GateInterceptException('Data transmission limit reached')
 
         self._bytes_remain -= len(data)
-        await loop.sock_sendall(socket_to, data)
+        await socket_to.sendall(data)
 
 
 class _InterceptSubstitute:
@@ -301,17 +287,16 @@ class _InterceptSubstitute:
 
     async def __call__(
         self,
-        loop: EvLoop,
-        socket_from: Socket,
-        socket_to: Socket,
+        socket_from: asyncio_socket.AsyncioSocket,
+        socket_to: asyncio_socket.AsyncioSocket,
     ) -> None:
-        data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+        data = await socket_from.recv(RECV_MAX_SIZE)
         try:
             res = self._pattern.sub(self._repl, data.decode(self._encoding))
             data = res.encode(self._encoding)
         except UnicodeError:
             pass
-        await loop.sock_sendall(socket_to, data)
+        await socket_to.sendall(data)
 
 
 async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
@@ -327,11 +312,9 @@ async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
         logger.error('Exception in _cancel_and_join: %s', exc)
 
 
-def _make_socket_nonblocking(sock: Socket) -> None:
-    sock.setblocking(False)
+def _enable_tcp_nodelay(sock: asyncio_socket.AsyncioSocket) -> None:
     if sock.type == socket.SOCK_STREAM:
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
 
 
 class _UdpDemuxSocketMock:
@@ -340,23 +323,23 @@ class _UdpDemuxSocketMock:
     with a non-blocking socket interface
     """
 
-    def __init__(self, sock: Socket, peer_address: Address):
-        self._sock: Socket = sock
+    def __init__(self, sock: asyncio_socket.AsyncioSocket, peer_address: Address):
+        self._sock: asyncio_socket.AsyncioSocket = sock
         self._peeraddr: Address = peer_address
 
-        sockpair = socket.socketpair(type=socket.SOCK_DGRAM)
-        self._demux_in: Socket = sockpair[0]
-        self._demux_out: Socket = sockpair[1]
-        _make_socket_nonblocking(self._demux_in)
-        _make_socket_nonblocking(self._demux_out)
+        sockpair = asyncio_socket.socketpair(type=socket.SOCK_DGRAM)
+        self._demux_in: asyncio_socket.AsyncioSocket = sockpair[0]
+        self._demux_out: asyncio_socket.AsyncioSocket = sockpair[1]
+        _enable_tcp_nodelay(self._demux_in)
+        _enable_tcp_nodelay(self._demux_out)
         self._is_active: bool = True
 
     @property
     def peer_address(self):
         return self._peeraddr
 
-    async def push(self, loop: EvLoop, data: bytes):
-        return await loop.sock_sendall(self._demux_in, data)
+    async def push(self, data: bytes):
+        return await self._demux_in.sendall(data)
 
     def is_active(self):
         return self._is_active
@@ -383,14 +366,12 @@ class _SocketsPaired:
     def __init__(
         self,
         proxy_name: str,
-        loop: EvLoop,
-        client: typing.Union[socket.socket, _UdpDemuxSocketMock],
-        server: socket.socket,
+        client: typing.Union[asyncio_socket.AsyncioSocket, _UdpDemuxSocketMock],
+        server: asyncio_socket.AsyncioSocket,
         to_server_intercept: Interceptor,
         to_client_intercept: Interceptor,
     ) -> None:
         self._proxy_name = proxy_name
-        self._loop = loop
 
         self._client = client
         self._server = server
@@ -431,7 +412,7 @@ class _SocketsPaired:
                 else:
                     interceptor = self._to_client_intercept
 
-                await interceptor(self._loop, socket_from, socket_to)
+                await interceptor(socket_from, socket_to)
                 await _yield()
         except GateInterceptException as exc:
             logger.info('In "%s": %s', self._proxy_name, exc)
@@ -458,7 +439,7 @@ class _SocketsPaired:
     def set_to_client_interceptor(self, interceptor: Interceptor) -> None:
         self._to_client_intercept = interceptor
 
-    def _close_socket(self, self_socket: Socket) -> None:
+    def _close_socket(self, self_socket: asyncio_socket.AsyncioSocket) -> None:
         assert self_socket in {self._client, self._server}
         try:
             self_socket.close()
@@ -511,16 +492,13 @@ class BaseGate:
 
     _NOT_IMPLEMENTED_MESSAGE = 'Do not use BaseGate itself, use one of specializations TcpGate or UdpGate'
 
-    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None) -> None:
+    def __init__(self, route: GateRoute) -> None:
         self._route = route
-        if loop is None:
-            loop = asyncio.get_running_loop()
-        self._loop = loop
 
         self._to_server_intercept: Interceptor = _intercept_ok
         self._to_client_intercept: Interceptor = _intercept_ok
 
-        self._accept_sockets: typing.List[socket.socket] = []
+        self._accept_sockets: typing.List[asyncio_socket.AsyncioSocket] = []
         self._accept_tasks: typing.List[asyncio.Task[None]] = []
 
         self._sockets: typing.Set[_SocketsPaired] = set()
@@ -532,7 +510,7 @@ class BaseGate:
     async def __aexit__(self, exc_type, exc_value, traceback) -> None:
         await self.stop()
 
-    def _create_accepting_sockets(self) -> typing.List[Socket]:
+    def _create_accepting_sockets(self) -> typing.List[asyncio_socket.AsyncioSocket]:
         raise NotImplementedError(self._NOT_IMPLEMENTED_MESSAGE)
 
     def start(self):
@@ -629,7 +607,7 @@ class BaseGate:
     def _collect_garbage(self) -> None:
         self._sockets = {x for x in self._sockets if x.is_active()}
 
-    async def _do_accept(self, accept_sock: Socket) -> None:
+    async def _do_accept(self, accept_sock: asyncio_socket.AsyncioSocket) -> None:
         """
         This task should wait for connections and create SocketPair
         """
@@ -686,11 +664,10 @@ class BaseGate:
         logging.trace('to_server_delay, delay: %s', delay)
 
         async def _intercept_delay_bound(
-            loop: EvLoop,
-            socket_from: Socket,
-            socket_to: Socket,
+            socket_from: asyncio_socket.AsyncioSocket,
+            socket_to: asyncio_socket.AsyncioSocket,
         ) -> None:
-            await _intercept_delay(delay, loop, socket_from, socket_to)
+            await _intercept_delay(delay, socket_from, socket_to)
 
         self.set_to_server_interceptor(_intercept_delay_bound)
 
@@ -699,11 +676,10 @@ class BaseGate:
         logging.trace('to_client_delay, delay: %s', delay)
 
         async def _intercept_delay_bound(
-            loop: EvLoop,
-            socket_from: Socket,
-            socket_to: Socket,
+            socket_from: asyncio_socket.AsyncioSocket,
+            socket_to: asyncio_socket.AsyncioSocket,
         ) -> None:
-            await _intercept_delay(delay, loop, socket_from, socket_to)
+            await _intercept_delay(delay, socket_from, socket_to)
 
         self.set_to_client_interceptor(_intercept_delay_bound)
 
@@ -851,9 +827,9 @@ class TcpGate(BaseGate):
     @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
-    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None) -> None:
+    def __init__(self, route: GateRoute) -> None:
         self._connected_event = asyncio.Event()
-        super().__init__(route, loop)
+        super().__init__(route)
 
     def connections_count(self) -> int:
         """
@@ -887,15 +863,14 @@ class TcpGate(BaseGate):
             )
             self._connected_event.clear()
 
-    def _create_accepting_sockets(self) -> typing.List[Socket]:
-        res: typing.List[Socket] = []
+    def _create_accepting_sockets(self) -> typing.List[asyncio_socket.AsyncioSocket]:
+        res: typing.List[asyncio_socket.AsyncioSocket] = []
         for addr in socket.getaddrinfo(
             self._route.host_for_client,
             self._route.port_for_client,
             type=socket.SOCK_STREAM,
         ):
-            sock = Socket(addr[0], addr[1])
-            _make_socket_nonblocking(sock)
+            sock = asyncio_socket.create_socket(addr[0], addr[1])
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(addr[4])
             sock.listen()
@@ -913,21 +888,20 @@ class TcpGate(BaseGate):
             type=socket.SOCK_STREAM,
         )
         for addr in addrs:
-            server = Socket(addr[0], addr[1])
+            server = asyncio_socket.create_socket(addr[0], addr[1])
             try:
-                _make_socket_nonblocking(server)
-                await self._loop.sock_connect(server, addr[4])
+                logging.trace('Connecting to %s...', addr[4])
+                await server.connect(addr[4])
                 logging.trace('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
                 server.close()
                 logging.warning('Could not connect to %s: %s', addr[4], exc)
 
-    async def _do_accept(self, accept_sock: Socket) -> None:
+    async def _do_accept(self, accept_sock: asyncio_socket.AsyncioSocket) -> None:
         while accept_sock:
-            client, _ = await self._loop.sock_accept(accept_sock)
-            _make_socket_nonblocking(client)
-
+            client, _ = await accept_sock.accept()
+            logging.debug('new client connected: %r', client)
             server = await self._connect_to_server()
             if server:
                 self._sockets.add(
@@ -958,9 +932,9 @@ class UdpGate(BaseGate):
     @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
-    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None):
+    def __init__(self, route: GateRoute):
         self._clients: typing.Set[_UdpDemuxSocketMock] = set()
-        super().__init__(route, loop)
+        super().__init__(route)
 
     def is_connected(self) -> bool:
         """
@@ -969,15 +943,14 @@ class UdpGate(BaseGate):
         """
         return len(self._sockets) > 0
 
-    def _create_accepting_sockets(self) -> typing.List[Socket]:
-        res: typing.List[Socket] = []
+    def _create_accepting_sockets(self) -> typing.List[asyncio_socket.AsyncioSocket]:
+        res: typing.List[asyncio_socket.AsyncioSocket] = []
         for addr in socket.getaddrinfo(
             self._route.host_for_client,
             self._route.port_for_client,
             type=socket.SOCK_DGRAM,
         ):
-            sock = socket.socket(addr[0], addr[1])
-            _make_socket_nonblocking(sock)
+            sock = asyncio_socket.create_socket(addr[0], addr[1])
             sock.bind(addr[4])
             logger.debug(f'Accepting connections on {sock.getsockname()}')
             res.append(sock)
@@ -991,10 +964,11 @@ class UdpGate(BaseGate):
             type=socket.SOCK_DGRAM,
         )
         for addr in addrs:
-            server = Socket(addr[0], addr[1])
+            server = asyncio_socket.create_socket(addr[0], addr[1])
             try:
-                _make_socket_nonblocking(server)
-                await self._loop.sock_connect(server, addr[4])
+                logging.trace('Connecting to %s...', addr[4])
+                _enable_tcp_nodelay(server)
+                await server.connect(addr[4])
                 logging.trace('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
@@ -1004,7 +978,7 @@ class UdpGate(BaseGate):
         super()._collect_garbage()
         self._clients = {c for c in self._clients if c.is_active()}
 
-    async def _do_accept(self, accept_sock: Socket):
+    async def _do_accept(self, accept_sock: asyncio_socket.AsyncioSocket):
         while True:
             data, addr = await _get_message_task(accept_sock)
 

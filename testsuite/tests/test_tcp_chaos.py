@@ -22,8 +22,10 @@ async def _assert_data_from_to(
     logger.debug('_assert_data_from_to sendall to %s', sock_from.getsockname())
     expected = b'pong_' + uuid.uuid4().bytes
     await sock_from.sendall(expected)
+    from pdb import set_trace; set_trace()
     logger.debug('_assert_data_from_to recv from %s', sock_to.getsockname())
     data = await sock_to.recv(len(expected))
+    from pdb import set_trace; set_trace()
     assert data == expected
     logger.debug('_assert_data_from_to done')
 
@@ -52,6 +54,7 @@ class Server:
         self._sock = sock
 
     async def accept(self) -> AsyncioSocket:
+        logging.debug('accepting %r', self._sock)
         server_connection, _ = await self._sock.accept()
         return server_connection
 
@@ -67,6 +70,7 @@ async def _make_client(
     async def make_client():
         sock = asyncio_socket.tcp()
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        logging.debug('connecting to %r', gate.get_sockname_for_clients())
         await sock.connect(gate.get_sockname_for_clients())
         return sock
 

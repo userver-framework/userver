@@ -130,6 +130,11 @@ class AsyncioSocketsFactory:
             loop = asyncio.get_running_loop()
         self._loop = loop
 
+    def socketpair(self, *args, timeout=DEFAULT_TIMEOUT, **kwargs):
+        sock1, sock2 = socket.socketpair(type=socket.SOCK_DGRAM)
+        return (from_socket(sock1, loop=self._loop, timeout=timeout),
+                from_socket(sock2, loop=self._loop, timeout=timeout))
+
     def socket(self, *args, timeout=DEFAULT_TIMEOUT):
         sock = socket.socket(*args)
         return from_socket(sock, loop=self._loop, timeout=timeout)
@@ -152,13 +157,8 @@ def from_socket(
     return AsyncioSocket(sock, loop=loop, timeout=timeout)
 
 
-def create_socket(*args, timeout=DEFAULT_TIMEOUT):
+def create_socket(*args, timeout=DEFAULT_TIMEOUT) -> AsyncioSocket:
     return AsyncioSocketsFactory().socket(*args, timeout=timeout)
 
-
-def create_tcp_socket(*args, timeout=DEFAULT_TIMEOUT):
-    return AsyncioSocketsFactory().tcp(timeout=timeout)
-
-
-def create_udp_socket(timeout=DEFAULT_TIMEOUT):
+def create_socketpair(*, timeout=DEFAULT_TIMEOUT) -> typing.Tuple[AsyncioSocket,AsyncioSocket]:
     return AsyncioSocketsFactory().udp(timeout=timeout)
