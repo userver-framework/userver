@@ -63,12 +63,11 @@ jobs:
 
                 brew link postgresql@16 # postgresql is keg-only
                 brew link --force zlib # keg-only + need for static linkage
-                brew link --force icu4c@76 # keg-only + need for static boost linkage
+                brew link --force icu4c@77 # keg-only + need for static boost linkage
                 brew link --force curl # keg-only
                 brew link --force cyrus-sasl # keg-only
                 brew link --force openldap # keg-only
                 brew remove --ignore-dependencies abseil
-                brew remove icu4c@77
 
           - name: Install test dependencies
             run: |
