@@ -3,7 +3,9 @@ import socket
 import struct
 import uuid
 
-import h2
+import h2.events
+import h2.connection
+import h2.settings
 import pytest
 
 DEFAULT_PATH = '/http2server'
@@ -127,6 +129,8 @@ async def test_concurrent_requests(
     await asyncio.gather(*tasks)
 
     await service_client.update_server_state()
+
+    await asyncio.sleep(1.0)
 
     metrics = await monitor_client.metrics(prefix='server.requests.http2')
     assert len(metrics) == 5
@@ -320,7 +324,7 @@ def _assert_responses(events):
         assert isinstance(events[i + 2], h2.events.StreamEnded)
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10232')
+@pytest.mark.skip(reason='TAXICOMMON-10232: really broken')
 async def test_many_in_flight(
     service_client,
     loop,
@@ -352,6 +356,8 @@ async def test_many_in_flight(
     expected_frames_count = MAX_CONCURRENT_STREAMS * 3  # 1 response =  (ResponseReceived, DataReceived, StreamEnded)
     while len(events) != expected_frames_count:
         receive = await loop.sock_recv(sock, RECEIVE_SIZE)
+        if not receive:
+            raise RuntimeError('Socket connection was closed by the other side')
         events += conn.receive_data(receive)
     _assert_responses(events)
 
@@ -371,13 +377,15 @@ async def test_many_in_flight(
     events = []
     while len(events) != expected_frames_count:
         receive = await loop.sock_recv(sock, RECEIVE_SIZE)
+        if not receive:
+            raise RuntimeError('Socket connection was closed by the other side')
         events += conn.receive_data(receive)
     _assert_responses(events)
 
     sock.close()
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10232')
+@pytest.mark.skip(reason='TAXICOMMON-10232: totally broken')
 async def test_limit_concurrent_streams(
     service_client,
     loop,
@@ -422,7 +430,7 @@ async def test_limit_concurrent_streams(
     sock.close()
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10232')
+#@pytest.mark.skip(reason='TAXICOMMON-10232')
 async def test_stream_already_closed(service_client, loop, service_port):
     (sock, conn) = await _create_connection(loop, service_port)
 

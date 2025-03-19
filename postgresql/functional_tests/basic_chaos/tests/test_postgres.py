@@ -316,7 +316,10 @@ async def _intercept_server_terminated(
     data = b''
     n_bytes = -1
     while n_bytes < 0:
-        data += await loop.sock_recv(socket_from, 4096)
+        chunk = await loop.sock_recv(socket_from, 4096)
+        if not chunk:
+            raise RuntimeError('Socket connection was closed by the other side')
+        data += chunk
         n_bytes = data.find(ready_for_query)
     await loop.sock_sendall(socket_to, data[:n_bytes])
     await loop.sock_sendall(socket_to, error_msg)

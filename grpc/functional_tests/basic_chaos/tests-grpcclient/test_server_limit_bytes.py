@@ -3,7 +3,7 @@ import pytest
 import requests_client
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10232')
+#@pytest.mark.skip(reason='TAXICOMMON-10232')
 @pytest.mark.parametrize('case', requests_client.ALL_CASES)
 async def test_server_limit_bytes(grpc_ch, service_client, gate, case):
     if case == 'say_hello_request_stream':

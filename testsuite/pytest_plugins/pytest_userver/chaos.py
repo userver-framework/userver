@@ -18,6 +18,7 @@ import socket
 import sys
 import time
 import typing
+import select
 
 
 @dataclasses.dataclass(frozen=True)
@@ -71,6 +72,11 @@ async def _yield() -> None:
 
     min_delay = 0
     await asyncio.sleep(min_delay)
+
+
+def _has_data(sock: socket.socket)->bool:
+    rlist, _, _ = select.select([sock], [], [], 0)
+    return bool(rlist)
 
 
 def _try_get_message(
@@ -183,6 +189,8 @@ class _InterceptBpsLimit:
         bytes_to_recv = min(int(self._bytes_left), RECV_MAX_SIZE)
         if bytes_to_recv > 0:
             data = await loop.sock_recv(socket_from, bytes_to_recv)
+            if not data:
+                raise RuntimeError('Socket connection was closed by the other side')
             self._bytes_left -= len(data)
 
             await loop.sock_sendall(socket_to, data)
@@ -231,9 +239,9 @@ class _InterceptSmallerParts:
         socket_from: Socket,
         socket_to: Socket,
     ) -> None:
-        incoming_size = _incoming_data_size(socket_from)
-        chunk_size = min(incoming_size, self._max_size)
-        data = await loop.sock_recv(socket_from, chunk_size)
+        data = await loop.sock_recv(socket_from, self._max_size)
+        if not data:
+            raise RuntimeError('Socket connection was closed by the other side')
         await asyncio.sleep(self._sleep_per_packet)
         await loop.sock_sendall(socket_to, data)
 
@@ -283,12 +291,13 @@ class _InterceptBytesLimit:
         socket_to: Socket,
     ) -> None:
         data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+        if not data:
+            raise RuntimeError('Socket connection was closed by the other side')
         if self._bytes_remain <= len(data):
             await loop.sock_sendall(socket_to, data[0 : self._bytes_remain])
             await self._gate.sockets_close()
             self._bytes_remain = self._bytes_limit
             raise GateInterceptException('Data transmission limit reached')
-
         self._bytes_remain -= len(data)
         await loop.sock_sendall(socket_to, data)
 
@@ -323,8 +332,8 @@ async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
         await task
     except asyncio.CancelledError:
         return
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.error('Exception in _cancel_and_join: %s', exc)
+    except Exception:  # pylint: disable=broad-except
+        logger.exception('Exception in _cancel_and_join')
 
 
 def _make_socket_nonblocking(sock: Socket) -> None:
@@ -405,7 +414,6 @@ class _SocketsPaired:
             self._do_pipe_channels(to_server=False),
         )
 
-        self._finished_channels = 0
 
     async def _do_pipe_channels(self, *, to_server: bool) -> None:
         if to_server:
@@ -422,7 +430,7 @@ class _SocketsPaired:
                 # To avoid long awaiting on sock_recv in an outdated
                 # interceptor we wait for data before grabbing and applying
                 # the interceptor.
-                if not _incoming_data_size(socket_from):
+                if not _has_data(socket_from):
                     await _yield()
                     continue
 
@@ -438,19 +446,16 @@ class _SocketsPaired:
         except socket.error as exc:
             logger.error('Exception in "%s": %s', self._proxy_name, exc)
         finally:
-            self._finished_channels += 1
-            if self._finished_channels == 2:
-                # Closing the sockets here so that the self.shutdown()
-                # returns only when the sockets are actually closed
-                logger.info('"%s" closes  %s', self._proxy_name, self.info())
-                self._close_socket(self._client)
-                self._close_socket(self._server)
+            # close both sides and cancel tasks
+            self._close_socket(self._client)
+            self._close_socket(self._server)
+            # Closing the sockets here so that the self.shutdown()
+            # returns only when the sockets are actually closed
+            logger.info('"%s" closes  %s', self._proxy_name, self.info())
+            if to_server:
+                self._task_to_client.cancel()
             else:
-                assert self._finished_channels == 1
-                if to_server:
-                    self._task_to_client.cancel()
-                else:
-                    self._task_to_server.cancel()
+                self._task_to_server.cancel()
 
     def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
         self._to_server_intercept = interceptor
@@ -914,8 +919,8 @@ class TcpGate(BaseGate):
         )
         for addr in addrs:
             server = Socket(addr[0], addr[1])
+            _make_socket_nonblocking(server)
             try:
-                _make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
                 logging.trace('Connected to %s', addr[4])
                 return server
@@ -924,7 +929,7 @@ class TcpGate(BaseGate):
                 logging.warning('Could not connect to %s: %s', addr[4], exc)
 
     async def _do_accept(self, accept_sock: Socket) -> None:
-        while accept_sock:
+        while True:
             client, _ = await self._loop.sock_accept(accept_sock)
             _make_socket_nonblocking(client)
 
