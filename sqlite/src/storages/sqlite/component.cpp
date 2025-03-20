@@ -111,24 +111,25 @@ additionalProperties: false
 properties:
     task_processor:
         type: string
-        description: name of the task processor to run the blocking file operations
+        description: name of the task processor to handle the blocking file operations
     db-path:
         type: string
-        description: path to database file or `::memory` for in-memory mode
+        description: path to the database file or `::memory::` for in-memory mode
     create_file:
         type: boolean
-        description: create a file if one is not found along the db-path
+        description: сreate the database file if it does not exist at the specified path
         defaultDescription: true
     is_read_only:
         type: boolean
-        description: defines database access as read-only
+        description: open the database in read-only mode
+        defaultDescription: false
     shared_cashe:
         type: boolean
-        description: open database with shared in-memory cashe
+        description: enable shared in-memory cache for the database
         defaultDescription: false
     journal_mode:
         type: string
-        description: journal mode
+        description: mode for database journaling
         defaultDescription: wal
         enum:
           - delete
@@ -137,61 +138,61 @@ properties:
           - memory
           - wal
           - off
+    busy_timeout:
+        type: integer
+        description: timeout duration (in milliseconds) to wait when the database is busy
+        defaultDescription: 5000
+    foreign_keys:
+        type: boolean
+        description: enable enforcement of foreign key constraints
+        defaultDescription: true
     synchronous:
         type: string
-        description: durability level
+        description: set the level of synchronization to ensure data durability
         defaultDescription: normal
         enum:
           - extra
           - full
           - normal
           - off
+    cache_size:
+        type: integer
+        description: maximum cache size, specified in number of pages or in kibibytes (negative value)
+        defaultDescription: -2000
+    journal_size_limit:
+        type: integer
+        description: limit the size of rollback-journal and WAL files (in bytes)
+        defaultDescription: 67108864
+    mmap_size:
+        type: integer
+        description: maximum number of bytes allocated for memory-mapped I/O
+        defaultDescription: 30000000000
+    page_size:
+        type: integer
+        description: size of a database page (in bytes)
+        defaultDescription: 4096
     temp_store:
         type: string
-        description: where temporary tables and indices are stored
+        description: storage location for temporary tables and indexes
         defaultDescription: memory
         enum:
           - memory
           - file
-    busy_timeout:
-        type: integer
-        description: queries busy timeout
-        defaultDescription: 0
-    foreign_keys:
-        type: boolean
-        description: enable foreign keys
-        defaultDescription: true
-    cache_size:
-        type: integer
-        description: maximum cache size. In page or in kibibytes (negative)
-        defaultDescription: -2000
-    journal_size_limit:
-        type: integer
-        description: limit the size of rollback-journal and WAL files
-        defaultDescription: 67108864
-    mmap_size:
-        type: integer
-        description: max number of bytes that are set aside for memory-mapped I/O
-        defaultDescription: 134217728
-    page_size:
-        type: integer
-        description: page size of the database
-        defaultDescription: 4096
     persistent-prepared-statements:
         type: boolean
-        description: cache prepared statements or not
+        description: cache prepared statements for reuse
         defaultDescription: true
     max_prepared_cache_size:
         type: integer
-        description: prepared statements cache size limit
+        description: maximum number of prepared statements to cache
         defaultDescription: 200
     initial_read_only_pool_size:
         type: integer
-        description: number of read only connections created initially
+        description: initial size of the read-only connection pool
         defaultDescription: 5
     max_read_only_pool_size:
         type: integer
-        description: maximum number of created read only connections
+        description: maximum size of the read-only connection pool
         defaultDescription: 10
 )");
 }

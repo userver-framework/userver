@@ -17,26 +17,26 @@ namespace components {
 ///
 /// @brief SQLite client component.
 /// ## Static options:
-/// Name                               | Description                                                    | Default value
-/// ---------------------------------- | -------------------------------------------------------------- | ---------------
-/// task_processor                     | name of the task processor to run the blocking file operations | -
-/// db-path                            | path to database file or `::memory` for in-memory mode         | -
-/// create_file                        | create a file if one is not found along the db-path            | true
-/// is_read_only                       | defines database access as read-only                           | false
-/// shared_cashe                       | open database with shared in-memory cashe                      | false
-/// journal_mode                       | journal mode                                                   | wal
-/// busy_timeout                       | queries busy timeout                                           | 5000
-/// foreign_keys                       | enable foreign keys                                            | true
-/// synchronous                        | durability level                                               | normal
-/// cache_size                         | maximum cache size. In page or in kibibytes (negative)         | -2000
-/// journal_size_limit                 | limit the size of rollback-journal and WAL files               | 67108864
-/// mmap_size                          | max number of bytes that are set aside for memory-mapped I/O   | 134217728
-/// page_size                          | page size of the database                                      | 4096
-/// temp_store                         | where temporary tables and indices are stored                  | memory
-/// persistent-prepared-statements     | cache prepared statements or not                               | true
-/// max_prepared_cache_size            | prepared statements cache size limit                           | 200
-/// initial_read_only_pool_size        | initial read only connection pool size                         | 5
-/// max_read_only_pool_size            | maximum read only connection pool size                         | 10
+/// Name                               | Description                                                                       | Default value
+/// ---------------------------------- | --------------------------------------------------------------------------------- | ---------------
+/// task_processor                     | name of the task processor to handle the blocking file operations                 | -
+/// db-path                            | path to the database file or `::memory::` for in-memory mode                      | -
+/// create_file                        | сreate the database file if it does not exist at the specified path               | true
+/// is_read_only                       | open the database in read-only mode                                               | false
+/// shared_cashe                       | enable shared in-memory cache for the database                                    | false
+/// journal_mode                       | mode for database journaling                                                      | wal
+/// busy_timeout                       | timeout duration (in milliseconds) to wait when the database is busy              | 5000
+/// foreign_keys                       | enable enforcement of foreign key constraints                                     | true
+/// synchronous                        | set the level of synchronization to ensure data durability                        | normal
+/// cache_size                         | maximum cache size, specified in number of pages or in kibibytes (negative value) | -2000
+/// journal_size_limit                 | limit the size of rollback-journal and WAL files (in bytes)                       | 67108864
+/// mmap_size                          | maximum number of bytes allocated for memory-mapped I/O                           | 30000000000
+/// page_size                          | size of a database page (in bytes)                                                | 4096
+/// temp_store                         | storage location for temporary tables and indexes                                 | memory
+/// persistent-prepared-statements     | cache prepared statements for reuse                                               | true
+/// max_prepared_cache_size            | maximum number of prepared statements to cache                                    | 200
+/// initial_read_only_pool_size        | initial size of the read-only connection pool                                     | 5
+/// max_read_only_pool_size            | maximum size of the read-only connection pool                                     | 10
 
 // clang-format on
 
