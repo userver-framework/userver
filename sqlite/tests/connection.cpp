@@ -97,7 +97,7 @@ UTEST_F(SQLiteCustomConnection, ReadWrite) {
            .AsVector<RowTuple>()));
 }
 
-UTEST_F(SQLiteCustomConnection, ReadWriteConcurent) {
+UTEST_F_MT(SQLiteCustomConnection, ReadWriteConcurent, 10) {
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.create_file = true;
