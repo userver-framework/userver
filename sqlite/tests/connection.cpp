@@ -4,7 +4,11 @@
 #include <tuple>
 #include <vector>
 
+#include <fmt/core.h>
 #include <gtest/gtest.h>
+
+#include <userver/engine/async.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 #include <userver/storages/sqlite/tests/utils.hpp>
 
@@ -63,7 +67,6 @@ UTEST_F(SQLiteCustomConnection, InMemory) {
 }
 
 UTEST_F(SQLiteCustomConnection, ReadWrite) {
-  // Try to open a non-existing database
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.create_file = true;
@@ -81,17 +84,53 @@ UTEST_F(SQLiteCustomConnection, ReadWrite) {
       (client
            ->Execute(settings::CommandControl::ReadOnly(),
                      "INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<std::tuple<int, std::string>>()),
+           .AsVector<RowTuple>()),
       SQLiteException);
   UEXPECT_NO_THROW(
       (client->Execute("INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<std::tuple<int, std::string>>()));
-  UEXPECT_NO_THROW((client->Execute("SELECT * FROM test")
-                        .AsVector<std::tuple<int, std::string>>()));
+           .AsVector<RowTuple>()));
+  UEXPECT_NO_THROW(
+      (client->Execute("SELECT * FROM test").AsVector<RowTuple>()));
   UEXPECT_NO_THROW(
       (client
            ->Execute(settings::CommandControl::ReadOnly(), "SELECT * FROM test")
-           .AsVector<std::tuple<int, std::string>>()));
+           .AsVector<RowTuple>()));
+}
+
+UTEST_F(SQLiteCustomConnection, ReadWriteConcurent) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+  settings.create_file = true;
+
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+  UEXPECT_NO_THROW(client->Execute(
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(5);
+
+  for (size_t i = 0; i < 10; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&, i]() {
+      UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (?, ?)", i,
+                                       fmt::format("data_{}", i)));
+      UEXPECT_NO_THROW((client
+                            ->Execute(settings::CommandControl::ReadOnly(),
+                                      "SELECT * FROM test")
+                            .AsVector<RowTuple>()));
+    }));
+  }
+  tasks.push_back(engine::AsyncNoSpan([&]() {
+    UEXPECT_NO_THROW(
+        (client
+             ->Execute(
+                 "INSERT INTO test VALUES (42, 'magic number') RETURNING *")
+             .AsVector<RowTuple>()));
+  }));
+
+  for (auto& t : tasks) {
+    t.Get();
+  }
 }
 
 UTEST_F(SQLiteCustomConnection, ReadOnly) {
@@ -120,22 +159,22 @@ UTEST_F(SQLiteCustomConnection, ReadOnly) {
       (client
            ->Execute(settings::CommandControl::ReadOnly(),
                      "INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<std::tuple<int, std::string>>()),
+           .AsVector<RowTuple>()),
       SQLiteException);
   UEXPECT_THROW(
       (client
            ->Execute(settings::CommandControl::ReadWrite(),
                      "INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<std::tuple<int, std::string>>()),
+           .AsVector<RowTuple>()),
       SQLiteException);
   UEXPECT_NO_THROW(
       (client
            ->Execute(settings::CommandControl::ReadOnly(), "SELECT * FROM test")
-           .AsVector<std::tuple<int, std::string>>()));
+           .AsVector<RowTuple>()));
   UEXPECT_NO_THROW((
       client
           ->Execute(settings::CommandControl::ReadWrite(), "SELECT * FROM test")
-          .AsVector<std::tuple<int, std::string>>()));
+          .AsVector<RowTuple>()));
 }
 
 UTEST_F(SQLiteResultSet, SuccessExecute) {
