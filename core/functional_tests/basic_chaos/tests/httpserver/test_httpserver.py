@@ -233,7 +233,6 @@ async def test_close_during_request(call, gate, testpoint):
     assert gate.connections_count() >= 1
 
 
-#@pytest.mark.skip(reason='TAXICOMMON-10232')
 async def test_close_on_data(call, gate, check_restore):
     response = await call(testsuite_skip_prepare=True)
     assert response.status == 200
@@ -268,7 +267,6 @@ async def test_corrupted_request(call, gate, check_restore):
     await check_restore()
 
 
-#@pytest.mark.skip(reason='TAXICOMMON-10232')
 async def test_partial_request(call, gate, check_restore):
     success: bool = False
     fail: int = 0

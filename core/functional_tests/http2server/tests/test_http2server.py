@@ -377,7 +377,6 @@ async def test_many_in_flight(
     events = []
     while len(events) != expected_frames_count:
         receive = await loop.sock_recv(sock, RECEIVE_SIZE)
-        if not receive:
             raise RuntimeError('Socket connection was closed by the other side')
         events += conn.receive_data(receive)
     _assert_responses(events)
@@ -430,7 +429,6 @@ async def test_limit_concurrent_streams(
     sock.close()
 
 
-#@pytest.mark.skip(reason='TAXICOMMON-10232')
 async def test_stream_already_closed(service_client, loop, service_port):
     (sock, conn) = await _create_connection(loop, service_port)
 
