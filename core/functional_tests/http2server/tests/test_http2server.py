@@ -377,6 +377,7 @@ async def test_many_in_flight(
     events = []
     while len(events) != expected_frames_count:
         receive = await loop.sock_recv(sock, RECEIVE_SIZE)
+        if not receive:
             raise RuntimeError('Socket connection was closed by the other side')
         events += conn.receive_data(receive)
     _assert_responses(events)
