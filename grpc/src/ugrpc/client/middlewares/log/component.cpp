@@ -2,7 +2,6 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/logging/level_serialization.hpp>
-#include <userver/middlewares/groups.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/client/middlewares/log/middleware.hpp>
@@ -13,7 +12,6 @@ namespace ugrpc::client::middlewares::log {
 
 Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
     Settings settings;
-    settings.log_level = config["log-level"].As<logging::Level>(settings.log_level);
     settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
     settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
     settings.trim_secrets = config["trim-secrets"].As<bool>(settings.trim_secrets);

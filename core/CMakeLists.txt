@@ -1,6 +1,7 @@
 project(userver-core CXX)
 
 include(GetUserverVersion)
+include(ChaoticGen)
 message(STATUS "Userver version ${USERVER_VERSION}")
 
 include(CheckFunctionExists)
@@ -220,6 +221,12 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+userver_target_generate_chaotic_dynamic_configs(
+    ${PROJECT_NAME}-dynamic-configs
+    dynamic_configs/*.yaml
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-dynamic-configs)
+
 # Must go below all the target options and definitions.
 _check_compile_flags(${PROJECT_NAME})
 
@@ -288,7 +295,7 @@ if (USERVER_BUILD_TESTS)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-_userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
+_userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-dynamic-configs)
 _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"

@@ -48,7 +48,6 @@ def service_env(
 
 @pytest.fixture(scope='session')
 async def _sentinel_gate(
-    loop,
     sentinel_gate_settings,
     _redis_service_settings: service.ServiceSettings,
 ):
@@ -59,7 +58,7 @@ async def _sentinel_gate(
         host_to_server=_redis_service_settings.host,
         port_to_server=_redis_service_settings.sentinel_port,
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 
@@ -94,7 +93,6 @@ async def _sentinel_gate_ready(
 
 @pytest.fixture(scope='session')
 async def _master_gate(
-    loop,
     master_gate_settings,
     _redis_service_settings: service.ServiceSettings,
 ):
@@ -105,7 +103,7 @@ async def _master_gate(
         host_to_server=_redis_service_settings.host,
         port_to_server=_redis_service_settings.master_ports[0],
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 

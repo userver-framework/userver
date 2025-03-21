@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.14...3.31)
 cmake_policy(SET CMP0025 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
   cmake_policy(SET CMP0093 NEW)
@@ -144,6 +144,8 @@ option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB
 set(CMAKE_DEBUG_POSTFIX d)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(CheckSupportedPlatform)
+
 if(USERVER_CONAN AND NOT DEFINED CMAKE_FIND_PACKAGE_PREFER_CONFIG)
   set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 endif()
@@ -202,11 +204,6 @@ endif()
 
 add_subdirectory(universal)
 
-if (USERVER_FEATURE_CORE)
-  add_subdirectory(core)
-  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
-endif()
-
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic)
   list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
@@ -216,6 +213,14 @@ if (USERVER_FEATURE_CHAOTIC)
     add_subdirectory(chaotic-openapi)
     list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic-openapi)
   endif()
+endif()
+
+if (USERVER_FEATURE_CORE)
+  if (NOT USERVER_FEATURE_CHAOTIC)
+    message(FATAL_ERROR "'USERVER_FEATURE_CORE' requires 'USERVER_FEATURE_CHAOTIC=ON'")
+  endif()
+  add_subdirectory(core)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
 endif()
 
 if (USERVER_FEATURE_MONGODB)

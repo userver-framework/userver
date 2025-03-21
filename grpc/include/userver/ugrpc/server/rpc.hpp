@@ -7,7 +7,7 @@
 
 #include <userver/utils/assert.hpp>
 
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/internal_tag_fwd.hpp>
 #include <userver/ugrpc/impl/span.hpp>
 #include <userver/ugrpc/server/call.hpp>
@@ -274,7 +274,7 @@ private:
 
 template <typename Response>
 UnaryCall<Response>::UnaryCall(impl::CallParams&& call_params, impl::RawResponseWriter<Response>& stream)
-    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), CallKind::kUnaryCall), stream_(stream) {}
+    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), impl::CallKind::kUnaryCall), stream_(stream) {}
 
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
@@ -321,7 +321,7 @@ bool UnaryCall<Response>::IsFinished() const {
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::InputStream(impl::CallParams&& call_params, impl::RawReader<Request, Response>& stream)
-    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), CallKind::kRequestStream), stream_(stream) {}
+    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), impl::CallKind::kInputStream), stream_(stream) {}
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
@@ -383,7 +383,7 @@ bool InputStream<Request, Response>::IsFinished() const {
 
 template <typename Response>
 OutputStream<Response>::OutputStream(impl::CallParams&& call_params, impl::RawWriter<Response>& stream)
-    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), CallKind::kResponseStream), stream_(stream) {}
+    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), impl::CallKind::kOutputStream), stream_(stream) {}
 
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
@@ -473,7 +473,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
     impl::CallParams&& call_params,
     impl::RawReaderWriter<Request, Response>& stream
 )
-    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), CallKind::kBidirectionalStream),
+    : CallAnyBase(utils::impl::InternalTag{}, std::move(call_params), impl::CallKind::kBidirectionalStream),
       stream_(stream) {}
 
 template <typename Request, typename Response>

@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/client/client_factory.hpp
 /// @brief @copybrief ugrpc::client::ClientFactory
 
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -14,6 +15,7 @@
 #include <userver/ugrpc/client/client_settings.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -62,7 +64,8 @@ public:
     /// @endcond
 
 private:
-    impl::ClientInternals MakeClientInternals(ClientSettings&& settings);
+    impl::ClientInternals
+    MakeClientInternals(ClientSettings&& settings, std::optional<ugrpc::impl::StaticServiceMetadata> meta);
 
     ClientFactorySettings client_factory_settings_;
     engine::TaskProcessor& channel_task_processor_;
@@ -75,7 +78,7 @@ private:
 
 template <typename Client>
 Client ClientFactory::MakeClient(ClientSettings&& settings) {
-    return Client(MakeClientInternals(std::move(settings)));
+    return Client(MakeClientInternals(std::move(settings), Client::GetMetadata()));
 }
 
 template <typename Client>

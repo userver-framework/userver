@@ -22,7 +22,6 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_FEATURE_CORE=1
-                        -DUSERVER_FEATURE_CHAOTIC=0
                         -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: ''
                     image: ubuntu-22.04-userver-base

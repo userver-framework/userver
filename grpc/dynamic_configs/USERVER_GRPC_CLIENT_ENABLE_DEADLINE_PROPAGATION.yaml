@@ -1,0 +1,7 @@
+default: true
+description: |
+    Whether task-inherited deadline should be accounted for
+    requests in grpc-clients.
+schema:
+    type: boolean
+

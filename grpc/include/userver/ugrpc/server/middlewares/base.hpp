@@ -3,8 +3,8 @@
 /// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
-#include <memory>
 #include <optional>
+#include <string_view>
 
 #include <google/protobuf/message.h>
 
@@ -12,9 +12,6 @@
 #include <userver/middlewares/groups.hpp>
 #include <userver/middlewares/runner.hpp>
 #include <userver/utils/function_ref.hpp>
-#include <userver/utils/impl/internal_tag.hpp>
-#include <userver/yaml_config/schema.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/ugrpc/server/call.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -43,6 +40,12 @@ public:
 
     /// @brief Call next plugin, or gRPC handler if none.
     void Next();
+
+    /// @returns Is a client-side streaming call
+    bool IsClientStreaming() const noexcept;
+
+    /// @returns Is a server-side streaming call
+    bool IsServerStreaming() const noexcept;
 
     /// @brief Get original gRPC Call
     CallAnyBase& GetCall() const;
@@ -92,10 +95,24 @@ public:
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Factory that creates specific server middlewares for services.
+///
+/// Override `CreateMiddleware` to create middleware for your gRPC service.
+/// If you declare a static config for a middleware, you must override `GetMiddlewareConfigSchema`.
+///
+/// @note If you are not going to use a static config, ugrpc::server::ServiceInfo and your middleware is default
+/// constructible, just use ugrpc::server::SimpleMiddlewareFactoryComponent.
+///
+/// ## Example:
+///
+/// @snippet samples/grpc_middleware_service/src/middlewares/server/meta_filter.hpp gRPC middleware sample
+/// @snippet samples/grpc_middleware_service/src/middlewares/server/meta_filter.cpp gRPC middleware sample
+///
+/// And there is a possibility to override the middleware config per service:
+///
+/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config server middleware
+
 using MiddlewareFactoryComponentBase =
     USERVER_NAMESPACE::middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ServiceInfo>;
-
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -108,19 +125,15 @@ using MiddlewareFactoryComponentBase =
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware declaration
+/// @snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware declaration
 ///
 /// ## Static config example
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config grpc-server-middlewares-pipeline
-
-// clang-format on
+/// @snippet samples/grpc_middleware_service/static_config.yaml static config grpc-server-middlewares-pipeline
 
 template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
     USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
-
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -136,9 +149,7 @@ using SimpleMiddlewareFactoryComponent =
 ///
 /// ## Static config example
 ///
-/// @snippet grpc/functional_tests/middleware_server/static_config.yaml Sample grpc server middleware pipeline component config
-
-// clang-format on
+/// @snippet grpc/functional_tests/middleware_server/static_config.yaml middleware pipeline component config
 
 class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
 public:

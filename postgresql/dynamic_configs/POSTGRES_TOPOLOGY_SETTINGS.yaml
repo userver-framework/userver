@@ -1,0 +1,33 @@
+default: {}
+description: ''
+schema:
+    type: object
+    example: |
+        {
+            // Настройки для конкретного компонента сервиса.
+            "postgresql-orders": {
+                "max_replication_lag_ms": 0,
+                "disabled_replicas": ["sas-01.db.yandex.net", "vla-02.db.yandex.net"]
+            },
+            // Настройки по умолчанию. Применяются всем, кому не указано явно.
+            "__default__": {
+                "max_replication_lag_ms": 60000
+            }
+        }
+    additionalProperties:
+        $ref: "#/definitions/TopologySettings"
+    definitions:
+        TopologySettings:
+            type: object
+            additionalProperties: false
+            properties:
+                max_replication_lag_ms:
+                    type: integer
+                    minimum: 0
+                disabled_replicas:
+                    type: array
+                    x-taxi-cpp-type: std::unordered_set
+                    items:
+                        type: string
+            required:
+              - max_replication_lag_ms

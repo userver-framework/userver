@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include "auth.hpp"
 
 #include <middlewares/auth.hpp>
 
@@ -9,11 +9,11 @@ namespace sample::grpc::auth::client {
 /// [gRPC middleware sample - Middleware implementation]
 void ApplyCredentials(::grpc::ClientContext& context) { context.AddMetadata(kKey, kCredentials); }
 
-Middleware::Middleware() = default;
+AuthMiddleware::AuthMiddleware() = default;
 
-Middleware::~Middleware() = default;
+AuthMiddleware::~AuthMiddleware() = default;
 
-void Middleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context) const {
+void AuthMiddleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context) const {
     ApplyCredentials(context.GetContext());
 }
 

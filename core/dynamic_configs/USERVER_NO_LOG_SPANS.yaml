@@ -1,0 +1,19 @@
+default:
+    prefixes: []
+    names: []
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - prefixes
+      - names
+    properties:
+        prefixes:
+            type: array
+            items:
+                type: string
+        names:
+            type: array
+            items:
+                type: string

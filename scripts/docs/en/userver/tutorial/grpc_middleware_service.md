@@ -23,11 +23,11 @@ Client middleware will add metadata to every `GreeterClient` call.
 
 Derive `Middleware` and `MiddlewareFactory` from the respective base class and declare a middleware-factory:
 
-@snippet samples/grpc_middleware_service/src/middlewares/client/middleware.hpp gRPC middleware sample - Middleware declaration
+@snippet samples/grpc_middleware_service/src/middlewares/client/auth.hpp Middleware declaration
 
 `PreStartCall` method of `Middleware` does the actual work:
 
-@snippet samples/grpc_middleware_service/src/middlewares/client/middleware.cpp gRPC middleware sample - Middleware implementation
+@snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp Middleware implementation
 
 Lastly, add this component to the static config:
 
@@ -50,15 +50,15 @@ Server middleware, in its turn, will validate metadata that comes with an rpc.
 Everything is the same as it is for client middleware, except there is no
 factory and the component stores the middleware itself:
 
-@snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware declaration
+@snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware declaration
 
 Handle method of `Middleware` does the actual work:
 
-@snippet samples/grpc_middleware_service/src/middlewares/server/middleware.cpp gRPC middleware sample - Middleware implementation
+@snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp gRPC Middleware implementation
 
 Respective component:
 
-@snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware component declaration
+@snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware component declaration
 
 Lastly, add this component to the static config:
 
@@ -152,11 +152,11 @@ Use it to do gRPC requests to the service:
 
 See the full example at:
 
-* @ref samples/grpc_middleware_service/src/middlewares/client/middleware.hpp
-* @ref samples/grpc_middleware_service/src/middlewares/client/middleware.cpp
+* @ref samples/grpc_middleware_service/src/middlewares/client/auth.hpp
+* @ref samples/grpc_middleware_service/src/middlewares/client/auth.cpp
 
-* @ref samples/grpc_middleware_service/src/middlewares/server/middleware.hpp
-* @ref samples/grpc_middleware_service/src/middlewares/server/middleware.cpp
+* @ref samples/grpc_middleware_service/src/middlewares/server/auth.hpp
+* @ref samples/grpc_middleware_service/src/middlewares/server/auth.cpp
 
 * @ref samples/grpc_middleware_service/src/middlewares/auth.hpp
 * @ref samples/grpc_middleware_service/src/middlewares/auth.cpp
@@ -174,10 +174,10 @@ See the full example at:
 ⇦ @ref scripts/docs/en/userver/tutorial/grpc_service.md | @ref scripts/docs/en/userver/tutorial/postgres_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/grpc_middleware_service/src/middlewares/client/middleware.hpp
-@example samples/grpc_middleware_service/src/middlewares/client/middleware.cpp
-@example samples/grpc_middleware_service/src/middlewares/server/middleware.hpp
-@example samples/grpc_middleware_service/src/middlewares/server/middleware.cpp
+@example samples/grpc_middleware_service/src/middlewares/client/auth.hpp
+@example samples/grpc_middleware_service/src/middlewares/client/auth.cpp
+@example samples/grpc_middleware_service/src/middlewares/server/auth.hpp
+@example samples/grpc_middleware_service/src/middlewares/server/auth.cpp
 @example samples/grpc_middleware_service/src/middlewares/auth.hpp
 @example samples/grpc_middleware_service/src/middlewares/auth.cpp
 @example samples/grpc_middleware_service/main.cpp

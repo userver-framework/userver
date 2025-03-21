@@ -5,7 +5,7 @@
 #include <userver/chaotic/dynamic_config_variable_bundle.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 
-namespace taxi_config {
+namespace {{ namespace }} {
 
 {% if generate_taxi_aliases %}
     // Legacy aliases for old utils/swaggen codegen compatibility
@@ -33,6 +33,6 @@ namespace taxi_config {
 
 {% endif %}
 
-extern const dynamic_config::Key<{{ cpp_user_type }}> {{ name }};
+extern const USERVER_NAMESPACE::dynamic_config::Key<{{ cpp_user_type }}> {{ name }};
 
 }

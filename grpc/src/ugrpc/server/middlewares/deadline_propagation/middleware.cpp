@@ -9,7 +9,7 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>

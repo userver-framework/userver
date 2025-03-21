@@ -15,26 +15,9 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
-
-        # gRPC server and service
-        grpc-server:
-            port: 8091
-
         congestion-control:
 
-        grpc-server-logging:
-            msg-size-log-limit: 10
-
-        grpc-server-middlewares-pipeline:
-
-        greeter-service:
-            task-processor: main-task-processor
-            disable-all-pipeline-middlewares: true
-            middlewares:
-                grpc-server-logging:
-                    enabled: true
-                grpc-server-baggage:
-                    enabled: true
+        greeter-client-test:
 
         # gRPC client
         grpc-client-common:
@@ -49,23 +32,30 @@ components_manager:
         greeter-client:
             endpoint: $greeter-client-endpoint
 
-        # http server
+        # http server (for testsuite support)
         server:
             listener:
                 port: 8092
                 task_processor: main-task-processor
             listener-monitor:
                 port: $monitor-server-port
-                port#fallback: 8086
-                connection:
-                    in_buffer_size: 32768
-                    requests_queue_size_threshold: 100
                 task_processor: main-task-processor
 
         testsuite-support:
-        grpc-client-logging:
-        grpc-client-deadline-propagation:
-        grpc-client-baggage:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url:
+            throttling_enabled: false
+
+        # http client (for testsuite support)
+        http-client:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
 
     default_task_processor: main-task-processor
 

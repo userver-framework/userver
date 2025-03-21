@@ -24,7 +24,7 @@ components_manager:
         congestion-control:
 
 
-# /// [Sample grpc server middleware pipeline component config]
+# /// [middleware pipeline component config]
         grpc-server-logging:
             msg-size-log-limit: 15
 
@@ -47,7 +47,7 @@ components_manager:
                     enabled: true
                 my-second-middleware-server:
                     enabled: true
-# /// [Sample grpc server middleware pipeline component config]
+# /// [middleware pipeline component config]
 
 
         # http server

@@ -1,0 +1,7 @@
+### Kafka producer metrics
+
+kafka_producer.avg_ms_spent_time: component_name=kafka-producer, topic=test-topic-consume-produced	GAUGE	0
+kafka_producer.messages_total: component_name=kafka-producer, topic=test-topic-consume-produced	GAUGE	0
+kafka_producer.messages_success: component_name=kafka-producer, topic=test-topic-consume-produced	GAUGE	0
+kafka_producer.messages_error: component_name=kafka-producer, topic=test-topic-consume-produced	GAUGE	0
+kafka_producer.connections_error: component_name=kafka-producer	GAUGE	0

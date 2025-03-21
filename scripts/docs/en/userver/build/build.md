@@ -175,6 +175,8 @@ Dev Containers is the easiest and least problematic way to get prebuilt userver 
 
 3. Open the service project. If CMake asks to configure, deny
 
+   * For CLion, please use JetBrains Gateway to open the project, otherwise CLion gets confused
+
 4. Agree to reopen the project in a Dev Container
 
 5. The Docker container for development will automatically be downloaded (~6GB, may take a while), unpacked and run

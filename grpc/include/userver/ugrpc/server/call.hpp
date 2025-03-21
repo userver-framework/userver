@@ -9,20 +9,13 @@
 #include <userver/tracing/span.hpp>
 #include <userver/ugrpc/impl/internal_tag_fwd.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
+#include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
-
-/// @brief RPCs kinds
-enum class CallKind {
-    kUnaryCall,
-    kRequestStream,
-    kResponseStream,
-    kBidirectionalStream,
-};
 
 /// @brief A non-typed base class for any gRPC call
 class CallAnyBase {
@@ -55,7 +48,7 @@ public:
     tracing::Span& GetSpan() { return params_.call_span; }
 
     /// @brief Get RPCs kind of method
-    CallKind GetCallKind() const { return call_kind_; }
+    impl::CallKind GetCallKind() const { return call_kind_; }
 
     /// @brief Returns call context for storing per-call custom data
     ///
@@ -89,7 +82,7 @@ public:
 
     /// @cond
     // For internal use only
-    CallAnyBase(utils::impl::InternalTag, impl::CallParams&& params, CallKind call_kind)
+    CallAnyBase(utils::impl::InternalTag, impl::CallParams&& params, impl::CallKind call_kind)
         : params_(std::move(params)), call_kind_(call_kind) {}
 
     // For internal use only
@@ -112,7 +105,7 @@ protected:
 
 private:
     impl::CallParams params_;
-    CallKind call_kind_;
+    impl::CallKind call_kind_;
     MiddlewareCallContext* middleware_call_context_{nullptr};
 };
 

@@ -80,20 +80,22 @@ bool DoShouldLog(Level level) noexcept {
     return true;
 }
 
-void PrependCommonTags(TagWriter writer) {
+void PrependCommonTags(TagWriter writer, Level logger_level) {
     auto* const span = tracing::Span::CurrentSpanUnchecked();
     if (span) span->LogTo(writer);
 
-    const void* const task = engine::current_task::GetCurrentTaskContextUnchecked();
-    using SizeT = unsigned long long;
-    fmt::basic_memory_buffer<char, 32> buffer;
-    fmt::format_to(std::back_inserter(buffer), "{:X}", reinterpret_cast<SizeT>(task));
-    writer.PutTag("task_id", std::string_view(buffer.begin(), buffer.size()));
+    if (logger_level <= Level::kDebug) {
+        const void* const task = engine::current_task::GetCurrentTaskContextUnchecked();
+        using SizeT = unsigned long long;
+        fmt::basic_memory_buffer<char, 32> buffer;
+        fmt::format_to(std::back_inserter(buffer), "{:X}", reinterpret_cast<SizeT>(task));
+        writer.PutTag("task_id", std::string_view(buffer.begin(), buffer.size()));
 
-    buffer.clear();
-    void* const thread_id = reinterpret_cast<void*>(pthread_self());
-    fmt::format_to(std::back_inserter(buffer), "0x{:016X}", reinterpret_cast<SizeT>(thread_id));
-    writer.PutTag("thread_id", std::string_view(buffer.begin(), buffer.size()));
+        buffer.clear();
+        void* const thread_id = reinterpret_cast<void*>(pthread_self());
+        fmt::format_to(std::back_inserter(buffer), "0x{:016X}", reinterpret_cast<SizeT>(thread_id));
+        writer.PutTag("thread_id", std::string_view(buffer.begin(), buffer.size()));
+    }
 }
 
 }  // namespace impl::default_

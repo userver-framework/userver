@@ -43,6 +43,8 @@ public:
     virtual const middlewares::impl::MiddlewareDependency& GetMiddlewareDependency(utils::impl::InternalTag) const = 0;
 };
 
+void LogConfiguration(std::string_view component_name, const std::vector<std::string>& names);
+
 }  // namespace impl
 
 /// @ingroup userver_base_classes
@@ -178,7 +180,9 @@ RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
     : components::ComponentBase(config, context) {
     const auto& middlewares = config["middlewares"];
     const auto& pipeline = context.FindComponent<impl::AnyMiddlewarePipelineComponent>(pipeline_name).GetPipeline();
-    for (const auto& mid : pipeline.GetPerServiceMiddlewares(config.As<impl::MiddlewareRunnerConfig>())) {
+    const auto names = pipeline.GetPerServiceMiddlewares(config.As<impl::MiddlewareRunnerConfig>());
+    impl::LogConfiguration(config.Name(), names);
+    for (const auto& mid : names) {
         const auto* factory = context.FindComponentOptional<MiddlewareFactory>(mid);
         UINVARIANT(factory != nullptr, fmt::format("The middleware '{}' must exist", mid));
         middleware_infos_.push_back(MiddlewareInfo{factory, middlewares[mid]});

@@ -1,0 +1,14 @@
+default: true
+description: |
+    When `false`, disables deadline propagation in the service. This includes:
+
+    - reading the task-inherited deadline from HTTP headers and gRPC metadata;
+    - interrupting operations when deadline expires;
+    - propagating the deadline to downstream services and databases.
+
+    Deadline propagation can also be disabled in the static config of:
+    - components::Server (disables the HTTP handler part).
+
+    Deadline propagation is disabled if disabled statically OR dynamically.
+schema:
+    type: boolean

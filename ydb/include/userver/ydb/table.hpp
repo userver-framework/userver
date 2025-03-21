@@ -37,6 +37,15 @@ struct RequestContext;
 enum class IsStreaming : bool {};
 }  // namespace impl
 
+using DescribePathSettings = NYdb::NScheme::TDescribePathSettings;
+using ListDirectorySettings = NYdb::NScheme::TListDirectorySettings;
+using MakeDirectorySettings = NYdb::NScheme::TMakeDirectorySettings;
+using RemoveDirectorySettings = NYdb::NScheme::TRemoveDirectorySettings;
+
+using BulkUpsertSettings = NYdb::NTable::TBulkUpsertSettings;
+using CreateTableSettings = NYdb::NTable::TCreateTableSettings;
+using DescribeTableSettings = NYdb::NTable::TDescribeTableSettings;
+using DropTableSettings = NYdb::NTable::TDropTableSettings;
 using ScanQuerySettings = NYdb::NTable::TStreamExecScanQuerySettings;
 
 class TableClient final {
@@ -56,15 +65,19 @@ public:
     /// Query for creating/deleting tables
     void ExecuteSchemeQuery(const std::string& query);
 
-    void MakeDirectory(const std::string& path);
-    void RemoveDirectory(const std::string& path);
+    void MakeDirectory(const std::string& path, MakeDirectorySettings query_settings = {});
+    void RemoveDirectory(const std::string& path, RemoveDirectorySettings query_settings = {});
 
-    NYdb::NScheme::TDescribePathResult DescribePath(std::string_view path);
-    NYdb::NScheme::TListDirectoryResult ListDirectory(std::string_view path);
+    NYdb::NScheme::TDescribePathResult DescribePath(std::string_view path, DescribePathSettings query_settings = {});
+    NYdb::NScheme::TListDirectoryResult ListDirectory(std::string_view path, ListDirectorySettings query_settings = {});
 
-    NYdb::NTable::TDescribeTableResult DescribeTable(std::string_view path);
-    void CreateTable(std::string_view path, NYdb::NTable::TTableDescription&& table_desc);
-    void DropTable(std::string_view path);
+    NYdb::NTable::TDescribeTableResult DescribeTable(std::string_view path, DescribeTableSettings query_settings = {});
+    void CreateTable(
+        std::string_view path,
+        NYdb::NTable::TTableDescription&& table_desc,
+        CreateTableSettings query_settings = {}
+    );
+    void DropTable(std::string_view path, DropTableSettings query_settings = {});
 
     /// @name Data queries execution
     /// Execute a single data query outside of transactions. Query parameters are
@@ -109,7 +122,12 @@ public:
     PreparedArgsBuilder GetBuilder() const;
 
     /// Efficiently write large ranges of table data.
-    void BulkUpsert(std::string_view table, NYdb::TValue&& rows, OperationSettings settings = {});
+    void BulkUpsert(
+        std::string_view table,
+        NYdb::TValue&& rows,
+        OperationSettings settings = {},
+        BulkUpsertSettings query_settings = {}
+    );
 
     /// Efficiently write large ranges of table data.
     /// The passed range of structs is serialized to TValue.
@@ -209,11 +227,12 @@ private:
     //       (TTableClient&, const std::string& full_path, const Settings&)
     //       -> NThreading::TFuture<T>
     // ExecuteSchemeQueryImpl -> T
-    template <typename Settings, typename Func>
+    template <typename QuerySettings, typename Func>
     auto ExecuteWithPathImpl(
         std::string_view path,
         std::string_view operation_name,
-        OperationSettings&& settings,
+        OperationSettings settings,
+        QuerySettings&& query_settings,
         Func&& func
     );
 

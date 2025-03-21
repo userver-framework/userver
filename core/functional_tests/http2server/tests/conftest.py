@@ -3,6 +3,8 @@ import pytest
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
+DEFAULT_TIMEOUT = 10.0
+
 
 class Http2Client:
     def __init__(self, baseurl):
@@ -22,7 +24,7 @@ class Http2Client:
         headers={},
         data=None,
         json={},
-        timeout=5.0,
+        timeout=DEFAULT_TIMEOUT,
     ) -> httpx.Response:
         return await self._request(
             'GET',
@@ -41,7 +43,7 @@ class Http2Client:
         headers={},
         data=None,
         json={},
-        timeout=5.0,
+        timeout=DEFAULT_TIMEOUT,
     ) -> httpx.Response:
         return await self._request(
             'POST',
@@ -60,7 +62,7 @@ class Http2Client:
         headers={},
         data=None,
         json={},
-        timeout=5.0,
+        timeout=DEFAULT_TIMEOUT,
     ) -> httpx.Response:
         return await self._request(
             'PUT',
@@ -79,7 +81,7 @@ class Http2Client:
         headers={},
         data=None,
         json={},
-        timeout=5.0,
+        timeout=DEFAULT_TIMEOUT,
     ) -> httpx.Response:
         return await self._request(
             'DELETE',

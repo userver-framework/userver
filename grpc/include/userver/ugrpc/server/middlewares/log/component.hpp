@@ -49,8 +49,6 @@ public:
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    ~Component() override;
-
     static yaml_config::Schema GetStaticConfigSchema();
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;

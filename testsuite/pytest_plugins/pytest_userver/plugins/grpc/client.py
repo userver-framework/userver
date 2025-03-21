@@ -4,21 +4,23 @@ Make gRPC requests to the service.
 @sa @ref scripts/docs/en/userver/tutorial/grpc_service.md
 """
 
-# pylint: disable=no-member
 # pylint: disable=redefined-outer-name
 import asyncio
+from typing import AsyncIterable
 from typing import Awaitable
 from typing import Callable
 from typing import Optional
+from typing import Union
 
+import google.protobuf.message
 import grpc
 import pytest
 
-from pytest_userver import client
-
 DEFAULT_TIMEOUT = 15.0
-
 USERVER_CONFIG_HOOKS = ['userver_config_grpc_endpoint']
+
+MessageOrStream = Union[google.protobuf.message.Message, AsyncIterable[google.protobuf.message.Message]]
+_AsyncExcCheck = Callable[[], None]
 
 
 @pytest.fixture(scope='session')
@@ -85,8 +87,8 @@ def grpc_service_timeout(pytestconfig) -> float:
 @pytest.fixture
 def grpc_client_prepare(
     service_client,
-    _testsuite_client_config: client.TestsuiteClientConfig,
-) -> Callable[[grpc.aio.ClientCallDetails], Awaitable[None]]:
+    asyncexc_check,
+) -> Callable[[grpc.aio.ClientCallDetails, MessageOrStream], Awaitable[None]]:
     """
     Returns the function that will be called in before each gRPC request,
     client-side.
@@ -96,8 +98,10 @@ def grpc_client_prepare(
 
     async def prepare(
         _client_call_details: grpc.aio.ClientCallDetails,
+        _request_or_stream: MessageOrStream,
         /,
     ) -> None:
+        asyncexc_check()
         if hasattr(service_client, 'update_server_state'):
             await service_client.update_server_state()
 
@@ -108,10 +112,11 @@ def grpc_client_prepare(
 async def grpc_session_channel(
     grpc_service_endpoint,
     _grpc_channel_interceptor,
+    _grpc_channel_interceptor_asyncexc,
 ):
     async with grpc.aio.insecure_channel(
         grpc_service_endpoint,
-        interceptors=[_grpc_channel_interceptor],
+        interceptors=[_grpc_channel_interceptor, _grpc_channel_interceptor_asyncexc],
     ) as channel:
         yield channel
 
@@ -124,6 +129,8 @@ async def grpc_channel(
     grpc_session_channel,
     _grpc_channel_interceptor,
     grpc_client_prepare,
+    _grpc_channel_interceptor_asyncexc,
+    asyncexc_check,
 ):
     """
     Returns the gRPC channel configured by the parameters from the
@@ -132,6 +139,7 @@ async def grpc_channel(
     @ingroup userver_testsuite_fixtures
     """
     _grpc_channel_interceptor.prepare_func = grpc_client_prepare
+    _grpc_channel_interceptor_asyncexc.asyncexc_check = asyncexc_check
     try:
         await asyncio.wait_for(
             grpc_session_channel.channel_ready(),
@@ -184,45 +192,47 @@ class _GenericClientInterceptor(
     grpc.aio.StreamStreamClientInterceptor,
 ):
     def __init__(self):
-        self.prepare_func: Optional[Callable[[grpc.aio.ClientCallDetails], Awaitable[None]]] = None
+        self.prepare_func: Optional[Callable[[grpc.aio.ClientCallDetails, MessageOrStream], Awaitable[None]]] = None
 
-    async def intercept_unary_unary(
-        self,
-        continuation,
-        client_call_details,
-        request,
-    ):
-        await self.prepare_func(client_call_details)
+    async def intercept_unary_unary(self, continuation, client_call_details, request):
+        await self.prepare_func(client_call_details, request)
         return await continuation(client_call_details, request)
 
-    async def intercept_unary_stream(
-        self,
-        continuation,
-        client_call_details,
-        request,
-    ):
-        await self.prepare_func(client_call_details)
+    async def intercept_unary_stream(self, continuation, client_call_details, request):
+        await self.prepare_func(client_call_details, request)
         return continuation(client_call_details, next(request))
 
-    async def intercept_stream_unary(
-        self,
-        continuation,
-        client_call_details,
-        request_iterator,
-    ):
-        await self.prepare_func(client_call_details)
+    async def intercept_stream_unary(self, continuation, client_call_details, request_iterator):
+        await self.prepare_func(client_call_details, request_iterator)
         return await continuation(client_call_details, request_iterator)
 
-    async def intercept_stream_stream(
-        self,
-        continuation,
-        client_call_details,
-        request_iterator,
-    ):
-        await self.prepare_func(client_call_details)
+    async def intercept_stream_stream(self, continuation, client_call_details, request_iterator):
+        await self.prepare_func(client_call_details, request_iterator)
         return continuation(client_call_details, request_iterator)
 
 
 @pytest.fixture(scope='session')
 def _grpc_channel_interceptor(daemon_scoped_mark) -> _GenericClientInterceptor:
     return _GenericClientInterceptor()
+
+
+class _AsyncExcClientInterceptor(grpc.aio.UnaryUnaryClientInterceptor, grpc.aio.StreamUnaryClientInterceptor):
+    def __init__(self):
+        self.asyncexc_check: Optional[_AsyncExcCheck] = None
+
+    async def intercept_unary_unary(self, continuation, client_call_details, request):
+        try:
+            return await continuation(client_call_details, request)
+        finally:
+            self.asyncexc_check()
+
+    async def intercept_stream_unary(self, continuation, client_call_details, request_iterator):
+        try:
+            return await continuation(client_call_details, request_iterator)
+        finally:
+            self.asyncexc_check()
+
+
+@pytest.fixture(scope='session')
+def _grpc_channel_interceptor_asyncexc() -> _AsyncExcClientInterceptor:
+    return _AsyncExcClientInterceptor()

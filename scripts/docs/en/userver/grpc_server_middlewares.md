@@ -9,7 +9,7 @@ A middleware may decide to reject the call or call the next middleware in the st
 Middlewares may implement almost any enhancement to the gRPC server including authorization
 and authentication, ratelimiting, logging, tracing, audit, etc.
 
-There is an `ugrpc::server::MiddlewarePipeline` component for configuring the middlewares pipeline. 
+There is an `ugrpc::server::MiddlewarePipelineComponent` component for configuring the middlewares pipeline. 
 There are default middlewares:
  - grpc-server-logging
  - grpc-server-deadline-propagation
@@ -20,7 +20,7 @@ There are default middlewares:
 All of these middlewares are enabled by default. However, you must register components of these middlewares in the component list.
 You should use `ugrpc::server::DefaultComponentList` or `ugrpc::server::MinimalComponentList`.
 
-`ugrpc::server::MiddlewarePipeline` is a global configuration of server middlewares. So, you can enabled/disable middlewares with the option `enabled` in the global (`grpc-server-middlewares-pipeline`) or middleware config.
+`ugrpc::server::MiddlewarePipelineComponent` is a global configuration of server middlewares. So, you can enabled/disable middlewares with the option `enabled` in the global (`grpc-server-middlewares-pipeline`) or middleware config.
 
 Example configuration:
 ```yaml
@@ -53,34 +53,34 @@ Your middleware will be called after all userver middlewares. Your middlewares w
 
 ## Middlewares order
 
-It possible to order middlewares in the pipeline. Use `ugrpc::server::MiddlewareDependencyBuilder` and (optional) enum `ugrpc::server::DependencyType`.
+It possible to order middlewares in the pipeline. Use `middlewares::MiddlewareDependencyBuilder` and (optional) enum `middlewares::DependencyType`.
 
 ```cpp
-#include <userver/ugrpc/server/middlewares/pipeline.hpp>
+#include <userver/ugrpc/server/middlewares/base.hpp>
 
 MiddlewareComponent::MiddlewareComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareComponentBase(
+    : ugrpc::server::MiddlewareFactoryComponentBase(
           config,
           context,
-          ugrpc::server::MiddlewareDependencyBuilder().After<path_to_my_middleware::Component>()
+          middlewares::MiddlewareDependencyBuilder().After<path_to_my_middleware::Component>()
       ) {}
 
 ```
 Then the middleware of the component `MiddlewareComponent` will be after `path_to_my_middleware::Component` in the pipeline.
 
-@warning Middlewares that ordered with `ugrpc::server::MiddlewareDependencyBuilder::Before` and `ugrpc::server::MiddlewareDependencyBuilder::After` must be in the same group.
+@warning Middlewares that ordered with `middlewares::MiddlewareDependencyBuilder::Before` and `middlewares::MiddlewareDependencyBuilder::After` must be in the same group.
 
 If then someone disable middleware `path_to_my_middleware::Component`, userver does not start, because `MiddlewareComponent` requested this middleware. So, this connection is strong (`ugrpc::server::DependencyType::kStrong`). You can set `ugrpc::server::DependencyType::kWeak` to ignore disabling of `path_to_my_middleware::Component`.
 
 ```cpp
-#include <userver/ugrpc/server/middlewares/pipeline.hpp>
+#include <userver/ugrpc/server/middlewares/base.hpp>
 
 MiddlewareComponent::MiddlewareComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareComponentBase(
+    : ugrpc::server::MiddlewareFactoryComponentBase(
           config,
           context,
-          ugrpc::server::MiddlewareDependencyBuilder()
-              .After<path_to_my_middleware::Component>(ugrpc::server::DependencyType::kWeak)
+          middlewares::MiddlewareDependencyBuilder()
+              .After<path_to_my_middleware::Component>(middlewares::DependencyType::kWeak)
       ) {}
 ```
 
@@ -89,18 +89,18 @@ MiddlewareComponent::MiddlewareComponent(const components::ComponentConfig& conf
 ## Middlewares groups
 
 The middlewares pipeline consists of groups (ordered from begin to end):
- - `ugrpc::groups::PreCore`
- - `ugrpc::groups::Logging`
- - `ugrpc::groups::Auth`
- - `ugrpc::groups::Core`
- - `ugrpc::groups::PostCore`
- - `ugrpc::groups::User`
+ - `middlewares::groups::PreCore`
+ - `middlewares::groups::Logging`
+ - `middlewares::groups::Auth`
+ - `middlewares::groups::Core`
+ - `middlewares::groups::PostCore`
+ - `middlewares::groups::User`
 
-All user middlewares will be in `ugrpc::server::groups::User` group by default. But you can register your middleware in any group such as:
+All user middlewares will be in `middlewares::groups::User` group by default. But you can register your middleware in any group such as:
 
 @snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware declaration
 
-You can don't pass `ugrpc::server::MiddlewareDependencyBuilder` in `ugrpc::server::MiddlewareComponentBase` and middleware will be in the group `User` by default.
+You can don't pass `middlewares::MiddlewareDependencyBuilder` in `ugrpc::server::MiddlewareFactoryComponentBase` and middleware will be in the group `User` by default.
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/grpc.md | @ref rabbitmq_driver ⇨

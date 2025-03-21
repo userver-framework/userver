@@ -6,8 +6,8 @@ import samples.greeter_pb2 as greeter_protos
 import samples.greeter_pb2_grpc as greeter_services
 
 
-async def test_basic(grpc_client, grpc_mockserver_new):
-    @grpc_mockserver_new(greeter_services.GreeterServiceServicer.SayHello)
+async def test_basic(grpc_client, grpc_mockserver):
+    @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
     async def mock_say_hello(request, context):
         return greeter_protos.GreetingResponse(
             greeting=f'Hello, {request.name} from mockserver!',
@@ -19,8 +19,8 @@ async def test_basic(grpc_client, grpc_mockserver_new):
     assert response.greeting == 'Hello, Python from mockserver!'
 
 
-async def test_request_metadata(grpc_client, grpc_mockserver_new):
-    @grpc_mockserver_new(greeter_services.GreeterServiceServicer.SayHello)
+async def test_request_metadata(grpc_client, grpc_mockserver):
+    @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
     async def mock_say_hello(request, context):
         req_metadata = grpc.aio.Metadata(*context.invocation_metadata())
         if (
@@ -45,8 +45,8 @@ async def test_request_metadata(grpc_client, grpc_mockserver_new):
     assert response.greeting == 'Hi!'
 
 
-async def test_trailing_response_metadata(grpc_client, grpc_mockserver_new):
-    @grpc_mockserver_new(greeter_services.GreeterServiceServicer.SayHello)
+async def test_trailing_response_metadata(grpc_client, grpc_mockserver):
+    @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
     async def mock_say_hello(request, context):
         context.set_trailing_metadata((('response-meta-key', 'response-meta-value'),))
         return greeter_protos.GreetingResponse(greeting='Hi!')
@@ -60,8 +60,8 @@ async def test_trailing_response_metadata(grpc_client, grpc_mockserver_new):
     assert resp_metadata.get('response-meta-key', '') == 'response-meta-value'
 
 
-async def test_error(grpc_client, grpc_mockserver_new):
-    @grpc_mockserver_new(greeter_services.GreeterServiceServicer.SayHello)
+async def test_error(grpc_client, grpc_mockserver):
+    @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
     async def mock_say_hello(request, context):
         context.set_code(grpc.StatusCode.UNAVAILABLE)
         context.set_details(f'Failed to greet {request.name}')

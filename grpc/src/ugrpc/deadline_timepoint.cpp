@@ -1,4 +1,4 @@
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 
 #include <chrono>
 #include <cstdint>

@@ -65,8 +65,6 @@ std::string EndOfGroup() {
     return std::string{Group::kName} + "#end";
 }
 
-// clang-format off
-
 /// @brief A base component to create middlewares pipeline.
 ///
 /// ## Static options:
@@ -76,9 +74,7 @@ std::string EndOfGroup() {
 ///
 /// ## Config example:
 ///
-/// @snippet grpc/functional_tests/middleware_server/static_config.yaml Sample grpc server middleware pipeline component config
-
-// clang-format on
+/// @snippet grpc/functional_tests/middleware_server/static_config.yaml middleware pipeline component config
 
 class AnyMiddlewarePipelineComponent : public components::ComponentBase {
 public:

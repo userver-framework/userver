@@ -1,0 +1,22 @@
+default: {"__default__": {"enable-monitoring": false, "forbid-requests-to-syncing-replicas": false}}
+description: ''
+schema:
+    type: object
+    description: settings for each database in service
+    properties:
+        __default__:
+            '$ref': '#/definitions/BaseSettings'
+    additionalProperties:
+        '$ref': '#/definitions/BaseSettings'
+    definitions:
+        BaseSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                enable-monitoring:
+                    type: boolean
+                forbid-requests-to-syncing-replicas:
+                    type: boolean
+            required:
+              - enable-monitoring
+              - forbid-requests-to-syncing-replicas

@@ -9,8 +9,8 @@ pytest_plugins = ['pytest_userver.plugins.grpc']
 
 # /// [Prepare server mock]
 @pytest.fixture
-def greeter_mock(grpc_mockserver_new):
-    return grpc_mockserver_new.mock_factory(greeter_services.GreeterServiceServicer)
+def greeter_mock(grpc_mockserver):
+    return grpc_mockserver.mock_factory(greeter_services.GreeterServiceServicer)
     # /// [Prepare server mock]
 
 

@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include "auth.hpp"
 
 #include <middlewares/auth.hpp>
 
@@ -8,7 +8,7 @@
 
 namespace sample::grpc::auth::server {
 
-/// [gRPC middleware sample - Middleware implementation]
+/// [Middleware implementation]
 Middleware::Middleware() = default;
 
 void Middleware::Handle(ugrpc::server::MiddlewareCallContext& context) const {
@@ -25,6 +25,6 @@ void Middleware::Handle(ugrpc::server::MiddlewareCallContext& context) const {
 
     context.Next();
 }
-/// [gRPC middleware sample - Middleware implementation]
+/// [Middleware implementation]
 
 }  // namespace sample::grpc::auth::server

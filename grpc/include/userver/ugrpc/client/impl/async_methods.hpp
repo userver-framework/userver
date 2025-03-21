@@ -3,7 +3,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
-#include <utility>
+#include <variant>
 
 #include <google/rpc/status.pb.h>
 
@@ -18,9 +18,9 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/function_ref.hpp>
 
-#include <userver/ugrpc/client/call_kind.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/client/impl/call_kind.hpp>
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>

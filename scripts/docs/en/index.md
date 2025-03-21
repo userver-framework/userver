@@ -110,6 +110,7 @@ are available at the
 * @ref scripts/docs/en/userver/os_signals.md
 * @ref scripts/docs/en/userver/deadline_propagation.md
 * @ref scripts/docs/en/userver/congestion_control.md
+* @ref scripts/docs/en/userver/stack.md
 
 
 ## Caches

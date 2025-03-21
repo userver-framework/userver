@@ -126,7 +126,9 @@ engine::TaskWithResult<void> Producer::SendAsync(
     );
 }
 
-void Producer::DumpMetric(utils::statistics::Writer& writer) const { impl::DumpMetric(writer, producer_->GetStats()); }
+void Producer::DumpMetric(utils::statistics::Writer& writer) const {
+    impl::DumpMetric(writer, producer_->GetStats(), this->name_);
+}
 
 void Producer::SendImpl(
     const std::string& topic_name,

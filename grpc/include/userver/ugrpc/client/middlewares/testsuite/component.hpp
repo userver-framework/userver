@@ -16,7 +16,7 @@ namespace ugrpc::client::middlewares::testsuite {
 ///
 /// @brief Component for gRPC client testsuite support
 /// The component supports testsuite errors thrown from the mockserver, such as `NetworkError`, `TimeoutError`.
-/// @see @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver_new "grpc_mockserver_new"
+/// @see @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver"
 /// @see @ref pytest_userver.grpc.TimeoutError
 /// @see @ref pytest_userver.grpc.NetworkError
 ///

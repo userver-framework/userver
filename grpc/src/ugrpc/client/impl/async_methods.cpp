@@ -15,7 +15,7 @@
 #include <ugrpc/impl/status.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 

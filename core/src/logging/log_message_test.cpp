@@ -82,8 +82,6 @@ TEST_F(LoggingTest, LogFormat) {
                                                   R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
                                                   R"(level=[A-Z]+\t)"
                                                   R"(module=[\w\d ():./]+\t)"
-                                                  R"(task_id=[0-9A-F]+\t)"
-                                                  R"(thread_id=0x[0-9A-F]+\t)"
                                                   R"(foo=bar\t)"
                                                   R"(text=test\n)";
     LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}};
@@ -102,8 +100,6 @@ TEST_F(LoggingLtsvTest, LogFormatLtsv) {
     constexpr std::string_view kExpectedPattern = R"(timestamp:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
                                                   R"(level:[A-Z]+\t)"
                                                   R"(module:[-_\w\d ():./]+\t)"
-                                                  R"(task_id:[0-9A-F]+\t)"
-                                                  R"(thread_id:0x[0-9A-F]+\t)"
                                                   R"(foo:bar\t)"
                                                   R"(text:test\n)";
     LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}};
@@ -117,8 +113,6 @@ TEST_F(LoggingRawTest, LogFormat) {
     // or content of tags change, this test should be fixed to reflect the
     // changes.
     constexpr std::string_view kExpectedPattern = R"(tskv\t)"
-                                                  R"(task_id=[0-9A-F]+\t)"
-                                                  R"(thread_id=0x[0-9A-F]+\t)"
                                                   R"(foo=bar\t)"
                                                   R"(text=test\n)";
     LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}};

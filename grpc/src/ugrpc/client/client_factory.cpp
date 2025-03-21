@@ -21,11 +21,20 @@ ClientFactory::ClientFactory(
       config_source_(config_source),
       testsuite_grpc_(testsuite_grpc) {}
 
-impl::ClientInternals ClientFactory::MakeClientInternals(ClientSettings&& client_settings) {
+impl::ClientInternals ClientFactory::MakeClientInternals(
+    ClientSettings&& client_settings,
+    std::optional<ugrpc::impl::StaticServiceMetadata> meta
+) {
     UINVARIANT(!client_settings.client_name.empty(), "Client name is empty");
     UINVARIANT(!client_settings.endpoint.empty(), "Client endpoint is empty");
 
-    const ClientInfo info{/*client_name=*/client_settings.client_name};
+    ClientInfo info{
+        /*client_name=*/client_settings.client_name,
+        /*service_full_name=*/std::nullopt,
+    };
+    if (meta.has_value()) {
+        info.service_full_name.emplace(meta.value().service_full_name);
+    }
 
     auto mws = pipeline_creator_.CreateMiddlewares(info);
 

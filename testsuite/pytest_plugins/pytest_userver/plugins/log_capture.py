@@ -150,6 +150,8 @@ class CaptureControl:
     async def start_server(self, *, sock, loop=None):
         extra = {}
         if sys.version_info < (3, 8):
+            if loop is None:
+                loop = asyncio.get_running_loop()
             extra['loop'] = loop
         server = await asyncio.start_server(
             self._handle_client,
@@ -220,11 +222,9 @@ def _userver_log_capture_socket(pytestconfig):
 async def _userver_capture_server(
     _userver_capture_control: CaptureControl,
     _userver_log_capture_socket,
-    loop,
 ):
     async with _userver_capture_control.start_server(
         sock=_userver_log_capture_socket,
-        loop=loop,
     ) as server:
         yield server
 

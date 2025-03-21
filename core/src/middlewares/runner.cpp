@@ -1,7 +1,11 @@
 #include <userver/middlewares/runner.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 #include <userver/formats/common/merge.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 #include <userver/middlewares/groups.hpp>
@@ -27,6 +31,10 @@ yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
 
 MiddlewareDependencyBuilder MakeDefaultUserDependency() {
     return MiddlewareDependencyBuilder().InGroup<groups::User>();
+}
+
+void LogConfiguration(std::string_view component_name, const std::vector<std::string>& names) {
+    LOG_INFO() << fmt::format("Middlewares configuration for {}: [{}]", component_name, fmt::join(names, ", "));
 }
 
 }  // namespace middlewares::impl

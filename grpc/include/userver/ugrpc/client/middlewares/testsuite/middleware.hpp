@@ -3,7 +3,6 @@
 /// @file userver/ugrpc/client/middlewares/testsuite/middleware.hpp
 /// @brief @copybrief ugrpc::client::middlewares::testsuite::Middleware
 
-#include <userver/middlewares/groups.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -150,6 +150,14 @@ the debug logs for all the `*Log*` tests for the CMake built binary:
 ./core/userver-core-unittest --log-level=debug --gtest_filter=*Log*
 ```
 
+### Ignoring signals in debugger
+
+Userver uses signals for internal matters to identify coroutine stack usage @ref scripts/docs/en/userver/stack.md.
+If you see too much "caught signal X" in debugger, you may disable stack usage monitor via environment variable:
+
+USERVER_GTEST_ENABLE_STACK_USAGE_MONITOR=1 
+
+Now you should not be annoyed by extra "caught signal X" events.
 
 ## Benchmarks (google-benchmark)
 

@@ -36,6 +36,7 @@ private:
     std::function<void()> on_new_connlimit_;
     testsuite::TestsuiteTasks& testsuite_tasks_;
     int steps_with_errors_{0};
+    std::string current_user_;
     USERVER_NAMESPACE::utils::PeriodicTask periodic_;
     int shard_number_;
 };

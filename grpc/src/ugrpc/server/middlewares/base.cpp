@@ -1,8 +1,6 @@
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
-#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/components/component.hpp>
 
 #include <userver/ugrpc/server/impl/exceptions.hpp>
 
@@ -46,12 +44,16 @@ void MiddlewareCallContext::Next() {
     }
 }
 
+bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(call_.GetCallKind()); }
+
+bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(call_.GetCallKind()); }
+
+CallAnyBase& MiddlewareCallContext::GetCall() const { return call_; }
+
 void MiddlewareCallContext::ClearMiddlewaresResources() {
     UASSERT(config_);
     config_.reset();
 }
-
-CallAnyBase& MiddlewareCallContext::GetCall() const { return call_; }
 
 const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig() const {
     UASSERT(config_);

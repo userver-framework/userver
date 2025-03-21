@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 function(userver_module MODULE)
   unset(ARG_UNPARSED_ARGUMENTS)
-  set(OPTIONS NO_INSTALL)
+  set(OPTIONS NO_INSTALL NO_CORE_LINK GENERATE_DYNAMIC_CONFIGS)
   set(ONE_VALUE_ARGS SOURCE_DIR)
   set(MULTI_VALUE_ARGS
       IGNORE_SOURCES
@@ -79,11 +79,17 @@ function(userver_module MODULE)
   target_link_libraries(
       userver-${MODULE}
       PUBLIC
-      userver-core
       ${ARG_LINK_LIBRARIES}
       PRIVATE
       ${ARG_LINK_LIBRARIES_PRIVATE}
   )
+  if(NOT ARG_NO_CORE_LINK)
+    target_link_libraries(
+	    userver-${MODULE}
+	    PUBLIC
+	    userver-core
+    )
+  endif()
 
   if(NOT ARG_NO_INSTALL)
     _userver_directory_install(
@@ -156,5 +162,15 @@ function(userver_module MODULE)
         DATABASES ${ARG_UBENCH_DATABASES}
         TEST_ENV ${ARG_UBENCH_ENV}
     )
+  endif()
+
+  ## 5. userver-${MODULE}-dynamic-configs
+  if (ARG_GENERATE_DYNAMIC_CONFIGS)
+    userver_target_generate_chaotic_dynamic_configs(
+        userver-${MODULE}-dynamic-configs
+        dynamic_configs/*.yaml
+    )
+    target_link_libraries(userver-${MODULE} PUBLIC userver-${MODULE}-dynamic-configs)
+    _userver_install_targets(COMPONENT ${MODULE} TARGETS userver-${MODULE}-dynamic-configs)
   endif()
 endfunction()
