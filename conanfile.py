@@ -22,7 +22,6 @@ class UserverConan(ConanFile):
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
     package_type = 'static-library'
-    exports_sources = '*'
 
     settings = 'os', 'arch', 'compiler', 'build_type'
     options = {
@@ -82,6 +81,16 @@ class UserverConan(ConanFile):
         'librdkafka/*:zstd': True,
         're2/*:with_icu': True,
     }
+
+    def export_sources(self):
+        git = Git(self)
+        tracked_sources = git.included_files()
+        # Extract unique top-level directories from the tracked sources
+        # This optimization reduces the number of copy operations by ensuring
+        # that we only copy each directory once, rather than each file individually.
+        tracked_sources = set(f.split("/")[0] for f in tracked_sources)
+        for i in tracked_sources:
+            copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
 
     def set_version(self):
         content = load(
