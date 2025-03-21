@@ -10,6 +10,7 @@ from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import load
+from conan.tools.scm import Git
 
 required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
 
