@@ -11,6 +11,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 
 #include <userver/storages/sqlite/tests/utils.hpp>
+#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -97,10 +98,11 @@ UTEST_F(SQLiteCustomConnection, ReadWrite) {
            .AsVector<RowTuple>()));
 }
 
-UTEST_F_MT(SQLiteCustomConnection, ReadWriteConcurent, 10) {
+UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.create_file = true;
+  settings.journal_mode = GetParam();
 
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));
@@ -114,6 +116,10 @@ UTEST_F_MT(SQLiteCustomConnection, ReadWriteConcurent, 10) {
     tasks.push_back(engine::AsyncNoSpan([&, i]() {
       UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (?, ?)", i,
                                        fmt::format("data_{}", i)));
+    }));
+  }
+  for (size_t i = 0; i < 10; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&]() {
       UEXPECT_NO_THROW((client
                             ->Execute(settings::CommandControl::ReadOnly(),
                                       "SELECT * FROM test")
@@ -133,6 +139,16 @@ UTEST_F_MT(SQLiteCustomConnection, ReadWriteConcurent, 10) {
   }
 }
 
+INSTANTIATE_UTEST_SUITE_P(
+    SQLiteCustomConnection, SQLiteJournalsTest,
+    ::testing::Values(settings::SQLiteSettings::JournalMode::kDelete,
+                      settings::SQLiteSettings::JournalMode::kTruncate,
+                      settings::SQLiteSettings::JournalMode::kPersist,
+                      settings::SQLiteSettings::JournalMode::kMemory,
+                      settings::SQLiteSettings::JournalMode::kWal,
+                      settings::SQLiteSettings::JournalMode::kOff),
+    TestParamNameJournalMode);
+
 UTEST_F(SQLiteCustomConnection, ReadOnly) {
   {
     settings::SQLiteSettings settings;
@@ -140,7 +156,8 @@ UTEST_F(SQLiteCustomConnection, ReadOnly) {
     settings.create_file = true;
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings))
-        << "Connect to a non-existent database, but the file will be created "
+        << "Connect to a non-existent database, but the file will be "
+           "created "
            "automatically";
     UEXPECT_NO_THROW(client->Execute(
         "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));

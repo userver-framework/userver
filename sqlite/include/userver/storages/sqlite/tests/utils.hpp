@@ -65,7 +65,7 @@ class MockSQLiteStatement : public impl::StatementBase {
 namespace fs = std::filesystem;
 
 class SQLiteTest : public ::testing::Test {
- protected:
+ public:
   void SetUp() override {
     test_dir_ = fs::temp_directory_path() / "sqlite_test";
     fs::create_directory(test_dir_);
@@ -94,14 +94,32 @@ class SQLiteCustomConnection : public SQLiteTest {
     return client_;
   }
 
-  // TODO: Do I need to validate the connection somehow?
   void CreateClient(const ClientPtr& client) {
     ASSERT_TRUE(client) << "Expected non-empty connection pointer";
     EXPECT_NO_THROW(client->Execute("SELECT 42"));
   }
 
+  void TestBody() override {}
+
  private:
   ClientPtr client_;
+};
+
+class SQLiteJournalsTest
+    : public ::testing::TestWithParam<settings::SQLiteSettings::JournalMode> {
+ protected:
+  SQLiteCustomConnection connection_;
+
+  void SetUp() override { connection_.SetUp(); }
+  void TearDown() override { connection_.TearDown(); }
+
+  std::string GetTestDbPath(const std::string& db_name) const {
+    return connection_.GetTestDbPath(db_name);
+  }
+
+  ClientPtr CreateClient(settings::SQLiteSettings settings) {
+    return connection_.CreateClient(std::move(settings));
+  }
 };
 
 class SQLiteInMemoryConnection : public SQLiteCustomConnection {
@@ -141,6 +159,11 @@ struct Row final {
 };
 
 using RowTuple = std::tuple<int, std::string>;
+
+std::string TestParamNameJournalMode(
+    const ::testing::TestParamInfo<
+        ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode>&
+        info);
 
 }  // namespace storages::sqlite::tests
 

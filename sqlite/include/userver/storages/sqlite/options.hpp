@@ -118,6 +118,8 @@ struct SQLiteSettings {
   PoolSettings pool_settings;
 };
 
+std::string JournalModeToString(const SQLiteSettings::JournalMode& mode);
+
 }  // namespace storages::sqlite::settings
 
 USERVER_NAMESPACE_END

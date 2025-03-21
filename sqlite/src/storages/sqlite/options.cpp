@@ -37,6 +37,31 @@ PoolSettings PoolSettings::Create(const components::ComponentConfig& config) {
   return settings;
 }
 
+std::string JournalModeToString(const SQLiteSettings::JournalMode& mode) {
+  switch (mode) {
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kDelete:
+      return "DELETE";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kTruncate:
+      return "TRUNCATE";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kPersist:
+      return "PERSIST";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kMemory:
+      return "MEMORY";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kWal:
+      return "WAL";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kOff:
+      return "OFF";
+    default:
+      return "Unknown";
+  }
+}
+
 }  // namespace storages::sqlite::settings
 
 USERVER_NAMESPACE_END
