@@ -16,8 +16,6 @@ components_manager:
         key-value-database:
             db-path: "tmp.db"
             task_processor: fs-task-processor
-            create_file: true
-            is_read_only: false
 
         server:
             listener:

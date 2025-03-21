@@ -1,7 +1,6 @@
-#include <string>
 #include <userver/storages/sqlite/impl/native_handler.hpp>
 
-#include <userver/engine/async.hpp>
+#include <string_view>
 
 #include <userver/storages/sqlite/exceptions.hpp>
 
@@ -87,7 +86,7 @@ void NativeHandler::SetSettings(const settings::SQLiteSettings& settings) {
   Exec(std::string(kPragmaForeignKeys) + std::to_string(settings.foreign_keys));
   Exec(std::string(kPragmaJournalSizeLimit) +
        std::to_string(settings.journal_size_limit));
-  Exec(std::string(kPragmaMmapSize) + std::to_string(settings.mmap_size));
+  // Exec(std::string(kPragmaMmapSize) + std::to_string(settings.mmap_size));
   Exec(std::string(kPragmaPageSize) + std::to_string(settings.page_size));
 }
 
@@ -107,19 +106,14 @@ struct sqlite3* NativeHandler::OpenDatabase(
     flags |= SQLITE_OPEN_SHAREDCACHE;
   }
   struct sqlite3* handler = nullptr;
-  return engine::AsyncNoSpan(
-             blocking_task_processor_,
-             [&settings, &flags, &handler] {
-               if (const int ret_code = sqlite3_open_v2(
-                       settings.db_name.c_str(), &handler, flags, nullptr);
-                   ret_code != SQLITE_OK) {
-                 sqlite3_close(handler);
-                 throw SQLiteException(sqlite3_errmsg(handler), ret_code,
-                                       sqlite3_extended_errcode(handler));
-               }
-               return handler;
-             })
-      .Get();
+  if (const int ret_code =
+          sqlite3_open_v2(settings.db_name.c_str(), &handler, flags, nullptr);
+      ret_code != SQLITE_OK) {
+    sqlite3_close(handler);
+    throw SQLiteException(sqlite3_errmsg(handler), ret_code,
+                          sqlite3_extended_errcode(handler));
+  }
+  return handler;
 }
 
 NativeHandler::NativeHandler(const settings::SQLiteSettings& settings,
@@ -129,25 +123,19 @@ NativeHandler::NativeHandler(const settings::SQLiteSettings& settings,
   SetSettings(settings);
 }
 
-NativeHandler::~NativeHandler() {
-  engine::AsyncNoSpan(blocking_task_processor_, [this] {
-    sqlite3_close(db_handler_);
-  }).Get();
-}
+NativeHandler::~NativeHandler() { sqlite3_close(db_handler_); }
 
 struct sqlite3* NativeHandler::GetHandle() const noexcept {
   return db_handler_;
 }
 
 void NativeHandler::Exec(const std::string& query) const {
-  engine::AsyncNoSpan(blocking_task_processor_, [this, &query] {
-    if (const int ret_code =
-            sqlite3_exec(db_handler_, query.data(), nullptr, nullptr, nullptr);
-        ret_code != SQLITE_OK) {
-      throw SQLiteException(sqlite3_errmsg(db_handler_), ret_code,
-                            sqlite3_extended_errcode(db_handler_));
-    }
-  }).Get();
+  if (const int ret_code =
+          sqlite3_exec(db_handler_, query.data(), nullptr, nullptr, nullptr);
+      ret_code != SQLITE_OK) {
+    throw SQLiteException(sqlite3_errmsg(db_handler_), ret_code,
+                          sqlite3_extended_errcode(db_handler_));
+  }
 }
 
 }  // namespace storages::sqlite::impl

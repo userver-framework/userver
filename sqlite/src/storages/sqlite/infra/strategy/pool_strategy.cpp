@@ -4,6 +4,7 @@
 #include <userver/engine/wait_all_checked.hpp>
 
 #include <userver/storages/sqlite/infra/pool.hpp>
+#include <userver/storages/sqlite/infra/strategy/exclusive_read_write_strategy.hpp>
 #include <userver/storages/sqlite/infra/strategy/read_only_strategy.hpp>
 #include <userver/storages/sqlite/infra/strategy/read_write_strategy.hpp>
 #include <userver/storages/sqlite/options.hpp>
@@ -21,20 +22,18 @@ std::unique_ptr<PoolStrategyBase> PoolStrategyBase::Create(
     // many readers and null writers in one time
     return std::make_unique<ReadOnlyStrategy>(settings,
                                               blocking_task_processor);
+  } else if (settings.journal_mode ==
+             settings::SQLiteSettings::JournalMode::kWal) {
+    // many readers and one writer in one time
+    return std::make_unique<ReadWriteStrategy>(settings,
+                                               blocking_task_processor);
+  } else {
+    // in case of rollback journal it need more advanced pool strategy with
+    // waiting on pools iternal state or sqlite lock state
+    // many readers or one writer in one time
+    return std::make_unique<ExclusiveReadWriteStrategy>(
+        settings, blocking_task_processor);
   }
-  return std::make_unique<ReadWriteStrategy>(settings, blocking_task_processor);
-  // TODO: in case of rollback journal it need more advanced pool strategy with
-  // waiting on pools iternal state or sqlite lock state
-  //  else if (settings.journal_mode ==
-  //            settings::SQLiteSettings::JournalMode::kWal) {
-  //   // many readers and one writer in one time
-  //   return std::make_unique<ReadWriteStrategy>(settings,
-  //                                              blocking_task_processor);
-  // } else {
-  //   // many readers or one writer in one time
-  //   return std::make_unique<ExclusiveReadWriteStrategy>(settings,
-  //                                              blocking_task_processor);
-  // }
 }
 
 Pool& PoolStrategyBase::SelectPool(

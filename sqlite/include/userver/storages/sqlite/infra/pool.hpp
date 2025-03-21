@@ -45,6 +45,8 @@ class Pool final
   Pool(const settings::SQLiteSettings& settings,
        engine::TaskProcessor& blocking_task_processor);
 
+  Counter GetCurrentWorkersCount() const;
+
  private:
   friend class drivers::impl::ConnectionPoolBase<impl::Connection, Pool>;
 

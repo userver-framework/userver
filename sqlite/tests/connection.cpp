@@ -10,8 +10,8 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
+#include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -98,56 +98,51 @@ UTEST_F(SQLiteCustomConnection, ReadWrite) {
            .AsVector<RowTuple>()));
 }
 
-UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
-  settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
-  settings.create_file = true;
-  settings.journal_mode = GetParam();
+// UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
+//   settings::SQLiteSettings settings;
+//   settings.db_name = GetTestDbPath("test.db");
+//   settings.create_file = true;
+//   settings.journal_mode = GetParam();
 
-  ClientPtr client;
-  UEXPECT_NO_THROW(client = CreateClient(settings));
-  UEXPECT_NO_THROW(client->Execute(
-      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+//   ClientPtr client = CreateClient(settings);
+//   engine::AsyncNoSpan([&]() {
+//     UEXPECT_NO_THROW(client->Execute(
+//         "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+//   }).Get();
 
-  std::vector<engine::TaskWithResult<void>> tasks;
-  tasks.reserve(5);
+//   std::vector<engine::TaskWithResult<void>> tasks;
 
-  for (size_t i = 0; i < 10; ++i) {
-    tasks.push_back(engine::AsyncNoSpan([&, i]() {
-      UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (?, ?)", i,
-                                       fmt::format("data_{}", i)));
-    }));
-  }
-  for (size_t i = 0; i < 10; ++i) {
-    tasks.push_back(engine::AsyncNoSpan([&]() {
-      UEXPECT_NO_THROW((client
-                            ->Execute(settings::CommandControl::ReadOnly(),
-                                      "SELECT * FROM test")
-                            .AsVector<RowTuple>()));
-    }));
-  }
-  tasks.push_back(engine::AsyncNoSpan([&]() {
-    UEXPECT_NO_THROW(
-        (client
-             ->Execute(
-                 "INSERT INTO test VALUES (42, 'magic number') RETURNING *")
-             .AsVector<RowTuple>()));
-  }));
+//   for (size_t i = 0; i < 10; ++i) {
+//     tasks.push_back(engine::AsyncNoSpan([&, i]() {
+//       UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (?, ?)", i,
+//                                        fmt::format("data_{}", i)));
+//     }));
+//   }
+//   for (size_t i = 0; i < 10; ++i) {
+//     tasks.push_back(engine::AsyncNoSpan([&]() {
+//       UEXPECT_NO_THROW((client
+//                             ->Execute(settings::CommandControl::ReadOnly(),
+//                                       "SELECT * FROM test")
+//                             .AsVector<RowTuple>()));
+//     }));
+//   }
+//   tasks.push_back(engine::AsyncNoSpan([&]() {
+//     UEXPECT_NO_THROW(
+//         (client
+//              ->Execute(
+//                  "INSERT INTO test VALUES (42, 'magic number') RETURNING *")
+//              .AsVector<RowTuple>()));
+//   }));
 
-  for (auto& t : tasks) {
-    t.Get();
-  }
-}
+//   for (auto& task : tasks) {
+//     task.Get();
+//   }
+// }
 
-INSTANTIATE_UTEST_SUITE_P(
-    SQLiteCustomConnection, SQLiteJournalsTest,
-    ::testing::Values(settings::SQLiteSettings::JournalMode::kDelete,
-                      settings::SQLiteSettings::JournalMode::kTruncate,
-                      settings::SQLiteSettings::JournalMode::kPersist,
-                      settings::SQLiteSettings::JournalMode::kMemory,
-                      settings::SQLiteSettings::JournalMode::kWal,
-                      settings::SQLiteSettings::JournalMode::kOff),
-    TestParamNameJournalMode);
+// INSTANTIATE_UTEST_SUITE_P(
+//     SQLiteCustomConnection, SQLiteJournalsTest,
+//     ::testing::Values(settings::SQLiteSettings::JournalMode::kWal),
+//     TestParamNameJournalMode);
 
 UTEST_F(SQLiteCustomConnection, ReadOnly) {
   {

@@ -67,6 +67,10 @@ Pool::Pool(const settings::SQLiteSettings& settings,
   }
 }
 
+Counter Pool::GetCurrentWorkersCount() const {
+  return stats_.acquired - stats_.released;
+}
+
 Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline) {
   try {
     auto connection_ptr =
