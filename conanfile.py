@@ -86,9 +86,7 @@ class UserverConan(ConanFile):
     def export_sources(self):
         git = Git(self)
         tracked_sources = git.included_files()
-        # Extract unique top-level directories from the tracked sources
-        # This optimization reduces the number of copy operations by ensuring
-        # that we only copy each directory once, rather than each file individually.
+        # To speed up copying, we take only the root folders
         tracked_sources = set(f.split("/")[0] for f in tracked_sources)
         for i in tracked_sources:
             copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
