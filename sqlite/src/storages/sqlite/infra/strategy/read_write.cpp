@@ -1,4 +1,4 @@
-#include <userver/storages/sqlite/infra/strategy/exclusive_read_write_strategy.hpp>
+#include <userver/storages/sqlite/infra/strategy/read_write.hpp>
 
 #include <userver/utils/assert.hpp>
 
@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::strategy {
 
-ExclusiveReadWriteStrategy::ExclusiveReadWriteStrategy(
+ReadWriteStrategy::ReadWriteStrategy(
     const settings::SQLiteSettings& settings,
     engine::TaskProcessor& blocking_task_processor)
     : write_connection_pool_{InitializeReadWritePoolReference(
@@ -16,17 +16,15 @@ ExclusiveReadWriteStrategy::ExclusiveReadWriteStrategy(
       read_connection_pool_{
           InitializeReadOnlyPoolReference(settings, blocking_task_processor)} {}
 
-ExclusiveReadWriteStrategy::~ExclusiveReadWriteStrategy() = default;
+ReadWriteStrategy::~ReadWriteStrategy() = default;
 
-Pool& ExclusiveReadWriteStrategy::GetReadOnly() const {
+Pool& ReadWriteStrategy::GetReadOnly() const { return *read_connection_pool_; }
+
+Pool& ReadWriteStrategy::GetReadWrite() const {
   return *write_connection_pool_;
 }
 
-Pool& ExclusiveReadWriteStrategy::GetReadWrite() const {
-  return *write_connection_pool_;
-}
-
-PoolPtr ExclusiveReadWriteStrategy::InitializeReadOnlyPoolReference(
+PoolPtr ReadWriteStrategy::InitializeReadOnlyPoolReference(
     settings::SQLiteSettings settings,
     engine::TaskProcessor& blocking_task_processor) {
   settings.read_mode =
@@ -41,7 +39,7 @@ PoolPtr ExclusiveReadWriteStrategy::InitializeReadOnlyPoolReference(
   return read_connection_pool;
 }
 
-PoolPtr ExclusiveReadWriteStrategy::InitializeReadWritePoolReference(
+PoolPtr ReadWriteStrategy::InitializeReadWritePoolReference(
     settings::SQLiteSettings settings,
     engine::TaskProcessor& blocking_task_processor) {
   settings.read_mode =

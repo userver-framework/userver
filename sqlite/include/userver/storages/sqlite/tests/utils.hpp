@@ -130,7 +130,7 @@ class SQLiteJournalsTest
 
   void CheckClient(const ClientPtr& client) {
     ASSERT_TRUE(client) << "Expected non-empty connection pointer";
-    EXPECT_NO_THROW(client->Execute("SELECT 42"));
+    EXPECT_NO_THROW(client->Execute("SELECT 42")) << "Try execute query";
   }
 
  private:

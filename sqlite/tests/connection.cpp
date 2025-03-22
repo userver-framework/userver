@@ -9,6 +9,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
@@ -60,7 +61,6 @@ UTEST_F(SQLiteCustomConnection, CreateOpen) {
 }
 
 UTEST_F(SQLiteCustomConnection, InMemory) {
-  // Try to open in-memory database
   settings::SQLiteSettings settings;
   settings.db_name = ":memory:";
 
@@ -98,51 +98,65 @@ UTEST_F(SQLiteCustomConnection, ReadWrite) {
            .AsVector<RowTuple>()));
 }
 
-// UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
-//   settings::SQLiteSettings settings;
-//   settings.db_name = GetTestDbPath("test.db");
-//   settings.create_file = true;
-//   settings.journal_mode = GetParam();
+UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+  settings.create_file = true;
+  settings.journal_mode = settings::SQLiteSettings::JournalMode::kWal;
+  constexpr size_t kReadTaskCount = 10;
+  constexpr size_t kWriteTaskCount = 10;
+  constexpr size_t kReadWriteTaskCount = 10;
+  constexpr size_t kTotalTasksCount =
+      kReadTaskCount + kWriteTaskCount + kReadWriteTaskCount;
 
-//   ClientPtr client = CreateClient(settings);
-//   engine::AsyncNoSpan([&]() {
-//     UEXPECT_NO_THROW(client->Execute(
-//         "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
-//   }).Get();
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings)) << "Try to create client";
+  UEXPECT_NO_THROW(client->Execute(
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
 
-//   std::vector<engine::TaskWithResult<void>> tasks;
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(kTotalTasksCount);
 
-//   for (size_t i = 0; i < 10; ++i) {
-//     tasks.push_back(engine::AsyncNoSpan([&, i]() {
-//       UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (?, ?)", i,
-//                                        fmt::format("data_{}", i)));
-//     }));
-//   }
-//   for (size_t i = 0; i < 10; ++i) {
-//     tasks.push_back(engine::AsyncNoSpan([&]() {
-//       UEXPECT_NO_THROW((client
-//                             ->Execute(settings::CommandControl::ReadOnly(),
-//                                       "SELECT * FROM test")
-//                             .AsVector<RowTuple>()));
-//     }));
-//   }
-//   tasks.push_back(engine::AsyncNoSpan([&]() {
-//     UEXPECT_NO_THROW(
-//         (client
-//              ->Execute(
-//                  "INSERT INTO test VALUES (42, 'magic number') RETURNING *")
-//              .AsVector<RowTuple>()));
-//   }));
+  for (size_t i = 0; i < kWriteTaskCount; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&client, i]() {
+      UEXPECT_NO_THROW(
+          client->Execute("INSERT INTO test VALUES (NULL, 'data')"))
+          << fmt::format("Try to insert: ({0}, data_{0})", i);
+    }));
+  }
+  for (size_t i = 0; i < kReadTaskCount; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&client]() {
+      UEXPECT_NO_THROW((client
+                            ->Execute(settings::CommandControl::ReadOnly(),
+                                      "SELECT * FROM test")
+                            .AsVector<RowTuple>()))
+          << "Try to select all";
+    }));
+  }
+  for (size_t i = kTotalTasksCount; i < kTotalTasksCount + kReadWriteTaskCount;
+       ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&client, i]() {
+      UEXPECT_NO_THROW(
+          (client->Execute("INSERT INTO test VALUES (NULL, 'data') RETURNING *")
+               .AsVector<RowTuple>()))
+          << fmt::format("Try to insert with returning: ({0}, data_{0})", i);
+    }));
+  }
 
-//   for (auto& task : tasks) {
-//     task.Get();
-//   }
-// }
+  for (auto& task : tasks) {
+    task.Get();
+  }
+}
 
-// INSTANTIATE_UTEST_SUITE_P(
-//     SQLiteCustomConnection, SQLiteJournalsTest,
-//     ::testing::Values(settings::SQLiteSettings::JournalMode::kWal),
-//     TestParamNameJournalMode);
+INSTANTIATE_UTEST_SUITE_P(
+    SQLiteCustomConnection, SQLiteJournalsTest,
+    ::testing::Values(settings::SQLiteSettings::JournalMode::kWal,
+                      settings::SQLiteSettings::JournalMode::kDelete,
+                      settings::SQLiteSettings::JournalMode::kTruncate,
+                      settings::SQLiteSettings::JournalMode::kPersist,
+                      settings::SQLiteSettings::JournalMode::kMemory,
+                      settings::SQLiteSettings::JournalMode::kOff),
+    TestParamNameJournalMode);
 
 UTEST_F(SQLiteCustomConnection, ReadOnly) {
   {

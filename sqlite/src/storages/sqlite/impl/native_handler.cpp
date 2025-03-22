@@ -1,8 +1,10 @@
+#include <sqlite3.h>
 #include <userver/storages/sqlite/impl/native_handler.hpp>
 
 #include <string_view>
 
 #include <userver/storages/sqlite/exceptions.hpp>
+#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,40 +41,48 @@ constexpr std::string_view kPragmaTempStoreMemory =
 }  // namespace
 
 void NativeHandler::SetSettings(const settings::SQLiteSettings& settings) {
-  switch (settings.journal_mode) {
-    case settings::SQLiteSettings::JournalMode::kDelete:
-      Exec(kPragmaJournalModeDelete.data());
-      break;
-    case settings::SQLiteSettings::JournalMode::kTruncate:
-      Exec(kPragmaJournalModeTruncate.data());
-      break;
-    case settings::SQLiteSettings::JournalMode::kPersist:
-      Exec(kPragmaJournalModePersist.data());
-      break;
-    case settings::SQLiteSettings::JournalMode::kMemory:
-      Exec(kPragmaJournalModeMemory.data());
-      break;
-    case settings::SQLiteSettings::JournalMode::kWal:
-      Exec(kPragmaJournalModeWal.data());
-      break;
-    case settings::SQLiteSettings::JournalMode::kOff:
-      Exec(kPragmaJournalModeOff.data());
-      break;
+  // Set global and blocking settings in exclusive read_write connection
+  if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadWrite) {
+    switch (settings.journal_mode) {
+      case settings::SQLiteSettings::JournalMode::kDelete:
+        Exec(kPragmaJournalModeDelete.data());
+        break;
+      case settings::SQLiteSettings::JournalMode::kTruncate:
+        Exec(kPragmaJournalModeTruncate.data());
+        break;
+      case settings::SQLiteSettings::JournalMode::kPersist:
+        Exec(kPragmaJournalModePersist.data());
+        break;
+      case settings::SQLiteSettings::JournalMode::kMemory:
+        Exec(kPragmaJournalModeMemory.data());
+        break;
+      case settings::SQLiteSettings::JournalMode::kWal:
+        Exec(kPragmaJournalModeWal.data());
+        break;
+      case settings::SQLiteSettings::JournalMode::kOff:
+        Exec(kPragmaJournalModeOff.data());
+        break;
+    }
+    // It's settings is local for connection, but it most actual in write case
+    switch (settings.synchronous) {
+      case settings::SQLiteSettings::Synchronous::kExtra:
+        Exec(kPragmaSynchronousExtra.data());
+        break;
+      case settings::SQLiteSettings::Synchronous::kFull:
+        Exec(kPragmaSynchronousFull.data());
+        break;
+      case settings::SQLiteSettings::Synchronous::kNormal:
+        Exec(kPragmaSynchronousNormal.data());
+        break;
+      case settings::SQLiteSettings::Synchronous::kOff:
+        Exec(kPragmaSynchronousOff.data());
+        break;
+    }
+    // It' settings work only on new database file on start
+    Exec(std::string(kPragmaPageSize) + std::to_string(settings.page_size));
   }
-  switch (settings.synchronous) {
-    case settings::SQLiteSettings::Synchronous::kExtra:
-      Exec(kPragmaSynchronousExtra.data());
-      break;
-    case settings::SQLiteSettings::Synchronous::kFull:
-      Exec(kPragmaSynchronousFull.data());
-      break;
-    case settings::SQLiteSettings::Synchronous::kNormal:
-      Exec(kPragmaSynchronousNormal.data());
-      break;
-    case settings::SQLiteSettings::Synchronous::kOff:
-      Exec(kPragmaSynchronousOff.data());
-      break;
-  }
+
+  // Set local settings
   switch (settings.temp_store) {
     case settings::SQLiteSettings::TempStore::kFile:
       Exec(kPragmaTempStoreFile.data());
@@ -86,8 +96,7 @@ void NativeHandler::SetSettings(const settings::SQLiteSettings& settings) {
   Exec(std::string(kPragmaForeignKeys) + std::to_string(settings.foreign_keys));
   Exec(std::string(kPragmaJournalSizeLimit) +
        std::to_string(settings.journal_size_limit));
-  // Exec(std::string(kPragmaMmapSize) + std::to_string(settings.mmap_size));
-  Exec(std::string(kPragmaPageSize) + std::to_string(settings.page_size));
+  Exec(std::string(kPragmaMmapSize) + std::to_string(settings.mmap_size));
 }
 
 struct sqlite3* NativeHandler::OpenDatabase(
@@ -110,8 +119,7 @@ struct sqlite3* NativeHandler::OpenDatabase(
           sqlite3_open_v2(settings.db_name.c_str(), &handler, flags, nullptr);
       ret_code != SQLITE_OK) {
     sqlite3_close(handler);
-    throw SQLiteException(sqlite3_errmsg(handler), ret_code,
-                          sqlite3_extended_errcode(handler));
+    throw SQLiteException(sqlite3_errstr(ret_code), ret_code);
   }
   return handler;
 }
@@ -133,8 +141,7 @@ void NativeHandler::Exec(const std::string& query) const {
   if (const int ret_code =
           sqlite3_exec(db_handler_, query.data(), nullptr, nullptr, nullptr);
       ret_code != SQLITE_OK) {
-    throw SQLiteException(sqlite3_errmsg(db_handler_), ret_code,
-                          sqlite3_extended_errcode(db_handler_));
+    throw SQLiteException(sqlite3_errstr(ret_code), ret_code);
   }
 }
 

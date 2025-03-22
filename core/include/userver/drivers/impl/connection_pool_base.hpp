@@ -205,8 +205,8 @@ Derived& ConnectionPoolBase<Connection, Derived>::AsDerived() noexcept {
 }
 
 template <class Connection, class Derived>
-const Derived& ConnectionPoolBase<Connection, Derived>::AsDerived() const
-    noexcept {
+const Derived& ConnectionPoolBase<Connection, Derived>::AsDerived()
+    const noexcept {
   return *static_cast<const Derived*>(this);
 }
 

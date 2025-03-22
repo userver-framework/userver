@@ -1,4 +1,4 @@
-#include <userver/storages/sqlite/infra/strategy/read_only_strategy.hpp>
+#include <userver/storages/sqlite/infra/strategy/read_only.hpp>
 
 #include <userver/utils/assert.hpp>
 

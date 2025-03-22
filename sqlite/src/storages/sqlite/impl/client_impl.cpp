@@ -9,9 +9,10 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl {
 
 ClientImpl::ClientImpl(const settings::SQLiteSettings& settings,
-                       engine::TaskProcessor& blocking_task_processor)
-    : pool_strategy_(infra::strategy::PoolStrategyBase::Create(
-          settings, blocking_task_processor)) {}
+                       engine::TaskProcessor& blocking_task_processor) {
+  pool_strategy_ = infra::strategy::PoolStrategyBase::Create(
+      settings, blocking_task_processor);
+}
 
 ClientImpl::~ClientImpl() = default;
 

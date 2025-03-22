@@ -4,9 +4,9 @@
 #include <userver/engine/wait_all_checked.hpp>
 
 #include <userver/storages/sqlite/infra/pool.hpp>
-#include <userver/storages/sqlite/infra/strategy/exclusive_read_write_strategy.hpp>
-#include <userver/storages/sqlite/infra/strategy/read_only_strategy.hpp>
-#include <userver/storages/sqlite/infra/strategy/read_write_strategy.hpp>
+#include <userver/storages/sqlite/infra/strategy/exclusive_read_write.hpp>
+#include <userver/storages/sqlite/infra/strategy/read_only.hpp>
+#include <userver/storages/sqlite/infra/strategy/read_write.hpp>
 #include <userver/storages/sqlite/options.hpp>
 
 USERVER_NAMESPACE_BEGIN
