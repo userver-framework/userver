@@ -19,12 +19,6 @@ namespace functional_tests {
 
 namespace {
 
-constexpr std::string_view kInsertKeyValueTransactionName =
-    "sample_transaction_insert_key_value";
-constexpr std::string_view kUpdateKeyValueTransactionName =
-    "sample_transaction_update_key_value";
-constexpr std::string_view kDeleteQueryName = "sample_delete_value";
-
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
   static constexpr std::string_view kName = "handler-key-value";
@@ -35,7 +29,8 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
         sqlite_client_(
             context.FindComponent<components::SQLite>("key-value-database")
                 .GetClient()) {
-    sqlite_client_->Execute(db::sql::kCreateTable.data());
+    sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite,
+                            db::sql::kCreateTable.data());
   }
 
   std::string HandleRequestThrow(const server::http::HttpRequest& request,
@@ -64,11 +59,10 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
  private:
   std::string GetValue(std::string_view key,
                        const server::http::HttpRequest& request) const {
-    auto res =
-        sqlite_client_
-            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
-                      db::sql::kSelectValueByKey.data(), key)
-            .AsOptionalSingleField<std::string>();
+    auto res = sqlite_client_
+                   ->Execute(storages::sqlite::OperationType::kReadOnly,
+                             db::sql::kSelectValueByKey.data(), key)
+                   .AsOptionalSingleField<std::string>();
     if (!res.has_value()) {
       request.SetResponseStatus(server::http::HttpStatus::kNotFound);
       return {};
@@ -82,7 +76,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
     const auto& value = request.GetArg("value");
 
     storages::sqlite::Transaction transaction =
-        sqlite_client_->Begin(kInsertKeyValueTransactionName.data(), {});
+        sqlite_client_->Begin(storages::sqlite::OperationType::kReadWrite, {});
 
     auto res = transaction.Execute(db::sql::kInsertKeyValue.data(), key, value)
                    .AsExecutionResult();
@@ -108,7 +102,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
     using userver::storages::sqlite::settings::TransactionOptions;
 
     storages::sqlite::Transaction transaction = sqlite_client_->Begin(
-        kUpdateKeyValueTransactionName.data(),
+        storages::sqlite::OperationType::kReadWrite,
         TransactionOptions{TransactionOptions::Mode::kImmediate});
 
     auto res = transaction.Execute(db::sql::kUpdateKeyValue.data(), value, key)
@@ -136,12 +130,12 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   }
 
   std::string DeleteValue(std::string_view key) const {
-    const storages::sqlite::Query kDeleteValue{
-        db::sql::kDeleteKeyValue.data(),
-        storages::sqlite::Query::Name{kDeleteQueryName},
-    };
+    const storages::sqlite::Query kDeleteValue{db::sql::kDeleteKeyValue.data()};
 
-    auto res = sqlite_client_->Execute(kDeleteValue, key).AsExecutionResult();
+    auto res = sqlite_client_
+                   ->Execute(storages::sqlite::OperationType::kReadWrite,
+                             kDeleteValue, key)
+                   .AsExecutionResult();
     return std::to_string(res.rows_affected);
   }
 

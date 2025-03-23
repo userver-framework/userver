@@ -17,8 +17,8 @@ ClientImpl::ClientImpl(const settings::SQLiteSettings& settings,
 ClientImpl::~ClientImpl() = default;
 
 infra::ConnectionPtr ClientImpl::GetConnection(
-    settings::CommandControl::OperationType op_type) const {
-  return pool_strategy_->SelectPool(op_type).Acquire();
+    OperationType operation_type) const {
+  return pool_strategy_->SelectPool(operation_type).Acquire();
 }
 
 }  // namespace storages::sqlite::impl

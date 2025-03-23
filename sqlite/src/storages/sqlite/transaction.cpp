@@ -1,4 +1,3 @@
-#include <memory>
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include <userver/logging/log.hpp>
@@ -59,10 +58,9 @@ void Transaction::Rollback() {
   }
 }
 
-ResultSet Transaction::DoExecute(settings::OptionalCommandControl optional_cc,
-                                 impl::io::ParamsBinderBase& params) const {
+ResultSet Transaction::DoExecute(impl::io::ParamsBinderBase& params) const {
   auto prepare_statement = params.GetBindsPtr();
-  return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
+  return (*connection_)->ExecuteCommand(prepare_statement);
 }
 
 }  // namespace storages::sqlite

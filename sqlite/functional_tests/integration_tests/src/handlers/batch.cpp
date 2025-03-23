@@ -49,7 +49,8 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
         sqlite_client_(
             context.FindComponent<components::SQLite>("key-value-database")
                 .GetClient()) {
-    sqlite_client_->Execute(db::sql::kCreateTable.data());
+    sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite,
+                            db::sql::kCreateTable.data());
   }
 
   formats::json::Value HandleRequestJsonThrow(
@@ -77,17 +78,18 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
     }
 
     if (rows.size() > 1) {
-      sqlite_client_->ExecuteMany(db::sql::kInsertKeyValue.data(), rows);
+      sqlite_client_->ExecuteMany(storages::sqlite::OperationType::kReadWrite,
+                                  db::sql::kInsertKeyValue.data(), rows);
     } else {
-      sqlite_client_->ExecuteDecompose(db::sql::kInsertKeyValue.data(),
-                                       rows.back());
+      sqlite_client_->ExecuteDecompose(
+          storages::sqlite::OperationType::kReadWrite,
+          db::sql::kInsertKeyValue.data(), rows.back());
     }
 
-    auto records =
-        sqlite_client_
-            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
-                      db::sql::kSelectAllKeyValue.data())
-            .AsVector<Row>();
+    auto records = sqlite_client_
+                       ->Execute(storages::sqlite::OperationType::kReadOnly,
+                                 db::sql::kSelectAllKeyValue.data())
+                       .AsVector<Row>();
 
     std::sort(
         records.begin(), records.end(),
@@ -100,11 +102,10 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
   }
 
   formats::json::Value GetValues() const {
-    auto rows =
-        sqlite_client_
-            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
-                      db::sql::kSelectAllKeyValue.data())
-            .AsVector<Row>();
+    auto rows = sqlite_client_
+                    ->Execute(storages::sqlite::OperationType::kReadOnly,
+                              db::sql::kSelectAllKeyValue.data())
+                    .AsVector<Row>();
     std::sort(rows.begin(), rows.end(),
               [](const Row& lhs, const Row& rhs) -> bool {
                 return lhs.key < rhs.key;

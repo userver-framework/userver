@@ -27,23 +27,11 @@ class Transaction final {
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;
 
-  template <typename... Args>
-  ResultSet Execute(settings::OptionalCommandControl optional_cc,
-                    const Query& query, const Args&... args) const;
-
   template <typename T>
   ResultSet ExecuteDecompose(const Query& query, const T& row) const;
 
-  template <typename T>
-  ResultSet ExecuteDecompose(settings::OptionalCommandControl optional_cc,
-                             const Query& query, const T& row) const;
-
   template <typename Container>
   void ExecuteMany(const Query& query, const Container& params) const;
-
-  template <typename Container>
-  void ExecuteMany(settings::OptionalCommandControl optional_cc,
-                   const Query& query, const Container& params) const;
 
   Savepoint Save(std::string name) const;
 
@@ -52,8 +40,7 @@ class Transaction final {
   void Rollback();
 
  private:
-  ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::io::ParamsBinderBase& params) const;
+  ResultSet DoExecute(impl::io::ParamsBinderBase& params) const;
 
   void AssertValid() const;
 
@@ -62,49 +49,29 @@ class Transaction final {
 
 template <typename... Args>
 ResultSet Transaction::Execute(const Query& query, const Args&... args) const {
-  return Execute(std::nullopt, query, args...);
-}
-
-template <typename... Args>
-ResultSet Transaction::Execute(settings::OptionalCommandControl optional_cc,
-                               const Query& query, const Args&... args) const {
   AssertValid();
   auto params_binder = impl::BindHelper::UpdateParamsBindings(
       query.GetStatement(), *connection_, args...);
-  return DoExecute(optional_cc, params_binder);
+  return DoExecute(params_binder);
 }
 
 template <typename T>
 ResultSet Transaction::ExecuteDecompose(const Query& query,
                                         const T& row) const {
-  return ExecuteDecompose(std::nullopt, query, row);
+  AssertValid();
+  auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+      query.GetStatement(), *connection_, row);
+  return DoExecute(params_binder);
 }
 
 template <typename Container>
 void Transaction::ExecuteMany(const Query& query,
                               const Container& params) const {
-  return ExecuteMany(std::nullopt, query, params);
-}
-
-template <typename T>
-ResultSet Transaction::ExecuteDecompose(
-    settings::OptionalCommandControl optional_cc, const Query& query,
-    const T& row) const {
-  AssertValid();
-  auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-      query.GetStatement(), *connection_, row);
-  return DoExecute(optional_cc, params_binder);
-}
-
-template <typename Container>
-void Transaction::ExecuteMany(settings::OptionalCommandControl optional_cc,
-                              const Query& query,
-                              const Container& params) const {
   AssertValid();
   for (const auto& row : params) {
     auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
         query.GetStatement(), *connection_, row);
-    DoExecute(optional_cc, params_binder);
+    DoExecute(params_binder);
   }
 }
 

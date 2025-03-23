@@ -23,8 +23,7 @@ class Connection {
 
   settings::ConnectionSettings const& GetSettings() const noexcept;
 
-  ResultSet ExecuteCommand(settings::OptionalCommandControl optional_cc,
-                           impl::StatementBasePtr prepare_statement) const;
+  ResultSet ExecuteCommand(impl::StatementBasePtr prepare_statement) const;
 
   void Begin(const settings::TransactionOptions& options);
 
@@ -67,7 +66,7 @@ ResultSet Connection::ExecuteCommandNoPrepare(const std::string& query,
                                               const Args&... args) const {
   auto statement = std::make_shared<Statement>(db_handler_, query);
   statement->UpdateParamsBindings(args...);
-  return ExecuteCommand(std::nullopt, statement);
+  return ExecuteCommand(statement);
 }
 
 }  // namespace storages::sqlite::impl

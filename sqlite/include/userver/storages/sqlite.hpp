@@ -7,6 +7,7 @@
 #include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/component.hpp>
 #include <userver/storages/sqlite/exceptions.hpp>
+#include <userver/storages/sqlite/operation_types.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>

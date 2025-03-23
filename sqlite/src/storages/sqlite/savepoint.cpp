@@ -65,10 +65,9 @@ Savepoint Savepoint::Save(std::string name) const {
   return Savepoint{connection_, std::move(name)};
 }
 
-ResultSet Savepoint::DoExecute(settings::OptionalCommandControl optional_cc,
-                               impl::io::ParamsBinderBase& params) const {
+ResultSet Savepoint::DoExecute(impl::io::ParamsBinderBase& params) const {
   auto prepare_statement = params.GetBindsPtr();
-  return (*connection_)->ExecuteCommand(optional_cc, prepare_statement);
+  return (*connection_)->ExecuteCommand(prepare_statement);
 }
 
 }  // namespace storages::sqlite

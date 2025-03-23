@@ -62,25 +62,6 @@ struct PoolSettings final {
   static PoolSettings Create(const components::ComponentConfig& config);
 };
 
-struct CommandControl {
-  enum OperationType {
-    kReadOnly,
-    kReadWrite,
-  };
-
-  OperationType operation_type;
-
-  static constexpr CommandControl ReadWrite() {
-    return CommandControl{OperationType::kReadWrite};
-  }
-  static constexpr CommandControl ReadOnly() {
-    return CommandControl{OperationType::kReadOnly};
-  }
-  static constexpr CommandControl GetDefault() { return ReadWrite(); }
-};
-
-using OptionalCommandControl = std::optional<CommandControl>;
-
 inline constexpr bool kDefaultCreateFile = true;
 inline constexpr bool kDefaultIsReadOnly = false;
 inline constexpr bool kDefaultSharedCashe = false;

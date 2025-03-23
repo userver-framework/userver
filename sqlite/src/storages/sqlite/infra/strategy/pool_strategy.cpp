@@ -36,12 +36,11 @@ std::unique_ptr<PoolStrategyBase> PoolStrategyBase::Create(
   }
 }
 
-Pool& PoolStrategyBase::SelectPool(
-    settings::CommandControl::OperationType op_type) const {
-  switch (op_type) {
-    case settings::CommandControl::OperationType::kReadOnly:
+Pool& PoolStrategyBase::SelectPool(OperationType operation_type) const {
+  switch (operation_type) {
+    case OperationType::kReadOnly:
       return GetReadOnly();
-    case settings::CommandControl::OperationType::kReadWrite:
+    case OperationType::kReadWrite:
       return GetReadWrite();
   }
 

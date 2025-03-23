@@ -5,6 +5,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+#include <userver/storages/sqlite/operation_types.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
@@ -19,8 +20,7 @@ class ClientImpl final {
              engine::TaskProcessor& blocking_task_processor);
   ~ClientImpl();
 
-  infra::ConnectionPtr GetConnection(
-      settings::CommandControl::OperationType op_type) const;
+  infra::ConnectionPtr GetConnection(OperationType op_type) const;
 
  private:
   infra::strategy::PoolStrategyBasePtr pool_strategy_;

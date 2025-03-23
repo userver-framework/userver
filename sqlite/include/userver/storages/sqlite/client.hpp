@@ -7,6 +7,7 @@
 
 #include <userver/storages/sqlite/impl/binder_help.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/operation_types.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -31,102 +32,59 @@ class Client final {
   ~Client();
 
   template <typename... Args>
-  ResultSet Execute(const Query& query, const Args&... args) const;
-
-  template <typename... Args>
-  ResultSet Execute(settings::OptionalCommandControl optional_cc,
-                    const Query& query, const Args&... args) const;
+  ResultSet Execute(OperationType operation_type, const Query& query,
+                    const Args&... args) const;
 
   template <typename T>
-  ResultSet ExecuteDecompose(const Query& query, const T& row) const;
-
-  template <typename T>
-  ResultSet ExecuteDecompose(settings::OptionalCommandControl optional_cc,
-                             const Query& query, const T& row) const;
+  ResultSet ExecuteDecompose(OperationType operation_type, const Query& query,
+                             const T& row) const;
 
   // like
   // https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.executemany
   template <typename Container>
-  void ExecuteMany(const Query& query, const Container& params) const;
+  void ExecuteMany(OperationType operation_type, const Query& query,
+                   const Container& params) const;
 
-  template <typename Container>
-  void ExecuteMany(settings::OptionalCommandControl optional_cc,
-                   const Query& query, const Container& params) const;
-
-  Transaction Begin(std::string name,
+  Transaction Begin(OperationType operation_type,
                     const settings::TransactionOptions&) const;
 
-  Transaction Begin(settings::OptionalCommandControl optional_cc,
-                    std::string name,
-                    const settings::TransactionOptions&) const;
-
-  Savepoint Save(std::string name) const;
-
-  Savepoint Save(settings::OptionalCommandControl optional_cc,
-                 std::string name) const;
+  Savepoint Save(OperationType op_type, std::string name) const;
 
  private:
-  ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::io::ParamsBinderBase& params,
+  ResultSet DoExecute(impl::io::ParamsBinderBase& params,
                       const infra::ConnectionPtr& connection) const;
 
-  infra::ConnectionPtr GetConnection(
-      settings::CommandControl::OperationType op_type) const;
+  infra::ConnectionPtr GetConnection(OperationType operation_type) const;
 
   impl::ClientImplPtr pimpl_;
 };
 
 template <typename... Args>
-ResultSet Client::Execute(const Query& query, const Args&... args) const {
-  return Execute(std::nullopt, query, args...);
-}
-
-template <typename... Args>
-ResultSet Client::Execute(settings::OptionalCommandControl optional_cc,
-                          const Query& query, const Args&... args) const {
-  if (!optional_cc.has_value()) {
-    optional_cc = settings::CommandControl::GetDefault();
-  }
-  auto connection = GetConnection(optional_cc->operation_type);
+ResultSet Client::Execute(OperationType operation_type, const Query& query,
+                          const Args&... args) const {
+  auto connection = GetConnection(operation_type);
   auto params_binder = impl::BindHelper::UpdateParamsBindings(
       query.GetStatement(), connection, args...);
-  return DoExecute(optional_cc, params_binder, connection);
+  return DoExecute(params_binder, connection);
 }
 
 template <typename T>
-ResultSet Client::ExecuteDecompose(const Query& query, const T& row) const {
-  return ExecuteDecompose(std::nullopt, query, row);
-}
-
-template <typename T>
-ResultSet Client::ExecuteDecompose(settings::OptionalCommandControl optional_cc,
+ResultSet Client::ExecuteDecompose(OperationType operation_type,
                                    const Query& query, const T& row) const {
-  if (!optional_cc.has_value()) {
-    optional_cc = settings::CommandControl::GetDefault();
-  }
-  auto connection = GetConnection(optional_cc->operation_type);
+  auto connection = GetConnection(operation_type);
   auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
       query.GetStatement(), connection, row);
-
-  return DoExecute(optional_cc, params_binder, connection);
+  return DoExecute(params_binder, connection);
 }
 
 template <typename Container>
-void Client::ExecuteMany(const Query& query, const Container& params) const {
-  return ExecuteMany(std::nullopt, query, params);
-}
-
-template <typename Container>
-void Client::ExecuteMany(settings::OptionalCommandControl optional_cc,
-                         const Query& query, const Container& params) const {
-  if (!optional_cc.has_value()) {
-    optional_cc = settings::CommandControl::GetDefault();
-  }
-  auto connection = GetConnection(optional_cc->operation_type);
+void Client::ExecuteMany(OperationType operation_type, const Query& query,
+                         const Container& params) const {
+  auto connection = GetConnection(operation_type);
   for (const auto& row : params) {
     auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
         query.GetStatement(), connection, row);
-    DoExecute(optional_cc, params_binder, connection);
+    DoExecute(params_binder, connection);
   }
 }
 

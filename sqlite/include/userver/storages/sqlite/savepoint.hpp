@@ -25,23 +25,11 @@ class Savepoint final {
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) const;
 
-  template <typename... Args>
-  ResultSet Execute(settings::OptionalCommandControl option_cc,
-                    const Query& query, const Args&... args) const;
-
   template <typename T>
   ResultSet ExecuteDecompose(const Query& query, const T& row) const;
 
-  template <typename T>
-  ResultSet ExecuteDecompose(settings::OptionalCommandControl optional_cc,
-                             const Query& query, const T& row) const;
-
   template <typename Container>
   void ExecuteMany(const Query& query, const Container& params) const;
-
-  template <typename Container>
-  void ExecuteMany(settings::OptionalCommandControl optional_cc,
-                   const Query& query, const Container& params) const;
 
   Savepoint Save(std::string name) const;
 
@@ -53,10 +41,7 @@ class Savepoint final {
   Savepoint(std::shared_ptr<infra::ConnectionPtr> shared_connection,
             std::string name);  // for nested savepoints
 
-  ResultSet DoExecute(settings::OptionalCommandControl optional_cc,
-                      impl::io::ParamsBinderBase& params) const;
-
-  impl::StatementBasePtr PrepareStatement(const Query& query) const;
+  ResultSet DoExecute(impl::io::ParamsBinderBase& params) const;
 
   void AssertValid() const;
 
@@ -68,46 +53,27 @@ class Savepoint final {
 
 template <typename... Args>
 ResultSet Savepoint::Execute(const Query& query, const Args&... args) const {
-  return Execute(std::nullopt, query, args...);
-}
-
-template <typename... Args>
-ResultSet Savepoint::Execute(settings::OptionalCommandControl optional_cc,
-                             const Query& query, const Args&... args) const {
   AssertValid();
   auto params_binder = impl::BindHelper::UpdateParamsBindings(
       query.GetStatement(), *connection_, args...);
-  return DoExecute(optional_cc, params_binder);
+  return DoExecute(params_binder);
 }
 
 template <typename T>
 ResultSet Savepoint::ExecuteDecompose(const Query& query, const T& row) const {
-  return ExecuteDecompose(std::nullopt, query, row);
-}
-
-template <typename T>
-ResultSet Savepoint::ExecuteDecompose(
-    settings::OptionalCommandControl optional_cc, const Query& query,
-    const T& row) const {
   AssertValid();
   auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
       query.GetStatement(), *connection_, row);
-  return DoExecute(optional_cc, params_binder);
+  return DoExecute(params_binder);
 }
 
 template <typename Container>
 void Savepoint::ExecuteMany(const Query& query, const Container& params) const {
-  return ExecuteMany(std::nullopt, query, params);
-}
-
-template <typename Container>
-void Savepoint::ExecuteMany(settings::OptionalCommandControl optional_cc,
-                            const Query& query, const Container& params) const {
   AssertValid();
   for (const auto& row : params) {
     auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
         query.GetStatement(), *connection_, row);
-    DoExecute(optional_cc, params_binder);
+    DoExecute(params_binder);
   }
 }
 

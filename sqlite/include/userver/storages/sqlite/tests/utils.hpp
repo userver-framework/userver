@@ -12,6 +12,7 @@
 
 #include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
+#include "userver/storages/sqlite/operation_types.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -96,7 +97,8 @@ class SQLiteCustomConnection : public SQLiteTest {
 
   void CheckClient(const ClientPtr& client) {
     ASSERT_TRUE(client) << "Expected non-empty connection pointer";
-    EXPECT_NO_THROW(client->Execute("SELECT 42"));
+    EXPECT_NO_THROW(client->Execute(OperationType::kReadOnly, "SELECT 42"))
+        << "Try execute query";
   }
 
  private:
@@ -130,7 +132,8 @@ class SQLiteJournalsTest
 
   void CheckClient(const ClientPtr& client) {
     ASSERT_TRUE(client) << "Expected non-empty connection pointer";
-    EXPECT_NO_THROW(client->Execute("SELECT 42")) << "Try execute query";
+    EXPECT_NO_THROW(client->Execute(OperationType::kReadOnly, "SELECT 42"))
+        << "Try execute query";
   }
 
  private:
@@ -152,7 +155,8 @@ class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
  public:
   ClientPtr CreateClient() {
     auto client = SQLiteInMemoryConnection::CreateClient();
-    client->Execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+    client->Execute(OperationType::kReadWrite,
+                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
     return client;
   }
 };
@@ -160,8 +164,10 @@ class SQLiteInMemoryInitConnection : public SQLiteInMemoryConnection {
 class SQLiteResultSet : public SQLiteInMemoryInitConnection {
  public:
   void Init(ClientPtr client) {
-    client->Execute("INSERT INTO test VALUES (1, 'first')");
-    client->Execute("INSERT INTO test VALUES (2, 'second')");
+    client->Execute(OperationType::kReadWrite,
+                    "INSERT INTO test VALUES (1, 'first')");
+    client->Execute(OperationType::kReadWrite,
+                    "INSERT INTO test VALUES (2, 'second')");
   }
 };
 

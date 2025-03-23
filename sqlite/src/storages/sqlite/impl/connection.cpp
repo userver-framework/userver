@@ -40,7 +40,6 @@ settings::ConnectionSettings const& Connection::GetSettings() const noexcept {
 }
 
 ResultSet Connection::ExecuteCommand(
-    settings::OptionalCommandControl optional_cc [[maybe_unused]],
     impl::StatementBasePtr prepare_statement) const {
   auto result_wrapper = std::make_unique<impl::ResultWrapper>(
       prepare_statement, blocking_task_processor_);

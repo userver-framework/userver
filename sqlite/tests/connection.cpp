@@ -75,27 +75,34 @@ UTEST_F(SQLiteCustomConnection, ReadWrite) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));
   UEXPECT_NO_THROW(client->Execute(
+      storages::sqlite::OperationType::kReadWrite,
       "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
-  UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (1, 'first') "));
-  UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (2, 'second')"));
-  UEXPECT_THROW(client->Execute(settings::CommandControl::ReadOnly(),
+  UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
+                                   "INSERT INTO test VALUES (1, 'first') "));
+  UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
+                                   "INSERT INTO test VALUES (2, 'second')"));
+  UEXPECT_THROW(client->Execute(storages::sqlite::OperationType::kReadOnly,
                                 "INSERT INTO test VALUES (3, 'third')"),
                 SQLiteException);
   UEXPECT_THROW(
       (client
-           ->Execute(settings::CommandControl::ReadOnly(),
+           ->Execute(storages::sqlite::OperationType::kReadOnly,
                      "INSERT INTO test VALUES (3, 'third') RETURNING *")
            .AsVector<RowTuple>()),
       SQLiteException);
   UEXPECT_NO_THROW(
-      (client->Execute("INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<RowTuple>()));
-  UEXPECT_NO_THROW(
-      (client->Execute("SELECT * FROM test").AsVector<RowTuple>()));
-  UEXPECT_NO_THROW(
       (client
-           ->Execute(settings::CommandControl::ReadOnly(), "SELECT * FROM test")
+           ->Execute(storages::sqlite::OperationType::kReadWrite,
+                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
            .AsVector<RowTuple>()));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadOnly,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadOnly,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
 }
 
 UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
@@ -112,6 +119,7 @@ UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings)) << "Try to create client";
   UEXPECT_NO_THROW(client->Execute(
+      storages::sqlite::OperationType::kReadWrite,
       "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
 
   std::vector<engine::TaskWithResult<void>> tasks;
@@ -120,16 +128,18 @@ UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
   for (size_t i = 0; i < kWriteTaskCount; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&client, i]() {
       UEXPECT_NO_THROW(
-          client->Execute("INSERT INTO test VALUES (NULL, 'data')"))
+          client->Execute(storages::sqlite::OperationType::kReadWrite,
+                          "INSERT INTO test VALUES (NULL, 'data')"))
           << fmt::format("Try to insert: ({0}, data_{0})", i);
     }));
   }
   for (size_t i = 0; i < kReadTaskCount; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&client]() {
-      UEXPECT_NO_THROW((client
-                            ->Execute(settings::CommandControl::ReadOnly(),
-                                      "SELECT * FROM test")
-                            .AsVector<RowTuple>()))
+      UEXPECT_NO_THROW(
+          (client
+               ->Execute(storages::sqlite::OperationType::kReadOnly,
+                         "SELECT * FROM test")
+               .AsVector<RowTuple>()))
           << "Try to select all";
     }));
   }
@@ -137,7 +147,9 @@ UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
        ++i) {
     tasks.push_back(engine::AsyncNoSpan([&client, i]() {
       UEXPECT_NO_THROW(
-          (client->Execute("INSERT INTO test VALUES (NULL, 'data') RETURNING *")
+          (client
+               ->Execute(storages::sqlite::OperationType::kReadWrite,
+                         "INSERT INTO test VALUES (NULL, 'data') RETURNING *")
                .AsVector<RowTuple>()))
           << fmt::format("Try to insert with returning: ({0}, data_{0})", i);
     }));
@@ -169,9 +181,14 @@ UTEST_F(SQLiteCustomConnection, ReadOnly) {
            "created "
            "automatically";
     UEXPECT_NO_THROW(client->Execute(
+        storages::sqlite::OperationType::kReadWrite,
         "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
-    UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (1, 'first')"));
-    UEXPECT_NO_THROW(client->Execute("INSERT INTO test VALUES (2, 'second')"));
+    UEXPECT_NO_THROW(
+        client->Execute(storages::sqlite::OperationType::kReadWrite,
+                        "INSERT INTO test VALUES (1, 'first')"));
+    UEXPECT_NO_THROW(
+        client->Execute(storages::sqlite::OperationType::kReadWrite,
+                        "INSERT INTO test VALUES (2, 'second')"));
   }
 
   settings::SQLiteSettings settings;
@@ -183,24 +200,24 @@ UTEST_F(SQLiteCustomConnection, ReadOnly) {
   UEXPECT_NO_THROW(client = CreateClient(settings));
   UEXPECT_THROW(
       (client
-           ->Execute(settings::CommandControl::ReadOnly(),
+           ->Execute(storages::sqlite::OperationType::kReadOnly,
                      "INSERT INTO test VALUES (3, 'third') RETURNING *")
            .AsVector<RowTuple>()),
       SQLiteException);
   UEXPECT_THROW(
       (client
-           ->Execute(settings::CommandControl::ReadWrite(),
+           ->Execute(storages::sqlite::OperationType::kReadWrite,
                      "INSERT INTO test VALUES (3, 'third') RETURNING *")
            .AsVector<RowTuple>()),
       SQLiteException);
-  UEXPECT_NO_THROW(
-      (client
-           ->Execute(settings::CommandControl::ReadOnly(), "SELECT * FROM test")
-           .AsVector<RowTuple>()));
-  UEXPECT_NO_THROW((
-      client
-          ->Execute(settings::CommandControl::ReadWrite(), "SELECT * FROM test")
-          .AsVector<RowTuple>()));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadOnly,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadWrite,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
 }
 
 UTEST_F(SQLiteResultSet, SuccessExecute) {
@@ -210,11 +227,11 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   // Get result as vector of tuples
   {
     std::vector<RowTuple> actual;
-    UEXPECT_NO_THROW(actual =
-                         client
-                             ->Execute(settings::CommandControl::ReadOnly(),
-                                       kSelectAllRows.data())
-                             .AsVector<RowTuple>());
+    UEXPECT_NO_THROW(
+        actual = client
+                     ->Execute(storages::sqlite::OperationType::kReadOnly,
+                               kSelectAllRows.data())
+                     .AsVector<RowTuple>());
 
     EXPECT_EQ(actual.size(), 2);
     EXPECT_EQ(actual[0], std::make_tuple(1, "first"));
@@ -224,11 +241,11 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   // Get result as struct
   {
     Row actual;
-    UEXPECT_NO_THROW(actual =
-                         client
-                             ->Execute(settings::CommandControl::ReadOnly(),
-                                       kSelectOneRow.data())
-                             .AsSingleRow<Row>());
+    UEXPECT_NO_THROW(
+        actual = client
+                     ->Execute(storages::sqlite::OperationType::kReadOnly,
+                               kSelectOneRow.data())
+                     .AsSingleRow<Row>());
 
     EXPECT_EQ(actual, (Row{1, "first"}));
   }
@@ -236,11 +253,11 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   // Get empty result as vector of rows
   {
     std::vector<Row> actual;
-    UEXPECT_NO_THROW(actual =
-                         client
-                             ->Execute(settings::CommandControl::ReadOnly(),
-                                       kSelectNullRow.data())
-                             .AsVector<Row>());
+    UEXPECT_NO_THROW(
+        actual = client
+                     ->Execute(storages::sqlite::OperationType::kReadOnly,
+                               kSelectNullRow.data())
+                     .AsVector<Row>());
 
     EXPECT_TRUE(actual.empty());
   }
@@ -248,11 +265,11 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   // Get result as a single field
   {
     std::string actual;
-    UEXPECT_NO_THROW(actual =
-                         client
-                             ->Execute(settings::CommandControl::ReadOnly(),
-                                       kSelectOneField.data())
-                             .AsSingleField<std::string>());
+    UEXPECT_NO_THROW(
+        actual = client
+                     ->Execute(storages::sqlite::OperationType::kReadOnly,
+                               kSelectOneField.data())
+                     .AsSingleField<std::string>());
 
     EXPECT_EQ(actual, "first");
   }
@@ -263,11 +280,11 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   {
     using UnexpectedRowTuple = std::tuple<std::string, int>;
     std::vector<UnexpectedRowTuple> actual;
-    UEXPECT_NO_THROW(actual =
-                         client
-                             ->Execute(settings::CommandControl::ReadOnly(),
-                                       kSelectAllRows.data())
-                             .AsVector<UnexpectedRowTuple>());
+    UEXPECT_NO_THROW(
+        actual = client
+                     ->Execute(storages::sqlite::OperationType::kReadOnly,
+                               kSelectAllRows.data())
+                     .AsVector<UnexpectedRowTuple>());
     EXPECT_EQ(actual[0], std::make_tuple("1", 0));
     EXPECT_EQ(actual[1], std::make_tuple("2", 0));
   }
@@ -280,7 +297,7 @@ UTEST_F(SQLiteResultSet, FailureExecute) {
   // Throw exception if try to get set of row as vector of fields
   {
     UEXPECT_THROW(client
-                      ->Execute(settings::CommandControl::ReadOnly(),
+                      ->Execute(storages::sqlite::OperationType::kReadOnly,
                                 kSelectAllRows.data())
                       .AsVector<std::string>(kFieldTag),
                   SQLiteException);
@@ -289,7 +306,7 @@ UTEST_F(SQLiteResultSet, FailureExecute) {
   // Throw exception if try to get single row from empty result
   {
     UEXPECT_THROW(client
-                      ->Execute(settings::CommandControl::ReadOnly(),
+                      ->Execute(storages::sqlite::OperationType::kReadOnly,
                                 kSelectNullRow.data())
                       .AsSingleRow<Row>(),
                   SQLiteException);
@@ -298,7 +315,7 @@ UTEST_F(SQLiteResultSet, FailureExecute) {
   // Throw exception if result is empty
   {
     UEXPECT_THROW(client
-                      ->Execute(settings::CommandControl::ReadOnly(),
+                      ->Execute(storages::sqlite::OperationType::kReadOnly,
                                 kSelectNullField.data())
                       .AsSingleField<std::string>(),
                   SQLiteException);
@@ -307,16 +324,17 @@ UTEST_F(SQLiteResultSet, FailureExecute) {
   // Select with unexpected fields
   {
     std::vector<RowTuple> actual;
-    UEXPECT_THROW(actual = client
-                               ->Execute(settings::CommandControl::ReadOnly(),
-                                         kUnexpectedFieldsSelect.data())
-                               .AsVector<RowTuple>(),
-                  SQLiteException);
+    UEXPECT_THROW(
+        actual = client
+                     ->Execute(storages::sqlite::OperationType::kReadOnly,
+                               kUnexpectedFieldsSelect.data())
+                     .AsVector<RowTuple>(),
+        SQLiteException);
   }
 
   // Insert unexpected fields (datatype mismatch)
   {
-    UEXPECT_THROW(client->Execute(settings::CommandControl::ReadOnly(),
+    UEXPECT_THROW(client->Execute(storages::sqlite::OperationType::kReadOnly,
                                   kDatatypeMismatchInsert.data()),
                   SQLiteException);
   }
