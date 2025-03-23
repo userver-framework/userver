@@ -8,10 +8,10 @@
 #include <gtest/gtest.h>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/get_all.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/assert_macros.hpp>
 
-#include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -143,7 +143,7 @@ UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
           << "Try to select all";
     }));
   }
-  for (size_t i = kTotalTasksCount; i < kTotalTasksCount + kReadWriteTaskCount;
+  for (size_t i = kWriteTaskCount; i < kWriteTaskCount + kReadWriteTaskCount;
        ++i) {
     tasks.push_back(engine::AsyncNoSpan([&client, i]() {
       UEXPECT_NO_THROW(
@@ -155,9 +155,7 @@ UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
     }));
   }
 
-  for (auto& task : tasks) {
-    task.Get();
-  }
+  engine::GetAll(tasks);
 }
 
 INSTANTIATE_UTEST_SUITE_P(

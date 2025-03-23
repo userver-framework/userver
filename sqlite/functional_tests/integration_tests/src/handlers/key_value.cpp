@@ -1,5 +1,7 @@
 #include "key_value.hpp"
 
+#include <filesystem>
+
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
@@ -54,6 +56,12 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
         throw server::handlers::ClientError(server::handlers::ExternalBody{
             fmt::format("Unsupported method {}", request.GetMethod())});
     }
+  }
+
+  ~KeyValue() final {
+    std::filesystem::remove("tmp_kv.db");
+    std::filesystem::remove("tmp_kv.db-shm");
+    std::filesystem::remove("tmp_kv.db-wal");
   }
 
  private:

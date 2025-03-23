@@ -1,5 +1,6 @@
 #include "batch.hpp"
 
+#include <filesystem>
 #include <vector>
 
 #include <userver/clients/http/component.hpp>
@@ -47,7 +48,7 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
                     const components::ComponentContext& context)
       : HttpHandlerJsonBase(config, context),
         sqlite_client_(
-            context.FindComponent<components::SQLite>("key-value-database")
+            context.FindComponent<components::SQLite>("batch-database")
                 .GetClient()) {
     sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite,
                             db::sql::kCreateTable.data());
@@ -69,6 +70,15 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
             fmt::format("Unsupported method {}", request.GetMethod())});
     }
   }
+
+  ~BatchSelectInsert() final {
+    std::filesystem::remove("tmp_batch.db");
+    std::filesystem::remove("tmp_batch.db-shm");
+    std::filesystem::remove("tmp_batch.db-wal");
+  }
+
+ private:
+  storages::sqlite::ClientPtr sqlite_client_;
 
   formats::json::Value InsertValues(
       const formats::json::Value& json_request) const {
@@ -116,9 +126,6 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
 
     return builder.ExtractValue();
   }
-
- private:
-  storages::sqlite::ClientPtr sqlite_client_;
 };
 
 }  // namespace

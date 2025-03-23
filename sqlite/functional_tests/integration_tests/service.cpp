@@ -14,6 +14,7 @@
 int main(int argc, char* argv[]) {
   auto component_list = components::MinimalServerComponentList()
                             .Append<components::SQLite>("key-value-database")
+                            .Append<components::SQLite>("batch-database")
                             .Append<components::TestsuiteSupport>()
                             .Append<clients::dns::Component>();
   functional_tests::AppendKeyValue(component_list);
