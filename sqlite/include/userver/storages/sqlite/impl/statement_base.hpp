@@ -25,13 +25,13 @@ class StatementBase {
 
   // Execution methods
   virtual int ColumnCount() const noexcept = 0;
-  virtual int RowsAffected() const noexcept = 0;
-  virtual int LastInsertRowId() const noexcept = 0;
   virtual bool HasNext() const noexcept = 0;
   virtual bool IsDone() const noexcept = 0;
   virtual void Next() = 0;
 
   // Extract result methods
+  virtual int RowsAffected() const noexcept = 0;
+  virtual int LastInsertRowId() const noexcept = 0;
   virtual void Extract(int column, int8_t& val) const noexcept = 0;
   virtual void Extract(int column, uint8_t& val) const noexcept = 0;
   virtual void Extract(int column, int16_t& val) const noexcept = 0;

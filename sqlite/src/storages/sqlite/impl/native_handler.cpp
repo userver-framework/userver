@@ -1,10 +1,12 @@
-#include <sqlite3.h>
 #include <userver/storages/sqlite/impl/native_handler.hpp>
 
 #include <string_view>
 
+#include <sqlite3.h>
+
+#include <userver/engine/async.hpp>
+
 #include <userver/storages/sqlite/exceptions.hpp>
-#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -114,14 +116,19 @@ struct sqlite3* NativeHandler::OpenDatabase(
   if (settings.shared_cashe) {
     flags |= SQLITE_OPEN_SHAREDCACHE;
   }
-  struct sqlite3* handler = nullptr;
-  if (const int ret_code =
-          sqlite3_open_v2(settings.db_name.c_str(), &handler, flags, nullptr);
-      ret_code != SQLITE_OK) {
-    sqlite3_close(handler);
-    throw SQLiteException(sqlite3_errstr(ret_code), ret_code);
-  }
-  return handler;
+  return engine::AsyncNoSpan(
+             blocking_task_processor_,
+             [&settings, flags] {
+               struct sqlite3* handler = nullptr;
+               if (const int ret_code = sqlite3_open_v2(
+                       settings.db_name.c_str(), &handler, flags, nullptr);
+                   ret_code != SQLITE_OK) {
+                 sqlite3_close(handler);
+                 throw SQLiteException(sqlite3_errstr(ret_code), ret_code);
+               }
+               return handler;
+             })
+      .Get();
 }
 
 NativeHandler::NativeHandler(const settings::SQLiteSettings& settings,
@@ -131,18 +138,24 @@ NativeHandler::NativeHandler(const settings::SQLiteSettings& settings,
   SetSettings(settings);
 }
 
-NativeHandler::~NativeHandler() { sqlite3_close(db_handler_); }
+NativeHandler::~NativeHandler() {
+  engine::AsyncNoSpan(blocking_task_processor_, [this] {
+    sqlite3_close(db_handler_);
+  }).Get();
+}
 
 struct sqlite3* NativeHandler::GetHandle() const noexcept {
   return db_handler_;
 }
 
 void NativeHandler::Exec(const std::string& query) const {
-  if (const int ret_code =
-          sqlite3_exec(db_handler_, query.data(), nullptr, nullptr, nullptr);
-      ret_code != SQLITE_OK) {
-    throw SQLiteException(sqlite3_errstr(ret_code), ret_code);
-  }
+  engine::AsyncNoSpan(blocking_task_processor_, [this, &query] {
+    if (const int ret_code =
+            sqlite3_exec(db_handler_, query.data(), nullptr, nullptr, nullptr);
+        ret_code != SQLITE_OK) {
+      throw SQLiteException(sqlite3_errstr(ret_code), ret_code);
+    }
+  }).Get();
 }
 
 }  // namespace storages::sqlite::impl

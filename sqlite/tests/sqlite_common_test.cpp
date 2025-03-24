@@ -1,15 +1,8 @@
 #include <userver/utest/utest.hpp>
 
-#include <string_view>
-#include <tuple>
-#include <vector>
-
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
-#include <userver/engine/async.hpp>
-#include <userver/engine/get_all.hpp>
-#include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/assert_macros.hpp>
 
 #include <userver/storages/sqlite/tests/utils.hpp>
@@ -31,43 +24,12 @@ constexpr std::string_view kSelectNullField =
     "SELECT value FROM test WHERE id=NULL";
 constexpr std::string_view kDatatypeMismatchInsert =
     "INSERT INTO test VALUES ('third', 3)";
+
 }  // namespace
 
-UTEST_F(SQLiteCustomConnection, NonExistent) {
-  // Try to open a non-existing database
-  settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
-  settings.create_file = false;
+class SQLiteCommon : public SQLiteCompositeTest<SQLiteCustomConnection> {};
 
-  UEXPECT_THROW(CreateClient(settings), sqlite::SQLiteException)
-      << "Connecting to a non-existent database";
-}
-
-UTEST_F(SQLiteCustomConnection, CreateOpen) {
-  // Try to open a non-existing database
-  settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
-  settings.create_file = true;
-
-  UEXPECT_NO_THROW(CreateClient(settings))
-      << "Connect to a non-existent database, but the file will be created "
-         "automatically";
-
-  // Try to open existing database
-  settings.create_file = false;
-  UEXPECT_NO_THROW(CreateClient(settings))
-      << "Connect to a existent database, but the file will be created "
-         "automatically";
-}
-
-UTEST_F(SQLiteCustomConnection, InMemory) {
-  settings::SQLiteSettings settings;
-  settings.db_name = ":memory:";
-
-  UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to in-memory database";
-}
-
-UTEST_F(SQLiteCustomConnection, ReadWrite) {
+UTEST_F(SQLiteCommon, ReadWrite) {
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.create_file = true;
@@ -105,70 +67,7 @@ UTEST_F(SQLiteCustomConnection, ReadWrite) {
                         .AsVector<RowTuple>()));
 }
 
-UTEST_P_MT(SQLiteJournalsTest, ReadWriteConcurent, 10) {
-  settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
-  settings.create_file = true;
-  settings.journal_mode = settings::SQLiteSettings::JournalMode::kWal;
-  constexpr size_t kReadTaskCount = 10;
-  constexpr size_t kWriteTaskCount = 10;
-  constexpr size_t kReadWriteTaskCount = 10;
-  constexpr size_t kTotalTasksCount =
-      kReadTaskCount + kWriteTaskCount + kReadWriteTaskCount;
-
-  ClientPtr client;
-  UEXPECT_NO_THROW(client = CreateClient(settings)) << "Try to create client";
-  UEXPECT_NO_THROW(client->Execute(
-      storages::sqlite::OperationType::kReadWrite,
-      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
-
-  std::vector<engine::TaskWithResult<void>> tasks;
-  tasks.reserve(kTotalTasksCount);
-
-  for (size_t i = 0; i < kWriteTaskCount; ++i) {
-    tasks.push_back(engine::AsyncNoSpan([&client, i]() {
-      UEXPECT_NO_THROW(
-          client->Execute(storages::sqlite::OperationType::kReadWrite,
-                          "INSERT INTO test VALUES (NULL, 'data')"))
-          << fmt::format("Try to insert: ({0}, data_{0})", i);
-    }));
-  }
-  for (size_t i = 0; i < kReadTaskCount; ++i) {
-    tasks.push_back(engine::AsyncNoSpan([&client]() {
-      UEXPECT_NO_THROW(
-          (client
-               ->Execute(storages::sqlite::OperationType::kReadOnly,
-                         "SELECT * FROM test")
-               .AsVector<RowTuple>()))
-          << "Try to select all";
-    }));
-  }
-  for (size_t i = kWriteTaskCount; i < kWriteTaskCount + kReadWriteTaskCount;
-       ++i) {
-    tasks.push_back(engine::AsyncNoSpan([&client, i]() {
-      UEXPECT_NO_THROW(
-          (client
-               ->Execute(storages::sqlite::OperationType::kReadWrite,
-                         "INSERT INTO test VALUES (NULL, 'data') RETURNING *")
-               .AsVector<RowTuple>()))
-          << fmt::format("Try to insert with returning: ({0}, data_{0})", i);
-    }));
-  }
-
-  engine::GetAll(tasks);
-}
-
-INSTANTIATE_UTEST_SUITE_P(
-    SQLiteCustomConnection, SQLiteJournalsTest,
-    ::testing::Values(settings::SQLiteSettings::JournalMode::kWal,
-                      settings::SQLiteSettings::JournalMode::kDelete,
-                      settings::SQLiteSettings::JournalMode::kTruncate,
-                      settings::SQLiteSettings::JournalMode::kPersist,
-                      settings::SQLiteSettings::JournalMode::kMemory,
-                      settings::SQLiteSettings::JournalMode::kOff),
-    TestParamNameJournalMode);
-
-UTEST_F(SQLiteCustomConnection, ReadOnly) {
+UTEST_F(SQLiteCommon, ReadOnly) {
   {
     settings::SQLiteSettings settings;
     settings.db_name = GetTestDbPath("test.db");
@@ -218,9 +117,21 @@ UTEST_F(SQLiteCustomConnection, ReadOnly) {
                         .AsVector<RowTuple>()));
 }
 
-UTEST_F(SQLiteResultSet, SuccessExecute) {
+class SQLiteCommonResultSet
+    : public SQLiteCompositeTest<SQLiteInMemoryConnection> {
+ public:
+  void PreInitialize(const ClientPtr& client) final {
+    client->Execute(OperationType::kReadWrite,
+                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+    client->Execute(OperationType::kReadWrite,
+                    "INSERT INTO test VALUES (1, 'first')");
+    client->Execute(OperationType::kReadWrite,
+                    "INSERT INTO test VALUES (2, 'second')");
+  }
+};
+
+UTEST_F(SQLiteCommonResultSet, SuccessExecute) {
   auto client = CreateClient();
-  Init(client);
 
   // Get result as vector of tuples
   {
@@ -288,9 +199,8 @@ UTEST_F(SQLiteResultSet, SuccessExecute) {
   }
 }
 
-UTEST_F(SQLiteResultSet, FailureExecute) {
+UTEST_F(SQLiteCommonResultSet, FailureExecute) {
   auto client = CreateClient();
-  Init(client);
 
   // Throw exception if try to get set of row as vector of fields
   {

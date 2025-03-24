@@ -14,6 +14,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
+// Full mocked tests of ResultSet logic
+
 UTEST(SQLiteResultSetTest, AsVectorRowTag) {
   auto mock_sqlite_statement =
       std::make_shared<::testing::NiceMock<MockSQLiteStatement>>();

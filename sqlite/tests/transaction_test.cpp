@@ -1,7 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <vector>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -15,10 +13,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
-// Here we check the high-level operation of transactions; this requires a test
-// connection to the database
+// Here we check the high-level operation of transactions;
+// this requires a test connection to the database
 
-class SQLiteTransactions : public SQLiteInMemoryInitConnection {};
+class SQLiteTransactions
+    : public SQLiteCompositeTest<SQLiteInMemoryConnection> {
+ public:
+  void PreInitialize(const ClientPtr& client) final {
+    client->Execute(OperationType::kReadWrite,
+                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+  }
+};
 
 UTEST_F(SQLiteTransactions, Commit) {
   ClientPtr client;

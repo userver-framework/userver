@@ -14,7 +14,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
-class SQLiteSavepoints : public SQLiteInMemoryInitConnection {};
+// Here we check the high-level operation of savepoints (named nested
+// transactions);
+//  this requires a test connection to the database
+
+class SQLiteSavepoints : public SQLiteCompositeTest<SQLiteInMemoryConnection> {
+ public:
+  void PreInitialize(const ClientPtr& client) final {
+    client->Execute(OperationType::kReadWrite,
+                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+  }
+};
 
 UTEST_F(SQLiteSavepoints, Release) {
   ClientPtr client;

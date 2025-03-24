@@ -1,3 +1,4 @@
+#include <string_view>
 #include <userver/storages/sqlite/impl/statement.hpp>
 
 #include <fmt/format.h>
@@ -200,16 +201,18 @@ void Statement::Extract(int column, double& val) const noexcept {
 void Statement::Extract(int column, std::string& val) const noexcept {
   auto data = static_cast<const char*>(
       sqlite3_column_blob(prepare_statement_.get(), column));
-  val =
-      std::string(data, sqlite3_column_bytes(prepare_statement_.get(), column));
+  val = data ? std::string(
+                   data, sqlite3_column_bytes(prepare_statement_.get(), column))
+             : std::string{};
 }
 
 void Statement::Extract(int column, std::vector<uint8_t>& val) const noexcept {
   const void* blob = sqlite3_column_blob(prepare_statement_.get(), column);
-  val = std::vector<uint8_t>(
-      static_cast<const uint8_t*>(blob),
-      static_cast<const uint8_t*>(blob) +
-          sqlite3_column_bytes(prepare_statement_.get(), column));
+  val = blob ? std::vector<uint8_t>(
+                   static_cast<const uint8_t*>(blob),
+                   static_cast<const uint8_t*>(blob) +
+                       sqlite3_column_bytes(prepare_statement_.get(), column))
+             : std::vector<uint8_t>{};
 }
 
 }  // namespace storages::sqlite::impl
