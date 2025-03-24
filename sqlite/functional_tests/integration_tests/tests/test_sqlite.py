@@ -56,7 +56,6 @@ async def test_update_by_unknown_key(service_client, sqlite_db):
 # A test for checking succesful execute standard transactions with deferred mode
 @pytest.mark.parametrize("sqlite_db", [{"db_path": "tmp_kv.db"}], indirect=True)
 async def test_trx_deffered_ok(service_client, sqlite_db):
-    # TODO: What to do with the memorization of values ​​in the database table?
     response = await service_client.delete('/basic/sqlite/key-value?key=foo')
     assert response.status == 200
 

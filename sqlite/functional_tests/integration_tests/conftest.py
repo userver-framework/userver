@@ -1,4 +1,6 @@
 import pytest
+import shutil
+import tempfile
 from pathlib import Path
 
 pytest_plugins = ['pytest_userver.plugins.core']
@@ -9,17 +11,12 @@ def sqlite_db(request):
     db_path_str = params["db_path"]
     create_file = params.get("create_file", False)
 
+    tmp_dir = Path(tempfile.mkdtemp())
     db_path = Path(db_path_str)
     if create_file:
         db_path.touch()
 
     yield db_path
 
-    db_path_wal = Path(db_path_str + "-wal")
-    db_path_shm = Path(db_path_str + "-shm")
-    if db_path.exists():
-        db_path.unlink()
-    if db_path_wal.exists():
-        db_path_wal.unlink()
-    if db_path_shm.exists():
-        db_path_shm.unlink()
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir)
