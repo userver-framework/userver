@@ -1,7 +1,8 @@
 import pytest
 
 # Executing simple queries pipeline (POST, GET, UPDATE, DELETE)
-async def test_basic_crud(service_client):
+@pytest.mark.parametrize("sqlite_db", [{"db_path": "tmp_kv.db"}], indirect=True)
+async def test_basic_crud(service_client, sqlite_db):
     # Checking that deleting a row with a certain key, even if there is no such key, the request will be processed correctly
     response = await service_client.delete('/basic/sqlite/key-value?key=hello')
     assert response.status == 200
@@ -39,19 +40,22 @@ async def test_basic_crud(service_client):
     assert response.status == 404
 
 # Unsuccessful retrieval of a record with an unknown key
-async def test_get_unknown_key(service_client):
+@pytest.mark.parametrize("sqlite_db", [{"db_path": "tmp_kv.db"}], indirect=True)
+async def test_get_unknown_key(service_client, sqlite_db):
     # Request with unknown key
     response = await service_client.get('/basic/sqlite/key-value?key=unknown')
     assert response.status == 404
 
 # Unsuccessful record update with unknown key
-async def test_update_by_unknown_key(service_client):
+@pytest.mark.parametrize("sqlite_db", [{"db_path": "tmp_kv.db"}], indirect=True)
+async def test_update_by_unknown_key(service_client, sqlite_db):
     # Request with unknown key
     response = await service_client.put('/basic/sqlite/key-value?key=unknown&value=foo')
     assert response.status == 404
 
 # A test for checking succesful execute standard transactions with deferred mode
-async def test_trx_deffered_ok(service_client):
+@pytest.mark.parametrize("sqlite_db", [{"db_path": "tmp_kv.db"}], indirect=True)
+async def test_trx_deffered_ok(service_client, sqlite_db):
     # TODO: What to do with the memorization of values ​​in the database table?
     response = await service_client.delete('/basic/sqlite/key-value?key=foo')
     assert response.status == 200
@@ -68,7 +72,8 @@ async def test_trx_deffered_ok(service_client):
     assert response.status == 200
 
 # A test for checking standard transactions with immediate mode
-async def test_trx_immediate_ok(service_client):
+@pytest.mark.parametrize("sqlite_db", [{"db_path": "tmp_kv.db"}], indirect=True)
+async def test_trx_immediate_ok(service_client, sqlite_db):
     response = await service_client.delete('/basic/sqlite/key-value?key=foo')
     assert response.status == 200
 
@@ -89,7 +94,8 @@ async def test_trx_immediate_ok(service_client):
 
 # A test for working with data batch, inserting and getting several records
 # These tests also check work with ResultSet
-async def test_batch_select_insert(service_client):
+@pytest.mark.parametrize("sqlite_db", [{"db_path": "tmp_batch.db"}], indirect=True)
+async def test_batch_select_insert(service_client, sqlite_db):
     values = [{'key': str(i), 'value': str(i)} for i in range(10)]
 
     # Insert 10 pairs and as result get values

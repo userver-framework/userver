@@ -1,6 +1,5 @@
 #include "batch.hpp"
 
-#include <filesystem>
 #include <vector>
 
 #include <userver/clients/http/component.hpp>
@@ -69,12 +68,6 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
         throw server::handlers::ClientError(server::handlers::ExternalBody{
             fmt::format("Unsupported method {}", request.GetMethod())});
     }
-  }
-
-  ~BatchSelectInsert() final {
-    std::filesystem::remove("tmp_batch.db");
-    std::filesystem::remove("tmp_batch.db-shm");
-    std::filesystem::remove("tmp_batch.db-wal");
   }
 
  private:
