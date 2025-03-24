@@ -52,7 +52,7 @@ class Connection {
 
   engine::TaskProcessor& blocking_task_processor_;
   impl::NativeHandler db_handler_;
-  settings::ConnectionSettings connection_settings_;
+  settings::SQLiteSettings settings_;
   impl::StatementsCache statements_cache_;
   std::atomic<bool> broken_{false};
 };

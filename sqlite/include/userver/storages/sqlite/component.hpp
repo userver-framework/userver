@@ -24,6 +24,7 @@ namespace components {
 /// create_file                        | сreate the database file if it does not exist at the specified path               | true
 /// is_read_only                       | open the database in read-only mode                                               | false
 /// shared_cashe                       | enable shared in-memory cache for the database                                    | false
+/// read_uncommited                    | allow reading uncommitted data (requires shared_cache)                            | false
 /// journal_mode                       | mode for database journaling                                                      | wal
 /// busy_timeout                       | timeout duration (in milliseconds) to wait when the database is busy              | 5000
 /// foreign_keys                       | enable enforcement of foreign key constraints                                     | true

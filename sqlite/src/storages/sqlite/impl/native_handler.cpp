@@ -39,6 +39,7 @@ constexpr std::string_view kPragmaPageSize = "PRAGMA page_size = ";
 constexpr std::string_view kPragmaTempStoreFile = "PRAGMA temp_store = FILE";
 constexpr std::string_view kPragmaTempStoreMemory =
     "PRAGMA temp_store = MEMORY";
+constexpr std::string_view kPragmaReadUncommited = "PRAGMA read_uncommitted=1";
 
 }  // namespace
 
@@ -92,6 +93,9 @@ void NativeHandler::SetSettings(const settings::SQLiteSettings& settings) {
     case settings::SQLiteSettings::TempStore::kMemory:
       Exec(kPragmaTempStoreMemory.data());
       break;
+  }
+  if (settings.read_uncommited) {
+    Exec(kPragmaReadUncommited.data());
   }
   sqlite3_busy_timeout(db_handler_, settings.busy_timeout);
   Exec(std::string(kPragmaCacheSize) + std::to_string(settings.cache_size));

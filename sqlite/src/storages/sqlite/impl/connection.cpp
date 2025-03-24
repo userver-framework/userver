@@ -1,13 +1,17 @@
 #include <userver/storages/sqlite/impl/connection.hpp>
 
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
+#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
 namespace {
-
+constexpr std::string_view kStatementTransactionSerializableIsolationLevel =
+    "PRAGMA read_uncommitted=0";
+constexpr std::string_view kStatementTransactionReadUncommitedIsolationLevel =
+    "PRAGMA read_uncommitted=1";
 constexpr std::string_view kStatementTransactionBeginDeferred =
     "BEGIN DEFERRED";
 constexpr std::string_view kStatementTransactionBeginImmediate =
@@ -29,14 +33,14 @@ Connection::Connection(const settings::SQLiteSettings& settings,
                        engine::TaskProcessor& blocking_task_processor)
     : blocking_task_processor_{blocking_task_processor},
       db_handler_{settings, blocking_task_processor_},
-      connection_settings_{settings.conn_settings},
+      settings_{settings},
       statements_cache_{db_handler_,
-                        connection_settings_.max_prepared_cache_size} {}
+                        settings.conn_settings.max_prepared_cache_size} {}
 
 Connection::~Connection() = default;
 
 settings::ConnectionSettings const& Connection::GetSettings() const noexcept {
-  return connection_settings_;
+  return settings_.conn_settings;
 }
 
 ResultSet Connection::ExecuteCommand(
@@ -47,6 +51,11 @@ ResultSet Connection::ExecuteCommand(
 }
 
 void Connection::Begin(const settings::TransactionOptions& options) {
+  if (options.isolation_level ==
+          settings::TransactionOptions::IsolationLevel::kReadUncommitted &&
+      !settings_.read_uncommited) {
+    ExecuteQuery(kStatementTransactionReadUncommitedIsolationLevel.data());
+  }
   switch (options.mode) {
     case settings::TransactionOptions::kDeferred:
       ExecuteQuery(kStatementTransactionBeginDeferred.data());
@@ -62,10 +71,18 @@ void Connection::Begin(const settings::TransactionOptions& options) {
   }
 }
 
-void Connection::Commit() { ExecuteQuery(kStatementTransactionCommit.data()); }
+void Connection::Commit() {
+  ExecuteQuery(kStatementTransactionCommit.data());
+  if (!settings_.read_uncommited) {
+    ExecuteQuery(kStatementTransactionSerializableIsolationLevel.data());
+  }
+}
 
 void Connection::Rollback() {
   ExecuteQuery(kStatementTransactionRollback.data());
+  if (!settings_.read_uncommited) {
+    ExecuteQuery(kStatementTransactionSerializableIsolationLevel.data());
+  }
 }
 
 void Connection::Savepoint(const std::string& name) {
@@ -88,7 +105,7 @@ std::string Connection::PrepareString(const std::string& str) {
 }
 
 StatementPtr Connection::PrepareStatement(const Query& query) {
-  if (connection_settings_.prepared_statements ==
+  if (settings_.conn_settings.prepared_statements ==
       settings::ConnectionSettings::kNoPreparedStatements) {
     return std::make_shared<Statement>(db_handler_, query.GetStatement());
   } else {

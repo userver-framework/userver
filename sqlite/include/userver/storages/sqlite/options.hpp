@@ -12,13 +12,21 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::settings {
 
 struct TransactionOptions {
-  enum Mode { kDeferred, kImmediate, kExclusive };
-  Mode mode = kDeferred;
+  enum LockingMode { kDeferred, kImmediate, kExclusive };
+  enum class IsolationLevel {
+    kSerializable,
+    kReadUncommitted
+  };  // Read Uncommitted to work requires shared-cashe
+
+  IsolationLevel isolation_level = IsolationLevel::kSerializable;
+  LockingMode mode = LockingMode::kDeferred;
 
   constexpr TransactionOptions() = default;
-  constexpr explicit TransactionOptions(Mode m) : mode{m} {}
-
-  bool IsReadOnly() const { return mode & kImmediate; }
+  constexpr explicit TransactionOptions(IsolationLevel lvl)
+      : isolation_level{lvl} {}
+  constexpr TransactionOptions(IsolationLevel lvl, LockingMode m)
+      : isolation_level{lvl}, mode{m} {}
+  constexpr explicit TransactionOptions(LockingMode m) : mode{m} {}
 
   static constexpr TransactionOptions Deferred() {
     return TransactionOptions{kDeferred};
@@ -64,6 +72,7 @@ struct PoolSettings final {
 inline constexpr bool kDefaultCreateFile = true;
 inline constexpr bool kDefaultIsReadOnly = false;
 inline constexpr bool kDefaultSharedCashe = false;
+inline constexpr bool kDefaultReadUncommited = false;
 inline constexpr bool kDefaultForeignKeys = true;
 inline constexpr std::string_view kDefaultJournalMode = "wal";
 inline constexpr std::string_view kDefaultSynchronous = "normal";
@@ -84,6 +93,7 @@ struct SQLiteSettings {
       !kDefaultIsReadOnly ? ReadMode::kReadWrite : ReadMode::kReadOnly;
   bool create_file = kDefaultCreateFile;
   bool shared_cashe = kDefaultSharedCashe;
+  bool read_uncommited = kDefaultReadUncommited;
   bool foreign_keys = kDefaultForeignKeys;
   JournalMode journal_mode = JournalMode::kWal;
   int busy_timeout = kDefaultBusyTimeout;

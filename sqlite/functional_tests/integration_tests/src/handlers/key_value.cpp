@@ -103,7 +103,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
 
     storages::sqlite::Transaction transaction = sqlite_client_->Begin(
         storages::sqlite::OperationType::kReadWrite,
-        TransactionOptions{TransactionOptions::Mode::kImmediate});
+        TransactionOptions{TransactionOptions::LockingMode::kImmediate});
 
     auto res = transaction.Execute(db::sql::kUpdateKeyValue.data(), value, key)
                    .AsExecutionResult();

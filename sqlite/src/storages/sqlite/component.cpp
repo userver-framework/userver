@@ -69,6 +69,8 @@ std::shared_ptr<storages::sqlite::Client> CreateClient(
   settings.shared_cashe =
       config["shared_cashe"].As<bool>(settings.shared_cashe);
   settings.shared_cashe =
+      config["read_uncommited"].As<bool>(settings.read_uncommited);
+  settings.shared_cashe =
       config["foreign_keys"].As<bool>(settings.foreign_keys);
   settings.journal_mode =
       ParseJournalMode(config["journal_mode"].As<std::string>(
@@ -126,6 +128,10 @@ properties:
     shared_cashe:
         type: boolean
         description: enable shared in-memory cache for the database
+        defaultDescription: false
+    read_uncommited:
+        type: boolean
+        description: allow reading uncommitted data (requires shared_cache)
         defaultDescription: false
     journal_mode:
         type: string
