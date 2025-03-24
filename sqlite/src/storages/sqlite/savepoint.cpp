@@ -43,6 +43,7 @@ Savepoint::~Savepoint() {
 }
 
 void Savepoint::AssertValid() const {
+  // TODO: exception or abort?
   UINVARIANT(connection_ && connection_->IsValid(),
              "Savepoint accessed after it's been released");
 }
