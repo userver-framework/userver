@@ -3,7 +3,6 @@
 /// @file userver/storages/sqlite/options.hpp
 /// @brief Options
 
-#include <optional>
 #include <string>
 
 #include <userver/components/component_config.hpp>
