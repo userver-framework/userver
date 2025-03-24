@@ -21,9 +21,6 @@ Statement::~Statement() = default;
 Statement::Statement(Statement&& other) noexcept = default;
 
 void Statement::SQLiteStatementDeleter::operator()(sqlite3_stmt* stmt) {
-  // TODO: is this an I/O bound operation, does it need to be run on
-  // blocking_task_processor_?
-
   // It's return last execution error status, we do not need to check it here
   sqlite3_finalize(stmt);
 }

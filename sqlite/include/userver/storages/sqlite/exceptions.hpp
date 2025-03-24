@@ -41,24 +41,6 @@ class SQLiteException : public std::runtime_error {
   int extended_error_code_;  // Detailed error code if any
 };
 
-/// @brief Statement exception - something went wrong with the statement
-class SQLiteStatementException : public SQLiteException {
- public:
-  using SQLiteException::SQLiteException;
-
-  ~SQLiteStatementException() override;
-};
-
-/// @brief Transaction exception - something went wrong with the transaction
-class SQLiteTransactionException : public SQLiteException {
- public:
-  using SQLiteException::SQLiteException;
-
-  ~SQLiteTransactionException() override;
-};
-
-// TODO: Added other SQLite exceptions
-
 }  // namespace storages::sqlite
 
 USERVER_NAMESPACE_END
