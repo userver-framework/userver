@@ -81,8 +81,10 @@ void Connection::RollbackTo(const std::string& name) {
 }
 
 std::string Connection::PrepareString(const std::string& str) {
-  return ExecuteCommandNoPrepare(kStatementPrepeareString.data(), str)
-      .AsSingleField<std::string>();
+  auto statement =
+      std::make_shared<Statement>(db_handler_, kStatementPrepeareString.data());
+  statement->Bind(1, str);
+  return ExecuteCommand(statement).AsSingleField<std::string>();
 }
 
 StatementPtr Connection::PrepareStatement(const Query& query) {

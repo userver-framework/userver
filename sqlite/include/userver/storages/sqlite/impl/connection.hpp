@@ -46,10 +46,6 @@ class Connection {
   void NotifyBroken();
 
  private:
-  template <typename... Args>
-  ResultSet ExecuteCommandNoPrepare(const std::string& query,
-                                    const Args&... args) const;
-
   void ExecuteQuery(const std::string& query) const;
 
   void SetSettings(const settings::SQLiteSettings& settings);
@@ -60,14 +56,6 @@ class Connection {
   impl::StatementsCache statements_cache_;
   std::atomic<bool> broken_{false};
 };
-
-template <typename... Args>
-ResultSet Connection::ExecuteCommandNoPrepare(const std::string& query,
-                                              const Args&... args) const {
-  auto statement = std::make_shared<Statement>(db_handler_, query);
-  statement->UpdateParamsBindings(args...);
-  return ExecuteCommand(statement);
-}
 
 }  // namespace storages::sqlite::impl
 

@@ -25,10 +25,6 @@ class Statement final : public StatementBase {
   std::string getExpandedStatementText() const noexcept;
 
   // Prepare statement
-  template <typename... Args>
-  void UpdateParamsBindings(const Args&... args);
-  template <typename T>
-  void UpdateRowAsParamsBindings(const T& row);
   void Bind(const int index, const int32_t value) override;
   void Bind(const int index, const uint32_t value) override;
   void Bind(const int index, const int64_t value) override;
@@ -42,8 +38,6 @@ class Statement final : public StatementBase {
 
   // Execution
   int ColumnCount() const noexcept override;
-  int RowsAffected() const noexcept override;
-  int LastInsertRowId() const noexcept override;
   bool HasNext() const noexcept override;
   bool IsDone() const noexcept override;
   bool IsFail() const noexcept;
@@ -51,6 +45,8 @@ class Statement final : public StatementBase {
   void CheckFail() const;
 
   // Extract
+  int RowsAffected() const noexcept override;
+  int LastInsertRowId() const noexcept override;
   void Extract(int column, int8_t& val) const noexcept override;
   void Extract(int column, uint8_t& val) const noexcept override;
   void Extract(int column, int16_t& val) const noexcept override;
@@ -81,28 +77,6 @@ class Statement final : public StatementBase {
   int column_count_;
   int exec_status_ = 0;
 };
-
-template <typename... Args>
-void Statement::UpdateParamsBindings(const Args&... args) {
-  int index = 1;
-  (Bind(index++, args), ...);
-}
-
-template <typename T>
-void Statement::UpdateRowAsParamsBindings(const T& row) {
-  static_assert(std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
-                "T must be an aggregate type or tuple-like type");
-  if constexpr (std::is_aggregate_v<T>) {
-    auto fields = boost::pfr::structure_to_tuple(row);
-    std::apply(
-        [this](const auto&... args) { this->UpdateParamsBindings(args...); },
-        fields);
-  } else {
-    return std::apply(
-        [this](const auto&... args) { this->UpdateParamsBindings(args...); },
-        row);
-  }
-}
 
 }  // namespace storages::sqlite::impl
 

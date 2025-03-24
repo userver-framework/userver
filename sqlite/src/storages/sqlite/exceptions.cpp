@@ -43,10 +43,6 @@ const char* SQLiteException::getErrorStr() const noexcept {
   return sqlite3_errstr(error_code_);
 };
 
-SQLiteStatementException::~SQLiteStatementException() = default;
-
-SQLiteTransactionException::~SQLiteTransactionException() = default;
-
 }  // namespace storages::sqlite
 
 USERVER_NAMESPACE_END
