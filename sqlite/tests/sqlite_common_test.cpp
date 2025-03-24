@@ -27,9 +27,10 @@ constexpr std::string_view kDatatypeMismatchInsert =
 
 }  // namespace
 
-class SQLiteCommon : public SQLiteCompositeTest<SQLiteCustomConnection> {};
+class SQLiteCommonTest : public SQLiteCompositeFixture<SQLiteCustomConnection> {
+};
 
-UTEST_F(SQLiteCommon, ReadWrite) {
+UTEST_F(SQLiteCommonTest, ReadWrite) {
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.create_file = true;
@@ -67,7 +68,7 @@ UTEST_F(SQLiteCommon, ReadWrite) {
                         .AsVector<RowTuple>()));
 }
 
-UTEST_F(SQLiteCommon, ReadOnly) {
+UTEST_F(SQLiteCommonTest, ReadOnly) {
   {
     settings::SQLiteSettings settings;
     settings.db_name = GetTestDbPath("test.db");
@@ -117,8 +118,8 @@ UTEST_F(SQLiteCommon, ReadOnly) {
                         .AsVector<RowTuple>()));
 }
 
-class SQLiteCommonResultSet
-    : public SQLiteCompositeTest<SQLiteInMemoryConnection> {
+class SQLiteCommonResultSetTest
+    : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
  public:
   void PreInitialize(const ClientPtr& client) final {
     client->Execute(OperationType::kReadWrite,
@@ -130,7 +131,7 @@ class SQLiteCommonResultSet
   }
 };
 
-UTEST_F(SQLiteCommonResultSet, SuccessExecute) {
+UTEST_F(SQLiteCommonResultSetTest, SuccessExecute) {
   auto client = CreateClient();
 
   // Get result as vector of tuples
@@ -199,7 +200,7 @@ UTEST_F(SQLiteCommonResultSet, SuccessExecute) {
   }
 }
 
-UTEST_F(SQLiteCommonResultSet, FailureExecute) {
+UTEST_F(SQLiteCommonResultSetTest, FailureExecute) {
   auto client = CreateClient();
 
   // Throw exception if try to get set of row as vector of fields

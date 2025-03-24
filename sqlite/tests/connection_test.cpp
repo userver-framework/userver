@@ -14,11 +14,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
-// Full mocked tests of ResultSet logic
+class SQLiteConnectionTest
+    : public SQLiteCompositeFixture<SQLiteCustomConnection> {};
 
-class SQLiteConnection : public SQLiteCompositeTest<SQLiteCustomConnection> {};
-
-UTEST_F(SQLiteConnection, NonExistent) {
+UTEST_F(SQLiteConnectionTest, NonExistent) {
   // Try to open a non-existing database
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
@@ -28,7 +27,7 @@ UTEST_F(SQLiteConnection, NonExistent) {
       << "Connecting to a non-existent database";
 }
 
-UTEST_F(SQLiteConnection, CreateOpen) {
+UTEST_F(SQLiteConnectionTest, CreateOpen) {
   // Try to open a non-existing database
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
@@ -45,7 +44,7 @@ UTEST_F(SQLiteConnection, CreateOpen) {
          "automatically";
 }
 
-UTEST_F(SQLiteConnection, InMemory) {
+UTEST_F(SQLiteConnectionTest, InMemory) {
   settings::SQLiteSettings settings;
   settings.db_name = ":memory:";
 

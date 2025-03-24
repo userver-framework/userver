@@ -18,7 +18,8 @@ namespace storages::sqlite::tests {
 // transactions);
 //  this requires a test connection to the database
 
-class SQLiteSavepoints : public SQLiteCompositeTest<SQLiteInMemoryConnection> {
+class SQLiteSavepointsTest
+    : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
  public:
   void PreInitialize(const ClientPtr& client) final {
     client->Execute(OperationType::kReadWrite,
@@ -26,7 +27,7 @@ class SQLiteSavepoints : public SQLiteCompositeTest<SQLiteInMemoryConnection> {
   }
 };
 
-UTEST_F(SQLiteSavepoints, Release) {
+UTEST_F(SQLiteSavepointsTest, Release) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
@@ -51,7 +52,7 @@ UTEST_F(SQLiteSavepoints, Release) {
   EXPECT_EQ("first", res);
 }
 
-class SQLiteSavepointsDeathTest : public SQLiteSavepoints {};
+class SQLiteSavepointsDeathTest : public SQLiteSavepointsTest {};
 
 UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
   ClientPtr client;
@@ -71,7 +72,7 @@ UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
   UEXPECT_DEATH(savepoint.RollbackTo(), "");
 }
 
-UTEST_F(SQLiteSavepoints, RollbackTo) {
+UTEST_F(SQLiteSavepointsTest, RollbackTo) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
@@ -100,7 +101,7 @@ UTEST_F(SQLiteSavepoints, RollbackTo) {
   // After it transaction (savepoint would be end)
 }
 
-UTEST_F(SQLiteSavepoints, AutoRollback) {
+UTEST_F(SQLiteSavepointsTest, AutoRollback) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
@@ -160,7 +161,7 @@ UTEST_F(SQLiteSavepoints, AutoRollback) {
   }
 }
 
-UTEST_F(SQLiteSavepoints, MultipleSavepoints) {
+UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 

@@ -16,8 +16,8 @@ namespace storages::sqlite::tests {
 // Here we check the high-level operation of transactions;
 // this requires a test connection to the database
 
-class SQLiteTransactions
-    : public SQLiteCompositeTest<SQLiteInMemoryConnection> {
+class SQLiteTransactionsTest
+    : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
  public:
   void PreInitialize(const ClientPtr& client) final {
     client->Execute(OperationType::kReadWrite,
@@ -25,7 +25,7 @@ class SQLiteTransactions
   }
 };
 
-UTEST_F(SQLiteTransactions, Commit) {
+UTEST_F(SQLiteTransactionsTest, Commit) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
@@ -48,7 +48,7 @@ UTEST_F(SQLiteTransactions, Commit) {
   EXPECT_EQ("first", res);
 }
 
-UTEST_F(SQLiteTransactions, Rollback) {
+UTEST_F(SQLiteTransactionsTest, Rollback) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
@@ -71,7 +71,7 @@ UTEST_F(SQLiteTransactions, Rollback) {
   EXPECT_TRUE(res.empty());
 }
 
-class SQLiteTransactionDeathTest : public SQLiteTransactions {};
+class SQLiteTransactionDeathTest : public SQLiteTransactionsTest {};
 
 UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
   ClientPtr client;
@@ -104,7 +104,7 @@ UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
   }
 }
 
-UTEST_F(SQLiteTransactions, AutoRollback) {
+UTEST_F(SQLiteTransactionsTest, AutoRollback) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 

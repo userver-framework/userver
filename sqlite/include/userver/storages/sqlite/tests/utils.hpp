@@ -81,7 +81,7 @@ class MockSQLiteStatement : public impl::StatementBase {
 
 // Main fixture for handle tempory database files
 // Create test tmp dir on start and delete it on finish
-class SQLiteTest : public ::testing::Test {
+class SQLiteFixture : public ::testing::Test {
  protected:
   void SetUp() override {
     test_dir_ = fs::temp_directory_path() / "sqlite_test";
@@ -103,18 +103,18 @@ class SQLiteTest : public ::testing::Test {
 };
 
 template <typename ConnectionProvider>
-class SQLiteCompositeTest : public SQLiteTest {
+class SQLiteCompositeFixture : public SQLiteFixture {
  public:
-  SQLiteCompositeTest()
+  SQLiteCompositeFixture()
       : connection_provider_(std::make_unique<ConnectionProvider>()) {}
 
-  ~SQLiteCompositeTest() override = default;
+  ~SQLiteCompositeFixture() override = default;
 
   virtual void PreInitialize(const ClientPtr&) {}
 
-  void SetUp() override { SQLiteTest::SetUp(); }
+  void SetUp() override { SQLiteFixture::SetUp(); }
 
-  void TearDown() override { SQLiteTest::TearDown(); }
+  void TearDown() override { SQLiteFixture::TearDown(); }
 
   ClientPtr CreateClient(settings::SQLiteSettings settings = {}) {
     auto client = connection_provider_->CreateClient(settings);
@@ -155,12 +155,13 @@ class SQLiteInMemoryConnection : public SQLiteCustomConnection {
 
 // Parametrized tests fixture
 template <typename ConnectionProvider, typename T>
-class SQLiteParametrizedTest : public SQLiteCompositeTest<ConnectionProvider>,
-                               public ::testing::WithParamInterface<T> {
+class SQLiteParametrizedFixture
+    : public SQLiteCompositeFixture<ConnectionProvider>,
+      public ::testing::WithParamInterface<T> {
  public:
-  void SetUp() override { SQLiteTest::SetUp(); }
+  void SetUp() override { SQLiteFixture::SetUp(); }
 
-  void TearDown() override { SQLiteTest::TearDown(); }
+  void TearDown() override { SQLiteFixture::TearDown(); }
 };
 
 }  // namespace storages::sqlite::tests

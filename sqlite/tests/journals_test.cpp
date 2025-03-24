@@ -25,9 +25,9 @@ std::string TestParamNameJournalMode(
 
 }  // namespace
 
-class SQLiteJournalMode
-    : public SQLiteParametrizedTest<SQLiteCustomConnection,
-                                    settings::SQLiteSettings::JournalMode> {
+class SQLiteJournalModesTest
+    : public SQLiteParametrizedFixture<SQLiteCustomConnection,
+                                       settings::SQLiteSettings::JournalMode> {
  public:
   void PreInitialize(const ClientPtr& client) final {
     UEXPECT_NO_THROW(client->Execute(
@@ -36,7 +36,7 @@ class SQLiteJournalMode
   }
 };
 
-UTEST_P_MT(SQLiteJournalMode, ReadWrite, 10) {
+UTEST_P_MT(SQLiteJournalModesTest, ReadWrite, 10) {
   settings::SQLiteSettings settings;
   settings.db_name = GetTestDbPath("test.db");
   settings.journal_mode = GetParam();
@@ -89,7 +89,7 @@ UTEST_P_MT(SQLiteJournalMode, ReadWrite, 10) {
 }
 
 INSTANTIATE_UTEST_SUITE_P(
-    SQLiteCommonConcurent, SQLiteJournalMode,
+    SQLiteCommonConcurent, SQLiteJournalModesTest,
     ::testing::Values(settings::SQLiteSettings::JournalMode::kWal,
                       settings::SQLiteSettings::JournalMode::kDelete,
                       settings::SQLiteSettings::JournalMode::kTruncate,
