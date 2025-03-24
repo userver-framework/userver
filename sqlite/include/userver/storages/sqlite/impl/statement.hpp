@@ -40,8 +40,8 @@ class Statement final : public StatementBase {
   int ColumnCount() const noexcept override;
   bool HasNext() const noexcept override;
   bool IsDone() const noexcept override;
-  bool IsFail() const noexcept;
   void Next() override;
+  bool IsFail() const noexcept;
   void CheckFail() const;
 
   // Extract
