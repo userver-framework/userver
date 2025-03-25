@@ -1,12 +1,19 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
+#include <userver/formats/json_fwd.hpp>
+
 #include <userver/storages/sqlite/impl/binder_fwd.hpp>
+
+namespace boost::uuids {
+struct uuid;
+}
 
 USERVER_NAMESPACE_BEGIN
 
@@ -67,8 +74,42 @@ void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
 void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
                       ExplicitRef<std::string> val);
 
+// These 2 should never be called, so we just leave them unimplemented
+void FreestandingBind(OutputBindingsFwd&, std::size_t,
+                      ExplicitRef<std::string_view>);
+void FreestandingBind(OutputBindingsFwd&, std::size_t,
+                      ExplicitRef<std::optional<std::string_view>>);
+
 void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
-                      ExplicitRef<std::vector<uint8_t>> val);
+                      ExplicitRef<std::vector<std::uint8_t>> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<bool> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::chrono::system_clock::time_point> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<boost::uuids::uuid> val);
+
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<formats::json::Value> val);
+
+bool IsNull(OutputBindingsFwd& binds, std::size_t pos);
+
+template <typename T>
+void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos,
+                      ExplicitRef<std::optional<T>> val) {
+  if (IsNull(binds, pos)) {
+    val.Get() = std::nullopt;
+  } else {
+    if (!val.Get().has_value()) {
+      val.Get().emplace();
+    }
+    storages::sqlite::impl::io::FreestandingBind(binds, pos,
+                                                 ExplicitRef<T>{*val.Get()});
+  }
+}
 
 template <typename T>
 void FreestandingBind(OutputBindingsFwd&, std::size_t, ExplicitRef<T>) {
@@ -105,6 +146,21 @@ void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
                       ExplicitCRef<std::string> val);
 void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
                       ExplicitCRef<std::string_view> val);
+
+void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
+                      ExplicitCRef<std::vector<std::uint8_t>> val);
+
+void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
+                      ExplicitCRef<bool> val);
+
+void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
+                      ExplicitCRef<std::chrono::system_clock::time_point> val);
+
+void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
+                      ExplicitCRef<boost::uuids::uuid> val);
+
+void FreestandingBind(InputBindingsFwd& binds, std::size_t pos,
+                      ExplicitCRef<formats::json::Value> val);
 
 void BindNull(InputBindingsFwd& binds, std::size_t pos);
 

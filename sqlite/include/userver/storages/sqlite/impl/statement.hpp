@@ -25,14 +25,15 @@ class Statement final : public StatementBase {
   std::string getExpandedStatementText() const noexcept;
 
   // Prepare statement
-  void Bind(const int index, const int32_t value) override;
-  void Bind(const int index, const uint32_t value) override;
-  void Bind(const int index, const int64_t value) override;
-  void Bind(const int index, const uint64_t value) override;
+  void Bind(const int index, const std::int32_t value) override;
+  void Bind(const int index, const std::uint32_t value) override;
+  void Bind(const int index, const std::int64_t value) override;
+  void Bind(const int index, const std::uint64_t value) override;
   void Bind(const int index, const double value) override;
   void Bind(const int index, const std::string& value) override;
   void Bind(const int index, const std::string_view value) override;
   void Bind(const int index, const char* value, const int size) override;
+  void Bind(const int index, const std::vector<std::uint8_t>& value) override;
   void Bind(const int index) override;
   void Reset() noexcept;
 
@@ -47,14 +48,15 @@ class Statement final : public StatementBase {
   // Extract
   int RowsAffected() const noexcept override;
   int LastInsertRowId() const noexcept override;
-  void Extract(int column, int8_t& val) const noexcept override;
-  void Extract(int column, uint8_t& val) const noexcept override;
-  void Extract(int column, int16_t& val) const noexcept override;
-  void Extract(int column, uint16_t& val) const noexcept override;
-  void Extract(int column, int32_t& val) const noexcept override;
-  void Extract(int column, uint32_t& val) const noexcept override;
-  void Extract(int column, int64_t& val) const noexcept override;
-  void Extract(int column, uint64_t& val) const noexcept override;
+  bool IsNull(int column) const noexcept override;
+  void Extract(int column, std::int8_t& val) const noexcept override;
+  void Extract(int column, std::uint8_t& val) const noexcept override;
+  void Extract(int column, std::int16_t& val) const noexcept override;
+  void Extract(int column, std::uint16_t& val) const noexcept override;
+  void Extract(int column, std::int32_t& val) const noexcept override;
+  void Extract(int column, std::uint32_t& val) const noexcept override;
+  void Extract(int column, std::int64_t& val) const noexcept override;
+  void Extract(int column, std::uint64_t& val) const noexcept override;
   void Extract(int column, float& val) const noexcept override;
   void Extract(int column, double& val) const noexcept override;
   void Extract(int column, std::string& val) const noexcept override;

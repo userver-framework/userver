@@ -16,14 +16,17 @@ namespace storages::sqlite::tests {
 // Here we check the high-level operation of transactions;
 // this requires a test connection to the database
 
+namespace {
+
 class SQLiteTransactionsTest
     : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
- public:
   void PreInitialize(const ClientPtr& client) final {
     client->Execute(OperationType::kReadWrite,
                     "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
   }
 };
+
+}  // namespace
 
 UTEST_F(SQLiteTransactionsTest, Commit) {
   ClientPtr client;

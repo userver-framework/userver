@@ -23,18 +23,17 @@ std::string TestParamNameJournalMode(
   return JournalModeToString(info.param);
 }
 
-}  // namespace
-
 class SQLiteJournalModesTest
     : public SQLiteParametrizedFixture<SQLiteCustomConnection,
                                        settings::SQLiteSettings::JournalMode> {
- public:
   void PreInitialize(const ClientPtr& client) final {
     UEXPECT_NO_THROW(client->Execute(
         OperationType::kReadWrite,
         "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
   }
 };
+
+}  // namespace
 
 UTEST_P_MT(SQLiteJournalModesTest, ReadWrite, 10) {
   settings::SQLiteSettings settings;

@@ -18,14 +18,17 @@ namespace storages::sqlite::tests {
 // transactions);
 //  this requires a test connection to the database
 
+namespace {
+
 class SQLiteSavepointsTest
     : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
- public:
   void PreInitialize(const ClientPtr& client) final {
     client->Execute(OperationType::kReadWrite,
                     "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
   }
 };
+
+}  // namespace
 
 UTEST_F(SQLiteSavepointsTest, Release) {
   ClientPtr client;

@@ -103,12 +103,22 @@ void Statement::Bind(const int index, const std::string& value) {
 }
 
 void Statement::Bind(const int index, const std::string_view value) {
-  Bind(index, std::string(value));
+  const int ret_code =
+      sqlite3_bind_text(prepare_statement_.get(), index, value.data(),
+                        static_cast<int>(value.size()), SQLITE_TRANSIENT);
+  CheckCode(ret_code);
 }
 
 void Statement::Bind(const int index, const char* value, const int size) {
   const int ret_code = sqlite3_bind_blob(prepare_statement_.get(), index, value,
                                          size, SQLITE_TRANSIENT);
+  CheckCode(ret_code);
+}
+
+void Statement::Bind(const int index, const std::vector<std::uint8_t>& value) {
+  const int ret_code =
+      sqlite3_bind_blob(prepare_statement_.get(), index, value.data(),
+                        value.size(), SQLITE_TRANSIENT);
   CheckCode(ret_code);
 }
 
@@ -153,6 +163,10 @@ void Statement::Reset() noexcept {
   sqlite3_reset(prepare_statement_.get());
   sqlite3_clear_bindings(
       prepare_statement_.get());  // reset all host parameters to NULL
+}
+
+bool Statement::IsNull(int column) const noexcept {
+  return sqlite3_column_type(prepare_statement_.get(), column) == SQLITE_NULL;
 }
 
 void Statement::Extract(int column, int8_t& val) const noexcept {

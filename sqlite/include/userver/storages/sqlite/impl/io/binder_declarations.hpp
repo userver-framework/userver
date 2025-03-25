@@ -2,6 +2,7 @@
 
 #include <userver/storages/sqlite/impl/binder_fwd.hpp>
 #include <userver/storages/sqlite/impl/io/common_binders.hpp>
+#include <userver/storages/sqlite/impl/io/decimal_binders.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

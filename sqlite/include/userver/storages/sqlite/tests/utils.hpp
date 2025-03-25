@@ -36,14 +36,16 @@ using RowTuple = std::tuple<int, std::string>;
 // execution result)
 class MockSQLiteStatement : public impl::StatementBase {
  public:
-  MOCK_METHOD(void, Bind, (const int index, const int32_t value));
-  MOCK_METHOD(void, Bind, (const int index, const int64_t value));
-  MOCK_METHOD(void, Bind, (const int index, const uint32_t value));
-  MOCK_METHOD(void, Bind, (const int index, const uint64_t value));
+  MOCK_METHOD(void, Bind, (const int index, const std::int32_t value));
+  MOCK_METHOD(void, Bind, (const int index, const std::int64_t value));
+  MOCK_METHOD(void, Bind, (const int index, const std::uint32_t value));
+  MOCK_METHOD(void, Bind, (const int index, const std::uint64_t value));
   MOCK_METHOD(void, Bind, (const int index, const double value));
   MOCK_METHOD(void, Bind, (const int index, const std::string& value));
   MOCK_METHOD(void, Bind, (const int index, const std::string_view value));
   MOCK_METHOD(void, Bind, (const int index, const char* value, const int size));
+  MOCK_METHOD(void, Bind,
+              (const int index, const std::vector<std::uint8_t>& value));
   MOCK_METHOD(void, Bind, (const int index));
 
   MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
@@ -53,21 +55,22 @@ class MockSQLiteStatement : public impl::StatementBase {
 
   MOCK_METHOD(int, RowsAffected, (), (const, noexcept, override));
   MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, int8_t& val),
+  MOCK_METHOD(bool, IsNull, (int column), (const, noexcept, override));
+  MOCK_METHOD(void, Extract, (int column, std::int8_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, uint8_t& val),
+  MOCK_METHOD(void, Extract, (int column, std::uint8_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, int16_t& val),
+  MOCK_METHOD(void, Extract, (int column, std::int16_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, uint16_t& val),
+  MOCK_METHOD(void, Extract, (int column, std::uint16_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, int32_t& val),
+  MOCK_METHOD(void, Extract, (int column, std::int32_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, uint32_t& val),
+  MOCK_METHOD(void, Extract, (int column, std::uint32_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, int64_t& val),
+  MOCK_METHOD(void, Extract, (int column, std::int64_t& val),
               (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, uint64_t& val),
+  MOCK_METHOD(void, Extract, (int column, std::uint64_t& val),
               (const, noexcept, override));
   MOCK_METHOD(void, Extract, (int column, float& val),
               (const, noexcept, override));
@@ -110,8 +113,6 @@ class SQLiteCompositeFixture : public SQLiteFixture {
 
   ~SQLiteCompositeFixture() override = default;
 
-  virtual void PreInitialize(const ClientPtr&) {}
-
   void SetUp() override { SQLiteFixture::SetUp(); }
 
   void TearDown() override { SQLiteFixture::TearDown(); }
@@ -123,6 +124,8 @@ class SQLiteCompositeFixture : public SQLiteFixture {
   }
 
  private:
+  virtual void PreInitialize(const ClientPtr&) {}
+
   std::unique_ptr<ConnectionProvider> connection_provider_;
 };
 

@@ -14,8 +14,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
+namespace {
+
 class SQLiteConnectionTest
     : public SQLiteCompositeFixture<SQLiteCustomConnection> {};
+
+}  // namespace
 
 UTEST_F(SQLiteConnectionTest, NonExistent) {
   // Try to open a non-existing database

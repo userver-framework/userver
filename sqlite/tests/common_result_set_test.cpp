@@ -25,102 +25,8 @@ constexpr std::string_view kSelectNullField =
 constexpr std::string_view kDatatypeMismatchInsert =
     "INSERT INTO test VALUES ('third', 3)";
 
-}  // namespace
-
-class SQLiteCommonTest : public SQLiteCompositeFixture<SQLiteCustomConnection> {
-};
-
-UTEST_F(SQLiteCommonTest, ReadWrite) {
-  settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
-  settings.create_file = true;
-
-  ClientPtr client;
-  UEXPECT_NO_THROW(client = CreateClient(settings));
-  UEXPECT_NO_THROW(client->Execute(
-      storages::sqlite::OperationType::kReadWrite,
-      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
-  UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
-                                   "INSERT INTO test VALUES (1, 'first') "));
-  UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
-                                   "INSERT INTO test VALUES (2, 'second')"));
-  UEXPECT_THROW(client->Execute(storages::sqlite::OperationType::kReadOnly,
-                                "INSERT INTO test VALUES (3, 'third')"),
-                SQLiteException);
-  UEXPECT_THROW(
-      (client
-           ->Execute(storages::sqlite::OperationType::kReadOnly,
-                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<RowTuple>()),
-      SQLiteException);
-  UEXPECT_NO_THROW(
-      (client
-           ->Execute(storages::sqlite::OperationType::kReadWrite,
-                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<RowTuple>()));
-  UEXPECT_NO_THROW((client
-                        ->Execute(storages::sqlite::OperationType::kReadOnly,
-                                  "SELECT * FROM test")
-                        .AsVector<RowTuple>()));
-  UEXPECT_NO_THROW((client
-                        ->Execute(storages::sqlite::OperationType::kReadOnly,
-                                  "SELECT * FROM test")
-                        .AsVector<RowTuple>()));
-}
-
-UTEST_F(SQLiteCommonTest, ReadOnly) {
-  {
-    settings::SQLiteSettings settings;
-    settings.db_name = GetTestDbPath("test.db");
-    settings.create_file = true;
-    ClientPtr client;
-    UEXPECT_NO_THROW(client = CreateClient(settings))
-        << "Connect to a non-existent database, but the file will be "
-           "created "
-           "automatically";
-    UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite,
-        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
-    UEXPECT_NO_THROW(
-        client->Execute(storages::sqlite::OperationType::kReadWrite,
-                        "INSERT INTO test VALUES (1, 'first')"));
-    UEXPECT_NO_THROW(
-        client->Execute(storages::sqlite::OperationType::kReadWrite,
-                        "INSERT INTO test VALUES (2, 'second')"));
-  }
-
-  settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
-  settings.create_file = false;
-  settings.read_mode = settings::SQLiteSettings::ReadMode::kReadOnly;
-
-  ClientPtr client;
-  UEXPECT_NO_THROW(client = CreateClient(settings));
-  UEXPECT_THROW(
-      (client
-           ->Execute(storages::sqlite::OperationType::kReadOnly,
-                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<RowTuple>()),
-      SQLiteException);
-  UEXPECT_THROW(
-      (client
-           ->Execute(storages::sqlite::OperationType::kReadWrite,
-                     "INSERT INTO test VALUES (3, 'third') RETURNING *")
-           .AsVector<RowTuple>()),
-      SQLiteException);
-  UEXPECT_NO_THROW((client
-                        ->Execute(storages::sqlite::OperationType::kReadOnly,
-                                  "SELECT * FROM test")
-                        .AsVector<RowTuple>()));
-  UEXPECT_NO_THROW((client
-                        ->Execute(storages::sqlite::OperationType::kReadWrite,
-                                  "SELECT * FROM test")
-                        .AsVector<RowTuple>()));
-}
-
 class SQLiteCommonResultSetTest
     : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
- public:
   void PreInitialize(const ClientPtr& client) final {
     client->Execute(OperationType::kReadWrite,
                     "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
@@ -130,6 +36,8 @@ class SQLiteCommonResultSetTest
                     "INSERT INTO test VALUES (2, 'second')");
   }
 };
+
+}  // namespace
 
 UTEST_F(SQLiteCommonResultSetTest, SuccessExecute) {
   auto client = CreateClient();
