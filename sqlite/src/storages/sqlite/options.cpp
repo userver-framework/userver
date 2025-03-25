@@ -37,6 +37,18 @@ PoolSettings PoolSettings::Create(const components::ComponentConfig& config) {
   return settings;
 }
 
+std::string IsolationLevelToString(
+    const TransactionOptions::IsolationLevel& lvl) {
+  switch (lvl) {
+    case TransactionOptions::IsolationLevel::kSerializable:
+      return "Serializable";
+    case TransactionOptions::IsolationLevel::kReadUncommitted:
+      return "ReadUncommitted";
+    default:
+      return "Unknown";
+  }
+}
+
 std::string JournalModeToString(const SQLiteSettings::JournalMode& mode) {
   switch (mode) {
     case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::

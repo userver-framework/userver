@@ -28,12 +28,13 @@ constexpr std::string_view kDatatypeMismatchInsert =
 class SQLiteCommonResultSetTest
     : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
   void PreInitialize(const ClientPtr& client) final {
-    client->Execute(OperationType::kReadWrite,
-                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
-    client->Execute(OperationType::kReadWrite,
-                    "INSERT INTO test VALUES (1, 'first')");
-    client->Execute(OperationType::kReadWrite,
-                    "INSERT INTO test VALUES (2, 'second')");
+    UEXPECT_NO_THROW(client->Execute(
+        OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+    UEXPECT_NO_THROW(client->Execute(OperationType::kReadWrite,
+                                     "INSERT INTO test VALUES (1, 'first')"));
+    UEXPECT_NO_THROW(client->Execute(OperationType::kReadWrite,
+                                     "INSERT INTO test VALUES (2, 'second')"));
   }
 };
 

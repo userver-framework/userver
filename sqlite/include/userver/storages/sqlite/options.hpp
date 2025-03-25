@@ -38,6 +38,9 @@ constexpr inline bool operator==(const TransactionOptions& lhs,
   return lhs.mode == rhs.mode;
 }
 
+std::string IsolationLevelToString(
+    const TransactionOptions::IsolationLevel& lvl);
+
 inline constexpr std::size_t kDefaultMaxPreparedCacheSize = 200;
 inline constexpr bool kDefaultPrepareStatement = true;
 

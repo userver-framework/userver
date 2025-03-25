@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/logging/log.hpp>
@@ -23,8 +22,8 @@ namespace {
 class SQLiteSavepointsTest
     : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
   void PreInitialize(const ClientPtr& client) final {
-    client->Execute(OperationType::kReadWrite,
-                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
+    UEXPECT_NO_THROW(client->Execute(OperationType::kReadWrite,
+                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
   }
 };
 

@@ -76,6 +76,7 @@ void Connection::Commit() {
   if (!settings_.read_uncommited) {
     ExecuteQuery(kStatementTransactionSerializableIsolationLevel.data());
   }
+  NotifyBroken();
 }
 
 void Connection::Rollback() {
@@ -83,6 +84,7 @@ void Connection::Rollback() {
   if (!settings_.read_uncommited) {
     ExecuteQuery(kStatementTransactionSerializableIsolationLevel.data());
   }
+  NotifyBroken();
 }
 
 void Connection::Savepoint(const std::string& name) {
