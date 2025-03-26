@@ -1,4 +1,4 @@
-name: Ubuntu
+name: Create service test
 
 'on':
     pull_request:
@@ -14,15 +14,7 @@ env:
     CCACHE_DIR: /home/runner/.cache/ccache
     CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /home/runner/.cache/CPM
-
-jobs:
-    posix:
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                  - cmake-flags: >-
-                        -GNinja
+    CMAKE_FLAGS: -GNinja
                         -DCMAKE_CXX_COMPILER=clang++-18
                         -DCMAKE_C_COMPILER=clang-18
                         -DCMAKE_BUILD_TYPE=Debug
@@ -34,14 +26,12 @@ jobs:
                         -DUSERVER_FEATURE_POSTGRESQL=1
                         -DUSERVER_FEATURE_MONGODB=1
                         -DUSERVER_FEATURE_GRPC=1
-                    os: ubuntu-24.04
-                    info: clang-18 + debug
-                    id: ubuntu24_clang18_debug
-                    tests-flags: ''
-                    tests-env: ''
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
 
-        name: 'Create service test'
-        runs-on: ${{matrix.os}}
+        runs-on: ubuntu-24.04
 
         steps:
           - uses: actions/checkout@v4
