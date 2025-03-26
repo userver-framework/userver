@@ -40,7 +40,7 @@ jobs:
                     tests-flags: ''
                     tests-env: ''
 
-        name: '${{matrix.os}}: ${{matrix.info}}'
+        name: 'Create service test'
         runs-on: ${{matrix.os}}
 
         steps:
