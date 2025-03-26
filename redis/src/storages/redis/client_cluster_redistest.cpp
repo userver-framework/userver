@@ -137,6 +137,25 @@ UTEST_F(RedisClusterClientTest, Transaction) {
     }
 }
 
+UTEST_F(RedisClusterClientTest, TransactionSmokeRetriesFailure) {
+    auto client = GetClient();
+    using namespace std::chrono_literals;
+    storages::redis::CommandControl kRetryCc{1ms, 300ms, 100};
+    kRetryCc.allow_reads_from_master = true;
+
+    const size_t kNumKeys = 3;
+    const size_t kSubseqChanges = 1000;
+    for (size_t i = 0; i < kNumKeys; ++i) {
+        auto transaction = client->Multi();
+        const auto key = MakeKey(i);
+        for (size_t j = 0; j < kSubseqChanges; ++j) {
+            [[maybe_unused]] auto set = transaction->Set(key, "some value" + std::to_string(j), 500ms);
+            [[maybe_unused]] auto get = transaction->Get(key);
+        }
+        UASSERT_THROW(transaction->Exec(kRetryCc).Get(), storages::redis::RequestFailedException);
+    }
+}
+
 UTEST_F(RedisClusterClientTest, TransactionCrossSlot) {
     auto client = GetClient();
     auto transaction = client->Multi();

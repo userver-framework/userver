@@ -2,13 +2,6 @@ default: {}
 description: ''
 schema:
     type: object
-    example: |
-        {
-            // Настройки для конкретного компонента сервиса.
-            "postgresql-grocery_orders": {
-                "max_statement_metrics": 50
-            }
-        }
     additionalProperties:
         $ref: "#/definitions/StatementMetricsSettings"
     definitions:

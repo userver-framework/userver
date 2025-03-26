@@ -2,23 +2,6 @@ default: {}
 description: ''
 schema:
     type: object
-    example: |
-        {
-            // Настройки для конкретного компонента сервиса.
-            "postgresql-orders": {
-                "min_pool_size": 8,
-                "max_pool_size": 50,
-                "max_queue_size": 200,
-                "connecting_limit": 10
-            },
-            // Настройки по умолчанию. Применяются всем, кому не указано явно.
-            "__default__": {
-                "min_pool_size": 4,
-                "max_pool_size": 15,
-                "max_queue_size": 200,
-                "connecting_limit": 8
-            }
-        }
     additionalProperties:
         $ref: "#/definitions/PoolSettings"
     definitions:

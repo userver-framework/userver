@@ -8,6 +8,9 @@
 #include <userver/formats/json_fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
+#include <dynamic_config/variables/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.hpp>
+#include <dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -43,22 +46,11 @@ struct TaskProcessorConfig {
 
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<TaskProcessorConfig>);
 
-struct TaskProcessorSettings {
-    std::size_t wait_queue_length_limit{0};
-    std::chrono::microseconds wait_queue_time_limit{0};
-    std::chrono::microseconds sensor_wait_queue_time_limit{0};
+using TaskProcessorSettings = ::dynamic_config::userver_task_processor_qos::DefaultTaskProcessor;
 
-    enum class OverloadAction : std::uint8_t { kCancel, kIgnore };
-    OverloadAction overload_action{OverloadAction::kIgnore};
+using TaskProcessorProfilerSettings = ::dynamic_config::userver_task_processor_profiler_debug::TaskProcessorSettings;
 
-    std::chrono::microseconds profiler_execution_slice_threshold{0};
-    bool profiler_force_stacktrace{false};
-};
-
-TaskProcessorSettings::OverloadAction
-Parse(const formats::json::Value& value, formats::parse::To<TaskProcessorSettings::OverloadAction>);
-
-TaskProcessorSettings Parse(const formats::json::Value& value, formats::parse::To<TaskProcessorSettings>);
+using TaskProcessorSettingsOverloadAction = ::dynamic_config::userver_task_processor_qos::WaitQueueOverload::Action;
 
 }  // namespace engine
 

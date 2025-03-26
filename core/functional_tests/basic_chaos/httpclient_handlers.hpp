@@ -10,8 +10,9 @@
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/testsuite/testpoint.hpp>
-#include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/from_string.hpp>
+
+#include <userver/utest/using_namespace_userver.hpp>
 
 namespace chaos {
 
@@ -119,7 +120,7 @@ public:
 
 private:
     clients::http::Client& http_client_;
-    dynamic_config::Source config_source_;
+    USERVER_NAMESPACE::dynamic_config::Source config_source_;
 };
 
 }  // namespace chaos

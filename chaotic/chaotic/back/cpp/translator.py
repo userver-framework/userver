@@ -243,9 +243,9 @@ class Generator:
             name = infile
         namespace = self._config.namespaces[vfile]
         if namespace:
-            return namespace + '::' + name
+            return '::' + namespace + '::' + name
         else:
-            return name
+            return '::' + name
 
     def _gen_boolean(
         self,

@@ -41,7 +41,7 @@ def test_import(simple_gen):
     )
     assert ext_schemas.schemas == {'vfull#/type1': types.String(type='string')}
     assert ext_types == {
-        '/type1': cpp_types.CppPrimitiveType(
+        '::/type1': cpp_types.CppPrimitiveType(
             raw_cpp_type=type_name.TypeName('std::string'),
             nullable=False,
             user_cpp_type=None,
@@ -65,8 +65,8 @@ def test_import(simple_gen):
         ),
     }
     assert new_types == {
-        '/type2': cpp_types.CppRef(
-            orig_cpp_type=ext_types['/type1'],
+        '::/type2': cpp_types.CppRef(
+            orig_cpp_type=ext_types['::/type1'],
             indirect=False,
             self_ref=False,
             raw_cpp_type=type_name.TypeName(''),

@@ -177,7 +177,7 @@ A string that may only be selected a finite range of values should be mapped
 to C++ `enum class`. Parsers for enums currently have to be defined manually.
 Example enum parser:
 
-@snippet engine/task/task_processor_config.cpp  sample enum parser
+@snippet core/src/dynamic_config/config_test.cpp parse enum
 
 #### Structs
 

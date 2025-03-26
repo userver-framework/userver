@@ -191,6 +191,10 @@ properties:
                         defaultDescription: 498
                         minimum: 400
                         maximum: 599
+                    enable_write_statistics:
+                        type: boolean
+                        description: whether to write handler statistics
+                        defaultDescription: true
 
             connection:
                 type: object

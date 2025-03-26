@@ -2,18 +2,6 @@ default: {}
 description: ''
 schema:
     type: object
-    example: |
-        {
-            // Настройки с ключем `__default__` применяются всем компонентам, для которых не указано явно.
-            "__default__": {
-                "persistent-prepared-statements": true,
-                "user-types-enabled": true,
-                "check-user-types": false,
-                "max-prepared-cache-size": 5000,
-                "ignore-unused-query-params": false,
-                "recent-errors-threshold": 2
-            }
-        }
     additionalProperties:
         $ref: "#/definitions/ConnectionSettings"
     definitions:

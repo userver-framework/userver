@@ -119,7 +119,7 @@ class CompilerBase:
 
         name_lower = self.format_ns_name(name)
         types = self._variables_types[name]
-        return types[f'taxi_config::{name_lower}::VariableTypeRaw']
+        return types[f'::taxi_config::{name_lower}::VariableTypeRaw']
 
     def format_ns_name(self, name: str) -> str:
         return name.lower().replace('/', '_').replace('-', '_').split('.')[0]
@@ -163,8 +163,8 @@ class CompilerBase:
         self,
         filepath: str,
         name: str,
+        namespace: str,
         include_dirs: List[str] = [],
-        namespace: str = 'taxi_config',
     ) -> None:
         name_lower = self.format_ns_name(name)
         name_map = [
@@ -296,7 +296,7 @@ class CompilerBase:
     def variable_type(self, name: str) -> str:
         types = self._variables_types[name]
         name_lower = self.format_ns_name(name)
-        var_type = types[f'taxi_config::{name_lower}::VariableTypeRaw']
+        var_type = types[f'::taxi_config::{name_lower}::VariableTypeRaw']
         return var_type.cpp_user_name()
 
     # TODO: move jinja files to arcadia_compiler
@@ -316,7 +316,7 @@ class CompilerBase:
         )
 
         name_lower = self.format_ns_name(name)
-        var_type = types[f'{namespace}::{name_lower}::VariableTypeRaw']
+        var_type = types[f'::{namespace}::{name_lower}::VariableTypeRaw']
 
         # types_fwd.hpp, types.{hpp,cpp}
         assert len(outputs) == 1

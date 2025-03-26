@@ -16,8 +16,8 @@ def test_empty(simple_gen):
         'additionalProperties': False,
     })
     assert schemas == {
-        '/definitions/type': CppStruct(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::/definitions/type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::/definitions/type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
@@ -33,8 +33,8 @@ def test_additional_properties_simple(simple_gen):
         'additionalProperties': {'type': 'integer'},
     })
     assert schemas == {
-        '/definitions/type': CppStruct(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::/definitions/type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::/definitions/type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
@@ -45,7 +45,7 @@ def test_additional_properties_simple(simple_gen):
                 nullable=False,
                 user_cpp_type=None,
                 validators=CppPrimitiveValidator(
-                    namespace='/definitions/type',
+                    namespace='::/definitions/type',
                     prefix='Extra',
                 ),
             ),
@@ -61,8 +61,8 @@ def test_field_external(simple_gen):
         'additionalProperties': False,
     })
     assert schemas == {
-        '/definitions/type': CppStruct(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::/definitions/type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::/definitions/type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
@@ -87,8 +87,8 @@ def test_field_with_default(simple_gen):
         'additionalProperties': False,
     })
     assert schemas == {
-        '/definitions/type': CppStruct(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::/definitions/type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::/definitions/type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
@@ -104,7 +104,7 @@ def test_field_with_default(simple_gen):
                         nullable=False,
                         user_cpp_type=None,
                         validators=CppPrimitiveValidator(
-                            namespace='/definitions/type',
+                            namespace='::/definitions/type',
                             prefix='Field',
                         ),
                     ),
@@ -121,8 +121,8 @@ def test_field_inplace(simple_gen):
         'additionalProperties': False,
     })
     assert schemas == {
-        '/definitions/type': CppStruct(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::/definitions/type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::/definitions/type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
@@ -138,7 +138,7 @@ def test_field_inplace(simple_gen):
                         user_cpp_type=None,
                         validators=CppPrimitiveValidator(
                             min=1,
-                            namespace='/definitions/type',
+                            namespace='::/definitions/type',
                             prefix='Field',
                         ),
                     ),
@@ -161,8 +161,8 @@ def test_field_is_struct(simple_gen):
         'additionalProperties': False,
     })
     assert schemas == {
-        '/definitions/type': CppStruct(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::/definitions/type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::/definitions/type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
@@ -173,7 +173,7 @@ def test_field_is_struct(simple_gen):
                     required=False,
                     schema=CppStruct(
                         raw_cpp_type=type_name.TypeName(
-                            '/definitions/type::Field',
+                            '::/definitions/type::Field',
                         ),
                         json_schema=None,
                         nullable=False,
@@ -194,8 +194,8 @@ def test_field_required(simple_gen):
         'additionalProperties': False,
     })
     assert schemas == {
-        '/definitions/type': CppStruct(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::/definitions/type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::/definitions/type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
@@ -211,7 +211,7 @@ def test_field_required(simple_gen):
                         user_cpp_type=None,
                         validators=CppPrimitiveValidator(
                             min=1,
-                            namespace='/definitions/type',
+                            namespace='::/definitions/type',
                             prefix='Field',
                         ),
                     ),

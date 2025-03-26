@@ -1,5 +1,7 @@
 #include <userver/baggage/baggage_manager.hpp>
-#include <userver/baggage/baggage_settings.hpp>
+
+#include <dynamic_config/variables/BAGGAGE_SETTINGS.hpp>
+#include <dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp>
 
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -19,7 +21,7 @@ ChooseCurrentAllowedKeys(const Baggage* current_baggage, const dynamic_config::S
         return current_baggage->GetAllowedKeys();
     }
     const auto snapshot = config_source.GetSnapshot();
-    const auto& baggage_settings = snapshot[kBaggageSettings];
+    const auto& baggage_settings = snapshot[::dynamic_config::BAGGAGE_SETTINGS];
     return baggage_settings.allowed_keys;
 }
 
@@ -46,7 +48,7 @@ properties: {}
 BaggageManager::BaggageManager(const dynamic_config::Source& config_source) : config_source_(config_source) {}
 
 /// @brief Returns if baggage is enabled
-bool BaggageManager::IsEnabled() const { return config_source_.GetCopy(kBaggageEnabled); }
+bool BaggageManager::IsEnabled() const { return config_source_.GetCopy(::dynamic_config::USERVER_BAGGAGE_ENABLED); }
 
 void BaggageManager::AddEntry(std::string key, std::string value, BaggageProperties properties) const {
     if (!IsEnabled()) {

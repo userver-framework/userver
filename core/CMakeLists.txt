@@ -91,6 +91,10 @@ else()
   target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq)
 endif()
 
+if (NOT USERVER_FEATURE_STACK_USAGE_MONITOR)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_STACK_USAGE_MONITOR)
+endif()
+
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set_property(

@@ -3,7 +3,6 @@
 
 #include <logging/log_helper_impl.hpp>
 #include <logging/logging_test.hpp>
-#include <tracing/no_log_spans.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/tracing/opentelemetry.hpp>
