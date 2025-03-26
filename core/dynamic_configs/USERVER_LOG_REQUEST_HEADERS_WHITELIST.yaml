@@ -1,0 +1,7 @@
+default: []
+description: ''
+schema:
+    type: array
+    x-taxi-cpp-type: std::unordered_set
+    items:
+        type: string

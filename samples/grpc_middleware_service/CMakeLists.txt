@@ -7,8 +7,10 @@ add_executable(${PROJECT_NAME} main.cpp
                                src/client/view.cpp
                                src/http_handlers/say-hello/view.cpp
                                src/service/view.cpp
-                               src/middlewares/client/middleware.cpp
-                               src/middlewares/server/middleware.cpp
+                               src/middlewares/client/auth.cpp
+                               src/middlewares/client/chaos.cpp
+                               src/middlewares/server/auth.cpp
+                               src/middlewares/server/meta_filter.cpp
                                src/middlewares/auth.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)

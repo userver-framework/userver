@@ -10,6 +10,7 @@
 
 #include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/simple_client_component.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
 /// [includes]
@@ -35,6 +36,8 @@ public:
     std::string SayHelloRequestStream(const std::vector<std::string_view>& names) const;
 
     std::vector<std::string> SayHelloStreams(const std::vector<std::string_view>& names) const;
+
+    static std::optional<ugrpc::impl::StaticServiceMetadata> GetMetadata() { return std::nullopt; }
 
 private:
     static std::unique_ptr<grpc::ClientContext> MakeClientContext();

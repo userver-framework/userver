@@ -221,7 +221,7 @@ public:
         return *this;
     }
 
-    /// @copydoc HttpBase::Schema
+    /// @copydoc HttpBase::DbSchema
     HttpWith& DbSchema(std::string_view schema) {
         impl_.DbSchema(schema);
         return *this;

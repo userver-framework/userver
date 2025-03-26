@@ -19,6 +19,8 @@
 #include <userver/logging/logger.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 
+#include <dynamic_config/variables/USERVER_TASK_PROCESSOR_PROFILER_DEBUG.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -60,7 +62,7 @@ public:
 
     std::size_t GetWorkerCount() const { return workers_.size(); }
 
-    void SetSettings(const TaskProcessorSettings& settings);
+    void SetSettings(const TaskProcessorSettings& settings, const TaskProcessorProfilerSettings& profiler_settings);
 
     std::chrono::microseconds GetProfilerThreshold() const;
 
@@ -97,7 +99,7 @@ private:
 
     void SetTaskQueueWaitTimeOverloaded(bool new_value) noexcept;
 
-    void HandleOverload(impl::TaskContext& context, TaskProcessorSettings::OverloadAction);
+    void HandleOverload(impl::TaskContext& context, TaskProcessorSettingsOverloadAction);
 
     OverloadByLength GetOverloadByLength(std::size_t max_queue_length) noexcept;
 

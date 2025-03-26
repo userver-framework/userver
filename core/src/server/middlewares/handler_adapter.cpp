@@ -130,10 +130,10 @@ void HandlerAdapter::ParseRequestData(const http::HttpRequest& request, request:
 void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::RequestContext& context) const {
     const auto& config_snapshot = context.GetInternalContext().GetConfigSnapshot();
 
-    if (config_snapshot[handlers::kLogRequest]) {
-        const bool need_log_request_headers = config_snapshot[handlers::kLogRequestHeaders];
+    if (config_snapshot[::dynamic_config::USERVER_LOG_REQUEST]) {
+        const bool need_log_request_headers = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS];
 
-        const auto& header_whitelist = config_snapshot[handlers::kLogRequestHeaderWhitelist];
+        const auto& header_whitelist = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS_WHITELIST];
 
         LOG_INFO() << "start handling"
                    << LogRequestExtra(

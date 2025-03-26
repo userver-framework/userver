@@ -4,7 +4,6 @@
 
 #include <fmt/format.h>
 
-#include <userver/baggage/baggage_settings.hpp>
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/http/url.hpp>
 #include <userver/logging/log.hpp>

@@ -17,7 +17,7 @@ as the platform native API
 Try disabling modules that you do not use, see @ref scripts/docs/en/userver/build/build.md
 for a list of supported CMake options.
 
-If you have problems with PostgreSQL build, see @ref POSTGRES_LIBS "PostgreSQL versions".
+If you have problems with PostgreSQL build, see @ref postgres_deps_versions "PostgreSQL versions".
 
 
 ### Service Terminated/Aborted/SIGSEGV. What to do?

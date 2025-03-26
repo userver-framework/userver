@@ -30,7 +30,7 @@ def service_env(gate_settings) -> dict:
 
 
 @pytest.fixture(scope='session')
-async def _gate(loop, gate_settings, _rabbitmq_service_settings):
+async def _gate(gate_settings, _rabbitmq_service_settings):
     connection_info = _rabbitmq_service_settings.get_connection_info()
 
     gate_config = chaos.GateRoute(
@@ -40,7 +40,7 @@ async def _gate(loop, gate_settings, _rabbitmq_service_settings):
         host_to_server=connection_info.host,
         port_to_server=connection_info.tcp_port,
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 

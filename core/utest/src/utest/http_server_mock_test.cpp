@@ -13,6 +13,39 @@ const std::string kRequestBody = "some body";
 const std::string kResponseBody = "returned body";
 }  // namespace
 
+UTEST(HttpServerMock, Sample) {
+    /// [Sample HttpServerMock usage]
+    constexpr http::headers::PredefinedHeader kHeader{"HeaderName"};
+    utest::HttpServerMock mock([&kHeader](const utest::HttpServerMock::HttpRequest& request) {
+        EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);
+        EXPECT_EQ("/path", request.path);
+        EXPECT_EQ("value1", request.headers.at(std::string_view{"header_a"}));
+        EXPECT_EQ("body", request.body);
+        EXPECT_EQ((std::multimap<std::string, std::string>{{"arg1", "val1"}}), request.query);
+
+        utest::HttpServerMock::HttpResponse response;
+        response.response_status = 200;
+        response.headers[kHeader] = "HeaderValue";
+        response.body = "returned from mock body";
+        return response;
+    });
+
+    // Making a request to the `mock`
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto response = http_client_ptr->CreateRequest()
+                        .post(mock.GetBaseUrl() + "/path?arg1=val1", "body")
+                        .headers({std::make_pair("header_a", "value1")})
+                        .retry(1)
+                        .timeout(utest::kMaxTestWaitTime)
+                        .perform();
+
+    // Response from the `mock`
+    EXPECT_EQ(200, response->status_code());
+    EXPECT_EQ("returned from mock body", response->body());
+    EXPECT_EQ("HeaderValue", response->headers()[kHeader]);
+    /// [Sample HttpServerMock usage]
+}
+
 UTEST(HttpServerMock, Ctr) {
     utest::HttpServerMock mock([](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);

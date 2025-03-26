@@ -9,7 +9,7 @@
 #include <userver/components/component_base.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-#include <ydb-cpp-sdk/v2/client/types/fwd.h>
+#include <ydb-cpp-sdk/client/types/fwd.h>
 
 USERVER_NAMESPACE_BEGIN
 

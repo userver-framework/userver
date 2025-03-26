@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ydb-cpp-sdk/v2/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/retry/retry.h>
 
 #include <exception>
 

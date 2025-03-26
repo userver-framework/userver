@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 
 #include <ugrpc/client/middlewares/log/middleware.hpp>
-#include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
@@ -105,9 +104,8 @@ server::Middlewares GetDefaultServerMiddlewares() {
 }
 
 client::Middlewares GetDefaultClientMiddlewares() {
-    static const ugrpc::client::middlewares::log::Settings kLogSettings{};
     return {
-        std::make_shared<client::middlewares::log::Middleware>(kLogSettings),
+        std::make_shared<client::middlewares::log::Middleware>(ugrpc::client::middlewares::log::Settings{}),
         std::make_shared<client::middlewares::deadline_propagation::Middleware>()};
 }
 

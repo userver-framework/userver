@@ -54,7 +54,7 @@ public:
     /// `double`, `string`. The default is passed by value.
     ///
     /// Usage example:
-    /// @snippet server/handlers/http_server_settings.cpp  bool config sample
+    /// @snippet core/src/dynamic_config/config_test.cpp key bool
     Key(std::string_view name, const VariableType& default_value);
 
     /// @brief The constructor for a non-trivial `VariableType`. The default is
@@ -64,7 +64,7 @@ public:
     /// `VariableType`.
     ///
     /// Usage example:
-    /// @snippet components/logging_configurator.cpp  key
+    /// @snippet components/logging_configurator.cpp  struct config cpp
     Key(std::string_view name, DefaultAsJsonString default_json);
 
     /// @brief The constructor that provides a special parser from JSON.

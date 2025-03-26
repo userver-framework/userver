@@ -6,7 +6,6 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
-#include <userver/server/handlers/impl/deadline_propagation_config.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/request/request_context.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -14,6 +13,8 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
+
+#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -140,7 +141,7 @@ void DeadlinePropagation::SetupInheritedDeadline(
     }
 
     const auto& config_snapshot = dp_scope.config_snapshot;
-    if (!config_snapshot[handlers::impl::kDeadlinePropagationEnabled]) {
+    if (!config_snapshot[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
         return;
     }
 
@@ -149,7 +150,7 @@ void DeadlinePropagation::SetupInheritedDeadline(
         return;
     }
 
-    dp_scope.need_log_response = config_snapshot[handlers::kLogRequest];
+    dp_scope.need_log_response = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST];
 
     auto* span_opt = tracing::Span::CurrentSpanUnchecked();
     if (span_opt) {
@@ -164,7 +165,7 @@ void DeadlinePropagation::SetupInheritedDeadline(
         return;
     }
 
-    if (config_snapshot[handlers::kCancelHandleRequestByDeadline]) {
+    if (config_snapshot[::dynamic_config::USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE]) {
         engine::current_task::SetDeadline(deadline);
     }
 }

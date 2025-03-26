@@ -43,7 +43,7 @@ ConsumerComponent::ConsumerComponent(
       ) {
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
-    statistics_holder_ = storage.RegisterWriter(config.Name(), [this](utils::statistics::Writer& writer) {
+    statistics_holder_ = storage.RegisterWriter("kafka_consumer", [this](utils::statistics::Writer& writer) {
         consumer_->DumpMetric(writer);
     });
 }

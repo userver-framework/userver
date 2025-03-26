@@ -13,7 +13,7 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
-#include <userver/ugrpc/tests/client_middleware_pipeline.hpp>
+#include <userver/ugrpc/tests/simple_client_middleware_pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

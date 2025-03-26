@@ -144,7 +144,7 @@ public:
     /// be taken from the dump writing time.
     void OnUpdateCompleted();
 
-    /// @overload void OnUpdateCompleted()
+    /// @see void OnUpdateCompleted()
     /// @param update_time The time at which the data has been guaranteed to be
     /// up-to-date
     /// @param update_type Whether the update modified the data or confirmed its

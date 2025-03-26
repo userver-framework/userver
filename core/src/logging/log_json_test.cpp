@@ -9,6 +9,9 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST_F(LoggingJsonTest, Smoke) {
+    // Force thread_id and task_id to appear.
+    SetDefaultLoggerLevel(logging::Level::kDebug);
+
     LOG_CRITICAL() << "foo\nbar\rbaz";
 
     auto str = GetStreamString();
@@ -24,7 +27,22 @@ TEST_F(LoggingJsonTest, Smoke) {
     EXPECT_NO_THROW(json["thread_id"].As<std::string>());
 }
 
+TEST_F(LoggingJsonTest, NoThreadIdInProduction) {
+    SetDefaultLoggerLevel(logging::Level::kInfo);
+
+    LOG_CRITICAL() << "foo";
+
+    const auto str = GetStreamString();
+    const auto json = formats::json::FromString(str);
+
+    EXPECT_FALSE(json.HasMember("task_id")) << ToString(json);
+    EXPECT_FALSE(json.HasMember("thread_id")) << ToString(json);
+}
+
 TEST_F(LoggingJsonTest, LogExtraJsonString) {
+    // Force thread_id and task_id to appear.
+    SetDefaultLoggerLevel(logging::Level::kDebug);
+
     using formats::literals::operator""_json;
 
     auto object = R"({

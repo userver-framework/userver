@@ -1,0 +1,7 @@
+### Kafka consumer metrics
+
+kafka_consumer.avg_ms_spent_time: component_name=kafka-consumer, topic=test-topic-consume-produced	GAUGE	0
+kafka_consumer.messages_total: component_name=kafka-consumer, topic=test-topic-consume-produced	GAUGE	0
+kafka_consumer.messages_success: component_name=kafka-consumer, topic=test-topic-consume-produced	GAUGE	0
+kafka_consumer.messages_error: component_name=kafka-consumer, topic=test-topic-consume-produced	GAUGE	0
+kafka_consumer.connections_error: component_name=kafka-consumer	GAUGE	0

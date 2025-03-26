@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/congestion_control/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::congestion_control::Component
+/// @brief @copybrief ugrpc::server::middlewares::congestion_control::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 

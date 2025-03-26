@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/mysql/cluster.hpp
-/// @copybrief @copybrief storages::mysql::Cluster
+/// @copybrief storages::mysql::Cluster
 
 #include <memory>
 #include <optional>
@@ -68,7 +68,7 @@ public:
   ///
   /// UINVARIANTs on params count mismatch doesn't validate types.
   ///
-  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster Execute
+  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster Execute
     // clang-format on
     template <typename... Args>
     StatementResultSet Execute(
@@ -101,7 +101,7 @@ public:
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   ///
-  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteDecompose
+  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteDecompose
     // clang-format on
     template <typename T>
     StatementResultSet ExecuteDecompose(
@@ -140,7 +140,7 @@ public:
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
-  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteBulk
+  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulk
     // clang-format on
     template <typename Container>
     StatementResultSet ExecuteBulk(
@@ -188,7 +188,7 @@ public:
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
   ///
-  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
+  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
     // clang-format on
     template <typename MapTo, typename Container>
     StatementResultSet ExecuteBulkMapped(
@@ -228,7 +228,7 @@ public:
   /// or as an escape hatch from typed parsing if you really need to, but such
   /// use is neither recommended nor optimized for.
   ///
-  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteCommand
+  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteCommand
     // clang-format on
     CommandResultSet
     ExecuteCommand(OptionalCommandControl command_control, ClusterHostType host_type, const Query& command) const;
@@ -258,7 +258,7 @@ public:
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   ///
-  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster GetCursor
+  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster GetCursor
     // clang-format on
     template <typename T, typename... Args>
     CursorResultSet<T> GetCursor(

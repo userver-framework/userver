@@ -1110,8 +1110,6 @@ schema:
 
 Used by dump::Dumper, especially by all the caches derived from components::CachingComponentBase.
 
-```
-
 @anchor USERVER_HTTP_PROXY
 ## USERVER_HTTP_PROXY
 

@@ -45,7 +45,7 @@ class InvalidDefaultsError(BaseError):
 
 
 class UnknownConfigError(BaseError):
-    """Invalid dynamic config name in @pytest.mark.config"""
+    """Invalid dynamic config name in `@pytest.mark.config`"""
 
 
 ConfigDict = typing.Dict[str, typing.Any]

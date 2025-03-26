@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/otlp/logs/component.hpp
-/// @brief @copybrief otlp::logs::Component
+/// @brief @copybrief otlp::LoggerComponent
 
 #include <memory>
 #include <string>

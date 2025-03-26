@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/redis/command_control.hpp
-/// @brief @copybrief redis::CommandControl
+/// @brief @copybrief storages::redis::CommandControl
 
 #include <atomic>
 #include <chrono>

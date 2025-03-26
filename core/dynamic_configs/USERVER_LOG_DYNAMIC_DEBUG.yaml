@@ -1,0 +1,27 @@
+default:
+    force-enabled: []
+    force-disabled: []
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - force-enabled
+      - force-disabled
+    properties:
+        force-enabled:
+            type: array
+            items:
+                type: string
+        force-disabled:
+            type: array
+            items:
+                type: string
+        force-enabled-level:
+            type: object
+            additionalProperties:
+                type: string
+        force-disabled-level:
+            type: object
+            additionalProperties:
+                type: string

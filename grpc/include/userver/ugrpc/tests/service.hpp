@@ -16,7 +16,7 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
-#include <userver/ugrpc/tests/client_middleware_pipeline.hpp>
+#include <userver/ugrpc/tests/simple_client_middleware_pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

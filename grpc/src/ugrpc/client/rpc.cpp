@@ -1,7 +1,5 @@
 #include <userver/ugrpc/client/rpc.hpp>
 
-#include <future>
-
 #include <userver/engine/task/cancel.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
@@ -9,9 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::client {
-
-namespace impl {
+namespace ugrpc::client::impl {
 
 void MiddlewarePipeline::PreStartCall(impl::RpcData& data) {
     MiddlewareCallContext context{data};
@@ -150,25 +146,6 @@ engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
     return finish.TryGetContextAccessor();
 }
 
-}  // namespace impl
-
-grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
-
-impl::RpcData& CallAnyBase::GetData() {
-    UASSERT(data_);
-    return *data_;
-}
-
-std::string_view CallAnyBase::GetCallName() const {
-    UASSERT(data_);
-    return data_->GetCallName();
-}
-
-std::string_view CallAnyBase::GetClientName() const {
-    UASSERT(data_);
-    return data_->GetClientName();
-}
-
-}  // namespace ugrpc::client
+}  // namespace ugrpc::client::impl
 
 USERVER_NAMESPACE_END

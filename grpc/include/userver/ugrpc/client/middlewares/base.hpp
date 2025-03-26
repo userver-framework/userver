@@ -1,26 +1,39 @@
 #pragma once
 
-/// @file userver/ugrpc/client/middlewares/middleware_base.hpp
+/// @file userver/ugrpc/client/middlewares/base.hpp
 /// @brief @copybrief ugrpc::client::MiddlewareBase
 
-#include <memory>
-#include <vector>
+#include <optional>
+#include <string_view>
+
+#include <google/protobuf/message.h>
+#include <grpcpp/client_context.h>
+#include <grpcpp/support/status.h>
 
 #include <userver/components/component_base.hpp>
 #include <userver/middlewares/groups.hpp>
 #include <userver/middlewares/impl/simple_middleware_pipeline.hpp>
 #include <userver/middlewares/runner.hpp>
+#include <userver/tracing/span.hpp>
 
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
-#include <userver/ugrpc/client/rpc.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
+namespace impl {
+class RpcData;
+}  // namespace impl
+
 /// @brief Client meta info for a middleware construction.
 struct ClientInfo final {
+    /// The name that is passed to `ClientFactory::MakeClient`.
     std::string client_name{};
+    /// `std::nullopt` for generic clients.
+    std::optional<std::string> service_full_name{};
 };
 
 /// @brief Context for middleware-specific data during gRPC call
@@ -44,11 +57,14 @@ public:
     /// @returns RPC name
     std::string_view GetCallName() const noexcept;
 
-    /// @returns RPC kind
-    CallKind GetCallKind() const noexcept;
-
     /// @returns RPC span
     tracing::Span& GetSpan() noexcept;
+
+    /// @returns Is a client-side streaming call
+    bool IsClientStreaming() const noexcept;
+
+    /// @returns Is a server-side streaming call
+    bool IsServerStreaming() const noexcept;
 
     /// @cond
     // For internal use only
@@ -99,10 +115,21 @@ protected:
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Factory that creates specific client middlewares for clients.
+///
+/// Override ugrpc::client::SimpleMiddlewareFactoryComponent::CreateMiddleware to create middleware for your gRPC
+/// client. If you declare a static config for a middleware, you must override
+/// ugrpc::client::SimpleMiddlewareFactoryComponent::GetMiddlewareConfigSchema.
+///
+/// If you are not going to use static config, ugrpc::client::ClientInfo and your middleware is default constructible,
+/// just use ugrpc::client::SimpleMiddlewareFactoryComponent.
+///
+/// ## Example:
+///
+/// @snippet samples/grpc_middleware_service/src/middlewares/client/chaos.hpp gRPC middleware sample
+/// @snippet samples/grpc_middleware_service/src/middlewares/client/chaos.cpp gRPC middleware sample
+
 using MiddlewareFactoryComponentBase =
     USERVER_NAMESPACE::middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ClientInfo>;
-
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -115,26 +142,22 @@ using MiddlewareFactoryComponentBase =
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/grpc_middleware_service/src/middlewares/client/middleware.hpp gRPC middleware sample - Middleware declaration
+/// @snippet samples/grpc_middleware_service/src/middlewares/client/auth.hpp Middleware declaration
 ///
 /// ## Static config example
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config grpc-auth-client
-
-// clang-format on
+/// @snippet samples/grpc_middleware_service/static_config.yaml static config grpc-auth-client
 
 template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
     USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ClientInfo>;
-
-// clang-format off
 
 /// @ingroup userver_components
 ///
 /// @brief Component to create middlewares pipeline.
 ///
 /// You must register your client middleware in this component.
-/// Use `MiddlewareDependencyBuilder` to set a dependency of your middleware from others.
+/// Use middlewares::MiddlewareDependencyBuilder to set a dependency of your middleware from others.
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -143,9 +166,7 @@ using SimpleMiddlewareFactoryComponent =
 ///
 /// ## Static config example
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config grpc-auth-client
-
-// clang-format on
+/// @snippet samples/grpc_middleware_service/static_config.yaml static config grpc-auth-client
 
 class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
 public:

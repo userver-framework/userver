@@ -244,7 +244,7 @@ For current macOS build dependencies, userver expects that following packages ar
 brew link postgresql@16 # postgresql is keg-only (required by PostgreSQL)
 brew link --force openldap # keg-only (required by PostgreSQL)
 brew link --force zlib # keg-only + need for static linkage (required by Universal)
-brew link --force icu4c@76 # keg-only + need for static boost linkage (required by Universal)
+brew link --force icu4c # keg-only + need for static boost linkage (required by Universal)
 brew link --force curl # keg-only (required by Core)
 brew link --force cyrus-sasl # keg-only (required by Mongo and Kafka)
 ```

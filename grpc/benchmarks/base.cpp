@@ -85,12 +85,10 @@ public:
     TestService(Args&&... args) : tests::ServiceBase(std::forward<Args>(args)...) {
         if constexpr (Logging) {
             server::middlewares::log::Settings server_log_settings;
-            server_log_settings.local_log_level = logging::Level::kInfo;
             server_log_settings.msg_log_level = logging::Level::kInfo;
             SetServerMiddlewares({std::make_shared<server::middlewares::log::Middleware>(server_log_settings)});
 
             client::middlewares::log::Settings client_log_settings;
-            client_log_settings.log_level = logging::Level::kInfo;
             client_log_settings.msg_log_level = logging::Level::kInfo;
             SetClientMiddlewares({std::make_shared<client::middlewares::log::Middleware>(client_log_settings)});
         }

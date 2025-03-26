@@ -93,6 +93,8 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
     config.deadline_expired_status_code =
         value["deadline_expired_status_code"].As<http::HttpStatus>(handler_defaults.deadline_expired_status_code);
 
+    config.enable_write_statistics = value["enable_write_statistics"].As<bool>(config.enable_write_statistics);
+
     return config;
 }
 

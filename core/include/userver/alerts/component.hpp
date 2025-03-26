@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/alert/component.hpp
-/// @brief @copybrief alert::Component
+/// @file userver/alerts/component.hpp
+/// @brief @copybrief alerts::Component
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/raw_component_base.hpp>
@@ -17,7 +17,7 @@ namespace alerts {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that keeps an alert::Storage storage for
+/// @brief Component that keeps an alerts::Storage storage for
 /// fired alerts.
 ///
 /// The component does **not** have any options for service config.
@@ -30,7 +30,7 @@ namespace alerts {
 class StorageComponent final : public components::RawComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of alert::StorageComponent component
+    /// @brief The default name of alerts::StorageComponent component
     static constexpr std::string_view kName = "alerts-storage";
 
     StorageComponent(const components::ComponentConfig& config, const components::ComponentContext& context);

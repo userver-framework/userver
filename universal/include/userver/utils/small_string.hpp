@@ -142,6 +142,9 @@ public:
     /// @brief Append contents of a string_view to the string.
     void append(std::string_view str);
 
+    /// @brief Append contents of a begin...end to the string.
+    void append(const char* begin, const char* end);
+
     /// @brief Inserts elements from range [begin, end) before pos.
     template <class InputIt>
     void insert(const_iterator pos, InputIt begin, InputIt end);
@@ -278,6 +281,11 @@ template <std::size_t N>
 void SmallString<N>::append(std::string_view str) {
     std::size_t old_size = data_.size();
     data_.insert(data_.begin() + old_size, str.begin(), str.end());
+}
+
+template <std::size_t N>
+void SmallString<N>::append(const char* begin, const char* end) {
+    append(std::string_view{begin, static_cast<std::size_t>(end - begin)});
 }
 
 template <std::size_t N>

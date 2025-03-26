@@ -1,0 +1,14 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties:
+        $ref: "#/definitions/StatementMetricsSettings"
+    definitions:
+        StatementMetricsSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                max_statement_metrics:
+                    type: integer
+                    minimum: 0

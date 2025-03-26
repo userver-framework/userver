@@ -154,7 +154,7 @@ void TpLogger::Log(Level level, impl::formatters::LoggerItemRef item) {
     }
 }
 
-void TpLogger::PrependCommonTags(TagWriter writer) const { impl::default_::PrependCommonTags(writer); }
+void TpLogger::PrependCommonTags(TagWriter writer) const { impl::default_::PrependCommonTags(writer, GetLevel()); }
 
 bool TpLogger::DoShouldLog(Level level) const noexcept { return impl::default_::DoShouldLog(level); }
 

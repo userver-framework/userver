@@ -260,7 +260,7 @@ to provide extra environment variables for your service:
 
 #### Extra client dependencies
 
-Use @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+Use @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
 fixture to provide extra fixtures that your service depends on:
 
 @code{.py}
@@ -269,7 +269,7 @@ def extra_client_deps(some_fixture_that_required_by_service, some_other_fixture)
     pass
 @endcode
 
-Note that @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+Note that @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
 fixture already knows about the userver supported databases and clients, so
 usually you do not need to manually register any dependencies.
 
@@ -297,7 +297,7 @@ This could be achieved by patching static config as described in
 @snippet samples/http_caching/tests/conftest.py patch configs
 
 Alternatively, use `$mockserver`
-@ref pytest_userver.plugins.config.service_config_substitutions "substitution var"
+@ref pytest_userver.plugins.config.userver_config_substitutions "substitution var"
 in `config_vars.testsuite.yaml`:
 
 @code{.yaml}

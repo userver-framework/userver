@@ -23,6 +23,11 @@ const grpc::string kHostname = hostinfo::blocking::GetRealHostName();
 
 const grpc::string kCongestionControlRatelimitReason = "congestion-control";
 
+const grpc::string kXTestsuiteErrorCode = "x-testsuite-error-code";
+
+const grpc::string kTestsuiteNetworkCode = "network";
+const grpc::string kTestsuiteTimeoutCode = "timeout";
+
 }  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

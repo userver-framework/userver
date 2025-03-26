@@ -5,6 +5,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer_fwd.hpp>
 
+#include <dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
@@ -14,7 +16,7 @@ class TagWriter;
 /// Opentracing support
 namespace tracing {
 
-struct NoLogSpans;
+using NoLogSpans = ::dynamic_config::userver_no_log_spans::VariableType;
 
 class Tracer : public std::enable_shared_from_this<Tracer> {
 public:

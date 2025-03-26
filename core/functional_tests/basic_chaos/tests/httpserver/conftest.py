@@ -22,7 +22,7 @@ def modified_service_client(
 
 
 @pytest.fixture(scope='module')
-async def _gate_started(loop, for_client_gate_port, service_port):
+async def _gate_started(for_client_gate_port, service_port):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
         host_for_client='localhost',
@@ -35,7 +35,7 @@ async def _gate_started(loop, for_client_gate_port, service_port):
         f'{gate_config.port_for_client}); ({gate_config.host_to_server}:'
         f'{gate_config.port_to_server} -> server)',
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import datetime
@@ -118,8 +119,10 @@ def _bind_udp_socket(hostname, port, family=socket.AF_INET6):
 
 
 @asynccontextmanager
-async def create_server(dns_info, loop, name):
+async def create_server(dns_info, name, *, loop=None):
     sock = _bind_udp_socket(dns_info.host, dns_info.port)
+    if loop is None:
+        loop = asyncio.get_running_loop()
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: DnsServerProtocol(name),  # pylint: disable=unnecessary-lambda
         sock=sock,
@@ -131,14 +134,14 @@ async def create_server(dns_info, loop, name):
 
 
 @pytest.fixture(scope='session', name='dns_mock')
-async def _dns_mock(loop, dns_info):
-    async with create_server(dns_info, loop, 'primary') as server:
+async def _dns_mock(dns_info):
+    async with create_server(dns_info, 'primary') as server:
         yield server
 
 
 @pytest.fixture(scope='function', name='dns_mock2_lazy')
-async def _dns_mock2_lazy(loop, dns_info2):
-    return create_server(dns_info2, loop, 'secondary')
+async def _dns_mock2_lazy(dns_info2):
+    return create_server(dns_info2, 'secondary')
 
 
 @pytest.fixture(name='for_dns_mock_port', scope='session')
@@ -174,7 +177,7 @@ def _dns_mock_stats(dns_mock):
 
 
 @pytest.fixture
-async def _gate_started(loop, for_dns_gate_port, dns_info, dns_mock):
+async def _gate_started(for_dns_gate_port, dns_info, dns_mock):
     gate_config = chaos.GateRoute(
         name='udp proxy',
         host_for_client='::1',
@@ -182,7 +185,7 @@ async def _gate_started(loop, for_dns_gate_port, dns_info, dns_mock):
         host_to_server='::1',
         port_to_server=dns_info.port,
     )
-    async with chaos.UdpGate(gate_config, loop) as proxy:
+    async with chaos.UdpGate(gate_config) as proxy:
         yield proxy
 
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <userver/middlewares/groups.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN

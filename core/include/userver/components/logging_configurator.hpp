@@ -9,6 +9,8 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/rcu/rcu.hpp>
 
+#include <dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {

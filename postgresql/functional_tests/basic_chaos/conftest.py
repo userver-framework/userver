@@ -23,13 +23,13 @@ def _pgsql_local(service_source_dir, pgsql_local_create):
 
 
 @pytest.fixture(scope='session')
-async def _gate_started(loop, pgsql_local):
+async def _gate_started(pgsql_local):
     gate_config = chaos.GateRoute(
         name='postgres proxy',
         host_to_server=pgsql_local['key_value'].host,
         port_to_server=pgsql_local['key_value'].port,
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 

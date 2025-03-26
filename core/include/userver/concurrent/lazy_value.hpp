@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/utils/lazy_value.hpp
-/// @brief @copybrief utils::LazyValue
+/// @file userver/concurrent/lazy_value.hpp
+/// @brief @copybrief concurrent::LazyValue
 
 #include <atomic>
 #include <exception>

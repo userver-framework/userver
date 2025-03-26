@@ -80,22 +80,31 @@ The most common use-case for JSON parser/serializer is a JSON handler:
 
 Base JSONSchema types are mapped to C++ types as following:
 
-| JSONSchema type | C++ type      |
-|-----------------|---------------|
-| `boolean`       | `bool`        |
-| `number`        | `double`      |
-| `integer`       | `int`         |
-| `string`        | `std::string` |
-| `array`         | `std::vector` |
-| `object`        | `struct`      |
-| `oneOf`         | `std::variant`|
-| `allOf`         | `struct`      |
-| `$ref`          | -             |
+| JSONSchema type | C++ type       |
+|-----------------|----------------|
+| `boolean`       | `bool`         |
+| `number`        | `double`       |
+| `integer`       | `int`          |
+| `string`        | `std::string`  |
+| `array`         | `std::vector`  |
+| `object`        | `struct`       |
+| `oneOf`         | `std::variant` |
+| `allOf`         | `struct`       |
+| `$ref`          | -              |
 
 
 #### type: boolean
 
 Boolean type is mapped to C++ `bool` type.
+
+Example:
+
+```yaml
+should_greet:
+    type: bool
+
+# => bool
+```
 
 #### type: integer
 
@@ -110,6 +119,33 @@ Integer supports the following validators:
 * `maximum`
 * `minimumExclusive`
 * `maximumExclusive`
+
+Example:
+
+```yaml
+pet_count:
+    type: integer
+    format: int64
+    minimum: 0
+
+# => std::int64_t + validator
+```
+
+For other C++ integer types, first choose the appropriate raw type as above, then the desired C++ type:
+
+```yaml
+pet_count:
+    type: integer
+    format: int64
+    minimum: 0
+    x-usrv-cpp-type: std::size_t
+
+# => std::size_t + validator
+```
+
+In this case, however, you still won't be able to fit integers greater than `INT64_MAX` into the field,
+because the way it works is: first the input is parsed into `int64`, then it is cast into `std::size_t`
+(with bounds checks).
 
 
 #### type: number
@@ -127,6 +163,17 @@ Number supports the following validators:
 * `maximum`
 * `minimumExclusive`
 * `maximumExclusive`
+
+Example:
+
+```yaml
+latitude:
+    type: number
+    minimum: -90.0
+    maximum: 90.0
+
+# => double + validator
+```
 
 
 #### type: string
@@ -148,19 +195,45 @@ String supports the following validators:
 
 Please note: `{min,max}Length` relates to UTF-8 code points, not bytes.
 
+Example:
+
+```yaml
+entity_uuid:
+    type: string
+    format: uuid
+
+# => boost::uuids::uuid
+```
+
 
 #### type: array
 
 Array type is mapped to different C++ types depending on `x-usrv-cpp-container` value:
 
-| x-usrv-cpp-container type | C++ type      |
-|---------------------------|---------------|
-| -                         | `std::vector` |
-| `C`                       | `C`           |
+| x-usrv-cpp-container type | C++ type                |
+|---------------------------|-------------------------|
+| -                         | `std::vector<T>`        |
+| `std::set`                | `std::set<T>`           |
+| `std::unordered_set`      | `std::unordered_set<T>` |
+| `C`                       | `C<T>`                  |
 
 Array supports the following validators:
 * `minItems`
 * `maxItems`
+
+Example:
+
+```yaml
+pet_names:
+    type: array
+    maxItems: 10
+    items:
+        type: string
+        pattern: '\w+'
+        maxLength: 20
+
+# => std::vector<std::string> + validator
+```
 
 
 #### type: object

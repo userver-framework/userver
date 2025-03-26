@@ -5,6 +5,7 @@
 #include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
+#include <userver/ugrpc/client/middlewares/testsuite/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +16,8 @@ components::ComponentList MinimalComponentList() {
         .Append<CommonComponent>()
         .Append<MiddlewarePipelineComponent>()
         .Append<middlewares::deadline_propagation::Component>()
-        .Append<middlewares::log::Component>();
+        .Append<middlewares::log::Component>()
+        .Append<middlewares::testsuite::Component>();
 }
 
 components::ComponentList DefaultComponentList() {

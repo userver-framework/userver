@@ -30,9 +30,11 @@ std::string_view MiddlewareCallContext::GetClientName() const noexcept { return 
 
 std::string_view MiddlewareCallContext::GetCallName() const noexcept { return data_.GetCallName(); }
 
-CallKind MiddlewareCallContext::GetCallKind() const noexcept { return data_.GetCallKind(); }
-
 tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return data_.GetSpan(); }
+
+bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(data_.GetCallKind()); }
+
+bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(data_.GetCallKind()); }
 
 impl::RpcData& MiddlewareCallContext::GetData(ugrpc::impl::InternalTag) { return data_; }
 

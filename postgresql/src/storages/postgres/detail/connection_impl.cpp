@@ -387,7 +387,7 @@ void ConnectionImpl::Begin(
     SteadyClock::time_point trx_start_time,
     OptionalCommandControl trx_cmd_ctl
 ) {
-    if (IsInTransaction()) {
+    if (std::exchange(in_transaction_, true)) {
         throw AlreadyInTransaction();
     }
     DiscardOldPreparedStatements(MakeCurrentDeadline());
@@ -405,6 +405,8 @@ void ConnectionImpl::Begin(
 }
 
 void ConnectionImpl::Commit() {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
+
     if (!IsInTransaction()) {
         throw NotInTransaction();
     }
@@ -422,6 +424,8 @@ void ConnectionImpl::Commit() {
 }
 
 void ConnectionImpl::Rollback() {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
+
     if (!IsInTransaction()) {
         throw NotInTransaction();
     }
@@ -457,6 +461,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
     const QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl
 ) {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
     if (settings_.prepared_statements == ConnectionSettings::kNoPreparedStatements) {
         LOG_LIMITED_WARNING() << "Portals without prepared statements are currently unsupported";
         throw LogicError{"Prepared statements shouldn't be turned off while using portals"};
@@ -488,6 +493,7 @@ ResultSet ConnectionImpl::PortalExecute(
     std::uint32_t n_rows,
     OptionalCommandControl statement_cmd_ctl
 ) {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
     TimeoutDuration network_timeout = NetworkTimeout(statement_cmd_ctl);
 
     auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
@@ -568,6 +574,7 @@ void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
 }
 
 bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
     const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
     conn_wrapper_.DiscardInput(deadline);
     auto state = GetConnectionState();
@@ -1046,6 +1053,8 @@ ResultSet ConnectionImpl::WaitResult(
     const ResultSet* description_ptr
 ) {
     const PGresult* description = description_ptr ? description_ptr->pimpl_->handle_.get() : nullptr;
+
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
 
     try {
         auto res = conn_wrapper_.WaitResult(deadline, scope, description);

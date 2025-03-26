@@ -28,7 +28,7 @@ ProducerComponent::ProducerComponent(
       ) {
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
-    statistics_holder_ = storage.RegisterWriter(config.Name(), [this](utils::statistics::Writer& writer) {
+    statistics_holder_ = storage.RegisterWriter("kafka_producer", [this](utils::statistics::Writer& writer) {
         producer_.DumpMetric(writer);
     });
 }

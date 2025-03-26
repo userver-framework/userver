@@ -69,7 +69,7 @@ void ValidateConfigs(
     const components::ComponentConfigMap& component_config_map,
     components::ValidationMode validation_condition
 ) {
-    std::string validation_errors;
+    std::vector<std::string> validation_errors;
 
     for (const auto& adder : component_list) {
         const auto it = component_config_map.find(adder->GetComponentName());
@@ -85,16 +85,14 @@ void ValidateConfigs(
             adder->ValidateStaticConfig(it->second, validation_condition);
         } catch (const std::exception& exception) {
             auto component_name = adder->GetComponentName();
-            validation_errors += fmt::format("\n\t{}: {}", component_name, exception.what());
-            if (adder->GetStaticConfigSchema() == components::RawComponentBase::GetStaticConfigSchema()) {
-                validation_errors +=
-                    ". Please define GetStaticConfigSchema for this component to be able to configure it";
-            }
+            validation_errors.push_back(fmt::format("{}: {}", component_name, exception.what()));
         }
     }
 
     if (!validation_errors.empty()) {
-        throw std::runtime_error("The following components have failed static config validation:" + validation_errors);
+        throw std::runtime_error(fmt::format(
+            "The following components have failed static config validation:\n\t{}", fmt::join(validation_errors, "\n\t")
+        ));
     }
 }
 

@@ -45,7 +45,7 @@ async def service_client(
 
 
 @pytest.fixture
-def userver_client_cleanup(
+async def userver_client_cleanup(
     request,
     _userver_logging_plugin,
     _dynamic_config_defaults_storage,

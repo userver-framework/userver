@@ -21,10 +21,11 @@ struct Array final {
 template <typename Value, typename ItemType, typename UserType, typename... Validators>
 UserType Parse(const Value& value, formats::parse::To<Array<ItemType, UserType, Validators...>>) {
     UserType arr;
-    auto inserter = std::inserter(arr, arr.end());
     if constexpr (meta::kIsReservable<UserType>) {
         arr.reserve(value.GetSize());
     }
+    // Note: call arr.end() *after* reserve() as the latter may invalidate end()
+    auto inserter = std::inserter(arr, arr.end());
     for (const auto& item : value) {
         *inserter = item.template As<ItemType>();
         ++inserter;

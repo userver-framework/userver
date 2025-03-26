@@ -137,7 +137,8 @@ class UserverLoggingPlugin:
             logfile.update_position()
 
     def register_flusher(self, func):
-        self._flushers.append(func)
+        loop = asyncio.get_running_loop()
+        self._flushers.append((loop, func))
 
     def register_logfile(self, path: pathlib.Path, title: str):
         logger.info('Watching service log file: %s', path)
@@ -165,9 +166,11 @@ class UserverLoggingPlugin:
             report.sections.append((f'Captured {title} {report.when}', value))
 
     def _run_flushers(self):
-        loop = asyncio.get_event_loop()
-        for flusher in self._flushers:
-            loop.run_until_complete(flusher())
+        try:
+            for loop, flusher in self._flushers:
+                loop.run_until_complete(flusher())
+        except Exception:
+            logger.exception('failed to run logging flushers:')
 
 
 @pytest.fixture(scope='session')

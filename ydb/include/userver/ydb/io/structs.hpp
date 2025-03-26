@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ydb-cpp-sdk/v2/client/result/result.h>
-#include <ydb-cpp-sdk/v2/client/value/value.h>
+#include <ydb-cpp-sdk/client/result/result.h>
+#include <ydb-cpp-sdk/client/value/value.h>
 
 #include <cstddef>
 #include <memory>

@@ -26,7 +26,7 @@ namespace {
 
 template <class Value>
 struct OverloadActionAndValue final {
-    TaskProcessorSettings::OverloadAction action;
+    TaskProcessorSettingsOverloadAction action;
     Value value;
 };
 
@@ -36,9 +36,9 @@ constexpr OverloadActionAndValue<OverloadBitAndValue> GetOverloadActionAndValue(
 ) {
     const auto value = x.load();
     if (value < OverloadBitAndValue{0}) {
-        return {TaskProcessorSettings::OverloadAction::kIgnore, -value};
+        return {TaskProcessorSettingsOverloadAction::kIgnore, -value};
     } else {
-        return {TaskProcessorSettings::OverloadAction::kCancel, value};
+        return {TaskProcessorSettingsOverloadAction::kCancel, value};
     }
 }
 
@@ -178,8 +178,11 @@ std::size_t TaskProcessor::GetTaskQueueSize() const {
     return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); }, task_queue_);
 }
 
-void TaskProcessor::SetSettings(const TaskProcessorSettings& settings) {
-    sensor_task_queue_wait_time_ = settings.sensor_wait_queue_time_limit;
+void TaskProcessor::SetSettings(
+    const TaskProcessorSettings& settings,
+    const TaskProcessorProfilerSettings& profiler_settings
+) {
+    sensor_task_queue_wait_time_ = settings.wait_queue_overload.sensor_time_limit_us;
 
     // We store the overload action and limit in a single atomic, to avoid races
     // on {kIgnore, 10} transitions to {kCancel, 10000}, when the limit is taken
@@ -187,26 +190,28 @@ void TaskProcessor::SetSettings(const TaskProcessorSettings& settings) {
     // we may cancel a task that fits into 10000 limit.
     //
     // see GetOverloadActionAndValue()
-    UASSERT(settings.wait_queue_time_limit >= std::chrono::microseconds{0});
+    UASSERT(settings.wait_queue_overload.time_limit_us >= std::chrono::microseconds{0});
     static_assert(
-        std::is_unsigned_v<decltype(settings.wait_queue_length_limit)>,
+        std::is_unsigned_v<decltype(settings.wait_queue_overload.length_limit)>,
         "Could hold negative values, add a runtime check that the "
         "value is positive"
     );
-    switch (settings.overload_action) {
-        case TaskProcessorSettings::OverloadAction::kCancel:
-            action_bit_and_max_task_queue_wait_time_ = settings.wait_queue_time_limit;
+    switch (settings.wait_queue_overload.action) {
+        case TaskProcessorSettingsOverloadAction::kCancel:
+            action_bit_and_max_task_queue_wait_time_ = settings.wait_queue_overload.time_limit_us;
             action_bit_and_max_task_queue_wait_length_ =
-                utils::numeric_cast<std::int64_t>(settings.wait_queue_length_limit);
+                utils::numeric_cast<std::int64_t>(settings.wait_queue_overload.length_limit);
             break;
-        case TaskProcessorSettings::OverloadAction::kIgnore:
-            action_bit_and_max_task_queue_wait_time_ = -settings.wait_queue_time_limit;
+        case TaskProcessorSettingsOverloadAction::kIgnore:
+            action_bit_and_max_task_queue_wait_time_ = -settings.wait_queue_overload.time_limit_us;
             action_bit_and_max_task_queue_wait_length_ =
-                -utils::numeric_cast<std::int64_t>(settings.wait_queue_length_limit);
+                -utils::numeric_cast<std::int64_t>(settings.wait_queue_overload.length_limit);
             break;
     }
 
-    auto threshold = settings.profiler_execution_slice_threshold;
+    auto threshold = profiler_settings.execution_slice_threshold_us;
+    if (!profiler_settings.enabled) threshold = std::chrono::microseconds{0};
+
     if (threshold.count() > 0) {
         auto old_threshold = task_profiler_threshold_.exchange(threshold);
         if (old_threshold.count() == 0) {
@@ -229,7 +234,7 @@ void TaskProcessor::SetSettings(const TaskProcessorSettings& settings) {
             );
         }
     }
-    profiler_force_stacktrace_.store(settings.profiler_force_stacktrace);
+    profiler_force_stacktrace_.store(profiler_settings.profiler_force_stacktrace.value_or(false));
 }
 
 std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const { return task_profiler_threshold_.load(); }
@@ -364,10 +369,10 @@ void TaskProcessor::SetTaskQueueWaitTimeOverloaded(bool new_value) noexcept {
     }
 }
 
-void TaskProcessor::HandleOverload(impl::TaskContext& context, TaskProcessorSettings::OverloadAction action) {
+void TaskProcessor::HandleOverload(impl::TaskContext& context, TaskProcessorSettingsOverloadAction action) {
     GetTaskCounter().AccountTaskOverload();
 
-    if (action == TaskProcessorSettings::OverloadAction::kCancel) {
+    if (action == TaskProcessorSettingsOverloadAction::kCancel) {
         if (!context.IsCritical()) {
             LOG_LIMITED_WARNING() << "Task with task_id=" << logging::HexShort(context.GetTaskId())
                                   << " was waiting in queue for too long, cancelling. Make sure that "

@@ -42,7 +42,7 @@ namespace impl::default_ {
 
 bool DoShouldLog(Level) noexcept;
 
-void PrependCommonTags(TagWriter writer);
+void PrependCommonTags(TagWriter writer, Level logger_level);
 
 }  // namespace impl::default_
 
