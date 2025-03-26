@@ -5,6 +5,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+#include <userver/storages/sqlite/cursor_result_set.hpp>
 #include <userver/storages/sqlite/impl/binder_help.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/operation_types.hpp>
@@ -25,10 +26,10 @@ namespace storages::sqlite {
 /// Usually retrieved from components::SQLite
 class Client final {
  public:
-  /// @brief Connection constructor
+  /// @brief Client constructor
   Client(const settings::SQLiteSettings& settings,
          engine::TaskProcessor& blocking_task_processor);
-  /// @brief Connection destructor
+  /// @brief Client destructor
   ~Client();
 
   template <typename... Args>
@@ -49,6 +50,11 @@ class Client final {
                     const settings::TransactionOptions&) const;
 
   Savepoint Save(OperationType op_type, std::string name) const;
+
+  template <typename T, typename... Args>
+  CursorResultSet<T> GetCursor(OperationType operation_type,
+                               std::size_t batch_size, const Query& query,
+                               const Args&... args) const;
 
  private:
   ResultSet DoExecute(impl::io::ParamsBinderBase& params,
@@ -86,6 +92,16 @@ void Client::ExecuteMany(OperationType operation_type, const Query& query,
         query.GetStatement(), connection, row);
     DoExecute(params_binder, connection);
   }
+}
+
+template <typename T, typename... Args>
+CursorResultSet<T> Client::GetCursor(OperationType operation_type,
+                                     std::size_t batch_size, const Query& query,
+                                     const Args&... args) const {
+  auto connection = GetConnection(operation_type);
+  auto params_binder = impl::BindHelper::UpdateParamsBindings(
+      query.GetStatement(), connection, args...);
+  return CursorResultSet<T>{DoExecute(params_binder, connection), batch_size};
 }
 
 }  // namespace storages::sqlite

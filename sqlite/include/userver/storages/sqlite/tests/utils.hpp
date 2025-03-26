@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 
 // Auxiliary types for tests
 struct Row final {
-  int id{};
+  std::int32_t id{};
   std::string value;
 
   bool operator==(const Row& other) const {

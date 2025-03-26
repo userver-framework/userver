@@ -97,7 +97,12 @@ class ResultSet {
   ExecutionResult AsExecutionResult() &&;
 
  private:
-  void FetchResult(impl::ExtractorBase& extractor);
+  template <typename T>
+  friend class CursorResultSet;
+
+  void FetchAllResult(impl::ExtractorBase& extractor);
+
+  bool FetchResult(impl::ExtractorBase& extractor, size_t batch_size);
 
   impl::ResultWrapperPtr pimpl_;
 };
@@ -105,14 +110,14 @@ class ResultSet {
 template <typename T>
 std::vector<T> ResultSet::AsVector() && {
   impl::TypedExtractor<T, RowTag> extractor{*pimpl_};
-  FetchResult(extractor);
+  FetchAllResult(extractor);
   return extractor.ExtractData();
 }
 
 template <typename T>
 std::vector<T> ResultSet::AsVector(FieldTag) && {
   impl::TypedExtractor<T, FieldTag> extractor{*pimpl_};
-  FetchResult(extractor);
+  FetchAllResult(extractor);
   return extractor.ExtractData();
 }
 

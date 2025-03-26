@@ -18,8 +18,12 @@ ExecutionResult ResultSet::AsExecutionResult() && {
   return pimpl_->GetExecutionResult();
 }
 
-void ResultSet::FetchResult(impl::ExtractorBase& extractor) {
-  pimpl_->FetchResult(extractor);
+void ResultSet::FetchAllResult(impl::ExtractorBase& extractor) {
+  pimpl_->FetchAllResult(extractor);
+}
+
+bool ResultSet::FetchResult(impl::ExtractorBase& extractor, size_t batch_size) {
+  return pimpl_->FetchResult(extractor, batch_size);
 }
 
 }  // namespace storages::sqlite

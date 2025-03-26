@@ -13,7 +13,7 @@ ResultWrapper::ResultWrapper(StatementBasePtr prepare_statement,
                              engine::TaskProcessor& blocking_task_processor_)
     : prepare_statement_{std::move(prepare_statement)},
       blocking_task_processor_(blocking_task_processor_) {
-  ExecutionStep();
+  ExecutionStep();  // First execution step
 }
 
 ResultWrapper::~ResultWrapper() = default;
@@ -22,11 +22,23 @@ StatementBasePtr ResultWrapper::GetStatement() noexcept {
   return prepare_statement_;
 }
 
-void ResultWrapper::FetchResult(impl::ExtractorBase& extractor) {
+void ResultWrapper::FetchAllResult(impl::ExtractorBase& extractor) {
   while (prepare_statement_->HasNext()) {
     extractor.BindNextRow();
     ExecutionStep();  // blocking IO
   }
+}
+
+bool ResultWrapper::FetchResult(impl::ExtractorBase& extractor,
+                                size_t batch_size) {
+  for (size_t i = 0; i < batch_size; ++i) {
+    if (!prepare_statement_->HasNext()) {
+      return false;
+    }
+    extractor.BindNextRow();
+    ExecutionStep();  // blocking IO
+  }
+  return prepare_statement_->HasNext();
 }
 
 ExecutionResult ResultWrapper::GetExecutionResult() noexcept {

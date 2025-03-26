@@ -22,7 +22,9 @@ class ResultWrapper final {
 
   StatementBasePtr GetStatement() noexcept;
 
-  void FetchResult(impl::ExtractorBase& extractor);
+  void FetchAllResult(impl::ExtractorBase& extractor);
+
+  bool FetchResult(impl::ExtractorBase& extractor, size_t batch_size);
 
   ExecutionResult GetExecutionResult() noexcept;
 
