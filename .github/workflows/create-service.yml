@@ -94,9 +94,11 @@ jobs:
                 cmake --install -B build_debug
 
           - name: Create service
+            run: |
                 userver-create-service myservice
 
           - name: Build & test service
+            run: |
                 cd myservice
                 make build-debug
                 make testsuite-debug
