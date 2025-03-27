@@ -93,12 +93,32 @@ jobs:
             run: |
                 sudo cmake --install build_debug
 
-          - name: Create service
+          - name: Service (empty)
             run: |
                 userver-create-service myservice
-
-          - name: Build & test service
-            run: |
                 cd myservice
                 make build-debug
-                make testsuite-debug
+                make test-debug
+                cd ..
+                rm -rf myservice
+
+          - name: Service (mongo)
+            run: |
+                userver-create-service --mongo myservice-mongo
+                cd myservice-mongo
+                make build-debug
+                make test-debug
+
+          - name: Service (grpc)
+            run: |
+                userver-create-service --grpc myservice-grpc
+                cd myservice-grpc
+                make build-debug
+                make test-debug
+
+          - name: Service (postgresql)
+            run: |
+                userver-create-service --postgresql myservice-pg
+                cd myservice-pg
+                make build-debug
+                make test-debug
