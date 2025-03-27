@@ -54,9 +54,7 @@ components_manager:
             response-body-stream: true
 ```
 
-3) Set dynamic config @ref USERVER_HANDLER_STREAM_API_ENABLED.
-
-4) Write your handler code:
+3) Write your handler code:
 
 @snippet core/functional_tests/basic_chaos/httpclient_handlers.hpp HandleStreamRequest
 

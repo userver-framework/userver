@@ -73,10 +73,14 @@ are available at the
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
-* @ref scripts/docs/en/userver/chaotic.md
 * @ref scripts/docs/en/userver/logging.md
 * @ref scripts/docs/en/userver/task_processors_guide.md
 * @ref scripts/docs/en/userver/periodics.md
+
+## Code generation
+* @ref scripts/docs/en/userver/codegen_overview.md
+* @ref scripts/docs/en/userver/chaotic.md
+* @ref scripts/docs/en/userver/sql_files.md
 
 
 ## Testing and Benchmarking
@@ -110,6 +114,7 @@ are available at the
 * @ref scripts/docs/en/userver/os_signals.md
 * @ref scripts/docs/en/userver/deadline_propagation.md
 * @ref scripts/docs/en/userver/congestion_control.md
+* @ref scripts/docs/en/userver/stack.md
 
 
 ## Caches

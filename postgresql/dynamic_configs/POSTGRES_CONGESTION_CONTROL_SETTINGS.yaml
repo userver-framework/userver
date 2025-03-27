@@ -1,0 +1,18 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        errors-threshold-percent:
+            type: number
+        deactivate-delta:
+            type: integer
+        timings-burst-times-threshold:
+            type: number
+        min-timings-ms:
+            type: integer
+        min-limit:
+            type: integer
+        min-qps:
+            type: integer

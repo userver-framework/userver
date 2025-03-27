@@ -91,11 +91,9 @@ def _check_restore(gate, call, flush_resolver_cache, gen_domain_name):
 
 
 @pytest.fixture(autouse=True)
-async def _auto_check_restore(request, loop, check_restore):
-    def teardown():
-        loop.run_until_complete(check_restore())
-
-    request.addfinalizer(teardown)
+async def _auto_check_restore(check_restore):
+    yield
+    await check_restore()
 
 
 async def test_ok(call, gate):

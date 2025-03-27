@@ -23,12 +23,12 @@ def test_simple(simple_gen):
                 },
             },
             'additionalProperties': False,
-        })['/definitions/type']
+        })['::/definitions/type']
         .fields['foo']
         .schema
     )
 
-    assert foo_schema.raw_cpp_type == type_name.TypeName(['/definitions/type', 'Foo'])
+    assert foo_schema.raw_cpp_type == type_name.TypeName(['', '/definitions/type', 'Foo'])
     assert len(foo_schema.variants) == 3
 
     assert foo_schema.variants[0].raw_cpp_type == type_name.TypeName('int')
@@ -95,7 +95,7 @@ def test_empty_mapping(clean):
     cpp_types = gen.generate_types(resolved_schemas)
     cpp_types = clean(cpp_types)
 
-    foo = cpp_types['oneof'].fields['foo'].schema
+    foo = cpp_types['::oneof'].fields['foo'].schema
 
     assert foo.mapping_type == MappingType.STR
     assert list(foo.variants.keys()) == ['A', 'B']
@@ -161,13 +161,13 @@ def test_str_mapping(clean):
     cpp_types = gen.generate_types(resolved_schemas)
     cpp_types = clean(cpp_types)
 
-    foo = cpp_types['oneof'].fields['foo'].schema
+    foo = cpp_types['::oneof'].fields['foo'].schema
 
     assert foo.mapping_type == MappingType.STR
     assert list(foo.variants.keys()) == ['aaa', 'bbb']
 
-    assert foo.variants['aaa'].cpp_name == 'A'
-    assert foo.variants['bbb'].cpp_name == 'B'
+    assert foo.variants['aaa'].cpp_name == '::A'
+    assert foo.variants['bbb'].cpp_name == '::B'
 
 
 def test_int_mapping(clean):
@@ -230,11 +230,11 @@ def test_int_mapping(clean):
     cpp_types = gen.generate_types(resolved_schemas)
     cpp_types = clean(cpp_types)
 
-    foo = cpp_types['oneof'].fields['foo'].schema
+    foo = cpp_types['::oneof'].fields['foo'].schema
 
     assert foo.mapping_type == MappingType.INT
     assert list(foo.variants.keys()) == [0, 1, 2]
 
-    assert foo.variants[0].cpp_name == 'A'
-    assert foo.variants[1].cpp_name == 'A'
-    assert foo.variants[2].cpp_name == 'B'
+    assert foo.variants[0].cpp_name == '::A'
+    assert foo.variants[1].cpp_name == '::A'
+    assert foo.variants[2].cpp_name == '::B'

@@ -225,6 +225,8 @@ private:
 
     std::unordered_set<std::string> statements_reported_;
     engine::Mutex statements_mutex_;
+    // Flag to check a correct order of calling Begin.
+    bool in_transaction_{false};
 };
 
 }  // namespace storages::postgres::detail

@@ -15,7 +15,7 @@
 #include <ugrpc/impl/status.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
@@ -67,7 +67,7 @@ void SetStatusDetailsForSpan(
     const grpc::Status& status,
     const std::optional<std::string>& error_details
 ) {
-    span.AddTag("grpc_code", std::string{ugrpc::ToString(status.error_code())});
+    span.AddTag("grpc_code", ugrpc::ToString(status.error_code()));
     if (!status.ok()) {
         SetErrorForSpan(span, error_details.value_or(status.error_message()));
     }

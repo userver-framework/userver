@@ -86,7 +86,7 @@ Consumer::~Consumer() {
 ConsumerScope Consumer::MakeConsumerScope() { return ConsumerScope{*this}; }
 
 void Consumer::DumpMetric(utils::statistics::Writer& writer) const {
-    USERVER_NAMESPACE::kafka::impl::DumpMetric(writer, stats_);
+    USERVER_NAMESPACE::kafka::impl::DumpMetric(writer, stats_, this->name_);
 }
 
 void Consumer::RunConsuming(ConsumerScope::Callback callback) {

@@ -20,7 +20,7 @@
 #include <ugrpc/impl/grpc_native_logging.hpp>
 #include <ugrpc/server/impl/generic_service_worker.hpp>
 #include <ugrpc/server/impl/parse_config.hpp>
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>

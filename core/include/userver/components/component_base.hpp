@@ -57,17 +57,17 @@ public:
     /// the derived object constructor is called. Don't use it otherwise.
     void OnAllComponentsAreStopping() override {}
 
-    /// If the component pulls more options from @ref ComponentConfig than its
+    /// If the component pulls more options from @ref components::ComponentConfig than its
     /// parent component, then it needs to define `GetStaticConfigSchema` method
     /// and add its own options to the parent component's options.
     static yaml_config::Schema GetStaticConfigSchema();
 
 protected:
-    /// Legacy alias, use @ref ComponentBase instead.
+    /// @deprecated use @ref components::ComponentBase instead.
     using LoggableComponentBase = ComponentBase;
 };
 
-/// Deprecated, use @ref ComponentBase instead.
+/// @deprecated use @ref components::ComponentBase instead.
 using LoggableComponentBase = ComponentBase;
 
 }  // namespace components

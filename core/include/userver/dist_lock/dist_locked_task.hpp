@@ -68,6 +68,7 @@ public:
     /// @param settings distributed lock settings
     /// @param strategy distributed locking strategy
     /// @param mode distributed lock waiting mode
+    /// @param retry_mode run task continuously or once (needed mainly for tests)
     /// @note `worker_func` must honour task cancellation and stop ASAP when
     /// it is cancelled, otherwise brain split is possible (IOW, two different
     /// users do work assuming both of them hold the lock, which is not true).

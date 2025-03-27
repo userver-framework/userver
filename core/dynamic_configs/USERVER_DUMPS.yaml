@@ -1,0 +1,14 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties:
+        type: object
+        additionalProperties: false
+        properties:
+            dumps-enabled:
+                type: boolean
+            min-dump-interval-ms:
+                type: integer
+                minimum: 0
+                x-taxi-cpp-type: std::chrono::milliseconds

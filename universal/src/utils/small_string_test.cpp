@@ -69,6 +69,16 @@ TEST(SmallString, Append) {
     EXPECT_EQ(str, "abcdabcd");
 }
 
+TEST(SmallString, AppendCharChar) {
+    utils::SmallString<2> str("a");
+    const char* other = "foobar";
+
+    str.append(other + 3, other + 6);
+    EXPECT_EQ(str, "abar");
+    str.append(other, other + 3);
+    EXPECT_EQ(str, "abarfoo");
+}
+
 TEST(SmallString, Insert) {
     constexpr std::string_view data{"ab"};
 

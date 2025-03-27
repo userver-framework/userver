@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope='module')
-async def _gate_started(loop, for_client_gate_port, mockserver_info):
+async def _gate_started(for_client_gate_port, mockserver_info):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
         host_for_client='localhost',
@@ -21,7 +21,7 @@ async def _gate_started(loop, for_client_gate_port, mockserver_info):
         f'server({gate_config.host_to_server}:'
         f'{gate_config.port_to_server})',
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 

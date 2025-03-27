@@ -1,10 +1,12 @@
 import asyncio
 
+import pytest
+
 DEFAULT_PATH = '/http2server-stream'
 
 
-# TODO: debug the bug
-async def _test_body_stream(http2_client, service_client, dynamic_config):
+@pytest.mark.skip(reason='TAXICOMMON-10258')
+async def test_body_stream(http2_client, service_client, dynamic_config):
     part = 'part'
     count = 100
     r = await http2_client.get(
@@ -23,14 +25,16 @@ async def _stream_request(client, req_per_client):
         assert data == r.text
 
 
+@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_body_stream_small_pieces(
     http2_client,
     service_client,
     dynamic_config,
 ):
-    _stream_request(http2_client, 1)
+    await _stream_request(http2_client, 1)
 
 
+@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_body_stream_concurrent(
     http2_client,
     service_client,

@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/alert/storage.hpp
-/// @brief @copybrief alert::Storage
+/// @file userver/alerts/storage.hpp
+/// @brief @copybrief alerts::Storage
 
 #include <chrono>
 #include <string>

@@ -15,7 +15,7 @@
 
 #include <userver/ydb/fwd.hpp>
 
-#include <ydb-cpp-sdk/v2/client/driver/fwd.h>
+#include <ydb-cpp-sdk/client/driver/fwd.h>
 
 USERVER_NAMESPACE_BEGIN
 

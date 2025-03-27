@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/mongo/utest/mongo_fixture.hpp
-/// @brief @copybrief storages::mongo::MongoTest
+/// @brief @copybrief storages::mongo::utest::MongoTest
 
 #include <userver/utest/utest.hpp>
 

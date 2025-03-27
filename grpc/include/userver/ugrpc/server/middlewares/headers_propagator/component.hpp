@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/headers_propagator/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::headers_propagator::Component
+/// @brief @copybrief ugrpc::server::middlewares::headers_propagator::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 

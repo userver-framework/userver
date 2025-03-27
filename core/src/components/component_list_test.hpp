@@ -47,9 +47,9 @@ components_manager:
       fs-task-processor: main-task-processor
       loggers:
         default:
-          file_path: $logger_file_path
+          file_path: '@null'
           format: ltsv
-config_vars: )";
+)";
 
 struct TracingGuard final {
     TracingGuard() : tracer(tracing::Tracer::GetTracer()) {}
@@ -63,6 +63,8 @@ struct TracingGuard final {
     const logging::LoggerPtr opentracing_logger;
     const tracing::TracerPtr tracer;
 };
+
+std::string MergeYaml(std::string_view source, std::string_view patch);
 
 }  // namespace tests
 

@@ -227,7 +227,7 @@ void Logger::Stop() noexcept {
 const logging::impl::LogStatistics& Logger::GetStatistics() const { return stats_; }
 
 void Logger::PrependCommonTags(logging::impl::TagWriter writer) const {
-    logging::impl::default_::PrependCommonTags(writer);
+    logging::impl::default_::PrependCommonTags(writer, GetLevel());
 }
 
 bool Logger::DoShouldLog(logging::Level level) const noexcept { return logging::impl::default_::DoShouldLog(level); }

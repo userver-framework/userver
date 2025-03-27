@@ -53,6 +53,11 @@ struct Core final {
 };
 
 /// @brief The group is located after `Core`.
+///
+/// @details There are:
+///
+/// gRPC-client:
+/// * ugrpc::client::middlewares::testsuite::Component
 struct PostCore final {
     static constexpr std::string_view kName = "post-core";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<Core>();

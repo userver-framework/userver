@@ -40,3 +40,9 @@ namespace samples_postgres_service {
     ...
 }
 @endcode
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref scripts/docs/en/userver/chaotic.md | @ref scripts/docs/en/userver/testing.md ⇨
+@htmlonly </div> @endhtmlonly

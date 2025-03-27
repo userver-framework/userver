@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ydb-cpp-sdk/v2/client/types/credentials/credentials.h>
+#include <ydb-cpp-sdk/client/types/credentials/credentials.h>
 
 USERVER_NAMESPACE_BEGIN
 

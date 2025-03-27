@@ -89,6 +89,14 @@ void DoRunTest(
     });
 }
 
+bool IsStackUsageMonitorEnabled() {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    auto* enable = std::getenv("USERVER_GTEST_ENABLE_STACK_USAGE_MONITOR");
+    if (!enable) return true;
+    if (std::string_view(enable) == "0") return false;
+    return true;
+}
+
 }  // namespace
 
 void DoRunTest(
@@ -107,6 +115,7 @@ void DoRunTest(
         // work with gtest's `waitpid()` calls.
         config.ev_default_loop_disabled = true;
     }
+    config.is_stack_usage_monitor_enabled = IsStackUsageMonitorEnabled();
     return DoRunTest(thread_count, config, std::move(factory));
 }
 

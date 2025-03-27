@@ -292,13 +292,9 @@ See the full example at:
 @example samples/kafka_service/CMakeLists.txt
 @example samples/kafka_service/static_config.yaml
 @example samples/kafka_service/src/producer_handler.hpp
-@example samples/kafka_service/src/producer_handler.cpp
-@example samples/kafka_service/src/consumer_handler.hpp
 @example samples/kafka_service/src/consumer_handler.hpp
 @example samples/kafka_service/src/produce.hpp
-@example samples/kafka_service/src/produce.cpp
 @example samples/kafka_service/src/consume.hpp
-@example samples/kafka_service/src/consume.cpp
 @example samples/kafka_service/testsuite/conftest.py
 @example samples/kafka_service/testsuite/test_kafka.py
 @example samples/kafka_service/unittest/kafka_test.cpp

@@ -4,7 +4,6 @@
 /// @brief Baggage manipulation client and component.
 
 #include <userver/baggage/baggage.hpp>
-#include <userver/baggage/baggage_settings.hpp>
 
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_config.hpp>

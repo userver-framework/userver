@@ -77,7 +77,6 @@ public:
 
 private:
     std::optional<ClientFactory> factory_;
-    ClientInfo info_{};
 };
 
 }  // namespace ugrpc::client

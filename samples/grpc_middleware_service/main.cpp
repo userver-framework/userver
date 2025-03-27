@@ -9,8 +9,10 @@
 
 #include <client/view.hpp>
 #include <http_handlers/say-hello/view.hpp>
-#include <middlewares/client/middleware.hpp>
-#include <middlewares/server/middleware.hpp>
+#include <middlewares/client/auth.hpp>
+#include <middlewares/client/chaos.hpp>
+#include <middlewares/server/auth.hpp>
+#include <middlewares/server/meta_filter.hpp>
 #include <service/view.hpp>
 
 /// [gRPC middleware sample - components registration]
@@ -25,8 +27,10 @@ int main(int argc, char* argv[]) {
                                     .Append<samples::grpc::auth::GreeterServiceComponent>()
                                     .Append<samples::grpc::auth::GreeterHttpHandler>()
                                     /// [gRPC middleware sample - ugrpc registration]
-                                    .Append<sample::grpc::auth::client::Component>()
-                                    .Append<sample::grpc::auth::server::Component>();
+                                    .Append<sample::grpc::auth::client::AuthComponent>()
+                                    .Append<sample::grpc::auth::client::ChaosComponent>()
+                                    .Append<sample::grpc::auth::server::AuthComponent>()
+                                    .Append<sample::grpc::auth::server::MetaFilterComponent>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

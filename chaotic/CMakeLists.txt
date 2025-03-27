@@ -6,6 +6,8 @@ userver_module(
     chaotic
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+    LINK_LIBRARIES userver::universal
+    NO_CORE_LINK
 )
 
 if(USERVER_BUILD_TESTS)

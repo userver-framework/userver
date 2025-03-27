@@ -2,7 +2,6 @@
 
 #include <logging/dynamic_debug.hpp>
 #include <logging/dynamic_debug_config.hpp>
-#include <tracing/no_log_spans.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -12,22 +11,13 @@
 #include <logging/rate_limit.hpp>
 #include <logging/split_location.hpp>
 
+#include <dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
 namespace {
-
-/// [key]
-const dynamic_config::Key<tracing::NoLogSpans> kNoLogSpans{
-    "USERVER_NO_LOG_SPANS",
-    dynamic_config::DefaultAsJsonString{R"(
-  {
-    "names": [],
-    "prefixes": []
-  }
-)"}};
-/// [key]
 
 const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
     "USERVER_LOG_DYNAMIC_DEBUG",
@@ -53,7 +43,7 @@ LoggingConfigurator::~LoggingConfigurator() { config_subscription_.Unsubscribe()
 
 void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     (void)this;  // silence clang-tidy
-    tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
+    tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[::dynamic_config::USERVER_NO_LOG_SPANS]});
 
     try {
         const auto& dd = config[kDynamicDebugConfig];

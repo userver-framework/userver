@@ -12,6 +12,7 @@
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/qos.hpp>
 #include <userver/ugrpc/client/response_future.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -86,6 +87,8 @@ public:
     /// @cond
     // For internal use only.
     explicit GenericClient(impl::ClientInternals&&);
+
+    static std::optional<ugrpc::impl::StaticServiceMetadata> GetMetadata() { return std::nullopt; }
     /// @endcond
 
 private:

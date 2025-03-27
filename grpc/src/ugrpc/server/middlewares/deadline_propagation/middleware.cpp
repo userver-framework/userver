@@ -5,16 +5,17 @@
 #include <google/protobuf/util/time_util.h>
 
 #include <userver/dynamic_config/snapshot.hpp>
-#include <userver/server/handlers/impl/deadline_propagation_config.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
+
+#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +47,7 @@ bool CheckAndSetupDeadline(
     ugrpc::impl::RpcStatisticsScope& statistics_scope,
     const dynamic_config::Snapshot& config
 ) {
-    if (!config[USERVER_NAMESPACE::server::handlers::impl::kDeadlinePropagationEnabled]) {
+    if (!config[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
         return true;
     }
 

@@ -65,7 +65,7 @@ USERVER_NAMESPACE_END
 
 /// @brief Should be invoked inside a manually defined "root" struct to enable
 /// conversions from it to subset structs created by
-/// @ref USERVER_MAKE_STRUCT_SUBSET and @ref USERVER_MAKE_STRUCT_SUBSET_REF.
+/// @ref USERVER_DEFINE_STRUCT_SUBSET and @ref USERVER_DEFINE_STRUCT_SUBSET_REF.
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -92,7 +92,7 @@ USERVER_NAMESPACE_END
 /// Implicit conversions (by copy and by move) are allowed from any superset
 /// struct to the @a SubsetStruct, as long as the names of the data members
 /// match, and the superset struct is either defined using
-/// @ref USERVER_MAKE_STRUCT_SUBSET or @ref USERVER_MAKE_STRUCT_SUBSET_REF,
+/// @ref USERVER_DEFINE_STRUCT_SUBSET or @ref USERVER_DEFINE_STRUCT_SUBSET_REF,
 /// or it contains @ref USERVER_ALLOW_CONVERSIONS_TO_SUBSET.
 ///
 /// Usage example:
@@ -126,7 +126,7 @@ USERVER_NAMESPACE_END
 /// Implicit conversions (by copy and by move) are allowed from any superset
 /// struct to the @a SubsetStruct, as long as the names of the data members
 /// match, and the superset struct is either defined using
-/// @ref USERVER_MAKE_STRUCT_SUBSET or @ref USERVER_MAKE_STRUCT_SUBSET_REF,
+/// @ref USERVER_DEFINE_STRUCT_SUBSET or @ref USERVER_DEFINE_STRUCT_SUBSET_REF,
 /// or it contains @ref USERVER_ALLOW_CONVERSIONS_TO_SUBSET.
 ///
 /// `*Ref` structs can be used for parameters of utility functions to avoid

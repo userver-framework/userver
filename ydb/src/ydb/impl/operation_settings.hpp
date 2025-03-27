@@ -2,8 +2,8 @@
 
 #include <chrono>
 
-#include <ydb-cpp-sdk/v2/client/retry/retry.h>
-#include <ydb-cpp-sdk/v2/client/types/request_settings.h>
+#include <ydb-cpp-sdk/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/types/request_settings.h>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/ydb/impl/cast.hpp>

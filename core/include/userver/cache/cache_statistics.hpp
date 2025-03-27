@@ -65,7 +65,7 @@ public:
     /// @endcond
 
     /// @brief Mark that the `Update` has finished with changes
-    /// @param documents_count the new total number of items stored in the cache
+    /// @param total_documents_count the new total number of items stored in the cache
     void Finish(std::size_t total_documents_count);
 
     /// @brief Mark that the `Update` has finished without changes

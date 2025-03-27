@@ -43,23 +43,23 @@ def test_simple_ref(clean):
     cpp_types = clean(cpp_types)
 
     assert cpp_types == {
-        'Type': CppStruct(
-            raw_cpp_type=type_name.TypeName('Type'),
+        '::Type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::Type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
             fields={},
         ),
-        'ref': CppRef(
+        '::ref': CppRef(
             raw_cpp_type=type_name.TypeName(''),
             json_schema=None,
             nullable=False,
             indirect=False,
             self_ref=False,
-            cpp_name='Type',
+            cpp_name='::Type',
             user_cpp_type=None,
             orig_cpp_type=CppStruct(
-                raw_cpp_type=type_name.TypeName('Type'),
+                raw_cpp_type=type_name.TypeName('::Type'),
                 json_schema=SchemaObject(
                     additionalProperties=False,
                     properties={},

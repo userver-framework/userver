@@ -89,7 +89,7 @@
                     {%- if not loop.last %} , {% endif -%}
                 {%- endfor -%}
                 ) :
-                    {%- for num, parent in enumerate(type.parents) -%}
+                    {% for num, parent in enumerate(type.parents) -%}
                         {{ parent.cpp_global_name() }}(
                             std::move(a{{ num }})
                         )

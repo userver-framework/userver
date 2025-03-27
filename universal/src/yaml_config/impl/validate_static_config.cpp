@@ -95,9 +95,10 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
         // additionalProperties: false
         throw std::runtime_error(fmt::format(
             "Error while validating static config against schema. "
-            "Field '{}' is not declared in schema '{}' (declared: {}). "
-            "You've probably "
-            "made a typo or forgot to define components' static config schema.{}",
+            "Field '{}' is not declared in schema '{}' (declared: {}).{} "
+            "You've probably made a typo or forgot to define GetStaticConfigSchema method for this component. "
+            "If so, then please go and define this method according to the config options "
+            "the component's constructor actually uses.",
             value.GetPath(),
             schema.path,
             KeysAsString(properties),

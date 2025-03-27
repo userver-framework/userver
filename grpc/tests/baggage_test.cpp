@@ -23,6 +23,9 @@
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
+#include <dynamic_config/variables/BAGGAGE_SETTINGS.hpp>
+#include <dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -49,8 +52,8 @@ public:
         SetServerMiddlewares({std::make_shared<ugrpc::server::middlewares::baggage::Middleware>()});
 
         ExtendDynamicConfig({
-            {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
-            {baggage::kBaggageEnabled, true},
+            {::dynamic_config::BAGGAGE_SETTINGS, {{"key1", "key2", "key3"}}},
+            {::dynamic_config::USERVER_BAGGAGE_ENABLED, true},
         });
 
         RegisterService(service_);
@@ -136,8 +139,8 @@ class GrpcClientTestBaggage : public ugrpc::tests::ServiceFixtureBase {
 public:
     GrpcClientTestBaggage() {
         ExtendDynamicConfig({
-            {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
-            {baggage::kBaggageEnabled, true},
+            {::dynamic_config::BAGGAGE_SETTINGS, {{"key1", "key2", "key3"}}},
+            {::dynamic_config::USERVER_BAGGAGE_ENABLED, true},
         });
         SetClientMiddlewares({std::make_shared<ugrpc::client::middlewares::baggage::Middleware>()});
         RegisterService(service_);

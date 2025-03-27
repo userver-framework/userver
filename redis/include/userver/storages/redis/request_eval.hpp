@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief @copybrief storages::redis::RequestEval
+
 #include <userver/storages/redis/parse_reply.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/redis/request.hpp>
@@ -8,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+/// @brief Redis future for a non-scan and non-eval responses.
 template <typename ScriptResult, typename ReplyType = ScriptResult>
 class [[nodiscard]] RequestEval final {
 public:

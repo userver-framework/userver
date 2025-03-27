@@ -18,7 +18,7 @@ Json::Json(Level level, Format format, const utils::impl::SourceLocation& locati
 
     sb_.Key((format_ == Format::kJson) ? "timestamp" : "@timestamp");
     sb_.WriteString(
-        fmt::format(FMT_COMPILE("{}.{:06}"), GetCurrentTimeString(now).ToStringView(), FractionalMicroseconds(now))
+        fmt::format(FMT_COMPILE("{}.{:06}Z"), GetCurrentGMTimeString(now).ToStringView(), FractionalMicroseconds(now))
     );
 
     sb_.Key((format_ == Format::kJson) ? "level" : "levelStr");

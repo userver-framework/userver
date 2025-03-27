@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ydb-cpp-sdk/v2/client/params/fwd.h>
-#include <ydb-cpp-sdk/v2/client/value/fwd.h>
+#include <ydb-cpp-sdk/client/params/fwd.h>
+#include <ydb-cpp-sdk/client/value/fwd.h>
 
 #include <string_view>
 #include <type_traits>

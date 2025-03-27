@@ -129,6 +129,8 @@ protected:
     /// invocation of Update or default constructed value if this is the first
     /// Update).
     /// @param now current time point
+    /// @param stats_scope the scope that expects
+    /// one of `Finish`, `FinishNoChanges`, `FinishWithError` or an exception.
     ///
     /// @throws std::exception on update failure
     ///

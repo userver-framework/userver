@@ -21,7 +21,6 @@
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/component.hpp>
-#include <userver/server/handlers/impl/deadline_propagation_config.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
@@ -163,33 +162,35 @@ HttpHandlerBase::HttpHandlerBase(
         throw std::runtime_error(std::string("can't add handler to server: ") + ex.what());
     }
 
-    std::vector<utils::statistics::Label> labels{
-        {"http_handler", config.Name()},
-    };
-
-    auto prefix = std::visit(
-        utils::Overloaded{
-            [&](const std::string& path) {
-                labels.emplace_back("http_path", utils::graphite::EscapeName(path));
-                return std::string{"http"};
-            },
-            [](FallbackHandler fallback) { return fmt::format("http.by-fallback.{}", ToString(fallback)); }},
-        GetConfig().path
-    );
-
     BuildMiddlewarePipeline(config, context);
 
-    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistics_holder_ = statistics_storage.RegisterWriter(
-        std::move(prefix),
-        [this](utils::statistics::Writer& result) {
-            FormatStatistics(result["handler"], *handler_statistics_);
-            if constexpr (kIncludeServerHttpMetrics) {
-                FormatStatistics(result["request"], *request_statistics_);
-            }
-        },
-        std::move(labels)
-    );
+    if (GetConfig().enable_write_statistics) {
+        std::vector<utils::statistics::Label> labels{
+            {"http_handler", config.Name()},
+        };
+
+        auto prefix = std::visit(
+            utils::Overloaded{
+                [&](const std::string& path) {
+                    labels.emplace_back("http_path", utils::graphite::EscapeName(path));
+                    return std::string{"http"};
+                },
+                [](FallbackHandler fallback) { return fmt::format("http.by-fallback.{}", ToString(fallback)); }},
+            GetConfig().path
+        );
+
+        auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
+        statistics_holder_ = statistics_storage.RegisterWriter(
+            std::move(prefix),
+            [this](utils::statistics::Writer& result) {
+                FormatStatistics(result["handler"], *handler_statistics_);
+                if constexpr (kIncludeServerHttpMetrics) {
+                    FormatStatistics(result["request"], *request_statistics_);
+                }
+            },
+            std::move(labels)
+        );
+    }
 
     set_response_server_hostname_ = GetConfig().set_response_server_hostname.value_or(
         server_component.GetServer().GetConfig().set_response_server_hostname

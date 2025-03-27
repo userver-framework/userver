@@ -201,13 +201,15 @@ void Socket::Bind(const Sockaddr& addr) {
 
     SetOption(SOL_SOCKET, SO_REUSEADDR, 1);
 
+    if (addr.HasPort()) {
 // MAC_COMPAT: does not support REUSEPORT
 #ifdef SO_REUSEPORT
-    SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
+        SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
 #else
-    LOG_ERROR() << "SO_REUSEPORT is not defined, you may experience problems "
-                   "with multithreaded listeners";
+        LOG_ERROR() << "SO_REUSEPORT is not defined, you may experience problems "
+                       "with multithreaded listeners";
 #endif
+    }
 
     utils::CheckSyscallCustomException<IoSystemError>(
         ::bind(Fd(), addr.Data(), addr.Size()), "binding a socket, fd={}, addr={}", Fd(), addr

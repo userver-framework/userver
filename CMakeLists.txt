@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.14...3.31)
 cmake_policy(SET CMP0025 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
     cmake_policy(SET CMP0093 NEW)
@@ -109,6 +109,7 @@ endif()
 option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
 
 option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
+option(USERVER_FEATURE_STACK_USAGE_MONITOR "Enable coroutine stack usage monitor if available" ON)
 
 set(USERVER_DISABLE_RSEQ_DEFAULT ON)
 if(USERVER_BUILD_PLATFORM_X86 AND CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -134,6 +135,8 @@ option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB
 set(CMAKE_DEBUG_POSTFIX d)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(CheckSupportedPlatform)
+
 if(USERVER_CONAN AND NOT DEFINED CMAKE_FIND_PACKAGE_PREFER_CONFIG)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 endif()
@@ -198,14 +201,9 @@ endif()
 
 add_subdirectory(universal)
 
-if(USERVER_FEATURE_CORE)
-    add_subdirectory(core)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS core)
-endif()
-
-if(USERVER_FEATURE_CHAOTIC)
-    add_subdirectory(chaotic)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
+if (USERVER_FEATURE_CHAOTIC)
+  add_subdirectory(chaotic)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
 
     if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
         _require_userver_core(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
@@ -214,10 +212,18 @@ if(USERVER_FEATURE_CHAOTIC)
     endif()
 endif()
 
-if(USERVER_FEATURE_MONGODB)
-    _require_userver_core("USERVER_FEATURE_MONGODB")
-    add_subdirectory(mongo)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS mongo)
+if (USERVER_FEATURE_CORE)
+  if (NOT USERVER_FEATURE_CHAOTIC)
+    message(FATAL_ERROR "'USERVER_FEATURE_CORE' requires 'USERVER_FEATURE_CHAOTIC=ON'")
+  endif()
+  add_subdirectory(core)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
+endif()
+
+if (USERVER_FEATURE_MONGODB)
+  _require_userver_core("USERVER_FEATURE_MONGODB")
+  add_subdirectory(mongo)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS mongo)
 endif()
 
 if(USERVER_FEATURE_POSTGRESQL)

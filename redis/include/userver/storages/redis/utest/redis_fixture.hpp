@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/redis/utest/redis_fixture.hpp
-/// @brief @copybrief storages::redis::RedisTest
+/// @brief @copybrief storages::redis::utest::RedisTest
 
 #include <userver/utest/utest.hpp>
 
@@ -17,7 +17,7 @@ namespace storages::redis::utest {
 /// `storages::redis::utest::RedisLocal` class
 ///
 /// see example:
-/// @snippet userver/samples/redis_service/unittests
+/// @snippet samples/redis_service/unittests/redis_test.cpp
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class RedisTest : public ::testing::Test, public RedisLocal {
 public:

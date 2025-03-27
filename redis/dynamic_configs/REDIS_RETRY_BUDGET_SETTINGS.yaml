@@ -1,0 +1,32 @@
+default: {"__default__": {"max-tokens": 100, "token-ratio": 0.1, "enabled": true}}
+description: ''
+schema:
+    type: object
+    description: retry budget settings for each database in service
+    properties:
+        __default__:
+            '$ref': '#/definitions/BaseSettings'
+    additionalProperties:
+        '$ref': '#/definitions/BaseSettings'
+    definitions:
+        BaseSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                enabled:
+                    description: Enable retry budget for database
+                    type: boolean
+                max-tokens:
+                    description: Number of tokens to start with
+                    type: number
+                    maximum: 1000
+                    minimum: 1
+                token-ratio:
+                    description: Amount of tokens added on each successful request
+                    type: number
+                    maximum: 1
+                    minimum: 0.001
+            required:
+              - enabled
+              - max-tokens
+              - token-ratio

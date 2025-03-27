@@ -6,8 +6,9 @@
 #include <grpcpp/server_context.h>
 
 #include <userver/tracing/span.hpp>
-#include <userver/ugrpc/server/storage_context.hpp>
 #include <userver/utils/any_storage.hpp>
+
+#include <userver/ugrpc/server/storage_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

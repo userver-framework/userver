@@ -16,6 +16,15 @@ function(_userver_prepare_chaotic)
   message(STATUS "Found chaotic-gen: ${CHAOTIC_BIN}")
   set_property(GLOBAL PROPERTY userver_chaotic_bin "${CHAOTIC_BIN}")
 
+  find_program(CHAOTIC_DYNAMIC_CONFIGS_BIN chaotic-gen-dynamic-configs
+      PATHS
+          "${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/bin-dynamic-configs"
+          "${CMAKE_CURRENT_LIST_DIR}/../../../bin"
+      NO_DEFAULT_PATH
+  )
+  message(STATUS "Found chaotic-gen-dynamic-configs: ${CHAOTIC_DYNAMIC_CONFIGS_BIN}")
+  set_property(GLOBAL PROPERTY userver_chaotic_dynamic_configs_bin "${CHAOTIC_DYNAMIC_CONFIGS_BIN}")
+
   find_program(CHAOTIC_OPENAPI_BIN chaotic-openapi-gen
       PATHS
           "${CMAKE_CURRENT_SOURCE_DIR}/../chaotic-openapi/bin"
@@ -106,7 +115,7 @@ function(userver_target_generate_chaotic TARGET)
       OUTPUT
           ${SCHEMAS}
       COMMAND
-          env
+          ${CMAKE_COMMAND} -E env
           "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
           "${CHAOTIC_BIN}"
           ${CHAOTIC_EXTRA_ARGS}
@@ -120,7 +129,7 @@ function(userver_target_generate_chaotic TARGET)
       WORKING_DIRECTORY
           "${CMAKE_CURRENT_SOURCE_DIR}"
       VERBATIM
-      ${CODEGEN}
+          ${CODEGEN}
   )
   add_library("${TARGET}" ${SCHEMAS})
   target_link_libraries("${TARGET}" userver::chaotic)
@@ -192,4 +201,52 @@ function(userver_target_generate_openapi_client TARGET)
   target_link_libraries("${TARGET}" userver::chaotic-openapi)
   # target_include_directories("${TARGET}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
   target_include_directories("${TARGET}" PUBLIC "${PARSE_OUTPUT_DIR}/include")
+endfunction()
+
+function(userver_target_generate_chaotic_dynamic_configs TARGET SCHEMAS_REGEX)
+  file(GLOB CHGEN_FILENAMES ${SCHEMAS_REGEX})
+  set(OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/dynamic_configs)
+
+  get_property(CHAOTIC_DYNAMIC_CONFIGS_BIN GLOBAL PROPERTY userver_chaotic_dynamic_configs_bin)
+  get_property(CHAOTIC_EXTRA_ARGS GLOBAL PROPERTY userver_chaotic_extra_args)
+  get_property(USERVER_CHAOTIC_PYTHON_BINARY GLOBAL PROPERTY userver_chaotic_python_binary)
+  get_property(CLANG_FORMAT_BIN GLOBAL PROPERTY userver_clang_format_bin)
+
+  _userver_initialize_codegen_flag()
+
+  set(OUTPUT_FILENAMES)
+  foreach(FILENAME ${CHGEN_FILENAMES}) 
+    string(REGEX REPLACE "^(.*)/([^/]*)\\.([^.]*)\$" "\\2" SCHEMA "${FILENAME}")
+
+    list(APPEND OUTPUT_FILENAMES
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types_fwd.hpp
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types.hpp
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types_parsers.ipp
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.hpp
+         ${OUTPUT_DIR}/src/dynamic_config/variables/${SCHEMA}.types.cpp
+         ${OUTPUT_DIR}/src/dynamic_config/variables/${SCHEMA}.cpp
+    )
+  endforeach()
+
+  add_custom_command(
+      OUTPUT
+          ${OUTPUT_FILENAMES}
+      COMMAND
+          env
+          "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
+          "${CHAOTIC_DYNAMIC_CONFIGS_BIN}"
+          ${CHAOTIC_EXTRA_ARGS}
+          -I ${CMAKE_CURRENT_LIST_DIR}/../chaotic/include
+          -o "${OUTPUT_DIR}"
+          ${CHGEN_FILENAMES}
+      DEPENDS
+          ${CHGEN_FILENAMES}
+      WORKING_DIRECTORY
+          "${CMAKE_CURRENT_SOURCE_DIR}"
+      VERBATIM
+           ${CODEGEN}
+  )
+  add_library("${TARGET}" STATIC ${OUTPUT_FILENAMES})
+  target_link_libraries("${TARGET}" userver::core userver::chaotic)
+  target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${OUTPUT_DIR}/include>")
 endfunction()

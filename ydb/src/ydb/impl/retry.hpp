@@ -4,8 +4,8 @@
 
 #include <fmt/format.h>
 
-#include <ydb-cpp-sdk/v2/client/retry/retry.h>
-#include <ydb-cpp-sdk/v2/client/table/table.h>
+#include <ydb-cpp-sdk/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/table/table.h>
 
 #include <userver/utils/retry_budget.hpp>
 #include <userver/ydb/exceptions.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ydb-cpp-sdk/v2/client/params/params.h>
+#include <ydb-cpp-sdk/client/params/params.h>
 
 #include <string>
 #include <type_traits>

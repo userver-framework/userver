@@ -1,6 +1,6 @@
 #include <userver/utest/utest.hpp>
 
-#include <ydb-cpp-sdk/v2/client/types/status/status.h>
+#include <ydb-cpp-sdk/client/types/status/status.h>
 
 #include <userver/ydb/exceptions.hpp>
 #include <userver/ydb/impl/cast.hpp>

@@ -956,7 +956,7 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t p
                     command->control.max_retries = retries_left;
 
                     auto new_command = PrepareCommand(
-                        std::move(ccommand->args),
+                        ccommand->args.Clone(),
                         command->Callback(),
                         command->control,
                         command->counter + 1,

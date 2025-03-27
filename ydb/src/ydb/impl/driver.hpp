@@ -6,7 +6,7 @@
 #include <userver/utils/retry_budget.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
-#include <ydb-cpp-sdk/v2/client/driver/fwd.h>
+#include <ydb-cpp-sdk/client/driver/fwd.h>
 
 namespace NMonitoring {
 class TMetricRegistry;

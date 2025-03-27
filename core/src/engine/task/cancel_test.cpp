@@ -3,6 +3,8 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
@@ -10,6 +12,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
 
 using namespace std::chrono_literals;
 
@@ -334,6 +337,95 @@ UTEST(Cancel, CancellationTokenLifetime) {
 
     EXPECT_TRUE(token.IsValid());
     token.RequestCancel();
+}
+
+UTEST(Cancel, CriticalSample) {
+    /// [critical cancel]
+    bool task_was_run = false;
+    auto task = utils::CriticalAsync("sleep", [&task_was_run] {
+        task_was_run = true;
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+    });
+
+    task.RequestCancel();
+
+    // It will actually typically only take a few microseconds for the task to complete.
+    task.WaitFor(utest::kMaxTestWaitTime / 2);
+    // Check that the cancellation interrupted the sleep.
+    EXPECT_TRUE(task.IsFinished());
+    UEXPECT_NO_THROW(task.Get());
+
+    EXPECT_TRUE(task_was_run);
+    /// [critical cancel]
+}
+
+namespace {
+namespace drop_task_by_unwind {
+
+/// [stack unwinding destroys task]
+void Child() {
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(engine::current_task::ShouldCancel());
+    throw std::runtime_error("This exception will be swallowed in the task destructor");
+}
+
+void SomeOtherWork() { throw std::runtime_error("Something went wrong"); }
+
+void Parent() {
+    auto child_task = utils::Async("child", Child);
+    // Now the current function proceeds to do some other work. Suppose it throws an exception.
+    // `child_task` is destroyed during stack unwinding, and the destructor
+    // cancels and awaits `child_task`. Its exception is swallowed in the destructor.
+    SomeOtherWork();
+    // After we've done our work, we'd expect to merge in child_task's result.
+    child_task.Get();
+}
+/// [stack unwinding destroys task]
+
+}  // namespace drop_task_by_unwind
+}  // namespace
+
+UTEST(Cancel, DropTaskByUnwindSample) {
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime / 2);
+    UEXPECT_THROW_MSG(drop_task_by_unwind::Parent(), std::runtime_error, "Something went wrong");
+    // Check that the cancellation worked on InterruptibleSleepFor in Foo.
+    EXPECT_FALSE(deadline.IsReached());
+}
+
+namespace {
+namespace parent_cancelled {
+
+/// [parent cancelled]
+void Child() { engine::InterruptibleSleepFor(utest::kMaxTestWaitTime); }
+
+void Parent() {
+    auto child_task = utils::Async("child", Child);
+    // Cancel ourselves for the sake of a simple example. On practice, Parent's parent will cancel it.
+    // The cancellation will be visible at the next waiting operation.
+    engine::current_task::RequestCancel();
+
+    try {
+        child_task.Get();
+        FAIL() << "The line above should have thrown";
+    } catch (const engine::WaitInterruptedException& /*ex*/) {
+        // Cancelling Parent does not magically cancel any other tasks...
+        engine::SleepFor(std::chrono::milliseconds{10});
+        EXPECT_FALSE(child_task.IsFinished());
+        throw;
+    }
+
+    // ...It typically happens because `child_task` exits the scope.
+}
+/// [parent cancelled]
+
+}  // namespace parent_cancelled
+}  // namespace
+
+UTEST(Cancel, ParentCancelledSample) {
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime / 2);
+    UEXPECT_THROW(parent_cancelled::Parent(), engine::WaitInterruptedException);
+    // Check that the cancellation worked on InterruptibleSleepFor in Child.
+    EXPECT_FALSE(deadline.IsReached());
 }
 
 USERVER_NAMESPACE_END

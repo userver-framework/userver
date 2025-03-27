@@ -1,15 +1,17 @@
 #include <userver/components/manager_controller_component.hpp>
 
 #include <components/manager_config.hpp>
-#include <components/manager_controller_component_config.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <components/manager.hpp>
+
+#include <dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -115,15 +117,15 @@ void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writ
 }
 
 void ManagerControllerComponent::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-    auto config = cfg[kManagerControllerDynamicConfig];
+    auto config = cfg[::dynamic_config::USERVER_TASK_PROCESSOR_QOS];
+    const auto& profiler_config = cfg[::dynamic_config::USERVER_TASK_PROCESSOR_PROFILER_DEBUG];
 
     for (const auto& [name, task_processor] : components_manager_.GetTaskProcessorsMap()) {
-        auto it = config.settings.find(name);
-        if (it != config.settings.end()) {
-            task_processor->SetSettings(it->second);
-        } else {
-            task_processor->SetSettings(config.default_settings);
-        }
+        auto profiler_cfg = utils::FindOrDefault(
+            profiler_config.extra, name, utils::FindOrDefault(profiler_config.extra, "default-task-processor")
+        );
+        // NOTE: find task processor by name, someday
+        task_processor->SetSettings(config.default_service.default_task_processor, profiler_cfg);
     }
 }
 

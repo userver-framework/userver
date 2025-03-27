@@ -12,7 +12,7 @@ git
 google-benchmark
 googletest
 hiredis
-icu4c@76
+icu4c
 jemalloc
 krb5
 libev

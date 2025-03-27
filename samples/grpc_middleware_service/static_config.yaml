@@ -34,23 +34,31 @@ components_manager:
 
         congestion-control:
 
-# /// [gRPC middleware sample - static config grpc-auth-client]
+# /// [static config grpc-auth-client]
         grpc-auth-client:
+        grpc-chaos-client:
 
         grpc-client-middlewares-pipeline:
             middlewares:
                 grpc-auth-client:
                     enabled: true  # register the middleware in the pipeline
-# /// [gRPC middleware sample - static config grpc-auth-client]
+                grpc-chaos-client:
+                    enabled: true
+# /// [static config grpc-auth-client]
 
-# /// [gRPC middleware sample - static config grpc-server-middlewares-pipeline]
+# /// [static config grpc-server-middlewares-pipeline]
         grpc-auth-server:
+        grpc-server-meta-filter:
+            headers:
+              - global-header
 
         grpc-server-middlewares-pipeline:
             middlewares:
                 grpc-auth-server:  # register the middleware in the pipeline
                     enabled: true
-# /// [gRPC middleware sample - static config grpc-server-middlewares-pipeline]
+                grpc-server-meta-filter:
+                    enabled: true
+# /// [static config grpc-server-middlewares-pipeline]
 
         # Common configuration for gRPC server
         grpc-server:
@@ -64,6 +72,11 @@ components_manager:
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
+            middlewares:
+                grpc-server-meta-filter:
+                    # So, the middleware of this service will get this header instead of 'global-header'
+                    headers:
+                      - specific-header
 # /// [gRPC middleware sample - static config server middleware]
 
         # In this example, the tests still communicate with the microservice

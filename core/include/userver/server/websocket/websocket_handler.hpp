@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/server/websocket/websocket_handler.hpp
-/// @brief @copybrief websocket::WebsocketHandlerBase
+/// @brief @copybrief server::websocket::WebsocketHandlerBase
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>

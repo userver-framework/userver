@@ -4,7 +4,7 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

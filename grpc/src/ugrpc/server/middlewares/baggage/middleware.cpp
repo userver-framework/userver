@@ -1,12 +1,14 @@
 #include <userver/ugrpc/server/middlewares/baggage/middleware.hpp>
 
 #include <userver/baggage/baggage.hpp>
-#include <userver/baggage/baggage_settings.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/grpc_string_logging.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
+
+#include <dynamic_config/variables/BAGGAGE_SETTINGS.hpp>
+#include <dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,8 +19,8 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
 
     const auto& dynamic_config = context.GetInitialDynamicConfig();
 
-    if (dynamic_config[USERVER_NAMESPACE::baggage::kBaggageEnabled]) {
-        const auto& baggage_settings = dynamic_config[USERVER_NAMESPACE::baggage::kBaggageSettings];
+    if (dynamic_config[::dynamic_config::USERVER_BAGGAGE_ENABLED]) {
+        const auto& baggage_settings = dynamic_config[::dynamic_config::BAGGAGE_SETTINGS];
 
         const auto& server_context = call.GetContext();
 

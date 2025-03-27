@@ -14,6 +14,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-graceful-shutdown)
 add_subdirectory(https)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https)
 
+add_subdirectory(http2server)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-http2server)
+
 add_subdirectory(https_no_passphrase)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https-no-passphrase)
 

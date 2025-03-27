@@ -48,7 +48,7 @@ Changelog news also go to the
   to [akhoroshev](https://github.com/akhoroshev) for the PR!
 * Deadline Propagation for PostgreSQL is now enabled by default and can be controlled via `deadline-propagation-enabled`
   static option of the components::Postgres.
-* Testsuite now supports @ref uservice_oneshot "@pytest.mark.uservice_oneshot".
+* Testsuite now supports @ref uservice_oneshot "`@pytest.mark.uservice_oneshot`".
 * utils::regex now always uses a faster and safer Re2 instead of boost::regex.
 * Dynamic config `USERVER_HANDLER_STREAM_API_ENABLED` is not used any more.
 * server::handlers::HttpHandlerStatic now has a `expires` static config option.
@@ -233,7 +233,7 @@ Changelog news also go to the
   * gRPC clients now allow configuring channels count for particular methods via `dedicated-channel-counts` static
     config option.
 
-Optimizations:
+* Optimizations:
   * concurrent::MpscQueue was optimized, leading to x2-x3 better performance.
   * rcu::Variable deleter now can be chosen at compile time, leading to smaller size of rcu::Variable if no asynchronous
     deletion required.
@@ -613,7 +613,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
 * clients::http::Form is now movable and slightly more efficient. Thanks to
   [Alexandr Kondratev](https://github.com/theg4sh) for the PR!
 * Redis now supports `SSUBSCRIBE` and removes dead nodes.
-* engine::WaitAny() now can wait for an engine::io::Socket/engine::io::TlsWrapper
+* engine::WaitAny() now can wait for an engine::io::Socket or engine::io::TlsWrapper
   to become readable or writable. For example:
   `engine::WaitAny(socket.GetReadableBase(), task1, tls_socket.GetWritableBase(), future1);`
 * New tracing::Span::MakeRootSpan() helper function.
@@ -1111,7 +1111,7 @@ Detailed descriptions could be found below.
   * HTTP client connection is now preserved on deadline, leading to less
     connections being reopened.
 
-* Cleaned up and added docs for redis::CommandControl.
+* Cleaned up and added docs for storages::redis::CommandControl.
 * MacOS build instructions were enhanced, thanks to
   [Daniil Shvalov](https://github.com/danilshvalov) for the PR!
 * Conan build was fixed, thanks to
@@ -1207,7 +1207,7 @@ Detailed descriptions could be found below.
 * Docs:
   * Some metrics were documented, a human-readable format of metrics
     is now used in documentation. See @ref scripts/docs/en/userver/service_monitor.md.
-  * Custom @ref scripts/docs/en/userver/.md404 "404 page".
+  * Custom @ref scripts/docs/en/userver/404.md "404 page".
   * New pages, including @ref scripts/docs/en/userver/faq.md, @ref scripts/docs/en/userver/periodics.md
     and @ref scripts/docs/en/userver/deploy_env.md.
 
@@ -1265,7 +1265,7 @@ Detailed descriptions could be found below.
     [Anatoly Shirokov](https://github.com/anatoly-spb) for the PR.
   * PostgreSQL libs selection is now possible in CMake if the platform has
     multiple versions installed, see
-    @ref POSTGRES_LIBS "PostgreSQL versions" for more info.
+    @ref postgres_deps_versions "PostgreSQL versions" for more info.
   * Improved support for Arch Linux, many thanks to
     [Konstantin Goncharik](https://github.com/botanegg) for the PR.
 * Multiple improvements for docs, including mockserver clarifications from
@@ -1311,7 +1311,7 @@ Detailed descriptions could be found below.
     more info.
   * Scripts for generating CMakeLists were simplified and cleared from internal
     stuff.
-  * Added missing dependencies to @ref scripts/docs/en/deps_ubuntu_.md20_04 and sorted all
+  * Added missing dependencies to @ref scripts/docs/en/deps/ubuntu-20.04.md and sorted all
     the dependencies, thanks to [Anatoly Shirokov](https://github.com/anatoly-spb)
     for the PR.
 * Statistics and metrics now do additional lifetime checks in debug builds to
@@ -1564,7 +1564,7 @@ Detailed descriptions could be found below.
 * Better Python3 detection, thanks to
   [Дмитрий Изволов](https://github.com/izvolov) for the PR.
 * Task processors now have an `os-scheduling` static config option and
-  @md_en_userver_task_processors_guide "a usage guide".
+  @ref scripts/docs/en/userver/task_processors_guide.md "a usage guide".
 * Added a [pg_service_template](https://github.com/userver-framework/pg_service_template)
   service template that uses userver the userver framework with PostgreSQL
 * In template services, it is now possible to deploy the environment and run
@@ -1594,8 +1594,9 @@ Detailed descriptions could be found below.
   @ref scripts/docs/en/userver/security_changelog.md,
   @ref scripts/docs/en/userver/profile_context_switches.md,
   @ref scripts/docs/en/userver/driver_guide.md,
-  @md_en_userver_task_processors_guide,
-  @ref scripts/docs/en/userver/os_signals.md and @ref scripts/docs/en/userver/roadmap_and_changelog.md.
+  @ref scripts/docs/en/userver/task_processors_guide.md,
+  @ref scripts/docs/en/userver/os_signals.md and
+  @ref scripts/docs/en/userver/roadmap_and_changelog.md.
 * AArch64 build supported. Tests pass successfully
 * HTTP headers hashing not vulnerable to HashDOS any more, thanks to Ivan
   Trofimov for the report.

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Redis futures for storages::redis::Client and storages::redis::Transaction.
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -21,6 +24,10 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
+/// @brief Redis future for a non-scan and non-eval responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send request to the
+/// Redis return this type or storages::redis::ScanRequest.
 template <typename ResultType, typename ReplyType>
 class [[nodiscard]] Request final {
 public:
@@ -55,6 +62,10 @@ private:
     std::unique_ptr<RequestDataBase<ReplyType>> impl_;
 };
 
+/// @brief Redis future for a SCAN-like responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send SCAN-like request
+/// to the Redis return this type or storages::redis::ScanRequest.
 template <ScanTag scan_tag>
 class ScanRequest final {
 public:
@@ -143,6 +154,8 @@ private:
     std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
 };
 
+/// @name Redis futures aliases
+/// @{
 using RequestAppend = Request<size_t>;
 using RequestBitop = Request<size_t>;
 using RequestDbsize = Request<size_t>;
@@ -227,6 +240,7 @@ using RequestZremrangebyrank = Request<size_t>;
 using RequestZremrangebyscore = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
+/// @}
 
 }  // namespace storages::redis
 

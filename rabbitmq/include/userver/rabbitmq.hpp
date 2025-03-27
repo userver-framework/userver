@@ -23,7 +23,7 @@
 /// components::RabbitMQ. The uRabbitMQ driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.
 ///
-/// @section feature Features
+/// @section rabbitmq_feature Features
 /// - Publishing messages;
 /// - Consuming messages;
 /// - Creating Exchanges, Queues and Bindings;
@@ -31,7 +31,7 @@
 /// - Connections pooling;
 /// - End-to-end logging for messages in publish->consume chain.
 ///
-/// @section info More information
+/// @section rabbitmq_info More information
 /// - For configuration see components::RabbitMQ
 /// - For cluster operations see urabbitmq::Client, urabbitmq::AdminChannel,
 ///   urabbitmq::Channel, urabbitmq::ReliableChannel

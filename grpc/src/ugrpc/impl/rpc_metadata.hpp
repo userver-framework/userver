@@ -23,6 +23,11 @@ extern const grpc::string kHostname;
 
 extern const grpc::string kCongestionControlRatelimitReason;
 
+extern const grpc::string kXTestsuiteErrorCode;
+
+extern const grpc::string kTestsuiteNetworkCode;
+extern const grpc::string kTestsuiteTimeoutCode;
+
 }  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END
