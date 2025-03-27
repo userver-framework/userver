@@ -17,7 +17,7 @@ env:
     CMAKE_FLAGS: -GNinja
                         -DCMAKE_CXX_COMPILER=clang++-18
                         -DCMAKE_C_COMPILER=clang-18
-                        -DCMAKE_BUILD_TYPE=Debug
+                        -DCMAKE_BUILD_TYPE=Release
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_INSTALL=1
@@ -81,24 +81,24 @@ jobs:
 
           - name: Run cmake
             run: |
-                cmake -S . -B build_debug ${{env.CMAKE_FLAGS}}
+                cmake -S . -B build_release ${{env.CMAKE_FLAGS}}
 
           - name: Compile
             run: |
                 pwd
-                cd build_debug
+                cd build_release
                 cmake --build . -j $(nproc)
 
           - name: Install
             run: |
-                sudo cmake --install build_debug
+                sudo cmake --install build_release
 
           - name: Service (empty)
             run: |
                 userver-create-service myservice
                 cd myservice
-                make build-debug
-                make test-debug
+                make build-release
+                make test-release
                 cd ..
                 rm -rf myservice
 
@@ -106,19 +106,19 @@ jobs:
             run: |
                 userver-create-service --mongo myservice-mongo
                 cd myservice-mongo
-                make build-debug
-                make test-debug
+                make build-release
+                make test-release
 
           - name: Service (grpc)
             run: |
                 userver-create-service --grpc myservice-grpc
                 cd myservice-grpc
-                make build-debug
-                make test-debug
+                make build-release
+                make test-release
 
           - name: Service (postgresql)
             run: |
                 userver-create-service --postgresql myservice-pg
                 cd myservice-pg
-                make build-debug
-                make test-debug
+                make build-release
+                make test-release
