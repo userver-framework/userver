@@ -91,7 +91,7 @@ jobs:
 
           - name: Install
             run: |
-                cmake --install -B build_debug
+                cmake --install build_debug
 
           - name: Create service
             run: |
