@@ -28,9 +28,8 @@ with section("parse"):
                 "UBENCH_LINK_LIBRARIES": "*",
                 "UBENCH_ENV": "*",
                 "POSTGRES_TEST_DSN": "*",
-
             },
-            "flags": ["NO_INSTALL"],
+            "flags": ["NO_INSTALL", "NO_CORE_LINK", "GENERATE_DYNAMIC_CONFIGS"],
         },
         "_userver_directory_install": {
             "kwargs": {
@@ -76,6 +75,11 @@ with section("parse"):
                 "INCLUDE_DIRECTORIES": "*",
             },
         },
+        "userver_chaos_testsuite_add": {
+            "kwargs": {
+                "ENV": "*",
+            },
+        },        
     }
 
 # -----------------------------
