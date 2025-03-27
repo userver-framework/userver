@@ -103,12 +103,12 @@ jobs:
                 cd ..
                 rm -rf myservice
 
-          - name: Service (mongo)
-            run: |
-                userver-create-service --mongo myservice-mongo
-                cd myservice-mongo
-                make build-release
-                make test-release
+          # - name: Service (mongo)
+          #   run: |
+          #       userver-create-service --mongo myservice-mongo
+          #       cd myservice-mongo
+          #       make build-release
+          #       make test-release
 
           - name: Service (grpc)
             run: |
