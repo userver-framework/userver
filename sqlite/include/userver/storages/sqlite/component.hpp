@@ -5,6 +5,8 @@
 
 #include <userver/components/component_base.hpp>
 
+#include <userver/utils/statistics/entry.hpp>
+
 #include <userver/storages/sqlite/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -55,6 +57,7 @@ class SQLite final : public components::ComponentBase {
  private:
   std::string name_;
   const storages::sqlite::ClientPtr client_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 template <>

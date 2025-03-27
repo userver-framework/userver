@@ -36,6 +36,12 @@ PoolPtr ReadOnlyStrategy::InitializeReadOnlyPoolReference(
   return read_connection_pool;
 }
 
+void ReadOnlyStrategy::WriteStatistics(
+    utils::statistics::Writer& writer) const {
+  auto reader_stat = read_connection_pool_->GetStatistics();
+  writer.ValueWithLabels(reader_stat, {{"connection_pool", "read"}});
+}
+
 }  // namespace storages::sqlite::infra::strategy
 
 USERVER_NAMESPACE_END

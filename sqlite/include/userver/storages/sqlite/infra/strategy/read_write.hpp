@@ -12,6 +12,8 @@ class ReadWriteStrategy final : public PoolStrategyBase {
                     engine::TaskProcessor& blocking_task_processor);
   ~ReadWriteStrategy() final;
 
+  void WriteStatistics(utils::statistics::Writer& writer) const final;
+
  private:
   Pool& GetReadOnly() const final;
   Pool& GetReadWrite() const final;

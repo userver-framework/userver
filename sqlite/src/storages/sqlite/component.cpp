@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
@@ -99,9 +100,16 @@ std::shared_ptr<storages::sqlite::Client> CreateClient(
 SQLite::SQLite(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
       name_{config.Name()},
-      client_(CreateClient(config, context)) {}
+      client_(CreateClient(config, context)) {
+  auto& statistics_storage =
+      context.FindComponent<components::StatisticsStorage>();
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      "sqlite", [this](utils::statistics::Writer& writer) {
+        client_->WriteStatistics(writer);
+      });
+}
 
-SQLite::~SQLite() = default;
+SQLite::~SQLite() { statistics_holder_.Unregister(); }
 
 storages::sqlite::ClientPtr SQLite::GetClient() const { return client_; }
 

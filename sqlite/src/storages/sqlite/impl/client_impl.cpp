@@ -21,6 +21,10 @@ infra::ConnectionPtr ClientImpl::GetConnection(
   return pool_strategy_->SelectPool(operation_type).Acquire();
 }
 
+void ClientImpl::WriteStatistics(utils::statistics::Writer& writer) const {
+  pool_strategy_->WriteStatistics(writer);
+}
+
 }  // namespace storages::sqlite::impl
 
 USERVER_NAMESPACE_END

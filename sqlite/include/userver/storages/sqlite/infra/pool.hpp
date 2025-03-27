@@ -7,29 +7,16 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/statistics/relaxed_counter.hpp>
 
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/infra/statistics.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra {
-
-using Counter = utils::statistics::RelaxedCounter<std::uint64_t>;
-
-struct PoolConnectionStatistics final {
-  Counter overload{};
-  Counter closed{};
-  Counter created{};
-  Counter acquired{};
-  Counter released{};
-};
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolConnectionStatistics& stats);
 
 class Pool final
     : public drivers::impl::ConnectionPoolBase<impl::Connection, Pool> {
@@ -49,6 +36,8 @@ class Pool final
   // strategy
   Counter GetCurrentWorkersCount() const;
 
+  const PoolStatistics& GetStatistics() const;
+
  private:
   friend class drivers::impl::ConnectionPoolBase<impl::Connection, Pool>;
 
@@ -64,7 +53,7 @@ class Pool final
 
   const settings::SQLiteSettings settings_;
 
-  PoolConnectionStatistics stats_{};
+  PoolStatistics stats_{};
 };
 
 }  // namespace storages::sqlite::infra

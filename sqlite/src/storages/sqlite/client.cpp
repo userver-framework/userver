@@ -36,6 +36,10 @@ ResultSet Client::DoExecute(impl::io::ParamsBinderBase& params,
   return connection->ExecuteCommand(prepare_statement);
 }
 
+void Client::WriteStatistics(utils::statistics::Writer& writer) const {
+  return pimpl_->WriteStatistics(writer);
+}
+
 }  // namespace storages::sqlite
 
 USERVER_NAMESPACE_END

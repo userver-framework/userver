@@ -22,16 +22,6 @@ constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 
 }  // namespace
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolConnectionStatistics& stats) {
-  writer["overload"] = stats.overload;
-  writer["created"] = stats.created;
-  writer["closed"] = stats.closed;
-
-  writer["active"] = stats.created - stats.closed;
-  writer["busy"] = stats.acquired - stats.released;
-}
-
 std::shared_ptr<Pool> Pool::Create(
     const settings::SQLiteSettings& settings,
     engine::TaskProcessor& blocking_task_processor) {
@@ -63,13 +53,16 @@ Pool::Pool(const settings::SQLiteSettings& settings,
   } catch (const SQLiteException&) {
     Reset();
     throw;
-  } catch (const std::exception&) {
+  } catch (const std::exception& err) {
+    LOG_ERROR() << "Error in connection pool: " << err.what();
   }
 }
 
 Counter Pool::GetCurrentWorkersCount() const {
-  return stats_.acquired - stats_.released;
+  return stats_.connections.acquired - stats_.connections.released;
 }
+
+const PoolStatistics& Pool::GetStatistics() const { return stats_; }
 
 Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline) {
   try {
@@ -82,11 +75,13 @@ Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline) {
   }
 }
 
-void Pool::AccountConnectionAcquired() { ++stats_.acquired; }
-void Pool::AccountConnectionReleased() { ++stats_.released; }
-void Pool::AccountConnectionCreated() { ++stats_.created; }
-void Pool::AccountConnectionDestroyed() noexcept { ++stats_.closed; }
-void Pool::AccountOverload() { ++stats_.overload; }
+void Pool::AccountConnectionAcquired() { ++stats_.connections.acquired; }
+void Pool::AccountConnectionReleased() { ++stats_.connections.released; }
+void Pool::AccountConnectionCreated() { ++stats_.connections.created; }
+void Pool::AccountConnectionDestroyed() noexcept {
+  ++stats_.connections.closed;
+}
+void Pool::AccountOverload() { ++stats_.connections.overload; }
 
 }  // namespace storages::sqlite::infra
 

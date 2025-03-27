@@ -56,6 +56,14 @@ PoolPtr ReadWriteStrategy::InitializeReadWritePoolReference(
   return write_connection_pool;
 }
 
+void ReadWriteStrategy::WriteStatistics(
+    utils::statistics::Writer& writer) const {
+  auto writer_stat = write_connection_pool_->GetStatistics();
+  writer.ValueWithLabels(writer_stat, {{"connection_pool", "write"}});
+  auto reader_stat = read_connection_pool_->GetStatistics();
+  writer.ValueWithLabels(reader_stat, {{"connection_pool", "read"}});
+}
+
 }  // namespace storages::sqlite::infra::strategy
 
 USERVER_NAMESPACE_END

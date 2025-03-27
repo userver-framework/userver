@@ -4,6 +4,7 @@
 /// @copybrief @copybrief storages::sqlite::Connection
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include <userver/storages/sqlite/cursor_result_set.hpp>
 #include <userver/storages/sqlite/impl/binder_help.hpp>
@@ -55,6 +56,9 @@ class Client final {
   CursorResultSet<T> GetCursor(OperationType operation_type,
                                std::size_t batch_size, const Query& query,
                                const Args&... args) const;
+
+  /// Write client statistics
+  void WriteStatistics(utils::statistics::Writer& writer) const;
 
  private:
   ResultSet DoExecute(impl::io::ParamsBinderBase& params,

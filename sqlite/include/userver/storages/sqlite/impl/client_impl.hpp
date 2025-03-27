@@ -4,6 +4,7 @@
 /// @copybrief @copybrief storages::sqlite::Connection
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include <userver/storages/sqlite/operation_types.hpp>
 #include <userver/storages/sqlite/options.hpp>
@@ -21,6 +22,8 @@ class ClientImpl final {
   ~ClientImpl();
 
   infra::ConnectionPtr GetConnection(OperationType op_type) const;
+
+  void WriteStatistics(utils::statistics::Writer& writer) const;
 
  private:
   infra::strategy::PoolStrategyBasePtr pool_strategy_;
