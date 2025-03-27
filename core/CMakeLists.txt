@@ -76,8 +76,8 @@ else()
     target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq)
 endif()
 
-if (NOT USERVER_FEATURE_STACK_USAGE_MONITOR)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_STACK_USAGE_MONITOR)
+if(NOT USERVER_FEATURE_STACK_USAGE_MONITOR)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_STACK_USAGE_MONITOR)
 endif()
 
 # https://github.com/jemalloc/jemalloc/issues/820
@@ -195,10 +195,7 @@ target_include_directories(
                             ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-userver_target_generate_chaotic_dynamic_configs(
-    ${PROJECT_NAME}-dynamic-configs
-    dynamic_configs/*.yaml
-)
+userver_target_generate_chaotic_dynamic_configs(${PROJECT_NAME}-dynamic-configs dynamic_configs/*.yaml)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-dynamic-configs)
 
 # Must go below all the target options and definitions.
@@ -259,9 +256,10 @@ if(USERVER_BUILD_TESTS)
 endif()
 
 _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-dynamic-configs)
-_userver_directory_install(COMPONENT core FILES
-    "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
-    "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
+_userver_directory_install(
+    COMPONENT core
+    FILES "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
+          "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 _userver_directory_install(
