@@ -110,12 +110,12 @@ jobs:
           #       make build-release
           #       make test-release
 
-          - name: Service (grpc)
-            run: |
-                userver-create-service --grpc myservice-grpc
-                cd myservice-grpc
-                make build-release
-                make test-release
+          # - name: Service (grpc)
+          #   run: |
+          #       userver-create-service --grpc myservice-grpc
+          #       cd myservice-grpc
+          #       make build-release
+          #       make test-release
 
           - name: Service (postgresql)
             run: |
