@@ -1,0 +1,232 @@
+#include <atomic>
+#include <userver/utest/utest.hpp>
+
+#include <fmt/core.h>
+#include <gtest/gtest.h>
+#include <vector>
+
+#include <userver/engine/async.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/get_all.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utest/assert_macros.hpp>
+#include <userver/utils/statistics/testing.hpp>
+
+#include <userver/storages/sqlite/tests/utils.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::sqlite::tests {
+
+namespace {
+
+class SQLiteMetricsTest
+    : public SQLiteCompositeFixture<SQLiteCustomConnection> {
+ public:
+  utils::statistics::Snapshot GetStatistics(
+      std::string prefix,
+      std::vector<utils::statistics::Label> require_labels = {}) {
+    return utils::statistics::Snapshot{statistics_storage_, std::move(prefix),
+                                       std::move(require_labels)};
+  }
+
+  ~SQLiteMetricsTest() override { statistics_holder_.Unregister(); }
+
+ private:
+  void PreInitialize(const ClientPtr& client) final {
+    client_ = std::move(client);
+    statistics_holder_ = statistics_storage_.RegisterWriter(
+        "sqlite", [this](utils::statistics::Writer& writer) {
+          client_->WriteStatistics(writer);
+        });
+    UEXPECT_NO_THROW(client->Execute(
+        storages::sqlite::OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+  }
+
+  ClientPtr client_;
+  utils::statistics::Storage statistics_storage_;
+  utils::statistics::Entry statistics_holder_;
+};
+
+}  // namespace
+
+UTEST_F(SQLiteMetricsTest, PoolBasic) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+  settings.create_file = true;
+
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+
+  UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
+                                   "INSERT INTO test VALUES (1, 'first') "));
+  UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
+                                   "INSERT INTO test VALUES (2, 'second')"));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadOnly,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadWrite,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
+  const auto write_connection_stats = GetStatistics("sqlite.connections.write");
+  EXPECT_EQ(write_connection_stats.SingleMetric("overload").AsInt(), 0);
+  EXPECT_EQ(write_connection_stats.SingleMetric("created").AsInt(), 1);
+  EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsInt(), 0);
+  EXPECT_EQ(write_connection_stats.SingleMetric("active").AsInt(), 1);
+  EXPECT_EQ(write_connection_stats.SingleMetric("busy").AsInt(), 0);
+
+  const auto read_connection_stats = GetStatistics("sqlite.connections.read");
+  EXPECT_EQ(read_connection_stats.SingleMetric("overload").AsInt(), 0);
+  EXPECT_EQ(read_connection_stats.SingleMetric("created").AsInt(), 5);
+  EXPECT_EQ(read_connection_stats.SingleMetric("closed").AsInt(), 0);
+  EXPECT_EQ(read_connection_stats.SingleMetric("active").AsInt(), 5);
+  EXPECT_EQ(read_connection_stats.SingleMetric("busy").AsInt(), 0);
+}
+
+UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+  settings.create_file = true;
+
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+
+  constexpr size_t kWriteTaskCount = 5;
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(kWriteTaskCount);
+
+  engine::Mutex mu;
+  engine::ConditionVariable blocked_writer_cv;
+  engine::ConditionVariable stat_read_cv;
+  bool blocked_writer_inserted = false;
+  bool stat_readed = false;
+
+  auto blocked_writer = engine::AsyncNoSpan([&]() {
+    auto trx = client->Begin(OperationType::kReadWrite, {});
+    UEXPECT_NO_THROW(trx.Execute("INSERT INTO test VALUES (NULL, 'data')"));
+    std::unique_lock<engine::Mutex> lock(mu);
+    blocked_writer_inserted = true;
+    blocked_writer_cv.NotifyAll();
+    EXPECT_TRUE(
+        stat_read_cv.Wait(lock, [&stat_readed] { return stat_readed; }));
+    trx.Commit();
+  });
+
+  std::unique_lock<engine::Mutex> lock(mu);
+  EXPECT_TRUE(blocked_writer_cv.Wait(
+      lock, [&blocked_writer_inserted] { return blocked_writer_inserted; }));
+  lock.unlock();
+
+  for (size_t i = 0; i < kWriteTaskCount; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&client]() {
+      UEXPECT_NO_THROW(
+          client->Execute(storages::sqlite::OperationType::kReadWrite,
+                          "INSERT INTO test VALUES (NULL, 'data')"));
+    }));
+  }
+
+  EXPECT_TRUE(client->Execute(OperationType::kReadOnly, "SELECT * FROM test")
+                  .AsVector<RowTuple>()
+                  .empty());
+
+  const auto write_connection_stats = GetStatistics("sqlite.connections.write");
+  EXPECT_EQ(write_connection_stats.SingleMetric("overload").AsInt(), 0);
+  EXPECT_EQ(write_connection_stats.SingleMetric("created").AsInt(), 1);
+  EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsInt(), 0);
+  EXPECT_EQ(write_connection_stats.SingleMetric("active").AsInt(), 1);
+  EXPECT_EQ(write_connection_stats.SingleMetric("busy").AsInt(), 1);
+
+  lock.lock();
+  stat_readed = true;
+  stat_read_cv.NotifyAll();
+  lock.unlock();
+
+  blocked_writer.Get();
+  engine::GetAll(tasks);
+
+  const auto after_write_connection_stats =
+      GetStatistics("sqlite.connections.write");
+  EXPECT_EQ(after_write_connection_stats.SingleMetric("overload").AsInt(), 0);
+  EXPECT_EQ(after_write_connection_stats.SingleMetric("created").AsInt(), 1);
+  EXPECT_EQ(after_write_connection_stats.SingleMetric("closed").AsInt(), 0);
+  EXPECT_EQ(after_write_connection_stats.SingleMetric("active").AsInt(), 1);
+  EXPECT_EQ(after_write_connection_stats.SingleMetric("busy").AsInt(), 0);
+}
+
+UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+  settings.create_file = true;
+
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+
+  UEXPECT_NO_THROW(client->Execute(OperationType::kReadWrite,
+                                   "INSERT INTO test VALUES (NULL, 'data')"));
+
+  constexpr size_t kReadTaskCount = 13;
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(kReadTaskCount);
+
+  engine::Mutex mu;
+  engine::ConditionVariable blocked_readers_cv;
+  engine::ConditionVariable stat_read_cv;
+  bool stat_readed = false;
+  std::atomic_size_t read_trx_start = 0;
+
+  for (size_t i = 0; i < kReadTaskCount; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&]() {
+      auto trx = client->Begin(OperationType::kReadOnly, {});
+      UEXPECT_NO_THROW(trx.Execute("SELECT * FROM test").AsVector<RowTuple>());
+      std::unique_lock<engine::Mutex> lock(mu);
+      ++read_trx_start;
+      if (read_trx_start == settings.pool_settings.max_pool_size) {
+        blocked_readers_cv.NotifyAll();
+      }
+      EXPECT_TRUE(
+          stat_read_cv.Wait(lock, [&stat_readed] { return stat_readed; }));
+      trx.Commit();
+    }));
+  }
+
+  std::unique_lock<engine::Mutex> lock(mu);
+  EXPECT_TRUE(blocked_readers_cv.Wait(lock, [&] {
+    return read_trx_start == settings.pool_settings.max_pool_size;
+  }));
+  lock.unlock();
+
+  const auto read_connection_stats = GetStatistics("sqlite.connections.read");
+  EXPECT_EQ(read_connection_stats.SingleMetric("overload").AsInt(), 0);
+  EXPECT_EQ(read_connection_stats.SingleMetric("created").AsInt(),
+            settings.pool_settings.max_pool_size);
+  EXPECT_EQ(read_connection_stats.SingleMetric("closed").AsInt(), 0);
+  EXPECT_EQ(read_connection_stats.SingleMetric("active").AsInt(),
+            settings.pool_settings.max_pool_size);
+  EXPECT_EQ(read_connection_stats.SingleMetric("busy").AsInt(),
+            settings.pool_settings.max_pool_size);
+
+  lock.lock();
+  stat_readed = true;
+  stat_read_cv.NotifyAll();
+  lock.unlock();
+
+  engine::GetAll(tasks);
+
+  const auto after_read_connection_stats =
+      GetStatistics("sqlite.connections.read");
+  EXPECT_EQ(after_read_connection_stats.SingleMetric("overload").AsInt(), 0);
+  EXPECT_EQ(after_read_connection_stats.SingleMetric("created").AsInt(),
+            settings.pool_settings.max_pool_size);
+  EXPECT_EQ(after_read_connection_stats.SingleMetric("closed").AsInt(), 0);
+  EXPECT_EQ(after_read_connection_stats.SingleMetric("active").AsInt(),
+            settings.pool_settings.max_pool_size);
+  EXPECT_EQ(after_read_connection_stats.SingleMetric("busy").AsInt(), 0);
+}
+
+}  // namespace storages::sqlite::tests
+
+USERVER_NAMESPACE_END

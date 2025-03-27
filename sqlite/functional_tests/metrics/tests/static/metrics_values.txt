@@ -1,11 +1,11 @@
-# SQLite driver metrics on connections
-sqlite.connections.active: connection_pool=read	GAUGE	0
-sqlite.connections.active: connection_pool=write	GAUGE	0
-sqlite.connections.busy: connection_pool=read	GAUGE	0
-sqlite.connections.busy: connection_pool=write	GAUGE	0
-sqlite.connections.closed: connection_pool=read	GAUGE	0
-sqlite.connections.closed: connection_pool=write	GAUGE	0
-sqlite.connections.created: connection_pool=read	GAUGE	0
-sqlite.connections.created: connection_pool=write	GAUGE	0
-sqlite.connections.overload: connection_pool=read	GAUGE	0
-sqlite.connections.overload: connection_pool=write	GAUGE	0
+# SQLite driver metrics on connections (read / write)
+sqlite.connections.read.active:	GAUGE	0
+sqlite.connections.read.busy:	GAUGE	0
+sqlite.connections.read.closed:	GAUGE	0
+sqlite.connections.read.created:	GAUGE	0
+sqlite.connections.read.overload:	GAUGE	0
+sqlite.connections.write.active:	GAUGE	0
+sqlite.connections.write.busy:	GAUGE	0
+sqlite.connections.write.closed:	GAUGE	0
+sqlite.connections.write.created:	GAUGE	0
+sqlite.connections.write.overload:	GAUGE	0

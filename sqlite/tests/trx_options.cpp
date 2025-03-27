@@ -70,7 +70,6 @@ UTEST_P_MT(SQLiteTransactionsConcurentTest, IsolationLevels, 3) {
     reader_cv.NotifyAll();
     EXPECT_TRUE(
         writer_cv.Wait(lock, [&reader_selected] { return reader_selected; }));
-    EXPECT_TRUE(reader_selected);
     UEXPECT_NO_THROW(trx.Rollback());
   });
 

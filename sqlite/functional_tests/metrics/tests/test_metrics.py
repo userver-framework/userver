@@ -2,14 +2,6 @@ import re
 import pytest
 
 
-def _is_sqlite_metrics(line: str) -> bool:
-    if (
-        'sqlite' not in line
-    ):
-        return False
-    return True
-
-
 def _normalize_metrics(metrics: str) -> str:
     result = []
     for line in metrics.splitlines():

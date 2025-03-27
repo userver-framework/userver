@@ -4,6 +4,7 @@
 
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/options.hpp>
+#include "userver/storages/sqlite/infra/statistics.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,8 +39,12 @@ PoolPtr ReadOnlyStrategy::InitializeReadOnlyPoolReference(
 
 void ReadOnlyStrategy::WriteStatistics(
     utils::statistics::Writer& writer) const {
-  auto reader_stat = read_connection_pool_->GetStatistics();
-  writer.ValueWithLabels(reader_stat, {{"connection_pool", "read"}});
+  auto write_stat = PoolStatistics{};
+  write_stat.type = "write";
+  writer.ValueWithLabels(write_stat, {});
+  auto read_stat = read_connection_pool_->GetStatistics();
+  read_stat.type = "read";
+  writer.ValueWithLabels(read_stat, {});
 }
 
 }  // namespace storages::sqlite::infra::strategy

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
@@ -19,6 +20,8 @@ struct PoolConnectionStatistics final {
 };
 
 struct PoolStatistics final {
+  std::string type;
+
   PoolConnectionStatistics connections{};
 };
 

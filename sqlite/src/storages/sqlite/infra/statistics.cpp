@@ -8,7 +8,7 @@ namespace storages::sqlite::infra {
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const PoolStatistics& stats) {
-  writer["connections"] = stats.connections;
+  writer["connections"][stats.type] = stats.connections;
 }
 
 void DumpMetric(utils::statistics::Writer& writer,

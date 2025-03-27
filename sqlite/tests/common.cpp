@@ -51,7 +51,7 @@ UTEST_F(SQLiteCommonTest, ReadWrite) {
                                   "SELECT * FROM test")
                         .AsVector<RowTuple>()));
   UEXPECT_NO_THROW((client
-                        ->Execute(storages::sqlite::OperationType::kReadOnly,
+                        ->Execute(storages::sqlite::OperationType::kReadWrite,
                                   "SELECT * FROM test")
                         .AsVector<RowTuple>()));
 }

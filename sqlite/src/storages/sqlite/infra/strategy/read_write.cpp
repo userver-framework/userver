@@ -58,10 +58,12 @@ PoolPtr ReadWriteStrategy::InitializeReadWritePoolReference(
 
 void ReadWriteStrategy::WriteStatistics(
     utils::statistics::Writer& writer) const {
-  auto writer_stat = write_connection_pool_->GetStatistics();
-  writer.ValueWithLabels(writer_stat, {{"connection_pool", "write"}});
-  auto reader_stat = read_connection_pool_->GetStatistics();
-  writer.ValueWithLabels(reader_stat, {{"connection_pool", "read"}});
+  auto write_stat = write_connection_pool_->GetStatistics();
+  write_stat.type = "write";
+  writer.ValueWithLabels(write_stat, {});
+  auto read_stat = read_connection_pool_->GetStatistics();
+  read_stat.type = "read";
+  writer.ValueWithLabels(read_stat, {});
 }
 
 }  // namespace storages::sqlite::infra::strategy
