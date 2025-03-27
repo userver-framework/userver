@@ -81,7 +81,7 @@ jobs:
 
           - name: Run cmake
             run: |
-                cmake -S . -B build_debug ${{matrix.cmake-flags}}
+                cmake -S . -B build_debug ${{env.CMAKE_FLAGS}}
 
           - name: Compile
             run: |
@@ -89,7 +89,14 @@ jobs:
                 cd build_debug
                 cmake --build . -j $(nproc)
 
-          - name: Create service
+          - name: Install
             run: |
-                cd build_debug/scripts/gdb/tests
-                ctest -V
+                cmake --install -B build_debug
+
+          - name: Create service
+                userver-create-service myservice
+
+          - name: Build & test service
+                cd myservice
+                make build-debug
+                make testsuite-debug
