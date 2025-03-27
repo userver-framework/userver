@@ -68,7 +68,7 @@ jobs:
             run: |
                 sudo apt update
                 sudo apt purge -y libpq5 libpq-dev postgresql-*
-                sudo apt install --allow-downgrades -y ccache redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+                sudo apt install --allow-downgrades -y ccache redis-server postgresql $(cat scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
 
           - name: Setup ccache
             run: |
