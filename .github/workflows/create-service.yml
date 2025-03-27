@@ -119,7 +119,7 @@ jobs:
 
           - name: Service (postgresql)
             run: |
-                userver-create-service --postgresql myservice-pg
+                userver-create-service --postgres myservice-pg
                 cd myservice-pg
                 make build-release
                 make test-release
