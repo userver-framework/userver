@@ -78,6 +78,7 @@ jobs:
           - name: Install gdb and pytest
             run: |
                 sudo apt install -y gdb python3-pytest pycodestyle
+                pip install ruff
 
           - name: Run cmake
             run: |
