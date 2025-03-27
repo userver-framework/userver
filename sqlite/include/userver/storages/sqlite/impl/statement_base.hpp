@@ -29,7 +29,10 @@ class StatementBase {
   virtual int ColumnCount() const noexcept = 0;
   virtual bool HasNext() const noexcept = 0;
   virtual bool IsDone() const noexcept = 0;
-  virtual void Next() = 0;
+  virtual bool IsFail() const noexcept = 0;
+  virtual void Next() noexcept = 0;
+  // Can throw exception if step finish with error code
+  virtual void CheckStepStatus() = 0;
 
   // Extract result methods
   virtual int RowsAffected() const noexcept = 0;

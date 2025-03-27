@@ -1,9 +1,10 @@
-#include <atomic>
 #include <userver/utest/utest.hpp>
+
+#include <atomic>
+#include <vector>
 
 #include <fmt/core.h>
 #include <gtest/gtest.h>
-#include <vector>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
@@ -13,7 +14,10 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
+#include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
+#include "userver/storages/sqlite/options.hpp"
+#include "userver/storages/sqlite/sqlite_fwd.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,6 +52,16 @@ class SQLiteMetricsTest
   ClientPtr client_;
   utils::statistics::Storage statistics_storage_;
   utils::statistics::Entry statistics_holder_;
+};
+
+class SQLiteMetricsPoolTest : public SQLiteFixture {
+ public:
+  infra::PoolPtr GetPool(settings::SQLiteSettings settings = {}) {
+    settings.db_name = GetTestDbPath("test.db");
+    settings.create_file = true;
+    return std::make_shared<infra::Pool>(
+        settings, engine::current_task::GetTaskProcessor());
+  }
 };
 
 }  // namespace
@@ -225,6 +239,37 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
   EXPECT_EQ(after_read_connection_stats.SingleMetric("active").AsInt(),
             settings.pool_settings.max_pool_size);
   EXPECT_EQ(after_read_connection_stats.SingleMetric("busy").AsInt(), 0);
+}
+
+UTEST_F(SQLiteMetricsPoolTest, ActiveConnections) {
+  settings::SQLiteSettings settings;
+  settings.pool_settings.initial_pool_size = 1;
+  settings.pool_settings.max_pool_size = 10;
+  auto pool = GetPool(settings);
+
+  std::vector<storages::sqlite::infra::ConnectionPtr> connections;
+  connections.reserve(3);
+  for (size_t i = 0; i < 3; ++i) {
+    connections.emplace_back(pool->Acquire());
+  }
+
+  {
+    const auto& stat = pool->GetStatistics();
+    size_t busy = stat.connections.acquired - stat.connections.released;
+    size_t active = stat.connections.created - stat.connections.closed;
+    EXPECT_EQ(busy, 3);
+    EXPECT_EQ(active, 3);
+  }
+
+  connections.clear();
+
+  {
+    const auto& stat = pool->GetStatistics();
+    size_t busy = stat.connections.acquired - stat.connections.released;
+    size_t active = stat.connections.created - stat.connections.closed;
+    EXPECT_EQ(busy, 0);
+    EXPECT_EQ(active, 3);
+  }
 }
 
 }  // namespace storages::sqlite::tests

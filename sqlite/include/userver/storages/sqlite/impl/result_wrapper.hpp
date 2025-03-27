@@ -13,11 +13,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-/// @brief Result wrapper and fetch helper
+/// @brief Result fetch helper
 class ResultWrapper final {
  public:
   ResultWrapper(StatementBasePtr prepare_statement,
-                engine::TaskProcessor& blocking_task_processor);
+                std::shared_ptr<infra::ConnectionPtr> connection_ptr);
   ~ResultWrapper();
 
   StatementBasePtr GetStatement() noexcept;
@@ -32,7 +32,7 @@ class ResultWrapper final {
   void ExecutionStep();
 
   StatementBasePtr prepare_statement_;
-  engine::TaskProcessor& blocking_task_processor_;
+  std::shared_ptr<infra::ConnectionPtr> connection_ptr_;
 };
 
 }  // namespace storages::sqlite::impl

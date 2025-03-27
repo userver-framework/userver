@@ -1,3 +1,4 @@
+#include <memory>
 #include <userver/storages/sqlite/impl/client_impl.hpp>
 
 #include <userver/storages/sqlite/impl/connection.hpp>
@@ -16,13 +17,22 @@ ClientImpl::ClientImpl(const settings::SQLiteSettings& settings,
 
 ClientImpl::~ClientImpl() = default;
 
-infra::ConnectionPtr ClientImpl::GetConnection(
+std::shared_ptr<infra::ConnectionPtr> ClientImpl::GetConnection(
     OperationType operation_type) const {
-  return pool_strategy_->SelectPool(operation_type).Acquire();
+  return std::make_shared<infra::ConnectionPtr>(
+      pool_strategy_->SelectPool(operation_type).Acquire());
 }
 
 void ClientImpl::WriteStatistics(utils::statistics::Writer& writer) const {
   pool_strategy_->WriteStatistics(writer);
+}
+
+ResultSet ClientImpl::ExecuteCommand(
+    impl::StatementBasePtr prepare_statement,
+    std::shared_ptr<infra::ConnectionPtr> connection) const {
+  auto result_wrapper = std::make_unique<impl::ResultWrapper>(
+      prepare_statement, std::move(connection));
+  return ResultSet{std::move(result_wrapper)};
 }
 
 }  // namespace storages::sqlite::impl

@@ -141,19 +141,17 @@ bool Statement::IsDone() const noexcept { return exec_status_ == SQLITE_DONE; }
 
 bool Statement::IsFail() const noexcept { return !IsDone() && !HasNext(); }
 
-void Statement::CheckFail() const {
-  if (IsFail()) {
+void Statement::Next() noexcept {
+  exec_status_ = sqlite3_step(prepare_statement_.get());
+}
+
+void Statement::CheckStepStatus() {
+  if (!HasNext() && IsDone()) {
+    Reset();
+  } else if (IsFail()) {
     throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), exec_status_,
                           sqlite3_extended_errcode(db_handler_.GetHandle()));
   }
-}
-
-void Statement::Next() {
-  exec_status_ = sqlite3_step(prepare_statement_.get());
-  if (!HasNext()) {
-    Reset();
-  }
-  CheckFail();
 }
 
 int Statement::ColumnCount() const noexcept { return column_count_; }

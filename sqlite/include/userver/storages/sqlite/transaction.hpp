@@ -17,7 +17,7 @@ namespace storages::sqlite {
 
 class Transaction final {
  public:
-  Transaction(infra::ConnectionPtr&& connection,
+  Transaction(std::shared_ptr<infra::ConnectionPtr> connection,
               const settings::TransactionOptions& options);
   ~Transaction();
   Transaction(const Transaction& other) = delete;

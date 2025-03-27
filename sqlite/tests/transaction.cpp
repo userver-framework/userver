@@ -32,7 +32,7 @@ UTEST_F(SQLiteTransactionsTest, Commit) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+  Transaction trx{nullptr, {}};
   UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
       << "Begin default transaction";
   ExecutionResult exec_result;
@@ -55,7 +55,7 @@ UTEST_F(SQLiteTransactionsTest, Rollback) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+  Transaction trx{nullptr, {}};
   UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
       << "Begin default transaction";
   int last_insert_id{};
@@ -82,7 +82,7 @@ UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
 
   // Use trx after commit would be abort
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Transaction trx{nullptr, {}};
     UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     UEXPECT_NO_THROW(trx.Commit()) << "Commit transaction";
@@ -95,7 +95,7 @@ UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
 
   // Use trx after rollback would be abort
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Transaction trx{nullptr, {}};
     UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     UEXPECT_NO_THROW(trx.Rollback()) << "Rollback transaction";
@@ -113,7 +113,7 @@ UTEST_F(SQLiteTransactionsTest, AutoRollback) {
 
   // Insert a row and not commit the transaction
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Transaction trx{nullptr, {}};
     UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     int last_insert_id{};
@@ -128,7 +128,7 @@ UTEST_F(SQLiteTransactionsTest, AutoRollback) {
   // Insert a row and rollback the transaction -> auto rollback not throw
   // exception
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Transaction trx{nullptr, {}};
     UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     int last_insert_id{};
@@ -143,7 +143,7 @@ UTEST_F(SQLiteTransactionsTest, AutoRollback) {
 
   // Failure (exception) in transaction is safe
   try {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Transaction trx{nullptr, {}};
     UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     int last_insert_id{};

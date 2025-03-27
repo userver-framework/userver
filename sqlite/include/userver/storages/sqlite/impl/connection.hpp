@@ -6,6 +6,8 @@
 #include <userver/storages/sqlite/impl/result_wrapper.hpp>
 #include <userver/storages/sqlite/impl/statement.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics_counter.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
@@ -23,31 +25,25 @@ class Connection {
 
   settings::ConnectionSettings const& GetSettings() const noexcept;
 
-  ResultSet ExecuteCommand(impl::StatementBasePtr prepare_statement) const;
-
-  void Begin(const settings::TransactionOptions& options);
-
-  void Commit();
-
-  void Rollback();
-
-  void Savepoint(const std::string& name);
-
-  void Release(const std::string& name);
-
-  void RollbackTo(const std::string& name);
-
-  std::string PrepareString(const std::string& str);
-
   StatementPtr PrepareStatement(const Query& query);
 
-  bool IsBroken() const;
+  void ExecutionStep(StatementBasePtr prepare_statement) const;
 
+  void Begin(const settings::TransactionOptions& options);
+  void Commit();
+  void Rollback();
+
+  void Save(const std::string& name);
+  void Release(const std::string& name);
+  void RollbackTo(const std::string& name);
+
+  infra::statistics::CountExecute GetStatisticsCounter() const;
+
+  bool IsBroken() const;
   void NotifyBroken();
 
  private:
   void ExecuteQuery(const std::string& query) const;
-
   void SetSettings(const settings::SQLiteSettings& settings);
 
   engine::TaskProcessor& blocking_task_processor_;

@@ -16,7 +16,7 @@ namespace storages::sqlite {
 
 class Savepoint final {
  public:
-  Savepoint(infra::ConnectionPtr&& connection, std::string name);
+  Savepoint(std::shared_ptr<infra::ConnectionPtr> connection, std::string name);
   ~Savepoint();
   Savepoint(const Savepoint& other) = delete;
   Savepoint(Savepoint&& other) noexcept;
@@ -38,11 +38,8 @@ class Savepoint final {
   void RollbackTo();
 
  private:
-  Savepoint(std::shared_ptr<infra::ConnectionPtr> shared_connection,
-            std::string name);  // for nested savepoints
-
   ResultSet DoExecute(impl::io::ParamsBinderBase& params) const;
-
+  std::string PrepareString(const std::string& str);
   void AssertValid() const;
 
   friend class Transaction;

@@ -22,8 +22,9 @@ namespace {
 class SQLiteSavepointsTest
     : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
   void PreInitialize(const ClientPtr& client) final {
-    UEXPECT_NO_THROW(client->Execute(OperationType::kReadWrite,
-                    "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+    UEXPECT_NO_THROW(client->Execute(
+        OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
   }
 };
 
@@ -33,7 +34,7 @@ UTEST_F(SQLiteSavepointsTest, Release) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
+  Savepoint savepoint{nullptr, {}};
   UEXPECT_NO_THROW(
       savepoint = client->Save(OperationType::kReadWrite, "test_savepoint"))
       << "Begin savepoint";
@@ -60,7 +61,7 @@ UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
+  Savepoint savepoint{nullptr, {}};
   UEXPECT_NO_THROW(
       savepoint = client->Save(OperationType::kReadWrite, "test_savepoint"))
       << "Begin savepoint";
@@ -78,7 +79,7 @@ UTEST_F(SQLiteSavepointsTest, RollbackTo) {
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
+  Savepoint savepoint{nullptr, {}};
   UEXPECT_NO_THROW(
       savepoint = client->Save(OperationType::kReadWrite, "test_savepoint"))
       << "Begin savepoint";
@@ -109,7 +110,7 @@ UTEST_F(SQLiteSavepointsTest, AutoRollback) {
 
   // Insert a row and not release the savepoint
   {
-    Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Savepoint savepoint{nullptr, {}};
     UEXPECT_NO_THROW(
         savepoint = client->Save(OperationType::kReadWrite, "test_savepoint"))
         << "Begin savepoint";
@@ -126,7 +127,7 @@ UTEST_F(SQLiteSavepointsTest, AutoRollback) {
   // Insert a row and rollback the savepoint -> auto rollback not throw
   // exception
   {
-    Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Savepoint savepoint{nullptr, {}};
     UEXPECT_NO_THROW(
         savepoint = client->Save(OperationType::kReadWrite, "test_savepoint"))
         << "Begin savepoint";
@@ -143,7 +144,7 @@ UTEST_F(SQLiteSavepointsTest, AutoRollback) {
 
   // Failure (exception) in savepoint is safe
   try {
-    Savepoint savepoint{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Savepoint savepoint{nullptr, {}};
     UEXPECT_NO_THROW(
         savepoint = client->Save(OperationType::kReadWrite, "test_savepoint"))
         << "Begin default savepoint";
@@ -169,7 +170,7 @@ UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
 
   // Release both savepoints
   {
-    Savepoint savepoint1{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Savepoint savepoint1{nullptr, {}};
     UEXPECT_NO_THROW(
         savepoint1 = client->Save(OperationType::kReadWrite, "test_savepoint1"))
         << "Begin first savepoint";
@@ -177,7 +178,7 @@ UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
         savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
         << "Insert first row in savepoint";
 
-    Savepoint savepoint2{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Savepoint savepoint2{nullptr, {}};
     UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2"))
         << "Begin second savepoint";
     UEXPECT_NO_THROW(
@@ -190,7 +191,7 @@ UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
 
   // one release, one rollback
   {
-    Savepoint savepoint1{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Savepoint savepoint1{nullptr, {}};
     UEXPECT_NO_THROW(
         savepoint1 = client->Save(OperationType::kReadWrite, "test_savepoint1"))
         << "Begin first savepoint";
@@ -198,7 +199,7 @@ UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
         savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
         << "Insert first row in savepoint";
 
-    Savepoint savepoint2{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Savepoint savepoint2{nullptr, {}};
     UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2"))
         << "Begin second savepoint";
     UEXPECT_NO_THROW(

@@ -58,11 +58,11 @@ Pool::Pool(const settings::SQLiteSettings& settings,
   }
 }
 
-Counter Pool::GetCurrentWorkersCount() const {
+statistics::Counter Pool::GetCurrentWorkersCount() const {
   return stats_.connections.acquired - stats_.connections.released;
 }
 
-const PoolStatistics& Pool::GetStatistics() const { return stats_; }
+statistics::PoolStatistics& Pool::GetStatistics() { return stats_; }
 
 Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline) {
   try {

@@ -62,9 +62,10 @@ class Client final {
 
  private:
   ResultSet DoExecute(impl::io::ParamsBinderBase& params,
-                      const infra::ConnectionPtr& connection) const;
+                      std::shared_ptr<infra::ConnectionPtr> connection) const;
 
-  infra::ConnectionPtr GetConnection(OperationType operation_type) const;
+  std::shared_ptr<infra::ConnectionPtr> GetConnection(
+      OperationType operation_type) const;
 
   impl::ClientImplPtr pimpl_;
 };
@@ -74,7 +75,7 @@ ResultSet Client::Execute(OperationType operation_type, const Query& query,
                           const Args&... args) const {
   auto connection = GetConnection(operation_type);
   auto params_binder = impl::BindHelper::UpdateParamsBindings(
-      query.GetStatement(), connection, args...);
+      query.GetStatement(), *connection, args...);
   return DoExecute(params_binder, connection);
 }
 
@@ -83,7 +84,7 @@ ResultSet Client::ExecuteDecompose(OperationType operation_type,
                                    const Query& query, const T& row) const {
   auto connection = GetConnection(operation_type);
   auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-      query.GetStatement(), connection, row);
+      query.GetStatement(), *connection, row);
   return DoExecute(params_binder, connection);
 }
 
@@ -93,7 +94,7 @@ void Client::ExecuteMany(OperationType operation_type, const Query& query,
   auto connection = GetConnection(operation_type);
   for (const auto& row : params) {
     auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-        query.GetStatement(), connection, row);
+        query.GetStatement(), *connection, row);
     DoExecute(params_binder, connection);
   }
 }
@@ -104,7 +105,7 @@ CursorResultSet<T> Client::GetCursor(OperationType operation_type,
                                      const Args&... args) const {
   auto connection = GetConnection(operation_type);
   auto params_binder = impl::BindHelper::UpdateParamsBindings(
-      query.GetStatement(), connection, args...);
+      query.GetStatement(), *connection, args...);
   return CursorResultSet<T>{DoExecute(params_binder, connection), batch_size};
 }
 

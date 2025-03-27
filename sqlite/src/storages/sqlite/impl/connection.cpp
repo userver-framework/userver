@@ -1,7 +1,9 @@
 #include <userver/storages/sqlite/impl/connection.hpp>
 
+#include <userver/engine/async.hpp>
+
+#include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
-#include "userver/storages/sqlite/options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +27,6 @@ constexpr std::string_view kStatementSavepointBegin = "SAVEPOINT ";
 constexpr std::string_view kStatementSavepointRelease = "RELEASE SAVEPOINT ";
 constexpr std::string_view kStatementSavepointRollbackTo =
     "ROLLBACK TO SAVEPOINT ";
-constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
 
 }  // namespace
 
@@ -43,11 +44,22 @@ settings::ConnectionSettings const& Connection::GetSettings() const noexcept {
   return settings_.conn_settings;
 }
 
-ResultSet Connection::ExecuteCommand(
-    impl::StatementBasePtr prepare_statement) const {
-  auto result_wrapper = std::make_unique<impl::ResultWrapper>(
-      prepare_statement, blocking_task_processor_);
-  return ResultSet{std::move(result_wrapper)};
+StatementPtr Connection::PrepareStatement(const Query& query) {
+  if (settings_.conn_settings.prepared_statements ==
+      settings::ConnectionSettings::kNoPreparedStatements) {
+    return std::make_shared<Statement>(db_handler_, query.GetStatement());
+  } else {
+    auto stmt = statements_cache_.PrepareStatement(query.GetStatement());
+    stmt->Reset();
+    return stmt;
+  }
+}
+
+void Connection::ExecutionStep(StatementBasePtr prepare_statement) const {
+  engine::AsyncNoSpan(blocking_task_processor_, [prepare_statement] {
+    prepare_statement->Next();
+  }).Get();
+  prepare_statement->CheckStepStatus();
 }
 
 void Connection::Begin(const settings::TransactionOptions& options) {
@@ -85,7 +97,7 @@ void Connection::Rollback() {
   }
 }
 
-void Connection::Savepoint(const std::string& name) {
+void Connection::Save(const std::string& name) {
   ExecuteQuery(std::string(kStatementSavepointBegin) + name);
 }
 
@@ -95,24 +107,6 @@ void Connection::Release(const std::string& name) {
 
 void Connection::RollbackTo(const std::string& name) {
   ExecuteQuery(std::string(kStatementSavepointRollbackTo) + name);
-}
-
-std::string Connection::PrepareString(const std::string& str) {
-  auto statement =
-      std::make_shared<Statement>(db_handler_, kStatementPrepeareString.data());
-  statement->Bind(1, str);
-  return ExecuteCommand(statement).AsSingleField<std::string>();
-}
-
-StatementPtr Connection::PrepareStatement(const Query& query) {
-  if (settings_.conn_settings.prepared_statements ==
-      settings::ConnectionSettings::kNoPreparedStatements) {
-    return std::make_shared<Statement>(db_handler_, query.GetStatement());
-  } else {
-    auto stmt = statements_cache_.PrepareStatement(query.GetStatement());
-    stmt->Reset();
-    return stmt;
-  }
 }
 
 bool Connection::IsBroken() const { return broken_.load(); }

@@ -59,7 +59,7 @@ UTEST_P_MT(SQLiteTransactionsConcurentTest, IsolationLevels, 3) {
     settings::TransactionOptions writer_options{
         trx_isolation_lvl,
         settings::TransactionOptions::LockingMode::kImmediate};
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Transaction trx{nullptr, {}};
 
     UEXPECT_NO_THROW(
         trx = client->Begin(OperationType::kReadWrite, writer_options));
@@ -75,7 +75,7 @@ UTEST_P_MT(SQLiteTransactionsConcurentTest, IsolationLevels, 3) {
 
   auto reader = engine::AsyncNoSpan([&]() {
     settings::TransactionOptions reader_options{trx_isolation_lvl};
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+    Transaction trx{nullptr, {}};
 
     std::unique_lock<engine::Mutex> lock(mu);
     EXPECT_TRUE(
@@ -100,7 +100,7 @@ UTEST_P_MT(SQLiteTransactionsConcurentTest, IsolationLevels, 3) {
   reader.Get();
   writer.Get();
 
-  Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
+  Transaction trx{nullptr, {}};
   UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadOnly, {}));
   std::vector<std::string> result;
   UEXPECT_NO_THROW(

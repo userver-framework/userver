@@ -9,10 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Transaction::Transaction(infra::ConnectionPtr&& connection,
+Transaction::Transaction(std::shared_ptr<infra::ConnectionPtr> connection,
                          const settings::TransactionOptions& options)
-    : connection_{
-          std::make_shared<infra::ConnectionPtr>(std::move(connection))} {
+    : connection_{std::move(connection)} {
   if (connection_ && connection_->IsValid()) {
     (*connection_)->Begin(options);
   }
@@ -60,7 +59,9 @@ void Transaction::Rollback() {
 
 ResultSet Transaction::DoExecute(impl::io::ParamsBinderBase& params) const {
   auto prepare_statement = params.GetBindsPtr();
-  return (*connection_)->ExecuteCommand(prepare_statement);
+  auto result_wrapper =
+      std::make_unique<impl::ResultWrapper>(prepare_statement, connection_);
+  return ResultSet{std::move(result_wrapper)};
 }
 
 }  // namespace storages::sqlite

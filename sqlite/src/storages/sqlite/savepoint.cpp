@@ -9,21 +9,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Savepoint::Savepoint(infra::ConnectionPtr&& connection, std::string name)
-    : connection_{
-          std::make_shared<infra::ConnectionPtr>(std::move(connection))} {
-  if (connection_ && connection_->IsValid()) {
-    name_ = (*connection_)->PrepareString(name);
-    (*connection_)->Savepoint(name_);
-  }
+namespace {
+
+constexpr std::string_view kStatementPrepeareString = "SELECT quote(?)";
+
+}  // namespace
+
+std::string Savepoint::PrepareString(const std::string& str) {
+  auto params_binder = impl::BindHelper::UpdateParamsBindings(
+      kStatementPrepeareString.data(), *connection_, str);
+  return DoExecute(params_binder).AsSingleField<std::string>();
 }
 
-Savepoint::Savepoint(std::shared_ptr<infra::ConnectionPtr> shared_connection,
+Savepoint::Savepoint(std::shared_ptr<infra::ConnectionPtr> connection,
                      std::string name)
-    : connection_(std::move(shared_connection)) {
+    : connection_{std::move(connection)} {
   if (connection_ && connection_->IsValid()) {
-    name_ = (*connection_)->PrepareString(name);
-    (*connection_)->Savepoint(name_);
+    name_ = PrepareString(name);
+    (*connection_)->Save(name_);
   }
 }
 
@@ -68,7 +71,9 @@ Savepoint Savepoint::Save(std::string name) const {
 
 ResultSet Savepoint::DoExecute(impl::io::ParamsBinderBase& params) const {
   auto prepare_statement = params.GetBindsPtr();
-  return (*connection_)->ExecuteCommand(prepare_statement);
+  auto result_wrapper =
+      std::make_unique<impl::ResultWrapper>(prepare_statement, connection_);
+  return ResultSet{std::move(result_wrapper)};
 }
 
 }  // namespace storages::sqlite

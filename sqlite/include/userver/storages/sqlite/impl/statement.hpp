@@ -41,9 +41,9 @@ class Statement final : public StatementBase {
   int ColumnCount() const noexcept override;
   bool HasNext() const noexcept override;
   bool IsDone() const noexcept override;
-  void Next() override;
-  bool IsFail() const noexcept;
-  void CheckFail() const;
+  bool IsFail() const noexcept override;
+  void Next() noexcept override;
+  void CheckStepStatus() override;
 
   // Extract
   int RowsAffected() const noexcept override;

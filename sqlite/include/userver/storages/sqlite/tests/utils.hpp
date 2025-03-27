@@ -51,7 +51,9 @@ class MockSQLiteStatement : public impl::StatementBase {
   MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
   MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
   MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
-  MOCK_METHOD(void, Next, (), (override));
+  MOCK_METHOD(bool, IsFail, (), (const, noexcept, override));
+  MOCK_METHOD(void, Next, (), (noexcept, override));
+  MOCK_METHOD(void, CheckStepStatus, (), (override));
 
   MOCK_METHOD(int, RowsAffected, (), (const, noexcept, override));
   MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept, override));

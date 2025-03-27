@@ -10,7 +10,7 @@
 
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
-#include <userver/storages/sqlite/infra/statistics.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
 
@@ -34,9 +34,9 @@ class Pool final
 
   // It's possible to use in advanced exclusive read write connection pools
   // strategy
-  Counter GetCurrentWorkersCount() const;
+  statistics::Counter GetCurrentWorkersCount() const;
 
-  const PoolStatistics& GetStatistics() const;
+  statistics::PoolStatistics& GetStatistics();
 
  private:
   friend class drivers::impl::ConnectionPoolBase<impl::Connection, Pool>;
@@ -53,7 +53,7 @@ class Pool final
 
   const settings::SQLiteSettings settings_;
 
-  PoolStatistics stats_{};
+  statistics::PoolStatistics stats_{};
 };
 
 }  // namespace storages::sqlite::infra

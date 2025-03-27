@@ -1,18 +1,18 @@
 #include <userver/storages/sqlite/impl/result_wrapper.hpp>
 
-#include <userver/engine/async.hpp>
-
 #include <userver/storages/sqlite/execution_result.hpp>
+#include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
 
-ResultWrapper::ResultWrapper(StatementBasePtr prepare_statement,
-                             engine::TaskProcessor& blocking_task_processor_)
+ResultWrapper::ResultWrapper(
+    StatementBasePtr prepare_statement,
+    std::shared_ptr<infra::ConnectionPtr> connection_ptr)
     : prepare_statement_{std::move(prepare_statement)},
-      blocking_task_processor_(blocking_task_processor_) {
+      connection_ptr_{std::move(connection_ptr)} {
   ExecutionStep();  // First execution step
 }
 
@@ -52,9 +52,9 @@ ExecutionResult ResultWrapper::GetExecutionResult() noexcept {
 }
 
 void ResultWrapper::ExecutionStep() {
-  engine::AsyncNoSpan(blocking_task_processor_, [this] {
-    prepare_statement_->Next();
-  }).Get();
+  if (connection_ptr_) {
+    (*connection_ptr_)->ExecutionStep(prepare_statement_);
+  }
 }
 
 }  // namespace storages::sqlite::impl

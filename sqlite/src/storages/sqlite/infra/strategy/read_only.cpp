@@ -3,8 +3,8 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/storages/sqlite/infra/pool.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics.hpp>
 #include <userver/storages/sqlite/options.hpp>
-#include "userver/storages/sqlite/infra/statistics.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,11 +39,11 @@ PoolPtr ReadOnlyStrategy::InitializeReadOnlyPoolReference(
 
 void ReadOnlyStrategy::WriteStatistics(
     utils::statistics::Writer& writer) const {
-  auto write_stat = PoolStatistics{};
-  write_stat.type = "write";
+  auto write_stat = statistics::PoolStatistics{};
+  write_stat.connections.type = "write";
   writer.ValueWithLabels(write_stat, {});
-  auto read_stat = read_connection_pool_->GetStatistics();
-  read_stat.type = "read";
+  auto& read_stat = read_connection_pool_->GetStatistics();
+  read_stat.connections.type = "read";
   writer.ValueWithLabels(read_stat, {});
 }
 

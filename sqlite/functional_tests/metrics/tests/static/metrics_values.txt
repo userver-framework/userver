@@ -9,3 +9,59 @@ sqlite.connections.write.busy:	GAUGE	0
 sqlite.connections.write.closed:	GAUGE	0
 sqlite.connections.write.created:	GAUGE	0
 sqlite.connections.write.overload:	GAUGE	0
+
+# Modifying queries stats
+sqlite.mutations.error:	GAUGE	0
+sqlite.mutations.error:	GAUGE	0
+sqlite.mutations.timings: percentile=p0	GAUGE	0
+sqlite.mutations.timings: percentile=p0	GAUGE	0
+sqlite.mutations.timings: percentile=p100	GAUGE	0
+sqlite.mutations.timings: percentile=p100	GAUGE	0
+sqlite.mutations.timings: percentile=p50	GAUGE	0
+sqlite.mutations.timings: percentile=p50	GAUGE	0
+sqlite.mutations.timings: percentile=p90	GAUGE	0
+sqlite.mutations.timings: percentile=p90	GAUGE	0
+sqlite.mutations.timings: percentile=p95	GAUGE	0
+sqlite.mutations.timings: percentile=p95	GAUGE	0
+sqlite.mutations.timings: percentile=p98	GAUGE	0
+sqlite.mutations.timings: percentile=p98	GAUGE	0
+sqlite.mutations.timings: percentile=p99	GAUGE	0
+sqlite.mutations.timings: percentile=p99	GAUGE	0
+sqlite.mutations.timings: percentile=p99_6	GAUGE	0
+sqlite.mutations.timings: percentile=p99_6	GAUGE	0
+sqlite.mutations.timings: percentile=p99_9	GAUGE	0
+sqlite.mutations.timings: percentile=p99_9	GAUGE	0
+sqlite.mutations.total:	GAUGE	0
+sqlite.mutations.total:	GAUGE	0
+
+# Read-only queries stats
+sqlite.selects.error:	GAUGE	0
+sqlite.selects.error:	GAUGE	0
+sqlite.selects.timings: percentile=p0	GAUGE	0
+sqlite.selects.timings: percentile=p0	GAUGE	0
+sqlite.selects.timings: percentile=p100	GAUGE	0
+sqlite.selects.timings: percentile=p100	GAUGE	0
+sqlite.selects.timings: percentile=p50	GAUGE	0
+sqlite.selects.timings: percentile=p50	GAUGE	0
+sqlite.selects.timings: percentile=p90	GAUGE	0
+sqlite.selects.timings: percentile=p90	GAUGE	0
+sqlite.selects.timings: percentile=p95	GAUGE	0
+sqlite.selects.timings: percentile=p95	GAUGE	0
+sqlite.selects.timings: percentile=p98	GAUGE	0
+sqlite.selects.timings: percentile=p98	GAUGE	0
+sqlite.selects.timings: percentile=p99	GAUGE	0
+sqlite.selects.timings: percentile=p99	GAUGE	0
+sqlite.selects.timings: percentile=p99_6	GAUGE	0
+sqlite.selects.timings: percentile=p99_6	GAUGE	0
+sqlite.selects.timings: percentile=p99_9	GAUGE	0
+sqlite.selects.timings: percentile=p99_9	GAUGE	0
+sqlite.selects.total:	GAUGE	0
+sqlite.selects.total:	GAUGE	0
+
+# Transactions stats
+sqlite.transactions.commit_total:	GAUGE	0
+sqlite.transactions.commit_total:	GAUGE	0
+sqlite.transactions.rollback_total:	GAUGE	0
+sqlite.transactions.rollback_total:	GAUGE	0
+sqlite.transactions.total:	GAUGE	0
+sqlite.transactions.total:	GAUGE	0

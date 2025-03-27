@@ -42,11 +42,11 @@ PoolPtr ExclusiveReadWriteStrategy::InitializeReadWritePoolReference(
 
 void ExclusiveReadWriteStrategy::WriteStatistics(
     utils::statistics::Writer& writer) const {
-  auto write_stat = read_write_connection_pool_->GetStatistics();
-  write_stat.type = "write";
+  auto& write_stat = read_write_connection_pool_->GetStatistics();
+  write_stat.connections.type = "write";
   writer.ValueWithLabels(write_stat, {});
-  auto read_stat = read_write_connection_pool_->GetStatistics();
-  read_stat.type = "read";
+  auto& read_stat = read_write_connection_pool_->GetStatistics();
+  read_stat.connections.type = "read";
   writer.ValueWithLabels(read_stat, {});
 }
 
