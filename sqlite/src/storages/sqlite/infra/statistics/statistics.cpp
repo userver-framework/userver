@@ -23,12 +23,17 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const PoolConnectionStatistics& stats) {
-  writer[stats.type]["overload"] = stats.overload;
-  writer[stats.type]["created"] = stats.created;
-  writer[stats.type]["closed"] = stats.closed;
-
-  writer[stats.type]["active"] = stats.created - stats.closed;
-  writer[stats.type]["busy"] = stats.acquired - stats.released;
+  constexpr std::string_view kSQLiteConnectionPoolType = "connection_pool";
+  writer["overload"].ValueWithLabels(stats.overload,
+                                     {kSQLiteConnectionPoolType, stats.type});
+  writer["created"].ValueWithLabels(stats.created,
+                                    {kSQLiteConnectionPoolType, stats.type});
+  writer["closed"].ValueWithLabels(stats.closed,
+                                   {kSQLiteConnectionPoolType, stats.type});
+  writer["active"].ValueWithLabels(stats.created - stats.closed,
+                                   {kSQLiteConnectionPoolType, stats.type});
+  writer["busy"].ValueWithLabels(stats.acquired - stats.released,
+                                 {kSQLiteConnectionPoolType, stats.type});
 }
 
 void DumpMetric(utils::statistics::Writer& writer,

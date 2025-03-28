@@ -16,7 +16,7 @@ using Percentile = utils::statistics::Percentile<2048, uint64_t, 16, 256>;
 using RecentPeriod = utils::statistics::RecentPeriod<Percentile, Percentile>;
 
 struct PoolConnectionStatistics final {
-  std::string type;
+  std::string type;  // connection pool type: write / read
 
   Counter overload{};
   Counter closed{};

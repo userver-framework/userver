@@ -86,14 +86,16 @@ UTEST_F(SQLiteMetricsTest, PoolBasic) {
                         ->Execute(storages::sqlite::OperationType::kReadWrite,
                                   "SELECT * FROM test")
                         .AsVector<RowTuple>()));
-  const auto write_connection_stats = GetStatistics("sqlite.connections.write");
+  const auto write_connection_stats =
+      GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
   EXPECT_EQ(write_connection_stats.SingleMetric("overload").AsInt(), 0);
   EXPECT_EQ(write_connection_stats.SingleMetric("created").AsInt(), 1);
   EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsInt(), 0);
   EXPECT_EQ(write_connection_stats.SingleMetric("active").AsInt(), 1);
   EXPECT_EQ(write_connection_stats.SingleMetric("busy").AsInt(), 0);
 
-  const auto read_connection_stats = GetStatistics("sqlite.connections.read");
+  const auto read_connection_stats =
+      GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
   EXPECT_EQ(read_connection_stats.SingleMetric("overload").AsInt(), 0);
   EXPECT_EQ(read_connection_stats.SingleMetric("created").AsInt(), 5);
   EXPECT_EQ(read_connection_stats.SingleMetric("closed").AsInt(), 0);
@@ -147,7 +149,8 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
                   .AsVector<RowTuple>()
                   .empty());
 
-  const auto write_connection_stats = GetStatistics("sqlite.connections.write");
+  const auto write_connection_stats =
+      GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
   EXPECT_EQ(write_connection_stats.SingleMetric("overload").AsInt(), 0);
   EXPECT_EQ(write_connection_stats.SingleMetric("created").AsInt(), 1);
   EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsInt(), 0);
@@ -163,7 +166,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
   engine::GetAll(tasks);
 
   const auto after_write_connection_stats =
-      GetStatistics("sqlite.connections.write");
+      GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
   EXPECT_EQ(after_write_connection_stats.SingleMetric("overload").AsInt(), 0);
   EXPECT_EQ(after_write_connection_stats.SingleMetric("created").AsInt(), 1);
   EXPECT_EQ(after_write_connection_stats.SingleMetric("closed").AsInt(), 0);
@@ -213,7 +216,8 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
   }));
   lock.unlock();
 
-  const auto read_connection_stats = GetStatistics("sqlite.connections.read");
+  const auto read_connection_stats =
+      GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
   EXPECT_EQ(read_connection_stats.SingleMetric("overload").AsInt(), 0);
   EXPECT_EQ(read_connection_stats.SingleMetric("created").AsInt(),
             settings.pool_settings.max_pool_size);
@@ -231,7 +235,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
   engine::GetAll(tasks);
 
   const auto after_read_connection_stats =
-      GetStatistics("sqlite.connections.read");
+      GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
   EXPECT_EQ(after_read_connection_stats.SingleMetric("overload").AsInt(), 0);
   EXPECT_EQ(after_read_connection_stats.SingleMetric("created").AsInt(),
             settings.pool_settings.max_pool_size);
