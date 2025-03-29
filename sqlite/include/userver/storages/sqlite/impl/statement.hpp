@@ -24,6 +24,9 @@ class Statement final : public StatementBase {
   std::string GetStatementText() const noexcept;
   std::string getExpandedStatementText() const noexcept;
 
+  // Info
+  OperationType GetOperationType() const noexcept override;
+
   // Prepare statement
   void Bind(const int index, const std::int32_t value) override;
   void Bind(const int index, const std::uint32_t value) override;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/pfr.hpp>
+#include <memory>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
@@ -20,6 +20,9 @@ class ResultWrapper final {
                 std::shared_ptr<infra::ConnectionPtr> connection_ptr);
   ~ResultWrapper();
 
+  ResultWrapper(const ResultWrapper&) = delete;
+  ResultWrapper(ResultWrapper&&) = delete;
+
   StatementBasePtr GetStatement() noexcept;
 
   void FetchAllResult(impl::ExtractorBase& extractor);
@@ -30,6 +33,9 @@ class ResultWrapper final {
 
  private:
   void ExecutionStep();
+
+  void AccountQueryCompleted() noexcept;
+  void AccountQueryFailed() noexcept;
 
   StatementBasePtr prepare_statement_;
   std::shared_ptr<infra::ConnectionPtr> connection_ptr_;

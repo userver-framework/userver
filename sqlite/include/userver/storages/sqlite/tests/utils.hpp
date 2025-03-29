@@ -12,6 +12,7 @@
 
 #include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
+#include "userver/storages/sqlite/operation_types.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,6 +37,8 @@ using RowTuple = std::tuple<int, std::string>;
 // execution result)
 class MockSQLiteStatement : public impl::StatementBase {
  public:
+  MOCK_METHOD(OperationType, GetOperationType, (), (noexcept, const, override));
+
   MOCK_METHOD(void, Bind, (const int index, const std::int32_t value));
   MOCK_METHOD(void, Bind, (const int index, const std::int64_t value));
   MOCK_METHOD(void, Bind, (const int index, const std::uint32_t value));
@@ -145,6 +148,15 @@ class SQLiteCustomConnection {
     ASSERT_TRUE(client) << "Expected non-empty connection pointer";
     EXPECT_NO_THROW(client->Execute(OperationType::kReadOnly, "SELECT 42"))
         << "Try execute query";
+  }
+};
+
+// Create sqlite client (set of conection pools) without any inits and checks
+class SQLitePureConnection {
+ public:
+  ClientPtr CreateClient(settings::SQLiteSettings settings) {
+    return std::make_shared<storages::sqlite::Client>(
+        settings, engine::current_task::GetTaskProcessor());
   }
 };
 

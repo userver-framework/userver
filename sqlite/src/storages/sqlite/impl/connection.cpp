@@ -1,7 +1,10 @@
+#include <memory>
 #include <userver/storages/sqlite/impl/connection.hpp>
 
 #include <userver/engine/async.hpp>
 
+#include <userver/storages/sqlite/infra/statistics/statistics.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics_counter.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
 
@@ -31,12 +34,18 @@ constexpr std::string_view kStatementSavepointRollbackTo =
 }  // namespace
 
 Connection::Connection(const settings::SQLiteSettings& settings,
-                       engine::TaskProcessor& blocking_task_processor)
+                       engine::TaskProcessor& blocking_task_processor,
+                       infra::statistics::PoolStatistics& stat)
     : blocking_task_processor_{blocking_task_processor},
       db_handler_{settings, blocking_task_processor_},
       settings_{settings},
       statements_cache_{db_handler_,
-                        settings.conn_settings.max_prepared_cache_size} {}
+                        settings.conn_settings.max_prepared_cache_size},
+      queries_stat_counter_{
+          std::make_unique<infra::statistics::QueryStatCounter>(stat.queries)},
+      transactions_stat_counter_{
+          std::make_unique<infra::statistics::TransactionStatCounter>(
+              stat.transactions)} {}
 
 Connection::~Connection() = default;
 
@@ -49,9 +58,7 @@ StatementPtr Connection::PrepareStatement(const Query& query) {
       settings::ConnectionSettings::kNoPreparedStatements) {
     return std::make_shared<Statement>(db_handler_, query.GetStatement());
   } else {
-    auto stmt = statements_cache_.PrepareStatement(query.GetStatement());
-    stmt->Reset();
-    return stmt;
+    return statements_cache_.PrepareStatement(query.GetStatement());
   }
 }
 
@@ -81,10 +88,12 @@ void Connection::Begin(const settings::TransactionOptions& options) {
     default:
       break;
   }
+  AccountTransactionStart();
 }
 
 void Connection::Commit() {
   ExecuteQuery(kStatementTransactionCommit.data());
+  AccountTransactionCommit();
   if (!settings_.read_uncommited) {
     ExecuteQuery(kStatementTransactionSerializableIsolationLevel.data());
   }
@@ -92,6 +101,7 @@ void Connection::Commit() {
 
 void Connection::Rollback() {
   ExecuteQuery(kStatementTransactionRollback.data());
+  AccountTransactionRollback();
   if (!settings_.read_uncommited) {
     ExecuteQuery(kStatementTransactionSerializableIsolationLevel.data());
   }
@@ -107,6 +117,30 @@ void Connection::Release(const std::string& name) {
 
 void Connection::RollbackTo(const std::string& name) {
   ExecuteQuery(std::string(kStatementSavepointRollbackTo) + name);
+}
+
+void Connection::AccountQueryExecute() noexcept {
+  queries_stat_counter_->AccountQueryExecute();
+}
+
+void Connection::AccountQueryCompleted() noexcept {
+  queries_stat_counter_->AccountQueryCompleted();
+}
+
+void Connection::AccountQueryFailed() noexcept {
+  queries_stat_counter_->AccountQueryFailed();
+}
+
+void Connection::AccountTransactionStart() noexcept {
+  transactions_stat_counter_->AccountTransactionStart();
+}
+
+void Connection::AccountTransactionCommit() noexcept {
+  transactions_stat_counter_->AccountTransactionCommit();
+}
+
+void Connection::AccountTransactionRollback() noexcept {
+  transactions_stat_counter_->AccountTransactionRollback();
 }
 
 bool Connection::IsBroken() const { return broken_.load(); }

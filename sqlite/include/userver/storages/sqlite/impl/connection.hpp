@@ -7,10 +7,13 @@
 #include <userver/storages/sqlite/impl/statement.hpp>
 #include <userver/storages/sqlite/impl/statements_cache.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics.hpp>
 #include <userver/storages/sqlite/infra/statistics/statistics_counter.hpp>
+#include <userver/storages/sqlite/operation_types.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,7 +22,8 @@ namespace storages::sqlite::impl {
 class Connection {
  public:
   Connection(const settings::SQLiteSettings& settings,
-             engine::TaskProcessor& blocking_task_processor);
+             engine::TaskProcessor& blocking_task_processor,
+             infra::statistics::PoolStatistics& stat);
 
   ~Connection();
 
@@ -37,19 +41,25 @@ class Connection {
   void Release(const std::string& name);
   void RollbackTo(const std::string& name);
 
-  infra::statistics::CountExecute GetStatisticsCounter() const;
+  void AccountQueryExecute() noexcept;
+  void AccountQueryCompleted() noexcept;
+  void AccountQueryFailed() noexcept;
+  void AccountTransactionStart() noexcept;
+  void AccountTransactionCommit() noexcept;
+  void AccountTransactionRollback() noexcept;
 
   bool IsBroken() const;
   void NotifyBroken();
 
  private:
   void ExecuteQuery(const std::string& query) const;
-  void SetSettings(const settings::SQLiteSettings& settings);
 
   engine::TaskProcessor& blocking_task_processor_;
   impl::NativeHandler db_handler_;
   settings::SQLiteSettings settings_;
   impl::StatementsCache statements_cache_;
+  infra::statistics::QueryStatCounterPtr queries_stat_counter_;
+  infra::statistics::TransactionStatCounterPtr transactions_stat_counter_;
   std::atomic<bool> broken_{false};
 };
 

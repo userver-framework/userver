@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <userver/storages/sqlite/operation_types.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl {
@@ -11,6 +13,9 @@ namespace storages::sqlite::impl {
 class StatementBase {
  public:
   virtual ~StatementBase() = default;
+
+  // Info
+  virtual OperationType GetOperationType() const noexcept = 0;
 
   // Bind methods
   virtual void Bind(const int index, const std::int32_t value) = 0;

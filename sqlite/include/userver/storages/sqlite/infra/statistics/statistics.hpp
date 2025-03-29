@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
@@ -16,8 +15,6 @@ using Percentile = utils::statistics::Percentile<2048, uint64_t, 16, 256>;
 using RecentPeriod = utils::statistics::RecentPeriod<Percentile, Percentile>;
 
 struct PoolConnectionStatistics final {
-  std::string type;  // connection pool type: write / read
-
   Counter overload{};
   Counter closed{};
   Counter created{};
@@ -25,35 +22,49 @@ struct PoolConnectionStatistics final {
   Counter released{};
 };
 
-struct PoolQueryStatistics final {
+struct PoolQueriesStatistics final {
   Counter total{};
   Counter error{};
+  Counter executed{};
   RecentPeriod timings{};
+
+  void Add(PoolQueriesStatistics& other);
 };
 
-struct PoolTransactionStatistics final {
+struct PoolTransactionsStatistics final {
   Counter total{};
-  Counter commit_total{};
-  Counter rollback_total{};
+  Counter commit{};
+  Counter rollback{};
+  RecentPeriod timings{};
+
+  void Add(PoolTransactionsStatistics& other);
 };
 
 struct PoolStatistics final {
-  PoolTransactionStatistics transactions{};
-  PoolQueryStatistics write_operations{};
-  PoolQueryStatistics read_operations{};
   PoolConnectionStatistics connections{};
+  PoolQueriesStatistics queries{};
+  PoolTransactionsStatistics transactions{};
 };
 
-void DumpMetric(utils::statistics::Writer& writer, const PoolStatistics& stats);
+struct AgregatedInstanceStatistics final {
+  PoolConnectionStatistics write_connections{};
+  PoolConnectionStatistics read_connections{};
+  const PoolQueriesStatistics& write_queries;
+  const PoolQueriesStatistics& read_queries;
+  const PoolTransactionsStatistics& transaction;
+};
 
 void DumpMetric(utils::statistics::Writer& writer,
-                const PoolQueryStatistics& stats);
+                const AgregatedInstanceStatistics& stats);
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const PoolQueriesStatistics& stats);
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const PoolConnectionStatistics& stats);
 
 void DumpMetric(utils::statistics::Writer& writer,
-                const PoolTransactionStatistics& stats);
+                const PoolTransactionsStatistics& stats);
 
 }  // namespace storages::sqlite::infra::statistics
 

@@ -5,6 +5,7 @@
 
 #include <userver/storages/sqlite/exceptions.hpp>
 #include <userver/storages/sqlite/impl/sqlite3_include.hpp>
+#include <userver/storages/sqlite/operation_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +22,7 @@ Statement::~Statement() = default;
 Statement::Statement(Statement&& other) noexcept = default;
 
 void Statement::SQLiteStatementDeleter::operator()(sqlite3_stmt* stmt) {
-  // It's return last execution error status, we do not need to check it here
+  // It's return last execution error status, we don't need to check it here
   sqlite3_finalize(stmt);
 }
 
@@ -42,6 +43,15 @@ std::string Statement::getExpandedStatementText() const noexcept {
   std::string expandedString{expanded};
   sqlite3_free(expanded);
   return expandedString;
+}
+
+OperationType Statement::GetOperationType() const noexcept {
+  // In rare occasions misses
+  // https://www.sqlite.org/c3ref/stmt_readonly.html
+  // TODO: Can we use it to determine correct pool to execute query
+  return sqlite3_stmt_readonly(prepare_statement_.get())
+             ? OperationType::kReadOnly
+             : OperationType::kReadWrite;
 }
 
 Statement::NativeStatementPtr Statement::prepareStatement(

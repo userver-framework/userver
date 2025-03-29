@@ -66,8 +66,8 @@ statistics::PoolStatistics& Pool::GetStatistics() { return stats_; }
 
 Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline) {
   try {
-    auto connection_ptr =
-        std::make_unique<impl::Connection>(settings_, blocking_task_processor_);
+    auto connection_ptr = std::make_unique<impl::Connection>(
+        settings_, blocking_task_processor_, GetStatistics());
 
     return connection_ptr;
   } catch (const std::exception&) {

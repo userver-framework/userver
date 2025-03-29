@@ -32,6 +32,11 @@ class ClientImpl final {
       impl::StatementBasePtr prepare_statement,
       std::shared_ptr<infra::ConnectionPtr> connection_ptr) const;
 
+  void AccountQueryExecute(
+      std::shared_ptr<infra::ConnectionPtr> connection) const noexcept;
+  void AccountQueryFailed(
+      std::shared_ptr<infra::ConnectionPtr> connection) const noexcept;
+
  private:
   infra::strategy::PoolStrategyBasePtr pool_strategy_;
 };

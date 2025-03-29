@@ -3,6 +3,7 @@
 /// @file userver/storages/sqlite/connection.hpp
 /// @copybrief @copybrief storages::sqlite::Connection
 
+#include <exception>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
@@ -67,6 +68,11 @@ class Client final {
   std::shared_ptr<infra::ConnectionPtr> GetConnection(
       OperationType operation_type) const;
 
+  void AccountQueryExecute(
+      std::shared_ptr<infra::ConnectionPtr> connection) const noexcept;
+  void AccountQueryFailed(
+      std::shared_ptr<infra::ConnectionPtr> connection) const noexcept;
+
   impl::ClientImplPtr pimpl_;
 };
 
@@ -74,18 +80,30 @@ template <typename... Args>
 ResultSet Client::Execute(OperationType operation_type, const Query& query,
                           const Args&... args) const {
   auto connection = GetConnection(operation_type);
-  auto params_binder = impl::BindHelper::UpdateParamsBindings(
-      query.GetStatement(), *connection, args...);
-  return DoExecute(params_binder, connection);
+  AccountQueryExecute(connection);
+  try {
+    auto params_binder = impl::BindHelper::UpdateParamsBindings(
+        query.GetStatement(), *connection, args...);
+    return DoExecute(params_binder, connection);
+  } catch (const std::exception& err) {
+    AccountQueryFailed(connection);
+    throw;
+  }
 }
 
 template <typename T>
 ResultSet Client::ExecuteDecompose(OperationType operation_type,
                                    const Query& query, const T& row) const {
   auto connection = GetConnection(operation_type);
-  auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-      query.GetStatement(), *connection, row);
-  return DoExecute(params_binder, connection);
+  AccountQueryExecute(connection);
+  try {
+    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+        query.GetStatement(), *connection, row);
+    return DoExecute(params_binder, connection);
+  } catch (const std::exception& err) {
+    AccountQueryFailed(connection);
+    throw;
+  }
 }
 
 template <typename Container>
@@ -93,9 +111,15 @@ void Client::ExecuteMany(OperationType operation_type, const Query& query,
                          const Container& params) const {
   auto connection = GetConnection(operation_type);
   for (const auto& row : params) {
-    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-        query.GetStatement(), *connection, row);
-    DoExecute(params_binder, connection);
+    AccountQueryExecute(connection);
+    try {
+      auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+          query.GetStatement(), *connection, row);
+      DoExecute(params_binder, connection);
+    } catch (const std::exception& err) {
+      AccountQueryFailed(connection);
+      throw;
+    }
   }
 }
 
@@ -104,9 +128,15 @@ CursorResultSet<T> Client::GetCursor(OperationType operation_type,
                                      std::size_t batch_size, const Query& query,
                                      const Args&... args) const {
   auto connection = GetConnection(operation_type);
-  auto params_binder = impl::BindHelper::UpdateParamsBindings(
-      query.GetStatement(), *connection, args...);
-  return CursorResultSet<T>{DoExecute(params_binder, connection), batch_size};
+  AccountQueryExecute(connection);
+  try {
+    auto params_binder = impl::BindHelper::UpdateParamsBindings(
+        query.GetStatement(), *connection, args...);
+    return CursorResultSet<T>{DoExecute(params_binder, connection), batch_size};
+  } catch (const std::exception& err) {
+    AccountQueryFailed(connection);
+    throw;
+  }
 }
 
 }  // namespace storages::sqlite

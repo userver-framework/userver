@@ -3,6 +3,7 @@
 #include <userver/storages/sqlite/execution_result.hpp>
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,17 +14,26 @@ ResultWrapper::ResultWrapper(
     std::shared_ptr<infra::ConnectionPtr> connection_ptr)
     : prepare_statement_{std::move(prepare_statement)},
       connection_ptr_{std::move(connection_ptr)} {
-  ExecutionStep();  // First execution step
+  ExecutionStep();  // First execution step (fetch first row or apply mutations)
 }
 
-ResultWrapper::~ResultWrapper() = default;
+ResultWrapper::~ResultWrapper() {
+  if (connection_ptr_ && connection_ptr_->IsValid()) {
+    if (std::uncaught_exceptions() > 0) {
+      (*connection_ptr_)->AccountQueryFailed();
+    } else {
+      (*connection_ptr_)->AccountQueryCompleted();
+    }
+  }
+}
 
 StatementBasePtr ResultWrapper::GetStatement() noexcept {
   return prepare_statement_;
 }
 
 void ResultWrapper::FetchAllResult(impl::ExtractorBase& extractor) {
-  while (prepare_statement_->HasNext()) {
+  while (prepare_statement_
+             ->HasNext()) {  // while new row of data is ready for processing
     extractor.BindNextRow();
     ExecutionStep();  // blocking IO
   }
@@ -52,8 +62,20 @@ ExecutionResult ResultWrapper::GetExecutionResult() noexcept {
 }
 
 void ResultWrapper::ExecutionStep() {
-  if (connection_ptr_) {
+  if (connection_ptr_ && connection_ptr_->IsValid()) {
     (*connection_ptr_)->ExecutionStep(prepare_statement_);
+  }
+}
+
+void ResultWrapper::AccountQueryCompleted() noexcept {
+  if (connection_ptr_ && connection_ptr_->IsValid()) {
+    (*connection_ptr_)->AccountQueryCompleted();
+  }
+}
+
+void ResultWrapper::AccountQueryFailed() noexcept {
+  if (connection_ptr_ && connection_ptr_->IsValid()) {
+    (*connection_ptr_)->AccountQueryFailed();
   }
 }
 

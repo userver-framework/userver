@@ -76,6 +76,14 @@ ResultSet Savepoint::DoExecute(impl::io::ParamsBinderBase& params) const {
   return ResultSet{std::move(result_wrapper)};
 }
 
+void Savepoint::AccountQueryExecute() const noexcept {
+  (*connection_)->AccountQueryExecute();
+}
+
+void Savepoint::AccountQueryFailed() const noexcept {
+  (*connection_)->AccountQueryFailed();
+}
+
 }  // namespace storages::sqlite
 
 USERVER_NAMESPACE_END

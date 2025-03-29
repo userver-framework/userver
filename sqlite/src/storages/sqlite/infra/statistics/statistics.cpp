@@ -6,41 +6,66 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::statistics {
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolStatistics& stats) {
-  writer["connections"] = stats.connections;
-  writer["selects"] = stats.read_operations;
-  writer["mutations"] = stats.write_operations;
-  writer["transactions"] = stats.transactions;
+void PoolQueriesStatistics::Add(PoolQueriesStatistics& other) {
+  total += other.total;
+  executed += other.executed;
+  error += other.error;
+  timings.GetCurrentCounter().Account(
+      other.timings.GetCurrentCounter().Count());
+}
+
+void PoolTransactionsStatistics::Add(PoolTransactionsStatistics& other) {
+  total += other.total;
+  commit += other.commit;
+  rollback += other.rollback;
+  timings.GetCurrentCounter().Account(
+      other.timings.GetCurrentCounter().Count());
 }
 
 void DumpMetric(utils::statistics::Writer& writer,
-                const PoolQueryStatistics& stats) {
+                const AgregatedInstanceStatistics& stats) {
+  if (auto connections_writer = writer["connections"]) {
+    connections_writer.ValueWithLabels(stats.write_connections,
+                                       {{"connection_pool", "write"}});
+    connections_writer.ValueWithLabels(stats.read_connections,
+                                       {{"connection_pool", "read"}});
+  }
+
+  if (auto connections_writer = writer["queries"]) {
+    connections_writer.ValueWithLabels(stats.write_queries,
+                                       {{"connection_pool", "write"}});
+    connections_writer.ValueWithLabels(stats.read_queries,
+                                       {{"connection_pool", "read"}});
+  }
+
+  if (auto transactions_writer = writer["transactions"]) {
+    transactions_writer = stats.transaction;
+  }
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const PoolConnectionStatistics& stats) {
+  writer["overload"] = stats.overload;
+  writer["created"] = stats.created;
+  writer["closed"] = stats.closed;
+  writer["active"] = stats.created - stats.closed;
+  writer["busy"] = stats.acquired - stats.released;
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const PoolQueriesStatistics& stats) {
   writer["total"] = stats.total;
+  writer["executed"] = stats.executed;
   writer["error"] = stats.error;
   writer["timings"] = stats.timings;
 }
 
 void DumpMetric(utils::statistics::Writer& writer,
-                const PoolConnectionStatistics& stats) {
-  constexpr std::string_view kSQLiteConnectionPoolType = "connection_pool";
-  writer["overload"].ValueWithLabels(stats.overload,
-                                     {kSQLiteConnectionPoolType, stats.type});
-  writer["created"].ValueWithLabels(stats.created,
-                                    {kSQLiteConnectionPoolType, stats.type});
-  writer["closed"].ValueWithLabels(stats.closed,
-                                   {kSQLiteConnectionPoolType, stats.type});
-  writer["active"].ValueWithLabels(stats.created - stats.closed,
-                                   {kSQLiteConnectionPoolType, stats.type});
-  writer["busy"].ValueWithLabels(stats.acquired - stats.released,
-                                 {kSQLiteConnectionPoolType, stats.type});
-}
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolTransactionStatistics& stats) {
+                const PoolTransactionsStatistics& stats) {
   writer["total"] = stats.total;
-  writer["commit_total"] = stats.commit_total;
-  writer["rollback_total"] = stats.rollback_total;
+  writer["commit"] = stats.commit;
+  writer["rollback"] = stats.rollback;
+  writer["timings"] = stats.timings;
 }
 
 }  // namespace storages::sqlite::infra::statistics

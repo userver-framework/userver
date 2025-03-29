@@ -4,8 +4,8 @@
 
 #include <userver/storages/sqlite/impl/client_impl.hpp>
 #include <userver/storages/sqlite/infra/pool.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics_counter.hpp>
 #include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
-#include "userver/storages/sqlite/infra/connection_ptr.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,6 +43,16 @@ ResultSet Client::DoExecute(
 
 void Client::WriteStatistics(utils::statistics::Writer& writer) const {
   return pimpl_->WriteStatistics(writer);
+}
+
+void Client::AccountQueryExecute(
+    std::shared_ptr<infra::ConnectionPtr> connection) const noexcept {
+  pimpl_->AccountQueryExecute(connection);
+}
+
+void Client::AccountQueryFailed(
+    std::shared_ptr<infra::ConnectionPtr> connection) const noexcept {
+  pimpl_->AccountQueryFailed(connection);
 }
 
 }  // namespace storages::sqlite

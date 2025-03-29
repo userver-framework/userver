@@ -4,6 +4,7 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+#include <userver/storages/sqlite/cursor_result_set.hpp>
 #include <userver/storages/sqlite/impl/binder_help.hpp>
 #include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
@@ -33,6 +34,10 @@ class Transaction final {
   template <typename Container>
   void ExecuteMany(const Query& query, const Container& params) const;
 
+  template <typename T, typename... Args>
+  CursorResultSet<T> GetCursor(std::size_t batch_size, const Query& query,
+                               const Args&... args) const;
+
   Savepoint Save(std::string name) const;
 
   void Commit();
@@ -41,8 +46,10 @@ class Transaction final {
 
  private:
   ResultSet DoExecute(impl::io::ParamsBinderBase& params) const;
-
   void AssertValid() const;
+
+  void AccountQueryExecute() const noexcept;
+  void AccountQueryFailed() const noexcept;
 
   std::shared_ptr<infra::ConnectionPtr> connection_;
 };
@@ -50,28 +57,63 @@ class Transaction final {
 template <typename... Args>
 ResultSet Transaction::Execute(const Query& query, const Args&... args) const {
   AssertValid();
-  auto params_binder = impl::BindHelper::UpdateParamsBindings(
-      query.GetStatement(), *connection_, args...);
-  return DoExecute(params_binder);
+  AccountQueryExecute();
+  try {
+    auto params_binder = impl::BindHelper::UpdateParamsBindings(
+        query.GetStatement(), *connection_, args...);
+    return DoExecute(params_binder);
+  } catch (const std::exception& err) {
+    AccountQueryFailed();
+    throw;
+  }
 }
 
 template <typename T>
 ResultSet Transaction::ExecuteDecompose(const Query& query,
                                         const T& row) const {
   AssertValid();
-  auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-      query.GetStatement(), *connection_, row);
-  return DoExecute(params_binder);
+  AccountQueryExecute();
+  try {
+    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+        query.GetStatement(), *connection_, row);
+    return DoExecute(params_binder);
+  } catch (const std::exception& err) {
+    AccountQueryFailed();
+    throw;
+  }
 }
 
 template <typename Container>
 void Transaction::ExecuteMany(const Query& query,
                               const Container& params) const {
   AssertValid();
+  AccountQueryExecute();
   for (const auto& row : params) {
-    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-        query.GetStatement(), *connection_, row);
-    DoExecute(params_binder);
+    try {
+      auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
+          query.GetStatement(), *connection_, row);
+      DoExecute(params_binder);
+    } catch (const std::exception& err) {
+      AccountQueryFailed();
+      throw;
+    }
+  }
+}
+
+template <typename T, typename... Args>
+CursorResultSet<T> Transaction::GetCursor(std::size_t batch_size,
+                                          const Query& query,
+                                          const Args&... args) const {
+  AssertValid();
+  AccountQueryExecute();
+  try {
+    auto params_binder = impl::BindHelper::UpdateParamsBindings(
+        query.GetStatement(), *connection_, args...);
+    return CursorResultSet<T>{DoExecute(params_binder, connection_),
+                              batch_size};
+  } catch (const std::exception& err) {
+    AccountQueryFailed();
+    throw;
   }
 }
 

@@ -35,6 +35,16 @@ ResultSet ClientImpl::ExecuteCommand(
   return ResultSet{std::move(result_wrapper)};
 }
 
+void ClientImpl::AccountQueryExecute(
+    std::shared_ptr<infra::ConnectionPtr> connection) const noexcept {
+  (*connection)->AccountQueryExecute();
+}
+
+void ClientImpl::AccountQueryFailed(
+    std::shared_ptr<infra::ConnectionPtr> connection) const noexcept {
+  (*connection)->AccountQueryFailed();
+}
+
 }  // namespace storages::sqlite::impl
 
 USERVER_NAMESPACE_END

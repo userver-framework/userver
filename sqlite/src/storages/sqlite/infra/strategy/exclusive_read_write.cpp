@@ -42,12 +42,19 @@ PoolPtr ExclusiveReadWriteStrategy::InitializeReadWritePoolReference(
 
 void ExclusiveReadWriteStrategy::WriteStatistics(
     utils::statistics::Writer& writer) const {
-  auto& write_stat = read_write_connection_pool_->GetStatistics();
-  write_stat.connections.type = "write";
-  writer.ValueWithLabels(write_stat, {});
-  auto& read_stat = read_write_connection_pool_->GetStatistics();
-  read_stat.connections.type = "read";
-  writer.ValueWithLabels(read_stat, {});
+  auto& read_write_stat = read_write_connection_pool_->GetStatistics();
+
+  auto read_write_connections_stat = read_write_stat.connections;
+
+  auto& read_write_queries_stat = read_write_stat.queries;
+
+  auto& read_write_transactions_stat = read_write_stat.transactions;
+
+  statistics::AgregatedInstanceStatistics instance_stat{
+      read_write_connections_stat, read_write_connections_stat,
+      read_write_queries_stat, read_write_queries_stat,
+      read_write_transactions_stat};
+  writer.ValueWithLabels(instance_stat, {});
 }
 
 }  // namespace storages::sqlite::infra::strategy

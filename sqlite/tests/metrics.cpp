@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <atomic>
 #include <vector>
 
 #include <fmt/core.h>
@@ -16,8 +15,7 @@
 
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-#include "userver/storages/sqlite/options.hpp"
-#include "userver/storages/sqlite/sqlite_fwd.hpp"
+#include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,8 +23,7 @@ namespace storages::sqlite::tests {
 
 namespace {
 
-class SQLiteMetricsTest
-    : public SQLiteCompositeFixture<SQLiteCustomConnection> {
+class SQLiteMetricsTest : public SQLiteCompositeFixture<SQLitePureConnection> {
  public:
   utils::statistics::Snapshot GetStatistics(
       std::string prefix,
@@ -44,9 +41,6 @@ class SQLiteMetricsTest
         "sqlite", [this](utils::statistics::Writer& writer) {
           client_->WriteStatistics(writer);
         });
-    UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite,
-        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
   }
 
   ClientPtr client_;
@@ -73,6 +67,9 @@ UTEST_F(SQLiteMetricsTest, PoolBasic) {
 
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));
+  UEXPECT_NO_THROW(client->Execute(
+      storages::sqlite::OperationType::kReadWrite,
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
 
   UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
                                    "INSERT INTO test VALUES (1, 'first') "));
@@ -110,6 +107,9 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
 
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));
+  UEXPECT_NO_THROW(client->Execute(
+      storages::sqlite::OperationType::kReadWrite,
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
 
   constexpr size_t kWriteTaskCount = 5;
   std::vector<engine::TaskWithResult<void>> tasks;
@@ -181,6 +181,9 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
 
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));
+  UEXPECT_NO_THROW(client->Execute(
+      storages::sqlite::OperationType::kReadWrite,
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
 
   UEXPECT_NO_THROW(client->Execute(OperationType::kReadWrite,
                                    "INSERT INTO test VALUES (NULL, 'data')"));
@@ -274,6 +277,156 @@ UTEST_F(SQLiteMetricsPoolTest, ActiveConnections) {
     EXPECT_EQ(busy, 0);
     EXPECT_EQ(active, 3);
   }
+}
+
+UTEST_F(SQLiteMetricsTest, NoOp) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+
+  const auto write_queries_stats =
+      GetStatistics("sqlite.queries", {{"connection_pool", "write"}});
+  const auto read_queries_stats =
+      GetStatistics("sqlite.queries", {{"connection_pool", "read"}});
+  const auto transactions = GetStatistics("sqlite.transactions");
+
+  EXPECT_EQ(write_queries_stats.SingleMetric("total").AsInt(), 0);
+  EXPECT_EQ(write_queries_stats.SingleMetric("executed").AsInt(), 0);
+  EXPECT_EQ(write_queries_stats.SingleMetric("error").AsInt(), 0);
+
+  EXPECT_EQ(read_queries_stats.SingleMetric("total").AsInt(), 0);
+  EXPECT_EQ(read_queries_stats.SingleMetric("executed").AsInt(), 0);
+  EXPECT_EQ(read_queries_stats.SingleMetric("error").AsInt(), 0);
+
+  EXPECT_EQ(transactions.SingleMetric("total").AsInt(), 0);
+  EXPECT_EQ(transactions.SingleMetric("commit").AsInt(), 0);
+  EXPECT_EQ(transactions.SingleMetric("rollback").AsInt(), 0);
+}
+
+UTEST_F(SQLiteMetricsTest, QueriesBasic) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+
+  UEXPECT_NO_THROW(client->Execute(
+      storages::sqlite::OperationType::kReadWrite,
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+
+  UEXPECT_NO_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
+                                   "INSERT INTO test VALUES (?, ?)", 1,
+                                   "data"));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadOnly,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
+  UEXPECT_NO_THROW((client
+                        ->Execute(storages::sqlite::OperationType::kReadWrite,
+                                  "SELECT * FROM test")
+                        .AsVector<RowTuple>()));
+
+  const auto write_snapshot =
+      GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
+  EXPECT_EQ(write_snapshot.SingleMetric("active").AsInt(), 1);
+  const auto read_snapshot =
+      GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
+  EXPECT_EQ(write_snapshot.SingleMetric("active").AsInt(), 1);
+
+  // unsuccessful mutation in prepare time
+  UEXPECT_THROW(
+      client->Execute(storages::sqlite::OperationType::kReadWrite,
+                      "INSERT INTO unknown_table VALUES (?, ?)", 2, "data"),
+      SQLiteException);
+  // unsuccessful mutation in runtime
+  UEXPECT_THROW(client->Execute(storages::sqlite::OperationType::kReadWrite,
+                                "INSERT INTO test VALUES (?, ?)", 1, "data"),
+                SQLiteException);
+  // unsuccessful select
+  UEXPECT_THROW(
+      client->Execute(OperationType::kReadOnly, "SELECT * FROM unknown_table"),
+      SQLiteException);
+
+  const auto write_connection_stats =
+      GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
+  const auto read_connection_stats =
+      GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
+  const auto write_queries_stats =
+      GetStatistics("sqlite.queries", {{"connection_pool", "write"}});
+  const auto read_queries_stats =
+      GetStatistics("sqlite.queries", {{"connection_pool", "read"}});
+
+  EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsInt(), 0);
+  EXPECT_EQ(read_connection_stats.SingleMetric("closed").AsInt(), 0);
+
+  // create + success insert + 2 fail insert (1 in prepare time + 1 in runtime)
+  // + select on connection pool (consider all requests without separation by
+  // type of operation)
+  EXPECT_EQ(write_queries_stats.SingleMetric("total").AsInt(), 5);
+  EXPECT_EQ(write_queries_stats.SingleMetric("executed").AsInt(), 3);
+  EXPECT_EQ(write_queries_stats.SingleMetric("error").AsInt(), 2);
+
+  // success select on read connection + fail select
+  EXPECT_EQ(read_queries_stats.SingleMetric("total").AsInt(), 2);
+  EXPECT_EQ(read_queries_stats.SingleMetric("executed").AsInt(), 1);
+  EXPECT_EQ(read_queries_stats.SingleMetric("error").AsInt(), 1);
+}
+
+UTEST_F(SQLiteMetricsTest, TransactionsBasic) {
+  settings::SQLiteSettings settings;
+  settings.db_name = GetTestDbPath("test.db");
+
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient(settings));
+  UEXPECT_NO_THROW(client->Execute(
+      storages::sqlite::OperationType::kReadWrite,
+      "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+
+  constexpr size_t kCommitedWriteTransactions = 5;
+  constexpr size_t kRollbackedWriteTransactions = 5;
+  constexpr size_t kCommitedReadTransactions = 5;
+  constexpr size_t kRollbackedReadTransactions = 5;
+  constexpr size_t kTotalCommitedTransactions =
+      kCommitedWriteTransactions + kCommitedReadTransactions;
+  constexpr size_t kTotalRollbackedTransactions =
+      kRollbackedReadTransactions + kRollbackedWriteTransactions;
+  constexpr size_t kTotalTransactions =
+      kTotalCommitedTransactions + kTotalRollbackedTransactions;
+
+  for (size_t i = 0; i < kCommitedWriteTransactions; ++i) {
+    auto trx = client->Begin(storages::sqlite::OperationType::kReadWrite, {});
+    UEXPECT_NO_THROW(trx.Execute("INSERT INTO test VALUES (?, ?)", i, "data"));
+    trx.Commit();
+  }
+
+  for (size_t i = 0; i < kRollbackedWriteTransactions; ++i) {
+    auto trx = client->Begin(storages::sqlite::OperationType::kReadWrite, {});
+    UEXPECT_THROW(trx.Execute("INSERT INTO test VALUES (?, ?)", i, "data"),
+                  SQLiteException);
+  }
+
+  for (size_t i = 0; i < kCommitedReadTransactions; ++i) {
+    auto trx = client->Begin(storages::sqlite::OperationType::kReadOnly, {});
+    UEXPECT_NO_THROW((trx.Execute("SELECT * FROM test").AsVector<RowTuple>()));
+    trx.Commit();
+  }
+
+  for (size_t i = 0; i < kCommitedReadTransactions; ++i) {
+    auto trx = client->Begin(storages::sqlite::OperationType::kReadOnly, {});
+    UEXPECT_NO_THROW((trx.Execute("SELECT * FROM test").AsVector<RowTuple>()));
+    trx.Rollback();
+  }
+
+  const auto transactions_stats = GetStatistics("sqlite.transactions");
+
+  EXPECT_EQ(transactions_stats.SingleMetric("total").AsInt(),
+            kTotalTransactions);
+  EXPECT_EQ(transactions_stats.SingleMetric("commit").AsInt(),
+            kTotalCommitedTransactions);
+  EXPECT_EQ(transactions_stats.SingleMetric("rollback").AsInt(),
+            kTotalRollbackedTransactions);
 }
 
 }  // namespace storages::sqlite::tests

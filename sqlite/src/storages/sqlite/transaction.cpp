@@ -64,6 +64,14 @@ ResultSet Transaction::DoExecute(impl::io::ParamsBinderBase& params) const {
   return ResultSet{std::move(result_wrapper)};
 }
 
+void Transaction::AccountQueryExecute() const noexcept {
+  (*connection_)->AccountQueryExecute();
+}
+
+void Transaction::AccountQueryFailed() const noexcept {
+  (*connection_)->AccountQueryFailed();
+}
+
 }  // namespace storages::sqlite
 
 USERVER_NAMESPACE_END

@@ -6,15 +6,41 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::statistics {
 
-class CountExecute {
- public:
-  CountExecute(PoolQueryStatistics& stats);
+// TODO: make RAII alghorithms
 
-  ~CountExecute();
+class QueryStatCounter {
+ public:
+  explicit QueryStatCounter(PoolQueriesStatistics& stats);
+
+  ~QueryStatCounter();
+
+  QueryStatCounter(const QueryStatCounter&) = delete;
+  QueryStatCounter& operator=(const QueryStatCounter&) = delete;
+
+  void AccountQueryExecute() noexcept;
+  void AccountQueryCompleted() noexcept;
+  void AccountQueryFailed() noexcept;
 
  private:
-  PoolQueryStatistics& stats_;
-  const int exceptions_on_enter_;
+  PoolQueriesStatistics& queries_stats_;
+  utils::datetime::SteadyClock::time_point exec_begin_time;
+};
+
+class TransactionStatCounter {
+ public:
+  explicit TransactionStatCounter(PoolTransactionsStatistics& stats);
+
+  ~TransactionStatCounter();
+
+  TransactionStatCounter(const TransactionStatCounter&) = delete;
+  TransactionStatCounter& operator=(const TransactionStatCounter&) = delete;
+
+  void AccountTransactionStart() noexcept;
+  void AccountTransactionCommit() noexcept;
+  void AccountTransactionRollback() noexcept;
+
+ private:
+  PoolTransactionsStatistics& transations_stats_;
   utils::datetime::SteadyClock::time_point exec_begin_time;
 };
 

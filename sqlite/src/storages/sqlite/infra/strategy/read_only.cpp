@@ -39,12 +39,18 @@ PoolPtr ReadOnlyStrategy::InitializeReadOnlyPoolReference(
 
 void ReadOnlyStrategy::WriteStatistics(
     utils::statistics::Writer& writer) const {
-  auto write_stat = statistics::PoolStatistics{};
-  write_stat.connections.type = "write";
-  writer.ValueWithLabels(write_stat, {});
   auto& read_stat = read_connection_pool_->GetStatistics();
-  read_stat.connections.type = "read";
-  writer.ValueWithLabels(read_stat, {});
+
+  auto read_connections_stat = read_stat.connections;
+
+  auto& read_queries_stat = read_stat.queries;
+
+  statistics::PoolTransactionsStatistics transactions_stat;
+  transactions_stat.Add(read_stat.transactions);
+
+  statistics::AgregatedInstanceStatistics instance_stat{
+      {}, read_connections_stat, {}, read_queries_stat, transactions_stat};
+  writer.ValueWithLabels(instance_stat, {});
 }
 
 }  // namespace storages::sqlite::infra::strategy
