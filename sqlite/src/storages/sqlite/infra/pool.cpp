@@ -1,13 +1,14 @@
-#include <memory>
 #include <userver/storages/sqlite/infra/pool.hpp>
 
 #include <chrono>
+#include <memory>
 
 #include <userver/logging/log.hpp>
-#include <userver/storages/sqlite/impl/connection_impl.hpp>
-#include <userver/storages/sqlite/options.hpp>
 #include <userver/utils/statistics/writer.hpp>
-#include "userver/storages/sqlite/exceptions.hpp"
+
+#include <userver/storages/sqlite/exceptions.hpp>
+#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/options.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,22 +20,7 @@ constexpr std::size_t kMaxSimultaneouslyConnectingClients{5};
 
 constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 
-// constexpr std::chrono::milliseconds kPoolSizeMonitorInterval{2000};
-
-// constexpr std::chrono::milliseconds kPingerInterval{1000};
-// constexpr std::chrono::milliseconds kPingTimeout{200};
-
 }  // namespace
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolConnectionStatistics& stats) {
-  writer["overload"] = stats.overload;
-  writer["created"] = stats.created;
-  writer["closed"] = stats.closed;
-
-  writer["active"] = stats.created - stats.closed;
-  writer["busy"] = stats.acquired - stats.released;
-}
 
 std::shared_ptr<Pool> Pool::Create(
     const settings::SQLiteSettings& settings,
@@ -58,8 +44,8 @@ void Pool::Release(ConnectionUniquePtr connection) {
 Pool::Pool(const settings::SQLiteSettings& settings,
            engine::TaskProcessor& blocking_task_processor)
     : drivers::impl::ConnectionPoolBase<
-          impl::ConnectionImpl, Pool>{settings.pool_settings.max_pool_size,
-                                      kMaxSimultaneouslyConnectingClients},
+          impl::Connection, Pool>{settings.pool_settings.max_pool_size,
+                                  kMaxSimultaneouslyConnectingClients},
       blocking_task_processor_{blocking_task_processor},
       settings_{settings} {
   try {
@@ -67,14 +53,21 @@ Pool::Pool(const settings::SQLiteSettings& settings,
   } catch (const SQLiteException&) {
     Reset();
     throw;
-  } catch (const std::exception&) {
+  } catch (const std::exception& err) {
+    LOG_ERROR() << "Error in connection pool: " << err.what();
   }
 }
 
+statistics::Counter Pool::GetCurrentWorkersCount() const {
+  return stats_.connections.acquired - stats_.connections.released;
+}
+
+statistics::PoolStatistics& Pool::GetStatistics() { return stats_; }
+
 Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline) {
   try {
-    auto connection_ptr = std::make_unique<impl::ConnectionImpl>(
-        settings_, blocking_task_processor_);
+    auto connection_ptr = std::make_unique<impl::Connection>(
+        settings_, blocking_task_processor_, GetStatistics());
 
     return connection_ptr;
   } catch (const std::exception&) {
@@ -82,44 +75,13 @@ Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline) {
   }
 }
 
-void Pool::AccountConnectionAcquired() { ++stats_.acquired; }
-void Pool::AccountConnectionReleased() { ++stats_.released; }
-void Pool::AccountConnectionCreated() { ++stats_.created; }
-void Pool::AccountConnectionDestroyed() noexcept { ++stats_.closed; }
-void Pool::AccountOverload() { ++stats_.overload; }
-
-void Pool::RunSizeMonitor() {
-  if (AliveConnectionsCountApprox() <
-      settings_.pool_settings.initial_pool_size) {
-    try {
-      PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
-    } catch (const std::exception& ex) {
-      LOG_WARNING() << "Failed to add a connection into pool: " << ex;
-    }
-  }
+void Pool::AccountConnectionAcquired() { ++stats_.connections.acquired; }
+void Pool::AccountConnectionReleased() { ++stats_.connections.released; }
+void Pool::AccountConnectionCreated() { ++stats_.connections.created; }
+void Pool::AccountConnectionDestroyed() noexcept {
+  ++stats_.connections.closed;
 }
-
-void Pool::RunPinger() {
-  auto connection_ptr = TryPop();
-  if (!connection_ptr) {
-    return;
-  }
-
-  // const auto pinger_connection_deleter = [this](ConnectionRawPtr connection)
-  // {
-  //   // To not touch given_away_semaphore accidentally
-  //   DoRelease(ConnectionUniquePtr{connection});
-  // };
-  // const std::unique_ptr<impl::ConnectionImpl,
-  //                       decltype(pinger_connection_deleter)>
-  //     pinger_connection{connection_ptr.release(), pinger_connection_deleter};
-
-  // try {
-  //   pinger_connection->Ping(engine::Deadline::FromDuration(kPingTimeout));
-  // } catch (const std::exception& ex) {
-  //   LOG_WARNING() << "Failed to ping the server: " << ex.what();
-  // }
-}
+void Pool::AccountOverload() { ++stats_.connections.overload; }
 
 }  // namespace storages::sqlite::infra
 

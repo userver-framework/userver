@@ -11,24 +11,13 @@
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
 
-#include <userver/storages/sqlite/component.hpp>
-#include <userver/storages/sqlite/connection.hpp>
-#include <userver/storages/sqlite/options.hpp>
-#include <userver/storages/sqlite/query.hpp>
-#include <userver/storages/sqlite/result_set.hpp>
-#include <userver/storages/sqlite/transaction.hpp>
+#include <userver/storages/sqlite.hpp>
 
 #include <db/sql.hpp>
 
 namespace functional_tests {
 
 namespace {
-
-constexpr std::string_view kInsertKeyValueTransactionName =
-    "sample_transaction_insert_key_value";
-constexpr std::string_view kUpdateKeyValueTransactionName =
-    "sample_transaction_update_key_value";
-constexpr std::string_view kDeleteQueryName = "sample_delete_value";
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
@@ -37,10 +26,11 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   KeyValue(const components::ComponentConfig& config,
            const components::ComponentContext& context)
       : HttpHandlerBase(config, context),
-        sqlite_connection_(
+        sqlite_client_(
             context.FindComponent<components::SQLite>("key-value-database")
-                .GetConnection()) {
-    sqlite_connection_->Execute(db::sql::kCreateTable.data());
+                .GetClient()) {
+    sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite,
+                            db::sql::kCreateTable.data());
   }
 
   std::string HandleRequestThrow(const server::http::HttpRequest& request,
@@ -69,11 +59,10 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
  private:
   std::string GetValue(std::string_view key,
                        const server::http::HttpRequest& request) const {
-    auto res =
-        sqlite_connection_
-            ->Execute(storages::sqlite::settings::CommandControl::ReadOnly(),
-                      db::sql::kSelectValueByKey.data(), key)
-            .AsOptionalSingleField<std::string>();
+    auto res = sqlite_client_
+                   ->Execute(storages::sqlite::OperationType::kReadOnly,
+                             db::sql::kSelectValueByKey.data(), key)
+                   .AsOptionalSingleField<std::string>();
     if (!res.has_value()) {
       request.SetResponseStatus(server::http::HttpStatus::kNotFound);
       return {};
@@ -87,7 +76,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
     const auto& value = request.GetArg("value");
 
     storages::sqlite::Transaction transaction =
-        sqlite_connection_->Begin(kInsertKeyValueTransactionName.data(), {});
+        sqlite_client_->Begin(storages::sqlite::OperationType::kReadWrite, {});
 
     auto res = transaction.Execute(db::sql::kInsertKeyValue.data(), key, value)
                    .AsExecutionResult();
@@ -112,9 +101,9 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
 
     using userver::storages::sqlite::settings::TransactionOptions;
 
-    storages::sqlite::Transaction transaction = sqlite_connection_->Begin(
-        kUpdateKeyValueTransactionName.data(),
-        TransactionOptions{TransactionOptions::Mode::kImmediate});
+    storages::sqlite::Transaction transaction = sqlite_client_->Begin(
+        storages::sqlite::OperationType::kReadWrite,
+        TransactionOptions{TransactionOptions::LockingMode::kImmediate});
 
     auto res = transaction.Execute(db::sql::kUpdateKeyValue.data(), value, key)
                    .AsExecutionResult();
@@ -141,17 +130,16 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   }
 
   std::string DeleteValue(std::string_view key) const {
-    const storages::sqlite::Query kDeleteValue{
-        db::sql::kDeleteKeyValue.data(),
-        storages::sqlite::Query::Name{kDeleteQueryName},
-    };
+    const storages::sqlite::Query kDeleteValue{db::sql::kDeleteKeyValue.data()};
 
-    auto res =
-        sqlite_connection_->Execute(kDeleteValue, key).AsExecutionResult();
+    auto res = sqlite_client_
+                   ->Execute(storages::sqlite::OperationType::kReadWrite,
+                             kDeleteValue, key)
+                   .AsExecutionResult();
     return std::to_string(res.rows_affected);
   }
 
-  storages::sqlite::ConnectionPtr sqlite_connection_;
+  storages::sqlite::ClientPtr sqlite_client_;
 };
 
 }  // namespace

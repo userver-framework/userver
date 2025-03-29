@@ -5,37 +5,21 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/drivers/impl/connection_pool_base.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/storages/sqlite/infra/connection_ptr.hpp>
-#include <userver/storages/sqlite/options.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/statistics/relaxed_counter.hpp>
+
+#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
+#include <userver/storages/sqlite/infra/statistics/statistics.hpp>
+#include <userver/storages/sqlite/options.hpp>
+#include <userver/storages/sqlite/sqlite_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite {
-
-namespace impl {
-class ConnectionImpl;
-}
-
-namespace infra {
-
-using Counter = utils::statistics::RelaxedCounter<std::uint64_t>;
-
-struct PoolConnectionStatistics final {
-  Counter overload{};
-  Counter closed{};
-  Counter created{};
-  Counter acquired{};
-  Counter released{};
-};
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolConnectionStatistics& stats);
+namespace storages::sqlite::infra {
 
 class Pool final
-    : public drivers::impl::ConnectionPoolBase<impl::ConnectionImpl, Pool> {
+    : public drivers::impl::ConnectionPoolBase<impl::Connection, Pool> {
  public:
   static std::shared_ptr<Pool> Create(
       const settings::SQLiteSettings& settings,
@@ -48,8 +32,14 @@ class Pool final
   Pool(const settings::SQLiteSettings& settings,
        engine::TaskProcessor& blocking_task_processor);
 
+  // It's possible to use in advanced exclusive read write connection pools
+  // strategy
+  statistics::Counter GetCurrentWorkersCount() const;
+
+  statistics::PoolStatistics& GetStatistics();
+
  private:
-  friend class drivers::impl::ConnectionPoolBase<impl::ConnectionImpl, Pool>;
+  friend class drivers::impl::ConnectionPoolBase<impl::Connection, Pool>;
 
   ConnectionUniquePtr DoCreateConnection(engine::Deadline deadline);
 
@@ -59,18 +49,13 @@ class Pool final
   void AccountConnectionDestroyed() noexcept;
   void AccountOverload();
 
-  void RunSizeMonitor();
-  void RunPinger();
-
   engine::TaskProcessor& blocking_task_processor_;
 
   const settings::SQLiteSettings settings_;
 
-  PoolConnectionStatistics stats_{};
+  statistics::PoolStatistics stats_{};
 };
 
-}  // namespace infra
-
-}  // namespace storages::sqlite
+}  // namespace storages::sqlite::infra
 
 USERVER_NAMESPACE_END

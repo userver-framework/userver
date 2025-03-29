@@ -4,8 +4,6 @@
 
 #include <stdexcept>
 
-#include <sqlite3.h>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
@@ -13,17 +11,19 @@ namespace storages::sqlite {
 /// @brief Base class for all uSQLite driver exceptions
 class SQLiteException : public std::runtime_error {
  public:
+  SQLiteException(const char* error_message, int error_code,
+                  int extended_error_code);
+
+  SQLiteException(const std::string& error_message, int error_code,
+                  int extended_error_code);
+
   SQLiteException(const char* error_message, int error_code);
 
-  SQLiteException(const std::string& message, int error_code);
+  SQLiteException(const std::string& error_message, int error_code);
 
   explicit SQLiteException(const char* error_message);
 
-  explicit SQLiteException(const std::string& message);
-
-  explicit SQLiteException(sqlite3* sqlite_object);
-
-  SQLiteException(sqlite3* sqlite_object, int error_code);
+  explicit SQLiteException(const std::string& error_message);
 
   ~SQLiteException() override;
 
@@ -40,24 +40,6 @@ class SQLiteException : public std::runtime_error {
   int error_code_;           // Error code value
   int extended_error_code_;  // Detailed error code if any
 };
-
-/// @brief Statement exception - something went wrong with the statement
-class SQLiteStatementException : public SQLiteException {
- public:
-  using SQLiteException::SQLiteException;
-
-  ~SQLiteStatementException() override;
-};
-
-/// @brief Transaction exception - something went wrong with the transaction
-class SQLiteTransactionException : public SQLiteException {
- public:
-  using SQLiteException::SQLiteException;
-
-  ~SQLiteTransactionException() override;
-};
-
-// TODO: Added other SQLite exceptions
 
 }  // namespace storages::sqlite
 

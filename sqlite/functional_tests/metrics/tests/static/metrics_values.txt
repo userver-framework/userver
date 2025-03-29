@@ -1,0 +1,51 @@
+# SQLite driver metrics on connections (read / write)
+sqlite.connections.active: connection_pool=read	GAUGE	0
+sqlite.connections.active: connection_pool=write	GAUGE	0
+sqlite.connections.busy: connection_pool=read	GAUGE	0
+sqlite.connections.busy: connection_pool=write	GAUGE	0
+sqlite.connections.closed: connection_pool=read	GAUGE	0
+sqlite.connections.closed: connection_pool=write	GAUGE	0
+sqlite.connections.created: connection_pool=read	GAUGE	0
+sqlite.connections.created: connection_pool=write	GAUGE	0
+sqlite.connections.overload: connection_pool=read	GAUGE	0
+sqlite.connections.overload: connection_pool=write	GAUGE	0
+
+# SQLite queries stats
+sqlite.queries.error: connection_pool=read	GAUGE	0
+sqlite.queries.error: connection_pool=write	GAUGE	0
+sqlite.queries.executed: connection_pool=read	GAUGE	0
+sqlite.queries.executed: connection_pool=write	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p0	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p100	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p50	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p90	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p95	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p98	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p99	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p99_6	GAUGE	0
+sqlite.queries.timings: connection_pool=read, percentile=p99_9	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p0	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p100	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p50	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p90	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p95	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p98	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p99	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p99_6	GAUGE	0
+sqlite.queries.timings: connection_pool=write, percentile=p99_9	GAUGE	0
+sqlite.queries.total: connection_pool=read	GAUGE	0
+sqlite.queries.total: connection_pool=write	GAUGE	0
+
+# SQLite transactions stats
+sqlite.transactions.commit:	GAUGE	0
+sqlite.transactions.rollback:	GAUGE	0
+sqlite.transactions.timings: percentile=p0	GAUGE	0
+sqlite.transactions.timings: percentile=p100	GAUGE	0
+sqlite.transactions.timings: percentile=p50	GAUGE	0
+sqlite.transactions.timings: percentile=p90	GAUGE	0
+sqlite.transactions.timings: percentile=p95	GAUGE	0
+sqlite.transactions.timings: percentile=p98	GAUGE	0
+sqlite.transactions.timings: percentile=p99	GAUGE	0
+sqlite.transactions.timings: percentile=p99_6	GAUGE	0
+sqlite.transactions.timings: percentile=p99_9	GAUGE	0
+sqlite.transactions.total:	GAUGE	0

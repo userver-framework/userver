@@ -1,15 +1,16 @@
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
 
-#include <userver/storages/sqlite/impl/connection_impl.hpp>
-#include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/infra/pool.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra {
 
 ConnectionPtr::ConnectionPtr(std::shared_ptr<Pool>&& pool,
-                             std::unique_ptr<impl::ConnectionImpl>&& connection)
+                             std::unique_ptr<impl::Connection>&& connection)
     : pool_{std::move(pool)}, conn_{std::move(connection)} {}
 
 ConnectionPtr::~ConnectionPtr() { Reset(nullptr, nullptr); }
@@ -25,20 +26,18 @@ ConnectionPtr& ConnectionPtr::operator=(ConnectionPtr&& other) noexcept {
 
 bool ConnectionPtr::IsValid() const noexcept { return conn_ != nullptr; }
 
-impl::ConnectionImpl* ConnectionPtr::get() const noexcept {
-  return conn_.get();
-}
+impl::Connection* ConnectionPtr::get() const noexcept { return conn_.get(); }
 
-impl::ConnectionImpl& ConnectionPtr::operator*() const {
+impl::Connection& ConnectionPtr::operator*() const {
   UASSERT_MSG(conn_, "Dereferencing null connection pointer");
   return *conn_;
 }
 
-impl::ConnectionImpl* ConnectionPtr::operator->() const noexcept {
+impl::Connection* ConnectionPtr::operator->() const noexcept {
   return conn_.get();
 }
 
-void ConnectionPtr::Reset(std::unique_ptr<impl::ConnectionImpl> conn,
+void ConnectionPtr::Reset(std::unique_ptr<impl::Connection> conn,
                           std::shared_ptr<Pool> pool) {
   Release();
   conn_ = std::move(conn);

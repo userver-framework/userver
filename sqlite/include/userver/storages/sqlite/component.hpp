@@ -5,7 +5,9 @@
 
 #include <userver/components/component_base.hpp>
 
-#include <userver/storages/sqlite/connection.hpp>
+#include <userver/utils/statistics/entry.hpp>
+
+#include <userver/storages/sqlite/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,18 +19,27 @@ namespace components {
 ///
 /// @brief SQLite client component.
 /// ## Static options:
-/// Name                               | Description                                                    | Default value
-/// ---------------------------------- | -------------------------------------------------------------- | ---------------
-/// task_processor                     | name of the task processor to run the blocking file operations | -
-/// db-path                            | path to database file or `::memory` for in-memory mode         | -
-/// create_file                        | create a file if one is not found along the db-path            | true
-/// is_read_only                       | defines database access as read-only                           | false
-/// shared_cashe                       | open database with shared in-memory cashe                      | false
-/// wal_mode                           | WAL journal mode                                               | true
-/// persistent-prepared-statements     | cache prepared statements or not                               | true
-/// max_prepared_cache_size            | prepared statements cache size limit                           | 200
-/// initial_read_only_pool_size        | initial read only connection pool size                         | 5
-/// max_read_only_pool_size            | maximum read only connection pool size                         | 10
+/// Name                               | Description                                                                       | Default value
+/// ---------------------------------- | --------------------------------------------------------------------------------- | ---------------
+/// task_processor                     | name of the task processor to handle the blocking file operations                 | -
+/// db-path                            | path to the database file or `::memory::` for in-memory mode                      | -
+/// create_file                        | сreate the database file if it does not exist at the specified path               | true
+/// is_read_only                       | open the database in read-only mode                                               | false
+/// shared_cashe                       | enable shared in-memory cache for the database                                    | false
+/// read_uncommited                    | allow reading uncommitted data (requires shared_cache)                            | false
+/// journal_mode                       | mode for database journaling                                                      | wal
+/// busy_timeout                       | timeout duration (in milliseconds) to wait when the database is busy              | 5000
+/// foreign_keys                       | enable enforcement of foreign key constraints                                     | true
+/// synchronous                        | set the level of synchronization to ensure data durability                        | normal
+/// cache_size                         | maximum cache size, specified in number of pages or in kibibytes (negative value) | -2000
+/// journal_size_limit                 | limit the size of rollback-journal and WAL files (in bytes)                       | 67108864
+/// mmap_size                          | maximum number of bytes allocated for memory-mapped I/O                           | 30000000000
+/// page_size                          | size of a database page (in bytes)                                                | 4096
+/// temp_store                         | storage location for temporary tables and indexes                                 | memory
+/// persistent-prepared-statements     | cache prepared statements for reuse                                               | true
+/// max_prepared_cache_size            | maximum number of prepared statements to cache                                    | 200
+/// initial_read_only_pool_size        | initial size of the read-only connection pool                                     | 5
+/// max_read_only_pool_size            | maximum size of the read-only connection pool                                     | 10
 
 // clang-format on
 
@@ -39,13 +50,14 @@ class SQLite final : public components::ComponentBase {
   /// Component destructor
   ~SQLite() override;
 
-  storages::sqlite::ConnectionPtr GetConnection() const;
+  storages::sqlite::ClientPtr GetClient() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   std::string name_;
-  const storages::sqlite::ConnectionPtr connection_;
+  const storages::sqlite::ClientPtr client_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 template <>

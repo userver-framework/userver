@@ -2,7 +2,7 @@
 components_manager:
     components:
         handler-key-value:
-            path: /basic/sqlite
+            path: /basic/sqlite/key-value
             task_processor: main-task-processor
             method: GET,DELETE,POST,PUT
 
@@ -14,10 +14,12 @@ components_manager:
         testsuite-support:
 
         key-value-database:
-            db-path: "tmp.db"
+            db-path: "/tmp/kv.db"
             task_processor: fs-task-processor
-            create_file: true
-            is_read_only: false
+
+        batch-database:
+            db-path: "/tmp/batch.db"
+            task_processor: fs-task-processor
 
         server:
             listener:

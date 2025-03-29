@@ -1,37 +1,39 @@
 #include <userver/utest/utest.hpp>
 
-#include <vector>
-
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/logging/log.hpp>
-#include <userver/storages/sqlite.hpp>
-#include <userver/storages/sqlite/connection.hpp>
-#include <userver/storages/sqlite/execution_result.hpp>
-#include <userver/storages/sqlite/options.hpp>
-#include <userver/storages/sqlite/row_types.hpp>
+
+#include <userver/storages/sqlite/impl/connection.hpp>
+#include <userver/storages/sqlite/infra/connection_ptr.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-#include <userver/storages/sqlite/transaction.hpp>
-#include <userver/utest/assert_macros.hpp>
-#include "userver/storages/sqlite/infra/connection_ptr.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
 
-// Here we check the high-level operation of transactions; this requires a test
-// connection to the database
+// Here we check the high-level operation of transactions;
+// this requires a test connection to the database
 
-class SQLiteTransactions : public SQLiteInMemoryInitConnection {};
+namespace {
 
-UTEST_F(SQLiteTransactions, Commit) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+class SQLiteTransactionsTest
+    : public SQLiteCompositeFixture<SQLiteInMemoryConnection> {
+  void PreInitialize(const ClientPtr& client) final {
+    UEXPECT_NO_THROW(client->Execute(
+        OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+  }
+};
 
-  Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
-  UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+}  // namespace
+
+UTEST_F(SQLiteTransactionsTest, Commit) {
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
+
+  Transaction trx{nullptr, {}};
+  UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
       << "Begin default transaction";
   ExecutionResult exec_result;
   UEXPECT_NO_THROW(exec_result =
@@ -44,18 +46,17 @@ UTEST_F(SQLiteTransactions, Commit) {
 
   std::string res;
   UEXPECT_NO_THROW(
-      res =
-          conn->Execute("SELECT value FROM test").AsSingleField<std::string>());
+      res = client->Execute(OperationType::kReadOnly, "SELECT value FROM test")
+                .AsSingleField<std::string>());
   EXPECT_EQ("first", res);
 }
 
-UTEST_F(SQLiteTransactions, Rollback) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+UTEST_F(SQLiteTransactionsTest, Rollback) {
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
-  Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
-  UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+  Transaction trx{nullptr, {}};
+  UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
       << "Begin default transaction";
   int last_insert_id{};
   UEXPECT_NO_THROW(last_insert_id =
@@ -67,22 +68,22 @@ UTEST_F(SQLiteTransactions, Rollback) {
   UEXPECT_NO_THROW(trx.Rollback()) << "Rollback transaction";
 
   std::vector<std::string> res;
-  UEXPECT_NO_THROW(res = conn->Execute("SELECT value FROM test")
-                             .AsVector<std::string>(kFieldTag));
+  UEXPECT_NO_THROW(
+      res = client->Execute(OperationType::kReadOnly, "SELECT value FROM test")
+                .AsVector<std::string>(kFieldTag));
   EXPECT_TRUE(res.empty());
 }
 
-class SQLiteTransactionDeathTest : public SQLiteTransactions {};
+class SQLiteTransactionDeathTest : public SQLiteTransactionsTest {};
 
 UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
   // Use trx after commit would be abort
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
-    UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+    Transaction trx{nullptr, {}};
+    UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     UEXPECT_NO_THROW(trx.Commit()) << "Commit transaction";
     UEXPECT_DEATH(
@@ -94,8 +95,8 @@ UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
 
   // Use trx after rollback would be abort
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
-    UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+    Transaction trx{nullptr, {}};
+    UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     UEXPECT_NO_THROW(trx.Rollback()) << "Rollback transaction";
     UEXPECT_DEATH(
@@ -106,15 +107,14 @@ UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
   }
 }
 
-UTEST_F(SQLiteTransactions, AutoRollback) {
-  ConnectionPtr conn;
-  UEXPECT_NO_THROW(conn = CreateConnection())
-      << "Connect to in-memory database";
+UTEST_F(SQLiteTransactionsTest, AutoRollback) {
+  ClientPtr client;
+  UEXPECT_NO_THROW(client = CreateClient()) << "Connect to in-memory database";
 
   // Insert a row and not commit the transaction
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
-    UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+    Transaction trx{nullptr, {}};
+    UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     int last_insert_id{};
     UEXPECT_NO_THROW(last_insert_id =
@@ -128,8 +128,8 @@ UTEST_F(SQLiteTransactions, AutoRollback) {
   // Insert a row and rollback the transaction -> auto rollback not throw
   // exception
   {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
-    UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+    Transaction trx{nullptr, {}};
+    UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     int last_insert_id{};
     UEXPECT_NO_THROW(last_insert_id =
@@ -143,8 +143,8 @@ UTEST_F(SQLiteTransactions, AutoRollback) {
 
   // Failure (exception) in transaction is safe
   try {
-    Transaction trx{infra::ConnectionPtr{nullptr, nullptr}, {}};
-    UEXPECT_NO_THROW(trx = conn->Begin("test_trx_commit", {}))
+    Transaction trx{nullptr, {}};
+    UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {}))
         << "Begin default transaction";
     int last_insert_id{};
     UEXPECT_NO_THROW(last_insert_id =

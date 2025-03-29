@@ -1,16 +1,18 @@
 #pragma once
 
-#include <userver/storages/sqlite/infra/topology_base.hpp>
+#include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::sqlite::infra {
+namespace storages::sqlite::infra::strategy {
 
-class ReadWrite final : public TopologyBase {
+class ReadWriteStrategy final : public PoolStrategyBase {
  public:
-  ReadWrite(const settings::SQLiteSettings& settings,
-            engine::TaskProcessor& blocking_task_processor);
-  ~ReadWrite() final;
+  ReadWriteStrategy(const settings::SQLiteSettings& settings,
+                    engine::TaskProcessor& blocking_task_processor);
+  ~ReadWriteStrategy() final;
+
+  void WriteStatistics(utils::statistics::Writer& writer) const final;
 
  private:
   Pool& GetReadOnly() const final;
@@ -29,6 +31,6 @@ class ReadWrite final : public TopologyBase {
   PoolPtr read_connection_pool_;
 };
 
-}  // namespace storages::sqlite::infra
+}  // namespace storages::sqlite::infra::strategy
 
 USERVER_NAMESPACE_END

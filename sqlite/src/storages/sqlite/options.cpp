@@ -10,14 +10,15 @@ ConnectionSettings ConnectionSettings::Create(
     const components::ComponentConfig& config) {
   ConnectionSettings settings{};
   settings.prepared_statements =
-      config["persistent-prepared-statements"].As<bool>(true)
+      config["persistent-prepared-statements"].As<bool>(
+          kDefaultPrepareStatement)
           ? storages::sqlite::settings::ConnectionSettings::
                 kCachePreparedStatements
           : storages::sqlite::settings::ConnectionSettings::
                 kNoPreparedStatements;
   settings.max_prepared_cache_size =
       config["max_prepared_cache_size"].As<std::size_t>(
-          storages::sqlite::settings::kDefaultMaxPreparedCacheSize);
+          kDefaultMaxPreparedCacheSize);
   return settings;
 }
 
@@ -34,6 +35,43 @@ PoolSettings PoolSettings::Create(const components::ComponentConfig& config) {
              "initial_read_only_pool_size, recheck your config");
 
   return settings;
+}
+
+std::string IsolationLevelToString(
+    const TransactionOptions::IsolationLevel& lvl) {
+  switch (lvl) {
+    case TransactionOptions::IsolationLevel::kSerializable:
+      return "Serializable";
+    case TransactionOptions::IsolationLevel::kReadUncommitted:
+      return "ReadUncommitted";
+    default:
+      return "Unknown";
+  }
+}
+
+std::string JournalModeToString(const SQLiteSettings::JournalMode& mode) {
+  switch (mode) {
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kDelete:
+      return "DELETE";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kTruncate:
+      return "TRUNCATE";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kPersist:
+      return "PERSIST";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kMemory:
+      return "MEMORY";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kWal:
+      return "WAL";
+    case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::
+        kOff:
+      return "OFF";
+    default:
+      return "Unknown";
+  }
 }
 
 }  // namespace storages::sqlite::settings
