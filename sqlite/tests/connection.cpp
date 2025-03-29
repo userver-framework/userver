@@ -24,7 +24,7 @@ class SQLiteConnectionTest
 UTEST_F(SQLiteConnectionTest, NonExistent) {
   // Try to open a non-existing database
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.create_file = false;
 
   UEXPECT_THROW(CreateClient(settings), sqlite::SQLiteException)
@@ -34,7 +34,7 @@ UTEST_F(SQLiteConnectionTest, NonExistent) {
 UTEST_F(SQLiteConnectionTest, CreateOpen) {
   // Try to open a non-existing database
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.create_file = true;
 
   UEXPECT_NO_THROW(CreateClient(settings))
@@ -50,7 +50,7 @@ UTEST_F(SQLiteConnectionTest, CreateOpen) {
 
 UTEST_F(SQLiteConnectionTest, InMemory) {
   settings::SQLiteSettings settings;
-  settings.db_name = ":memory:";
+  settings.db_path = ":memory:";
 
   UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to in-memory database";
 }

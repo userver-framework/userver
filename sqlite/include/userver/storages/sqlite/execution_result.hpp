@@ -13,10 +13,10 @@ namespace storages::sqlite {
 struct ExecutionResult final {
   /// Amount of rows that statement affected. Consult SQLite docs for better
   /// understanding.
-  std::uint64_t rows_affected{};
+  std::int64_t rows_affected{};
 
   /// LastInsertId, if any, or zero.
-  std::uint64_t last_insert_id{};
+  std::int64_t last_insert_id{};
 };
 
 }  // namespace storages::sqlite

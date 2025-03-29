@@ -22,10 +22,12 @@ Transaction& Transaction::operator=(Transaction&&) noexcept = default;
 
 Transaction::~Transaction() {
   if (connection_ && connection_->IsValid()) {
+    LOG_INFO() << "Transaction handle is destroyed without an explicit "
+                  "commit or rollback, rolling back automatically";
     try {
       Rollback();
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "Failed to auto rollback a transaction: " << ex.what();
+    } catch (const std::exception& err) {
+      LOG_ERROR() << "Failed to auto rollback a transaction: " << err;
     }
   }
 }

@@ -32,10 +32,6 @@ class Pool final
   Pool(const settings::SQLiteSettings& settings,
        engine::TaskProcessor& blocking_task_processor);
 
-  // It's possible to use in advanced exclusive read write connection pools
-  // strategy
-  statistics::Counter GetCurrentWorkersCount() const;
-
   statistics::PoolStatistics& GetStatistics();
 
  private:

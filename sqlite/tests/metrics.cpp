@@ -15,7 +15,6 @@
 
 #include <userver/storages/sqlite/infra/pool.hpp>
 #include <userver/storages/sqlite/tests/utils.hpp>
-#include "userver/storages/sqlite/exceptions.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,7 +50,7 @@ class SQLiteMetricsTest : public SQLiteCompositeFixture<SQLitePureConnection> {
 class SQLiteMetricsPoolTest : public SQLiteFixture {
  public:
   infra::PoolPtr GetPool(settings::SQLiteSettings settings = {}) {
-    settings.db_name = GetTestDbPath("test.db");
+    settings.db_path = GetTestDbPath("test.db");
     settings.create_file = true;
     return std::make_shared<infra::Pool>(
         settings, engine::current_task::GetTaskProcessor());
@@ -62,7 +61,7 @@ class SQLiteMetricsPoolTest : public SQLiteFixture {
 
 UTEST_F(SQLiteMetricsTest, PoolBasic) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.create_file = true;
 
   ClientPtr client;
@@ -102,7 +101,7 @@ UTEST_F(SQLiteMetricsTest, PoolBasic) {
 
 UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.create_file = true;
 
   ClientPtr client;
@@ -176,7 +175,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
 
 UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.create_file = true;
 
   ClientPtr client;
@@ -281,7 +280,7 @@ UTEST_F(SQLiteMetricsPoolTest, ActiveConnections) {
 
 UTEST_F(SQLiteMetricsTest, NoOp) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
 
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));
@@ -307,7 +306,7 @@ UTEST_F(SQLiteMetricsTest, NoOp) {
 
 UTEST_F(SQLiteMetricsTest, QueriesBasic) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
 
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));
@@ -376,7 +375,7 @@ UTEST_F(SQLiteMetricsTest, QueriesBasic) {
 
 UTEST_F(SQLiteMetricsTest, TransactionsBasic) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
 
   ClientPtr client;
   UEXPECT_NO_THROW(client = CreateClient(settings));

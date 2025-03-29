@@ -12,7 +12,7 @@
 
 #include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
-#include "userver/storages/sqlite/operation_types.hpp"
+#include <userver/storages/sqlite/operation_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -58,8 +58,8 @@ class MockSQLiteStatement : public impl::StatementBase {
   MOCK_METHOD(void, Next, (), (noexcept, override));
   MOCK_METHOD(void, CheckStepStatus, (), (override));
 
-  MOCK_METHOD(int, RowsAffected, (), (const, noexcept, override));
-  MOCK_METHOD(int, LastInsertRowId, (), (const, noexcept, override));
+  MOCK_METHOD(std::int64_t, RowsAffected, (), (const, noexcept, override));
+  MOCK_METHOD(std::int64_t, LastInsertRowId, (), (const, noexcept, override));
   MOCK_METHOD(bool, IsNull, (int column), (const, noexcept, override));
   MOCK_METHOD(void, Extract, (int column, std::int8_t& val),
               (const, noexcept, override));
@@ -164,7 +164,7 @@ class SQLitePureConnection {
 class SQLiteInMemoryConnection : public SQLiteCustomConnection {
  public:
   ClientPtr CreateClient(settings::SQLiteSettings settings = {}) {
-    settings.db_name = "file::memory:";
+    settings.db_path = "file::memory:";
     settings.shared_cashe = true;
     return SQLiteCustomConnection::CreateClient(settings);
   }

@@ -1,7 +1,7 @@
-#include <memory>
 #include <userver/storages/sqlite/impl/connection.hpp>
 
 #include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
 
 #include <userver/storages/sqlite/infra/statistics/statistics.hpp>
 #include <userver/storages/sqlite/infra/statistics/statistics_counter.hpp>
@@ -41,11 +41,10 @@ Connection::Connection(const settings::SQLiteSettings& settings,
       settings_{settings},
       statements_cache_{db_handler_,
                         settings.conn_settings.max_prepared_cache_size},
-      queries_stat_counter_{
-          std::make_unique<infra::statistics::QueryStatCounter>(stat.queries)},
-      transactions_stat_counter_{
-          std::make_unique<infra::statistics::TransactionStatCounter>(
-              stat.transactions)} {}
+      queries_stat_counter_{stat.queries},
+      transactions_stat_counter_{stat.transactions} {
+  LOG_INFO() << "SQLite connection initialized.";
+}
 
 Connection::~Connection() = default;
 
@@ -120,27 +119,27 @@ void Connection::RollbackTo(const std::string& name) {
 }
 
 void Connection::AccountQueryExecute() noexcept {
-  queries_stat_counter_->AccountQueryExecute();
+  queries_stat_counter_.AccountQueryExecute();
 }
 
 void Connection::AccountQueryCompleted() noexcept {
-  queries_stat_counter_->AccountQueryCompleted();
+  queries_stat_counter_.AccountQueryCompleted();
 }
 
 void Connection::AccountQueryFailed() noexcept {
-  queries_stat_counter_->AccountQueryFailed();
+  queries_stat_counter_.AccountQueryFailed();
 }
 
 void Connection::AccountTransactionStart() noexcept {
-  transactions_stat_counter_->AccountTransactionStart();
+  transactions_stat_counter_.AccountTransactionStart();
 }
 
 void Connection::AccountTransactionCommit() noexcept {
-  transactions_stat_counter_->AccountTransactionCommit();
+  transactions_stat_counter_.AccountTransactionCommit();
 }
 
 void Connection::AccountTransactionRollback() noexcept {
-  transactions_stat_counter_->AccountTransactionRollback();
+  transactions_stat_counter_.AccountTransactionRollback();
 }
 
 bool Connection::IsBroken() const { return broken_.load(); }

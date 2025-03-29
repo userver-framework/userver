@@ -58,8 +58,8 @@ class Connection {
   impl::NativeHandler db_handler_;
   settings::SQLiteSettings settings_;
   impl::StatementsCache statements_cache_;
-  infra::statistics::QueryStatCounterPtr queries_stat_counter_;
-  infra::statistics::TransactionStatCounterPtr transactions_stat_counter_;
+  infra::statistics::QueryStatCounter queries_stat_counter_;
+  infra::statistics::TransactionStatCounter transactions_stat_counter_;
   std::atomic<bool> broken_{false};
 };
 

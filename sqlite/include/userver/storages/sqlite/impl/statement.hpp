@@ -49,8 +49,8 @@ class Statement final : public StatementBase {
   void CheckStepStatus() override;
 
   // Extract
-  int RowsAffected() const noexcept override;
-  int LastInsertRowId() const noexcept override;
+  std::int64_t RowsAffected() const noexcept override;
+  std::int64_t LastInsertRowId() const noexcept override;
   bool IsNull(int column) const noexcept override;
   void Extract(int column, std::int8_t& val) const noexcept override;
   void Extract(int column, std::uint8_t& val) const noexcept override;

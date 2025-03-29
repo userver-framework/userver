@@ -40,7 +40,7 @@ class SQLiteTransactionsConcurentTest
 
 UTEST_P_MT(SQLiteTransactionsConcurentTest, IsolationLevels, 3) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings::TransactionOptions::IsolationLevel trx_isolation_lvl = GetParam();
   if (trx_isolation_lvl ==
       settings::TransactionOptions::IsolationLevel::kReadUncommitted) {

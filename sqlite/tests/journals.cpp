@@ -37,7 +37,7 @@ class SQLiteJournalModesTest
 
 UTEST_P_MT(SQLiteJournalModesTest, ReadWrite, 10) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.journal_mode = GetParam();
   if (settings.journal_mode == settings::SQLiteSettings::JournalMode::kMemory) {
     settings.shared_cashe = true;

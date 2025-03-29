@@ -106,7 +106,7 @@ struct SQLiteSettings {
   int journal_size_limit = kDefaultJournalSizeLimit;
   int mmap_size = kDefaultMmapSize;
   int page_size = kDefaultPageSize;
-  std::string db_name;
+  std::string db_path;
   ConnectionSettings conn_settings;
   PoolSettings pool_settings;
 };

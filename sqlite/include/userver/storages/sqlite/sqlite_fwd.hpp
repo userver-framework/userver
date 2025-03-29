@@ -45,14 +45,6 @@ class PoolStrategyBase;
 using PoolStrategyBasePtr = std::unique_ptr<PoolStrategyBase>;
 }  // namespace strategy
 
-namespace statistics {
-class QueryStatCounter;
-using QueryStatCounterPtr = std::unique_ptr<QueryStatCounter>;
-
-class TransactionStatCounter;
-using TransactionStatCounterPtr = std::unique_ptr<TransactionStatCounter>;
-}  // namespace statistics
-
 }  // namespace infra
 
 }  // namespace storages::sqlite

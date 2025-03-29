@@ -20,7 +20,7 @@ class SQLiteCommonTest : public SQLiteCompositeFixture<SQLiteCustomConnection> {
 
 UTEST_F(SQLiteCommonTest, ReadWrite) {
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.create_file = true;
 
   ClientPtr client;
@@ -59,7 +59,7 @@ UTEST_F(SQLiteCommonTest, ReadWrite) {
 UTEST_F(SQLiteCommonTest, ReadOnly) {
   {
     settings::SQLiteSettings settings;
-    settings.db_name = GetTestDbPath("test.db");
+    settings.db_path = GetTestDbPath("test.db");
     settings.create_file = true;
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings))
@@ -78,7 +78,7 @@ UTEST_F(SQLiteCommonTest, ReadOnly) {
   }
 
   settings::SQLiteSettings settings;
-  settings.db_name = GetTestDbPath("test.db");
+  settings.db_path = GetTestDbPath("test.db");
   settings.create_file = false;
   settings.read_mode = settings::SQLiteSettings::ReadMode::kReadOnly;
 

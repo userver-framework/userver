@@ -36,11 +36,13 @@ Savepoint& Savepoint::operator=(Savepoint&&) noexcept = default;
 
 Savepoint::~Savepoint() {
   if (connection_ && connection_->IsValid()) {
+    LOG_INFO() << "Savepoint handle is destroyed without an explicit "
+                  "release or rollback_to, rolling back automatically";
     try {
       RollbackTo();
       Release();
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "Failed to auto rollback a savepoint: " << ex.what();
+    } catch (const std::exception& err) {
+      LOG_ERROR() << "Failed to auto rollback a savepoint: " << err;
     }
   }
 }

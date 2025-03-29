@@ -146,6 +146,7 @@ std::optional<T> ResultSet::AsOptionalSingleRow() && {
     return std::nullopt;
   }
   if (rows.size() > 1) {
+    // TODO: Maybe better logging warning
     throw SQLiteException("Result set contains more than one row");
   }
   return {{std::move(rows.front())}};
@@ -158,6 +159,7 @@ std::optional<T> ResultSet::AsOptionalSingleField() && {
     return std::nullopt;
   }
   if (rows.size() > 1) {
+    // TODO: Maybe better logging warning
     throw SQLiteException("Result set contains more than one row");
   }
   return {{std::move(rows.front())}};

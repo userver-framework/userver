@@ -7,6 +7,7 @@
 #include <userver/engine/async.hpp>
 
 #include <userver/storages/sqlite/exceptions.hpp>
+#include "userver/logging/log.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -125,8 +126,10 @@ struct sqlite3* NativeHandler::OpenDatabase(
              [&settings, flags] {
                struct sqlite3* handler = nullptr;
                if (const int ret_code = sqlite3_open_v2(
-                       settings.db_name.c_str(), &handler, flags, nullptr);
+                       settings.db_path.c_str(), &handler, flags, nullptr);
                    ret_code != SQLITE_OK) {
+                 LOG_WARNING()
+                     << "Failed to open database: " << settings.db_path;
                  sqlite3_close(handler);
                  throw SQLiteException(sqlite3_errstr(ret_code), ret_code);
                }
@@ -143,6 +146,12 @@ NativeHandler::NativeHandler(const settings::SQLiteSettings& settings,
 }
 
 NativeHandler::~NativeHandler() {
+  // Close all associated stmt If there are such
+  sqlite3_stmt* stmt = nullptr;
+  while ((stmt = sqlite3_next_stmt(db_handler_, stmt)) != nullptr) {
+    sqlite3_finalize(stmt);
+  }
+  // Close connection (blocking I/O)
   engine::AsyncNoSpan(blocking_task_processor_, [this] {
     sqlite3_close(db_handler_);
   }).Get();

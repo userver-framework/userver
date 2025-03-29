@@ -137,11 +137,11 @@ void Statement::Bind(const int index) {
   CheckCode(ret_code);
 }
 
-int Statement::RowsAffected() const noexcept {
-  return sqlite3_changes(sqlite3_db_handle(prepare_statement_.get()));
+std::int64_t Statement::RowsAffected() const noexcept {
+  return sqlite3_changes64(sqlite3_db_handle(prepare_statement_.get()));
 }
 
-int Statement::LastInsertRowId() const noexcept {
+std::int64_t Statement::LastInsertRowId() const noexcept {
   return sqlite3_last_insert_rowid(sqlite3_db_handle(prepare_statement_.get()));
 }
 
@@ -156,9 +156,12 @@ void Statement::Next() noexcept {
 }
 
 void Statement::CheckStepStatus() {
-  if (!HasNext() && IsDone()) {
+  // If execution is finish reset statement and clear bindings
+  if (!HasNext()) {
     Reset();
-  } else if (IsFail()) {
+  }
+  // Check if last exec_step finished with error
+  if (IsFail()) {
     throw SQLiteException(sqlite3_errmsg(db_handler_.GetHandle()), exec_status_,
                           sqlite3_extended_errcode(db_handler_.GetHandle()));
   }

@@ -40,8 +40,8 @@ class StatementBase {
   virtual void CheckStepStatus() = 0;
 
   // Extract result methods
-  virtual int RowsAffected() const noexcept = 0;
-  virtual int LastInsertRowId() const noexcept = 0;
+  virtual std::int64_t RowsAffected() const noexcept = 0;
+  virtual std::int64_t LastInsertRowId() const noexcept = 0;
   virtual bool IsNull(int column) const noexcept = 0;
   virtual void Extract(int column, std::int8_t& val) const noexcept = 0;
   virtual void Extract(int column, std::uint8_t& val) const noexcept = 0;

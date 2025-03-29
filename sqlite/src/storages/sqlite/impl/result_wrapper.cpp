@@ -52,8 +52,8 @@ bool ResultWrapper::FetchResult(impl::ExtractorBase& extractor,
 }
 
 ExecutionResult ResultWrapper::GetExecutionResult() noexcept {
-  const int rows_affected = prepare_statement_->RowsAffected();
-  const int last_insert_id = prepare_statement_->LastInsertRowId();
+  const std::int64_t rows_affected = prepare_statement_->RowsAffected();
+  const std::int64_t last_insert_id = prepare_statement_->LastInsertRowId();
 
   ExecutionResult result{};
   result.rows_affected = rows_affected;

@@ -60,7 +60,7 @@ std::shared_ptr<storages::sqlite::Client> CreateClient(
     const components::ComponentConfig& config,
     const components::ComponentContext& context) {
   storages::sqlite::settings::SQLiteSettings settings;
-  settings.db_name = config["db-path"].As<std::string>();
+  settings.db_path = config["db-path"].As<std::string>();
   settings.create_file = config["create_file"].As<bool>(settings.create_file);
   settings.read_mode =
       config["is_read_only"].As<bool>(
