@@ -85,10 +85,10 @@ def read_items(args) -> List[SqlQuery]:
     items: List[SqlQuery] = []
     for filename in args.files:
         basename = os.path.basename(filename)
-        if basename.startswith("_"):
+        if basename.startswith('_'):
             continue
 
-        with open(filename, "r") as file:
+        with open(filename, 'r') as file:
             loader = jinja2.FileSystemLoader(os.path.dirname(filename))
             env = jinja2.Environment(loader=loader)
             tpl = env.get_template(basename)
@@ -100,7 +100,7 @@ def read_items(args) -> List[SqlQuery]:
                 source=filename,
                 contents=content,
                 name=name,
-                variable=("k" + camel_case(name)),
+                variable=('k' + camel_case(name)),
             ),
         )
     return items
