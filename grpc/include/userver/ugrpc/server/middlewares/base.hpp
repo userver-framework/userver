@@ -92,7 +92,7 @@ public:
     virtual void CallResponseHook(const MiddlewareCallContext& context, google::protobuf::Message& response);
 };
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_base_classes
 ///
 /// @brief Factory that creates specific server middlewares for services.
 ///

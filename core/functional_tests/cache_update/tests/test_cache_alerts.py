@@ -1,15 +1,6 @@
 import testsuite
 
 
-def assert_alerts(alerts, exp_seconds):
-    assert alerts == [
-        {
-            'id': 'cache_update_error',
-            'message': ("cache 'alert-cache' hasn't been updated" + f' for {exp_seconds} times'),
-        },
-    ]
-
-
 async def invalidate_caches(service_client, update_type):
     if update_type == 'full':
         await service_client.invalidate_caches(cache_names=['alert-cache'])
@@ -53,11 +44,11 @@ async def test_cache_update(
         update_interval,
     )
 
-    assert_alerts(await monitor_client.fired_alerts(), static_alert)
+    assert (await monitor_client.single_metric('alerts.cache_update_error')).value == 1
 
     # successful update
     await invalidate_caches(service_client, 'full')
-    assert await monitor_client.fired_alerts() == []
+    assert (await monitor_client.single_metric('alerts.cache_update_error')).value == 0
 
     # set a new value in dynamic_config
     dynamic_alert = static_alert - 1
@@ -82,4 +73,4 @@ async def test_cache_update(
         update_interval,
     )
 
-    assert_alerts(await monitor_client.fired_alerts(), dynamic_alert)
+    assert (await monitor_client.single_metric('alerts.cache_update_error')).value == 1

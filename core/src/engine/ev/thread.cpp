@@ -121,7 +121,7 @@ void Thread::StopEventLoop() {
     if (thread_.joinable()) thread_.join();
 
     if (func_queue_.TryPopBlocking()) {
-        utils::impl::AbortWithStacktrace("Some work was enqueued on a dead Thread");
+        utils::AbortWithStacktrace("Some work was enqueued on a dead Thread");
     }
 }
 

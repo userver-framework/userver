@@ -1,0 +1,47 @@
+{
+    "image": "ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev",
+    "remoteUser": "user",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/user/service_template,type=bind",
+    "workspaceFolder": "/home/user/service_template",
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--security-opt",
+        "seccomp=unconfined"
+    ],
+    "forwardPorts": [
+        8080
+    ],
+    "containerEnv": {
+        "SHELL": "/bin/bash",
+        "PREFIX": "${PREFIX:-~/.local}",
+        "CCACHE_DIR": "/home/user/service_template/.ccache",
+        "CORES_DIR": "/cores"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "llvm-vs-code-extensions.vscode-clangd",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.makefile-tools",
+                "vadimcn.vscode-lldb",
+                "ms-azuretools.vscode-docker"
+            ],
+            "settings": {
+                "cmake.automaticReconfigure": false,
+                "cmake.configureOnEdit":  false,
+                "cmake.configureOnOpen": false,
+                "cmake.copyCompileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+                "clangd.path": "/usr/bin/clangd",
+                "clangd.arguments": [
+                    "--background-index",
+                    "--compile-commands-dir=.vscode",
+                    "--clang-tidy",
+                    "--completion-style=detailed",
+                    "--header-insertion=never"
+                ]
+            }
+        }
+    },
+    "onCreateCommand": "sudo git config --global --add safe.directory /home/user/service_template",
+    "mounts": []
+}

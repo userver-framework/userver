@@ -51,7 +51,7 @@ public:
 
     ReplyType Get(const std::string& request_description) override {
         auto reply = GetReply();
-        return ParseReply<Result, ReplyType>(std::move(reply), request_description);
+        return impl::ParseReply<Result, ReplyType>(std::move(reply), request_description);
     }
 
     ReplyPtr GetRaw() override { return GetReply(); }
@@ -110,7 +110,7 @@ public:
     void Wait() override {}
 
     ReplyType Get(const std::string& request_description) override {
-        return ParseReply<Result, ReplyType>(std::move(reply_), request_description);
+        return impl::ParseReply<Result, ReplyType>(std::move(reply_), request_description);
     }
 
     ReplyPtr GetRaw() override { return std::move(reply_); }
@@ -228,7 +228,7 @@ void RequestScanData<scan_tag>::CheckReply() {
         if (request_) {
             auto scan_reply_raw = request_->GetRaw();
             command_control_.force_server_id = scan_reply_raw->server_id;
-            auto scan_reply = ParseReply<ScanReply>(std::move(scan_reply_raw), this->request_description_);
+            auto scan_reply = impl::ParseReply<ScanReply>(std::move(scan_reply_raw), this->request_description_);
             if (reply_)
                 *reply_ = std::move(scan_reply);
             else

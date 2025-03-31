@@ -5,6 +5,7 @@
 #include <utility>
 
 #include <userver/storages/clickhouse/impl/block_wrapper_fwd.hpp>
+#include <userver/storages/clickhouse/io/columns/column_wrapper.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -86,7 +86,7 @@ public:
     /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
     ///
     /// The constructor with a callback that is called on listener removal. The
-    /// callback takes a reference to `Function' as input. This is useful for
+    /// callback takes a reference to `Function` as input. This is useful for
     /// checking the lifetime of data captured by the listener update function.
     ///
     /// @note Works only in debug mode.
@@ -108,6 +108,11 @@ public:
     ///
     /// Atomically calls `updater`, which should invoke `func` with the previously
     /// sent event, and subscribes to new events as if using AddListener.
+    ///
+    /// @param id the subscriber class instance, see also a simpler `DoUpdateAndListen` overload below
+    /// @param name the name of the subscriber
+    /// @param func the callback that is called on each update
+    /// @param updater the initial `() -> void` callback that should call `func` with the current value
     ///
     /// @see AsyncEventSource::AddListener
     template <typename UpdaterFunc>
@@ -202,7 +207,7 @@ private:
         const auto [iterator, success] =
             listeners.emplace(id, Listener{std::string{name}, std::move(func), std::move(task_name)});
         if (!success) impl::ReportAlreadySubscribed(Name(), name);
-        return AsyncEventSubscriberScope(*this, id);
+        return AsyncEventSubscriberScope(utils::impl::InternalTag{}, *this, id);
     }
 
     const std::string name_;

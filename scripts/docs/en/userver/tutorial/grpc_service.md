@@ -38,8 +38,6 @@ Wrap the generated `api::GreeterServiceClient` in a component that exposes a sim
 
 @snippet samples/grpc_service/src/greeter_client.hpp  component
 
-@snippet samples/grpc_service/src/greeter_client.cpp  component
-
 We intentionally split `GreeterClient` from `GreeterClientComponent`
 to make the logic unit-testable. If you don't need gtest tests,
 you can put the logic into the component directly.

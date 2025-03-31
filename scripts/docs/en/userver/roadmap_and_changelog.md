@@ -48,7 +48,7 @@ Changelog news also go to the
   to [akhoroshev](https://github.com/akhoroshev) for the PR!
 * Deadline Propagation for PostgreSQL is now enabled by default and can be controlled via `deadline-propagation-enabled`
   static option of the components::Postgres.
-* Testsuite now supports @ref uservice_oneshot "`@pytest.mark.uservice_oneshot`".
+* Testsuite now supports @ref uservice_oneshot "`@@pytest.mark.uservice_oneshot`".
 * utils::regex now always uses a faster and safer Re2 instead of boost::regex.
 * Dynamic config `USERVER_HANDLER_STREAM_API_ENABLED` is not used any more.
 * server::handlers::HttpHandlerStatic now has a `expires` static config option.
@@ -1307,7 +1307,7 @@ Detailed descriptions could be found below.
     implementation of the sink does not rely on spdlog implementation.
   * Configuration step was made much faster.
   * Makefile was simplified and only up-to-date targets were left.
-  * Added a script to prepare docker build, see @ref scripts/docker/Readme.md for
+  * Added a script to prepare docker build, see `scripts/docker/Readme.md` for
     more info.
   * Scripts for generating CMakeLists were simplified and cleared from internal
     stuff.

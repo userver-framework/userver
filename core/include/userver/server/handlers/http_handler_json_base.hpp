@@ -18,7 +18,7 @@ namespace server::handlers {
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/config_service/config_service.cpp Config service sample - component
+/// @snippet samples/config_service/main.cpp Config service sample - component
 
 // clang-format on
 

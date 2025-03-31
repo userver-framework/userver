@@ -4,17 +4,23 @@
 
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/utils/algo.hpp>
+
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
-#include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
+#include <ugrpc/impl/span.hpp>
 #include <ugrpc/server/impl/format_log_message.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
+
+std::string_view CallAnyBase::GetServiceName() const { return params_.service_name; }
+
+std::string_view CallAnyBase::GetMethodName() const { return params_.method_name; }
 
 void CallAnyBase::SetMetricsCallName(std::string_view call_name) {
     UASSERT_MSG(!call_name.empty(), "call_name must NOT be empty");
@@ -28,7 +34,12 @@ void CallAnyBase::SetMetricsCallName(std::string_view call_name) {
 
 ugrpc::impl::RpcStatisticsScope& CallAnyBase::GetStatistics(ugrpc::impl::InternalTag) { return params_.statistics; }
 
-void CallAnyBase::LogFinish(grpc::Status status) const {
+void CallAnyBase::RunMiddlewarePipeline(utils::impl::InternalTag, MiddlewareCallContext& md_call_context) {
+    middleware_call_context_ = &md_call_context;
+    md_call_context.Next();
+}
+
+void CallAnyBase::WriteAccessLog(grpc::Status status) const {
     constexpr auto kLevel = logging::Level::kInfo;
     if (!params_.access_tskv_logger.ShouldLog(kLevel)) {
         return;
@@ -64,14 +75,10 @@ void CallAnyBase::ApplyResponseHook(google::protobuf::Message* response) {
     }
 }
 
-void CallAnyBase::RunMiddlewarePipeline(utils::impl::InternalTag, MiddlewareCallContext& md_call_context) {
-    middleware_call_context_ = &md_call_context;
-    md_call_context.Next();
+void CallAnyBase::PostFinish(grpc::Status status) {
+    GetStatistics().OnExplicitFinish(status.error_code());
+    ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
-
-std::string_view CallAnyBase::GetServiceName() const { return params_.service_name; }
-
-std::string_view CallAnyBase::GetMethodName() const { return params_.method_name; }
 
 }  // namespace ugrpc::server
 

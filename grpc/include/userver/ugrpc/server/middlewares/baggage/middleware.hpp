@@ -13,8 +13,7 @@ public:
     static constexpr std::string_view kName = "grpc-server-baggage";
 
     /// @brief dependency of this middleware
-    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
-                                               .InGroup<USERVER_NAMESPACE::middlewares::groups::User>();
+    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder();
 
     void Handle(MiddlewareCallContext& context) const override;
 };

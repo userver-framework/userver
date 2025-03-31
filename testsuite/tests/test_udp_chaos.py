@@ -18,7 +18,7 @@ RECV_MAX_SIZE = 4096
 
 async def _assert_receive_timeout(sock: AsyncioSocket) -> None:
     try:
-        data = await sock.recv(1, timeout=_NOTICEABLE_DELAY)
+        data = await sock.recv(RECV_MAX_SIZE, timeout=_NOTICEABLE_DELAY)
         assert not data
     except asyncio.TimeoutError:
         pass
@@ -249,11 +249,12 @@ async def test_to_client_drop(udp_server, udp_client_factory, gate):
 async def test_to_server_drop(udp_server, udp_client_factory, gate):
     udp_client = await udp_client_factory()
 
-    gate.to_server_drop()
+    drop_queue = gate.to_server_drop()
 
     await udp_client.sock.sendall(b'ping')
     await _assert_data_to_client(udp_server, udp_client)
     assert not udp_server.sock.has_data()
+    await drop_queue.wait_call()
 
     gate.to_server_pass()
     await _assert_receive_timeout(udp_server.sock)

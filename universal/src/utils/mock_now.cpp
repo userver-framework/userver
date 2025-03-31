@@ -32,6 +32,11 @@ std::chrono::steady_clock::time_point MockSteadyNow() noexcept {
                                           : std::chrono::steady_clock::time_point{mocked_now_value.time_since_epoch()};
 }
 
+WallCoarseClock::time_point MockWallCoarseNow() noexcept {
+    const auto mocked_now_value = now.load();
+    return mocked_now_value == kNotMocked ? WallCoarseClock::now() : WallCoarseClock::time_point{mocked_now_value};
+}
+
 void MockNowSet(std::chrono::system_clock::time_point new_mocked_now) {
     UINVARIANT(
         new_mocked_now != kNotMocked,

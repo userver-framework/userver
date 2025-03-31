@@ -112,7 +112,7 @@ protected:
     MiddlewareBase();
 };
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_base_classes
 ///
 /// @brief Factory that creates specific client middlewares for clients.
 ///

@@ -3,7 +3,7 @@
 #include <functional>
 
 /// @file userver/engine/task/task_processor_fwd.hpp
-/// @brief @copybrief engine::TaskProcessor
+/// @brief Manages tasks execution on OS threads.
 
 USERVER_NAMESPACE_BEGIN
 

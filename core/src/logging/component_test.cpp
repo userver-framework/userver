@@ -4,11 +4,11 @@
 #include <gmock/gmock.h>
 
 #include <components/component_list_test.hpp>
-#include <userver/alerts/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/run.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -110,8 +110,8 @@ components::ComponentList MakeTwoLoggersComponentList() {
         .Append<os_signals::ProcessorComponent>()
         .Append<components::Logging>()
         .Append<components::Tracer>()
-        .Append<TwoLoggersComponent>()
-        .Append<alerts::StorageComponent>();
+        .Append<components::StatisticsStorage>()
+        .Append<TwoLoggersComponent>();
 }
 
 }  // namespace

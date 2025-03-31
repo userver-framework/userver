@@ -109,8 +109,7 @@ public:
         ConnectionSecurity connection_security,
         ReadyChangeCallback ready_callback,
         std::unique_ptr<KeyShard>&& key_shard,
-        dynamic_config::Source dynamic_config_source,
-        ConnectionMode mode = ConnectionMode::kCommands
+        dynamic_config::Source dynamic_config_source
     );
     ~SentinelImpl() override;
 
@@ -150,34 +149,6 @@ public:
     void UpdatePassword(const Password& password) override;
 
 private:
-    static constexpr const std::chrono::milliseconds cluster_slots_timeout_ = std::chrono::milliseconds(4000);
-
-    class SlotInfo {
-    public:
-        struct ShardInterval {
-            size_t slot_min;
-            size_t slot_max;
-            size_t shard;
-
-            ShardInterval(size_t slot_min, size_t slot_max, size_t shard)
-                : slot_min(slot_min), slot_max(slot_max), shard(shard) {}
-        };
-
-        SlotInfo();
-
-        size_t ShardBySlot(size_t slot) const;
-        void UpdateSlots(const std::vector<ShardInterval>& intervals);
-        bool IsInitialized() const;
-        bool WaitInitialized(engine::Deadline deadline);
-
-    private:
-        std::mutex mutex_;
-        engine::impl::ConditionVariableAny<std::mutex> cv_;
-        std::atomic<bool> is_initialized_{false};
-
-        std::array<std::atomic<size_t>, kClusterHashSlots> slot_to_shard_{};
-    };
-
     class ShardInfo {
     public:
         using HostPortToShardMap = std::map<std::pair<std::string, size_t>, size_t>;
@@ -217,28 +188,20 @@ private:
     static void ChangedState(struct ev_loop*, ev_async* w, int revents) noexcept;
     static void UpdateInstances(struct ev_loop*, ev_async* w, int revents) noexcept;
     static void OnModifyConnectionInfo(struct ev_loop*, ev_async* w, int revents) noexcept;
-    static void OnUpdateClusterSlotsRequested(struct ev_loop*, ev_async* w, int revents) noexcept;
 
     void ProcessCreationOfShards(std::vector<std::shared_ptr<Shard>>& shards);
 
     void RefreshConnectionInfo();
     void ReadSentinels();
-    void ReadClusterHosts();
     void CheckConnections();
     void UpdateInstancesImpl();
     bool SetConnectionInfo(ConnInfoMap info_by_shards, std::vector<std::shared_ptr<Shard>>& shards);
     void EnqueueCommand(const SentinelCommand& command);
-    size_t ParseMovedShard(const std::string& err_string);
-    void RequestUpdateClusterSlots(size_t shard);
-    void UpdateClusterSlots(size_t shard);
-    void DoUpdateClusterSlots(ReplyPtr reply);
     void InitShards(
         const std::vector<std::string>& shards,
         std::vector<std::shared_ptr<Shard>>& shard_objects,
         const ReadyChangeCallback& ready_callback
     );
-
-    static size_t HashSlot(const std::string& key);
 
     void ProcessWaitingCommands();
 
@@ -257,7 +220,6 @@ private:
     ev_async watch_state_{};
     ev_async watch_update_{};
     ev_async watch_create_{};
-    ev_async watch_cluster_slots_{};
     ev_timer check_timer_{};
     mutable std::mutex sentinels_mutex_;
     std::vector<std::shared_ptr<Shard>> master_shards_;  // TODO rename
@@ -270,14 +232,9 @@ private:
     concurrent::Variable<Password, std::mutex> password_{std::string()};
     ConnectionSecurity connection_security_;
     double check_interval_;
-    std::atomic<bool> update_cluster_slots_flag_;
-    std::atomic<bool> cluster_mode_failed_;  // also false if not in cluster mode
     std::vector<SentinelCommand> commands_;
     std::mutex command_mutex_;
-    std::atomic<size_t> current_slots_shard_ = 0;
     utils::SwappingSmart<KeyShard> key_shard_;
-    ConnectionMode connection_mode_;
-    std::unique_ptr<SlotInfo> slot_info_;
     SentinelStatisticsInternal statistics_internal_;
     utils::SwappingSmart<KeysForShards> keys_for_shards_;
     std::optional<CommandsBufferingSettings> commands_buffering_settings_;

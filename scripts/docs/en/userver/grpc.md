@@ -369,3 +369,4 @@ These are the metrics provided for each gRPC method:
 @example grpc-generic-proxy/static_config.yaml
 @example grpc-generic-proxy/config_vars.yaml
 @example grpc-generic-proxy/CMakeLists.txt
+@example grpc/functional_tests/metrics/tests/static/metrics_values.txt

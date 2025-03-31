@@ -99,7 +99,7 @@ public:
         return key ? Get(*key) : GetDefaultValue();
     }
 
-    /// @overload const ValueType& operator[](std::string_view key) const
+    /// @overload @ref const ValueType& operator[](std::string_view key) const "operator[]"
     const ValueType& Get(std::string_view key) const { return (*this)[key]; }
 
     /// Returns `key ? Get(*key) : GetDefaultValue()`

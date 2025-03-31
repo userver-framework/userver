@@ -99,7 +99,7 @@ public:
 
     /// @brief Efficiently checks if the message contains any selected structures.
     ///
-    /// You may want to call this before @ref Visit and @ref VisitRecursive
+    /// You may want to call this before @ref BaseVisitor::Visit and @ref BaseVisitor::VisitRecursive
     /// to avoid a copy of the message beforehand if you require one.
     bool ContainsSelected(const google::protobuf::Descriptor* descriptor);
 

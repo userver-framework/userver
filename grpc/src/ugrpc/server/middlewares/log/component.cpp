@@ -41,9 +41,6 @@ type: object
 description: gRPC service logger component
 additionalProperties: false
 properties:
-    log-level:
-        type: string
-        description: gRPC handlers log level
     msg-log-level:
         type: string
         description: gRPC message body logging level

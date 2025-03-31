@@ -11,8 +11,7 @@ class MyMiddleware final : public ugrpc::server::MiddlewareBase {
 public:
     static constexpr std::string_view kName = "my-middleware-server";
 
-    static inline const auto kDependency =
-        middlewares::MiddlewareDependencyBuilder().InGroup<middlewares::groups::User>();
+    static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder();
 
     explicit MyMiddleware() = default;
 

@@ -107,21 +107,41 @@ class AsyncioSocket:
 
     async def _sendto_legacy(self, *args, timeout):
         # uvloop and python < 3.11
-        async def do_sendto():
-            while not self.can_write():
-                await asyncio.sleep(0.001)
+        try:
             return self._sock.sendto(*args)
-
-        return await self._with_timeout(do_sendto(), timeout=timeout)
+        except (BlockingIOError, InterruptedError):
+            pass
+        fut = self._loop.create_future()
+        try:
+            self._loop.add_writer(
+                self.fileno(),
+                _legacy_io_handler,
+                fut,
+                self._sock.sendto,
+                *args,
+            )
+            return await self._with_timeout(fut, timeout=timeout)
+        finally:
+            self._loop.remove_writer(self.fileno())
 
     async def _recvfrom_legacy(self, *args, timeout):
         # uvloop and python < 3.11
-        async def do_recvfrom():
-            while not self.has_data():
-                await asyncio.sleep(0.001)
+        try:
             return self._sock.recvfrom(*args)
-
-        return await self._with_timeout(do_recvfrom(), timeout=timeout)
+        except (BlockingIOError, InterruptedError):
+            pass
+        fut = self._loop.create_future()
+        try:
+            self._loop.add_reader(
+                self.fileno(),
+                _legacy_io_handler,
+                fut,
+                self._sock.recvfrom,
+                *args,
+            )
+            return await self._with_timeout(fut, timeout=timeout)
+        finally:
+            self._loop.remove_reader(self.fileno())
 
 
 class AsyncioSocketsFactory:
@@ -162,3 +182,18 @@ def create_tcp_socket(*args, timeout=DEFAULT_TIMEOUT):
 
 def create_udp_socket(timeout=DEFAULT_TIMEOUT):
     return AsyncioSocketsFactory().udp(timeout=timeout)
+
+
+def _legacy_io_handler(fut, sock_handler, *args):
+    if fut.done():
+        return
+    try:
+        data = sock_handler(*args)
+    except (BlockingIOError, InterruptedError):
+        return  # try again next time
+    except (SystemExit, KeyboardInterrupt):
+        raise
+    except BaseException as exc:
+        fut.set_exception(exc)
+    else:
+        fut.set_result(data)

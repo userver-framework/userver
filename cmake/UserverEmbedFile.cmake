@@ -19,6 +19,7 @@ function(userver_embed_file TARGET)
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
     COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/embedded &&
             touch ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
+    ${CODEGEN}
   )
 
   get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)

@@ -33,7 +33,7 @@ public:
 
 /// [auth checker registration]
 int main(int argc, const char* const argv[]) {
-    server::handlers::auth::RegisterAuthCheckerFactory("bearer", std::make_unique<samples::pg::CheckerFactory>());
+    server::handlers::auth::RegisterAuthCheckerFactory<samples::pg::CheckerFactory>();
     /// [auth checker registration]
 
     /// [main]

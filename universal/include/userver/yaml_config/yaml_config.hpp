@@ -34,18 +34,18 @@ using ParseException = formats::yaml::ParseException;
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample vars
 /// Then the result of `yaml["some_element"]["some"].As<int>()` is `42`.
 ///
-/// If YAML key ends on '#env' and the mode is YamlConfig::Mode::kEnvAllowed
+/// If YAML key ends on `#env` and the mode is YamlConfig::Mode::kEnvAllowed
 /// or YamlConfig::Mode::kEnvAndFileAllowed,
 /// then the value of the key is searched in
 /// environment variables of the process and returned as a value. For example:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env
 ///
-/// If YAML key ends on '#file' and the mode is
+/// If YAML key ends on `#file` and the mode is
 /// YamlConfig::Mode::kEnvAndFileAllowed, then the value of the key is the
 /// content of specified YAML parsed file. For example:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample read_file
 ///
-/// If YAML key ends on '#fallback', then the value of the key is used as a
+/// If YAML key ends on `#fallback`, then the value of the key is used as a
 /// fallback for environment, file and `$` variables. For example for the
 /// following YAML with YamlConfig::Mode::kEnvAndFileAllowed:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample multiple

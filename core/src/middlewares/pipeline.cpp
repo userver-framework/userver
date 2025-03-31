@@ -122,9 +122,21 @@ MiddlewareDependencyBuilder MiddlewareDependencyBuilder::After(std::string_view 
     return MiddlewareDependencyBuilder(std::move(*this));
 }
 
-impl::MiddlewareDependency MiddlewareDependencyBuilder::Extract(std::string_view middleware_name) && {
+impl::MiddlewareDependency MiddlewareDependencyBuilder::ExtractDependency(std::string_view middleware_name) && {
     dep_.middleware_name = std::string{middleware_name};
+    InUserGroupByDefault();
     return std::move(dep_);
+}
+
+impl::MiddlewareDependency MiddlewareDependencyBuilder::ExtractGroupDependency(std::string_view group_name) && {
+    dep_.middleware_name = std::string{group_name};
+    return std::move(dep_);
+}
+
+void MiddlewareDependencyBuilder::InUserGroupByDefault() {
+    if (!dep_.group.has_value()) {
+        *this = std::move(*this).InGroup<groups::User>();
+    }
 }
 
 }  // namespace middlewares

@@ -965,7 +965,7 @@ class AiohttpClient(service_client.AiohttpClient):
         invalidate_caches: bool = True,
         clean_update: bool = True,
         cache_names: typing.Optional[typing.List[str]] = None,
-        http_allowed_urls_extra=None,
+        http_allowed_urls_extra: typing.Optional[typing.List[str]] = None,
     ) -> typing.Dict[str, typing.Any]:
         body: typing.Dict[str, typing.Any] = self._state_manager.get_pending_update()
 
@@ -1195,7 +1195,7 @@ class Client(ClientWrapper):
         Reports metrics related issues that could be encountered on
         different monitoring systems.
 
-        @sa @ref utils::statistics::GetPortabilityInfo
+        @sa @ref utils::statistics::GetPortabilityWarnings
         """
         return await self._client.metrics_portability(prefix=prefix)
 
@@ -1215,6 +1215,7 @@ class Client(ClientWrapper):
         Captures logs from the service.
 
         @param log_level Do not capture logs below this level.
+        @param testsuite_skip_prepare An advanced parameter to skip auto-`update_server_state`.
 
         @see @ref testsuite_logs_capture
         """
@@ -1257,10 +1258,17 @@ class Client(ClientWrapper):
     @_wrap_client_error
     async def tests_control(
         self,
-        *args,
-        **kwargs,
+        invalidate_caches: bool = True,
+        clean_update: bool = True,
+        cache_names: typing.Optional[typing.List[str]] = None,
+        http_allowed_urls_extra: typing.Optional[typing.List[str]] = None,
     ) -> typing.Dict[str, typing.Any]:
-        return await self._client.tests_control(*args, **kwargs)
+        return await self._client.tests_control(
+            invalidate_caches=invalidate_caches,
+            clean_update=clean_update,
+            cache_names=cache_names,
+            http_allowed_urls_extra=http_allowed_urls_extra,
+        )
 
     @_wrap_client_error
     async def update_server_state(self) -> None:
@@ -1275,7 +1283,7 @@ class Client(ClientWrapper):
         await self._client.update_server_state()
 
     @_wrap_client_error
-    async def enable_testpoints(self, *args, **kwargs) -> None:
+    async def enable_testpoints(self, no_auto_cache_cleanup: bool = False) -> None:
         """
         Send list of handled testpoint pats to service. For these paths service
         will no more skip http calls from TESTPOINT(...) macro.
@@ -1285,7 +1293,7 @@ class Client(ClientWrapper):
         makes additional http call to `tests/control` to update caches, to get
         rid of data from previous test.
         """
-        await self._client.enable_testpoints(*args, **kwargs)
+        await self._client.enable_testpoints(no_auto_cache_cleanup=no_auto_cache_cleanup)
 
     @_wrap_client_error
     async def get_dynamic_config_defaults(

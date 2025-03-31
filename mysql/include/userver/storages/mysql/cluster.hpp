@@ -58,18 +58,16 @@ public:
     template <typename... Args>
     StatementResultSet Execute(ClusterHostType host_type, const Query& query, const Args&... args) const;
 
-    // clang-format off
-  /// @brief Executes a statement on a host of host_type with provided
-  /// CommandControl.
-  /// Fills placeholders of the statement with args..., `Args` are expected to
-  /// be of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `Args`
-  /// requirements.
-  ///
-  /// UINVARIANTs on params count mismatch doesn't validate types.
-  ///
-  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster Execute
-    // clang-format on
+    /// @brief Executes a statement on a host of host_type with provided
+    /// CommandControl.
+    /// Fills placeholders of the statement with args..., `Args` are expected to
+    /// be of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `Args`
+    /// requirements.
+    ///
+    /// UINVARIANTs on params count mismatch doesn't validate types.
+    ///
+    /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster Execute
     template <typename... Args>
     StatementResultSet Execute(
         OptionalCommandControl command_control,
@@ -101,7 +99,7 @@ public:
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   ///
-  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteDecompose
+  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteDecompose
     // clang-format on
     template <typename T>
     StatementResultSet ExecuteDecompose(
@@ -140,7 +138,7 @@ public:
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
-  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulk
+  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulk
     // clang-format on
     template <typename Container>
     StatementResultSet ExecuteBulk(
@@ -188,7 +186,7 @@ public:
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
   ///
-  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
+  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
     // clang-format on
     template <typename MapTo, typename Container>
     StatementResultSet ExecuteBulkMapped(
@@ -209,6 +207,7 @@ public:
     ///
     /// @note The deadline is transaction-wide, not just for Begin query itself.
     ///
+    /// @param command_control Optional request QOS overrides.
     /// @param host_type Host type on which to execute transaction.
     Transaction Begin(OptionalCommandControl command_control, ClusterHostType host_type) const;
 
@@ -228,7 +227,7 @@ public:
   /// or as an escape hatch from typed parsing if you really need to, but such
   /// use is neither recommended nor optimized for.
   ///
-  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster ExecuteCommand
+  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteCommand
     // clang-format on
     CommandResultSet
     ExecuteCommand(OptionalCommandControl command_control, ClusterHostType host_type, const Query& command) const;
@@ -258,7 +257,7 @@ public:
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   ///
-  /// @snippet storages/tests/unittests/cluster.cpp uMySQL usage sample - Cluster GetCursor
+  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster GetCursor
     // clang-format on
     template <typename T, typename... Args>
     CursorResultSet<T> GetCursor(

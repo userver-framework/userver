@@ -187,6 +187,81 @@ UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
     UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::ParseReplyException);
 }
 
+UTEST_F(RedisClusterClientTest, Eval) {
+    auto client = GetClient();
+
+    /// [Sample eval usage]
+    client->Set("the_key", "the_value", {}).Get();
+
+    // ...
+    const std::string kLuaScript{R"~(
+    if redis.call("get",KEYS[1]) == ARGV[1] then
+        redis.call("del",KEYS[1])
+        return "del"
+    else
+        redis.call("rpush", "mismatched", KEYS[1])
+        return "mismatched"
+    end
+)~"};
+
+    auto val1 = client->Eval<std::string>(kLuaScript, {"the_key"}, {"mismatched_value"}, {}).Get();
+    EXPECT_EQ(val1, "mismatched");
+
+    auto val2 = client->Eval<std::string>(kLuaScript, {"the_key"}, {"the_value"}, {}).Get();
+    EXPECT_EQ(val2, "del");
+    /// [Sample eval usage]
+}
+
+UTEST_F(RedisClusterClientTest, EvalSha) {
+    auto client = GetClient();
+
+    /// [Sample evalsha usage]
+    auto upload_scripts = [client]() {
+        const std::string kLuaScript{R"~(
+            if redis.call("get",KEYS[1]) == ARGV[1] then
+                redis.call("del",KEYS[1])
+                return "del"
+            else
+                redis.call("rpush", "mismatched", KEYS[1])
+                return "mismatched"
+            end
+        )~"};
+        const std::size_t shards_count = client->ShardsCount();
+        std::string script_sha;
+        for (std::size_t i = 0; i < shards_count; ++i) {
+            script_sha = client->ScriptLoad(kLuaScript, i, {}).Get();
+        }
+        return script_sha;
+    };
+    const auto script_sha = upload_scripts();
+
+    client->Set("the_key", "the_value", {}).Get();
+
+    // ...
+
+    auto val1 = client->EvalSha<std::string>(script_sha, {"the_key"}, {"mismatched_value"}, {}).Get();
+    if (val1.IsNoScriptError()) {
+        upload_scripts();
+
+        // retry...
+        val1 = client->EvalSha<std::string>(script_sha, {"the_key"}, {"mismatched_value"}, {}).Get();
+    }
+    EXPECT_EQ(val1.Get(), "mismatched");
+
+    auto val2 = client->EvalSha<std::string>(script_sha, {"the_key"}, {"the_value"}, {}).Get();
+    if (val2.IsNoScriptError()) {
+        upload_scripts();
+
+        // retry...
+        val2 = client->EvalSha<std::string>(script_sha, {"the_key"}, {"the_value"}, {}).Get();
+    }
+    EXPECT_EQ(val2.Get(), "del");
+    /// [Sample evalsha usage]
+
+    // Make sure that it is fine to load the same script multiple times
+    upload_scripts();
+}
+
 UTEST_F(RedisClusterClientTest, Subscribe) {
     auto client = GetClient();
     auto subscribe_client = GetSubscribeClient();

@@ -77,6 +77,7 @@ public:
     /// @brief Constructs LogHelper with span logging
     /// @param logger to log to
     /// @param level message log level
+    /// @param log_class whether this LogHelper will be used to write a log record or a span
     /// @param location source location that will be written to logs
     LogHelper(
         LoggerRef logger,
@@ -88,6 +89,7 @@ public:
     /// @brief Constructs LogHelper with span logging
     /// @param logger to log to (logging to nullptr does not output messages)
     /// @param level message log level
+    /// @param log_class whether this LogHelper will be used to write a log record or a span
     /// @param location source location that will be written to logs
     LogHelper(
         const LoggerPtr& logger,

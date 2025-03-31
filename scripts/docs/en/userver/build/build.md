@@ -3,6 +3,37 @@
 @anchor quick_start_for_beginners
 ## Quick start for beginners
 
+1\. @ref ways_to_get_userver "Get userver".
+
+2\. Create new service with the following command (if you installed userver system-wide):
+
+```shell
+userver-create-service myservice
+```
+
+If you installed userver via CPM or as a git repository, call script from userver directory:
+```shell
+userver/scripts/userver-create-service myservice
+```
+
+If you want to enable gRPC, postgresql, or mongo in your service, use the following flags:
+
+```shell
+userver-create-service --grpc --mongo --postgresql myservice
+```
+
+3\. Build and test your service. Run in the service repo root:
+
+```shell
+make build-release && \
+make test-release
+```
+
+Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
+
+
+## Quick start for beginners (old way)
+
 1\. Press the "Use this template" button at the top right of the
 [GitHub template page](https://github.com/userver-framework/service_template).
 
@@ -353,7 +384,7 @@ Alternatively see @ref userver_install "userver install"
 @note The above image is build from `scripts/docker/ubuntu-22.04-pg.dockerfile`,
    `scripts/docker/ubuntu-22.04.dockerfile`
    and `scripts/docker/base-ubuntu-22.04.dockerfile` respectively.
-   See `scripts/docker/` directory and @ref scripts/docker/Readme.md for more
+   See `scripts/docker/` directory and `scripts/docker/Readme.md` for more
    inspiration on building your own custom docker containers.
 
 

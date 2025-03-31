@@ -103,7 +103,10 @@ public:
     //@{
     /** @name Accessors */
     /// @return Hours since midnight
-    constexpr std::chrono::hours Hours() const noexcept;
+    constexpr std::chrono::hours Hours() const noexcept {
+        return std::chrono::duration_cast<std::chrono::hours>(since_midnight_);
+    }
+
     /// @return Minutes since midnight + Hours
     constexpr std::chrono::minutes Minutes() const noexcept;
     /// @return Seconds since midnight + Hours + Minutes
@@ -429,11 +432,6 @@ constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator>=(const T
     return since_midnight_ >= rhs.since_midnight_;
 }
 #endif
-
-template <typename Rep, typename Period>
-constexpr std::chrono::hours TimeOfDay<std::chrono::duration<Rep, Period>>::Hours() const noexcept {
-    return std::chrono::duration_cast<std::chrono::hours>(since_midnight_);
-}
 
 template <typename Rep, typename Period>
 constexpr std::chrono::minutes TimeOfDay<std::chrono::duration<Rep, Period>>::Minutes() const noexcept {

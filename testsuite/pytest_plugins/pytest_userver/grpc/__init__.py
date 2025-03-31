@@ -1,5 +1,5 @@
 """
-Mocks for the gRPC servers.
+Mocks for the gRPC servers, a.k.a. `pytest_userver.grpc.
 
 @sa @ref scripts/docs/en/userver/tutorial/grpc_service.md
 @sa @ref pytest_userver.plugins.grpc.mockserver
@@ -19,7 +19,6 @@ import grpc
 
 import testsuite.utils.callinfo
 
-# Note to implementers: make sure all these public reimported entities have @alias to display in Doxygen properly.
 from ._mocked_errors import MockedError  # noqa: F401
 from ._mocked_errors import NetworkError  # noqa: F401
 from ._mocked_errors import TimeoutError  # noqa: F401
@@ -81,7 +80,7 @@ class MockserverSession:
         """
         @brief Removes all mocks for this mockserver that have been installed using
         `MockserverSession` or @ref pytest_userver.grpc.Mockserver "Mockserver" API.
-        @note Mocks installed manually using @ref server will not be removed, though.
+        @note Mocks installed manually using @ref MockserverSession.server will not be removed, though.
         """
         for mock in self._auto_service_mocks.values():
             mock.reset_handlers()
@@ -100,7 +99,7 @@ class MockserverSession:
     @property
     def server(self) -> grpc.aio.Server:
         """
-        The underlying @ref https://grpc.github.io/grpc/python/grpc_asyncio.html#grpc.aio.Server "grpc.aio.Server".
+        The underlying [grpc.aio.Server](https://grpc.github.io/grpc/python/grpc_asyncio.html#grpc.aio.Server).
         """
         return self._server
 

@@ -36,7 +36,7 @@ public:
     /// @brief Executes a statement with default deadline.
     /// Fills placeholders of the statement with args..., `Args` are expected to
     /// be of supported types.
-    /// See @ref userver_mysql_types for better understanding of `Args`
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `Args`
     /// requirements.
     ///
     /// UINVARIANTs on params count mismatch doesn't validate types.
@@ -48,7 +48,7 @@ public:
     /// Basically an alias for Execute(host_type, query, AsArgs<T>(row)),
     /// where AsArgs is an imaginary function which passes fields of T as
     /// variadic params. Handy for one-liner inserts.
-    /// See @ref userver_mysql_types for better understanding of `T` requirements.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `T` requirements.
     ///
     /// UINVARIANTs on params count mismatch, doesn't validate types.
     template <typename T>
@@ -59,7 +59,7 @@ public:
     /// bulk-manner.
     /// Container is expected to be a std::Container, Container::value_type is
     /// expected to be an aggregate of supported types.
-    /// See @ref userver_mysql_types for better understanding of
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
     /// `Container::value_type` requirements.
     ///
     /// @note Requires MariaDB 10.2.6+ as a server
@@ -75,7 +75,7 @@ public:
   /// on the flight remapping from `Container::value_type` to `MapTo`.
   /// `Container` is expected to be a std::Container of whatever type pleases
   /// you, `MapTo` is expected to be an aggregate of supported types.
-  /// See @ref userver_mysql_types for better understanding of `MapTo` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `MapTo` requirements.
   /// You are expected to provide a converter function
   /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
   /// in namespace of `MapTo` or storages::mysql::convert.

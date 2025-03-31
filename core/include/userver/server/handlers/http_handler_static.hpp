@@ -35,7 +35,7 @@ namespace server::handlers {
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/static_service/static_service.cpp Static service sample - main
+/// @snippet samples/static_service/main.cpp Static service sample - main
 
 // clang-format on
 

@@ -47,11 +47,6 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: main-task-processor
-
         http-client:
             fs-task-processor: fs-task-processor
             user-agent: $server-name

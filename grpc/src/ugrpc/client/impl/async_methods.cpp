@@ -67,7 +67,7 @@ void SetStatusDetailsForSpan(
     const grpc::Status& status,
     const std::optional<std::string>& error_details
 ) {
-    span.AddTag("grpc_code", std::string{ugrpc::ToString(status.error_code())});
+    span.AddTag("grpc_code", ugrpc::ToString(status.error_code()));
     if (!status.ok()) {
         SetErrorForSpan(span, error_details.value_or(status.error_message()));
     }

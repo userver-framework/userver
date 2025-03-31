@@ -513,7 +513,6 @@ For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_ma
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake
-@example samples/http_caching/tests/conftest.py
 @example samples/testsuite-support/src/logcapture.cpp
 @example samples/testsuite-support/src/metrics.cpp
 @example samples/testsuite-support/src/metrics.hpp
@@ -525,4 +524,3 @@ For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_ma
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py
-@example samples/production_service/tests/test_production.py

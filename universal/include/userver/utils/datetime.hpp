@@ -12,6 +12,8 @@
 
 #include <cctz/civil_time.h>
 
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
@@ -63,6 +65,12 @@ std::chrono::system_clock::time_point Epoch() noexcept;
 /// @warning You MUST NOT pass time points received from this function outside
 /// of your own code. Otherwise this will break your service in production.
 std::chrono::steady_clock::time_point SteadyNow() noexcept;
+
+/// @brief utils::datetime::WallCoarseClock::now() that could be mocked
+///
+/// Returns last time point passed to utils::datetime::MockNowSet(), or utils::datetime::WallCoarseClock::now() if
+/// the timepoint is not mocked.
+WallCoarseClock::time_point WallCoarseNow() noexcept;
 
 // See the comment to SteadyNow()
 class SteadyClock : public std::chrono::steady_clock {
@@ -216,8 +224,8 @@ std::time_t LocalTimezoneUnlocalize(const cctz::civil_second& local_tp);
 std::string TimestampToString(std::time_t timestamp);
 
 /// @brief Convert time_point to DotNet ticks
-/// @param time point day time
-/// @return number of 100nanosec intervals between current date and 01/01/0001
+/// @param tp time point
+/// @return number of 100-nanosecond intervals between current date and 01/01/0001
 ///
 /// Example:
 ///

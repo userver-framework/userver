@@ -113,35 +113,22 @@ async def test_data_combine(asyncio_socket, service_client, monitor_client, gate
 
 
 async def test_down_pending_recv(service_client, asyncio_socket, gate):
-    gate.to_client_noop()
+    drop_queue = gate.to_client_drop()
 
     sock = asyncio_socket.tcp()
     await sock.connect(gate.get_sockname_for_clients())
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     async def _recv_no_data():
-        answer = b''
-        try:
-            while True:
-                answer += await sock.recv(2)
-                assert False
-        except Exception:  # pylint: disable=broad-except
-            pass
-
-        assert answer == b''
-
-    recv_task = asyncio.create_task(_recv_no_data())
+        data = await sock.recv(2)
+        assert data == b''
 
     await send_all_data(sock)
-
-    await asyncio.wait(
-        [recv_task],
-        timeout=1,
-        return_when=asyncio.FIRST_COMPLETED,
-    )
+    await drop_queue.wait_call()
     await gate.sockets_close()
-    await recv_task
+
     assert gate.connections_count() == 0
+    await asyncio.wait_for(_recv_no_data(), timeout=10.0)
 
     gate.to_client_pass()
 

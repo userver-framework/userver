@@ -850,15 +850,23 @@ UTEST_F(RedisClientTest, Zscore) {
 
 UTEST_F(RedisClientTest, TransactionType) {
     auto client = GetClient();
+    /// [redis transaction sample]
+    // Create a storages::redis::Transaction
     auto transaction = client->Multi();
 
+    // Fill transaction with commands
     auto set = transaction->Set("key1", "value");
     auto lpush = transaction->Lpush("key2", "value");
     auto type1 = transaction->Type("key1");
     auto type2 = transaction->Type("key2");
+
+    // Send all the commands to the server in one go
     transaction->Exec({}).Get();
+
+    // Deal with individual results
     EXPECT_EQ(type1.Get(), storages::redis::KeyType::kString);
     EXPECT_EQ(type2.Get(), storages::redis::KeyType::kList);
+    /// [redis transaction sample]
 }
 
 UTEST_F(RedisClientTest, TransactionZrem) {
