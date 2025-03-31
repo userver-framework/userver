@@ -88,11 +88,10 @@ def read_items(args) -> List[SqlQuery]:
         if basename.startswith('_'):
             continue
 
-        with open(filename, 'r') as file:
-            loader = jinja2.FileSystemLoader(os.path.dirname(filename))
-            env = jinja2.Environment(loader=loader)
-            tpl = env.get_template(basename)
-            content = tpl.render()
+        loader = jinja2.FileSystemLoader(os.path.dirname(filename))
+        env = jinja2.Environment(loader=loader)
+        tpl = env.get_template(basename)
+        content = tpl.render()
 
         name = pathlib.Path(filename).stem  # TODO: CamelCase
         items.append(
