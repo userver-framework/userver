@@ -253,6 +253,7 @@ function(userver_testsuite_add)
       VERBATIM
       ${CODEGEN}
   )
+  _userver_codegen_register_files("${TESTSUITE_RUNNER}")
   # HACK: it seems too verbose to create a separate target for the file.
   target_sources("${ARG_SERVICE_TARGET}" PRIVATE "${TESTSUITE_RUNNER}")
 

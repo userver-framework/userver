@@ -275,7 +275,7 @@ See the full example at:
 * @ref samples/kafka_service/src/producer_handler.hpp
 * @ref samples/kafka_service/src/producer_handler.cpp
 * @ref samples/kafka_service/src/consumer_handler.hpp
-* @ref samples/kafka_service/src/consumer_handler.hpp
+* @ref samples/kafka_service/src/consumer_handler.cpp
 * @ref samples/kafka_service/src/produce.hpp
 * @ref samples/kafka_service/src/produce.cpp
 * @ref samples/kafka_service/src/consume.hpp
@@ -296,7 +296,7 @@ See the full example at:
 @example samples/kafka_service/src/producer_handler.hpp
 @example samples/kafka_service/src/producer_handler.cpp
 @example samples/kafka_service/src/consumer_handler.hpp
-@example samples/kafka_service/src/consumer_handler.hpp
+@example samples/kafka_service/src/consumer_handler.cpp
 @example samples/kafka_service/src/produce.hpp
 @example samples/kafka_service/src/produce.cpp
 @example samples/kafka_service/src/consume.hpp

@@ -9,12 +9,14 @@ namespace ugrpc::impl {
 
 namespace {
 
+/// [fields visitor]
 compiler::ThreadLocal kSecretFieldsVisitor = [] {
     return ugrpc::FieldsVisitor(
         [](const google::protobuf::FieldDescriptor& field) { return GetFieldOptions(field).secret(); },
         ugrpc::FieldsVisitor::LockBehavior::kNone
     );
 };
+/// [fields visitor]
 
 }  // namespace
 

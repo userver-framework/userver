@@ -52,7 +52,7 @@ public:
     explicit ProcessStarter(TaskProcessor& task_processor);
 
     /// @param executable_path the absolute path or relative path. If `use_path` is
-    /// `true`, and `executable_path` does not contains `/`, then it will be searched in
+    /// `true`, and `executable_path` does not contain `/`, then it will be searched in
     /// the colon-separated list of directory pathnames specified in the PATH
     /// environment variable. More details @ref ExecOptions::use_path
     /// @param args exact args passed to the executable

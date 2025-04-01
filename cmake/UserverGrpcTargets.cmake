@@ -244,6 +244,7 @@ function(userver_generate_grpc_files)
       COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
       ${CODEGEN}
   )
+  _userver_codegen_register_files("${generated_cpps};${generated_usrv_cpps}")
   message(STATUS "Scheduled build-time generation of protos in ${root_path}")
 
   set_source_files_properties(

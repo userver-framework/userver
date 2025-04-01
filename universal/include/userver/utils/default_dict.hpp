@@ -79,9 +79,9 @@ public:
         return it->second;
     }
 
-    /// Returns value by `key` if it is in *this, otherwise returns value
-    /// by utils::kDefaultDictDefaultName if it is in *this,
-    /// otherwise throws a std::runtime_error exception.
+    /// Returns value by `key` if it is in `*this`, otherwise returns value
+    /// by @ref utils::kDefaultDictDefaultName if it is in `*this`,
+    /// otherwise throws a `std::runtime_error` exception.
     const ValueType& operator[](std::string_view key) const {
         auto it = utils::impl::FindTransparent(dict_, key);
         if (it == dict_.end()) {
@@ -99,7 +99,9 @@ public:
         return key ? Get(*key) : GetDefaultValue();
     }
 
-    /// @overload @ref const ValueType& operator[](std::string_view key) const "operator[]"
+    /// Returns value by `key` if it is in `*this`, otherwise returns value
+    /// by @ref utils::kDefaultDictDefaultName if it is in `*this`,
+    /// otherwise throws a `std::runtime_error` exception.
     const ValueType& Get(std::string_view key) const { return (*this)[key]; }
 
     /// Returns `key ? Get(*key) : GetDefaultValue()`

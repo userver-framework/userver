@@ -155,10 +155,7 @@ in `config_vars.testsuite.yaml`:
 
 @include samples/grpc_service/configs/config_vars.testsuite.yaml
 
-Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver":
-
-@snippet samples/grpc_service/testsuite/conftest.py  Prepare server mock
-
+Write the mocks using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver".
 After that everything is ready to check single request - single response service client requests:
 
 @snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test

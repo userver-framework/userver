@@ -45,8 +45,8 @@ class Driver;
 /// `databases.<dbname>.endpoint` | gRPC endpoint URL, e.g. grpc://localhost:1234 | -
 /// `databases.<dbname>.database` | full database path, e.g. /ru/service/production/database | -
 /// `databases.<dbname>.credentials` | credentials config passed to credentials provider component | -
-/// `databases.<dbname>.min_pool_size` | minimum pool size for database with name <dbname> | 10
-/// `databases.<dbname>.max_pool_size` | maximum pool size for database with name <dbname> | 50
+/// `databases.<dbname>.min_pool_size` | minimum pool size for database with name `<dbname>` | 10
+/// `databases.<dbname>.max_pool_size` | maximum pool size for database with name `<dbname>` | 50
 /// `databases.<dbname>.get_session_retry_limit` | retries count to get session, every attempt with a get-session-timeout | 5
 /// `databases.<dbname>.keep-in-query-cache` | whether to use query cache | true
 /// `databases.<dbname>.prefer_local_dc` | prefer making requests to local DataCenter | false

@@ -192,6 +192,7 @@ CacheResetRegistration RegisterCache(
     return cc.RegisterCache(self, components::GetCurrentComponentName(config), reset_method);
 }
 
+/// @cond
 template <typename Component>
 CacheResetRegistration
 CacheControl::RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)()) {
@@ -209,6 +210,7 @@ CacheControl::RegisterCache(Component* self, std::string_view name, void (Compon
     auto iter = DoRegisterCache(std::move(info));
     return CacheResetRegistration(*this, std::move(iter));
 }
+/// @endcond
 
 }  // namespace testsuite
 

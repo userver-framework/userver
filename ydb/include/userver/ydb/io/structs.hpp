@@ -85,7 +85,7 @@ StructMemberNames(CustomMemberName (&&)[N]) -> StructMemberNames<N>;
 /// For extra fields on C++ side, parsing throws ydb::ParseError.
 /// For extra fields on YDB side, parsing throws ydb::ParseError.
 template <typename T>
-constexpr auto kStructMemberNames = impl::DetectStructMemberNames<T>();
+inline constexpr auto kStructMemberNames = impl::DetectStructMemberNames<T>();
 
 namespace impl {
 

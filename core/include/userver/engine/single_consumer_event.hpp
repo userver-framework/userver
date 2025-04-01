@@ -58,7 +58,7 @@ public:
     [[nodiscard]] bool WaitForEventUntil(Deadline);
 
     /// @brief Works like `std::condition_variable::wait_until`. Waits until
-    /// @a stop_waiting becomes `true`, and we are notified via @ref SingleConsumerEvent::Send.
+    /// @a stop_waiting becomes `true`, and we are notified via `Send`.
     ///
     /// If @a stop_waiting` is already `true`, returns right away.
     ///

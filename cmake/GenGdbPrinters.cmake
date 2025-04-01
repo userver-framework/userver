@@ -26,6 +26,7 @@ function(gen_gdb_printers TARGET STRUCTURE)
       COMMENT "Generating pretty printers at ${OUTPUT_HEADER}"
       ${CODEGEN}
   )
+  _userver_codegen_register_files("${OUTPUT_HEADER}")
 
   # Add the generated header to the target's sources
   target_sources(${TARGET} PRIVATE "${OUTPUT_HEADER}")

@@ -30,7 +30,7 @@ def grpc_mockserver_endpoint(pytestconfig, get_free_port) -> str:
 
     Override this fixture to customize the endpoint used by gRPC mockserver.
 
-    @snippet samples/grpc_service/testsuite/conftest.py  Prepare configs
+    @snippet samples/grpc_middleware_service/tests/conftest.py  Prepare configs
     @ingroup userver_testsuite_fixtures
     """
     port = pytestconfig.option.grpc_mockserver_port

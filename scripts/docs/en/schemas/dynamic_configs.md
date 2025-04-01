@@ -12,35 +12,7 @@ Token bucket throttling options for new connections (socket(3)).
 * `*-limit` - token bucket size, set to `0` to disable the limit
 * `*-per-second` - token bucket size refill speed
 
-```
-yaml
-schema:
-    type: object
-    properties:
-        http-limit:
-            type: integer
-            minimum: 0
-        http-per-second:
-            type: integer
-            minimum: 0
-        https-limit:
-            type: integer
-            minimum: 0
-        https-per-second:
-            type: integer
-            minimum: 0
-        per-host-limit:
-            type: integer
-            minimum: 0
-        per-host-per-second:
-            type: integer
-            minimum: 0
-    additionalProperties: false
-    required:
-      - http-limit
-      - https-limit
-      - per-host-limit
-```
+@include core/dynamic_configs/HTTP_CLIENT_CONNECT_THROTTLE.yaml
 
 **Example:**
 ```json
@@ -62,11 +34,7 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 Open connections pool size for curl (CURLMOPT_MAXCONNECTS). `-1` means
 "detect by multiplying easy handles count on 4".
 
-```
-schema:
-    type: integer
-```
-
+@include core/dynamic_configs/HTTP_CLIENT_CONNECTION_POOL_SIZE.yaml
 
 **Example:**
 ```
@@ -81,22 +49,7 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 Whether Congestion Control is enabled for specified MongoDB databases.
 Overrides settings from @ref MONGO_CONGESTION_CONTROL_ENABLED.
 
-```
-yaml
-schema:
-    type: object
-    example: |
-        {
-            // Options for specified database.
-            "mongo-stq_config": true,
-            // Default options. Applied to all not specified components.
-            // If __default__ section is not present,
-            // use settings from MONGO_CONGESTION_CONTROL_ENABLED
-            "__default__": false
-        }
-    additionalProperties:
-        type: boolean
-```
+@include mongo/dynamic_configs/MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS.yaml
 
 Dictionary keys can be either the service **component name** (not database name!)
 or `__default__`. The latter configuration is applied for every non-matching
@@ -110,11 +63,7 @@ Used by components::Mongo, components::MultiMongo.
 
 Whether Congestion Control is enabled for MongoDB
 
-```
-yaml
-schema:
-    type: boolean
-```
+@include mongo/dynamic_configs/MONGO_CONGESTION_CONTROL_ENABLED.yaml
 
 **Example:**
 ```
@@ -164,54 +113,7 @@ Used by components::Mongo, components::MultiMongo.
 Options for MongoDB connections pool. Overrides the static config values.
 For components::MultiMongo all pools are updated.
 
-```
-yaml
-schema:
-    type: object
-    example: |
-        {
-            // Options for specified component.
-            "mongo-stq_config": {
-                "initial_size": 32,
-                "max_size": 256,
-                "idle_limit": 128,
-                "connecting_limit": 8
-            },
-            // Default options. Applied to all not specified components.
-            "__default__": {
-                "initial_size": 16,
-                "max_size": 128,
-                "idle_limit": 64,
-                "connecting_limit": 8
-            }
-        }
-    additionalProperties:
-        $ref: "#/definitions/PoolSettings"
-    definitions:
-        PoolSettings:
-            type: object
-            additionalProperties: false
-            properties:
-                initial_size:
-                    type: integer
-                    minimum: 0
-                    description: number of connections created initially.
-                max_size:
-                    type: integer
-                    minimum: 1
-                    description: limit for total connections number.
-                idle_limit:
-                    type: integer
-                    minimum: 1
-                    description: limit for idle connections number.
-                connecting_limit:
-                    type: integer
-                    minimum: 0
-                    description: limit for establishing connections number.
-            required:
-              - max_size
-              - connecting_limit
-```
+@include mongo/dynamic_configs/MONGO_CONNECTION_POOL_SETTINGS.yaml
 
 Dictionary keys can be either the service **component name** (not database name!)
 or `__default__`. The latter configuration is applied for every non-matching
@@ -225,12 +127,7 @@ Used by components::Mongo, components::MultiMongo.
 
 Dynamic config that controls default $maxTimeMS for mongo requests (0 - disables default timeout).
 
-```
-yaml
-schema:
-    type: integer
-    minimum: 0
-```
+@include mongo/dynamic_configs/MONGO_DEFAULT_MAX_TIME_MS.yaml
 
 **Example:**
 ```
@@ -246,11 +143,7 @@ Used by components::Mongo, components::MultiMongo.
 Dynamic config that controls whether task-inherited deadline is accounted for
 while executing mongodb queries.
 
-```
-yaml
-schema:
-    type: boolean
-```
+@include mongo/dynamic_configs/MONGO_DEADLINE_PROPAGATION_ENABLED_V2.yaml
 
 **Example:**
 ```json
@@ -266,18 +159,7 @@ Used by components::Mongo, components::MultiMongo.
 Dynamic config that controls default network and statement timeouts. Overrides the built-in timeouts from components::Postgres::kDefaultCommandControl,
 but could be overridden by @ref POSTGRES_HANDLERS_COMMAND_CONTROL, @ref POSTGRES_QUERIES_COMMAND_CONTROL and storages::postgres::CommandControl.
 
-```
-yaml
-type: object
-additionalProperties: false
-properties:
-  network_timeout_ms:
-    type: integer
-    minimum: 1
-  statement_timeout_ms:
-    type: integer
-    minimum: 1
-```
+@include postgresql/dynamic_configs/POSTGRES_DEFAULT_COMMAND_CONTROL.yaml
 
 **Example:**
 ```json
@@ -297,27 +179,7 @@ Dynamic config that controls per-handle statement and network timeouts. Override
 built-in timeouts from components::Postgres::kDefaultCommandControl, but may be overridden by @ref POSTGRES_QUERIES_COMMAND_CONTROL and
 storages::postgres::CommandControl.
 
-```
-yaml
-type: object
-additionalProperties:
-  $ref: "#/definitions/CommandControlByMethodMap"
-definitions:
-  CommandControlByMethodMap:
-    type: object
-    additionalProperties:
-      $ref: "#/definitions/CommandControl"
-  CommandControl:
-    type: object
-    additionalProperties: false
-    properties:
-      network_timeout_ms:
-        type: integer
-        minimum: 1
-      statement_timeout_ms:
-        type: integer
-        minimum: 1
-```
+@include postgresql/dynamic_configs/POSTGRES_HANDLERS_COMMAND_CONTROL.yaml
 
 **Example:**
 ```json
@@ -350,23 +212,7 @@ storages::postgres::CommandControl. Overrides the @ref POSTGRES_HANDLERS_COMMAND
 Transaction timeouts in POSTGRES_QUERIES_COMMAND_CONTROL override the per-query timeouts in POSTGRES_QUERIES_COMMAND_CONTROL,
 so the latter are ignored if transaction timeouts are set.
 
-```
-yaml
-type: object
-additionalProperties:
-  $ref: "#/definitions/CommandControl"
-definitions:
-  CommandControl:
-    type: object
-    additionalProperties: false
-    properties:
-      network_timeout_ms:
-        type: integer
-        minimum: 1
-      statement_timeout_ms:
-        type: integer
-        minimum: 1
-```
+@include postgresql/dynamic_configs/POSTGRES_QUERIES_COMMAND_CONTROL.yaml
 
 **Example:**
 ```json
@@ -396,33 +242,7 @@ PostgreSQL component of the service.
 
 Take note that it overrides the static configuration values of the service!
 
-```
-yaml
-type: object
-additionalProperties:
-  $ref: "#/definitions/PoolSettings"
-definitions:
-  PoolSettings:
-    type: object
-    additionalProperties: false
-    properties:
-      min_pool_size:
-        type: integer
-        minimum: 0
-      max_pool_size:
-        type: integer
-        minimum: 1
-      max_queue_size:
-        type: integer
-        minimum: 1
-      connecting_limit:
-        type: integer
-        minimum: 0
-    required:
-      - min_pool_size
-      - max_pool_size
-      - max_queue_size
-```
+@include postgresql/dynamic_configs/POSTGRES_CONNECTION_POOL_SETTINGS.yaml
 
 **Example:**
 ```json
@@ -501,31 +321,7 @@ PostgreSQL component of the service.
 
 Take note that it overrides the static configuration values of the service!
 
-```
-yaml
-type: object
-additionalProperties: false
-properties:
-  persistent-prepared-statements:
-    type: boolean
-    default: true
-  user-types-enabled:
-    type: boolean
-    default: true
-  max-prepared-cache-size:
-    type: integer
-    minimum: 1
-    default: 5000
-  recent-errors-threshold:
-    type: integer
-    minimum: 1
-  ignore-unused-query-params:
-    type: boolean
-    default: false
-  max-ttl-sec:
-    type integer
-    minimum: 1
-```
+@include postgresql/dynamic_configs/POSTGRES_CONNECTION_SETTINGS.yaml
 
 **Example:**
 ```json
@@ -552,13 +348,7 @@ Auto mode ignores static and dynamic max_connections configs and verifies
 that the cluster services use max_connections equals to PostgreSQL server's
 max_connections divided by service instance count.
 
-
-```
-yaml
-default: true
-schema:
-  type: boolean
-```
+@include postgresql/dynamic_configs/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.yaml
 
 Used by components::Postgres.
 
@@ -578,20 +368,7 @@ exported.
 
 The exported data can be found as `postgresql.statement_timings`.
 
-```
-yaml
-type: object
-additionalProperties:
-  $ref: "#/definitions/StatementMetricsSettings"
-definitions:
-  StatementMetricsSettings:
-    type: object
-    additionalProperties: false
-    properties:
-      max_statement_metrics:
-        type: integer
-        minimum: 0
-```
+@include postgresql/dynamic_configs/POSTGRES_STATEMENT_METRICS_SETTINGS.yaml
 
 ```json
 {
@@ -607,6 +384,24 @@ definitions:
 Used by components::Postgres.
 
 
+@anchor POSTGRES_OMIT_DESCRIBE_IN_EXECUTE
+## POSTGRES_OMIT_DESCRIBE_IN_EXECUTE
+
+Dynamic config that turns on omit-describe-in-execute experiment for pg queries. The value
+specifies the current version of the experiment. Specify 0 to disable.
+
+@include postgresql/dynamic_configs/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.yaml
+
+
+@anchor POSTGRES_CONNECTION_PIPELINE_EXPERIMENT
+## POSTGRES_CONNECTION_PIPELINE_EXPERIMENT
+
+Dynamic config that turns on pipeline-mode experiment for pg connections. The value
+specifies the current version of the experiment. Specify 0 to disable.
+
+@include postgresql/dynamic_configs/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.yaml
+
+
 @anchor REDIS_COMMANDS_BUFFERING_SETTINGS
 ## REDIS_COMMANDS_BUFFERING_SETTINGS
 
@@ -617,23 +412,7 @@ First command arms timer and then during `watch_command_timer_interval_us` comma
 
 Command buffering is disabled by default.
 
-```
-yaml
-type: object
-additionalProperties: false
-properties:
-  buffering_enabled:
-    type: boolean
-  commands_buffering_threshold:
-    type: integer
-    minimum: 1
-  watch_command_timer_interval_us:
-    type: integer
-    minimum: 0
-required:
-  - buffering_enabled
-  - watch_command_timer_interval_us
-```
+@include redis/dynamic_configs/REDIS_COMMANDS_BUFFERING_SETTINGS.yaml
 
 **Example:**
 ```json
@@ -653,29 +432,7 @@ Used by components::Redis.
 Dynamic config that overrides the default timeouts, number of retries and
 server selection strategy for redis commands.
 
-```
-yaml
-type: object
-additionalProperties: false
-properties:
-  best_dc_count:
-    type: integer
-  max_ping_latency_ms:
-    type: integer
-  max_retries:
-    type: integer
-  strategy:
-    enum:
-      - default
-      - every_dc
-      - local_dc_conductor
-      - nearest_server_ping
-    type: string
-  timeout_all_ms:
-    type: integer
-  timeout_single_ms:
-    type: integer
-```
+@include redis/dynamic_configs/REDIS_DEFAULT_COMMAND_CONTROL.yaml
 
 **Example:**
 ```json
@@ -791,34 +548,7 @@ Dictionary keys can be either the **database name** (not the component name!)
 or `__default__`. The latter configuration is applied for every non-matching
 Redis database/sentinel of the service.
 
-```
-yaml
-type: object
-additionalProperties:
-  $ref: '#/definitions/BaseSettings'
-definitions:
-  BaseSettings:
-    type: object
-    additionalProperties: false
-    properties:
-        enabled:
-          description: Enable retry budget for database
-          type: boolean
-        max-tokens:
-          description: Number of tokens to start with
-          type: number
-          maximum: 1000
-          minimum: 1
-        token-ratio:
-          description: Amount of tokens added on each successful request
-          type: number
-          maximum: 1
-          minimum: 0.001
-    required:
-      - enabled
-      - max-tokens
-      - token-ratio
-```
+@include redis/dynamic_configs/REDIS_RETRY_BUDGET_SETTINGS.yaml
 
 **Example:**
 ```json
@@ -882,32 +612,7 @@ Used by components::Redis.
 
 The same as @ref REDIS_DEFAULT_COMMAND_CONTROL but for subscription clients.
 
-
-```
-yaml
-type: object
-additionalProperties: false
-properties:
-  timeout_single_ms:
-    type: integer
-    minimum: 1
-  timeout_all_ms:
-    type: integer
-    minimum: 1
-  best_dc_count:
-    type: integer
-    minimum: 1
-  max_ping_latency_ms:
-    type: integer
-    minimum: 1
-  strategy:
-    type: string
-    enum:
-      - default
-      - every_dc
-      - local_dc_conductor
-      - nearest_server_ping
-```
+@include redis/dynamic_configs/REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL.yaml
 
 **Example:**
 ```json
@@ -929,13 +634,7 @@ Used by components::Redis.
 Dynamic config that controls the minimal interval between redis subscription
 clients rebalancing.
 
-
-```
-yaml
-minimum: 0
-type: integer
-default: 30
-```
+@include redis/dynamic_configs/REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS.yaml
 
 Used by components::Redis.
 
@@ -946,31 +645,7 @@ Used by components::Redis.
 Dynamic config that controls if services will wait for connections with redis
 instances.
 
-
-```
-yaml
-type: object
-additionalProperties: false
-properties:
-  mode:
-    type: string
-    enum:
-      - no_wait
-      - master
-      - slave
-      - master_or_slave
-      - master_and_slave
-  throw_on_fail:
-    type: boolean
-  timeout-ms:
-    type: integer
-    minimum: 1
-    x-taxi-cpp-type: std::chrono::milliseconds
-required:
-  - mode
-  - throw_on_fail
-  - timeout-ms
-```
+@include redis/dynamic_configs/REDIS_WAIT_CONNECTED.yaml
 
 **Example:**
 ```json
@@ -989,37 +664,7 @@ Used by components::Redis.
 
 Cache update dynamic parameters.
 
-```
-yaml
-schema:
-    type: object
-    additionalProperties:
-        type: object
-        additionalProperties: false
-        properties:
-            update-interval-ms:
-                type: integer
-                minimum: 1
-            update-jitter-ms:
-                type: integer
-                minimum: 0
-            full-update-interval-ms:
-                type: integer
-                minimum: 0
-            updates-enabled:
-                type: boolean
-                default: true
-            exception-interval-ms:
-                type: integer
-                minimum: 0
-            alert-on-failing-to-update-times:
-                type: integer
-                minimum: 0
-        required:
-          - update-interval-ms
-          - update-jitter-ms
-          - full-update-interval-ms
-```
+@include core/dynamic_configs/USERVER_CACHES.yaml
 
 **Example:**
 ```json
@@ -1041,11 +686,7 @@ Used by all the caches derived from components::CachingComponentBase.
 
 Controls whether the http request task should be cancelled when the deadline received from the client is reached.
 
-```
-yaml
-schema:
-    type: boolean
-```
+@include core/dynamic_configs/USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE.yaml
 
 **Example:**
 ```
@@ -1063,11 +704,7 @@ When `false`, disables deadline propagation in the service. This includes:
 - interrupting operations when deadline expires;
 - propagating the deadline to downstream services and databases.
 
-```
-yaml
-schema:
-    type: boolean
-```
+@include core/dynamic_configs/USERVER_DEADLINE_PROPAGATION_ENABLED.yaml
 
 **Example:**
 ```
@@ -1118,11 +755,7 @@ Proxy for all the HTTP and HTTPS clients. Empty string disables proxy usage.
 Proxy string may be prefixed with `[scheme]://` to specify which kind of proxy is used. Schemes match the [libcurl supported ones](https://curl.se/libcurl/c/CURLOPT_PROXY.html).
 A proxy host string can also embed user and password.
 
-```
-yaml
-schema:
-    type: string
-```
+@include core/dynamic_configs/USERVER_HTTP_PROXY.yaml
 
 **Example:**
 ```
@@ -1205,11 +838,7 @@ Used by components::LoggingConfigurator.
 
 Controls HTTP requests and responses logging.
 
-```
-yaml
-schema:
-    type: boolean
-```
+@include core/dynamic_configs/USERVER_LOG_REQUEST.yaml
 
 **Example:**
 ```
@@ -1225,11 +854,7 @@ Controls whether the logging of HTTP headers in handlers is performed.
 
 @note To ensure safety, all header values will be output as `***` unless specified in @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST.
 
-```
-yaml
-schema:
-    type: boolean
-```
+@include core/dynamic_configs/USERVER_LOG_REQUEST_HEADERS.yaml
 
 **Example:**
 ```
@@ -1243,13 +868,7 @@ Used by components::Server.
 
 If the @ref USERVER_LOG_REQUEST_HEADERS option is enabled, you can control which HTTP headers are logged, including their values. Header is suitable if it exactly matches one of the values in the whitelist. Any headers that are not on the whitelist will have their values replaced with *** in the logs.
 
-```
-yaml
-schema:
-    type: array
-    items:
-        type: string
-```
+@include core/dynamic_configs/USERVER_LOG_REQUEST_HEADERS_WHITELIST.yaml
 
 **Example:**
 ```
@@ -1263,25 +882,7 @@ Used by server::handlers::HttpHandlerBase.
 
 Dynamic config for controlling size and cache entry lifetime of the LRU based caches.
 
-```
-yaml
-schema:
-    type: object
-    additionalProperties:
-        $ref: '#/definitions/CacheSettings'
-    definitions:
-        CacheSettings:
-            type: object
-            properties:
-                size:
-                    type: integer
-                lifetime-ms:
-                    type: integer
-            required:
-              - size
-              - lifetime-ms
-            additionalProperties: false
-```
+@include core/dynamic_configs/USERVER_LRU_CACHES.yaml
 
 **Example:**
 ```json
@@ -1305,24 +906,7 @@ Used by all the caches derived from cache::LruCacheComponent.
 
 Prefixes or full names of tracing::Span instances to not log.
 
-```
-yaml
-schema:
-    type: object
-    additionalProperties: false
-    required:
-      - prefixes
-      - names
-    properties:
-        prefixes:
-            type: array
-            items:
-                type: string
-        names:
-            type: array
-            items:
-                type: string
-```
+@include core/dynamic_configs/USERVER_NO_LOG_SPANS.yaml
 
 **Example:**
 ```json
@@ -1438,11 +1022,7 @@ Used by congestion_control::Component.
 Controls whether congestion control limiting of RPS is performed (if main task processor is overloaded,
 then the server starts rejecting some requests).
 
-```
-yaml
-schema:
-    type: boolean
-```
+@include core/dynamic_configs/USERVER_RPS_CCONTROL_ENABLED.yaml
 
 **Example:**
 ```
@@ -1584,13 +1164,7 @@ Used by components::ManagerControllerComponent.
 
 Dynamic config for mapping extension files with HTTP header content type.
 
-```
-yaml
-schema:
-    type: object
-    additionalProperties:
-        type: string
-```
+@include core/dynamic_configs/USERVER_FILES_CONTENT_TYPE_MAP.yaml
 
 **Example:**
 ```json

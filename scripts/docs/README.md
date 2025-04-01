@@ -13,32 +13,31 @@ The build was tested on Ubuntu 22.04 (and macOS Ventura 13.5 for development pur
    sudo apt install make graphviz
    ```
 
-2. download doxygen 1.10.0+:
+2. run cmake with options:
    ```shell
-   wget https://github.com/doxygen/doxygen/releases/download/Release_1_10_0/doxygen-1.10.0.linux.bin.tar.gz && tar -xvzf doxygen-1.10.0.linux.bin.tar.gz
+   -DUSERVER_BUILD_ALL_COMPONENTS=1 \
+   -DUSERVER_BUILD_TESTS=1 \
+   -DUSERVER_BUILD_SAMPLES=1 \
+   -DCMAKE_CXX_STANDARD=20 \
+   -DUSERVER_DEBUG_INFO_COMPRESSION=z \
+   -DCMAKE_BUILD_TYPE=Debug \
+   -DCMAKE_C_COMPILER=... \
+   -DCMAKE_CXX_COMPILER=...
+   ```
+   (you might want to add some options depending on your environment)
+
+3. in userver folder run:
+   ```shell
+   BUILD_DIR=/absolute/path/to/build_dir ./scripts/docs/make_docs.sh
+   BUILD_DIR=/absolute/path/to/build_dir ./scripts/docs/upload_docs.sh
+   ```
+   or
+   ```shell
+   BUILD_DIR=/absolute/path/to/build_dir ../scripts/userver/docs/make_docs.sh
+   BUILD_DIR=/absolute/path/to/build_dir ../scripts/userver/docs/upload_docs.sh
    ```
 
-3. run cmake with options:
-   ```shell
-   -DUSERVER_BUILD_ALL_COMPONENTS=1 -DUSERVER_BUILD_TESTS=1 -DUSERVER_BUILD_SAMPLES=1 -DCMAKE_CXX_STANDARD=20 -DCMAKE_BUILD_TYPE=Debug
-   ```
-
-4. perform a full build of userver, run in build dir:
-   ```shell
-   cmake --build .
-   ```
-
-   * on cmake 3.31+, it's enough to run in build dir:
-     ```shell
-     cmake --build . --target codegen
-     ```
-
-5. in project folder run:
-   ```shell
-   make docs DOXYGEN=/PATH_TO/doxygen-1.10.0/bin/doxygen BUILD_DIR=/absolute/path/to/build_dir
-   ```
-
-6. docs will appear in `$BUILD_DIR/docs`, warnings will be printed to stdout
+4. docs will appear in `$BUILD_DIR/docs`, warnings will be printed to `$BUILD_DIR/doxygen.err.log`
 
 ## How to develop? 🛠️
 

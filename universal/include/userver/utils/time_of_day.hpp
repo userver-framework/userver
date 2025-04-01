@@ -23,7 +23,7 @@ class LogHelper;
 
 namespace utils::datetime {
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 ///
 /// @brief A simple implementation of a "time since midnight" datatype.
 ///
@@ -70,7 +70,6 @@ namespace utils::datetime {
 /// %M two-digit zero-padded minutes
 /// %S two-digit zero-padded seconds
 /// %% literal %
-
 template <typename Duration>
 class TimeOfDay;
 

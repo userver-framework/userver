@@ -44,11 +44,14 @@ function(userver_add_sql_library TARGET)
   get_property(USERVER_SQL_SCRIPTS_PATH
       GLOBAL PROPERTY userver_scripts_sql)
 
+  set(
+      output_files
+      ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
+      ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
+  )
   _userver_initialize_codegen_flag()
   add_custom_command(
-    OUTPUT 
-        ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
-        ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
+    OUTPUT ${output_files}
     COMMAND
         ${USERVER_SQL_PYTHON_BINARY}
 	      ${USERVER_SQL_SCRIPTS_PATH}/generator.py
@@ -58,6 +61,7 @@ function(userver_add_sql_library TARGET)
         ${SQL_FILES}
     ${CODEGEN}
   )
+  _userver_codegen_register_files("${output_files}")
 
   add_library(${TARGET} STATIC 
     ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp

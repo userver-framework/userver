@@ -131,6 +131,7 @@ function(userver_target_generate_chaotic TARGET)
       VERBATIM
           ${CODEGEN}
   )
+  _userver_codegen_register_files("${SCHEMAS}")
   add_library("${TARGET}" ${SCHEMAS})
   target_link_libraries("${TARGET}" userver::chaotic)
   target_include_directories("${TARGET}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
@@ -197,6 +198,7 @@ function(userver_target_generate_openapi_client TARGET)
       VERBATIM
       ${CODEGEN}
   )
+  _userver_codegen_register_files("${SCHEMAS}")
   add_library("${TARGET}" ${SCHEMAS})
   target_link_libraries("${TARGET}" userver::chaotic-openapi)
   # target_include_directories("${TARGET}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
@@ -246,6 +248,7 @@ function(userver_target_generate_chaotic_dynamic_configs TARGET SCHEMAS_REGEX)
       VERBATIM
            ${CODEGEN}
   )
+  _userver_codegen_register_files("${OUTPUT_FILENAMES}")
   add_library("${TARGET}" STATIC ${OUTPUT_FILENAMES})
   target_link_libraries("${TARGET}" userver::core userver::chaotic)
   target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${OUTPUT_DIR}/include>")

@@ -46,4 +46,4 @@ list(APPEND ydb-cpp-sdk_INCLUDE_DIRS
   ${ydb-cpp-sdk_SOURCE_DIR}/include
   ${ydb-cpp-sdk_BINARY_DIR}
 )
-message(STATUS "ydb-cpp-sdk include directories: ${ydb-cpp-sdk_INCLUDE_DIRS}")
+mark_targets_as_system("${ydb-cpp-sdk_SOURCE_DIR}")

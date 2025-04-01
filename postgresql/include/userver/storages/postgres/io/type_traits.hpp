@@ -19,7 +19,7 @@ using BoolConstant = std::integral_constant<bool, Value>;
 template <std::size_t Value>
 using SizeConstant = std::integral_constant<std::size_t, Value>;
 
-//@{
+///@{
 /** @name Type mapping traits */
 /// @brief Detect if the C++ type is mapped to a Postgres system type.
 template <typename T>
@@ -50,30 +50,24 @@ template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct IsSpecialMapping : std::false_type {};
 template <typename T>
 inline constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;
-//@}
+///@}
 
-//@{
+///@{
 /** @name Detect iostream operators */
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct HasOutputOperator : std::false_type {};
+template <typename T>
+using HasOutputOperator = decltype(std::declval<std::ostream&>() << std::declval<T&>());
 
 template <typename T>
-struct HasOutputOperator<
-    T,
-    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<std::ostream&>() << std::declval<T&>())>> : std::true_type {
-};
-
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct HasInputOperator : std::false_type {};
+inline constexpr bool kHasOutputOperator = meta::kIsDetected<HasOutputOperator, T>;
 
 template <typename T>
-struct HasInputOperator<
-    T,
-    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<std::istream&>() >> std::declval<T&>())>> : std::true_type {
-};
-//@}
+using HasInputOperator = decltype(std::declval<std::istream&>() >> std::declval<T&>());
 
-//@{
+template <typename T>
+inline constexpr bool kHasInputOperator = meta::kIsDetected<HasInputOperator, T>;
+///@}
+
+///@{
 /** @name Traits for containers */
 /// @brief Mark C++ container type as supported by the driver.
 template <typename T>
@@ -83,8 +77,9 @@ inline constexpr bool kIsCompatibleContainer = IsCompatibleContainer<T>::value;
 
 template <typename T>
 inline constexpr bool kIsFixedSizeContainer = meta::kIsFixedSizeContainer<T>;
+/// @}
 
-//@{
+///@{
 /// @brief Calculate number of dimensions in C++ container.
 template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct DimensionCount : SizeConstant<0> {};
@@ -94,9 +89,9 @@ struct DimensionCount<T, std::enable_if_t<kIsCompatibleContainer<T>>>
     : SizeConstant<1 + DimensionCount<typename T::value_type>::value> {};
 template <typename T>
 inline constexpr std::size_t kDimensionCount = DimensionCount<T>::value;
-//@}
+///@}
 
-//@{
+///@{
 /// @brief Detect type of multidimensional C++ container.
 template <typename T>
 struct ContainerFinalElement;
@@ -122,9 +117,9 @@ struct ContainerFinalElement
 
 template <typename T>
 using ContainerFinaleElementType = typename ContainerFinalElement<T>::type;
-//@}
+///@}
 
-//@{
+///@{
 /** @name IsMappedToArray implementation */
 namespace detail {
 
@@ -141,8 +136,7 @@ constexpr bool EnableContainerMapping() {
 
 template <typename T>
 struct IsMappedToArray : BoolConstant<detail::EnableContainerMapping<T>()> {};
-
-//@}
+///@}
 
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanReserve : std::false_type {};
@@ -173,7 +167,6 @@ template <typename T>
 auto Inserter(T& container) {
     return meta::Inserter(container);
 }
-//@}
 
 template <typename T>
 struct RemoveTupleReferences;
@@ -207,12 +200,6 @@ struct TupleHasFormatters;
 
 template <typename... T>
 struct TupleHasFormatters<std::tuple<T...>> : std::bool_constant<(HasFormatter<std::decay_t<T>>::value && ...)> {};
-
-//@}
-
-//@{
-/** @name Type mapping traits */
-//@}
 
 }  // namespace storages::postgres::io::traits
 

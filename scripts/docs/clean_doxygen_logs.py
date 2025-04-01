@@ -20,6 +20,7 @@ def filter_doxygen_log(lines):
 def main():
     for line in filter_doxygen_log(sys.stdin):
         print(line, end='')
+        sys.stdout.flush()
 
 
 if __name__ == '__main__':
