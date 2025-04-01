@@ -6,6 +6,7 @@ endif()
 
 find_package(userver REQUIRED COMPONENTS
     universal
+    $<$<BOOL:${USERVER_FEATURE_POSTGRESQL}>:postgres>
 )
 
 set_property(GLOBAL PROPERTY userver_chaotic_extra_args "-I ${CMAKE_CURRENT_LIST_DIR}/../../../include")

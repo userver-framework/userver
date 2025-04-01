@@ -2,11 +2,22 @@ project(userver-chaotic CXX)
 
 include(ChaoticGen)
 
+set(IGNORED_POSTGRES_FILES "")
+if(NOT USERVER_FEATURE_POSTGRESQL)
+  set(IGNORED_POSTGRES_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/chaotic/io/userver/storages/postgres/time_point_tz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/userver/chaotic/io/userver/storages/postgres/time_point_tz.hpp
+  )
+endif()
+
 userver_module(chaotic
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
-    LINK_LIBRARIES userver::universal
+    LINK_LIBRARIES 
+        userver::universal
+        $<$<BOOL:${USERVER_FEATURE_POSTGRESQL}>:userver::postgresql>
     NO_CORE_LINK
+    IGNORE_SOURCES ${IGNORED_POSTGRES_FILES}
 )
 
 if(USERVER_BUILD_TESTS)
