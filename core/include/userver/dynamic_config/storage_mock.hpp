@@ -10,6 +10,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN

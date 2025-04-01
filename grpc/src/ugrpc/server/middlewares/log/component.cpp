@@ -20,6 +20,7 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
     return settings;
 }
 
+/// [middleware InGroup]
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : MiddlewareFactoryComponentBase(
           config,
@@ -27,6 +28,7 @@ Component::Component(const components::ComponentConfig& config, const components
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
       ) {}
+/// [middleware InGroup]
 
 std::shared_ptr<MiddlewareBase>
 Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
@@ -41,9 +43,6 @@ type: object
 description: gRPC service logger component
 additionalProperties: false
 properties:
-    log-level:
-        type: string
-        description: gRPC handlers log level
     msg-log-level:
         type: string
         description: gRPC message body logging level

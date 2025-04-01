@@ -73,6 +73,18 @@ TEST(MockSteadyNow, MockedValidSeq) {
     UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
 }
 
+TEST(MockWallCoarseNow, Simple) {
+    using utils::datetime::Stringtime;
+
+    const auto tp = Stringtime("2000-01-01T00:00:00+0000");
+    EXPECT_NE(tp, utils::datetime::MockWallCoarseNow());
+    EXPECT_NE(tp, utils::datetime::WallCoarseNow());
+    UEXPECT_NO_THROW(MockNowSet(tp));
+    EXPECT_EQ(tp, utils::datetime::MockWallCoarseNow());
+    EXPECT_EQ(tp, utils::datetime::WallCoarseNow());
+    UEXPECT_NO_THROW(utils::datetime::MockNowUnset());
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

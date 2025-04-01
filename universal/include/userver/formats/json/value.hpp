@@ -13,8 +13,6 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/iterator.hpp>
-#include <userver/formats/json/schema.hpp>
-#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/parse/common.hpp>
 

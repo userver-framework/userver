@@ -98,6 +98,9 @@ public:
     /// @param default_cmd_ctls default command execution options
     /// @param testsuite_pg_ctl command execution options customizer for testsuite
     /// @param ei_settings error injection settings
+    /// @param testsuite_tasks see @ref testsuite::TestsuiteTasks
+    /// @param config_source see @ref dynamic_config::Source
+    /// @param shard_number shard number
     /// @note When `max_connection_pool_size` is reached, and no idle connections
     /// available, `PoolError` is thrown for every new connection
     /// request

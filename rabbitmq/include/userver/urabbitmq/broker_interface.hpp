@@ -86,11 +86,12 @@ public:
     ///
     /// You have to supply the name of the exchange and a routing key. RabbitMQ
     /// will then try to send the message to one or more queues.
-    /// By default unroutable messages are silently discarded
+    /// By default, unroutable messages are silently discarded
     ///
     /// @param exchange the exchange to publish to
     /// @param routing_key the routing key
     /// @param message the message to send
+    /// @param type see @ref MessageType
     /// @param deadline execution deadline
     ///
     /// @note This method is `fire and forget` (no delivery guarantees),
@@ -115,7 +116,7 @@ public:
     ///
     /// You should to set `kNoAck` flag in order for server to implicitly
     /// acknowledge gathered message.
-    /// By default the gathered message has to be explicitly acknowledged
+    /// By default, the gathered message has to be explicitly acknowledged
     /// or rejected, however there's no functionality for that yet, so the flag is
     /// basically mandatory.
     /// This API is a subject to change.
@@ -144,11 +145,12 @@ public:
     ///
     /// You have to supply the name of the exchange and a routing key. RabbitMQ
     /// will then try to send the message to one or more queues.
-    /// By default unroutable messages are silently discarded
+    /// By default, unroutable messages are silently discarded
     ///
     /// @param exchange the exchange to publish to
     /// @param routing_key the routing key
     /// @param message the message to send
+    /// @param type see @ref MessageType
     /// @param deadline execution deadline
     virtual void PublishReliable(
         const Exchange& exchange,

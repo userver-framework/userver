@@ -45,7 +45,7 @@ constexpr size_t FromHexUpperBound(size_t size) noexcept {
 void ToHex(std::string_view input, std::string& out) noexcept;
 
 /// @brief Allocates std::string, converts input and writes into said string
-/// @param input range of input bytes
+/// @param data range of input bytes
 inline std::string ToHex(std::string_view data) noexcept {
     std::string result;
     ToHex(data, result);
@@ -53,7 +53,7 @@ inline std::string ToHex(std::string_view data) noexcept {
 }
 
 /// @brief Allocates std::string, converts input and writes into said string
-/// @param data start of continuous range in memory
+/// @param encoded start of continuous range in memory
 /// @param len size of that range
 inline std::string ToHex(const void* encoded, size_t len) noexcept {
     const auto* chars = reinterpret_cast<const char*>(encoded);
@@ -92,7 +92,7 @@ std::string_view GetHexPart(std::string_view encoded) noexcept;
 /// FromHex, it will be fully processed
 bool IsHexData(std::string_view encoded) noexcept;
 
-/// @brief iterprets uint64_t value as array of bytes and applies ToHex to it
+/// @brief Interprets uint64_t value as array of bytes and applies ToHex to it
 inline std::string ToHexString(uint64_t value) { return ToHex(&value, sizeof(value)); }
 
 }  // namespace utils::encoding

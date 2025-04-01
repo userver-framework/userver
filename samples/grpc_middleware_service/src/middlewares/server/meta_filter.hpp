@@ -6,9 +6,11 @@
 
 namespace sample::grpc::auth::server {
 
+struct MiddlewareConfig;
+
 class MetaFilter final : public ugrpc::server::MiddlewareBase {
 public:
-    MetaFilter(std::vector<std::string> headers);
+    MetaFilter(MiddlewareConfig&& config);
 
     void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
 
@@ -17,6 +19,10 @@ private:
 };
 
 /// [gRPC middleware sample]
+struct MiddlewareConfig final {
+    std::vector<std::string> headers{};
+};
+
 class MetaFilterComponent final : public ugrpc::server::MiddlewareFactoryComponentBase {
 public:
     static constexpr std::string_view kName = "grpc-server-meta-filter";

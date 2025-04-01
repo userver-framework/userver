@@ -14,7 +14,7 @@ namespace net::blocking {
 /// @brief Resolve host and port via blocking syscall.
 /// @note It is recommended to use clients::dns::Resolver if possible
 /// @param host - hostname (or IP) to resolve
-/// @param service_and_port - if this argument is a service name, it is
+/// @param service_or_port - if this argument is a service name, it is
 /// translated to the corresponding port number, otherwise treated as port
 /// number.
 std::vector<engine::io::Sockaddr> GetAddrInfo(std::string_view host, const char* service_or_port);

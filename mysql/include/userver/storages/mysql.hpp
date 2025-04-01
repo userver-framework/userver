@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 /// @brief Top namespace for uMySQL driver.
 ///
-/// For more information see @ref mysql_driver
+/// For more information see @ref scripts/docs/en/userver/mysql/mysql_driver.md
 namespace storages::mysql {}
 
 /// @brief Namespace containing helper classes and functions for on-the-flight

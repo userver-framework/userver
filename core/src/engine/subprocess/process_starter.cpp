@@ -169,28 +169,6 @@ ProcessStarter::Exec(const std::string& executable_path, const std::vector<std::
     return future.get();
 }
 
-ChildProcess ProcessStarter::Exec(
-    const std::string& executable_path,
-    const std::vector<std::string>& args,
-    const EnvironmentVariables& env,
-    const std::optional<std::string>& stdout_file,
-    const std::optional<std::string>& stderr_file
-) {
-    ExecOptions options{std::move(env), std::nullopt, std::move(stdout_file), std::move(stderr_file), false};
-    return Exec(executable_path, args, std::move(options));
-}
-
-ChildProcess ProcessStarter::Exec(
-    const std::string& executable_path,
-    const std::vector<std::string>& args,
-    EnvironmentVariablesUpdate env_update,
-    const std::optional<std::string>& stdout_file,
-    const std::optional<std::string>& stderr_file
-) {
-    ExecOptions options{std::nullopt, std::move(env_update), std::move(stdout_file), std::move(stderr_file), false};
-    return Exec(executable_path, args, std::move(options));
-}
-
 }  // namespace engine::subprocess
 
 USERVER_NAMESPACE_END

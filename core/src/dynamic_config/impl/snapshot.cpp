@@ -5,6 +5,7 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/dynamic_config/exception.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/impl/static_registration.hpp>

@@ -1,4 +1,9 @@
-cmake_minimum_required(VERSION 3.14...3.31)
+cmake_minimum_required(VERSION 3.14...4.0)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+  if(NOT DEFINED $CACHE{CMAKE_POLICY_VERSION_MINIMUM})
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.14 CACHE INTERNAL "")
+  endif()
+endif()
 cmake_policy(SET CMP0025 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
   cmake_policy(SET CMP0093 NEW)
@@ -323,6 +328,30 @@ if(USERVER_FEATURE_CORE)
       DIRECTORY "${USERVER_ROOT_DIR}/service_template"
       DESTINATION ${CMAKE_INSTALL_DATADIR}/userver/
   )
+endif()
+
+if (USERVER_BUILD_TESTS)
+  function (_add_create_service_test FEATURE CMAKE_OPTS)
+    add_test(
+      NAME create-service${FEATURE} 
+      COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/create-service-test-helper"
+          "${CMAKE_CURRENT_SOURCE_DIR}"
+          "${CMAKE_CURRENT_BINARY_DIR}"
+          "${CMAKE_OPTS}"
+          ${FEATURE}
+    )
+  endfunction()
+  
+  _add_create_service_test("" "")
+  if(USERVER_FEATURE_MONGODB)
+    _add_create_service_test("--mongo" "")
+  endif()
+  if(USERVER_FEATURE_POSTGRESQL)
+    _add_create_service_test("--postgres" "")
+  endif()
+  if(USERVER_FEATURE_GRPC)
+    _add_create_service_test("--grpc" "-DUSERVER_GOOGLE_COMMON_PROTOS=${USERVER_GOOGLE_COMMON_PROTOS} -DUSERVER_DOWNLOAD_PACKAGES=${USERVER_DOWNLOAD_PACKAGES}")
+  endif()
 endif()
 
 _userver_print_features_list()

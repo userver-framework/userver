@@ -4,7 +4,7 @@
 
 Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
-Make sure that you understand the basic concepts of @ref scripts/docs/en/userver/grpc.md "userver grpc driver".
+Make sure that you understand the basic concepts of @ref scripts/docs/en/userver/grpc/grpc.md "userver grpc driver".
 
 ## Step by step guide
 
@@ -37,8 +37,6 @@ Wrap the generated `api::GreeterServiceClient` in a component that exposes a sim
 @snippet samples/grpc_service/src/greeter_client.hpp  client
 
 @snippet samples/grpc_service/src/greeter_client.hpp  component
-
-@snippet samples/grpc_service/src/greeter_client.cpp  component
 
 We intentionally split `GreeterClient` from `GreeterClientComponent`
 to make the logic unit-testable. If you don't need gtest tests,

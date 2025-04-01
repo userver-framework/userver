@@ -12,7 +12,7 @@ namespace ugrpc::server::middlewares::deadline_propagation {
 
 // clang-format off
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_base_classes
 ///
 /// @brief Component for gRPC server deadline propagation
 /// @see @ref scripts/docs/en/userver/deadline_propagation.md

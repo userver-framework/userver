@@ -32,14 +32,14 @@ namespace server::handlers {
 /// parse_args_from_body | optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters | false
 /// auth | server::handlers::auth::HandlerAuthConfig authorization config | -
 /// url_trailing_slash | 'both' to treat URLs with and without a trailing slash as equal, 'strict-match' otherwise | 'both'
-/// max_requests_in_flight | integer to limit max pending requests to this handler | <no limit>
+/// max_requests_in_flight | integer to limit max pending requests to this handler | `<no limit>`
 /// request_body_size_log_limit | trim request to this size before logging | 512
 /// request_headers_size_log_limit | limit on the total length of logged headers | 512
 /// response_data_size_log_limit | trim responses to this size before logging | 512
-/// max_requests_per_second | integer to limit RPS to this handler | <no limit>
+/// max_requests_per_second | integer to limit RPS to this handler | `<no limit>`
 /// decompress_request | allow decompression of the requests | true
 /// throttling_enabled | allow throttling of the requests by components::Server , for more info see its `max_response_size_in_flight` and `requests_queue_size_threshold` options | true
-/// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | <takes the value from components::Server config>
+/// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | `<takes the value from components::Server config>`
 /// monitor-handler | Overrides the in-code `is_monitor` flag that makes the handler run either on `server.listener` or on `server.listener-monitor` | --
 /// set_tracing_headers | whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId) | true
 /// deadline_propagation_enabled | when `false`, disables HTTP handler @ref scripts/docs/en/userver/deadline_propagation.md "deadline propagation" | true

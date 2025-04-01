@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <userver/ydb/io/structs.hpp>

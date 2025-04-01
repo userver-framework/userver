@@ -41,7 +41,7 @@ inline FutureStatus ToFutureStatus(TaskContext::WakeupSource wakeup_source) noex
         case impl::TaskContext::WakeupSource::kNone:
             break;
     }
-    utils::impl::AbortWithStacktrace("Unexpected wakeup source");
+    utils::AbortWithStacktrace("Unexpected wakeup source");
 }
 
 }  // namespace engine::impl

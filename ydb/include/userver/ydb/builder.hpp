@@ -54,11 +54,13 @@ void PreparedArgsBuilder::Add(const std::string& name, T&& value) {
     param_builder.Build();
 }
 
+/// @cond
 template <typename... NamesValues>
 void PreparedArgsBuilder::AddParams(NamesValues&&... names_values) {
     [[maybe_unused]] decltype(auto) result = (*this << ... << std::forward<NamesValues>(names_values));
     static_assert(std::is_same_v<decltype(result), PreparedArgsBuilder&>);
 }
+/// @endcond
 
 struct PreparedArgsBuilder::PreparedArgsWithKey final {
     PreparedArgsBuilder& builder;

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+USERVER=$1
+shift
+BINARY_DIR=$1
+shift
+CMAKE_OPTS=$1
+shift
+
+rm -rf "${BINARY_DIR}/new-service"
+"${USERVER}/scripts/userver-create-service" $* "${BINARY_DIR}/new-service"
+cd "${BINARY_DIR}/new-service"
+mkdir third_party
+ln -s "${USERVER}" third_party/userver
+CMAKE_OPTS="$CMAKE_OPTS" make test-release

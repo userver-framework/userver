@@ -91,14 +91,14 @@ private:
     T ptr_;
 };
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 ///
 /// @brief A `std::shared_ptr` that is guaranteed to be not-null.
 /// @see MakeSharedRef
 template <typename U>
 using SharedRef = NotNull<std::shared_ptr<U>>;
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 ///
 /// @brief A `std::unique_ptr` that is guaranteed to be not-null.
 /// @see MakeUniqueRef

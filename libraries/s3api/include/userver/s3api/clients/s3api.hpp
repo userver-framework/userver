@@ -24,7 +24,7 @@ class Client;
 
 /// @brief Top namespace for S3 library.
 ///
-/// For more information see @ref s3_library.
+/// For more information see @ref scripts/docs/en/userver/libraries/s3api.md .
 namespace s3api {
 
 class AuthHeaderConflictError : public std::runtime_error {

@@ -381,5 +381,5 @@ The whole parsing process is split into smaller steps using parsers combination.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/formats.md | @ref scripts/docs/en/userver/logging.md ⇨
+⇦ @ref scripts/docs/en/userver/codegen_overview.md | @ref scripts/docs/en/userver/sql_files.md ⇨
 @htmlonly </div> @endhtmlonly

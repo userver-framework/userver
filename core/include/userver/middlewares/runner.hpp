@@ -62,7 +62,7 @@ public:
     )
         : impl::WithMiddlewareDependencyComponentBase(config, context),
           global_config_(config.As<formats::yaml::Value>()),
-          dependency_(std::move(builder).Extract(config.Name())) {}
+          dependency_(std::move(builder).ExtractDependency(/*middleware_name=*/config.Name())) {}
 
     /// @brief Returns a middleware according to the component's settings.
     ///
@@ -158,7 +158,7 @@ protected:
     );
 
     /// @cond
-    /// Only for internal use.
+    // Only for internal use.
     std::vector<std::shared_ptr<MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const override;
     /// @endcond
 
@@ -189,6 +189,7 @@ RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
     }
 }
 
+/// @cond
 template <typename MiddlewareBase, typename HandlerInfo>
 std::vector<std::shared_ptr<MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
     const HandlerInfo& info
@@ -203,6 +204,7 @@ std::vector<std::shared_ptr<MiddlewareBase>> RunnerComponentBase<MiddlewareBase,
     }
     return middlewares;
 }
+/// @endcond
 
 namespace impl {
 

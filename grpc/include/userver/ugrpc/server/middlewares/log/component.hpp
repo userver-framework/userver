@@ -24,7 +24,6 @@ struct Settings;
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// log-level | log level to use for `Span`, status code and the facts of sending requests receiving responses arriving | debug
 /// msg-log-level | log level to use for request and response messages themselves | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
 /// trim-secrets | trim the secrets from logs as marked by the protobuf option | true (*)

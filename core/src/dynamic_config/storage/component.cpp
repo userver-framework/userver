@@ -3,13 +3,12 @@
 #include <atomic>
 #include <chrono>
 #include <string>
-#include <unordered_set>
 
 #include <fmt/format.h>
 
 #include <boost/filesystem/operations.hpp>
 
-#include <userver/alerts/component.hpp>
+#include <userver/alerts/source.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -17,6 +16,7 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/fs/write.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -36,6 +36,8 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kWaitInterval(5);
+
+alerts::Source kConfigParseErrorAlert("config_parse_error");
 
 struct DynamicConfigStatistics final {
     std::atomic<bool> was_last_parse_successful{true};
@@ -81,7 +83,7 @@ private:
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
-    alerts::Storage& alert_storage_;
+    utils::statistics::MetricsStoragePtr metrics_storage_;
     const std::string fs_cache_path_;
     engine::TaskProcessor* fs_task_processor_;
 
@@ -103,7 +105,7 @@ private:
 };
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext& context)
-    : alert_storage_(context.FindComponent<alerts::StorageComponent>().GetStorage()),
+    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
       fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
       fs_task_processor_([&] {
           const auto name = config["fs-task-processor"].As<std::optional<std::string>>();
@@ -179,14 +181,12 @@ dynamic_config::impl::SnapshotData DynamicConfig::Impl::ParseConfig(const dynami
     try {
         dynamic_config::impl::SnapshotData config(value, {});
         stats_.was_last_parse_successful = true;
-        alert_storage_.StopAlertNow("config_parse_error");
+        kConfigParseErrorAlert.StopAlertNow(*metrics_storage_);
         return config;
     } catch (const dynamic_config::ConfigParseError& e) {
         stats_.was_last_parse_successful = false;
         ++stats_.parse_errors;
-        alert_storage_.FireAlert(
-            "config_parse_error", std::string("Failed to parse dynamic config. ") + e.what(), alerts::kInfinity
-        );
+        kConfigParseErrorAlert.FireAlert(*metrics_storage_);
         throw;
     }
 }

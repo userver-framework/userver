@@ -30,7 +30,7 @@ def grpc_mockserver_endpoint(pytestconfig, get_free_port) -> str:
 
     Override this fixture to customize the endpoint used by gRPC mockserver.
 
-    @snippet samples/grpc_service/tests/conftest.py  Prepare configs
+    @snippet samples/grpc_service/testsuite/conftest.py  Prepare configs
     @ingroup userver_testsuite_fixtures
     """
     port = pytestconfig.option.grpc_mockserver_port
@@ -80,7 +80,7 @@ def grpc_mockserver(
     @snippet grpc/functional_tests/metrics/tests/test_metrics.py  grpc client test
 
     Mocks are only active within tests after their respective handler functions are created, not between tests.
-    If you need the service needs the mock during startup, add the fixture that defines your mock to
+    If the service needs the mock during startup, add the fixture that defines your mock to
     @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps".
 
     To return an error status instead of response, use `context` (see
@@ -91,8 +91,8 @@ def grpc_mockserver(
 
     To trigger special exceptions in the service's gRPC client, raise these mocked errors from the mock handler:
 
-    * @ref pytest_userver.grpc.NetworkError
-    * @ref pytest_userver.grpc.TimeoutError
+    * @ref pytest_userver.grpc._mocked_errors.TimeoutError "pytest_userver.grpc.TimeoutError"
+    * @ref pytest_userver.grpc._mocked_errors.NetworkError "pytest_userver.grpc.NetworkError"
 
     @ingroup userver_testsuite_fixtures
     """

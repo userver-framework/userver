@@ -247,14 +247,14 @@ python3 ../samples/tests/prepare_production_configs.py
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" are used to make sure
 that the service is working fine and
 implements the required functionality. A recommended practice is to build the
-service in Debug and Release modes and tests both of them, then deploy the
-Release build to the production, @ref "disabling all the tests related handlers".
+service in Debug and Release modes and test both of them, then deploy the
+Release build to the production, disabling all the tests-related handlers.
 
 Debug builds of the userver provide numerous assertions that validate the
 framework usage and help to detect bugs at early stages.
 
 Typical functional tests for a service consist of a `conftest.py` file with
-mocks+configs for the sereffectivelyvice and a bunch of `test_*.py` files with actual
+mocks+configs for the service and a bunch of `test_*.py` files with actual
 tests. Such approach allows to reuse mocks and configurations in different
 tests.
 

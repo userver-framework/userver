@@ -36,16 +36,19 @@ std::string Sha1(std::string_view data, OutputEncoding encoding = OutputEncoding
 std::string Sha224(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
 /// @brief Calculates SHA-256, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Sha256(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
 /// @brief Calculates SHA-384, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Sha384(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
 /// @brief Calculates SHA-512, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Sha512(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);

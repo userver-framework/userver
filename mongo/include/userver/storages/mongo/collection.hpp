@@ -113,6 +113,7 @@ public:
 
     /// @brief Executes an aggregation pipeline
     /// @param pipeline an array of aggregation operations
+    /// @param options see @ref storages::mongo::options
     template <typename... Options>
     Cursor Aggregate(formats::bson::Value pipeline, Options&&... options);
 

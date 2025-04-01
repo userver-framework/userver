@@ -8,6 +8,7 @@
 #include <type_traits>
 
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 

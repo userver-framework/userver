@@ -20,11 +20,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+/// @ingroup userver_grpc_server_middlewares
+///
 /// @brief Service meta info for a middleware construction.
 struct ServiceInfo final {
     std::string full_service_name{};
 };
 
+/// @ingroup userver_grpc_server_middlewares
+///
 /// @brief Context for middleware-specific data during gRPC call.
 class MiddlewareCallContext final {
 public:
@@ -68,7 +72,7 @@ private:
     bool is_called_from_handle_{false};
 };
 
-/// @ingroup userver_base_classes
+/// @ingroup userver_base_classes userver_grpc_server_middlewares
 ///
 /// @brief Base class for server gRPC middleware
 class MiddlewareBase {
@@ -92,7 +96,7 @@ public:
     virtual void CallResponseHook(const MiddlewareCallContext& context, google::protobuf::Message& response);
 };
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_base_classes
 ///
 /// @brief Factory that creates specific server middlewares for services.
 ///
@@ -129,13 +133,13 @@ using MiddlewareFactoryComponentBase =
 ///
 /// ## Static config example
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml static config grpc-server-middlewares-pipeline
+/// @snippet samples/grpc_middleware_service/static_config.yaml  static config grpc-server-middlewares-pipeline
 
 template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
     USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
 
-/// @ingroup userver_components
+/// @ingroup userver_components userver_grpc_server_middlewares
 ///
 /// @brief Component to create middlewares pipeline.
 ///

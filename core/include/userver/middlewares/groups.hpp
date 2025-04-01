@@ -3,22 +3,26 @@
 /// @file userver/middlewares/groups.hpp
 /// @brief
 /// There are groups of middlewares to build a pipeline.
-/// @see @ref scripts/docs/en/userver/grpc_server_middlewares.md
+/// @see @ref scripts/docs/en/userver/grpc_middlewares_order.md
 
 #include <userver/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-/// Middlewares groups for middlewares pipeline.
-/// @see @ref scripts/docs/en/userver/grpc_server_middlewares.md
+/// Middlewares groups for a middlewares pipeline.
+/// @see @ref scripts/docs/en/userver/grpc_middlewares_order.md
 namespace middlewares::groups {
 
+/// @ingroup userver_middlewares_groups
+///
 /// @brief The first group in the pipeline.
 struct PreCore final {
     static constexpr std::string_view kName = "pre-core";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder();
 };
 
+/// @ingroup userver_middlewares_groups
+///
 /// @brief The Group to work wih logging. Is located after PreCore.
 ///
 /// @details There are:
@@ -32,12 +36,16 @@ struct Logging final {
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<PreCore>();
 };
 
+/// @ingroup userver_middlewares_groups
+///
 /// @brief The Group for authentication middlewares. Is located after `Logging`.
 struct Auth final {
     static constexpr std::string_view kName = "auth";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<Logging>();
 };
 
+/// @ingroup userver_middlewares_groups
+///
 /// @brief The core group of middlewares. Is located after `Auth`.
 ///
 /// @details There are:
@@ -52,6 +60,8 @@ struct Core final {
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<Auth>();
 };
 
+/// @ingroup userver_middlewares_groups
+///
 /// @brief The group is located after `Core`.
 ///
 /// @details There are:
@@ -63,6 +73,8 @@ struct PostCore final {
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<Core>();
 };
 
+/// @ingroup userver_middlewares_groups
+///
 /// @brief The group for user middlewares - the last group in pipeline. It group used by default.
 ///
 /// @details There are:

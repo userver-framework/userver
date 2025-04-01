@@ -97,8 +97,8 @@ namespace storages::postgres {
 /// is prepared at first execution and then only arguments for a query is sent
 /// to the server.
 ///
-/// A parameter can be of any type that is supported by the driver. See @ref
-/// pg_types for more information.
+/// A parameter can be of any type that is supported by the driver.
+/// See @ref scripts/docs/en/userver/pg_types.md for more information.
 ///
 /// @code
 /// auto trx = cluster->Begin(/* transaction options */);

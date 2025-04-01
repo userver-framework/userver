@@ -121,7 +121,7 @@ private:
 
         TESTPOINT("topic-handle-message", formats::json::FromString(message.GetData()));
 
-        /// handle message...
+        // handle message...
 
         /*
           If it throws, read session will be closed and recreated in

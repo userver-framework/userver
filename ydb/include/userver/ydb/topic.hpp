@@ -24,8 +24,11 @@ struct TopicSettings;
 ///
 /// ## Example usage:
 ///
-/// @snippet userver/samples/ydb_service/components/topic_reader.hpp  Sample
-/// Topic reader
+/// @ref samples/ydb_service/components/topic_reader.hpp
+/// @ref samples/ydb_service/components/topic_reader.cpp
+///
+/// @example samples/ydb_service/components/topic_reader.hpp
+/// @example samples/ydb_service/components/topic_reader.cpp
 class TopicReadSession final {
 public:
     /// @cond

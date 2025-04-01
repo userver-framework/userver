@@ -33,7 +33,13 @@ private:
     engine::SingleUseEvent event_;
 };
 
-ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async);
+ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async) noexcept;
+
+void CheckInvocationSuccessful(
+    ugrpc::impl::AsyncMethodInvocation::WaitStatus status,
+    std::string_view call_name,
+    std::string_view stage
+);
 
 }  // namespace ugrpc::server::impl
 

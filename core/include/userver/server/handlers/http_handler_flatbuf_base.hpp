@@ -32,7 +32,7 @@ inline constexpr std::string_view kFlatbufResponseDataName = "__response_flatbuf
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - component
+/// @snippet samples/flatbuf_service/main.cpp Flatbuf service sample - component
 
 // clang-format on
 

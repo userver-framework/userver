@@ -1,5 +1,6 @@
 #include "config.hpp"
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/utils/retry_budget.hpp>

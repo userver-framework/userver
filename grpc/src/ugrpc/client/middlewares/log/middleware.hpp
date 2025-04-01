@@ -21,6 +21,7 @@ struct Settings {
     bool trim_secrets{true};
 };
 
+/// [MiddlewareBase example declaration]
 /// @brief middleware for RPC handler logging settings
 class Middleware final : public MiddlewareBase {
 public:
@@ -37,6 +38,7 @@ public:
 private:
     Settings settings_;
 };
+/// [MiddlewareBase example declaration]
 
 }  // namespace ugrpc::client::middlewares::log
 

@@ -31,6 +31,9 @@ public:
     /// the size of a way reaches this number, existing elements are deleted
     /// according to the LRU policy.
     ///
+    /// @param hash is the instance of `Hash` function to use, in case of a custom stateful `Hash`.
+    /// @param equal is the instance of `Equal` function to use, in case of a custom stateful `Equal`.
+    ///
     /// The maximum total number of elements is `ways * way_size`.
     NWayLRU(size_t ways, size_t way_size, const Hash& hash = Hash(), const Equal& equal = Equal());
 

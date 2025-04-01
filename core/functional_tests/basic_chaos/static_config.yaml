@@ -117,11 +117,6 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: main-task-processor
-
         handler-ping:
             path: /ping
             method: GET

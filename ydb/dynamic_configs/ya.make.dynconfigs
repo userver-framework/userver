@@ -1,6 +1,8 @@
 # This file is generated from taxi/uservices/scripts/userver/copy_dynamic_config_schemas/ya.make.jinja
 # DO NOT EDIT!
 
+INCLUDE(${ARCADIA_ROOT}/taxi/uservices/userver/chaotic/ya.make.deps)
+
 RUN_PROGRAM(
     taxi/uservices/userver/chaotic/bin-dynamic-configs
         -o ${BINDIR}/dynamic_configs/
@@ -12,36 +14,8 @@ RUN_PROGRAM(
         
             dynamic_configs/YDB_RETRY_BUDGET.yaml
         
-    OUTPUT_INCLUDES  # Note: the list is handmade :-(
-        userver/chaotic/array.hpp
-        userver/chaotic/validators.hpp
-        userver/chaotic/object.hpp
-        userver/chaotic/oneof_with_discriminator.hpp
-        userver/chaotic/primitive.hpp
-        userver/chaotic/with_type.hpp
-        userver/chaotic/ref.hpp
-        userver/chaotic/variant.hpp
-        userver/chaotic/io/std/chrono/milliseconds.hpp
-        userver/chaotic/io/std/chrono/seconds.hpp
-        userver/chaotic/io/std/chrono/microseconds.hpp
-        userver/chaotic/io/std/chrono/minutes.hpp
-        userver/chaotic/io/std/chrono/days.hpp
-        userver/chaotic/io/std/set.hpp
-        userver/chaotic/io/std/unordered_set.hpp
-        userver/chaotic/io/std/unordered_map.hpp
-        userver/chaotic/io/std/vector.hpp
-        userver/chaotic/io/std/uint32_t.hpp
-        userver/chaotic/io/std/uint64_t.hpp
-        userver/chaotic/io/std/size_t.hpp
-        userver/chaotic/io/userver/decimal64/decimal.hpp
-        userver/chaotic/io/userver/utils/default_dict.hpp
-        userver/chaotic/io/userver/utils/datetime/date.hpp
-        userver/chaotic/io/userver/utils/datetime/time_point_tz.hpp
-        userver/chaotic/io/userver/utils/datetime/time_point_tz_iso_basic.hpp
-        userver/chaotic/io/boost/uuids/uuid.hpp
-        userver/chaotic/type_bundle_hpp.hpp
-        userver/chaotic/dynamic_config_variable_bundle.hpp
-        userver/chaotic/type_bundle_cpp.hpp
+    OUTPUT_INCLUDES
+        ${CHAOTIC_INCLUDES}
     IN_NOPARSE
         
             dynamic_configs/YDB_QUERIES_COMMAND_CONTROL.yaml

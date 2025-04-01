@@ -9,7 +9,7 @@ namespace functional_tests {
 
 class MySecondMiddleware final : public ugrpc::server::MiddlewareBase {
 public:
-    explicit MySecondMiddleware() = default;
+    MySecondMiddleware() = default;
 
     void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
         override;

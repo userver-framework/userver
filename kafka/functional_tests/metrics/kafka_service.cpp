@@ -15,6 +15,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/wait_all_checked.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>

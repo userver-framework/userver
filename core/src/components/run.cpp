@@ -33,15 +33,12 @@
 #include <components/manager_config.hpp>
 #include <logging/config.hpp>
 #include <logging/tp_logger_utils.hpp>
+#include <server/handlers/auth/apikey/factories.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace server::handlers::auth::apikey {
-extern int auth_checker_apikey_module_activation;
-}  // namespace server::handlers::auth::apikey
 
 namespace components {
 

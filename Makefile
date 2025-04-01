@@ -19,7 +19,6 @@ all: test-debug test-release
 # Requires doxygen 1.10.0+
 .PHONY: docs
 docs:
-	@rm -rf docs/*
 	@$(DOXYGEN) --version >/dev/null 2>&1 || { \
 		echo "!!! No Doxygen found."; \
 		exit 2; \
@@ -34,13 +33,21 @@ docs:
 			exit 2; \
 		fi \
 	}
-	@( \
-	    cat scripts/docs/doxygen.conf; \
-	    echo OUTPUT_DIRECTORY=docs \
-	  ) | $(DOXYGEN) -
-	@echo 'userver.tech' > docs/html/CNAME
-	@cp docs/html/d8/dee/md_en_2userver_2404.html docs/html/404.html || :
-	@sed -i 's|\.\./\.\./|/|g' docs/html/404.html
+	@if [ -z "$$BUILD_DIR" ]; then \
+        echo "!!! Set BUILD_DIR environment variable to cmake build directory with fully built userver."; \
+        echo "!!! See userver/scripts/docs/README.md"; \
+        exit 2; \
+	fi
+	@if [ ! -f "$$BUILD_DIR/compile_commands.json" ]; then \
+        echo "!!! Fully build userver before running 'make docs'."; \
+        echo "!!! See userver/scripts/docs/README.md"; \
+        exit 2; \
+	fi
+	@rm -rf "$$BUILD_DIR/docs"
+	@$(DOXYGEN) scripts/docs/doxygen.conf 2>&1 | python3 scripts/docs/clean_doxygen_logs.py
+	@echo "userver.tech" > "$$BUILD_DIR/docs/html/CNAME"
+	@cp "$$BUILD_DIR/docs/html/d8/dee/md_en_2userver_2404.html" "$$BUILD_DIR/docs/html/404.html" || :
+	@sed -i 's|\.\./\.\./|/|g' "$$BUILD_DIR/docs/html/404.html"
 
 # Run cmake
 .PHONY: cmake-debug

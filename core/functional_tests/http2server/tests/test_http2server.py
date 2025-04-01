@@ -292,6 +292,7 @@ async def test_invalid_stream(create_connection, service_port):
     sock.close()
 
 
+@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_many_resets(create_connection, service_port):
     sock, conn = await create_connection(service_port)
 

@@ -6,6 +6,7 @@
 #include <userver/components/component_context.hpp>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 
 #include <produce.hpp>

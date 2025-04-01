@@ -28,6 +28,8 @@ namespace impl {
 class RpcData;
 }  // namespace impl
 
+/// @ingroup userver_grpc_client_middlewares
+///
 /// @brief Client meta info for a middleware construction.
 struct ClientInfo final {
     /// The name that is passed to `ClientFactory::MakeClient`.
@@ -36,6 +38,8 @@ struct ClientInfo final {
     std::optional<std::string> service_full_name{};
 };
 
+/// @ingroup userver_grpc_client_middlewares
+///
 /// @brief Context for middleware-specific data during gRPC call
 ///
 /// It is created for each gRPC Call and it stores aux. data
@@ -75,7 +79,7 @@ private:
     impl::RpcData& data_;
 };
 
-/// @ingroup userver_base_classes
+/// @ingroup userver_base_classes userver_grpc_client_middlewares
 ///
 /// @brief Base class for client gRPC middleware
 class MiddlewareBase {
@@ -112,7 +116,7 @@ protected:
     MiddlewareBase();
 };
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_base_classes
 ///
 /// @brief Factory that creates specific client middlewares for clients.
 ///
@@ -152,7 +156,7 @@ template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
     USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ClientInfo>;
 
-/// @ingroup userver_components
+/// @ingroup userver_components userver_grpc_client_middlewares
 ///
 /// @brief Component to create middlewares pipeline.
 ///
@@ -179,6 +183,8 @@ public:
 
 namespace impl {
 
+/// @ingroup userver_grpc_client_middlewares
+///
 /// @brief specialization of PipelineCreatorInterface interface to create client middlewares.
 using MiddlewarePipelineCreator =
     USERVER_NAMESPACE::middlewares::impl::PipelineCreatorInterface<MiddlewareBase, ClientInfo>;

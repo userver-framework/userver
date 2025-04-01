@@ -841,7 +841,7 @@ TrivialBiMap(BuilderFunc) -> TrivialBiMap<BuilderFunc>;
 /// @brief Unordered set for trivial types, including string literals.
 ///
 /// For a two-value Case statements or efficiency notes
-/// see @ref utils::TrivialBimap.
+/// see @ref utils::TrivialBiMap.
 template <typename BuilderFunc>
 class TrivialSet final {
     using TypesPair = std::invoke_result_t<const BuilderFunc&, impl::SwitchTypesDetector>;

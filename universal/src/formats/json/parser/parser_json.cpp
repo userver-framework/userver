@@ -5,6 +5,8 @@
 
 #include <formats/json/impl/types_impl.hpp>
 
+#include <userver/formats/json/serialize.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::parser {

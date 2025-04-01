@@ -73,13 +73,14 @@ public:
     /// @brief Insert data with specified command control settings
     /// at some host of the cluster;
     /// `T` is expected to be a struct of vectors of same length.
+    /// @param optional_cc optional request QOS overrides
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
     /// See @ref clickhouse_io for better understanding of T's requirements.
     template <typename T>
     void Insert(
-        OptionalCommandControl,
+        OptionalCommandControl optional_cc,
         const std::string& table_name,
         const std::vector<std::string_view>& column_names,
         const T& data
@@ -106,6 +107,7 @@ public:
     /// @brief Insert data with specified command control settings
     /// at some host of the cluster;
     /// `Container` is expected to be an iterable of clickhouse-mapped type.
+    /// @param optional_cc optional request QOS overrides
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
@@ -117,7 +119,7 @@ public:
     /// is a concern.
     template <typename Container>
     void InsertRows(
-        OptionalCommandControl,
+        OptionalCommandControl optional_cc,
         const std::string& table_name,
         const std::vector<std::string_view>& column_names,
         const Container& data

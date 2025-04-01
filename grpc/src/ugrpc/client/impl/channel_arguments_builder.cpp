@@ -6,6 +6,7 @@
 #include <google/protobuf/util/time_util.h>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>

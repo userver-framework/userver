@@ -115,8 +115,7 @@ Sentinel::Sentinel(
                 connection_security,
                 std::move(ready_callback),
                 key_shard_factory(shards.size()),
-                dynamic_config_source,
-                mode
+                dynamic_config_source
             );
         }
     });

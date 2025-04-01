@@ -1,6 +1,4 @@
-#include <userver/ugrpc/impl/span.hpp>
-
-#include <string_view>
+#include <ugrpc/impl/span.hpp>
 
 #include <userver/tracing/tags.hpp>
 #include <userver/ugrpc/status_codes.hpp>
@@ -10,8 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 void UpdateSpanWithStatus(tracing::Span& span, const grpc::Status& status) {
-    static const std::string kGrpcStatusTag{"grpc_code"};
-    span.AddTag(kGrpcStatusTag, std::string{ToString(status.error_code())});
+    span.AddTag("grpc_code", ugrpc::ToString(status.error_code()));
     if (!status.ok()) {
         span.AddTag(tracing::kErrorFlag, true);
         span.AddTag(tracing::kErrorMessage, status.error_message());

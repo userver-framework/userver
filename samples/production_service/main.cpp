@@ -1,7 +1,6 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [Production service sample - main]
-#include <userver/alerts/handler.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/common_server_component_list.hpp>
 #include <userver/server/handlers/ping.hpp>
@@ -16,7 +15,6 @@ int main(int argc, char* argv[]) {
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()
                                     .Append<server::handlers::Ping>()
-                                    .Append<alerts::Handler>()
 
         // Put your handlers and components here
         ;

@@ -1,5 +1,6 @@
 #include "meta_filter.hpp"
 
+#include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 
 namespace sample::grpc::auth::server {
@@ -10,7 +11,7 @@ namespace {
 
 }  // namespace
 
-MetaFilter::MetaFilter(std::vector<std::string> headers) : headers_(std::move(headers)) {}
+MetaFilter::MetaFilter(MiddlewareConfig&& config) : headers_(std::move(config.headers)) {}
 
 void MetaFilter::Handle(ugrpc::server::MiddlewareCallContext& context) const {
     const auto& metadata = context.GetCall().GetContext().client_metadata();
@@ -29,17 +30,32 @@ void MetaFilter::Handle(ugrpc::server::MiddlewareCallContext& context) const {
 }
 
 /// [gRPC middleware sample]
+
+MiddlewareConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<MiddlewareConfig>) {
+    MiddlewareConfig config;
+    config.headers = value["headers"].As<std::vector<std::string>>();
+    return config;
+}
+
+/// [MiddlewareDependencyBuilder After]
 MetaFilterComponent::MetaFilterComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : ugrpc::server::MiddlewareFactoryComponentBase(config, context) {}
+    : ugrpc::server::MiddlewareFactoryComponentBase(
+          config,
+          context,
+          middlewares::MiddlewareDependencyBuilder()
+              .InGroup<middlewares::groups::User>()
+              .After<ugrpc::server::middlewares::headers_propagator::Component>()
+      ) {}
+/// [MiddlewareDependencyBuilder After]
 
 std::shared_ptr<ugrpc::server::MiddlewareBase> MetaFilterComponent::CreateMiddleware(
     const ugrpc::server::ServiceInfo&,
     const yaml_config::YamlConfig& middleware_config
 ) const {
-    return std::make_shared<MetaFilter>(middleware_config["headers"].As<std::vector<std::string>>());
+    return std::make_shared<MetaFilter>(middleware_config.As<MiddlewareConfig>());
 }
 
 yaml_config::Schema MetaFilterComponent::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }

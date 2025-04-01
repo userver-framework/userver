@@ -4,6 +4,7 @@
 
 #include <userver/components/run.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 

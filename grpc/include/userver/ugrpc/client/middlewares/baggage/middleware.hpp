@@ -14,8 +14,7 @@ public:
     static constexpr std::string_view kName = "grpc-client-baggage";
 
     /// @brief dependency of this middleware. User group as default.
-    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
-                                               .InGroup<USERVER_NAMESPACE::middlewares::groups::User>();
+    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder();
 
     void PreStartCall(MiddlewareCallContext& context) const override;
 };

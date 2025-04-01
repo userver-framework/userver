@@ -3,7 +3,6 @@
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <userver/alerts/handler.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/logging_configurator.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
@@ -30,7 +29,6 @@ int main(int argc, char* argv[]) {
                                     .Append<server::handlers::ServerMonitor>()
                                     .Append<server::handlers::Ping>()
                                     .Append<clients::dns::Component>()
-                                    .Append<alerts::Handler>()
                                     .Append<server::handlers::OnLogRotate>();
 
     return utils::DaemonMain(argc, argv, component_list);

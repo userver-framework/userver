@@ -52,7 +52,7 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
         // compiler decides to use stack memory in GetCurrentTaskContext(). This
         // leads to slowdown of GetCurrentTaskContext(). In particular Mutex::lock()
         // slows down on ~25%.
-        utils::impl::AbortWithStacktrace(
+        utils::AbortWithStacktrace(
             "current_task::GetCurrentTaskContext() has been called "
             "outside of coroutine context"
         );
@@ -183,7 +183,7 @@ FutureStatus TaskContext::WaitUntil(Deadline deadline) const noexcept {
         return ToFutureStatus(wakeup_source);
     } catch (...) {
         // We cannot just refuse to wait because of the lifetime guarantees for tasks and their data.
-        utils::impl::AbortWithStacktrace(
+        utils::AbortWithStacktrace(
             "Unexpected exception from Sleep: " + boost::current_exception_diagnostic_information()
         );
     }
@@ -488,7 +488,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
             } catch (const CoroUnwinder&) {
                 context->yield_reason_ = YieldReason::kTaskCancelled;
             } catch (...) {
-                utils::impl::AbortWithStacktrace(
+                utils::AbortWithStacktrace(
                     "An exception that is not derived from std::exception has been "
                     "thrown: " +
                     boost::current_exception_diagnostic_information() + " Such exceptions are not supported by userver."

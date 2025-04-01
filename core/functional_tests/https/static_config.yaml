@@ -64,11 +64,6 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: main-task-processor
-
         default-secdist-provider:
             config: secdist.json
             missing-ok: false

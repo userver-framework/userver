@@ -17,7 +17,7 @@ namespace storages::redis::utest {
 /// `storages::redis::utest::RedisLocal` class
 ///
 /// see example:
-/// @snippet samples/redis_service/unittests/redis_test.cpp
+/// @snippet samples/redis_service/unittests/redis_test.cpp Unit test
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class RedisTest : public ::testing::Test, public RedisLocal {
 public:

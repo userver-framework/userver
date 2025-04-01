@@ -18,6 +18,7 @@ namespace fs {
 /// is thrown.
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path directory to create
+/// @param perms permissions to set for the created directories
 /// @throws std::runtime_error if there was an error while
 /// creating directories
 void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path, boost::filesystem::perms perms);

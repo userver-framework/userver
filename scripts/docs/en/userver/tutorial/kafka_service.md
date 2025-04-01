@@ -122,11 +122,13 @@ username and password.
 Producer and Consumer read the aforementioned settings from Secdist in format:
 
 ```json
-"kafka_settings": {
-    "<kafka-component-name>": {
-        "brokers": "<brokers comma-separated endpoint list>",
-        "username": "SASL2 username (may be empty if use PLAINTEXT)",
-        "password": "SASL2 password (may be empty if use PLAINTEXT)"
+{
+    "kafka_settings": {
+        "<kafka-component-name>": {
+            "brokers": "<brokers comma-separated endpoint list>",
+            "username": "SASL2 username (may be empty if use PLAINTEXT)",
+            "password": "SASL2 password (may be empty if use PLAINTEXT)"
+        }
     }
 }
 ```

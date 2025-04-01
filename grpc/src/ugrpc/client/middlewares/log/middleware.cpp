@@ -46,6 +46,7 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     }
 }
 
+/// [MiddlewareBase Message methods example]
 void Middleware::PreSendMessage(MiddlewareCallContext& context, const google::protobuf::Message& message) const {
     SpanLogger logger{context.GetSpan()};
     logging::LogExtra extra{{"grpc_type", "request"}, {"body", GetMessageForLogging(message, settings_)}};
@@ -65,6 +66,7 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, const google::p
         logger.Log("gRPC response", std::move(extra));
     }
 }
+/// [MiddlewareBase Message methods example]
 
 void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status& /*status*/) const {
     if (context.IsServerStreaming()) {

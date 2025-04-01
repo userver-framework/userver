@@ -18,7 +18,7 @@ namespace middlewares {
 
 /// @brief The dependency type between middlewares.
 ///
-/// Iff dependency type from 'X' to 'Y' is `kStrong` and 'Y' is disabled, userver will failure when start,
+/// Iff dependency type from 'X' to 'Y' is `kStrong` and 'Y' is disabled, middlewares pipeline will failure when start,
 /// otherwise (in `kWeak`) we ignore this dependency.
 enum class DependencyType {
     kStrong = 0,
@@ -97,53 +97,55 @@ private:
 
 }  // namespace impl
 
-/// @brief class for building a middleware dependency.
+/// @brief Specifies a middleware's order with respect to other middlewares.
 ///
 /// If you don't care about the order in relative to others, ignore this and your middleware
 /// will be in the `kUser` group.
-/// Otherwise, pass a instance of this class to `MiddlewareComponentBase` in the constructor of your
+/// Otherwise, pass an instance of this class to `MiddlewareComponentBase` in the constructor of your
 /// middleware component.
 class MiddlewareDependencyBuilder final {
 public:
-    /// @brief Builder for middleware dependencey
-    /// @param priority is middleware priority
-    explicit MiddlewareDependencyBuilder() = default;
+    /// @brief Make an empty dependency builder. For middlewares, `InGroup` must be called at some point.
+    MiddlewareDependencyBuilder() = default;
 
     MiddlewareDependencyBuilder(const MiddlewareDependencyBuilder&) = default;
-
     MiddlewareDependencyBuilder(MiddlewareDependencyBuilder&&) noexcept = default;
+    MiddlewareDependencyBuilder& operator=(const MiddlewareDependencyBuilder&) = default;
+    MiddlewareDependencyBuilder& operator=(MiddlewareDependencyBuilder&&) = default;
 
-    /// @brief Add dependency for your middleware. Your middleware will be before 'MiddlewareBefore' in the pipeline
-    /// @param type is connect type between middlewares
+    /// @brief Add dependency for your middleware. Your middleware will be before `MiddlewareBefore` in the pipeline
+    /// @param type is connection type between middlewares
     template <typename MiddlewareBefore>
     MiddlewareDependencyBuilder Before(DependencyType type = DependencyType::kStrong) &&;
 
-    /// @brief Add dependency for your middleware. Your middleware will be before 'before' in the pipeline
-    /// @param type is connect type between middlewares
+    /// @brief Add dependency for your middleware. Your middleware will be before `before` in the pipeline
+    /// @param type is connection type between middlewares
     /// @param before is the middleware component name
     MiddlewareDependencyBuilder Before(std::string_view before, DependencyType type = DependencyType::kStrong) &&;
 
-    /// @brief Add dependency for your middleware. Your middleware will be after 'MiddlewareAfter' in the pipeline
-    /// @param type is connect type between middlewares
+    /// @brief Add dependency for your middleware. Your middleware will be after `MiddlewareAfter` in the pipeline
+    /// @param type is connection type between middlewares
     template <typename MiddlewareAfter>
     MiddlewareDependencyBuilder After(DependencyType type = DependencyType::kStrong) &&;
 
-    /// @brief Add dependency for your middleware. Your middleware will be after 'after' in the pipeline
-    /// @param type is connect type between middlewares
+    /// @brief Add dependency for your middleware. Your middleware will be after `after` in the pipeline
+    /// @param type is connection type between middlewares
     /// @param after is the middleware component name
     MiddlewareDependencyBuilder After(std::string_view after, DependencyType type = DependencyType::kStrong) &&;
 
-    /// @brief Add dependency for your middleware. Your middleware will be in the 'Group' group
-    /// @param type is type of Group
+    /// @brief Add dependency for your middleware. Your middleware will be in the `Group` group
     template <typename Group>
     MiddlewareDependencyBuilder InGroup() &&;
 
     /// @cond
-    /// Only for internal use.
-    impl::MiddlewareDependency Extract(std::string_view middleware_name) &&;
+    // Only for internal use.
+    impl::MiddlewareDependency ExtractDependency(std::string_view middleware_name) &&;
+    impl::MiddlewareDependency ExtractGroupDependency(std::string_view group_name) &&;
     /// @endcond
 
 private:
+    void InUserGroupByDefault();
+
     impl::MiddlewareDependency dep_{};
 };
 

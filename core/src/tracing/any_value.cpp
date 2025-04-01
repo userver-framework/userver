@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/serialize/write_to_stream.hpp>
 #include <userver/utils/assert.hpp>

@@ -18,12 +18,6 @@ components_manager:
         # Creates gRPC clients
         grpc-client-factory:
             channel-args: {}
-            # Disable all middlewares. But we can force enable some
-            disable-all-pipeline-middlewares: true
-            # The object of gRPC client middleware components to use
-            middlewares:
-                grpc-auth-client:
-                    enabled: true
 # /// [gRPC middleware sample - static config client middleware]
 
         # Our wrapper around the generated client for GreeterService
@@ -34,29 +28,31 @@ components_manager:
 
         congestion-control:
 
+        grpc-chaos-client:
 # /// [static config grpc-auth-client]
         grpc-auth-client:
-        grpc-chaos-client:
 
         grpc-client-middlewares-pipeline:
             middlewares:
                 grpc-auth-client:
                     enabled: true  # register the middleware in the pipeline
-                grpc-chaos-client:
-                    enabled: true
 # /// [static config grpc-auth-client]
+                grpc-chaos-client:
+                    enabled: true  # register the middleware in the pipeline
 
 # /// [static config grpc-server-middlewares-pipeline]
-        grpc-auth-server:
         grpc-server-meta-filter:
             headers:
               - global-header
+# /// [grpc-server-auth static config]
+        grpc-server-auth:
 
         grpc-server-middlewares-pipeline:
             middlewares:
-                grpc-auth-server:  # register the middleware in the pipeline
+                grpc-server-auth:  # register the middleware in the pipeline
                     enabled: true
-                grpc-server-meta-filter:
+# /// [grpc-server-auth static config]
+                grpc-server-meta-filter:  # register the middleware in the pipeline
                     enabled: true
 # /// [static config grpc-server-middlewares-pipeline]
 

@@ -18,7 +18,6 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <userver/alerts/component.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -479,8 +478,7 @@ components::ComponentList MakeComponentList() {
         .Append<Component1a>()
         .Append<Component1b>()
         .Append<Component1c>()
-        .Append<MyCache>()
-        .Append<alerts::StorageComponent>();
+        .Append<MyCache>();
 }
 
 TEST_F(ComponentList, CacheControlConcurrentInvalidation) {

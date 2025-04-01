@@ -106,5 +106,5 @@ Test your serializers!
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/synchronization.md | @ref scripts/docs/en/userver/chaotic.md ⇨
+⇦ @ref scripts/docs/en/userver/synchronization.md | @ref scripts/docs/en/userver/logging.md ⇨
 @htmlonly </div> @endhtmlonly

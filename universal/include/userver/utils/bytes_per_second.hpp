@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 ///
 /// @brief Data type that represents `bytes per second` unit
 enum class BytesPerSecond : long long {};

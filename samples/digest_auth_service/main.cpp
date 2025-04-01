@@ -33,12 +33,8 @@ public:
 
 /// [auth checker registration]
 int main(int argc, const char* const argv[]) {
-    server::handlers::auth::RegisterAuthCheckerFactory(
-        "digest", std::make_unique<samples::digest_auth::CheckerFactory>()
-    );
-    server::handlers::auth::RegisterAuthCheckerFactory(
-        "digest-proxy", std::make_unique<samples::digest_auth::CheckerProxyFactory>()
-    );
+    server::handlers::auth::RegisterAuthCheckerFactory<samples::digest_auth::CheckerFactory>();
+    server::handlers::auth::RegisterAuthCheckerFactory<samples::digest_auth::CheckerProxyFactory>();
     /// [auth checker registration]
 
     /// [main]

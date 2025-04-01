@@ -110,22 +110,14 @@ class DnsServerProtocol:
         self.transport.sendto(response, addr)
 
 
-def _bind_udp_socket(hostname, port, family=socket.AF_INET6):
-    sock = socket.socket(family, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((hostname, port))
-    logger.info(f'socket for udp_server {sock}')
-    return sock
-
-
 @asynccontextmanager
-async def create_server(dns_info, name, *, loop=None):
-    sock = _bind_udp_socket(dns_info.host, dns_info.port)
-    if loop is None:
-        loop = asyncio.get_running_loop()
+async def create_server(dns_info, name):
+    loop = asyncio.get_running_loop()
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: DnsServerProtocol(name),  # pylint: disable=unnecessary-lambda
-        sock=sock,
+        family=socket.AF_INET6,
+        local_addr=(dns_info.host, dns_info.port),
+        reuse_port=True,
     )
     try:
         yield protocol

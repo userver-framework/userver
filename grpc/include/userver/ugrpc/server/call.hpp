@@ -97,11 +97,13 @@ protected:
 
     logging::TextLoggerRef AccessTskvLogger() { return params_.access_tskv_logger; }
 
-    void LogFinish(grpc::Status status) const;
+    void WriteAccessLog(grpc::Status status) const;
 
     void ApplyRequestHook(google::protobuf::Message* request);
 
     void ApplyResponseHook(google::protobuf::Message* response);
+
+    void PostFinish(grpc::Status status);
 
 private:
     impl::CallParams params_;
