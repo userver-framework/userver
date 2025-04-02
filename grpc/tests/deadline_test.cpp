@@ -12,8 +12,6 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <ugrpc/client/impl/client_configs.hpp>
-#include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>

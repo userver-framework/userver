@@ -16,8 +16,6 @@ schema:
     properties:
         __default__:
             type: string
-    required:
-      - __default__
     additionalProperties:
         type: string
 

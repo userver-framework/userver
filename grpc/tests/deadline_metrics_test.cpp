@@ -12,8 +12,6 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/utest.hpp>
 
-#include <ugrpc/client/impl/client_configs.hpp>
-#include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
@@ -22,6 +20,9 @@
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
+
+#include <dynamic_config/variables/USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION.hpp>
+#include <dynamic_config/variables/USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,8 +56,8 @@ class DeadlineStatsTests : public ugrpc::tests::ServiceFixture<UnitTestDeadlineS
 public:
     DeadlineStatsTests() {
         ExtendDynamicConfig({
-            {ugrpc::client::impl::kEnforceClientTaskDeadline, true},
-            {ugrpc::server::impl::kServerCancelTaskByDeadline, true},
+            {::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION, true},
+            {::dynamic_config::USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE, true},
         });
     }
 
@@ -81,7 +82,9 @@ public:
         }
     }
 
-    void DisableClientDp() { ExtendDynamicConfig({{ugrpc::client::impl::kEnforceClientTaskDeadline, false}}); }
+    void DisableClientDp() {
+        ExtendDynamicConfig({{::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION, false}});
+    }
 
     utils::statistics::Rate GetServerStatistic(const std::string& path) {
         const auto statistics = GetStatistics(

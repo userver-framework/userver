@@ -2,6 +2,7 @@ benchmark
 boost
 c-ares
 ccache
+clang-format-git
 cmake
 crypto++
 curl

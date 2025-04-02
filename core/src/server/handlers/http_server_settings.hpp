@@ -17,15 +17,6 @@ namespace server::handlers {
 
 using HeadersWhitelist = std::unordered_set<std::string>;
 
-struct CcCustomStatus final {
-    http::HttpStatus initial_status_code;
-    std::chrono::milliseconds max_time_delta;
-};
-
-CcCustomStatus Parse(const formats::json::Value& value, formats::parse::To<CcCustomStatus>);
-
-extern const dynamic_config::Key<CcCustomStatus> kCcCustomStatus;
-
 }  // namespace server::handlers
 
 USERVER_NAMESPACE_END

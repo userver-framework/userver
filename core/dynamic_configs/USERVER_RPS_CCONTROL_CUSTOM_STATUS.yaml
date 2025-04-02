@@ -12,4 +12,5 @@ schema:
         max-time-ms:
             type: integer
             default: 10000
+            x-usrv-cpp-type: std::chrono::milliseconds
             minimum: 1

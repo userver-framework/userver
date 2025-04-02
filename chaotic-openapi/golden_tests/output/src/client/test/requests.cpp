@@ -15,7 +15,7 @@ static constexpr openapi::Name knumber = "number";
 void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::Request& http_request) {
     openapi::ParameterSinkHttpClient sink(http_request, "/testme");
 
-    WriteParameter<openapi::TrivialParameter<openapi::In::kQuery, knumber, int>>(request.number, sink);
+    openapi::WriteParameter<openapi::TrivialParameter<openapi::In::kQuery, knumber, int>>(request.number, sink);
 
     // http_request.data(ToJsonString(request.body));
     http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));

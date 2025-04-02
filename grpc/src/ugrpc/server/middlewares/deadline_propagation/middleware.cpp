@@ -12,10 +12,10 @@
 
 #include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 
 #include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
+#include <dynamic_config/variables/USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,7 +71,7 @@ bool CheckAndSetupDeadline(
     statistics_scope.OnDeadlinePropagated();
     span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
 
-    if (cancelled_by_deadline && config[impl::kServerCancelTaskByDeadline]) {
+    if (cancelled_by_deadline && config[::dynamic_config::USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE]) {
         // Experiment and config are enabled
         statistics_scope.OnCancelledByDeadlinePropagation();
         return false;

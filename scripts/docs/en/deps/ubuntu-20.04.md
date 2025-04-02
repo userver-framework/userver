@@ -1,5 +1,6 @@
 build-essential
 ccache
+clang-format
 cmake
 git
 libbenchmark-dev

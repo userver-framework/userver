@@ -35,10 +35,14 @@ void UASSERT_failed(
     AbortWithStacktrace(message);
 }
 
-void LogAndThrowInvariantError(std::string_view condition, std::string_view message) {
+void LogAndThrowInvariantError(
+    std::string_view condition,
+    std::string_view message,
+    utils::impl::SourceLocation source_location
+) {
     const auto err_str = ::fmt::format("Invariant ({}) violation: {}", condition, message);
 
-    LOG_ERROR() << err_str;
+    LOG_ERROR() << err_str << logging::LogExtra{{"location", ToString(source_location)}};
     throw InvariantError(err_str);
 }
 

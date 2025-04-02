@@ -2,6 +2,7 @@ boost@1.87
 c-ares
 ccache
 cctz
+clang-format
 cmake
 coreutils
 clickhouse-cpp

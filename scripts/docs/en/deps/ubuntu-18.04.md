@@ -1,5 +1,6 @@
 build-essential
 ccache
+clang-format
 cmake
 g++-8
 git

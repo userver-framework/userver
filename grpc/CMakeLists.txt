@@ -206,6 +206,13 @@ add_library(${PROJECT_NAME} INTERFACE)
 target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-handlers)
 target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-internal)
 
+userver_target_generate_chaotic_dynamic_configs(
+    ${PROJECT_NAME}-dynamic-configs
+    dynamic_configs/*.yaml
+)
+target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${PROJECT_NAME}-dynamic-configs)
+_userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-dynamic-configs)
+
 _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT grpc FILES

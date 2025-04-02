@@ -10,7 +10,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/source_location.hpp>
 
-#include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/impl/status.hpp>
 #include <userver/tracing/opentelemetry.hpp>
@@ -18,6 +17,8 @@
 #include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
+
+#include <dynamic_config/variables/USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -76,7 +77,7 @@ void SetStatusDetailsForSpan(
 }  // namespace
 
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
-    : enforce_task_deadline(config[kEnforceClientTaskDeadline]) {}
+    : enforce_task_deadline(config[::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION]) {}
 
 ParsedGStatus ParsedGStatus::ProcessStatus(const grpc::Status& status) {
     if (status.ok()) {

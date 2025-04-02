@@ -24,7 +24,7 @@ void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::
     "{{ op.path }}"
   );
   {% for parameter in op.parameters %}
-    WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
+    openapi::WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
   {% endfor %}
 
   {# body #}

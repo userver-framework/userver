@@ -6,6 +6,8 @@
 
 #include <string_view>
 
+#include <userver/utils/impl/source_location.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -20,7 +22,11 @@ namespace impl {
     std::string_view msg
 ) noexcept;
 
-[[noreturn]] void LogAndThrowInvariantError(std::string_view condition, std::string_view message);
+[[noreturn]] void LogAndThrowInvariantError(
+    std::string_view condition,
+    std::string_view message,
+    utils::impl::SourceLocation source_location
+);
 
 #ifdef NDEBUG
 inline constexpr bool kEnableAssert = false;
@@ -74,7 +80,9 @@ USERVER_NAMESPACE_END
             if constexpr (USERVER_NAMESPACE::utils::impl::kEnableAssert) {                                         \
                 USERVER_NAMESPACE::utils::impl::UASSERT_failed(#condition, __FILE__, __LINE__, __func__, message); \
             } else {                                                                                               \
-                USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(#condition, message);                    \
+                USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(                                         \
+                    #condition, message, USERVER_NAMESPACE::utils::impl::SourceLocation::Current()                 \
+                );                                                                                                 \
             }                                                                                                      \
         }                                                                                                          \
     } while (0)
