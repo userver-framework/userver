@@ -138,7 +138,14 @@ class CppType:
 
         if cpp_type.startswith('::'):
             cpp_type = cpp_type[2:]
-        return 'userver/chaotic/io/' + camel_to_snake_case(cpp_type.replace('::', '/')) + '.hpp'
+
+        if cpp_type.startswith('userver::storages::postgres::'):
+            base_path = 'userver/storages/postgres/'
+            relative_path = cpp_type.replace('userver::storages::postgres::', '')
+        else:
+            base_path = 'userver/chaotic/io/'
+            relative_path = cpp_type.replace('::', '/')
+        return base_path + camel_to_snake_case(relative_path) + '.hpp'
 
     @classmethod
     def get_include_by_cpp_type(cls, cpp_type: str) -> List[str]:
