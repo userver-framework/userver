@@ -10,11 +10,7 @@ target_link_libraries(${PROJECT_NAME}
     userver-chaotic
     userver-universal-utest
 )
-
-target_include_directories(${PROJECT_NAME} PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/postgresql/include
-)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen
@@ -22,7 +18,6 @@ userver_target_generate_chaotic(${PROJECT_NAME}-chgen
         -n "/definitions/([^/]*)/=ns::{0}"
         -I ${CMAKE_CURRENT_SOURCE_DIR}/include
         -I ${CMAKE_CURRENT_SOURCE_DIR}/../include
-        -I ${CMAKE_SOURCE_DIR}/postgresql/include
         --parse-extra-formats
         --generate-serializers
     OUTPUT_DIR

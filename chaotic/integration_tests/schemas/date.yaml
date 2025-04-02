@@ -13,10 +13,6 @@ definitions:
                 type: string
                 format: date-time
                 x-usrv-cpp-type: my::CustomDateTime
-            # updated_at_pg:
-            #     type: string
-            #     format: date-time
-            #     x-usrv-cpp-type: userver::storages::postgres::TimePointTz
             deleted_at:
                 type: string
                 format: date-time-iso-basic
