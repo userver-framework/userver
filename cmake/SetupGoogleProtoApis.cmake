@@ -23,10 +23,12 @@ if (NOT api-common-protos_SOURCE_DIR)
   message(FATAL_ERROR "Unable to get google common proto apis. It is required for userver-grpc build.")
 endif()
 
-include(GrpcTargets)
-file(GLOB_RECURSE SOURCES
-  ${api-common-protos_SOURCE_DIR}/*.proto)
+file(GLOB SOURCES
+  ${api-common-protos_SOURCE_DIR}/google/api/*.proto
+  ${api-common-protos_SOURCE_DIR}/google/rpc/*.proto
+)
 
+include(UserverGrpcTargets)
 userver_generate_grpc_files(
   PROTOS ${SOURCES}
   INCLUDE_DIRECTORIES ${api-common-protos_SOURCE_DIR}
@@ -42,8 +44,9 @@ target_include_directories(userver-api-common-protos SYSTEM PUBLIC $<BUILD_INTER
 target_link_libraries(userver-api-common-protos PUBLIC userver-grpc-deps)
 
 _userver_directory_install(COMPONENT grpc
-  DIRECTORY ${include_paths}
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/proto_generated
+  DIRECTORY ${include_paths}/google
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/userver/third_party
+  PATTERN "*.pb.h"
 )
 
 set(api-common-proto_LIBRARY userver-api-common-protos)

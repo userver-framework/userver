@@ -8,4 +8,6 @@
 #include <string_view>
 #include <utility>
 
+#include <userver/ugrpc/impl/protobuf_collector.hpp>
+#include <userver/ugrpc/server/impl/call_utils.hpp>
 #include <userver/ugrpc/server/impl/service_worker_impl.hpp>

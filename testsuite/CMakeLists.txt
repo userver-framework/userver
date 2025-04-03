@@ -1,5 +1,3 @@
-configure_file(env.in env @ONLY)
-
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
     add_subdirectory(tests)
 endif()

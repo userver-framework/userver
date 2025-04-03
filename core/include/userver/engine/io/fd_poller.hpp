@@ -15,6 +15,10 @@ namespace engine::impl {
 class ContextAccessor;
 }
 
+namespace engine::ev {
+class ThreadControl;
+}
+
 namespace engine::io {
 
 namespace impl {
@@ -26,72 +30,78 @@ class Direction;
 /// @note FdPoller is not thread safe and its methods must not be called from
 /// multiple threads simultaneously.
 class FdPoller final {
- public:
-  /// @brief Operation kind to wait for
-  enum class Kind {
-    kRead = 1,       /// < wait for read availability
-    kWrite = 2,      /// < wait for write availability
-    kReadWrite = 3,  /// < wait for either read or write availability
-  };
+public:
+    /// @brief Operation kind to wait for
+    enum class Kind {
+        kRead = 1,       /// < wait for read availability
+        kWrite = 2,      /// < wait for write availability
+        kReadWrite = 3,  /// < wait for either read or write availability
+    };
 
-  FdPoller();
-  FdPoller(const FdPoller&) = delete;
-  FdPoller(FdPoller&&) = delete;
-  FdPoller& operator=(const FdPoller&) = delete;
-  FdPoller& operator=(FdPoller&&) = delete;
-  ~FdPoller();
+    /// Constructor for FdPoller. `control` parameter could be obtained via
+    /// engine::current_task::GetEventThread().
+    ///
+    /// It is recommended to place read and write FdPoller's of the same FD to
+    /// the same `control` for better ev threads balancing.
+    explicit FdPoller(const ev::ThreadControl& control);
 
-  /// The same as `IsValid()`.
-  explicit operator bool() const noexcept;
-  /// Whether the file descriptor is valid.
-  bool IsValid() const noexcept;
+    FdPoller(const FdPoller&) = delete;
+    FdPoller(FdPoller&&) = delete;
+    FdPoller& operator=(const FdPoller&) = delete;
+    FdPoller& operator=(FdPoller&&) = delete;
+    ~FdPoller();
 
-  /// If IsValid(), get file descriptor.
-  int GetFd() const;
+    /// The same as `IsValid()`.
+    explicit operator bool() const noexcept;
+    /// Whether the file descriptor is valid.
+    bool IsValid() const noexcept;
 
-  /// When you're done with fd, call Invalidate(). It unregisters the fd, after
-  /// that you have to call close(2) by yourself. After Invalidate() you may not
-  /// call Wait().
-  void Invalidate();
+    /// If IsValid(), get file descriptor.
+    int GetFd() const noexcept;
 
-  /// Setup fd and kind to wait for. After Reset() you may call Wait().
-  /// FdPoller does not take the ownership of `fd`, you still have to close `fd`
-  /// when you're done.
-  void Reset(int fd, Kind kind);
+    /// When you're done with fd, call Invalidate(). It unregisters the fd, after
+    /// that you have to call close(2) by yourself. After Invalidate() you may not
+    /// call Wait().
+    void Invalidate();
 
-  /// Wait for an event kind that was passed in the latest Reset() call. If the
-  /// operation (read/write) can already be handled, Wait() returns
-  /// immediately. You have to call Reset() at least once before call to
-  /// Wait().
-  [[nodiscard]] std::optional<Kind> Wait(Deadline);
+    /// Setup fd and kind to wait for. After Reset() you may call Wait().
+    /// FdPoller does not take the ownership of `fd`, you still have to close `fd`
+    /// when you're done.
+    void Reset(int fd, Kind kind);
 
-  /// Reset "ready" flag for WaitAny().
-  void ResetReady() noexcept;
+    /// Wait for an event kind that was passed in the latest Reset() call. If the
+    /// operation (read/write) can already be handled, Wait() returns
+    /// immediately. You have to call Reset() at least once before call to
+    /// Wait().
+    [[nodiscard]] std::optional<Kind> Wait(Deadline);
 
-  /// Get event kind that was triggered on this poller.
-  /// Resets "ready" flag.
-  std::optional<FdPoller::Kind> GetReady() noexcept;
+    /// Reset "ready" flag for WaitAny().
+    void ResetReady() noexcept;
 
-  /// @cond
-  // For internal use only.
-  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
-  /// @endcond
+    /// Get event kind that was triggered on this poller.
+    /// Resets "ready" flag.
+    std::optional<FdPoller::Kind> GetReady() noexcept;
 
- private:
-  friend class impl::Direction;
+    /// @cond
+    // For internal use only.
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+    /// @endcond
 
-  enum class State : int {
-    kInvalid,
-    kReadyToUse,
-    kInUse,  /// < used only in debug to detect invalid concurrent usage
-  };
+private:
+    friend class impl::Direction;
 
-  void WakeupWaiters();
-  void SwitchStateToInUse();
-  void SwitchStateToReadyToUse();
+    enum class State : int {
+        kInvalid,
+        kReadyToUse,
+        kInUse,  /// < used only in debug to detect invalid concurrent usage
+    };
 
-  struct Impl;
-  utils::FastPimpl<Impl, 144, 16> pimpl_;
+    void WakeupWaiters();
+    void SwitchStateToInUse();
+    void SwitchStateToReadyToUse();
+
+    struct Impl;
+    utils::FastPimpl<Impl, 128, 16> pimpl_;
 };
 
 }  // namespace engine::io

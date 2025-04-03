@@ -17,40 +17,37 @@ class CustomHandlerException;
 namespace server::middlewares {
 
 class Decompression final : public HttpMiddlewareBase {
- public:
-  static constexpr std::string_view kName = builtin::kDecompression;
+public:
+    static constexpr std::string_view kName = builtin::kDecompression;
 
-  explicit Decompression(const handlers::HttpHandlerBase&);
+    explicit Decompression(const handlers::HttpHandlerBase&);
 
- private:
-  void HandleRequest(http::HttpRequest& request,
-                     request::RequestContext& context) const override;
+private:
+    void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
-  bool DecompressRequestBody(http::HttpRequest& request) const;
+    bool DecompressRequestBody(http::HttpRequest& request) const;
 
-  const bool decompress_request_;
-  const std::size_t max_request_size_;
-  const bool parse_args_from_body_;
+    const bool decompress_request_;
+    const std::size_t max_request_size_;
+    const bool parse_args_from_body_;
 
-  const handlers::HttpHandlerBase& handler_;
+    const handlers::HttpHandlerBase& handler_;
 };
 
 using DecompressionFactory = SimpleHttpMiddlewareFactory<Decompression>;
 
 class SetAcceptEncoding final : public HttpMiddlewareBase {
- public:
-  static constexpr std::string_view kName{
-      "userver-set-accept-encoding-middleware"};
+public:
+    static constexpr std::string_view kName{"userver-set-accept-encoding-middleware"};
 
-  explicit SetAcceptEncoding(const handlers::HttpHandlerBase&);
+    explicit SetAcceptEncoding(const handlers::HttpHandlerBase&);
 
- private:
-  void HandleRequest(http::HttpRequest& request,
-                     request::RequestContext& context) const override;
+private:
+    void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
-  void SetResponseAcceptEncoding(http::HttpResponse& response) const;
+    void SetResponseAcceptEncoding(http::HttpResponse& response) const;
 
-  const bool decompress_request_;
+    const bool decompress_request_;
 };
 
 using SetAcceptEncodingFactory = SimpleHttpMiddlewareFactory<SetAcceptEncoding>;

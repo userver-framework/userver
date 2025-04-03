@@ -7,33 +7,26 @@
 
 namespace functional_tests {
 
+/// [gRPC CallRequestHook declaration example]
 class MyMiddleware final : public ugrpc::server::MiddlewareBase {
- public:
-  explicit MyMiddleware() = default;
+public:
+    static constexpr std::string_view kName = "my-middleware-server";
 
-  void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context,
-                       grpc::protobuf::Message& request) override;
+    static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder();
 
-  void CallResponseHook(const ugrpc::server::MiddlewareCallContext& context,
-                        grpc::protobuf::Message& response) override;
+    MyMiddleware() = default;
 
-  void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
+    void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
+        override;
+
+    void CallResponseHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
+        override;
+
+    void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
 };
 
-class MyMiddlewareComponent final
-    : public ugrpc::server::MiddlewareComponentBase {
- public:
-  static constexpr std::string_view kName = "my-middleware-server";
-
-  MyMiddlewareComponent(const components::ComponentConfig& config,
-                        const components::ComponentContext& ctx)
-      : ugrpc::server::MiddlewareComponentBase(config, ctx),
-        middleware_(std::make_shared<MyMiddleware>()) {}
-
-  std::shared_ptr<ugrpc::server::MiddlewareBase> GetMiddleware() override;
-
- private:
-  std::shared_ptr<ugrpc::server::MiddlewareBase> middleware_;
-};
+// There isn't a special logic to construct that middleware (doesn't have static config options) => use short-cut
+using MyMiddlewareComponent = ugrpc::server::SimpleMiddlewareFactoryComponent<MyMiddleware>;
+/// [gRPC CallRequestHook declaration example]
 
 }  // namespace functional_tests

@@ -5,6 +5,7 @@ import itertools
 import re
 import sys
 
+
 # Info about colors https://misc.flogisoft.com/bash/tip_colors_and_formatting
 class Colors:
     BLACK = '\033[30m'
@@ -54,15 +55,15 @@ class HumanLogs:
     )
 
     def __init__(
-            self,
-            highlights,
-            ignores,
-            skip_modules,
-            skip_field_patterns,
-            filename,
-            no_file_stores,
-            verbosity,
-            require_fields,
+        self,
+        highlights,
+        ignores,
+        skip_modules,
+        skip_field_patterns,
+        filename,
+        no_file_stores,
+        verbosity,
+        require_fields,
     ):
         self.i = 0
         self.highlights = highlights
@@ -130,9 +131,7 @@ class HumanLogs:
             if module_name in self.skip_modules:
                 return
             if self.require_fields:
-                has_required_field = any(
-                    orig_values.get(field) for field in self.require_fields
-                )
+                has_required_field = any(orig_values.get(field) for field in self.require_fields)
                 if not has_required_field:
                     return
             for field, pattern in self.skip_field_patterns.items():
@@ -148,7 +147,8 @@ class HumanLogs:
             fname = ''
         else:
             fname = '{BRIGHT_BLUE}=> {fname} '.format(
-                fname=fname, **vars(Colors),
+                fname=fname,
+                **vars(Colors),
             )
 
         if 'module' in self.ignores:
@@ -161,24 +161,13 @@ class HumanLogs:
             if x in values:
                 values[x] = Colors.colorize(values[x], Colors.GRAY)
 
-        fmt = (
-            '{time} {level_color}{level:<5} {text_color}{text} '
-            '{module}{fname}{gray_color}{remains}{default_color}\n'
-        )
+        fmt = '{time} {level_color}{level:<5} {text_color}{text} {module}{fname}{gray_color}{remains}{default_color}\n'
 
         level_indx = HumanLogs.LOG_LEVELS.index(level)
 
         remains = ''
         if level_indx > self.verbosity_indx:
-            remains = (
-                x
-                for x in values
-                if (
-                    x not in self.ignores
-                    and values[x] != ''
-                    and x != 'timestamp'
-                )
-            )
+            remains = (x for x in values if (x not in self.ignores and values[x] != '' and x != 'timestamp'))
             remains = '\t'.join(x + '=' + values[x] for x in sorted(remains))
 
         if level == 'WARNING':
@@ -202,7 +191,6 @@ class HumanLogs:
 
     def process_file(self, input_file):
         try:
-
             for line in iter(input_file.readline, ''):
                 if self.full_logs is not None:
                     self.full_logs.write(line)

@@ -3,10 +3,10 @@
 /// @file userver/ugrpc/client/simple_client_component.hpp
 /// @brief @copybrief ugrpc::client::SimpleClientComponent
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_base.hpp>
 
-#include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/client/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,10 +15,17 @@ namespace ugrpc::client {
 namespace impl {
 
 class SimpleClientComponentAny : public components::ComponentBase {
- public:
-  using components::ComponentBase::ComponentBase;
+public:
+    using components::ComponentBase::ComponentBase;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
+
+protected:
+    static ClientFactory&
+    FindFactory(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    static ClientSettings
+    MakeClientSettings(const components::ComponentConfig& config, const dynamic_config::Key<ClientQos>* client_qos);
 };
 
 }  // namespace impl
@@ -39,40 +46,51 @@ class SimpleClientComponentAny : public components::ComponentBase {
 /// int main(...)
 /// {
 ///    ...
-///    component_list.Append<ugrpc::client::SimpleClientComponent<MyClient>>();
+///    component_list.Append<ugrpc::client::SimpleClientComponent<HelloClient>>("hello-client");
 ///    ...
 /// }
 ///
 /// MyComponent::MyComponent(const components::ComponentConfig& config,
 ///                          const components::ComponentContext& context)
 /// {
-///    auto& component = context.FindComponent<ugrpc::client::SimpleClientComponent<MyClient>>();
-///    MyClient& client = component.GetClient();
+///    HelloClient& client = context.FindComponent<
+///        ugrpc::client::SimpleClientComponent<HelloClient>>("hello-client").GetClient();
 ///    ... use client ...
 /// }
 /// ```
+///
+/// ## Static config options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// endpoint | URL of the gRPC service | --
+/// client-name | name of the gRPC server we talk to, for diagnostics | uses the component name
+/// dedicated-channel-counts | a map of rpc method names to channel counts. Used for high-load methods | -
+/// factory-component | ClientFactoryComponent name to use for client creation | --
 
 // clang-format on
 
 template <typename Client>
-class SimpleClientComponent final : public impl::SimpleClientComponentAny {
- public:
-  SimpleClientComponent(const components::ComponentConfig& config,
-                        const components::ComponentContext& context)
-      : SimpleClientComponentAny(config, context),
-        client_(context
-                    .FindComponent<ClientFactoryComponent>(
-                        config["factory-component"].As<std::string>(
-                            ClientFactoryComponent::kName))
-                    .GetFactory()
-                    .MakeClient<Client>(
-                        config.Name(), config["endpoint"].As<std::string>())) {}
+class SimpleClientComponent : public impl::SimpleClientComponentAny {
+public:
+    /// Main component's constructor.
+    SimpleClientComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : SimpleClientComponentAny(config, context),
+          client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, nullptr))) {}
 
-  /// @@brief Get gRPC service client
-  Client& GetClient() { return client_; }
+    /// To use a ClientQos config,
+    SimpleClientComponent(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context,
+        const dynamic_config::Key<ClientQos>& client_qos
+    )
+        : SimpleClientComponentAny(config, context),
+          client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, &client_qos))) {}
 
- private:
-  Client client_;
+    /// @@brief Get gRPC service client
+    Client& GetClient() { return client_; }
+
+private:
+    Client client_;
 };
 
 }  // namespace ugrpc::client
@@ -80,8 +98,7 @@ class SimpleClientComponent final : public impl::SimpleClientComponentAny {
 namespace components {
 
 template <typename Client>
-inline constexpr bool
-    kHasValidate<ugrpc::client::SimpleClientComponent<Client>> = true;
+inline constexpr bool kHasValidate<ugrpc::client::SimpleClientComponent<Client>> = true;
 
 }  // namespace components
 

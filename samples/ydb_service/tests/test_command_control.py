@@ -12,13 +12,14 @@ async def test_query_span(service_client):
             },
         )
         assert response.status_code == 200
+        assert 'application/json' in response.headers['Content-Type']
         assert response.json() == {'items': []}
 
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
         max_retries='3',
-        get_session_timeout_ms='5000',
+        get_session_timeout_ms='1000',
         operation_timeout_ms='1000',
         cancel_after_ms='1000',
         client_timeout_ms='1100',
@@ -47,6 +48,7 @@ async def test_config_command_control(service_client):
             },
         )
         assert response.status_code == 200
+        assert 'application/json' in response.headers['Content-Type']
         assert response.json() == {'items': []}
 
     assert capture.select(

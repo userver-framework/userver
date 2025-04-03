@@ -5,9 +5,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-std::string_view HttpStatusString(HttpStatus status) {
-  return StatusCodeString(status);
-}
+std::string_view HttpStatusString(HttpStatus status) { return StatusCodeString(status); }
 
 }  // namespace server::http
 

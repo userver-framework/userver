@@ -1,5 +1,4 @@
 import pytest
-
 import requests_server
 
 DATA_PARTS_MAX_SIZE = 40

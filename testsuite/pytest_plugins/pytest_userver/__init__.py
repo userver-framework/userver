@@ -6,6 +6,10 @@ Python module pytest_userver provides testsuite support for userver services.
 
 import logging
 
+import pytest
+
+pytest.register_assert_rewrite('pytest_userver.plugins')
+
 
 # Taken from https://stackoverflow.com/a/35804945 stackoverflow answer
 def addLoggingLevel(levelName, levelNum, methodName=None):

@@ -10,8 +10,7 @@ ResultBinder::ResultBinder(std::size_t size) : impl_{size} {}
 
 ResultBinder::~ResultBinder() = default;
 
-ResultBinder::ResultBinder(ResultBinder&& other) noexcept
-    : impl_{std::move(other.impl_)} {}
+ResultBinder::ResultBinder(ResultBinder&& other) noexcept : impl_{std::move(other.impl_)} {}
 
 impl::bindings::OutputBindings& ResultBinder::GetBinds() { return *impl_; }
 

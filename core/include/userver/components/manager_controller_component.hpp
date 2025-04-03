@@ -23,7 +23,7 @@ class Manager;
 /// @brief Component that prepares the engine internals and starts all the
 /// other components.
 ///
-/// ## Dynamic config
+/// ## ManagerControllerComponent Dynamic config
 /// * @ref USERVER_TASK_PROCESSOR_PROFILER_DEBUG
 /// * @ref USERVER_TASK_PROCESSOR_QOS
 ///
@@ -32,8 +32,9 @@ class Manager;
 /// ---- | ----------- | -------------
 /// coro_pool.initial_size | amount of coroutines to preallocate on startup | 1000
 /// coro_pool.max_size | max amount of coroutines to keep preallocated | 4000
-/// coro_pool.stack_size | size of a single coroutine | 256 * 1024
+/// coro_pool.stack_size | size of a single coroutine stack @ref scripts/docs/en/userver/stack.md | 256 * 1024
 /// coro_pool.local_cache_size | local coroutine cache size per thread | 32
+/// coro_pool.stack_usage_monitor_enabled | whether stack usage is accounted and warnings about too high stack usage are logged @ref scripts/docs/en/userver/stack.md | true
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
 /// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -
@@ -41,7 +42,10 @@ class Manager;
 /// task_processors.*NAME*.*OPTIONS* | dictionary of task processors to create and their options. See description below | -
 /// mlock_debug_info | whether to mlock(2) process debug info to prevent major page faults on unwinding | true
 /// disable_phdr_cache | whether to disable caching of phdr_info objects. Usable if rebuilding with cmake variable USERVER_DISABLE_PHDR_CACHE is off limits, and has the same effect | false
+/// static_config_validation.validate_all_components | whether to validate static config according to schema; should be `true` for all new services | true
 /// preheat_stacktrace_collector | whether to collect a dummy stacktrace at server start up (usable to avoid loading debug info at random point at runtime) | true
+/// userver_experiments.*NAME* | whether to enable certain userver experiments; these are gradually enabled by userver team, for internal use only | false
+/// graceful_shutdown_interval | at shutdown, first hang for this duration with /ping 5xx to give the balancer a chance to redirect new requests to other hosts | 0s
 ///
 /// ## Static task_processor options:
 /// Name | Description | Default value
@@ -51,6 +55,7 @@ class Manager;
 /// worker_threads | threads count for the task processor | -
 /// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
 /// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 1000
+/// task-processor-queue | Task queue mode for the task processor. `global-task-queue` default task queue. `work-stealing-task-queue` experimental with potentially better scalability than `global-task-queue`. | global-task-queue
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
 /// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000
@@ -65,29 +70,27 @@ class Manager;
 
 // clang-format on
 class ManagerControllerComponent final : public RawComponentBase {
- public:
-  ManagerControllerComponent(const components::ComponentConfig& config,
-                             const components::ComponentContext& context);
+public:
+    ManagerControllerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~ManagerControllerComponent() override;
+    ~ManagerControllerComponent() override;
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::ManagerControllerComponent
-  static constexpr std::string_view kName = "manager-controller";
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::ManagerControllerComponent
+    static constexpr std::string_view kName = "manager-controller";
 
- private:
-  void WriteStatistics(utils::statistics::Writer& writer);
+private:
+    void WriteStatistics(utils::statistics::Writer& writer);
 
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  const components::Manager& components_manager_;
-  utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
+    const components::Manager& components_manager_;
+    utils::statistics::Entry statistics_holder_;
+    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <>
-inline constexpr auto kConfigFileMode<ManagerControllerComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto kConfigFileMode<ManagerControllerComponent> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

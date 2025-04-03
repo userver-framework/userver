@@ -10,16 +10,15 @@ namespace {
 using NativeType = clickhouse::impl::clickhouse_cpp::ColumnInt32;
 }
 
-Int32Column::Int32Column(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<Int32Column, NativeType>(column)} {}
+Int32Column::Int32Column(ColumnRef column) : ClickhouseColumn{impl::GetTypedColumn<Int32Column, NativeType>(column)} {}
 
 template <>
 Int32Column::cpp_type ColumnIterator<Int32Column>::DataHolder::Get() const {
-  return impl::NativeGetAt<NativeType>(column_, ind_);
+    return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 
 ColumnRef Int32Column::Serialize(const container_type& from) {
-  return impl::NumericColumn<Int32Column>::Serialize(from);
+    return impl::NumericColumn<Int32Column>::Serialize(from);
 }
 
 }  // namespace storages::clickhouse::io::columns

@@ -5,7 +5,6 @@ import pytest
 from pytest_userver import metrics  # pylint: disable=import-error
 import pytest_userver.client
 
-
 _ETHALON_METRICS = {
     'tcp-echo.bytes.read': {metrics.Metric(labels={}, value=334)},
     'tcp-echo.sockets.opened': {metrics.Metric(labels={}, value=1)},
@@ -42,34 +41,24 @@ def test_metrics_captured_basic():
 
 
 def test_metrics_value_at_default():
-    values = metrics.MetricsSnapshot(
-        {
-            'tcp-echo.bytes.read': {metrics.Metric(labels={}, value=334)},
-            'tcp-echo.sockets.closed': {
-                metrics.Metric(labels={'a': 'b'}, value=0),
-            },
-            'tickets.closed': {
-                metrics.Metric(labels={'a': 'b'}, value=10),
-                metrics.Metric(labels={'a': 'c'}, value=20),
-            },
+    values = metrics.MetricsSnapshot({
+        'tcp-echo.bytes.read': {metrics.Metric(labels={}, value=334)},
+        'tcp-echo.sockets.closed': {
+            metrics.Metric(labels={'a': 'b'}, value=0),
         },
-    )
+        'tickets.closed': {
+            metrics.Metric(labels={'a': 'b'}, value=10),
+            metrics.Metric(labels={'a': 'c'}, value=20),
+        },
+    })
 
     assert values.value_at('tcp-echo.bytes.read', default=0) == 334
     assert values.value_at('tcp-echo.bytes.read', default=42) == 334
-    assert (
-        values.value_at('tcp-echo.sockets.closed', {'a': 'b'}, default=42) == 0
-    )
+    assert values.value_at('tcp-echo.sockets.closed', {'a': 'b'}, default=42) == 0
     assert values.value_at('NON_EXISTING', default=0) == 0
     assert values.value_at('NON_EXISTING', default=42) == 42
-    assert (
-        values.value_at('tcp-echo.bytes.read', {'label': 'value'}, default=0)
-        == 0
-    )
-    assert (
-        values.value_at('tcp-echo.bytes.read', {'label': 'value'}, default=42)
-        == 42
-    )
+    assert values.value_at('tcp-echo.bytes.read', {'label': 'value'}, default=0) == 0
+    assert values.value_at('tcp-echo.bytes.read', {'label': 'value'}, default=42) == 42
     with pytest.raises(AssertionError, match='Multiple metrics'):
         values.value_at('tickets.closed', default=42)
 
@@ -147,15 +136,13 @@ def test_metrics_list():
 
 
 def test_metrics_list_sample():
-    values = metrics.MetricsSnapshot(
-        {
-            'sample': {
-                metrics.Metric(labels={'label': 'a'}, value=1),
-                metrics.Metric(labels={'label': 'b'}, value=2),
-                metrics.Metric(labels={}, value=3),
-            },
+    values = metrics.MetricsSnapshot({
+        'sample': {
+            metrics.Metric(labels={'label': 'a'}, value=1),
+            metrics.Metric(labels={'label': 'b'}, value=2),
+            metrics.Metric(labels={}, value=3),
         },
-    )
+    })
 
     # /// [values set]
     # Checking for a particular metric
@@ -171,16 +158,14 @@ def test_metrics_list_sample():
 
 
 def test_equals_ignore_zeros():
-    values = metrics.MetricsSnapshot(
-        {
-            'sample': {
-                metrics.Metric(labels={'label': 'a'}, value=0),
-                metrics.Metric(labels={'label': 'b'}, value=3),
-                metrics.Metric(labels={'other_label': 'a'}, value=0),
-            },
-            'other_sample': {metrics.Metric(labels={'label': 'a'}, value=0)},
+    values = metrics.MetricsSnapshot({
+        'sample': {
+            metrics.Metric(labels={'label': 'a'}, value=0),
+            metrics.Metric(labels={'label': 'b'}, value=3),
+            metrics.Metric(labels={'other_label': 'a'}, value=0),
         },
-    )
+        'other_sample': {metrics.Metric(labels={'label': 'a'}, value=0)},
+    })
 
     # equal to ethalon, old zero metrics removed, new zero metrics added
     values.assert_equals(
@@ -280,14 +265,12 @@ def test_metrics_captured_json():
 
 
 def test_handmade_metrics_to_json():
-    values = metrics.MetricsSnapshot(
-        {
-            'tcp-echo.bytes.read': {metrics.Metric(labels={}, value=1)},
-            'tcp-echo.sockets.closed': {
-                metrics.Metric(labels={'label': 'b'}, value=2),
-            },
+    values = metrics.MetricsSnapshot({
+        'tcp-echo.bytes.read': {metrics.Metric(labels={}, value=1)},
+        'tcp-echo.sockets.closed': {
+            metrics.Metric(labels={'label': 'b'}, value=2),
         },
-    )
+    })
 
     new_values = metrics.MetricsSnapshot.from_json(values.to_json())
     assert values == new_values
@@ -300,10 +283,10 @@ def test_handmade_metrics_to_json():
 
 
 def _make_differ(
-        path: typing.Optional[str] = None,
-        prefix: typing.Optional[str] = None,
-        labels: typing.Optional[typing.Dict[str, str]] = None,
-        diff_gauge: bool = False,
+    path: typing.Optional[str] = None,
+    prefix: typing.Optional[str] = None,
+    labels: typing.Optional[typing.Dict[str, str]] = None,
+    diff_gauge: bool = False,
 ) -> pytest_userver.client.MetricsDiffer:
     # Note: private API, do not construct MetricsDiffer like this!
     return pytest_userver.client.MetricsDiffer(
@@ -317,52 +300,48 @@ def _make_differ(
 
 def test_differ():
     differ = _make_differ(
-        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=True,
+        prefix='foo.bar',
+        labels={'bar': 'qux'},
+        diff_gauge=True,
     )
 
-    differ.baseline = metrics.MetricsSnapshot(
-        {
-            'foo.bar.baz': {
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'keep'},
-                    10,
-                    _type=metrics.MetricType.GAUGE,
-                ),
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'remove'},
-                    5,
-                    _type=metrics.MetricType.GAUGE,
-                ),
-            },
+    differ.baseline = metrics.MetricsSnapshot({
+        'foo.bar.baz': {
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'keep'},
+                10,
+                _type=metrics.MetricType.GAUGE,
+            ),
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'remove'},
+                5,
+                _type=metrics.MetricType.GAUGE,
+            ),
         },
-    )
+    })
 
     # 'differ' will compute 'diff' at the assignment.
-    differ.current = metrics.MetricsSnapshot(
-        {
-            'foo.bar.baz': {
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'keep'},
-                    15,
-                    _type=metrics.MetricType.GAUGE,
-                ),
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'add'},
-                    15,
-                    _type=metrics.MetricType.GAUGE,
-                ),
-            },
+    differ.current = metrics.MetricsSnapshot({
+        'foo.bar.baz': {
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'keep'},
+                15,
+                _type=metrics.MetricType.GAUGE,
+            ),
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'add'},
+                15,
+                _type=metrics.MetricType.GAUGE,
+            ),
         },
-    )
+    })
 
-    differ.diff.assert_equals(
-        {
-            'foo.bar.baz': {
-                metrics.Metric({'bar': 'qux', 'state': 'keep'}, 5),
-                metrics.Metric({'bar': 'qux', 'state': 'add'}, 15),
-            },
+    differ.diff.assert_equals({
+        'foo.bar.baz': {
+            metrics.Metric({'bar': 'qux', 'state': 'keep'}, 5),
+            metrics.Metric({'bar': 'qux', 'state': 'add'}, 15),
         },
-    )
+    })
 
     assert differ.value_at('baz', {'state': 'keep'}) == 5
     assert differ.value_at('baz', {'state': 'add'}) == 15
@@ -382,104 +361,92 @@ def test_differ():
 
 def test_differ_rate():
     differ = _make_differ(
-        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=False,
+        prefix='foo.bar',
+        labels={'bar': 'qux'},
+        diff_gauge=False,
     )
 
-    differ.baseline = metrics.MetricsSnapshot(
-        {
-            'foo.bar.baz': {
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'gauge'},
-                    10,
-                    metrics.MetricType.GAUGE,
-                ),
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'rate'},
-                    5,
-                    metrics.MetricType.RATE,
-                ),
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'hist-rate'},
-                    metrics.Histogram(
-                        bounds=[1, 2, 3], buckets=[3, 0, 1], inf=2,
-                    ),
-                    metrics.MetricType.HIST_RATE,
-                ),
-            },
+    differ.baseline = metrics.MetricsSnapshot({
+        'foo.bar.baz': {
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'gauge'},
+                10,
+                metrics.MetricType.GAUGE,
+            ),
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'rate'},
+                5,
+                metrics.MetricType.RATE,
+            ),
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'hist-rate'},
+                metrics.Histogram(bounds=[1, 2, 3], buckets=[3, 0, 1], inf=2),
+                metrics.MetricType.HIST_RATE,
+            ),
         },
-    )
+    })
 
-    differ.current = metrics.MetricsSnapshot(
-        {
-            'foo.bar.baz': {
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'gauge'},
-                    15,
-                    metrics.MetricType.GAUGE,
-                ),
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'rate'},
-                    15,
-                    metrics.MetricType.RATE,
-                ),
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'hist-rate'},
-                    metrics.Histogram(
-                        bounds=[1, 2, 3], buckets=[3, 4, 5], inf=5,
-                    ),
-                    metrics.MetricType.HIST_RATE,
-                ),
-            },
+    differ.current = metrics.MetricsSnapshot({
+        'foo.bar.baz': {
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'gauge'},
+                15,
+                metrics.MetricType.GAUGE,
+            ),
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'rate'},
+                15,
+                metrics.MetricType.RATE,
+            ),
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'hist-rate'},
+                metrics.Histogram(bounds=[1, 2, 3], buckets=[3, 4, 5], inf=5),
+                metrics.MetricType.HIST_RATE,
+            ),
         },
-    )
+    })
 
-    differ.diff.assert_equals(
-        {
-            'foo.bar.baz': {
-                # The GAUGE metric should just be taken from `current`.
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'gauge'},
-                    15,
-                    metrics.MetricType.GAUGE,
-                ),
-                # For the RATE metric, diff should be taken.
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'rate'},
-                    10,
-                    metrics.MetricType.RATE,
-                ),
-                # For the HIST_RATE metric, diff should be taken per bucket.
-                metrics.Metric(
-                    {'bar': 'qux', 'state': 'hist-rate'},
-                    metrics.Histogram(
-                        bounds=[1, 2, 3], buckets=[0, 4, 4], inf=3,
-                    ),
-                    metrics.MetricType.HIST_RATE,
-                ),
-            },
+    differ.diff.assert_equals({
+        'foo.bar.baz': {
+            # The GAUGE metric should just be taken from `current`.
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'gauge'},
+                15,
+                metrics.MetricType.GAUGE,
+            ),
+            # For the RATE metric, diff should be taken.
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'rate'},
+                10,
+                metrics.MetricType.RATE,
+            ),
+            # For the HIST_RATE metric, diff should be taken per bucket.
+            metrics.Metric(
+                {'bar': 'qux', 'state': 'hist-rate'},
+                metrics.Histogram(bounds=[1, 2, 3], buckets=[0, 4, 4], inf=3),
+                metrics.MetricType.HIST_RATE,
+            ),
         },
-    )
+    })
 
 
 def test_differ_type_mismatch():
-    baseline = metrics.MetricsSnapshot(
-        {
-            'foo.bar': {
-                metrics.Metric({'bar': 'qux'}, 10, metrics.MetricType.GAUGE),
-            },
+    baseline = metrics.MetricsSnapshot({
+        'foo.bar': {
+            metrics.Metric({'bar': 'qux'}, 10, metrics.MetricType.GAUGE),
         },
-    )
+    })
 
-    current = metrics.MetricsSnapshot(
-        {
-            'foo.bar': {
-                metrics.Metric({'bar': 'qux'}, 15, metrics.MetricType.RATE),
-            },
+    current = metrics.MetricsSnapshot({
+        'foo.bar': {
+            metrics.Metric({'bar': 'qux'}, 15, metrics.MetricType.RATE),
         },
-    )
+    })
 
     differ = _make_differ(
-        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=False,
+        prefix='foo.bar',
+        labels={'bar': 'qux'},
+        diff_gauge=False,
     )
     with pytest.raises(AssertionError):
         differ.baseline = baseline
@@ -488,20 +455,20 @@ def test_differ_type_mismatch():
 
 
 def test_differ_type_unspecified():
-    baseline = metrics.MetricsSnapshot(
-        {
-            'foo.bar': {
-                metrics.Metric({'bar': 'qux'}, 10, metrics.MetricType.RATE),
-            },
+    baseline = metrics.MetricsSnapshot({
+        'foo.bar': {
+            metrics.Metric({'bar': 'qux'}, 10, metrics.MetricType.RATE),
         },
-    )
+    })
 
-    current = metrics.MetricsSnapshot(
-        {'foo.bar': {metrics.Metric({'bar': 'qux'}, 15)}},
-    )
+    current = metrics.MetricsSnapshot({
+        'foo.bar': {metrics.Metric({'bar': 'qux'}, 15)},
+    })
 
     differ = _make_differ(
-        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=False,
+        prefix='foo.bar',
+        labels={'bar': 'qux'},
+        diff_gauge=False,
     )
     with pytest.raises(AssertionError):
         differ.baseline = baseline
@@ -512,7 +479,9 @@ def test_differ_type_unspecified():
 def test_histogram():
     # /// [histogram]
     histogram = metrics.Histogram(
-        bounds=[10, 20, 30], buckets=[1, 3, 4], inf=3,
+        bounds=[10, 20, 30],
+        buckets=[1, 3, 4],
+        inf=3,
     )
     assert histogram.count() == 11
     assert histogram.percentile(0.6) == 30
@@ -521,7 +490,9 @@ def test_histogram():
 
 def test_histogram_percentile():
     histogram = metrics.Histogram(
-        bounds=[10, 20, 30], buckets=[1, 3, 4], inf=3,
+        bounds=[10, 20, 30],
+        buckets=[1, 3, 4],
+        inf=3,
     )
     assert histogram.percentile(0) == 10
     assert histogram.percentile(0.05) == 15

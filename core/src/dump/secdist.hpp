@@ -10,13 +10,13 @@ USERVER_NAMESPACE_BEGIN
 namespace dump {
 
 class Secdist {
- public:
-  explicit Secdist(const formats::json::Value& doc);
+public:
+    explicit Secdist(const formats::json::Value& doc);
 
-  SecretKey GetSecretKey(const std::string& cache_name) const;
+    SecretKey GetSecretKey(const std::string& cache_name) const;
 
- private:
-  std::unordered_map<std::string, SecretKey> secret_keys_;
+private:
+    std::unordered_map<std::string, SecretKey> secret_keys_;
 };
 
 }  // namespace dump

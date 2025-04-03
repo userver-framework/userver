@@ -61,10 +61,27 @@ const remove_legacy_searchbox = () => {
     mobileSearchBox.parentNode.removeChild(mobileSearchBox);
 }
 
-const add_docs_versioning = () => {
-    // const brief = document.getElementById('projectbrief').getElementsByTagName('a')[0];
-    // brief.textContent += " v2.0";
+const old_docs_version = () => {
+    const version = "v3.0"
+    const brief = document.getElementById('projectbrief').getElementsByTagName('a')[0];
+    brief.textContent += " " + version;
+    const base_page_url = window.location.pathname.split('/' + version + '/')[1];
 
+    var warning = document.createElement("div");
+    warning.style.width = '100%';
+    warning.style.display = 'flex';
+    warning.style.flexDirection = 'column';
+    warning.innerHTML = `
+      <a style="padding: 16px; margin-bottom: 20px; text-align: center; border: 1px solid var(--warning-color-dark); border-radius: var(--border-radius-large);" href="/` + base_page_url + `">
+        ⚠️ This is the documentation for an old userver version. Click here to switch to the latest version.
+      </a>
+    `;
+    const titlearea = document.getElementById('titlearea');
+    titlearea.parentNode.insertBefore(warning, titlearea);
+}
+
+const add_docs_versioning = () => {
+    // old_docs_version();
     const footer = document.getElementById('nav-path').getElementsByTagName('ul')[0];
     footer.innerHTML = `
     <li style="box-shadow: inset -1px 0 0 0 var(--separator-color); background-image: none; margin-right: 48px;">

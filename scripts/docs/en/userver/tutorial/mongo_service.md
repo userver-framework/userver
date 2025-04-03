@@ -24,7 +24,7 @@ database. The service would have the following Rest API:
 Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a component for
 handling HTTP requests:
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - component
+@snippet samples/mongo_service/main.cpp  Mongo service sample - component
 
 Note that the component holds a storages::mongo::PoolPtr - a client to the Mongo.
 That client is thread safe, you can use it concurrently from different threads
@@ -36,7 +36,7 @@ and tasks.
 In the `Translations::InsertNew` function we get the request arguments and form
 a BSON document for insertion.
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - InsertNew
+@snippet samples/mongo_service/main.cpp  Mongo service sample - InsertNew
 
 There are different ways to form a document, see @ref scripts/docs/en/userver/formats.md.
 
@@ -50,7 +50,7 @@ after `update_time`. Query sorts the documents by modification times (by `_id`),
 so when the results are written into formats::json::ValueBuilder latter writes
 rewrite previous data for the same key.
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - ReturnDiff
+@snippet samples/mongo_service/main.cpp  Mongo service sample - ReturnDiff
 
 See @ref scripts/docs/en/userver/mongodb.md for MongoDB hints and more usage samples.
 
@@ -72,7 +72,7 @@ Finally, we add our component to the
 components::MinimalServerComponentList(),
 and start the server with static configuration `kStaticConfig`.
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - main
+@snippet samples/mongo_service/main.cpp  Mongo service sample - main
 
 
 ### Build and Run
@@ -114,28 +114,34 @@ $ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z
 }
 ```
 
+### Unit tests
+@ref scripts/docs/en/userver/testing.md "Unit tests" for the service could be
+implemented with one of UTEST macros in the following way:
+
+@snippet samples/mongo_service/unittests/mongo_test.cpp  Unit test
+
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
 * Turn on the pytest_userver.plugins.mongo plugin and provide Mongo settings
   info for the testsuite:
-  @snippet samples/mongo_service/tests/conftest.py mongodb settings
-  The pytest_userver.plugins.service_client.auto_client_deps() fixture
+  @snippet samples/mongo_service/testsuite/conftest.py mongodb settings
+  The pytest_userver.plugins.service.auto_client_deps() fixture
   already known about the mongodb fixture, so there's no need to override the
   extra_client_deps() fixture.
 
 * Write the test:
-  @snippet samples/mongo_service/tests/test_mongo.py  Functional test
+  @snippet samples/mongo_service/testsuite/test_mongo.py  Functional test
 
 ## Full sources
 
 See the full example:
-* @ref samples/mongo_service/mongo_service.cpp
+* @ref samples/mongo_service/main.cpp
 * @ref samples/mongo_service/static_config.yaml
 * @ref samples/mongo_service/CMakeLists.txt
-* @ref samples/mongo_service/tests/conftest.py
-* @ref samples/mongo_service/tests/test_mongo.py
+* @ref samples/mongo_service/testsuite/conftest.py
+* @ref samples/mongo_service/testsuite/test_mongo.py
 
 ----------
 
@@ -144,8 +150,8 @@ See the full example:
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/mongo_service/mongo_service.cpp
+@example samples/mongo_service/main.cpp
 @example samples/mongo_service/static_config.yaml
 @example samples/mongo_service/CMakeLists.txt
-@example samples/mongo_service/tests/conftest.py
-@example samples/mongo_service/tests/test_mongo.py
+@example samples/mongo_service/testsuite/conftest.py
+@example samples/mongo_service/testsuite/test_mongo.py

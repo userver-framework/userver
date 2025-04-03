@@ -86,9 +86,7 @@ namespace components {
 /// {
 ///   "mongo_settings": {
 ///     "some_name_of_your_database": {
-///       "dbsettings": {
-///         "uri": "mongodb://user:password@host:port/database_name"
-///       }
+///       "uri": "mongodb://user:password@host:port/database_name"
 ///     }
 ///   }
 /// }
@@ -97,23 +95,27 @@ namespace components {
 // clang-format on
 
 class Mongo : public ComponentBase {
- public:
-  /// Component constructor
-  Mongo(const ComponentConfig&, const ComponentContext&);
+public:
+    /// Component constructor
+    Mongo(const ComponentConfig&, const ComponentContext&);
 
-  /// Component destructor
-  ~Mongo() override;
+    /// Component destructor
+    ~Mongo() override;
 
-  /// Client pool accessor
-  storages::mongo::PoolPtr GetPool() const;
+    /// Client pool accessor
+    storages::mongo::PoolPtr GetPool() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  storages::mongo::PoolPtr pool_;
+private:
+    void OnSecdistUpdate(const storages::secdist::SecdistConfig& config);
 
-  // Subscriptions must be the last fields.
-  utils::statistics::Entry statistics_holder_;
+    std::string dbalias_;
+    storages::mongo::PoolPtr pool_;
+
+    // Subscriptions must be the last fields.
+    concurrent::AsyncEventSubscriberScope secdist_subscriber_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>
@@ -175,47 +177,47 @@ inline constexpr bool kHasValidate<Mongo> = true;
 // clang-format on
 
 class MultiMongo : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::MultiMongo
-  static constexpr std::string_view kName = "multi-mongo";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::MultiMongo
+    static constexpr std::string_view kName = "multi-mongo";
 
-  /// Component constructor
-  MultiMongo(const ComponentConfig&, const ComponentContext&);
+    /// Component constructor
+    MultiMongo(const ComponentConfig&, const ComponentContext&);
 
-  /// Component destructor
-  ~MultiMongo() override;
+    /// Component destructor
+    ~MultiMongo() override;
 
-  /// @brief Client pool accessor
-  /// @param dbalias name previously passed to `AddPool`
-  /// @throws PoolNotFound if no such database is enabled
-  storages::mongo::PoolPtr GetPool(const std::string& dbalias) const;
+    /// @brief Client pool accessor
+    /// @param dbalias name previously passed to `AddPool`
+    /// @throws PoolNotFound if no such database is enabled
+    storages::mongo::PoolPtr GetPool(const std::string& dbalias) const;
 
-  /// @brief Adds a database to the working set by its name.
-  /// Equivalent to
-  /// `NewPoolSet()`-`AddExistingPools()`-`AddPool(dbalias)`-`Activate()`
-  /// @param dbalias name of the database in secdist config
-  void AddPool(std::string dbalias);
+    /// @brief Adds a database to the working set by its name.
+    /// Equivalent to
+    /// `NewPoolSet()`-`AddExistingPools()`-`AddPool(dbalias)`-`Activate()`
+    /// @param dbalias name of the database in secdist config
+    void AddPool(std::string dbalias);
 
-  /// @brief Removes the database with the specified name from the working set.
-  /// Equivalent to
-  /// `NewPoolSet()`-`AddExistingPools()`-`RemovePool(dbalias)`-`Activate()`
-  /// @param dbalias name of the database passed to AddPool
-  /// @returns whether the database was in the working set
-  bool RemovePool(const std::string& dbalias);
+    /// @brief Removes the database with the specified name from the working set.
+    /// Equivalent to
+    /// `NewPoolSet()`-`AddExistingPools()`-`RemovePool(dbalias)`-`Activate()`
+    /// @param dbalias name of the database passed to AddPool
+    /// @returns whether the database was in the working set
+    bool RemovePool(const std::string& dbalias);
 
-  /// Creates an empty database set bound to the component
-  storages::mongo::MultiMongo::PoolSet NewPoolSet();
+    /// Creates an empty database set bound to the component
+    storages::mongo::MultiMongo::PoolSet NewPoolSet();
 
-  using PoolSet = storages::mongo::MultiMongo::PoolSet;
+    using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  storages::mongo::MultiMongo multi_mongo_;
+private:
+    storages::mongo::MultiMongo multi_mongo_;
 
-  // Subscriptions must be the last fields.
-  utils::statistics::Entry statistics_holder_;
+    // Subscriptions must be the last fields.
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

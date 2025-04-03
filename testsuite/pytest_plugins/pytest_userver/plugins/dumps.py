@@ -18,7 +18,7 @@ def userver_dumps_root(tmp_path_factory) -> pathlib.Path:
     @see userver::dump::Dumper
     @ingroup userver_testsuite_fixtures
     """
-    path = tmp_path_factory.mktemp('userver-cache-dumps', numbered=True)
+    path = tmp_path_factory.mktemp('userver-cache-dumps', numbered=False)
     return path.resolve()
 
 
@@ -36,11 +36,7 @@ def read_latest_dump(userver_dumps_root):
         if not specific_dir.is_dir():
             return None
         latest_dump_filename = max(
-            (
-                f
-                for f in specific_dir.iterdir()
-                if specific_dir.joinpath(f).is_file()
-            ),
+            (f for f in specific_dir.iterdir() if specific_dir.joinpath(f).is_file()),
             default=None,
         )
         if not latest_dump_filename:
@@ -75,7 +71,7 @@ def cleanup_userver_dumps(userver_dumps_root, request):
 def _userver_config_dumps(pytestconfig, userver_dumps_root):
     def patch_config(_config, config_vars) -> None:
         config_vars['userver-dumps-root'] = str(userver_dumps_root)
-        if not pytestconfig.getoption('--service-runner-mode', False):
+        if not pytestconfig.option.service_runner_mode:
             config_vars['userver-dumps-periodic'] = False
 
     return patch_config

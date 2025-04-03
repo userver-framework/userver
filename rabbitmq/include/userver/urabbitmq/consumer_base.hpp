@@ -37,52 +37,51 @@ class ConsumerBaseImpl;
 /// @note Library guarantees `at least once` delivery, hence some deduplication
 /// might be needed ou your side.
 class ConsumerBase {
- public:
-  ConsumerBase(std::shared_ptr<Client> client,
-               const ConsumerSettings& settings);
-  virtual ~ConsumerBase();
+public:
+    ConsumerBase(std::shared_ptr<Client> client, const ConsumerSettings& settings);
+    virtual ~ConsumerBase();
 
-  /// @brief Start consuming messages from the broker.
-  /// Calling this method on running consumer has no effect.
-  ///
-  /// Should not throw, in case of initial setup failure library will restart
-  /// the consumer in the background.
-  void Start();
+    /// @brief Start consuming messages from the broker.
+    /// Calling this method on running consumer has no effect.
+    ///
+    /// Should not throw, in case of initial setup failure library will restart
+    /// the consumer in the background.
+    void Start();
 
-  /// @brief Stop consuming messages from the broker.
-  /// Calling this method on stopped consumer has no effect.
-  ///
-  /// @note You must call this method before your derived class is destroyed,
-  /// otherwise it's UB.
-  void Stop();
+    /// @brief Stop consuming messages from the broker.
+    /// Calling this method on stopped consumer has no effect.
+    ///
+    /// @note You must call this method before your derived class is destroyed,
+    /// otherwise it's UB.
+    void Stop();
 
- protected:
-  /// @brief You may override this method in derived class and implement
-  /// message handling logic. By default it does nothing.
-  ///
-  /// If this method returns successfully message would be acked (best effort)
-  /// to the broker, if this method throws the message would be requeued.
-  ///
-  /// Please keep in mind that it is possible for the message to be delivered
-  /// again even if `Process` returns successfully: sadly we can't guarantee
-  /// that `ack` ever reached the broker (network issues or unexpected shutdown,
-  /// for example).
-  /// It is however guaranteed for message to be requeued if `Process` fails.
-  virtual void Process(std::string) { /* do nothing */
-  }
+protected:
+    /// @brief You may override this method in derived class and implement
+    /// message handling logic. By default it does nothing.
+    ///
+    /// If this method returns successfully message would be acked (best effort)
+    /// to the broker, if this method throws the message would be requeued.
+    ///
+    /// Please keep in mind that it is possible for the message to be delivered
+    /// again even if `Process` returns successfully: sadly we can't guarantee
+    /// that `ack` ever reached the broker (network issues or unexpected shutdown,
+    /// for example).
+    /// It is however guaranteed for message to be requeued if `Process` fails.
+    virtual void Process(std::string) { /* do nothing */
+    }
 
-  /// @brief You may override this method in derived class and implement
-  /// message handling logic. By default it just calls `Process(std::string)`
-  /// with message body.
-  ///
-  virtual void Process(ConsumedMessage msg) { Process(std::move(msg.message)); }
+    /// @brief You may override this method in derived class and implement
+    /// message handling logic. By default it just calls `Process(std::string)`
+    /// with message body.
+    ///
+    virtual void Process(ConsumedMessage msg) { Process(std::move(msg.message)); }
 
- private:
-  std::shared_ptr<Client> client_;
-  const ConsumerSettings settings_;
+private:
+    std::shared_ptr<Client> client_;
+    const ConsumerSettings settings_;
 
-  std::unique_ptr<ConsumerBaseImpl> impl_;
-  utils::PeriodicTask monitor_{};
+    std::unique_ptr<ConsumerBaseImpl> impl_;
+    utils::PeriodicTask monitor_{};
 };
 
 }  // namespace urabbitmq

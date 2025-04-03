@@ -10,80 +10,71 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
- public:
-  EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current)
-      : event_(event), current_(current) {}
+public:
+    EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current) : event_(event), current_(current) {}
 
-  impl::EarlyWakeup SetupWakeups() override {
-    return impl::EarlyWakeup{event_.waiters_->GetSignalOrAppend(&current_)};
-  }
+    impl::EarlyWakeup SetupWakeups() override {
+        return impl::EarlyWakeup{event_.waiters_->GetSignalOrAppend(&current_)};
+    }
 
-  void DisableWakeups() noexcept override { event_.waiters_->Remove(current_); }
+    void DisableWakeups() noexcept override { event_.waiters_->Remove(current_); }
 
- private:
-  SingleConsumerEvent& event_;
-  impl::TaskContext& current_;
+private:
+    SingleConsumerEvent& event_;
+    impl::TaskContext& current_;
 };
 
 SingleConsumerEvent::SingleConsumerEvent() noexcept = default;
 
-SingleConsumerEvent::SingleConsumerEvent(NoAutoReset) noexcept
-    : is_auto_reset_(false) {}
+SingleConsumerEvent::SingleConsumerEvent(NoAutoReset) noexcept : is_auto_reset_(false) {}
 
 SingleConsumerEvent::~SingleConsumerEvent() = default;
 
-bool SingleConsumerEvent::IsAutoReset() const noexcept {
-  return is_auto_reset_;
-}
+bool SingleConsumerEvent::IsAutoReset() const noexcept { return is_auto_reset_; }
 
-bool SingleConsumerEvent::WaitForEvent() {
-  return WaitForEventUntil(Deadline{});
-}
+bool SingleConsumerEvent::WaitForEvent() { return WaitForEventUntil(Deadline{}); }
 
 bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
-  if (GetIsSignaled()) {
-    return true;  // optimistic path
-  }
-
-  impl::TaskContext& current = current_task::GetCurrentTaskContext();
-  LOG_TRACE() << "WaitForEventUntil()";
-  EventWaitStrategy wait_manager{*this, current};
-
-  while (true) {
     if (GetIsSignaled()) {
-      LOG_TRACE() << "success";
-      return true;
+        return true;  // optimistic path
     }
 
-    LOG_TRACE() << "iteration()";
+    impl::TaskContext& current = current_task::GetCurrentTaskContext();
+    LOG_TRACE() << "WaitForEventUntil()";
+    EventWaitStrategy wait_manager{*this, current};
 
-    const auto wakeup_source = current.Sleep(wait_manager, deadline);
-    if (!impl::HasWaitSucceeded(wakeup_source)) {
-      LOG_TRACE() << "failure";
-      return false;
+    while (true) {
+        if (GetIsSignaled()) {
+            LOG_TRACE() << "success";
+            return true;
+        }
+
+        LOG_TRACE() << "iteration()";
+
+        const auto wakeup_source = current.Sleep(wait_manager, deadline);
+        if (!impl::HasWaitSucceeded(wakeup_source)) {
+            LOG_TRACE() << "failure";
+            return false;
+        }
     }
-  }
 }
 
 void SingleConsumerEvent::Reset() noexcept { waiters_->GetAndResetSignal(); }
 
 void SingleConsumerEvent::Send() { waiters_->SetSignalAndWakeupOne(); }
 
-bool SingleConsumerEvent::IsReady() const noexcept {
-  return waiters_->IsSignaled();
-}
+bool SingleConsumerEvent::IsReady() const noexcept { return waiters_->IsSignaled(); }
 
 bool SingleConsumerEvent::GetIsSignaled() noexcept {
-  if (is_auto_reset_) {
-    return waiters_->GetAndResetSignal();
-  } else {
-    return waiters_->IsSignaled();
-  }
+    if (is_auto_reset_) {
+        return waiters_->GetAndResetSignal();
+    } else {
+        return waiters_->IsSignaled();
+    }
 }
 
 void SingleConsumerEvent::CheckIsAutoResetForWaitPredicate() {
-  UINVARIANT(IsAutoReset(),
-             "Wait with predicate requires auto-reset functionality");
+    UINVARIANT(IsAutoReset(), "Wait with predicate requires auto-reset functionality");
 }
 
 }  // namespace engine

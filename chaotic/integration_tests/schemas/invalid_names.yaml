@@ -1,0 +1,10 @@
+definitions:
+    ObjectInvalid:
+        type: object
+        additionalProperties: false
+        properties:
+            /some/path-with!symbols:
+                type: string
+                enum:
+                  - '1'
+                  - '!/-2'

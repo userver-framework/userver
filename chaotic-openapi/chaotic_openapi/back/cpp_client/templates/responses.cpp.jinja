@@ -1,0 +1,15 @@
+#include <client/{{ name }}/responses.hpp>
+
+namespace {{ namespace }} {
+{% for op in operations %}
+  {% if op.client_generate %}
+      namespace {{ op.cpp_namespace() }} {
+        Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& )
+        {
+          {# TODO #}
+          return Response{};
+        }
+      }
+    {% endif %}
+{% endfor %}
+}

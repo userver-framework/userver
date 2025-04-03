@@ -24,40 +24,39 @@ namespace storages::postgres {
 /// arguments works slightly faster:
 /// @snippet storages/postgres/tests/landing_test.cpp Exec sample
 class ParameterStore {
- public:
-  ParameterStore() = default;
-  ParameterStore(const ParameterStore&) = delete;
-  ParameterStore(ParameterStore&&) = default;
-  ParameterStore& operator=(const ParameterStore&) = delete;
-  ParameterStore& operator=(ParameterStore&&) = default;
+public:
+    ParameterStore() = default;
+    ParameterStore(const ParameterStore&) = delete;
+    ParameterStore(ParameterStore&&) = default;
+    ParameterStore& operator=(const ParameterStore&) = delete;
+    ParameterStore& operator=(ParameterStore&&) = default;
 
-  /// @brief Adds a parameter to the end of the parameter list.
-  /// @note Currently only built-in/system types are supported.
-  template <typename T>
-  ParameterStore& PushBack(const T& param) {
-    static_assert(
-        io::IsTypeMappedToSystem<T>() || io::IsTypeMappedToSystemArray<T>(),
-        "Currently only built-in types can be used in ParameterStore");
-    data_.Write(kNoUserTypes, param);
-    return *this;
-  }
+    /// @brief Adds a parameter to the end of the parameter list.
+    /// @note Currently only built-in/system types are supported.
+    template <typename T>
+    ParameterStore& PushBack(const T& param) {
+        static_assert(
+            io::IsTypeMappedToSystem<T>() || io::IsTypeMappedToSystemArray<T>(),
+            "Currently only built-in types can be used in ParameterStore"
+        );
+        data_.Write(kNoUserTypes, param);
+        return *this;
+    }
 
-  /// Returns whether the parameter list is empty.
-  bool IsEmpty() const { return data_.Size() == 0; }
+    /// Returns whether the parameter list is empty.
+    bool IsEmpty() const { return data_.Size() == 0; }
 
-  /// Returns current size of the list.
-  size_t Size() const { return data_.Size(); }
+    /// Returns current size of the list.
+    size_t Size() const { return data_.Size(); }
 
-  /// @cond
-  const detail::DynamicQueryParameters& GetInternalData() const {
-    return data_;
-  }
-  /// @endcond
+    /// @cond
+    const detail::DynamicQueryParameters& GetInternalData() const { return data_; }
+    /// @endcond
 
- private:
-  static UserTypes kNoUserTypes;
+private:
+    static UserTypes kNoUserTypes;
 
-  detail::DynamicQueryParameters data_;
+    detail::DynamicQueryParameters data_;
 };
 
 }  // namespace storages::postgres

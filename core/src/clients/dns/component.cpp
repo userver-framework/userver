@@ -13,66 +13,47 @@ namespace {
 
 constexpr std::string_view kDnsReplySource = "dns_reply_source";
 
-ResolverConfig ParseResolverConfig(
-    const components::ComponentConfig& component_config) {
-  ResolverConfig config;
-  config.file_path =
-      component_config["hosts-file-path"].As<std::string>(config.file_path);
-  config.file_update_interval =
-      component_config["hosts-file-update-interval"]
-          .As<std::chrono::milliseconds>(config.file_update_interval);
-  config.network_timeout =
-      component_config["network-timeout"].As<std::chrono::milliseconds>(
-          config.network_timeout);
-  config.network_attempts =
-      component_config["network-attempts"].As<int>(config.network_attempts);
-  config.network_custom_servers =
-      component_config["network-custom-servers"].As<std::vector<std::string>>(
-          config.network_custom_servers);
-  config.cache_ways =
-      component_config["cache-ways"].As<size_t>(config.cache_ways);
-  config.cache_size_per_way = component_config["cache_size_per_way"].As<size_t>(
-      config.cache_size_per_way);
-  config.cache_max_reply_ttl =
-      component_config["cache_max_reply_ttl"].As<std::chrono::milliseconds>(
-          config.cache_max_reply_ttl);
-  config.cache_failure_ttl =
-      component_config["cache_failure_ttl"].As<std::chrono::milliseconds>(
-          config.cache_failure_ttl);
-  return config;
+ResolverConfig ParseResolverConfig(const components::ComponentConfig& component_config) {
+    ResolverConfig config;
+    config.file_path = component_config["hosts-file-path"].As<std::string>(config.file_path);
+    config.file_update_interval =
+        component_config["hosts-file-update-interval"].As<std::chrono::milliseconds>(config.file_update_interval);
+    config.network_timeout = component_config["network-timeout"].As<std::chrono::milliseconds>(config.network_timeout);
+    config.network_attempts = component_config["network-attempts"].As<int>(config.network_attempts);
+    config.network_custom_servers =
+        component_config["network-custom-servers"].As<std::vector<std::string>>(config.network_custom_servers);
+    config.cache_ways = component_config["cache-ways"].As<size_t>(config.cache_ways);
+    config.cache_size_per_way = component_config["cache_size_per_way"].As<size_t>(config.cache_size_per_way);
+    config.cache_max_reply_ttl =
+        component_config["cache_max_reply_ttl"].As<std::chrono::milliseconds>(config.cache_max_reply_ttl);
+    config.cache_failure_ttl =
+        component_config["cache_failure_ttl"].As<std::chrono::milliseconds>(config.cache_failure_ttl);
+    return config;
 }
 
 }  // namespace
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase{config, context},
-      resolver_{context.GetTaskProcessor(
-                    config["fs-task-processor"].As<std::string>()),
-                ParseResolverConfig(config)} {
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterWriter(
-      config.Name() + ".replies", [this](auto& writer) { Write(writer); });
+      resolver_{context.GetTaskProcessor(config["fs-task-processor"].As<std::string>()), ParseResolverConfig(config)} {
+    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
+    statistics_holder_ = storage.RegisterWriter(config.Name() + ".replies", [this](auto& writer) { Write(writer); });
 }
 
 clients::dns::Resolver& Component::GetResolver() { return resolver_; }
 
 void Component::Write(utils::statistics::Writer& writer) {
-  const auto& counters = GetResolver().GetLookupSourceCounters();
-  writer.ValueWithLabels(counters.file, {kDnsReplySource, "file"});
-  writer.ValueWithLabels(counters.cached, {kDnsReplySource, "cached"});
-  writer.ValueWithLabels(counters.cached_stale,
-                         {kDnsReplySource, "cached-stale"});
-  writer.ValueWithLabels(counters.cached_failure,
-                         {kDnsReplySource, "cached-failure"});
-  writer.ValueWithLabels(counters.network, {kDnsReplySource, "network"});
-  writer.ValueWithLabels(counters.network_failure,
-                         {kDnsReplySource, "network-failure"});
+    const auto& counters = GetResolver().GetLookupSourceCounters();
+    writer.ValueWithLabels(counters.file, {kDnsReplySource, "file"});
+    writer.ValueWithLabels(counters.cached, {kDnsReplySource, "cached"});
+    writer.ValueWithLabels(counters.cached_stale, {kDnsReplySource, "cached-stale"});
+    writer.ValueWithLabels(counters.cached_failure, {kDnsReplySource, "cached-failure"});
+    writer.ValueWithLabels(counters.network, {kDnsReplySource, "network"});
+    writer.ValueWithLabels(counters.network_failure, {kDnsReplySource, "network-failure"});
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Caching DNS resolver component.
 additionalProperties: false

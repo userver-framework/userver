@@ -30,8 +30,8 @@ struct IsNullable<Null<T>> : std::true_type {};
 
 template <typename T>
 struct GetSetNull<Null<T>> {
-  inline static bool IsNull(const Null<T>&) { return true; }
-  static void SetNull(T&) {}
+    inline static bool IsNull(const Null<T>&) { return true; }
+    static void SetNull(T&) {}
 };
 
 template <typename T>
@@ -46,10 +46,10 @@ struct CppToPg<Null<T>> : CppToPg<T> {};
 
 template <typename T>
 struct BufferFormatter<Null<T>> {
-  explicit BufferFormatter(const Null<T>&) {}
+    explicit BufferFormatter(const Null<T>&) {}
 
-  template <typename Buffer>
-  void operator()(const UserTypes&, Buffer&) const {}
+    template <typename Buffer>
+    void operator()(const UserTypes&, Buffer&) const {}
 };
 
 }  // namespace io

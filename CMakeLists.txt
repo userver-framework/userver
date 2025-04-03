@@ -1,4 +1,9 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.14...4.0)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+  if(NOT DEFINED $CACHE{CMAKE_POLICY_VERSION_MINIMUM})
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.14 CACHE INTERNAL "")
+  endif()
+endif()
 cmake_policy(SET CMP0025 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
   cmake_policy(SET CMP0093 NEW)
@@ -7,6 +12,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0028 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 project(userver)
@@ -18,15 +24,15 @@ option(
     "Prepare build of userver to install in system"
     OFF
 )
-
-set(USERVER_AVAILABLE_COMPONENTS universal)
-set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
-  set(USERVER_NOT_INCLUDED_AS_SUBDIR ON)
+if(CMAKE_VERSION GREATER_EQUAL 3.31)
+  cmake_policy(SET CMP0177 NEW)
 endif()
 
+set(USERVER_AVAILABLE_COMPONENTS universal)
+
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
-option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" OFF)
+option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
+option(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL "Provide chaotic-codegen for openapi" OFF)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
@@ -39,46 +45,55 @@ function(_require_userver_core FEATURE)
   endif()
 endfunction()
 
-option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines" ${USERVER_FEATURE_CORE})
+option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for gtest and gbenchmark integration" ON)
 if (USERVER_FEATURE_UTEST)
   message(STATUS "Building utest with gtest and ubench with gbench")
 endif()
 
 option(
-    USERVER_IS_THE_ROOT_PROJECT
-    "Contributor mode: build userver tests, samples and helper tools"
-    "${USERVER_NOT_INCLUDED_AS_SUBDIR}"
+    USERVER_BUILD_TESTS
+    "Build unit tests, functional tests and benchmarks for userver itself"
+    OFF
 )
-if (USERVER_IS_THE_ROOT_PROJECT)
-  message(STATUS "Building userver as a primary project")
-  if (NOT USERVER_FEATURE_UTEST)
-    message(FATAL_ERROR "Cannot build tests without utest")
-  endif()
-else()
-  message(STATUS "Building userver as a subproject")
+option(USERVER_BUILD_SAMPLES "Build userver samples" OFF)
+
+if(USERVER_BUILD_TESTS AND NOT USERVER_FEATURE_UTEST)
+  message(FATAL_ERROR "Running unit tests for userver requires utest, disabling it is meaningless")
 endif()
 
+if(USERVER_INSTALL AND (USERVER_BUILD_TESTS OR USERVER_BUILD_SAMPLES))
+  message(
+      FATAL_ERROR
+      "For USERVER_INSTALL, please turn off USERVER_BUILD_TESTS and USERVER_BUILD_SAMPLES "
+      "to avoid accidentally installing them"
+  )
+endif()
+
+option(
+    USERVER_BUILD_ALL_COMPONENTS
+    "\
+Build all libraries except for those explicitly turned off by 'USERVER_FEATURE_*'\
+and except for libraries disabled for the current platform"
+    OFF
+)
+
 set(USERVER_LIB_ENABLED_DEFAULT OFF)
-if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS)
   set(USERVER_LIB_ENABLED_DEFAULT ON)
 endif()
 
 set(USERVER_MONGODB_DEFAULT OFF)
-set(USERVER_CLICKHOUSE_DEFAULT OFF)
-if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND USERVER_BUILD_PLATFORM_X86)
-  if(NOT CMAKE_SYSTEM_NAME MATCHES "BSD")
-    set(USERVER_MONGODB_DEFAULT ON)
-  endif()
-  set(USERVER_CLICKHOUSE_DEFAULT ON)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS AND NOT CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(USERVER_MONGODB_DEFAULT ON)
 endif()
 
 set(USERVER_YDB_DEFAULT OFF)
-if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND
-    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS AND
+    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(USERVER_YDB_DEFAULT ON)
 endif()
 
-option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
+option(USERVER_CONAN "Build with Conan packages" "${CONAN_EXPORTED}")
 
 option(
     USERVER_DOWNLOAD_PACKAGES
@@ -109,6 +124,7 @@ endif()
 option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
 
 option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
+option(USERVER_FEATURE_STACK_USAGE_MONITOR "Enable coroutine stack usage monitor if available" ON)
 
 set(USERVER_DISABLE_RSEQ_DEFAULT ON)
 if (USERVER_BUILD_PLATFORM_X86 AND CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -119,17 +135,56 @@ option(USERVER_DISABLE_RSEQ_ACCELERATION "Disable rseq-based optimizations" ${US
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" "${USERVER_MONGODB_DEFAULT}")
+option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_KAFKA "Provide asynchronous driver for Apache Kafka" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
+option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
+
 set(CMAKE_DEBUG_POSTFIX d)
 
-include(cmake/UserverSetupEnvironment.cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(CheckSupportedPlatform)
+
+if(USERVER_CONAN AND NOT DEFINED CMAKE_FIND_PACKAGE_PREFER_CONFIG)
+  set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+endif()
+
+set(USERVER_USE_STATIC_LIBS_DEFAULT OFF)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14.0)
+  set(USERVER_USE_STATIC_LIBS_DEFAULT ON)
+endif()
+option(USERVER_USE_STATIC_LIBS "Tries to find all dependencies as static libraries" "${USERVER_USE_STATIC_LIBS_DEFAULT}")
+
+if(USERVER_USE_STATIC_LIBS)
+  if(USERVER_USE_STATIC_LIBS_DEFAULT)
+    set(_use_static_log_level STATUS)
+  else()
+    set(_use_static_log_level WARNING)
+  endif()
+  message(
+    ${_use_static_log_level}
+    "USERVER_USE_STATIC_LIBS turned ON, prioritized to find static libraries. Not all dependencies may be taken into account and linkage may be broken")
+endif()
+include(UserverPreferStaticLibs)
+
+include(UserverSetupEnvironment)
 userver_setup_environment()
 
 include(PrepareInstall)
+include(UserverModule)
 
 if(USERVER_INSTALL)
   include(GNUInstallDirs)
 endif()
 
+include(ModuleHelpers)
 include(GetUserverVersion)
 include(AddGoogleTests)
 include(FindPackageRequired)
@@ -138,69 +193,40 @@ include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
 
-message(STATUS "Generating cmake files ...")
-userver_venv_setup(
-    NAME userver-cmake
-    PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
-    REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
-)
-execute_process(
-    COMMAND
-    "${USERVER_CMAKE_GEN_PYTHON_BINARY}"
-    -u "${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py"
-    --repo-dir "${USERVER_ROOT_DIR}"
-    --build-dir "${CMAKE_BINARY_DIR}"
-    RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY "${USERVER_ROOT_DIR}"
-)
-if(RESULT)
-  message(FATAL_ERROR
-      "Generating cmake files failed with exit code: ${RESULT}"
-  )
-endif(RESULT)
-
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
 init_debian_depends()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" "${USERVER_MONGODB_DEFAULT}")
-option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_CLICKHOUSE_DEFAULT}")
-option(USERVER_FEATURE_KAFKA "Provide asynchronous driver for Apache Kafka" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
-
 include(SetupGTest)
+
 if (USERVER_FEATURE_GRPC)
   include(SetupProtobuf)
 endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
   include(testsuite/SetupUserverTestsuiteEnv.cmake)
   add_subdirectory(testsuite)
 endif()
 
 add_subdirectory(universal)
 
-if (USERVER_FEATURE_CORE)
-  add_subdirectory(core)
-  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
-endif()
-
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
+
+  if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    _require_userver_core(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    add_subdirectory(chaotic-openapi)
+    list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic-openapi)
+  endif()
 endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
-  add_subdirectory(tools/engine)
-  add_subdirectory(tools/httpclient)
-  add_subdirectory(tools/netcat)
-  add_subdirectory(tools/dns_resolver)
-  add_subdirectory(tools/congestion_control_emulator)
+if (USERVER_FEATURE_CORE)
+  if (NOT USERVER_FEATURE_CHAOTIC)
+    message(FATAL_ERROR "'USERVER_FEATURE_CORE' requires 'USERVER_FEATURE_CHAOTIC=ON'")
+  endif()
+  add_subdirectory(core)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
 endif()
 
 if (USERVER_FEATURE_MONGODB)
@@ -212,7 +238,7 @@ endif()
 if (USERVER_FEATURE_POSTGRESQL)
   _require_userver_core("USERVER_FEATURE_POSTGRESQL")
   add_subdirectory(postgresql)
-  list(APPEND USERVER_AVAILABLE_COMPONENTS postgres)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS postgresql)
 endif()
 
 if (USERVER_FEATURE_REDIS)
@@ -225,6 +251,15 @@ if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
   add_subdirectory(grpc)
   list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
+endif()
+
+if (USERVER_FEATURE_OTLP)
+  if (NOT USERVER_FEATURE_GRPC)
+    message(FATAL_ERROR "'USERVER_FEATURE_OTLP' requires 'USERVER_FEATURE_GRPC=ON'")
+  endif()
+  _require_userver_core("USERVER_FEATURE_OTLP")
+  add_subdirectory(otlp)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS otlp)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)
@@ -262,13 +297,61 @@ if (USERVER_FEATURE_YDB)
   list(APPEND USERVER_AVAILABLE_COMPONENTS ydb)
 endif()
 
+add_subdirectory(libraries)
+
+if (USERVER_BUILD_TESTS)
+  add_subdirectory(scripts/gdb/tests)
+endif()
+
 _userver_export_targets()
 _userver_make_install_config()
 
-if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
+if (USERVER_BUILD_SAMPLES AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
+endif()
+if (USERVER_BUILD_TESTS AND USERVER_FEATURE_CORE)
+  add_subdirectory(tools)
 endif()
 
 if(USERVER_INSTALL)
   include(cmake/UserverPack.cmake)
 endif()
+
+if(USERVER_FEATURE_CORE)
+  _userver_directory_install(
+      COMPONENT core
+      PROGRAMS "${USERVER_ROOT_DIR}/scripts/userver-create-service"
+      DESTINATION ${CMAKE_INSTALL_BINDIR}/
+  )
+  _userver_directory_install(
+      COMPONENT core
+      DIRECTORY "${USERVER_ROOT_DIR}/service_template"
+      DESTINATION ${CMAKE_INSTALL_DATADIR}/userver/
+  )
+endif()
+
+if (USERVER_BUILD_TESTS)
+  function (_add_create_service_test FEATURE CMAKE_OPTS)
+    add_test(
+      NAME create-service${FEATURE} 
+      COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/create-service-test-helper"
+          "${CMAKE_CURRENT_SOURCE_DIR}"
+          "${CMAKE_CURRENT_BINARY_DIR}"
+          "${CMAKE_OPTS}"
+          ${FEATURE}
+    )
+  endfunction()
+  
+  _add_create_service_test("" "")
+  if(USERVER_FEATURE_MONGODB)
+    _add_create_service_test("--mongo" "")
+  endif()
+  if(USERVER_FEATURE_POSTGRESQL)
+    _add_create_service_test("--postgres" "")
+  endif()
+  if(USERVER_FEATURE_GRPC)
+    _add_create_service_test("--grpc" "-DUSERVER_GOOGLE_COMMON_PROTOS=${USERVER_GOOGLE_COMMON_PROTOS} -DUSERVER_DOWNLOAD_PACKAGES=${USERVER_DOWNLOAD_PACKAGES}")
+  endif()
+endif()
+
+_userver_print_features_list()

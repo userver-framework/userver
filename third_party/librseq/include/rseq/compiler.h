@@ -7,12 +7,33 @@
  * Work-around asm goto compiler bugs.
  */
 
-#ifndef RSEQ_COMPILER_H
-#define RSEQ_COMPILER_H
+#ifndef _RSEQ_COMPILER_H
+#define _RSEQ_COMPILER_H
 
 #if defined __cplusplus
 # include <type_traits>	/* for std::remove_cv */
 #endif
+
+#define rseq_likely(x)		__builtin_expect(!!(x), 1)
+#define rseq_unlikely(x)	__builtin_expect(!!(x), 0)
+#define rseq_barrier()		__asm__ __volatile__("" : : : "memory")
+
+/*
+ * Instruct the compiler to perform only a single access to a variable
+ * (prohibits merging and refetching). The compiler is also forbidden to reorder
+ * successive instances of RSEQ_ACCESS_ONCE(), but only when the compiler is aware of
+ * particular ordering. Compiler ordering can be ensured, for example, by
+ * putting two RSEQ_ACCESS_ONCE() in separate C statements.
+ *
+ * This macro does absolutely -nothing- to prevent the CPU from reordering,
+ * merging, or refetching absolutely anything at any time.  Its main intended
+ * use is to mediate communication between process-level code and irq/NMI
+ * handlers, all running on the same CPU.
+ */
+#define RSEQ_ACCESS_ONCE(x)	(*(__volatile__  __typeof__(x) *)&(x))
+
+#define RSEQ_WRITE_ONCE(x, v)	__extension__ ({ RSEQ_ACCESS_ONCE(x) = (v); })
+#define RSEQ_READ_ONCE(x)	RSEQ_ACCESS_ONCE(x)
 
 /*
  * gcc prior to 4.8.2 miscompiles asm goto.
@@ -71,4 +92,15 @@
 	)
 #endif
 
-#endif  /* RSEQ_COMPILER_H_ */
+/*
+ * RSEQ_PARAM_SELECT_ARG1
+ *
+ * Select second argument. Use inside macros to implement optional last
+ * macro argument, such as:
+ *
+ * #define macro(_a, _b, _c, _optional...) \
+ *     RSEQ_PARAM_SELECT_ARG1(_, ##_optional, do_default_macro())
+ */
+#define RSEQ_PARAM_SELECT_ARG1(_arg0, _arg1, ...) _arg1
+
+#endif  /* _RSEQ_COMPILER_H */

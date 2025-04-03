@@ -11,7 +11,7 @@ developer to call service handlers and test their result.
 
 Supported features:
 
-* Database startup (Mongo, Postgresql, Clickhouse, ...)
+* Database startup (Mongo, Postgresql, Clickhouse, Kafka, ...)
 * Per-test database state
 * Service startup
 * Mocksever to mock external service handlers
@@ -34,24 +34,23 @@ Its main purpose is:
 * Add a `start-*` target that starts the service and databases with testsuite
   configs and waits for keyboard interruption to stop the service.
 
-@ref cmake/UserverTestsuite.cmake library is automatically added to CMake path
-after userver environment setup. Add the following line to use it:
-
-@snippet testsuite/SetupUserverTestsuiteEnv.cmake testsuite - UserverTestsuite
-
 Then create testsuite target:
 @snippet samples/testsuite-support/CMakeLists.txt testsuite - cmake
 
-### Arguments
+### `userver_testsuite_add()` arguments
 
 * SERVICE_TARGET, required CMake name of the target service to test. Used as
   suffix for `testsuite-` and `start-` CMake target names.
+* TEST_SUFFIX, required when many testsuite's are created for the same SERVICE_TARGET.
 * WORKING_DIRECTORY, pytest working directory. Default is ${CMAKE_CURRENT_SOURCE_DIR}.
 * PYTEST_ARGS, list of extra arguments passed to `pytest`.
 * PYTHONPATH, list of directories to be prepended to `PYTHONPATH`.
 * REQUIREMENTS, list of requirements.txt files used to populate `venv`.
 * PYTHON_BINARY, path to existing Python binary.
 * PRETTY_LOGS, set to `OFF` to disable pretty printing.
+* DUMP_CONFIG, set to `TRUE` to tell the testsuite that there is no static config file in the file system and force the
+  testsuite to retrieve config from a service itself, by running it
+  with `--dump-config` option first. See @ref scripts/docs/en/userver/libraries/easy.md for usage example.
 
 Some of the most useful arguments for PYTEST_ARGS:
 
@@ -120,29 +119,29 @@ that could be found in corresponding binary directory.
 This may be useful to run a single testcase, to start the testsuite with gdb or to
 start the testsuite with extra pytest arguments:
 
-`${CMAKE_CURRENT_BINARY_DIR}/runtests-testsuite-${SERVICE_TARGET}`
+`${CMAKE_CURRENT_BINARY_DIR}/runtests-${SERVICE_TARGET}`
 
 You can use it to manually start testsuite with extra `pytest` arguments, e.g.:
 
 
 ```shell
-./build/tests/runtests-testsuite-my-project -vvx ./tests -k test_foo
+./build-debug/runtests-service_template -vvx -k test_foo
 ```
 
 Please refer to `testuite` and `pytest` documentation for available options.
 Run it with `--help` argument to see the short options description.
 
 ```shell
-./build/tests/runtests-testsuite-my-project ./tests --help
+./build-debug/runtests-service_template --help
 ```
 
-### Debug 
+### Debug
 
 To debug the functional test you can start testsuite with extra `pytest` arguments, e.g.:
 
 
 ```shell
-./build/tests/runtests-testsuite-my-project --service-wait ./tests -k test_foo
+./build-debug/runtests-service_template --service-wait -k test_foo
 ```
 
 At the beginning of the execution the console will display the command to start the service, e.g.:
@@ -152,7 +151,7 @@ At the beginning of the execution the console will display the command to start 
 gdb --args /.../my-project/build/functional-tests --config /.../config.yaml
 ```
 
-Now you can open a new terminal window and run this command in it or if 
+Now you can open a new terminal window and run this command in it, or if
 you use an IDE you can find the corresponding CMake target and add arg `--config /.../config.yaml`.
 After that it will be possible to set breakpoints and start target with debug.
 
@@ -181,6 +180,7 @@ plugin.
 | userver::redis      | pytest_userver.plugins.redis      |
 | userver::mongo      | pytest_userver.plugins.mongo      |
 | userver::rabbitmq   | pytest_userver.plugins.rabbitmq   |
+| userver::kafka      | pytest_userver.plugins.kafka      |
 | userver::mysql      | pytest_userver.plugins.mysql      |
 | userver::ydb        | pytest_userver.plugins.ydb        |
 
@@ -195,11 +195,11 @@ In order to use it you need to register corresponding components:
 
 Headers:
 
-@snippet samples/testsuite-support/src/main.cpp testsuite - include components
+@snippet samples/testsuite-support/main.cpp testsuite - include components
 
 Add components to components list:
 
-@snippet samples/testsuite-support/src/main.cpp testsuite - register components
+@snippet samples/testsuite-support/main.cpp testsuite - register components
 
 Add testsuite components to `config.yaml`:
 
@@ -235,7 +235,7 @@ collected functions and fixtures are applied.
 
 Example usage:
 
-@snippet samples/grpc_service/tests/conftest.py Prepare configs
+@snippet samples/http_caching/tests/conftest.py  patch configs
 
 #### Service client
 
@@ -256,11 +256,11 @@ caches, mocked time, etc.
 Use @ref pytest_userver.plugins.service.service_env "service_env" fixture
 to provide extra environment variables for your service:
 
-@snippet samples/redis_service/tests/conftest.py service_env
+@snippet samples/redis_service/testsuite/conftest.py service_env
 
 #### Extra client dependencies
 
-Use @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+Use @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
 fixture to provide extra fixtures that your service depends on:
 
 @code{.py}
@@ -269,7 +269,7 @@ def extra_client_deps(some_fixture_that_required_by_service, some_other_fixture)
     pass
 @endcode
 
-Note that @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+Note that @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
 fixture already knows about the userver supported databases and clients, so
 usually you do not need to manually register any dependencies.
 
@@ -295,6 +295,14 @@ This could be achieved by patching static config as described in
 [mockserver_info.url(path)](https://yandex.github.io/yandex-taxi-testsuite/mockserver/#testsuite.mockserver.classes.MockserverInfo.url):
 
 @snippet samples/http_caching/tests/conftest.py patch configs
+
+Alternatively, use `$mockserver`
+@ref pytest_userver.plugins.config.userver_config_substitutions "substitution var"
+in `config_vars.testsuite.yaml`:
+
+@code{.yaml}
+translations-url: $mockserver/v1/translations
+@endcode
 
 #### Mock time
 
@@ -423,10 +431,10 @@ and used like:
 @snippet samples/testsuite-support/src/metrics.cpp metrics usage
 
 the metrics could be retrieved and reset as follows:
- 
+
 @snippet samples/testsuite-support/tests/test_metrics.py metrics reset
 
-For metrics with labels, they could be retrieved in the following way: 
+For metrics with labels, they could be retrieved in the following way:
 
 @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
 
@@ -469,7 +477,7 @@ Testsuite provides a way to start standalone service with all mocks and database
 This can be done by adding `--service-runner-mode` flag to pytest, e.g.:
 
 ```shell
-./build/tests/runtests-my-project ./tests -s --service-runner-mode
+./build-debug/runtests-service_template -s --service-runner-mode
 ```
 
 Please note that `-s` flag is required to disable console output capture.
@@ -477,12 +485,26 @@ Please note that `-s` flag is required to disable console output capture.
 `pytest_userver` provides default service runner testcase.
 In order to override it you have to add your own testcase with `@pytest.mark.servicetest`:
 
-
 @code{.py}
 @pytest.mark.servicetest
 def test_service(service_client):
     ...
 @endcode
+
+@anchor uservice_oneshot
+#### uservice_oneshot testsuite tests
+
+Testsuite allows to create tests that start a new service instance for the test and stop it on test finish:
+
+@snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample 
+
+Such functionality slows down the tests run, but it may be required
+* to test service state right after the service start,
+* or to test that the service stops fine at some point,
+* or the test breaks the service for some time and restarting it is faster than waiting for recovery.
+
+For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_mark "daemon_scoped_mark" fixture.
+
 
 ----------
 
@@ -491,7 +513,6 @@ def test_service(service_client):
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake
-@example samples/http_caching/tests/conftest.py
 @example samples/testsuite-support/src/logcapture.cpp
 @example samples/testsuite-support/src/metrics.cpp
 @example samples/testsuite-support/src/metrics.hpp
@@ -503,4 +524,3 @@ def test_service(service_client):
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py
-@example samples/production_service/tests/test_production.py

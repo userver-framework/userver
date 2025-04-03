@@ -11,7 +11,25 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
 add_subdirectory(testsuite-support)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-testsuite-support)
 
+if (USERVER_FEATURE_CHAOTIC)
+  add_subdirectory(chaotic_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic_service)
+
+  if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    add_subdirectory(chaotic_openapi_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic-openapi_service)
+  endif()
+endif()
+
+if (USERVER_FEATURE_OTLP)
+  add_subdirectory(otlp_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-otlp_service)
+endif()
+
 if (USERVER_FEATURE_GRPC)
+  add_subdirectory(grpc-generic-proxy)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc-generic-proxy)
+
   add_subdirectory(grpc_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc_service)
 
@@ -24,6 +42,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-json2yaml)
 
 add_subdirectory(hello_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-hello_service)
+
+add_subdirectory(embedded_files)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-embedded_files)
 
 add_subdirectory(http_middleware_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-http_middleware_service)
@@ -89,6 +110,11 @@ if (USERVER_FEATURE_RABBITMQ)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-rabbitmq_service)
 endif()
 
+if (USERVER_FEATURE_KAFKA)
+  add_subdirectory(kafka_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-kafka_service)
+endif()
+
 if (USERVER_FEATURE_MYSQL)
   add_subdirectory(mysql_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mysql_service)
@@ -97,6 +123,11 @@ endif()
 if (USERVER_FEATURE_YDB AND USERVER_FEATURE_MONGODB)
   add_subdirectory(ydb_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-ydb_service)
+endif()
+
+if (USERVER_FEATURE_S3API)
+  add_subdirectory(s3api)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-s3api)
 endif()
 
 # Clean up fake userver installation above to avoid messing

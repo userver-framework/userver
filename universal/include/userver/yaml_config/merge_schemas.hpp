@@ -21,9 +21,9 @@ void Merge(Schema& destination, Schema&& source);
 /// @see @ref static-configs-validation "Static configs validation"
 template <typename ParentComponent>
 Schema MergeSchemas(const std::string& yaml_string) {
-  auto schema = impl::SchemaFromString(yaml_string);
-  impl::Merge(schema, ParentComponent::GetStaticConfigSchema());
-  return schema;
+    auto schema = impl::SchemaFromString(yaml_string);
+    impl::Merge(schema, ParentComponent::GetStaticConfigSchema());
+    return schema;
 }
 
 }  // namespace yaml_config

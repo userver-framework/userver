@@ -7,6 +7,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::jemalloc {
 
+bool IsProfilingEnabledViaEnv();
+
 std::string Stats();
 
 std::error_code ProfActivate();

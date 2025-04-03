@@ -4,6 +4,7 @@
 
 #include <userver/components/run.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 
@@ -41,6 +42,7 @@ components_manager:
       thread_name: bg-worker
       worker_threads: 2
       os-scheduling: idle
+      task-processor-queue: global-task-queue
       task-trace:
         every: 1000
         max-context-switch-count: 1000
@@ -87,7 +89,6 @@ components_manager:
       pool-statistics-disable: false
       thread-name-prefix: http-client
       threads: 2
-      defer-events: false
       fs-task-processor: fs-task-processor
       destination-metrics-auto-max-size: 100
       user-agent: common_component_list sample
@@ -185,32 +186,65 @@ components_manager:
       fs-task-processor: fs-task-processor
       with-nginx: false
 # /// [Sample system statistics component config]
-config_vars: )";
+)";
 // clang-format on
 
 }  // namespace
 
 TEST_F(ComponentList, Common) {
-  const auto temp_root = fs::blocking::TempDirectory::Create();
-  const std::string dynamic_config_cache_path =
-      temp_root.GetPath() + "/dynamic_config.json";
-  const std::string config_vars_path =
-      temp_root.GetPath() + "/config_vars.json";
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const std::string dynamic_config_cache_path = temp_root.GetPath() + "/dynamic_config.json";
+    const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(
-      dynamic_config_cache_path,
-      formats::json::ToString(
-          dynamic_config::impl::GetDefaultDocsMap().AsJson()));
+    fs::blocking::RewriteFileContents(
+        dynamic_config_cache_path, formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+    );
 
-  fs::blocking::RewriteFileContents(
-      config_vars_path,
-      fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
-                  dynamic_config_cache_path,
-                  ToString(logging::GetDefaultLoggerLevel())));
+    fs::blocking::RewriteFileContents(
+        config_vars_path,
+        fmt::format(
+            kConfigVarsTemplate,
+            temp_root.GetPath(),
+            dynamic_config_cache_path,
+            ToString(logging::GetDefaultLoggerLevel())
+        )
+    );
 
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
-      components::CommonComponentList());
+    components::RunOnce(
+        components::InMemoryConfig{std::string{kStaticConfig} + "config_vars: " + config_vars_path},
+        components::CommonComponentList()
+    );
+}
+
+TEST_F(ComponentList, ValidationWithConfigVars) {
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const std::string dynamic_config_cache_path = temp_root.GetPath() + "/dynamic_config.json";
+    const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
+
+    fs::blocking::RewriteFileContents(
+        dynamic_config_cache_path, formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+    );
+
+    fs::blocking::RewriteFileContents(
+        config_vars_path,
+        fmt::format(
+            kConfigVarsTemplate,
+            temp_root.GetPath(),
+            dynamic_config_cache_path,
+            ToString(logging::GetDefaultLoggerLevel())
+        )
+    );
+
+    constexpr const char* kBadParam = "      non-described-in-schema-parameter: $default_log_path\n";
+    const components::InMemoryConfig conf{std::string{kStaticConfig} + kBadParam + "config_vars: " + config_vars_path};
+
+    UEXPECT_THROW_MSG(
+        components::RunOnce(conf, components::CommonComponentList()),
+        std::exception,
+        "Error while validating static config against schema. Field "
+        "'components_manager.components.system-statistics-collector.non-described-in-schema-parameter' is not declared "
+        "in schema 'system-statistics-collector' (declared: load-enabled, with-nginx, fs-task-processor)"
+    );
 }
 
 USERVER_NAMESPACE_END

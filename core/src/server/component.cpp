@@ -10,65 +10,63 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 namespace {
-const storages::secdist::SecdistConfig& GetSecdist(
-    const components::ComponentContext& component_context) {
-  auto* component =
-      component_context.FindComponentOptional<components::Secdist>();
-  if (component) return component->Get();
+const storages::secdist::SecdistConfig& GetSecdist(const components::ComponentContext& component_context) {
+    auto* component = component_context.FindComponentOptional<components::Secdist>();
+    if (component) return component->Get();
 
-  static storages::secdist::SecdistConfig kEmpty;
-  return kEmpty;
+    static storages::secdist::SecdistConfig kEmpty;
+    return kEmpty;
 }
 }  // namespace
 
-Server::Server(const components::ComponentConfig& component_config,
-               const components::ComponentContext& component_context)
+Server::Server(
+    const components::ComponentConfig& component_config,
+    const components::ComponentContext& component_context
+)
     : ComponentBase(component_config, component_context),
       server_(std::make_unique<server::Server>(
           component_config.As<server::ServerConfig>(),
-          GetSecdist(component_context), component_context)) {
-  auto& statistics_storage =
-      component_context.FindComponent<StatisticsStorage>().GetStorage();
-  server_statistics_holder_ = statistics_storage.RegisterWriter(
-      "server",
-      [this](utils::statistics::Writer& writer) { WriteStatistics(writer); });
-  handler_statistics_holder_ = statistics_storage.RegisterWriter(
-      "http.handler.total", [this](utils::statistics::Writer& writer) {
-        return server_->WriteTotalHandlerStatistics(writer);
-      });
+          GetSecdist(component_context),
+          component_context
+      )) {
+    auto& statistics_storage = component_context.FindComponent<StatisticsStorage>().GetStorage();
+    server_statistics_holder_ = statistics_storage.RegisterWriter("server", [this](utils::statistics::Writer& writer) {
+        WriteStatistics(writer);
+    });
+    handler_statistics_holder_ =
+        statistics_storage.RegisterWriter("http.handler.total", [this](utils::statistics::Writer& writer) {
+            return server_->WriteTotalHandlerStatistics(writer);
+        });
 }
 
 Server::~Server() {
-  server_statistics_holder_.Unregister();
-  handler_statistics_holder_.Unregister();
+    server_statistics_holder_.Unregister();
+    handler_statistics_holder_.Unregister();
 }
 
 void Server::OnAllComponentsLoaded() { server_->Start(); }
 
 void Server::OnAllComponentsAreStopping() {
-  /* components::Server has to stop all Listeners before unloading components
-   * as handlers have no ability to call smth like RemoveHandler() from
-   * server::Server. Without such server stop before unloading a new request may
-   * use a handler while the handler is destroying.
-   */
-  server_->Stop();
+    /* components::Server has to stop all Listeners before unloading components
+     * as handlers have no ability to call smth like RemoveHandler() from
+     * server::Server. Without such server stop before unloading a new request may
+     * use a handler while the handler is destroying.
+     */
+    server_->Stop();
 }
 
 const server::Server& Server::GetServer() const { return *server_; }
 
 server::Server& Server::GetServer() { return *server_; }
 
-void Server::AddHandler(const server::handlers::HttpHandlerBase& handler,
-                        engine::TaskProcessor& task_processor) {
-  server_->AddHandler(handler, task_processor);
+void Server::AddHandler(const server::handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor) {
+    server_->AddHandler(handler, task_processor);
 }
 
-void Server::WriteStatistics(utils::statistics::Writer& writer) {
-  server_->WriteMonitorData(writer);
-}
+void Server::WriteStatistics(utils::statistics::Writer& writer) { server_->WriteMonitorData(writer); }
 
 yaml_config::Schema Server::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: server schema
 additionalProperties: false
@@ -91,18 +89,22 @@ properties:
         description: describes the request processing socket
         additionalProperties: false
         properties: &server-listener-properties
-            address:
+            address: &ports-address
                 type: string
                 description: IPv6 or IPv4 network interface to bind to
                 defaultDescription: "::"
-            port:
+            port: &ports-port
                 type: integer
                 description: port to listen on
                 defaultDescription: 0
-            unix-socket:
+            unix-socket: &ports-unix-socket
                 type: string
                 description: unix socket to listen on instead of listening on a port
                 defaultDescription: ''
+            unix-socket-permissions: &ports-unix-socket-permissions
+                type: string
+                description: unix socket file permissions
+                defaultDescription: '600'
             max_connections:
                 type: integer
                 description: max connections count to keep
@@ -114,7 +116,7 @@ properties:
                 type: integer
                 description: max count of new connections pending acceptance
                 defaultDescription: 1024
-            tls:
+            tls: &ports-tls
                 type: object
                 description: TLS settings
                 additionalProperties: false
@@ -127,13 +129,26 @@ properties:
                             description: path to TLS CA
                     cert:
                         type: string
-                        description: path to TLS certificate
+                        description: path to TLS certificate chain
                     private-key:
                         type: string
                         description: path to TLS certificate private key
                     private-key-passphrase-name:
                         type: string
                         description: passphrase name located in secdist
+            ports:
+               description: settings of listener ports
+               type: array
+               items:
+                   type: object
+                   additionalProperties: false
+                   description: settings of listener port
+                   properties:
+                       address: *ports-address
+                       port: *ports-port
+                       unix-socket: *ports-unix-socket
+                       unix-socket-permissions: *ports-unix-socket-permissions
+                       tls: *ports-tls
             handler-defaults:
                 type: object
                 description: handler defaults options
@@ -148,6 +163,15 @@ properties:
                     max_headers_size:
                         type: integer
                         description: max headers size in bytes
+                    request_body_size_log_limit:
+                        type: integer
+                        description: trim the request to this size before logging
+                    request_headers_size_log_limit:
+                        type: integer
+                        description: trim request headers to this size before logging
+                    response_data_size_log_limit:
+                        type: integer
+                        description: trim responses to this size before logging
                     parse_args_from_body:
                         type: boolean
                         description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters
@@ -167,6 +191,11 @@ properties:
                         defaultDescription: 498
                         minimum: 400
                         maximum: 599
+                    enable_write_statistics:
+                        type: boolean
+                        description: whether to write handler statistics
+                        defaultDescription: true
+
             connection:
                 type: object
                 description: connection options
@@ -188,6 +217,29 @@ properties:
                         type: integer
                         description: delay in microseconds of the start of abort check routine
                         defaultDescription: 20ms
+                    http-version:
+                        type: string
+                        description: HTTP protocol version - 1.1 or 2
+                        enum:
+                          - 1.1
+                          - 2
+                    http2-session:
+                        type: object
+                        description: settings of the HTTP/2.0 session
+                        additionalProperties: false
+                        properties:
+                            max_concurrent_streams:
+                                type: integer
+                                description: max number of concurrent open streams
+                                defaultDescription: 100
+                            max_frame_size:
+                                type: integer
+                                description: max size of the HTTP/2.0 frame
+                                defaultDescription: 16384
+                            initial_window_size:
+                                type: integer
+                                description: the initial window size of the server
+                                defaultDescription: 65536
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing

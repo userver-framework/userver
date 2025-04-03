@@ -17,18 +17,17 @@ namespace fs {
 
 /// @brief Struct file with load data
 struct FileInfoWithData {
-  std::string data;
-  std::string extension;
+    std::string data;
+    std::string extension;
 };
 
 using FileInfoWithDataConstPtr = std::shared_ptr<const FileInfoWithData>;
-using FileInfoWithDataMap =
-    std::unordered_map<std::string, FileInfoWithDataConstPtr>;
+using FileInfoWithDataMap = std::unordered_map<std::string, FileInfoWithDataConstPtr>;
 
 enum class SettingsReadFile {
-  kNone = 0,
-  /// Skip hidden files,
-  kSkipHidden = 1 << 0,
+    kNone = 0,
+    /// Skip hidden files,
+    kSkipHidden = 1 << 0,
 };
 
 /// @brief Returns relative path from full path
@@ -46,8 +45,10 @@ std::string GetLexicallyRelative(std::string_view path, std::string_view dir);
 /// @throws std::runtime_error if read fails for any reason (e.g. no such file,
 /// read error, etc.),
 FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
-    engine::TaskProcessor& async_tp, const std::string& path,
-    utils::Flags<SettingsReadFile> flags = {SettingsReadFile::kSkipHidden});
+    engine::TaskProcessor& async_tp,
+    const std::string& path,
+    utils::Flags<SettingsReadFile> flags = {SettingsReadFile::kSkipHidden}
+);
 
 /// @brief Reads file contents asynchronously
 /// @param async_tp TaskProcessor for synchronous waiting
@@ -55,8 +56,7 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
 /// @returns file contents
 /// @throws std::runtime_error if read fails for any reason (e.g. no such file,
 /// read error, etc.),
-std::string ReadFileContents(engine::TaskProcessor& async_tp,
-                             const std::string& path);
+std::string ReadFileContents(engine::TaskProcessor& async_tp, const std::string& path);
 
 /// @brief Checks whether the file exists asynchronously
 /// @param async_tp TaskProcessor for synchronous waiting

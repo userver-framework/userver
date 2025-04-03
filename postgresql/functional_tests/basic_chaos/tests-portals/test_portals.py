@@ -4,7 +4,6 @@ import pytest
 
 import utils
 
-
 PORTAL_URL = '/chaos/postgres?type=portal'
 PORTAL_SMALL_TIMEOUT_URL = '/chaos/postgres?type=portal-small-timeout'
 

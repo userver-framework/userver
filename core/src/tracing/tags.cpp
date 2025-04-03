@@ -6,6 +6,14 @@ namespace tracing {
 
 const std::string kType = "_type";
 
+const std::string kSpanKind = "span_kind";
+
+const std::string kSpanKindServer = "server";
+
+const std::string kSpanKindClient = "client";
+
+const std::string kSpanKindInternal = "internal";
+
 const std::string kHttpUrl = "http.url";
 
 const std::string kHttpMetaType = "meta_type";

@@ -3,7 +3,7 @@
 // This file was generated from {{ proto.source_file }}
 #pragma once
 
-{# All constant includes must go inside this header #}
+{# DO NOT ADD NEW INCLUDES HERE! Add them inside codegen_declarations.hpp instead #}
 #include <userver/ugrpc/server/impl/codegen_declarations.hpp>
 
 #include "{{ proto.source_file_without_ext }}.pb.h"
@@ -20,34 +20,40 @@ class {{service.name}}Base
 
   {% for method in service.method %}
   {% if method.client_streaming and method.server_streaming %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::BidirectionalStream<
-          {{ method.input_type | grpc_to_cpp_name }},
-          {{ method.output_type | grpc_to_cpp_name }}>;
+
+  using {{method.name}}ReaderWriter = USERVER_NAMESPACE::ugrpc::server::ReaderWriter<
+      {{ method.input_type | grpc_to_cpp_name }}, {{ method.output_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream);
+
   {% elif method.client_streaming %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::InputStream<
-          {{ method.input_type | grpc_to_cpp_name }},
-          {{ method.output_type | grpc_to_cpp_name }}>;
+
+  using {{method.name}}Reader = USERVER_NAMESPACE::ugrpc::server::Reader<
+      {{ method.input_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}Reader& reader);
+
   {% elif method.server_streaming %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::OutputStream<
-          {{ method.output_type | grpc_to_cpp_name }}>;
-  {% else %}
-  using {{method.name}}Call =
-      USERVER_NAMESPACE::ugrpc::server::UnaryCall<
-          {{ method.output_type | grpc_to_cpp_name }}>;
-  {% endif %}
 
-  {% if method.client_streaming %}
-  virtual void {{method.name}}({{method.name}}Call& call);
-  {% else %}
-  virtual void {{method.name}}(
-      {{method.name}}Call& call,
-      {{ method.input_type | grpc_to_cpp_name }}&& request);
-  {% endif %}
+  using {{method.name}}Writer = USERVER_NAMESPACE::ugrpc::server::Writer<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context,
+                                                {{ method.input_type | grpc_to_cpp_name }}&& request,
+                                                {{method.name}}Writer& writer);
 
+  {% else %}
+
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_cpp_name }}&& request);
+
+  {% endif %}
   {% endfor %}
+
  private:
   std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
   MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) final;

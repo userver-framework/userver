@@ -7,13 +7,11 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::io {
 
 template <>
-struct PgToCpp<PredefinedOids::kBytea, std::string>
-    : detail::PgToCppPredefined<PredefinedOids::kBytea, std::string> {};
+struct PgToCpp<PredefinedOids::kBytea, std::string> : detail::PgToCppPredefined<PredefinedOids::kBytea, std::string> {};
 
 namespace {
 
-const bool kReference =
-    detail::ForceReference(PgToCpp<PredefinedOids::kBytea, std::string>::init_);
+const bool kReference = detail::ForceReference(PgToCpp<PredefinedOids::kBytea, std::string>::init_);
 
 }  // namespace
 

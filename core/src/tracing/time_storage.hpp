@@ -17,23 +17,23 @@ namespace tracing::impl {
 using PerfTimePoint = std::chrono::steady_clock::time_point;
 
 class TimeStorage {
- public:
-  using Duration = std::chrono::nanoseconds;
+public:
+    using Duration = std::chrono::nanoseconds;
 
-  TimeStorage() = default;
+    TimeStorage() = default;
 
-  TimeStorage(const TimeStorage&) = delete;
-  TimeStorage(TimeStorage&&) noexcept = default;
+    TimeStorage(const TimeStorage&) = delete;
+    TimeStorage(TimeStorage&&) noexcept = default;
 
-  void PushLap(const std::string& key, Duration value);
+    void PushLap(const std::string& key, Duration value);
 
-  /// Accumulated time for a certain key. If the key is not there, returns 0
-  Duration DurationTotal(const std::string& key) const;
+    /// Accumulated time for a certain key. If the key is not there, returns 0
+    Duration DurationTotal(const std::string& key) const;
 
-  void MergeInto(logging::impl::TagWriter writer);
+    void MergeInto(logging::impl::TagWriter writer);
 
- private:
-  std::unordered_map<std::string, Duration> data_;
+private:
+    std::unordered_map<std::string, Duration> data_;
 };
 
 }  // namespace tracing::impl

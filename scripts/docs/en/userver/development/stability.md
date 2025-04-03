@@ -20,7 +20,7 @@ Examples: `2.0`, `2.1_rc`
 We attempt to keep the API stable as long as it does not stand in the way of
 new features or better safety.
 
-Note that framework internals located in `*::impl::*` and `*::detail::*`
+Note that framework internals located in `impl` and `detail`
 namespaces have no stability guarantees. You should not use those in your code
 directly.
 
@@ -62,7 +62,7 @@ There are tiers to differentiate technologies:
 
 * **Platinum Tier** - driver is known to be used in multiple high load critical
   to uptime services in huge companies.
-* **Golden Tier** - driver that has not enought usage
+* **Golden Tier** - driver that has not enough usage
   feedback from huge companies. Still fine for production usage.
 * **Silver Tier** - early days of the driver. It passes all the tests and works
   fine, but more feedback/time required to become a Golden Tier driver. Fine
@@ -71,5 +71,5 @@ There are tiers to differentiate technologies:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref clickhouse_driver | @ref scripts/docs/en/userver/driver_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/grpc-reflection.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -64,6 +64,10 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
+        secdist:
+            load-enabled: false
+        default-secdist-provider: {}
+
     task_processors:
         main-task-processor:
             worker_threads: 4

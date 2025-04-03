@@ -1,5 +1,9 @@
 include_guard()
 
+if(USERVER_CONAN)
+  message(FATAL_ERROR "Do not use CPM in Conan")
+endif()
+
 if(NOT DEFINED CPM_USE_NAMED_CACHE_DIRECTORIES)
   set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
 endif()
@@ -54,7 +58,8 @@ function(mark_targets_as_system directory)
     # Disable warnings in sources
     foreach(target IN LISTS targets)
       get_target_property(target_sources "${target}" SOURCES)
-      if(target_sources)
+      get_target_property(target_type "${target}" TYPE)
+      if(target_sources AND NOT target_type STREQUAL "INTERFACE_LIBRARY")
         target_compile_options("${target}" PRIVATE -w)
       endif()
     endforeach()

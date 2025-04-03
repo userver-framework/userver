@@ -31,7 +31,7 @@ function(_userver_prepare_testsuite)
     if(NOT PYTHONCONFIG_FOUND)
       message(FATAL_ERROR "Python dev is not found")
     endif()
-    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
+    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "" FORCE)
   endif()
 
   if(NOT USERVER_TESTSUITE_DIR)
@@ -39,13 +39,23 @@ function(_userver_prepare_testsuite)
         USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
   endif()
   set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
+
+  if(USERVER_FEATURE_TESTSUITE)
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files TESTSUITE_ONLY)
+    userver_venv_setup(
+      NAME utest
+      # TESTSUITE_PYTHON_BINARY is used in `env.in`
+      PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
+      REQUIREMENTS ${requirements_files}
+      UNIQUE
+      )
+    configure_file("${USERVER_TESTSUITE_DIR}/env.in" "${CMAKE_BINARY_DIR}/testsuite/env" @ONLY)
+  endif()
 endfunction()
 
-_userver_prepare_testsuite()
-
 function(userver_testsuite_requirements)
-  set(options)
-  set(oneValueArgs REQUIREMENT_FILES_VAR)
+  set(options TESTSUITE_ONLY)
+  set(oneValueArgs REQUIREMENTS_FILES_VAR)
   set(multiValueArgs)
 
   cmake_parse_arguments(
@@ -104,6 +114,10 @@ function(userver_testsuite_requirements)
     list(APPEND testsuite_modules rabbitmq)
   endif()
 
+  if(USERVER_FEATURE_KAFKA OR TARGET userver::kafka)
+    list(APPEND testsuite_modules kafka)
+  endif()
+
   if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
     list(APPEND testsuite_modules mysql)
   endif()
@@ -130,12 +144,17 @@ function(userver_testsuite_requirements)
   file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
   list(APPEND requirements_files "${requirements_testsuite_file}")
 
-  set("${ARG_REQUIREMENT_FILES_VAR}" ${requirements_files} PARENT_SCOPE)
+  if(NOT ARG_TESTSUITE_ONLY)
+    set("${ARG_REQUIREMENTS_FILES_VAR}" ${requirements_files} PARENT_SCOPE)
+  else()
+    set("${ARG_REQUIREMENTS_FILES_VAR}" ${requirements_testsuite_file} PARENT_SCOPE)
+  endif()
 endfunction()
 
 function(userver_testsuite_add)
   set(oneValueArgs
       SERVICE_TARGET
+      TEST_SUFFIX
       WORKING_DIRECTORY
       PYTHON_BINARY
       PRETTY_LOGS
@@ -144,6 +163,7 @@ function(userver_testsuite_add)
       PYTEST_ARGS
       REQUIREMENTS
       PYTHONPATH
+      TEST_ENV
   )
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -167,10 +187,15 @@ function(userver_testsuite_add)
     set(ARG_PRETTY_LOGS ON)
   endif()
 
-  set(TESTSUITE_TARGET "testsuite-${ARG_SERVICE_TARGET}")
+  if (NOT ARG_TEST_SUFFIX)
+    set(service_target_with_suffix "${ARG_SERVICE_TARGET}")
+  else()
+    set(service_target_with_suffix "${ARG_SERVICE_TARGET}-${ARG_TEST_SUFFIX}")
+  endif()
+  set(testsuite_test_name "testsuite-${service_target_with_suffix}")
 
   if (NOT USERVER_FEATURE_TESTSUITE)
-    message(STATUS "Testsuite target ${TESTSUITE_TARGET} is disabled")
+    message(STATUS "Testsuite test ${testsuite_test_name} is disabled")
     return()
   endif()
 
@@ -180,13 +205,21 @@ function(userver_testsuite_add)
           "PYTHON_BINARY and REQUIREMENTS options are incompatible")
     endif()
     set(python_binary "${ARG_PYTHON_BINARY}")
-  else()
-    userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirement_files)
-    list(APPEND requirement_files ${ARG_REQUIREMENTS})
+  elseif(ARG_REQUIREMENTS)
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+    list(APPEND requirements_files ${ARG_REQUIREMENTS})
     userver_venv_setup(
-        NAME "${TESTSUITE_TARGET}"
-        REQUIREMENTS ${requirement_files}
+        NAME "${testsuite_test_name}"
+        REQUIREMENTS ${requirements_files}
         PYTHON_OUTPUT_VAR python_binary
+    )
+  else()
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+    userver_venv_setup(
+        NAME userver-default
+        REQUIREMENTS ${requirements_files}
+        PYTHON_OUTPUT_VAR python_binary
+        UNIQUE
     )
   endif()
 
@@ -194,53 +227,73 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "No python binary given.")
   endif()
 
-  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${TESTSUITE_TARGET}")
-  list(APPEND ARG_PYTHONPATH ${USERVER_TESTSUITE_DIR}/pytest_plugins)
+  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${service_target_with_suffix}")
+  list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
 
-  execute_process(
-    COMMAND
-    "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
-    -o "${TESTSUITE_RUNNER}"
-    "--python=${python_binary}"
-    "--python-path=${ARG_PYTHONPATH}"
-    --
-    "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
-    "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
-    ${ARG_PYTEST_ARGS}
-    RESULT_VARIABLE STATUS
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary)
+
+  _userver_initialize_codegen_flag()
+  add_custom_command(
+      OUTPUT "${TESTSUITE_RUNNER}"
+      COMMAND
+      "${python_binary}"
+      "${USERVER_TESTSUITE_DIR}/create_runner.py"
+      "--output=${TESTSUITE_RUNNER}"
+      "--python=${python_binary}"
+      "--tests-path=${ARG_WORKING_DIRECTORY}"
+      "--working-dir=${CMAKE_CURRENT_BINARY_DIR}"
+      "--python-path=${ARG_PYTHONPATH}"
+      --
+      "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
+      "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
+      "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary"
+      ${ARG_PYTEST_ARGS}
+      DEPENDS "${USERVER_TESTSUITE_DIR}/create_runner.py"
+      COMMENT "Creating testsuite runner at ${TESTSUITE_RUNNER}"
+      VERBATIM
+      ${CODEGEN}
   )
-  if (STATUS)
-    message(FATAL_ERROR "Failed to create testsuite runner")
-  endif()
+  _userver_codegen_register_files("${TESTSUITE_RUNNER}")
+  # HACK: it seems too verbose to create a separate target for the file.
+  target_sources("${ARG_SERVICE_TARGET}" PRIVATE "${TESTSUITE_RUNNER}")
 
   set(PRETTY_LOGS_MODE "")
   if (ARG_PRETTY_LOGS)
       set(PRETTY_LOGS_MODE "--service-logs-pretty")
   endif()
 
+  # Pre-collect command in a list to support spaces in paths
+  set(testsuite_test_command)
+  list(APPEND testsuite_test_command "${python_binary}")
+  list(APPEND testsuite_test_command "${TESTSUITE_RUNNER}")
+  list(APPEND testsuite_test_command ${PRETTY_LOGS_MODE})
+  list(APPEND testsuite_test_command -vv)
   # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
-      NAME "${TESTSUITE_TARGET}"
-      COMMAND
-      "${TESTSUITE_RUNNER}"
-      ${PRETTY_LOGS_MODE}
-      -vv
-      "${ARG_WORKING_DIRECTORY}"
+      NAME "${testsuite_test_name}"
+      COMMAND ${testsuite_test_command}
   )
+  if(ARG_TEST_ENV)
+    set_tests_properties("${testsuite_test_name}"
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
+    )
+  endif()
 
+  # Pre-collect command in a list to support spaces in paths
+  set(testsuite_start_command)
+  list(APPEND testsuite_start_command "${python_binary}")
+  list(APPEND testsuite_start_command "${TESTSUITE_RUNNER}")
+  list(APPEND testsuite_start_command ${PRETTY_LOGS_MODE})
+  list(APPEND testsuite_start_command --service-runner-mode)
+  list(APPEND testsuite_start_command -vvs)
   add_custom_target(
-      "start-${ARG_SERVICE_TARGET}"
-      COMMAND
-      "${TESTSUITE_RUNNER}"
-      ${PRETTY_LOGS_MODE}
-      --service-runner-mode
-      -vvs
-      "${ARG_WORKING_DIRECTORY}"
-      DEPENDS
-      "${TESTSUITE_RUNNER}"
-      "${ARG_SERVICE_TARGET}"
+      "start-${service_target_with_suffix}"
+      COMMAND ${testsuite_start_command}
+      DEPENDS "${TESTSUITE_RUNNER}"
+      VERBATIM
       USES_TERMINAL
   )
+  add_dependencies("start-${service_target_with_suffix}" "${ARG_SERVICE_TARGET}")
 endfunction()
 
 # Tries to search service files in some standard places.
@@ -254,6 +307,7 @@ endfunction()
 function(userver_testsuite_add_simple)
   set(oneValueArgs
       SERVICE_TARGET
+      TEST_SUFFIX
       WORKING_DIRECTORY
       PYTHON_BINARY
       PRETTY_LOGS
@@ -261,12 +315,13 @@ function(userver_testsuite_add_simple)
       CONFIG_VARS_PATH
       DYNAMIC_CONFIG_FALLBACK_PATH
       SECDIST_PATH
-      TEST_ENV
+      DUMP_CONFIG
   )
   set(multiValueArgs
       PYTEST_ARGS
       REQUIREMENTS
       PYTHONPATH
+      TEST_ENV
   )
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -300,16 +355,27 @@ function(userver_testsuite_add_simple)
   endif()
 
   if(NOT ARG_SERVICE_TARGET)
-    if(tests_relative_path STREQUAL "." OR tests_relative_path STREQUAL "tests")
-      set(ARG_SERVICE_TARGET "${PROJECT_NAME}")
-    else()
-      set(ARG_SERVICE_TARGET "${PROJECT_NAME}-${tests_relative_path}")
-    endif()
+    set(ARG_SERVICE_TARGET "${PROJECT_NAME}")
+  endif()
+  if(NOT ARG_TEST_SUFFIX)
+    set(ARG_TEST_SUFFIX "${tests_relative_path}")
+  endif()
+  if("${ARG_TEST_SUFFIX}" STREQUAL "." OR
+      "${ARG_TEST_SUFFIX}" STREQUAL "tests" OR
+      "${ARG_TEST_SUFFIX}" STREQUAL "testsuite")
+    set(ARG_TEST_SUFFIX "")
+  endif()
+
+  set(DUMP_CONFIG_OPTION "")
+  if (ARG_DUMP_CONFIG)
+    set(DUMP_CONFIG_OPTION "--dump-config")
   endif()
 
   if(ARG_CONFIG_PATH)
     get_filename_component(config_path "${ARG_CONFIG_PATH}"
         REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  elseif(ARG_DUMP_CONFIG)
+    set(config_path "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/static_config.yaml")
   else()
     foreach(probable_config_path IN ITEMS
         "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
@@ -401,6 +467,7 @@ function(userver_testsuite_add_simple)
 
   userver_testsuite_add(
       SERVICE_TARGET "${ARG_SERVICE_TARGET}"
+      TEST_SUFFIX "${ARG_TEST_SUFFIX}"
       WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
       PYTHON_BINARY "${ARG_PYTHON_BINARY}"
       PRETTY_LOGS "${ARG_PRETTY_LOGS}"
@@ -408,15 +475,80 @@ function(userver_testsuite_add_simple)
       "--service-config=${config_path}"
       "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
       "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
+      "${DUMP_CONFIG_OPTION}"
       ${pytest_additional_args}
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHONPATH ${ARG_PYTHONPATH}
+      TEST_ENV ${ARG_TEST_ENV}
   )
+endfunction()
 
+# add utest, test runs in testsuite env
+function(userver_add_utest)
+  set(options DISABLE_GTEST_XML_OUTPUT)
+  set(oneValueArgs NAME)
+  set(multiValueArgs DATABASES TEST_ENV TEST_ARGS)
+
+  cmake_parse_arguments(
+      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if (NOT USERVER_FEATURE_TESTSUITE)
+    message(FATAL_ERROR "userver_add_utest requires 'USERVER_FEATURE_TESTSUITE=ON'")
+  endif()
+
+  set(additional_args)
+  if(ARG_DATABASES)
+    list(JOIN ARG_DATABASES "," databases_value)
+    list(APPEND additional_args "--databases=${databases_value}")
+  else()
+    list(APPEND additional_args "--databases=")
+  endif()
+
+  if(NOT ARG_DISABLE_GTEST_XML_OUTPUT)
+    list(APPEND ARG_TEST_ARGS "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml")
+  endif()
+
+  add_test(NAME "${ARG_NAME}" COMMAND
+      "${CMAKE_BINARY_DIR}/testsuite/env"
+      ${additional_args} run --
+      $<TARGET_FILE:${ARG_NAME}>
+      ${ARG_TEST_ARGS}
+  )
   if(ARG_TEST_ENV)
-    set_tests_properties("testsuite-${ARG_SERVICE_TARGET}"
-        PROPERTIES ENVIRONMENT ${ARG_TEST_ENV}
+    set_tests_properties("${ARG_NAME}"
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
     )
   endif()
 endfunction()
+
+function(userver_add_ubench_test)
+  set(options)
+  set(oneValueArgs NAME)
+  set(multiValueArgs DATABASES TEST_ENV)
+
+  cmake_parse_arguments(
+      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if (USERVER_CONAN)
+    set(BENCHMARK_VERSION ${benchmark_VERSION})
+  else()
+    set(BENCHMARK_VERSION ${UserverGBench_VERSION})
+  endif()
+
+  if(BENCHMARK_VERSION VERSION_LESS "1.8.0")
+    set(BENCHMARK_MIN_TIME "0")
+  else()
+    set(BENCHMARK_MIN_TIME "0.0s")
+  endif()
+
+  userver_add_utest(
+      NAME "${ARG_NAME}"
+      DATABASES ${ARG_DATABASES}
+      TEST_ENV ${ARG_TEST_ENV}
+      TEST_ARGS --benchmark_min_time=${BENCHMARK_MIN_TIME} --benchmark_color=no
+      DISABLE_GTEST_XML_OUTPUT ON
+  )
+endfunction()
+
+_userver_prepare_testsuite()

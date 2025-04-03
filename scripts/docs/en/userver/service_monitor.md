@@ -5,7 +5,7 @@ get the service statistics and metrics.
 
 To produce metrics in declarative style refer to the docs of the
 utils::statistics::MetricTag; to register your metrics writer on per component
-basis refer to the docs of utils::statistics::Storage. To test metrics refer to
+basis refer to the docs of utils::statistics::Writer. To test metrics refer to
 the @ref TESTSUITE_METRICS_TESTING "testsuite metrics testing".
 
 

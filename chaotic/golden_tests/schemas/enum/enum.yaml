@@ -1,0 +1,12 @@
+components:
+    schemas:
+        Enum:
+            type: object
+            additionalProperties: false
+            properties:
+                foo:
+                    type: string
+                    enum:
+                      - one
+                      - two
+                      - three

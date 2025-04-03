@@ -13,24 +13,22 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnDateTime;
 }
 
 DateTimeColumn::DateTimeColumn(ColumnRef column)
-    : ClickhouseColumn{
-          impl::GetTypedColumn<DateTimeColumn, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<DateTimeColumn, NativeType>(column)} {}
 
 template <>
-DateTimeColumn::cpp_type ColumnIterator<DateTimeColumn>::DataHolder::Get()
-    const {
-  const auto time = impl::NativeGetAt<NativeType>(column_, ind_);
-  return std::chrono::system_clock::from_time_t(time);
+DateTimeColumn::cpp_type ColumnIterator<DateTimeColumn>::DataHolder::Get() const {
+    const auto time = impl::NativeGetAt<NativeType>(column_, ind_);
+    return std::chrono::system_clock::from_time_t(time);
 }
 
 ColumnRef DateTimeColumn::Serialize(const container_type& from) {
-  auto column = clickhouse::impl::clickhouse_cpp::ColumnDateTime{};
+    auto column = clickhouse::impl::clickhouse_cpp::ColumnDateTime{};
 
-  for (const auto tp : from) {
-    column.Append(std::chrono::system_clock::to_time_t(tp));
-  }
+    for (const auto tp : from) {
+        column.Append(std::chrono::system_clock::to_time_t(tp));
+    }
 
-  return std::make_shared<decltype(column)>(std::move(column));
+    return std::make_shared<decltype(column)>(std::move(column));
 }
 
 }  // namespace storages::clickhouse::io::columns

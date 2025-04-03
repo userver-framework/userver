@@ -5,7 +5,6 @@ import sys
 import healthchecking.healthchecking_pb2_grpc as healthchecking_pb2_grpc
 import pytest
 
-
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
 USERVER_CONFIG_HOOKS = ['prepare_service_config']
@@ -32,8 +31,7 @@ def prepare_service_config(grpc_server_port):
 def pytest_configure(config):
     sys.path.append(
         str(
-            pathlib.Path(config.rootdir)
-            / 'grpc/handlers/proto/healthchecking',
+            pathlib.Path(config.rootdir) / 'grpc/handlers/proto/healthchecking',
         ),
     )
 

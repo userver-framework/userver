@@ -1,15 +1,14 @@
 #include <userver/clients/http/plugins/yandex_tracing/component.hpp>
 
 #include <clients/http/plugins/yandex_tracing/plugin.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http::plugins::yandex_tracing {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-    : ComponentBase(config, context),
-      plugin_(std::make_unique<yandex_tracing::Plugin>()) {}
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : ComponentBase(config, context), plugin_(std::make_unique<yandex_tracing::Plugin>()) {}
 
 Component::~Component() = default;
 

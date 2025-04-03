@@ -13,21 +13,21 @@ namespace utils::statistics {
 /// @note The class is thread-safe. See also the note about thread-safety
 /// on MetricTag<Metric>.
 class MetricsStorage final {
- public:
-  MetricsStorage();
+public:
+    MetricsStorage();
 
-  [[nodiscard]] std::vector<Entry> RegisterIn(Storage& statistics_storage);
+    [[nodiscard]] std::vector<Entry> RegisterIn(Storage& statistics_storage);
 
-  /// Get metric data by type
-  template <typename Metric>
-  Metric& GetMetric(const MetricTag<Metric>& tag) {
-    return impl::GetMetric<Metric>(metrics_, tag.key_);
-  }
+    /// Get metric data by type
+    template <typename Metric>
+    Metric& GetMetric(const MetricTag<Metric>& tag) {
+        return impl::GetMetric<Metric>(metrics_, tag.key_);
+    }
 
-  void ResetMetrics();
+    void ResetMetrics();
 
- private:
-  impl::MetricMap metrics_;
+private:
+    impl::MetricMap metrics_;
 };
 
 using MetricsStoragePtr = std::shared_ptr<MetricsStorage>;

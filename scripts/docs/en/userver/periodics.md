@@ -114,7 +114,7 @@ return `false` from a wait operation, depending on the primitive.
 After engine::InterruptibleSleepFor you should call
 engine::current_task::ShouldCancel() manually.
 
-In 'DoWork` you can perform one step of the operation, or you can write a loop
+In `DoWork` you can perform one step of the operation, or you can write a loop
 `while (!ShouldCancel())`. You can choose an approach based on this principle:
 
 @note If it is important to perform a distlock on the same host, then write a
@@ -124,21 +124,21 @@ More detailed:
 * If switching the host is cheap, then it is better not to write a loop in
   `DoWork`, then the work has a chance to be distributed among the hosts
   (although there is no guarantee). If in doubt, it is better not to write a
-  loop in `DoWork'.
+  loop in `DoWork`.
 * In some cases, the distlock performs one big task with interruptions via
   engine::InterruptibleSleepFor to not overload the CPU and/or the database.
-  Then you need to write a loop inside DoWork. Or if the host needs an
+  Then you need to write a loop inside `DoWork`. Or if the host needs an
   expensive setup before starting the work on a distlock task, then you can
   also write a loop.
 
 DistLocks create a single tracing::Span for the whole lifetime of worker. If
 a shorter Trace ID lifetime is required, then use tracing::Span::MakeSpan()
-to create a new Span inside the Worker::DoWork() loop iteration.
+to create a new Span inside the `Worker::DoWork()` loop iteration.
 
 
 #### Guarantees provided
 
-The custom coroutine that runs DoWork is always the same. If the cancellation
+The custom coroutine that runs `DoWork` is always the same. If the cancellation
 is not processed, then another DoWork-coroutine is not launched.
 
 

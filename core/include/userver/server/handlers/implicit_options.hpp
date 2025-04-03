@@ -67,42 +67,41 @@ namespace server::handlers {
 /// in-flight requests.
 // clang-format on
 class ImplicitOptions /*non-final*/ : public HttpHandlerBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::ImplicitOptions component
-  static constexpr std::string_view kName = "handler-implicit-http-options";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::ImplicitOptions component
+    static constexpr std::string_view kName = "handler-implicit-http-options";
 
-  ImplicitOptions(const components::ComponentConfig& config,
-                  const components::ComponentContext& component_context,
-                  bool is_monitor = false);
+    ImplicitOptions(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& component_context,
+        bool is_monitor = false
+    );
 
-  ~ImplicitOptions() override;
+    ~ImplicitOptions() override;
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext& context) const override;
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+        const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  using AuthCheckers =
-      std::unordered_map<std::string, auth::AuthCheckerBasePtr>;
+private:
+    using AuthCheckers = std::unordered_map<std::string, auth::AuthCheckerBasePtr>;
 
-  std::string ExtractAllowedMethods(const std::string& path) const;
+    std::string ExtractAllowedMethods(const std::string& path) const;
 
-  const http::HandlerInfoIndex& GetHandlerInfoIndex() const;
+    const http::HandlerInfoIndex& GetHandlerInfoIndex() const;
 
-  const Server& server_;
-  const AuthCheckers auth_checkers_;
+    const Server& server_;
+    const AuthCheckers auth_checkers_;
 
-  mutable engine::Mutex handler_info_index_mutex_;
-  mutable const http::HandlerInfoIndex* handler_info_index_ = nullptr;
+    mutable engine::Mutex handler_info_index_mutex_;
+    mutable const http::HandlerInfoIndex* handler_info_index_ = nullptr;
 };
 
 }  // namespace server::handlers
 
 template <>
-inline constexpr bool
-    components::kHasValidate<server::handlers::ImplicitOptions> = true;
+inline constexpr bool components::kHasValidate<server::handlers::ImplicitOptions> = true;
 
 USERVER_NAMESPACE_END

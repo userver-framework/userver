@@ -12,4 +12,4 @@ This folder contains the userver core functionality:
 * [Caches](https://userver.tech/d5/d2d/md_en_2userver_2caches.html)
 * [Logging and Tracing](https://userver.tech/df/d0c/md_en_2userver_2logging.html)
 * [Metrics](https://userver.tech/d9/dac/md_en_2userver_2service__monitor.html)
-* All the helper classes and utilities provided by the `userver-universal`
+* All the helper classes and utilities provided by the `userver::universal` CMake target

@@ -21,225 +21,217 @@
 namespace chaos {
 
 class ChaosProducer final : public components::LoggableComponentBase {
- public:
-  static constexpr std::string_view kName{"chaos-producer"};
+public:
+    static constexpr std::string_view kName{"chaos-producer"};
 
-  ChaosProducer(const components::ComponentConfig& config,
-                const components::ComponentContext& context)
-      : components::LoggableComponentBase{config, context},
-        rabbit_client_{
-            context.FindComponent<components::RabbitMQ>("chaos-rabbit")
-                .GetClient()} {
-    const auto setup_deadline =
-        engine::Deadline::FromDuration(kDefaultOperationTimeout);
+    ChaosProducer(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::LoggableComponentBase{config, context},
+          rabbit_client_{context.FindComponent<components::RabbitMQ>("chaos-rabbit").GetClient()} {
+        const auto setup_deadline = engine::Deadline::FromDuration(kDefaultOperationTimeout);
 
-    auto admin_channel = rabbit_client_->GetAdminChannel(setup_deadline);
-    admin_channel.DeclareExchange(exchange_, urabbitmq::Exchange::Type::kFanOut,
-                                  setup_deadline);
-    admin_channel.DeclareQueue(queue_, setup_deadline);
-    admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
-  }
-
-  ~ChaosProducer() override {
-    const auto teardown_deadline =
-        engine::Deadline::FromDuration(kDefaultOperationTimeout);
-
-    try {
-      auto admin_channel = rabbit_client_->GetAdminChannel(teardown_deadline);
-      admin_channel.RemoveQueue(queue_, teardown_deadline);
-      admin_channel.RemoveExchange(exchange_, teardown_deadline);
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "Failed to clean up rabbitmq infrastructure: " << ex;
+        auto admin_channel = rabbit_client_->GetAdminChannel(setup_deadline);
+        admin_channel.DeclareExchange(exchange_, urabbitmq::Exchange::Type::kFanOut, setup_deadline);
+        admin_channel.DeclareQueue(queue_, setup_deadline);
+        admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
     }
-  }
 
-  void PublishReliable(const std::string& message) const {
-    rabbit_client_->PublishReliable(
-        exchange_, routing_key_, message, urabbitmq::MessageType::kTransient,
-        engine::Deadline::FromDuration(kDefaultOperationTimeout));
-  }
+    ~ChaosProducer() override {
+        const auto teardown_deadline = engine::Deadline::FromDuration(kDefaultOperationTimeout);
 
-  void PublishUnreliable(const std::string& message) const {
-    rabbit_client_->Publish(
-        exchange_, routing_key_, message, urabbitmq::MessageType::kTransient,
-        engine::Deadline::FromDuration(kDefaultOperationTimeout));
-  }
+        try {
+            auto admin_channel = rabbit_client_->GetAdminChannel(teardown_deadline);
+            admin_channel.RemoveQueue(queue_, teardown_deadline);
+            admin_channel.RemoveExchange(exchange_, teardown_deadline);
+        } catch (const std::exception& ex) {
+            LOG_ERROR() << "Failed to clean up rabbitmq infrastructure: " << ex;
+        }
+    }
 
- private:
-  static constexpr std::chrono::milliseconds kDefaultOperationTimeout{2000};
+    void PublishReliable(const std::string& message) const {
+        rabbit_client_->PublishReliable(
+            exchange_,
+            routing_key_,
+            message,
+            urabbitmq::MessageType::kTransient,
+            engine::Deadline::FromDuration(kDefaultOperationTimeout)
+        );
+    }
 
-  const urabbitmq::Exchange exchange_{"chaos-exchange"};
-  const urabbitmq::Queue queue_{"chaos-queue"};
-  const std::string routing_key_ = "chaos-routing-key";
+    void PublishUnreliable(const std::string& message) const {
+        rabbit_client_->Publish(
+            exchange_,
+            routing_key_,
+            message,
+            urabbitmq::MessageType::kTransient,
+            engine::Deadline::FromDuration(kDefaultOperationTimeout)
+        );
+    }
 
-  const std::shared_ptr<urabbitmq::Client> rabbit_client_;
+private:
+    static constexpr std::chrono::milliseconds kDefaultOperationTimeout{2000};
+
+    const urabbitmq::Exchange exchange_{"chaos-exchange"};
+    const urabbitmq::Queue queue_{"chaos-queue"};
+    const std::string routing_key_ = "chaos-routing-key";
+
+    const std::shared_ptr<urabbitmq::Client> rabbit_client_;
 };
 
 class ChaosConsumer final : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName{"chaos-consumer"};
+public:
+    static constexpr std::string_view kName{"chaos-consumer"};
 
-  ChaosConsumer(const components::ComponentConfig& config,
-                const components::ComponentContext& context)
-      : components::ComponentBase{config, context},
-        consumer_{config, context, messages_} {
-    Start();
-  }
+    ChaosConsumer(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase{config, context}, consumer_{config, context, messages_} {
+        Start();
+    }
 
-  ~ChaosConsumer() override { Stop(); }
+    ~ChaosConsumer() override { Stop(); }
 
-  void Start() { consumer_.Start(); }
-  void Stop() { consumer_.Stop(); }
+    void Start() { consumer_.Start(); }
+    void Stop() { consumer_.Stop(); }
 
-  static yaml_config::Schema GetStaticConfigSchema() {
-    return urabbitmq::ConsumerComponentBase::GetStaticConfigSchema();
-  }
+    static yaml_config::Schema GetStaticConfigSchema() {
+        return urabbitmq::ConsumerComponentBase::GetStaticConfigSchema();
+    }
 
-  std::vector<std::string> GetMessages() const {
-    auto messages = [this] {
-      auto storage = messages_.Lock();
-      return *storage;
-    }();
+    std::vector<std::string> GetMessages() const {
+        auto messages = [this] {
+            auto storage = messages_.Lock();
+            return *storage;
+        }();
 
-    std::sort(messages.begin(), messages.end());
-    return messages;
-  }
+        std::sort(messages.begin(), messages.end());
+        return messages;
+    }
 
-  void Clear() {
-    auto storage = messages_.Lock();
-    storage->clear();
-  }
-
- private:
-  class Consumer final : public urabbitmq::ConsumerBase {
-   public:
-    Consumer(const components::ComponentConfig& config,
-             const components::ComponentContext& context,
-             concurrent::Variable<std::vector<std::string>>& messages)
-        : urabbitmq::ConsumerBase{context
-                                      .FindComponent<components::RabbitMQ>(
-                                          config["rabbit_name"]
-                                              .As<std::string>())
-                                      .GetClient(),
-                                  ParseSettings(config)},
-          messages_{messages} {}
-
-   protected:
-    void Process(std::string message) override {
-      {
+    void Clear() {
         auto storage = messages_.Lock();
-        storage->push_back(std::move(message));
-      }
-      TESTPOINT("message_consumed", {});
+        storage->clear();
     }
 
-   private:
-    urabbitmq::ConsumerSettings ParseSettings(
-        const components::ComponentConfig& config) {
-      return {urabbitmq::Queue{config["queue"].As<std::string>()},
-              config["prefetch_count"].As<std::uint16_t>()};
-    }
+private:
+    class Consumer final : public urabbitmq::ConsumerBase {
+    public:
+        Consumer(
+            const components::ComponentConfig& config,
+            const components::ComponentContext& context,
+            concurrent::Variable<std::vector<std::string>>& messages
+        )
+            : urabbitmq::
+                  ConsumerBase{context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient(), ParseSettings(config)},
+              messages_{messages} {}
 
-    concurrent::Variable<std::vector<std::string>>& messages_;
-  };
+    protected:
+        void Process(std::string message) override {
+            {
+                auto storage = messages_.Lock();
+                storage->push_back(std::move(message));
+            }
+            TESTPOINT("message_consumed", {});
+        }
 
-  concurrent::Variable<std::vector<std::string>> messages_;
-  Consumer consumer_;
+    private:
+        urabbitmq::ConsumerSettings ParseSettings(const components::ComponentConfig& config) {
+            return {urabbitmq::Queue{config["queue"].As<std::string>()}, config["prefetch_count"].As<std::uint16_t>()};
+        }
+
+        concurrent::Variable<std::vector<std::string>>& messages_;
+    };
+
+    concurrent::Variable<std::vector<std::string>> messages_;
+    Consumer consumer_;
 };
 
 class ChaosHandler final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName{"chaos-handler"};
+public:
+    static constexpr std::string_view kName{"chaos-handler"};
 
-  ChaosHandler(const components::ComponentConfig& config,
-               const components::ComponentContext& context)
-      : server::handlers::HttpHandlerBase{config, context},
-        producer_{context.FindComponent<ChaosProducer>()},
-        consumer_{context.FindComponent<ChaosConsumer>()} {}
+    ChaosHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerBase{config, context},
+          producer_{context.FindComponent<ChaosProducer>()},
+          consumer_{context.FindComponent<ChaosConsumer>()} {}
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext&) const override {
-    switch (request.GetMethod()) {
-      case server::http::HttpMethod::kPost:
-        return HandlePost(request);
-      case server::http::HttpMethod::kPatch:
-        return HandlePatch(request);
-      case server::http::HttpMethod::kGet:
-        return HandleGet();
-      case server::http::HttpMethod::kDelete:
-        return HandleDelete();
-      default:
-        throw server::handlers::ClientError{server::handlers::ExternalBody{
-            fmt::format("Unsupported method {}", request.GetMethod())}};
-    }
-  }
-
- private:
-  std::string HandlePost(const server::http::HttpRequest& request) const {
-    const auto& message = request.GetArg("message");
-    if (message.empty()) {
-      throw server::handlers::ClientError{
-          server::handlers::ExternalBody{"No 'message' query argument"}};
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
+        switch (request.GetMethod()) {
+            case server::http::HttpMethod::kPost:
+                return HandlePost(request);
+            case server::http::HttpMethod::kPatch:
+                return HandlePatch(request);
+            case server::http::HttpMethod::kGet:
+                return HandleGet();
+            case server::http::HttpMethod::kDelete:
+                return HandleDelete();
+            default:
+                throw server::handlers::ClientError{
+                    server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}};
+        }
     }
 
-    const auto& reliable = request.GetArg("reliable");
-    if (!reliable.empty()) {
-      producer_.PublishReliable(message);
-    } else {
-      producer_.PublishUnreliable(message);
+private:
+    std::string HandlePost(const server::http::HttpRequest& request) const {
+        const auto& message = request.GetArg("message");
+        if (message.empty()) {
+            throw server::handlers::ClientError{server::handlers::ExternalBody{"No 'message' query argument"}};
+        }
+
+        const auto& reliable = request.GetArg("reliable");
+        if (!reliable.empty()) {
+            producer_.PublishReliable(message);
+        } else {
+            producer_.PublishUnreliable(message);
+        }
+
+        return {};
     }
 
-    return {};
-  }
+    std::string HandlePatch(const server::http::HttpRequest& request) const {
+        const auto& action = request.GetArg("action");
+        if (action == "start") {
+            consumer_.Start();
+        } else if (action == "stop") {
+            consumer_.Stop();
+        } else {
+            throw server::handlers::ClientError{
+                server::handlers::ExternalBody{fmt::format("Unknown action '{}'", action)}};
+        }
 
-  std::string HandlePatch(const server::http::HttpRequest& request) const {
-    const auto& action = request.GetArg("action");
-    if (action == "start") {
-      consumer_.Start();
-    } else if (action == "stop") {
-      consumer_.Stop();
-    } else {
-      throw server::handlers::ClientError{server::handlers::ExternalBody{
-          fmt::format("Unknown action '{}'", action)}};
+        return {};
     }
 
-    return {};
-  }
+    std::string HandleGet() const {
+        const auto messages_list = consumer_.GetMessages();
 
-  std::string HandleGet() const {
-    const auto messages_list = consumer_.GetMessages();
+        return formats::json::ToString(formats::json::ValueBuilder{messages_list}.ExtractValue());
+    }
 
-    return formats::json::ToString(
-        formats::json::ValueBuilder{messages_list}.ExtractValue());
-  }
+    std::string HandleDelete() const {
+        consumer_.Clear();
 
-  std::string HandleDelete() const {
-    consumer_.Clear();
+        return {};
+    }
 
-    return {};
-  }
-
-  const ChaosProducer& producer_;
-  ChaosConsumer& consumer_;
+    const ChaosProducer& producer_;
+    ChaosConsumer& consumer_;
 };
 
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-  const auto component_list = components::MinimalServerComponentList()
-                                  .Append<components::RabbitMQ>("chaos-rabbit")
-                                  .Append<chaos::ChaosProducer>()
-                                  .Append<chaos::ChaosConsumer>()
-                                  .Append<chaos::ChaosHandler>()
-                                  //
-                                  .Append<clients::dns::Component>()
-                                  .Append<components::Secdist>()
-                                  .Append<components::DefaultSecdistProvider>()
-                                  //
-                                  .Append<server::handlers::TestsControl>()
-                                  .Append<components::TestsuiteSupport>()
-                                  .Append<components::HttpClient>();
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<components::RabbitMQ>("chaos-rabbit")
+                                    .Append<chaos::ChaosProducer>()
+                                    .Append<chaos::ChaosConsumer>()
+                                    .Append<chaos::ChaosHandler>()
+                                    //
+                                    .Append<clients::dns::Component>()
+                                    .Append<components::Secdist>()
+                                    .Append<components::DefaultSecdistProvider>()
+                                    //
+                                    .Append<server::handlers::TestsControl>()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<components::HttpClient>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

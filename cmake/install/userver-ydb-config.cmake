@@ -9,9 +9,8 @@ find_package(userver REQUIRED COMPONENTS
     core
 )
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
 # include("${USERVER_CMAKE_DIR}/ydb-cpp-sdk.cmake")
 
-add_library(userver::ydb ALIAS userver::userver-ydb)
+include("${USERVER_CMAKE_DIR}/UserverSql.cmake")
 
 set(userver_ydb_FOUND TRUE)

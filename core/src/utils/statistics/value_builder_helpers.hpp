@@ -9,12 +9,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-void SetSubField(formats::json::ValueBuilder& object,
-                 std::vector<std::string>&& path,
-                 formats::json::ValueBuilder&& value);
+void SetSubField(
+    formats::json::ValueBuilder& object,
+    std::vector<std::string>&& path,
+    formats::json::ValueBuilder&& value
+);
 
-std::optional<std::string> FindNonNumberMetricPath(
-    const formats::json::Value& json);
+std::optional<std::string> FindNonNumberMetricPath(const formats::json::Value& json);
 
 bool AreAllMetricsNumbers(const formats::json::Value& json);
 

@@ -8,7 +8,7 @@ from testsuite.utils import http
 @pytest.fixture(name='assert_dynconf_update_fails')
 async def _assert_dynconf_update_fails(service_client):
     async with service_client.capture_logs(
-            testsuite_skip_prepare=True,
+        testsuite_skip_prepare=True,
     ) as capture:
         # Update failure is expected, because all caches are required to update
         # successfully, but dynamic-config-client-updater update will fail.
@@ -17,10 +17,7 @@ async def _assert_dynconf_update_fails(service_client):
     expected_text_regex = re.compile(
         r'code = 500 \([\w:]*clients::http::HttpServerException\)',
     )
-    assert any(
-        expected_text_regex.search(record['text'])
-        for record in capture.select()
-    )
+    assert any(expected_text_regex.search(record['text']) for record in capture.select())
 
 
 async def test_ping(service_client, assert_dynconf_update_fails):
@@ -33,10 +30,12 @@ _INF_DURATION_MS = 100_000_000
 
 
 async def test_all_dynconf_updates_failed(
-        monitor_client, assert_dynconf_update_fails,
+    monitor_client,
+    assert_dynconf_update_fails,
 ):
     snapshot = await monitor_client.metrics(
-        prefix='cache', labels={'cache_name': 'dynamic-config-client-updater'},
+        prefix='cache',
+        labels={'cache_name': 'dynamic-config-client-updater'},
     )
 
     ms_since_last_update_attempt = snapshot.value_at(

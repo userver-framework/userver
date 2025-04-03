@@ -1,8 +1,8 @@
 import grpc
 import pytest
-import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
-
 import requests_server
+
+import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
 
 
 @pytest.mark.parametrize('case', requests_server.ALL_CASES)

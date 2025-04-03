@@ -10,8 +10,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache {
 
-CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
-                                   const components::ComponentContext& context)
+CacheUpdateTrait::CacheUpdateTrait(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
     : CacheUpdateTrait(CacheDependencies::Make(config, context)) {}
 
 CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
@@ -19,61 +21,39 @@ CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
 
 CacheUpdateTrait::~CacheUpdateTrait() = default;
 
-void CacheUpdateTrait::UpdateSyncDebug(UpdateType update_type) {
-  impl_->UpdateSyncDebug(update_type);
-}
+void CacheUpdateTrait::UpdateSyncDebug(UpdateType update_type) { impl_->UpdateSyncDebug(update_type); }
 
-void CacheUpdateTrait::InvalidateAsync(UpdateType update_type) {
-  impl_->InvalidateAsync(update_type);
-}
+void CacheUpdateTrait::InvalidateAsync(UpdateType update_type) { impl_->InvalidateAsync(update_type); }
 
 const std::string& CacheUpdateTrait::Name() const { return impl_->Name(); }
 
-AllowedUpdateTypes CacheUpdateTrait::GetAllowedUpdateTypes() const {
-  return impl_->GetAllowedUpdateTypes();
-}
+AllowedUpdateTypes CacheUpdateTrait::GetAllowedUpdateTypes() const { return impl_->GetAllowedUpdateTypes(); }
 
-void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
-  impl_->StartPeriodicUpdates(flags);
-}
+void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) { impl_->StartPeriodicUpdates(flags); }
 
 void CacheUpdateTrait::StopPeriodicUpdates() { impl_->StopPeriodicUpdates(); }
 
-void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
-  impl_->AssertPeriodicUpdateStarted();
-}
+void CacheUpdateTrait::AssertPeriodicUpdateStarted() { impl_->AssertPeriodicUpdateStarted(); }
+
+void CacheUpdateTrait::AssertPeriodicUpdateStopped() { impl_->AssertPeriodicUpdateStopped(); }
 
 void CacheUpdateTrait::OnCacheModified() { impl_->OnCacheModified(); }
 
-bool CacheUpdateTrait::HasPreAssignCheck() const {
-  return impl_->HasPreAssignCheck();
-}
+bool CacheUpdateTrait::HasPreAssignCheck() const { return impl_->HasPreAssignCheck(); }
 
-bool CacheUpdateTrait::IsSafeDataLifetime() const {
-  return impl_->IsSafeDataLifetime();
-}
+bool CacheUpdateTrait::IsSafeDataLifetime() const { return impl_->IsSafeDataLifetime(); }
 
-void CacheUpdateTrait::SetDataSizeStatistic(std::size_t size) noexcept {
-  impl_->SetDataSizeStatistic(size);
-}
+void CacheUpdateTrait::SetDataSizeStatistic(std::size_t size) noexcept { impl_->SetDataSizeStatistic(size); }
 
-rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
-  return impl_->GetConfig();
-}
+rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const { return impl_->GetConfig(); }
 
-engine::TaskProcessor& CacheUpdateTrait::GetCacheTaskProcessor() const {
-  return impl_->GetCacheTaskProcessor();
-}
+engine::TaskProcessor& CacheUpdateTrait::GetCacheTaskProcessor() const { return impl_->GetCacheTaskProcessor(); }
 
 void CacheUpdateTrait::MarkAsExpired() {}
 
-void CacheUpdateTrait::GetAndWrite(dump::Writer&) const {
-  dump::ThrowDumpUnimplemented(Name());
-}
+void CacheUpdateTrait::GetAndWrite(dump::Writer&) const { dump::ThrowDumpUnimplemented(Name()); }
 
-void CacheUpdateTrait::ReadAndSet(dump::Reader&) {
-  dump::ThrowDumpUnimplemented(Name());
-}
+void CacheUpdateTrait::ReadAndSet(dump::Reader&) { dump::ThrowDumpUnimplemented(Name()); }
 
 }  // namespace cache
 

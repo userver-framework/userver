@@ -9,8 +9,8 @@ namespace utils::statistics {
 
 template <typename ValueType>
 ValueType Serialize(Rate rate, formats::serialize::To<ValueType>) {
-  using ValueBuilder = typename ValueType::Builder;
-  return ValueBuilder{rate.value}.ExtractValue();
+    using ValueBuilder = typename ValueType::Builder;
+    return ValueBuilder{rate.value}.ExtractValue();
 }
 
 }  // namespace utils::statistics

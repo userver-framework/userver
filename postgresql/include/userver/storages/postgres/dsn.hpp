@@ -24,9 +24,9 @@ DsnList SplitByHost(const Dsn& dsn);
 std::string MakeDsnNick(const Dsn& dsn, bool escape);
 
 struct DsnOptions {
-  std::string host;
-  std::string port;
-  std::string dbname;
+    std::string host;
+    std::string port;
+    std::string dbname;
 };
 
 /// Read options from a DSN
@@ -45,8 +45,7 @@ std::string EscapeHostName(const std::string& hostname, char escape_char = '_');
 
 /// Return DSN string with hosts resolved as hostaddr values
 /// If given DSN has no host or already contains hostaddr, does nothing
-Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver,
-                        engine::Deadline deadline);
+Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver, engine::Deadline deadline);
 
 }  // namespace storages::postgres
 

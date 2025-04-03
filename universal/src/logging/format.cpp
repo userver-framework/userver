@@ -1,32 +1,32 @@
 #include <userver/logging/format.hpp>
 
-#include <stdexcept>
-
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
+namespace {
+constexpr utils::TrivialBiMap kLogFormats = [](auto selector) {
+    return selector()
+        .Case("tskv", Format::kTskv)
+        .Case("ltsv", Format::kLtsv)
+        .Case("raw", Format::kRaw)
+        .Case("json", Format::kJson)
+        .Case("json_yadeploy", Format::kJsonYaDeploy);
+};
+
+}  // namespace
+
 Format FormatFromString(std::string_view format_str) {
-  if (format_str == "tskv") {
-    return Format::kTskv;
-  }
-
-  if (format_str == "ltsv") {
-    return Format::kLtsv;
-  }
-
-  if (format_str == "raw") {
-    return Format::kRaw;
-  }
-
-  UINVARIANT(
-      false,
-      fmt::format("Unknown logging format '{}' (must be one of 'tskv', 'ltsv')",
-                  format_str));
+    const auto result = kLogFormats.TryFindByFirst(format_str);
+    UINVARIANT(
+        result, fmt::format("Unknown logging format '{}' (must be one of {})", format_str, kLogFormats.DescribeFirst())
+    );
+    return *result;
 }
 
 }  // namespace logging

@@ -20,20 +20,20 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 ComponentList CommonServerComponentList() {
-  return components::ComponentList()
-      .Append<components::Server>()
-      .Append<server::handlers::DnsClientControl>()
-      .Append<server::handlers::DynamicDebugLog>()
-      .Append<server::handlers::ImplicitOptions>()
-      .Append<server::handlers::InspectRequests>()
-      .Append<server::handlers::Jemalloc>()
-      .Append<server::handlers::LogLevel>()
-      .Append<server::handlers::OnLogRotate>()
-      .Append<server::handlers::ServerMonitor>()
-      .Append<server::handlers::TestsControl>()
-      .Append<congestion_control::Component>()
-      .Append<components::AuthCheckerSettings>()
-      .AppendComponentList(server::middlewares::DefaultMiddlewareComponents());
+    return components::ComponentList()
+        .Append<components::Server>()
+        .Append<server::handlers::DnsClientControl>()
+        .Append<server::handlers::DynamicDebugLog>()
+        .Append<server::handlers::ImplicitOptions>()
+        .Append<server::handlers::InspectRequests>()
+        .Append<server::handlers::Jemalloc>()
+        .Append<server::handlers::LogLevel>()
+        .Append<server::handlers::OnLogRotate>()
+        .Append<server::handlers::ServerMonitor>()
+        .Append<server::handlers::TestsControl>()
+        .Append<congestion_control::Component>()
+        .Append<components::AuthCheckerSettings>()
+        .AppendComponentList(server::middlewares::DefaultMiddlewareComponents());
 }
 
 }  // namespace components

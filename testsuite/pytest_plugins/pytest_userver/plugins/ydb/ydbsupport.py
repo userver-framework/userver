@@ -25,7 +25,12 @@ USERVER_CONFIG_HOOKS = ['userver_config_ydb']
 
 
 @pytest.fixture
-def ydb(_ydb_client, _ydb_init):
+def ydb(_ydb_client, _ydb_init) -> client.YdbClient:
+    """
+    YDB client fixture
+
+    @ingroup userver_testsuite_fixtures
+    """
     return _ydb_client
 
 
@@ -38,7 +43,8 @@ def _ydb_client(_ydb_client_pool):
 @pytest.fixture(scope='session')
 def _ydb_client_pool(_ydb_service, ydb_service_settings):
     endpoint = '{}:{}'.format(
-        ydb_service_settings.host, ydb_service_settings.grpc_port,
+        ydb_service_settings.host,
+        ydb_service_settings.grpc_port,
     )
     pool = []
 
@@ -48,7 +54,8 @@ def _ydb_client_pool(_ydb_service, ydb_service_settings):
             ydb_client = pool.pop()
         except IndexError:
             ydb_client = client.YdbClient(
-                endpoint, ydb_service_settings.database,
+                endpoint,
+                ydb_service_settings.database,
             )
         try:
             yield ydb_client
@@ -106,7 +113,8 @@ def ydb_settings_substitute(ydb_service_settings):
     def secdist_settings(*args, **kwargs):
         return {
             'endpoint': '{}:{}'.format(
-                ydb_service_settings.host, ydb_service_settings.grpc_port,
+                ydb_service_settings.host,
+                ydb_service_settings.grpc_port,
             ),
             'database': '/{}'.format(ydb_service_settings.database),
             'token': '',
@@ -135,6 +143,9 @@ def ydb_migration_dir(service_source_dir) -> pathlib.Path:
     return service_source_dir / 'ydb' / 'migrations'
 
 
+YDB_MIGRATION_TABLE = 'goose_db_version'
+
+
 def _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path):
     if not ydb_migration_dir.exists():
         return
@@ -148,11 +159,10 @@ def _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path):
         str(goose_binary_path),
         '-dir',
         str(ydb_migration_dir),
+        '-table',
+        YDB_MIGRATION_TABLE,
         'ydb',
-        (
-            f'grpc://{host}:{port}/local?go_query_mode=scripting&'
-            'go_fake_tx=scripting&go_query_bind=declare,numeric'
-        ),
+        (f'grpc://{host}:{port}/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric'),
         'up',
     ]
     try:
@@ -204,6 +214,8 @@ def _ydb_fetch_table_names(ydb_service_settings, ydb_cli) -> List[str]:
                 continue
             if '.sys' in line:
                 continue
+            if YDB_MIGRATION_TABLE in line:
+                continue
             path = line.split('│')[6].strip()
             tables.append(path)
         return tables
@@ -230,17 +242,16 @@ def ydb_cli() -> pathlib.Path:
 
 @pytest.fixture(scope='session')
 def _ydb_prepare(
-        _ydb_client,
-        _ydb_service_schemas,
-        ydb_service_settings,
-        _ydb_state,
-        ydb_migration_dir,
-        goose_binary_path,
+    _ydb_client,
+    _ydb_service_schemas,
+    ydb_service_settings,
+    _ydb_state,
+    ydb_migration_dir,
+    goose_binary_path,
 ):
     if _ydb_service_schemas and ydb_migration_dir.exists():
         raise Exception(
-            'Both ydb/schema and ydb/migrations exist, '
-            'which are mutually exclusive',
+            'Both ydb/schema and ydb/migrations exist, which are mutually exclusive',
         )
 
     # testsuite legacy
@@ -269,14 +280,14 @@ def _ydb_tables(_ydb_state, _ydb_prepare, ydb_service_settings, ydb_cli):
 
 @pytest.fixture
 def _ydb_init(
-        request,
-        _ydb_client,
-        _ydb_state,
-        ydb_service_settings,
-        _ydb_prepare,
-        _ydb_tables,
-        _ydb_client_pool,
-        load,
+    request,
+    _ydb_client,
+    _ydb_state,
+    ydb_service_settings,
+    _ydb_prepare,
+    _ydb_tables,
+    _ydb_client_pool,
+    load,
 ):
     def ydb_mark_queries(files=(), queries=()):
         result_queries = []
@@ -291,7 +302,7 @@ def _ydb_init(
 
     if _ydb_tables:
         with concurrent.futures.ThreadPoolExecutor(
-                max_workers=len(_ydb_tables),
+            max_workers=len(_ydb_tables),
         ) as executer:
             executer.map(drop_table, _ydb_tables)
 
@@ -336,9 +347,7 @@ def userver_config_ydb(ydb_service_settings):
     """
 
     endpoint = f'{ydb_service_settings.host}:{ydb_service_settings.grpc_port}'
-    database = (
-        '' if ydb_service_settings.database.startswith('/') else '/'
-    ) + ydb_service_settings.database
+    database = ('' if ydb_service_settings.database.startswith('/') else '/') + ydb_service_settings.database
 
     def patch_config(config, config_vars):
         ydb_component = config['components_manager']['components']['ydb']

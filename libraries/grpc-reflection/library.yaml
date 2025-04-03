@@ -1,0 +1,10 @@
+project-name: userver-grpc-reflection
+project-alt-names:
+  - yandex-userver-grpc-reflection
+description: library with reflection implementation
+
+maintainers:
+  - Common components
+
+libraries:
+  - userver-core

@@ -5,6 +5,7 @@
 | Core: | [![CI](https://github.com/userver-framework/service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/service_template/) | [[➚]](https://github.com/userver-framework/service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/service_template/tree/v1.0.0) |
 | PostgreSQL: | [![CI](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_service_template/) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v1.0.0) |
 | gRPC+PostgreSQL: | [![CI](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template)| [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v1.0.0) |
+| gRPC+Mongo: | [![CI](https://github.com/userver-framework/mongo_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/mongo_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/mongo_grpc_service_template)| — | — |
 
 **userver** is an open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
@@ -16,11 +17,31 @@ requests and tasks and returns to the handling of the operation only when it is
 guaranteed to execute immediately: 
 
 ```cpp
-std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
-  // Asynchronous execution of the SQL query in transaction. Current thread
-  // handles other requests while the response from the DB is being received:
-  auto res = tr.Execute("INSERT INTO keys VALUES ($1)", key);
-  return res.RowsAffected();
+#include <userver/easy.hpp>
+#include "schemas/key_value.hpp"
+
+int main(int argc, char* argv[]) {
+    using namespace userver;
+
+    easy::HttpWith<easy::PgDep>(argc, argv)
+        // Handles multiple HTTP requests to `/kv` URL concurrently
+        .Get("/kv", [](formats::json::Value request_json, const easy::PgDep& dep) {
+            // JSON parser and serializer are generated from JSON schema by userver
+            auto key = request_json.As<schemas::KeyRequest>().key;
+
+            // Asynchronous execution of the SQL query in transaction. Current thread
+            // handles other requests while the response from the DB is being received:
+            auto res = dep.pg().Execute(
+                storages::postgres::ClusterHostType::kSlave,
+                // Query is converted into a prepared statement. Subsequent requests
+                // send only parameters in a binary form and meta information is
+                // discarded on the DB side, significantly saving network bandwidth.
+                "SELECT value FROM key_value_table WHERE key=$1", key
+            );
+
+            schemas::KeyValue response{key, res[0][0].As<std::string>()};
+            return formats::json::ValueBuilder{response}.ExtractValue();
+        });
 }
 ```
 
@@ -34,9 +55,9 @@ You can learn more about history and key features of userver from our
 
 ## Other Features
 
-* Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis,
-  ClickHouse, MySQL/MariaDB ...) and data transfer protocols
-  (HTTP, gRPC, AMQP 0-9-1, Kafka, TCP, TLS,
+* Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Valkey,
+  Redis, ClickHouse, MySQL/MariaDB, YDB ...) and data transfer protocols
+  (HTTP/{1.1, 2.0}, gRPC, AMQP 0-9-1, Kafka, TCP, TLS,
   WebSocket ...), tasks construction and cancellation.
 * Rich set of high-level components for caches, tasks, distributed locking,
   logging, tracing, statistics, metrics, JSON/YAML/BSON.

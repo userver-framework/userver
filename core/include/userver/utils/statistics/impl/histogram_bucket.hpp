@@ -19,18 +19,18 @@ namespace utils::statistics::impl::histogram {
 // - size in 'upper_bound'
 // - inf count in 'counter'
 union BoundOrSize {
-  double bound;
-  std::size_t size;
+    double bound;
+    std::size_t size;
 };
 
 struct Bucket final {
-  constexpr Bucket() noexcept = default;
+    constexpr Bucket() noexcept = default;
 
-  Bucket(const Bucket& other) noexcept;
-  Bucket& operator=(const Bucket& other) noexcept;
+    Bucket(const Bucket& other) noexcept;
+    Bucket& operator=(const Bucket& other) noexcept;
 
-  BoundOrSize upper_bound{0.0};
-  std::atomic<std::uint64_t> counter{0};
+    BoundOrSize upper_bound{0.0};
+    std::atomic<std::uint64_t> counter{0};
 };
 
 void CopyBounds(Bucket* bucket_array, utils::span<const double> upper_bounds);

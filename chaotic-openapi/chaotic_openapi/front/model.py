@@ -1,0 +1,77 @@
+import dataclasses
+import enum
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Union
+
+from chaotic.front import types
+
+
+class In(str, enum.Enum):
+    path = 'path'
+    query = 'query'
+    queryExplode = 'queryExplode'
+    header = 'header'
+    cookie = 'cookie'
+
+
+class Style(str, enum.Enum):
+    matrix = 'matrix'
+    label = 'label'
+    form = 'form'
+    simple = 'simple'
+    spaceDelimited = 'spaceDelimited'
+    pipeDelimited = 'pipeDelimited'
+
+
+@dataclasses.dataclass
+class Parameter:
+    name: str
+    in_: In
+    description: str
+    examples: Dict[str, Any]
+
+    deprecated: bool
+    required: bool
+    allowEmptyValue: bool
+
+    style: Style
+    schema: types.Schema
+
+
+@dataclasses.dataclass
+class MediaType:
+    schema: Union[types.Schema, types.Ref]
+    examples: Dict[str, Any]
+
+
+@dataclasses.dataclass
+class Response:
+    description: str
+    headers: Dict[str, Parameter]
+    content: Dict[str, MediaType]
+
+
+RequestBody = Union[types.Ref, types.Schema]
+
+
+@dataclasses.dataclass
+class Operation:
+    description: str
+    path: str
+    method: str
+    operationId: str
+    parameters: List[Parameter]
+    requestBody: Dict[str, RequestBody]
+
+
+@dataclasses.dataclass
+class Service:
+    name: str
+    description: str = ''
+    operations: List[Operation] = dataclasses.field(default_factory=list)
+
+    schemas: Dict[str, types.Schema] = dataclasses.field(default_factory=dict)
+    responses: Dict[str, Response] = dataclasses.field(default_factory=dict)
+    parameters: Dict[str, Parameter] = dataclasses.field(default_factory=dict)

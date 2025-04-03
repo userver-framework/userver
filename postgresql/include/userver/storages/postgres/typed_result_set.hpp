@@ -39,7 +39,8 @@ namespace storages::postgres {
 ///   - non-aggregate class with some augmentation.
 ///
 /// Data members of the tuple or the classes must be supported by the driver.
-/// For more information on supported data types please see @ref pg_types
+/// For more information on supported data types please see
+/// @ref scripts/docs/en/userver/pg_types.md.
 ///
 /// @par std::tuple.
 ///
@@ -143,90 +144,78 @@ namespace storages::postgres {
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_types | @ref pg_errors ⇨
+/// ⇦ @ref scripts/docs/en/userver/pg_types.md | @ref pg_errors ⇨
 /// @htmlonly </div> @endhtmlonly
 
 template <typename T, typename ExtractionTag>
 class TypedResultSet {
- public:
-  using size_type = ResultSet::size_type;
-  using difference_type = ResultSet::difference_type;
-  static constexpr size_type npos = ResultSet::npos;
-  static constexpr ExtractionTag kExtractTag{};
+public:
+    using size_type = ResultSet::size_type;
+    using difference_type = ResultSet::difference_type;
+    static constexpr size_type npos = ResultSet::npos;
+    static constexpr ExtractionTag kExtractTag{};
 
-  //@{
-  /** @name Row container concept */
-  using const_iterator =
-      detail::ConstTypedRowIterator<T, ExtractionTag,
-                                    detail::IteratorDirection::kForward>;
-  using const_reverse_iterator =
-      detail::ConstTypedRowIterator<T, ExtractionTag,
-                                    detail::IteratorDirection::kReverse>;
+    //@{
+    /** @name Row container concept */
+    using const_iterator = detail::ConstTypedRowIterator<T, ExtractionTag, detail::IteratorDirection::kForward>;
+    using const_reverse_iterator = detail::ConstTypedRowIterator<T, ExtractionTag, detail::IteratorDirection::kReverse>;
 
-  using value_type = T;
-  using pointer = const_iterator;
+    using value_type = T;
+    using pointer = const_iterator;
 
 // Forbidding assignments to operator[] result in debug, getting max
 // performance in release.
 #ifdef NDEBUG
-  using reference = value_type;
+    using reference = value_type;
 #else
-  using reference = std::add_const_t<value_type>;
+    using reference = std::add_const_t<value_type>;
 #endif
 
-  //@}
-  explicit TypedResultSet(ResultSet result) : result_{std::move(result)} {}
+    //@}
+    explicit TypedResultSet(ResultSet result) : result_{std::move(result)} {}
 
-  /// Number of rows in the result set
-  size_type Size() const { return result_.Size(); }
-  bool IsEmpty() const { return Size() == 0; }
-  //@{
-  /** @name Container interface */
-  //@{
-  /** @name Row container interface */
-  //@{
-  /** @name Forward iteration */
-  const_iterator cbegin() const& { return const_iterator{result_.pimpl_, 0}; }
-  const_iterator begin() const& { return cbegin(); }
-  const_iterator cend() const& {
-    return const_iterator{result_.pimpl_, Size()};
-  }
-  const_iterator end() const& { return cend(); }
-  const_iterator cbegin() const&& { ReportMisuse(); }
-  const_iterator begin() const&& { ReportMisuse(); }
-  const_iterator cend() const&& { ReportMisuse(); }
-  const_iterator end() const&& { ReportMisuse(); }
-  //@}
-  //@{
-  /** @name Reverse iteration */
-  const_reverse_iterator crbegin() const& {
-    return const_reverse_iterator(result_.pimpl_, Size() - 1);
-  }
-  const_reverse_iterator rbegin() const& { return crbegin(); }
-  const_reverse_iterator crend() const& {
-    return const_reverse_iterator(result_.pimpl_, npos);
-  }
-  const_reverse_iterator rend() const& { return crend(); }
-  const_reverse_iterator crbegin() const&& { ReportMisuse(); }
-  const_reverse_iterator rbegin() const&& { ReportMisuse(); }
-  const_reverse_iterator crend() const&& { ReportMisuse(); }
-  const_reverse_iterator rend() const&& { ReportMisuse(); }
-  //@}
-  /// @brief Access a row by index
-  /// @throws RowIndexOutOfBounds if index is out of bounds
-  // NOLINTNEXTLINE(readability-const-return-type)
-  reference operator[](size_type index) const& {
-    return result_[index].template As<value_type>(kExtractTag);
-  }
-  // NOLINTNEXTLINE(readability-const-return-type)
-  reference operator[](size_type) const&& { ReportMisuse(); }
-  //@}
- private:
-  [[noreturn]] static void ReportMisuse() {
-    static_assert(!sizeof(T), "keep the TypedResultSet before using, please");
-  }
+    /// Number of rows in the result set
+    size_type Size() const { return result_.Size(); }
+    bool IsEmpty() const { return Size() == 0; }
+    //@{
+    /** @name Container interface */
+    //@{
+    /** @name Row container interface */
+    //@{
+    /** @name Forward iteration */
+    const_iterator cbegin() const& { return const_iterator{result_.pimpl_, 0}; }
+    const_iterator begin() const& { return cbegin(); }
+    const_iterator cend() const& { return const_iterator{result_.pimpl_, Size()}; }
+    const_iterator end() const& { return cend(); }
+    const_iterator cbegin() const&& { ReportMisuse(); }
+    const_iterator begin() const&& { ReportMisuse(); }
+    const_iterator cend() const&& { ReportMisuse(); }
+    const_iterator end() const&& { ReportMisuse(); }
+    //@}
+    //@{
+    /** @name Reverse iteration */
+    const_reverse_iterator crbegin() const& { return const_reverse_iterator(result_.pimpl_, Size() - 1); }
+    const_reverse_iterator rbegin() const& { return crbegin(); }
+    const_reverse_iterator crend() const& { return const_reverse_iterator(result_.pimpl_, npos); }
+    const_reverse_iterator rend() const& { return crend(); }
+    const_reverse_iterator crbegin() const&& { ReportMisuse(); }
+    const_reverse_iterator rbegin() const&& { ReportMisuse(); }
+    const_reverse_iterator crend() const&& { ReportMisuse(); }
+    const_reverse_iterator rend() const&& { ReportMisuse(); }
+    //@}
+    /// @brief Access a row by index
+    /// @throws RowIndexOutOfBounds if index is out of bounds
+    // NOLINTNEXTLINE(readability-const-return-type)
+    reference operator[](size_type index) const& { return result_[index].template As<value_type>(kExtractTag); }
+    // NOLINTNEXTLINE(readability-const-return-type)
+    reference operator[](size_type) const&& { ReportMisuse(); }
+    //@}
+private:
+    [[noreturn]] static void ReportMisuse() {
+        static_assert(!sizeof(T), "keep the TypedResultSet before using, please");
+    }
 
-  ResultSet result_;
+    ResultSet result_;
 };
 
 }  // namespace storages::postgres

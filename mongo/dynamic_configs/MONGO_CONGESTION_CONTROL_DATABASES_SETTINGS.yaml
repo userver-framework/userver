@@ -1,0 +1,20 @@
+default: {}
+description: |
+    Whether Congestion Control is enabled for specified MongoDB databases.
+    Overrides settings from MONGO_CONGESTION_CONTROL_ENABLED.
+schema:
+    type: object
+    example: |
+        {
+            // Options for specified database.
+            "mongo-stq_config": true,
+            // Default options. Applied to all not specified components.
+            // If __default__ section is not present,
+            // use settings from MONGO_CONGESTION_CONTROL_ENABLED
+            "__default__": false
+        }
+    properties:
+        __default__:
+            type: boolean
+    additionalProperties:
+        type: boolean

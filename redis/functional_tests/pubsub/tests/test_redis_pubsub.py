@@ -43,7 +43,9 @@ async def test_happy_path_sentinel(service_client, redis_store, db_name):
 
 @pytest.mark.parametrize('db_name', ['sentinel', 'sentinel-with-master'])
 async def test_happy_path_sentinel_with_resubscription(
-        service_client, redis_store, db_name,
+    service_client,
+    redis_store,
+    db_name,
 ):
     msg = 'sentinel_message'
     response = await service_client.put(_get_url(db_name))
@@ -71,3 +73,15 @@ async def test_happy_path_cluster(service_client, redis_cluster_store):
 
     if failed:
         assert False, f'Failed after multiple retries: {failed}'
+
+
+async def test_happy_path_standalone(service_client, redis_standalone_store):
+    msg = 'sentinel_message'
+    assert await _validate_pubsub(redis_standalone_store, service_client, msg, 'standalone')
+
+
+async def test_happy_path_standalone_with_resubscription(service_client, redis_standalone_store):
+    msg = 'sentinel_message'
+    response = await service_client.put(_get_url('standalone'))
+    assert response.status == 200
+    assert await _validate_pubsub(redis_standalone_store, service_client, msg, 'standalone')

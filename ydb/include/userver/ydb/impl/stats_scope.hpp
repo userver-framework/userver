@@ -13,28 +13,28 @@ struct Stats;
 struct StatsCounters;
 
 class StatsScope final {
- public:
-  struct TransactionTag {};
+public:
+    struct TransactionTag {};
 
-  StatsScope(Stats& stats, const Query& query);
-  StatsScope(TransactionTag, Stats& stats, const std::string& tx_name);
+    StatsScope(Stats& stats, const Query& query);
+    StatsScope(TransactionTag, Stats& stats, const std::string& tx_name);
 
-  StatsScope(StatsScope&&) noexcept;
-  ~StatsScope();
+    StatsScope(StatsScope&&) noexcept;
+    ~StatsScope();
 
-  void OnError() noexcept;
-  void OnTransportError() noexcept;
-  void OnCancelled() noexcept;
+    void OnError() noexcept;
+    void OnTransportError() noexcept;
+    void OnCancelled() noexcept;
 
- private:
-  explicit StatsScope(StatsCounters&);
+private:
+    explicit StatsScope(StatsCounters&);
 
-  StatsCounters& stats_;
-  const std::chrono::steady_clock::time_point start_;
-  bool is_active_{true};
-  bool is_error_{false};
-  bool is_transport_error_{false};
-  bool is_cancelled_{false};
+    StatsCounters& stats_;
+    const std::chrono::steady_clock::time_point start_;
+    bool is_active_{true};
+    bool is_error_{false};
+    bool is_transport_error_{false};
+    bool is_cancelled_{false};
 };
 
 }  // namespace ydb::impl

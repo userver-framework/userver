@@ -8,18 +8,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-CountedCoroutinePtr::CountedCoroutinePtr(CoroPool::CoroutinePtr coro,
-                                         TaskProcessor& task_processor)
+CountedCoroutinePtr::CountedCoroutinePtr(CoroPool::CoroutinePtr coro, TaskProcessor& task_processor)
     : coro_(std::move(coro)), token_(task_processor.GetTaskCounter()) {}
 
 CountedCoroutinePtr::CoroPool::Coroutine& CountedCoroutinePtr::operator*() {
-  UASSERT(coro_);
-  return coro_->Get();
+    UASSERT(coro_);
+    return coro_->Get();
 }
 
 void CountedCoroutinePtr::ReturnToPool() && {
-  if (coro_) std::move(*coro_).ReturnToPool();
-  token_ = std::nullopt;
+    if (coro_) std::move(*coro_).ReturnToPool();
+    token_ = std::nullopt;
 }
 
 }  // namespace engine::impl

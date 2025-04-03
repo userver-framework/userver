@@ -21,54 +21,55 @@ namespace storages::clickhouse::io::columns {
 /// of 8 hex bytes group is bytewise reversed).
 ///
 /// Requires **both** writes and reads to be performed via userver to work.
-class MismatchedEndiannessUuidColumn final
-    : public ClickhouseColumn<MismatchedEndiannessUuidColumn> {
- public:
-  using cpp_type = boost::uuids::uuid;
-  using container_type = std::vector<cpp_type>;
+class MismatchedEndiannessUuidColumn final : public ClickhouseColumn<MismatchedEndiannessUuidColumn> {
+public:
+    using cpp_type = boost::uuids::uuid;
+    using container_type = std::vector<cpp_type>;
 
-  MismatchedEndiannessUuidColumn(ColumnRef column);
+    MismatchedEndiannessUuidColumn(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 /// @brief Represents ClickHouse UUID column.
 class UuidRfc4122Column final : public ClickhouseColumn<UuidRfc4122Column> {
- public:
-  using cpp_type = boost::uuids::uuid;
-  using container_type = std::vector<cpp_type>;
+public:
+    using cpp_type = boost::uuids::uuid;
+    using container_type = std::vector<cpp_type>;
 
-  UuidRfc4122Column(ColumnRef column);
+    UuidRfc4122Column(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 // Dummy implementation to force a compile-time error on usage attempt.
 class UuidColumn final : public ClickhouseColumn<UuidColumn> {
- public:
-  using cpp_type = boost::uuids::uuid;
-  using container_type = std::vector<cpp_type>;
+public:
+    using cpp_type = boost::uuids::uuid;
+    using container_type = std::vector<cpp_type>;
 
-  template <typename T>
-  UuidColumn(T) {
-    ReportMisuse<T>();
-  }
+    template <typename T>
+    UuidColumn(T) {
+        ReportMisuse<T>();
+    }
 
-  template <typename T>
-  static ColumnRef Serialize(const T&) {
-    ReportMisuse<T>();
-    return {};
-  }
+    template <typename T>
+    static ColumnRef Serialize(const T&) {
+        ReportMisuse<T>();
+        return {};
+    }
 
- private:
-  template <typename T>
-  static void ReportMisuse() {
-    static_assert(!sizeof(T),
-                  "UuidColumn is deprecated: for old code rename it to "
-                  "MismatchedEndiannessUuidColumn, for new code we encourage "
-                  "you to use UuidRfc4122Column instead. See the "
-                  "MismatchedEndiannessUuidColumn docs for explanation.");
-  }
+private:
+    template <typename T>
+    static void ReportMisuse() {
+        static_assert(
+            !sizeof(T),
+            "UuidColumn is deprecated: for old code rename it to "
+            "MismatchedEndiannessUuidColumn, for new code we encourage "
+            "you to use UuidRfc4122Column instead. See the "
+            "MismatchedEndiannessUuidColumn docs for explanation."
+        );
+    }
 };
 
 }  // namespace storages::clickhouse::io::columns

@@ -14,19 +14,17 @@ class TestsuiteSupport;
 namespace testsuite::impl::actions {
 
 class Control final : public BaseTestsuiteAction {
- public:
-  Control(const components::ComponentContext& component_context,
-          bool testpoint_supported);
+public:
+    Control(const components::ComponentContext& component_context, bool testpoint_supported);
 
-  formats::json::Value Perform(
-      const formats::json::Value& request_body) const override;
+    formats::json::Value Perform(const formats::json::Value& request_body) const override;
 
- private:
-  void InvalidateCaches(const formats::json::Value& invalidate_caches) const;
+private:
+    void InvalidateCaches(const formats::json::Value& invalidate_caches) const;
 
-  components::TestsuiteSupport& testsuite_support_;
-  components::Logging& logging_component_;
-  const bool testpoint_supported_;
+    components::TestsuiteSupport& testsuite_support_;
+    components::Logging& logging_component_;
+    const bool testpoint_supported_;
 };
 
 }  // namespace testsuite::impl::actions

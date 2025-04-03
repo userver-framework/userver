@@ -1,9 +1,21 @@
+import pytest
+
+
 async def test_basic(service_client, monitor_client):
     response = await service_client.get('/metrics')
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
 
     metric = await monitor_client.single_metric('sample-metrics.foo')
     assert metric.value > 0
+
+
+# /// [uservice_oneshot sample]
+@pytest.mark.uservice_oneshot
+async def test_initial_metrics(service_client, monitor_client):
+    metric = await monitor_client.single_metric('sample-metrics.foo')
+    assert metric.value == 0
+    # /// [uservice_oneshot sample]
 
 
 # /// [metrics reset]
@@ -18,6 +30,7 @@ async def test_reset(service_client, monitor_client):
 
     response = await service_client.get('/metrics')
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
 
     metric = await monitor_client.single_metric('sample-metrics.foo')
     assert metric.value == 1
@@ -37,7 +50,8 @@ async def test_engine_metrics(service_client, monitor_client):
     assert metric.labels == {'task_processor': 'main-task-processor'}
 
     metrics_dict = await monitor_client.metrics(
-        prefix='http.', labels={'http_path': '/ping'},
+        prefix='http.',
+        labels={'http_path': '/ping'},
     )
 
     assert metrics_dict

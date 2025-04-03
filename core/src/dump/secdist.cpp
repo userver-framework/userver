@@ -9,23 +9,23 @@ USERVER_NAMESPACE_BEGIN
 namespace dump {
 
 Secdist::Secdist(const formats::json::Value& doc) {
-  auto section = doc["CACHE_DUMP_SECRET_KEYS"];
-  if (section.IsMissing()) return;
+    auto section = doc["CACHE_DUMP_SECRET_KEYS"];
+    if (section.IsMissing()) return;
 
-  for (auto [name, key] : Items(std::move(section))) {
-    secret_keys_.emplace(std::move(name),
-                         crypto::base64::Base64Decode(key.As<std::string>()));
-  }
+    for (auto [name, key] : Items(std::move(section))) {
+        secret_keys_.emplace(std::move(name), crypto::base64::Base64Decode(key.As<std::string>()));
+    }
 }
 
 SecretKey Secdist::GetSecretKey(const std::string& cache_name) const {
-  auto it = secret_keys_.find(cache_name);
-  if (it != secret_keys_.end()) return it->second;
+    auto it = secret_keys_.find(cache_name);
+    if (it != secret_keys_.end()) return it->second;
 
-  throw std::runtime_error(
-      fmt::format("Cache dump secret key for cache '{}' not found in secdist "
-                  "CACHE_DUMP_SECRET_KEYS",
-                  cache_name));
+    throw std::runtime_error(fmt::format(
+        "Cache dump secret key for cache '{}' not found in secdist "
+        "CACHE_DUMP_SECRET_KEYS",
+        cache_name
+    ));
 }
 
 }  // namespace dump

@@ -26,7 +26,7 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 utils::DaemonMain initializes and starts the component system with the provided command line arguments:
 
-@snippet samples/production_service/production_service.cpp Production service sample - main
+@snippet samples/production_service/main.cpp Production service sample - main
 
 A path to the static config file should be passed from a command line to start the service:
 
@@ -112,7 +112,8 @@ that would stop sending traffic to the server if it responds with codes other th
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config ping
 
-Note that the ping handler lives on the task processor of all the other handlers. Smart balancers may measure response times and send less traffic to the heavy loaded services. 
+Note that the ping handler lives on the task processor of all the other handlers. Smart balancers may measure response
+times and send less traffic to the heavy loaded services. 
 
 ```
 bash
@@ -129,16 +130,16 @@ Content-Length: 0
 ```
 
 
-### Dynamic configs
+### Dynamic configs of a sample production service
 
 Here's a configuration of a dynamic config related components
 components::DynamicConfigClient, components::DynamicConfig,
 components::DynamicConfigClientUpdater.
 
-Service starts with some dynamic config values from `dynamic-config.fs-cache-path`
-file and updates dynamic values from a
+Service starts with some dynamic config values from defaults and updates dynamic values from a
 @ref scripts/docs/en/userver/tutorial/config_service.md "configs service"
-at startup.
+at startup. If the first update fails, the values are retrieved from `dynamic-config.fs-cache-path`
+file (if it exists).
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
 
@@ -152,13 +153,17 @@ at startup.
 
 ### Congestion Control
 
-congestion_control::Component limits the active requests count. In case of overload it responds with HTTP 429 codes to some requests, allowing your service to properly process handle the rest.
+See @ref scripts/docs/en/userver/congestion_control.md.
 
-All the significant parts of the component are configured by dynamic config options @ref USERVER_RPS_CCONTROL and @ref USERVER_RPS_CCONTROL_ENABLED 
+congestion_control::Component limits the active requests count. In case of overload it responds with HTTP 429 codes to
+some requests, allowing your service to properly process handle the rest.
+
+All the significant parts of the component are configured by dynamic config options @ref USERVER_RPS_CCONTROL and
+@ref USERVER_RPS_CCONTROL_ENABLED.
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config congestion-control
 
-It is a good idea to disable it in unit tests to avoid getting HTTP 429 on an overloaded CI server.
+It is a good idea to disable it in unit tests to avoid getting `HTTP 429` on an overloaded CI server.
 
 
 @anchor tutorial_metrics
@@ -185,7 +190,7 @@ the @ref TESTSUITE_METRICS_TESTING "testsuite metrics testing".
 List of userver built-in metrics could be found at
 @ref scripts/docs/en/userver/service_monitor.md.
 
-# Alerts
+### Alerts
 
 Alerts is a way to propagate critical errors from your service to a monitoring system.
 
@@ -219,10 +224,6 @@ data. This component is required by many high-level components and it is safe to
 use this component in production environments.
 
 
-## Dynamic config
-
-Dynamic configs are described in details at @ref scripts/docs/en/schemas/dynamic_configs.md .
-
 ### Build
 
 This sample requires @ref scripts/docs/en/userver/tutorial/config_service.md "configs service", so we build and start one from our previous tutorials.
@@ -246,21 +247,21 @@ python3 ../samples/tests/prepare_production_configs.py
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" are used to make sure
 that the service is working fine and
 implements the required functionality. A recommended practice is to build the
-service in Debug and Release modes and tests both of them, then deploy the
-Release build to the production, @ref "disabling all the tests related handlers".
+service in Debug and Release modes and test both of them, then deploy the
+Release build to the production, disabling all the tests-related handlers.
 
 Debug builds of the userver provide numerous assertions that validate the
 framework usage and help to detect bugs at early stages.
 
 Typical functional tests for a service consist of a `conftest.py` file with
-mocks+configs for the sereffectivelyvice and a bunch of `test_*.py` files with actual
+mocks+configs for the service and a bunch of `test_*.py` files with actual
 tests. Such approach allows to reuse mocks and configurations in different
 tests.
 
 ## Full sources
 
 See the full example at 
-* @ref samples/production_service/production_service.cpp
+* @ref samples/production_service/main.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml
 * @ref samples/production_service/CMakeLists.txt
@@ -274,7 +275,7 @@ See the full example at
 ⇦ @ref scripts/docs/en/userver/tutorial/config_service.md | @ref scripts/docs/en/userver/tutorial/tcp_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/production_service/production_service.cpp
+@example samples/production_service/main.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/CMakeLists.txt

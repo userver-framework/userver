@@ -15,39 +15,38 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 template <typename Iter>
-auto DetectEnumerateValueType()
-    -> std::pair<const std::size_t, decltype(*std::declval<Iter>())>;
+auto DetectEnumerateValueType() -> std::pair<const std::size_t, decltype(*std::declval<Iter>())>;
 
 template <typename Iter, typename... Args>
 auto DetectEnumerateValueType(Args&&...) -> void;
 
 template <typename Iter>
 struct IteratorWrapper {
-  using difference_type = std::ptrdiff_t;
-  using value_type = decltype(DetectEnumerateValueType<Iter>());
-  using reference = value_type;
-  using iterator_category = std::input_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = decltype(DetectEnumerateValueType<Iter>());
+    using reference = value_type;
+    using iterator_category = std::input_iterator_tag;
 
-  Iter iterator;
-  std::size_t pos{0};
+    Iter iterator;
+    std::size_t pos{0};
 
-  constexpr IteratorWrapper& operator++() {
-    ++pos;
-    ++iterator;
-    return *this;
-  }
+    constexpr IteratorWrapper& operator++() {
+        ++pos;
+        ++iterator;
+        return *this;
+    }
 
-  constexpr value_type operator*() const { return {pos, *iterator}; }
+    constexpr value_type operator*() const { return {pos, *iterator}; }
 
-  template <typename OtherIter>
-  constexpr bool operator==(const IteratorWrapper<OtherIter>& other) const {
-    return iterator == other.iterator;
-  }
+    template <typename OtherIter>
+    constexpr bool operator==(const IteratorWrapper<OtherIter>& other) const {
+        return iterator == other.iterator;
+    }
 
-  template <typename OtherIter>
-  constexpr bool operator!=(const IteratorWrapper<OtherIter>& other) const {
-    return !(iterator == other.iterator);
-  }
+    template <typename OtherIter>
+    constexpr bool operator!=(const IteratorWrapper<OtherIter>& other) const {
+        return !(iterator == other.iterator);
+    }
 };
 
 template <typename Range>
@@ -58,23 +57,15 @@ using SentinelTypeOf = decltype(std::end(std::declval<Range&>()));
 
 template <typename Container>
 struct ContainerWrapper {
-  constexpr IteratorWrapper<IteratorTypeOf<Container>> begin() {
-    return {std::begin(container), 0};
-  }
+    constexpr IteratorWrapper<IteratorTypeOf<Container>> begin() { return {std::begin(container), 0}; }
 
-  constexpr IteratorWrapper<SentinelTypeOf<Container>> end() {
-    return {std::end(container), 0};
-  }
+    constexpr IteratorWrapper<SentinelTypeOf<Container>> end() { return {std::end(container), 0}; }
 
-  constexpr IteratorWrapper<IteratorTypeOf<const Container>> begin() const {
-    return {std::begin(container), 0};
-  }
+    constexpr IteratorWrapper<IteratorTypeOf<const Container>> begin() const { return {std::begin(container), 0}; }
 
-  constexpr IteratorWrapper<SentinelTypeOf<const Container>> end() const {
-    return {std::end(container), 0};
-  }
+    constexpr IteratorWrapper<SentinelTypeOf<const Container>> end() const { return {std::end(container), 0}; }
 
-  Container container;
+    Container container;
 };
 
 }  // namespace utils::impl
@@ -92,7 +83,7 @@ namespace utils {
 /// @endcode
 template <typename Container>
 constexpr auto enumerate(Container&& iterable) {
-  return impl::ContainerWrapper<Container>{std::forward<Container>(iterable)};
+    return impl::ContainerWrapper<Container>{std::forward<Container>(iterable)};
 }
 
 }  // namespace utils

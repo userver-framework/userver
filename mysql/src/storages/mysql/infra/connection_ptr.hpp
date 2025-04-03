@@ -15,23 +15,22 @@ namespace infra {
 class Pool;
 
 class ConnectionPtr final {
- public:
-  ConnectionPtr(std::shared_ptr<Pool>&& pool,
-                std::unique_ptr<impl::Connection>&& connection);
-  ~ConnectionPtr();
+public:
+    ConnectionPtr(std::shared_ptr<Pool>&& pool, std::unique_ptr<impl::Connection>&& connection);
+    ~ConnectionPtr();
 
-  ConnectionPtr(ConnectionPtr&& other) noexcept;
+    ConnectionPtr(ConnectionPtr&& other) noexcept;
 
-  impl::Connection& operator*() const;
-  impl::Connection* operator->() const noexcept;
+    impl::Connection& operator*() const;
+    impl::Connection* operator->() const noexcept;
 
-  bool IsValid() const;
+    bool IsValid() const;
 
- private:
-  void Release() noexcept;
+private:
+    void Release() noexcept;
 
-  std::shared_ptr<Pool> pool_;
-  std::unique_ptr<impl::Connection> connection_;
+    std::shared_ptr<Pool> pool_;
+    std::unique_ptr<impl::Connection> connection_;
 };
 
 }  // namespace infra

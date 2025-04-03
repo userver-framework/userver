@@ -30,22 +30,22 @@ std::string MakeChildPath(std::string&& parent, std::size_t index);
 ///
 /// Document/array element path storage
 class Path {
- public:
-  Path();
+public:
+    Path();
 
-  bool IsRoot() const;
-  std::string ToString() const;
-  std::string_view ToStringView() const;
+    bool IsRoot() const;
+    std::string ToString() const;
+    std::string_view ToStringView() const;
 
-  Path MakeChildPath(std::string_view key) const;
-  Path MakeChildPath(std::size_t index) const;
+    Path MakeChildPath(std::string_view key) const;
+    Path MakeChildPath(std::size_t index) const;
 
-  static Path WithPrefix(std::string path_prefix);
+    static Path WithPrefix(std::string path_prefix);
 
- private:
-  explicit Path(std::string path);
+private:
+    explicit Path(std::string path);
 
-  std::string path_;
+    std::string path_;
 };
 
 }  // namespace formats::common

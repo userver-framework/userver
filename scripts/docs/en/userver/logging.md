@@ -10,8 +10,9 @@ The userver framework addresses modern logging requirements and provides
 multiple facilities for efficient work with logs, including
 @ref scripts/docs/en/userver/log_level_running_service.md.
 
-Below are the intruductions to main developer logging facilities.
+Below are the introductions to main developer logging facilities.
 
+For information on controlling log level in unit tests see @ref scripts/docs/en/userver/testing.md
 
 ### Log level
 
@@ -20,20 +21,61 @@ Macros are used for logging:
 @snippet logging/log_test.cpp  Sample logging usage
 
 The right part of the expression is calculated only if the logging level is less or equal to the macro log level.
-I.e., the right part of the expression `LOG_DEBUG ()<< ...` is calculated only in the case of the `DEBUG`
+I.e., the right part of the expression `LOG_DEBUG() << ...` is calculated only in the case of the `DEBUG`
 or `TRACE` logging level.
 
 Sometimes it is useful to set the logging level of a given log entry dynamically:
 
 @snippet logging/log_test.cpp  Example set custom logging usage
 
+### Guidelines for choosing log level
+
+Use `TRACE` for debug logs that are too frequent and verbose to enable them even for most tests.
+
+Use `DEBUG` for debug information:
+
+* the logs likely won't give additional information from production to debug incidents;
+* the logs are only helpful for the service developers during debug;
+* there are too many such logs to enable them in production.
+
+Use `INFO` for regular operation:
+
+* examples:
+   * handling a request;
+   * background operations, e.g. `utils::PeriodicTask`, periodic caches;
+   * expected change in the operation mode, e.g. applying dynamic config.
+
+Use `WARNING` for unexpected, but regular operation:
+
+* immediate reaction from admins or service developers IS NOT required;
+* if the message goes unnoticed, the service will keep working correctly;
+* these logs should be looked at before `INFO` when debugging incidents;
+* examples:
+   * another service returned HTTP 5xx, which does not lead to degradation of the current service
+     (e.g. due to a fallback or retry);
+   * the current service returned 4xx (an upstream client error);
+   * switching to a fallback mode without degradation.
+
+Use `ERROR` for critical errors:
+
+* immediate reaction from admins or service developers IS required;
+* either the service is failing to handle some requests, or its background operations are failing,
+  which is going to disrupt the whole service;
+* examples:
+   * the current service returned HTTP 500;
+   * a downstream service returned 4xx (the current service sends invalid requests);
+   * failing to update a periodic cache;
+   * an inconsistent state of the database.
+
+Use `CRITICAL` optionally for service-scale critical errors.
+
 ### Filter to the log level
 
 Not all logs get into the log file, but only those that are not lower than the logger's log level. The logger log level
 is set in static config (see components::Logging).
 
-The log level can be changed in the static config for a particular handle. In this case, the log level of the logger is changed only
-for the request handling task of the handle and for all the subtasks:
+The log level can be changed in the static config for a particular handle. In this case, the log level of the logger
+is changed only for the request handling task of the handle and for all the subtasks:
 
 ```
 yaml
@@ -43,21 +85,29 @@ yaml
         log-level: WARNING
 ```
 
+Logging per line and file can be overridden at runtime using @ref USERVER_LOG_DYNAMIC_DEBUG dynamic config.
+
 
 ### Dynamic change of the logging level
 
 The logging `level` that was set in the static config of the components::Logging
 component for the entire service can be changed on the fly.
+
 See @ref scripts/docs/en/userver/log_level_running_service.md for more info.
 
 ### Limit log length of the requests and responses
 
-For per-handle limiting of the request body or response data logging you can use the `request_body_size_log_limit` and `response_data_size_log_limit` static options of the handler (see server::handlers::HandlerBase). Or you could override the server::handlers::HttpHandlerBase::GetRequestBodyForLogging and server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
+For per-handle limiting of the request body or response data logging you can use the `request_body_size_log_limit` and
+`request_headers_size_log_limit` and `response_data_size_log_limit` static options of the handler
+(see server::handlers::HandlerBase). Or you could override the
+server::handlers::HttpHandlerBase::GetRequestBodyForLogging and
+server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
 
 ### Limiting the log frequency
 
 If some line of code generates too many logs and a small number of them is enough, then `LOG_*` should be
-replaced with `LOG_LIMITED_*`. For example, `LOG(lvl)` should be replaced with `LOG_LIMITED(lvl)`; `LOG_DEBUG()` should be replaced with `LOG_LIMITED_DEBUG()`, etc.
+replaced with `LOG_LIMITED_*`. For example, `LOG(lvl)` should be replaced with `LOG_LIMITED(lvl)`; `LOG_DEBUG()` should
+be replaced with `LOG_LIMITED_DEBUG()`, etc.
 
 In this case, the log message is written only if the message index is a power of two. The counter is reset every second.
 
@@ -98,7 +148,7 @@ to use `tracing::Span`, which implicitly adds tags to the log.
 ### Stacktrace
 
 Sometimes it is useful to write a full stacktrace to the log. Typical use case is for logging a "never should happen happened"
-situation. Use `logging::LogExtra::Stacktrace()` for such cases:
+situation. Use logging::LogExtra::Stacktrace() for such cases:
 
 @snippet logging/log_extra_test.cpp  Example using stacktrace in log
 
@@ -116,34 +166,34 @@ After that, you can get a logger in the code like this:
 ```cpp
 auto& logging_component =
       context.FindComponent<::components::Logging>();
-  my_logger = logging_component.GetLogger("my_logger_name");
+logging::LoggerPtr my_logger = logging_component.GetLogger("my_logger_name");
 ```
 
 To write to such a logger, it is convenient to use `LOG_XXX_TO`, for example:
 
 ```cpp
-LOG_INFO_TO(my_logger) << "Look, I am a new logger!";
+LOG_INFO_TO(*my_logger) << "Look, I am a new logger!";
 ```
 
 Note: do not forget to configure the logrotate for your new log file!
+
 
 ## Tracing
 The userver implements a request tracing mechanism that is compatible with the
 [opentelemetry](https://opentelemetry.io/docs/) standard.
 
-It allows you to save dependencies between tasks, 
-between requests through several services, 
-thereby building a trace of requests and interactions.
-It can be used to identify slow query stages, bottlenecks, 
+It allows you to save dependencies between tasks, between requests through several services, 
+thereby building a trace of requests and interactions. It can be used to identify slow query stages, bottlenecks, 
 sequential queries, etc.
 
 See tracing::DefaultTracingManagerLocator for more info.
 
 ### tracing::Span
 
-When processing a request, you can create a `tracking::Span` object that measures the execution time of the current code block (technically, the time between its constructor and destructor) and stores the resulting time in the log:
+When processing a request, you can create a tracing::Span object that measures the execution time of the current code
+block (technically, the time between its constructor and destructor) and stores the resulting time in the log:
 
-Example log `tracing::Span span("cache_invalidate")`:
+Example log for `tracing::Span span{"cache_invalidate"}`:
 
 ```
 tskv	timestamp=2018-12-04T14:00:35.303132	timezone=+03:00	level=INFO	module=~Impl ( userver/src/tracing/span.cpp:76 ) 	task_id=140572868354752	coro_id=140579682340544	text=	trace_id=672a081c8004409ca79d5cc05cb5e580	span_id=12ff00c63bcc46599741bab62506881c	parent_id=7a7c1c6999094d2a8e3d22bc6ecf5d70	stopwatch_name=cache_invalidate	start_timestamp=1543921235.301035	total_time=2.08675	span_ref_type=child	stopwatch_units=ms
@@ -155,20 +205,25 @@ Log record example for some `POST /v1/upload`  handle:
 tskv	timestamp=2020-08-13T15:30:52.507493	level=INFO	module=~Impl ( userver/core/src/tracing/span.cpp:139 ) 	task_id=7F110B765400	thread_id=0x00007F115BDEE700	text=	stopwatch_name=http/handler-v1_upload-post	total_time=36.393694	span_ref_type=child	stopwatch_units=ms	start_timestamp=1597321852.471086	meta_type=/v1/upload	_type=response	method=POST	body={"status":"ok"}	uri=/v1/upload?provider_id=driver-metrics	http_handle_request_time=36.277501	http_serialize_response_data_time=0.003394	tags_cache_mapping_time=0.018781	find_service_time=21.702876	http_parse_request_data_time=0.053233	http_check_auth_time=0.029809	http_check_ratelimit_time=0.000118	entities_cache_mapping_time=0.01037	register_request_time=0.819509	log_to_yt_time=0.047565	save_request_result_time=1.523389	upload_queries_time=5.179371	commit_time=4.11817	link=48e0029fc25e460880529b9d300967df	parent_link=b1377a1b20384fe292fd77cb96b30121	source_service=driver-metrics	entity_type=udid	merge_policy=append	provider_name=driver-metrics	tags_count_append=3	meta_code=200	trace_id=2f6bf12265934260876a236c373b37dc	span_id=8f828566189db0d0	parent_id=fdae1985431a6a57
 ```
 
-`tracing::Span` can only be created on stack. Currently, the ability to create `tracing::Span` as a member of a class whose objects can be passed between tasks is not supported.
+tracing::Span can only be created on stack. Currently, the ability to create `tracing::Span` as a member of a class
+whose objects can be passed between tasks is not supported.
 
 ### Tags
 
-In addition to `trace_id`, `span_id`, `parent_id` and other tags specific to opentracing, the `tracing::Span` class can store arbitrary custom tags. To do this, Span implicitly contains LogExtra. You can add tags like this:
+In addition to `trace_id`, `span_id`, `parent_id` and other tags specific to opentracing, the `tracing::Span` class can
+store arbitrary custom tags. To do this, Span implicitly contains LogExtra. You can add tags like this:
 
 @snippet tracing/span_test.cpp  Example using Span tracing
 
-Unlike simple `LogExtra`, tags from `Span` are automatically logged when using `LOG_XXX()`. If you create a `Span`, and you already have a `Span`, then `LogExtra` is copied from the old one to the new one (except for the tags added via `AddNonInheritableTag`).
+Unlike simple `LogExtra`, tags from `Span` are automatically logged when using `LOG_XXX()`. If you create a `Span`, and
+you already have a `Span`, then `LogExtra` is copied from the old one to the new one (except for the tags added via
+`AddNonInheritableTag`).
 
 ### Built-in tag semantics
 
 - `TraceId` propagates both to sub-spans within a single service, and from client to server
-- `Link` propagates within a single service, but not from client to server. A new link is generated for the "root" request handling task
+- `Link` propagates within a single service, but not from client to server. A new link is generated for the "root"
+  request handling task
 - `SpanId` identifies a specific span. It does not propagate
 - For "root" request handling spans, there are additionally:
   - `ParentSpanId`, which is the inner-most `SpanId` of the client
@@ -176,20 +231,25 @@ Unlike simple `LogExtra`, tags from `Span` are automatically logged when using `
 
 ### Span hierarchy and logging
 
-All logs in the current task are implicitly linked to the current `Span` for the user, and tags of this `Span` are added to them (trace_id, span_id, etc.). All `Span` in the current task are implicitly stacked, and if there are several similar `Span`, the last created One (i.e., located at the top of the `Span` stack of the current task) will be used for logging.
+All logs in the current task are implicitly linked to the current `Span` for the user, and tags of this `Span` are added
+to them (trace_id, span_id, etc.). All `Span` in the current task are implicitly stacked, and if there are several
+similar `Span`, the last created One (i.e., located at the top of the `Span` stack of the current task) will be used for
+logging.
 
 @snippet tracing/span_test.cpp  Example span hierarchy
 
-If you want to get the current `Span` (for example, you want to write something to `LogExtra`, but do not want to create an additional `Span`), then you can use the following approach:
+If you want to get the current `Span` (for example, you want to write something to `LogExtra`, but do not want to create
+an additional `Span`), then you can use the following approach:
 
-@snippet tracing/span_test.cpp  Example get current span
+@snippet core/src/tracing/span_test.cpp  Example get current span
 
 ### Creating a Span
 
-A `Span` is automatically created for each request, handled by the server::handlers::HttpHandlerBase inherited handles. `trace_id`, `parent_id` and `link` are automatically populated for the request headers (if any).
+A `Span` is automatically created for each request, handled by the server::handlers::HttpHandlerBase inherited handles.
+`trace_id`, `parent_id` and `link` are automatically populated for the request headers (if any).
 
-Cache handlers do not have a parent Span, so a Span without a parent is automatically created for them, with a new `trace_id` for each update. 
-The situation is similar for all utils::PeriodicTask.
+Cache handlers do not have a parent Span, so a Span without a parent is automatically created for them, with a new
+`trace_id` for each update. The situation is similar for all utils::PeriodicTask.
 
 When creating a new task via `utils::Async`, a new `Span` is created and linked with the current `Span` of the current task.
 
@@ -213,9 +273,12 @@ X-YaTraceId
 
 ### Selectively disabling Span logging
 
-Using the server dynamic config @ref USERVER_NO_LOG_SPANS, you can set names and prefixes of Span names that do not need to be logged. If the span is not logged, then the ScopeTime of this span and any custom tags attached to the span via the methods of the `Add*Tag*()` are not put into the logs.
+Using the server dynamic config @ref USERVER_NO_LOG_SPANS, you can set names and prefixes of Span names that do not need
+to be logged. If the span is not logged, then the tracing::ScopeTime of this span and any custom tags attached to the
+span via the methods of the `Add*Tag*()` are not put into the logs.
 
-For example, this is how you can disable logging of all Span for MongoDB (that is, all Span with `stopwatch_name` starting with `mongo`) and `Span` with `stopwatch_name=test`:
+For example, this is how you can disable logging of all Span for MongoDB (that is, all Span with `stopwatch_name`
+starting with `mongo`) and `Span` with `stopwatch_name=test`:
 
 ```json
 {
@@ -228,6 +291,88 @@ For example, this is how you can disable logging of all Span for MongoDB (that i
 }
 ```
 
+
+@anchor opentelemetry
+## OpenTelemetry protocol
+
+It is possible to use OpenTelemetry protocol for logs and tracing exporting.
+To use it, register all prerequisites for gRPC client and register `otlp::LoggerComponent` in component list in your
+`main` function. The static config file should contain a component section with OTLP logger.
+
+Also remove `default` logger from `logging.loggers` as the default logger is handled by otlp component from now on.
+
+The related part of static config:
+
+@snippet samples/otlp_service/static_config.yaml otlp logger
+
+`endpoint` contains OTLP collector host and port,
+`service-name` contains your service name,
+and `log-level` contains service log level.
+
+After the service start you'll see the following in stderr:
+
+```
+  OTLP logger has started
+```
+
+It means the logger is successfully initialized and is ready to process the logs.
+
+If somethings goes wrong (e.g. OTLP collector agent is not available), you'll see errors in stderr.
+The service buffers not-yet-sent logs and traces in memory, but drops them on overflow.
+
+### Separate Sinks for Logs and Tracing
+
+In certain environments, such as Kubernetes, applications typically write logs to stdout/stderr, while traces are sent
+efficiently through the 'push' model (via OTLP transport). Kubernetes stores the container's stdout/stderr in files on
+nodes, making logs available for log collectors using the `pull` model. This approach ensures that logs remain
+accessible even if the application fails, capturing the most critical information.
+
+To configure separate sinks for logs and traces, use the optional `sinks` block in the `otlp-logger` configuration:
+
+```
+yaml
+otlp-logger:
+    endpoint: $otlp-endpoint
+    service-name: $service-name
+    log-level: info    
+    sinks:
+        logs: default | otlp | both
+        tracing: default | otlp | both
+```
+
+If the 'sinks' block is not present in the 'otlp-logger' configuration, both logs and traces use the OTLP transport and
+are delivered to an OpenTelemetry-compatible collector by a background task in userver.
+
+In the `sinks` block, you can set a value for each stream. See: `otlp::LoggerComponent`.
+
+If you choose `otlp` for both streams, ensure that `logging.loggers` is empty:
+
+```
+yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: {}
+```
+
+Otherwise, add the _default_ logger in the `logging` component's `loggers` field:
+
+```
+yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: 
+        default:
+            file_path: $log-location 
+            level: info
+            overflow_behavior: discard
+        my_rabbit_logger: # you can use additional loggers
+            file_path: $log-location                     
+            level: error
+            overflow_behavior: discard               
+```
+
+@note If you have additional loggers configured, they will function as usual, even if you're using the default
+      logger for tracing only. But you can't redirect them to OTLP exporter.
 
 ----------
 

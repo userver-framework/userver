@@ -47,39 +47,34 @@ MiddlewaresList DefaultPipeline();
 /// @brief Base class to build a server-wide middleware pipeline.
 /// One may inherit from it and implement any custom logic, if desired.
 class PipelineBuilder : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName{
-      "default-server-middleware-pipeline-builder"};
+public:
+    static constexpr std::string_view kName{"default-server-middleware-pipeline-builder"};
 
-  PipelineBuilder(const components::ComponentConfig&,
-                  const components::ComponentContext&);
+    PipelineBuilder(const components::ComponentConfig&, const components::ComponentContext&);
 
-  /// @brief The method to build a server-wide middleware pipeline,
-  /// one may override it if custom behavior is desired.
-  /// @param userver_middleware_pipeline default userver-provided middleware
-  /// pipeline
-  ///
-  /// @note We recommend against omitting/modifying default userver pipeline,
-  /// but leave a possibility to do so.
-  virtual MiddlewaresList BuildPipeline(
-      MiddlewaresList userver_middleware_pipeline) const {
-    auto& resulting_pipeline = userver_middleware_pipeline;
-    const auto& middlewares_to_append = GetMiddlewaresToAppend();
+    /// @brief The method to build a server-wide middleware pipeline,
+    /// one may override it if custom behavior is desired.
+    /// @param userver_middleware_pipeline default userver-provided middleware
+    /// pipeline
+    ///
+    /// @note We recommend against omitting/modifying default userver pipeline,
+    /// but leave a possibility to do so.
+    virtual MiddlewaresList BuildPipeline(MiddlewaresList userver_middleware_pipeline) const {
+        auto& resulting_pipeline = userver_middleware_pipeline;
+        const auto& middlewares_to_append = GetMiddlewaresToAppend();
 
-    resulting_pipeline.insert(resulting_pipeline.end(),
-                              middlewares_to_append.begin(),
-                              middlewares_to_append.end());
+        resulting_pipeline.insert(resulting_pipeline.end(), middlewares_to_append.begin(), middlewares_to_append.end());
 
-    return resulting_pipeline;
-  }
+        return resulting_pipeline;
+    }
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- protected:
-  const MiddlewaresList& GetMiddlewaresToAppend() const;
+protected:
+    const MiddlewaresList& GetMiddlewaresToAppend() const;
 
- private:
-  MiddlewaresList middlewares_to_append_;
+private:
+    MiddlewaresList middlewares_to_append_;
 };
 
 /// @ingroup userver_middlewares userver_base_classes
@@ -88,45 +83,36 @@ class PipelineBuilder : public components::ComponentBase {
 /// One may inherit from it and implement any custom logic, if desired.
 /// By default the behavior is to use the server-wide pipeline.
 class HandlerPipelineBuilder : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName{
-      "default-handler-middleware-pipeline-builder"};
+public:
+    static constexpr std::string_view kName{"default-handler-middleware-pipeline-builder"};
 
-  HandlerPipelineBuilder(const components::ComponentConfig&,
-                         const components::ComponentContext&);
+    HandlerPipelineBuilder(const components::ComponentConfig&, const components::ComponentContext&);
 
-  /// @brief The method to configure build a per-handler middleware pipeline,
-  /// one may override it if custom behavior is desired.
-  ///
-  /// For example, a ping/ handler doesn't necessary need any business-logic
-  /// related functionality, and could use just DefaultPipeline() for itself.
-  ///
-  /// @param server_middleware_pipeline the server-wide middleware pipeline
-  virtual MiddlewaresList BuildPipeline(
-      MiddlewaresList server_middleware_pipeline) const {
-    return server_middleware_pipeline;
-  }
+    /// @brief The method to configure build a per-handler middleware pipeline,
+    /// one may override it if custom behavior is desired.
+    ///
+    /// For example, a ping/ handler doesn't necessary need any business-logic
+    /// related functionality, and could use just DefaultPipeline() for itself.
+    ///
+    /// @param server_middleware_pipeline the server-wide middleware pipeline
+    virtual MiddlewaresList BuildPipeline(MiddlewaresList server_middleware_pipeline) const {
+        return server_middleware_pipeline;
+    }
 };
 
 }  // namespace server::middlewares
 
 template <>
-inline constexpr bool
-    components::kHasValidate<server::middlewares::PipelineBuilder> = true;
+inline constexpr bool components::kHasValidate<server::middlewares::PipelineBuilder> = true;
 
 template <>
-inline constexpr auto
-    components::kConfigFileMode<server::middlewares::PipelineBuilder> =
-        ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<server::middlewares::PipelineBuilder> = ConfigFileMode::kNotRequired;
 
 template <>
-inline constexpr bool
-    components::kHasValidate<server::middlewares::HandlerPipelineBuilder> =
-        true;
+inline constexpr bool components::kHasValidate<server::middlewares::HandlerPipelineBuilder> = true;
 
 template <>
-inline constexpr auto
-    components::kConfigFileMode<server::middlewares::HandlerPipelineBuilder> =
-        ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<server::middlewares::HandlerPipelineBuilder> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

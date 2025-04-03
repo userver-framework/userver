@@ -12,31 +12,31 @@ class BaseParser;
 class ParserHandler;
 
 class ParserState final {
- public:
-  ParserState();
-  ParserState(const ParserState&) = delete;
-  ParserState(ParserState&&) = delete;
-  ~ParserState();
+public:
+    ParserState();
+    ParserState(const ParserState&) = delete;
+    ParserState(ParserState&&) = delete;
+    ~ParserState();
 
-  ParserState& operator=(const ParserState&) = delete;
+    ParserState& operator=(const ParserState&) = delete;
 
-  void PushParser(BaseParser& parser);
+    void PushParser(BaseParser& parser);
 
-  void ProcessInput(std::string_view sw);
+    void ProcessInput(std::string_view sw);
 
-  void PopMe(BaseParser& parser);
+    void PopMe(BaseParser& parser);
 
-  [[noreturn]] void ThrowError(const std::string& err_msg);
+    [[noreturn]] void ThrowError(const std::string& err_msg);
 
- private:
-  std::string GetCurrentPath() const;
+private:
+    std::string GetCurrentPath() const;
 
-  BaseParser& GetTopParser() const;
+    BaseParser& GetTopParser() const;
 
-  struct Impl;
-  utils::FastPimpl<Impl, 792, 8> impl_;
+    struct Impl;
+    utils::FastPimpl<Impl, 792, 8> impl_;
 
-  friend class ParserHandler;
+    friend class ParserHandler;
 };
 
 }  // namespace formats::json::parser

@@ -1,0 +1,21 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties:
+        $ref: "#/definitions/TopologySettings"
+    definitions:
+        TopologySettings:
+            type: object
+            additionalProperties: false
+            properties:
+                max_replication_lag_ms:
+                    type: integer
+                    minimum: 0
+                disabled_replicas:
+                    type: array
+                    x-taxi-cpp-type: std::unordered_set
+                    items:
+                        type: string
+            required:
+              - max_replication_lag_ms

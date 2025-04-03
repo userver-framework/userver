@@ -172,11 +172,11 @@ template argument for customization. Such components are:
 
 A typical case of cache usage consists of trait structure definition:
 
-@snippet cache/postgres_cache_test.cpp Pg Cache Policy Trivial
+@snippet postgresql/src/cache/postgres_cache_test.cpp Pg Cache Policy Trivial
 
 and registration of the caching component in components::ComponentList:
 
-@snippet cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
+@snippet postgresql/src/cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
 
 The DB caches are simple to use and quite poverfull.
 
@@ -229,5 +229,5 @@ Each cache automatically collects metrics. See
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/deadline_propagation.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
+⇦ @ref scripts/docs/en/userver/congestion_control.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -2,6 +2,7 @@ benchmark
 boost
 c-ares
 ccache
+clang-format-git
 cmake
 crypto++
 curl
@@ -19,12 +20,15 @@ ninja
 openssl
 postgresql
 postgresql-libs
+pugixml
 python
 python-google-api-python-client
 python-jinja
 python-pip
 python-voluptuous
 python-yaml
+re2
+rocksdb
 yaml-cpp
 zlib
 makepkg|cctz

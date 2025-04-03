@@ -33,7 +33,7 @@ class DoxygenAwesomeTabs {
         window.addEventListener("load", () => {
             document.querySelectorAll(".tabbed:not(:empty)").forEach((tabbed, tabbedIndex) => {
                 let tabLinkList = []           
-                tabbed.querySelectorAll("li").forEach((tab, tabIndex) => {
+                tabbed.querySelectorAll(":scope > ul > li").forEach((tab, tabIndex) => {
                     tab.id = "tab_" + tabbedIndex + "_" + tabIndex
                     let header = tab.querySelector(".tab-title")
                     let tabLink = document.createElement("button")
@@ -41,7 +41,7 @@ class DoxygenAwesomeTabs {
                     tabLink.appendChild(header)
                     header.title = header.textContent
                     tabLink.addEventListener("click", () => {
-                        tabbed.querySelectorAll("li").forEach((tab) => {
+                        tabbed.querySelectorAll(":scope > ul > li").forEach((tab) => {
                             tab.classList.remove("selected")
                         })
                         tabLinkList.forEach((tabLink) => {
@@ -68,7 +68,7 @@ class DoxygenAwesomeTabs {
 
                 function resize() {
                     let maxTabHeight = 0
-                    tabbed.querySelectorAll("li").forEach((tab, tabIndex) => {
+                    tabbed.querySelectorAll(":scope > ul > li").forEach((tab, tabIndex) => {
                         let visibility = tab.style.display
                         tab.style.display = "block"
                         maxTabHeight = Math.max(tab.offsetHeight, maxTabHeight)

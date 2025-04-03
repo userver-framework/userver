@@ -19,32 +19,32 @@ namespace concurrent {
 /// A version of concurrent::BackgroundTaskStorage for advanced use cases (e.g.
 /// driver internals) that can take the ownership of any kind of task.
 class BackgroundTaskStorageCore final {
- public:
-  /// Creates an empty BTS.
-  BackgroundTaskStorageCore();
+public:
+    /// Creates an empty BTS.
+    BackgroundTaskStorageCore();
 
-  BackgroundTaskStorageCore(BackgroundTaskStorageCore&&) = delete;
-  BackgroundTaskStorageCore& operator=(BackgroundTaskStorageCore&&) = delete;
-  ~BackgroundTaskStorageCore();
+    BackgroundTaskStorageCore(BackgroundTaskStorageCore&&) = delete;
+    BackgroundTaskStorageCore& operator=(BackgroundTaskStorageCore&&) = delete;
+    ~BackgroundTaskStorageCore();
 
-  /// Explicitly cancel and wait for the tasks. New tasks must not be launched
-  /// after this call returns. Should be called no more than once.
-  void CancelAndWait() noexcept;
+    /// Explicitly cancel and wait for the tasks. New tasks must not be launched
+    /// after this call returns. Should be called no more than once.
+    void CancelAndWait() noexcept;
 
-  /// Explicitly wait for execution tasks in the store.
-  /// Should be called no more than once.
-  void CloseAndWaitDebug() noexcept;
+    /// Explicitly wait for execution tasks in the store.
+    /// Should be called no more than once.
+    void CloseAndWaitDebug() noexcept;
 
-  /// @brief Detaches task, allowing it to continue execution out of scope. It
-  /// will be cancelled and waited for on BTS destruction.
-  /// @note After detach, Task becomes invalid
-  void Detach(engine::Task&& task);
+    /// @brief Detaches task, allowing it to continue execution out of scope. It
+    /// will be cancelled and waited for on BTS destruction.
+    /// @note After detach, Task becomes invalid
+    void Detach(engine::Task&& task);
 
-  /// Approximate number of currently active tasks
-  std::int64_t ActiveTasksApprox() const noexcept;
+    /// Approximate number of currently active tasks
+    std::int64_t ActiveTasksApprox() const noexcept;
 
- private:
-  std::optional<engine::impl::DetachedTasksSyncBlock> sync_block_;
+private:
+    std::optional<engine::impl::DetachedTasksSyncBlock> sync_block_;
 };
 
 /// @ingroup userver_concurrency userver_containers
@@ -125,58 +125,56 @@ class BackgroundTaskStorageCore final {
 /// safely use the fields declared before the BTS field, as well as everything
 /// from the components, on which the current component depends.
 class BackgroundTaskStorage final {
- public:
-  /// Creates a BTS that launches tasks in the engine::TaskProcessor used at the
-  /// BTS creation.
-  BackgroundTaskStorage();
+public:
+    /// Creates a BTS that launches tasks in the engine::TaskProcessor used at the
+    /// BTS creation.
+    BackgroundTaskStorage();
 
-  /// Creates a BTS that launches tasks in the specified engine::TaskProcessor.
-  explicit BackgroundTaskStorage(engine::TaskProcessor& task_processor);
+    /// Creates a BTS that launches tasks in the specified engine::TaskProcessor.
+    explicit BackgroundTaskStorage(engine::TaskProcessor& task_processor);
 
-  BackgroundTaskStorage(const BackgroundTaskStorage&) = delete;
-  BackgroundTaskStorage& operator=(const BackgroundTaskStorage&) = delete;
+    BackgroundTaskStorage(const BackgroundTaskStorage&) = delete;
+    BackgroundTaskStorage& operator=(const BackgroundTaskStorage&) = delete;
 
-  /// Explicitly cancel and wait for the tasks. New tasks must not be launched
-  /// after this call returns. Should be called no more than once.
-  void CancelAndWait() noexcept;
+    /// Explicitly cancel and wait for the tasks. New tasks must not be launched
+    /// after this call returns. Should be called no more than once.
+    void CancelAndWait() noexcept;
 
-  /// Explicitly stop accepting new tasks and wait for execution tasks in the
-  /// store. Should be called no more than once.
-  void CloseAndWaitDebug() noexcept;
+    /// Explicitly stop accepting new tasks and wait for execution tasks in the
+    /// store. Should be called no more than once.
+    void CloseAndWaitDebug() noexcept;
 
-  /// @brief Launch a task that will be cancelled and waited for in the BTS
-  /// destructor.
-  ///
-  /// The task is started as non-Critical, it may be cancelled due to
-  /// `TaskProcessor` overload. engine::TaskInheritedVariable instances are not
-  /// inherited from the caller except baggage::Baggage. See
-  /// utils::AsyncBackground for details.
-  template <typename... Args>
-  void AsyncDetach(std::string name, Args&&... args) {
-    core_.Detach(utils::AsyncBackground(std::move(name), task_processor_,
-                                        std::forward<Args>(args)...));
-  }
+    /// @brief Launch a task that will be cancelled and waited for in the BTS
+    /// destructor.
+    ///
+    /// The task is started as non-Critical, it may be cancelled due to
+    /// `TaskProcessor` overload. engine::TaskInheritedVariable instances are not
+    /// inherited from the caller except baggage::Baggage. See
+    /// utils::AsyncBackground for details.
+    template <typename... Args>
+    void AsyncDetach(std::string name, Args&&... args) {
+        core_.Detach(utils::AsyncBackground(std::move(name), task_processor_, std::forward<Args>(args)...));
+    }
 
-  /// @brief Launch a task that will be cancelled and waited for in the BTS
-  /// destructor.
-  ///
-  /// Execution of function is guaranteed to start regardless
-  /// of engine::TaskProcessor load limits.
-  /// engine::TaskInheritedVariable instances are not
-  /// inherited from the caller except baggage::Baggage. See
-  /// utils::CriticalAsyncBackground for details.
-  template <typename... Args>
-  void CriticalAsyncDetach(std::string name, Args&&... args) {
-    core_.Detach(utils::CriticalAsyncBackground(
-        std::move(name), task_processor_, std::forward<Args>(args)...));
-  }
+    /// @brief Launch a task that will be cancelled and waited for in the BTS
+    /// destructor.
+    ///
+    /// Execution of function is guaranteed to start regardless
+    /// of engine::TaskProcessor load limits.
+    /// engine::TaskInheritedVariable instances are not
+    /// inherited from the caller except baggage::Baggage. See
+    /// utils::CriticalAsyncBackground for details.
+    template <typename... Args>
+    void CriticalAsyncDetach(std::string name, Args&&... args) {
+        core_.Detach(utils::CriticalAsyncBackground(std::move(name), task_processor_, std::forward<Args>(args)...));
+    }
 
-  /// Approximate number of currently active tasks
-  std::int64_t ActiveTasksApprox() const noexcept;
+    /// Approximate number of currently active tasks
+    std::int64_t ActiveTasksApprox() const noexcept;
 
- private:
-  BackgroundTaskStorageCore core_;
-  engine::TaskProcessor& task_processor_;
+private:
+    BackgroundTaskStorageCore core_;
+    engine::TaskProcessor& task_processor_;
 };
 
 }  // namespace concurrent

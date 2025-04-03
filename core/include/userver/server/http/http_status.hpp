@@ -14,8 +14,7 @@ namespace server::http {
 /// @brief HTTP status codes
 using HttpStatus = USERVER_NAMESPACE::http::StatusCode;
 
-[[deprecated("use StatusCodeString")]] std::string_view HttpStatusString(
-    HttpStatus status);
+[[deprecated("use StatusCodeString")]] std::string_view HttpStatusString(HttpStatus status);
 
 }  // namespace server::http
 

@@ -25,29 +25,26 @@ namespace components {
 // clang-format on
 
 class AuthCheckerSettings final : public ComponentBase {
- public:
-  AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
+public:
+    AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::AuthCheckerSettings
-  static constexpr std::string_view kName = "auth-checker-settings";
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::AuthCheckerSettings
+    static constexpr std::string_view kName = "auth-checker-settings";
 
-  const server::handlers::auth::AuthCheckerSettings& Get() const {
-    return settings_;
-  }
+    const server::handlers::auth::AuthCheckerSettings& Get() const { return settings_; }
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  server::handlers::auth::AuthCheckerSettings settings_;
+private:
+    server::handlers::auth::AuthCheckerSettings settings_;
 };
 
 template <>
 inline constexpr bool kHasValidate<AuthCheckerSettings> = true;
 
 template <>
-inline constexpr auto kConfigFileMode<AuthCheckerSettings> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto kConfigFileMode<AuthCheckerSettings> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

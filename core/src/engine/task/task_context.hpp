@@ -17,6 +17,7 @@
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
@@ -37,234 +38,220 @@ class TaskContextHolder;
 [[noreturn]] void ReportDeadlock();
 
 class WaitStrategy {
- public:
-  // Implementation may set up timers/watchers here. Implementation must make
-  // sure that there is no race between SetupWakeups() and WaitList-specific
-  // wakeup (if "add task to wait list iff not ready" is not protected from
-  // Wakeup, e.g. for WaitListLight). SetupWakeups() *may* call Wakeup() for
-  // current task - sleep_state_ is set in DoStep() and double-checked for such
-  // early wakeups. It may not sleep.
-  //
-  // If EarlyWakeup{true} is returned, then:
-  // - DisableWakeups is not called;
-  // - SetupWakeups should disable wakeup sources itself;
-  // - SetupWakeups may or may not call context.Wakeup.
-  virtual EarlyWakeup SetupWakeups() = 0;
+public:
+    // Implementation may set up timers/watchers here. Implementation must make
+    // sure that there is no race between SetupWakeups() and WaitList-specific
+    // wakeup (if "add task to wait list iff not ready" is not protected from
+    // Wakeup, e.g. for WaitListLight). SetupWakeups() *may* call Wakeup() for
+    // current task - sleep_state_ is set in DoStep() and double-checked for such
+    // early wakeups. It may not sleep.
+    //
+    // If EarlyWakeup{true} is returned, then:
+    // - DisableWakeups is not called;
+    // - SetupWakeups should disable wakeup sources itself;
+    // - SetupWakeups may or may not call context.Wakeup.
+    virtual EarlyWakeup SetupWakeups() = 0;
 
-  // Implementation must disable all wakeup sources (wait lists, timers) here.
-  // It may not sleep.
-  virtual void DisableWakeups() noexcept = 0;
+    // Implementation must disable all wakeup sources (wait lists, timers) here.
+    // It may not sleep.
+    virtual void DisableWakeups() noexcept = 0;
 
- protected:
-  constexpr WaitStrategy() noexcept = default;
+protected:
+    constexpr WaitStrategy() noexcept = default;
 
-  // Prevent destruction via pointer to base.
-  ~WaitStrategy() = default;
+    // Prevent destruction via pointer to base.
+    ~WaitStrategy() = default;
 };
 
 class TaskContext final : public ContextAccessor {
- public:
-  struct NoEpoch {};
-  using TaskPipe = coro::Pool::TaskPipe;
-  using TaskId = uint64_t;
+public:
+    struct NoEpoch {};
+    using TaskPipe = coro::Pool::TaskPipe;
+    using TaskId = uint64_t;
 
-  enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
+    enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
 
-  /// Wakeup sources in descending priority order
-  enum class WakeupSource : uint32_t {
-    kNone = static_cast<uint32_t>(SleepFlags::kNone),
-    kWaitList = static_cast<uint32_t>(SleepFlags::kWakeupByWaitList),
-    kDeadlineTimer = static_cast<uint32_t>(SleepFlags::kWakeupByDeadlineTimer),
-    kCancelRequest = static_cast<uint32_t>(SleepFlags::kWakeupByCancelRequest),
-    kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
-  };
+    /// Wakeup sources in descending priority order
+    enum class WakeupSource : uint32_t {
+        kNone = static_cast<uint32_t>(SleepFlags::kNone),
+        kWaitList = static_cast<uint32_t>(SleepFlags::kWakeupByWaitList),
+        kDeadlineTimer = static_cast<uint32_t>(SleepFlags::kWakeupByDeadlineTimer),
+        kCancelRequest = static_cast<uint32_t>(SleepFlags::kWakeupByCancelRequest),
+        kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
+    };
 
-  TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-              utils::impl::WrappedCallBase& payload);
+    TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline, utils::impl::WrappedCallBase& payload);
 
-  ~TaskContext() noexcept;
+    ~TaskContext() noexcept;
 
-  TaskContext(const TaskContext&) = delete;
-  TaskContext(TaskContext&&) = delete;
-  TaskContext& operator=(const TaskContext&) = delete;
-  TaskContext& operator=(TaskContext&&) = delete;
+    TaskContext(const TaskContext&) = delete;
+    TaskContext(TaskContext&&) = delete;
+    TaskContext& operator=(const TaskContext&) = delete;
+    TaskContext& operator=(TaskContext&&) = delete;
 
-  // can only be called on a State::kCompleted task
-  utils::impl::WrappedCallBase& GetPayload() noexcept;
+    // can only be called on a State::kCompleted task
+    utils::impl::WrappedCallBase& GetPayload() noexcept;
 
-  Task::State GetState() const { return state_; }
+    Task::State GetState() const { return state_; }
 
-  // whether this task is the one currently executing on the calling thread
-  bool IsCurrent() const noexcept;
+    // whether this task is the one currently executing on the calling thread
+    bool IsCurrent() const noexcept;
 
-  // whether task respects task processor queue size limits
-  // exceeding these limits causes task to become cancelled
-  bool IsCritical() const;
+    // whether task respects task processor queue size limits
+    // exceeding these limits causes task to become cancelled
+    bool IsCritical() const;
 
-  // whether task is allowed to be awaited from multiple coroutines
-  // simultaneously
-  bool IsSharedWaitAllowed() const;
+    // whether task is allowed to be awaited from multiple coroutines
+    // simultaneously
+    bool IsSharedWaitAllowed() const;
 
-  // whether user code finished executing, coroutine may still be running
-  bool IsFinished() const noexcept {
-    return state_ == Task::State::kCompleted ||
-           state_ == Task::State::kCancelled;
-  }
+    // whether user code finished executing, coroutine may still be running
+    bool IsFinished() const noexcept;
 
-  void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
-  void FinishDetached() noexcept;
+    void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
+    void FinishDetached() noexcept;
 
-  // wait for this to become finished
-  // should only be called from other context
-  void Wait() const;
-  void WaitUntil(Deadline) const;
+    // wait for this to become finished
+    // should only be called from other context
+    [[nodiscard]] FutureStatus WaitUntil(Deadline) const noexcept;
 
-  TaskProcessor& GetTaskProcessor() { return task_processor_; }
-  void DoStep();
+    TaskProcessor& GetTaskProcessor() { return task_processor_; }
+    void DoStep();
 
-  // normally non-blocking, causes wakeup
-  void RequestCancel(TaskCancellationReason);
+    // normally non-blocking, causes wakeup
+    void RequestCancel(TaskCancellationReason);
 
-  TaskCancellationReason CancellationReason() const noexcept {
-    return cancellation_reason_;
-  }
+    TaskCancellationReason CancellationReason() const noexcept { return cancellation_reason_; }
 
-  bool IsCancelRequested() const noexcept {
-    return cancellation_reason_ != TaskCancellationReason::kNone;
-  }
+    bool IsCancelRequested() const noexcept { return cancellation_reason_ != TaskCancellationReason::kNone; }
 
-  bool IsCancellable() const noexcept;
-  // returns previous value
-  bool SetCancellable(bool);
+    bool IsCancellable() const noexcept;
+    // returns previous value
+    bool SetCancellable(bool);
 
-  bool ShouldCancel() const noexcept {
-    return IsCancelRequested() && IsCancellable();
-  }
+    bool ShouldCancel() const noexcept { return IsCancelRequested() && IsCancellable(); }
 
-  // causes this to yield and wait for wakeup
-  // must only be called from this context
-  // "spurious wakeups" may be caused by wakeup queueing
-  WakeupSource Sleep(WaitStrategy& wait_strategy, Deadline deadline);
+    void SetBackground(bool);
+    bool IsBackground() const noexcept { return is_background_; };
 
-  // sleep epoch increments after each wakeup
-  SleepState::Epoch GetEpoch() noexcept;
+    // causes this to yield and wait for wakeup
+    // must only be called from this context
+    // "spurious wakeups" may be caused by wakeup queueing
+    WakeupSource Sleep(WaitStrategy& wait_strategy, Deadline deadline);
 
-  // causes this to return from the nearest sleep
-  // i.e. wakeup is queued if task is running
-  // normally non-blocking, except corner cases in TaskProcessor::Schedule()
-  void Wakeup(WakeupSource, SleepState::Epoch epoch);
-  void Wakeup(WakeupSource, NoEpoch);
-  void WakeupCurrent();
+    // sleep epoch increments after each wakeup
+    SleepState::Epoch GetEpoch() noexcept;
 
-  static void CoroFunc(TaskPipe& task_pipe);
+    // causes this to return from the nearest sleep
+    // i.e. wakeup is queued if task is running
+    // normally non-blocking, except corner cases in TaskProcessor::Schedule()
+    void Wakeup(WakeupSource, SleepState::Epoch epoch);
+    void Wakeup(WakeupSource, NoEpoch);
 
-  // C++ ABI support, not to be used by anyone
-  EhGlobals* GetEhGlobals() { return &eh_globals_; }
+    static void CoroFunc(TaskPipe& task_pipe);
 
-  TaskId GetTaskId() const { return reinterpret_cast<TaskId>(this); }
+    // C++ ABI support, not to be used by anyone
+    EhGlobals* GetEhGlobals() { return &eh_globals_; }
 
-  std::chrono::steady_clock::time_point GetQueueWaitTimepoint() const {
-    return task_queue_wait_timepoint_;
-  }
+    TaskId GetTaskId() const { return reinterpret_cast<TaskId>(this); }
 
-  void SetQueueWaitTimepoint(std::chrono::steady_clock::time_point tp) {
-    task_queue_wait_timepoint_ = tp;
-  }
+    std::chrono::steady_clock::time_point GetQueueWaitTimepoint() const { return task_queue_wait_timepoint_; }
 
-  void SetCancelDeadline(Deadline deadline);
+    void SetQueueWaitTimepoint(std::chrono::steady_clock::time_point tp) { task_queue_wait_timepoint_ = tp; }
 
-  bool HasLocalStorage() const noexcept;
-  task_local::Storage& GetLocalStorage() noexcept;
+    void SetCancelDeadline(Deadline deadline);
 
-  // ContextAccessor implementation
-  bool IsReady() const noexcept override;
-  EarlyWakeup TryAppendWaiter(TaskContext& waiter) override;
-  void RemoveWaiter(TaskContext& waiter) noexcept override;
-  void AfterWait() noexcept override;
-  void RethrowErrorResult() const override;
+    bool HasLocalStorage() const noexcept;
+    task_local::Storage& GetLocalStorage() noexcept;
 
-  size_t UseCount() const noexcept;
+    // ContextAccessor implementation
+    bool IsReady() const noexcept override;
+    EarlyWakeup TryAppendWaiter(TaskContext& waiter) override;
+    void RemoveWaiter(TaskContext& waiter) noexcept override;
+    void AfterWait() noexcept override;
+    void RethrowErrorResult() const override;
 
-  std::size_t DecrementFetchSharedTaskUsages() noexcept;
-  std::size_t IncrementFetchSharedTaskUsages() noexcept;
-  void ResetPayload() noexcept;
+    size_t UseCount() const noexcept;
 
-  CountedCoroutinePtr& GetCoroutinePtr() noexcept;
+    std::size_t DecrementFetchSharedTaskUsages() noexcept;
+    std::size_t IncrementFetchSharedTaskUsages() noexcept;
+    void ResetPayload() noexcept;
 
- private:
-  class LocalStorageGuard;
+    CountedCoroutinePtr& GetCoroutinePtr() noexcept;
 
-  static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
+private:
+    class LocalStorageGuard;
 
-  void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
-  void ArmCancellationTimer();
+    static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
-  static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
+    void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
+    void ArmCancellationTimer();
 
-  bool WasStartedAsCritical() const;
-  void SetState(Task::State);
+    static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
 
-  void Schedule();
-  static bool ShouldSchedule(SleepState::Flags flags, WakeupSource source);
+    bool WasStartedAsCritical() const;
+    void SetState(Task::State);
 
-  void ProfilerStartExecution();
-  void ProfilerStopExecution();
+    void Schedule();
+    static bool ShouldSchedule(SleepState::Flags flags, WakeupSource source);
 
-  void TraceStateTransition(Task::State state);
+    void ProfilerStartExecution();
+    void ProfilerStopExecution();
 
-  void TsanAcquireBarrier() noexcept;
-  void TsanReleaseBarrier() noexcept;
+    void TraceStateTransition(Task::State state);
 
-  const uint64_t magic_{kMagic};
-  TaskProcessor& task_processor_;
-  TaskCounter::Token task_counter_token_;
-  const bool is_critical_;
-  bool is_cancellable_{true};
-  bool within_sleep_{false};
-  EhGlobals eh_globals_;
+    void TsanAcquireBarrier() noexcept;
+    void TsanReleaseBarrier() noexcept;
 
-  utils::impl::WrappedCallBase* payload_;
+    const uint64_t magic_{kMagic};
+    TaskProcessor& task_processor_;
+    TaskCounter::Token task_counter_token_;
+    const bool is_critical_;
+    bool is_cancellable_{true};
+    bool is_background_{false};
+    bool within_sleep_{false};
+    EhGlobals eh_globals_;
 
-  std::atomic<Task::State> state_{Task::State::kNew};
-  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
-  std::atomic<TaskCancellationReason> cancellation_reason_{
-      TaskCancellationReason::kNone};
-  FastPimplGenericWaitList finish_waiters_;
+    utils::impl::WrappedCallBase* payload_;
 
-  ContextTimer deadline_timer_;
-  engine::Deadline cancel_deadline_;
+    std::atomic<Task::State> state_{Task::State::kNew};
+    std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
+    std::atomic<TaskCancellationReason> cancellation_reason_{TaskCancellationReason::kNone};
+    FastPimplGenericWaitList finish_waiters_;
 
-  // {} if not defined
-  std::chrono::steady_clock::time_point task_queue_wait_timepoint_;
-  std::chrono::steady_clock::time_point execute_started_;
-  std::chrono::steady_clock::time_point last_state_change_timepoint_;
+    ContextTimer deadline_timer_;
+    engine::Deadline cancel_deadline_;
 
-  std::size_t trace_csw_left_;
+    // {} if not defined
+    std::chrono::steady_clock::time_point task_queue_wait_timepoint_;
+    std::chrono::steady_clock::time_point execute_started_;
+    std::chrono::steady_clock::time_point last_state_change_timepoint_;
 
-  AtomicSleepState sleep_state_{
-      SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}};
-  WakeupSource wakeup_source_{WakeupSource::kNone};
+    std::size_t trace_csw_left_;
 
-  CountedCoroutinePtr coro_;
-  TaskPipe* task_pipe_{nullptr};
-  YieldReason yield_reason_{YieldReason::kNone};
+    AtomicSleepState sleep_state_{SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}};
+    WakeupSource wakeup_source_{WakeupSource::kNone};
 
-  std::optional<task_local::Storage> local_storage_{};
+    CountedCoroutinePtr coro_;
+    TaskPipe* task_pipe_{nullptr};
+    YieldReason yield_reason_{YieldReason::kNone};
 
-  // refcounter for task abandoning (cancellation) in engine::SharedTask
-  std::atomic<std::size_t> shared_task_usages_{1};
+    std::optional<task_local::Storage> local_storage_{};
 
-  // refcounter for resources and memory deallocation
-  std::atomic<std::size_t> intrusive_refcount_{1};
-  friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
-  friend void intrusive_ptr_release(TaskContext* p) noexcept;
+    // refcounter for task abandoning (cancellation) in engine::SharedTask
+    std::atomic<std::size_t> shared_task_usages_{1};
 
- public:
-  using WaitListHook = typename boost::intrusive::make_list_member_hook<
-      boost::intrusive::link_mode<boost::intrusive::auto_unlink>>::type;
+    // refcounter for resources and memory deallocation
+    std::atomic<std::size_t> intrusive_refcount_{1};
+    friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
+    friend void intrusive_ptr_release(TaskContext* p) noexcept;
 
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  WaitListHook wait_list_hook;
+public:
+    using WaitListHook = typename boost::intrusive::make_list_member_hook<
+        boost::intrusive::link_mode<boost::intrusive::auto_unlink>>::type;
+
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+    WaitListHook wait_list_hook;
 };
 
 void intrusive_ptr_add_ref(TaskContext* p) noexcept;

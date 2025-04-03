@@ -43,22 +43,19 @@ namespace impl {
 /// @brief Helpers for serialization of trivially-copyable types
 template <typename T>
 void WriteTrivial(Writer& writer, T value) {
-  static_assert(std::is_trivially_copyable_v<T>);
-  // TODO: endianness
-  WriteStringViewUnsafe(
-      writer,
-      std::string_view{reinterpret_cast<const char*>(&value), sizeof(value)});
+    static_assert(std::is_trivially_copyable_v<T>);
+    // TODO: endianness
+    WriteStringViewUnsafe(writer, std::string_view{reinterpret_cast<const char*>(&value), sizeof(value)});
 }
 
 /// @brief Helpers for deserialization trivially-copyable types
 template <typename T>
 T ReadTrivial(Reader& reader) {
-  static_assert(std::is_trivially_copyable_v<T>);
-  T value{};
-  // TODO: endianness
-  ReadStringViewUnsafe(reader, sizeof(T))
-      .copy(reinterpret_cast<char*>(&value), sizeof(T));
-  return value;
+    static_assert(std::is_trivially_copyable_v<T>);
+    T value{};
+    // TODO: endianness
+    ReadStringViewUnsafe(reader, sizeof(T)).copy(reinterpret_cast<char*>(&value), sizeof(T));
+    return value;
 }
 
 void WriteInteger(Writer& writer, std::uint64_t value);
@@ -67,10 +64,8 @@ std::uint64_t ReadInteger(Reader& reader);
 
 template <typename Duration>
 inline constexpr bool kIsDumpedAsNanoseconds =
-    std::is_integral_v<typename Duration::rep> &&
-    (Duration::period::num == 1) &&
-    (Duration{1} <= std::chrono::milliseconds{1}) &&
-    (1'000'000'000 % Duration::period::den == 0);
+    std::is_integral_v<typename Duration::rep> && (Duration::period::num == 1) &&
+    (Duration{1} <= std::chrono::milliseconds{1}) && (1'000'000'000 % Duration::period::den == 0);
 
 }  // namespace impl
 
@@ -90,39 +85,39 @@ void Write(Writer& writer, const char* value);
 /// @brief Integral types serialization support
 template <typename T>
 std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
-  if constexpr (sizeof(T) == 1) {
-    impl::WriteTrivial(writer, value);
-  } else {
-    impl::WriteInteger(writer, static_cast<std::uint64_t>(value));
-  }
+    if constexpr (sizeof(T) == 1) {
+        impl::WriteTrivial(writer, value);
+    } else {
+        impl::WriteInteger(writer, static_cast<std::uint64_t>(value));
+    }
 }
 
 /// @brief Integral types deserialization support
 template <typename T>
 std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
-  if constexpr (sizeof(T) == 1) {
-    return impl::ReadTrivial<T>(reader);
-  }
+    if constexpr (sizeof(T) == 1) {
+        return impl::ReadTrivial<T>(reader);
+    }
 
-  const auto raw = impl::ReadInteger(reader);
+    const auto raw = impl::ReadInteger(reader);
 
-  if constexpr (std::is_signed_v<T>) {
-    return utils::numeric_cast<T>(static_cast<std::int64_t>(raw));
-  } else {
-    return utils::numeric_cast<T>(raw);
-  }
+    if constexpr (std::is_signed_v<T>) {
+        return utils::numeric_cast<T>(static_cast<std::int64_t>(raw));
+    } else {
+        return utils::numeric_cast<T>(raw);
+    }
 }
 
 /// @brief Floating-point serialization support
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>> Write(Writer& writer, T value) {
-  impl::WriteTrivial(writer, value);
+    impl::WriteTrivial(writer, value);
 }
 
 /// @brief Floating-point deserialization support
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader, To<T>) {
-  return impl::ReadTrivial<T>(reader);
+    return impl::ReadTrivial<T>(reader);
 }
 
 /// @brief bool serialization support
@@ -134,70 +129,66 @@ bool Read(Reader& reader, To<bool>);
 /// @brief enum serialization support
 template <typename T>
 std::enable_if_t<std::is_enum_v<T>> Write(Writer& writer, T value) {
-  writer.Write(static_cast<std::underlying_type_t<T>>(value));
+    writer.Write(static_cast<std::underlying_type_t<T>>(value));
 }
 
 /// @brief enum deserialization support
 template <typename T>
 std::enable_if_t<std::is_enum_v<T>, T> Read(Reader& reader, To<T>) {
-  return static_cast<T>(reader.Read<std::underlying_type_t<T>>());
+    return static_cast<T>(reader.Read<std::underlying_type_t<T>>());
 }
 
 /// @brief `std::chrono::duration` serialization support
 template <typename Rep, typename Period>
 void Write(Writer& writer, std::chrono::duration<Rep, Period> value) {
-  using std::chrono::duration, std::chrono::nanoseconds;
+    using std::chrono::duration, std::chrono::nanoseconds;
 
-  // Durations, which on some systems represent
-  // `std::chrono::*_clock::duration`, are serialized as `std::nanoseconds`
-  // to avoid system dependency
-  if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
-    const auto count = std::chrono::duration_cast<nanoseconds>(value).count();
+    // Durations, which on some systems represent
+    // `std::chrono::*_clock::duration`, are serialized as `std::nanoseconds`
+    // to avoid system dependency
+    if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
+        const auto count = std::chrono::duration_cast<nanoseconds>(value).count();
 
-    if (nanoseconds{count} != value) {
-      throw std::logic_error(
-          "Trying to serialize a huge duration, it does not fit into "
-          "std::chrono::nanoseconds type");
+        if (nanoseconds{count} != value) {
+            throw std::logic_error(
+                "Trying to serialize a huge duration, it does not fit into "
+                "std::chrono::nanoseconds type"
+            );
+        }
+        impl::WriteTrivial(writer, count);
+    } else {
+        impl::WriteTrivial(writer, value.count());
     }
-    impl::WriteTrivial(writer, count);
-  } else {
-    impl::WriteTrivial(writer, value.count());
-  }
 }
 
 /// @brief `std::chrono::duration` deserialization support
 template <typename Rep, typename Period>
-std::chrono::duration<Rep, Period> Read(
-    Reader& reader, To<std::chrono::duration<Rep, Period>>) {
-  using std::chrono::duration, std::chrono::nanoseconds;
+std::chrono::duration<Rep, Period> Read(Reader& reader, To<std::chrono::duration<Rep, Period>>) {
+    using std::chrono::duration, std::chrono::nanoseconds;
 
-  if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
-    const auto count = impl::ReadTrivial<nanoseconds::rep>(reader);
-    return std::chrono::duration_cast<duration<Rep, Period>>(
-        nanoseconds{count});
-  } else {
-    const auto count = impl::ReadTrivial<Rep>(reader);
-    return duration<Rep, Period>{count};
-  }
+    if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
+        const auto count = impl::ReadTrivial<nanoseconds::rep>(reader);
+        return std::chrono::duration_cast<duration<Rep, Period>>(nanoseconds{count});
+    } else {
+        const auto count = impl::ReadTrivial<Rep>(reader);
+        return duration<Rep, Period>{count};
+    }
 }
 
 /// @brief `std::chrono::time_point` serialization support
 /// @note Only `system_clock` is supported, because `steady_clock` can only
 /// be used within a single execution
 template <typename Duration>
-void Write(Writer& writer,
-           std::chrono::time_point<std::chrono::system_clock, Duration> value) {
-  writer.Write(value.time_since_epoch());
+void Write(Writer& writer, std::chrono::time_point<std::chrono::system_clock, Duration> value) {
+    writer.Write(value.time_since_epoch());
 }
 
 /// @brief `std::chrono::time_point` deserialization support
 /// @note Only `system_clock` is supported, because `steady_clock` can only
 /// be used within a single execution
 template <typename Duration>
-auto Read(Reader& reader,
-          To<std::chrono::time_point<std::chrono::system_clock, Duration>>) {
-  return std::chrono::time_point<std::chrono::system_clock, Duration>{
-      reader.Read<Duration>()};
+auto Read(Reader& reader, To<std::chrono::time_point<std::chrono::system_clock, Duration>>) {
+    return std::chrono::time_point<std::chrono::system_clock, Duration>{reader.Read<Duration>()};
 }
 
 /// @brief `boost::uuids::uuid` serialization support
@@ -208,16 +199,14 @@ boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>);
 
 /// @brief decimal64::Decimal serialization support
 template <int Prec, typename RoundPolicy>
-inline void Write(Writer& writer,
-                  const decimal64::Decimal<Prec, RoundPolicy>& dec) {
-  writer.Write(dec.AsUnbiased());
+inline void Write(Writer& writer, const decimal64::Decimal<Prec, RoundPolicy>& dec) {
+    writer.Write(dec.AsUnbiased());
 }
 
 /// @brief decimal64::Decimal deserialization support
 template <int Prec, typename RoundPolicy>
 auto Read(Reader& reader, dump::To<decimal64::Decimal<Prec, RoundPolicy>>) {
-  return decimal64::Decimal<Prec, RoundPolicy>::FromUnbiased(
-      reader.Read<int64_t>());
+    return decimal64::Decimal<Prec, RoundPolicy>::FromUnbiased(reader.Read<int64_t>());
 }
 
 /// @brief formats::json::Value serialization support

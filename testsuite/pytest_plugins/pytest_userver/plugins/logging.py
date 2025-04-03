@@ -30,9 +30,9 @@ class LogFile:
         return pos
 
     def readlines(
-            self,
-            eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
-            limit_position: bool = False,
+        self,
+        eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
+        limit_position: bool = False,
     ):
         if limit_position:
             max_position = self.path.stat().st_size
@@ -40,9 +40,11 @@ class LogFile:
             max_position = None
         first_skipped = False
         for line, position in _raw_line_reader(
-                self.path, self.position, eof_handler=eof_handler,
+            self.path,
+            self.position,
+            eof_handler=eof_handler,
         ):
-            # userver does not give any gurantees about log file encoding
+            # userver does not give any guarantees about log file encoding
             line = line.decode(encoding='utf-8', errors='backslashreplace')
             if not first_skipped:
                 first_skipped = True
@@ -135,7 +137,8 @@ class UserverLoggingPlugin:
             logfile.update_position()
 
     def register_flusher(self, func):
-        self._flushers.append(func)
+        loop = asyncio.get_running_loop()
+        self._flushers.append((loop, func))
 
     def register_logfile(self, path: pathlib.Path, title: str):
         logger.info('Watching service log file: %s', path)
@@ -163,14 +166,17 @@ class UserverLoggingPlugin:
             report.sections.append((f'Captured {title} {report.when}', value))
 
     def _run_flushers(self):
-        loop = asyncio.get_event_loop()
-        for flusher in self._flushers:
-            loop.run_until_complete(flusher())
+        try:
+            for loop, flusher in self._flushers:
+                loop.run_until_complete(flusher())
+        except Exception:
+            logger.exception('failed to run logging flushers:')
 
 
 @pytest.fixture(scope='session')
 def service_logfile_path(
-        pytestconfig, service_tmpdir: pathlib.Path,
+    pytestconfig,
+    service_tmpdir: pathlib.Path,
 ) -> typing.Optional[pathlib.Path]:
     """
     Holds optional service logfile path. You may want to override this
@@ -186,13 +192,15 @@ def service_logfile_path(
 
 @pytest.fixture(scope='session')
 def _service_logfile_path(
-        userver_register_logfile,
-        service_logfile_path: typing.Optional[pathlib.Path],
+    userver_register_logfile,
+    service_logfile_path: typing.Optional[pathlib.Path],
 ) -> typing.Optional[pathlib.Path]:
     if not service_logfile_path:
         return None
     userver_register_logfile(
-        service_logfile_path, title='userver/log', truncate=True,
+        service_logfile_path,
+        title='userver/log',
+        truncate=True,
     )
     return service_logfile_path
 
@@ -219,7 +227,10 @@ def userver_register_logfile(_userver_logging_plugin: UserverLoggingPlugin):
             fp.truncate()
 
     def register_logfile(
-            path: pathlib.Path, *, title: str, truncate: bool = False,
+        path: pathlib.Path,
+        *,
+        title: str,
+        truncate: bool = False,
     ) -> None:
         if truncate:
             do_truncate(path)
@@ -242,7 +253,8 @@ def pytest_configure(config):
     def colorize_factory():
         if pretty_logs:
             colorizer = colorize.Colorizer(
-                verbose=verbose, colors_enabled=colors_enabled,
+                verbose=verbose,
+                colors_enabled=colors_enabled,
             )
             return colorizer.colorize_line
 
@@ -252,7 +264,8 @@ def pytest_configure(config):
         return handle_line
 
     plugin = UserverLoggingPlugin(
-        colorize_factory=colorize_factory, config=config,
+        colorize_factory=colorize_factory,
+        config=config,
     )
     config.pluginmanager.register(plugin, 'userver_logging')
 
@@ -282,9 +295,9 @@ def _should_enable_color(pytestconfig) -> bool:
 
 
 def _raw_line_reader(
-        path: pathlib.Path,
-        position: int = 0,
-        eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
+    path: pathlib.Path,
+    position: int = 0,
+    eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
 ) -> int:
     with path.open('rb') as fp:
         position = fp.seek(position)
@@ -308,7 +321,6 @@ def _raw_line_reader(
 def _is_live_logs_enabled(config):
     if not config.option.service_live_logs_disable:
         return bool(
-            config.option.capture == 'no'
-            and config.option.showcapture in ('all', 'log'),
+            config.option.capture == 'no' and config.option.showcapture in ('all', 'log'),
         )
     return False

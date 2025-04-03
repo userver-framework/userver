@@ -9,261 +9,232 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 
 class MockTransactionImplBase {
- public:
-  virtual ~MockTransactionImplBase() = default;
+public:
+    virtual ~MockTransactionImplBase() = default;
 
-  // redis commands:
+    // redis commands:
 
-  virtual RequestAppend Append(std::string key, std::string value);
+    virtual RequestAppend Append(std::string key, std::string value);
 
-  virtual RequestBitop Bitop(BitOperation op, std::string dest_key,
-                             std::vector<std::string> src_keys);
-  virtual RequestDbsize Dbsize(size_t shard);
+    virtual RequestBitop Bitop(BitOperation op, std::string dest_key, std::vector<std::string> src_keys);
+    virtual RequestDbsize Dbsize(size_t shard);
 
-  virtual RequestDel Del(std::string key);
+    virtual RequestDecr Decr(std::string key);
 
-  virtual RequestDel Del(std::vector<std::string> keys);
+    virtual RequestDel Del(std::string key);
 
-  virtual RequestUnlink Unlink(std::string key);
+    virtual RequestDel Del(std::vector<std::string> keys);
 
-  virtual RequestUnlink Unlink(std::vector<std::string> keys);
+    virtual RequestUnlink Unlink(std::string key);
 
-  virtual RequestExists Exists(std::string key);
+    virtual RequestUnlink Unlink(std::vector<std::string> keys);
 
-  virtual RequestExists Exists(std::vector<std::string> keys);
+    virtual RequestExists Exists(std::string key);
 
-  virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl);
+    virtual RequestExists Exists(std::vector<std::string> keys);
 
-  virtual RequestGeoadd Geoadd(std::string key, GeoaddArg point_member);
+    virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl);
 
-  virtual RequestGeoadd Geoadd(std::string key,
-                               std::vector<GeoaddArg> point_members);
+    virtual RequestGeoadd Geoadd(std::string key, GeoaddArg point_member);
 
-  virtual RequestGeoradius Georadius(std::string key, Longitude lon,
-                                     Latitude lat, double radius,
-                                     const GeoradiusOptions& georadius_options);
+    virtual RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members);
 
-  virtual RequestGeosearch Geosearch(std::string key, std::string member,
-                                     double radius,
-                                     const GeosearchOptions& geosearch_options);
+    virtual RequestGeoradius
+    Georadius(std::string key, Longitude lon, Latitude lat, double radius, const GeoradiusOptions& georadius_options);
 
-  virtual RequestGeosearch Geosearch(std::string key, std::string member,
-                                     BoxWidth width, BoxHeight height,
-                                     const GeosearchOptions& geosearch_options);
+    virtual RequestGeosearch
+    Geosearch(std::string key, std::string member, double radius, const GeosearchOptions& geosearch_options);
 
-  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
-                                     Latitude lat, double radius,
-                                     const GeosearchOptions& geosearch_options);
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        BoxWidth width,
+        BoxHeight height,
+        const GeosearchOptions& geosearch_options
+    );
 
-  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
-                                     Latitude lat, BoxWidth width,
-                                     BoxHeight height,
-                                     const GeosearchOptions& geosearch_options);
+    virtual RequestGeosearch
+    Geosearch(std::string key, Longitude lon, Latitude lat, double radius, const GeosearchOptions& geosearch_options);
 
-  virtual RequestGet Get(std::string key);
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        BoxWidth width,
+        BoxHeight height,
+        const GeosearchOptions& geosearch_options
+    );
 
-  virtual RequestGetset Getset(std::string key, std::string value);
+    virtual RequestGet Get(std::string key);
 
-  virtual RequestHdel Hdel(std::string key, std::string field);
+    virtual RequestGetset Getset(std::string key, std::string value);
 
-  virtual RequestHdel Hdel(std::string key, std::vector<std::string> fields);
+    virtual RequestHdel Hdel(std::string key, std::string field);
 
-  virtual RequestHexists Hexists(std::string key, std::string field);
+    virtual RequestHdel Hdel(std::string key, std::vector<std::string> fields);
 
-  virtual RequestHget Hget(std::string key, std::string field);
+    virtual RequestHexists Hexists(std::string key, std::string field);
 
-  virtual RequestHgetall Hgetall(std::string key);
+    virtual RequestHget Hget(std::string key, std::string field);
 
-  virtual RequestHincrby Hincrby(std::string key, std::string field,
-                                 int64_t increment);
+    virtual RequestHgetall Hgetall(std::string key);
 
-  virtual RequestHincrbyfloat Hincrbyfloat(std::string key, std::string field,
-                                           double increment);
+    virtual RequestHincrby Hincrby(std::string key, std::string field, int64_t increment);
 
-  virtual RequestHkeys Hkeys(std::string key);
+    virtual RequestHincrbyfloat Hincrbyfloat(std::string key, std::string field, double increment);
 
-  virtual RequestHlen Hlen(std::string key);
+    virtual RequestHkeys Hkeys(std::string key);
 
-  virtual RequestHmget Hmget(std::string key, std::vector<std::string> fields);
+    virtual RequestHlen Hlen(std::string key);
 
-  virtual RequestHmset Hmset(
-      std::string key,
-      std::vector<std::pair<std::string, std::string>> field_values);
+    virtual RequestHmget Hmget(std::string key, std::vector<std::string> fields);
 
-  virtual RequestHset Hset(std::string key, std::string field,
-                           std::string value);
+    virtual RequestHmset Hmset(std::string key, std::vector<std::pair<std::string, std::string>> field_values);
 
-  virtual RequestHsetnx Hsetnx(std::string key, std::string field,
-                               std::string value);
+    virtual RequestHset Hset(std::string key, std::string field, std::string value);
 
-  virtual RequestHvals Hvals(std::string key);
+    virtual RequestHsetnx Hsetnx(std::string key, std::string field, std::string value);
 
-  virtual RequestIncr Incr(std::string key);
+    virtual RequestHvals Hvals(std::string key);
 
-  virtual RequestKeys Keys(std::string keys_pattern, size_t shard);
+    virtual RequestIncr Incr(std::string key);
 
-  virtual RequestLindex Lindex(std::string key, int64_t index);
+    virtual RequestKeys Keys(std::string keys_pattern, size_t shard);
 
-  virtual RequestLlen Llen(std::string key);
+    virtual RequestLindex Lindex(std::string key, int64_t index);
 
-  virtual RequestLpop Lpop(std::string key);
+    virtual RequestLlen Llen(std::string key);
 
-  virtual RequestLpush Lpush(std::string key, std::string value);
+    virtual RequestLpop Lpop(std::string key);
 
-  virtual RequestLpush Lpush(std::string key, std::vector<std::string> values);
+    virtual RequestLpush Lpush(std::string key, std::string value);
 
-  virtual RequestLpushx Lpushx(std::string key, std::string element);
+    virtual RequestLpush Lpush(std::string key, std::vector<std::string> values);
 
-  virtual RequestLrange Lrange(std::string key, int64_t start, int64_t stop);
+    virtual RequestLpushx Lpushx(std::string key, std::string element);
 
-  virtual RequestLrem Lrem(std::string key, int64_t count, std::string element);
+    virtual RequestLrange Lrange(std::string key, int64_t start, int64_t stop);
 
-  virtual RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop);
+    virtual RequestLrem Lrem(std::string key, int64_t count, std::string element);
 
-  virtual RequestMget Mget(std::vector<std::string> keys);
+    virtual RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop);
 
-  virtual RequestMset Mset(
-      std::vector<std::pair<std::string, std::string>> key_values);
+    virtual RequestMget Mget(std::vector<std::string> keys);
 
-  virtual RequestPersist Persist(std::string key);
+    virtual RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values);
 
-  virtual RequestPexpire Pexpire(std::string key,
-                                 std::chrono::milliseconds ttl);
+    virtual RequestPersist Persist(std::string key);
 
-  virtual RequestPing Ping(size_t shard);
+    virtual RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl);
 
-  virtual RequestPingMessage PingMessage(size_t shard, std::string message);
+    virtual RequestPing Ping(size_t shard);
 
-  virtual RequestRename Rename(std::string key, std::string new_key);
+    virtual RequestPingMessage PingMessage(size_t shard, std::string message);
 
-  virtual RequestRpop Rpop(std::string key);
+    virtual RequestRename Rename(std::string key, std::string new_key);
 
-  virtual RequestRpush Rpush(std::string key, std::string value);
+    virtual RequestRpop Rpop(std::string key);
 
-  virtual RequestRpush Rpush(std::string key, std::vector<std::string> values);
+    virtual RequestRpush Rpush(std::string key, std::string value);
 
-  virtual RequestRpushx Rpushx(std::string key, std::string element);
+    virtual RequestRpush Rpush(std::string key, std::vector<std::string> values);
 
-  virtual RequestSadd Sadd(std::string key, std::string member);
+    virtual RequestRpushx Rpushx(std::string key, std::string element);
 
-  virtual RequestSadd Sadd(std::string key, std::vector<std::string> members);
+    virtual RequestSadd Sadd(std::string key, std::string member);
 
-  virtual RequestScard Scard(std::string key);
+    virtual RequestSadd Sadd(std::string key, std::vector<std::string> members);
 
-  virtual RequestSet Set(std::string key, std::string value);
+    virtual RequestScard Scard(std::string key);
 
-  virtual RequestSet Set(std::string key, std::string value,
-                         std::chrono::milliseconds ttl);
+    virtual RequestSet Set(std::string key, std::string value);
 
-  virtual RequestSetIfExist SetIfExist(std::string key, std::string value);
+    virtual RequestSet Set(std::string key, std::string value, std::chrono::milliseconds ttl);
 
-  virtual RequestSetIfExist SetIfExist(std::string key, std::string value,
-                                       std::chrono::milliseconds ttl);
+    virtual RequestSetIfExist SetIfExist(std::string key, std::string value);
 
-  virtual RequestSetIfNotExist SetIfNotExist(std::string key,
-                                             std::string value);
+    virtual RequestSetIfExist SetIfExist(std::string key, std::string value, std::chrono::milliseconds ttl);
 
-  virtual RequestSetIfNotExist SetIfNotExist(std::string key, std::string value,
-                                             std::chrono::milliseconds ttl);
+    virtual RequestSetIfNotExist SetIfNotExist(std::string key, std::string value);
 
-  virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds,
-                             std::string value);
+    virtual RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, std::chrono::milliseconds ttl);
 
-  virtual RequestSismember Sismember(std::string key, std::string member);
+    virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value);
 
-  virtual RequestSmembers Smembers(std::string key);
+    virtual RequestSismember Sismember(std::string key, std::string member);
 
-  virtual RequestSrandmember Srandmember(std::string key);
+    virtual RequestSmembers Smembers(std::string key);
 
-  virtual RequestSrandmembers Srandmembers(std::string key, int64_t count);
+    virtual RequestSrandmember Srandmember(std::string key);
 
-  virtual RequestSrem Srem(std::string key, std::string member);
+    virtual RequestSrandmembers Srandmembers(std::string key, int64_t count);
 
-  virtual RequestSrem Srem(std::string key, std::vector<std::string> members);
+    virtual RequestSrem Srem(std::string key, std::string member);
 
-  virtual RequestStrlen Strlen(std::string key);
+    virtual RequestSrem Srem(std::string key, std::vector<std::string> members);
 
-  virtual RequestTime Time(size_t shard);
+    virtual RequestStrlen Strlen(std::string key);
 
-  virtual RequestTtl Ttl(std::string key);
+    virtual RequestTime Time(size_t shard);
 
-  virtual RequestType Type(std::string key);
+    virtual RequestTtl Ttl(std::string key);
 
-  virtual RequestZadd Zadd(std::string key, double score, std::string member);
+    virtual RequestType Type(std::string key);
 
-  virtual RequestZadd Zadd(std::string key, double score, std::string member,
-                           const ZaddOptions& options);
+    virtual RequestZadd Zadd(std::string key, double score, std::string member);
 
-  virtual RequestZadd Zadd(
-      std::string key,
-      std::vector<std::pair<double, std::string>> scored_members);
+    virtual RequestZadd Zadd(std::string key, double score, std::string member, const ZaddOptions& options);
 
-  virtual RequestZadd Zadd(
-      std::string key,
-      std::vector<std::pair<double, std::string>> scored_members,
-      const ZaddOptions& options);
+    virtual RequestZadd Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members);
 
-  virtual RequestZaddIncr ZaddIncr(std::string key, double score,
-                                   std::string member);
+    virtual RequestZadd
+    Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members, const ZaddOptions& options);
 
-  virtual RequestZaddIncrExisting ZaddIncrExisting(std::string key,
-                                                   double score,
-                                                   std::string member);
+    virtual RequestZaddIncr ZaddIncr(std::string key, double score, std::string member);
 
-  virtual RequestZcard Zcard(std::string key);
+    virtual RequestZaddIncrExisting ZaddIncrExisting(std::string key, double score, std::string member);
 
-  virtual RequestZcount Zcount(std::string key, double min, double max);
+    virtual RequestZcard Zcard(std::string key);
 
-  virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop);
+    virtual RequestZcount Zcount(std::string key, double min, double max);
 
-  virtual RequestZrangeWithScores ZrangeWithScores(std::string key,
-                                                   int64_t start, int64_t stop);
+    virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop);
 
-  virtual RequestZrangebyscore Zrangebyscore(std::string key, double min,
-                                             double max);
+    virtual RequestZrangeWithScores ZrangeWithScores(std::string key, int64_t start, int64_t stop);
 
-  virtual RequestZrangebyscore Zrangebyscore(std::string key, std::string min,
-                                             std::string max);
+    virtual RequestZrangebyscore Zrangebyscore(std::string key, double min, double max);
 
-  virtual RequestZrangebyscore Zrangebyscore(std::string key, double min,
-                                             double max,
-                                             const RangeOptions& range_options);
+    virtual RequestZrangebyscore Zrangebyscore(std::string key, std::string min, std::string max);
 
-  virtual RequestZrangebyscore Zrangebyscore(std::string key, std::string min,
-                                             std::string max,
-                                             const RangeOptions& range_options);
+    virtual RequestZrangebyscore
+    Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options);
 
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, double min, double max);
+    virtual RequestZrangebyscore
+    Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options);
 
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, std::string min, std::string max);
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, double min, double max);
 
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, double min, double max,
-      const RangeOptions& range_options);
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, std::string min, std::string max);
 
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, std::string min, std::string max,
-      const RangeOptions& range_options);
+    virtual RequestZrangebyscoreWithScores
+    ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options);
 
-  virtual RequestZrem Zrem(std::string key, std::string member);
+    virtual RequestZrangebyscoreWithScores
+    ZrangebyscoreWithScores(std::string key, std::string min, std::string max, const RangeOptions& range_options);
 
-  virtual RequestZrem Zrem(std::string key, std::vector<std::string> members);
+    virtual RequestZrem Zrem(std::string key, std::string member);
 
-  virtual RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
-                                                 int64_t stop);
+    virtual RequestZrem Zrem(std::string key, std::vector<std::string> members);
 
-  virtual RequestZremrangebyscore Zremrangebyscore(std::string key, double min,
-                                                   double max);
+    virtual RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start, int64_t stop);
 
-  virtual RequestZremrangebyscore Zremrangebyscore(std::string key,
-                                                   std::string min,
-                                                   std::string max);
+    virtual RequestZremrangebyscore Zremrangebyscore(std::string key, double min, double max);
 
-  virtual RequestZscore Zscore(std::string key, std::string member);
+    virtual RequestZremrangebyscore Zremrangebyscore(std::string key, std::string min, std::string max);
 
-  // end of redis commands
+    virtual RequestZscore Zscore(std::string key, std::string member);
+
+    // end of redis commands
 };
 
 }  // namespace storages::redis

@@ -13,36 +13,36 @@ class IntegralParser;
 
 template <>
 class IntegralParser<std::int32_t> final : public TypedParser<std::int32_t> {
- public:
-  using TypedParser<std::int32_t>::TypedParser;
+public:
+    using TypedParser<std::int32_t>::TypedParser;
 
- private:
-  void Int64(std::int64_t i) override;
+private:
+    void Int64(std::int64_t i) override;
 
-  void Uint64(std::uint64_t i) override;
+    void Uint64(std::uint64_t i) override;
 
-  void Double(double value) override;
+    void Double(double value) override;
 
-  std::string GetPathItem() const override { return {}; }
+    std::string GetPathItem() const override { return {}; }
 
-  std::string Expected() const override { return "integer"; }
+    std::string Expected() const override { return "integer"; }
 };
 
 template <>
 class IntegralParser<std::int64_t> final : public TypedParser<std::int64_t> {
- public:
-  using TypedParser<std::int64_t>::TypedParser;
+public:
+    using TypedParser<std::int64_t>::TypedParser;
 
- private:
-  void Int64(std::int64_t i) override;
+private:
+    void Int64(std::int64_t i) override;
 
-  void Uint64(std::uint64_t i) override;
+    void Uint64(std::uint64_t i) override;
 
-  void Double(double value) override;
+    void Double(double value) override;
 
-  std::string GetPathItem() const override { return {}; }
+    std::string GetPathItem() const override { return {}; }
 
-  std::string Expected() const override { return "integer"; }
+    std::string Expected() const override { return "integer"; }
 };
 
 using IntParser = IntegralParser<std::int32_t>;

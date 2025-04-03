@@ -1,0 +1,14 @@
+definitions:
+    Item:
+        type: string
+    ArrayStruct:
+        type: object
+        additionalProperties: false
+        properties:
+            array:
+                $ref: '#/definitions/ArrayWithItems'
+
+    ArrayWithItems:
+        type: array
+        items:
+            $ref: '#/definitions/Item'

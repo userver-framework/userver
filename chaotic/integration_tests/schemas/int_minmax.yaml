@@ -1,0 +1,35 @@
+definitions:
+    IntegerMinMax:
+        type: integer
+        minimum: 1
+        maximum: 20
+    IntegerMinMaxExclusive:
+        type: integer
+        exclusiveMinimum: 1
+        exclusiveMaximum: 20
+    IntegerObject:
+        type: object
+        additionalProperties: false
+        properties:
+            foo:
+                $ref: '#/definitions/IntegerMinMaxExclusive'
+            bar:
+                $ref: '#/definitions/StringMinMaxLength'
+            zoo:
+                $ref: '#/definitions/ArrayMinMaxItems'
+    StringMinMaxLength:
+        type: string
+        minLength: 2
+        maxLength: 5
+    ArrayMinMaxItems:
+        type: array
+        items:
+            type: integer
+        minItems: 2
+        maxItems: 5
+    IntegerMinMaxExclusiveLegacy:
+        type: integer
+        minimum: 1
+        exclusiveMinimum: true
+        maximum: 10
+        exclusiveMaximum: true

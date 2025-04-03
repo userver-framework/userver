@@ -17,75 +17,65 @@ constexpr std::chrono::milliseconds kConnectionAcquisitionTimeout{1000};
 constexpr std::chrono::seconds kMonitorInterval{1};
 
 template <typename OnMessage>
-std::unique_ptr<ConsumerBaseImpl> CreateAndStartConsumerImpl(
-    ClientImpl& client_impl, const ConsumerSettings& settings,
-    OnMessage&& on_message) {
-  auto impl = std::make_unique<ConsumerBaseImpl>(
-      client_impl.GetConnection(
-          engine::Deadline::FromDuration(kConnectionAcquisitionTimeout)),
-      settings);
-  impl->Start(std::forward<OnMessage>(on_message));
+std::unique_ptr<ConsumerBaseImpl>
+CreateAndStartConsumerImpl(ClientImpl& client_impl, const ConsumerSettings& settings, OnMessage&& on_message) {
+    auto impl = std::make_unique<ConsumerBaseImpl>(
+        client_impl.GetConnection(engine::Deadline::FromDuration(kConnectionAcquisitionTimeout)), settings
+    );
+    impl->Start(std::forward<OnMessage>(on_message));
 
-  return impl;
+    return impl;
 }
 
 }  // namespace
 
-ConsumerBase::ConsumerBase(std::shared_ptr<Client> client,
-                           const ConsumerSettings& settings)
+ConsumerBase::ConsumerBase(std::shared_ptr<Client> client, const ConsumerSettings& settings)
     : client_{std::move(client)}, settings_{settings}, impl_{nullptr} {
-  UASSERT(client_);
+    UASSERT(client_);
 }
 
 ConsumerBase::~ConsumerBase() {
-  UASSERT_MSG(impl_ == nullptr,
-              "You should call `Stop` before derived class is destroyed");
-  Stop();
+    UASSERT_MSG(impl_ == nullptr, "You should call `Stop` before derived class is destroyed");
+    Stop();
 }
 
 void ConsumerBase::Start() {
-  if (monitor_.IsRunning()) {
-    return;
-  }
+    if (monitor_.IsRunning()) {
+        return;
+    }
 
-  try {
-    impl_ = CreateAndStartConsumerImpl(
-        *client_->impl_, settings_,
-        [this](ConsumedMessage message) { Process(std::move(message)); });
-  } catch (const std::exception& ex) {
-    LOG_WARNING() << "Failed to start a consumer: '" << ex.what()
-                  << "'; will try to start again";
-  }
+    try {
+        impl_ = CreateAndStartConsumerImpl(*client_->impl_, settings_, [this](ConsumedMessage message) {
+            Process(std::move(message));
+        });
+    } catch (const std::exception& ex) {
+        LOG_WARNING() << "Failed to start a consumer: '" << ex.what() << "'; will try to start again";
+    }
 
-  monitor_.Start(
-      fmt::format("{}_consumer_monitor", settings_.queue.GetUnderlying()),
-      {kMonitorInterval}, [this] {
+    monitor_.Start(fmt::format("{}_consumer_monitor", settings_.queue.GetUnderlying()), {kMonitorInterval}, [this] {
         if (impl_ == nullptr || impl_->IsBroken()) {
-          LOG_WARNING() << "Consumer for queue '"
-                        << settings_.queue.GetUnderlying()
-                        << "' is broken, trying to restart";
-          try {
-            // TODO : there is a subtle problem with this:
-            // we might set up all the consumers over the same host if some
-            // nodes fail or we are just unlucky. Not sure how much of a problem
-            // that is, but still
-            impl_.reset();
-            impl_ = CreateAndStartConsumerImpl(*client_->impl_, settings_,
-                                               [this](ConsumedMessage message) {
-                                                 Process(std::move(message));
-                                               });
-            LOG_INFO() << "Restarted successfully";
-          } catch (const std::exception& ex) {
-            LOG_WARNING() << "Failed to restart a consumer: '" << ex.what()
-                          << "'; will try to restart again";
-          }
+            LOG_WARNING() << "Consumer for queue '" << settings_.queue.GetUnderlying()
+                          << "' is broken, trying to restart";
+            try {
+                // TODO : there is a subtle problem with this:
+                // we might set up all the consumers over the same host if some
+                // nodes fail or we are just unlucky. Not sure how much of a problem
+                // that is, but still
+                impl_.reset();
+                impl_ = CreateAndStartConsumerImpl(*client_->impl_, settings_, [this](ConsumedMessage message) {
+                    Process(std::move(message));
+                });
+                LOG_INFO() << "Restarted successfully";
+            } catch (const std::exception& ex) {
+                LOG_WARNING() << "Failed to restart a consumer: '" << ex.what() << "'; will try to restart again";
+            }
         }
-      });
+    });
 }
 
 void ConsumerBase::Stop() {
-  monitor_.Stop();
-  impl_.reset();
+    monitor_.Stop();
+    impl_.reset();
 }
 
 }  // namespace urabbitmq

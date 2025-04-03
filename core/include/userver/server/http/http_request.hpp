@@ -4,241 +4,291 @@
 /// @brief @copybrief server::http::HttpRequest
 
 #include <chrono>
-#include <functional>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
-#include <userver/http/header_map.hpp>
-#include <userver/logging/log_helper_fwd.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+
+#include <userver/engine/io/sockaddr.hpp>
 #include <userver/server/http/form_data_arg.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response.hpp>
-#include <userver/utils/impl/projecting_view.hpp>
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine::io {
-class Socket;
-class Sockaddr;
-}  // namespace engine::io
-
 namespace server::handlers {
+class HttpRequestStatistics;
 class HttpHandlerBase;
-}
+}  // namespace server::handlers
 
 /// Server parts of the HTTP protocol implementation.
 namespace server::http {
 
-class HttpRequestImpl;
-
-/// @brief HTTP Request data
+/// @brief HTTP Request data.
+/// @note do not create HttpRequest by hand in tests,
+///       use HttpRequestBuilder instead.
 class HttpRequest final {
- public:
-  using HeadersMap = USERVER_NAMESPACE::http::headers::HeaderMap;
+public:
+    using HeadersMap = USERVER_NAMESPACE::http::headers::HeaderMap;
 
-  using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
+    using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
-  using CookiesMap =
-      std::unordered_map<std::string, std::string, utils::StrCaseHash>;
+    using CookiesMap = std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 
-  using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
+    using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
-  /// @cond
-  explicit HttpRequest(HttpRequestImpl& impl);
-  ~HttpRequest() = default;
+    /// @cond
+    explicit HttpRequest(request::ResponseDataAccounter& data_accounter, utils::impl::InternalTag);
+    /// @endcond
 
-  request::ResponseBase& GetResponse() const;
-  /// @endcond
+    HttpRequest(HttpRequest&&) = delete;
+    HttpRequest(const HttpRequest&) = delete;
 
-  /// @brief Returns a container that should be filled with response data to
-  /// this request.
-  HttpResponse& GetHttpResponse() const;
+    ~HttpRequest();
 
-  const HttpMethod& GetMethod() const;
-  const std::string& GetMethodStr() const;
+    /// @return HTTP method (e.g. GET/POST)
+    const HttpMethod& GetMethod() const;
 
-  /// @return Major version of HTTP. For example, for HTTP 1.0 it returns 1
-  int GetHttpMajor() const;
+    /// @return HTTP method as a string (e.g. "GET")
+    const std::string& GetMethodStr() const;
 
-  /// @return Minor version of HTTP. For example, for HTTP 1.0 it returns 0
-  int GetHttpMinor() const;
+    /// @return Major version of HTTP. For example, for HTTP 1.0 it returns 1
+    int GetHttpMajor() const;
 
-  /// @return Request URL
-  const std::string& GetUrl() const;
+    /// @return Minor version of HTTP. For example, for HTTP 1.0 it returns 0
+    int GetHttpMinor() const;
 
-  /// @return Request path
-  const std::string& GetRequestPath() const;
+    /// @return Request URL
+    const std::string& GetUrl() const;
 
-  /// @return Request path suffix, i.e. part of the path that remains after
-  /// matching the path of a handler.
-  const std::string& GetPathSuffix() const;
+    /// @return Request path
+    const std::string& GetRequestPath() const;
 
-  std::chrono::duration<double> GetRequestTime() const;
-  std::chrono::duration<double> GetResponseTime() const;
+    /// @cond
+    std::chrono::duration<double> GetRequestTime() const;
 
-  /// @return Host from the URL.
-  const std::string& GetHost() const;
+    std::chrono::duration<double> GetResponseTime() const;
+    /// @endcond
 
-  /// @return First argument value with name `arg_name` or an empty string if no
-  /// such argument.
-  /// Arguments are extracted from:
-  /// - query part of the URL,
-  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
-  ///
-  /// In both cases, arg keys and values are url-decoded automatically when
-  /// parsing into the HttpRequest.
-  const std::string& GetArg(std::string_view arg_name) const;
+    /// @return Host from the URL.
+    const std::string& GetHost() const;
 
-  /// @return Argument values with name `arg_name` or an empty vector if no
-  /// such argument.
-  /// Arguments are extracted from:
-  /// - query part of the URL,
-  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
-  ///
-  /// In both cases, arg keys and values are url-decoded automatically when
-  /// parsing into the HttpRequest.
-  const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
+    /// @return Request remote (peer's) address
+    const engine::io::Sockaddr& GetRemoteAddress() const;
 
-  /// @return true if argument with name arg_name exists, false otherwise.
-  /// Arguments are extracted from:
-  /// - query part of the URL,
-  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
-  ///
-  /// In both cases, arg keys and values are url-decoded automatically when
-  /// parsing into the HttpRequest.
-  bool HasArg(std::string_view arg_name) const;
+    /// @return First argument value with name `arg_name` or an empty string if no
+    /// such argument.
+    /// Arguments are extracted from:
+    /// - query part of the URL,
+    /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+    ///
+    /// In both cases, arg keys and values are url-decoded automatically when
+    /// parsing into the HttpRequest.
+    const std::string& GetArg(std::string_view arg_name) const;
 
-  /// @return Count of arguments.
-  /// Arguments are extracted from:
-  /// - query part of the URL,
-  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
-  size_t ArgCount() const;
+    /// @return Argument values with name `arg_name` or an empty vector if no
+    /// such argument.
+    /// Arguments are extracted from:
+    /// - query part of the URL,
+    /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+    ///
+    /// In both cases, arg keys and values are url-decoded automatically when
+    /// parsing into the HttpRequest.
+    const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
 
-  /// @return List of names of arguments.
-  /// Arguments are extracted from:
-  /// - query part of the URL,
-  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
-  std::vector<std::string> ArgNames() const;
+    /// @return true if argument with name arg_name exists, false otherwise.
+    /// Arguments are extracted from:
+    /// - query part of the URL,
+    /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+    ///
+    /// In both cases, arg keys and values are url-decoded automatically when
+    /// parsing into the HttpRequest.
+    bool HasArg(std::string_view arg_name) const;
 
-  /// @return First argument value with name arg_name from multipart/form-data
-  /// request or an empty FormDataArg if no such argument.
-  const FormDataArg& GetFormDataArg(std::string_view arg_name) const;
+    /// @return Count of arguments.
+    /// Arguments are extracted from:
+    /// - query part of the URL,
+    /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+    size_t ArgCount() const;
 
-  /// @return Argument values with name arg_name from multipart/form-data
-  /// request or an empty FormDataArg if no such argument.
-  const std::vector<FormDataArg>& GetFormDataArgVector(
-      std::string_view arg_name) const;
+    /// @return List of names of arguments.
+    /// Arguments are extracted from:
+    /// - query part of the URL,
+    /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+    std::vector<std::string> ArgNames() const;
 
-  /// @return true if argument with name arg_name exists in multipart/form-data
-  /// request, false otherwise.
-  bool HasFormDataArg(std::string_view arg_name) const;
+    /// @return First argument value with name arg_name from multipart/form-data
+    /// request or an empty FormDataArg if no such argument.
+    const FormDataArg& GetFormDataArg(std::string_view arg_name) const;
 
-  /// @return Count of multipart/form-data arguments.
-  size_t FormDataArgCount() const;
+    /// @return Argument values with name arg_name from multipart/form-data
+    /// request or an empty FormDataArg if no such argument.
+    const std::vector<FormDataArg>& GetFormDataArgVector(std::string_view arg_name) const;
 
-  /// @return List of names of multipart/form-data arguments.
-  std::vector<std::string> FormDataArgNames() const;
+    /// @return true if argument with name arg_name exists in multipart/form-data
+    /// request, false otherwise.
+    bool HasFormDataArg(std::string_view arg_name) const;
 
-  /// @return Named argument from URL path with wildcards.
-  /// @note Path args are currently NOT url-decoded automatically.
-  const std::string& GetPathArg(std::string_view arg_name) const;
+    /// @return Count of multipart/form-data arguments.
+    size_t FormDataArgCount() const;
 
-  /// @return Argument from URL path with wildcards by its 0-based index.
-  /// @note Path args are currently NOT url-decoded automatically.
-  const std::string& GetPathArg(size_t index) const;
+    /// @return List of names of multipart/form-data arguments.
+    std::vector<std::string> FormDataArgNames() const;
 
-  /// @return true if named argument from URL path with wildcards exists, false
-  /// otherwise.
-  bool HasPathArg(std::string_view arg_name) const;
+    /// @return Named argument from URL path with wildcards.
+    /// @note Path args are currently NOT url-decoded automatically.
+    const std::string& GetPathArg(std::string_view arg_name) const;
 
-  /// @return true if argument with index from URL path with wildcards exists,
-  /// false otherwise.
-  bool HasPathArg(size_t index) const;
+    /// @return Argument from URL path with wildcards by its 0-based index.
+    /// @note Path args are currently NOT url-decoded automatically.
+    const std::string& GetPathArg(size_t index) const;
 
-  /// @return Number of wildcard arguments in URL path.
-  size_t PathArgCount() const;
+    /// @return true if named argument from URL path with wildcards exists, false
+    /// otherwise.
+    bool HasPathArg(std::string_view arg_name) const;
 
-  /// @return Value of the header with case insensitive name header_name, or an
-  /// empty string if no such header.
-  const std::string& GetHeader(std::string_view header_name) const;
-  /// @overload
-  const std::string& GetHeader(
-      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
-      const;
-  const HeadersMap& GetHeaders() const;
+    /// @return true if argument with index from URL path with wildcards exists,
+    /// false otherwise.
+    bool HasPathArg(size_t index) const;
 
-  /// @return true if header with case insensitive name header_name exists,
-  /// false otherwise.
-  bool HasHeader(std::string_view header_name) const;
-  /// @overload
-  bool HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader&
-                     header_name) const;
+    /// @return Number of wildcard arguments in URL path.
+    size_t PathArgCount() const;
 
-  /// @return Number of headers.
-  size_t HeaderCount() const;
+    /// @return Value of the header with case insensitive name header_name, or an
+    /// empty string if no such header.
+    const std::string& GetHeader(std::string_view header_name) const;
 
-  /// @return List of headers names.
-  HeadersMapKeys GetHeaderNames() const;
+    /// @overload
+    const std::string& GetHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) const;
 
-  /// Removes the header with case insensitive name header_name.
-  void RemoveHeader(std::string_view header_name);
-  /// @overload
-  void RemoveHeader(
-      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
+    /// @return true if header with case insensitive name header_name exists,
+    /// false otherwise.
+    bool HasHeader(std::string_view header_name) const;
 
-  /// @return Value of the cookie with case sensitive name cookie_name, or an
-  /// empty string if no such cookie exists.
-  const std::string& GetCookie(const std::string& cookie_name) const;
+    /// @overload
+    bool HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) const;
 
-  /// @return true if cookie with case sensitive name cookie_name exists, false
-  /// otherwise.
-  bool HasCookie(const std::string& cookie_name) const;
+    /// @return Number of headers.
+    size_t HeaderCount() const;
 
-  /// @return Number of cookies.
-  size_t CookieCount() const;
+    /// Removes the header with case insensitive name header_name.
+    void RemoveHeader(std::string_view header_name);
 
-  /// @return List of cookies names.
-  CookiesMapKeys GetCookieNames() const;
+    /// @overload
+    void RemoveHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
 
-  /// @return HTTP body.
-  const std::string& RequestBody() const;
+    /// @return List of headers names.
+    HeadersMapKeys GetHeaderNames() const;
 
-  /// @return HTTP headers.
-  const HeadersMap& RequestHeaders() const;
+    /// @return HTTP headers.
+    const HeadersMap& GetHeaders() const;
 
-  /// @return HTTP cookies.
-  const CookiesMap& RequestCookies() const;
+    /// @return Value of the cookie with case sensitive name cookie_name, or an
+    /// empty string if no such cookie exists.
+    const std::string& GetCookie(const std::string& cookie_name) const;
 
-  /// @cond
-  void SetRequestBody(std::string body);
-  void ParseArgsFromBody();
+    /// @return true if cookie with case sensitive name cookie_name exists, false
+    /// otherwise.
+    bool HasCookie(const std::string& cookie_name) const;
 
-  std::chrono::steady_clock::time_point GetStartTime() const;
-  /// @endcond
+    /// @return Number of cookies.
+    size_t CookieCount() const;
 
-  /// @brief Set the response status code.
-  ///
-  /// Equivalent to this->GetHttpResponse().SetStatus(status).
-  void SetResponseStatus(HttpStatus status) const;
+    /// @return List of cookies names.
+    CookiesMapKeys GetCookieNames() const;
 
-  /// @return true if the body of the request was compressed
-  bool IsBodyCompressed() const;
+    /// @return HTTP cookies.
+    const CookiesMap& RequestCookies() const;
 
-  /// @cond
-  void SetUpgradeWebsocket(
-      std::function<void(std::unique_ptr<engine::io::RwBase>&&,
-                         engine::io::Sockaddr&&)>
-          cb) const;
-  void DoUpgrade(std::unique_ptr<engine::io::RwBase>&&,
-                 engine::io::Sockaddr&& peer_name) const;
-  /// @endcond
+    /// @return HTTP body.
+    const std::string& RequestBody() const;
 
- private:
-  friend class handlers::HttpHandlerBase;
+    /// @return moved out HTTP body. `this` is modified.
+    std::string ExtractRequestBody();
 
-  HttpRequestImpl& impl_;
+    /// @cond
+    void SetRequestBody(std::string body);
+    void ParseArgsFromBody();
+    bool IsFinal() const;
+    /// @endcond
+
+    /// @brief Set the response status code.
+    ///
+    /// Equivalent to this->GetHttpResponse().SetStatus(status).
+    void SetResponseStatus(HttpStatus status) const;
+
+    /// @return true if the body of the request is still compressed. In other
+    /// words returns true if the static option `decompress_request` of a handler
+    /// was set to `false` and this is a compressed request.
+    bool IsBodyCompressed() const;
+
+    HttpResponse& GetHttpResponse() const;
+
+    /// Get approximate time point of request handling start
+    std::chrono::steady_clock::time_point GetStartTime() const;
+
+    /// @cond
+    void MarkAsInternalServerError() const;
+
+    void SetStartSendResponseTime();
+    void SetFinishSendResponseTime();
+
+    void WriteAccessLogs(
+        const logging::TextLoggerPtr& logger_access,
+        const logging::TextLoggerPtr& logger_access_tskv,
+        const std::string& remote_address
+    ) const;
+
+    void WriteAccessLog(
+        const logging::TextLoggerPtr& logger_access,
+        utils::datetime::WallCoarseClock::time_point tp,
+        const std::string& remote_address
+    ) const;
+
+    void WriteAccessTskvLog(
+        const logging::TextLoggerPtr& logger_access_tskv,
+        utils::datetime::WallCoarseClock::time_point tp,
+        const std::string& remote_address
+    ) const;
+
+    using UpgradeCallback = std::function<void(std::unique_ptr<engine::io::RwBase>&&, engine::io::Sockaddr&&)>;
+
+    bool IsUpgradeWebsocket() const;
+    void SetUpgradeWebsocket(UpgradeCallback cb) const;
+    void DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket, engine::io::Sockaddr&& peer_name) const;
+    /// @endcond
+
+private:
+    void AccountResponseTime();
+
+    void SetPathArgs(std::vector<std::pair<std::string, std::string>> args);
+
+    void SetHttpHandler(const handlers::HttpHandlerBase& handler);
+    const handlers::HttpHandlerBase* GetHttpHandler() const;
+
+    void SetTaskProcessor(engine::TaskProcessor& task_processor);
+    engine::TaskProcessor* GetTaskProcessor() const;
+
+    void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
+
+    // HTTP/2.0 only
+    void SetResponseStreamId(std::int32_t);
+    void SetStreamProducer(impl::Http2StreamEventProducer&& producer);
+
+    void SetTaskCreateTime();
+    void SetTaskStartTime();
+    void SetResponseNotifyTime();
+    void SetResponseNotifyTime(std::chrono::steady_clock::time_point now);
+
+    friend class HttpRequestBuilder;
+    friend class HttpRequestHandler;
+
+    struct Impl;
+    utils::FastPimpl<Impl, 1648, 16> pimpl_;
 };
 
 }  // namespace server::http

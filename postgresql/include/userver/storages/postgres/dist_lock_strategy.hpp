@@ -15,25 +15,27 @@ namespace storages::postgres {
 
 /// Postgres distributed locking strategy
 class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
- public:
-  DistLockStrategy(ClusterPtr cluster, const std::string& table,
-                   const std::string& lock_name,
-                   const dist_lock::DistLockSettings& settings);
+public:
+    DistLockStrategy(
+        ClusterPtr cluster,
+        const std::string& table,
+        const std::string& lock_name,
+        const dist_lock::DistLockSettings& settings
+    );
 
-  void Acquire(std::chrono::milliseconds lock_ttl,
-               const std::string& locker_id) override;
+    void Acquire(std::chrono::milliseconds lock_ttl, const std::string& locker_id) override;
 
-  void Release(const std::string& locker_id) override;
+    void Release(const std::string& locker_id) override;
 
-  void UpdateCommandControl(CommandControl cc);
+    void UpdateCommandControl(CommandControl cc);
 
- private:
-  ClusterPtr cluster_;
-  rcu::Variable<CommandControl> cc_;
-  const std::string acquire_query_;
-  const std::string release_query_;
-  const std::string lock_name_;
-  const std::string owner_prefix_;
+private:
+    ClusterPtr cluster_;
+    rcu::Variable<CommandControl> cc_;
+    const std::string acquire_query_;
+    const std::string release_query_;
+    const std::string lock_name_;
+    const std::string owner_prefix_;
 };
 
 }  // namespace storages::postgres

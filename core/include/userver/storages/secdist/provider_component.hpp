@@ -14,21 +14,22 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::secdist {
 
 class DefaultLoader final : public storages::secdist::SecdistProvider {
- public:
-  struct Settings {
-    std::string config_path;
-    SecdistFormat format{SecdistFormat::kJson};
-    bool missing_ok{false};
-    std::optional<std::string> environment_secrets_key;
-    engine::TaskProcessor* blocking_task_processor{nullptr};
-  };
+public:
+    struct Settings {
+        std::string config_path;
+        SecdistFormat format{SecdistFormat::kJson};
+        bool missing_ok{false};
+        std::optional<std::string> environment_secrets_key;
+        engine::TaskProcessor* blocking_task_processor{nullptr};
+        formats::json::Value inline_config;
+    };
 
-  explicit DefaultLoader(Settings settings);
+    explicit DefaultLoader(Settings settings);
 
-  formats::json::Value Get() const override;
+    formats::json::Value Get() const override;
 
- private:
-  Settings settings_;
+private:
+    Settings settings_;
 };
 
 }  // namespace storages::secdist
@@ -46,28 +47,28 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// config | path to the config file with data | ''
-/// format | config format, either `json` or `yaml` | 'json'
+/// inline | inline data | -
+/// format | config format, one of `json`, `yaml`, `yaml_config` | 'json'
 /// missing-ok | do not terminate components load if no file found by the config option | false
 /// environment-secrets-key | name of environment variable from which to load additional data | -
 /// blocking-task-processor | name of task processor for background blocking operations | --
 
 // clang-format on
 
-class DefaultSecdistProvider final : public ComponentBase,
-                                     public storages::secdist::SecdistProvider {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::DefaultSecdistProvider
-  static constexpr std::string_view kName = "default-secdist-provider";
+class DefaultSecdistProvider final : public ComponentBase, public storages::secdist::SecdistProvider {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::DefaultSecdistProvider
+    static constexpr std::string_view kName = "default-secdist-provider";
 
-  DefaultSecdistProvider(const ComponentConfig&, const ComponentContext&);
+    DefaultSecdistProvider(const ComponentConfig&, const ComponentContext&);
 
-  formats::json::Value Get() const override;
+    formats::json::Value Get() const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  storages::secdist::DefaultLoader loader_;
+private:
+    storages::secdist::DefaultLoader loader_;
 };
 
 template <>

@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
+@ref scripts/docs/en/userver/build/build.md.
 
 
 ## Step by step guide
@@ -17,7 +17,7 @@ as the client sends "hi" responds with greeting from configuration file.
 Derive from components::TcpAcceptorBase and override the `ProcessSocket`
 function to get the new sockets:
 
-@snippet samples/tcp_service/tcp_service.cpp  TCP sample - component
+@snippet samples/tcp_service/main.cpp  TCP sample - component
 
 @warning `ProcessSocket` functions are invoked concurrently on the same 
 instance of the class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"
@@ -30,7 +30,7 @@ Our new "tcp-hello" component should support the options of the components::TcpA
 and the "greeting" option. To achieve that we would need the following
 implementation of the `GetStaticConfigSchema` function:
 
-@snippet samples/tcp_service/tcp_service.cpp  TCP sample - GetStaticConfigSchema
+@snippet samples/tcp_service/main.cpp  TCP sample - GetStaticConfigSchema
 
 Now lets configure our component in the `components` section:
 
@@ -41,7 +41,7 @@ Now lets configure our component in the `components` section:
 
 It's time to deal with new sockets. The code is quite straightforward:
 
-@snippet samples/tcp_service/tcp_service.cpp  TCP sample - ProcessSocket
+@snippet samples/tcp_service/main.cpp  TCP sample - ProcessSocket
 
 
 ### int main()
@@ -49,7 +49,7 @@ It's time to deal with new sockets. The code is quite straightforward:
 Finally, add the component to the `components::MinimalComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/tcp_service/tcp_service.cpp  TCP sample - main
+@snippet samples/tcp_service/main.cpp  TCP sample - main
 
 
 ### Build and Run
@@ -94,7 +94,7 @@ pytest_userver.plugins.service.service_non_http_health_checks :
 ## Full sources
 
 See the full example at:
-* @ref samples/tcp_service/tcp_service.cpp
+* @ref samples/tcp_service/main.cpp
 * @ref samples/tcp_service/static_config.yaml
 * @ref samples/tcp_service/CMakeLists.txt
 * @ref samples/tcp_service/tests/conftest.py
@@ -106,7 +106,7 @@ See the full example at:
 ⇦ @ref scripts/docs/en/userver/tutorial/production_service.md | @ref scripts/docs/en/userver/tutorial/tcp_full.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/tcp_service/tcp_service.cpp
+@example samples/tcp_service/main.cpp
 @example samples/tcp_service/static_config.yaml
 @example samples/tcp_service/CMakeLists.txt
 @example samples/tcp_service/tests/conftest.py

@@ -36,15 +36,13 @@ std::optional<std::size_t> WaitAny(Tasks&... tasks);
 ///
 /// @overload std::optional<std::size_t> WaitAny(Tasks&... tasks)
 template <typename... Tasks, typename Rep, typename Period>
-std::optional<std::size_t> WaitAnyFor(
-    const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks);
+std::optional<std::size_t> WaitAnyFor(const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks);
 
 /// @ingroup userver_concurrency
 ///
 /// @overload std::optional<std::size_t> WaitAny(Tasks&... tasks)
 template <typename... Tasks, typename Clock, typename Duration>
-std::optional<std::size_t> WaitAnyUntil(
-    const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks);
+std::optional<std::size_t> WaitAnyUntil(const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks);
 
 /// @ingroup userver_concurrency
 ///
@@ -54,47 +52,42 @@ std::optional<std::size_t> WaitAnyUntil(Deadline, Tasks&... tasks);
 
 template <typename... Tasks>
 std::optional<std::size_t> WaitAny(Tasks&... tasks) {
-  return engine::WaitAnyUntil(Deadline{}, tasks...);
+    return engine::WaitAnyUntil(Deadline{}, tasks...);
 }
 
 template <typename... Tasks, typename Rep, typename Period>
-std::optional<std::size_t> WaitAnyFor(
-    const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks) {
-  return engine::WaitAnyUntil(Deadline::FromDuration(duration), tasks...);
+std::optional<std::size_t> WaitAnyFor(const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks) {
+    return engine::WaitAnyUntil(Deadline::FromDuration(duration), tasks...);
 }
 
 template <typename... Tasks, typename Clock, typename Duration>
-std::optional<std::size_t> WaitAnyUntil(
-    const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks) {
-  return engine::WaitAnyUntil(Deadline::FromTimePoint(until), tasks...);
+std::optional<std::size_t> WaitAnyUntil(const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks) {
+    return engine::WaitAnyUntil(Deadline::FromTimePoint(until), tasks...);
 }
 
 namespace impl {
 
 class ContextAccessor;
 
-std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets,
-                                     Deadline deadline);
+std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets, Deadline deadline);
 
 template <typename Container>
-std::optional<std::size_t> WaitAnyFromContainer(Deadline deadline,
-                                                Container& tasks) {
-  const auto size = std::size(tasks);
-  std::vector<ContextAccessor*> targets;
-  targets.reserve(size);
+std::optional<std::size_t> WaitAnyFromContainer(Deadline deadline, Container& tasks) {
+    const auto size = std::size(tasks);
+    std::vector<ContextAccessor*> targets;
+    targets.reserve(size);
 
-  for (auto& task : tasks) {
-    targets.push_back(task.TryGetContextAccessor());
-  }
+    for (auto& task : tasks) {
+        targets.push_back(task.TryGetContextAccessor());
+    }
 
-  return DoWaitAny(targets, deadline);
+    return DoWaitAny(targets, deadline);
 }
 
 template <typename... Tasks>
-std::optional<std::size_t> WaitAnyFromTasks(Deadline deadline,
-                                            Tasks&... tasks) {
-  ContextAccessor* wa_elements[]{tasks.TryGetContextAccessor()...};
-  return DoWaitAny(wa_elements, deadline);
+std::optional<std::size_t> WaitAnyFromTasks(Deadline deadline, Tasks&... tasks) {
+    ContextAccessor* wa_elements[]{tasks.TryGetContextAccessor()...};
+    return DoWaitAny(wa_elements, deadline);
 }
 
 inline std::optional<std::size_t> WaitAnyFromTasks(Deadline) { return {}; }
@@ -103,11 +96,11 @@ inline std::optional<std::size_t> WaitAnyFromTasks(Deadline) { return {}; }
 
 template <typename... Tasks>
 std::optional<std::size_t> WaitAnyUntil(Deadline deadline, Tasks&... tasks) {
-  if constexpr (meta::impl::IsSingleRange<Tasks...>()) {
-    return impl::WaitAnyFromContainer(deadline, tasks...);
-  } else {
-    return impl::WaitAnyFromTasks(deadline, tasks...);
-  }
+    if constexpr (meta::impl::IsSingleRange<Tasks...>()) {
+        return impl::WaitAnyFromContainer(deadline, tasks...);
+    } else {
+        return impl::WaitAnyFromTasks(deadline, tasks...);
+    }
 }
 
 }  // namespace engine

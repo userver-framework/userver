@@ -1,0 +1,13 @@
+definitions:
+    TreeNode:
+        type: object
+        additionalProperties: false
+        properties:
+            data:
+                type: string
+            left:
+                $ref: '#/definitions/TreeNode'
+                x-usrv-cpp-indirect: true
+            right:
+                $ref: '#/definitions/TreeNode'
+                x-usrv-cpp-indirect: true

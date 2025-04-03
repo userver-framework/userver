@@ -37,7 +37,6 @@ namespace components {
 /// pool-statistics-disable | set to true to disable statistics for connection pool | false
 /// thread-name-prefix | set OS thread name to this value | ''
 /// threads | number of threads to process low level HTTP related IO system calls | 8
-/// defer-events | whether to defer events execution to a periodic timer; might affect timings a bit, might boost performance, use with care | false
 /// fs-task-processor | task processor to run blocking HTTP related calls, like DNS resolving or hosts reading | -
 /// destination-metrics-auto-max-size | set max number of automatically created destination metrics | 100
 /// user-agent | User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty | empty
@@ -56,32 +55,31 @@ namespace components {
 
 // clang-format on
 class HttpClient final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::HttpClient component
-  static constexpr std::string_view kName = "http-client";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::HttpClient component
+    static constexpr std::string_view kName = "http-client";
 
-  HttpClient(const ComponentConfig&, const ComponentContext&);
+    HttpClient(const ComponentConfig&, const ComponentContext&);
 
-  ~HttpClient() override;
+    ~HttpClient() override;
 
-  clients::http::Client& GetHttpClient();
+    clients::http::Client& GetHttpClient();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& config);
+private:
+    void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  void WriteStatistics(utils::statistics::Writer& writer);
+    void WriteStatistics(utils::statistics::Writer& writer);
 
-  static std::vector<utils::NotNull<clients::http::Plugin*>> FindPlugins(
-      const std::vector<std::string>& names,
-      const components::ComponentContext& context);
+    static std::vector<utils::NotNull<clients::http::Plugin*>>
+    FindPlugins(const std::vector<std::string>& names, const components::ComponentContext& context);
 
-  const bool disable_pool_stats_;
-  clients::http::Client http_client_;
-  concurrent::AsyncEventSubscriberScope subscriber_scope_;
-  utils::statistics::Entry statistics_holder_;
+    const bool disable_pool_stats_;
+    clients::http::Client http_client_;
+    concurrent::AsyncEventSubscriberScope subscriber_scope_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

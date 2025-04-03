@@ -5,9 +5,9 @@ import typing
 
 import pytest
 
-
 try:
     import yatest.common.runtime
+
     UCTL_BIN = [
         yatest.common.runtime.build_path(
             'taxi/uservices/userver/scripts/uctl/uctl',

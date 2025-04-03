@@ -364,5 +364,5 @@ If the request is sent with deadline propagation enabled, then:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/os_signals.md | @ref scripts/docs/en/userver/caches.md ⇨
+⇦ @ref scripts/docs/en/userver/os_signals.md | @ref scripts/docs/en/userver/congestion_control.md ⇨
 @htmlonly </div> @endhtmlonly

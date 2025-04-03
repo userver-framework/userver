@@ -30,22 +30,21 @@ namespace components {
 /// components::ManagerControllerComponent for options description and
 /// sample.
 class SingleThreadedTaskProcessors final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::SingleThreadedTaskProcessors
-  static constexpr std::string_view kName = "single-threaded-task-processors";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::SingleThreadedTaskProcessors
+    static constexpr std::string_view kName = "single-threaded-task-processors";
 
-  SingleThreadedTaskProcessors(const ComponentConfig& config,
-                               const ComponentContext&);
+    SingleThreadedTaskProcessors(const ComponentConfig& config, const ComponentContext&);
 
-  ~SingleThreadedTaskProcessors() override;
+    ~SingleThreadedTaskProcessors() override;
 
-  engine::SingleThreadedTaskProcessorsPool& GetPool() { return pool_; }
+    engine::SingleThreadedTaskProcessorsPool& GetPool() { return pool_; }
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  engine::SingleThreadedTaskProcessorsPool pool_;
+private:
+    engine::SingleThreadedTaskProcessorsPool pool_;
 };
 
 template <>

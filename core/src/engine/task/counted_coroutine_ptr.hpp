@@ -13,26 +13,26 @@ namespace engine::impl {
 class TaskContext;
 
 class CountedCoroutinePtr final {
- public:
-  using CoroPool = coro::Pool;
+public:
+    using CoroPool = coro::Pool;
 
-  CountedCoroutinePtr() = default;
-  CountedCoroutinePtr(CoroPool::CoroutinePtr, TaskProcessor&);
+    CountedCoroutinePtr() = default;
+    CountedCoroutinePtr(CoroPool::CoroutinePtr, TaskProcessor&);
 
-  CountedCoroutinePtr(const CountedCoroutinePtr&) = delete;
-  CountedCoroutinePtr(CountedCoroutinePtr&&) noexcept = default;
-  CountedCoroutinePtr& operator=(const CountedCoroutinePtr&) = delete;
-  CountedCoroutinePtr& operator=(CountedCoroutinePtr&&) noexcept = default;
+    CountedCoroutinePtr(const CountedCoroutinePtr&) = delete;
+    CountedCoroutinePtr(CountedCoroutinePtr&&) noexcept = default;
+    CountedCoroutinePtr& operator=(const CountedCoroutinePtr&) = delete;
+    CountedCoroutinePtr& operator=(CountedCoroutinePtr&&) noexcept = default;
 
-  explicit operator bool() const { return static_cast<bool>(coro_); }
+    explicit operator bool() const { return static_cast<bool>(coro_); }
 
-  CoroPool::Coroutine& operator*();
+    CoroPool::Coroutine& operator*();
 
-  void ReturnToPool() &&;
+    void ReturnToPool() &&;
 
- private:
-  std::optional<CoroPool::CoroutinePtr> coro_;
-  std::optional<TaskCounter::CoroToken> token_;
+private:
+    std::optional<CoroPool::CoroutinePtr> coro_;
+    std::optional<TaskCounter::CoroToken> token_;
 };
 
 }  // namespace engine::impl

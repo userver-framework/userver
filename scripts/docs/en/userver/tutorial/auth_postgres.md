@@ -39,7 +39,7 @@ Cache configuration is straightforward:
 
 ### Authorization Checker
 
-To implement an authorization checker derive from 
+To implement an authorization checker derive from
 server::handlers::auth::AuthCheckerBase and override the virtual functions:
 
 @snippet samples/postgres_auth/auth_bearer.cpp  auth checker declaration
@@ -191,7 +191,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/redis_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/kafka_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/postgres_auth/user_info_cache.hpp

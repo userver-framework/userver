@@ -4,7 +4,6 @@ import pytest
 
 import taxi.integration_testing as it
 
-
 FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
 
 

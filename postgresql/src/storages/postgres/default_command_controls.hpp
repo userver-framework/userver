@@ -18,43 +18,43 @@ namespace storages::postgres {
 // It can be default cmd ctl for all requests or for requests from a specific
 // http-handler.
 class DefaultCommandControls {
- public:
-  DefaultCommandControls(
-      const CommandControl& default_cmd_ctl_src,
-      CommandControlByHandlerMap handlers_command_control_src,
-      CommandControlByQueryMap queries_command_control);
+public:
+    DefaultCommandControls(
+        const CommandControl& default_cmd_ctl_src,
+        CommandControlByHandlerMap handlers_command_control_src,
+        CommandControlByQueryMap queries_command_control
+    );
 
-  CommandControl GetDefaultCmdCtl() const;
+    CommandControl GetDefaultCmdCtl() const;
 
-  void UpdateDefaultCmdCtl(
-      const CommandControl& default_cmd_ctl,
-      detail::DefaultCommandControlSource source =
-          detail::DefaultCommandControlSource::kGlobalConfig);
+    void UpdateDefaultCmdCtl(
+        const CommandControl& default_cmd_ctl,
+        detail::DefaultCommandControlSource source = detail::DefaultCommandControlSource::kGlobalConfig
+    );
 
-  OptionalCommandControl GetHandlerCmdCtl(std::string_view path,
-                                          std::string_view method) const;
+    OptionalCommandControl GetHandlerCmdCtl(std::string_view path, std::string_view method) const;
 
-  OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
+    OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
 
-  void UpdateHandlersCommandControl(
-      CommandControlByHandlerMap&& handlers_command_control);
+    void UpdateHandlersCommandControl(CommandControlByHandlerMap&& handlers_command_control);
 
-  void UpdateQueriesCommandControl(
-      CommandControlByQueryMap&& queries_command_control);
+    void UpdateQueriesCommandControl(CommandControlByQueryMap&& queries_command_control);
 
- private:
-  struct Data {
-    Data(const CommandControl& default_cmd_ctl_src,
-         CommandControlByHandlerMap&& handlers_command_control_src,
-         CommandControlByQueryMap&& queries_command_control_src);
+private:
+    struct Data {
+        Data(
+            const CommandControl& default_cmd_ctl_src,
+            CommandControlByHandlerMap&& handlers_command_control_src,
+            CommandControlByQueryMap&& queries_command_control_src
+        );
 
-    rcu::Variable<CommandControl> default_cmd_ctl;
-    rcu::Variable<CommandControlByHandlerMap> handlers_command_control{};
-    rcu::Variable<CommandControlByQueryMap> queries_command_control{};
-    std::atomic<bool> has_user_default_cc{false};
-  };
+        rcu::Variable<CommandControl> default_cmd_ctl;
+        rcu::Variable<CommandControlByHandlerMap> handlers_command_control{};
+        rcu::Variable<CommandControlByQueryMap> queries_command_control{};
+        std::atomic<bool> has_user_default_cc{false};
+    };
 
-  std::shared_ptr<Data> data_;
+    std::shared_ptr<Data> data_;
 };
 
 }  // namespace storages::postgres

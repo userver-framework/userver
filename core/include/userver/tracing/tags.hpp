@@ -16,6 +16,10 @@ namespace tracing {
 // inferred from a Zipkin span by the presence of ss/sr annotations.
 
 extern const std::string kType;
+extern const std::string kSpanKind;
+extern const std::string kSpanKindServer;
+extern const std::string kSpanKindClient;
+extern const std::string kSpanKindInternal;
 extern const std::string kHttpUrl;
 extern const std::string kHttpMetaType;
 extern const std::string kHttpMethod;

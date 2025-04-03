@@ -7,6 +7,7 @@ import pytest
 async def test_now(service_client, mocked_time):
     response = await service_client.get('/now')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'now': '2019-12-31T11:22:33+00:00'}
 
     # Change mocked time and sync state
@@ -15,6 +16,7 @@ async def test_now(service_client, mocked_time):
 
     response = await service_client.get('/now')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'now': '2019-12-31T11:33:44+00:00'}
     # /// [mocked_time]
 
@@ -23,10 +25,12 @@ async def test_now(service_client, mocked_time):
 async def test_now_timezone_custom(service_client, mocked_time):
     response = await service_client.get('/now')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'now': '2019-12-31T04:15:00+00:00'}
 
     mocked_time.set(dateutil.parser.parse('2019-12-31T10:00:00+0400'))
 
     response = await service_client.get('/now')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'now': '2019-12-31T06:00:00+00:00'}

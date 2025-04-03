@@ -3,18 +3,21 @@
 #include <optional>
 #include <vector>
 
-#include <userver/engine/deadline.hpp>
-#include <userver/kafka/message.hpp>
-
-#include <kafka/impl/stats.hpp>
-
 #include <librdkafka/rdkafka.h>
+
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/kafka/impl/holders.hpp>
+#include <userver/kafka/message.hpp>
+#include <userver/kafka/offset_range.hpp>
+
+#include <kafka/impl/holders_aliases.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
-class Configuration;
+struct Stats;
 struct TopicStats;
 
 /// @brief Consumer implementation based on `librdkafka`.
@@ -22,119 +25,103 @@ struct TopicStats;
 /// pthread mutexes. Hence, all methods must not be called in main task
 /// processor
 class ConsumerImpl final {
-  using MessageBatch = std::vector<Message>;
+    using MessageBatch = std::vector<Message>;
 
- public:
-  explicit ConsumerImpl(std::unique_ptr<Configuration> configuration);
+public:
+    ConsumerImpl(const std::string& name, const ConfHolder& conf, const std::vector<std::string>& topics, Stats& stats);
 
-  ~ConsumerImpl();
+    const Stats& GetStats() const;
 
-  /// @brief Schedules the `topics` subscription.
-  void Subscribe(const std::vector<std::string>& topics);
+    /// @brief Synchronously commits the current assignment offsets.
+    void Commit();
 
-  /// @brief Revokes all subscribed topics partitions and leaves the consumer
-  /// group.
-  /// @note Blocks until consumer successfully closed
-  /// @warning Blocks forever if polled messages are not destroyed
-  void LeaveGroup();
+    /// @brief Schedules the commitment task.
+    void AsyncCommit();
 
-  /// @brief Closes the consumer and subscribes for the `topics`.
-  void Resubscribe(const std::vector<std::string>& topics);
+    /// @brief Retrieves the low and high offsets for the specified topic and partition.
+    OffsetRange GetOffsetRange(
+        const std::string& topic,
+        std::uint32_t partition,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
 
-  /// @brief Synchronously commits the current assignment offsets.
-  void Commit();
+    /// @brief Retrieves the partition IDs for the specified topic.
+    std::vector<std::uint32_t>
+    GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
 
-  /// @brief Schedules the commitment task.
-  void AsyncCommit();
+    /// @brief Effectively calls `PollMessage` until `deadline` is reached
+    /// and no more than `max_batch_size` messages polled.
+    MessageBatch PollBatch(std::size_t max_batch_size, engine::Deadline deadline);
 
-  /// @brief Polls the message until `deadline` is reached.
-  /// If no message polled, returns `std::nullopt`
-  /// @note Must be called periodically to maintain consumer group membership
-  std::optional<Message> PollMessage(engine::Deadline deadline);
+    void AccountMessageProcessingSucceeded(const Message& message);
+    void AccountMessageBatchProcessingSucceeded(const MessageBatch& batch);
+    void AccountMessageProcessingFailed(const Message& message);
+    void AccountMessageBatchProcessingFailed(const MessageBatch& batch);
 
-  /// @brief Effectively calls `PollMessage` until `deadline` is reached
-  /// and no more than `max_batch_size` messages polled.
-  MessageBatch PollBatch(std::size_t max_batch_size, engine::Deadline deadline);
+    void EventCallback();
 
-  const Stats& GetStats() const;
+    /// @brief Revokes all subscribed topics partitions and leaves the consumer
+    /// group.
+    /// @note Blocks until consumer successfully closed
+    /// @warning Blocks forever if polled messages are not destroyed
+    /// @warning May throw in testsuite because calls testpoints
+    void StopConsuming();
 
-  void AccountMessageProcessingSucceeded(const Message& message);
-  void AccountMessageBatchProcessingSucceeded(const MessageBatch& batch);
-  void AccountMessageProcessingFailed(const Message& message);
-  void AccountMessageBatchProcessingFailed(const MessageBatch& batch);
+    /// @brief Schedules the `topics_` subscription.
+    void StartConsuming();
 
-  void ErrorCallbackProxy(int error_code, const char* reason);
+private:
+    /// @brief Try to poll the message until `deadline` is reached.
+    /// If no message polled until the deadline, returns
+    /// `std::nullopt`.
+    /// @note Must be called periodically to maintain consumer group membership
+    std::optional<Message> PollMessage(engine::Deadline deadline);
 
-  /// @brief Callback that is called on each group join/leave and topic
-  /// partition update. Used as a dispatcher of rebalance events.
-  void RebalanceCallbackProxy(rd_kafka_resp_err_t err,
-                              rd_kafka_topic_partition_list_s* partitions);
+    /// @brief Poll a delivery or error event from producer's queue.
+    EventHolder PollEvent();
 
-  /// @brief Assigns (subscribes) the `partitions` list to the current
-  /// consumer.
-  void AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
+    /// @brief Retrieves a message from the event, accounts statistics.
+    /// @returns std::nullopt if event's messages contains an error.
+    std::optional<Message> TakeEventMessage(EventHolder&& event_holder);
 
-  /// @brief Revokes `partitions` from the current consumer.
-  void RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
+    /// @brief Call a corresponding callback for the event data depends on its
+    /// type. Must be called for all events except FETCH.
+    void DispatchEvent(const EventHolder& event_holder);
 
-  /// @brief Callback which is called after succeeded/failed commit.
-  /// Currently, used for logging purposes.
-  void OffsetCommitCallbackProxy(
-      rd_kafka_resp_err_t err,
-      rd_kafka_topic_partition_list_s* committed_offsets);
+    /// @brief Callback called on error in `librdkafka` work.
+    void ErrorCallback(rd_kafka_resp_err_t error, const char* reason, bool is_fatal);
 
- private:
-  std::shared_ptr<TopicStats> GetTopicStats(const std::string& topic);
+    /// @brief Callback called on debug `librdkafka` messages.
+    void LogCallback(const char* facility, const char* message, int log_level);
 
-  void AccountPolledMessageStat(const Message& polled_message);
+    /// @brief Callback that is called on each group join/leave and topic
+    /// partition update. Used as a dispatcher of rebalance events.
+    void RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_topic_partition_list_s* partitions);
 
- private:
-  const std::string component_name_;
-  Stats stats_;
+    /// @brief Assigns (subscribes) the `partitions` list to the current
+    /// consumer.
+    void AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
 
-  class ConsumerHolder;
-  class ConfHolder final {
-    using HandleHolder =
-        std::unique_ptr<rd_kafka_conf_t, decltype(&rd_kafka_conf_destroy)>;
+    /// @brief Revokes `partitions` from the current consumer.
+    void RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
 
-   public:
-    ConfHolder(rd_kafka_conf_t* conf);
+    /// @brief Callback which is called after succeeded/failed commit.
+    /// Currently, used for logging purposes.
+    void OffsetCommitCallback(rd_kafka_resp_err_t err, const rd_kafka_topic_partition_list_s* committed_offsets);
 
-    ConfHolder(const ConfHolder&) = delete;
-    ConfHolder& operator=(const ConfHolder&) = delete;
+    std::shared_ptr<TopicStats> GetTopicStats(const std::string& topic);
 
-    ConfHolder(ConfHolder&&) noexcept = delete;
-    ConfHolder& operator=(ConfHolder&&) noexcept = delete;
+    void AccountPolledMessageStat(const Message& polled_message);
 
-    HandleHolder MakeConfCopy() const;
+private:
+    const std::string& name_;
+    Stats& stats_;
 
-   private:
-    friend class ConsumerHolder;
+    const std::vector<std::string> topics_;
 
-    HandleHolder handle_;
-  };
-  ConfHolder conf_;
+    engine::SingleConsumerEvent queue_became_non_empty_event_;
 
-  class ConsumerHolder final {
-   public:
-    ConsumerHolder(ConsumerImpl::ConfHolder::HandleHolder conf_handle);
-
-    ~ConsumerHolder() = default;
-
-    ConsumerHolder(const ConsumerHolder&) = delete;
-    ConsumerHolder& operator=(const ConsumerHolder&) = delete;
-
-    ConsumerHolder(ConsumerHolder&&) noexcept = delete;
-    ConsumerHolder& operator=(ConsumerHolder&&) noexcept = delete;
-
-    rd_kafka_t* Handle();
-
-   private:
-    using HandleHolder =
-        std::unique_ptr<rd_kafka_t, decltype(&rd_kafka_destroy)>;
-    HandleHolder handle_{nullptr, rd_kafka_destroy};
-  };
-  std::optional<ConsumerHolder> consumer_;
+    ConsumerHolder consumer_;
 };
 
 }  // namespace kafka::impl

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <variant>
 
 #include <engine/impl/wait_list.hpp>
@@ -11,19 +12,28 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 class GenericWaitList final {
- public:
-  explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
+public:
+    explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
 
-  void Append(boost::intrusive_ptr<TaskContext> context) noexcept;
+    bool GetSignalOrAppend(boost::intrusive_ptr<TaskContext>&& context) noexcept;
 
-  void Remove(impl::TaskContext& context) noexcept;
+    void Remove(TaskContext& context) noexcept;
 
-  void WakeupAll();
+    void SetSignalAndWakeupAll();
 
-  bool IsShared() const noexcept;
+    bool IsSignaled() const noexcept;
 
- private:
-  std::variant<WaitListLight, WaitList> waiters_;
+    bool IsShared() const noexcept;
+
+private:
+    struct WaitListAndSignal final {
+        std::atomic<bool> signal{false};
+        WaitList wl{};
+    };
+
+    static auto CreateWaitList(Task::WaitMode wait_mode) noexcept;
+
+    std::variant<WaitListLight, WaitListAndSignal> waiters_;
 };
 
 }  // namespace engine::impl

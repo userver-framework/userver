@@ -4,11 +4,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
-const dynamic_config::Key<int> kDeadlinePropagationVersion{
-    "REDIS_DEADLINE_PROPAGATION_VERSION", 1};
+const dynamic_config::Key<int> kDeadlinePropagationVersion{"REDIS_DEADLINE_PROPAGATION_VERSION", 1};
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

@@ -12,23 +12,21 @@ USERVER_NAMESPACE_BEGIN
 namespace curl::impl {
 
 class CurlGlobal final {
- public:
-  static void Init();
+public:
+    static void Init();
 
- private:
-  CurlGlobal();
-  ~CurlGlobal();
+private:
+    CurlGlobal();
+    ~CurlGlobal();
 };
 
 struct CurlDeleter final {
-  void operator()(char* ptr) const noexcept { native::curl_free(ptr); }
+    void operator()(char* ptr) const noexcept { native::curl_free(ptr); }
 };
 using CurlPtr = std::unique_ptr<char, CurlDeleter>;
 
 struct UrlDeleter final {
-  void operator()(native::CURLU* url) const noexcept {
-    native::curl_url_cleanup(url);
-  }
+    void operator()(native::CURLU* url) const noexcept { native::curl_url_cleanup(url); }
 };
 using UrlPtr = std::unique_ptr<native::CURLU, UrlDeleter>;
 

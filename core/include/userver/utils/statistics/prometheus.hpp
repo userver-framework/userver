@@ -27,13 +27,12 @@ std::string ToPrometheusLabel(std::string_view name);
 }  // namespace impl
 
 /// Output `statistics` in Prometheus format, each metric has `gauge` type.
-std::string ToPrometheusFormat(const utils::statistics::Storage& statistics,
-                               const utils::statistics::Request& request = {});
+std::string
+ToPrometheusFormat(const utils::statistics::Storage& statistics, const utils::statistics::Request& request = {});
 
 /// Output `statistics` in Prometheus format, without metric types.
-std::string ToPrometheusFormatUntyped(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& request = {});
+std::string
+ToPrometheusFormatUntyped(const utils::statistics::Storage& statistics, const utils::statistics::Request& request = {});
 
 }  // namespace utils::statistics
 

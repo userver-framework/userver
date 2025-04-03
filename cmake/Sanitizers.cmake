@@ -112,22 +112,22 @@ function(_userver_make_sanitize_target)
   target_compile_options(userver-internal-sanitize-options INTERFACE
       ${sanitize_cxx_flags}
   )
-  target_link_libraries(userver-internal-sanitize-options INTERFACE
+  target_link_options(userver-internal-sanitize-options INTERFACE
       ${sanitize_link_flags}
   )
 endfunction()
 
 # We must use this function only in install
 function(_userver_make_sanitize_blacklist)
-  if (NOT TARGET userver::userver-internal-sanitize-options)
+  if (NOT TARGET userver::internal-sanitize-options)
     message(FATAL_ERROR "target userver-internal-sanitize-options not defined")
     return()
   endif()
   _userver_get_sanitize_blacklist_file(compile_flags_bl link_flags_bl)
-  target_compile_options(userver::userver-internal-sanitize-options INTERFACE
+  target_compile_options(userver::internal-sanitize-options INTERFACE
       ${compile_flags_bl}
   )
-  target_link_libraries(userver::userver-internal-sanitize-options INTERFACE
+  target_link_options(userver::internal-sanitize-options INTERFACE
       ${link_flags_bl}
   )
 endfunction()

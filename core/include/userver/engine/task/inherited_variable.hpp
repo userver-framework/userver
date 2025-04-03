@@ -22,58 +22,49 @@ namespace engine {
 /// The order of destruction of task-inherited variables is unspecified.
 template <typename T>
 class TaskInheritedVariable final {
-  static_assert(!std::is_reference_v<T>);
-  static_assert(!std::is_const_v<T>);
+    static_assert(!std::is_reference_v<T>);
+    static_assert(!std::is_const_v<T>);
 
- public:
-  /// @brief Get the variable instance for the current task.
-  /// @returns the variable or `nullptr` if variable was not set.
-  const T* GetOptional() const noexcept {
-    return Storage().GetOptional<T, kVariableKind>(impl_.GetKey());
-  }
+public:
+    /// @brief Get the variable instance for the current task.
+    /// @returns the variable or `nullptr` if variable was not set.
+    const T* GetOptional() const noexcept { return Storage().GetOptional<T, kVariableKind>(impl_.GetKey()); }
 
-  /// @brief Get the variable instance for the current task.
-  /// @throws std::runtime_error if variable was not set.
-  const T& Get() const {
-    return Storage().Get<T, kVariableKind>(impl_.GetKey());
-  }
+    /// @brief Get the variable instance for the current task.
+    /// @throws std::runtime_error if variable was not set.
+    const T& Get() const { return Storage().Get<T, kVariableKind>(impl_.GetKey()); }
 
-  /// @brief Sets or replaces the T variable instance.
-  template <typename... Args>
-  void Emplace(Args&&... args) {
-    Storage().Emplace<T, kVariableKind>(impl_.GetKey(),
-                                        std::forward<Args>(args)...);
-  }
+    /// @brief Sets or replaces the T variable instance.
+    template <typename... Args>
+    void Emplace(Args&&... args) {
+        Storage().Emplace<T, kVariableKind>(impl_.GetKey(), std::forward<Args>(args)...);
+    }
 
-  /// @overload
-  void Set(T&& value) { Emplace(std::move(value)); }
+    /// @overload
+    void Set(T&& value) { Emplace(std::move(value)); }
 
-  /// @overload
-  void Set(const T& value) { Emplace(value); }
+    /// @overload
+    void Set(const T& value) { Emplace(value); }
 
-  /// @brief Hide the variable so that it is no longer accessible from the
-  /// current or new child tasks.
-  /// @note The variable might not actually be destroyed immediately.
-  void Erase() { Storage().Erase<T, kVariableKind>(impl_.GetKey()); }
+    /// @brief Hide the variable so that it is no longer accessible from the
+    /// current or new child tasks.
+    /// @note The variable might not actually be destroyed immediately.
+    void Erase() { Storage().Erase<T, kVariableKind>(impl_.GetKey()); }
 
-  /// @cond
-  // For internal use only
-  // inherits data to another storage
-  void InheritTo(impl::task_local::Storage& other,
-                 impl::task_local::InternalTag) {
-    other.InheritNodeIfExists(Storage(), impl_.GetKey());
-  }
-  /// @endcond
+    /// @cond
+    // For internal use only
+    // inherits data to another storage
+    void InheritTo(impl::task_local::Storage& other, impl::task_local::InternalTag) {
+        other.InheritNodeIfExists(Storage(), impl_.GetKey());
+    }
+    /// @endcond
 
- private:
-  static constexpr auto kVariableKind =
-      impl::task_local::VariableKind::kInherited;
+private:
+    static constexpr auto kVariableKind = impl::task_local::VariableKind::kInherited;
 
-  static impl::task_local::Storage& Storage() noexcept {
-    return impl::task_local::GetCurrentStorage();
-  }
+    static impl::task_local::Storage& Storage() noexcept { return impl::task_local::GetCurrentStorage(); }
 
-  impl::task_local::Variable impl_;
+    impl::task_local::Variable impl_;
 };
 
 }  // namespace engine

@@ -81,17 +81,33 @@ middleware pipeline threw some random exception, but if you reorder or hijack th
 ## Usage and configuration
 
 This is how a minimal implementation of a middleware looks like:
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - minimal implementation
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - minimal implementation
 It doesn't have any logic in it and just passes the execution to the downstream.
 This is how a factory for this middleware looks:
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - minimal factory implementation
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - minimal factory implementation
 which feels too verbose for the amount of logic the code performs, so we have a shortcut version, which does the same 
 and also passes the handler into the middleware constructor. Given the middleware that performs some logic
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware implementation
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - some middleware implementation
 the factory implementation is just this:
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware factory implementation
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - some middleware factory implementation
 Do not forget to add components configs:
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - noop-middleware and server-middleware components configs
+
+### Global middleware configuration
+
+Normally, the process of configuring a middleware is the same as configuring any other component,
+see @ref scripts/docs/en/userver/component_system.md
+
+As a component, a `MiddlewareFactory` takes `(config, context)` parameters in its constructor.
+It can parse some fields from `config` and store them in the component.
+Then it can pass this configuration (references are OK) to each `Middleware` created in its
+@ref server::middlewares::HttpMiddlewareFactoryBase::Create "Create" method.
+
+All used config fields should be described in `MyMiddlewareFactory::GetStaticConfigSchema`.
+
+Global configuration should be preferred to per-handler configuration,
+because the latter leads to copy-pasta in configs.
+For some options, it's a good idea to implement both global and per-handler configuration.
 
 ### Per-handler middleware configuration
 
@@ -99,9 +115,9 @@ Basically, the whole point of having MiddlewareFactory-ies separated from Middle
 configure a middleware at a per-handler basis.
 In the snippet above that's what "handler-middleware.header-value" is for: given the middleware (which actually 
 resembles pretty close to how tracing headers are set to the response in userver)
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - configurable middleware implementation
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - configurable middleware implementation
 and the factory implementation
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - configurable middleware factory implementation
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - configurable middleware factory implementation
 one can configure the middleware behavior (header value, in this particular case) in the handler's static config.
 
 If a global configuration is desired (that is, for every middleware instance there is), the easiest way to achieve that
@@ -143,8 +159,8 @@ To configure the pipeline at a per-handler basis 🐙 **userver** provides serve
 By default, it returns the server-wide pipeline without any modifications to it. To change the behavior one should
 derive from it, override the `BuildPipeline` method and specify the builder as the pipeline-builder for the handler.
 For example:
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - custom handler pipeline builder
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - custom handler pipeline builder
 and to use the class as a pipeline builder we should append it to the @ref components::ComponentList "ComponentList"
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - custom handler pipeline builder registration
+@snippet samples/http_middleware_service/main.cpp  Middlewares sample - custom handler pipeline builder registration
 and specify as a pipeline-builder for the handler (notice the middlewares.pipeline-builder section):
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - custom handler pipeline builder configuration

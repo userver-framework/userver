@@ -57,6 +57,10 @@ mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value
 mongo.congestion-control.enabled-seconds: mongo_database=key-value-database	GAUGE	0
 mongo.congestion-control.is-enabled: mongo_database=key-value-database	GAUGE	0
 mongo.congestion-control.is-fake-mode: mongo_database=key-value-database	GAUGE	0
+mongo.pool.apm.heartbeats-failed: mongo_database=key-value-database	RATE	0
+mongo.pool.apm.heartbeats-start: mongo_database=key-value-database	RATE	2
+mongo.pool.apm.heartbeats-success: mongo_database=key-value-database	RATE	2
+mongo.pool.apm.topology-changed: mongo_database=key-value-database	RATE	4
 
 # Number of connections closed since the service start
 mongo.pool.conn-closed: mongo_database=key-value-database	RATE	0

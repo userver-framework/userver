@@ -6,26 +6,26 @@
 
 namespace functional_tests {
 
-class GreeterServiceComponent final
-    : public samples::api::GreeterServiceBase::Component {
- public:
-  static constexpr std::string_view kName = "greeter-service";
+class GreeterServiceComponent final : public samples::api::GreeterServiceBase::Component {
+public:
+    static constexpr std::string_view kName = "greeter-service";
 
-  GreeterServiceComponent(const components::ComponentConfig& config,
-                          const components::ComponentContext& context)
-      : samples::api::GreeterServiceBase::Component(config, context) {}
+    GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : samples::api::GreeterServiceBase::Component(config, context) {}
 
-  void SayHello(SayHelloCall& call,
-                samples::api::GreetingRequest&& request) final;
+    SayHelloResult SayHello(CallContext& context, samples::api::GreetingRequest&& request) final;
 
-  void SayHelloResponseStream(SayHelloResponseStreamCall& call,
-                              samples::api::GreetingRequest&& request) final;
+    SayHelloResponseStreamResult SayHelloResponseStream(
+        CallContext& context,
+        samples::api::GreetingRequest&& request,
+        SayHelloResponseStreamWriter& writer
+    ) final;
 
-  void SayHelloRequestStream(SayHelloRequestStreamCall& call) final;
+    SayHelloRequestStreamResult SayHelloRequestStream(CallContext& context, SayHelloRequestStreamReader& reader) final;
 
-  void SayHelloStreams(SayHelloStreamsCall& call) final;
+    SayHelloStreamsResult SayHelloStreams(CallContext& context, SayHelloStreamsReaderWriter& stream) final;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace functional_tests

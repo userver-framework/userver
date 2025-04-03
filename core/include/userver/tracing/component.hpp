@@ -16,8 +16,7 @@ namespace components {
 ///
 /// @brief Component that initializes the request tracing facilities.
 ///
-/// Finds the components::Logging component and requests an optional
-/// "opentracing" logger to use for Opentracing.
+/// Finds the components::Logging component.
 ///
 /// The component must be configured in service config.
 ///
@@ -33,14 +32,14 @@ namespace components {
 
 // clang-format on
 class Tracer final : public RawComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Tracer
-  static constexpr std::string_view kName = "tracer";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Tracer
+    static constexpr std::string_view kName = "tracer";
 
-  Tracer(const ComponentConfig& config, const ComponentContext& context);
+    Tracer(const ComponentConfig& config, const ComponentContext& context);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 template <>

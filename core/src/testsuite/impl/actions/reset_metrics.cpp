@@ -7,15 +7,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite::impl::actions {
 
-ResetMetrics::ResetMetrics(
-    const components::ComponentContext& component_context)
-    : metrics_storage_(
-          component_context.FindComponent<components::StatisticsStorage>()
-              .GetMetricsStorage()) {}
+ResetMetrics::ResetMetrics(const components::ComponentContext& component_context)
+    : metrics_storage_(component_context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()) {}
 
 formats::json::Value ResetMetrics::Perform(const formats::json::Value&) const {
-  metrics_storage_->ResetMetrics();
-  return {};
+    metrics_storage_->ResetMetrics();
+    return {};
 }
 
 }  // namespace testsuite::impl::actions

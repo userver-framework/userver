@@ -14,27 +14,30 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::dns {
 
 class NetResolver {
- public:
-  struct Response {
-    AddrVector addrs;
-    std::chrono::system_clock::time_point received_at;
-    std::chrono::seconds ttl{0};
-  };
+public:
+    struct Response {
+        AddrVector addrs;
+        std::chrono::system_clock::time_point received_at;
+        std::chrono::seconds ttl{0};
+    };
 
-  // reads resolv.conf for nameservers and some of the options from FS-TP
-  NetResolver(engine::TaskProcessor& fs_task_processor,
-              std::chrono::milliseconds query_timeout, int query_attempts,
-              const std::vector<std::string>& custom_servers = {});
-  ~NetResolver();
+    // reads resolv.conf for nameservers and some of the options from FS-TP
+    NetResolver(
+        engine::TaskProcessor& fs_task_processor,
+        std::chrono::milliseconds query_timeout,
+        int query_attempts,
+        const std::vector<std::string>& custom_servers = {}
+    );
+    ~NetResolver();
 
-  NetResolver(const NetResolver&) = delete;
-  NetResolver(NetResolver&&) = delete;
+    NetResolver(const NetResolver&) = delete;
+    NetResolver(NetResolver&&) = delete;
 
-  engine::Future<Response> Resolve(std::string name);
+    engine::Future<Response> Resolve(std::string name);
 
- private:
-  class Impl;
-  const std::unique_ptr<Impl> impl_;
+private:
+    class Impl;
+    const std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace clients::dns

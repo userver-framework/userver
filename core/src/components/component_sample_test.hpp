@@ -9,21 +9,20 @@
 namespace myservice::smth {
 
 class Component final : public components::ComponentBase {
- public:
-  // name of your component to refer in static config
-  static constexpr std::string_view kName = "smth";
+public:
+    // name of your component to refer in static config
+    static constexpr std::string_view kName = "smth";
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  int DoSomething() const;
+    int DoSomething() const;
 
-  ~Component() final;
+    ~Component() final;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  dynamic_config::Source config_;
+private:
+    dynamic_config::Source config_;
 };
 
 }  // namespace myservice::smth
@@ -32,12 +31,10 @@ class Component final : public components::ComponentBase {
 
 /// [Sample kHasValidate specialization]
 template <>
-inline constexpr bool components::kHasValidate<myservice::smth::Component> =
-    true;
+inline constexpr bool components::kHasValidate<myservice::smth::Component> = true;
 /// [Sample kHasValidate specialization]
 
 /// [Sample kConfigFileMode specialization]
 template <>
-inline constexpr auto components::kConfigFileMode<myservice::smth::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<myservice::smth::Component> = ConfigFileMode::kNotRequired;
 /// [Sample kConfigFileMode specialization]

@@ -89,11 +89,7 @@ class Metric:
     def __eq__(self, other: typing.Any) -> bool:
         if not isinstance(other, Metric):
             return NotImplemented
-        return (
-            self.labels == other.labels
-            and self.value == other.value
-            and _type_eq(self._type, other._type)
-        )
+        return self.labels == other.labels and self.value == other.value and _type_eq(self._type, other._type)
 
     def __hash__(self) -> int:
         return hash(_get_labels_tuple(self))
@@ -101,10 +97,7 @@ class Metric:
     # @cond
     def __post_init__(self):
         if isinstance(self.value, Histogram):
-            assert (
-                self._type == MetricType.HIST_RATE
-                or self._type == MetricType.UNSPECIFIED
-            )
+            assert self._type == MetricType.HIST_RATE or self._type == MetricType.UNSPECIFIED
         else:
             assert self._type is not MetricType.HIST_RATE
 
@@ -143,15 +136,15 @@ class MetricsSnapshot:
         self._values = values
 
     def __getitem__(self, path: str) -> typing.Set[Metric]:
-        """ Returns a list of metrics by specified path """
+        """Returns a list of metrics by specified path"""
         return self._values[path]
 
     def __len__(self) -> int:
-        """ Returns count of metrics paths """
+        """Returns count of metrics paths"""
         return len(self._values)
 
     def __iter__(self):
-        """ Returns a (path, list) iterable over the metrics """
+        """Returns a (path, list) iterable over the metrics"""
         return self._values.__iter__()
 
     def __contains__(self, path: str) -> bool:
@@ -182,23 +175,23 @@ class MetricsSnapshot:
         return self._values.get(path, default)
 
     def items(self):
-        """ Returns a (path, list) iterable over the metrics """
+        """Returns a (path, list) iterable over the metrics"""
         return self._values.items()
 
     def keys(self):
-        """ Returns an iterable over paths of metrics """
+        """Returns an iterable over paths of metrics"""
         return self._values.keys()
 
     def values(self):
-        """ Returns an iterable over lists of metrics """
+        """Returns an iterable over lists of metrics"""
         return self._values.values()
 
     def value_at(
-            self,
-            path: str,
-            labels: typing.Optional[typing.Dict] = None,
-            *,
-            default: typing.Optional[MetricValue] = None,
+        self,
+        path: str,
+        labels: typing.Optional[typing.Dict] = None,
+        *,
+        default: typing.Optional[MetricValue] = None,
     ) -> MetricValue:
         """
         Returns a single metric value at specified path. If a dict of labels
@@ -210,32 +203,23 @@ class MetricsSnapshot:
         @throws AssertionError if not one metric by path
         """
         entry = self.get(path, set())
-        assert (
-            entry or default is not None
-        ), f'No metrics found by path "{path}"'
+        assert entry or default is not None, f'No metrics found by path "{path}"'
 
         if labels is not None:
             entry = {x for x in entry if x.labels == labels}
-            assert (
-                entry or default is not None
-            ), f'No metrics found by path "{path}" and labels {labels}'
-            assert len(entry) <= 1, (
-                f'Multiple metrics found by path "{path}" and labels {labels}:'
-                f' {entry}'
-            )
+            assert entry or default is not None, f'No metrics found by path "{path}" and labels {labels}'
+            assert len(entry) <= 1, f'Multiple metrics found by path "{path}" and labels {labels}: {entry}'
         else:
-            assert (
-                len(entry) <= 1
-            ), f'Multiple metrics found by path "{path}": {entry}'
+            assert len(entry) <= 1, f'Multiple metrics found by path "{path}": {entry}'
 
         if default is not None and not entry:
             return default
         return next(iter(entry)).value
 
     def metrics_at(
-            self,
-            path: str,
-            require_labels: typing.Optional[typing.Dict] = None,
+        self,
+        path: str,
+        require_labels: typing.Optional[typing.Dict] = None,
     ) -> typing.List[Metric]:
         """
         Metrics path must exactly equal the given `path`.
@@ -266,7 +250,8 @@ class MetricsSnapshot:
             return list(
                 filter(
                     lambda x: _is_labels_subset(
-                        require_labels=require_labels, target_labels=x.labels,
+                        require_labels=require_labels,
+                        target_labels=x.labels,
                     ),
                     entry,
                 ),
@@ -275,19 +260,19 @@ class MetricsSnapshot:
             return list(entry)
 
     def has_metrics_at(
-            self,
-            path: str,
-            require_labels: typing.Optional[typing.Dict] = None,
+        self,
+        path: str,
+        require_labels: typing.Optional[typing.Dict] = None,
     ) -> bool:
         # metrics_with_labels returns list, and pythonic way to check if list
         # is empty is like this:
         return bool(self.metrics_at(path, require_labels))
 
     def assert_equals(
-            self,
-            other: typing.Mapping[str, typing.Set[Metric]],
-            *,
-            ignore_zeros: bool = False,
+        self,
+        other: typing.Mapping[str, typing.Set[Metric]],
+        *,
+        ignore_zeros: bool = False,
     ) -> None:
         """
         Compares the snapshot with a dict of metrics or with
@@ -309,19 +294,14 @@ class MetricsSnapshot:
         """
 
         def _iterate_over_mset(path, mset):
-            """ print (pretty) one metrics set - for given path """
+            """print (pretty) one metrics set - for given path"""
             result = []
             for metric in sorted(mset, key=lambda x: _get_labels_tuple(x)):
                 result.append(
                     '{}: {} {} {}'.format(
                         path,
                         # labels in form (key=value)
-                        ','.join(
-                            [
-                                '({}={})'.format(k, v)
-                                for k, v in _get_labels_tuple(metric)
-                            ],
-                        ),
+                        ','.join(['({}={})'.format(k, v) for k, v in _get_labels_tuple(metric)]),
                         metric._type.value,
                         metric.value,
                     ),
@@ -330,10 +310,7 @@ class MetricsSnapshot:
 
         # list of lists [ [ string1, string2, string3],
         #                 [string4, string5, string6] ]
-        data_for_every_path = [
-            _iterate_over_mset(path, mset)
-            for path, mset in self._values.items()
-        ]
+        data_for_every_path = [_iterate_over_mset(path, mset) for path, mset in self._values.items()]
         # use itertools.chain to flatten list
         # [ string1, string2, string3, string4, string5, string6 ]
         # and join to convert it to one multiline string
@@ -363,33 +340,24 @@ class MetricsSnapshot:
         """
         return json.dumps(
             # Shuffle to disallow depending on the received metrics order.
-            {
-                path: random.sample(list(metrics), len(metrics))
-                for path, metrics in self._values.items()
-            },
+            {path: random.sample(list(metrics), len(metrics)) for path, metrics in self._values.items()},
             cls=_MetricsJSONEncoder,
         )
 
 
 def _type_eq(lhs: MetricType, rhs: MetricType) -> bool:
-    return (
-        lhs == rhs
-        or lhs == MetricType.UNSPECIFIED
-        or rhs == MetricType.UNSPECIFIED
-    )
+    return lhs == rhs or lhs == MetricType.UNSPECIFIED or rhs == MetricType.UNSPECIFIED
 
 
 def _get_labels_tuple(metric: Metric) -> typing.Tuple:
-    """ Returns labels as a tuple of sorted items """
+    """Returns labels as a tuple of sorted items"""
     return tuple(sorted(metric.labels.items()))
 
 
 def _do_compute_percentile(hist: Histogram, percent: float) -> float:
     # This implementation is O(hist.count()), which is less than perfect.
     # So far, this was not a big enough pain to rewrite it.
-    value_lists = [
-        [bound] * bucket for (bucket, bound) in zip(hist.buckets, hist.bounds)
-    ] + [[math.inf] * hist.inf]
+    value_lists = [[bound] * bucket for (bucket, bound) in zip(hist.buckets, hist.bounds)] + [[math.inf] * hist.inf]
     values = [item for sublist in value_lists for item in sublist]
 
     # Implementation taken from:
@@ -409,7 +377,9 @@ def _do_compute_percentile(hist: Histogram, percent: float) -> float:
 def _parse_metric_value(value: typing.Any) -> MetricValue:
     if isinstance(value, dict):
         return Histogram(
-            bounds=value['bounds'], buckets=value['buckets'], inf=value['inf'],
+            bounds=value['bounds'],
+            buckets=value['buckets'],
+            inf=value['inf'],
         )
     elif isinstance(value, float):
         return value
@@ -432,7 +402,9 @@ def _flatten_snapshot(values, ignore_zeros: bool) -> _FlattenedSnapshot:
 
 
 def _diff_metric_snapshots(
-        lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot, ignore_zeros: bool,
+    lhs: _FlattenedSnapshot,
+    rhs: _FlattenedSnapshot,
+    ignore_zeros: bool,
 ) -> str:
     def extra_metrics_message(extra, base):
         return [

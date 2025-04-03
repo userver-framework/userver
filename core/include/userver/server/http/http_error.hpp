@@ -26,8 +26,7 @@ HttpStatus GetHttpStatus(handlers::HandlerErrorCode) noexcept;
 /// For server::http::CustomHandlerException, uses the provided HttpStatus.
 /// For a generic server::handler::CustomHandlerException, converts its
 /// server::handler::HandlerErrorCode to HttpStatus.
-HttpStatus GetHttpStatus(
-    const handlers::CustomHandlerException& exception) noexcept;
+HttpStatus GetHttpStatus(const handlers::CustomHandlerException& exception) noexcept;
 
 /// @brief An extension of server::handlers::CustomHandlerException that allows
 /// to specify a custom HttpStatus.
@@ -35,21 +34,18 @@ HttpStatus GetHttpStatus(
 /// For non-HTTP protocols, the status code will be derived from the attached
 /// server::handlers::HandlerErrorCode.
 class CustomHandlerException : public handlers::CustomHandlerException {
- public:
-  /// @see server::handlers::CustomHandlerException for the description of how
-  /// `args` that can augment error messages.
-  /// @snippet server/handlers/exceptions_test.cpp  Sample construction HTTP
-  template <typename... Args>
-  CustomHandlerException(handlers::HandlerErrorCode error_code,
-                         HttpStatus http_status, Args&&... args)
-      : handlers::CustomHandlerException(error_code,
-                                         std::forward<Args>(args)...),
-        http_status_(http_status) {}
+public:
+    /// @see server::handlers::CustomHandlerException for the description of how
+    /// `args` that can augment error messages.
+    /// @snippet server/handlers/exceptions_test.cpp  Sample construction HTTP
+    template <typename... Args>
+    CustomHandlerException(handlers::HandlerErrorCode error_code, HttpStatus http_status, Args&&... args)
+        : handlers::CustomHandlerException(error_code, std::forward<Args>(args)...), http_status_(http_status) {}
 
-  HttpStatus GetHttpStatus() const { return http_status_; }
+    HttpStatus GetHttpStatus() const { return http_status_; }
 
- private:
-  HttpStatus http_status_;
+private:
+    HttpStatus http_status_;
 };
 
 }  // namespace server::http

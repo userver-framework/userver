@@ -12,6 +12,7 @@ async def test_upsert_row(service_client, ydb):
         },
     )
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {}
 
     cursor = ydb.execute('SELECT * FROM events WHERE id = "id-upsert"')
@@ -40,6 +41,7 @@ async def test_transaction(service_client, ydb):
         },
     )
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {}
 
     cursor = ydb.execute('SELECT * FROM events')
@@ -59,6 +61,7 @@ async def test_upsert_row_with_state(service_client, ydb):
         },
     )
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {}
 
     cursor = ydb.execute('SELECT * FROM events WHERE id = "id-upsert-state"')
@@ -91,6 +94,7 @@ async def test_upsert_rows(service_client, ydb):
         },
     )
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {}
 
     cursor = ydb.execute('SELECT * FROM events WHERE id = "id-upsert"')

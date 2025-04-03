@@ -17,6 +17,17 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-chaos-httpserver-parse-body-args:
+            path: /chaos/httpserver-parse-body-args
+            parse_args_from_body: true
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-httpserver-with-exception:
+            path: /chaos/httpserver-with-exception
+            task_processor: main-task-processor
+            method: GET
+
         handler-chaos-dns-resolver:
             path: /chaos/resolver
             task_processor: main-task-processor
@@ -37,6 +48,11 @@ components_manager:
         handler-on-log-rotate:
             path: /service/on-log-rotate/
             method: POST
+            task_processor: monitor-task-processor
+
+        handler-dynamic-debug-log:
+            path: /log/dynamic-debug
+            method: GET,PUT,DELETE
             task_processor: monitor-task-processor
 
         testsuite-support:
@@ -80,7 +96,6 @@ components_manager:
             fs-cache-path: $dynamic-config-cache
             fs-task-processor: fs-task-processor
             defaults:
-                USERVER_HANDLER_STREAM_API_ENABLED: true
                 # Test that non-existent lines in USERVER_LOG_DYNAMIC_DEBUG
                 # do not prevent the service from starting or updating
                 # dynamic config.
@@ -102,17 +117,17 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: main-task-processor
-
         handler-ping:
             path: /ping
             method: GET
             task_processor: main-task-processor
             throttling_enabled: false
             url_trailing_slash: strict-match
+
+        handler-restart:
+            path: /restart
+            method: GET
+            task_processor: main-task-processor
 
     task_processors:
         main-task-processor:

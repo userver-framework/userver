@@ -3,7 +3,9 @@
 #include <chrono>
 #include <optional>
 
+#include <userver/kafka/headers.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/null_terminated_view.hpp>
 #include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,33 +15,59 @@ namespace kafka {
 namespace impl {
 
 class ConsumerImpl;
+class MessageHolder;
 
 }  // namespace impl
 
-/// @brief RAII wrapper for polled message data.
-/// @note All `Message` instances must be destroyed before `Consumer` stop
+/// @brief Wrapper for polled message data access.
 class Message final {
-  struct Data;
-  using DataStorage = utils::FastPimpl<Data, 16 + 32 + 16, 8>;
+public:
+    ~Message();
 
- public:
-  ~Message();
+    Message(Message&&) noexcept;
+    Message& operator=(Message&&) noexcept = delete;
 
-  Message(Message&&) = default;
+    Message(const Message&) = delete;
+    Message& operator=(const Message&) = delete;
 
-  const std::string& GetTopic() const;
-  std::string_view GetKey() const;
-  std::string_view GetPayload() const;
-  std::optional<std::chrono::milliseconds> GetTimestamp() const;
-  int GetPartition() const;
-  std::int64_t GetOffset() const;
+    const std::string& GetTopic() const;
+    std::string_view GetKey() const;
+    std::string_view GetPayload() const;
+    std::optional<std::chrono::milliseconds> GetTimestamp() const;
+    int GetPartition() const;
+    std::int64_t GetOffset() const;
 
- private:
-  friend class impl::ConsumerImpl;
+    /// @note Headers are parsed only when accessed first time.
+    ///
+    /// If name `name` passed, only headers with such name returns
+    ///
+    /// Usage example:
+    ///
+    /// - All headers:
+    /// @code
+    /// for (auto header : message.GetHeaders()) { /* use ...header... */}
+    /// @endcode
+    /// - Start own headers
+    /// @code
+    /// auto reader = message.GetHeaders();
+    /// auto headers = std::vector<kafka::OwningHeader>{reader.begin(), reader.end()};
+    /// @endcode
+    HeadersReader GetHeaders() const&;
+    HeadersReader GetHeaders() && = delete;
 
-  explicit Message(DataStorage data);
+    /// @brief Returns **last** header with given name.
+    /// @warning This operation has O(N) complexity, where N == number of all message headers.
+    std::optional<std::string_view> GetHeader(utils::NullTerminatedView name) const;
 
-  DataStorage data_;
+private:
+    friend class impl::ConsumerImpl;
+
+    explicit Message(impl::MessageHolder&& message);
+
+    struct MessageData;
+    using DataStorage = utils::FastPimpl<MessageData, 72, 8>;
+
+    DataStorage data_;
 };
 
 using MessageBatchView = utils::span<const Message>;

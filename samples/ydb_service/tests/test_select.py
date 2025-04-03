@@ -12,6 +12,7 @@ async def test_select_rows(service_client):
         },
     )
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {
         'items': [
             {
@@ -35,6 +36,7 @@ async def test_select_rows_empty(service_client):
         },
     )
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'items': []}
 
 
@@ -49,6 +51,7 @@ async def test_select_rows_with_state(service_client):
         },
     )
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {
         'items': [
             {

@@ -8,6 +8,7 @@ testsuite; see
 
 pytest_plugins = [
     'testsuite.pytest_plugin',
+    'pytest_userver.plugins.asyncio_socket',
     'pytest_userver.plugins.base',
     'pytest_userver.plugins.caches',
     'pytest_userver.plugins.config',

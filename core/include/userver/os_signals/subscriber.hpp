@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/os_signals/subscriber.hpp
-/// @brief @copybrief components::os_signals::Subscriber
+/// @brief @copybrief os_signals::Subscriber
 
 #include <userver/concurrent/async_event_source.hpp>
 

@@ -7,6 +7,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/histogram_view.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/rate.hpp>
@@ -24,15 +25,13 @@ struct WriterState;
 
 template <class Metric>
 constexpr auto HasDumpMetricWriter() noexcept
-    -> decltype(DumpMetric(std::declval<Writer&>(),
-                           std::declval<const Metric&>()),
-                std::true_type{}) {
-  return {};
+    -> decltype(DumpMetric(std::declval<Writer&>(), std::declval<const Metric&>()), std::true_type{}) {
+    return {};
 }
 
 template <class Metric, class... Args>
 constexpr auto HasDumpMetricWriter(Args...) noexcept {
-  return std::is_arithmetic_v<Metric>;
+    return std::is_arithmetic_v<Metric>;
 }
 
 }  // namespace impl
@@ -47,10 +46,18 @@ inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
 
 // clang-format off
 
-/// @brief Class for writing metrics
+/// @brief Class for writing metrics that is provided by utils::statistics::Storage.
 ///
-/// The Writer could be customized by providing a
-/// `void DumpMetric(utils::statistics::Writer& writer, const Metric& value)`
+/// Usage is quite straightforward:
+///
+/// @snippet core/src/utils/statistics/pretty_format_test.cpp  Writer basic sample
+///
+/// The above sample would produce the following metrics:
+///
+/// @snippet core/src/utils/statistics/pretty_format_test.cpp  metrics pretty
+///
+/// The Writer can be customized for writing custom metric types by providing a
+/// `void DumpMetric(utils::statistics::Writer& writer, const CustomMetric& value)`
 /// function:
 ///
 /// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric basic
@@ -70,10 +77,10 @@ inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
 ///
 /// The Writer is usable by the utils::statistics::MetricTag. For example, for
 /// the following structure:
-/// @snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - Stats definition
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats definition
 ///
 /// The DumpMetric function may look like:
-/// @snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - Stats tag
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
 ///
 /// For information on metrics testing in testsuite refer to
 /// @ref TESTSUITE_METRICS_TESTING "Testsuite - Metrics".
@@ -83,120 +90,140 @@ inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
 // clang-format on
 
 class Writer final {
- public:
-  /// Path parts delimiter. In other words, writer["a"]["b"] becomes "a.b"
-  static inline constexpr char kDelimiter = '.';
+public:
+    /// Path parts delimiter. In other words, writer["a"]["b"] becomes "a.b"
+    static inline constexpr char kDelimiter = '.';
 
-  Writer() = delete;
-  Writer(Writer&& other) = delete;
-  Writer(const Writer&) = delete;
-  Writer& operator=(Writer&&) = delete;
-  Writer& operator=(const Writer&) = delete;
+    Writer() = delete;
+    Writer(Writer&& other) = delete;
+    Writer(const Writer&) = delete;
+    Writer& operator=(Writer&&) = delete;
+    Writer& operator=(const Writer&) = delete;
 
-  ~Writer();
+    ~Writer();
 
-  /// Returns a Writer with a ('.' + path) appended
-  [[nodiscard]] Writer operator[](std::string_view path) &;
+    /// Returns a Writer with a ('.' + path) appended
+    [[nodiscard]] Writer operator[](std::string_view path) &;
 
-  /// Returns a Writer with a ('.' + path) appended
-  [[nodiscard]] Writer operator[](std::string_view path) &&;
+    /// Returns a Writer with a ('.' + path) appended
+    [[nodiscard]] Writer operator[](std::string_view path) &&;
 
-  /// Write metric value to metrics builder via using DumpMetric
-  /// function.
-  template <class T>
-  void operator=(const T& value) {
-    if constexpr (std::is_arithmetic_v<T> ||
-                  std::is_same_v<std::decay_t<T>, Rate> ||
-                  std::is_same_v<std::decay_t<T>, HistogramView> ||
-                  std::is_same_v<std::decay_t<T>, MetricValue>) {
-      Write(value);
-    } else {
-      if (state_) {
-        static_assert(kHasWriterSupport<T>,
-                      "Cast the metric to an arithmetic type or provide a "
-                      "`void DumpMetric(utils::statistics::Writer& writer, "
-                      "const Metric& value)` function for the `Metric` type");
-        DumpMetric(*this, value);
-      }
+    /// Write metric value to metrics builder via using DumpMetric
+    /// function.
+    template <class T>
+    void operator=(const T& value) {
+        if constexpr (std::is_arithmetic_v<T> || std::is_same_v<std::decay_t<T>, Rate> || std::is_same_v<std::decay_t<T>, HistogramView> || std::is_same_v<std::decay_t<T>, MetricValue>) {
+            Write(value);
+        } else {
+            if (state_) {
+                static_assert(
+                    kHasWriterSupport<T>,
+                    "Cast the metric to an arithmetic type or provide a "
+                    "`void DumpMetric(utils::statistics::Writer& writer, "
+                    "const Metric& value)` function for the `Metric` type"
+                );
+                DumpMetric(*this, value);
+            }
+        }
     }
-  }
 
-  /// Write metric value with labels to metrics builder
-  template <class T>
-  void ValueWithLabels(const T& value, LabelsSpan labels) {
-    auto new_writer = MakeChild();
-    new_writer.AppendLabelsSpan(labels);
-    new_writer = value;
-  }
+    /// Write metric value with labels to metrics builder
+    template <class T>
+    void ValueWithLabels(const T& value, LabelsSpan labels) {
+        auto new_writer = MakeChild();
+        new_writer.AppendLabelsSpan(labels);
+        new_writer = value;
+    }
 
-  /// Write metric value with labels to metrics builder
-  template <class T>
-  void ValueWithLabels(const T& value, std::initializer_list<LabelView> il) {
-    ValueWithLabels(value, LabelsSpan{il});
-  }
+    /// Write metric value with labels to metrics builder
+    template <class T>
+    void ValueWithLabels(const T& value, std::initializer_list<LabelView> il) {
+        ValueWithLabels(value, LabelsSpan{il});
+    }
 
-  /// Write metric value with label to metrics builder
-  template <class T>
-  void ValueWithLabels(const T& value, const LabelView& label) {
-    ValueWithLabels(value, LabelsSpan{&label, &label + 1});
-  }
+    /// Write metric value with label to metrics builder
+    template <class T>
+    void ValueWithLabels(const T& value, const LabelView& label) {
+        ValueWithLabels(value, LabelsSpan{&label, &label + 1});
+    }
 
-  /// Returns true if this writer would actually write data. Returns false if
-  /// the data is not required by request and metrics construction could be
-  /// skipped.
-  explicit operator bool() const noexcept { return !!state_; }
+    /// @cond
+    /// func must be called even for filtered out Writers, e.g. to always collect
+    /// totals
+    template <class Func>
+    void WithLabels(utils::impl::InternalTag, LabelsSpan labels, Func func) {
+        auto new_writer = MakeChild();
+        new_writer.AppendLabelsSpan(labels);
+        func(new_writer);
+    }
 
-  /// @cond
-  explicit Writer(impl::WriterState* state) noexcept;
-  explicit Writer(impl::WriterState& state, LabelsSpan labels);
-  /// @endcond
+    template <class Func>
+    void WithLabels(utils::impl::InternalTag, std::initializer_list<LabelView> il, Func func) {
+        WithLabels(utils::impl::InternalTag{}, LabelsSpan{il}, func);
+    }
 
- private:
-  using ULongLong = unsigned long long;
+    template <class Func>
+    void WithLabels(utils::impl::InternalTag, const LabelView& label, Func func) {
+        WithLabels(utils::impl::InternalTag{}, LabelsSpan{&label, &label + 1}, func);
+    }
+    /// @endcond
 
-  using PathSizeType = std::uint16_t;
-  using LabelsSizeType = std::uint8_t;
+    /// Returns true if this writer would actually write data. Returns false if
+    /// the data is not required by request and metrics construction could be
+    /// skipped.
+    explicit operator bool() const noexcept { return !!state_; }
 
-  void Write(unsigned long long value);
-  void Write(long long value);
-  void Write(double value);
-  void Write(Rate value);
-  void Write(HistogramView value);
-  void Write(MetricValue value);
+    /// @cond
+    explicit Writer(impl::WriterState* state) noexcept;
+    explicit Writer(impl::WriterState& state, LabelsSpan labels);
+    /// @endcond
 
-  void Write(float value) { Write(static_cast<double>(value)); }
+private:
+    using ULongLong = unsigned long long;
 
-  void Write(unsigned long value) { Write(static_cast<ULongLong>(value)); }
-  void Write(long value) { Write(static_cast<long long>(value)); }
-  void Write(unsigned int value) { Write(static_cast<long long>(value)); }
-  void Write(int value) { Write(static_cast<long long>(value)); }
-  void Write(unsigned short value) { Write(static_cast<long long>(value)); }
-  void Write(short value) { Write(static_cast<long long>(value)); }
+    using PathSizeType = std::uint16_t;
+    using LabelsSizeType = std::uint8_t;
 
-  Writer MakeChild();
+    void Write(unsigned long long value);
+    void Write(long long value);
+    void Write(double value);
+    void Write(Rate value);
+    void Write(HistogramView value);
+    void Write(MetricValue value);
 
-  struct MoveTag {};
-  Writer(Writer& other, MoveTag) noexcept;
+    void Write(float value) { Write(static_cast<double>(value)); }
 
-  Writer MoveOut() noexcept { return Writer{*this, MoveTag{}}; }
+    void Write(unsigned long value) { Write(static_cast<ULongLong>(value)); }
+    void Write(long value) { Write(static_cast<long long>(value)); }
+    void Write(unsigned int value) { Write(static_cast<long long>(value)); }
+    void Write(int value) { Write(static_cast<long long>(value)); }
+    void Write(unsigned short value) { Write(static_cast<long long>(value)); }
+    void Write(short value) { Write(static_cast<long long>(value)); }
 
-  void ResetState() noexcept;
-  void ValidateUsage();
+    Writer MakeChild();
 
-  void AppendPath(std::string_view path);
-  void AppendLabelsSpan(LabelsSpan labels);
+    struct MoveTag {};
+    Writer(Writer& other, MoveTag) noexcept;
 
-  impl::WriterState* state_;
-  const PathSizeType initial_path_size_;
-  PathSizeType current_path_size_;
-  const LabelsSizeType initial_labels_size_;
-  LabelsSizeType current_labels_size_;
+    Writer MoveOut() noexcept { return Writer{*this, MoveTag{}}; }
+
+    void ResetState() noexcept;
+    void ValidateUsage();
+
+    void AppendPath(std::string_view path);
+    void AppendLabelsSpan(LabelsSpan labels);
+
+    impl::WriterState* state_;
+    const PathSizeType initial_path_size_;
+    PathSizeType current_path_size_;
+    const LabelsSizeType initial_labels_size_;
+    LabelsSizeType current_labels_size_;
 };
 
 template <class Metric>
 void DumpMetric(Writer& writer, const std::atomic<Metric>& m) {
-  static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
-  writer = m.load();
+    static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
+    writer = m.load();
 }
 
 }  // namespace utils::statistics

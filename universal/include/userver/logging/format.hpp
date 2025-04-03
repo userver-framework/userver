@@ -9,8 +9,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
-/// Log formats
-enum class Format { kTskv, kLtsv, kRaw };
+/// @brief Text-based log formats
+///
+/// For otlp logs, see @ref scripts/docs/en/userver/logging.md
+enum class Format {
+    kTskv,
+    kLtsv,
+    kRaw,
+    kJson,
+    kJsonYaDeploy,
+};
 
 /// Parse Format enum from string
 Format FormatFromString(std::string_view format_str);

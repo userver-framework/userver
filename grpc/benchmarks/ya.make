@@ -6,9 +6,12 @@ SIZE(MEDIUM)
 SUBSCRIBER(g:taxi-common)
 
 PEERDIR(
-    taxi/uservices/userver-arc-utils/grpc/gen/grpc
-    taxi/uservices/userver/grpc/utest
     taxi/uservices/userver/grpc
+    taxi/uservices/userver/grpc/proto/tests
+)
+
+ADDINCL(
+    taxi/uservices/userver/grpc/src
 )
 
 USRV_ALL_SRCS()

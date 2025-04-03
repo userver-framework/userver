@@ -4,16 +4,13 @@
 .mypy_cache
 .pytest_cache
 *.orig
-*.local
+/Makefile.local
 *.yawiki
 .ccache/
 .cache/
 .cores/
 /build*/
 /cmake-build-*/
-/cmake/cmake_generated/
-/docs/
-/third_party/
 CMakeLists.txt.user
 compile_commands.json
 tags

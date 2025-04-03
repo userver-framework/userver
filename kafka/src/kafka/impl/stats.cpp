@@ -1,4 +1,4 @@
-#include <kafka/impl/stats.hpp>
+#include <userver/kafka/impl/stats.hpp>
 
 #include <string_view>
 
@@ -10,26 +10,30 @@ namespace kafka::impl {
 
 namespace {
 
-constexpr std::string_view kSolomonLabel{"solomon_label"};
+constexpr std::string_view kTopic{"topic"};
+constexpr std::string_view kComponentName{"component_name"};
 
 }  // namespace
 
-void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
-  for (const auto& [topic, topic_stats] : stats.topics_stats) {
-    const utils::statistics::LabelView label{kSolomonLabel, topic};
+void DumpMetric(utils::statistics::Writer& writer, const Stats& stats, const std::string& component_name) {
+    const utils::statistics::LabelView component_label{kComponentName, component_name};
+    for (const auto& [topic, topic_stats] : stats.topics_stats) {
+        const utils::statistics::LabelView topic_label{kTopic, topic};
 
-    writer[topic]["avg_ms_spent_time"].ValueWithLabels(
-        topic_stats->avg_ms_spent_time.GetStatsForPeriod().GetCurrent().average,
-        label);
-    writer[topic]["messages_total"].ValueWithLabels(
-        topic_stats->messages_counts.messages_total.Load(), label);
-    writer[topic]["messages_success"].ValueWithLabels(
-        topic_stats->messages_counts.messages_success.Load(), label);
-    writer[topic]["messages_error"].ValueWithLabels(
-        topic_stats->messages_counts.messages_error.Load(), label);
-  }
-  writer["connections_error"].ValueWithLabels(
-      stats.connections_error.Load(), {kSolomonLabel, "component_name"});
+        writer["avg_ms_spent_time"].ValueWithLabels(
+            topic_stats->avg_ms_spent_time.GetStatsForPeriod().GetCurrent().average, {component_label, topic_label}
+        );
+        writer["messages_total"].ValueWithLabels(
+            topic_stats->messages_counts.messages_total.Load(), {component_label, topic_label}
+        );
+        writer["messages_success"].ValueWithLabels(
+            topic_stats->messages_counts.messages_success.Load(), {component_label, topic_label}
+        );
+        writer["messages_error"].ValueWithLabels(
+            topic_stats->messages_counts.messages_error.Load(), {component_label, topic_label}
+        );
+    }
+    writer["connections_error"].ValueWithLabels(stats.connections_error.Load(), component_label);
 }
 
 }  // namespace kafka::impl

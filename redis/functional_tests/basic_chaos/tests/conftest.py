@@ -15,19 +15,19 @@ def userver_testsuite_middleware_enabled():
 
 
 @pytest.fixture(name='sentinel_gate_settings', scope='session')
-def _sentinel_gate_settings() -> typing.Tuple[str, int]:
-    return ('localhost', 27379)
+def _sentinel_gate_settings(get_free_port) -> typing.Tuple[str, int]:
+    return ('localhost', get_free_port())
 
 
 @pytest.fixture(name='master_gate_settings', scope='session')
-def _master_gate_settings() -> typing.Tuple[str, int]:
-    return ('localhost', 17379)
+def _master_gate_settings(get_free_port) -> typing.Tuple[str, int]:
+    return ('localhost', get_free_port())
 
 
 @pytest.fixture(scope='session')
 def service_env(
-        sentinel_gate_settings,
-        _redis_service_settings: service.ServiceSettings,
+    sentinel_gate_settings,
+    _redis_service_settings: service.ServiceSettings,
 ):
     secdist_config = {
         'redis_settings': {
@@ -48,9 +48,8 @@ def service_env(
 
 @pytest.fixture(scope='session')
 async def _sentinel_gate(
-        loop,
-        sentinel_gate_settings,
-        _redis_service_settings: service.ServiceSettings,
+    sentinel_gate_settings,
+    _redis_service_settings: service.ServiceSettings,
 ):
     gate_config = chaos.GateRoute(
         name='sentinel proxy',
@@ -59,16 +58,16 @@ async def _sentinel_gate(
         host_to_server=_redis_service_settings.host,
         port_to_server=_redis_service_settings.sentinel_port,
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 
 @pytest.fixture(name='sentinel_gate')
 async def _sentinel_gate_ready(
-        service_client,
-        _sentinel_gate,
-        _master_gate,
-        _redis_service_settings: service.ServiceSettings,
+    service_client,
+    _sentinel_gate,
+    _master_gate,
+    _redis_service_settings: service.ServiceSettings,
 ):
     port = str(_redis_service_settings.master_ports[0])
     ptrn = r'\r\nip\r\n\$\d+\r\n\S+\r\n\$4\r\nport\r\n\$%d\r\n%s\r\n' % (
@@ -94,9 +93,8 @@ async def _sentinel_gate_ready(
 
 @pytest.fixture(scope='session')
 async def _master_gate(
-        loop,
-        master_gate_settings,
-        _redis_service_settings: service.ServiceSettings,
+    master_gate_settings,
+    _redis_service_settings: service.ServiceSettings,
 ):
     gate_config = chaos.GateRoute(
         name='master proxy',
@@ -105,7 +103,7 @@ async def _master_gate(
         host_to_server=_redis_service_settings.host,
         port_to_server=_redis_service_settings.master_ports[0],
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 

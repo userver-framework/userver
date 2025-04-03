@@ -16,19 +16,20 @@ def userver_testsuite_middleware_enabled():
 @pytest.fixture(name='pgsql_local', scope='session')
 def _pgsql_local(service_source_dir, pgsql_local_create):
     databases = discover.find_schemas(
-        'pg', [service_source_dir.joinpath('schemas/postgresql')],
+        'pg',
+        [service_source_dir.joinpath('schemas/postgresql')],
     )
     return pgsql_local_create(list(databases.values()))
 
 
 @pytest.fixture(scope='session')
-async def _gate_started(loop, pgsql_local):
+async def _gate_started(pgsql_local):
     gate_config = chaos.GateRoute(
         name='postgres proxy',
         host_to_server=pgsql_local['key_value'].host,
         port_to_server=pgsql_local['key_value'].port,
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 
@@ -88,10 +89,12 @@ async def _gate_ready(service_client, _gate_started):
 
 
 @pytest.fixture(
-    autouse=True, params=[0, 1], ids=['pipeline_disabled', 'pipeline_enabled'],
+    autouse=True,
+    params=[0, 1],
+    ids=['pipeline_disabled', 'pipeline_enabled'],
 )
 async def pipeline_mode(request, service_client, dynamic_config):
-    dynamic_config.set_values(
-        {'POSTGRES_CONNECTION_PIPELINE_EXPERIMENT': request.param},
-    )
+    dynamic_config.set_values({
+        'POSTGRES_CONNECTION_PIPELINE_EXPERIMENT': request.param,
+    })
     await service_client.update_server_state()

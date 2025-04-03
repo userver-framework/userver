@@ -1,0 +1,21 @@
+default:
+    prefixes: []
+    names: []
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - prefixes
+      - names
+    properties:
+        prefixes:
+            type: array
+            x-usrv-cpp-container: boost::container::flat_set
+            items:
+                type: string
+        names:
+            type: array
+            x-usrv-cpp-container: boost::container::flat_set
+            items:
+                type: string

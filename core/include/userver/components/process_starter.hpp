@@ -24,20 +24,19 @@ namespace components {
 
 // clang-format on
 class ProcessStarter final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::ProcessStarter component
-  static constexpr std::string_view kName = "process-starter";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::ProcessStarter component
+    static constexpr std::string_view kName = "process-starter";
 
-  ProcessStarter(const ComponentConfig& config,
-                 const ComponentContext& context);
+    ProcessStarter(const ComponentConfig& config, const ComponentContext& context);
 
-  engine::subprocess::ProcessStarter& Get() { return process_starter_; }
+    engine::subprocess::ProcessStarter& Get() { return process_starter_; }
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  engine::subprocess::ProcessStarter process_starter_;
+private:
+    engine::subprocess::ProcessStarter process_starter_;
 };
 
 template <>

@@ -1,0 +1,1 @@
+RECURSE_FOR_TESTS(json)

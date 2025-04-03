@@ -1,0 +1,67 @@
+default:
+    min-limit: 10
+    up-rate-percent: 2
+    down-rate-percent: 2
+    overload-on-seconds: 3
+    overload-off-seconds: 3
+    up-level: 2
+    down-level: 1
+    no-limit-seconds: 1000
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        min-limit:
+            type: integer
+            minimum: 1
+            default: 2
+        up-rate-percent:
+            type: number
+            minimum: 0
+            maximum: 100
+            default: 2
+            exclusiveMinimum: true
+        down-rate-percent:
+            type: number
+            minimum: 0
+            maximum: 100
+            default: 5
+            exclusiveMinimum: true
+        overload-on-seconds:
+            type: integer
+            x-usrv-cpp-type: std::size_t
+            minimum: 1
+            default: 10
+        overload-off-seconds:
+            type: integer
+            x-usrv-cpp-type: std::size_t
+            minimum: 1
+            default: 3
+        up-level:
+            type: integer
+            minimum: 1
+            default: 3
+        down-level:
+            type: integer
+            minimum: 1
+            default: 3
+        load-limit-percent:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 0
+        load-limit-crit-percent:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 0
+        no-limit-seconds:
+            type: integer
+            minimum: 1
+            default: 1000
+            x-usrv-cpp-type: std::size_t
+        start-limit-factor:
+            type: number
+            default: 0.75
+            description: How big drop should be experienced after CC is activated.

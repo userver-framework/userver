@@ -15,29 +15,30 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
+
         # gRPC server and service
         grpc-server:
             port: 8091
 
+        congestion-control:
+
         grpc-server-logging:
             msg-size-log-limit: 10
 
-        grpc-server-deadline-propagation:
-        grpc-server-baggage:
+        grpc-client-middlewares-pipeline:
+        grpc-server-middlewares-pipeline:
 
         greeter-service:
             task-processor: main-task-processor
-            middlewares:
-              - grpc-server-logging
-              - grpc-server-baggage
 
         # gRPC client
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
-            task-processor: grpc-blocking-task-processor
-            channel-args: {}
             middlewares:
-              - grpc-client-logging
-              - grpc-client-baggage
+                grpc-client-deadline-propagation:
+                    enabled: false
+            channel-args: {}
         greeter-client:
             endpoint: $greeter-client-endpoint
 

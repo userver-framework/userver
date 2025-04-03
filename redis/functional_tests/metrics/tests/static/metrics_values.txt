@@ -185,6 +185,7 @@ redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_
 redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
 redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_instance_type=masters, redis_shard=test_master0	RATE	0
 redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=redis_not_ready	RATE	0
 redis.errors.v2: redis_database=metrics_test, redis_error=timeout	RATE	0
 redis.errors.v2: redis_database=metrics_test, redis_error=timeout, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
 redis.errors.v2: redis_database=metrics_test, redis_error=timeout, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0

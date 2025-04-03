@@ -16,30 +16,25 @@ using CryptoByte = CryptoPP::byte;
 using CryptoByte = ::byte;
 #endif
 
-compiler::ThreadLocal local_random_pool = [] {
-  return CryptoPP::AutoSeededRandomPool{};
-};
+compiler::ThreadLocal local_random_pool = [] { return CryptoPP::AutoSeededRandomPool{}; };
 
 }  // namespace
 
 namespace impl {
 
 void GenerateRandomBlock(utils::span<std::byte> buffer) {
-  auto random_pool = local_random_pool.Use();
-  random_pool->GenerateBlock(reinterpret_cast<CryptoByte*>(buffer.data()),
-                             buffer.size());
+    auto random_pool = local_random_pool.Use();
+    random_pool->GenerateBlock(reinterpret_cast<CryptoByte*>(buffer.data()), buffer.size());
 }
 
 }  // namespace impl
 
-void GenerateRandomBlock(utils::span<char> buffer) {
-  return GenerateRandomBlock(utils::as_writable_bytes(buffer));
-}
+void GenerateRandomBlock(utils::span<char> buffer) { return GenerateRandomBlock(utils::as_writable_bytes(buffer)); }
 
 std::string GenerateRandomBlock(std::size_t size) {
-  std::string block(size, '\0');
-  GenerateRandomBlock(block);
-  return block;
+    std::string block(size, '\0');
+    GenerateRandomBlock(block);
+    return block;
 }
 
 }  // namespace crypto

@@ -26,7 +26,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC userver-grpc-internal)
 userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS healthchecking/healthchecking.proto)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-proto)
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if (USERVER_BUILD_TESTS)
     add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
     target_include_directories(${PROJECT_NAME}-unittest PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/include

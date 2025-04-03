@@ -8,7 +8,7 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 An ability to change service behavior at runtime without restarting the service is priceless! We have that ability, it is called dynamic configs and it allows you:
 
-* to control logging (@ref USERVER_NO_LOG_SPANS, @ref USERVER_LOG_REQUEST, @ref USERVER_LOG_REQUEST_HEADERS)
+* to control logging (@ref USERVER_NO_LOG_SPANS, @ref USERVER_LOG_REQUEST, @ref USERVER_LOG_REQUEST_HEADERS, @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST)
 * to control RPS and deal with high loads (@ref HTTP_CLIENT_CONNECT_THROTTLE, @ref USERVER_RPS_CCONTROL, @ref USERVER_TASK_PROCESSOR_QOS)
 * to dynamically switch from one HTTP proxy to another or turn off proxying (@ref USERVER_HTTP_PROXY)
 * to write your own runtime dynamic configs:
@@ -53,7 +53,7 @@ There are two ways to write a JSON handler:
 
 We are going to take the second approach:
 
-@snippet samples/config_service/config_service.cpp Config service sample - component
+@snippet samples/config_service/main.cpp Config service sample - component
 
 @warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data in `Handle*`.
 
@@ -65,11 +65,11 @@ Function `ConfigDistributor::SetNewValues` is meant for setting config values to
 
 All the interesting things happen in the `HandleRequestJsonThrow` function, where we grab a rcu::Variable snapshot, fill the update time and the configuration from it:
 
-@snippet samples/config_service/config_service.cpp Config service sample - HandleRequestJsonThrow
+@snippet samples/config_service/main.cpp Config service sample - HandleRequestJsonThrow
 
 The "configs" field is formed in the `MakeConfigs` function depending on the request parameters:
 
-@snippet samples/config_service/config_service.cpp Config service sample - MakeConfigs
+@snippet samples/config_service/main.cpp Config service sample - MakeConfigs
 
 Note that the service name is sent in the "service" field of the JSON request body. Using it you can make **service specific dynamic configs**.
 
@@ -86,7 +86,7 @@ Finally,
 we add required components to the `components::MinimalServerComponentList()`,
 and start the server with static config `kStaticConfig`.
 
-@snippet samples/config_service/config_service.cpp  Config service sample - main
+@snippet samples/config_service/main.cpp  Config service sample - main
 
 
 ### Build and Run
@@ -179,7 +179,7 @@ dynamic config updates and keep developing without a supplementary service.
 ## Full sources
 
 See the full example:
-* @ref samples/config_service/config_service.cpp
+* @ref samples/config_service/main.cpp
 * @ref samples/config_service/static_config.yaml
 * @ref samples/config_service/CMakeLists.txt
 * @ref samples/config_service/tests/conftest.py
@@ -193,7 +193,7 @@ See the full example:
 
 
 
-@example samples/config_service/config_service.cpp
+@example samples/config_service/main.cpp
 @example samples/config_service/static_config.yaml
 @example samples/config_service/CMakeLists.txt
 @example samples/config_service/tests/conftest.py

@@ -10,57 +10,60 @@
 
 namespace functional_tests {
 
-void GreeterServiceComponent::SayHello(
-    samples::api::GreeterServiceBase::SayHelloCall& call,
-    samples::api::GreetingRequest&& request) {
-  samples::api::GreetingResponse response;
-  response.set_greeting(fmt::format("Hello, {}!", request.name()));
-  call.Finish(response);
+GreeterServiceComponent::SayHelloResult
+GreeterServiceComponent::SayHello(CallContext& /*context*/, samples::api::GreetingRequest&& request) {
+    samples::api::GreetingResponse response;
+    response.set_greeting(fmt::format("Hello, {}!", request.name()));
+    return response;
 }
 
-void GreeterServiceComponent::SayHelloResponseStream(
-    SayHelloResponseStreamCall& call, samples::api::GreetingRequest&& request) {
-  std::string message = fmt::format("{}, {}", "Hello", request.name());
-  samples::api::GreetingResponse response;
-  constexpr auto kCountSend = 5;
-  constexpr std::chrono::milliseconds kTimeInterval{200};
-  for (auto i = 0; i < kCountSend; ++i) {
-    message.push_back('!');
-    response.set_greeting(grpc::string(message));
-    engine::SleepFor(kTimeInterval);
-    call.Write(response);
-  }
-  call.Finish();
+GreeterServiceComponent::SayHelloResponseStreamResult GreeterServiceComponent::SayHelloResponseStream(
+    CallContext& /*context*/,
+    samples::api::GreetingRequest&& request,
+    SayHelloResponseStreamWriter& writer
+) {
+    std::string message = fmt::format("{}, {}", "Hello", request.name());
+    samples::api::GreetingResponse response;
+    constexpr auto kCountSend = 5;
+    constexpr std::chrono::milliseconds kTimeInterval{200};
+    for (auto i = 0; i < kCountSend; ++i) {
+        message.push_back('!');
+        response.set_greeting(grpc::string(message));
+        engine::SleepFor(kTimeInterval);
+        writer.Write(response);
+    }
+    return grpc::Status::OK;
 }
 
-void GreeterServiceComponent::SayHelloRequestStream(
-    SayHelloRequestStreamCall& call) {
-  std::string income_message;
-  samples::api::GreetingRequest request;
-  while (call.Read(request)) {
-    income_message.append(request.name());
-  }
-  samples::api::GreetingResponse response;
-  response.set_greeting(fmt::format("{}, {}", "Hello", income_message));
-  call.Finish(response);
-}
-
-void GreeterServiceComponent::SayHelloStreams(SayHelloStreamsCall& call) {
-  constexpr std::chrono::milliseconds kTimeInterval{200};
-  std::string income_message;
-  samples::api::GreetingRequest request;
-  samples::api::GreetingResponse response;
-  while (call.Read(request)) {
-    income_message.append(request.name());
+GreeterServiceComponent::SayHelloRequestStreamResult
+GreeterServiceComponent::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestStreamReader& reader) {
+    std::string income_message;
+    samples::api::GreetingRequest request;
+    while (reader.Read(request)) {
+        income_message.append(request.name());
+    }
+    samples::api::GreetingResponse response;
     response.set_greeting(fmt::format("{}, {}", "Hello", income_message));
-    engine::SleepFor(kTimeInterval);
-    call.Write(response);
-  }
-  call.Finish();
+    return response;
+}
+
+GreeterServiceComponent::SayHelloStreamsResult
+GreeterServiceComponent::SayHelloStreams(CallContext& /*context*/, SayHelloStreamsReaderWriter& stream) {
+    constexpr std::chrono::milliseconds kTimeInterval{200};
+    std::string income_message;
+    samples::api::GreetingRequest request;
+    samples::api::GreetingResponse response;
+    while (stream.Read(request)) {
+        income_message.append(request.name());
+        response.set_greeting(fmt::format("{}, {}", "Hello", income_message));
+        engine::SleepFor(kTimeInterval);
+        stream.Write(response);
+    }
+    return grpc::Status::OK;
 }
 
 yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
+    return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
 type: object
 description: gRPC sample greater service component
 additionalProperties: false

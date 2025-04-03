@@ -10,12 +10,12 @@ option(
 
 if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   if (USERVER_DOWNLOAD_PACKAGE_CRYPTOPP)
-      find_package(CryptoPP QUIET)
+      find_package(cryptopp QUIET)
   else()
-      find_package(CryptoPP REQUIRED)
+      find_package(cryptopp REQUIRED)
   endif()
 
-  if (CryptoPP_FOUND)
+  if (cryptopp_FOUND)
       return()
   endif()
 endif()
