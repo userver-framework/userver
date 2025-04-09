@@ -70,7 +70,7 @@ public:
     /// @param middleware_config config for the middleware.
     ///
     /// @warning Don't store `info` by reference. `info` object will be dropped after the `CreateMiddleware` call.
-    virtual std::shared_ptr<MiddlewareBase>
+    virtual std::shared_ptr<const MiddlewareBase>
     CreateMiddleware(const HandlerInfo& info, const yaml_config::YamlConfig& middleware_config) const = 0;
 
     /// @brief This method should return the schema of a middleware configuration.
@@ -159,7 +159,7 @@ protected:
 
     /// @cond
     // Only for internal use.
-    std::vector<std::shared_ptr<MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const override;
+    std::vector<std::shared_ptr<const MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const override;
     /// @endcond
 
 private:
@@ -191,10 +191,10 @@ RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
 
 /// @cond
 template <typename MiddlewareBase, typename HandlerInfo>
-std::vector<std::shared_ptr<MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
+std::vector<std::shared_ptr<const MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
     const HandlerInfo& info
 ) const {
-    std::vector<std::shared_ptr<MiddlewareBase>> middlewares{};
+    std::vector<std::shared_ptr<const MiddlewareBase>> middlewares{};
     middlewares.reserve(middleware_infos_.size());
     for (const auto& [factory, local_config] : middleware_infos_) {
         auto config = impl::ValidateAndMergeMiddlewareConfigs(
@@ -228,7 +228,7 @@ public:
           ) {}
 
 private:
-    std::shared_ptr<MiddlewareBase> CreateMiddleware(const HandlerInfo&, const yaml_config::YamlConfig&)
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(const HandlerInfo&, const yaml_config::YamlConfig&)
         const override {
         return std::make_shared<Middleware>();
     }

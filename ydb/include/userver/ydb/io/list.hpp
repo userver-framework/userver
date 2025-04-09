@@ -10,6 +10,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/meta.hpp>
 
+#include <userver/ydb/io/generic_optional.hpp>
 #include <userver/ydb/io/traits.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -114,6 +115,10 @@ struct ValueTraits<T, std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T>>> {
         return builder.Build();
     }
 };
+
+template <typename T>
+struct ValueTraits<std::optional<T>, std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T>>>
+    : impl::GenericOptionalValueTraits<T> {};
 
 }  // namespace ydb
 

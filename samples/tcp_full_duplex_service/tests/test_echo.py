@@ -67,7 +67,7 @@ async def test_delay_recv(service_client, asyncio_socket, monitor_client, gate):
     timeout = 2.0
 
     # respond with delay in TIMEOUT seconds
-    gate.to_client_delay(timeout)
+    await gate.to_client_delay(timeout)
 
     sock = asyncio_socket.tcp()
     await sock.connect(gate.get_sockname_for_clients())
@@ -83,7 +83,7 @@ async def test_delay_recv(service_client, asyncio_socket, monitor_client, gate):
     )
     assert not done
 
-    gate.to_client_pass()
+    await gate.to_client_pass()
 
     await recv_task
     metrics = await monitor_client.metrics(prefix='tcp-echo.')
@@ -94,7 +94,7 @@ async def test_delay_recv(service_client, asyncio_socket, monitor_client, gate):
 
 async def test_data_combine(asyncio_socket, service_client, monitor_client, gate):
     await service_client.reset_metrics()
-    gate.to_client_concat_packets(DATA_LENGTH)
+    await gate.to_client_concat_packets(DATA_LENGTH)
 
     sock = asyncio_socket.socket()
     await sock.connect(gate.get_sockname_for_clients())
@@ -104,7 +104,7 @@ async def test_data_combine(asyncio_socket, service_client, monitor_client, gate
     await recv_all_data(sock)
     await send_task
 
-    gate.to_client_pass()
+    await gate.to_client_pass()
 
     metrics = await monitor_client.metrics(prefix='tcp-echo.')
     assert metrics.value_at('tcp-echo.sockets.opened') == 1
@@ -113,7 +113,7 @@ async def test_data_combine(asyncio_socket, service_client, monitor_client, gate
 
 
 async def test_down_pending_recv(service_client, asyncio_socket, gate):
-    drop_queue = gate.to_client_drop()
+    drop_queue = await gate.to_client_drop()
 
     sock = asyncio_socket.tcp()
     await sock.connect(gate.get_sockname_for_clients())
@@ -130,7 +130,7 @@ async def test_down_pending_recv(service_client, asyncio_socket, gate):
     assert gate.connections_count() == 0
     await asyncio.wait_for(_recv_no_data(), timeout=10.0)
 
-    gate.to_client_pass()
+    await gate.to_client_pass()
 
     sock2 = asyncio_socket.tcp()
     await sock2.connect(gate.get_sockname_for_clients())

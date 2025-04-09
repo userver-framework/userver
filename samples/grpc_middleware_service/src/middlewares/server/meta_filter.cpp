@@ -13,20 +13,16 @@ namespace {
 
 MetaFilter::MetaFilter(MiddlewareConfig&& config) : headers_(std::move(config.headers)) {}
 
-void MetaFilter::Handle(ugrpc::server::MiddlewareCallContext& context) const {
-    const auto& metadata = context.GetCall().GetContext().client_metadata();
+void MetaFilter::OnCallStart(ugrpc::server::MiddlewareCallContext& context) const {
+    const auto& metadata = context.GetServerContext().client_metadata();
 
     for (const auto& header : headers_) {
         const auto it = metadata.find(ToRef(header));
         if (it == metadata.cend()) {
-            auto& rpc = context.GetCall();
-            rpc.FinishWithError(::grpc::Status{::grpc::StatusCode::FAILED_PRECONDITION, "Missed some headers"});
             LOG_ERROR() << "Missed some headers";
-            return;
+            return context.SetError(::grpc::Status{::grpc::StatusCode::FAILED_PRECONDITION, "Missed some headers"});
         }
     }
-
-    context.Next();
 }
 
 /// [gRPC middleware sample]
@@ -51,7 +47,7 @@ MetaFilterComponent::MetaFilterComponent(
       ) {}
 /// [MiddlewareDependencyBuilder After]
 
-std::shared_ptr<ugrpc::server::MiddlewareBase> MetaFilterComponent::CreateMiddleware(
+std::shared_ptr<const ugrpc::server::MiddlewareBase> MetaFilterComponent::CreateMiddleware(
     const ugrpc::server::ServiceInfo&,
     const yaml_config::YamlConfig& middleware_config
 ) const {

@@ -2,13 +2,18 @@
 
 #include <boost/pfr/core.hpp>
 
-#include <userver/storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/row.hpp>
 
 #include <userver/storages/postgres/detail/iterator_direction.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::postgres::detail {
+namespace storages::postgres {
+
+template <typename T, typename ExtractionTag>
+class TypedResultSet;
+
+namespace detail {
 
 template <typename T, typename ExtractionTag, IteratorDirection direction = IteratorDirection::kForward>
 class ConstTypedRowIterator : private Row {
@@ -98,6 +103,8 @@ private:
     }
 };
 
-}  // namespace storages::postgres::detail
+}  // namespace detail
+
+}  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

@@ -53,16 +53,6 @@ struct RpcConfigValues final {
     bool enforce_task_deadline;
 };
 
-/// @brief Contains parsed additional data for grpc status
-/// For example parsed status string
-struct ParsedGStatus final {
-    /// @brief Processes status and builds ParsedGStatus
-    static ParsedGStatus ProcessStatus(const grpc::Status& status);
-
-    std::optional<google::rpc::Status> gstatus;
-    std::optional<std::string> gstatus_string;
-};
-
 using ugrpc::client::impl::FinishAsyncMethodInvocation;
 using ugrpc::impl::AsyncMethodInvocation;
 
@@ -139,7 +129,6 @@ public:
     void SetStatusExtracted() noexcept;
 
     grpc::Status& GetStatus() noexcept;
-    ParsedGStatus& GetParsedGStatus() noexcept;
 
     class AsyncMethodInvocationGuard {
     public:
@@ -173,7 +162,6 @@ private:
     CallKind call_kind_{};
 
     grpc::Status status_;
-    ParsedGStatus parsed_g_status_;
     bool finish_processed_{false};
     bool status_extracted_{false};
 

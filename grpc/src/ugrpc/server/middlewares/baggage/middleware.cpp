@@ -14,15 +14,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::baggage {
 
-void Middleware::Handle(MiddlewareCallContext& context) const {
-    auto& call = context.GetCall();
-
+void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     const auto& dynamic_config = context.GetInitialDynamicConfig();
 
     if (dynamic_config[::dynamic_config::USERVER_BAGGAGE_ENABLED]) {
         const auto& baggage_settings = dynamic_config[::dynamic_config::BAGGAGE_SETTINGS];
 
-        const auto& server_context = call.GetContext();
+        const auto& server_context = context.GetServerContext();
 
         const auto* baggage_header = utils::FindOrNullptr(server_context.client_metadata(), ugrpc::impl::kXBaggage);
 
@@ -37,8 +35,6 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
             }
         }
     }
-
-    context.Next();
 }
 
 }  // namespace ugrpc::server::middlewares::baggage

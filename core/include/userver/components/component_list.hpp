@@ -15,8 +15,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-class Manager;
-
 namespace impl {
 
 template <class T>
@@ -35,17 +33,6 @@ auto NameRegistrationFromComponentType(Args...) {
     return std::string_view{};
 }
 
-using ComponentBaseFactory = std::function<std::unique_ptr<
-    components::RawComponentBase>(const components::ComponentConfig&, const components::ComponentContext&)>;
-
-// Hides manager implementation from header
-void AddComponentImpl(
-    Manager& manager,
-    const components::ComponentConfigMap& config_map,
-    const std::string& name,
-    ComponentBaseFactory factory
-);
-
 class ComponentAdderBase {
 public:
     ComponentAdderBase() = delete;
@@ -62,7 +49,8 @@ public:
 
     ConfigFileMode GetConfigFileMode() const { return config_file_mode_; }
 
-    virtual void operator()(Manager&, const components::ComponentConfigMap&) const = 0;
+    virtual std::unique_ptr<RawComponentBase>
+    MakeComponent(const ComponentConfig& config, const ComponentContext& context) const = 0;
 
     virtual void ValidateStaticConfig(const ComponentConfig&, ValidationMode) const = 0;
 
@@ -76,19 +64,6 @@ private:
 template <typename Component>
 class ComponentAdder final : public ComponentAdderBase {
 public:
-    explicit ComponentAdder(std::string name) : ComponentAdderBase(std::move(name), kConfigFileMode<Component>) {}
-
-    void operator()(Manager&, const components::ComponentConfigMap&) const override;
-
-    void ValidateStaticConfig(const ComponentConfig& static_config, ValidationMode validation_mode) const override {
-        impl::TryValidateStaticConfig<Component>(GetComponentName(), static_config, validation_mode);
-    }
-
-    yaml_config::Schema GetStaticConfigSchema() const override { return impl::GetStaticConfigSchema<Component>(); }
-};
-
-template <typename Component>
-void ComponentAdder<Component>::operator()(Manager& manager, const components::ComponentConfigMap& config_map) const {
     // Using std::is_convertible_v because std::is_base_of_v returns true even
     // if RawComponentBase is a private, protected, or ambiguous base class.
     static_assert(
@@ -96,15 +71,20 @@ void ComponentAdder<Component>::operator()(Manager& manager, const components::C
         "Component should publicly inherit from components::ComponentBase"
         " and the component definition should be visible at its registration"
     );
-    impl::AddComponentImpl(
-        manager,
-        config_map,
-        GetComponentName(),
-        [](const components::ComponentConfig& config, const components::ComponentContext& context) {
-            return std::make_unique<Component>(config, context);
-        }
-    );
-}
+
+    explicit ComponentAdder(std::string name) : ComponentAdderBase(std::move(name), kConfigFileMode<Component>) {}
+
+    std::unique_ptr<RawComponentBase> MakeComponent(const ComponentConfig& config, const ComponentContext& context)
+        const override {
+        return std::make_unique<Component>(config, context);
+    }
+
+    void ValidateStaticConfig(const ComponentConfig& static_config, ValidationMode validation_mode) const override {
+        impl::TryValidateStaticConfig<Component>(GetComponentName(), static_config, validation_mode);
+    }
+
+    yaml_config::Schema GetStaticConfigSchema() const override { return impl::GetStaticConfigSchema<Component>(); }
+};
 
 using ComponentAdderPtr = std::unique_ptr<const impl::ComponentAdderBase>;
 

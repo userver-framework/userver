@@ -1,7 +1,6 @@
 import grpc
 import pytest
 import pytest_userver.client
-import pytest_userver.grpc
 
 import samples.greeter_pb2 as greeter_protos
 import samples.greeter_pb2_grpc as greeter_services

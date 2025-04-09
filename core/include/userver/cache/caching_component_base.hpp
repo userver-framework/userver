@@ -234,7 +234,7 @@ template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(components::GetCurrentComponentName(config), [this](auto& function) {
+      event_channel_(components::GetCurrentComponentName(context), [this](auto& function) {
           const auto ptr = cache_.ReadCopy();
           if (ptr) function(ptr);
       }) {

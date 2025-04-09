@@ -13,5 +13,8 @@ schema:
             // use settings from MONGO_CONGESTION_CONTROL_ENABLED
             "__default__": false
         }
+    properties:
+        __default__:
+            type: boolean
     additionalProperties:
         type: boolean

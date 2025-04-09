@@ -30,7 +30,7 @@ GetMonitorTaskProcessor(const components::ComponentConfig& config, const compone
 
     static constexpr std::string_view kMonitorComponentName = server::handlers::ServerMonitor::kName;
 
-    const auto& component_configs = context.GetManager().GetConfig().components;
+    const auto& component_configs = context.GetManager(utils::impl::InternalTag{}).GetConfig().components;
     for (const auto& component_config : component_configs) {
         if (component_config.Name() == kMonitorComponentName) {
             return &context.GetTaskProcessor(component_config[kMonitoringTaskProcessorFieldName].As<std::string>());
@@ -54,7 +54,7 @@ public:
             return;
         }
 
-        const auto& task_processors_map = context.GetManager().GetTaskProcessorsMap();
+        const auto& task_processors_map = context.GetManager(utils::impl::InternalTag{}).GetTaskProcessorsMap();
 
         task_processors_.reserve(task_processors_map.size());
         for (const auto& [name, tp] : task_processors_map) {

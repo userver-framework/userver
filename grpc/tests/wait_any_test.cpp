@@ -2,7 +2,6 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include <ugrpc/impl/status.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/mutex.hpp>

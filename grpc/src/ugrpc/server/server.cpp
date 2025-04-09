@@ -244,7 +244,8 @@ void Server::Impl::Start() {
         state_ = State::kActive;
     } catch (const std::exception& ex) {
         LOG_ERROR() << "The gRPC server failed to start. " << ex;
-        Stop();
+        // Not Stop, because some gRPC clients might be using completion_queues_.
+        StopServing();
         throw;
     }
 }

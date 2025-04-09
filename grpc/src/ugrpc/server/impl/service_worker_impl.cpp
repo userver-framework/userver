@@ -20,62 +20,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-void ReportHandlerError(
-    const std::exception& ex,
-    std::string_view call_name,
-    tracing::Span& span,
-    ugrpc::impl::RpcStatisticsScope& statistics_scope
-) noexcept {
-    if (engine::current_task::ShouldCancel()) {
-        LOG_WARNING() << "Handler task cancelled, error in '" << call_name << "': " << ex;
-        statistics_scope.OnCancelled();
-        span.AddTag(tracing::kErrorMessage, "Handler task cancelled");
-        span.SetLogLevel(logging::Level::kWarning);
-    } else {
-        LOG_ERROR() << "Uncaught exception in '" << call_name << "': " << ex;
-        span.AddTag(tracing::kErrorMessage, ex.what());
-        span.SetLogLevel(logging::Level::kError);
-    }
-    span.AddTag(tracing::kErrorFlag, true);
-}
-
-void ReportNetworkError(
-    const RpcInterruptedError& ex,
-    std::string_view call_name,
-    tracing::Span& span,
-    ugrpc::impl::RpcStatisticsScope& statistics_scope
-) noexcept {
-    if (engine::current_task::ShouldCancel()) {
-        LOG_WARNING() << "Handler task cancelled, error in '" << call_name << "': " << ex;
-        statistics_scope.OnCancelled();
-        span.AddTag(tracing::kErrorMessage, "Handler task cancelled");
-        span.SetLogLevel(logging::Level::kWarning);
-    } else {
-        LOG_WARNING() << "Network error in '" << call_name << "': " << ex;
-        statistics_scope.OnNetworkError();
-        span.AddTag(tracing::kErrorMessage, ex.what());
-        span.SetLogLevel(logging::Level::kWarning);
-    }
-    span.AddTag(tracing::kErrorFlag, true);
-}
-
-void ReportCustomError(
-    const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex,
-    CallAnyBase& call,
-    tracing::Span& span
-) {
-    const auto status_code = CustomStatusToGrpc(ex.GetCode());
-    if (!call.IsFinished()) {
-        call.FinishWithError({status_code, ugrpc::impl::ToGrpcString(ex.GetExternalErrorBody())});
-    }
-
-    const auto log_level = IsServerError(status_code) ? logging::Level::kError : logging::Level::kWarning;
-    LOG(log_level) << "Error in " << call.GetCallName() << ": " << ex;
-    span.AddTag(tracing::kErrorFlag, true);
-    span.AddTag(tracing::kErrorMessage, ex.what());
-    span.SetLogLevel(log_level);
-}
-
 void SetupSpan(
     std::optional<tracing::InPlaceSpan>& span_holder,
     grpc::ServerContext& context,

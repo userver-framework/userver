@@ -199,7 +199,7 @@ void DoRun(
         ParseManagerConfigAndSetupLogging(log_scope, config, config_vars_path, config_vars_override_path);
 
     utils::impl::UserverExperimentsScope experiments_scope;
-    std::optional<Manager> manager;
+    std::optional<impl::Manager> manager;
 
     try {
         experiments_scope.EnableOnly(manager_config.enabled_experiments);

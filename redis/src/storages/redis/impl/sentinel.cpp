@@ -15,7 +15,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
-#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/cluster_sentinel_impl.hpp>
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>

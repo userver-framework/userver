@@ -73,8 +73,7 @@ public:
     }
     void ProcessCommands() {
         for (auto& cmd : cmds_) {
-            const auto& command = cmd->args.args[0][0];
-            const auto& channel = cmd->args.args[0][1];
+            const auto& [command, channel] = cmd->args.GetCommandAndChannel();
             storages::redis::ReplyData reply_data(storages::redis::ReplyData::Array{
                 storages::redis::ReplyData(command), storages::redis::ReplyData(channel), storages::redis::ReplyData(1)}
             );

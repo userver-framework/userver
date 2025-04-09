@@ -73,9 +73,81 @@ There are two main interfaces for implementing a middleware:
 ### PreStartCall and PostFinish
 
 `PreStartCall` is called before the first message is sent.
-`PostFinish` is called after the last message is received.
+`PostFinish` is called after the last message is received or after error status is received from a Handler.
 
-These hooks are called on each call (even for the streeaming rpc)
+`PreStartCall` hooks are called in the order of middlewares. `PostFinish` hooks are called in the reverse order of middlewares
+
+@dot
+digraph Pipeline {
+  node [shape=box];
+  compound=true;
+  fixedsize=true;
+  rankdir=LR;
+  tooltip = "You didn't hit the arrow with the cursor :-)";
+  labeljust = "l";
+  labelloc = "t";
+
+  subgraph cluster_FirstMiddleware {
+    shape=box;
+    label = "FirstMiddleware";
+    rankdir=TB;
+
+    FirstMiddlewarePreStartCall [label = "PreStartCall"];
+    FirstMiddlewarePostFinish [label = "PostFinish" ];
+  }
+
+  subgraph cluster_SecondMiddleware{
+    shape=box;
+    label = "SecondMiddleware";
+    rankdir=TB;
+
+    SecondMiddlewarePreStartCall [label = "PreStartCall"];
+    SecondMiddlewarePostFinish [label = "PostFinish"];
+  }
+
+  subgraph cluster_RpcHandling {
+    shape=box;
+    label = "RPC handling";
+    rankdir=TB;
+
+    HandleRPC [label = "Handle RPC", shape=box];
+  }
+
+  subgraph cluster_RpcHandling {
+    shape=box;
+    rankdir=TB;
+
+    {
+      rank=same;
+      // Invisible nodes are necessary for a good appearance
+      InvisibleRpcHandlingEmpty [shape=plaintext, label="", height=0];
+      SendMessages [label = "Send messages", shape=box];
+      HandleRPC [label = "Handle RPC", shape=box];
+      ReceiveMessages [label = "Receive messages", shape=box];
+      InvisibleRpcHandlingEnd [shape=plaintext, label="", height=0];
+
+    }
+  }
+  SendMessages -> HandleRPC -> ReceiveMessages
+  // invis is need for a good appearance
+  ReceiveMessages -> HandleRPC [style=invis];
+  HandleRPC -> SendMessages [style=invis];
+
+
+  FirstMiddlewarePreStartCall -> SecondMiddlewarePreStartCall;
+  SecondMiddlewarePreStartCall -> SendMessages [label = "once"];
+  ReceiveMessages -> SecondMiddlewarePostFinish [label = "once"];
+  SecondMiddlewarePostFinish -> FirstMiddlewarePostFinish;
+
+  Pipeline[label = "PreStartCall/PostFinish middlewares hooks order", shape=plaintext, rank="main"];
+}
+@enddot
+
+Where are many requests and responses on streaming RPC, but `PreStartCall` and `PostFinish` are called once!
+
+For more info about the middlewares order see @ref scripts/docs/en/userver/grpc/middlewares_order.md
+
+These hooks are called once per Call (RPC).
 
 @snippet samples/grpc_middleware_service/src/middlewares/client/auth.hpp Middleware declaration
 @snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp gRPC middleware sample - Middleware implementation
@@ -86,9 +158,65 @@ Register the Middleware component in the component system
 
 The static YAML config.
 
-@snippet samples/grpc_middleware_service/static_config.yaml static config grpc-auth-client
+@snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-auth-client
 
+@anchor grpc_client_hooks
 ### PreSendMessage and PostRecvMessage
+
+`PreSendMessage` hooks are called in the order of middlewares. `PostRecvMessage` hooks are called in the reverse order of middlewares
+
+@dot
+digraph Pipeline {
+  node [shape=box];
+  compound=true;
+  fixedsize=true;
+  rankdir=LR;
+  tooltip = "You didn't hit the arrow with the cursor :-)";
+  labeljust = "l";
+  labelloc = "t";
+
+  subgraph cluster_UserClientCode {
+    shape=box;
+    label = "User code working with gRPC client";
+
+    CreateMessage [label = "Create a message", shape=box];
+    RecvMessage [label = "Receive a message", shape=box];
+  }
+
+  subgraph cluster_FirstMiddleware {
+    shape=box;
+    label = "FirstMiddleware";
+
+    FirstMiddlewareCallRequestHook [label = "CallRequestHook", shape=box];
+    FirstMiddlewareCallResponseHook [label = "CallResponseHook", shape=box];
+  }
+
+  subgraph cluster_SecondMiddleware{
+    shape=box;
+    label = "SecondMiddleware";
+
+    SecondMiddlewareCallRequestHook [label = "CallRequestHook", shape=box];
+    SecondMiddlewareCallResponseHook [label = "CallResponseHook", shape=box];
+  }
+
+  subgraph cluster_NetworkInteraction {
+    shape=box;
+    label = "Network interaction";
+
+    SendMessageToNetwork [label = "Send message to network", shape=box];
+    ReceiveMessageFromNetwork [label = "Receive message from network", shape=box];
+  }
+
+  CreateMessage -> FirstMiddlewareCallRequestHook -> SecondMiddlewareCallRequestHook -> SendMessageToNetwork
+  ReceiveMessageFromNetwork -> SecondMiddlewareCallResponseHook -> FirstMiddlewareCallResponseHook -> RecvMessage
+
+  Pipeline[label = "PreSendMessage/PostRecvMessage middlewares hooks order", shape=plaintext, rank="main"];
+}
+@enddot
+
+For more info about the middlewares order see @ref scripts/docs/en/userver/grpc/middlewares_order.md
+
+These hooks are called on each message.
 
 `PreSendMessage`:
     * unary: is called exactly once
@@ -107,7 +235,7 @@ The static YAML config and component registration are edentical as in example ab
 There are simple cases above: we just set `Auth` group for one middleware and use a default constructor of `MiddlewareDependencyBuilder` in other middleware.
 
 Here we say that all client middlewares are located in these groups.
-More info about the middlewares order see @ref scripts/docs/en/userver/grpc/middlewares_order.md
+For more info about the middlewares order see @ref scripts/docs/en/userver/grpc/middlewares_order.md
 
 `PreCore` group is called firstly, then `Logging` and so forth...
 
@@ -127,10 +255,10 @@ digraph Pipeline {
     center=true;
     rankdir=LR;
 
-    Baggage [label = "grpc-client-baggage", shape=box, width=2.0 ];
-    Testsuite [label = "grpc-client-testsuite", shape=box, width=2.0 ];
+    Baggage [label = "grpc-client-baggage", shape=box];
+    Testsuite [label = "grpc-client-testsuite", shape=box];
 
-    Testsuite -> Baggage [penwidth=3, dir=both  arrowtail=none];
+    Testsuite -> Baggage;
   }
 
   subgraph cluster_Core {
@@ -139,7 +267,7 @@ digraph Pipeline {
     center=true;
     rankdir=LR;
 
-    DeadlinePropagation [label = "grpc-client-deadline-propagation", shape=box, width=2.0 ];
+    DeadlinePropagation [label = "grpc-client-deadline-propagation", shape=box];
   }
 
   subgraph cluster_Logging {
@@ -147,19 +275,14 @@ digraph Pipeline {
     label = "Logging";
     center=true;
 
-    Logging [label = "grpc-client-logging", shape=box, width=2.0 ];
+    Logging [label = "grpc-client-logging", shape=box];
   }
 
-  PreCore [label = "PreCore", shape=box, width=2.0];
-  Auth [label = "Auth", shape=box, width=2.0];
-  PostCore [label = "PostCore", shape=box, width=2.0];
+  PreCore [label = "PreCore", shape=box];
+  Auth [label = "Auth", shape=box];
+  PostCore [label = "PostCore", shape=box];
 
-
-  Baggage -> PostCore [penwidth=3, dir=both  arrowtail=none];
-  PostCore -> DeadlinePropagation [penwidth=3, dir=both  arrowtail=none];
-  DeadlinePropagation -> Auth [penwidth=3, dir=both  arrowtail=none];
-  Auth -> Logging [penwidth=3, dir=both  arrowtail=none];
-  Logging -> PreCore [penwidth=3, minlen=0, dir=both arrowtail = none];
+  Baggage -> PostCore -> DeadlinePropagation -> Auth -> Logging -> PreCore;
 
   Pipeline[label = "grpc-client-middlewares-pipeline", shape=plaintext, rank="main"];
 }

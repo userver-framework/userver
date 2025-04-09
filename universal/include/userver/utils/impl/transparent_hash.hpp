@@ -40,17 +40,35 @@ struct TransparentHash : public std::hash<std::string_view> {
 // - boost::unordered_{map,set} in C++17
 
 #ifndef USERVER_IMPL_TRANSPARENT_HASH_LEGACY
-template <typename Key, typename Value, typename Hash = TransparentHash<Key>, typename Equal = std::equal_to<>>
-using TransparentMap = std::unordered_map<Key, Value, Hash, Equal>;
+template <
+    typename Key,
+    typename Value,
+    typename Hash = TransparentHash<Key>,
+    typename Equal = std::equal_to<>,
+    typename Allocator = std::allocator<std::pair<const Key, Value>>>
+using TransparentMap = std::unordered_map<Key, Value, Hash, Equal, Allocator>;
 
-template <typename Key, typename Hash = TransparentHash<Key>, typename Equal = std::equal_to<>>
-using TransparentSet = std::unordered_set<Key, Hash, Equal>;
+template <
+    typename Key,
+    typename Hash = TransparentHash<Key>,
+    typename Equal = std::equal_to<>,
+    typename Allocator = std::allocator<Key>>
+using TransparentSet = std::unordered_set<Key, Hash, Equal, Allocator>;
 #else
-template <typename Key, typename Value, typename Hash = TransparentHash<Key>, typename Equal = std::equal_to<>>
-using TransparentMap = boost::unordered_map<Key, Value, Hash, Equal>;
+template <
+    typename Key,
+    typename Value,
+    typename Hash = TransparentHash<Key>,
+    typename Equal = std::equal_to<>,
+    typename Allocator = std::allocator<std::pair<const Key, Value>>>
+using TransparentMap = boost::unordered_map<Key, Value, Hash, Equal, Allocator>;
 
-template <typename Key, typename Hash = TransparentHash<Key>, typename Equal = std::equal_to<>>
-using TransparentSet = boost::unordered_set<Key, Hash, Equal>;
+template <
+    typename Key,
+    typename Hash = TransparentHash<Key>,
+    typename Equal = std::equal_to<>,
+    typename Allocator = std::allocator<Key>>
+using TransparentSet = boost::unordered_set<Key, Hash, Equal, Allocator>;
 #endif
 
 template <typename TransparentContainer, typename Key>

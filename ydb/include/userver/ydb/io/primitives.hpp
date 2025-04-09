@@ -8,6 +8,10 @@
 #include <userver/ydb/io/traits.hpp>
 #include <userver/ydb/types.hpp>
 
+namespace boost::uuids {
+struct uuid;
+}
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
@@ -105,6 +109,13 @@ struct TimestampTrait {
     static void Write(NYdb::TValueBuilderBase<Builder>& builder, Type value);
 };
 
+struct UuidTrait {
+    using Type = boost::uuids::uuid;
+    static Type Parse(const NYdb::TValueParser& value_parser);
+    template <typename Builder>
+    static void Write(NYdb::TValueBuilderBase<Builder>& builder, Type value);
+};
+
 struct JsonTrait {
     using Type = formats::json::Value;
     static Type Parse(const NYdb::TValueParser& value_parser);
@@ -136,6 +147,12 @@ struct ValueTraits<std::optional<TimestampTrait::Type>> : OptionalPrimitiveTrait
 
 template <>
 struct ValueTraits<TimestampTrait::Type> : PrimitiveTraits<TimestampTrait> {};
+
+template <>
+struct ValueTraits<std::optional<UuidTrait::Type>> : OptionalPrimitiveTraits<UuidTrait> {};
+
+template <>
+struct ValueTraits<UuidTrait::Type> : PrimitiveTraits<UuidTrait> {};
 
 template <>
 struct ValueTraits<std::optional<Utf8Trait::Type>> : OptionalPrimitiveTraits<Utf8Trait> {};

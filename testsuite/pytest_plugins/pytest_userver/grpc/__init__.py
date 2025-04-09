@@ -176,6 +176,29 @@ class Mockserver:
         _check_is_servicer_class(servicer_class)
         return factory
 
+    def install_servicer(self, servicer: object, /) -> None:
+        """
+        Installs as a mock `servicer`, the class of which should inherit from a generated `*Servicer` class.
+
+        For example, @ref grpc/functional_tests/basic_chaos/tests-grpcclient/service.py "this servicer class"
+        can be installed as follows:
+
+        @snippet grpc/functional_tests/basic_chaos/tests-grpcclient/conftest.py installing mockserver servicer
+
+        @note Inheritance from multiple `*Servicer` classes at once is allowed.
+
+        @example grpc/functional_tests/basic_chaos/tests-grpcclient/service.py
+        """
+        base_servicer_classes = [cls for cls in inspect.getmro(type(servicer))[1:] if cls.__name__.endswith('Servicer')]
+        if not base_servicer_classes:
+            raise ValueError(f"Given object's type ({type(servicer)}) is not inherited from any grpc *Servicer class")
+        for servicer_class in base_servicer_classes:
+            # pylint: disable=protected-access
+            mock = self._mockserver_session._get_auto_service_mock(servicer_class)
+            for python_method_name in mock.known_methods:
+                handler_func = getattr(servicer, python_method_name)
+                mock.install_handler(python_method_name)(handler_func)
+
 
 # @cond
 

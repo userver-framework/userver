@@ -3,6 +3,7 @@
 #include <string>
 
 #include <google/protobuf/message.h>
+#include <grpcpp/support/status.h>
 
 #include <userver/logging/level.hpp>
 
@@ -17,6 +18,8 @@ struct MessageLoggingOptions {
 };
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, MessageLoggingOptions options = {});
+
+std::string GetErrorDetailsForLogging(const grpc::Status& status);
 
 }  // namespace ugrpc::impl
 

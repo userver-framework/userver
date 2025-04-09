@@ -5,6 +5,8 @@ Configure the service in testsuite.
 import pathlib
 import random
 import socket
+from typing import Callable
+from typing import Optional
 
 import pytest
 
@@ -91,7 +93,7 @@ def service_binary(pytestconfig) -> pathlib.Path:
 
 
 @pytest.fixture(scope='session')
-def service_port(pytestconfig, _original_service_config) -> int:
+def service_port(pytestconfig, _original_service_config, choose_free_port) -> int:
     """
     Returns the main listener port number of the service set by command line
     `--service-port` option.
@@ -105,6 +107,7 @@ def service_port(pytestconfig, _original_service_config) -> int:
     """
     return pytestconfig.option.service_port or _get_port(
         _original_service_config,
+        choose_free_port,
         'listener',
         service_port,
         '--service-port',
@@ -112,7 +115,7 @@ def service_port(pytestconfig, _original_service_config) -> int:
 
 
 @pytest.fixture(scope='session')
-def monitor_port(pytestconfig, _original_service_config) -> int:
+def monitor_port(pytestconfig, _original_service_config, choose_free_port) -> int:
     """
     Returns the monitor listener port number of the service set by command line
     `--monitor-port` option.
@@ -126,6 +129,7 @@ def monitor_port(pytestconfig, _original_service_config) -> int:
     """
     return pytestconfig.option.monitor_port or _get_port(
         _original_service_config,
+        choose_free_port,
         'listener-monitor',
         monitor_port,
         '--service-port',
@@ -134,6 +138,7 @@ def monitor_port(pytestconfig, _original_service_config) -> int:
 
 def _get_port(
     original_service_config,
+    choose_free_port,
     listener_name,
     port_fixture,
     option_name,
@@ -156,35 +161,46 @@ def _get_port(
         f'in the static config, or pass {option_name} pytest option, '
         f'or override the {port_fixture.__name__} fixture'
     )
-    return _choose_free_port(port)
+    return choose_free_port(port)
 
 
 # Beware: global variable
-allocated_ports = set()
+_allocated_ports = set()
 
 
-def _choose_free_port(first_port):
+@pytest.fixture(scope='session')
+def choose_free_port() -> Callable[[Optional[int]], int]:
+    """
+    Returns a function that chooses a free port based on the hint given in the parameter.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return _choose_free_port
+
+
+def _choose_free_port(first_port_hint: Optional[int], /) -> int:
     def _try_port(port):
-        global allocated_ports
-        if port in allocated_ports:
+        global _allocated_ports
+        if port in _allocated_ports:
             return None
         try:
             server.bind(('0.0.0.0', port))
-            allocated_ports.add(port)
+            _allocated_ports.add(port)
             return port
         except BaseException:
             return None
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        for port in range(first_port, first_port + 100):
-            if port := _try_port(port):
-                return port
+        if first_port_hint is not None:
+            for port in range(first_port_hint, first_port_hint + 100):
+                if port := _try_port(port):
+                    return port
 
         for _attempt in random.sample(range(1024, 65535), k=100):
             if port := _try_port(port):
                 return port
 
-        assert False, 'Failed to pick a free TCP port'
+        raise RuntimeError('Failed to pick a free TCP port')
 
 
 @pytest.fixture(scope='session')

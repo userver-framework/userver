@@ -24,7 +24,12 @@ void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::
     "{{ op.path }}"
   );
   {% for parameter in op.parameters %}
-    openapi::WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
+    {% if parameter.required %}
+      openapi::WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
+    {% else %}
+      if (request.{{ parameter.cpp_name }})
+        openapi::WriteParameter<{{ parameter.parser }}>(*request.{{ parameter.cpp_name}}, sink);
+    {% endif %}
   {% endfor %}
 
   {# body #}

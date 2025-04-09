@@ -54,23 +54,12 @@ public:
 /// @see <grpcpp/impl/codegen/status_code_enum.h> for error code details
 class ErrorWithStatus : public RpcError {
 public:
-    ErrorWithStatus(
-        std::string_view call_name,
-        grpc::Status&& status,
-        std::optional<google::rpc::Status>&& gstatus,
-        std::optional<std::string>&& message
-    );
+    ErrorWithStatus(std::string_view call_name, grpc::Status&& status);
 
     const grpc::Status& GetStatus() const noexcept;
 
-    const std::optional<google::rpc::Status>& GetGStatus() const noexcept;
-
-    const std::optional<std::string>& GetGStatusString() const noexcept;
-
 private:
     grpc::Status status_;
-    std::optional<google::rpc::Status> gstatus_;
-    std::optional<std::string> gstatus_string_;
 };
 
 /// @brief Concrete errors for all the error codes
@@ -157,16 +146,7 @@ public:
 };
 /// @}
 
-namespace impl {
-
-[[noreturn]] void ThrowErrorWithStatus(
-    std::string_view call_name,
-    grpc::Status&& status,
-    std::optional<google::rpc::Status>&& gstatus,
-    std::optional<std::string>&& gstatus_string
-);
-
-}  // namespace impl
+[[noreturn]] void ThrowErrorWithStatus(std::string_view call_name, grpc::Status&& status);
 
 }  // namespace ugrpc::client
 

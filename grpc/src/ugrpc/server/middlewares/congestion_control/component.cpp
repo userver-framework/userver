@@ -32,7 +32,7 @@ Component::Component(const components::ComponentConfig& config, const components
     server_sensor.RegisterRequestsSource(server);
 }
 
-std::shared_ptr<MiddlewareBase>
+std::shared_ptr<const MiddlewareBase>
 Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig&) const {
     return middleware_;
 }

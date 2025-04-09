@@ -12,6 +12,7 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include <components/component_context_impl.hpp>
 #include <components/manager_config.hpp>
 #include <engine/task/exception_hacks.hpp>
 #include <engine/task/task_processor.hpp>
@@ -99,7 +100,7 @@ void ValidateConfigs(
 
 }  // namespace
 
-namespace components {
+namespace components::impl {
 
 Manager::TaskProcessorsStorage::TaskProcessorsStorage(
     std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools
@@ -195,7 +196,7 @@ Manager::~Manager() {
     LOG_INFO() << "Stopping components manager";
 
     try {
-        RunInCoro(*default_task_processor_, [this] { component_context_.OnGracefulShutdownStarted(); });
+        RunInCoro(*default_task_processor_, [this] { component_context_->OnGracefulShutdownStarted(); });
     } catch (const std::exception& exc) {
         LOG_ERROR() << "Graceful shutdown failed: " << exc;
     }
@@ -207,7 +208,7 @@ Manager::~Manager() {
     } catch (const std::exception& exc) {
         LOG_ERROR() << "Failed to clear components: " << exc;
     }
-    component_context_.Reset();
+    component_context_.reset();
     LOG_TRACE() << "Stopped component context";
     task_processors_storage_.Reset();
 
@@ -220,7 +221,15 @@ const std::shared_ptr<engine::impl::TaskProcessorPools>& Manager::GetTaskProcess
     return task_processors_storage_.GetTaskProcessorPools();
 }
 
-const Manager::TaskProcessorsMap& Manager::GetTaskProcessorsMap() const { return task_processors_storage_.GetMap(); }
+const TaskProcessorsMap& Manager::GetTaskProcessorsMap() const { return task_processors_storage_.GetMap(); }
+
+engine::TaskProcessor& Manager::GetTaskProcessor(std::string_view name) const {
+    const auto& map = task_processors_storage_.GetMap();
+    if (const auto* const task_processor = utils::impl::FindTransparentOrNullptr(map, name)) {
+        return **task_processor;
+    }
+    throw std::runtime_error(fmt::format("Failed to find task processor with name: {}", name));
+}
 
 void Manager::OnSignal(int signum) {
     std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
@@ -271,7 +280,7 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
         loading_components.push_back(std::move(node.value()));
     }
 
-    component_context_.Emplace(*this, std::move(loading_components));
+    component_context_ = std::make_unique<impl::ComponentContextImpl>(*this, std::move(loading_components));
 
     AddComponents(component_list);
 }
@@ -312,19 +321,19 @@ void Manager::AddComponents(const ComponentList& component_list) {
             tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() {
                 tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kDebug);
                 try {
-                    (*adder)(*this, component_config_map);
+                    AddComponentImpl(component_config_map, adder->GetComponentName(), *adder);
                 } catch (const ComponentsLoadCancelledException& ex) {
                     LOG_WARNING() << "Cannot start component " << adder->GetComponentName() << ": " << ex;
-                    component_context_.CancelComponentsLoad();
+                    component_context_->CancelComponentsLoad();
                     throw;
                 } catch (const std::exception& ex) {
                     LOG_ERROR() << "Cannot start component " << adder->GetComponentName() << ": " << ex;
-                    component_context_.CancelComponentsLoad();
+                    component_context_->CancelComponentsLoad();
                     throw std::runtime_error(
                         fmt::format("Cannot start component {}: {}", adder->GetComponentName(), ex.what())
                     );
                 } catch (...) {
-                    component_context_.CancelComponentsLoad();
+                    component_context_->CancelComponentsLoad();
                     throw;
                 }
             }));
@@ -338,7 +347,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
             }
         }
     } catch (const std::exception& ex) {
-        component_context_.CancelComponentsLoad();
+        component_context_->CancelComponentsLoad();
 
         /* Wait for all tasks to exit, but don't .Get() them - we've already caught
          * an exception, ignore the rest */
@@ -363,7 +372,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
                   "for each component.";
 
     try {
-        component_context_.OnAllComponentsLoaded();
+        component_context_->OnAllComponentsLoaded();
     } catch (const std::exception& ex) {
         ClearComponents();
         throw;
@@ -378,8 +387,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
 void Manager::AddComponentImpl(
     const components::ComponentConfigMap& config_map,
     const std::string& name,
-    std::function<std::unique_ptr<
-        components::RawComponentBase>(const components::ComponentConfig&, const components::ComponentContext&)> factory
+    const impl::ComponentAdderBase& adder
 ) {
     const auto config_it = config_map.find(name);
     if (config_it == config_map.end()) {
@@ -393,12 +401,7 @@ void Manager::AddComponentImpl(
 
     LOG_DEBUG() << "Starting component " << name;
 
-    auto* component = component_context_.AddComponent(
-        name,
-        [&factory, &config = config_it->second](const components::ComponentContext& component_context) {
-            return factory(config, component_context);
-        }
-    );
+    auto* component = component_context_->AddComponent(name, config_it->second, adder);
     if (auto* signal_processor = dynamic_cast<os_signals::ProcessorComponent*>(component))
         signal_processor_ = signal_processor;
     LOG_DEBUG() << "Started component " << name;
@@ -410,12 +413,12 @@ void Manager::ClearComponents() noexcept {
         components_cleared_ = true;
     }
     try {
-        component_context_.ClearComponents();
+        component_context_->ClearComponents();
     } catch (const std::exception& ex) {
         LOG_ERROR() << "error in clear components: " << ex;
     }
 }
 
-}  // namespace components
+}  // namespace components::impl
 
 USERVER_NAMESPACE_END

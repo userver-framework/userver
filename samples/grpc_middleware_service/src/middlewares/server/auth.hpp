@@ -18,7 +18,7 @@ public:
 
     Middleware();
 
-    void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
+    void OnCallStart(ugrpc::server::MiddlewareCallContext& context) const override;
 };
 
 // This component creates Middleware. Name of component is 'Middleware::kName'.

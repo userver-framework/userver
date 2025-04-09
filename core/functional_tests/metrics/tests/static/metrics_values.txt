@@ -27,6 +27,7 @@ cache.any.update.no_changes_count.v2: cache_name=dynamic-config-client-updater	R
 cache.any.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.any.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.update.no_changes_count: cache_name=sample-cache	GAUGE	0
+cache.background-updates.v2: cache_name=sample-lru-cache	RATE	0
 cache.background-updates: cache_name=sample-lru-cache	GAUGE	0
 cache.current-documents-count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.current-documents-count: cache_name=sample-cache	GAUGE	0
@@ -60,6 +61,7 @@ cache.full.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.full.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.update.no_changes_count: cache_name=sample-cache	GAUGE	0
 cache.hit_ratio.1min: cache_name=sample-lru-cache	GAUGE	0
+cache.hits.v2: cache_name=sample-lru-cache	RATE	0
 cache.hits: cache_name=sample-lru-cache	GAUGE	0
 cache.incremental.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
 cache.incremental.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
@@ -87,16 +89,18 @@ cache.incremental.update.no_changes_count.v2: cache_name=dynamic-config-client-u
 cache.incremental.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.incremental.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.update.no_changes_count: cache_name=sample-cache	GAUGE	0
+cache.misses.v2: cache_name=sample-lru-cache	RATE	0
 cache.misses: cache_name=sample-lru-cache	GAUGE	0
+cache.stale.v2: cache_name=sample-lru-cache	RATE	0
 cache.stale: cache_name=sample-lru-cache	GAUGE	0
 congestion-control.rps.is-custom-status-activated:	GAUGE	0
 cpu_time_sec:	GAUGE	0
-dns-client.replies: dns_reply_source=cached	GAUGE	0
-dns-client.replies: dns_reply_source=cached-failure	GAUGE	0
-dns-client.replies: dns_reply_source=cached-stale	GAUGE	0
-dns-client.replies: dns_reply_source=file	GAUGE	0
-dns-client.replies: dns_reply_source=network	GAUGE	0
-dns-client.replies: dns_reply_source=network-failure	GAUGE	0
+dns-client.replies: dns_reply_source=cached	RATE	0
+dns-client.replies: dns_reply_source=cached-failure	RATE	0
+dns-client.replies: dns_reply_source=cached-stale	RATE	0
+dns-client.replies: dns_reply_source=file	RATE	0
+dns-client.replies: dns_reply_source=network	RATE	0
+dns-client.replies: dns_reply_source=network-failure	RATE	0
 dynamic-config.parse-errors:	RATE	0
 dynamic-config.was-last-parse-successful:	GAUGE	0
 engine.coro-pool.coroutines.active:	GAUGE	0
@@ -136,15 +140,27 @@ engine.task-processors.errors: task_processor=monitor-task-processor, task_proce
 engine.task-processors.tasks.alive: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.alive: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.alive: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.cancelled.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.cancelled.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.cancelled.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.cancelled: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.cancelled_overload.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.cancelled_overload.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.cancelled_overload.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.cancelled_overload: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled_overload: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled_overload: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.created.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.created.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.created.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.created: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.created: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.created: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.finished.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.finished.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.finished.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.finished: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.finished: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.finished: task_processor=monitor-task-processor	GAUGE	0
@@ -453,7 +469,9 @@ major_pagefaults:	GAUGE	0
 open_files:	GAUGE	0
 rss_kb:	GAUGE	0
 server.connections.active:	GAUGE	0
+server.connections.closed.v2:	RATE	0
 server.connections.closed:	GAUGE	0
+server.connections.opened.v2:	RATE	0
 server.connections.opened:	GAUGE	0
 server.requests.active:	GAUGE	0
 server.requests.avg-lifetime-ms:	GAUGE	0
@@ -463,4 +481,5 @@ server.requests.http2.streams-close:	RATE	0
 server.requests.http2.streams-count:	RATE	0
 server.requests.http2.streams-parse-error:	RATE	0
 server.requests.parsing:	GAUGE	0
+server.requests.processed.v2:	RATE	0
 server.requests.processed:	GAUGE	0

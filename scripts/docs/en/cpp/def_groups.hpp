@@ -147,16 +147,16 @@
 /// @defgroup userver_grpc_server_middlewares gRPC server middlewares
 /// @ingroup userver_components
 /// @brief Base classes for implementing and configuring grpc server middlewares
-/// @see @ref scripts/docs/en/userver/grpc_server_middlewares.md
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
 ///
 /// @defgroup userver_grpc_client_middlewares gRPC client middlewares
 /// @ingroup userver_components
 /// @brief Base classes for implementing and configuring grpc client middlewares
-/// @see @ref scripts/docs/en/userver/grpc_client_middlewares.md
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
 ///
 /// @defgroup userver_middlewares_groups gRPC middlewares order
 /// @brief Base middlewares groups for a middlewares Pipeline
-/// @see @ref scripts/docs/en/userver/grpc_middlewares_order.md
+/// @see @ref scripts/docs/en/userver/grpc/middlewares_order.md
 ///
 /// ----------
 ///

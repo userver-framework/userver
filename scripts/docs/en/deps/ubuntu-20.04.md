@@ -46,11 +46,12 @@ ninja-build
 pkg-config
 postgresql-server-dev-12
 protobuf-compiler-grpc
-python3-dev
+python3.9
+python3.9-dev
+python3.9-pip
+python3.9-venv
 python3-jinja2
-python3-pip
 python3-protobuf
-python3-venv
 python3-voluptuous
 zlib1g-dev
 libgflags-dev

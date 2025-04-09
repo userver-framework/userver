@@ -28,7 +28,7 @@ if(USERVER_BUILD_TESTS)
       "${CMAKE_CURRENT_SOURCE_DIR}/tests"
   )
 
-  # add_subdirectory(integration_tests)
+  add_subdirectory(integration_tests)
   add_subdirectory(golden_tests)
 endif()
 

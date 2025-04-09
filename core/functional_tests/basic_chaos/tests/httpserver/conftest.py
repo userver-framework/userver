@@ -46,8 +46,8 @@ def extra_client_deps(_gate_started):
 
 @pytest.fixture(name='gate')
 async def _gate_ready(service_client, _gate_started):
-    _gate_started.to_server_pass()
-    _gate_started.to_client_pass()
+    await _gate_started.to_server_pass()
+    await _gate_started.to_client_pass()
     _gate_started.start_accepting()
     await _gate_started.sockets_close()  # close keepalive connections
 

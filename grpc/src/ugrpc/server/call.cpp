@@ -3,7 +3,6 @@
 #include <boost/range/adaptor/reversed.hpp>
 
 #include <userver/logging/impl/logger_base.hpp>
-#include <userver/logging/logger.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <userver/ugrpc/impl/statistics_storage.hpp>
@@ -17,6 +16,26 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
+
+namespace {
+
+void WriteAccessLog(
+    logging::TextLoggerRef access_tskv_logger,
+    grpc::ServerContext& context,
+    std::chrono::system_clock::time_point start_time,
+    std::string_view call_name,
+    const grpc::Status& status
+) {
+    constexpr auto kLevel = logging::Level::kInfo;
+    if (access_tskv_logger.ShouldLog(kLevel)) {
+        logging::impl::TextLogItem log_item{impl::FormatLogMessage(
+            context.client_metadata(), context.peer(), start_time, call_name, status.error_code()
+        )};
+        access_tskv_logger.Log(kLevel, log_item);
+    }
+}
+
+}  // namespace
 
 std::string_view CallAnyBase::GetServiceName() const { return params_.service_name; }
 
@@ -34,50 +53,53 @@ void CallAnyBase::SetMetricsCallName(std::string_view call_name) {
 
 ugrpc::impl::RpcStatisticsScope& CallAnyBase::GetStatistics(ugrpc::impl::InternalTag) { return params_.statistics; }
 
-void CallAnyBase::RunMiddlewarePipeline(utils::impl::InternalTag, MiddlewareCallContext& md_call_context) {
-    middleware_call_context_ = &md_call_context;
-    md_call_context.Next();
-}
-
-void CallAnyBase::WriteAccessLog(grpc::Status status) const {
-    constexpr auto kLevel = logging::Level::kInfo;
-    if (!params_.access_tskv_logger.ShouldLog(kLevel)) {
-        return;
-    }
-
-    logging::impl::TextLogItem str{impl::FormatLogMessage(
-        params_.context.client_metadata(),
-        params_.context.peer(),
-        params_.call_span.GetStartSystemTime(),
-        params_.call_name,
-        status.error_code()
-    )};
-    params_.access_tskv_logger.Log(logging::Level::kInfo, str);
-}
-
 void CallAnyBase::ApplyRequestHook(google::protobuf::Message* request) {
-    UINVARIANT(middleware_call_context_, "MiddlewareCallContext must be invoked");
+    UINVARIANT(middleware_call_context_, "CallContext must be invoked");
     if (request) {
         for (const auto& middleware : params_.middlewares) {
-            middleware->CallRequestHook(*middleware_call_context_, *request);
-            if (IsFinished()) throw impl::MiddlewareRpcInterruptionError();
+            middleware->PostRecvMessage(*middleware_call_context_, *request);
+            auto& status = middleware_call_context_->GetStatus();
+            if (!status.ok()) {
+                throw impl::MiddlewareRpcInterruptionError(std::move(status));
+            }
         }
     }
 }
 
 void CallAnyBase::ApplyResponseHook(google::protobuf::Message* response) {
-    UINVARIANT(middleware_call_context_, "MiddlewareCallContext must be invoked");
+    UINVARIANT(middleware_call_context_, "CallContext must be invoked");
     if (response) {
         for (const auto& middleware : boost::adaptors::reverse(params_.middlewares)) {
-            middleware->CallResponseHook(*middleware_call_context_, *response);
-            if (IsFinished()) throw impl::MiddlewareRpcInterruptionError();
+            middleware->PreSendMessage(*middleware_call_context_, *response);
+            auto& status = middleware_call_context_->GetStatus();
+            if (!status.ok()) {
+                throw impl::MiddlewareRpcInterruptionError(std::move(status));
+            }
         }
     }
 }
 
-void CallAnyBase::PostFinish(grpc::Status status) {
-    GetStatistics().OnExplicitFinish(status.error_code());
-    ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
+void CallAnyBase::PreSendStatus(const grpc::Status& status) noexcept {
+    try {
+        WriteAccessLog(
+            params_.access_tskv_logger,
+            params_.context,
+            params_.call_span.GetStartSystemTime(),
+            params_.call_name,
+            status
+        );
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Error in CallAnyBase::PreSendStatus: " << ex;
+    }
+}
+
+void CallAnyBase::PostFinish(const grpc::Status& status) noexcept {
+    try {
+        GetStatistics().OnExplicitFinish(status.error_code());
+        ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Error in CallAnyBase::PostFinish: " << ex;
+    }
 }
 
 }  // namespace ugrpc::server

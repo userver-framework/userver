@@ -35,7 +35,7 @@ public:
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::shared_ptr<MiddlewareBase> CreateMiddleware(
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
         const ugrpc::server::ServiceInfo&,
         const yaml_config::YamlConfig& middleware_config
     ) const override;

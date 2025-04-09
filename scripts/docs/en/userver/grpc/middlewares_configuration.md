@@ -10,7 +10,7 @@ To use static config options you need inherit from @ref ugrpc::server::Middlewar
 @snippet samples/grpc_middleware_service/src/middlewares/server/meta_filter.cpp gRPC middleware sample
 
 Out middleware will be in the @ref middlewares::groups::User and will be called after headers_propagator middleware
-@note More info about middlewares order @ref scripts/docs/en/userver/grpc/middlewares_order.md
+@note For more info about middlewares order @ref scripts/docs/en/userver/grpc/middlewares_order.md
 
 Then register these components in `components::ComponentList`
 
@@ -29,7 +29,7 @@ The static yaml config of middleware. You must register it in the config `grpc-s
                     enabled: true
 ```
 
-@snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config server middleware
+@snippet samples/grpc_middleware_service/configs/static_config.yaml gRPC middleware sample - static config server middleware
 
 To see full src:
 

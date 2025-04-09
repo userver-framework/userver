@@ -2,7 +2,9 @@
 
 #include <userver/components/component.hpp>
 
+#include <ugrpc/impl/internal_tag.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,57 +14,62 @@ MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-MiddlewareCallContext::MiddlewareCallContext(
-    const Middlewares& middlewares,
-    CallAnyBase& call,
-    utils::function_ref<void()> user_call,
-    const dynamic_config::Snapshot& config,
-    ::google::protobuf::Message* request
-)
-    : middleware_(middlewares.begin()),
-      middleware_end_(middlewares.end()),
-      user_call_(std::move(user_call)),
-      call_(call),
-      config_(config),
-      request_(request) {}
+void MiddlewareBase::OnCallStart(MiddlewareCallContext&) const {}
 
-void MiddlewareCallContext::Next() {
-    if (is_called_from_handle_) {
-        // It is important for non-stream calls
-        if (request_) {
-            (*middleware_)->CallRequestHook(*this, *request_);
-            if (call_.IsFinished()) throw impl::MiddlewareRpcInterruptionError();
-        }
-        ++middleware_;
-    }
-    if (middleware_ == middleware_end_) {
-        ClearMiddlewaresResources();
-        user_call_();
-    } else {
-        is_called_from_handle_ = true;
-        (*middleware_)->Handle(*this);
+void MiddlewareBase::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+    if (!status.ok()) {
+        return context.SetError(grpc::Status{status});
     }
 }
 
-bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(call_.GetCallKind()); }
+void MiddlewareBase::PostRecvMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
 
-bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(call_.GetCallKind()); }
+void MiddlewareBase::PreSendMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
 
-CallAnyBase& MiddlewareCallContext::GetCall() const { return call_; }
+/////////////////////////////////////////////////////////////////////////////////////
 
-void MiddlewareCallContext::ClearMiddlewaresResources() {
-    UASSERT(config_);
-    config_.reset();
+MiddlewareCallContext::MiddlewareCallContext(
+    utils::impl::InternalTag,
+    CallAnyBase& call,
+    dynamic_config::Snapshot&& config
+)
+    : CallContextBase(utils::impl::InternalTag{}, call), config_(std::move(config)) {}
+
+void MiddlewareCallContext::SetError(grpc::Status&& status) noexcept {
+    UASSERT(!status.ok());
+    if (!status.ok()) {
+        *status_ = std::move(status);
+    }
+}
+
+bool MiddlewareCallContext::IsClientStreaming() const noexcept {
+    return impl::IsClientStreaming(GetCall().GetCallKind());
+}
+
+bool MiddlewareCallContext::IsServerStreaming() const noexcept {
+    return impl::IsServerStreaming(GetCall().GetCallKind());
 }
 
 const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig() const {
-    UASSERT(config_);
+    UASSERT(config_.has_value());
     return config_.value();
 }
 
-void MiddlewareBase::CallRequestHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
+ugrpc::impl::RpcStatisticsScope& MiddlewareCallContext::GetStatistics(ugrpc::impl::InternalTag tag) {
+    return GetCall().GetStatistics(tag);
+}
 
-void MiddlewareBase::CallResponseHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
+void MiddlewareCallContext::SetStatusPtr(grpc::Status* status) {
+    UASSERT(status);
+    status_ = status;
+}
+
+grpc::Status& MiddlewareCallContext::GetStatus() {
+    UASSERT(status_);
+    return *status_;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
 
 MiddlewarePipelineComponent::MiddlewarePipelineComponent(
     const components::ComponentConfig& config,

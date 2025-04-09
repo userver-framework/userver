@@ -20,6 +20,13 @@ std::string Ping::HandleRequestThrow(const http::HttpRequest& request, request::
         throw InternalServerError();
     }
 
+    const auto lifetime_stage = components_.GetServiceLifetimeStage();
+    if (lifetime_stage != components::ServiceLifetimeStage::kRunning) {
+        LOG_WARNING() << "Service is not ready for requests (stage=" << ToString(lifetime_stage)
+                      << "), returning 500 from /ping";
+        throw InternalServerError();
+    }
+
     auto& response = request.GetHttpResponse();
     AppendWeightHeaders(response);
 

@@ -52,7 +52,8 @@ Dependencies can be installed via:
 
 ```bash
 DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-20.04.md" && \
-sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE}) && \
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 100
 ```
 
 Recommended CMake options:
@@ -71,7 +72,10 @@ Dependencies can be installed via:
 
 ```bash
 DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-18.04.md" && \
-sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
+sudo add-apt-repository ppa:deadsnakes/ppa && \
+sudo apt update && \
+sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE}) && \
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 100
 ```
 
 Recommended CMake options:

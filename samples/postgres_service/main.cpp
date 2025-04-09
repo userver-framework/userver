@@ -4,9 +4,11 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [Postgres service sample - component]
+#include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/tests_control.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/storages/postgres/cluster.hpp>
@@ -135,7 +137,9 @@ int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<samples_postgres_service::pg::KeyValue>()
                                     .Append<components::Postgres>("key-value-database")
+                                    .Append<components::HttpClient>()
                                     .Append<components::TestsuiteSupport>()
+                                    .Append<server::handlers::TestsControl>()
                                     .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

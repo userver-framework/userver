@@ -3,11 +3,11 @@
 #include <google/rpc/error_details.pb.h>
 #include <google/rpc/status.pb.h>
 
-#include <ugrpc/impl/status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/status_utils.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -60,7 +60,7 @@ public:
         violation.set_description("fts quota [fts-receive] exhausted");
         status_obj.add_details()->PackFrom(quota_failure);
 
-        return ugrpc::impl::ToGrpcStatus(status_obj);
+        return ugrpc::ToGrpcStatus(status_obj);
     }
 
     SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& /*request*/) override {
@@ -144,7 +144,11 @@ UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) {
     try {
         client.SayHello(out);
     } catch (ugrpc::client::ResourceExhaustedError& e) {
-        EXPECT_EQ(*(e.GetGStatusString()), kExpectedMessage);
+        const auto& status = e.GetStatus();
+        auto gstatus = ugrpc::ToGoogleRpcStatus(status);
+        ASSERT_TRUE(gstatus.has_value());
+        const auto gstatus_string = ugrpc::GetGStatusLimitedMessage(*gstatus);
+        EXPECT_EQ(gstatus_string, kExpectedMessage);
     }
 }
 

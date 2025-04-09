@@ -10,6 +10,10 @@
 #include <{{ include }}>
 {% endfor %}
 
+{% for include in spec.cpp_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
 
 namespace {{ namespace }} {
 
@@ -34,7 +38,12 @@ namespace {{ namespace }} {
       {% endif %}
         struct Request {
           {% for parameter in op.parameters %}
-            {{ parameter.cpp_type }} {{ parameter.cpp_name }};
+              {% if parameter.cpp_type.nullable %}
+                std::optional<{{ parameter.cpp_type.cpp_global_name() }}>
+              {%- else -%}
+                {{ parameter.cpp_type.cpp_global_name() }}
+              {% endif -%}
+              {{ parameter.cpp_name }};
           {% endfor %}
           {% if op.request_bodies %}
               Body body;

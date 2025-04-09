@@ -12,7 +12,6 @@
 
 #include <boost/program_options.hpp>
 
-#include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/exception.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/async.hpp>
@@ -23,6 +22,8 @@
 #include <userver/utils/datetime.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
+
+#include <userver/static_config/dns_client.hpp>
 
 namespace {
 
@@ -79,7 +80,7 @@ int main(int argc, char** argv) {
         logging::MakeStderrLogger("default", logging::Format::kTskv, logging::LevelFromString(config.log_level))};
 
     engine::RunStandalone(config.worker_threads, [&] {
-        clients::dns::ResolverConfig resolver_config;
+        ::userver::static_config::DnsClient resolver_config;
         resolver_config.network_timeout = std::chrono::milliseconds{config.timeout_ms};
         resolver_config.network_attempts = config.attempts;
         clients::dns::Resolver resolver{engine::current_task::GetTaskProcessor(), resolver_config};

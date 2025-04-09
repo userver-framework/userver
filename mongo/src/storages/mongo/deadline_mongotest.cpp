@@ -3,7 +3,6 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>

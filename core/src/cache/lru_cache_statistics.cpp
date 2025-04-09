@@ -1,64 +1,73 @@
 #include <userver/cache/lru_cache_statistics.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
 
-ExpirableLruCacheStatisticsBase::ExpirableLruCacheStatisticsBase() = default;
+namespace {
 
-ExpirableLruCacheStatisticsBase::ExpirableLruCacheStatisticsBase(const ExpirableLruCacheStatisticsBase& other)
-    : hits(other.hits.load()),
-      misses(other.misses.load()),
-      stale(other.stale.load()),
-      background_updates(other.background_updates.load()) {}
-
-void ExpirableLruCacheStatisticsBase::Reset() {
-    hits = 0;
-    misses = 0;
-    stale = 0;
-    background_updates = 0;
+void WriteRateAndLegacyMetrics(utils::statistics::Writer&& writer, utils::statistics::Rate metric) {
+    writer = metric.value;
+    writer["v2"] = metric;
 }
 
-ExpirableLruCacheStatisticsBase& ExpirableLruCacheStatisticsBase::operator+=(
-    const ExpirableLruCacheStatisticsBase& other
-) {
-    hits += other.hits.load();
-    misses += other.misses.load();
-    stale += other.stale.load();
-    background_updates += other.background_updates.load();
-    return *this;
+}  // namespace
+
+ExpirableLruCacheStatisticsAggregator ExpirableLruCacheStatisticsBase::Load() const {
+    ExpirableLruCacheStatisticsAggregator stats;
+    stats.hits = hits.Load();
+    stats.misses = misses.Load();
+    stats.stale = stale.Load();
+    stats.background_updates = background_updates.Load();
+    return stats;
+}
+
+void ExpirableLruCacheStatisticsBase::Reset() {
+    ResetMetric(hits);
+    ResetMetric(misses);
+    ResetMetric(stale);
+    ResetMetric(background_updates);
 }
 
 void CacheHit(ExpirableLruCacheStatistics& stats) {
     ++stats.total.hits;
-    ++stats.recent.GetCurrentCounter().hits;
+    ++stats.recent_hits.GetCurrentCounter();
     LOG_TRACE() << "cache hit";
 }
 
 void CacheMiss(ExpirableLruCacheStatistics& stats) {
     ++stats.total.misses;
-    ++stats.recent.GetCurrentCounter().misses;
+    ++stats.recent_misses.GetCurrentCounter();
     LOG_TRACE() << "cache miss";
 }
 
 void CacheStale(ExpirableLruCacheStatistics& stats) {
     ++stats.total.stale;
-    ++stats.recent.GetCurrentCounter().stale;
     LOG_TRACE() << "stale cache";
 }
 
-void DumpMetric(utils::statistics::Writer& writer, const ExpirableLruCacheStatistics& stats) {
-    writer["hits"] = stats.total.hits.load();
-    writer["misses"] = stats.total.misses.load();
-    writer["stale"] = stats.total.stale.load();
-    writer["background-updates"] = stats.total.background_updates.load();
+void CacheBackgroundUpdate(ExpirableLruCacheStatistics& stats) {
+    ++stats.total.background_updates;
+    LOG_TRACE() << "background update";
+}
 
-    auto s1min = stats.recent.GetStatsForPeriod();
-    double s1min_hits = s1min.hits.load();
-    auto s1min_total = s1min.hits.load() + s1min.misses.load();
-    writer["hit_ratio"]["1min"] = s1min_hits / static_cast<double>(s1min_total ? s1min_total : 1);
+void DumpMetric(utils::statistics::Writer& writer, const ExpirableLruCacheStatisticsBase& stats) {
+    WriteRateAndLegacyMetrics(writer["hits"], stats.hits.Load());
+    WriteRateAndLegacyMetrics(writer["misses"], stats.misses.Load());
+    WriteRateAndLegacyMetrics(writer["stale"], stats.stale.Load());
+    WriteRateAndLegacyMetrics(writer["background-updates"], stats.background_updates.Load());
+}
+
+void DumpMetric(utils::statistics::Writer& writer, const ExpirableLruCacheStatistics& stats) {
+    writer = stats.total;
+
+    const auto s1min_hits = stats.recent_hits.GetStatsForPeriod();
+    const auto s1min_misses = stats.recent_misses.GetStatsForPeriod();
+    const auto s1min_total = s1min_hits + s1min_misses;
+    writer["hit_ratio"]["1min"] = static_cast<double>(s1min_hits) / static_cast<double>(s1min_total ? s1min_total : 1);
 }
 
 }  // namespace cache::impl

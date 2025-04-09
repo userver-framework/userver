@@ -29,7 +29,7 @@ enum class PubShard {
 
 /// @ingroup userver_clients
 ///
-/// @brief Redis client.
+/// @brief Valkey or Redis client.
 ///
 /// Usually retrieved from components::Redis component.
 ///

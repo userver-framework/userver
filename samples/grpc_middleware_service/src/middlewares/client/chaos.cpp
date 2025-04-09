@@ -23,7 +23,7 @@ void ChaosMiddleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context
 ChaosComponent::ChaosComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ugrpc::client::MiddlewareFactoryComponentBase(config, context) {}
 
-std::shared_ptr<ugrpc::client::MiddlewareBase> ChaosComponent::CreateMiddleware(
+std::shared_ptr<const ugrpc::client::MiddlewareBase> ChaosComponent::CreateMiddleware(
     const ugrpc::client::ClientInfo&,
     const yaml_config::YamlConfig& middleware_config
 ) const {

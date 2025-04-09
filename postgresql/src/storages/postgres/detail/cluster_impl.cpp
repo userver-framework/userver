@@ -16,6 +16,8 @@
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
+#include <dynamic_config/variables/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
@@ -408,7 +410,7 @@ bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) {
 
     auto snapshot = config_source_.GetSnapshot();
     // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-    if (!snapshot[kConnlimitModeAutoEnabled]) {
+    if (!snapshot[::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED]) {
         on = false;
     }
 

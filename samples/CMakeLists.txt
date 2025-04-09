@@ -87,6 +87,9 @@ if (USERVER_FEATURE_POSTGRESQL)
 
   add_subdirectory(postgres-support)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres-support)
+
+  add_subdirectory(postgres_cache_order_by)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_cache_order_by)
 endif()
 
 add_subdirectory(production_service)

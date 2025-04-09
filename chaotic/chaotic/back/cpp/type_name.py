@@ -19,7 +19,7 @@ class TypeName:
         return '::'.join(self._components)
 
     def __repr__(self) -> str:
-        return self.__str__()
+        return 'TypeName("{}")'.format(str(self))
 
     def add_suffix(self, suffix: str) -> 'TypeName':
         comp = self._components.copy()

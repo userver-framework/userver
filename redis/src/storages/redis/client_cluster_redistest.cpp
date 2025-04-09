@@ -1,6 +1,7 @@
 #include <storages/redis/client_cluster_redistest.hpp>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
 #include <storages/redis/impl/cluster_sentinel_impl.hpp>
@@ -270,6 +271,9 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
     const std::string kChannel2 = "channel02";
     const std::string kMsg1 = "test message1";
     const std::string kMsg2 = "test message2";
+
+    engine::SingleConsumerEvent event1;
+    engine::SingleConsumerEvent event2;
     size_t msg_counter = 0;
     const auto waiting_time = std::chrono::milliseconds(50);
 
@@ -277,35 +281,33 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
         EXPECT_EQ(channel, kChannel1);
         EXPECT_EQ(message, kMsg1);
         ++msg_counter;
+        event1.Send();
     });
     engine::SleepFor(waiting_time);
 
     client->Publish(kChannel1, kMsg1, kDefaultCc);
-    engine::SleepFor(waiting_time);
-
+    ASSERT_TRUE(event1.WaitForEventFor(utest::kMaxTestWaitTime));
     EXPECT_EQ(msg_counter, 1);
 
     auto token2 = subscribe_client->Subscribe(kChannel2, [&](const std::string& channel, const std::string& message) {
         EXPECT_EQ(channel, kChannel2);
         EXPECT_EQ(message, kMsg2);
         ++msg_counter;
+        event2.Send();
     });
     engine::SleepFor(waiting_time);
 
     client->Publish(kChannel2, kMsg2, kDefaultCc);
-    engine::SleepFor(waiting_time);
-
+    ASSERT_TRUE(event2.WaitForEventFor(utest::kMaxTestWaitTime));
     EXPECT_EQ(msg_counter, 2);
 
     token1.Unsubscribe();
     client->Publish(kChannel1, kMsg1, kDefaultCc);
     engine::SleepFor(waiting_time);
-
     EXPECT_EQ(msg_counter, 2);
 
     client->Publish(kChannel2, kMsg2, kDefaultCc);
-    engine::SleepFor(waiting_time);
-
+    ASSERT_TRUE(event2.WaitForEventFor(utest::kMaxTestWaitTime));
     EXPECT_EQ(msg_counter, 3);
 }
 

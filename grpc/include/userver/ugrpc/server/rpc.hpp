@@ -30,15 +30,7 @@ public:
     ///
     /// @param response the single Response to send to the client
     /// @throws ugrpc::server::RpcError on an RPC error
-    void Finish(Response& response);
-
-    /// @brief Complete the RPC successfully
-    ///
-    /// `Finish` must not be called multiple times for the same RPC.
-    ///
-    /// @param response the single Response to send to the client
-    /// @throws ugrpc::server::RpcError on an RPC error
-    void Finish(Response&& response);
+    void Finish(const Response& response);
 
     /// @brief Complete the RPC with an error
     ///
@@ -84,15 +76,7 @@ public:
     ///
     /// @param response the single Response to send to the client
     /// @throws ugrpc::server::RpcError on an RPC error
-    void Finish(Response& response);
-
-    /// @brief Complete the RPC successfully
-    ///
-    /// `Finish` must not be called multiple times for the same RPC.
-    ///
-    /// @param response the single Response to send to the client
-    /// @throws ugrpc::server::RpcError on an RPC error
-    void Finish(Response&& response);
+    void Finish(const Response& response);
 
     /// @brief Complete the RPC with an error
     ///
@@ -162,17 +146,7 @@ public:
     ///
     /// @param response the final response message
     /// @throws ugrpc::server::RpcError on an RPC error
-    void WriteAndFinish(Response& response);
-
-    /// @brief Equivalent to `Write + Finish`
-    ///
-    /// This call saves one round-trip, compared to separate `Write` and `Finish`.
-    ///
-    /// `Finish` must not be called multiple times.
-    ///
-    /// @param response the final response message
-    /// @throws ugrpc::server::RpcError on an RPC error
-    void WriteAndFinish(Response&& response);
+    void Finish(const Response& response);
 
     /// For internal use only
     OutputStream(impl::CallParams&& call_params, impl::RawWriter<Response>& stream);
@@ -196,7 +170,7 @@ private:
 ///
 ///   - `GetContext`
 ///   - `Read`;
-///   - one of (`Write`, `Finish`, `FinishWithError`, `WriteAndFinish`).
+///   - one of (`Write`, `Finish`, `FinishWithError`).
 ///
 /// The RPC is cancelled on destruction unless the stream has been finished.
 ///
@@ -244,17 +218,7 @@ public:
     ///
     /// @param response the final response message
     /// @throws ugrpc::server::RpcError on an RPC error
-    void WriteAndFinish(Response& response);
-
-    /// @brief Equivalent to `Write + Finish`
-    ///
-    /// This call saves one round-trip, compared to separate `Write` and `Finish`.
-    ///
-    /// `Finish` must not be called multiple times.
-    ///
-    /// @param response the final response message
-    /// @throws ugrpc::server::RpcError on an RPC error
-    void WriteAndFinish(Response&& response);
+    void Finish(const Response& response);
 
     /// For internal use only
     BidirectionalStream(impl::CallParams&& call_params, impl::RawReaderWriter<Request, Response>& stream);
@@ -278,26 +242,17 @@ UnaryCall<Response>::UnaryCall(impl::CallParams&& call_params, impl::RawResponse
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
     if (!is_finished_) {
-        WriteAccessLog(impl::kUnknownErrorStatus);
+        PreSendStatus(impl::kUnknownErrorStatus);
         impl::CancelWithError(stream_, GetCallName());
     }
 }
 
 template <typename Response>
-void UnaryCall<Response>::Finish(Response&& response) {
-    Finish(response);
-}
-
-template <typename Response>
-void UnaryCall<Response>::Finish(Response& response) {
+void UnaryCall<Response>::Finish(const Response& response) {
     UINVARIANT(!is_finished_, "'Finish' called on a finished call");
-    ApplyResponseHook(&response);
-
-    // It is important to set is_finished_ after ApplyResponseHook.
-    // Otherwise, there would be no way to call FinishWithError there.
     is_finished_ = true;
 
-    WriteAccessLog(grpc::Status::OK);
+    PreSendStatus(grpc::Status::OK);
 
     impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
     PostFinish(grpc::Status::OK);
@@ -307,7 +262,7 @@ template <typename Response>
 void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
     if (IsFinished()) return;
     is_finished_ = true;
-    WriteAccessLog(status);
+    PreSendStatus(status);
     impl::FinishWithError(stream_, status, GetCallName());
     PostFinish(status);
 }
@@ -324,7 +279,7 @@ InputStream<Request, Response>::InputStream(impl::CallParams&& call_params, impl
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
     if (state_ != State::kFinished) {
-        WriteAccessLog(impl::kUnknownErrorStatus);
+        PreSendStatus(impl::kUnknownErrorStatus);
         impl::CancelWithError(stream_, GetCallName());
     }
 }
@@ -342,20 +297,11 @@ bool InputStream<Request, Response>::Read(Request& request) {
 }
 
 template <typename Request, typename Response>
-void InputStream<Request, Response>::Finish(Response&& response) {
-    Finish(response);
-}
-
-template <typename Request, typename Response>
-void InputStream<Request, Response>::Finish(Response& response) {
+void InputStream<Request, Response>::Finish(const Response& response) {
     UINVARIANT(state_ != State::kFinished, "'Finish' called on a finished stream");
-    ApplyResponseHook(&response);
-
-    // It is important to set the state_ after ApplyResponseHook.
-    // Otherwise, there would be no way to call FinishWithError there.
     state_ = State::kFinished;
 
-    WriteAccessLog(grpc::Status::OK);
+    PreSendStatus(grpc::Status::OK);
 
     impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
     PostFinish(grpc::Status::OK);
@@ -366,7 +312,7 @@ void InputStream<Request, Response>::FinishWithError(const grpc::Status& status)
     UASSERT(!status.ok());
     if (IsFinished()) return;
     state_ = State::kFinished;
-    WriteAccessLog(status);
+    PreSendStatus(status);
     impl::FinishWithError(stream_, status, GetCallName());
     PostFinish(status);
 }
@@ -383,7 +329,7 @@ OutputStream<Response>::OutputStream(impl::CallParams&& call_params, impl::RawWr
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
     if (state_ != State::kFinished) {
-        WriteAccessLog(impl::kUnknownErrorStatus);
+        PreSendStatus(impl::kUnknownErrorStatus);
         impl::Cancel(stream_, GetCallName());
     }
 }
@@ -414,7 +360,7 @@ void OutputStream<Response>::Finish() {
     UINVARIANT(state_ != State::kFinished, "'Finish' called on a finished stream");
     state_ = State::kFinished;
 
-    WriteAccessLog(grpc::Status::OK);
+    PreSendStatus(grpc::Status::OK);
 
     impl::Finish(stream_, grpc::Status::OK, GetCallName());
     PostFinish(grpc::Status::OK);
@@ -425,30 +371,21 @@ void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
     UASSERT(!status.ok());
     if (IsFinished()) return;
     state_ = State::kFinished;
-    WriteAccessLog(status);
+    PreSendStatus(status);
     impl::Finish(stream_, status, GetCallName());
     PostFinish(status);
 }
 
 template <typename Response>
-void OutputStream<Response>::WriteAndFinish(Response&& response) {
-    WriteAndFinish(response);
-}
-
-template <typename Response>
-void OutputStream<Response>::WriteAndFinish(Response& response) {
-    UINVARIANT(state_ != State::kFinished, "'WriteAndFinish' called on a finished stream");
-    ApplyResponseHook(&response);
-
-    // It is important to set the state_ after ApplyResponseHook.
-    // Otherwise, there would be no way to call FinishWithError there.
+void OutputStream<Response>::Finish(const Response& response) {
+    UINVARIANT(state_ != State::kFinished, "'Finish' called on a finished stream");
     state_ = State::kFinished;
 
     // Don't buffer writes, otherwise in an event subscription scenario, events
     // may never actually be delivered
     grpc::WriteOptions write_options{};
 
-    WriteAccessLog(grpc::Status::OK);
+    PreSendStatus(grpc::Status::OK);
 
     impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK, GetCallName());
     PostFinish(grpc::Status::OK);
@@ -470,7 +407,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream() {
     if (!is_finished_) {
-        WriteAccessLog(impl::kUnknownErrorStatus);
+        PreSendStatus(impl::kUnknownErrorStatus);
         impl::Cancel(stream_, GetCallName());
     }
 }
@@ -517,7 +454,7 @@ void BidirectionalStream<Request, Response>::Finish() {
     UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
     is_finished_ = true;
 
-    WriteAccessLog(grpc::Status::OK);
+    PreSendStatus(grpc::Status::OK);
 
     impl::Finish(stream_, grpc::Status::OK, GetCallName());
     PostFinish(grpc::Status::OK);
@@ -528,31 +465,20 @@ void BidirectionalStream<Request, Response>::FinishWithError(const grpc::Status&
     UASSERT(!status.ok());
     if (IsFinished()) return;
     is_finished_ = true;
-    WriteAccessLog(status);
+    PreSendStatus(status);
     impl::Finish(stream_, status, GetCallName());
     PostFinish(status);
 }
 
 template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::WriteAndFinish(Response&& response) {
-    WriteAndFinish(response);
-}
-
-template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::WriteAndFinish(Response& response) {
-    UINVARIANT(!is_finished_, "'WriteAndFinish' called on a finished stream");
-    if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
-        ApplyResponseHook(&response);
-    }
-
-    // It is important to set is_finished_ after ApplyResponseHook.
-    // Otherwise, there would be no way to call FinishWithError there.
+void BidirectionalStream<Request, Response>::Finish(const Response& response) {
+    UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
     is_finished_ = true;
 
     // Don't buffer writes, optimize for ping-pong-style interaction
     grpc::WriteOptions write_options{};
 
-    WriteAccessLog(grpc::Status::OK);
+    PreSendStatus(grpc::Status::OK);
 
     impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK, GetCallName());
     PostFinish(grpc::Status::OK);

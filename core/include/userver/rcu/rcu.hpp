@@ -88,6 +88,23 @@ private:
     SnapshotRecord<T>* head_{nullptr};
 };
 
+class ExclusiveMutex final {
+public:
+    void lock() {
+        const bool was_locked = is_locked_.exchange(true);
+        UINVARIANT(
+            !was_locked,
+            "Detected a race condition when multiple writers Assign to an rcu::Variable concurrently. The value that "
+            "will remain in rcu::Variable when the dust settles is unspecified."
+        );
+    }
+
+    void unlock() noexcept { is_locked_.store(false); }
+
+private:
+    std::atomic<bool> is_locked_{false};
+};
+
 }  // namespace impl
 
 /// @brief A handle to the retired object version, which an RCU deleter should
@@ -194,6 +211,15 @@ struct SyncRcuTraits : public DefaultRcuTraits {
 /// @see rcu::DefaultRcuTraits
 struct BlockingRcuTraits : public DefaultRcuTraits {
     using MutexType = std::mutex;
+    using DeleterType = SyncDeleter;
+};
+
+/// @brief Rcu traits that only allow a single writer.
+/// Detects race conditions when multiple writers call `Assign` concurrently.
+/// @note Allows reads and writes from any kind of thread.
+/// @see rcu::DefaultRcuTraits
+struct ExclusiveRcuTraits : public DefaultRcuTraits {
+    using MutexType = impl::ExclusiveMutex;
     using DeleterType = SyncDeleter;
 };
 

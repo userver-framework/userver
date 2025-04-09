@@ -2,6 +2,9 @@ default: {}
 description: ''
 schema:
     type: object
+    properties:
+        __default__:
+            $ref: "#/definitions/ConnectionSettings"
     additionalProperties:
         $ref: "#/definitions/ConnectionSettings"
     definitions:
@@ -25,6 +28,7 @@ schema:
                     type: integer
                     minimum: 1
                     default: 5000
+                    x-usrv-cpp-type: std::size_t
                     description: Prepared statements cache size limit.
                 recent-errors-threshold:
                     type: integer
@@ -37,6 +41,7 @@ schema:
                 max-ttl-sec:
                     type: integer
                     minimum: 1
+                    x-usrv-cpp-type: std::chrono::seconds
                     description: The maximum lifetime of the connection (in seconds)
                         after which it will be closed. The actual lifetime will be
                         chosen randomly within range [max-ttl/2, max-ttl]. By default,

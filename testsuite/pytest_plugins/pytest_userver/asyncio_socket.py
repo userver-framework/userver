@@ -6,6 +6,7 @@ import sys
 import typing
 
 DEFAULT_TIMEOUT = 10.0
+_DefaultTimeout = object()
 
 _ASYNCIO_HAS_SENDTO = sys.version_info >= (3, 11)
 
@@ -34,15 +35,15 @@ class AsyncioSocket:
     def fileno(self):
         return self._sock.fileno()
 
-    async def connect(self, address, *, timeout=None):
+    async def connect(self, address, *, timeout=_DefaultTimeout):
         coro = self._loop.sock_connect(self._sock, address)
         return await self._with_timeout(coro, timeout=timeout)
 
-    async def send(self, data, *, timeout=None):
+    async def send(self, data, *, timeout=_DefaultTimeout):
         coro = self._loop.sock_send(self._sock, data)
         return self._with_timeout(coro, timeout=timeout)
 
-    async def sendto(self, *args, timeout=None):
+    async def sendto(self, *args, timeout=_DefaultTimeout):
         # asyncio support added in version 3.11
         if not _ASYNCIO_HAS_SENDTO:
             return await self._sendto_legacy(*args, timeout=timeout)
@@ -52,15 +53,15 @@ class AsyncioSocket:
         except NotImplementedError:
             return await self._sendto_legacy(*args, timeout=timeout)
 
-    async def sendall(self, data, *, timeout=None):
+    async def sendall(self, data, *, timeout=_DefaultTimeout):
         coro = self._loop.sock_sendall(self._sock, data)
         return await self._with_timeout(coro, timeout=timeout)
 
-    async def recv(self, size, *, timeout=None):
+    async def recv(self, size, *, timeout=_DefaultTimeout):
         coro = self._loop.sock_recv(self._sock, size)
         return await self._with_timeout(coro, timeout=timeout)
 
-    async def recvfrom(self, *args, timeout=None):
+    async def recvfrom(self, *args, timeout=_DefaultTimeout):
         # asyncio support added in version 3.11
         if not _ASYNCIO_HAS_SENDTO:
             return await self._recvfrom_legacy(*args, timeout=timeout)
@@ -70,7 +71,7 @@ class AsyncioSocket:
         except NotImplementedError:
             return await self._recvfrom_legacy(*args, timeout=timeout)
 
-    async def accept(self, *, timeout=None):
+    async def accept(self, *, timeout=_DefaultTimeout):
         coro = self._loop.sock_accept(self._sock)
         conn, address = await self._with_timeout(coro, timeout=timeout)
         return from_socket(conn), address
@@ -98,9 +99,15 @@ class AsyncioSocket:
         _, wlist, _ = select.select([], [self._sock], [], 0)
         return bool(wlist)
 
-    async def _with_timeout(self, awaitable, timeout=None):
+    async def wait_for_data(self, timeout=_DefaultTimeout):
+        if self.has_data():
+            return
+        coro = _wait_for_data(self._loop, self._sock)
+        return await self._with_timeout(coro, timeout=timeout)
+
+    async def _with_timeout(self, awaitable, timeout):
         # TODO(python3.11): switch to `asyncio.timeout()`
-        if timeout is None:
+        if timeout is _DefaultTimeout:
             timeout = self._default_timeout
 
         return await asyncio.wait_for(awaitable, timeout=timeout)
@@ -197,3 +204,19 @@ def _legacy_io_handler(fut, sock_handler, *args):
         fut.set_exception(exc)
     else:
         fut.set_result(data)
+
+
+async def _wait_for_data(loop, sock):
+    fut = loop.create_future()
+    fd = sock.fileno()
+
+    def on_data():
+        if fut.done():
+            return
+        fut.set_result(None)
+
+    try:
+        loop.add_reader(fd, on_data)
+        await fut
+    finally:
+        loop.remove_reader(fd)

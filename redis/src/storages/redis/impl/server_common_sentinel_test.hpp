@@ -3,7 +3,6 @@
 #include <storages/redis/impl/thread_pools.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 
-#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/mock_server_test.hpp>
 #include <storages/redis/impl/secdist_redis.hpp>
 #include <storages/redis/impl/sentinel.hpp>

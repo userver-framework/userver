@@ -5,6 +5,8 @@
 
 #include <userver/clients/http/request.hpp>
 
+#include <cstdint>
+
 namespace clients::test {
 
 namespace testme_post {
@@ -12,7 +14,9 @@ namespace testme_post {
 using Body = int;
 
 struct Request {
-    int number;
+    std::string number;
+
+    std::vector<std::string> array;
 
     Body body;
 };

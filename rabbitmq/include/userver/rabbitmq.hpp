@@ -41,7 +41,7 @@
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref scripts/docs/en/userver/grpc_server_middlewares.md |
+/// ⇦ @ref scripts/docs/en/userver/grpc/server_middlewares.md |
 /// @ref scripts/docs/en/userver/dynamic_config.md ⇨
 /// @htmlonly </div> @endhtmlonly
 

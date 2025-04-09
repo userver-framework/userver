@@ -4,14 +4,14 @@
 
 #include <google/protobuf/util/time_util.h>
 
+#include <ugrpc/impl/internal_tag.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <userver/ugrpc/deadline_timepoint.hpp>
-
 #include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 
 #include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
@@ -86,23 +86,18 @@ bool CheckAndSetupDeadline(
 
 }  // namespace
 
-void Middleware::Handle(MiddlewareCallContext& context) const {
-    auto& call = context.GetCall();
-
+void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     if (!CheckAndSetupDeadline(
-            call.GetSpan(),
-            call.GetContext(),
-            context.GetCall().GetServiceName(),
-            context.GetCall().GetMethodName(),
-            call.GetStatistics(ugrpc::impl::InternalTag()),
+            context.GetSpan(),
+            context.GetServerContext(),
+            context.GetServiceName(),
+            context.GetMethodName(),
+            context.GetStatistics(ugrpc::impl::InternalTag{}),
             context.GetInitialDynamicConfig()
         )) {
-        call.FinishWithError(grpc::Status{
+        return context.SetError(grpc::Status{
             grpc::StatusCode::DEADLINE_EXCEEDED, "Deadline propagation: Not enough time to handle this call"});
-        return;
     }
-
-    context.Next();
 }
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation

@@ -10,9 +10,9 @@ namespace middlewares::impl {
 // Interface for creating middlewares.
 template <typename MiddlewareBase, typename HandlerInfo>
 struct PipelineCreatorInterface {
-    using Middlewares = std::vector<std::shared_ptr<MiddlewareBase>>;
+    using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
 
-    virtual std::vector<std::shared_ptr<MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const = 0;
+    virtual std::vector<std::shared_ptr<const MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const = 0;
 };
 
 // Simple impl of PipelineCreatorInterface for tests.

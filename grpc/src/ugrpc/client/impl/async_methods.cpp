@@ -11,7 +11,6 @@
 #include <userver/utils/impl/source_location.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/impl/status.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/deadline_timepoint.hpp>
@@ -63,14 +62,10 @@ void SetErrorAndResetSpan(RpcData& data, const std::string& error_message) {
     data.ResetSpan();
 }
 
-void SetStatusDetailsForSpan(
-    tracing::Span& span,
-    const grpc::Status& status,
-    const std::optional<std::string>& error_details
-) {
+void SetStatusDetailsForSpan(tracing::Span& span, const grpc::Status& status) {
     span.AddTag("grpc_code", ugrpc::ToString(status.error_code()));
     if (!status.ok()) {
-        SetErrorForSpan(span, error_details.value_or(status.error_message()));
+        SetErrorForSpan(span, status.error_message());
     }
 }
 
@@ -78,19 +73,6 @@ void SetStatusDetailsForSpan(
 
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
     : enforce_task_deadline(config[::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION]) {}
-
-ParsedGStatus ParsedGStatus::ProcessStatus(const grpc::Status& status) {
-    if (status.ok()) {
-        return {};
-    }
-    auto gstatus = ugrpc::impl::ToGoogleRpcStatus(status);
-    std::optional<std::string> gstatus_string;
-    if (gstatus) {
-        gstatus_string = ugrpc::impl::GetGStatusLimitedMessage(*gstatus);
-    }
-
-    return ParsedGStatus{std::move(gstatus), std::move(gstatus_string)};
-}
 
 RpcData::RpcData(impl::CallParams&& params, CallKind call_kind)
     : stub_(std::move(params.stub)),
@@ -256,8 +238,6 @@ void RpcData::SetStatusExtracted() noexcept {
 
 grpc::Status& RpcData::GetStatus() noexcept { return status_; }
 
-ParsedGStatus& RpcData::GetParsedGStatus() noexcept { return parsed_g_status_; }
-
 RpcData::AsyncMethodInvocationGuard::AsyncMethodInvocationGuard(RpcData& data) noexcept : data_(data) {
     UASSERT(!std::holds_alternative<std::monostate>(data_.invocation_));
 }
@@ -297,23 +277,14 @@ void ProcessFinish(RpcData& data, utils::function_ref<void(RpcData& data, const 
 
     post_finish(data, status);
 
-    auto& parsed_gstatus = data.GetParsedGStatus();
-    parsed_gstatus = ParsedGStatus::ProcessStatus(status);
-
-    SetStatusDetailsForSpan(data.GetSpan(), status, parsed_gstatus.gstatus_string);
+    SetStatusDetailsForSpan(data.GetSpan(), status);
     data.ResetSpan();
 }
 
 void CheckFinishStatus(RpcData& data) {
     auto& status = data.GetStatus();
     if (!status.ok()) {
-        auto& parsed_gstatus = data.GetParsedGStatus();
-        impl::ThrowErrorWithStatus(
-            data.GetCallName(),
-            std::move(status),
-            std::move(parsed_gstatus.gstatus),
-            std::move(parsed_gstatus.gstatus_string)
-        );
+        ThrowErrorWithStatus(data.GetCallName(), std::move(status));
     }
 }
 

@@ -422,9 +422,9 @@ struct ResolverWrapper {
               }(),
               engine::current_task::GetTaskProcessor().GetTaskProcessorPools()},
           resolver{fs_task_processor, [&] {
-                       clients::dns::ResolverConfig config;
-                       config.file_path = hosts_file.GetPath();
-                       config.file_update_interval = utest::kMaxTestWaitTime;
+                       ::userver::static_config::DnsClient config;
+                       config.hosts_file_path = hosts_file.GetPath();
+                       config.hosts_file_update_interval = utest::kMaxTestWaitTime;
                        config.network_timeout = utest::kMaxTestWaitTime;
                        config.network_attempts = 1;
                        config.cache_max_reply_ttl = std::chrono::seconds{1};

@@ -10,7 +10,7 @@ class Middleware final : public MiddlewareBase {
 public:
     explicit Middleware(std::vector<std::string> headers);
 
-    void Handle(MiddlewareCallContext& context) const override;
+    void OnCallStart(MiddlewareCallContext& context) const override;
 
 private:
     const std::vector<std::string> headers_;

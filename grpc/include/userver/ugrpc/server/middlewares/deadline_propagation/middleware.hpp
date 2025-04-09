@@ -20,7 +20,7 @@ public:
             .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
             .After<congestion_control::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak);
 
-    void Handle(MiddlewareCallContext& context) const override;
+    void OnCallStart(MiddlewareCallContext& context) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation

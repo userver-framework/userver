@@ -364,7 +364,7 @@ void Connection::SendResponse(http::HttpRequest& request) {
     }
     request.SetFinishSendResponseTime();
     stats_->active_request_count.Subtract(1);
-    stats_->requests_processed_count.Add(1);
+    ++stats_->requests_processed_count;
 
     request.WriteAccessLogs(request_handler_.LoggerAccess(), request_handler_.LoggerAccessTskv(), peer_name_);
 }

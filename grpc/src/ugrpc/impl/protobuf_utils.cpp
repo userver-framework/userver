@@ -9,10 +9,20 @@ namespace ugrpc::impl {
 
 namespace {
 
+bool HasDebugRedactOption([[maybe_unused]] const google::protobuf::FieldDescriptor& field) {
+#if GOOGLE_PROTOBUF_VERSION >= 3022000
+    return field.options().debug_redact();
+#else
+    return false;
+#endif
+}
+
 /// [fields visitor]
 compiler::ThreadLocal kSecretFieldsVisitor = [] {
     return ugrpc::FieldsVisitor(
-        [](const google::protobuf::FieldDescriptor& field) { return GetFieldOptions(field).secret(); },
+        [](const google::protobuf::FieldDescriptor& field) {
+            return HasDebugRedactOption(field) || GetFieldOptions(field).secret();
+        },
         ugrpc::FieldsVisitor::LockBehavior::kNone
     );
 };

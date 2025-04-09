@@ -91,6 +91,10 @@ digraph Pipeline {
 }
 @enddot
 
+There are Post-hooks and Pre-hooks for each middleware interface. Post-hooks are always called in the reverse order. For more info see special implementation of server or client middlewares:
+1. @ref grpc_server_hooks
+2. @ref grpc_client_hooks
+
 ## Defining dependencies of middlewares
 
 If your middleware doesn't care about an order, you can don't construct a builder and pass it to `MiddlewareFactoryComponentBase`. Middleware will be in the User group by default.

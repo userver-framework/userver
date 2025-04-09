@@ -79,8 +79,8 @@ def userver_pg_config(pgsql_local, _gate_started):
 # /// [gate fixture]
 @pytest.fixture(name='gate')
 async def _gate_ready(service_client, _gate_started):
-    _gate_started.to_server_pass()
-    _gate_started.to_client_pass()
+    await _gate_started.to_server_pass()
+    await _gate_started.to_client_pass()
     _gate_started.start_accepting()
 
     await _gate_started.wait_for_connections()

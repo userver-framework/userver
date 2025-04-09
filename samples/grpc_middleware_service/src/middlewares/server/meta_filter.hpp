@@ -12,7 +12,7 @@ class MetaFilter final : public ugrpc::server::MiddlewareBase {
 public:
     MetaFilter(MiddlewareConfig&& config);
 
-    void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
+    void OnCallStart(ugrpc::server::MiddlewareCallContext& context) const override;
 
 private:
     const std::vector<std::string> headers_;
@@ -34,7 +34,7 @@ public:
     // Needed to pass static config options to the middleware.
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<MiddlewareBase> CreateMiddleware(
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
         const ugrpc::server::ServiceInfo&,
         const yaml_config::YamlConfig& middleware_config
     ) const override;

@@ -91,6 +91,14 @@ namespace components {
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Updated Example
 ///
+/// Cache can also store only subset of data. For example for the database that is is defined in the following way:
+///
+/// @include samples/postgres_cache_order_by/schemas/postgresql/key_value.sql
+///
+/// it is possible to create a cache that stores only the latest `value`:
+///
+/// @snippet samples/postgres_cache_order_by/main.cpp  Last pg cache
+///
 /// In case one provides a custom CacheContainer within Policy, it is notified
 /// of Update completion via its public member function OnWritesDone, if any.
 /// See the following code snippet for an example of usage:
@@ -159,6 +167,12 @@ template <typename T>
 using HasWhere = decltype(T::kWhere);
 template <typename T>
 inline constexpr bool kHasWhere = meta::kIsDetected<HasWhere, T>;
+
+// Component kOrderBy in policy
+template <typename T>
+using HasOrderBy = decltype(T::kOrderBy);
+template <typename T>
+inline constexpr bool kHasOrderBy = meta::kIsDetected<HasOrderBy, T>;
 
 // Update field
 template <typename T>
@@ -423,6 +437,9 @@ private:
 
     static storages::postgres::Query GetAllQuery();
     static storages::postgres::Query GetDeltaQuery();
+    static std::string GetWhereClause();
+    static std::string GetDeltaWhereClause();
+    static std::string GetOrderByClause();
 
     std::chrono::milliseconds ParseCorrection(const ComponentConfig& config);
 
@@ -493,32 +510,48 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 }
 
 template <typename PostgreCachePolicy>
+std::string PostgreCache<PostgreCachePolicy>::GetWhereClause() {
+    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
+        return fmt::format(FMT_COMPILE("where {}"), PostgreCachePolicy::kWhere);
+    } else {
+        return "";
+    }
+}
+
+template <typename PostgreCachePolicy>
+std::string PostgreCache<PostgreCachePolicy>::GetDeltaWhereClause() {
+    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
+        return fmt::format(
+            FMT_COMPILE("where ({}) and {} >= $1"), PostgreCachePolicy::kWhere, PostgreCachePolicy::kUpdatedField
+        );
+    } else {
+        return fmt::format(FMT_COMPILE("where {} >= $1"), PostgreCachePolicy::kUpdatedField);
+    }
+}
+
+template <typename PostgreCachePolicy>
+std::string PostgreCache<PostgreCachePolicy>::GetOrderByClause() {
+    if constexpr (pg_cache::detail::kHasOrderBy<PostgreCachePolicy>) {
+        return fmt::format(FMT_COMPILE("order by {}"), PostgreCachePolicy::kOrderBy);
+    } else {
+        return "";
+    }
+}
+
+template <typename PostgreCachePolicy>
 storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetAllQuery() {
     storages::postgres::Query query = PolicyCheckerType::GetQuery();
-    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-        return {fmt::format("{} where {}", query.Statement(), PostgreCachePolicy::kWhere), query.GetName()};
-    } else {
-        return query;
-    }
+    return fmt::format("{} {} {}", query.Statement(), GetWhereClause(), GetOrderByClause());
 }
 
 template <typename PostgreCachePolicy>
 storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
     if constexpr (kIncrementalUpdates) {
         storages::postgres::Query query = PolicyCheckerType::GetQuery();
-
-        if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-            return {
-                fmt::format(
-                    "{} where ({}) and {} >= $1",
-                    query.Statement(),
-                    PostgreCachePolicy::kWhere,
-                    PolicyType::kUpdatedField
-                ),
-                query.GetName()};
-        } else {
-            return {fmt::format("{} where {} >= $1", query.Statement(), PolicyType::kUpdatedField), query.GetName()};
-        }
+        return storages::postgres::Query{
+            fmt::format("{} {} {}", query.Statement(), GetDeltaWhereClause(), GetOrderByClause()),
+            query.GetName(),
+        };
     } else {
         return GetAllQuery();
     }

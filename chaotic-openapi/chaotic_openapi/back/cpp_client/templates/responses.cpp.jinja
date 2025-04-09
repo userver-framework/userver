@@ -1,15 +1,50 @@
 #include <client/{{ name }}/responses.hpp>
 
+#include <userver/clients/http/response.hpp>
+#include <userver/formats/json/serialize.hpp>
+
+{% for include in spec.responses_definitions_includes() %}
+  #include <{{ include }}>
+{% endfor %}
+
+
 namespace {{ namespace }} {
 {% for op in operations %}
   {% if op.client_generate %}
-      namespace {{ op.cpp_namespace() }} {
-        Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& )
-        {
+    namespace {{ op.cpp_namespace() }} {
+      Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& http_response)
+      {
+        switch (static_cast<int>(http_response.status_code())) {
+        {% for response in op.responses %}
+          case {{ response.status }}:
+          {
+            Response{{ response.status }} r{};
+            {% if response.body %}
+                {% if response.is_single_contenttype() %}
+                  {# ignore content type for compatibility with poorly written servers #}
+                  {% set body = response.single_body() %}
+                  auto json = USERVER_NAMESPACE::formats::json::FromString(http_response.body());
+                  r.body = json.As<{{ body.parser_type('TODO', 'TODO') }}>();
+                {% else %}
+                  {{ NOT_IMPLEMENTED("multiple content types in response.content") }}
+                {% endif %}
+            {% endif %}
+
+            {# TODO: headers #}
+
+            {% if response.is_error() %}
+              throw r;
+            {% else %}
+              return r;
+            {% endif %}
+          }
+        {% endfor %}
+        default:
           {# TODO #}
-          return Response{};
+          throw std::runtime_error("unknown status code");
         }
       }
-    {% endif %}
+    }
+  {% endif %}
 {% endfor %}
 }

@@ -28,7 +28,7 @@ Component::Component(const components::ComponentConfig& config, const components
 
 Component::~Component() = default;
 
-std::shared_ptr<MiddlewareBase> Component::CreateMiddleware(
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
     const ugrpc::client::ClientInfo& /*client_info*/,
     const yaml_config::YamlConfig& middleware_config
 ) const {

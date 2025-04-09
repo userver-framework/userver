@@ -11,11 +11,11 @@ ERROR_MESSAGES = {
 }
 
 
-def convert_error(full_filepath: str, schema_type: str, error: pydantic.ValidationError) -> chaotic.error.BaseError:
-    assert len(error.errors()) >= 1
+def convert_error(full_filepath: str, schema_type: str, err: pydantic.ValidationError) -> chaotic.error.BaseError:
+    assert len(err.errors()) >= 1
 
     # show only the first error
-    error = error.errors()[0]
+    error = err.errors()[0]
 
     # the last location is the missing field name
     field = error['loc'][-1]
@@ -26,7 +26,7 @@ def convert_error(full_filepath: str, schema_type: str, error: pydantic.Validati
         msg = error['msg']
     return chaotic.error.BaseError(
         full_filepath=full_filepath,
-        infile_path='.'.join(error['loc']),
+        infile_path='.'.join(map(str, error['loc'])),
         schema_type=schema_type,
         msg=msg,
     )

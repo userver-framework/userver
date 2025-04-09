@@ -153,9 +153,8 @@ void Statistics::AccountStateChanged(RedisState new_state) {
 }
 
 void Statistics::AccountCommandSent(const CommandPtr& cmd) {
-    for (const auto& args : cmd->args.args) {
-        size_t size = 0;
-        for (const auto& arg : args) size += arg.size();
+    for (const auto& args : cmd->args) {
+        std::size_t size = args.GetCommandBytesLength();
         request_size_percentile.GetCurrentCounter().Account(size);
     }
 }

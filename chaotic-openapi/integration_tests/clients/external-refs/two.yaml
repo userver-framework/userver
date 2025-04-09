@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+    title: sample service
+    version: '1.0'
+
+paths: {}
+
+components:
+    schemas:
+        Two:
+            type: object
+            properties:
+                foo:
+                    type: integer
+            additionalProperties: false
+    requestBodies:
+        Two:
+            content:
+                application/json:
+                    schema:
+                        type: boolean
+    responses:
+        Two:
+            description: OK
+            content:
+                application/json:
+                    schema:
+                        type: integer
+    parameters:
+        Two:
+            description: OK
+            in: query
+            name: two
+            required: true
+            schema:
+                type: number

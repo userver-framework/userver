@@ -20,6 +20,7 @@
 
 #include <userver/ydb/exceptions.hpp>
 #include <userver/ydb/impl/cast.hpp>
+#include <userver/ydb/io/generic_optional.hpp>
 #include <userver/ydb/io/traits.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -197,6 +198,12 @@ struct ValueTraits<T, std::enable_if_t<!std::is_same_v<decltype(kStructMemberNam
         return builder.Build();
     }
 };
+
+template <typename T>
+struct ValueTraits<
+    std::optional<T>,
+    std::enable_if_t<!std::is_same_v<decltype(kStructMemberNames<T>), const impl::NotStruct>>>
+    : impl::GenericOptionalValueTraits<T> {};
 
 namespace impl {
 

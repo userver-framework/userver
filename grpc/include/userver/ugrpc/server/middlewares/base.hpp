@@ -7,16 +7,25 @@
 #include <string_view>
 
 #include <google/protobuf/message.h>
+#include <grpcpp/support/status.h>
 
 #include <userver/components/component_base.hpp>
 #include <userver/middlewares/groups.hpp>
 #include <userver/middlewares/runner.hpp>
 #include <userver/utils/function_ref.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 
 #include <userver/ugrpc/server/call.hpp>
+#include <userver/ugrpc/server/call_context.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::impl {
+
+class RpcStatisticsScope;
+
+}  // namespace ugrpc::impl
 
 namespace ugrpc::server {
 
@@ -30,20 +39,33 @@ struct ServiceInfo final {
 /// @ingroup userver_grpc_server_middlewares
 ///
 /// @brief Context for middleware-specific data during gRPC call.
-class MiddlewareCallContext final {
+class MiddlewareCallContext final : public CallContextBase {
 public:
     /// @cond
-    MiddlewareCallContext(
-        const Middlewares& middlewares,
-        CallAnyBase& call,
-        utils::function_ref<void()> user_call,
-        const dynamic_config::Snapshot& config,
-        ::google::protobuf::Message* request
-    );
+    // For internal use only
+    MiddlewareCallContext(utils::impl::InternalTag, CallAnyBase& call, dynamic_config::Snapshot&& config);
     /// @endcond
 
-    /// @brief Call next plugin, or gRPC handler if none.
-    void Next();
+    /// @brief Aborts the RPC, returning the specified status to the upstream client, see details below.
+    ///
+    /// It should be the last command in middlewares hooks.
+    ///
+    /// If that method is called in methods:
+    ///
+    /// 1. @ref MiddlewareBase::OnCallStart - remaining OnCallStart hooks won't be called. Will be called OnCallFinish
+    ///    hooks of middlewares that was called before `SetError`
+    /// 2. @ref MiddlewareBase::PostRecvMessage or @ref MiddlewareBase::PreSendMessage:
+    ///    * unary: handler won't be called - all. All `OnCallFinish` hooks will be called.
+    ///    * stream: from Read/Write throws a special exception, that ends a handler. All `OnCallFinish` hooks will be
+    ///      called.
+    /// 3. @ref MiddlewareBase::OnCallFinish - all `OnCallFinish` will be called, despite of `SetError` and exceptions.
+    ///    If the request is going to end with the error status, then the status is replaced with the status of the
+    ///    current hook.
+    ///
+    /// Example usage
+    ///
+    /// @snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp Middleware implementation
+    void SetError(grpc::Status&& status) noexcept;
 
     /// @returns Is a client-side streaming call
     bool IsClientStreaming() const noexcept;
@@ -51,25 +73,23 @@ public:
     /// @returns Is a server-side streaming call
     bool IsServerStreaming() const noexcept;
 
-    /// @brief Get original gRPC Call
-    CallAnyBase& GetCall() const;
-
     /// @brief Get values extracted from dynamic_config. Snapshot will be
     /// deleted when the last middleware completes.
     const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
 
+    /// @cond
+    // For internal use only
+    ugrpc::impl::RpcStatisticsScope& GetStatistics(ugrpc::impl::InternalTag);
+
+    void ResetInitialDynamicConfig(utils::impl::InternalTag) { config_.reset(); }
+
+    void SetStatusPtr(grpc::Status* status);
+    grpc::Status& GetStatus();
+    /// @endcond
+
 private:
-    void ClearMiddlewaresResources();
-
-    Middlewares::const_iterator middleware_;
-    Middlewares::const_iterator middleware_end_;
-    utils::function_ref<void()> user_call_;
-
-    CallAnyBase& call_;
-
     std::optional<dynamic_config::Snapshot> config_;
-    ::google::protobuf::Message* request_;
-    bool is_called_from_handle_{false};
+    grpc::Status* status_{nullptr};
 };
 
 /// @ingroup userver_base_classes userver_grpc_server_middlewares
@@ -84,16 +104,34 @@ public:
 
     virtual ~MiddlewareBase();
 
-    /// @brief Handles the gRPC request.
-    /// @note You should call context.Next() inside, otherwise the call will be
-    /// dropped.
-    virtual void Handle(MiddlewareCallContext& context) const = 0;
+    /// @brief This hook is invoked once per Call (RPC), after the message metadata is received, but before the handler
+    /// function is called.
+    ///
+    /// If all OnCallStart succeeded => OnCallFinish will invoked after a success method call.
+    virtual void OnCallStart(MiddlewareCallContext& context) const;
 
-    /// @brief Request hook. The function is invoked on each request.
-    virtual void CallRequestHook(const MiddlewareCallContext& context, google::protobuf::Message& request);
+    /// @brief The function is invoked after each received message.
+    ///
+    /// PostRecvMessage is called:
+    ///  * unary: exactly once per Call (RPC)
+    ///  * stream: 0, 1 or more times
+    virtual void PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const;
 
-    /// @brief Response hook. The function is invoked on each response.
-    virtual void CallResponseHook(const MiddlewareCallContext& context, google::protobuf::Message& response);
+    /// @brief The function is invoked before each sended message.
+    ///
+    /// PreSendMessage is called:
+    ///  * unary: 0 or 1 per Call (RPC), depending on whether the RPC returns a response or a failed status
+    ///  * stream: once per response message, that is, 0, 1, more times per Call (RPC).
+    virtual void PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const;
+
+    /// @brief This hook is invoked once per Call (RPC), after the handler function returns, but before the message is
+    /// sent to the upstream client.
+    ///
+    /// All OnCallStart invoked in the reverse order relatively OnCallFinish. You can change grpc status and it will
+    /// apply for a rpc call.
+    ///
+    /// @warning If Handler (grpc method) returns !ok status, OnCallFinish won't be called.
+    virtual void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const;
 };
 
 /// @ingroup userver_base_classes

@@ -35,7 +35,7 @@ auto& GlobalNoLogSpans() {
 }
 
 auto& GlobalTracer() {
-    static rcu::Variable<TracerPtr> tracer(tracing::MakeTracer({}, {}));
+    static rcu::Variable<TracerPtr, rcu::ExclusiveRcuTraits> tracer(tracing::MakeTracer({}, {}));
     return tracer;
 }
 

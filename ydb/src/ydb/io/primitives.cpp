@@ -1,5 +1,9 @@
 #include <userver/ydb/io/primitives.hpp>
 
+#include <cstring>
+
+#include <boost/uuid/uuid.hpp>
+
 #include <ydb-cpp-sdk/client/params/params.h>
 #include <ydb-cpp-sdk/client/value/value.h>
 
@@ -32,6 +36,19 @@ void WriteOptionalPrimitive(
     } else {
         builder.EmptyOptional(impl::kTypeCategory<typename PrimitiveTrait::Type>);
     }
+}
+
+template <typename T1, typename T2>
+void TransformUuid(T1* src, T2* dst) {
+    static_assert(sizeof(T1) == 1);
+    static_assert(sizeof(T2) == 1);
+
+    std::memcpy(dst, src, 16);
+
+    std::swap(dst[0], dst[3]);
+    std::swap(dst[1], dst[2]);
+    std::swap(dst[4], dst[5]);
+    std::swap(dst[6], dst[7]);
 }
 
 }  // namespace
@@ -225,6 +242,28 @@ void TimestampTrait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value
     builder.Timestamp(
         TInstant::MicroSeconds(std::chrono::duration_cast<std::chrono::microseconds>(value.time_since_epoch()).count())
     );
+}
+
+template struct OptionalPrimitiveTraits<UuidTrait>;
+template struct PrimitiveTraits<UuidTrait>;
+
+UuidTrait::Type UuidTrait::Parse(const NYdb::TValueParser& value_parser) {
+    static_assert(sizeof(NYdb::TUuidValue::Buf_) == 16);
+    static_assert(Type::static_size() == 16);
+
+    Type res;
+    TransformUuid(value_parser.GetUuid().Buf_.Bytes, res.data);
+    return res;
+}
+
+template <typename Builder>
+void UuidTrait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value) {
+    static_assert(sizeof(NYdb::TUuidValue::Buf_) == 16);
+    static_assert(Type::static_size() == 16);
+
+    auto res = NYdb::TUuidValue{0, 0};
+    TransformUuid(value.data, res.Buf_.Bytes);
+    builder.Uuid(res);
 }
 
 template struct OptionalPrimitiveTraits<JsonTrait>;

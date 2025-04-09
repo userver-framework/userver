@@ -28,9 +28,9 @@ inline constexpr int kSigUsr2 = 31;
 /// @ingroup userver_clients
 ///
 /// @brief A client that allows to subscribe
-/// to OS signals `SIGUSR1 and `SIGUSR2`.
+/// to OS signals `SIGUSR1` and `SIGUSR2`.
 ///
-/// Usually retrieved from os_signals::ProcessorComponent component. For tests
+/// Usually retrieved from os_signals::ProcessorComponent. For tests
 /// use os_signals::ProcessorMock.
 ///
 /// @see @ref scripts/docs/en/userver/os_signals.md

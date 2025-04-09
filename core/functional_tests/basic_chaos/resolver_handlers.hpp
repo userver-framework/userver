@@ -2,7 +2,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/clients/http/streamed_response.hpp>
@@ -16,6 +15,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <userver/static_config/dns_client.hpp>
+
 namespace chaos {
 
 static constexpr std::string_view kSeparator = ", ";
@@ -28,10 +29,10 @@ public:
     ResolverHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
           resolver_{engine::current_task::GetTaskProcessor(), [&config] {
-                        clients::dns::ResolverConfig resolver_config;
+                        ::userver::static_config::DnsClient resolver_config;
                         resolver_config.network_custom_servers = config["dns-servers"].As<std::vector<std::string>>();
-                        resolver_config.file_path = config["hosts-file"].As<std::string>();
-                        resolver_config.file_update_interval = std::chrono::seconds{kResolverTimeoutSecs};
+                        resolver_config.hosts_file_path = config["hosts-file"].As<std::string>();
+                        resolver_config.hosts_file_update_interval = std::chrono::seconds{kResolverTimeoutSecs};
                         resolver_config.network_timeout = std::chrono::seconds{kResolverTimeoutSecs};
                         resolver_config.network_attempts = 1;
                         resolver_config.cache_max_reply_ttl =

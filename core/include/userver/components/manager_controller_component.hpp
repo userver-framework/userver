@@ -14,7 +14,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+namespace impl {
 class Manager;
+}  // namespace impl
 
 // clang-format off
 
@@ -71,20 +73,20 @@ class Manager;
 // clang-format on
 class ManagerControllerComponent final : public RawComponentBase {
 public:
-    ManagerControllerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
-
-    ~ManagerControllerComponent() override;
-
     /// @ingroup userver_component_names
     /// @brief The default name of components::ManagerControllerComponent
     static constexpr std::string_view kName = "manager-controller";
+
+    ManagerControllerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    ~ManagerControllerComponent() override;
 
 private:
     void WriteStatistics(utils::statistics::Writer& writer);
 
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-    const components::Manager& components_manager_;
+    const components::impl::Manager& components_manager_;
     utils::statistics::Entry statistics_holder_;
     concurrent::AsyncEventSubscriberScope config_subscription_;
 };

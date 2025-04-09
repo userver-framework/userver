@@ -2,12 +2,9 @@
 
 #include <string_view>
 
-#include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracer.hpp>
 
-#include <userver/dynamic_config/test_helpers.hpp>
-#include <userver/utest/default_logger_fixture.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -56,7 +53,7 @@ struct TracingGuard final {
 
     ~TracingGuard() {
         if (tracing::Tracer::GetTracer() != tracer) {
-            engine::RunStandalone([&] { tracing::Tracer::SetTracer(tracer); });
+            tracing::Tracer::SetTracer(tracer);
         }
     }
 

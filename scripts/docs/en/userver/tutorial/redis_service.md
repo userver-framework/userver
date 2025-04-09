@@ -1,14 +1,15 @@
-## Redis service
+## Valkey/Redis service
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
+Make sure that you can compile and run core tests and read a basic example
+@ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 ## Step by step guide
 
 Microservices that have state often work with database to store their data and
 replicate that state across instances of the microservice. In this tutorial we
-will write a service that is a simple key-value storage on top of Redis
+will write a service that is a simple key-value storage on top of Valkey or Redis
 database. The service would have the following Rest API:
 
 * HTTP POST by path `/v1/key-value` with query parameters `key` and `value`
@@ -17,7 +18,7 @@ database. The service would have the following Rest API:
   if it exists or `404 Not Found` if it is missing
 * HTTP DELETE by path `/v1/key-value` with query parameter `key` deletes the key
   if it exists and returns number of deleted keys (cannot be more than 1, since
-  keys are unique in Redis database)
+  keys are unique in Valkey/Redis database)
 
 ### HTTP handler component
 
@@ -27,12 +28,12 @@ handling HTTP requests:
 @snippet samples/redis_service/main.cpp Redis service sample - component
 
 Note that the component holds a storages::redis::ClientPtr - a client to the
-Redis database. That client is thread safe, you can use it concurrently from
+Valkey/Redis database. That client is thread safe, you can use it concurrently from
 different threads and tasks.
 
 ### Initializing the database
 
-To access the database from our new component we need to find the Redis
+To access the database from our new component we need to find the Valkey/Redis
 component and request a client to a specific cluster by its name. After that we
 are ready to make requests.
 
@@ -53,7 +54,7 @@ synchronization primitives" should be used or data must not be mutated.
 
 ### KeyValue::GetValue
 
-Executing a query to the Redis database is as simple as calling the
+Executing a query to the Valkey/Redis database is as simple as calling the
 corresponding method of storages::redis::ClientPtr.
 
 Note that some methods return an optional result, which must be checked. Here it

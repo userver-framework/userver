@@ -7,7 +7,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
-#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/cluster_subscription_storage.hpp>
 
 #include "sentinel_impl.hpp"

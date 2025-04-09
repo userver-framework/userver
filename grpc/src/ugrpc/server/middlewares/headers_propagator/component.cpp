@@ -12,7 +12,7 @@ namespace ugrpc::server::middlewares::headers_propagator {
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : MiddlewareFactoryComponentBase(config, context) {}
 
-std::shared_ptr<MiddlewareBase>
+std::shared_ptr<const MiddlewareBase>
 Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
     return std::make_shared<Middleware>(middleware_config["headers"].As<std::vector<std::string>>({}));
 }

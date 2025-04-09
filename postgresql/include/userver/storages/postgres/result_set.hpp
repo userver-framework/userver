@@ -3,22 +3,18 @@
 /// @file userver/storages/postgres/result_set.hpp
 /// @brief Result accessors
 
-#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <optional>
-#include <tuple>
 #include <type_traits>
 #include <utility>
-#include <variant>
 
 #include <fmt/format.h>
 
+#include <userver/storages/postgres/detail/typed_rows.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/supported_types.hpp>
-#include <userver/storages/postgres/postgres_fwd.hpp>
-
-#include <userver/storages/postgres/detail/const_data_iterator.hpp>
+#include <userver/storages/postgres/row.hpp>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/log.hpp>
@@ -185,406 +181,8 @@ namespace storages::postgres {
 /// ⇦ @ref pg_run_queries | @ref scripts/docs/en/userver/pg_types.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
-struct FieldDescription {
-    /// Index of the field in the result set
-    std::size_t index;
-    /// @brief The object ID of the field's data type.
-    Oid type_oid;
-    /// @brief The field name.
-    // TODO string_view
-    std::string name;
-    /// @brief If the field can be identified as a column of a specific table,
-    /// the object ID of the table; otherwise zero.
-    Oid table_oid;
-    /// @brief If the field can be identified as a column of a specific table,
-    /// the attribute number of the column; otherwise zero.
-    Integer table_column;
-    /// @brief The data type size (see pg_type.typlen). Note that negative
-    /// values denote variable-width types.
-    Integer type_size;
-    /// @brief The type modifier (see pg_attribute.atttypmod). The meaning of
-    /// the modifier is type-specific.
-    Integer type_modifier;
-};
-
-/// @brief A wrapper for PGresult to access field descriptions.
-class RowDescription {
-public:
-    RowDescription(detail::ResultWrapperPtr res) : res_{std::move(res)} {}
-
-    /// Check that all fields can be read in binary format
-    /// @throw NoBinaryParser if any of the fields doesn't have a binary parser
-    void CheckBinaryFormat(const UserTypes& types) const;
-
-    // TODO interface for iterating field descriptions
-private:
-    detail::ResultWrapperPtr res_;
-};
-
-class Row;
-class ResultSet;
 template <typename T, typename ExtractionTag>
 class TypedResultSet;
-
-class FieldView final {
-public:
-    using size_type = std::size_t;
-
-    FieldView(const detail::ResultWrapper& res, size_type row_index, size_type field_index)
-        : res_{res}, row_index_{row_index}, field_index_{field_index} {}
-
-    template <typename T>
-    size_type To(T&& val) const {
-        using ValueType = typename std::decay<T>::type;
-        auto fb = GetBuffer();
-        return ReadNullable(fb, std::forward<T>(val), io::traits::IsNullable<ValueType>{});
-    }
-
-private:
-    io::FieldBuffer GetBuffer() const;
-    std::string_view Name() const;
-    Oid GetTypeOid() const;
-    const io::TypeBufferCategory& GetTypeBufferCategories() const;
-
-    template <typename T>
-    size_type ReadNullable(const io::FieldBuffer& fb, T&& val, std::true_type) const {
-        using ValueType = typename std::decay<T>::type;
-        using NullSetter = io::traits::GetSetNull<ValueType>;
-        if (fb.is_null) {
-            NullSetter::SetNull(val);
-        } else {
-            Read(fb, std::forward<T>(val));
-        }
-        return fb.length;
-    }
-
-    template <typename T>
-    size_type ReadNullable(const io::FieldBuffer& buffer, T&& val, std::false_type) const {
-        if (buffer.is_null) {
-            throw FieldValueIsNull{field_index_, Name(), val};
-        } else {
-            Read(buffer, std::forward<T>(val));
-        }
-        return buffer.length;
-    }
-
-    template <typename T>
-    void Read(const io::FieldBuffer& buffer, T&& val) const {
-        using ValueType = typename std::decay<T>::type;
-        io::traits::CheckParser<ValueType>();
-        try {
-            io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
-        } catch (InvalidInputBufferSize& ex) {
-            // InvalidInputBufferSize is not descriptive. Enriching with OID information and C++ types info
-            ex.AddMsgPrefix(fmt::format(
-                "Error while reading field #{0} '{1}' which database type {2} as a C++ type '{3}'. Refer to "
-                "the 'Supported data types' in the documentation to make sure that the database type is actually "
-                "representable as a C++ type '{3}'. Error details: ",
-                field_index_,
-                Name(),
-                impl::OidPrettyPrint(GetTypeOid()),
-                compiler::GetTypeName<T>()
-            ));
-            UASSERT_MSG(false, ex.what());
-            throw;
-        } catch (ResultSetError& ex) {
-            ex.AddMsgSuffix(fmt::format(" (ResultSet error while reading field #{} name `{}`)", field_index_, Name()));
-            throw;
-        }
-    }
-
-    const detail::ResultWrapper& res_;
-    const size_type row_index_;
-    const size_type field_index_;
-};
-
-/// @brief Accessor to a single field in a result set's row
-class Field {
-public:
-    using size_type = std::size_t;
-
-    size_type RowIndex() const { return row_index_; }
-    size_type FieldIndex() const { return field_index_; }
-
-    //@{
-    /** @name Field metadata */
-    /// Field name as named in query
-    std::string_view Name() const;
-    FieldDescription Description() const;
-
-    Oid GetTypeOid() const;
-    //@}
-
-    //@{
-    /** @name Data access */
-    bool IsNull() const;
-
-    size_type Length() const;
-
-    /// Read the field's buffer into user-provided variable.
-    /// @throws FieldValueIsNull If the field is null and the C++ type is
-    ///                           not nullable.
-    template <typename T>
-    size_type To(T&& val) const {
-        return FieldView{*res_, row_index_, field_index_}.To(std::forward<T>(val));
-    }
-
-    /// Read the field's buffer into user-provided variable.
-    /// If the field is null, set the variable to the default value.
-    template <typename T>
-    void Coalesce(T& val, const T& default_val) const {
-        if (!IsNull())
-            To(val);
-        else
-            val = default_val;
-    }
-
-    /// Convert the field's buffer into a C++ type.
-    /// @throws FieldValueIsNull If the field is null and the C++ type is
-    ///                           not nullable.
-    template <typename T>
-    typename std::decay<T>::type As() const {
-        T val{};
-        To(val);
-        return val;
-    }
-
-    /// Convert the field's buffer into a C++ type.
-    /// If the field is null, return default value.
-    template <typename T>
-    typename std::decay<T>::type Coalesce(const T& default_val) const {
-        if (IsNull()) return default_val;
-        return As<T>();
-    }
-    //@}
-    const io::TypeBufferCategory& GetTypeBufferCategories() const;
-
-protected:
-    friend class Row;
-
-    Field() = default;
-
-    Field(detail::ResultWrapperPtr res, size_type row, size_type col)
-        : res_{std::move(res)}, row_index_{row}, field_index_{col} {}
-
-    //@{
-    /** @name Iteration support */
-    bool IsValid() const;
-    int Compare(const Field& rhs) const;
-    std::ptrdiff_t Distance(const Field& rhs) const;
-    Field& Advance(std::ptrdiff_t);
-    //@}
-
-private:
-    detail::ResultWrapperPtr res_;
-    size_type row_index_{0};
-    size_type field_index_{0};
-};
-
-/// @brief Iterator over fields in a result set's row
-class ConstFieldIterator
-    : public detail::ConstDataIterator<ConstFieldIterator, Field, detail::IteratorDirection::kForward> {
-public:
-    ConstFieldIterator() = default;
-
-private:
-    friend class Row;
-
-    ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
-        : ConstDataIterator(std::move(res), row, col) {}
-};
-
-/// @brief Reverse iterator over fields in a result set's row
-class ReverseConstFieldIterator
-    : public detail::ConstDataIterator<ReverseConstFieldIterator, Field, detail::IteratorDirection::kReverse> {
-public:
-    ReverseConstFieldIterator() = default;
-
-private:
-    friend class Row;
-
-    ReverseConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
-        : ConstDataIterator(std::move(res), row, col) {}
-};
-
-/// Data row in a result set
-/// This class is a mere accessor to underlying result set data buffer,
-/// must not be used outside of result set life scope.
-///
-/// Mimics field container
-class Row {
-public:
-    //@{
-    /** @name Field container concept */
-    using size_type = std::size_t;
-    using const_iterator = ConstFieldIterator;
-    using const_reverse_iterator = ReverseConstFieldIterator;
-
-    using value_type = Field;
-    using reference = Field;
-    using pointer = const_iterator;
-    //@}
-
-    size_type RowIndex() const { return row_index_; }
-
-    RowDescription GetDescription() const { return {res_}; }
-    //@{
-    /** @name Field container interface */
-    /// Number of fields
-    size_type Size() const;
-
-    //@{
-    /** @name Forward iteration */
-    const_iterator cbegin() const;
-    const_iterator begin() const { return cbegin(); }
-    const_iterator cend() const;
-    const_iterator end() const { return cend(); }
-    //@}
-    //@{
-    /** @name Reverse iteration */
-    const_reverse_iterator crbegin() const;
-    const_reverse_iterator rbegin() const { return crbegin(); }
-    const_reverse_iterator crend() const;
-    const_reverse_iterator rend() const { return crend(); }
-    //@}
-
-    /// @brief Field access by index
-    /// @throws FieldIndexOutOfBounds if index is out of bounds
-    reference operator[](size_type index) const;
-    /// @brief Field access field by name
-    /// @throws FieldNameDoesntExist if the result set doesn't contain
-    ///         such a field
-    reference operator[](const std::string& name) const;
-    //@}
-
-    //@{
-    /** @name Access to row's data */
-    /// Read the contents of the row to a user's row type or read the first
-    /// column into the value.
-    ///
-    /// If the user tries to read the first column into a variable, it must be the
-    /// only column in the result set. If the result set contains more than one
-    /// column, the function will throw NonSingleColumnResultSet. If the result
-    /// set is OK to contain more than one columns, the first column value should
-    /// be accessed via `row[0].To/As`.
-    ///
-    /// If the type is a 'row' type, the function will read the fields of the row
-    /// into the type's data members.
-    ///
-    /// If the type can be treated as both a row type and a composite type (the
-    /// type is mapped to a PostgreSQL type), the function will treat the type
-    /// as a type for the first (and the only) column.
-    ///
-    /// To read the all fields of the row as a row type, the To(T&&, RowTag)
-    /// should be used.
-    template <typename T>
-    void To(T&& val) const;
-
-    /// Function to disambiguate reading the row to a user's row type (values
-    /// of the row initialize user's type data members)
-    template <typename T>
-    void To(T&& val, RowTag) const;
-
-    /// Function to disambiguate reading the first column to a user's composite
-    /// type (PostgreSQL composite type in the row initializes user's type).
-    /// The same as calling To(T&& val) for a T mapped to a PostgreSQL type.
-    template <typename T>
-    void To(T&& val, FieldTag) const;
-
-    /// Read fields into variables in order of their appearance in the row
-    template <typename... T>
-    void To(T&&... val) const;
-
-    /// @brief Parse values from the row and return the result.
-    ///
-    /// If there are more than one type arguments to the function, it will
-    /// return a tuple of those types.
-    ///
-    /// If there is a single type argument to the function, it will read the first
-    /// and the only column of the row or the whole row to the row type (depending
-    /// on C++ to PosgreSQL mapping presence) and return plain value of this type.
-    ///
-    /// @see To(T&&)
-    template <typename T, typename... Y>
-    auto As() const;
-
-    /// @brief Returns T initialized with values of the row.
-    /// @snippet storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
-    template <typename T>
-    T As(RowTag) const {
-        T val{};
-        To(val, kRowTag);
-        return val;
-    }
-
-    /// @brief Returns T initialized with a single column value of the row.
-    /// @snippet storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
-    template <typename T>
-    T As(FieldTag) const {
-        T val{};
-        To(val, kFieldTag);
-        return val;
-    }
-
-    /// Read fields into variables in order of their names in the first argument
-    template <typename... T>
-    void To(const std::initializer_list<std::string>& names, T&&... val) const;
-    template <typename... T>
-    std::tuple<T...> As(const std::initializer_list<std::string>& names) const;
-
-    /// Read fields into variables in order of their indexes in the first
-    /// argument
-    template <typename... T>
-    void To(const std::initializer_list<size_type>& indexes, T&&... val) const;
-    template <typename... T>
-    std::tuple<T...> As(const std::initializer_list<size_type>& indexes) const;
-    //@}
-
-    size_type IndexOfName(const std::string&) const;
-
-    FieldView GetFieldView(size_type index) const;
-
-protected:
-    friend class ResultSet;
-
-    Row() = default;
-
-    Row(detail::ResultWrapperPtr res, size_type row) : res_{std::move(res)}, row_index_{row} {}
-
-    //@{
-    /** @name Iteration support */
-    bool IsValid() const;
-    int Compare(const Row& rhs) const;
-    std::ptrdiff_t Distance(const Row& rhs) const;
-    Row& Advance(std::ptrdiff_t);
-    //@}
-private:
-    detail::ResultWrapperPtr res_;
-    size_type row_index_{0};
-};
-
-/// @name Iterator over rows in a result set
-class ConstRowIterator : public detail::ConstDataIterator<ConstRowIterator, Row, detail::IteratorDirection::kForward> {
-public:
-    ConstRowIterator() = default;
-
-private:
-    friend class ResultSet;
-
-    ConstRowIterator(detail::ResultWrapperPtr res, size_type row) : ConstDataIterator(std::move(res), row) {}
-};
-
-/// @name Reverse iterator over rows in a result set
-class ReverseConstRowIterator
-    : public detail::ConstDataIterator<ReverseConstRowIterator, Row, detail::IteratorDirection::kReverse> {
-public:
-    ReverseConstRowIterator() = default;
-
-private:
-    friend class ResultSet;
-
-    ReverseConstRowIterator(detail::ResultWrapperPtr res, size_type row) : ConstDataIterator(std::move(res), row) {}
-};
 
 /// @brief PostgreSQL result set
 ///
@@ -725,206 +323,6 @@ private:
     std::shared_ptr<detail::ResultWrapper> pimpl_;
 };
 
-namespace detail {
-
-template <typename T>
-struct IsOptionalFromOptional : std::false_type {};
-
-template <typename T>
-struct IsOptionalFromOptional<std::optional<std::optional<T>>> : std::true_type {};
-
-template <typename T>
-struct IsOneVariant : std::false_type {};
-
-template <typename T>
-struct IsOneVariant<std::variant<T>> : std::true_type {};
-
-template <typename... Args>
-constexpr void AssertSaneTypeToDeserialize() {
-    static_assert(
-        !(IsOptionalFromOptional<std::remove_const_t<std::remove_reference_t<Args>>>::value || ...),
-        "Attempt to get an optional<optional<T>> was detected. Such "
-        "optional-from-optional types are very error prone, obfuscate code and "
-        "are ambiguous to deserialize. Change the type to just optional<T>"
-    );
-    static_assert(
-        !(IsOneVariant<std::remove_const_t<std::remove_reference_t<Args>>>::value || ...),
-        "Attempt to get an variant<T> was detected. Such variant from one type "
-        "obfuscates code. Change the type to just T"
-    );
-}
-
-//@{
-/** @name Sequental field extraction */
-template <typename IndexTuple, typename... T>
-struct RowDataExtractorBase;
-
-template <std::size_t... Indexes, typename... T>
-struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
-    static void ExtractValues(const Row& row, T&&... val) {
-        static_assert(sizeof...(Indexes) == sizeof...(T));
-
-        std::size_t field_index = 0;
-        const auto perform = [&](auto&& arg) { row.GetFieldView(field_index++).To(std::forward<decltype(arg)>(arg)); };
-        (perform(std::forward<T>(val)), ...);
-    }
-    static void ExtractTuple(const Row& row, std::tuple<T...>& val) {
-        static_assert(sizeof...(Indexes) == sizeof...(T));
-
-        std::size_t field_index = 0;
-        const auto perform = [&](auto& arg) { row.GetFieldView(field_index++).To(arg); };
-        (perform(std::get<Indexes>(val)), ...);
-    }
-    static void ExtractTuple(const Row& row, std::tuple<T...>&& val) {
-        static_assert(sizeof...(Indexes) == sizeof...(T));
-
-        std::size_t field_index = 0;
-        const auto perform = [&](auto& arg) { row.GetFieldView(field_index++).To(arg); };
-        (perform(std::get<Indexes>(val)), ...);
-    }
-
-    static void ExtractValues(const Row& row, const std::initializer_list<std::string>& names, T&&... val) {
-        (row[*(names.begin() + Indexes)].To(std::forward<T>(val)), ...);
-    }
-    static void ExtractTuple(const Row& row, const std::initializer_list<std::string>& names, std::tuple<T...>& val) {
-        std::tuple<T...> tmp{row[*(names.begin() + Indexes)].template As<T>()...};
-        tmp.swap(val);
-    }
-
-    static void ExtractValues(const Row& row, const std::initializer_list<std::size_t>& indexes, T&&... val) {
-        (row[*(indexes.begin() + Indexes)].To(std::forward<T>(val)), ...);
-    }
-    static void ExtractTuple(const Row& row, const std::initializer_list<std::size_t>& indexes, std::tuple<T...>& val) {
-        std::tuple<T...> tmp{row[*(indexes.begin() + Indexes)].template As<T>()...};
-        tmp.swap(val);
-    }
-};
-
-template <typename... T>
-struct RowDataExtractor : RowDataExtractorBase<std::index_sequence_for<T...>, T...> {};
-
-template <typename T>
-struct TupleDataExtractor;
-template <typename... T>
-struct TupleDataExtractor<std::tuple<T...>> : RowDataExtractorBase<std::index_sequence_for<T...>, T...> {};
-//@}
-
-template <typename RowType>
-constexpr void AssertRowTypeIsMappedToPgOrIsCompositeType() {
-    // composite types can be parsed without an explicit mapping
-    static_assert(
-        io::traits::kIsMappedToPg<RowType> || io::traits::kIsCompositeType<RowType>,
-        "Row type must be mapped to pg type(CppToUserPg) or one of the "
-        "following: "
-        "1. primitive type. "
-        "2. std::tuple. "
-        "3. Aggregation type. See std::aggregation. "
-        "4. Has a Introspect method that makes the std::tuple from your "
-        "class/struct. "
-        "For more info see `uPg: Typed PostgreSQL results` chapter in docs."
-    );
-}
-
-}  // namespace detail
-
-template <typename T>
-void Row::To(T&& val) const {
-    To(std::forward<T>(val), kFieldTag);
-}
-
-template <typename T>
-void Row::To(T&& val, RowTag) const {
-    detail::AssertSaneTypeToDeserialize<T>();
-    // Convert the val into a writable tuple and extract the data
-    using ValueType = std::decay_t<T>;
-    io::traits::AssertIsValidRowType<ValueType>();
-    using RowType = io::RowType<ValueType>;
-    using TupleType = typename RowType::TupleType;
-    constexpr auto tuple_size = RowType::size;
-    if (tuple_size > Size()) {
-        throw InvalidTupleSizeRequested(Size(), tuple_size);
-    } else if (tuple_size < Size()) {
-        LOG_LIMITED_WARNING() << "Row size is greater that the number of data members in "
-                                 "C++ user datatype "
-                              << compiler::GetTypeName<T>();
-    }
-
-    detail::TupleDataExtractor<TupleType>::ExtractTuple(*this, RowType::GetTuple(std::forward<T>(val)));
-}
-
-template <typename T>
-void Row::To(T&& val, FieldTag) const {
-    detail::AssertSaneTypeToDeserialize<T>();
-    using ValueType = std::decay_t<T>;
-    detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
-    // Read the first field into the type
-    if (Size() < 1) {
-        throw InvalidTupleSizeRequested{Size(), 1};
-    }
-    if (Size() > 1) {
-        throw NonSingleColumnResultSet{Size(), compiler::GetTypeName<T>(), "As"};
-    }
-    (*this)[0].To(std::forward<T>(val));
-}
-
-template <typename... T>
-void Row::To(T&&... val) const {
-    detail::AssertSaneTypeToDeserialize<T...>();
-    if (sizeof...(T) > Size()) {
-        throw InvalidTupleSizeRequested(Size(), sizeof...(T));
-    }
-    detail::RowDataExtractor<T...>::ExtractValues(*this, std::forward<T>(val)...);
-}
-
-template <typename T, typename... Y>
-auto Row::As() const {
-    if constexpr (sizeof...(Y) > 0) {
-        std::tuple<T, Y...> res;
-        To(res, kRowTag);
-        return res;
-    } else {
-        return As<T>(kFieldTag);
-    }
-}
-
-template <typename... T>
-void Row::To(const std::initializer_list<std::string>& names, T&&... val) const {
-    detail::AssertSaneTypeToDeserialize<T...>();
-    if (sizeof...(T) != names.size()) {
-        throw FieldTupleMismatch(names.size(), sizeof...(T));
-    }
-    detail::RowDataExtractor<T...>::ExtractValues(*this, names, std::forward<T>(val)...);
-}
-
-template <typename... T>
-std::tuple<T...> Row::As(const std::initializer_list<std::string>& names) const {
-    if (sizeof...(T) != names.size()) {
-        throw FieldTupleMismatch(names.size(), sizeof...(T));
-    }
-    std::tuple<T...> res;
-    detail::RowDataExtractor<T...>::ExtractTuple(*this, names, res);
-    return res;
-}
-
-template <typename... T>
-void Row::To(const std::initializer_list<size_type>& indexes, T&&... val) const {
-    detail::AssertSaneTypeToDeserialize<T...>();
-    if (sizeof...(T) != indexes.size()) {
-        throw FieldTupleMismatch(indexes.size(), sizeof...(T));
-    }
-    detail::RowDataExtractor<T...>::ExtractValues(*this, indexes, std::forward<T>(val)...);
-}
-
-template <typename... T>
-std::tuple<T...> Row::As(const std::initializer_list<size_type>& indexes) const {
-    if (sizeof...(T) != indexes.size()) {
-        throw FieldTupleMismatch(indexes.size(), sizeof...(T));
-    }
-    std::tuple<T...> res;
-    detail::RowDataExtractor<T...>::ExtractTuple(*this, indexes, res);
-    return res;
-}
-
 template <typename T>
 auto ResultSet::AsSetOf() const {
     return AsSetOf<T>(kFieldTag);
@@ -1025,8 +423,212 @@ std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
     return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kFieldTag)};
 }
 
+/// @page pg_user_row_types uPg: Typed PostgreSQL results
+///
+/// The ResultSet provides access to a generic PostgreSQL result buffer wrapper
+/// with access to individual column buffers and means to parse the buffers into
+/// a certain type.
+///
+/// For a user that wishes to get the results in a form of a sequence or a
+/// container of C++ tuples or structures, the driver provides a way to coerce
+/// the generic result set into a typed result set or a container of tuples or
+/// structures that fulfill certain conditions.
+///
+/// TypedResultSet provides container interface for typed result rows for
+/// iteration or random access without converting all the result set at once.
+/// The iterators in the TypedResultSet satisfy requirements for a constant
+/// RandomAccessIterator with the exception of dereferencing iterators.
+///
+/// @warning The operator* of the iterators returns value (not a reference to
+/// it) and the iterators don't have the operator->.
+///
+/// @par Data row extraction
+///
+/// The data rows can be obtained as:
+///   - std::tuple;
+///   - aggregate class as is;
+///   - non-aggregate class with some augmentation.
+///
+/// Data members of the tuple or the classes must be supported by the driver.
+/// For more information on supported data types please see
+/// @ref scripts/docs/en/userver/pg_types.md.
+///
+/// @par std::tuple.
+///
+/// The first option is to convert ResultSet's row to std::tuples.
+///
+/// ```
+/// using MyRowType = std::tuple<int, string>;
+/// auto trx = ...;
+/// auto generic_result = trx.Execute("select a, b from my_table");
+/// auto iteration = generic_result.AsSetOf<MyRowType>();
+/// for (auto row : iteration) {
+///   static_assert(std::is_same_v<decltype(row), MyRowType>,
+///       "Iterate over tuples");
+///   auto [a, b] = row;
+///   std::cout << "a = " << a << "; b = " << b << "\n";
+/// }
+///
+/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
+/// ```
+///
+/// @par Aggregate classes.
+///
+/// A data row can be coerced to an aggregate class.
+///
+/// An aggregate class (C++03 8.5.1 §1) is a class that with no base classes, no
+/// protected or private non-static data members, no user-declared constructors
+/// and no virtual functions.
+///
+/// ```
+/// struct MyRowType {
+///   int a;
+///   std::string b;
+/// };
+/// auto generic_result = trx.Execute("select a, b from my_table");
+/// auto iteration = generic_result.AsSetOf<MyRowType>();
+/// for (auto row : iteration) {
+///   static_assert(std::is_same_v<decltype(row), MyRowType>,
+///       "Iterate over aggregate classes");
+///   std::cout << "a = " << row.a << "; b = " << row.b << "\n";
+/// }
+///
+/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
+/// ```
+///
+/// @par Non-aggregate classes.
+///
+/// Classes that do not satisfy the aggregate class requirements can be used
+/// to be created from data rows by providing additional `Introspect` non-static
+/// member function. The function should return a tuple of references to
+/// member data fields. The class must be default constructible.
+///
+/// ```
+/// class MyRowType {
+///  private:
+///   int a_;
+///   std::string b_;
+///  public:
+///   MyRowType() = default; // default ctor is required
+///   explicit MyRowType(int x);
+///
+///   auto Introspect() {
+///     return std::tie(a_, b_);
+///   }
+///   int GetA() const;
+///   const std::string& GetB() const;
+/// };
+///
+/// auto generic_result = trx.Execute("select a, b from my_table");
+/// auto iteration = generic_result.AsSetOf<MyRowType>();
+/// for (auto row : iteration) {
+///   static_assert(std::is_same_v<decltype(row), MyRowType>,
+///       "Iterate over non-aggregate classes");
+///   std::cout << "a = " << row.GetA() << "; b = " << row.GetB() << "\n";
+/// }
+///
+/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
+/// ```
+/// @par Single-column result set
+///
+/// A single-column result set can be used to extract directly to the column
+/// type. User types mapped to PostgreSQL will work as well. If you need to
+/// extract the whole row into such a structure, you will need to disambiguate
+/// the call with the kRowTag.
+///
+/// @code
+/// auto string_set = generic_result.AsSetOf<std::string>();
+/// std::string s = string_set[0];
+///
+/// auto string_vec = generic_result.AsContainer<std::vector<std::string>>();
+///
+/// // Extract first column into the composite type
+/// auto foo_set = generic_result.AsSetOf<FooBar>();
+/// auto foo_vec = generic_result.AsContainer<std::vector<FooBar>>();
+///
+/// // Extract the whole row, disambiguation
+/// auto foo_set = generic_result.AsSetOf<FooBar>(kRowTag);
+///
+/// @endcode
+///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref scripts/docs/en/userver/pg_types.md | @ref pg_errors ⇨
+/// @htmlonly </div> @endhtmlonly
+
+template <typename T, typename ExtractionTag>
+class TypedResultSet {
+public:
+    using size_type = ResultSet::size_type;
+    using difference_type = ResultSet::difference_type;
+    static constexpr size_type npos = ResultSet::npos;
+    static constexpr ExtractionTag kExtractTag{};
+
+    //@{
+    /** @name Row container concept */
+    using const_iterator = detail::ConstTypedRowIterator<T, ExtractionTag, detail::IteratorDirection::kForward>;
+    using const_reverse_iterator = detail::ConstTypedRowIterator<T, ExtractionTag, detail::IteratorDirection::kReverse>;
+
+    using value_type = T;
+    using pointer = const_iterator;
+
+// Forbidding assignments to operator[] result in debug, getting max
+// performance in release.
+#ifdef NDEBUG
+    using reference = value_type;
+#else
+    using reference = std::add_const_t<value_type>;
+#endif
+
+    //@}
+    explicit TypedResultSet(ResultSet result) : result_{std::move(result)} {}
+
+    /// Number of rows in the result set
+    size_type Size() const { return result_.Size(); }
+    bool IsEmpty() const { return Size() == 0; }
+    //@{
+    /** @name Container interface */
+    //@{
+    /** @name Row container interface */
+    //@{
+    /** @name Forward iteration */
+    const_iterator cbegin() const& { return const_iterator{result_.pimpl_, 0}; }
+    const_iterator begin() const& { return cbegin(); }
+    const_iterator cend() const& { return const_iterator{result_.pimpl_, Size()}; }
+    const_iterator end() const& { return cend(); }
+    const_iterator cbegin() const&& { ReportMisuse(); }
+    const_iterator begin() const&& { ReportMisuse(); }
+    const_iterator cend() const&& { ReportMisuse(); }
+    const_iterator end() const&& { ReportMisuse(); }
+    //@}
+    //@{
+    /** @name Reverse iteration */
+    const_reverse_iterator crbegin() const& { return const_reverse_iterator(result_.pimpl_, Size() - 1); }
+    const_reverse_iterator rbegin() const& { return crbegin(); }
+    const_reverse_iterator crend() const& { return const_reverse_iterator(result_.pimpl_, npos); }
+    const_reverse_iterator rend() const& { return crend(); }
+    const_reverse_iterator crbegin() const&& { ReportMisuse(); }
+    const_reverse_iterator rbegin() const&& { ReportMisuse(); }
+    const_reverse_iterator crend() const&& { ReportMisuse(); }
+    const_reverse_iterator rend() const&& { ReportMisuse(); }
+    //@}
+    /// @brief Access a row by index
+    /// @throws RowIndexOutOfBounds if index is out of bounds
+    // NOLINTNEXTLINE(readability-const-return-type)
+    reference operator[](size_type index) const& { return result_[index].template As<value_type>(kExtractTag); }
+    // NOLINTNEXTLINE(readability-const-return-type)
+    reference operator[](size_type) const&& { ReportMisuse(); }
+    //@}
+private:
+    [[noreturn]] static void ReportMisuse() {
+        static_assert(!sizeof(T), "keep the TypedResultSet before using, please");
+    }
+
+    ResultSet result_;
+};
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END
-
-#include <userver/storages/postgres/typed_result_set.hpp>

@@ -16,13 +16,11 @@ public:
 
     MyMiddleware() = default;
 
-    void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
-        override;
+    void PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
+        const override;
 
-    void CallResponseHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
-        override;
-
-    void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
+    void PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
+        const override;
 };
 
 // There isn't a special logic to construct that middleware (doesn't have static config options) => use short-cut

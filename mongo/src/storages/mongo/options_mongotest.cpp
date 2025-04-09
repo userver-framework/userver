@@ -2,12 +2,13 @@
 #include <chrono>
 #include <string>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool.hpp>
+
+#include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -643,7 +644,7 @@ UTEST_F(Options, MaxServerTime) {
 }
 
 UTEST_F(Options, DefaultMaxServerTime) {
-    SetDynamicConfig({{mongo::kDefaultMaxTime, std::chrono::milliseconds{123}}});
+    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{123}}});
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
     coll.InsertOne(bson::MakeDoc("x", 1));

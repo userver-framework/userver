@@ -11,19 +11,15 @@ namespace sample::grpc::auth::server {
 /// [Middleware implementation]
 Middleware::Middleware() = default;
 
-void Middleware::Handle(ugrpc::server::MiddlewareCallContext& context) const {
-    const auto& metadata = context.GetCall().GetContext().client_metadata();
+void Middleware::OnCallStart(ugrpc::server::MiddlewareCallContext& context) const {
+    const auto& metadata = context.GetServerContext().client_metadata();
 
     auto it = metadata.find(kKey);
 
     if (it == metadata.cend() || it->second != kCredentials) {
-        auto& rpc = context.GetCall();
-        rpc.FinishWithError(::grpc::Status{::grpc::StatusCode::PERMISSION_DENIED, "Invalid credentials"});
         LOG_ERROR() << "Invalid credentials";
-        return;
+        return context.SetError(::grpc::Status{::grpc::StatusCode::PERMISSION_DENIED, "Invalid credentials"});
     }
-
-    context.Next();
 }
 /// [Middleware implementation]
 

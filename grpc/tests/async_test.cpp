@@ -2,7 +2,6 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include <ugrpc/impl/status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>

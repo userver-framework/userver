@@ -2,8 +2,13 @@
 
 #include <memory>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/log.hpp>
+
+#include <userver/ugrpc/status_codes.hpp>
+#include <userver/ugrpc/status_utils.hpp>
 
 #include <ugrpc/impl/protobuf_utils.hpp>
 
@@ -32,6 +37,24 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, Messa
     trimmed->CopyFrom(message);
     TrimSecrets(*trimmed);
     return ToLimitedString(*trimmed, options.max_size);
+}
+
+std::string GetErrorDetailsForLogging(const grpc::Status& status) {
+    if (status.ok()) {
+        return {};
+    }
+
+    const auto gstatus = ugrpc::ToGoogleRpcStatus(status);
+    return gstatus.has_value()
+               ? fmt::format(
+                     "code: {}, error message: {}\nerror details:\n{}",
+                     ugrpc::ToString(status.error_code()),
+                     status.error_message(),
+                     ugrpc::GetGStatusLimitedMessage(*gstatus)
+                 )
+               : fmt::format(
+                     "code: {}, error message: {}", ugrpc::ToString(status.error_code()), status.error_message()
+                 );
 }
 
 }  // namespace ugrpc::impl

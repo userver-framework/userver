@@ -13,6 +13,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+inline constexpr int kDeadlinePropagationExperimentVersion = 1;
+
 CommandControl Parse(const formats::json::Value& elem, formats::parse::To<CommandControl>);
 
 CommandControl::Strategy Parse(const formats::json::Value& elem, formats::parse::To<CommandControl::Strategy>);

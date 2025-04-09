@@ -23,7 +23,7 @@ USERVER_NAMESPACE_BEGIN
 /// Components, clients and helpers for different databases and storages
 namespace storages {}
 
-/// Redis client and helpers
+/// Valkey and Redis client and helpers
 namespace storages::redis {
 
 class SubscribeClientImpl;
@@ -40,9 +40,9 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Redis client component
+/// @brief Valkey and Redis client component
 ///
-/// Provides access to a redis cluster.
+/// Provides access to a valkey or redis cluster.
 ///
 /// ## Dynamic options:
 /// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
@@ -114,10 +114,9 @@ namespace components {
 ///
 /// @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
 ///
-/// ## Cluster Redis setup
+/// ## Cluster Valkey or Cluster Redis setup
 ///
-/// Redis cluster is the new recommended way of setting up Redis servers
-/// with improved stability.
+/// Valkey/Redis cluster is the new recommended way of setting up key-value datastores with improved stability.
 ///
 /// To start, set `sharding_strategy: RedisCluster` in the static config
 /// as shown above.

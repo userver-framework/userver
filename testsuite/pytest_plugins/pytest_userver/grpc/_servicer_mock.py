@@ -2,7 +2,9 @@ import contextlib
 import dataclasses
 import functools
 import inspect
+import typing
 from typing import Any
+from typing import AsyncIterator
 from typing import Callable
 from typing import Collection
 from typing import Dict
@@ -56,6 +58,10 @@ class _ServiceMock:
     @property
     def service_name(self) -> str:
         return self._service_name
+
+    @property
+    def known_methods(self) -> Collection[str]:
+        return self._known_methods
 
     def add_to_server(self, server: grpc.aio.Server) -> None:
         self._adder(self._servicer, server)
@@ -125,7 +131,11 @@ def _wrap_grpc_method(
                 await _raise_unimplemented_error(context, method_descriptor, state)
 
             async with _handle_exceptions(context, state):
-                async for response in await method(request_or_stream, context):
+                response_iterator = method(request_or_stream, context)
+                if inspect.isawaitable(response_iterator):
+                    response_iterator = await response_iterator
+                _check_response_is_asyncgen(response_iterator, method_descriptor)
+                async for response in response_iterator:
                     yield _check_is_valid_response(response, method_descriptor)
 
         return run_stream_response_method
@@ -133,11 +143,11 @@ def _wrap_grpc_method(
 
         @functools.wraps(default_unimplemented_method)
         async def run_unary_response_method(self, request_or_stream, context: grpc.aio.ServicerContext):
-            async with _handle_exceptions(context, state):
-                method = state.mocked_methods.get(python_method_name)
-                if method is None:
-                    await _raise_unimplemented_error(context, method_descriptor, state)
+            method = state.mocked_methods.get(python_method_name)
+            if method is None:
+                await _raise_unimplemented_error(context, method_descriptor, state)
 
+            async with _handle_exceptions(context, state):
                 response = method(request_or_stream, context)
                 if inspect.isawaitable(response):
                     response = await response
@@ -156,7 +166,7 @@ def _check_is_servicer_class(servicer_class: type) -> None:
 def _check_is_valid_response(
     response: object,
     method_descriptor: _MethodDescriptor,
-) -> Optional[google.protobuf.message.Message]:
+) -> google.protobuf.message.Message:
     if not isinstance(response, google.protobuf.message.Message):
         raise ValueError(
             f'In grpc_mockserver handler for {_get_full_method_name(method_descriptor)}: '
@@ -172,6 +182,19 @@ def _check_is_valid_response(
             f'got: "{descriptor.full_name}"'
         )
     return response
+
+
+def _check_response_is_asyncgen(
+    response_iterator: object,
+    method_descriptor: _MethodDescriptor,
+) -> AsyncIterator:
+    if not inspect.isasyncgen(response_iterator):
+        raise ValueError(
+            f'In grpc_mockserver handler for {_get_full_method_name(method_descriptor)}: '
+            'Expected an async generator response for server streaming, '
+            f'got: {response_iterator!r} ({type(response_iterator).__qualname__})'
+        )
+    return typing.cast(AsyncIterator, response_iterator)
 
 
 def _get_full_method_name(method_descriptor: _MethodDescriptor) -> str:

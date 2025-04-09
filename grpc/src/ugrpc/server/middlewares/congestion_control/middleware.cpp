@@ -38,23 +38,18 @@ void Middleware::SetLimit(std::optional<size_t> new_limit) {
     }
 }
 
-void Middleware::Handle(MiddlewareCallContext& context) const {
-    auto& call = context.GetCall();
-
-    if (!CheckRatelimit(rate_limit_, context.GetCall().GetCallName())) {
-        auto& server_context = context.GetCall().GetContext();
+void Middleware::OnCallStart(MiddlewareCallContext& context) const {
+    if (!CheckRatelimit(rate_limit_, context.GetCallName())) {
+        auto& server_context = context.GetServerContext();
 
         server_context.AddInitialMetadata(ugrpc::impl::kXYaTaxiRatelimitedBy, ugrpc::impl::kHostname);
         server_context.AddInitialMetadata(
             ugrpc::impl::kXYaTaxiRatelimitReason, ugrpc::impl::kCongestionControlRatelimitReason
         );
 
-        call.FinishWithError(grpc::Status{
+        return context.SetError(grpc::Status{
             grpc::StatusCode::RESOURCE_EXHAUSTED, "Congestion control: rate limit exceeded"});
-        return;
     }
-
-    context.Next();
 }
 
 }  // namespace ugrpc::server::middlewares::congestion_control

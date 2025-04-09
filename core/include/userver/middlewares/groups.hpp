@@ -10,7 +10,7 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Middlewares groups for a middlewares pipeline.
-/// @see @ref scripts/docs/en/userver/grpc_middlewares_order.md
+/// @see @ref scripts/docs/en/userver/grpc/middlewares_order.md
 namespace middlewares::groups {
 
 /// @ingroup userver_middlewares_groups

@@ -79,6 +79,9 @@ second parameter to the constructor of the component. That context could
 be used to get references to other components. That reference to the
 component is guaranteed to outlive the component that is being constructed.
 
+## Service lifetime stages and component hooks
+Please see docs on @ref components::ServiceLifetimeStage.
+
 ## Components construction and destruction order
 utils::DaemonMain, components::Run or components::RunOnce
 start all the components from the passed components::ComponentList.
@@ -110,9 +113,6 @@ some function *F*. In such cases:
 Examples:
 * components::HttpClient::GetHttpClient()
 * components::StatisticsStorage::GetStorage()
-
-
-
 
 ## Components static configuration
 components::ManagerControllerComponent configures the engine internals from

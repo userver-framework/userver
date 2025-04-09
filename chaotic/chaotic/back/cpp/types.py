@@ -551,7 +551,7 @@ class CppStructField:
     def _default(self) -> Optional[str]:
         return getattr(self.schema, 'default', None)
 
-    def get_default(self) -> str:
+    def _get_default(self) -> str:
         default = self._default()
         if default is None:
             return ''
@@ -566,6 +566,18 @@ class CppStructField:
                 return 'false'
         else:
             return default
+
+    def get_default(self) -> str:
+        default = self._get_default()
+        if not default:
+            return default
+
+        if self.schema.user_cpp_type:
+            if isinstance(default, str):
+                default = f'std::string_view({default})'
+            type_ = self.schema.user_cpp_type
+            return f'Convert({default}, USERVER_NAMESPACE::chaotic::convert::To<{type_}>{{}})'
+        return default
 
     def cpp_field_type(self) -> str:
         type_ = self.schema

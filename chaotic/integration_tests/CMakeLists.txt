@@ -11,6 +11,7 @@ target_link_libraries(${PROJECT_NAME}
     userver-universal-utest
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_google_tests(${PROJECT_NAME})
 
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen
@@ -29,4 +30,3 @@ userver_target_generate_chaotic(${PROJECT_NAME}-chgen
 )
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-chgen)
 
-add_google_tests(${PROJECT_NAME})

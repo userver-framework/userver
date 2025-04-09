@@ -111,6 +111,10 @@ properties:
                     lead to inaccuracy in coro pool size estimation.
                     local_cache_size=0 disables local cache.
                 defaultDescription: 8
+            stack_usage_monitor_enabled:
+                type: boolean
+                description: stack usage monitor status
+                defaultDescription: true
     event_thread_pool:
         type: object
         description: event thread pool options

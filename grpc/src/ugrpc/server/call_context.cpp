@@ -1,28 +1,29 @@
 #include <userver/ugrpc/server/call_context.hpp>
 
 #include <userver/ugrpc/server/call.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-CallContext::CallContext(CallAnyBase& call) : call_{call} {}
+CallContextBase::CallContextBase(utils::impl::InternalTag, CallAnyBase& call) : call_(call) {}
 
-grpc::ServerContext& CallContext::GetServerContext() { return GetCall().GetContext(); }
+const CallAnyBase& CallContextBase::GetCall() const { return call_; }
 
-std::string_view CallContext::GetCallName() const { return GetCall().GetCallName(); }
+CallAnyBase& CallContextBase::GetCall() { return call_; }
 
-std::string_view CallContext::GetServiceName() const { return GetCall().GetServiceName(); }
+grpc::ServerContext& CallContextBase::GetServerContext() { return GetCall().GetContext(); }
 
-std::string_view CallContext::GetMethodName() const { return GetCall().GetMethodName(); }
+std::string_view CallContextBase::GetCallName() const { return GetCall().GetCallName(); }
 
-tracing::Span& CallContext::GetSpan() { return GetCall().GetSpan(); }
+std::string_view CallContextBase::GetServiceName() const { return GetCall().GetServiceName(); }
 
-utils::AnyStorage<StorageContext>& CallContext::GetStorageContext() { return GetCall().GetStorageContext(); }
+std::string_view CallContextBase::GetMethodName() const { return GetCall().GetMethodName(); }
 
-const CallAnyBase& CallContext::GetCall() const { return call_; }
+tracing::Span& CallContextBase::GetSpan() { return GetCall().GetSpan(); }
 
-CallAnyBase& CallContext::GetCall() { return call_; }
+utils::AnyStorage<StorageContext>& CallContextBase::GetStorageContext() { return GetCall().GetStorageContext(); }
 
 void GenericCallContext::SetMetricsCallName(std::string_view call_name) { GetCall().SetMetricsCallName(call_name); }
 

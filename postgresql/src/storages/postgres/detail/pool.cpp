@@ -1,7 +1,6 @@
 #include <storages/postgres/detail/pool.hpp>
 
 #include <storages/postgres/deadline.hpp>
-#include <storages/postgres/detail/cc_config.hpp>
 #include <storages/postgres/detail/statement_stats_storage.hpp>
 
 #include <userver/dynamic_config/value.hpp>
@@ -15,6 +14,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
+
+#include <dynamic_config/variables/POSTGRES_CONGESTION_CONTROL_SETTINGS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -112,7 +113,10 @@ ConnectionPool::ConnectionPool(
           stats_.congestion_control,
           cc_config,
           config_source,
-          [](const dynamic_config::Snapshot& config) { return config[kCcConfig]; }
+          [](const dynamic_config::Snapshot& config) {
+              const auto& cfg = config[::dynamic_config::POSTGRES_CONGESTION_CONTROL_SETTINGS];
+              return congestion_control::v2::ConvertConfig(cfg);
+          }
       ) {
     if (USERVER_NAMESPACE::utils::impl::kPgCcExperiment.IsEnabled()) {
         cc_controller_.Start();

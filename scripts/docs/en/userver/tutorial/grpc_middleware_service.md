@@ -46,7 +46,7 @@ components_manager:
 
 And register it in the pipeline:
 
-@snippet samples/grpc_middleware_service/static_config.yaml static config grpc-server-middlewares-pipeline
+@snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-server-middlewares-pipeline
 
 ### The client middleware
 
@@ -64,7 +64,7 @@ For more info about `kDependency` see @ref scripts/docs/en/userver/grpc/middlewa
 
 Lastly, add this component to the static config:
 
-@snippet samples/grpc_middleware_service/static_config.yaml static config grpc-auth-client
+@snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-auth-client
 
 To add static config options for the middleware see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 
@@ -112,22 +112,19 @@ pytest_userver.plugins.grpc pytest plugin:
 
 #### gRPC server mock
 
-To mock the gRPC server provide a hook for the static config to change
-the endpoint:
-
-@snippet samples/grpc_middleware_service/tests/conftest.py  Prepare configs
-
-Alternatively, use `$grpc_mockserver`
+You can use `$grpc_mockserver`
 @ref pytest_userver.plugins.config.userver_config_substitutions "substitution var"
 in `config_vars.testsuite.yaml`:
 
-@code{.yaml}
-greeter-client-endpoint: $grpc_mockserver
-@endcode
+@include samples/grpc_middleware_service/configs/config_vars.testsuite.yaml
+
+And in static_config.yaml:
+
+@snippet samples/grpc_middleware_service/configs/static_config.yaml gRPC middleware sample - static config greeter-client
 
 Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver":
 
-@snippet samples/grpc_middleware_service/tests/conftest.py  Prepare server mock
+@snippet samples/grpc_middleware_service/tests/test_middlewares.py  gRPC mockserver
 
 
 #### gRPC client
@@ -157,7 +154,9 @@ See the full example at:
 
 * @ref samples/grpc_middleware_service/main.cpp
 * @ref samples/grpc_middleware_service/proto/samples/greeter.proto
-* @ref samples/grpc_middleware_service/static_config.yaml
+* @ref samples/grpc_middleware_service/configs/static_config.yaml
+* @ref samples/grpc_middleware_service/configs/config_vars.yaml
+* @ref samples/grpc_middleware_service/configs/config_vars.testsuite.yaml
 * @ref samples/grpc_middleware_service/tests/conftest.py
 * @ref samples/grpc_middleware_service/tests/test_middlewares.py
 * @ref samples/grpc_middleware_service/CMakeLists.txt
@@ -176,7 +175,9 @@ See the full example at:
 @example samples/grpc_middleware_service/src/middlewares/auth.cpp
 @example samples/grpc_middleware_service/main.cpp
 @example samples/grpc_middleware_service/proto/samples/greeter.proto
-@example samples/grpc_middleware_service/static_config.yaml
+@example samples/grpc_middleware_service/configs/static_config.yaml
+@example samples/grpc_middleware_service/configs/config_vars.yaml
+@example samples/grpc_middleware_service/configs/config_vars.testsuite.yaml
 @example samples/grpc_middleware_service/tests/conftest.py
 @example samples/grpc_middleware_service/tests/test_middlewares.py
 @example samples/grpc_middleware_service/CMakeLists.txt

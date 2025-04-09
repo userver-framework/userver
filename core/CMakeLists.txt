@@ -231,6 +231,24 @@ userver_target_generate_chaotic_dynamic_configs(
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-dynamic-configs)
 
+# TODO: move to generator(?)
+userver_target_generate_chaotic(${PROJECT_NAME}-static-config-dns-client
+    ARGS
+        -n "/=userver::static_config::DnsClient"
+	-I ${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/include
+    OUTPUT_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/static_configs
+    OUTPUT_PREFIX
+        userver/static_config
+    SCHEMAS
+        ${CMAKE_CURRENT_SOURCE_DIR}/static_configs/dns_client.yaml
+    RELATIVE_TO
+        ${CMAKE_CURRENT_SOURCE_DIR}/static_configs
+    INSTALL_INCLUDES_COMPONENT
+        core
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-static-config-dns-client)
+
 # Must go below all the target options and definitions.
 _check_compile_flags(${PROJECT_NAME})
 
@@ -299,7 +317,11 @@ if (USERVER_BUILD_TESTS)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-_userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-dynamic-configs)
+_userver_install_targets(COMPONENT core TARGETS
+    ${PROJECT_NAME}
+    ${PROJECT_NAME}-dynamic-configs
+    ${PROJECT_NAME}-static-config-dns-client
+)
 _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"

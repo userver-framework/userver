@@ -5,10 +5,32 @@
 #include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::testsuite {
+
+namespace {
+
+constexpr std::string_view kClientSuffix = "-client";
+
+std::string_view RemoveClientSuffix(std::string_view client_name) {
+    if (utils::text::EndsWith(client_name, kClientSuffix)) {
+        client_name.remove_suffix(kClientSuffix.size());
+    }
+    return client_name;
+}
+
+}  // namespace
+
+Middleware::Middleware(std::string_view client_name) : client_name_(RemoveClientSuffix(client_name)) {}
+
+void Middleware::PreStartCall(MiddlewareCallContext& context) const {
+    // This metadata allows testsuite mock handlers to distinguish between clients to different deploy units
+    // for a single proto service.
+    context.GetContext().AddMetadata(ugrpc::impl::kXTestsuiteClientName, ugrpc::impl::ToGrpcString(client_name_));
+}
 
 void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status&) const {
     const auto& metadata = context.GetContext().GetServerTrailingMetadata();

@@ -84,22 +84,10 @@ SSL has to be disabled in tests, because it
 requires the server to have a public domain name, which it does not in tests.
 In testsuite, SSL in gRPC clients is disabled automatically.
 
-TLS for gRPC server may be enabled via:
-
-```
-# yaml
-components_manager:
-    components:
-        grpc-server:
-            tls:
-                key: /path/to/private.key
-                cert: /path/to/cert.crt
-                # remove if you don't force client cert verification
-                ca: /path/to/ca.crt
-```
-
 
 ### Client middlewares
+
+Main page: @ref scripts/docs/en/userver/grpc/client_middlewares.md.
 
 Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code. 
 Middlewares to use are indicated in static config in the defining component. For example:
@@ -150,6 +138,27 @@ Read the documentation on gRPC streams:
 
 On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch them, leading to RPC interruption. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+### TLS / SSL
+
+TLS for gRPC server may be enabled via:
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-server:
+            tls:
+                key: /path/to/private.key
+                cert: /path/to/cert.crt
+                # remove if you don't force client cert verification
+                ca: /path/to/ca.crt
+```
+
+SSL has to be disabled in tests, because it
+requires the server to have a public domain name, which it does not in tests.
+In testsuite, SSL in gRPC server can be disabled manually using @ref SERVICE_CONFIG_HOOKS "config hooks".
+
+
 ### Custom server credentials
 
 By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom credentials:
@@ -167,7 +176,7 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
 
 ### Server middlewares
 
-@ref scripts/docs/en/userver/grpc/server_middlewares.md.
+Main page: @ref scripts/docs/en/userver/grpc/server_middlewares.md.
 
 Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
 new middlewares.

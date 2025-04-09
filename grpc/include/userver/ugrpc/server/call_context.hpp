@@ -9,6 +9,7 @@
 #include <userver/utils/any_storage.hpp>
 
 #include <userver/ugrpc/server/storage_context.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,12 +17,15 @@ namespace ugrpc::server {
 
 class CallAnyBase;
 
-/// @brief gRPC call context
-class CallContext {
+class CallContextBase {
 public:
     /// @cond
-    explicit CallContext(CallAnyBase& call);
+    /// For internal use only
+    CallContextBase(utils::impl::InternalTag, CallAnyBase& call);
     /// @endcond
+
+    CallContextBase(CallContextBase&&) = delete;
+    CallContextBase& operator=(CallContextBase&&) = delete;
 
     /// @returns the `ServerContext` used for this RPC
     grpc::ServerContext& GetServerContext();
@@ -67,17 +71,29 @@ protected:
     const CallAnyBase& GetCall() const;
 
     CallAnyBase& GetCall();
+
+    // Prevent destruction via pointer to base.
+    ~CallContextBase() = default;
+
     /// @endcond
 
 private:
     CallAnyBase& call_;
 };
 
-/// @brief generic gRPC call context
-class GenericCallContext : public CallContext {
+/// @brief gRPC call context
+class CallContext final : public CallContextBase {
 public:
     /// @cond
-    using CallContext::CallContext;
+    using CallContextBase::CallContextBase;
+    /// @endcond
+};
+
+/// @brief generic gRPC call context
+class GenericCallContext final : public CallContextBase {
+public:
+    /// @cond
+    using CallContextBase::CallContextBase;
     /// @endcond
 
     /// @brief Set a custom call name for metric labels

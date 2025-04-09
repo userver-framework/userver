@@ -7,6 +7,8 @@ CPMAddPackage(
   NAME base64
   VERSION 0.5.2
   GITHUB_REPOSITORY aklomp/base64
+  OPTIONS
+  "CMAKE_SKIP_INSTALL_RULES ON"
 )
 write_package_stub(base64)
 add_library(aklomp::base64 ALIAS base64)
@@ -17,6 +19,7 @@ CPMAddPackage(
   GITHUB_REPOSITORY Thalhammer/jwt-cpp
   OPTIONS
   "JWT_BUILD_EXAMPLES OFF"
+  "CMAKE_SKIP_INSTALL_RULES ON"
 )
 write_package_stub(jwt-cpp)
 
@@ -39,6 +42,7 @@ CPMAddPackage(
   "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"
   "YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET}"
   "YDB_SDK_EXAMPLES OFF"
+  "CMAKE_SKIP_INSTALL_RULES ON"
 )
 
 list(APPEND ydb-cpp-sdk_INCLUDE_DIRS

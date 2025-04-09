@@ -89,21 +89,21 @@ public:
     ugrpc::impl::RpcStatisticsScope& GetStatistics(ugrpc::impl::InternalTag);
 
     // For internal use only
-    void RunMiddlewarePipeline(utils::impl::InternalTag, MiddlewareCallContext& md_call_context);
+    void SetMiddlewareCallContext(utils::impl::InternalTag, MiddlewareCallContext& md_call_context) {
+        middleware_call_context_ = &md_call_context;
+    }
     /// @endcond
 
 protected:
     ugrpc::impl::RpcStatisticsScope& GetStatistics() { return params_.statistics; }
 
-    logging::TextLoggerRef AccessTskvLogger() { return params_.access_tskv_logger; }
-
-    void WriteAccessLog(grpc::Status status) const;
-
     void ApplyRequestHook(google::protobuf::Message* request);
 
     void ApplyResponseHook(google::protobuf::Message* response);
 
-    void PostFinish(grpc::Status status);
+    void PreSendStatus(const grpc::Status& status) noexcept;
+
+    void PostFinish(const grpc::Status& status) noexcept;
 
 private:
     impl::CallParams params_;

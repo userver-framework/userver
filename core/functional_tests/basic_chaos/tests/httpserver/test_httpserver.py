@@ -81,8 +81,8 @@ def _call(modified_service_client, gate):
 @pytest.fixture(name='check_restore')
 def _check_restore(gate, call):
     async def _check_restore():
-        gate.to_server_pass()
-        gate.to_client_pass()
+        await gate.to_server_pass()
+        await gate.to_client_pass()
         gate.start_accepting()
 
         response = await call(testsuite_skip_prepare=True)
@@ -237,7 +237,7 @@ async def test_close_on_data(call, gate, check_restore):
     response = await call(testsuite_skip_prepare=True)
     assert response.status == 200
 
-    gate.to_server_close_on_data()
+    await gate.to_server_close_on_data()
 
     assert gate.connections_count() >= 1
     for _ in range(gate.connections_count()):
@@ -249,13 +249,13 @@ async def test_close_on_data(call, gate, check_restore):
 
 @pytest.mark.skip(reason='corrupted data can still be valid')
 async def test_corrupted_request(call, gate, check_restore):
-    gate.to_server_corrupt_data()
+    await gate.to_server_corrupt_data()
 
     response = await call(testsuite_skip_prepare=True)
     assert isinstance(response, http.ClientResponse)
     assert response.status == 400
 
-    gate.to_server_pass()
+    await gate.to_server_pass()
 
     # Connection could be cached in testsuite client. Give it a few attempts
     # to restore
@@ -271,7 +271,7 @@ async def test_partial_request(call, gate, check_restore):
     success: bool = False
     fail: int = 0
     for bytes_count in range(1, 1000):
-        gate.to_server_limit_bytes(bytes_count)
+        await gate.to_server_limit_bytes(bytes_count)
         response = await call(
             data={'test': 'body'},
             testsuite_skip_prepare=True,
@@ -293,7 +293,7 @@ async def test_partial_request(call, gate, check_restore):
 
 
 async def test_network_smaller_parts_sends(call, gate):
-    gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
+    await gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     # With debug enabled in python send works a little bit longer
     response = await call(
@@ -341,7 +341,7 @@ async def test_deadline_immediately_expired(
     await service_client.update_server_state()
 
     async with handler_metrics:
-        gate.to_server_smaller_parts(
+        await gate.to_server_smaller_parts(
             DATA_PARTS_MAX_SIZE,
             sleep_per_packet=0.03,
         )
@@ -351,7 +351,7 @@ async def test_deadline_immediately_expired(
         )
         _check_deadline_propagation_response(response)
         assert test.times_called == 0, 'Control flow should NOT enter the handler body'
-        gate.to_server_pass()
+        await gate.to_server_pass()
 
     assert handler_metrics.value_at('rps') == 1
     assert (

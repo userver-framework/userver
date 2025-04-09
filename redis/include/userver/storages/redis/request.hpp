@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief Redis futures for storages::redis::Client and storages::redis::Transaction.
+/// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Transaction.
 
 #include <memory>
 #include <optional>
@@ -24,7 +24,7 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
-/// @brief Redis future for a non-scan and non-eval responses.
+/// @brief Valkey or Redis future for a non-scan and non-eval responses.
 ///
 /// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send request to the
 /// Redis return this type or storages::redis::ScanRequest.
@@ -157,7 +157,7 @@ private:
     std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
 };
 
-/// @name Redis futures aliases
+/// @name Valkey/Redis futures aliases
 /// @{
 using RequestAppend = Request<size_t>;
 using RequestBitop = Request<size_t>;
