@@ -24,11 +24,11 @@ SQLiteException::SQLiteException(const std::string& error_message) : SQLiteExcep
 
 SQLiteException::~SQLiteException() = default;
 
-int SQLiteException::getErrorCode() const noexcept { return error_code_; };
+int SQLiteException::getErrorCode() const noexcept { return error_code_; }
 
-int SQLiteException::getExtendedErrorCode() const noexcept { return extended_error_code_; };
+int SQLiteException::getExtendedErrorCode() const noexcept { return extended_error_code_; }
 
-const char* SQLiteException::getErrorStr() const noexcept { return sqlite3_errstr(error_code_); };
+const char* SQLiteException::getErrorStr() const noexcept { return sqlite3_errstr(error_code_); }
 
 }  // namespace storages::sqlite
 
