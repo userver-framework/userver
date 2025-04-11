@@ -36,8 +36,6 @@ public:
                     },
                     row
                 );
-            } else {
-                static_assert(false, "Unsupported type for RowTag extraction.");
             }
         } else {
             static_assert(std::is_same_v<ExtractionTag, FieldTag>);
