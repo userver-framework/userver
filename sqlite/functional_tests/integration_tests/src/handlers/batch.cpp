@@ -110,6 +110,6 @@ private:
 
 }  // namespace
 
-void AppendBatch(userver::components::ComponentList& component_list) { component_list.Append<BatchSelectInsert>(); }
+void AppendBatch(components::ComponentList& component_list) { component_list.Append<BatchSelectInsert>(); }
 
 }  // namespace functional_tests

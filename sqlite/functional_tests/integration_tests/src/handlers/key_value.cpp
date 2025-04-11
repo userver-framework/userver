@@ -89,7 +89,7 @@ private:
     std::string UpdateValue(std::string_view key, const server::http::HttpRequest& request) const {
         const auto& value = request.GetArg("value");
 
-        using userver::storages::sqlite::settings::TransactionOptions;
+        using storages::sqlite::settings::TransactionOptions;
 
         storages::sqlite::Transaction transaction = sqlite_client_->Begin(
             storages::sqlite::OperationType::kReadWrite, TransactionOptions{TransactionOptions::LockingMode::kImmediate}
@@ -130,6 +130,6 @@ private:
 
 }  // namespace
 
-void AppendKeyValue(userver::components::ComponentList& component_list) { component_list.Append<KeyValue>(); }
+void AppendKeyValue(components::ComponentList& component_list) { component_list.Append<KeyValue>(); }
 
 }  // namespace functional_tests
