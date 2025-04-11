@@ -34,30 +34,28 @@ namespace ugrpc::client {
 
 // clang-format on
 class CommonComponent final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ugrpc::client::CommonComponent
-  static constexpr std::string_view kName = "grpc-client-common";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::client::CommonComponent
+    static constexpr std::string_view kName = "grpc-client-common";
 
-  CommonComponent(const components::ComponentConfig& config,
-                  const components::ComponentContext& context);
-  ~CommonComponent() override;
+    CommonComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+    ~CommonComponent() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  friend class ClientFactoryComponent;
+private:
+    friend class ClientFactoryComponent;
 
-  engine::TaskProcessor& blocking_task_processor_;
-  std::optional<impl::CompletionQueuePool> client_completion_queues_;
-  ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
-  ugrpc::impl::StatisticsStorage client_statistics_storage_;
+    engine::TaskProcessor& blocking_task_processor_;
+    std::optional<impl::CompletionQueuePool> client_completion_queues_;
+    ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
+    ugrpc::impl::StatisticsStorage client_statistics_storage_;
 };
 
 }  // namespace ugrpc::client
 
 template <>
-inline constexpr bool components::kHasValidate<ugrpc::client::CommonComponent> =
-    true;
+inline constexpr bool components::kHasValidate<ugrpc::client::CommonComponent> = true;
 
 USERVER_NAMESPACE_END

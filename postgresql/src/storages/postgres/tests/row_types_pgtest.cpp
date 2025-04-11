@@ -10,20 +10,16 @@ namespace {
 namespace pg = storages::postgres;
 
 struct SimpleStructure {
-  std::vector<unsigned char> bytes;
+    std::vector<unsigned char> bytes;
 };
 
 // Implementation of ByteaWrapper is the same as SimpeStructure but
 // it is marked as wrapper so result of kIsRowType is different
 using TestByteaWrapper = pg::ByteaWrapper<std::vector<unsigned char>>;
 
-UTEST(RowTypes, SimpeStructure) {
-  EXPECT_TRUE(pg::io::traits::kIsRowType<SimpleStructure>);
-}
+UTEST(RowTypes, SimpeStructure) { EXPECT_TRUE(pg::io::traits::kIsRowType<SimpleStructure>); }
 
-UTEST(RowTypes, TestByteaWrapper) {
-  EXPECT_FALSE(pg::io::traits::kIsRowType<TestByteaWrapper>);
-}
+UTEST(RowTypes, TestByteaWrapper) { EXPECT_FALSE(pg::io::traits::kIsRowType<TestByteaWrapper>); }
 
 }  // namespace
 

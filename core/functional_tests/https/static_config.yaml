@@ -11,6 +11,11 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+
         handler-on-log-rotate:
             path: /service/on-log-rotate/
             method: POST
@@ -58,14 +63,6 @@ components_manager:
 
         dns-client:
             fs-task-processor: fs-task-processor
-
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: main-task-processor
-
-        secdist:
-            provider: default-secdist-provider
 
         default-secdist-provider:
             config: secdist.json

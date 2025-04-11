@@ -8,14 +8,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 
-void HttpAllowedUrlsExtra::RegisterHttpClient(
-    clients::http::Client& http_client) {
-  http_client_ = &http_client;
-}
+void HttpAllowedUrlsExtra::RegisterHttpClient(clients::http::Client& http_client) { http_client_ = &http_client; }
 
-void HttpAllowedUrlsExtra::SetAllowedUrlsExtra(
-    std::vector<std::string>&& urls) {
-  if (http_client_) http_client_->SetAllowedUrlsExtra(std::move(urls));
+void HttpAllowedUrlsExtra::SetAllowedUrlsExtra(std::vector<std::string>&& urls) {
+    if (http_client_) http_client_->SetAllowedUrlsExtra(std::move(urls));
 }
 
 }  // namespace testsuite

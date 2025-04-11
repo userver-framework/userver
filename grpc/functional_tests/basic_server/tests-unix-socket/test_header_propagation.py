@@ -17,14 +17,8 @@ async def test_propagation_headers_mixed_from_grpc(grpc_client, mockserver):
 
     @mockserver.json_handler('/test-service/echo-no-body')
     async def nobody_handler(request):
-        assert (
-            request.headers[HEADERS_TO_PROPAGATE[0]]
-            == headers[HEADERS_TO_PROPAGATE[0]]
-        )
-        assert (
-            request.headers[HEADERS_TO_PROPAGATE[1]]
-            == headers[HEADERS_TO_PROPAGATE[1]]
-        )
+        assert request.headers[HEADERS_TO_PROPAGATE[0]] == headers[HEADERS_TO_PROPAGATE[0]]
+        assert request.headers[HEADERS_TO_PROPAGATE[1]] == headers[HEADERS_TO_PROPAGATE[1]]
         assert HEADERS_NOT_TO_PROPAGATE[0] not in request.headers
         assert HEADERS_NOT_TO_PROPAGATE[1] not in request.headers
         return mockserver.make_response()

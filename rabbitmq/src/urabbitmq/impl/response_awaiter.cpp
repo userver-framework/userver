@@ -15,8 +15,7 @@ ResponseAwaiter::ResponseAwaiter(engine::SemaphoreLock&& lock)
 
 #ifndef NDEBUG
 ResponseAwaiter::~ResponseAwaiter() {
-  UASSERT_MSG(awaited_,
-              "ResponseAwaiter dropped without waiting, shouldn't happen");
+    UASSERT_MSG(awaited_, "ResponseAwaiter dropped without waiting, shouldn't happen");
 }
 #else
 ResponseAwaiter::~ResponseAwaiter() = default;
@@ -24,20 +23,16 @@ ResponseAwaiter::~ResponseAwaiter() = default;
 
 ResponseAwaiter::ResponseAwaiter(ResponseAwaiter&& other) noexcept = default;
 
-void ResponseAwaiter::SetSpan(tracing::Span&& span) {
-  span_.emplace(std::move(span));
-}
+void ResponseAwaiter::SetSpan(tracing::Span&& span) { span_.emplace(std::move(span)); }
 
 void ResponseAwaiter::Wait(engine::Deadline deadline) const {
 #ifndef NDEBUG
-  awaited_ = true;
+    awaited_ = true;
 #endif
-  GetWrapper()->Wait(deadline);
+    GetWrapper()->Wait(deadline);
 }
 
-const std::shared_ptr<DeferredWrapper>& ResponseAwaiter::GetWrapper() const {
-  return wrapper_;
-}
+const std::shared_ptr<DeferredWrapper>& ResponseAwaiter::GetWrapper() const { return wrapper_; }
 
 }  // namespace urabbitmq::impl
 

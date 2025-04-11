@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Forward declarations of storages::redis::Client and storages::redis::SubscribeClient
+
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN

@@ -12,13 +12,13 @@ namespace storages::clickhouse::io::columns {
 
 /// @brief Represents Clickhouse Float64 column
 class Float64Column final : public ClickhouseColumn<Float64Column> {
- public:
-  using cpp_type = double;
-  using container_type = std::vector<cpp_type>;
+public:
+    using cpp_type = double;
+    using container_type = std::vector<cpp_type>;
 
-  Float64Column(ColumnRef column);
+    Float64Column(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 }  // namespace storages::clickhouse::io::columns

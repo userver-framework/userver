@@ -10,6 +10,8 @@ from typing import Tuple
 import jinja2
 import yaml
 
+from chaotic import cpp_format
+from chaotic import cpp_names
 from chaotic.back.cpp import renderer
 from chaotic.back.cpp import translator
 from chaotic.back.cpp import types
@@ -19,6 +21,7 @@ from chaotic.main import NameMapItem
 from chaotic.main import read_schemas
 
 INCLUDE_DIR = str(pathlib.Path(__file__).parent.parent.parent / 'include')
+TEMPLATE_DIR = str(pathlib.Path(__file__).parent / 'dynamic_config' / 'templates')
 
 CLANG_FORMAT_BIN = None
 
@@ -45,7 +48,7 @@ def get_clang_format_bin():
 
 
 def taxi_alias(type_name: str) -> str:
-    return types.camel_case(type_name.split('::')[-1], True)
+    return cpp_names.camel_case(type_name.split('::')[-1], True)
 
 
 # TODO: move to compilers.common?
@@ -62,8 +65,15 @@ def write_file(filepath: str, content: str) -> None:
         ofile.write(content)
 
 
+RE_SPECIALS = '(|[]\\{*+?$^.'
+
+
+def escape_re_pattern(pattern: str) -> str:
+    return ''.join([('\\' if c in RE_SPECIALS else '') + c for c in pattern])
+
+
 def enrich_jinja_env(env: jinja2.Environment) -> None:
-    env.globals['camel_case'] = types.camel_case
+    env.globals['camel_case'] = cpp_names.camel_case
     env.globals['taxi_alias'] = taxi_alias
 
 
@@ -71,7 +81,8 @@ class CompilerBase:
     def __init__(self) -> None:
         self._variables_types: Dict[str, Dict[str, types.CppType]] = {}
         self._definitions: Dict[
-            str, Tuple[ResolvedSchemas, Dict[str, types.CppType]],
+            str,
+            Tuple[ResolvedSchemas, Dict[str, types.CppType]],
         ] = {}
         self._defaults: Dict[str, Any] = {}
 
@@ -108,13 +119,16 @@ class CompilerBase:
 
         name_lower = self.format_ns_name(name)
         types = self._variables_types[name]
-        return types[f'taxi_config::{name_lower}::VariableTypeRaw']
+        return types[f'::taxi_config::{name_lower}::VariableTypeRaw']
 
     def format_ns_name(self, name: str) -> str:
         return name.lower().replace('/', '_').replace('-', '_').split('.')[0]
 
     def parse_definition(
-        self, filepath: str, name: str, include_dirs: List[str] = [],
+        self,
+        filepath: str,
+        name: str,
+        include_dirs: List[str] = [],
     ) -> None:
         name_lower = self.format_ns_name(name)
         name_map = [NameMapItem('/([^/]+)/={0}')]
@@ -146,7 +160,11 @@ class CompilerBase:
         return sorted(set(includes))
 
     def parse_variable(
-        self, filepath: str, name: str, include_dirs: List[str] = [],
+        self,
+        filepath: str,
+        name: str,
+        namespace: str,
+        include_dirs: List[str] = [],
     ) -> None:
         name_lower = self.format_ns_name(name)
         name_map = [
@@ -161,7 +179,7 @@ class CompilerBase:
 
         schemas, types = self._generate_types(
             filepath,
-            namespace=f'taxi_config::{name_lower}',
+            namespace=f'{namespace}::{name_lower}',
             erase_prefix='/schema',
             name_map=name_map,
             fname=fname,
@@ -196,11 +214,12 @@ class CompilerBase:
             erase_path_prefix=erase_prefix,
             filepaths=[filepath],
             name_map=name_map,
-            file_map=[NameMapItem(filepath + '=' + fname)],
+            file_map=[NameMapItem(escape_re_pattern(filepath) + '=' + fname)],
             dependencies=self._collect_schemas(),
         )
         cpp_name_func = generate_cpp_name_func(
-            name_map=name_map, erase_prefix=erase_prefix,
+            name_map=name_map,
+            erase_prefix=erase_prefix,
         )
         gen = translator.Generator(
             config=translator.GeneratorConfig(
@@ -212,7 +231,8 @@ class CompilerBase:
             ),
         )
         types = gen.generate_types(
-            schemas, external_schemas=self._collect_types(),
+            schemas,
+            external_schemas=self._collect_types(),
         )
         return schemas, types
 
@@ -234,7 +254,9 @@ class CompilerBase:
     def variables_external_includes_hpp(self, name: str) -> List[str]:
         types = self._variables_types[name]
         return self.renderer_for_variable(
-            name, False,
+            name,
+            False,
+            namespace='taxi_config',
         ).extract_external_includes(types, '')
 
     def _read_default(self, filepath: str) -> Any:
@@ -246,22 +268,23 @@ class CompilerBase:
         raise NotImplementedError()
 
     def create_aliases(
-        self, types: Dict[str, types.CppType],
+        self,
+        types: Dict[str, types.CppType],
     ) -> List[Tuple[str, str]]:
         return []
 
     def renderer_for_variable(
-        self, name: str, parse_extra_formats: bool,
+        self,
+        name: str,
+        parse_extra_formats: bool,
+        namespace: str,
     ) -> renderer.OneToOneFileRenderer:
         return renderer.OneToOneFileRenderer(
             relative_to='/',
             vfilepath_to_relfilepath={
-                name: f'taxi_config/variables/{name}.types.hpp',
+                name: f'{namespace}/variables/{name}.types.hpp',
                 **{
-                    name: (
-                        'taxi_config/definitions/'
-                        f'{name.split(".")[0].replace("/", "_")}.hpp'
-                    )
+                    name: (f'{namespace}/definitions/{name.split(".")[0].replace("/", "_")}.hpp')
                     for name in self._definitions
                 },
             },
@@ -273,22 +296,27 @@ class CompilerBase:
     def variable_type(self, name: str) -> str:
         types = self._variables_types[name]
         name_lower = self.format_ns_name(name)
-        var_type = types[f'taxi_config::{name_lower}::VariableTypeRaw']
+        var_type = types[f'::taxi_config::{name_lower}::VariableTypeRaw']
         return var_type.cpp_user_name()
 
     # TODO: move jinja files to arcadia_compiler
     def generate_variable(
-        self, name: str, output_dir: str, parse_extra_formats: bool,
+        self,
+        name: str,
+        output_dir: str,
+        parse_extra_formats: bool,
+        namespace: str = 'taxi_config',
+        generate_taxi_aliases: bool = True,
     ) -> None:
         types = self._variables_types[name]
-        outputs = self.renderer_for_variable(name, parse_extra_formats).render(
+        outputs = self.renderer_for_variable(name, parse_extra_formats, namespace).render(
             types,
             local_pair_header=False,
             # pair_header=f'taxi_config/variables/{name}.types.hpp',
         )
 
         name_lower = self.format_ns_name(name)
-        var_type = types[f'taxi_config::{name_lower}::VariableTypeRaw']
+        var_type = types[f'::{namespace}::{name_lower}::VariableTypeRaw']
 
         # types_fwd.hpp, types.{hpp,cpp}
         assert len(outputs) == 1
@@ -296,17 +324,15 @@ class CompilerBase:
             write_file(
                 os.path.join(
                     output_dir,
-                    file.subdir
-                    + f'taxi_config/variables/{name}.types'
-                    + file.ext,
+                    file.subdir + f'{namespace}/variables/{name}.types' + file.ext,
                 ),
                 file.content,
             )
 
         # variable.{hpp,cpp}
         env = {
-            'types_hpp': f'taxi_config/variables/{name}.types.hpp',
-            'variable_hpp': f'taxi_config/variables/{name}.hpp',
+            'types_hpp': f'{namespace}/variables/{name}.types.hpp',
+            'variable_hpp': f'{namespace}/variables/{name}.hpp',
             'name_lower': name_lower,
             'name': name,
             'type': var_type.parser_type('', ''),
@@ -315,25 +341,36 @@ class CompilerBase:
             'cpp_type': var_type,
             'cpp_user_type': var_type.cpp_user_name(),
             'default_value': json.dumps(self._defaults[name]),
-            'generate_taxi_aliases': True,
+            'namespace': namespace,
+            'generate_taxi_aliases': generate_taxi_aliases,
         }
 
         tpl = self._jinja().get_template('variable.hpp.jinja')
         write_file(
             os.path.join(
-                output_dir, f'include/taxi_config/variables/{name}.hpp',
+                output_dir,
+                f'include/{namespace}/variables/{name}.hpp',
             ),
-            renderer.format_pp(tpl.render(env), binary=get_clang_format_bin()),
+            cpp_format.format_pp(
+                tpl.render(env),
+                binary=get_clang_format_bin(),
+            ),
         )
 
         tpl = self._jinja().get_template('variable.cpp.jinja')
         write_file(
-            os.path.join(output_dir, f'src/taxi_config/variables/{name}.cpp'),
-            renderer.format_pp(tpl.render(env), binary=get_clang_format_bin()),
+            os.path.join(output_dir, f'src/{namespace}/variables/{name}.cpp'),
+            cpp_format.format_pp(
+                tpl.render(env),
+                binary=get_clang_format_bin(),
+            ),
         )
 
     def generate_definition(
-        self, name: str, output_dir: str, parse_extra_formats: bool,
+        self,
+        name: str,
+        output_dir: str,
+        parse_extra_formats: bool,
     ) -> None:
         _schemas, types = self._definitions[name]
         outputs = renderer.OneToOneFileRenderer(
@@ -358,3 +395,41 @@ class CompilerBase:
                 ),
                 file.content,
             )
+
+
+def make_oss_env():
+    loader = jinja2.FileSystemLoader(TEMPLATE_DIR)
+    env = jinja2.Environment(loader=loader)
+    enrich_jinja_env(env)
+    return env
+
+
+def make_arcadia_env():
+    import library.python.resource as arc_resource
+
+    def arc_resource_loader(name: str) -> jinja2.BaseLoader:
+        # TODO: move to uservices
+        return arc_resource.resfs_read(
+            f'taxi/uservices/userver/chaotic/chaotic/compilers/dynamic_config/templates/{name}',
+        ).decode('utf-8')
+
+    loader = jinja2.FunctionLoader(arc_resource_loader)
+
+    env = jinja2.Environment(loader=loader)
+    enrich_jinja_env(env)
+    return env
+
+
+def make_env():
+    try:
+        return make_arcadia_env()
+    except ImportError:
+        return make_oss_env()
+
+
+JINJA_ENV = make_env()
+
+
+class Compiler(CompilerBase):
+    def _jinja(self) -> jinja2.Environment:
+        return JINJA_ENV

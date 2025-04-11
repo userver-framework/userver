@@ -10,3 +10,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
 
 add_subdirectory(pubsub)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-pubsub)
+
+add_subdirectory(integration_tests)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-integration)

@@ -7,7 +7,8 @@ TOPIC = 'test-topic'
 
 
 async def start_consumers(
-    service_client, consumers: List[str] = CONSUMERS,
+    service_client,
+    consumers: List[str] = CONSUMERS,
 ) -> None:
     for consumer in consumers:
         response = await service_client.put(f'{CONSUME_BASE_ROUTE}/{consumer}')
@@ -15,7 +16,8 @@ async def start_consumers(
 
 
 async def stop_consumers(
-    service_client, consumers: List[str] = CONSUMERS,
+    service_client,
+    consumers: List[str] = CONSUMERS,
 ) -> None:
     for consumer in consumers:
         response = await service_client.delete(
@@ -25,7 +27,8 @@ async def stop_consumers(
 
 
 async def get_consumed_messages(
-    service_client, consumer: str,
+    service_client,
+    consumer: str,
 ) -> List[Dict[str, str]]:
     response = await service_client.post(f'{CONSUME_BASE_ROUTE}/{consumer}')
     assert response.status_code == 200

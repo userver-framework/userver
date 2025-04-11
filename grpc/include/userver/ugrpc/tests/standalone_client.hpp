@@ -7,12 +7,13 @@
 
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/io/sockaddr.hpp>
+#include <userver/testsuite/grpc_control.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
-#include <userver/testsuite/grpc_control.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/tests/simple_client_middleware_pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,33 +25,34 @@ namespace ugrpc::tests {
 /// @note Prefer ugrpc::tests::ServiceBase and friends by default to create
 /// a userver gRPC service + client pair.
 class StandaloneClientFactory final {
- public:
-  /// @param client_factory_settings Options settings for the internal
-  /// ugrpc::client::ClientFactory.
-  explicit StandaloneClientFactory(
-      client::ClientFactorySettings&& client_factory_settings = {});
+public:
+    /// @param client_factory_settings Options settings for the internal
+    /// ugrpc::client::ClientFactory.
+    explicit StandaloneClientFactory(client::ClientFactorySettings&& client_factory_settings = {});
 
-  /// @returns a client for the specified gRPC service, connected
-  /// to the specified endpoint.
-  /// @see GetFreeIpv6Port
-  /// @see MakeIpv6Endpoint
-  template <typename Client>
-  Client MakeClient(const std::string& endpoint) {
-    return client_factory_.MakeClient<Client>("test", endpoint);
-  }
+    /// @returns a client for the specified gRPC service, connected
+    /// to the specified endpoint.
+    /// @see GetFreeIpv6Port
+    /// @see MakeIpv6Endpoint
+    template <typename Client>
+    Client MakeClient(const std::string& endpoint) {
+        return client_factory_.MakeClient<Client>("test", endpoint);
+    }
 
-  /// @returns the internal ugrpc::client::ClientFactory.
-  client::ClientFactory& GetClientFactory() { return client_factory_; }
+    /// @returns the internal ugrpc::client::ClientFactory.
+    client::ClientFactory& GetClientFactory() { return client_factory_; }
 
- private:
-  utils::statistics::Storage statistics_storage_;
-  ugrpc::impl::StatisticsStorage client_statistics_storage_{
-      statistics_storage_, ugrpc::impl::StatisticsDomain::kClient};
-  dynamic_config::StorageMock config_storage_{
-      dynamic_config::MakeDefaultStorage({})};
-  client::impl::CompletionQueuePool completion_queues_{1};
-  testsuite::GrpcControl testsuite_control_{{}, false};
-  client::ClientFactory client_factory_;
+private:
+    utils::statistics::Storage statistics_storage_;
+    ugrpc::impl::StatisticsStorage client_statistics_storage_{
+        statistics_storage_,
+        ugrpc::impl::StatisticsDomain::kClient};
+    dynamic_config::StorageMock config_storage_{dynamic_config::MakeDefaultStorage({})};
+    client::impl::CompletionQueuePool completion_queues_{1};
+    testsuite::GrpcControl testsuite_control_{{}, false};
+    SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
+    // must be the last filed.
+    client::ClientFactory client_factory_;
 };
 
 /// Acquire a free IPv6 port. Note: there is a small chance that a race could

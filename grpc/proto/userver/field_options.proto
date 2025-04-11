@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package userver;
 
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/grpc/proto;userver";
+
 import "google/protobuf/descriptor.proto";
 
 message FieldOptions {

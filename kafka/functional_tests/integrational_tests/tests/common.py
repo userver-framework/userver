@@ -3,7 +3,8 @@ from typing import List
 
 
 def generate_messages_to_consume(
-    topics: List[str], cnt: int,
+    topics: List[str],
+    cnt: int,
 ) -> Dict[str, List[Dict[str, str]]]:
     messages: Dict[str, List[Dict[str, str]]] = {}
     for topic in topics:

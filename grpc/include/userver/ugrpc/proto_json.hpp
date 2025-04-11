@@ -25,19 +25,27 @@ std::string ToString(const google::protobuf::Message& message);
 /// @throws formats::json::Exception
 std::string ToJsonString(const google::protobuf::Message& message);
 
+/// @brief Returns formats::json::Value representation of protobuf message
+/// @throws SerializationError
+formats::json::Value
+MessageToJson(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
+
+/// @brief Returns Json-string representation of protobuf message
+/// @throws formats::json::Exception
+std::string
+ToJsonString(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
+
 }  // namespace ugrpc
 
 namespace formats::serialize {
 
-json::Value Serialize(const google::protobuf::Message& message,
-                      To<json::Value>);
+json::Value Serialize(const google::protobuf::Message& message, To<json::Value>);
 
 }  // namespace formats::serialize
 
 namespace formats::parse {
 
-google::protobuf::Value Parse(const formats::json::Value& value,
-                              To<google::protobuf::Value>);
+google::protobuf::Value Parse(const formats::json::Value& value, To<google::protobuf::Value>);
 
 }
 

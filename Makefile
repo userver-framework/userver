@@ -3,7 +3,6 @@ CMAKE_DEBUG_FLAGS ?= '-DUSERVER_SANITIZE=addr;ub'
 CMAKE_RELEASE_FLAGS ?=
 KERNEL := $(shell uname -s)
 NPROCS ?= $(shell nproc)
-DOXYGEN ?= doxygen
 DOCKER_COMPOSE ?= docker-compose
 
 # NOTE: use Makefile.local for customization
@@ -15,32 +14,6 @@ CMAKE_RELEASE_FLAGS += -DCMAKE_BUILD_TYPE=Release $(CMAKE_COMMON_FLAGS)
 .DEFAULT_GOAL := all
 .PHONY: all
 all: test-debug test-release
-
-# Requires doxygen 1.10.0+
-.PHONY: docs
-docs:
-	@rm -rf docs/*
-	@$(DOXYGEN) --version >/dev/null 2>&1 || { \
-		echo "!!! No Doxygen found."; \
-		exit 2; \
-	}
-	@{ \
-		DOXYGEN_VERSION_MIN="1.10.0" && \
-		DOXYGEN_VERSION_CUR=$$($(DOXYGEN) --version | awk -F " " '{print $$1}') && \
-		DOXYGEN_VERSION_VALID=$$(printf "%s\n%s\n" "$$DOXYGEN_VERSION_MIN" "$$DOXYGEN_VERSION_CUR" | sort -C && echo 0 || echo 1) && \
-		if [ "$$DOXYGEN_VERSION_VALID" != "0" ]; then \
-			echo "!!! Doxygen expected version is $$DOXYGEN_VERSION_MIN, but $$DOXYGEN_VERSION_CUR found."; \
-			echo "!!! See userver/scripts/docs/README.md"; \
-			exit 2; \
-		fi \
-	}
-	@( \
-	    cat scripts/docs/doxygen.conf; \
-	    echo OUTPUT_DIRECTORY=docs \
-	  ) | $(DOXYGEN) -
-	@echo 'userver.tech' > docs/html/CNAME
-	@cp docs/html/d8/dee/md_en_2userver_2404.html docs/html/404.html || :
-	@sed -i 's|\.\./\.\./|/|g' docs/html/404.html
 
 # Run cmake
 .PHONY: cmake-debug
@@ -87,4 +60,3 @@ docker-kill:
 .PHONY: dist-clean
 dist-clean:
 	rm -rf build_*
-	rm -rf docs/

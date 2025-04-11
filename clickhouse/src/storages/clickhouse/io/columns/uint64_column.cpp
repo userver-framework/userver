@@ -11,16 +11,15 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnUInt64;
 }
 
 UInt64Column::UInt64Column(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<UInt64Column, NativeType>(column)} {
-}
+    : ClickhouseColumn{impl::GetTypedColumn<UInt64Column, NativeType>(column)} {}
 
 template <>
 UInt64Column::cpp_type ColumnIterator<UInt64Column>::DataHolder::Get() const {
-  return impl::NativeGetAt<NativeType>(column_, ind_);
+    return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 
 ColumnRef UInt64Column::Serialize(const container_type& from) {
-  return impl::NumericColumn<UInt64Column>::Serialize(from);
+    return impl::NumericColumn<UInt64Column>::Serialize(from);
 }
 
 }  // namespace storages::clickhouse::io::columns

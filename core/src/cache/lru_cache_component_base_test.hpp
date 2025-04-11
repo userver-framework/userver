@@ -7,29 +7,22 @@
 using Key = std::string;
 using Value = std::size_t;
 
-class ExampleCacheComponent final
-    : public cache::LruCacheComponent<Key, Value> {
- public:
-  static constexpr std::string_view kName = "example-cache";
+class ExampleCacheComponent final : public cache::LruCacheComponent<Key, Value> {
+public:
+    static constexpr std::string_view kName = "example-cache";
 
-  ExampleCacheComponent(const components::ComponentConfig& config,
-                        const components::ComponentContext& context)
-      : ::cache::LruCacheComponent<Key, Value>(config, context) {}
+    ExampleCacheComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : ::cache::LruCacheComponent<Key, Value>(config, context) {}
 
- private:
-  Value DoGetByKey(const Key& key) override {
-    return GetValueForExpiredKeyFromRemote(key);
-  }
+private:
+    Value DoGetByKey(const Key& key) override { return GetValueForExpiredKeyFromRemote(key); }
 
-  Value GetValueForExpiredKeyFromRemote(const Key& key);
+    Value GetValueForExpiredKeyFromRemote(const Key& key);
 };
 /// [Sample lru cache component]
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-inline Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(
-    const Key&) {
-  return 0;
-}
+inline Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(const Key&) { return 0; }
 
 USERVER_NAMESPACE_BEGIN
 

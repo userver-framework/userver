@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Transaction.
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -9,6 +12,7 @@
 
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/storages/redis/exception.hpp>
+#include <userver/storages/redis/fwd.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request_data_base.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
@@ -20,136 +24,141 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
-template <typename Result, typename ReplyType = Result>
+/// @brief Valkey or Redis future for a non-scan and non-eval responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send request to the
+/// Redis return this type or storages::redis::ScanRequest.
+template <typename ResultType, typename ReplyType>
 class [[nodiscard]] Request final {
- public:
-  using Reply = ReplyType;
+public:
+    using Result = ResultType;
+    using Reply = ReplyType;
 
-  explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl)
-      : impl_(std::move(impl)) {}
+    explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
-  void Wait() { impl_->Wait(); }
+    /// Wait for the request to finish on Redis server
+    void Wait() { impl_->Wait(); }
 
-  void IgnoreResult() const {}
+    /// Ignore the query result and do not wait for the Redis server to finish executing it
+    void IgnoreResult() const noexcept {}
 
-  ReplyType Get(const std::string& request_description = {}) {
-    return impl_->Get(request_description);
-  }
+    /// Wait for the request to finish on Redis server and get the result
+    ReplyType Get(const std::string& request_description = {}) { return impl_->Get(request_description); }
 
-  /// @cond
-  /// Internal helper for WaitAny/WaitAll
-  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept {
-    return impl_->TryGetContextAccessor();
-  }
-  /// @endcond
+    /// @cond
+    /// Internal helper for WaitAny/WaitAll
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept { return impl_->TryGetContextAccessor(); }
+    /// @endcond
 
-  template <typename T1, typename T2>
-  friend class RequestEval;
+    template <typename T1, typename T2>
+    friend class RequestEval;
 
-  template <typename T1, typename T2>
-  friend class RequestEvalSha;
+    template <typename T1, typename T2>
+    friend class RequestEvalSha;
 
-  template <ScanTag scan_tag>
-  friend class RequestScanData;
+    template <ScanTag scan_tag>
+    friend class RequestScanData;
 
- private:
-  ReplyPtr GetRaw() { return impl_->GetRaw(); }
+private:
+    ReplyPtr GetRaw() { return impl_->GetRaw(); }
 
-  std::unique_ptr<RequestDataBase<ReplyType>> impl_;
+    std::unique_ptr<RequestDataBase<ReplyType>> impl_;
 };
 
+/// @brief Redis future for a SCAN-like responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send SCAN-like request
+/// to the Redis return this type or storages::redis::ScanRequest.
 template <ScanTag scan_tag>
 class ScanRequest final {
- public:
-  using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+public:
+    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
 
-  explicit ScanRequest(std::unique_ptr<RequestScanDataBase<scan_tag>>&& impl)
-      : impl_(std::move(impl)) {}
+    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<scan_tag>>&& impl) : impl_(std::move(impl)) {}
 
-  template <typename T = std::vector<ReplyElem>>
-  T GetAll(std::string request_description) {
-    SetRequestDescription(std::move(request_description));
-    return GetAll<T>();
-  }
-
-  template <typename T = std::vector<ReplyElem>>
-  T GetAll() {
-    return T{begin(), end()};
-  }
-
-  void SetRequestDescription(std::string request_description) {
-    impl_->SetRequestDescription(std::move(request_description));
-  }
-
-  class Iterator {
-   public:
-    using iterator_category = std::input_iterator_tag;
-    using difference_type = ptrdiff_t;
-    using value_type = ReplyElem;
-    using reference = value_type&;
-    using pointer = value_type*;
-
-    explicit Iterator(ScanRequest* stream) : stream_(stream) {
-      if (stream_ && !stream_->HasMore()) stream_ = nullptr;
+    template <typename T = std::vector<ReplyElem>>
+    T GetAll(std::string request_description) {
+        SetRequestDescription(std::move(request_description));
+        return GetAll<T>();
     }
 
-    class ReplyElemHolder {
-     public:
-      ReplyElemHolder(value_type reply_elem)
-          : reply_elem_(std::move(reply_elem)) {}
+    template <typename T = std::vector<ReplyElem>>
+    T GetAll() {
+        return T{begin(), end()};
+    }
 
-      value_type& operator*() { return reply_elem_; }
+    void SetRequestDescription(std::string request_description) {
+        impl_->SetRequestDescription(std::move(request_description));
+    }
 
-     private:
-      value_type reply_elem_;
+    class Iterator {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = ptrdiff_t;
+        using value_type = ReplyElem;
+        using reference = value_type&;
+        using pointer = value_type*;
+
+        explicit Iterator(ScanRequest* stream) : stream_(stream) {
+            if (stream_ && !stream_->HasMore()) stream_ = nullptr;
+        }
+
+        class ReplyElemHolder {
+        public:
+            ReplyElemHolder(value_type reply_elem) : reply_elem_(std::move(reply_elem)) {}
+
+            value_type& operator*() { return reply_elem_; }
+
+        private:
+            value_type reply_elem_;
+        };
+
+        ReplyElemHolder operator++(int) {
+            ReplyElemHolder old_value(stream_->Current());
+            ++*this;
+            return old_value;
+        }
+
+        Iterator& operator++() {
+            stream_->Get();
+            if (!stream_->HasMore()) stream_ = nullptr;
+            return *this;
+        }
+
+        reference operator*() { return stream_->Current(); }
+
+        pointer operator->() { return &**this; }
+
+        bool operator==(const Iterator& rhs) const { return stream_ == rhs.stream_; }
+
+        bool operator!=(const Iterator& rhs) const { return !(*this == rhs); }
+
+    private:
+        ScanRequest* stream_;
     };
 
-    ReplyElemHolder operator++(int) {
-      ReplyElemHolder old_value(stream_->Current());
-      ++*this;
-      return old_value;
-    }
+    Iterator begin() { return Iterator(this); }
+    Iterator end() { return Iterator(nullptr); }
 
-    Iterator& operator++() {
-      stream_->Get();
-      if (!stream_->HasMore()) stream_ = nullptr;
-      return *this;
-    }
+    class GetAfterEofException : public Exception {
+    public:
+        using Exception::Exception;
+    };
 
-    reference operator*() { return stream_->Current(); }
+private:
+    ReplyElem& Current() { return impl_->Current(); }
 
-    pointer operator->() { return &**this; }
+    ReplyElem Get() { return impl_->Get(); }
 
-    bool operator==(const Iterator& rhs) const {
-      return stream_ == rhs.stream_;
-    }
+    bool HasMore() { return !impl_->Eof(); }
 
-    bool operator!=(const Iterator& rhs) const { return !(*this == rhs); }
+    friend class Iterator;
 
-   private:
-    ScanRequest* stream_;
-  };
-
-  Iterator begin() { return Iterator(this); }
-  Iterator end() { return Iterator(nullptr); }
-
-  class GetAfterEofException : public USERVER_NAMESPACE::redis::Exception {
-   public:
-    using USERVER_NAMESPACE::redis::Exception::Exception;
-  };
-
- private:
-  ReplyElem& Current() { return impl_->Current(); }
-
-  ReplyElem Get() { return impl_->Get(); }
-
-  bool HasMore() { return !impl_->Eof(); }
-
-  friend class Iterator;
-
-  std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
+    std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
 };
 
+/// @name Valkey/Redis futures aliases
+/// @{
 using RequestAppend = Request<size_t>;
 using RequestBitop = Request<size_t>;
 using RequestDbsize = Request<size_t>;
@@ -234,6 +243,7 @@ using RequestZremrangebyrank = Request<size_t>;
 using RequestZremrangebyscore = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
+/// @}
 
 }  // namespace storages::redis
 

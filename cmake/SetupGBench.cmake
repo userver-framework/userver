@@ -12,17 +12,16 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
     endif()
 
     if (UserverGBench_FOUND)
-        if (NOT TARGET benchmark::benchmark)
-            add_library(benchmark::benchmark ALIAS UserverGBench)  # Unify link names
-        endif()
         return()
     endif()
 endif()
 
+set(UserverGBench_VERSION "1.6.1")
+
 include(DownloadUsingCPM)
 CPMAddPackage(
     NAME benchmark
-    VERSION 1.6.1
+    VERSION ${UserverGBench_VERSION}
     GITHUB_REPOSITORY google/benchmark
     OPTIONS
     "BENCHMARK_ENABLE_TESTING OFF"

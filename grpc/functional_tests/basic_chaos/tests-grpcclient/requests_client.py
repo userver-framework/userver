@@ -13,7 +13,9 @@ _RETRIES = 10
 
 async def _request_without_case(grpc_ch, service_client, gate):
     response = await service_client.post(
-        '/hello', data='Python', headers={'Content-type': 'text/plain'},
+        '/hello',
+        data='Python',
+        headers={'Content-type': 'text/plain'},
     )
     assert response.status == 200
     assert response.content == b'Case not found'
@@ -132,8 +134,8 @@ def check_200_for(case):
 
 
 async def close_connection(gate, grpc_ch, service_client):
-    gate.to_server_pass()
-    gate.to_client_pass()
+    await gate.to_server_pass()
+    await gate.to_client_pass()
     await gate.sockets_close()
 
     for _ in range(_RETRIES):

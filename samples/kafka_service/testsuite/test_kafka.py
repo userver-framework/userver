@@ -33,6 +33,4 @@ async def test_kafka_basic(service_client, testpoint):
         await message_consumed.wait_call()
         # check message key
         assert received_key == send_key
-
-
-# /// [Kafka service sample - kafka functional test example]
+        # /// [Kafka service sample - kafka functional test example]

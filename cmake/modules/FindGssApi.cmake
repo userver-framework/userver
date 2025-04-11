@@ -12,6 +12,7 @@ _userver_module_find_include(
 
 _userver_module_find_library(
     NAMES gssapi_krb5 gssapi
+    PATH_SUFFIXES gssapi
 )
 
 _userver_module_end()

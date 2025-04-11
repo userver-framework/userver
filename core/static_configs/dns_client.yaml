@@ -1,0 +1,53 @@
+type: object
+description: Caching DNS resolver component.
+additionalProperties: false
+properties:
+    load-enabled:
+        type: boolean
+    fs-task-processor:
+        type: string
+        description: task processor for disk I/O operations
+    hosts-file-path:
+        type: string
+        description: path to the `hosts` file
+        default: /etc/hosts
+    hosts-file-update-interval:
+        type: string
+        description: "`hosts` file cache reload interval"
+        default: 5m
+        x-usrv-cpp-type: std::chrono::milliseconds
+    network-timeout:
+        type: string
+        description: timeout for network requests
+        default: 1s
+        x-usrv-cpp-type: std::chrono::milliseconds
+    network-attempts:
+        type: integer
+        description: number of attempts for network requests
+        default: 1
+    network-custom-servers:
+        type: array
+        description: list of name servers to use, default is to read from `/etc/resolv.conf`
+        items:
+            type: string
+            description: name server to use
+    cache-ways:
+        type: integer
+        description: number of ways for network cache
+        default: 16
+        x-usrv-cpp-type: std::size_t
+    cache-size-per-way:
+        type: integer
+        description: size of each way of network cache
+        default: 256
+        x-usrv-cpp-type: std::size_t
+    cache-max-reply-ttl:
+        type: string
+        description: TTL limit for network replies caching
+        default: 5m
+        x-usrv-cpp-type: std::chrono::milliseconds
+    cache-failure-ttl:
+        type: string
+        description: TTL for network failures caching
+        default: 5s
+        x-usrv-cpp-type: std::chrono::milliseconds

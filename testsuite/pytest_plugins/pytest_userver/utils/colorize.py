@@ -67,6 +67,8 @@ HTTP_STATUS_COLORS = {
     '5': Colors.RED,
 }
 
+HTTP_LOCALHOST_PREFIX = 'http://localhost'
+
 
 class Colorizer:
     def __init__(self, *, verbose=False, colors_enabled=True):
@@ -99,10 +101,16 @@ class Colorizer:
                 extra_fields.append(
                     'request_body='
                     + self.textcolor(
-                        try_reformat_json(row.pop('body')), Colors.YELLOW,
+                        try_reformat_json(row.pop('body')),
+                        Colors.YELLOW,
                     ),
                 )
         elif entry_type == 'response':
+            if 'body' not in row:
+                raise RuntimeError(
+                    f'Response log record without "body" tag. Looks like in the C++ code the tracing::Span of a'
+                    f'request was moved out or corrupted. Link: {link}. Text: {text}. Other: {row}'
+                )
             if 'meta_code' in row:
                 status_code = row.pop('meta_code')
                 extra_fields.append(
@@ -113,7 +121,8 @@ class Colorizer:
             extra_fields.append(
                 'response_body='
                 + self.textcolor(
-                    try_reformat_json(row.pop('body')), Colors.YELLOW,
+                    try_reformat_json(row.pop('body')),
+                    Colors.YELLOW,
                 ),
             )
         elif entry_type == 'mockserver_request':
@@ -143,6 +152,20 @@ class Colorizer:
             self.textcolor(logid, flow_color),
         ]
         if text:
+            http_url_info = row.pop('http_url', None)
+            if http_url_info:
+                http_url_info = http_url_info.removeprefix(
+                    HTTP_LOCALHOST_PREFIX,
+                )
+                http_url_info = http_url_info.removesuffix('?')
+                http_url_info = http_url_info[http_url_info.find('/') + 1 :]
+
+                meta_code = row.pop('meta_code', None)
+                if meta_code:
+                    http_url_info += f' meta_code={meta_code}'
+
+                text = f'{self.textcolor(http_url_info, Colors.GREEN)} {text}'
+
             fields.append(text)
         elif self.verbose:
             fields.append('<NO TEXT>')
@@ -213,15 +236,15 @@ def parse_color(value):
 def colorize_main():
     parser = argparse.ArgumentParser(description='Colorize userver log file.')
     parser.add_argument(
-        '--verbose', '-v', action='store_true', help='Be verbose',
+        '--verbose',
+        '-v',
+        action='store_true',
+        help='Be verbose',
     )
     parser.add_argument(
         '--color',
         metavar='WHEN',
-        help=(
-            'Control color highlighting, WHEN is always, never or '
-            'auto (default)'
-        ),
+        help=('Control color highlighting, WHEN is always, never or auto (default)'),
         nargs='?',
         type=parse_color,
         default=ColorArg.AUTO,

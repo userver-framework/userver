@@ -89,7 +89,8 @@ class _CodeGenerator:
 
             file = self.response.file.add()
             file.name = self._proto_file_dest(
-                file_type=file_type, file_ext=file_ext,
+                file_type=file_type,
+                file_ext=file_ext,
             )
             file.content = template.render(proto=data)
 
@@ -97,7 +98,8 @@ class _CodeGenerator:
         for file_type, file_ext in self._iter_src_files():
             file = self.response.file.add()
             file.name = self._proto_file_dest(
-                file_type=file_type, file_ext=file_ext,
+                file_type=file_type,
+                file_ext=file_ext,
             )
             file.content = _AUTOGEN_EMPTY_HEADER
 
@@ -121,7 +123,9 @@ class _CodeGenerator:
 
 
 def generate(
-    loader: jinja2.BaseLoader, mode: Mode, skip_files_wo_service: bool,
+    loader: jinja2.BaseLoader,
+    mode: Mode,
+    skip_files_wo_service: bool,
 ) -> None:
     data = sys.stdin.buffer.read()
 
@@ -169,12 +173,15 @@ def main(
     if loader is None:
         loader = jinja2.FileSystemLoader(
             os.path.join(
-                os.path.dirname(os.path.abspath(__file__)), 'templates',
+                os.path.dirname(os.path.abspath(__file__)),
+                'templates',
             ),
         )
 
     generate(
-        loader=loader, mode=mode, skip_files_wo_service=skip_files_wo_service,
+        loader=loader,
+        mode=mode,
+        skip_files_wo_service=skip_files_wo_service,
     )
 
 

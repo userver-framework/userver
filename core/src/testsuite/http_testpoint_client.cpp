@@ -13,44 +13,42 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite::impl {
 
-HttpTestpointClient::HttpTestpointClient(clients::http::Client& http_client,
-                                         const std::string& url,
-                                         std::chrono::milliseconds timeout)
+HttpTestpointClient::HttpTestpointClient(
+    clients::http::Client& http_client,
+    const std::string& url,
+    std::chrono::milliseconds timeout
+)
     : http_client_(http_client), url_(url), timeout_(timeout) {}
 
 HttpTestpointClient::~HttpTestpointClient() { Unregister(); }
 
-void HttpTestpointClient::Execute(std::string_view name,
-                                  const formats::json::Value& json,
-                                  Callback callback) const {
-  tracing::Span span("testpoint");
-  const auto& testpoint_id = span.GetSpanId();
-  const auto& data = formats::json::ToString(json);
+void HttpTestpointClient::Execute(std::string_view name, const formats::json::Value& json, Callback callback) const {
+    tracing::Span span("testpoint");
+    const auto& testpoint_id = span.GetSpanId();
+    const auto& data = formats::json::ToString(json);
 
-  span.AddTag("testpoint_id", testpoint_id);
-  span.AddTag("testpoint", std::string(name));
+    span.AddTag("testpoint_id", testpoint_id);
+    span.AddTag("testpoint", std::string(name));
 
-  formats::json::ValueBuilder request;
-  request["id"] = testpoint_id;
-  request["name"] = name;
-  request["data"] = json;
-  auto request_str = formats::json::ToString(request.ExtractValue());
+    formats::json::ValueBuilder request;
+    request["id"] = testpoint_id;
+    request["name"] = name;
+    request["data"] = json;
+    auto request_str = formats::json::ToString(request.ExtractValue());
 
-  LOG_INFO() << "Running testpoint " << name << ": " << data;
+    LOG_INFO() << "Running testpoint " << name << ": " << data;
 
-  auto response =
-      http_client_.CreateRequest()
-          .post(url_, std::move(request_str))
-          .headers({{http::headers::kContentType,
-                     http::content_type::kApplicationJson.ToString()}})
-          .timeout(timeout_)
-          .perform();
-  response->raise_for_status();
+    auto response = http_client_.CreateRequest()
+                        .post(url_, std::move(request_str))
+                        .headers({{http::headers::kContentType, http::content_type::kApplicationJson.ToString()}})
+                        .timeout(timeout_)
+                        .perform();
+    response->raise_for_status();
 
-  auto doc = formats::json::FromString(response->body_view());
-  if (doc["handled"].As<bool>(true)) {
-    callback(doc["data"]);
-  }
+    auto doc = formats::json::FromString(response->body_view());
+    if (doc["handled"].As<bool>(true)) {
+        callback(doc["data"]);
+    }
 }
 
 }  // namespace testsuite::impl

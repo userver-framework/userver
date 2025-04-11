@@ -13,7 +13,11 @@ _userver_module_find_include(
 )
 
 _userver_module_find_library(
-    NAMES cares
+    NAMES cares_static cares
 )
 
 _userver_module_end()
+
+if(c-ares_FOUND AND NOT TARGET c-ares::cares)
+  add_library(c-ares::cares ALIAS c-ares)
+endif()

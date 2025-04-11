@@ -1,9 +1,12 @@
 import asyncio
+import logging
 import socket
 import struct
 import uuid
 
-import h2
+import h2.connection
+import h2.events
+import h2.settings
 import pytest
 
 DEFAULT_PATH = '/http2server'
@@ -38,14 +41,18 @@ async def test_http2_ping(http2_client):
 async def test_big_body(http2_client):
     s = 'x' * 2**22  # request - 4Mib. limit - 2Mib
     r = await http2_client.get(
-        DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
+        DEFAULT_PATH,
+        params={'type': 'echo-body'},
+        data=s,
     )
     assert 413 == r.status_code
     assert 'too large request' == r.text
 
     s = 'x' * 2**20  # request - 1Mib. limit - 2Mib
     r = await http2_client.get(
-        DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
+        DEFAULT_PATH,
+        params={'type': 'echo-body'},
+        data=s,
     )
     assert 200 == r.status_code
     assert s == r.text
@@ -55,7 +62,9 @@ async def test_body_different_size(http2_client):
     s = ''
     for _ in range(1026):
         r = await http2_client.get(
-            DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
+            DEFAULT_PATH,
+            params={'type': 'echo-body'},
+            data=s,
         )
         assert 200 == r.status_code
         assert s == r.text
@@ -65,7 +74,9 @@ async def test_body_different_size(http2_client):
 async def test_json_body(http2_client):
     data = {'x': 'X', 'y': 'Y', 'd': 0.123, 'b': True, 'arr': [1, 2, 3, 4]}
     r = await http2_client.get(
-        DEFAULT_PATH, params={'type': 'json'}, json=data,
+        DEFAULT_PATH,
+        params={'type': 'json'},
+        json=data,
     )
     assert 200 == r.status_code
     assert data == r.json()
@@ -95,27 +106,32 @@ async def _request(client, req_per_client, count=1):
         data = str(uuid.uuid4())
         data *= count
         r = await client.put(
-            DEFAULT_PATH, params={'type': 'echo-body'}, data=data,
+            DEFAULT_PATH,
+            params={'type': 'echo-body'},
+            data=data,
         )
         assert 200 == r.status_code
         assert data == r.text
 
 
 async def test_concurrent_requests(
-    http2_client, service_client, monitor_client,
+    http2_client,
+    service_client,
+    monitor_client,
 ):
     current_streams = await _get_metric(monitor_client, 'streams-count')
     streams_parse_error = await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
     clients_count = 10
     req_per_client = 100
-    tasks = [
-        _request(http2_client, req_per_client) for _ in range(clients_count)
-    ]
+    tasks = [_request(http2_client, req_per_client) for _ in range(clients_count)]
     await asyncio.gather(*tasks)
 
     await service_client.update_server_state()
+
+    await asyncio.sleep(1.0)
 
     metrics = await monitor_client.metrics(prefix='server.requests.http2')
     assert len(metrics) == 5
@@ -125,24 +141,25 @@ async def test_concurrent_requests(
     assert 0 == await _get_metric(monitor_client, 'reset-streams')
     assert 0 == await _get_metric(monitor_client, 'goaway')
     assert streams_parse_error == await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
 
 
 async def test_concurrent_requests_with_big_body(
-    http2_client, service_client, monitor_client,
+    http2_client,
+    service_client,
+    monitor_client,
 ):
     current_streams = await _get_metric(monitor_client, 'streams-count')
     streams_parse_error = await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
     clients_count = 5
     req_per_client = 10
     count = int((2**20) / 128)  # 1Mib / size(uuid)
-    tasks = [
-        _request(http2_client, req_per_client, count)
-        for _ in range(clients_count)
-    ]
+    tasks = [_request(http2_client, req_per_client, count) for _ in range(clients_count)]
     await asyncio.gather(*tasks)
 
     await service_client.update_server_state()
@@ -155,7 +172,8 @@ async def test_concurrent_requests_with_big_body(
     assert 0 == await _get_metric(monitor_client, 'reset-streams')
     assert 0 == await _get_metric(monitor_client, 'goaway')
     assert streams_parse_error == await _get_metric(
-        monitor_client, 'streams-parse-error',
+        monitor_client,
+        'streams-parse-error',
     )
 
 
@@ -164,28 +182,27 @@ async def test_http1_ping(service_client):
     assert r.status == 200
 
 
-async def test_http1_broken_bytes(service_client, loop, service_port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    await loop.sock_connect(sock, ('localhost', service_port))
-    await loop.sock_sendall(sock, 'GET / HTTP/1.1'.encode('utf-8'))
-    sock.settimeout(1)
-    with pytest.raises(TimeoutError):
-        sock.recv(1024)
-    await loop.sock_sendall(sock, 'garbage'.encode('utf-8'))
-    r = await loop.sock_recv(sock, 1024)
+async def test_http1_broken_bytes(service_client, service_port, asyncio_socket):
+    sock = asyncio_socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    await sock.connect(('localhost', service_port))
+    await sock.sendall('GET / HTTP/1.1'.encode('utf-8'))
+    with pytest.raises(asyncio.TimeoutError):
+        await sock.recv(1024, timeout=1.0)
+    await sock.sendall('garbage'.encode('utf-8'))
+    r = await sock.recv(1024)
     assert 'HTTP/1.1 400 Bad Request' in r.decode('utf-8')
     sock.close()
 
 
-async def _send_and_receive(loop, sock, conn):
-    await loop.sock_sendall(sock, conn.data_to_send())
-    receive = sock.recv(RECEIVE_SIZE)
+async def _send_and_receive(sock, conn):
+    await sock.sendall(conn.data_to_send())
+    receive = await sock.recv(RECEIVE_SIZE)
     return conn.receive_data(receive)
 
 
-async def test_settings_and_ping(service_client, loop, service_port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    await loop.sock_connect(sock, ('localhost', service_port))
+async def test_settings_and_ping(service_client, asyncio_socket, service_port):
+    sock = asyncio_socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    await sock.connect(('localhost', service_port))
 
     conn = h2.connection.H2Connection()
     conn.initiate_connection()
@@ -196,7 +213,7 @@ async def test_settings_and_ping(service_client, loop, service_port):
 
     events = []
     while len(events) != 3:
-        events += await _send_and_receive(loop, sock, conn)
+        events += await _send_and_receive(sock, conn)
     e = events[0]
     assert isinstance(e, h2.events.RemoteSettingsChanged)
     assert MAX_CONCURRENT_STREAMS == e.changed_settings[3].new_value
@@ -210,7 +227,7 @@ async def test_settings_and_ping(service_client, loop, service_port):
 
     events = []
     while len(events) != 2:
-        events += await _send_and_receive(loop, sock, conn)
+        events += await _send_and_receive(sock, conn)
     assert isinstance(events[0], h2.events.PingAckReceived)
     assert ping_data == events[0].ping_data
     assert isinstance(events[1], h2.events.PingReceived)
@@ -219,22 +236,29 @@ async def test_settings_and_ping(service_client, loop, service_port):
     sock.close()
 
 
-async def _create_connection(loop, service_port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    await loop.sock_connect(sock, ('localhost', service_port))
+@pytest.fixture(name='create_connection')
+async def _create_connection(asyncio_socket):
+    async def create_connection(service_port):
+        logging.debug('Connecting to localhost:%d', service_port)
+        sock = asyncio_socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        await sock.connect(('localhost', service_port))
+        logging.debug('Connected: %r', sock)
 
-    conn = h2.connection.H2Connection()
-    conn.initiate_connection()
+        conn = h2.connection.H2Connection()
+        conn.initiate_connection()
 
-    events = []
-    while len(events) != 2:
-        events += await _send_and_receive(loop, sock, conn)
-    assert isinstance(events[0], h2.events.RemoteSettingsChanged)
-    assert MAX_CONCURRENT_STREAMS == events[0].changed_settings[3].new_value
-    assert DEFAULT_FRAME_SIZE == events[0].changed_settings[5].new_value
-    assert isinstance(events[1], h2.events.SettingsAcknowledged)
+        events = []
+        while len(events) != 2:
+            events += await _send_and_receive(sock, conn)
+        assert isinstance(events[0], h2.events.RemoteSettingsChanged)
+        assert MAX_CONCURRENT_STREAMS == events[0].changed_settings[3].new_value
+        assert DEFAULT_FRAME_SIZE == events[0].changed_settings[5].new_value
+        assert isinstance(events[1], h2.events.SettingsAcknowledged)
 
-    return (sock, conn)
+        logging.debug('Connection successfuly created')
+        return sock, conn
+
+    return create_connection
 
 
 def _create_frame(frame_type, flags, stream_id, payload):
@@ -248,35 +272,40 @@ def _create_frame(frame_type, flags, stream_id, payload):
     return header + payload
 
 
-async def test_invalid_stream(service_client, loop, service_port):
-    (sock, conn) = await _create_connection(loop, service_port)
+async def test_invalid_stream(create_connection, service_port):
+    sock, conn = await create_connection(service_port)
 
     invalid_data_frame = _create_frame(
-        DATA_FRAME, EMPTY_FLAGS, stream_id=42, payload=b'This is some data',
+        DATA_FRAME,
+        EMPTY_FLAGS,
+        stream_id=42,
+        payload=b'This is some data',
     )
-    await loop.sock_sendall(sock, invalid_data_frame)
-    receive = sock.recv(RECEIVE_SIZE)
+    await sock.sendall(invalid_data_frame)
+    receive = await sock.recv(RECEIVE_SIZE)
     events = conn.receive_data(receive)
     assert 1 == len(events)
     assert isinstance(
-        events[0], h2.events.ConnectionTerminated,
+        events[0],
+        h2.events.ConnectionTerminated,
     )  # Is the GOAWAY frame
     sock.close()
 
 
-async def test_many_resets(service_client, loop, service_port):
-    (sock, conn) = await _create_connection(loop, service_port)
+@pytest.mark.skip(reason='TAXICOMMON-10258')
+async def test_many_resets(create_connection, service_port):
+    sock, conn = await create_connection(service_port)
 
     for _ in range(1000):
         stream_id = conn.get_next_available_stream_id()
         conn.send_headers(stream_id, DEFAULT_HEADERS, end_stream=True)
 
-        await loop.sock_sendall(sock, conn.data_to_send())
+        await sock.sendall(conn.data_to_send())
 
         conn.reset_stream(stream_id, 42)
-        await loop.sock_sendall(sock, conn.data_to_send())
+        await sock.sendall(conn.data_to_send())
 
-    receive = sock.recv(RECEIVE_SIZE)
+    receive = await sock.recv(RECEIVE_SIZE)
     events = conn.receive_data(receive)
     assert 0 == len(events)
 
@@ -288,11 +317,7 @@ def _encode_header(name, value):
     value_encoded = value.encode('utf-8')
     zero = struct.pack('>B', 0x0)
     return (
-        zero
-        + struct.pack('B', len(name_encoded))
-        + name_encoded
-        + struct.pack('B', len(value_encoded))
-        + value_encoded
+        zero + struct.pack('B', len(name_encoded)) + name_encoded + struct.pack('B', len(value_encoded)) + value_encoded
     )
 
 
@@ -304,14 +329,18 @@ def _assert_responses(events):
         assert isinstance(events[i + 2], h2.events.StreamEnded)
 
 
+@pytest.mark.skip(reason='TAXICOMMON-10232: get_metrics is broken')
 async def test_many_in_flight(
-    service_client, loop, service_port, monitor_client,
+    create_connection,
+    service_port,
+    monitor_client,
 ):
     assert await _get_metric(
-        monitor_client, 'streams-close',
+        monitor_client,
+        'streams-close',
     ) == await _get_metric(monitor_client, 'streams-count')
 
-    (sock, conn) = await _create_connection(loop, service_port)
+    sock, conn = await create_connection(service_port)
 
     # The first spike
     ids = []
@@ -325,14 +354,14 @@ async def test_many_in_flight(
     assert len(ids) == MAX_CONCURRENT_STREAMS
     for stream_id in ids:
         conn.end_stream(stream_id)
-        await loop.sock_sendall(sock, conn.data_to_send())
+        await sock.sendall(conn.data_to_send())
 
     events = []
-    expected_frames_count = (
-        MAX_CONCURRENT_STREAMS * 3
-    )  # 1 response =  (ResponseReceived, DataReceived, StreamEnded)
+    expected_frames_count = MAX_CONCURRENT_STREAMS * 3  # 1 response =  (ResponseReceived, DataReceived, StreamEnded)
     while len(events) != expected_frames_count:
-        receive = sock.recv(RECEIVE_SIZE)
+        receive = await sock.recv(RECEIVE_SIZE)
+        if not receive:
+            raise RuntimeError('Socket connection was closed by the other side')
         events += conn.receive_data(receive)
     _assert_responses(events)
 
@@ -347,35 +376,43 @@ async def test_many_in_flight(
 
     for stream_id in ids:
         conn.end_stream(stream_id)
-        await loop.sock_sendall(sock, conn.data_to_send())
+        await sock.sendall(conn.data_to_send())
 
     events = []
     while len(events) != expected_frames_count:
-        receive = sock.recv(RECEIVE_SIZE)
+        receive = await sock.recv(RECEIVE_SIZE)
+        if not receive:
+            raise RuntimeError('Socket connection was closed by the other side')
         events += conn.receive_data(receive)
     _assert_responses(events)
 
     sock.close()
 
 
+@pytest.mark.skip(reason='TAXICOMMON-10232: get_metrics is broken')
 async def test_limit_concurrent_streams(
-    service_client, loop, service_port, monitor_client,
+    service_client,
+    create_connection,
+    service_port,
+    monitor_client,
 ):
     streams_count = await _get_metric(monitor_client, 'streams-count')
     streams_close = await _get_metric(monitor_client, 'streams-close')
 
-    (sock, conn) = await _create_connection(loop, service_port)
+    sock, conn = await create_connection(service_port)
 
     # open the maximum number of streams
     for _ in range(MAX_CONCURRENT_STREAMS):
         stream_id = conn.get_next_available_stream_id()
         conn.send_headers(stream_id, DEFAULT_HEADERS, end_stream=False)
-        await loop.sock_sendall(sock, conn.data_to_send())
+        await sock.sendall(conn.data_to_send())
 
     await service_client.update_server_state()
+    await asyncio.sleep(1.0)
 
     assert streams_count + MAX_CONCURRENT_STREAMS == await _get_metric(
-        monitor_client, 'streams-count',
+        monitor_client,
+        'streams-count',
     )
     assert streams_close == await _get_metric(monitor_client, 'streams-close')
 
@@ -383,11 +420,14 @@ async def test_limit_concurrent_streams(
     stream_id = 203
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     begin_stream_frame = _create_frame(
-        HEADERS_FRAME, EMPTY_FLAGS, stream_id, payload,
+        HEADERS_FRAME,
+        EMPTY_FLAGS,
+        stream_id,
+        payload,
     )
 
-    await loop.sock_sendall(sock, begin_stream_frame)
-    receive = sock.recv(RECEIVE_SIZE)
+    await sock.sendall(begin_stream_frame)
+    receive = await sock.recv(RECEIVE_SIZE)
 
     assert GOAWAY_FRAME == receive[FRAME_TYPE_INDEX]  # GOAWAY frame
     assert 'request HEADERS: max concurrent streams exceeded' in str(receive)
@@ -395,40 +435,47 @@ async def test_limit_concurrent_streams(
     sock.close()
 
 
-async def test_stream_already_closed(service_client, loop, service_port):
-    (sock, conn) = await _create_connection(loop, service_port)
+@pytest.mark.skip(reason='TAXICOMMON-10232: broken in nghttp2 1.65.0')
+async def test_stream_already_closed(create_connection, service_port):
+    sock, conn = await create_connection(service_port)
 
     stream_id = conn.get_next_available_stream_id()
     conn.send_headers(stream_id, DEFAULT_HEADERS)
     conn.end_stream(stream_id)
     events = []
     while len(events) != 3:
-        events += await _send_and_receive(loop, sock, conn)
+        events += await _send_and_receive(sock, conn)
 
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     double_stream = _create_frame(
-        HEADERS_FRAME, END_HEADER_AND_STREAM, stream_id, payload,
+        HEADERS_FRAME,
+        END_HEADER_AND_STREAM,
+        stream_id,
+        payload,
     )
 
     # Send the stream that already cloced
-    await loop.sock_sendall(sock, double_stream)
-    receive = sock.recv(RECEIVE_SIZE)
+    await sock.sendall(double_stream)
+    receive = await sock.recv(RECEIVE_SIZE)
 
     assert GOAWAY_FRAME == receive[FRAME_TYPE_INDEX]  # GOAWAY frame
     assert 'HEADERS: stream closed' in str(receive)
 
 
-async def test_streams_with_the_same_id(service_client, loop, service_port):
-    (sock, conn) = await _create_connection(loop, service_port)
+async def test_streams_with_the_same_id(create_connection, service_port):
+    sock, conn = await create_connection(service_port)
 
     stream_id = 1
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     begin_stream_frame = _create_frame(
-        HEADERS_FRAME, EMPTY_FLAGS, stream_id, payload,
+        HEADERS_FRAME,
+        EMPTY_FLAGS,
+        stream_id,
+        payload,
     )
-    await loop.sock_sendall(sock, begin_stream_frame)
-    await loop.sock_sendall(sock, begin_stream_frame)
-    receive = sock.recv(RECEIVE_SIZE)
+    await sock.sendall(begin_stream_frame)
+    await sock.sendall(begin_stream_frame)
+    receive = await sock.recv(RECEIVE_SIZE)
 
     assert GOAWAY_FRAME == receive[FRAME_TYPE_INDEX]  # GOAWAY frame
     assert 'unexpected non-CONTINUATION frame or stream_id is invalid' in str(

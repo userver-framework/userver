@@ -11,45 +11,39 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::bulk_ops {
 
 class InsertOne::Impl {
- public:
-  explicit Impl(formats::bson::Document&& document_)
-      : document(std::move(document_)) {}
+public:
+    explicit Impl(formats::bson::Document&& document_) : document(std::move(document_)) {}
 
-  formats::bson::Document document;
+    formats::bson::Document document;
 };
 
 class ReplaceOne::Impl {
- public:
-  Impl(formats::bson::Document&& selector_,
-       formats::bson::Document&& replacement_)
-      : selector(std::move(selector_)), replacement(std::move(replacement_)) {}
+public:
+    Impl(formats::bson::Document&& selector_, formats::bson::Document&& replacement_)
+        : selector(std::move(selector_)), replacement(std::move(replacement_)) {}
 
-  formats::bson::Document selector;
-  formats::bson::Document replacement;
-  std::optional<formats::bson::impl::BsonBuilder> options;
+    formats::bson::Document selector;
+    formats::bson::Document replacement;
+    std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Update::Impl {
- public:
-  Impl(Mode mode_, formats::bson::Document&& selector_,
-       formats::bson::Document&& update_)
-      : mode(mode_),
-        selector(std::move(selector_)),
-        update(std::move(update_)) {}
+public:
+    Impl(Mode mode_, formats::bson::Document&& selector_, formats::bson::Document&& update_)
+        : mode(mode_), selector(std::move(selector_)), update(std::move(update_)) {}
 
-  Mode mode;
-  formats::bson::Document selector;
-  formats::bson::Document update;
-  std::optional<formats::bson::impl::BsonBuilder> options;
+    Mode mode;
+    formats::bson::Document selector;
+    formats::bson::Document update;
+    std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Delete::Impl {
- public:
-  Impl(Mode mode_, formats::bson::Document&& selector_)
-      : mode(mode_), selector(std::move(selector_)) {}
+public:
+    Impl(Mode mode_, formats::bson::Document&& selector_) : mode(mode_), selector(std::move(selector_)) {}
 
-  Mode mode;
-  formats::bson::Document selector;
+    Mode mode;
+    formats::bson::Document selector;
 };
 
 }  // namespace storages::mongo::bulk_ops

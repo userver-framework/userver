@@ -32,14 +32,14 @@ namespace components {
 
 // clang-format on
 class Tracer final : public RawComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Tracer
-  static constexpr std::string_view kName = "tracer";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Tracer
+    static constexpr std::string_view kName = "tracer";
 
-  Tracer(const ComponentConfig& config, const ComponentContext& context);
+    Tracer(const ComponentConfig& config, const ComponentContext& context);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 template <>

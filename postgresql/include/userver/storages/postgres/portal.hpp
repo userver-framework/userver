@@ -19,43 +19,49 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-using PortalName =
-    USERVER_NAMESPACE::utils::StrongTypedef<struct PortalNameTag, std::string>;
+using PortalName = USERVER_NAMESPACE::utils::StrongTypedef<struct PortalNameTag, std::string>;
 
 class Portal {
- public:
-  Portal(detail::Connection* conn, const Query& query,
-         const detail::QueryParameters& = {},
-         OptionalCommandControl cmd_ctl = {});
-  Portal(detail::Connection* conn, const PortalName&, const Query& query,
-         const detail::QueryParameters& = {},
-         OptionalCommandControl cmd_ctl = {});
+public:
+    Portal(
+        detail::Connection* conn,
+        const Query& query,
+        const detail::QueryParameters& = {},
+        OptionalCommandControl cmd_ctl = {}
+    );
+    Portal(
+        detail::Connection* conn,
+        const PortalName&,
+        const Query& query,
+        const detail::QueryParameters& = {},
+        OptionalCommandControl cmd_ctl = {}
+    );
 
-  Portal(Portal&&) noexcept;
-  Portal& operator=(Portal&&) noexcept;
+    Portal(Portal&&) noexcept;
+    Portal& operator=(Portal&&) noexcept;
 
-  Portal(const Portal&) = delete;
-  Portal& operator=(const Portal&) = delete;
+    Portal(const Portal&) = delete;
+    Portal& operator=(const Portal&) = delete;
 
-  ~Portal();
+    ~Portal();
 
-  ResultSet Fetch(std::uint32_t n_rows);
+    ResultSet Fetch(std::uint32_t n_rows);
 
-  bool Done() const;
-  std::size_t FetchedSoFar() const;
+    bool Done() const;
+    std::size_t FetchedSoFar() const;
 
-  explicit operator bool() const { return !Done(); }
+    explicit operator bool() const { return !Done(); }
 
-  /// Returns true if CMake option USERVER_FEATURE_PATCH_LIBPQ was set to ON
-  /// and PostgreSQL portals could be created.
-  static bool IsSupportedByDriver() noexcept;
+    /// Returns true if CMake option USERVER_FEATURE_PATCH_LIBPQ was set to ON
+    /// and PostgreSQL portals could be created.
+    static bool IsSupportedByDriver() noexcept;
 
- private:
-  static constexpr std::size_t kImplSize = 88;
-  static constexpr std::size_t kImplAlign = 8;
+private:
+    static constexpr std::size_t kImplSize = 88;
+    static constexpr std::size_t kImplAlign = 8;
 
-  struct Impl;
-  USERVER_NAMESPACE::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
+    struct Impl;
+    USERVER_NAMESPACE::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };
 
 }  // namespace storages::postgres

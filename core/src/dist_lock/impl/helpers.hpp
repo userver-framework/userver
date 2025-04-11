@@ -9,14 +9,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dist_lock::impl {
 
-bool GetTask(engine::TaskWithResult<void>& task, const std::string& name,
-             std::exception_ptr* exception_ptr = nullptr);
+bool GetTask(
+    engine::TaskWithResult<void>& task,
+    std::string_view name,
+    std::string_view error_context,
+    std::exception_ptr* exception_ptr = nullptr
+);
 
-std::string LockerName(const std::string& lock_name);
+std::string LockerName(std::string_view lock_name);
 
-std::string WatchdogName(const std::string& lock_name);
+std::string WatchdogName(std::string_view lock_name);
 
-std::string WorkerName(const std::string& lock_name);
+std::string WorkerName(std::string_view lock_name);
 
 }  // namespace dist_lock::impl
 

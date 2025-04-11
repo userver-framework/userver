@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "debug-custom",
+      "displayName": "Debug Custom",
+      "description": "Debug build with custom options",
+      "inherits": [
+        "custom-flags"
+      ],
+      "binaryDir": "${sourceDir}/build_debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USERVER_SANITIZE": "addr;ub"
+      }
+    },
+    {
+      "name": "debug-custom",
+      "displayName": "Release Custom",
+      "description": "Release build with custom options",
+      "inherits": [
+        "custom-flags"
+      ],
+      "binaryDir": "${sourceDir}/build_release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "custom-flags",
+      "hidden": true,
+      "generator": "Ninja",
+      "inherits": [
+        "common-flags"
+      ],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    }
+  ]
+}

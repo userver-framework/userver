@@ -17,37 +17,31 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 class share final : public std::enable_shared_from_this<share> {
- public:
-  share();
-  share(const share&) = delete;
-  ~share();
+public:
+    share();
+    share(const share&) = delete;
+    ~share();
 
-  inline native::CURLSH* native_handle() { return handle_; }
-  void set_share_cookies(bool enabled);
-  void set_share_dns(bool enabled);
-  void set_share_ssl_session(bool enabled);
+    inline native::CURLSH* native_handle() { return handle_; }
+    void set_share_cookies(bool enabled);
+    void set_share_dns(bool enabled);
+    void set_share_ssl_session(bool enabled);
 
-  using lock_function_t = void (*)(native::CURL* handle,
-                                   native::curl_lock_data data,
-                                   native::curl_lock_access access,
-                                   void* userptr);
-  void set_lock_function(lock_function_t lock_function);
+    using lock_function_t =
+        void (*)(native::CURL* handle, native::curl_lock_data data, native::curl_lock_access access, void* userptr);
+    void set_lock_function(lock_function_t lock_function);
 
-  using unlock_function_t = void (*)(native::CURL* handle,
-                                     native::curl_lock_data data,
-                                     void* userptr);
-  void set_unlock_function(unlock_function_t unlock_function);
+    using unlock_function_t = void (*)(native::CURL* handle, native::curl_lock_data data, void* userptr);
+    void set_unlock_function(unlock_function_t unlock_function);
 
-  void set_user_data(void* user_data);
+    void set_user_data(void* user_data);
 
- private:
-  static void lock(native::CURL* handle, native::curl_lock_data data,
-                   native::curl_lock_access access, void* userptr);
-  static void unlock(native::CURL* handle, native::curl_lock_data data,
-                     void* userptr);
+private:
+    static void lock(native::CURL* handle, native::curl_lock_data data, native::curl_lock_access access, void* userptr);
+    static void unlock(native::CURL* handle, native::curl_lock_data data, void* userptr);
 
-  native::CURLSH* handle_;
-  std::mutex mutex_;
+    native::CURLSH* handle_;
+    std::mutex mutex_;
 };
 }  // namespace curl
 

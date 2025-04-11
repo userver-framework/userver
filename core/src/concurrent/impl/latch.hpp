@@ -26,31 +26,31 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent::impl {
 
 class Latch final {
- public:
-  inline explicit Latch(std::ptrdiff_t expected) : expected_(expected) {}
+public:
+    inline explicit Latch(std::ptrdiff_t expected) : expected_(expected) {}
 
-  inline void count_down() {
-    std::unique_lock lk{mtx_};
-    if (expected_ > 0) {
-      --expected_;
-      if (expected_ == 0) {
-        // DATA RACE if notifying not under a lock!
-        // Without a lock ~Latch() could be called concurrently with cv_ usage
-        cv_.notify_all();
-        lk.unlock();
-      }
+    inline void count_down() {
+        std::unique_lock lk{mtx_};
+        if (expected_ > 0) {
+            --expected_;
+            if (expected_ == 0) {
+                // DATA RACE if notifying not under a lock!
+                // Without a lock ~Latch() could be called concurrently with cv_ usage
+                cv_.notify_all();
+                lk.unlock();
+            }
+        }
     }
-  }
 
-  inline void wait() {
-    std::unique_lock lk{mtx_};
-    cv_.wait(lk, [=] { return expected_ == 0; });
-  }
+    inline void wait() {
+        std::unique_lock lk{mtx_};
+        cv_.wait(lk, [=] { return expected_ == 0; });
+    }
 
- private:
-  std::ptrdiff_t expected_{0};
-  std::mutex mtx_;
-  std::condition_variable cv_;
+private:
+    std::ptrdiff_t expected_{0};
+    std::mutex mtx_;
+    std::condition_variable cv_;
 };
 
 }  // namespace concurrent::impl

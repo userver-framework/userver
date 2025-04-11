@@ -24,11 +24,11 @@ namespace storages::mysql::tests {
 }*/
 
 UTEST(PreparedStatement, InvalidStatement) {
-  ClusterWrapper cluster{};
+    ClusterWrapper cluster{};
 
-  UEXPECT_THROW(cluster->Execute(ClusterHostType::kPrimary,
-                                 "SELECT * FROM this_table_doesnt_exist"),
-                MySQLStatementException);
+    UEXPECT_THROW(
+        cluster->Execute(ClusterHostType::kPrimary, "SELECT * FROM this_table_doesnt_exist"), MySQLStatementException
+    );
 }
 
 }  // namespace storages::mysql::tests

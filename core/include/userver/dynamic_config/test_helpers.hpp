@@ -20,8 +20,7 @@ dynamic_config::Source GetDefaultSource();
 const dynamic_config::Snapshot& GetDefaultSnapshot();
 
 /// Make `dynamic_config::StorageMock` with built-in defaults for all configs
-dynamic_config::StorageMock MakeDefaultStorage(
-    const std::vector<dynamic_config::KeyValue>& overrides);
+dynamic_config::StorageMock MakeDefaultStorage(const std::vector<dynamic_config::KeyValue>& overrides);
 
 namespace impl {
 

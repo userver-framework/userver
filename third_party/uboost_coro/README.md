@@ -1,5 +1,5 @@
 # userver: Boost.Coro
-Subset of [Boost C++ Libraries](https://www.boost.org) 1.83.0, that includes Coroutine2 and Context.
+Subset of [Boost C++ Libraries](https://www.boost.org) 1.87.0, that includes Coroutine2 and Context.
 `CMakeLists.txt` is based on [boost-cmake](https://github.com/Orphis/boost-cmake).
 
 Sanitizers could be enabled via [USERVER_SANITIZE](https://userver.tech/d3/da9/md_en_2userver_2tutorial_2build.html).

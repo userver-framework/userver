@@ -9,10 +9,8 @@ namespace storages::redis::utest {
 namespace impl {
 
 class RedisLocalImpl : public RedisConnectionState {
- public:
-  void FlushDb() {
-    GetSentinel()->MakeRequest({"flushdb"}, "none", true).Get();
-  }
+public:
+    void FlushDb() { GetSentinel()->MakeRequest({"flushdb"}, "none", true).Get(); }
 };
 
 }  // namespace impl
@@ -23,9 +21,7 @@ RedisLocal::~RedisLocal() = default;
 
 ClientPtr RedisLocal::GetClient() const { return impl_->GetClient(); }
 
-SubscribeClientPtr RedisLocal::GetSubscribeClient() const {
-  return impl_->GetSubscribeClient();
-}
+SubscribeClientPtr RedisLocal::GetSubscribeClient() const { return impl_->GetSubscribeClient(); }
 
 void RedisLocal::FlushDb() { impl_->FlushDb(); }
 

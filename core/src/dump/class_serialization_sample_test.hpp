@@ -12,8 +12,8 @@
 namespace dummy {
 
 struct SampleType {
-  std::vector<std::string> foo;
-  std::int64_t bar{};
+    std::vector<std::string> foo;
+    std::int64_t bar{};
 };
 
 void Write(dump::Writer& writer, const SampleType& value);

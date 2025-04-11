@@ -19,43 +19,50 @@ namespace server::http::impl {
 bool HasWildcardSpecificSymbols(const std::string& path);
 
 class WildcardPathIndex final {
- public:
-  struct Node {
-    // ordered by position in path
-    std::map<size_t, std::map<std::string, Node>> next;
+public:
+    struct Node {
+        // ordered by position in path
+        std::map<size_t, std::map<std::string, Node>> next;
 
-    // by path length
-    std::map<size_t, HandlerMethodIndex> handler_method_index_map;
-  };
+        // by path length
+        std::map<size_t, HandlerMethodIndex> handler_method_index_map;
+    };
 
-  void AddHandler(const handlers::HttpHandlerBase& handler,
-                  engine::TaskProcessor& task_processor);
+    void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
-  bool MatchRequest(HttpMethod method, const std::string& path,
-                    MatchRequestResult& match_result) const;
+    bool MatchRequest(HttpMethod method, const std::string& path, MatchRequestResult& match_result) const;
 
- private:
-  void AddHandler(const std::string& path,
-                  const handlers::HttpHandlerBase& handler,
-                  engine::TaskProcessor& task_processor);
+private:
+    void AddHandler(
+        const std::string& path,
+        const handlers::HttpHandlerBase& handler,
+        engine::TaskProcessor& task_processor
+    );
 
-  void AddPath(const handlers::HttpHandlerBase& handler,
-               engine::TaskProcessor& task_processor,
-               std::vector<PathItem>&& fixed_path,
-               std::vector<PathItem> wildcards);
+    void AddPath(
+        const handlers::HttpHandlerBase& handler,
+        engine::TaskProcessor& task_processor,
+        std::vector<PathItem>&& fixed_path,
+        std::vector<PathItem> wildcards
+    );
 
-  bool MatchRequest(const Node& node, HttpMethod method,
-                    const std::vector<std::string>& path,
-                    size_t path_string_length,
-                    MatchRequestResult& match_result) const;
+    bool MatchRequest(
+        const Node& node,
+        HttpMethod method,
+        const std::vector<std::string>& path,
+        size_t path_string_length,
+        MatchRequestResult& match_result
+    ) const;
 
-  static PathItem ExtractFixedPathItem(size_t index, std::string&& path_elem);
+    static PathItem ExtractFixedPathItem(size_t index, std::string&& path_elem);
 
-  static PathItem ExtractWildcardPathItem(
-      size_t index, const std::string& path_elem,
-      std::unordered_set<std::string>& wildcard_names);
+    static PathItem ExtractWildcardPathItem(
+        size_t index,
+        const std::string& path_elem,
+        std::unordered_set<std::string>& wildcard_names
+    );
 
-  Node root_;
+    Node root_;
 };
 
 }  // namespace server::http::impl

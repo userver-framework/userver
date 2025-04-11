@@ -52,15 +52,6 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        '-f',
-        '--file-map',
-        type=NameMapItem,
-        required=True,
-        action='append',
-        help='full filepath to virtual filepath mapping',
-    )
-
-    parser.add_argument(
         '-u',
         '--userver',
         type=str,
@@ -115,13 +106,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        'file', type=str, nargs='+', help='yaml/json input filename',
+        'file',
+        type=str,
+        nargs='+',
+        help='yaml/json input filename',
     )
     return parser.parse_args()
 
 
 def generate_cpp_name_func(
-    name_map: List[NameMapItem], erase_prefix: str,
+    name_map: List[NameMapItem],
+    erase_prefix: str,
 ) -> Callable:
     def cpp_name_func(schema_name: str) -> str:
         for item in name_map:
@@ -173,7 +168,8 @@ def traverse_dfs(path: str, data: Any):
 
 
 def extract_schemas_to_scan(
-    inp: dict, name_map: List[NameMapItem],
+    inp: dict,
+    name_map: List[NameMapItem],
 ) -> Dict[str, Any]:
     schemas = []
 
@@ -214,10 +210,13 @@ def read_schemas(
 
         vfilepath = vfilepath_from_filepath(fname, file_map)
         parser = front_parser.SchemaParser(
-            config=config, full_filepath=fname, full_vfilepath=vfilepath,
+            config=config,
+            full_filepath=fname,
+            full_vfilepath=vfilepath,
         )
         for path, obj in rr.sort_json_types(
-            scan_objects, erase_path_prefix,
+            scan_objects,
+            erase_path_prefix,
         ).items():
             parser.parse_schema(path.rstrip('/'), obj)
         schemas.append(parser.parsed_schemas())
@@ -246,10 +245,14 @@ def main() -> None:
     args = parse_args()
 
     schemas = read_schemas(
-        args.erase_path_prefix, args.file, args.name_map, args.file_map,
+        args.erase_path_prefix,
+        args.file,
+        args.name_map,
+        [NameMapItem('(.*)={0}')],
     )
     cpp_name_func = generate_cpp_name_func(
-        args.name_map, args.erase_path_prefix,
+        args.name_map,
+        args.erase_path_prefix,
     )
 
     gen = translator.Generator(
@@ -263,9 +266,7 @@ def main() -> None:
 
     outputs = renderer.OneToOneFileRenderer(
         relative_to=args.relative_to,
-        vfilepath_to_relfilepath={
-            file: str(pathlib.Path(file).with_suffix('')) for file in args.file
-        },
+        vfilepath_to_relfilepath={file: str(pathlib.Path(file).with_suffix('')) for file in args.file},
         clang_format_bin=args.clang_format,
         parse_extra_formats=args.parse_extra_formats,
         generate_serializer=args.generate_serializers,
@@ -273,7 +274,8 @@ def main() -> None:
     for output in outputs:
         if output.filepath_wo_ext.startswith('/'):
             filename_rel = os.path.relpath(
-                output.filepath_wo_ext, args.relative_to,
+                output.filepath_wo_ext,
+                args.relative_to,
             )
         else:
             filename_rel = output.filepath_wo_ext

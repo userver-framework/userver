@@ -9,22 +9,20 @@
 
 namespace myservice::smth {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : components::ComponentBase(config, context),
       config_(
           // Searching for some component to initialize members
-          context.FindComponent<components::DynamicConfig>()
-              .GetSource()  // getting "client" from a component
+          context.FindComponent<components::DynamicConfig>().GetSource()  // getting "client" from a component
       ) {
-  // Reading config values from static config
-  [[maybe_unused]] auto url = config["some-url"].As<std::string>();
-  const auto fs_tp_name = config["fs-task-processor"].As<std::string>();
+    // Reading config values from static config
+    [[maybe_unused]] auto url = config["some-url"].As<std::string>();
+    const auto fs_tp_name = config["fs-task-processor"].As<std::string>();
 
-  // Starting a task on a separate task processor from config
-  auto& fs_task_processor = context.GetTaskProcessor(fs_tp_name);
-  utils::Async(fs_task_processor, "my-component/fs-work", [] { /*...*/ }).Get();
-  // ...
+    // Starting a task on a separate task processor from config
+    auto& fs_task_processor = context.GetTaskProcessor(fs_tp_name);
+    utils::Async(fs_task_processor, "my-component/fs-work", [] { /*...*/ }).Get();
+    // ...
 }
 
 }  // namespace myservice::smth
@@ -39,13 +37,12 @@ Component::~Component() = default;
 /// [Sample user component runtime config source]
 namespace myservice::smth {
 
-inline const dynamic_config::Key kMyConfig{"SAMPLE_INTEGER_FROM_RUNTIME_CONFIG",
-                                           42};
+inline const dynamic_config::Key kMyConfig{"SAMPLE_INTEGER_FROM_RUNTIME_CONFIG", 42};
 
 int Component::DoSomething() const {
-  // Getting a snapshot of dynamic config.
-  const auto runtime_config = config_.GetSnapshot();
-  return runtime_config[kMyConfig];
+    // Getting a snapshot of dynamic config.
+    const auto runtime_config = config_.GetSnapshot();
+    return runtime_config[kMyConfig];
 }
 
 }  // namespace myservice::smth
@@ -55,7 +52,7 @@ int Component::DoSomething() const {
 namespace myservice::smth {
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: user component smth
 additionalProperties: false

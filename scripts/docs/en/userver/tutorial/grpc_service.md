@@ -4,7 +4,7 @@
 
 Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
-Make sure that you understand the basic concepts of @ref scripts/docs/en/userver/grpc.md "userver grpc driver".
+Make sure that you understand the basic concepts of @ref scripts/docs/en/userver/grpc/grpc.md "userver grpc driver".
 
 ## Step by step guide
 
@@ -38,8 +38,6 @@ Wrap the generated `api::GreeterServiceClient` in a component that exposes a sim
 
 @snippet samples/grpc_service/src/greeter_client.hpp  component
 
-@snippet samples/grpc_service/src/greeter_client.cpp  component
-
 We intentionally split `GreeterClient` from `GreeterClientComponent`
 to make the logic unit-testable. If you don't need gtest tests,
 you can put the logic into the component directly.
@@ -62,9 +60,13 @@ Stream request - stream response RPC handling:
 
 Fill in the static config entries for the client side:
 
-@snippet samples/grpc_service/static_config.yaml  static config client
+@snippet samples/grpc_service/configs/static_config.yaml  static config client
 
-@snippet samples/grpc_service/static_config.yaml  task processor
+@snippet samples/grpc_service/configs/static_config.yaml  task processor
+
+gRPC client endpoint is defined in `config_vars` for easy redefinition in testsuite:
+
+@include samples/grpc_service/configs/config_vars.yaml
 
 ### The server side
 
@@ -102,7 +104,7 @@ Stream request - stream response RPC handling:
 
 Fill in the static config entries for the server side:
 
-@snippet samples/grpc_service/static_config.yaml  static config server
+@snippet samples/grpc_service/configs/static_config.yaml  static config server
 
 ### int main()
 
@@ -128,7 +130,7 @@ The sample could be started by running
 that sets proper paths in the configuration files and starts the service.
 
 To start the service manually run
-`./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml>`.
+`./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml> --config-vars </path/to/config_vars.yaml>`.
 
 The service is available locally at port 8091 (as per our `static_config.yaml`).
 
@@ -146,15 +148,14 @@ pytest_userver.plugins.grpc pytest plugin:
 
 #### gRPC server mock
 
-To mock the gRPC server provide a hook for the static config to change
-the endpoint:
+To allow userver gRPC client to work in testsuite, we need to mock the gRPC service.
+First, change the gRPC endpoint to `$grpc_mockserver`
+@ref pytest_userver.plugins.config.userver_config_substitutions "substitution var"
+in `config_vars.testsuite.yaml`:
 
-@snippet samples/grpc_service/testsuite/conftest.py  Prepare configs
+@include samples/grpc_service/configs/config_vars.testsuite.yaml
 
-Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grpc_mockserver "grpc_mockserver":
-
-@snippet samples/grpc_service/testsuite/conftest.py  Prepare server mock
-
+Write the mocks using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver".
 After that everything is ready to check single request - single response service client requests:
 
 @snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test
@@ -174,7 +175,7 @@ To check stream request - stream response service client requests:
 #### gRPC client
 
 To do the gRPC requests write a client fixture using
-@ref pytest_userver.plugins.grpc_client.grpc_channel "grpc_channel":
+@ref pytest_userver.plugins.grpc.client.grpc_channel "grpc_channel":
 
 @snippet samples/grpc_service/testsuite/conftest.py  grpc client
 
@@ -257,7 +258,9 @@ See the full example at:
 * @ref samples/grpc_service/src/greeter_service.hpp
 * @ref samples/grpc_service/src/greeter_service.cpp
 * @ref samples/grpc_service/main.cpp
-* @ref samples/grpc_service/static_config.yaml
+* @ref samples/grpc_service/configs/static_config.yaml
+* @ref samples/grpc_service/configs/config_vars.yaml
+* @ref samples/grpc_service/configs/config_vars.testsuite.yaml
 * @ref samples/grpc_service/testsuite/conftest.py
 * @ref samples/grpc_service/testsuite/test_grpc.py
 * @ref samples/grpc_service/CMakeLists.txt
@@ -274,8 +277,9 @@ See the full example at:
 @example samples/grpc_service/src/greeter_service.hpp
 @example samples/grpc_service/src/greeter_service.cpp
 @example samples/grpc_service/main.cpp
-@example samples/grpc_service/grpc_service.cpp
-@example samples/grpc_service/static_config.yaml
+@example samples/grpc_service/configs/static_config.yaml
+@example samples/grpc_service/configs/config_vars.yaml
+@example samples/grpc_service/configs/config_vars.testsuite.yaml
 @example samples/grpc_service/testsuite/conftest.py
 @example samples/grpc_service/testsuite/test_grpc.py
 @example samples/grpc_service/CMakeLists.txt

@@ -30,40 +30,36 @@ namespace components {
 
 // clang-format on
 class StatisticsStorage final : public RawComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::StatisticsStorage component
-  static constexpr std::string_view kName = "statistics-storage";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::StatisticsStorage component
+    static constexpr std::string_view kName = "statistics-storage";
 
-  StatisticsStorage(const ComponentConfig& config,
-                    const ComponentContext& context);
+    StatisticsStorage(const ComponentConfig& config, const ComponentContext& context);
 
-  ~StatisticsStorage() override;
+    ~StatisticsStorage() override;
 
-  void OnAllComponentsLoaded() override;
+    void OnAllComponentsLoaded() override;
 
-  utils::statistics::Storage& GetStorage() { return storage_; }
+    utils::statistics::Storage& GetStorage() { return storage_; }
 
-  const utils::statistics::Storage& GetStorage() const { return storage_; }
+    const utils::statistics::Storage& GetStorage() const { return storage_; }
 
-  utils::statistics::MetricsStoragePtr GetMetricsStorage() {
-    return metrics_storage_;
-  }
+    utils::statistics::MetricsStoragePtr GetMetricsStorage() { return metrics_storage_; }
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  utils::statistics::Storage storage_;
-  utils::statistics::MetricsStoragePtr metrics_storage_;
-  std::vector<utils::statistics::Entry> metrics_storage_registration_;
+private:
+    utils::statistics::Storage storage_;
+    utils::statistics::MetricsStoragePtr metrics_storage_;
+    std::vector<utils::statistics::Entry> metrics_storage_registration_;
 };
 
 template <>
 inline constexpr bool kHasValidate<StatisticsStorage> = true;
 
 template <>
-inline constexpr auto kConfigFileMode<StatisticsStorage> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto kConfigFileMode<StatisticsStorage> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

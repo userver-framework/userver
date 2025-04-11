@@ -7,13 +7,13 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::impl::metadata {
 
 struct NativeClientInfo final {
-  std::string client_version;
-  SemVer client_version_id;
+    std::string client_version;
+    SemVer client_version_id;
 
-  static NativeClientInfo Get();
+    static NativeClientInfo Get();
 
- private:
-  NativeClientInfo(const char* client_version, std::uint64_t client_version_id);
+private:
+    NativeClientInfo(const char* client_version, std::uint64_t client_version_id);
 };
 
 }  // namespace storages::mysql::impl::metadata

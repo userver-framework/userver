@@ -10,12 +10,11 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse::io::traits {
 
 template <typename T>
-inline constexpr bool kIsMappedToClickhouse =
-    utils::IsDeclComplete<CppToClickhouse<T>>::value;
+inline constexpr bool kIsMappedToClickhouse = utils::IsDeclComplete<CppToClickhouse<T>>::value;
 
 template <typename T>
 auto Inserter(T& container) {
-  return meta::Inserter(container);
+    return meta::Inserter(container);
 }
 
 template <typename T>

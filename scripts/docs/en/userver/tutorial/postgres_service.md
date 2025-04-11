@@ -22,52 +22,88 @@ In this tutorial we will write a service that is a simple key-value storage on t
 
 Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a component for handling HTTP requests:
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component
+@snippet samples/postgres_service/main.cpp  Postgres service sample - component
 
-Note that the component holds a storages::postgres::ClusterPtr - a client to the PostgreSQL DB. That client is thread safe, you can use it concurrently from different threads and tasks.
+Note that the component holds a storages::postgres::ClusterPtr - a client to the PostgreSQL DB. That client is thread
+safe, you can use it concurrently from different threads and tasks.
 
 ### Initializing the database
 
-To access the database from our new component we need to find the PostgreSQL component and request a client to the DB. After that we may create the required tables.
+The creation of the table occurs using external tools. In this case, we initialize it using the testsuite plugins.
+You will find information about initializing the environment for tests below.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component constructor
+To access the database from our new component we need to find the PostgreSQL component and request a client to the DB.
 
-To create a table we just execute an SQL statement, mentioning that it should go to the master instance. After that, our component is ready to process incoming requests in the KeyValue::HandleRequestThrow function. 
+@snippet samples/postgres_service/main.cpp  Postgres service sample - component constructor
+
+After that, our component is ready to process incoming requests in the KeyValue::HandleRequestThrow function. 
 
 
 ### KeyValue::HandleRequestThrow
 
-In this sample we use a single handler to deal with all the HTTP methods. The KeyValue::HandleRequestThrow member function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic: 
+In this sample we use a single handler to deal with all the HTTP methods. The KeyValue::HandleRequestThrow member
+function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic: 
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - HandleRequestThrow
+@snippet samples/postgres_service/main.cpp  Postgres service sample - HandleRequestThrow
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the KeyValue component only uses the thread safe DB client. In more complex cases @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" should be used or data must not be mutated.
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the
+KeyValue component only uses the thread safe DB client. In more complex cases
+@ref scripts/docs/en/userver/synchronization.md "synchronization primitives" should be used or data must not be mutated.
 
+
+### Generate SQL statements
+We can generate the necessary `storages::Query` objects from external SQL/YQL files.
+
+In our case, we have the following files:
+* @ref samples/postgres_service/select_value.sql
+* @ref samples/postgres_service/insert_value.sql
+* @ref samples/postgres_service/delete_value.sql
+
+From which we will get:
+@code{.hpp}
+namespace samples_postgres_service::sql {
+
+extern const USERVER_NAMESPACE::storages::Query kDeleteValue;
+
+extern const USERVER_NAMESPACE::storages::Query kInsertValue;
+
+extern const USERVER_NAMESPACE::storages::Query kSelectValue;
+
+}
+@endcode
+
+For more information about generation, see:
+@ref scripts/docs/en/userver/sql_files.md
+
+Note that you can also pass queries directly as string literals.
 
 ### KeyValue::GetValue
 
-Postgres driver in userver implicitly works with prepared statements. For the first time you execute the query a prepared statement is created. Executing the query next time would result in only sending the arguments for the already created prepared statement.
+Postgres driver in userver implicitly works with prepared statements. For the first time you execute the query a
+prepared statement is created. Executing the query next time would result in only sending the arguments for the already
+created prepared statement.
 
-You could pass strings as queries, just like we done in constructor of KeyValue. Also queries could be stored in variables along with query names and reused across the functions. Name of the query could be used in dynamic configs to set the execution timeouts (see @ref POSTGRES_QUERIES_COMMAND_CONTROL).
+Name of the query could be used in dynamic configs to set the execution timeouts (see @ref POSTGRES_QUERIES_COMMAND_CONTROL).
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - GetValue
+@snippet samples/postgres_service/main.cpp  Postgres service sample - GetValue
 
 
 ### KeyValue::PostValue
 
-You can start a transaction by calling storages::postgres::Cluster::Begin(). Transactions are automatically rolled back, if you do not commit them.
-To execute a query in transaction, just call Execute member function of a transaction. Just like with non-transactional Execute, you can pass string or storages::postgres::Query, you could reuse the 
+You can start a transaction by calling storages::postgres::Cluster::Begin(). Transactions are automatically rolled back,
+if you do not commit them.
+To execute a query in transaction, just call Execute member function of a transaction. Just like with non-transactional
+Execute, you can pass string or storages::Query, you could reuse the 
 same query in different functions. Transactions also could be named, and those names could be used in @ref POSTGRES_QUERIES_COMMAND_CONTROL.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - PostValue
+@snippet samples/postgres_service/main.cpp  Postgres service sample - PostValue
 
 
 ### KeyValue::DeleteValue
 
 Note that mutating queries should be executed on a master instance.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - DeleteValue
-
+@snippet samples/postgres_service/main.cpp  Postgres service sample - DeleteValue
 
 ### Static config
 
@@ -89,7 +125,7 @@ Finally, we
 add our component to the components::MinimalServerComponentList(),
 and start the server with static config `kStaticConfig`.
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - main
+@snippet samples/postgres_service/main.cpp  Postgres service sample - main
 
 
 ### Build and Run
@@ -160,9 +196,9 @@ implemented using the testsuite. To do that you have to:
 * Turn on the pytest_userver.plugins.postgresql plugin and provide PostgreSQL
   schema to start the database:
   @snippet samples/postgres_service/tests/conftest.py psql prepare
-  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
   fixture already knows about the pgsql fixture, so there's no need to override
-  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  the @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
   fixture.
 
 * Write the test:
@@ -172,7 +208,7 @@ implemented using the testsuite. To do that you have to:
 ## Full sources
 
 See the full example:
-* @ref samples/postgres_service/postgres_service.cpp
+* @ref samples/postgres_service/main.cpp
 * @ref samples/postgres_service/static_config.yaml
 * @ref samples/postgres_service/CMakeLists.txt
 * @ref samples/postgres_service/tests/conftest.py
@@ -184,8 +220,11 @@ See the full example:
 ⇦ @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md | @ref scripts/docs/en/userver/tutorial/mongo_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/postgres_service/postgres_service.cpp
+@example samples/postgres_service/main.cpp
 @example samples/postgres_service/static_config.yaml
 @example samples/postgres_service/CMakeLists.txt
 @example samples/postgres_service/tests/conftest.py
 @example samples/postgres_service/tests/test_postgres.py
+@example samples/postgres_service/select_value.sql
+@example samples/postgres_service/insert_value.sql
+@example samples/postgres_service/delete_value.sql

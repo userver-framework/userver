@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/headers_propagator/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::headers_propagator::Component
+/// @brief @copybrief ugrpc::server::middlewares::headers_propagator::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
@@ -24,24 +23,32 @@ namespace ugrpc::server::middlewares::headers_propagator {
 
 // clang-format on
 
-class Component final : public MiddlewareComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// ugrpc::server::middlewares::headers_propagator::Component
-  static constexpr std::string_view kName = "grpc-server-headers-propagator";
+class Component final : public MiddlewareFactoryComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// ugrpc::server::middlewares::headers_propagator::Component
+    static constexpr std::string_view kName = "grpc-server-headers-propagator";
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::shared_ptr<MiddlewareBase> GetMiddleware() override;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
- private:
-  const std::vector<std::string> headers_;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::server::ServiceInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::headers_propagator
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::headers_propagator::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::headers_propagator::Component> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

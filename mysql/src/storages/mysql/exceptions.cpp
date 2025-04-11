@@ -4,8 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
-MySQLException::MySQLException(unsigned int error, const char* message)
-    : std::runtime_error{message}, errno_{error} {}
+MySQLException::MySQLException(unsigned int error, const char* message) : std::runtime_error{message}, errno_{error} {}
 
 MySQLException::MySQLException(unsigned int error, const std::string& message)
     : std::runtime_error{message}, errno_{error} {}

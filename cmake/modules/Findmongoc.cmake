@@ -5,6 +5,7 @@ _userver_module_begin(
     FORMULA_NAMES mongo-c-driver
     RPM_NAMES mongo-c-driver-devel
     PACMAN_NAMES mongo-c-driver
+    PKG_CONFIG_NAMES libmongoc-1.0
 )
 
 _userver_module_find_include(
@@ -12,10 +13,19 @@ _userver_module_find_include(
     PATHS
     /usr/include/libmongoc-1.0
     /usr/local/opt/mongo-c/include/libmongoc-1.0
+    /opt/homebrew/opt/mongo-c-driver/include/libmongoc-1.0
 )
 
 _userver_module_find_library(
-    NAMES mongoc mongoc-1.0
+    NAMES mongoc-1.0 mongoc
+    PATHS
+    /usr/include/libmongoc-1.0
+    /usr/local/opt/mongo-c/include/libmongoc-1.0
+    /opt/homebrew/opt/mongo-c-driver/include/libmongoc-1.0
 )
 
 _userver_module_end()
+
+if(NOT TARGET mongo::mongoc_static)
+  add_library(mongo::mongoc_static ALIAS mongoc)
+endif()

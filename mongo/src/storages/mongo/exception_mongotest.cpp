@@ -16,11 +16,10 @@ class Exception : public MongoPoolFixture {};
 }  // namespace
 
 UTEST_F(Exception, DuplicateKey) {
-  auto coll = GetDefaultPool().GetCollection("duplicate_key");
+    auto coll = GetDefaultPool().GetCollection("duplicate_key");
 
-  UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)));
-  UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)),
-                mongo::DuplicateKeyException);
+    UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)));
+    UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)), mongo::DuplicateKeyException);
 }
 
 USERVER_NAMESPACE_END

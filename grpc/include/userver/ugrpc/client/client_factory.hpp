@@ -3,26 +3,19 @@
 /// @file userver/ugrpc/client/client_factory.hpp
 /// @brief @copybrief ugrpc::client::ClientFactory
 
-#include <cstddef>
-#include <memory>
+#include <optional>
 #include <string>
-#include <unordered_map>
 #include <utility>
-
-#include <grpcpp/completion_queue.h>
-#include <grpcpp/security/credentials.h>
-#include <grpcpp/support/channel_arguments.h>
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/logging/level.hpp>
-#include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 
-#include <userver/ugrpc/client/fwd.hpp>
-#include <userver/ugrpc/client/impl/channel_cache.hpp>
-#include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/client_factory_settings.hpp>
+#include <userver/ugrpc/client/client_settings.hpp>
+#include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,59 +25,6 @@ class CompletionQueuePoolBase;
 }  // namespace ugrpc::impl
 
 namespace ugrpc::client {
-
-/// Settings relating to the ClientFactory
-struct ClientFactorySettings final {
-  /// gRPC channel credentials, none by default
-  std::shared_ptr<grpc::ChannelCredentials> credentials{
-      grpc::InsecureChannelCredentials()};
-
-  /// gRPC channel credentials by client_name. If not set, default `credentials`
-  /// is used instead.
-  std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>>
-      client_credentials{};
-
-  /// Optional grpc-core channel args
-  /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
-  grpc::ChannelArguments channel_args{};
-
-  /// The logging level override for the internal grpcpp library. Must be either
-  /// `kDebug`, `kInfo` or `kError`.
-  logging::Level native_log_level{logging::Level::kError};
-
-  /// Number of underlying channels that will be created for every client
-  /// in this factory.
-  std::size_t channel_count{1};
-};
-
-/// Settings relating to creation of a code-generated client
-struct ClientSettings final {
-  /// **(Required)**
-  /// The name of the client, for diagnostics, credentials and middlewares.
-  std::string client_name;
-
-  /// **(Required)**
-  /// The URI to connect to, e.g. `http://my.domain.com:8080`.
-  /// Should not include any HTTP path, just schema, domain name and port. Unix
-  /// sockets are also supported. For details, see:
-  /// https://grpc.github.io/grpc/cpp/md_doc_naming.html
-  std::string endpoint;
-
-  /// **(Optional)**
-  /// The name of the QOS
-  /// @ref scripts/docs/en/userver/dynamic_config.md "dynamic config"
-  /// that will be applied automatically to every RPC.
-  ///
-  /// Timeout from QOS config is ignored if:
-  ///
-  /// * an explicit `qos` parameter is specified at RPC creation, or
-  /// * deadline is specified in the `client_context` passed at RPC creation.
-  ///
-  /// ## Client QOS config definition sample
-  ///
-  /// @snippet grpc/tests/tests/unit_test_client_qos.hpp  qos config key
-  const dynamic_config::Key<ClientQos>* client_qos{nullptr};
-};
 
 /// @ingroup userver_clients
 ///
@@ -98,58 +38,55 @@ struct ClientSettings final {
 /// as long as a channel to the same endpoint is used somewhere, the same
 /// channel is given out.
 class ClientFactory final {
- public:
-  /// @brief Make a client of the specified code-generated type.
-  template <typename Client>
-  Client MakeClient(ClientSettings&& settings);
+public:
+    /// @brief Make a client of the specified code-generated type.
+    template <typename Client>
+    Client MakeClient(ClientSettings&& client_settings);
 
-  /// @deprecated Use the overload taking @ref ClientSettings instead.
-  /// @brief Make a client of the specified code-generated type.
-  /// @param client_name see @ref ClientSettings
-  /// @param endpoint see @ref ClientSettings
-  template <typename Client>
-  Client MakeClient(const std::string& client_name,
-                    const std::string& endpoint);
+    /// @deprecated Use the overload taking @ref ClientSettings instead.
+    /// @brief Make a client of the specified code-generated type.
+    /// @param client_name see @ref ClientSettings
+    /// @param endpoint see @ref ClientSettings
+    template <typename Client>
+    Client MakeClient(const std::string& client_name, const std::string& endpoint);
 
-  /// @cond
-  // For internal use only.
-  ClientFactory(ClientFactorySettings&& settings,
-                engine::TaskProcessor& channel_task_processor,
-                MiddlewareFactories mws,
-                ugrpc::impl::CompletionQueuePoolBase& queue,
-                ugrpc::impl::StatisticsStorage& statistics_storage,
-                testsuite::GrpcControl& testsuite_grpc,
-                dynamic_config::Source source);
-  /// @endcond
+    /// @cond
+    // For internal use only.
+    ClientFactory(
+        ClientFactorySettings&& client_factory_settings,
+        engine::TaskProcessor& channel_task_processor,
+        impl::MiddlewarePipelineCreator& pipeline_creator,
+        ugrpc::impl::CompletionQueuePoolBase& completion_queues,
+        ugrpc::impl::StatisticsStorage& statistics_storage,
+        testsuite::GrpcControl& testsuite_grpc,
+        dynamic_config::Source config_source
+    );
+    /// @endcond
 
- private:
-  impl::ChannelCache::Token GetChannel(const std::string& client_name,
-                                       const std::string& endpoint);
+private:
+    impl::ClientInternals
+    MakeClientInternals(ClientSettings&& settings, std::optional<ugrpc::impl::StaticServiceMetadata> meta);
 
-  impl::ClientDependencies MakeClientDependencies(ClientSettings&& settings);
-
-  engine::TaskProcessor& channel_task_processor_;
-  MiddlewareFactories mws_;
-  ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
-  impl::ChannelCache channel_cache_;
-  std::unordered_map<std::string, impl::ChannelCache> client_channel_cache_;
-  ugrpc::impl::StatisticsStorage& client_statistics_storage_;
-  const dynamic_config::Source config_source_;
-  testsuite::GrpcControl& testsuite_grpc_;
+    ClientFactorySettings client_factory_settings_;
+    engine::TaskProcessor& channel_task_processor_;
+    impl::MiddlewarePipelineCreator& pipeline_creator_;
+    ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
+    ugrpc::impl::StatisticsStorage& client_statistics_storage_;
+    const dynamic_config::Source config_source_;
+    testsuite::GrpcControl& testsuite_grpc_;
 };
 
 template <typename Client>
 Client ClientFactory::MakeClient(ClientSettings&& settings) {
-  return Client(MakeClientDependencies(std::move(settings)));
+    return Client(MakeClientInternals(std::move(settings), Client::GetMetadata()));
 }
 
 template <typename Client>
-Client ClientFactory::MakeClient(const std::string& client_name,
-                                 const std::string& endpoint) {
-  ClientSettings settings;
-  settings.client_name = client_name;
-  settings.endpoint = endpoint;
-  return MakeClient<Client>(std::move(settings));
+Client ClientFactory::MakeClient(const std::string& client_name, const std::string& endpoint) {
+    ClientSettings settings;
+    settings.client_name = client_name;
+    settings.endpoint = endpoint;
+    return MakeClient<Client>(std::move(settings));
 }
 
 }  // namespace ugrpc::client

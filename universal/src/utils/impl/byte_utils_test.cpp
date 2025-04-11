@@ -10,8 +10,7 @@
 USERVER_NAMESPACE_BEGIN
 namespace {
 
-constexpr std::array<std::uint64_t, 2> seed{9621534751069176051UL,
-                                            2054564862222048242UL};
+constexpr std::array<std::uint64_t, 2> seed{9621534751069176051UL, 2054564862222048242UL};
 }
 
 namespace reference_siphash_implementation {
@@ -232,15 +231,19 @@ uint64_t siphash_nocase(const uint8_t *in, const size_t inlen, const uint8_t *k)
 // clang-format on
 
 std::uint64_t Hash(std::string_view data) {
-  return reference_siphash_implementation::siphash(
-      reinterpret_cast<const std::uint8_t*>(data.data()), data.size(),
-      reinterpret_cast<const std::uint8_t*>(seed.data()));
+    return reference_siphash_implementation::siphash(
+        reinterpret_cast<const std::uint8_t*>(data.data()),
+        data.size(),
+        reinterpret_cast<const std::uint8_t*>(seed.data())
+    );
 }
 
 std::uint64_t CaseInsensitiveHash(std::string_view data) {
-  return reference_siphash_implementation::siphash_nocase(
-      reinterpret_cast<const std::uint8_t*>(data.data()), data.size(),
-      reinterpret_cast<const std::uint8_t*>(seed.data()));
+    return reference_siphash_implementation::siphash_nocase(
+        reinterpret_cast<const std::uint8_t*>(data.data()),
+        data.size(),
+        reinterpret_cast<const std::uint8_t*>(seed.data())
+    );
 }
 
 }  // namespace reference_siphash_implementation
@@ -248,146 +251,131 @@ std::uint64_t CaseInsensitiveHash(std::string_view data) {
 namespace {
 
 const std::string kAllPossibleBytesString = [] {
-  // 256 for all possible values,
-  // +15 to stress the "gather leftovers" step.
-  constexpr std::size_t len = 256 + 15;
-  std::string result(len, 0);
-  for (std::size_t i = 0; i < len; ++i) {
-    result[i] = static_cast<char>(i & 0xff);
-  }
-  return result;
+    // 256 for all possible values,
+    // +15 to stress the "gather leftovers" step.
+    constexpr std::size_t len = 256 + 15;
+    std::string result(len, 0);
+    for (std::size_t i = 0; i < len; ++i) {
+        result[i] = static_cast<char>(i & 0xff);
+    }
+    return result;
 }();
 
 struct ReferenceCaseHash final {
-  std::uint64_t operator()(std::string_view data) const noexcept {
-    return reference_siphash_implementation::Hash(data);
-  }
+    std::uint64_t operator()(std::string_view data) const noexcept {
+        return reference_siphash_implementation::Hash(data);
+    }
 };
 
 struct ReferenceNoCaseHash final {
-  std::uint64_t operator()(std::string_view data) const noexcept {
-    return reference_siphash_implementation::CaseInsensitiveHash(data);
-  }
+    std::uint64_t operator()(std::string_view data) const noexcept {
+        return reference_siphash_implementation::CaseInsensitiveHash(data);
+    }
 };
 
 template <typename Hasher, typename ReferenceHash>
 void TestSipHashAgainstReference() {
-  const std::string some_random_string{"AsddDDzKJijjwker!233'DD0-MLzxjiho"};
+    const std::string some_random_string{"AsddDDzKJijjwker!233'DD0-MLzxjiho"};
 
-  const Hasher hasher{seed[0], seed[1]};
-  const ReferenceHash reference_hasher{};
+    const Hasher hasher{seed[0], seed[1]};
+    const ReferenceHash reference_hasher{};
 
-  {
-    // test some random string
-    EXPECT_EQ(hasher(some_random_string), reference_hasher(some_random_string));
-  }
-
-  {
-    // test all possible chars
-    for (std::size_t i = 0; i < kAllPossibleBytesString.size(); ++i) {
-      const auto data_view =
-          std::string_view{kAllPossibleBytesString}.substr(0, i);
-      ASSERT_EQ(hasher(data_view), reference_hasher(data_view));
+    {
+        // test some random string
+        EXPECT_EQ(hasher(some_random_string), reference_hasher(some_random_string));
     }
-  }
 
-  {
-    // test all possible chars at all possible positions
-    const auto all_possible_bytes_twice =
-        kAllPossibleBytesString + kAllPossibleBytesString;
-
-    for (std::size_t i = 0; i < kAllPossibleBytesString.size(); ++i) {
-      const auto data_view = std::string_view{all_possible_bytes_twice}.substr(
-          i, kAllPossibleBytesString.size());
-      ASSERT_EQ(hasher(data_view), reference_hasher(data_view));
+    {
+        // test all possible chars
+        for (std::size_t i = 0; i < kAllPossibleBytesString.size(); ++i) {
+            const auto data_view = std::string_view{kAllPossibleBytesString}.substr(0, i);
+            ASSERT_EQ(hasher(data_view), reference_hasher(data_view));
+        }
     }
-  }
+
+    {
+        // test all possible chars at all possible positions
+        const auto all_possible_bytes_twice = kAllPossibleBytesString + kAllPossibleBytesString;
+
+        for (std::size_t i = 0; i < kAllPossibleBytesString.size(); ++i) {
+            const auto data_view = std::string_view{all_possible_bytes_twice}.substr(i, kAllPossibleBytesString.size());
+            ASSERT_EQ(hasher(data_view), reference_hasher(data_view));
+        }
+    }
 }
 
 template <typename Eq>
 void TestCaseInsensitiveEqual() {
-  const Eq cmp{};
+    const Eq cmp{};
 
-  // test for equality, strings are byte-wise equal
-  {
-    const auto all_possible_bytes_three_times = kAllPossibleBytesString +
-                                                kAllPossibleBytesString +
-                                                kAllPossibleBytesString;
-    for (std::size_t len = 1; len <= kAllPossibleBytesString.size(); ++len) {
-      for (std::size_t start = 0; start < kAllPossibleBytesString.size();
-           ++start) {
-        const auto lhs =
-            std::string_view{all_possible_bytes_three_times}.substr(start, len);
-        const auto rhs =
-            std::string_view{all_possible_bytes_three_times}.substr(
-                start + kAllPossibleBytesString.size(), len);
-        ASSERT_TRUE(cmp(lhs, rhs));
-      }
-    }
-  }
-
-  // test for inequality
-  {
-    for (std::size_t len = 1; len <= kAllPossibleBytesString.size(); ++len) {
-      auto rhs = kAllPossibleBytesString;
-      for (std::size_t diff_at = 0; diff_at < len; ++diff_at) {
-        rhs[diff_at] ^= 1;
-        ASSERT_FALSE(cmp(kAllPossibleBytesString, rhs));
-        rhs[diff_at] ^= 1;
-      }
-    }
-  }
-
-  // test for equality, strings differ in case in some positions
-  {
-    const auto switch_case = [] {
-      auto all_possible_bytes = kAllPossibleBytesString;
-      for (auto& c : all_possible_bytes) {
-        if (c >= 'a' && c <= 'z') {
-          c = 'A' + (c - 'a');
-        } else if (c >= 'A' && c <= 'Z') {
-          c = 'a' + (c - 'A');
+    // test for equality, strings are byte-wise equal
+    {
+        const auto all_possible_bytes_three_times =
+            kAllPossibleBytesString + kAllPossibleBytesString + kAllPossibleBytesString;
+        for (std::size_t len = 1; len <= kAllPossibleBytesString.size(); ++len) {
+            for (std::size_t start = 0; start < kAllPossibleBytesString.size(); ++start) {
+                const auto lhs = std::string_view{all_possible_bytes_three_times}.substr(start, len);
+                const auto rhs = std::string_view{all_possible_bytes_three_times}.substr(
+                    start + kAllPossibleBytesString.size(), len
+                );
+                ASSERT_TRUE(cmp(lhs, rhs));
+            }
         }
-      }
-
-      return all_possible_bytes;
-    }();
-
-    for (std::size_t start = 0; start < kAllPossibleBytesString.size();
-         ++start) {
-      for (std::size_t len = 1; start + len < kAllPossibleBytesString.size();
-           ++len) {
-        const auto lhs =
-            std::string_view{kAllPossibleBytesString}.substr(start, len);
-        const auto rhs = std::string_view{switch_case}.substr(start, len);
-        ASSERT_TRUE(cmp(lhs, rhs));
-      }
     }
-  }
+
+    // test for inequality
+    {
+        for (std::size_t len = 1; len <= kAllPossibleBytesString.size(); ++len) {
+            auto rhs = kAllPossibleBytesString;
+            for (std::size_t diff_at = 0; diff_at < len; ++diff_at) {
+                rhs[diff_at] ^= 1;
+                ASSERT_FALSE(cmp(kAllPossibleBytesString, rhs));
+                rhs[diff_at] ^= 1;
+            }
+        }
+    }
+
+    // test for equality, strings differ in case in some positions
+    {
+        const auto switch_case = [] {
+            auto all_possible_bytes = kAllPossibleBytesString;
+            for (auto& c : all_possible_bytes) {
+                if (c >= 'a' && c <= 'z') {
+                    c = 'A' + (c - 'a');
+                } else if (c >= 'A' && c <= 'Z') {
+                    c = 'a' + (c - 'A');
+                }
+            }
+
+            return all_possible_bytes;
+        }();
+
+        for (std::size_t start = 0; start < kAllPossibleBytesString.size(); ++start) {
+            for (std::size_t len = 1; start + len < kAllPossibleBytesString.size(); ++len) {
+                const auto lhs = std::string_view{kAllPossibleBytesString}.substr(start, len);
+                const auto rhs = std::string_view{switch_case}.substr(start, len);
+                ASSERT_TRUE(cmp(lhs, rhs));
+            }
+        }
+    }
 }
 
 }  // namespace
 
 TEST(SipHashCase, MatchesReferenceImplementation) {
-  TestSipHashAgainstReference<utils::impl::SipHasher, ReferenceCaseHash>();
+    TestSipHashAgainstReference<utils::impl::SipHasher, ReferenceCaseHash>();
 }
 
 TEST(SipHashCaseInsensitive, MatchesReferenceImplementation) {
-  TestSipHashAgainstReference<utils::impl::CaseInsensitiveSipHasher,
-                              ReferenceNoCaseHash>();
+    TestSipHashAgainstReference<utils::impl::CaseInsensitiveSipHasher, ReferenceNoCaseHash>();
 }
 
 TEST(SipHashCaseInsensitiveNoSse, MatchesReferenceImplementation) {
-  TestSipHashAgainstReference<utils::impl::CaseInsensitiveSipHasherNoSse,
-                              ReferenceNoCaseHash>();
+    TestSipHashAgainstReference<utils::impl::CaseInsensitiveSipHasherNoSse, ReferenceNoCaseHash>();
 }
 
-TEST(CaseInsensitiveEqual, Correctness) {
-  TestCaseInsensitiveEqual<utils::impl::CaseInsensitiveEqual>();
-}
+TEST(CaseInsensitiveEqual, Correctness) { TestCaseInsensitiveEqual<utils::impl::CaseInsensitiveEqual>(); }
 
-TEST(CaseInsensitiveEqualNoSse, Correctness) {
-  TestCaseInsensitiveEqual<utils::impl::CaseInsensitiveEqualNoSse>();
-}
+TEST(CaseInsensitiveEqualNoSse, Correctness) { TestCaseInsensitiveEqual<utils::impl::CaseInsensitiveEqualNoSse>(); }
 
 USERVER_NAMESPACE_END

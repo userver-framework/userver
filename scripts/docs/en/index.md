@@ -27,11 +27,19 @@ are available at the
 * @ref scripts/docs/en/userver/intro.md
 * @ref scripts/docs/en/userver/framework_comparison.md
 * @ref scripts/docs/en/userver/supported_platforms.md
-* @ref scripts/docs/en/userver/tutorial/build.md
 * @ref scripts/docs/en/userver/deploy_env.md
 * @ref scripts/docs/en/userver/development/releases.md
 * @ref scripts/docs/en/userver/roadmap_and_changelog.md
 * @ref scripts/docs/en/userver/faq.md
+
+
+@anchor Install
+## Install
+
+* @ref scripts/docs/en/userver/build/build.md
+* @ref scripts/docs/en/userver/build/dependencies.md
+* @ref scripts/docs/en/userver/build/options.md
+* @ref scripts/docs/en/userver/build/userver.md
 
 
 @anchor tutorial_services
@@ -53,6 +61,7 @@ are available at the
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
 * @ref scripts/docs/en/userver/tutorial/multipart_service.md
+* @ref scripts/docs/en/userver/tutorial/s3api.md
 * @ref scripts/docs/en/userver/tutorial/json_to_yaml.md
 
 
@@ -64,10 +73,14 @@ are available at the
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
-* @ref scripts/docs/en/userver/chaotic.md
 * @ref scripts/docs/en/userver/logging.md
 * @ref scripts/docs/en/userver/task_processors_guide.md
 * @ref scripts/docs/en/userver/periodics.md
+
+## Code generation
+* @ref scripts/docs/en/userver/codegen_overview.md
+* @ref scripts/docs/en/userver/chaotic.md
+* @ref scripts/docs/en/userver/sql_files.md
 
 
 ## Testing and Benchmarking
@@ -78,7 +91,12 @@ are available at the
 
 
 ## Protocols
-* @ref scripts/docs/en/userver/grpc.md
+* @ref scripts/docs/en/userver/grpc/grpc.md
+    * Middlewares
+        * @ref scripts/docs/en/userver/grpc/server_middlewares.md
+        * @ref scripts/docs/en/userver/grpc/client_middlewares.md
+        * @ref scripts/docs/en/userver/grpc/middlewares_order.md
+        * @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 * HTTP:
     * @ref clients::http::Client "Client"
     * @ref scripts/docs/en/userver/http_server.md
@@ -100,6 +118,7 @@ are available at the
 * @ref scripts/docs/en/userver/os_signals.md
 * @ref scripts/docs/en/userver/deadline_propagation.md
 * @ref scripts/docs/en/userver/congestion_control.md
+* @ref scripts/docs/en/userver/stack.md
 
 
 ## Caches
@@ -141,11 +160,14 @@ are available at the
 * @ref scripts/docs/en/userver/redis.md
 * @ref clickhouse_driver
 
+## Libraries
+* @ref scripts/docs/en/userver/libraries/easy.md
+* @ref scripts/docs/en/userver/libraries/s3api.md
+* @ref scripts/docs/en/userver/libraries/grpc-reflection.md
 
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md
 * @ref scripts/docs/en/userver/driver_guide.md
-* @ref scripts/docs/en/userver/tutorial/build_userver.md
 * @ref scripts/docs/en/userver/publications.md
 * @ref CONTRIBUTING.md
 * @ref SECURITY.md

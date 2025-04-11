@@ -54,7 +54,8 @@ def _call(service_client, gen_domain_name, dns_mock_stats):
 def _flush_resolver_cache(service_client):
     async def _flush_resolver_cache():
         result = await service_client.get(
-            '/chaos/resolver', params={'type': 'flush'},
+            '/chaos/resolver',
+            params={'type': 'flush'},
         )
 
         assert result.status == 200
@@ -71,8 +72,8 @@ async def _do_flush(flush_resolver_cache):
 @pytest.fixture(name='check_restore')
 def _check_restore(gate, call, flush_resolver_cache, gen_domain_name):
     async def _do_restore(domain: typing.Optional[str] = None):
-        gate.to_server_pass()
-        gate.to_client_pass()
+        await gate.to_server_pass()
+        await gate.to_client_pass()
 
         if not domain:
             domain = gen_domain_name()
@@ -90,11 +91,9 @@ def _check_restore(gate, call, flush_resolver_cache, gen_domain_name):
 
 
 @pytest.fixture(autouse=True)
-async def _auto_check_restore(request, loop, check_restore):
-    def teardown():
-        loop.run_until_complete(check_restore())
-
-    request.addfinalizer(teardown)
+async def _auto_check_restore(check_restore):
+    yield
+    await check_restore()
 
 
 async def test_ok(call, gate):
@@ -106,7 +105,7 @@ async def test_ok(call, gate):
 
 @pytest.mark.skip(reason='corrupted data can still be valid')
 async def test_corrupt_data(call, gate, check_restore):
-    gate.to_client_corrupt_data()
+    await gate.to_client_corrupt_data()
     response = await call()
 
     assert response.status == 500
@@ -120,7 +119,7 @@ async def test_cached_name(call, gate, check_restore, gen_domain_name):
     assert response.status == 200
     assert response.text == SUCCESS_RESOLVE
 
-    gate.to_client_drop()
+    await gate.to_client_drop()
 
     response = await call(resolve=name, check_query=CheckQuery.FROM_CACHE)
     assert response.status == 200
@@ -129,7 +128,7 @@ async def test_cached_name(call, gate, check_restore, gen_domain_name):
 
 @pytest.mark.skip(reason='Fails on c-ares 1.28.1')
 async def test_drop(call, gate, check_restore, gen_domain_name):
-    gate.to_client_drop()
+    await gate.to_client_drop()
 
     response = await call(check_query=CheckQuery.FROM_MOCK)
 
@@ -138,7 +137,7 @@ async def test_drop(call, gate, check_restore, gen_domain_name):
 
 
 async def test_delay(call, gate, check_restore):
-    gate.to_client_delay(delay=10)
+    await gate.to_client_delay(delay=10)
 
     response = await call(timeout=1)
 
@@ -148,7 +147,7 @@ async def test_delay(call, gate, check_restore):
 
 @pytest.mark.skip(reason='Fails on c-ares 1.28.1')
 async def test_close_on_data(call, gate, check_restore):
-    gate.to_client_close_on_data()
+    await gate.to_client_close_on_data()
 
     response = await call()
 
@@ -161,7 +160,7 @@ async def test_close_on_data(call, gate, check_restore):
 
 @pytest.mark.skip(reason='Fails on c-ares 1.28.1')
 async def test_limit_bytes(call, gate, check_restore):
-    gate.to_client_limit_bytes(10)
+    await gate.to_client_limit_bytes(10)
     # 10 bytes less than dns-mock message, so part of this message will be
     # dropped and it must lead error
 

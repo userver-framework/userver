@@ -190,59 +190,57 @@ redis_threads: 8
 )";
 
 components::ManagerConfig MakeManagerConfig() {
-  return yaml_config::YamlConfig{
-      formats::yaml::FromString(kConfig)["components_manager"],
-      formats::yaml::FromString(kVariables),
-      yaml_config::YamlConfig::Mode::kEnvAllowed,
-  }
-      .As<components::ManagerConfig>();
+    return yaml_config::YamlConfig{
+        formats::yaml::FromString(kConfig)["components_manager"],
+        formats::yaml::FromString(kVariables),
+        yaml_config::YamlConfig::Mode::kEnvAllowed,
+    }
+        .As<components::ManagerConfig>();
 }
 
 }  // namespace
 
 TEST(ManagerConfig, Basic) {
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ::setenv("MLOCK_DEBUG_INFO", "false", 1);
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ::setenv("USERVER_STACK_SIZE", "1024", 1);
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("MLOCK_DEBUG_INFO", "false", 1);
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("USERVER_STACK_SIZE", "1024", 1);
 
-  const auto mc = MakeManagerConfig();
+    const auto mc = MakeManagerConfig();
 
-  EXPECT_EQ(mc.default_task_processor, "main-task-processor");
-  EXPECT_EQ(mc.coro_pool.max_size, 10000) << "config vars do not work";
-  EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
-  EXPECT_FALSE(mc.mlock_debug_info)
-      << "#env does not work with missing substitution vars";
-  EXPECT_EQ(mc.coro_pool.stack_size, 1024) << "#env does not work";
+    EXPECT_EQ(mc.default_task_processor, "main-task-processor");
+    EXPECT_EQ(mc.coro_pool.max_size, 10000) << "config vars do not work";
+    EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
+    EXPECT_FALSE(mc.mlock_debug_info) << "#env does not work with missing substitution vars";
+    EXPECT_EQ(mc.coro_pool.stack_size, 1024) << "#env does not work";
 
-  EXPECT_EQ(mc.task_processors.size(), 5);
+    EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 28);
+    ASSERT_EQ(mc.components.size(), 28);
 
-  EXPECT_TRUE(std::any_of(
-      mc.components.begin(), mc.components.end(),
-      [](const auto& conf) { return conf.Name() == "api-firebase"; }));
-  EXPECT_TRUE(std::any_of(
-      mc.components.begin(), mc.components.end(),
-      [](const auto& conf) { return conf.Name() == "logging-configurator"; }));
+    EXPECT_TRUE(std::any_of(mc.components.begin(), mc.components.end(), [](const auto& conf) {
+        return conf.Name() == "api-firebase";
+    }));
+    EXPECT_TRUE(std::any_of(mc.components.begin(), mc.components.end(), [](const auto& conf) {
+        return conf.Name() == "logging-configurator";
+    }));
 }
 
 TEST(ManagerConfig, HandlerConfig) {
-  const auto mc = MakeManagerConfig();
+    const auto mc = MakeManagerConfig();
 
-  // NOLINTNEXTLINE(readability-qualified-auto)
-  const auto it =
-      std::find_if(mc.components.cbegin(), mc.components.cend(),
-                   [](const auto& v) { return v.Name() == "tests-control"; });
-  ASSERT_NE(it, mc.components.cend()) << "failed to find 'tests-control'";
+    // NOLINTNEXTLINE(readability-qualified-auto)
+    const auto it = std::find_if(mc.components.cbegin(), mc.components.cend(), [](const auto& v) {
+        return v.Name() == "tests-control";
+    });
+    ASSERT_NE(it, mc.components.cend()) << "failed to find 'tests-control'";
 
-  EXPECT_EQ(it->GetPath(), "components_manager.components.tests-control");
+    EXPECT_EQ(it->GetPath(), "components_manager.components.tests-control");
 
-  const auto conf = server::handlers::ParseHandlerConfigsWithDefaults(
-      *it, server::ServerConfig{});
+    const auto conf = server::handlers::ParseHandlerConfigsWithDefaults(*it, server::ServerConfig{});
 
-  EXPECT_EQ(std::get<std::string>(conf.path), "/tests/control");
-  EXPECT_EQ(conf.task_processor, "main-task-processor");
+    EXPECT_EQ(std::get<std::string>(conf.path), "/tests/control");
+    EXPECT_EQ(conf.task_processor, "main-task-processor");
 }
 
 USERVER_NAMESPACE_END

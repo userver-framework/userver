@@ -7,19 +7,19 @@
 namespace tests::handlers {
 
 class Metrics final : public server::handlers::HttpHandlerJsonBase {
- public:
-  static constexpr std::string_view kName = "handler-metrics";
+public:
+    static constexpr std::string_view kName = "handler-metrics";
 
-  Metrics(const components::ComponentConfig&,
-          const components::ComponentContext&);
+    Metrics(const components::ComponentConfig&, const components::ComponentContext&);
 
-  formats::json::Value HandleRequestJsonThrow(
-      const server::http::HttpRequest& request,
-      const formats::json::Value& request_body,
-      server::request::RequestContext& context) const override;
+    formats::json::Value HandleRequestJsonThrow(
+        const server::http::HttpRequest& request,
+        const formats::json::Value& request_body,
+        server::request::RequestContext& context
+    ) const override;
 
- private:
-  utils::statistics::MetricsStoragePtr metrics_;
+private:
+    utils::statistics::MetricsStoragePtr metrics_;
 };
 
 }  // namespace tests::handlers

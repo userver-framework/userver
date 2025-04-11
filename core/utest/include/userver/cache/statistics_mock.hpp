@@ -13,14 +13,14 @@ namespace cache {
 /// @brief Allows to test helper functions of CacheUpdateTrait::Update that use
 /// UpdateStatisticsScope
 class UpdateStatisticsScopeMock final {
- public:
-  explicit UpdateStatisticsScopeMock(UpdateType type);
+public:
+    explicit UpdateStatisticsScopeMock(UpdateType type);
 
-  UpdateStatisticsScope& GetScope();
+    UpdateStatisticsScope& GetScope();
 
- private:
-  impl::Statistics stats_;
-  UpdateStatisticsScope scope_;
+private:
+    impl::Statistics stats_;
+    UpdateStatisticsScope scope_;
 };
 
 }  // namespace cache

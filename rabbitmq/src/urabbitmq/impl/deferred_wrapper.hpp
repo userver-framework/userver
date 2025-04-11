@@ -20,26 +20,26 @@ namespace urabbitmq::impl {
 class AmqpConnection;
 
 class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
- public:
-  void Fail(const char* message);
+public:
+    void Fail(const char* message);
 
-  void Ok();
+    void Ok();
 
-  void Wait(engine::Deadline deadline);
+    void Wait(engine::Deadline deadline);
 
-  void Wrap(AMQP::Deferred& deferred);
+    void Wrap(AMQP::Deferred& deferred);
 
-  void WrapGet(AMQP::DeferredGet& deferred, std::string& message);
+    void WrapGet(AMQP::DeferredGet& deferred, std::string& message);
 
-  static std::shared_ptr<DeferredWrapper> Create();
+    static std::shared_ptr<DeferredWrapper> Create();
 
- protected:
-  DeferredWrapper();
+protected:
+    DeferredWrapper();
 
- private:
-  std::atomic<bool> is_signaled_{false};
-  engine::SingleConsumerEvent event_;
-  std::optional<std::string> error_;
+private:
+    std::atomic<bool> is_signaled_{false};
+    engine::SingleConsumerEvent event_;
+    std::optional<std::string> error_;
 };
 
 }  // namespace urabbitmq::impl

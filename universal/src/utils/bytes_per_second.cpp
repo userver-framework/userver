@@ -11,8 +11,8 @@ namespace utils {
 
 namespace {
 struct PrefixToMultiplier {
-  const char* const prefix;
-  long long multiplier;
+    const char* const prefix;
+    long long multiplier;
 };
 
 constexpr PrefixToMultiplier kPrefixes[] = {
@@ -42,40 +42,38 @@ constexpr PrefixToMultiplier kPrefixes[] = {
 }  // namespace
 
 BytesPerSecond StringToBytesPerSecond(const std::string& data) {
-  std::size_t parsed_size = 0;
-  const auto new_to = std::stoll(data, &parsed_size, 10);
+    std::size_t parsed_size = 0;
+    const auto new_to = std::stoll(data, &parsed_size, 10);
 
-  if (new_to < 0) {
-    throw std::logic_error("StringToBytesPerSecond: '" + data +
-                           "' is negative");
-  }
-
-  std::string remained{data.c_str() + parsed_size};
-  boost::algorithm::to_lower(remained, std::locale::classic());
-
-  for (auto v : kPrefixes) {
-    if (v.prefix == remained) {
-      static constexpr auto kMax = std::numeric_limits<long long>::max();
-      if (kMax / v.multiplier < new_to) {
-        throw std::runtime_error(
-            data + " can not be represented as B/s without precision loss");
-      }
-
-      return BytesPerSecond{new_to * v.multiplier};
-    }
-  }
-
-  if (remained == "bit/s") {
-    if (new_to / 8 * 8 != new_to) {
-      throw std::runtime_error(std::to_string(new_to) +
-                               "bit/s can not be represented as B/s");
+    if (new_to < 0) {
+        throw std::logic_error("StringToBytesPerSecond: '" + data + "' is negative");
     }
 
-    return BytesPerSecond{new_to / 8};
-  }
+    std::string remained{data.c_str() + parsed_size};
+    boost::algorithm::to_lower(remained, std::locale::classic());
 
-  throw std::logic_error("StringToBytesPerSecond: unknown format specifier '" +
-                         std::string{remained} + "' in string '" + data + "'");
+    for (auto v : kPrefixes) {
+        if (v.prefix == remained) {
+            static constexpr auto kMax = std::numeric_limits<long long>::max();
+            if (kMax / v.multiplier < new_to) {
+                throw std::runtime_error(data + " can not be represented as B/s without precision loss");
+            }
+
+            return BytesPerSecond{new_to * v.multiplier};
+        }
+    }
+
+    if (remained == "bit/s") {
+        if (new_to / 8 * 8 != new_to) {
+            throw std::runtime_error(std::to_string(new_to) + "bit/s can not be represented as B/s");
+        }
+
+        return BytesPerSecond{new_to / 8};
+    }
+
+    throw std::logic_error(
+        "StringToBytesPerSecond: unknown format specifier '" + std::string{remained} + "' in string '" + data + "'"
+    );
 }
 
 }  // namespace utils

@@ -11,8 +11,12 @@ namespace chaotic::convert {
 
 template <typename T>
 T Convert(std::chrono::milliseconds value, chaotic::convert::To<T>) {
-  return utils::numeric_cast<T>(value.count());
+    return utils::numeric_cast<T>(value.count());
 }
+
+std::chrono::milliseconds Convert(const std::string& str, chaotic::convert::To<std::chrono::milliseconds>);
+
+std::chrono::milliseconds Convert(std::string_view str, chaotic::convert::To<std::chrono::milliseconds>);
 
 }  // namespace chaotic::convert
 

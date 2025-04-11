@@ -197,7 +197,11 @@ class ClientWrapper:
         Make a HTTP GET request
         """
         response = await self._client.get(
-            path, headers=headers, bearer=bearer, x_real_ip=x_real_ip, **kwargs,
+            path,
+            headers=headers,
+            bearer=bearer,
+            x_real_ip=x_real_ip,
+            **kwargs,
         )
         return await self._wrap_client_response(response)
 
@@ -213,7 +217,11 @@ class ClientWrapper:
         Make a HTTP DELETE request
         """
         response = await self._client.delete(
-            path, headers=headers, bearer=bearer, x_real_ip=x_real_ip, **kwargs,
+            path,
+            headers=headers,
+            bearer=bearer,
+            x_real_ip=x_real_ip,
+            **kwargs,
         )
         return await self._wrap_client_response(response)
 
@@ -229,12 +237,19 @@ class ClientWrapper:
         Make a HTTP OPTIONS request
         """
         response = await self._client.options(
-            path, headers=headers, bearer=bearer, x_real_ip=x_real_ip, **kwargs,
+            path,
+            headers=headers,
+            bearer=bearer,
+            x_real_ip=x_real_ip,
+            **kwargs,
         )
         return await self._wrap_client_response(response)
 
     async def request(
-        self, http_method: str, path: str, **kwargs,
+        self,
+        http_method: str,
+        path: str,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP request with the specified method
@@ -242,8 +257,16 @@ class ClientWrapper:
         response = await self._client.request(http_method, path, **kwargs)
         return await self._wrap_client_response(response)
 
+    @property
+    def raw_aiohttp_client(self):
+        """
+        @deprecated Use pytest_userver.client.Client directly instead.
+        """
+        return self._client
+
     def _wrap_client_response(
-        self, response: aiohttp.ClientResponse,
+        self,
+        response: aiohttp.ClientResponse,
     ) -> typing.Awaitable[http.ClientResponse]:
         return http.wrap_client_response(response)
 
@@ -257,7 +280,8 @@ def _wrap_client_error(func):
             return await func(*args, **kwargs)
         except aiohttp.client_exceptions.ClientResponseError as exc:
             raise http.HttpResponseError(
-                url=exc.request_info.url, status=exc.status,
+                url=exc.request_info.url,
+                status=exc.status,
             )
 
     return _wrapper
@@ -279,7 +303,8 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         if prefix is not None:
             params['prefix'] = prefix
         response = await self.get(
-            self._config.server_monitor_path, params=params,
+            self._config.server_monitor_path,
+            params=params,
         )
         async with response:
             response.raise_for_status()
@@ -288,8 +313,7 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
     async def get_metric(self, metric_name):
         metrics = await self.get_metrics(metric_name)
         assert metric_name in metrics, (
-            f'No metric with name {metric_name!r}. '
-            f'Use "single_metric" function instead of "get_metric"'
+            f'No metric with name {metric_name!r}. Use "single_metric" function instead of "get_metric"'
         )
         return metrics[metric_name]
 
@@ -317,7 +341,8 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
             params['labels'] = json.dumps(labels)
 
         response = await self.get(
-            self._config.server_monitor_path, params=params,
+            self._config.server_monitor_path,
+            params=params,
         )
         async with response:
             response.raise_for_status()
@@ -331,7 +356,10 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         labels: typing.Optional[typing.Dict[str, str]] = None,
     ) -> metric_module.MetricsSnapshot:
         response = await self.metrics_raw(
-            output_format='json', path=path, prefix=prefix, labels=labels,
+            output_format='json',
+            path=path,
+            prefix=prefix,
+            labels=labels,
         )
         return metric_module.MetricsSnapshot.from_json(str(response))
 
@@ -344,10 +372,7 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         response = await self.metrics(path=path, labels=labels)
         metrics_list = response.get(path, [])
 
-        assert len(metrics_list) <= 1, (
-            f'More than one metric found for path {path} and labels {labels}: '
-            f'{response}',
-        )
+        assert len(metrics_list) <= 1, (f'More than one metric found for path {path} and labels {labels}: {response}',)
 
         if not metrics_list:
             return None
@@ -361,9 +386,7 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         labels: typing.Optional[typing.Dict[str, str]] = None,
     ) -> Metric:
         value = await self.single_metric_optional(path, labels=labels)
-        assert value is not None, (
-            f'No metric was found for path {path} and labels {labels}',
-        )
+        assert value is not None, (f'No metric was found for path {path} and labels {labels}',)
         return value
 
 
@@ -432,7 +455,9 @@ class ClientMonitor(ClientWrapper):
         @param labels Optional dictionary of labels that must be in the metric
         """
         return await self._client.metrics(
-            path=path, prefix=prefix, labels=labels,
+            path=path,
+            prefix=prefix,
+            labels=labels,
         )
 
     @_wrap_client_error
@@ -554,7 +579,9 @@ class MetricsDiffer:
         self._baseline = value
         if self._current is not None:
             self._diff = _subtract_metrics_snapshots(
-                self._current, self._baseline, self._diff_gauge,
+                self._current,
+                self._baseline,
+                self._diff_gauge,
             )
 
     @property
@@ -567,7 +594,9 @@ class MetricsDiffer:
         self._current = value
         assert self._baseline is not None, 'Set self.baseline first'
         self._diff = _subtract_metrics_snapshots(
-            self._current, self._baseline, self._diff_gauge,
+            self._current,
+            self._baseline,
+            self._diff_gauge,
         )
 
     @property
@@ -611,7 +640,9 @@ class MetricsDiffer:
         Fetches metric values from the service.
         """
         return await self._client.metrics(
-            path=self._path, prefix=self._prefix, labels=self._labels,
+            path=self._path,
+            prefix=self._prefix,
+            labels=self._labels,
         )
 
     async def __aenter__(self) -> 'MetricsDiffer':
@@ -632,10 +663,7 @@ def _subtract_metrics_snapshots(
     diff_gauge: bool,
 ) -> metric_module.MetricsSnapshot:
     return metric_module.MetricsSnapshot({
-        path: {
-            _subtract_metrics(path, current_metric, initial, diff_gauge)
-            for current_metric in current_group
-        }
+        path: {_subtract_metrics(path, current_metric, initial, diff_gauge) for current_metric in current_group}
         for path, current_group in current.items()
     })
 
@@ -650,7 +678,8 @@ def _subtract_metrics(
     if initial_group is None:
         return current_metric
     initial_metric = next(
-        (x for x in initial_group if x.labels == current_metric.labels), None,
+        (x for x in initial_group if x.labels == current_metric.labels),
+        None,
     )
     if initial_metric is None:
         return current_metric
@@ -681,7 +710,9 @@ def _subtract_metric_values(
     else:
         assert not isinstance(initial.value, metric_module.Histogram)
         return _subtract_metric_values_num(
-            current=current, initial=initial, diff_gauge=diff_gauge,
+            current=current,
+            initial=initial,
+            diff_gauge=diff_gauge,
         )
 
 
@@ -693,25 +724,21 @@ def _subtract_metric_values_num(
     current_value = typing.cast(float, current.value)
     initial_value = typing.cast(float, initial.value)
     should_diff = (
-        current.type() is metric_module.MetricType.RATE
-        or initial.type() is metric_module.MetricType.RATE
-        or diff_gauge
+        current.type() is metric_module.MetricType.RATE or initial.type() is metric_module.MetricType.RATE or diff_gauge
     )
     return current_value - initial_value if should_diff else current_value
 
 
 def _subtract_metric_values_hist(
-    current: metric_module.Metric, initial: metric_module.Metric,
+    current: metric_module.Metric,
+    initial: metric_module.Metric,
 ) -> metric_module.Histogram:
     current_value = typing.cast(metric_module.Histogram, current.value)
     initial_value = typing.cast(metric_module.Histogram, initial.value)
     assert current_value.bounds == initial_value.bounds
     return metric_module.Histogram(
         bounds=current_value.bounds,
-        buckets=[
-            t[0] - t[1]
-            for t in zip(current_value.buckets, initial_value.buckets)
-        ],
+        buckets=[t[0] - t[1] for t in zip(current_value.buckets, initial_value.buckets)],
         inf=current_value.inf - initial_value.inf,
     )
 
@@ -738,6 +765,7 @@ class AiohttpClient(service_client.AiohttpClient):
         periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
         allow_all_caches_invalidation: bool = True,
         cache_control: typing.Optional[caches.CacheControl] = None,
+        asyncexc_check=None,
         **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
@@ -754,6 +782,7 @@ class AiohttpClient(service_client.AiohttpClient):
         )
         self._api_coverage_report = api_coverage_report
         self._allow_all_caches_invalidation = allow_all_caches_invalidation
+        self._asyncexc_check = asyncexc_check
 
     async def run_periodic_task(self, name):
         response = await self._testsuite_action('run_periodic_task', name=name)
@@ -779,7 +808,10 @@ class AiohttpClient(service_client.AiohttpClient):
         await self._suspend_periodic_tasks()
 
     async def write_cache_dumps(
-        self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: typing.List[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._testsuite_action(
             'write_cache_dumps',
@@ -788,7 +820,10 @@ class AiohttpClient(service_client.AiohttpClient):
         )
 
     async def read_cache_dumps(
-        self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: typing.List[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._testsuite_action(
             'read_cache_dumps',
@@ -803,10 +838,13 @@ class AiohttpClient(service_client.AiohttpClient):
         await self._testsuite_action('reset_metrics')
 
     async def metrics_portability(
-        self, *, prefix: typing.Optional[str] = None,
+        self,
+        *,
+        prefix: typing.Optional[str] = None,
     ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
         return await self._testsuite_action(
-            'metrics_portability', prefix=prefix,
+            'metrics_portability',
+            prefix=prefix,
         )
 
     async def list_tasks(self) -> typing.List[str]:
@@ -818,7 +856,8 @@ class AiohttpClient(service_client.AiohttpClient):
 
     async def run_task(self, name: str) -> None:
         response = await self._do_testsuite_action(
-            'task_run', json={'name': name},
+            'task_run',
+            json={'name': name},
         )
         await _task_check_response(name, response)
 
@@ -832,19 +871,22 @@ class AiohttpClient(service_client.AiohttpClient):
 
     async def _task_spawn(self, name: str) -> str:
         response = await self._do_testsuite_action(
-            'task_spawn', json={'name': name},
+            'task_spawn',
+            json={'name': name},
         )
         data = await _task_check_response(name, response)
         return data['task_id']
 
     async def _task_stop_spawned(self, task_id: str) -> None:
         response = await self._do_testsuite_action(
-            'task_stop', json={'task_id': task_id},
+            'task_stop',
+            json={'task_id': task_id},
         )
         await _task_check_response(task_id, response)
 
     async def http_allowed_urls_extra(
-        self, http_allowed_urls_extra: typing.List[str],
+        self,
+        http_allowed_urls_extra: typing.List[str],
     ) -> None:
         await self._do_testsuite_action(
             'http_allowed_urls_extra',
@@ -854,7 +896,10 @@ class AiohttpClient(service_client.AiohttpClient):
 
     @contextlib.asynccontextmanager
     async def capture_logs(
-        self, *, log_level: str = 'DEBUG', testsuite_skip_prepare: bool = False,
+        self,
+        *,
+        log_level: str = 'DEBUG',
+        testsuite_skip_prepare: bool = False,
     ):
         async with self._log_capture_fixture.start_capture(
             log_level=log_level,
@@ -881,7 +926,9 @@ class AiohttpClient(service_client.AiohttpClient):
 
     async def log_flush(self, logger_name: typing.Optional[str] = None):
         await self._testsuite_action(
-            'log_flush', logger_name=logger_name, testsuite_skip_prepare=True,
+            'log_flush',
+            logger_name=logger_name,
+            testsuite_skip_prepare=True,
         )
 
     async def invalidate_caches(
@@ -918,17 +965,14 @@ class AiohttpClient(service_client.AiohttpClient):
         invalidate_caches: bool = True,
         clean_update: bool = True,
         cache_names: typing.Optional[typing.List[str]] = None,
-        http_allowed_urls_extra=None,
+        http_allowed_urls_extra: typing.Optional[typing.List[str]] = None,
     ) -> typing.Dict[str, typing.Any]:
-        body: typing.Dict[str, typing.Any] = (
-            self._state_manager.get_pending_update()
-        )
+        body: typing.Dict[str, typing.Any] = self._state_manager.get_pending_update()
 
         if 'invalidate_caches' in body and invalidate_caches:
             if not clean_update or cache_names:
                 logger.warning(
-                    'Manual cache invalidation leads to indirect initial '
-                    'full cache invalidation',
+                    'Manual cache invalidation leads to indirect initial full cache invalidation',
                 )
                 await self._prepare()
                 body = {}
@@ -962,27 +1006,26 @@ class AiohttpClient(service_client.AiohttpClient):
         self,
     ) -> typing.Dict[str, typing.Any]:
         return await self._testsuite_action(
-            'get_dynamic_config_defaults', testsuite_skip_prepare=True,
+            'get_dynamic_config_defaults',
+            testsuite_skip_prepare=True,
         )
 
     async def _tests_control(self, body: dict) -> typing.Dict[str, typing.Any]:
         with self._state_manager.updating_state(body):
             async with await self._do_testsuite_action(
-                'control', json=body, testsuite_skip_prepare=True,
+                'control',
+                json=body,
+                testsuite_skip_prepare=True,
             ) as response:
                 if response.status == 404:
                     raise ConfigurationError(
-                        'It seems that testsuite support is not enabled '
-                        'for your service',
+                        'It seems that testsuite support is not enabled for your service',
                     )
                 response.raise_for_status()
                 return await response.json(content_type=None)
 
     async def _suspend_periodic_tasks(self):
-        if (
-            self._periodic_tasks.tasks_to_suspend
-            != self._periodic_tasks.suspended_tasks
-        ):
+        if self._periodic_tasks.tasks_to_suspend != self._periodic_tasks.suspended_tasks:
             await self._testsuite_action(
                 'suspend_periodic_tasks',
                 names=sorted(self._periodic_tasks.tasks_to_suspend),
@@ -1000,10 +1043,16 @@ class AiohttpClient(service_client.AiohttpClient):
         return self.post(path, **kwargs)
 
     async def _testsuite_action(
-        self, action, *, testsuite_skip_prepare=False, **kwargs,
+        self,
+        action,
+        *,
+        testsuite_skip_prepare=False,
+        **kwargs,
     ):
         async with await self._do_testsuite_action(
-            action, json=kwargs, testsuite_skip_prepare=testsuite_skip_prepare,
+            action,
+            json=kwargs,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         ) as response:
             if response.status == 500:
                 raise TestsuiteActionFailed
@@ -1026,16 +1075,32 @@ class AiohttpClient(service_client.AiohttpClient):
         testsuite_skip_prepare: bool = False,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        if self._asyncexc_check:
+            # Check for pending background exceptions before call.
+            self._asyncexc_check()
+
         if not testsuite_skip_prepare:
             await self._prepare()
 
         response = await super()._request(
-            http_method, path, headers, bearer, x_real_ip, **kwargs,
+            http_method,
+            path,
+            headers,
+            bearer,
+            x_real_ip,
+            **kwargs,
         )
         if self._api_coverage_report:
             self._api_coverage_report.update_usage_stat(
-                path, http_method, response.status, response.content_type,
+                path,
+                http_method,
+                response.status,
+                response.content_type,
             )
+
+        if self._asyncexc_check:
+            # Check for pending background exceptions after call.
+            self._asyncexc_check()
 
         return response
 
@@ -1061,10 +1126,12 @@ class Client(ClientWrapper):
     TestsuiteTaskFailed = TestsuiteTaskFailed
 
     def _wrap_client_response(
-        self, response: aiohttp.ClientResponse,
+        self,
+        response: aiohttp.ClientResponse,
     ) -> typing.Awaitable[http.ClientResponse]:
         return http.wrap_client_response(
-            response, json_loads=approx.json_loads,
+            response,
+            json_loads=approx.json_loads,
         )
 
     @_wrap_client_error
@@ -1085,18 +1152,26 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def write_cache_dumps(
-        self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: typing.List[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._client.write_cache_dumps(
-            names=names, testsuite_skip_prepare=testsuite_skip_prepare,
+            names=names,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     @_wrap_client_error
     async def read_cache_dumps(
-        self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: typing.List[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._client.read_cache_dumps(
-            names=names, testsuite_skip_prepare=testsuite_skip_prepare,
+            names=names,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     async def run_task(self, name: str) -> None:
@@ -1112,13 +1187,15 @@ class Client(ClientWrapper):
         await self._client.reset_metrics()
 
     async def metrics_portability(
-        self, *, prefix: typing.Optional[str] = None,
+        self,
+        *,
+        prefix: typing.Optional[str] = None,
     ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
         """
         Reports metrics related issues that could be encountered on
         different monitoring systems.
 
-        @sa @ref utils::statistics::GetPortabilityInfo
+        @sa @ref utils::statistics::GetPortabilityWarnings
         """
         return await self._client.metrics_portability(prefix=prefix)
 
@@ -1129,17 +1206,22 @@ class Client(ClientWrapper):
         return self._client.spawn_task(name)
 
     def capture_logs(
-        self, *, log_level: str = 'DEBUG', testsuite_skip_prepare: bool = False,
+        self,
+        *,
+        log_level: str = 'DEBUG',
+        testsuite_skip_prepare: bool = False,
     ):
         """
         Captures logs from the service.
 
         @param log_level Do not capture logs below this level.
+        @param testsuite_skip_prepare An advanced parameter to skip auto-`update_server_state`.
 
         @see @ref testsuite_logs_capture
         """
         return self._client.capture_logs(
-            log_level=log_level, testsuite_skip_prepare=testsuite_skip_prepare,
+            log_level=log_level,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     def log_flush(self, logger_name: typing.Optional[str] = None):
@@ -1175,9 +1257,18 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def tests_control(
-        self, *args, **kwargs,
+        self,
+        invalidate_caches: bool = True,
+        clean_update: bool = True,
+        cache_names: typing.Optional[typing.List[str]] = None,
+        http_allowed_urls_extra: typing.Optional[typing.List[str]] = None,
     ) -> typing.Dict[str, typing.Any]:
-        return await self._client.tests_control(*args, **kwargs)
+        return await self._client.tests_control(
+            invalidate_caches=invalidate_caches,
+            clean_update=clean_update,
+            cache_names=cache_names,
+            http_allowed_urls_extra=http_allowed_urls_extra,
+        )
 
     @_wrap_client_error
     async def update_server_state(self) -> None:
@@ -1192,7 +1283,7 @@ class Client(ClientWrapper):
         await self._client.update_server_state()
 
     @_wrap_client_error
-    async def enable_testpoints(self, *args, **kwargs) -> None:
+    async def enable_testpoints(self, no_auto_cache_cleanup: bool = False) -> None:
         """
         Send list of handled testpoint pats to service. For these paths service
         will no more skip http calls from TESTPOINT(...) macro.
@@ -1202,7 +1293,7 @@ class Client(ClientWrapper):
         makes additional http call to `tests/control` to update caches, to get
         rid of data from previous test.
         """
-        await self._client.enable_testpoints(*args, **kwargs)
+        await self._client.enable_testpoints(no_auto_cache_cleanup=no_auto_cache_cleanup)
 
     @_wrap_client_error
     async def get_dynamic_config_defaults(
@@ -1307,7 +1398,8 @@ class _StateManager:
         cache_names = invalidate_caches.get('names')
         exclude_names = invalidate_caches.setdefault('exclude_names', [])
         force_incremental_names = invalidate_caches.setdefault(
-            'force_incremental_names', [],
+            'force_incremental_names',
+            [],
         )
         for cache_name, action in actions:
             if action == caches.CacheControlAction.INCREMENTAL:
@@ -1336,7 +1428,8 @@ class _StateManager:
             self._state.now = body['mock_now']
 
         testpoints: typing.Optional[typing.List[str]] = body.get(
-            'testpoints', None,
+            'testpoints',
+            None,
         )
         if testpoints is not None:
             self._state.testpoints = frozenset(testpoints)

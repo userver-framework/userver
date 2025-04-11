@@ -96,69 +96,60 @@ Axwrwe8h4BQ7K1dHMddzuJZwIUAkwn1+IQO8XIAO27UPd9Jc2+jPsDxl5rc0dw9E
 }  // namespace
 
 TEST(Crypto, PrivateKeyPemDefault) {
-  EXPECT_FALSE(crypto::PrivateKey{}.GetPemString("test").has_value());
-  EXPECT_FALSE(crypto::PrivateKey{}.GetPemStringUnencrypted().has_value());
+    EXPECT_FALSE(crypto::PrivateKey{}.GetPemString("test").has_value());
+    EXPECT_FALSE(crypto::PrivateKey{}.GetPemStringUnencrypted().has_value());
 }
 
 TEST(Crypto, PrivateKeyPemEmptyPassword) {
-  EXPECT_THROW(crypto::PrivateKey{}.GetPemString({}),
-               crypto::SerializationError);
+    EXPECT_THROW(crypto::PrivateKey{}.GetPemString({}), crypto::SerializationError);
 }
 
 TEST(Crypto, PrivateKeyPemRoundtripRsa) {
-  const auto rsa_key = crypto::PrivateKey::LoadFromString(kRsaKeyPem);
-  EXPECT_EQ(rsa_key.GetPemStringUnencrypted(), kRsaKeyPem);
+    const auto rsa_key = crypto::PrivateKey::LoadFromString(kRsaKeyPem);
+    EXPECT_EQ(rsa_key.GetPemStringUnencrypted(), kRsaKeyPem);
 }
 
 TEST(Crypto, PrivateKeyPemRoundtripEc) {
-  const auto ec_key = crypto::PrivateKey::LoadFromString(kEcKeyPem);
-  EXPECT_EQ(ec_key.GetPemStringUnencrypted(), kEcKeyPem);
+    const auto ec_key = crypto::PrivateKey::LoadFromString(kEcKeyPem);
+    EXPECT_EQ(ec_key.GetPemStringUnencrypted(), kEcKeyPem);
 }
 
 TEST(Crypto, PrivateKeyPemDecryptRsa) {
-  const auto rsa_enc_key =
-      crypto::PrivateKey::LoadFromString(kRsaEncKeyPem, kEncPassword);
-  EXPECT_EQ(rsa_enc_key.GetPemStringUnencrypted(), kRsaKeyPem);
+    const auto rsa_enc_key = crypto::PrivateKey::LoadFromString(kRsaEncKeyPem, kEncPassword);
+    EXPECT_EQ(rsa_enc_key.GetPemStringUnencrypted(), kRsaKeyPem);
 }
 
 TEST(Crypto, PrivateKeyPemDecryptEc) {
-  const auto ec_enc_key =
-      crypto::PrivateKey::LoadFromString(kEcEncKeyPem, kEncPassword);
-  EXPECT_EQ(ec_enc_key.GetPemStringUnencrypted(), kEcKeyPem);
+    const auto ec_enc_key = crypto::PrivateKey::LoadFromString(kEcEncKeyPem, kEncPassword);
+    EXPECT_EQ(ec_enc_key.GetPemStringUnencrypted(), kEcKeyPem);
 }
 
 TEST(Crypto, PrivateKeyPemEncRoundtripRsa) {
-  const auto rsa_key = crypto::PrivateKey::LoadFromString(kRsaKeyPem);
-  const auto rsa_enc_pem1 = rsa_key.GetPemString(kEncPassword);
-  const auto rsa_enc_pem2 = rsa_key.GetPemString(kEncPassword);
-  EXPECT_TRUE(rsa_enc_pem1.has_value());
-  EXPECT_TRUE(rsa_enc_pem2.has_value());
-  EXPECT_NE(rsa_enc_pem1, kRsaEncKeyPem);  // should use different parameters
-  EXPECT_NE(rsa_enc_pem1, rsa_enc_pem2);   // every time
-  const auto rsa_enc_key1 =
-      crypto::PrivateKey::LoadFromString(*rsa_enc_pem1, kEncPassword);
-  const auto rsa_enc_key2 =
-      crypto::PrivateKey::LoadFromString(*rsa_enc_pem2, kEncPassword);
-  EXPECT_EQ(rsa_enc_key1.GetPemStringUnencrypted(), kRsaKeyPem);
-  EXPECT_EQ(rsa_enc_key1.GetPemStringUnencrypted(),
-            rsa_enc_key2.GetPemStringUnencrypted());
+    const auto rsa_key = crypto::PrivateKey::LoadFromString(kRsaKeyPem);
+    const auto rsa_enc_pem1 = rsa_key.GetPemString(kEncPassword);
+    const auto rsa_enc_pem2 = rsa_key.GetPemString(kEncPassword);
+    EXPECT_TRUE(rsa_enc_pem1.has_value());
+    EXPECT_TRUE(rsa_enc_pem2.has_value());
+    EXPECT_NE(rsa_enc_pem1, kRsaEncKeyPem);  // should use different parameters
+    EXPECT_NE(rsa_enc_pem1, rsa_enc_pem2);   // every time
+    const auto rsa_enc_key1 = crypto::PrivateKey::LoadFromString(*rsa_enc_pem1, kEncPassword);
+    const auto rsa_enc_key2 = crypto::PrivateKey::LoadFromString(*rsa_enc_pem2, kEncPassword);
+    EXPECT_EQ(rsa_enc_key1.GetPemStringUnencrypted(), kRsaKeyPem);
+    EXPECT_EQ(rsa_enc_key1.GetPemStringUnencrypted(), rsa_enc_key2.GetPemStringUnencrypted());
 }
 
 TEST(Crypto, PrivateKeyPemEncRoundtripEc) {
-  const auto ec_key = crypto::PrivateKey::LoadFromString(kEcKeyPem);
-  const auto ec_enc_pem1 = ec_key.GetPemString(kEncPassword);
-  const auto ec_enc_pem2 = ec_key.GetPemString(kEncPassword);
-  EXPECT_TRUE(ec_enc_pem1.has_value());
-  EXPECT_TRUE(ec_enc_pem2.has_value());
-  EXPECT_NE(ec_enc_pem1, kEcEncKeyPem);  // should use different parameters
-  EXPECT_NE(ec_enc_pem1, ec_enc_pem2);   // every time
-  const auto ec_enc_key1 =
-      crypto::PrivateKey::LoadFromString(*ec_enc_pem1, kEncPassword);
-  const auto ec_enc_key2 =
-      crypto::PrivateKey::LoadFromString(*ec_enc_pem2, kEncPassword);
-  EXPECT_EQ(ec_enc_key1.GetPemStringUnencrypted(), kEcKeyPem);
-  EXPECT_EQ(ec_enc_key1.GetPemStringUnencrypted(),
-            ec_enc_key2.GetPemStringUnencrypted());
+    const auto ec_key = crypto::PrivateKey::LoadFromString(kEcKeyPem);
+    const auto ec_enc_pem1 = ec_key.GetPemString(kEncPassword);
+    const auto ec_enc_pem2 = ec_key.GetPemString(kEncPassword);
+    EXPECT_TRUE(ec_enc_pem1.has_value());
+    EXPECT_TRUE(ec_enc_pem2.has_value());
+    EXPECT_NE(ec_enc_pem1, kEcEncKeyPem);  // should use different parameters
+    EXPECT_NE(ec_enc_pem1, ec_enc_pem2);   // every time
+    const auto ec_enc_key1 = crypto::PrivateKey::LoadFromString(*ec_enc_pem1, kEncPassword);
+    const auto ec_enc_key2 = crypto::PrivateKey::LoadFromString(*ec_enc_pem2, kEncPassword);
+    EXPECT_EQ(ec_enc_key1.GetPemStringUnencrypted(), kEcKeyPem);
+    EXPECT_EQ(ec_enc_key1.GetPemStringUnencrypted(), ec_enc_key2.GetPemStringUnencrypted());
 }
 
 USERVER_NAMESPACE_END

@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
+@ref scripts/docs/en/userver/build/build.md.
 
 ## Step by step guide
 
@@ -19,7 +19,7 @@ Let's write a simple chat server that echoes incoming messages as outgoing messa
 WebSocket handlers must derive from `server::websocket::WebsocketHandlerBase` and have a name, that
 is obtainable at compile time via `kName` variable and is obtainable at runtime via `HandlerName()`.
 
-@snippet samples/websocket_service/websocket_service.cpp  Websocket service sample - component
+@snippet samples/websocket_service/main.cpp  Websocket service sample - component
 
 ### Static config
 
@@ -40,7 +40,7 @@ Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/websocket_service/websocket_service.cpp  Websocket service sample - main
+@snippet samples/websocket_service/main.cpp  Websocket service sample - main
 
 ### Build and Run
 
@@ -60,7 +60,6 @@ paths in the configuration files and starts the service.
 To start the service manually run
 `./samples/websocket_service/userver-samples-websocket_service -c </path/to/static_config.yaml>`.
 
-@note Without file path to `static_config.yaml` `userver-samples-websocket_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` file from `samples` directory into build directory.
 
 Now you can send messages to your server from another terminal:
@@ -88,7 +87,7 @@ Do not forget to add the plugin in conftest.py:
 ## Full sources
 
 See the full example at:
-* @ref samples/websocket_service/websocket_service.cpp
+* @ref samples/websocket_service/main.cpp
 * @ref samples/websocket_service/static_config.yaml
 * @ref samples/websocket_service/CMakeLists.txt
 * @ref samples/websocket_service/tests/conftest.py
@@ -101,7 +100,7 @@ See the full example at:
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/websocket_service/websocket_service.cpp
+@example samples/websocket_service/main.cpp
 @example samples/websocket_service/static_config.yaml
 @example samples/websocket_service/CMakeLists.txt
 @example samples/websocket_service/tests/conftest.py

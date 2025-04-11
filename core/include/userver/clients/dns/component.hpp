@@ -40,28 +40,25 @@ namespace clients::dns {
 
 // clang-format on
 class Component final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of clients::dns::Component component
-  static constexpr std::string_view kName = "dns-client";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of clients::dns::Component component
+    static constexpr std::string_view kName = "dns-client";
 
-  Component(const components::ComponentConfig&,
-            const components::ComponentContext&);
+    Component(const components::ComponentConfig&, const components::ComponentContext&);
 
-  Resolver& GetResolver();
+    Resolver& GetResolver();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+private:
+    void Write(utils::statistics::Writer& writer);
 
- private:
-  void Write(utils::statistics::Writer& writer);
-
-  Resolver resolver_;
-  utils::statistics::Entry statistics_holder_;
+    Resolver resolver_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace clients::dns
 
 template <>
-inline constexpr bool components::kHasValidate<clients::dns::Component> = true;
+inline constexpr bool components::kForceNoValidation<clients::dns::Component> = true;
 
 USERVER_NAMESPACE_END

@@ -15,10 +15,10 @@ Plugin::Plugin() : clients::http::Plugin(kName) {}
 
 void Plugin::HookPerformRequest(PluginRequest&) {}
 
-void Plugin::HookCreateSpan(PluginRequest& request) {
-  for (const auto& [name, value] : server::request::GetPropagatedHeaders()) {
-    request.SetHeader(name, value);
-  }
+void Plugin::HookCreateSpan(PluginRequest& request, tracing::Span&) {
+    for (const auto& [name, value] : server::request::GetPropagatedHeaders()) {
+        request.SetHeader(name, value);
+    }
 }
 
 void Plugin::HookOnCompleted(PluginRequest&, Response&) {}

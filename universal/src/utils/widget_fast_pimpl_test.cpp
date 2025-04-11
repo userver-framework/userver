@@ -6,9 +6,9 @@
 namespace sample {
 
 struct Widget::Impl {  // Implementation to hide
-  int Do(short param) const;
+    int Do(short param) const;
 
-  Ugly payload_;  // Something ugly from "third_party_ugly.hpp"
+    Ugly payload_;  // Something ugly from "third_party_ugly.hpp"
 };
 
 Widget::Widget() : pimpl_(Impl{/*some initializers*/}) {}

@@ -15,36 +15,36 @@ namespace engine {
 class Consumer;
 
 class ConsumersManager final {
- public:
-  explicit ConsumersManager(std::size_t consumers_count);
+public:
+    explicit ConsumersManager(std::size_t consumers_count);
 
-  void NotifyNewTask();
+    void NotifyNewTask();
 
-  void NotifyWakeUp(Consumer* const consumer);
+    void NotifyWakeUp(Consumer* const consumer);
 
-  void NotifySleep(Consumer* const consumer);
+    void NotifySleep(Consumer* const consumer);
 
-  bool AllowStealing() noexcept;
+    bool AllowStealing() noexcept;
 
-  bool StopStealing() noexcept;
+    bool StopStealing() noexcept;
 
-  void WakeUpOne();
+    void WakeUpOne();
 
-  void Stop() noexcept;
+    void Stop() noexcept;
 
-  bool IsStopped() const noexcept;
+    bool IsStopped() const noexcept;
 
-  std::size_t GetConsumersCount() const noexcept { return consumers_count_; }
+    std::size_t GetConsumersCount() const noexcept { return consumers_count_; }
 
- private:
-  void WakeUpAll();
+private:
+    void WakeUpAll();
 
-  const std::size_t consumers_count_;
-  std::mutex mutex_;
-  ConsumersState state_{};
-  std::atomic<bool> stopped_{false};
-  std::deque<Consumer*> sleep_dq_{};
-  std::vector<bool> is_sleeping_{};
+    const std::size_t consumers_count_;
+    std::mutex mutex_;
+    ConsumersState state_{};
+    std::atomic<bool> stopped_{false};
+    std::deque<Consumer*> sleep_dq_{};
+    std::vector<bool> is_sleeping_{};
 };
 
 }  // namespace engine

@@ -1,0 +1,43 @@
+# yaml
+# [graceful_shutdown_interval]
+components_manager:
+    graceful_shutdown_interval: 10s
+    # [graceful_shutdown_interval]
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+
+        fs-task-processor:
+            worker_threads: 2
+
+    default_task_processor: main-task-processor
+
+    components:
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+            listener-monitor:
+                port: 8081
+                task_processor: main-task-processor
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+
+        handler-sigterm:
+            monitor-handler: true
+            path: /sigterm
+            method: POST
+            task_processor: main-task-processor

@@ -6,8 +6,7 @@ namespace dynamic_config {
 
 AdditionalKeysToken::AdditionalKeysToken() = default;
 
-AdditionalKeysToken::AdditionalKeysToken(std::shared_ptr<KeyList> keys)
-    : keys_(std::move(keys)) {}
+AdditionalKeysToken::AdditionalKeysToken(std::shared_ptr<KeyList> keys) : keys_(std::move(keys)) {}
 
 }  // namespace dynamic_config
 

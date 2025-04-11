@@ -21,139 +21,127 @@ namespace utils::statistics {
 namespace {
 
 struct Metric final {
-  std::string path;
-  std::vector<Label> labels;
-  MetricValue value;
+    std::string path;
+    std::vector<Label> labels;
+    MetricValue value;
 };
 
 std::string ToString(const Metric& metric) {
-  return fmt::format("{};{} {}", metric.path, fmt::join(metric.labels, ";"),
-                     metric.value);
+    return fmt::format("{};{} {}", metric.path, fmt::join(metric.labels, ";"), metric.value);
 }
 
 struct SnapshotDataEntry final {
-  boost::container::flat_set<Label> labels;
-  MetricValue value;
+    boost::container::flat_set<Label> labels;
+    MetricValue value;
 };
 
 }  // namespace
 namespace impl {
 
 struct SnapshotData final {
-  std::unordered_multimap<std::string, SnapshotDataEntry> metrics;
-  std::vector<Histogram> histogram_storage;
+    std::unordered_multimap<std::string, SnapshotDataEntry> metrics;
+    std::vector<Histogram> histogram_storage;
 };
 
 }  // namespace impl
 namespace {
 
 class SnapshotVisitor final : public BaseFormatBuilder {
- public:
-  explicit SnapshotVisitor(impl::SnapshotData& data) : data_(data) {}
+public:
+    explicit SnapshotVisitor(impl::SnapshotData& data) : data_(data) {}
 
-  void HandleMetric(std::string_view path, LabelsSpan labels,
-                    const MetricValue& value) override {
-    boost::container::flat_set<Label> labels_owned;
-    labels_owned.reserve(labels.size());
-    for (const auto& l : labels) {
-      labels_owned.emplace(std::string{l.Name()}, std::string{l.Value()});
+    void HandleMetric(std::string_view path, LabelsSpan labels, const MetricValue& value) override {
+        boost::container::flat_set<Label> labels_owned;
+        labels_owned.reserve(labels.size());
+        for (const auto& l : labels) {
+            labels_owned.emplace(std::string{l.Name()}, std::string{l.Value()});
+        }
+        SnapshotDataEntry entry{std::move(labels_owned), value};
+        if (value.IsHistogram()) {
+            data_.histogram_storage.emplace_back(value.AsHistogram());
+            entry.value = MetricValue{data_.histogram_storage.back().GetView()};
+        }
+        data_.metrics.emplace(std::string{path}, std::move(entry));
     }
-    SnapshotDataEntry entry{std::move(labels_owned), value};
-    if (value.IsHistogram()) {
-      data_.histogram_storage.emplace_back(value.AsHistogram());
-      entry.value = MetricValue{data_.histogram_storage.back().GetView()};
-    }
-    data_.metrics.emplace(std::string{path}, std::move(entry));
-  }
 
- private:
-  impl::SnapshotData& data_;
+private:
+    impl::SnapshotData& data_;
 };
 
-utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(
-    const Storage& storage, const Request& request) {
-  auto data = utils::MakeSharedRef<impl::SnapshotData>();
-  SnapshotVisitor visitor{*data};
-  storage.VisitMetrics(visitor, request);
-  return data;
+utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(const Storage& storage, const Request& request) {
+    auto data = utils::MakeSharedRef<impl::SnapshotData>();
+    SnapshotVisitor visitor{*data};
+    storage.VisitMetrics(visitor, request);
+    return data;
 }
 
 void PrependPrefix(std::string& path, const Request& request) {
-  const std::string_view separator =
-      (path.empty() || request.prefix.empty()) ? "" : ".";
-  path = fmt::format("{}{}{}", request.prefix, separator, path);
+    const std::string_view separator = (path.empty() || request.prefix.empty()) ? "" : ".";
+    path = fmt::format("{}{}{}", request.prefix, separator, path);
 }
 
-std::optional<Metric> GetSingleOptional(
-    const impl::SnapshotData& data, const std::string& path,
-    const std::vector<Label>& required_labels) {
-  std::optional<Metric> found_metric;
-  const auto iterator_pair = data.metrics.equal_range(path);
+std::optional<Metric>
+GetSingleOptional(const impl::SnapshotData& data, const std::string& path, const std::vector<Label>& required_labels) {
+    std::optional<Metric> found_metric;
+    const auto iterator_pair = data.metrics.equal_range(path);
 
-  for (const auto& [_, entry] : boost::make_iterator_range(iterator_pair)) {
-    const bool matches = boost::algorithm::all_of(
-        required_labels, [&entry = entry](const auto& needle) {
-          return entry.labels.count(needle) != 0;
+    for (const auto& [_, entry] : boost::make_iterator_range(iterator_pair)) {
+        const bool matches = boost::algorithm::all_of(required_labels, [&entry = entry](const auto& needle) {
+            return entry.labels.count(needle) != 0;
         });
 
-    if (matches) {
-      Metric new_metric{
-          path, {entry.labels.begin(), entry.labels.end()}, entry.value};
-      if (found_metric) {
-        throw MetricQueryError(
-            fmt::format("Multiple metrics found for request {};{}\n  {}\n  {}",
-                        path, fmt::join(required_labels, ";"),
-                        ToString(*found_metric), ToString(new_metric)));
-      }
-      found_metric = std::move(new_metric);
+        if (matches) {
+            Metric new_metric{path, {entry.labels.begin(), entry.labels.end()}, entry.value};
+            if (found_metric) {
+                throw MetricQueryError(fmt::format(
+                    "Multiple metrics found for request {};{}\n  {}\n  {}",
+                    path,
+                    fmt::join(required_labels, ";"),
+                    ToString(*found_metric),
+                    ToString(new_metric)
+                ));
+            }
+            found_metric = std::move(new_metric);
+        }
     }
-  }
 
-  return found_metric;
+    return found_metric;
 }
 
 }  // namespace
 
-Snapshot::Snapshot(const Storage& storage, std::string prefix,
-                   std::vector<Label> require_labels)
-    : request_(Request::MakeWithPrefix(std::move(prefix), {},
-                                       std::move(require_labels))),
+Snapshot::Snapshot(const Storage& storage, std::string prefix, std::vector<Label> require_labels)
+    : request_(Request::MakeWithPrefix(std::move(prefix), {}, std::move(require_labels))),
       data_(BuildSnapshotData(storage, request_)) {}
 
-MetricValue Snapshot::SingleMetric(std::string path,
-                                   std::vector<Label> require_labels) const {
-  PrependPrefix(path, request_);
-  const auto result =
-      statistics::GetSingleOptional(*data_, path, require_labels);
-  if (!result) {
-    throw MetricQueryError(fmt::format("No metric found for request {};{}",
-                                       path, fmt::join(require_labels, ";")));
-  }
-  return result->value;
+MetricValue Snapshot::SingleMetric(std::string path, std::vector<Label> require_labels) const {
+    PrependPrefix(path, request_);
+    const auto result = statistics::GetSingleOptional(*data_, path, require_labels);
+    if (!result) {
+        throw MetricQueryError(fmt::format("No metric found for request {};{}", path, fmt::join(require_labels, ";")));
+    }
+    return result->value;
 }
 
-std::optional<MetricValue> Snapshot::SingleMetricOptional(
-    std::string path, std::vector<Label> require_labels) const {
-  PrependPrefix(path, request_);
-  const auto result =
-      statistics::GetSingleOptional(*data_, path, require_labels);
-  return result ? std::make_optional(result->value) : std::nullopt;
+std::optional<MetricValue> Snapshot::SingleMetricOptional(std::string path, std::vector<Label> require_labels) const {
+    PrependPrefix(path, request_);
+    const auto result = statistics::GetSingleOptional(*data_, path, require_labels);
+    return result ? std::make_optional(result->value) : std::nullopt;
 }
 
 void PrintTo(const Snapshot& data, std::ostream* out) {
-  UASSERT(out);
-  *out << "{";
-  for (const auto& [path, entry] : data.data_->metrics) {
-    *out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"),
-                        entry.value);
-    *out << ";\n";
-  }
-  *out << "}";
+    UASSERT(out);
+    *out << "{";
+    for (const auto& [path, entry] : data.data_->metrics) {
+        *out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"), entry.value);
+        *out << ";\n";
+    }
+    *out << "}";
 }
 
 void PrintTo(MetricValue value, std::ostream* out) {
-  UASSERT(out);
-  *out << fmt::to_string(value);
+    UASSERT(out);
+    *out << fmt::to_string(value);
 }
 
 }  // namespace utils::statistics

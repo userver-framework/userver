@@ -8,44 +8,42 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 namespace {
 
-const std::string kTraceKey = "stacktrace";
+constexpr utils::StringLiteral kTraceKey = "stacktrace";
 
 }  // namespace
 
 void ExtendLogExtraWithStacktrace(
-    LogExtra& log_extra, const boost::stacktrace::stacktrace& trace,
-    utils::Flags<LogExtraStacktraceFlags> flags) noexcept {
-  try {
-    log_extra.Extend(kTraceKey,
-                     (flags & LogExtraStacktraceFlags::kNoCache)
-                         ? boost::stacktrace::to_string(trace)
-                         : stacktrace_cache::to_string(trace),
-                     (flags & LogExtraStacktraceFlags::kFrozen)
-                         ? LogExtra::ExtendType::kFrozen
-                         : LogExtra::ExtendType::kNormal);
-  } catch (const std::exception& e) {
-    UASSERT_MSG(false, e.what());
-  }
+    LogExtra& log_extra,
+    const boost::stacktrace::stacktrace& trace,
+    utils::Flags<LogExtraStacktraceFlags> flags
+) noexcept {
+    try {
+        log_extra.Extend(
+            std::string{kTraceKey},
+            (flags & LogExtraStacktraceFlags::kNoCache) ? boost::stacktrace::to_string(trace)
+                                                        : stacktrace_cache::to_string(trace),
+            (flags & LogExtraStacktraceFlags::kFrozen) ? LogExtra::ExtendType::kFrozen : LogExtra::ExtendType::kNormal
+        );
+    } catch (const std::exception& e) {
+        UASSERT_MSG(false, e.what());
+    }
 }
 
-void ExtendLogExtraWithStacktrace(
-    LogExtra& log_extra, utils::Flags<LogExtraStacktraceFlags> flags) noexcept {
-  ExtendLogExtraWithStacktrace(log_extra, boost::stacktrace::stacktrace{},
-                               flags);
+void ExtendLogExtraWithStacktrace(LogExtra& log_extra, utils::Flags<LogExtraStacktraceFlags> flags) noexcept {
+    ExtendLogExtraWithStacktrace(log_extra, boost::stacktrace::stacktrace{}, flags);
 }
 
-bool ShouldLogStacktrace() noexcept {
-  return ShouldLog(logging::Level::kDebug);
-}
+bool ShouldLogStacktrace() noexcept { return ShouldLog(logging::Level::kDebug); }
 
 bool LoggerShouldLogStacktrace(logging::LoggerRef logger) noexcept {
-  return LoggerShouldLog(logger, logging::Level::kDebug);
+    return LoggerShouldLog(logger, logging::Level::kDebug);
 }
 
 }  // namespace logging::impl

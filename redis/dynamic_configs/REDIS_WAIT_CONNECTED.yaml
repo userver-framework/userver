@@ -1,0 +1,27 @@
+default:
+    mode: master_or_slave
+    throw_on_fail: false
+    timeout-ms: 11000
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        mode:
+            type: string
+            enum:
+              - no_wait
+              - master
+              - slave
+              - master_or_slave
+              - master_and_slave
+        throw_on_fail:
+            type: boolean
+        timeout-ms:
+            type: integer
+            minimum: 1
+            x-taxi-cpp-type: std::chrono::milliseconds
+    required:
+      - mode
+      - throw_on_fail
+      - timeout-ms

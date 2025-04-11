@@ -24,35 +24,33 @@ struct Access;
 ///
 /// HistogramView is cheap to copy, expected to be passed around by value.
 class HistogramView final {
- public:
-  // trivially copyable
-  constexpr HistogramView(const HistogramView&) noexcept = default;
-  constexpr HistogramView& operator=(const HistogramView&) noexcept = default;
+public:
+    // trivially copyable
+    constexpr HistogramView(const HistogramView&) noexcept = default;
+    constexpr HistogramView& operator=(const HistogramView&) noexcept = default;
 
-  /// Returns the number of "normal" (non-"infinity") buckets.
-  std::size_t GetBucketCount() const noexcept;
+    /// Returns the number of "normal" (non-"infinity") buckets.
+    std::size_t GetBucketCount() const noexcept;
 
-  /// Returns the upper bucket boundary for the given bucket.
-  double GetUpperBoundAt(std::size_t index) const;
+    /// Returns the upper bucket boundary for the given bucket.
+    double GetUpperBoundAt(std::size_t index) const;
 
-  /// Returns the occurrence count for the given bucket.
-  std::uint64_t GetValueAt(std::size_t index) const;
+    /// Returns the occurrence count for the given bucket.
+    std::uint64_t GetValueAt(std::size_t index) const;
 
-  /// Returns the occurrence count for the "infinity" bucket
-  /// (greater than the largest bucket boundary).
-  std::uint64_t GetValueAtInf() const noexcept;
+    /// Returns the occurrence count for the "infinity" bucket
+    /// (greater than the largest bucket boundary).
+    std::uint64_t GetValueAtInf() const noexcept;
 
-  /// Returns the sum of counts from all buckets.
-  std::uint64_t GetTotalCount() const noexcept;
+    /// Returns the sum of counts from all buckets.
+    std::uint64_t GetTotalCount() const noexcept;
 
- private:
-  friend struct impl::histogram::Access;
+private:
+    friend struct impl::histogram::Access;
 
-  constexpr explicit HistogramView(
-      const impl::histogram::Bucket& buckets) noexcept
-      : buckets_(&buckets) {}
+    constexpr explicit HistogramView(const impl::histogram::Bucket& buckets) noexcept : buckets_(&buckets) {}
 
-  const impl::histogram::Bucket* buckets_;
+    const impl::histogram::Bucket* buckets_;
 };
 
 /// Compares equal if bounds are close and values are equal.

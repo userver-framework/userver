@@ -11,7 +11,9 @@ TOPIC2 = 'test-topic-consume-2'
 
 
 async def test_consume_one_message_one_topic(
-    service_client, testpoint, kafka_producer,
+    service_client,
+    testpoint,
+    kafka_producer,
 ):
     @testpoint('tp_kafka-consumer')
     def received_messages_func(_data):
@@ -32,7 +34,9 @@ async def test_consume_one_message_one_topic(
 
 
 async def test_consume_many_messages_many_topics(
-    service_client, testpoint, kafka_producer,
+    service_client,
+    testpoint,
+    kafka_producer,
 ):
     @testpoint('tp_kafka-consumer')
     def received_messages_func(_data):
@@ -42,13 +46,16 @@ async def test_consume_many_messages_many_topics(
 
     topics = [TOPIC1, TOPIC2]
     messages: Dict[str, List[Dict[str, str]]] = generate_messages_to_consume(
-        topics=topics, cnt=15,
+        topics=topics,
+        cnt=15,
     )
 
     for topic in topics:
         for message in messages[topic]:
             await kafka_producer.send(
-                message['topic'], message['key'], message['payload'],
+                message['topic'],
+                message['key'],
+                message['payload'],
             )
 
     while sum([len(messages[topic]) for topic in topics]) > 0:

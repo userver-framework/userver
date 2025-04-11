@@ -12,24 +12,16 @@ StatementStats::StatementStats(const Query& query, const ConnectionPtr& conn)
       sts_{conn.GetStatementStatsStorage()},
       start_{sts_ != nullptr ? Now() : SteadyClock::time_point{}} {}
 
-void StatementStats::AccountStatementExecution() {
-  AccountImpl(StatementStatsStorage::ExecutionResult::kSuccess);
-}
+void StatementStats::AccountStatementExecution() { AccountImpl(StatementStatsStorage::ExecutionResult::kSuccess); }
 
-void StatementStats::AccountStatementError() {
-  AccountImpl(StatementStatsStorage::ExecutionResult::kError);
-}
+void StatementStats::AccountStatementError() { AccountImpl(StatementStatsStorage::ExecutionResult::kError); }
 
-void StatementStats::AccountImpl(
-    StatementStatsStorage::ExecutionResult execution_result) {
-  if (sts_ == nullptr || !query_.GetName().has_value()) return;
+void StatementStats::AccountImpl(StatementStatsStorage::ExecutionResult execution_result) {
+    if (sts_ == nullptr || !query_.GetName().has_value()) return;
 
-  const auto duration_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(Now() - start_)
-          .count();
+    const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(Now() - start_).count();
 
-  sts_->Account(query_.GetName()->GetUnderlying(), duration_ms,
-                execution_result);
+    sts_->Account(query_.GetName()->GetUnderlying(), duration_ms, execution_result);
 }
 
 SteadyClock::time_point StatementStats::Now() { return SteadyClock::now(); }

@@ -40,26 +40,26 @@ async def test_partitions_share(service_client, testpoint, kafka_producer):
     await second_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     second_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[1],
+        service_client,
+        CONSUMERS[1],
     )
 
-    assert (
-        len(first_consumer_messages) == 1
-        and len(second_consumer_messages) == 1
-    )
+    assert len(first_consumer_messages) == 1 and len(second_consumer_messages) == 1
 
     messages: set[str] = set(
-        parse_message_keys(first_consumer_messages)
-        + parse_message_keys(second_consumer_messages),
+        parse_message_keys(first_consumer_messages) + parse_message_keys(second_consumer_messages),
     )
     assert messages == set(['key-1', 'key-2'])
 
 
 async def test_rebalance_after_one_consumer_stopped(
-    service_client, testpoint, kafka_producer,
+    service_client,
+    testpoint,
+    kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):
@@ -97,36 +97,42 @@ async def test_rebalance_after_one_consumer_stopped(
     await stop_consumers(service_client, [CONSUMERS[1]])
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     second_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[1],
+        service_client,
+        CONSUMERS[1],
     )
-    assert (
-        len(first_consumer_messages) == 1
-        and len(second_consumer_messages) == 1
-    )
+    assert len(first_consumer_messages) == 1 and len(second_consumer_messages) == 1
     second_consumer_partition = second_consumer_messages[0]['partition']
     logging.info(
         f'Second consumer was subscribed to {second_consumer_partition} partition',
     )
 
     await kafka_producer.send(
-        TOPIC, 'key-3', 'message-3', second_consumer_partition,
+        TOPIC,
+        'key-3',
+        'message-3',
+        second_consumer_partition,
     )
     await first_consumer_revoked.wait_call()
     await first_consumer_subscribed.wait_call()
     await first_consumer_subscribed.wait_call()
 
     await kafka_producer.send(
-        TOPIC, 'key-4', 'message-4', 1 - second_consumer_partition,
+        TOPIC,
+        'key-4',
+        'message-4',
+        1 - second_consumer_partition,
     )
 
     await first_consumer_received.wait_call()
     await first_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     assert set(['key-3', 'key-4']) == set(
         parse_message_keys(first_consumer_messages),
@@ -134,7 +140,9 @@ async def test_rebalance_after_one_consumer_stopped(
 
 
 async def test_rebalance_after_second_consumer_came_after_subscription(
-    service_client, testpoint, kafka_producer,
+    service_client,
+    testpoint,
+    kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):
@@ -170,7 +178,8 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
     await first_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     assert len(first_consumer_messages) == 2
     assert set(['key-1', 'key-2']) == set(
@@ -190,27 +199,28 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
     await second_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     second_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[1],
+        service_client,
+        CONSUMERS[1],
     )
 
-    assert (
-        len(first_consumer_messages) == 1
-        and len(second_consumer_messages) == 1
-    )
+    assert len(first_consumer_messages) == 1 and len(second_consumer_messages) == 1
 
     messages: set[str] = set(
-        parse_message_keys(first_consumer_messages)
-        + parse_message_keys(second_consumer_messages),
+        parse_message_keys(first_consumer_messages) + parse_message_keys(second_consumer_messages),
     )
     assert messages == set(['key-3', 'key-4'])
 
 
 @pytest.mark.parametrize('exchange_order', ['stop_start', 'start_stop'])
 async def test_rebalance_full_partitions_exchange(
-    service_client, testpoint, kafka_producer, exchange_order,
+    service_client,
+    testpoint,
+    kafka_producer,
+    exchange_order,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):
@@ -254,7 +264,8 @@ async def test_rebalance_full_partitions_exchange(
     await first_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[0],
+        service_client,
+        CONSUMERS[0],
     )
     assert len(first_consumer_messages) == 2
     assert set(['key-1', 'key-2']) == set(
@@ -292,7 +303,8 @@ async def test_rebalance_full_partitions_exchange(
     await second_consumer_received.wait_call()
 
     second_consumer_messages = await get_consumed_messages(
-        service_client, CONSUMERS[1],
+        service_client,
+        CONSUMERS[1],
     )
 
     assert len(second_consumer_messages) == 2

@@ -1,0 +1,4 @@
+default: false
+description: ''
+schema:
+    type: boolean

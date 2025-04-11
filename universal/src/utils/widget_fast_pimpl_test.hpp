@@ -9,24 +9,23 @@
 namespace sample {
 
 class Widget {
- public:
-  Widget();
+public:
+    Widget();
 
-  Widget(Widget&& other) noexcept;
-  Widget(const Widget& other);
-  Widget& operator=(Widget&& other) noexcept;
-  Widget& operator=(const Widget& other);
-  ~Widget();
+    Widget(Widget&& other) noexcept;
+    Widget(const Widget& other);
+    Widget& operator=(Widget&& other) noexcept;
+    Widget& operator=(const Widget& other);
+    ~Widget();
 
-  int DoSomething(short param);
+    int DoSomething(short param);
 
- private:
-  struct Impl;
+private:
+    struct Impl;
 
-  static constexpr std::size_t kImplSize =
-      compiler::SelectSize().For64Bit(8).For32Bit(4);
-  static constexpr std::size_t kImplAlign = alignof(void*);
-  utils::FastPimpl<Impl, kImplSize, kImplAlign, utils::kStrictMatch> pimpl_;
+    static constexpr std::size_t kImplSize = compiler::SelectSize().For64Bit(8).For32Bit(4);
+    static constexpr std::size_t kImplAlign = alignof(void*);
+    utils::FastPimpl<Impl, kImplSize, kImplAlign, utils::kStrictMatch> pimpl_;
 };
 
 }  // namespace sample

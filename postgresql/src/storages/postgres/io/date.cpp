@@ -11,20 +11,18 @@ namespace storages::postgres {
 namespace io {
 
 template <>
-struct PgToCpp<PredefinedOids::kDate, Date>
-    : detail::PgToCppPredefined<PredefinedOids::kDate, Date> {};
+struct PgToCpp<PredefinedOids::kDate, Date> : detail::PgToCppPredefined<PredefinedOids::kDate, Date> {};
 
 namespace {
 
-const auto kReference =
-    detail::ForceReference(PgToCpp<PredefinedOids::kDate, Date>::init_);
+const auto kReference = detail::ForceReference(PgToCpp<PredefinedOids::kDate, Date>::init_);
 
 }  // namespace
 }  // namespace io
 
 Date PostgresEpochDate() {
-  static const Date kPgEpoch{2000, 1, 1};
-  return kPgEpoch;
+    static const Date kPgEpoch{2000, 1, 1};
+    return kPgEpoch;
 }
 
 }  // namespace storages::postgres

@@ -9,34 +9,35 @@ USERVER_NAMESPACE_BEGIN
 namespace kafka::impl {
 
 class DeliveryResult final {
- public:
-  DeliveryResult(
-      rd_kafka_resp_err_t message_error,
-      std::optional<rd_kafka_msg_status_t> message_status = std::nullopt);
+public:
+    DeliveryResult(
+        rd_kafka_resp_err_t message_error,
+        std::optional<rd_kafka_msg_status_t> message_status = std::nullopt
+    );
 
-  DeliveryResult(DeliveryResult&&) noexcept = default;
+    DeliveryResult(DeliveryResult&&) noexcept = default;
 
-  bool IsSuccess() const;
+    bool IsSuccess() const;
 
-  rd_kafka_resp_err_t GetMessageError() const;
+    rd_kafka_resp_err_t GetMessageError() const;
 
- private:
-  rd_kafka_resp_err_t message_error_;
-  std::optional<rd_kafka_msg_status_t> message_status_;
+private:
+    rd_kafka_resp_err_t message_error_;
+    std::optional<rd_kafka_msg_status_t> message_status_;
 };
 
 /// @brief State for waiting delivery callback invoked after producer send
 /// called
 class DeliveryWaiter final {
- public:
-  DeliveryWaiter() = default;
+public:
+    DeliveryWaiter() = default;
 
-  engine::Future<DeliveryResult> GetFuture();
+    engine::Future<DeliveryResult> GetFuture();
 
-  void SetDeliveryResult(DeliveryResult delivery_result);
+    void SetDeliveryResult(DeliveryResult delivery_result);
 
- private:
-  engine::Promise<DeliveryResult> wait_handle_;
+private:
+    engine::Promise<DeliveryResult> wait_handle_;
 };
 
 }  // namespace kafka::impl

@@ -24,30 +24,28 @@ namespace utils::ip {
 /// @brief Base class for IPv4/IPv6 addresses
 template <std::size_t N>
 class AddressBase final {
-  static_assert(N == 4 || N == 16, "Address can only be 4 or 16 bytes size");
+    static_assert(N == 4 || N == 16, "Address can only be 4 or 16 bytes size");
 
- public:
-  static constexpr std::size_t AddressSize = N;
-  using BytesType = std::array<unsigned char, N>;
+public:
+    static constexpr std::size_t AddressSize = N;
+    using BytesType = std::array<unsigned char, N>;
 
-  AddressBase() noexcept : address_({0}) {}
-  explicit AddressBase(const BytesType& address) : address_(address) {}
+    AddressBase() noexcept : address_({0}) {}
+    explicit AddressBase(const BytesType& address) : address_(address) {}
 
-  /// @brief Get the address in bytes, in network byte order.
-  const BytesType& GetBytes() const noexcept { return address_; }
+    /// @brief Get the address in bytes, in network byte order.
+    const BytesType& GetBytes() const noexcept { return address_; }
 
-  friend bool operator==(const AddressBase<N>& a1,
-                         const AddressBase<N>& a2) noexcept {
-    return a1.address_ == a2.address_;
-  }
+    friend bool operator==(const AddressBase<N>& a1, const AddressBase<N>& a2) noexcept {
+        return a1.address_ == a2.address_;
+    }
 
-  friend bool operator!=(const AddressBase<N>& a1,
-                         const AddressBase<N>& a2) noexcept {
-    return a1.address_ != a2.address_;
-  }
+    friend bool operator!=(const AddressBase<N>& a1, const AddressBase<N>& a2) noexcept {
+        return a1.address_ != a2.address_;
+    }
 
- private:
-  BytesType address_;
+private:
+    BytesType address_;
 };
 
 /// @ingroup userver_containers
@@ -61,8 +59,7 @@ using AddressV4 = AddressBase<4>;
 using AddressV6 = AddressBase<16>;
 
 template <typename T>
-inline constexpr bool kIsAddressType =
-    std::is_same_v<T, AddressV4> || std::is_same_v<T, AddressV6>;
+inline constexpr bool kIsAddressType = std::is_same_v<T, AddressV4> || std::is_same_v<T, AddressV6>;
 
 /// @brief Create an IPv4 address from an IP address string in dotted decimal
 /// form.
@@ -82,66 +79,58 @@ std::string AddressV6ToString(const AddressV6& address);
 /// @ingroup userver_containers
 ///
 /// @brief Base class for IPv4/IPv6 network
-template <typename Address,
-          typename = std::enable_if_t<kIsAddressType<Address>>>
+template <typename Address, typename = std::enable_if_t<kIsAddressType<Address>>>
 class NetworkBase final {
- public:
-  using AddressType = Address;
-  static constexpr unsigned char kMaximumPrefixLength =
-      std::is_same_v<Address, AddressV4> ? 32 : 128;
+public:
+    using AddressType = Address;
+    static constexpr unsigned char kMaximumPrefixLength = std::is_same_v<Address, AddressV4> ? 32 : 128;
 
-  NetworkBase() noexcept = default;
+    NetworkBase() noexcept = default;
 
-  NetworkBase(const AddressType& address, unsigned short prefix_length)
-      : address_(address), prefix_length_(prefix_length) {
-    if (prefix_length > kMaximumPrefixLength) {
-      throw std::out_of_range(fmt::format(
-          "{} prefix length is too large",
-          std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"));
+    NetworkBase(const AddressType& address, unsigned short prefix_length)
+        : address_(address), prefix_length_(prefix_length) {
+        if (prefix_length > kMaximumPrefixLength) {
+            throw std::out_of_range(fmt::format(
+                "{} prefix length is too large", std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"
+            ));
+        }
     }
-  }
 
-  /// @brief Get the address address of network
-  AddressType GetAddress() const noexcept { return address_; }
+    /// @brief Get the address address of network
+    AddressType GetAddress() const noexcept { return address_; }
 
-  /// @brief Get prefix length of address network
-  unsigned char GetPrefixLength() const noexcept { return prefix_length_; }
+    /// @brief Get prefix length of address network
+    unsigned char GetPrefixLength() const noexcept { return prefix_length_; }
 
-  /// @brief Returns true if the address is in network
-  bool ContainsAddress(const AddressType& address) const {
-    const auto network_bytes = address_.GetBytes();
-    const auto address_bytes = address.GetBytes();
+    /// @brief Returns true if the address is in network
+    bool ContainsAddress(const AddressType& address) const {
+        const auto network_bytes = address_.GetBytes();
+        const auto address_bytes = address.GetBytes();
 
-    std::uint8_t diff = 0;
-    for (std::size_t byte_index = 0; byte_index < kMaximumPrefixLength / 8;
-         ++byte_index) {
-      std::uint8_t mask_byte = 0;
-      if (byte_index == prefix_length_ / 8) {
-        mask_byte = ~((1 << (8 - prefix_length_ % 8)) - 1);
-      }
-      if (byte_index < prefix_length_ / 8) {
-        mask_byte = 255;
-      }
+        std::uint8_t diff = 0;
+        for (std::size_t byte_index = 0; byte_index < kMaximumPrefixLength / 8; ++byte_index) {
+            std::uint8_t mask_byte = 0;
+            if (byte_index == prefix_length_ / 8) {
+                mask_byte = ~((1 << (8 - prefix_length_ % 8)) - 1);
+            }
+            if (byte_index < prefix_length_ / 8) {
+                mask_byte = 255;
+            }
 
-      diff |=
-          (network_bytes[byte_index] ^ address_bytes[byte_index]) & mask_byte;
+            diff |= (network_bytes[byte_index] ^ address_bytes[byte_index]) & mask_byte;
+        }
+        return !diff;
     }
-    return !diff;
-  }
 
-  friend bool operator==(const NetworkBase<Address>& a,
-                         const NetworkBase<Address>& b) noexcept {
-    return a.address_ == b.address_ && a.prefix_length_ == b.prefix_length_;
-  }
+    friend bool operator==(const NetworkBase<Address>& a, const NetworkBase<Address>& b) noexcept {
+        return a.address_ == b.address_ && a.prefix_length_ == b.prefix_length_;
+    }
 
-  friend bool operator!=(const NetworkBase<Address>& a,
-                         const NetworkBase<Address>& b) noexcept {
-    return !(a == b);
-  }
+    friend bool operator!=(const NetworkBase<Address>& a, const NetworkBase<Address>& b) noexcept { return !(a == b); }
 
- private:
-  AddressType address_;
-  unsigned char prefix_length_ = 0;
+private:
+    AddressType address_;
+    unsigned char prefix_length_ = 0;
 };
 
 /// @ingroup userver_containers
@@ -182,36 +171,33 @@ NetworkV6 TransformToCidrFormat(NetworkV6 network);
 /// via transformation function to/from NetworkV4/NetworkV6.
 /// Use this class only if you need to work with INET PostgreSQL format.
 class InetNetwork final {
- public:
-  enum class AddressFamily : unsigned char { IPv4 = AF_INET, IPv6 = AF_INET6 };
+public:
+    enum class AddressFamily : unsigned char { IPv4 = AF_INET, IPv6 = AF_INET6 };
 
-  // Default constructor: IPv4 address
-  InetNetwork();
-  InetNetwork(std::vector<unsigned char>&& bytes, unsigned char prefix_length,
-              AddressFamily address_family);
+    // Default constructor: IPv4 address
+    InetNetwork();
+    InetNetwork(std::vector<unsigned char>&& bytes, unsigned char prefix_length, AddressFamily address_family);
 
-  /// @brief Get the address in bytes
-  const std::vector<unsigned char>& GetBytes() const noexcept { return bytes_; }
+    /// @brief Get the address in bytes
+    const std::vector<unsigned char>& GetBytes() const noexcept { return bytes_; }
 
-  /// @brief Get the prefix length of network
-  unsigned char GetPrefixLength() const noexcept { return prefix_length_; }
+    /// @brief Get the prefix length of network
+    unsigned char GetPrefixLength() const noexcept { return prefix_length_; }
 
-  /// @brief Get the address family
-  AddressFamily GetAddressFamily() const noexcept { return address_family_; }
+    /// @brief Get the address family
+    AddressFamily GetAddressFamily() const noexcept { return address_family_; }
 
-  friend bool operator==(const InetNetwork& lhs, const InetNetwork& rhs) {
-    return lhs.address_family_ == rhs.address_family_ &&
-           lhs.prefix_length_ == rhs.prefix_length_ && lhs.bytes_ == rhs.bytes_;
-  }
+    friend bool operator==(const InetNetwork& lhs, const InetNetwork& rhs) {
+        return lhs.address_family_ == rhs.address_family_ && lhs.prefix_length_ == rhs.prefix_length_ &&
+               lhs.bytes_ == rhs.bytes_;
+    }
 
-  friend bool operator!=(const InetNetwork& lhs, const InetNetwork& rhs) {
-    return !operator==(lhs, rhs);
-  }
+    friend bool operator!=(const InetNetwork& lhs, const InetNetwork& rhs) { return !operator==(lhs, rhs); }
 
- private:
-  std::vector<unsigned char> bytes_;
-  unsigned char prefix_length_;
-  AddressFamily address_family_;
+private:
+    std::vector<unsigned char> bytes_;
+    unsigned char prefix_length_;
+    AddressFamily address_family_;
 };
 
 /// @brief Convert InetNetwork to NetworkV4
@@ -228,18 +214,17 @@ InetNetwork NetworkV6ToInetNetwork(const NetworkV6& network);
 
 /// @brief Invalid network or address
 class AddressSystemError final : public std::exception {
- public:
-  AddressSystemError(std::error_code code, std::string_view msg)
-      : msg_(msg), code_(code) {}
+public:
+    AddressSystemError(std::error_code code, std::string_view msg) : msg_(msg), code_(code) {}
 
-  /// Operating system error code.
-  const std::error_code& Code() const { return code_; }
+    /// Operating system error code.
+    const std::error_code& Code() const { return code_; }
 
-  const char* what() const noexcept final { return msg_.c_str(); }
+    const char* what() const noexcept final { return msg_.c_str(); }
 
- private:
-  std::string msg_;
-  std::error_code code_;
+private:
+    std::string msg_;
+    std::error_code code_;
 };
 
 }  // namespace utils::ip

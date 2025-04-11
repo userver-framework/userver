@@ -8,14 +8,13 @@ USERVER_NAMESPACE_BEGIN
 namespace server::middlewares {
 
 class Baggage final : public HttpMiddlewareBase {
- public:
-  static constexpr std::string_view kName = builtin::kBaggage;
+public:
+    static constexpr std::string_view kName = builtin::kBaggage;
 
-  explicit Baggage(const handlers::HttpHandlerBase&);
+    explicit Baggage(const handlers::HttpHandlerBase&);
 
- private:
-  void HandleRequest(http::HttpRequest& request,
-                     request::RequestContext& context) const override;
+private:
+    void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 };
 
 using BaggageFactory = SimpleHttpMiddlewareFactory<Baggage>;

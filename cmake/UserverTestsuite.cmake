@@ -158,6 +158,7 @@ function(userver_testsuite_add)
       WORKING_DIRECTORY
       PYTHON_BINARY
       PRETTY_LOGS
+      SQL_LIBRARY
   )
   set(multiValueArgs
       PYTEST_ARGS
@@ -230,22 +231,41 @@ function(userver_testsuite_add)
   set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${service_target_with_suffix}")
   list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
 
-  execute_process(
-    COMMAND
-    "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
-    "--output=${TESTSUITE_RUNNER}"
-    "--python=${python_binary}"
-    "--python-path=${ARG_PYTHONPATH}"
-    --
-    "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
-    "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
-    "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary"
-    ${ARG_PYTEST_ARGS}
-    RESULT_VARIABLE STATUS
-  )
-  if (STATUS)
-    message(FATAL_ERROR "Failed to create testsuite runner")
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary)
+
+  set(TESTS_PATHS ${ARG_WORKING_DIRECTORY})
+  if (ARG_SQL_LIBRARY)
+    get_target_property(TESTSUITE_OUTPUT_DIR ${ARG_SQL_LIBRARY} USERVER_TESTSUITE_DIRECTORY)
+    list(APPEND ARG_PYTEST_ARGS "-p sql_files")
+    list(APPEND ARG_PYTEST_ARGS "-p pytest_userver.plugins.sql_coverage")
+    list(APPEND TESTS_PATHS "${USERVER_TESTSUITE_DIR}/include_tests/sql_coverage/")
+    list(APPEND ARG_PYTHONPATH ${TESTSUITE_OUTPUT_DIR})
   endif()
+
+  _userver_initialize_codegen_flag()
+  add_custom_command(
+      OUTPUT "${TESTSUITE_RUNNER}"
+      COMMAND
+      "${python_binary}"
+      "${USERVER_TESTSUITE_DIR}/create_runner.py"
+      "--output=${TESTSUITE_RUNNER}"
+      "--python=${python_binary}"
+      "--tests-path=${TESTS_PATHS}"
+      "--working-dir=${CMAKE_CURRENT_BINARY_DIR}"
+      "--python-path=${ARG_PYTHONPATH}"
+      --
+      "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
+      "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
+      "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary"
+      ${ARG_PYTEST_ARGS}
+      DEPENDS "${USERVER_TESTSUITE_DIR}/create_runner.py"
+      COMMENT "Creating testsuite runner at ${TESTSUITE_RUNNER}"
+      VERBATIM
+      ${CODEGEN}
+  )
+  _userver_codegen_register_files("${TESTSUITE_RUNNER}")
+  # HACK: it seems too verbose to create a separate target for the file.
+  target_sources("${ARG_SERVICE_TARGET}" PRIVATE "${TESTSUITE_RUNNER}")
 
   set(PRETTY_LOGS_MODE "")
   if (ARG_PRETTY_LOGS)
@@ -258,7 +278,6 @@ function(userver_testsuite_add)
   list(APPEND testsuite_test_command "${TESTSUITE_RUNNER}")
   list(APPEND testsuite_test_command ${PRETTY_LOGS_MODE})
   list(APPEND testsuite_test_command -vv)
-  list(APPEND testsuite_test_command "${ARG_WORKING_DIRECTORY}")
   # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
       NAME "${testsuite_test_name}"
@@ -277,7 +296,6 @@ function(userver_testsuite_add)
   list(APPEND testsuite_start_command ${PRETTY_LOGS_MODE})
   list(APPEND testsuite_start_command --service-runner-mode)
   list(APPEND testsuite_start_command -vvs)
-  list(APPEND testsuite_start_command "${ARG_WORKING_DIRECTORY}")
   add_custom_target(
       "start-${service_target_with_suffix}"
       COMMAND ${testsuite_start_command}
@@ -307,6 +325,8 @@ function(userver_testsuite_add_simple)
       CONFIG_VARS_PATH
       DYNAMIC_CONFIG_FALLBACK_PATH
       SECDIST_PATH
+      DUMP_CONFIG
+      SQL_LIBRARY
   )
   set(multiValueArgs
       PYTEST_ARGS
@@ -357,9 +377,16 @@ function(userver_testsuite_add_simple)
     set(ARG_TEST_SUFFIX "")
   endif()
 
+  set(DUMP_CONFIG_OPTION "")
+  if (ARG_DUMP_CONFIG)
+    set(DUMP_CONFIG_OPTION "--dump-config")
+  endif()
+
   if(ARG_CONFIG_PATH)
     get_filename_component(config_path "${ARG_CONFIG_PATH}"
         REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  elseif(ARG_DUMP_CONFIG)
+    set(config_path "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/static_config.yaml")
   else()
     foreach(probable_config_path IN ITEMS
         "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
@@ -459,19 +486,21 @@ function(userver_testsuite_add_simple)
       "--service-config=${config_path}"
       "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
       "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
+      "${DUMP_CONFIG_OPTION}"
       ${pytest_additional_args}
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHONPATH ${ARG_PYTHONPATH}
       TEST_ENV ${ARG_TEST_ENV}
+      SQL_LIBRARY ${ARG_SQL_LIBRARY}
   )
 endfunction()
 
 # add utest, test runs in testsuite env
 function(userver_add_utest)
-  set(options)
+  set(options DISABLE_GTEST_XML_OUTPUT)
   set(oneValueArgs NAME)
-  set(multiValueArgs DATABASES TEST_ENV)
+  set(multiValueArgs DATABASES TEST_ENV TEST_ARGS)
 
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -484,19 +513,54 @@ function(userver_add_utest)
   if(ARG_DATABASES)
     list(JOIN ARG_DATABASES "," databases_value)
     list(APPEND additional_args "--databases=${databases_value}")
+  else()
+    list(APPEND additional_args "--databases=")
+  endif()
+
+  if(NOT ARG_DISABLE_GTEST_XML_OUTPUT)
+    list(APPEND ARG_TEST_ARGS "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml")
   endif()
 
   add_test(NAME "${ARG_NAME}" COMMAND
-    "${CMAKE_BINARY_DIR}/testsuite/env"
-    ${additional_args} run --
-    $<TARGET_FILE:${ARG_NAME}>
-    "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml"
+      "${CMAKE_BINARY_DIR}/testsuite/env"
+      ${additional_args} run --
+      $<TARGET_FILE:${ARG_NAME}>
+      ${ARG_TEST_ARGS}
   )
   if(ARG_TEST_ENV)
     set_tests_properties("${ARG_NAME}"
         PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
     )
   endif()
+endfunction()
+
+function(userver_add_ubench_test)
+  set(options)
+  set(oneValueArgs NAME)
+  set(multiValueArgs DATABASES TEST_ENV)
+
+  cmake_parse_arguments(
+      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if (USERVER_CONAN)
+    set(BENCHMARK_VERSION ${benchmark_VERSION})
+  else()
+    set(BENCHMARK_VERSION ${UserverGBench_VERSION})
+  endif()
+
+  if(BENCHMARK_VERSION VERSION_LESS "1.8.0")
+    set(BENCHMARK_MIN_TIME "0")
+  else()
+    set(BENCHMARK_MIN_TIME "0.0s")
+  endif()
+
+  userver_add_utest(
+      NAME "${ARG_NAME}"
+      DATABASES ${ARG_DATABASES}
+      TEST_ENV ${ARG_TEST_ENV}
+      TEST_ARGS --benchmark_min_time=${BENCHMARK_MIN_TIME} --benchmark_color=no
+      DISABLE_GTEST_XML_OUTPUT ON
+  )
 endfunction()
 
 _userver_prepare_testsuite()

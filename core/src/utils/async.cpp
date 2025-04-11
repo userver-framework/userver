@@ -10,34 +10,31 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 struct SpanWrapCall::Impl {
-  explicit Impl(std::string&& name, InheritVariables inherit_variables);
+    explicit Impl(std::string&& name, InheritVariables inherit_variables);
 
-  tracing::Span::Impl span_impl_;
-  tracing::Span span_;
-  engine::impl::task_local::Storage storage_;
+    tracing::Span::Impl span_impl_;
+    tracing::Span span_;
+    engine::impl::task_local::Storage storage_;
 };
 
 SpanWrapCall::Impl::Impl(std::string&& name, InheritVariables inherit_variables)
     : span_impl_(std::move(name)), span_(span_impl_) {
-  if (!engine::current_task::IsTaskProcessorThread()) {
-    return;
-  }
-  if (inherit_variables == InheritVariables::kYes) {
-    storage_.InheritFrom(engine::impl::task_local::GetCurrentStorage());
-  } else {
-    baggage::kInheritedBaggage.InheritTo(
-        storage_, engine::impl::task_local::InternalTag{});
-  }
+    if (!engine::current_task::IsTaskProcessorThread()) {
+        return;
+    }
+    if (inherit_variables == InheritVariables::kYes) {
+        storage_.InheritFrom(engine::impl::task_local::GetCurrentStorage());
+    } else {
+        baggage::kInheritedBaggage.InheritTo(storage_, engine::impl::task_local::InternalTag{});
+    }
 }
 
-SpanWrapCall::SpanWrapCall(std::string&& name,
-                           InheritVariables inherit_variables)
+SpanWrapCall::SpanWrapCall(std::string&& name, InheritVariables inherit_variables)
     : pimpl_(std::move(name), inherit_variables) {}
 
 void SpanWrapCall::DoBeforeInvoke() {
-  engine::impl::task_local::GetCurrentStorage().InitializeFrom(
-      std::move(pimpl_->storage_));
-  pimpl_->span_.AttachToCoroStack();
+    engine::impl::task_local::GetCurrentStorage().InitializeFrom(std::move(pimpl_->storage_));
+    pimpl_->span_.AttachToCoroStack();
 }
 
 SpanWrapCall::~SpanWrapCall() = default;

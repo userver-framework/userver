@@ -12,19 +12,16 @@ namespace storages::mysql::impl {
 class Connection;
 
 class StatementsCache final {
- public:
-  StatementsCache(Connection& connection, std::size_t capacity);
-  ~StatementsCache();
+public:
+    StatementsCache(Connection& connection, std::size_t capacity);
+    ~StatementsCache();
 
-  Statement& PrepareStatement(const std::string& statement,
-                              engine::Deadline deadline);
+    Statement& PrepareStatement(const std::string& statement, engine::Deadline deadline);
 
- private:
-  Connection& connection_;
+private:
+    Connection& connection_;
 
-  cache::LruMap<std::string, Statement, utils::StrIcaseHash,
-                utils::StrIcaseEqual>
-      cache_;
+    cache::LruMap<std::string, Statement, utils::StrIcaseHash, utils::StrIcaseEqual> cache_;
 };
 
 }  // namespace storages::mysql::impl

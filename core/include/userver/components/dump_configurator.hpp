@@ -28,20 +28,19 @@ namespace components {
 
 // clang-format on
 class DumpConfigurator final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::DumpConfigurator component
-  static constexpr std::string_view kName = "dump-configurator";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::DumpConfigurator component
+    static constexpr std::string_view kName = "dump-configurator";
 
-  DumpConfigurator(const ComponentConfig& config,
-                   const ComponentContext& context);
+    DumpConfigurator(const ComponentConfig& config, const ComponentContext& context);
 
-  const std::string& GetDumpRoot() const;
+    const std::string& GetDumpRoot() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  const std::string dump_root_;
+private:
+    const std::string dump_root_;
 };
 
 template <>

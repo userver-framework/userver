@@ -11,25 +11,24 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 
 class TimerWatcher final {
- public:
-  explicit TimerWatcher(ThreadControl& thread_control);
+public:
+    explicit TimerWatcher(ThreadControl& thread_control);
 
-  TimerWatcher(const TimerWatcher&) = delete;
-  ~TimerWatcher();
+    TimerWatcher(const TimerWatcher&) = delete;
+    ~TimerWatcher();
 
-  void Cancel();
+    void Cancel();
 
-  using Callback = std::function<void(std::error_code)>;
-  void SingleshotAsync(std::chrono::milliseconds timeout, Callback cb);
+    using Callback = std::function<void(std::error_code)>;
+    void SingleshotAsync(std::chrono::milliseconds timeout, Callback cb);
 
- private:
-  static void OnEventTimeout(struct ev_loop* loop, ev_timer* timer,
-                             int events) noexcept;
-  void CallTimeoutCb(std::error_code ec);
+private:
+    static void OnEventTimeout(struct ev_loop* loop, ev_timer* timer, int events) noexcept;
+    void CallTimeoutCb(std::error_code ec);
 
-  Watcher<ev_timer> ev_timer_;
-  Callback cb_;
-  std::mutex mutex_;
+    Watcher<ev_timer> ev_timer_;
+    Callback cb_;
+    std::mutex mutex_;
 };
 
 }  // namespace engine::ev

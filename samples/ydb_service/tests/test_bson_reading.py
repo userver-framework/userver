@@ -5,7 +5,8 @@ import pytest
 @pytest.mark.ydb(files=['fill_orders.sql'])
 async def test_bson_reading(service_client):
     response = await service_client.post(
-        'ydb/bson-reading', params={'id': 'id1'},
+        'ydb/bson-reading',
+        params={'id': 'id1'},
     )
     assert response.status_code == 200
     raw_bson = bson.BSON(response.content).decode()

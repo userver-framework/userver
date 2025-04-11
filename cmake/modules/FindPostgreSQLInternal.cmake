@@ -21,6 +21,7 @@ _userver_module_find_include(
     /usr/include/postgresql/20/server
     /usr/local/include/postgresql/server  # FreeBSD
     /usr/include/postgresql/server  # Manjaro
+    /usr/local/pgsql/include/server # postgresql: make install
     PATH_SUFFIXES
     pgsql/server         # postgresql-server-devel
 )
@@ -31,9 +32,11 @@ _userver_module_find_include(
     ${USERVER_PG_INCLUDE_DIR}/internal
     ${USERVER_PG_INCLUDE_DIR}/postgresql/internal
     /usr/local/include/postgresql/internal  # FreeBSD
+    /usr/local/pgsql/include/internal    # postgresql: make install
     PATH_SUFFIXES
     postgresql/internal  # libpq-dev
     pgsql/internal       # postgresql-private-devel
+
 )
 
 _userver_module_find_include(
@@ -41,6 +44,7 @@ _userver_module_find_include(
     PATHS
     ${USERVER_PG_INCLUDE_DIR}
     /usr/local/include  # FreeBSD
+    /usr/local/pgsql/include    # postgresql: make install
     PATH_SUFFIXES
     postgresql
     pgsql
@@ -51,6 +55,7 @@ _userver_module_find_library(
     PATHS
     ${USERVER_PG_LIBRARY_DIR}
     /usr/local/lib  # FreeBSD
+    /usr/local/pgsql/lib    # postgresql: make install
 )
 
 _userver_module_find_library(
@@ -67,6 +72,7 @@ _userver_module_find_library(
     /usr/lib/postgresql/18/lib
     /usr/lib/postgresql/19/lib
     /usr/lib/postgresql/20/lib
+    /usr/local/pgsql/lib    # postgresql: make install
 )
 
 _userver_module_find_library(
@@ -83,6 +89,7 @@ _userver_module_find_library(
     /usr/lib/postgresql/18/lib
     /usr/lib/postgresql/19/lib
     /usr/lib/postgresql/20/lib
+    /usr/local/pgsql/lib    # postgresql: make install
 )
 
 _userver_module_end()

@@ -1,6 +1,9 @@
 #pragma once
 
-#include <optional>
+#include <string>
+
+#include <google/protobuf/message.h>
+#include <grpcpp/support/status.h>
 
 #include <userver/logging/level.hpp>
 
@@ -8,12 +11,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-// Thread-safe. Can be called multiple times if needed.
-void SetupNativeLogging();
+struct MessageLoggingOptions {
+    logging::Level log_level{logging::Level::kDebug};
+    std::size_t max_size{512};
+    bool trim_secrets{true};
+};
 
-// Thread-safe. Can be called multiple times if needed, the most verbose log
-// level is chosen. Only kDebug, kInfo, kError levels are allowed.
-void UpdateNativeLogLevel(logging::Level min_log_level);
+std::string GetMessageForLogging(const google::protobuf::Message& message, MessageLoggingOptions options = {});
+
+std::string GetErrorDetailsForLogging(const grpc::Status& status);
 
 }  // namespace ugrpc::impl
 

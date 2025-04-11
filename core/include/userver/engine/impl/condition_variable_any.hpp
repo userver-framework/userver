@@ -15,42 +15,44 @@ void OnConditionVariableSpuriousWakeup();
 
 template <typename MutexType>
 class ConditionVariableAny {
- public:
-  ConditionVariableAny();
-  ~ConditionVariableAny();
+public:
+    ConditionVariableAny();
+    ~ConditionVariableAny();
 
-  ConditionVariableAny(const ConditionVariableAny&) = delete;
-  ConditionVariableAny(ConditionVariableAny&&) = delete;
-  ConditionVariableAny& operator=(const ConditionVariableAny&) = delete;
-  ConditionVariableAny& operator=(ConditionVariableAny&&) = delete;
+    ConditionVariableAny(const ConditionVariableAny&) = delete;
+    ConditionVariableAny(ConditionVariableAny&&) = delete;
+    ConditionVariableAny& operator=(const ConditionVariableAny&) = delete;
+    ConditionVariableAny& operator=(ConditionVariableAny&&) = delete;
 
-  CvStatus WaitUntil(std::unique_lock<MutexType>&, Deadline);
+    CvStatus WaitUntil(std::unique_lock<MutexType>&, Deadline);
 
-  template <typename Predicate>
-  bool WaitUntil(std::unique_lock<MutexType>&, Deadline, Predicate&&);
+    template <typename Predicate>
+    bool WaitUntil(std::unique_lock<MutexType>&, Deadline, Predicate&&);
 
-  void NotifyOne();
-  void NotifyAll();
+    void NotifyOne();
+    void NotifyAll();
 
- private:
-  FastPimplWaitList waiters_;
+private:
+    FastPimplWaitList waiters_;
 };
 
 template <typename MutexType>
 template <typename Predicate>
 bool ConditionVariableAny<MutexType>::WaitUntil(
-    std::unique_lock<MutexType>& lock, Deadline deadline,
-    Predicate&& predicate) {
-  bool predicate_result = predicate();
-  auto status = CvStatus::kNoTimeout;
-  while (!predicate_result && status == CvStatus::kNoTimeout) {
-    status = WaitUntil(lock, deadline);
-    predicate_result = predicate();
-    if (!predicate_result && status == CvStatus::kNoTimeout) {
-      impl::OnConditionVariableSpuriousWakeup();
+    std::unique_lock<MutexType>& lock,
+    Deadline deadline,
+    Predicate&& predicate
+) {
+    bool predicate_result = predicate();
+    auto status = CvStatus::kNoTimeout;
+    while (!predicate_result && status == CvStatus::kNoTimeout) {
+        status = WaitUntil(lock, deadline);
+        predicate_result = predicate();
+        if (!predicate_result && status == CvStatus::kNoTimeout) {
+            impl::OnConditionVariableSpuriousWakeup();
+        }
     }
-  }
-  return predicate_result;
+    return predicate_result;
 }
 
 }  // namespace engine::impl

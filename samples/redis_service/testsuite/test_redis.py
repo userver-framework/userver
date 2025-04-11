@@ -1,12 +1,18 @@
 # /// [Functional test]
-async def test_redis(service_client):
+async def test_redis(service_client, redis_store):
     response = await service_client.delete('/v1/key-value?key=hello')
     assert response.status == 200
+
+    # Checking content of the database via direct access
+    assert redis_store.get('hello') is None
 
     response = await service_client.post('/v1/key-value?key=hello&value=world')
     assert response.status == 201
     assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'world'
+
+    # Checking content of the database via direct access
+    assert redis_store.get('hello') == b'world'
 
     response = await service_client.request('GET', '/v1/key-value?key=hello')
     assert response.status == 200
@@ -15,7 +21,8 @@ async def test_redis(service_client):
     # /// [Functional test]
 
     response = await service_client.request(
-        'POST', '/v1/key-value?key=hello&value=there',
+        'POST',
+        '/v1/key-value?key=hello&value=there',
     )
     assert response.status == 409  # Conflict
 
@@ -25,7 +32,8 @@ async def test_redis(service_client):
     assert response.text == 'world'  # Still the same
 
     response = await service_client.request(
-        'DELETE', '/v1/key-value?key=hello',
+        'DELETE',
+        '/v1/key-value?key=hello',
     )
     assert response.status == 200
     assert 'text/plain' in response.headers['Content-Type']

@@ -20,55 +20,53 @@ namespace server::http {
 ///
 /// @brief HTTP response cookie
 class Cookie final {
- public:
-  using CookiesMap =
-      std::unordered_map<std::string, Cookie, utils::StrCaseHash>;
+public:
+    using CookiesMap = std::unordered_map<std::string, Cookie, utils::StrCaseHash>;
 
-  static std::optional<Cookie> FromString(std::string_view cookie_str);
+    static std::optional<Cookie> FromString(std::string_view cookie_str);
 
-  Cookie(std::string name, std::string value);
-  Cookie(Cookie&& cookie) noexcept;
-  Cookie(const Cookie& cookie);
-  ~Cookie() noexcept;
+    Cookie(std::string name, std::string value);
+    Cookie(Cookie&& cookie) noexcept;
+    Cookie(const Cookie& cookie);
+    ~Cookie() noexcept;
 
-  Cookie& operator=(Cookie&&) noexcept;
-  Cookie& operator=(const Cookie& cookie);
+    Cookie& operator=(Cookie&&) noexcept;
+    Cookie& operator=(const Cookie& cookie);
 
-  const std::string& Name() const;
-  const std::string& Value() const;
+    const std::string& Name() const;
+    const std::string& Value() const;
 
-  bool IsSecure() const;
-  Cookie& SetSecure();
+    bool IsSecure() const;
+    Cookie& SetSecure();
 
-  std::chrono::system_clock::time_point Expires() const;
-  Cookie& SetExpires(std::chrono::system_clock::time_point value);
+    std::chrono::system_clock::time_point Expires() const;
+    Cookie& SetExpires(std::chrono::system_clock::time_point value);
 
-  bool IsPermanent() const;
-  Cookie& SetPermanent();
+    bool IsPermanent() const;
+    Cookie& SetPermanent();
 
-  bool IsHttpOnly() const;
-  Cookie& SetHttpOnly();
+    bool IsHttpOnly() const;
+    Cookie& SetHttpOnly();
 
-  const std::string& Path() const;
-  Cookie& SetPath(std::string value);
+    const std::string& Path() const;
+    Cookie& SetPath(std::string value);
 
-  const std::string& Domain() const;
-  Cookie& SetDomain(std::string value);
+    const std::string& Domain() const;
+    Cookie& SetDomain(std::string value);
 
-  std::chrono::seconds MaxAge() const;
-  Cookie& SetMaxAge(std::chrono::seconds value);
+    std::chrono::seconds MaxAge() const;
+    Cookie& SetMaxAge(std::chrono::seconds value);
 
-  std::string SameSite() const;
-  Cookie& SetSameSite(std::string value);
+    std::string SameSite() const;
+    Cookie& SetSameSite(std::string value);
 
-  std::string ToString() const;
+    std::string ToString() const;
 
-  void AppendToString(
-      USERVER_NAMESPACE::http::headers::HeadersString& os) const;
+    void AppendToString(USERVER_NAMESPACE::http::headers::HeadersString& os) const;
 
- private:
-  class CookieData;
-  std::unique_ptr<CookieData> data_;
+private:
+    class CookieData;
+    std::unique_ptr<CookieData> data_;
 };
 
 }  // namespace server::http

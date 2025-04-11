@@ -1,43 +1,39 @@
 #pragma once
 
 #include <cstddef>
-#include <optional>
 
 #include <userver/logging/level.hpp>
+
 #include <userver/ugrpc/server/middlewares/base.hpp>
-#include <userver/ugrpc/server/storage_context.hpp>
-#include <userver/utils/any_storage.hpp>
-#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::log {
 
-inline const utils::AnyStorageDataTag<StorageContext, bool> kIsFirstRequest;
-
 struct Settings final {
-  std::size_t max_msg_size{512};
-  logging::Level msg_log_level{logging::Level::kDebug};
-  std::optional<logging::Level> local_log_level{};
+    /// gRPC message body logging level
+    logging::Level msg_log_level{logging::Level::kDebug};
+
+    /// Max gRPC message size, the rest will be truncated
+    std::size_t max_msg_size{512};
+
+    /// Whether to trim the fields marked as secret from the message
+    bool trim_secrets{true};
 };
 
-Settings Parse(const yaml_config::YamlConfig& config,
-               formats::parse::To<Settings>);
-
 class Middleware final : public MiddlewareBase {
- public:
-  explicit Middleware(const Settings& settings);
+public:
+    explicit Middleware(const Settings& settings);
 
-  void Handle(MiddlewareCallContext& context) const override;
+    void OnCallStart(MiddlewareCallContext& context) const override;
+    void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
 
-  void CallRequestHook(const MiddlewareCallContext& context,
-                       google::protobuf::Message& request) override;
+    void PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const override;
 
-  void CallResponseHook(const MiddlewareCallContext& context,
-                        google::protobuf::Message& response) override;
+    void PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const override;
 
- private:
-  Settings settings_;
+private:
+    Settings settings_;
 };
 
 }  // namespace ugrpc::server::middlewares::log

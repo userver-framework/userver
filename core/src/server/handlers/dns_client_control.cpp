@@ -9,38 +9,38 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-DnsClientControl::DnsClientControl(const components::ComponentConfig& config,
-                                   const components::ComponentContext& context)
+DnsClientControl::DnsClientControl(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
     : HttpHandlerBase{config, context, /*is_monitor=*/true},
-      resolver_{
-          &context.FindComponent<clients::dns::Component>().GetResolver()} {}
+      resolver_{&context.FindComponent<clients::dns::Component>().GetResolver()} {}
 
-std::string DnsClientControl::HandleRequestThrow(
-    const http::HttpRequest& request, request::RequestContext&) const {
-  UASSERT(resolver_);
-  const auto& command = request.GetPathArg("command");
-  if (command == "reload_hosts") {
-    resolver_->ReloadHosts();
-  } else if (command == "flush_cache") {
-    const auto& name = request.GetArg("name");
-    if (name.empty()) {
-      request.SetResponseStatus(http::HttpStatus::kBadRequest);
-      return "Missing or empty name parameter";
+std::string DnsClientControl::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
+    UASSERT(resolver_);
+    const auto& command = request.GetPathArg("command");
+    if (command == "reload_hosts") {
+        resolver_->ReloadHosts();
+    } else if (command == "flush_cache") {
+        const auto& name = request.GetArg("name");
+        if (name.empty()) {
+            request.SetResponseStatus(http::HttpStatus::kBadRequest);
+            return "Missing or empty name parameter";
+        }
+        resolver_->FlushNetworkCache(name);
+    } else if (command == "flush_cache_full") {
+        resolver_->FlushNetworkCache();
+    } else {
+        request.SetResponseStatus(http::HttpStatus::kNotFound);
+        return "Unsupported command";
     }
-    resolver_->FlushNetworkCache(name);
-  } else if (command == "flush_cache_full") {
-    resolver_->FlushNetworkCache();
-  } else {
-    request.SetResponseStatus(http::HttpStatus::kNotFound);
-    return "Unsupported command";
-  }
-  return "OK";
+    return "OK";
 }
 
 yaml_config::Schema DnsClientControl::GetStaticConfigSchema() {
-  auto schema = HttpHandlerBase::GetStaticConfigSchema();
-  schema.UpdateDescription("handler-dns-client-control config");
-  return schema;
+    auto schema = HttpHandlerBase::GetStaticConfigSchema();
+    schema.UpdateDescription("handler-dns-client-control config");
+    return schema;
 }
 
 }  // namespace server::handlers

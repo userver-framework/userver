@@ -50,7 +50,8 @@ async def test_metrics(service_client, monitor_client, load):
     assert ethalon
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(
-            output_format='pretty', prefix='clickhouse.',
+            output_format='pretty',
+            prefix='clickhouse.',
         ),
     )
     assert all_metrics == ethalon

@@ -18,8 +18,6 @@ macro(try_find_cmake_grpc)
     # Use the found CMake-enabled gRPC package
     get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
     get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-    set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON)
   endif()
 endmacro()
 
@@ -42,8 +40,6 @@ macro(try_find_system_grpc)
 
     find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
     find_program(PROTO_GRPC_PYTHON_PLUGIN grpc_python_plugin)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-    set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON)
   endif()
 endmacro()
 
@@ -81,15 +77,14 @@ CPMAddPackage(
     "gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF"
     "gRPC_BUILD_GRPC_PHP_PLUGIN OFF"
     "gRPC_BUILD_GRPC_RUBY_PLUGIN OFF"
+    "gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF"
     "gRPC_ZLIB_PROVIDER package"
     "gRPC_CARES_PROVIDER package"
-    # TODO if we ever decide to use re2 ourselves, this will be a conflict
-    # TODO should use 'package' and download it using CPM instead
-    "gRPC_RE2_PROVIDER module"
+    "gRPC_RE2_PROVIDER package"
     "gRPC_SSL_PROVIDER package"
     "gRPC_PROTOBUF_PROVIDER package"
     "gRPC_BENCHMARK_PROVIDER none"
-    "gRPC_ABSL_PROVIDER none"
+    "gRPC_ABSL_PROVIDER package"
     "gRPC_CARES_LIBRARIES c-ares::cares"
     "gRPC_INSTALL OFF"
 )
@@ -97,8 +92,6 @@ CPMAddPackage(
 set(gRPC_VERSION "${CPM_PACKAGE_gRPC_VERSION}")
 set(PROTO_GRPC_CPP_PLUGIN $<TARGET_FILE:grpc_cpp_plugin>)
 set(PROTO_GRPC_PYTHON_PLUGIN $<TARGET_FILE:grpc_python_plugin>)
-set(PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
-set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT OFF)
 write_package_stub(gRPC)
 if (NOT TARGET "gRPC::grpc++")
     add_library(gRPC::grpc++ ALIAS grpc++)
@@ -110,3 +103,17 @@ if (NOT TARGET "gRPC::grpcpp_channelz")
     add_library(gRPC::grpcpp_channelz ALIAS grpcpp_channelz)
 endif()
 mark_targets_as_system("${gRPC_SOURCE_DIR}")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.0)
+    userver_is_cxx_compile_option_supported(
+        COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW
+        -Wno-error=missing-template-arg-list-after-template-kw
+    )
+    if (COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW)
+        foreach(package grpc grpc++ grpc_unsecure grpc++_unsecure grpc_authorization_provider)
+            target_compile_options(${package} PRIVATE
+                "$<$<COMPILE_LANGUAGE:CXX>:-Wno-error=missing-template-arg-list-after-template-kw>"
+            )
+        endforeach()
+    endif()
+endif()

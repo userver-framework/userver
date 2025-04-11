@@ -8,7 +8,7 @@
 
 #include <boost/range/adaptor/strided.hpp>
 
-#include <concurrent/impl/interference_shield.hpp>
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/span.hpp>
@@ -42,38 +42,31 @@ struct StripedArrayNode;
 ///
 /// This allows StripedArray to be usable in rseq operations.
 class StripedArray final {
- public:
-  static constexpr std::size_t kStride =
-      kDestructiveInterferenceSize / sizeof(std::intptr_t);
+public:
+    static constexpr std::size_t kStride = kDestructiveInterferenceSize / sizeof(std::intptr_t);
 
-  StripedArray();
-  ~StripedArray();
+    StripedArray();
+    ~StripedArray();
 
-  std::intptr_t& operator[](std::size_t index) noexcept {
-    return array_.GetBase()[kStride * index];
-  }
+    std::intptr_t& operator[](std::size_t index) noexcept { return array_.GetBase()[kStride * index]; }
 
-  const std::intptr_t& operator[](std::size_t index) const noexcept {
-    return array_.GetBase()[kStride * index];
-  }
+    const std::intptr_t& operator[](std::size_t index) const noexcept { return array_.GetBase()[kStride * index]; }
 
-  auto Elements() {
-    return utils::span<std::intptr_t>(
-               array_.GetBase(),
-               array_.GetBase() + GetRseqArraySizeUnsafe() * kStride) |
-           boost::adaptors::strided(kStride);
-  }
+    auto Elements() {
+        return utils::span<std::intptr_t>(array_.GetBase(), array_.GetBase() + GetRseqArraySizeUnsafe() * kStride) |
+               boost::adaptors::strided(kStride);
+    }
 
-  auto Elements() const {
-    return utils::span<const std::intptr_t>(
-               array_.GetBase(),
-               array_.GetBase() + GetRseqArraySizeUnsafe() * kStride) |
-           boost::adaptors::strided(kStride);
-  }
+    auto Elements() const {
+        return utils::span<const std::intptr_t>(
+                   array_.GetBase(), array_.GetBase() + GetRseqArraySizeUnsafe() * kStride
+               ) |
+               boost::adaptors::strided(kStride);
+    }
 
- private:
-  StripedArrayNode& node_;
-  utils::NotNull<std::intptr_t*> array_;
+private:
+    StripedArrayNode& node_;
+    utils::NotNull<std::intptr_t*> array_;
 };
 
 }  // namespace concurrent::impl

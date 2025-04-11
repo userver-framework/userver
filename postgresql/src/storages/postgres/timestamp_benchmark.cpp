@@ -23,44 +23,44 @@ const std::string time_format = "%Y-%m-%d %H:%M:%E*s%Ez";
 const pg::UserTypes types;
 
 void CctzTimestampFormat(benchmark::State& state) {
-  const auto utc = cctz::utc_time_zone();
-  auto tp = std::chrono::system_clock::now();
-  for (auto _ : state) {
-    cctz::format(time_format, tp, utc);
-  }
+    const auto utc = cctz::utc_time_zone();
+    auto tp = std::chrono::system_clock::now();
+    for (auto _ : state) {
+        cctz::format(time_format, tp, utc);
+    }
 }
 
 void CctzTimestampParse(benchmark::State& state) {
-  const std::string pg_timestamp = "2018-11-07 13:28:44.194045+03";
-  const auto utc = cctz::utc_time_zone();
-  std::chrono::system_clock::time_point tp;
-  for (auto _ : state) {
-    cctz::parse(time_format, pg_timestamp, utc, &tp);
-  }
+    const std::string pg_timestamp = "2018-11-07 13:28:44.194045+03";
+    const auto utc = cctz::utc_time_zone();
+    std::chrono::system_clock::time_point tp;
+    for (auto _ : state) {
+        cctz::parse(time_format, pg_timestamp, utc, &tp);
+    }
 }
 
 void PgTimestampBinaryFormat(benchmark::State& state) {
-  namespace pg = storages::postgres;
-  namespace io = pg::io;
+    namespace pg = storages::postgres;
+    namespace io = pg::io;
 
-  const pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
-  pg::test::Buffer buffer;
-  for (auto _ : state) {
-    io::WriteBuffer(types, buffer, tp);
-    buffer.clear();
-  }
+    const pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
+    pg::test::Buffer buffer;
+    for (auto _ : state) {
+        io::WriteBuffer(types, buffer, tp);
+        buffer.clear();
+    }
 }
 
 void PgTimestampBinaryParse(benchmark::State& state) {
-  namespace pg = storages::postgres;
-  namespace io = pg::io;
-  pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
-  pg::test::Buffer buffer;
-  io::WriteBuffer(types, buffer, tp);
-  auto fp = pg::test::MakeFieldBuffer(buffer);
-  for (auto _ : state) {
-    io::ReadBuffer(fp, tp);
-  }
+    namespace pg = storages::postgres;
+    namespace io = pg::io;
+    pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
+    pg::test::Buffer buffer;
+    io::WriteBuffer(types, buffer, tp);
+    auto fp = pg::test::MakeFieldBuffer(buffer);
+    for (auto _ : state) {
+        io::ReadBuffer(fp, tp);
+    }
 }
 
 BENCHMARK(CctzTimestampFormat);
@@ -69,15 +69,15 @@ BENCHMARK(PgTimestampBinaryFormat);
 BENCHMARK(PgTimestampBinaryParse);
 
 BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
-  namespace pg = storages::postgres;
+    namespace pg = storages::postgres;
 
-  RunStandalone(state, [this, &state] {
-    pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
-    for (auto _ : state) {
-      auto res = GetConnection().Execute("select $1", tp);
-      res.Front().To(tp);
-    }
-  });
+    RunStandalone(state, [this, &state] {
+        pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
+        for (auto _ : state) {
+            auto res = GetConnection().Execute("select $1", tp);
+            res.Front().To(tp);
+        }
+    });
 }
 
 }  // namespace

@@ -13,9 +13,8 @@ class Constants:
     RJ_TENCODING = 'rapidjson::UTF8<char>'
 
     RJ_GENERIC_VALUE = f'rapidjson::GenericValue<{RJ_TENCODING}, {RJ_TALLOC}>'
-    RJ_GENERIC_MEMBER = (
-        f'rapidjson::GenericMember<{RJ_TENCODING}, {RJ_TALLOC}>'
-    )
+    RJ_GENERIC_MEMBER = f'rapidjson::GenericMember<{RJ_TENCODING}, {RJ_TALLOC}>'
+    RG_ENCODING_CH = 'char'
 
     RJ_GENERIC_OBJECT = f'rapidjson::GenericObject<true, {RJ_GENERIC_VALUE} >'
 
@@ -47,28 +46,13 @@ class Constants:
     RJFlag_kTrueFlag = RJType_kTrueType | RJFlag_kBoolFlag
     RJFlag_kFalseFlag = RJType_kFalseType | RJFlag_kBoolFlag
 
-    RJFlag_kNumberIntFlag = (
-        RJType_kNumberType
-        | RJFlag_kNumberFlag
-        | RJFlag_kIntFlag
-        | RJFlag_kInt64Flag
-    )
+    RJFlag_kNumberIntFlag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kIntFlag | RJFlag_kInt64Flag
     RJFlag_kNumberUintFlag = (
-        RJType_kNumberType
-        | RJFlag_kNumberFlag
-        | RJFlag_kUintFlag
-        | RJFlag_kUint64Flag
-        | RJFlag_kInt64Flag
+        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kUintFlag | RJFlag_kUint64Flag | RJFlag_kInt64Flag
     )
-    RJFlag_kNumberInt64Flag = (
-        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kInt64Flag
-    )
-    RJFlag_kNumberUint64Flag = (
-        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kUint64Flag
-    )
-    RJFlag_kNumberDoubleFlag = (
-        RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kDoubleFlag
-    )
+    RJFlag_kNumberInt64Flag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kInt64Flag
+    RJFlag_kNumberUint64Flag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kUint64Flag
+    RJFlag_kNumberDoubleFlag = RJType_kNumberType | RJFlag_kNumberFlag | RJFlag_kDoubleFlag
     RJFlag_kNumberAnyFlag = (
         RJType_kNumberType
         | RJFlag_kNumberFlag
@@ -82,15 +66,8 @@ class Constants:
     RJFlag_kObjectFlag = RJType_kObjectType
     RJFlag_kArrayFlag = RJType_kArrayType
     RJFlag_kConstStringFlag = RJType_kStringType | RJFlag_kStringFlag
-    RJFlag_kCopyStringFlag = (
-        RJType_kStringType | RJFlag_kStringFlag | RJFlag_kCopyFlag
-    )
-    RJFlag_kShortStringFlag = (
-        RJType_kStringType
-        | RJFlag_kStringFlag
-        | RJFlag_kCopyFlag
-        | RJFlag_kInlineStrFlag
-    )
+    RJFlag_kCopyStringFlag = RJType_kStringType | RJFlag_kStringFlag | RJFlag_kCopyFlag
+    RJFlag_kShortStringFlag = RJType_kStringType | RJFlag_kStringFlag | RJFlag_kCopyFlag | RJFlag_kInlineStrFlag
 
     RJFlag_kTypeMask = 0x07
 
@@ -118,10 +95,13 @@ class RJObjectType(RJBaseType):
         data = val['data_']['o']
         self.size = int(data['size'])
         self.members = rj_get_pointer(
-            data['members'], Constants.RJ_GENERIC_MEMBER,
+            data['members'],
+            Constants.RJ_GENERIC_MEMBER,
         )
         if self.size:
             self.children = self.children_impl
+        else:
+            self.to_string = lambda: r'{}'
 
     def children_impl(self):
         for i in range(self.size):
@@ -133,9 +113,6 @@ class RJObjectType(RJBaseType):
     def display_hint(self):
         return 'map'
 
-    def to_string(self):
-        return f'object of size {self.size}'
-
 
 class RJArrayType(RJBaseType):
     def __init__(self, val, flags):
@@ -143,18 +120,20 @@ class RJArrayType(RJBaseType):
         data = self.val['data_']['a']
         self.size = int(data['size'])
         self.elements = rj_get_pointer(
-            data['elements'], Constants.RJ_GENERIC_VALUE,
+            data['elements'],
+            Constants.RJ_GENERIC_VALUE,
         )
+        if self.size:
+            self.children = self.children_impl
+        if not self.size:
+            self.to_string = lambda: r'[]'
 
-    def children(self):
+    def children_impl(self):
         for i in range(self.size):
             yield (f'[{i}]', self.elements[i])
 
     def display_hint(self):
         return 'array'
-
-    def to_string(self):
-        return f'array of size {self.size}'
 
 
 class RJNumberType(RJBaseType):
@@ -184,11 +163,17 @@ class RJStringType(RJBaseType):
 
     def to_string(self):
         data = self.val['data_']
-        if (self.flags & Constants.RJFlag_kShortStringFlag) != 0:
+        if (self.flags & Constants.RJFlag_kInlineStrFlag) != 0:
             # FIXME: support other architectures
             # @see definition of LenPos in rapidjson/document.h
             return data['ss']['str'].string()
-        return data['s']['str'].string()
+        else:
+            str_ptr = rj_get_pointer(
+                data['s']['str'],
+                Constants.RG_ENCODING_CH,
+            )
+            length = int(data['s']['length'])
+            return str_ptr.string(length=length)
 
 
 class RJBoolType(RJBaseType):
@@ -238,17 +223,15 @@ class RapidJsonValue:
             self.children = self.data.children
 
 
-class FormatsJsonValue:
+class FormatsJsonValue(RapidJsonValue):
     "Print formats::json::Value"
 
     def __init__(self, val: gdb.Value):
-        self.value = val['value_ptr_']
-
-    def to_string(self):
-        return 'formats::json::Value'
-
-    def children(self):
-        yield ('value', self.value.dereference() if self.value else None)
+        value_ptr = val['value_ptr_']
+        if value_ptr:
+            super().__init__(value_ptr.dereference())
+        else:
+            self.to_string = lambda: 'null'
 
 
 def register_printers(

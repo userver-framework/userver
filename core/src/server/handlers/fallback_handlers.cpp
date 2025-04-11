@@ -1,42 +1,33 @@
 #include <userver/server/handlers/fallback_handlers.hpp>
 
-#include <map>
 #include <stdexcept>
+
+#include <userver/utils/algo.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-const std::string& ToString(FallbackHandler fallback) {
-  static const std::string kImplicitOptions = "implicit-http-options";
-  static const std::string kUnknown = "unknown";
-
-  switch (fallback) {
-    case FallbackHandler::kImplicitOptions:
-      return kImplicitOptions;
-  }
-  return kUnknown;
-}
-
 namespace {
-std::map<std::string, FallbackHandler> InitFallbackHandlerNames() {
-  std::map<std::string, FallbackHandler> names;
-  for (auto fallback : {FallbackHandler::kImplicitOptions}) {
-    names[ToString(fallback)] = fallback;
-  }
-  return names;
-}
-}  // namespace
 
-FallbackHandler FallbackHandlerFromString(const std::string& fallback_str) {
-  static const std::map<std::string, FallbackHandler> fallback_map =
-      InitFallbackHandlerNames();
-  try {
-    return fallback_map.at(fallback_str);
-  } catch (std::exception& ex) {
-    throw std::runtime_error("can't parse FallbackHandler from string '" +
-                             fallback_str + '\'');
-  }
+constexpr utils::TrivialBiMap kFallbackMap = [](auto selector) {
+    return selector().Case("implicit-http-options", FallbackHandler::kImplicitOptions);
+};
+
+}
+
+std::string_view ToString(FallbackHandler fallback) {
+    return kFallbackMap.TryFindBySecond(fallback).value_or(utils::StringLiteral{"unknown"});
+}
+
+FallbackHandler FallbackHandlerFromString(std::string_view fallback_str) {
+    const auto opt_value = kFallbackMap.TryFindByFirst(fallback_str);
+    if (opt_value) {
+        return *opt_value;
+    }
+
+    throw std::runtime_error(utils::StrCat("can't parse FallbackHandler from string '", fallback_str, "'"));
 }
 
 }  // namespace server::handlers

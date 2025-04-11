@@ -1,0 +1,49 @@
+# yaml
+components_manager:
+    task_processors:                  # Task processor is an executor for coroutine tasks
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 1
+
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
+    components:                       # Configuring components that were registered via component_list
+        /log-POST:
+            path: /log                  # Registering handler by URL '/log'.
+            method: POST
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+
+        action-client:
+            service-url: http://some-service.example/v1/action
+
+        http-client:
+            pool-statistics-disable: false
+            thread-name-prefix: http-client
+            threads: 2
+            fs-task-processor: fs-task-processor
+
+        postgres:
+            dbconnection#env: POSTGRESQL
+            dbconnection#fallback: 'postgresql://testsuite@localhost:15433/postgres'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+
+        testsuite-support: {}
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.

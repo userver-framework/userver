@@ -14,40 +14,38 @@ namespace samples {
 
 /// [service]
 class GreeterService final : public api::GreeterServiceBase {
- public:
-  explicit GreeterService(std::string prefix);
+public:
+    explicit GreeterService(std::string prefix);
 
-  SayHelloResult SayHello(CallContext& context,
-                          api::GreetingRequest&& request) override;
+    SayHelloResult SayHello(CallContext& context, api::GreetingRequest&& request) override;
 
-  SayHelloResponseStreamResult SayHelloResponseStream(
-      CallContext& context, api::GreetingRequest&& request,
-      SayHelloResponseStreamWriter& writer) override;
+    SayHelloResponseStreamResult SayHelloResponseStream(
+        CallContext& context,
+        api::GreetingRequest&& request,
+        SayHelloResponseStreamWriter& writer
+    ) override;
 
-  SayHelloRequestStreamResult SayHelloRequestStream(
-      CallContext& context, SayHelloRequestStreamReader& reader) override;
+    SayHelloRequestStreamResult SayHelloRequestStream(CallContext& context, SayHelloRequestStreamReader& reader)
+        override;
 
-  SayHelloStreamsResult SayHelloStreams(
-      CallContext& context, SayHelloStreamsReaderWriter& stream) override;
+    SayHelloStreamsResult SayHelloStreams(CallContext& context, SayHelloStreamsReaderWriter& stream) override;
 
- private:
-  const std::string prefix_;
+private:
+    const std::string prefix_;
 };
 /// [service]
 
 /// [component]
-class GreeterServiceComponent final
-    : public ugrpc::server::ServiceComponentBase {
- public:
-  static constexpr std::string_view kName = "greeter-service";
+class GreeterServiceComponent final : public ugrpc::server::ServiceComponentBase {
+public:
+    static constexpr std::string_view kName = "greeter-service";
 
-  GreeterServiceComponent(const components::ComponentConfig& config,
-                          const components::ComponentContext& context);
+    GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  GreeterService service_;
+private:
+    GreeterService service_;
 };
 /// [component]
 

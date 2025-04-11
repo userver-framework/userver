@@ -31,78 +31,75 @@ dynamic_config::Key<std::chrono::milliseconds> kSampleDistLockIntervalMs{
 };
 
 class SampleDistLock final : public ydb::DistLockComponentBase {
- public:
-  static constexpr std::string_view kName = "sample-dist-lock";
+public:
+    static constexpr std::string_view kName = "sample-dist-lock";
 
-  SampleDistLock(const components::ComponentConfig& config,
-                 const components::ComponentContext& context)
-      : ydb::DistLockComponentBase(config, context),
-        config_source_(
-            context.FindComponent<components::DynamicConfig>().GetSource()) {
-    Start();
-  }
+    SampleDistLock(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : ydb::DistLockComponentBase(config, context),
+          config_source_(context.FindComponent<components::DynamicConfig>().GetSource()) {
+        Start();
+    }
 
-  ~SampleDistLock() override { Stop(); }
+    ~SampleDistLock() override { Stop(); }
 
- protected:
-  void DoWork() override;
+protected:
+    void DoWork() override;
 
-  void DoWorkTestsuite() override {
-    Foo();
-    Bar();
-  }
+    void DoWorkTestsuite() override {
+        Foo();
+        Bar();
+    }
 
- private:
-  void Foo() { TESTPOINT("dist-lock-foo", {}); }
+private:
+    void Foo() { TESTPOINT("dist-lock-foo", {}); }
 
-  void Bar() { TESTPOINT("dist-lock-bar", {}); }
+    void Bar() { TESTPOINT("dist-lock-bar", {}); }
 
-  dynamic_config::Source config_source_;
+    dynamic_config::Source config_source_;
 };
 
 /// [DoWork]
 void SampleDistLock::DoWork() {
-  while (!engine::current_task::ShouldCancel()) {
-    // Start a new trace_id.
-    auto span = tracing::Span::MakeRootSpan("sample-dist-lock");
+    while (!engine::current_task::ShouldCancel()) {
+        // Start a new trace_id.
+        auto span = tracing::Span::MakeRootSpan("sample-dist-lock");
 
-    // If Foo() or anything in DoWork() throws an exception,
-    // DoWork() will be restarted in `restart-delay` seconds.
-    Foo();
+        // If Foo() or anything in DoWork() throws an exception,
+        // DoWork() will be restarted in `restart-delay` seconds.
+        Foo();
 
-    // Check for cancellation after cpu-intensive Foo().
-    // You must check for cancellation at least every
-    // `cancel-task-time-limit`
-    // seconds to have time to notice lock prolongation failure.
-    if (engine::current_task::ShouldCancel()) break;
+        // Check for cancellation after cpu-intensive Foo().
+        // You must check for cancellation at least every
+        // `cancel-task-time-limit`
+        // seconds to have time to notice lock prolongation failure.
+        if (engine::current_task::ShouldCancel()) break;
 
-    Bar();
+        Bar();
 
-    engine::InterruptibleSleepFor(
-        config_source_.GetCopy(kSampleDistLockIntervalMs));
-  }
+        engine::InterruptibleSleepFor(config_source_.GetCopy(kSampleDistLockIntervalMs));
+    }
 }
 /// [DoWork]
 
 }  // namespace sample
 
 int main(int argc, char* argv[]) {
-  auto component_list = components::MinimalServerComponentList()
-                            .Append<components::TestsuiteSupport>()
-                            .Append<server::handlers::TestsControl>()
-                            .Append<components::DynamicConfigClient>()
-                            .Append<components::DynamicConfigClientUpdater>()
-                            .Append<components::HttpClient>()
-                            .Append<clients::dns::Component>()
-                            .Append<components::DefaultSecdistProvider>()
-                            .Append<components::Secdist>()
-                            .Append<server::handlers::ServerMonitor>()
-                            .Append<sample::SelectRowsHandler>()
-                            .Append<sample::DescribeTableHandler>()
-                            .Append<sample::SelectListHandler>()
-                            .Append<sample::UpsertRowHandler>()
-                            .Append<ydb::YdbComponent>()
-                            .Append<sample::SampleDistLock>();
+    auto component_list = components::MinimalServerComponentList()
+                              .Append<components::TestsuiteSupport>()
+                              .Append<server::handlers::TestsControl>()
+                              .Append<components::DynamicConfigClient>()
+                              .Append<components::DynamicConfigClientUpdater>()
+                              .Append<components::HttpClient>()
+                              .Append<clients::dns::Component>()
+                              .Append<components::DefaultSecdistProvider>()
+                              .Append<components::Secdist>()
+                              .Append<server::handlers::ServerMonitor>()
+                              .Append<sample::SelectRowsHandler>()
+                              .Append<sample::DescribeTableHandler>()
+                              .Append<sample::SelectListHandler>()
+                              .Append<sample::UpsertRowHandler>()
+                              .Append<ydb::YdbComponent>()
+                              .Append<sample::SampleDistLock>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

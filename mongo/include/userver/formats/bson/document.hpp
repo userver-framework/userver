@@ -12,22 +12,22 @@ namespace formats::bson {
 
 /// BSON document
 class Document : public Value {
- public:
-  /// @brief Constructs an empty document
-  /// Equivalent to `MakeDoc()`
-  Document();
+public:
+    /// @brief Constructs an empty document
+    /// Equivalent to `MakeDoc()`
+    Document();
 
-  /// @brief Unwraps document from Value
-  /// @throws TypeMismatchException if value is not a document
-  /* implicit */ Document(const Value& value);
+    /// @brief Unwraps document from Value
+    /// @throws TypeMismatchException if value is not a document
+    /* implicit */ Document(const Value& value);
 
-  /// @cond
-  /// Constructs from a native type, internal use only
-  explicit Document(impl::BsonHolder);
+    /// @cond
+    /// Constructs from a native type, internal use only
+    explicit Document(impl::BsonHolder);
 
-  /// Native type access, internal use only
-  using Value::GetBson;
-  /// @endcond
+    /// Native type access, internal use only
+    using Value::GetBson;
+    /// @endcond
 };
 
 }  // namespace formats::bson

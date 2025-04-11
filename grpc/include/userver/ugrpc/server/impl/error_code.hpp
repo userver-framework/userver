@@ -8,8 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-grpc::StatusCode CustomStatusToGrpc(
-    USERVER_NAMESPACE::server::handlers::HandlerErrorCode code);
+grpc::StatusCode CustomStatusToGrpc(USERVER_NAMESPACE::server::handlers::HandlerErrorCode code);
 
 }  // namespace ugrpc::server::impl
 

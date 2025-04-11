@@ -14,32 +14,31 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::impl::io {
 
 class ResultBinder final {
- public:
-  explicit ResultBinder(std::size_t size);
-  ~ResultBinder();
+public:
+    explicit ResultBinder(std::size_t size);
+    ~ResultBinder();
 
-  ResultBinder(const ResultBinder& other) = delete;
-  ResultBinder(ResultBinder&& other) noexcept;
+    ResultBinder(const ResultBinder& other) = delete;
+    ResultBinder(ResultBinder&& other) noexcept;
 
-  template <typename T, typename ExtractionTag>
-  OutputBindingsFwd& BindTo(T& row, ExtractionTag) {
-    if constexpr (std::is_same_v<ExtractionTag, RowTag>) {
-      boost::pfr::for_each_field(
-          row, [&binds = GetBinds()](auto& field, std::size_t i) {
-            storages::mysql::impl::io::BindOutput(binds, i, field);
-          });
-    } else {
-      static_assert(std::is_same_v<ExtractionTag, FieldTag>);
-      storages::mysql::impl::io::BindOutput(GetBinds(), 0, row);
+    template <typename T, typename ExtractionTag>
+    OutputBindingsFwd& BindTo(T& row, ExtractionTag) {
+        if constexpr (std::is_same_v<ExtractionTag, RowTag>) {
+            boost::pfr::for_each_field(row, [&binds = GetBinds()](auto& field, std::size_t i) {
+                storages::mysql::impl::io::BindOutput(binds, i, field);
+            });
+        } else {
+            static_assert(std::is_same_v<ExtractionTag, FieldTag>);
+            storages::mysql::impl::io::BindOutput(GetBinds(), 0, row);
+        }
+
+        return GetBinds();
     }
 
-    return GetBinds();
-  }
+    OutputBindingsFwd& GetBinds();
 
-  OutputBindingsFwd& GetBinds();
-
- private:
-  OutputBindingsPimpl impl_;
+private:
+    OutputBindingsPimpl impl_;
 };
 
 }  // namespace storages::mysql::impl::io

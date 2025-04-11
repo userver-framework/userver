@@ -19,6 +19,12 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,PUT
 
+        handler-standalone:
+            db: redis-standalone
+            path: /redis-standalone
+            task_processor: main-task-processor
+            method: GET,DELETE,PUT
+
         key-value-database:
             groups: []
             subscribe_groups:
@@ -30,6 +36,9 @@ components_manager:
               - config_name: redis-sentinel
                 db: redis-sentinel-with-master
                 allow_reads_from_master: true
+              - config_name: redis-standalone
+                db: redis-standalone
+                sharding_strategy: RedisStandalone
             thread_pools:
                 redis_thread_pool_size: 2
                 sentinel_thread_pool_size: 1

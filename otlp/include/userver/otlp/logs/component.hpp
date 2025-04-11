@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/otlp/logs/component.hpp
-/// @brief @copybrief otlp::logs::Component
+/// @brief @copybrief otlp::LoggerComponent
 
 #include <memory>
 #include <string>
@@ -42,20 +42,19 @@ class Logger;
 
 // clang-format on
 class LoggerComponent final : public components::RawComponentBase {
- public:
-  static constexpr std::string_view kName = "otlp-logger";
+public:
+    static constexpr std::string_view kName = "otlp-logger";
 
-  LoggerComponent(const components::ComponentConfig&,
-                  const components::ComponentContext&);
+    LoggerComponent(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~LoggerComponent();
+    ~LoggerComponent();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::shared_ptr<Logger> logger_;
-  logging::LoggerRef old_logger_;
-  utils::statistics::Entry statistics_holder_;
+private:
+    std::shared_ptr<Logger> logger_;
+    logging::LoggerRef old_logger_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace otlp

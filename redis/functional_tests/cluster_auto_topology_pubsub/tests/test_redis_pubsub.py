@@ -25,7 +25,11 @@ def _spublish_callback(redis_db, channel, message):
 
 
 async def _validate_pubsub(
-    redis_db, service_client, channel_prefix, msg, publish_method,
+    redis_db,
+    service_client,
+    channel_prefix,
+    msg,
+    publish_method,
 ):
     """
     publish to redis_db and expect data accessible in service via handler
@@ -39,7 +43,8 @@ async def _validate_pubsub(
             publish_method(redis_db, channel_name, message)
 
             response = await service_client.get(
-                url, params={'read': channel_name},
+                url,
+                params={'read': channel_name},
             )
 
             assert response.status == 200
@@ -52,21 +57,25 @@ async def _validate_pubsub(
 
             await asyncio.sleep(REQUESTS_RELAX_TIME)
         else:
-            assert (
-                False
-            ), f'Retries exceeded trying to read from {channel_name}'
+            assert False, f'Retries exceeded trying to read from {channel_name}'
 
 
 async def _test_service_subscription(service_client, node, prefix):
     msg = f'{prefix}_{node.get_address()}'
     db = node.get_client()
     await _validate_pubsub(
-        db, service_client, INPUT_CHANNEL_PREFIX, msg, _publish_callback,
+        db,
+        service_client,
+        INPUT_CHANNEL_PREFIX,
+        msg,
+        _publish_callback,
     )
 
 
 async def _test_service_sharded_subscription(
-    service_client, cluster_client, prefix,
+    service_client,
+    cluster_client,
+    prefix,
 ):
     msg = f'{prefix}'
     await _validate_pubsub(
@@ -95,7 +104,10 @@ async def _validate_service_publish(service_client, nodes, shards_range):
         return ret
 
     async def _ensure_published(
-        pubsub, expected_message, retries=5, delay=0.5,
+        pubsub,
+        expected_message,
+        retries=5,
+        delay=0.5,
     ):
         for _ in range(retries):
             ret = pubsub.get_message()
@@ -113,7 +125,8 @@ async def _validate_service_publish(service_client, nodes, shards_range):
         for _ in range(REQUESTS_RETRIES):
             try:
                 response = await service_client.get(
-                    url, params={'publish': msg, 'shard': shard},
+                    url,
+                    params={'publish': msg, 'shard': shard},
                 )
                 assert response.status == 200
 
@@ -128,7 +141,8 @@ async def _validate_service_publish(service_client, nodes, shards_range):
         pubsub = redis_client.pubsub()
         pubsub.subscribe(OUTPUT_CHANNEL_NAME)
         subscribe_message = await _get_message(
-            pubsub, retries=REQUESTS_RETRIES,
+            pubsub,
+            retries=REQUESTS_RETRIES,
         )
         assert subscribe_message['type'] == 'subscribe'
 
@@ -158,7 +172,11 @@ async def _validate_service_spublish(service_client, nodes):
         return ret
 
     async def _ensure_published(
-        pubsub, channel, expected_message, retries=5, delay=0.5,
+        pubsub,
+        channel,
+        expected_message,
+        retries=5,
+        delay=0.5,
     ):
         for _ in range(retries):
             ret = pubsub.get_sharded_message()
@@ -182,7 +200,9 @@ async def _validate_service_spublish(service_client, nodes):
                 assert response.status == 200
 
                 await _ensure_published(
-                    pubsub, channel_name.encode(), msg.encode(),
+                    pubsub,
+                    channel_name.encode(),
+                    msg.encode(),
                 )
                 return
             except Exception as exc:  # pylint: disable=broad-except
@@ -220,7 +240,8 @@ async def _check_shard_count(service_client, expected_shard_count):
     for _ in range(REQUESTS_RETRIES):
         try:
             response = await service_client.get(
-                '/redis-cluster', params={'shard_count': 'aaa'},
+                '/redis-cluster',
+                params={'shard_count': 'aaa'},
             )
             assert response.status == 200
             if response.content == expected:
@@ -252,11 +273,7 @@ def _get_alive_shards_by_service(master_nodes):
         if master_addr not in masters_shards:
             masters_shards[master_addr] = i
             i += 1
-    return [
-        masters_shards[x.get_address()]
-        for x in master_nodes
-        if x.started and x.get_address() in masters_shards
-    ]
+    return [masters_shards[x.get_address()] for x in master_nodes if x.started and x.get_address() in masters_shards]
 
 
 async def test_cluster_happy_path(service_client, redis_cluster_topology):
@@ -272,13 +289,18 @@ async def test_cluster_happy_path(service_client, redis_cluster_topology):
 
     await _check_shard_count(service_client, 3)
     await _validate_service_publish(
-        service_client, redis_cluster_topology.nodes, range(3),
+        service_client,
+        redis_cluster_topology.nodes,
+        range(3),
     )
     await _validate_service_spublish(
-        service_client, redis_cluster_topology.nodes,
+        service_client,
+        redis_cluster_topology.nodes,
     )
     await _test_service_sharded_subscription(
-        service_client, redis_cluster_topology.get_client(), 'ssubscription_',
+        service_client,
+        redis_cluster_topology.get_client(),
+        'ssubscription_',
     )
 
 
@@ -298,7 +320,9 @@ async def test_cluster_add_shard(service_client, redis_cluster_topology):
 
     await _check_shard_count(service_client, 4)
     await _validate_service_publish(
-        service_client, redis_cluster_topology.nodes, range(4),
+        service_client,
+        redis_cluster_topology.nodes,
+        range(4),
     )
     await _test_service_sharded_subscription(
         service_client,
@@ -314,7 +338,9 @@ async def test_cluster_add_shard(service_client, redis_cluster_topology):
         await _test_service_subscription(service_client, node, 'restored_')
 
     await _validate_service_publish(
-        service_client, redis_cluster_topology.nodes, range(3),
+        service_client,
+        redis_cluster_topology.nodes,
+        range(3),
     )
     await _test_service_sharded_subscription(
         service_client,
@@ -352,13 +378,16 @@ async def test_cluster_failover_pubsub(service_client, redis_cluster_topology):
     # should work due to ClusterSubscriptionStorage (Subscribe)
     for node in new_nodes:
         await _test_service_subscription(
-            service_client, node, 'the_last_shard',
+            service_client,
+            node,
+            'the_last_shard',
         )
 
 
 # kill all replicas
 async def test_cluster_failover_pubsub2(
-    service_client, redis_cluster_topology,
+    service_client,
+    redis_cluster_topology,
 ):
     """
     killing replicas do not trigger cluster update (topology does not change)

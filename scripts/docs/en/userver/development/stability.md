@@ -20,7 +20,7 @@ Examples: `2.0`, `2.1_rc`
 We attempt to keep the API stable as long as it does not stand in the way of
 new features or better safety.
 
-Note that framework internals located in `*::impl::*` and `*::detail::*`
+Note that framework internals located in `impl` and `detail`
 namespaces have no stability guarantees. You should not use those in your code
 directly.
 
@@ -71,5 +71,5 @@ There are tiers to differentiate technologies:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref clickhouse_driver | @ref scripts/docs/en/userver/driver_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/grpc-reflection.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
 @htmlonly </div> @endhtmlonly

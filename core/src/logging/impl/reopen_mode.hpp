@@ -5,8 +5,8 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 enum class ReopenMode {
-  kAppend,
-  kTruncate,
+    kAppend,
+    kTruncate,
 };
 
 }  // namespace logging::impl

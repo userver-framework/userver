@@ -17,6 +17,7 @@ in separate task processor.
 - Support of SASL SCRAM-SHA-512 authentication and SSL transport for Broker communication;
 - Comprehensive logs of all events and errors;
 - Metrics;
+- Kafka message headers support;
 
 ## Producer Features
 - 🚀 Parallel cooperative messages delivery reports processing (in comparison
@@ -36,6 +37,25 @@ in separate task processor.
 - Balanced consumer groups support;
 - Automatic rollback to last committed message when batch processing failed;
 - Partition offsets asynchronous commit;
+
+## Metrics
+
+Producer and consumer yields same set of metrics (but with different prefixes):
+
+| Metric name                      | Labels                    | Description                                                            |
+|----------------------------------|---------------------------|------------------------------------------------------------------------|
+| kafka_producer.avg_ms_spent_time | `component-name`, `topic` | Average message producer latency                                       |
+| kafka_producer.messages_total    | `component-name`, `topic` | Total number of sent messages                                          |
+| kafka_producer.messages_success  | `component-name`, `topic` | Number of messages successfully written to partition                   |
+| kafka_producer.messages_error    | `component-name`, `topic` | Number of messages failed to produce                                   |
+| kafka_producer.connections_error | `component-name`          | Number of broker connection errors occured                             |
+| kafka_consumer.avg_ms_spent_time | `component-name`, `topic` | Average time between message written to partition and read by consumer |
+| kafka_consumer.messages_total    | `component-name`, `topic` | Total number of read messages                                          |
+| kafka_consumer.messages_success  | `component-name`, `topic` | Number of successfully processed messages                              |
+| kafka_consumer.messages_error    | `component-name`, `topic` | Number of messages user-callback failed                                |
+| kafka_consumer.connections_error | `component-name`          | Number of broker connection errors occured                             |
+
+See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the metrics.
 
 ## Planned Enhancements
 - ✅ Transfer from raw polling with timeouts to events processing,

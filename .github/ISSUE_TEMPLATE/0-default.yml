@@ -1,0 +1,14 @@
+name: Default
+description: Feature request or bug report
+body:
+  - type: markdown
+    attributes:
+        value: |
+            **Note:** By creating a PR or an issue you automatically agree to the CLA. See [CONTRIBUTING.md](https://github.com/userver-framework/userver/blob/develop/CONTRIBUTING.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+        label: Add a description
+        placeholder: Tell us what you see!
+    validations:
+        required: true

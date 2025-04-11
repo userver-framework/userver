@@ -3,6 +3,7 @@
 #include <future>
 
 #include <engine/impl/generic_wait_list.hpp>
+#include <engine/task/task_base_impl.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
@@ -18,102 +19,84 @@ namespace engine {
 static_assert(
     !std::is_destructible_v<TaskBase>,
     "Destructor of TaskBase must remain protected to forbid slicing of derived "
-    "types to TaskBase and force implementation in derived classes.");
+    "types to TaskBase and force implementation in derived classes."
+);
 
-static_assert(
-    !std::is_polymorphic_v<TaskBase>,
-    "Slicing is used by derived types, virtual functions would not work.");
+static_assert(!std::is_polymorphic_v<TaskBase>, "Slicing is used by derived types, virtual functions would not work.");
 
-TaskBase::TaskBase(impl::TaskContextHolder&& context)
-    : context_(std::move(context).Extract()) {
-  context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
-                   impl::SleepState::Epoch{0});
+TaskBase::TaskBase(impl::TaskContextHolder&& context) : pimpl_(Impl{std::move(context).Extract()}) {
+    pimpl_->context->Wakeup(impl::TaskContext::WakeupSource::kBootstrap, impl::SleepState::Epoch{0});
 }
 
-bool TaskBase::IsValid() const { return !!context_; }
+bool TaskBase::IsValid() const { return !!pimpl_->context; }
 
-Task::State TaskBase::GetState() const {
-  return context_ ? context_->GetState() : State::kInvalid;
+Task::State TaskBase::GetState() const { return pimpl_->context ? pimpl_->context->GetState() : State::kInvalid; }
+
+std::string_view TaskBase::GetStateName(State state) {
+    switch (state) {
+        case State::kInvalid:
+            return "kInvalid";
+        case State::kNew:
+            return "kNew";
+        case State::kQueued:
+            return "kQueued";
+        case State::kRunning:
+            return "kRunning";
+        case State::kSuspended:
+            return "kSuspended";
+        case State::kCancelled:
+            return "kCancelled";
+        case State::kCompleted:
+            return "kCompleted";
+    }
+
+    UINVARIANT(false, "Unexpected Task state");
 }
 
-const std::string& TaskBase::GetStateName(State state) {
-  static const std::string kInvalid = "kInvalid";
-  static const std::string kNew = "kNew";
-  static const std::string kQueued = "kQueued";
-  static const std::string kRunning = "kRunning";
-  static const std::string kSuspended = "kSuspended";
-  static const std::string kCancelled = "kCancelled";
-  static const std::string kCompleted = "kCompleted";
+bool TaskBase::IsFinished() const { return pimpl_->context && pimpl_->context->IsFinished(); }
 
-  switch (state) {
-    case State::kInvalid:
-      return kInvalid;
-    case State::kNew:
-      return kNew;
-    case State::kQueued:
-      return kQueued;
-    case State::kRunning:
-      return kRunning;
-    case State::kSuspended:
-      return kSuspended;
-    case State::kCancelled:
-      return kCancelled;
-    case State::kCompleted:
-      return kCompleted;
-  }
-
-  UINVARIANT(false, "Unexpected Task state");
-}
-
-bool TaskBase::IsFinished() const { return context_ && context_->IsFinished(); }
-
-void TaskBase::Wait() const noexcept(false) {
-  UASSERT(context_);
-  context_->Wait();
-}
+void TaskBase::Wait() const noexcept(false) { WaitUntil(Deadline{}); }
 
 void TaskBase::WaitUntil(Deadline deadline) const {
-  UASSERT(context_);
-  context_->WaitUntil(deadline);
+    const auto status = WaitNothrowUntil(deadline);
+    if (status == FutureStatus::kCancelled) {
+        throw WaitInterruptedException(current_task::CancellationReason());
+    }
 }
 
-void TaskBase::RequestCancel() {
-  UASSERT(context_);
-  context_->RequestCancel(TaskCancellationReason::kUserRequest);
-}
+bool TaskBase::WaitNothrow() const noexcept { return WaitNothrowUntil(Deadline{}) == FutureStatus::kReady; }
 
-void TaskBase::SyncCancel() noexcept {
-  Terminate(TaskCancellationReason::kUserRequest);
-}
+FutureStatus TaskBase::WaitNothrowUntil(Deadline deadline) const noexcept { return GetContext().WaitUntil(deadline); }
 
-TaskCancellationReason TaskBase::CancellationReason() const {
-  UASSERT(context_);
-  return context_->CancellationReason();
-}
+void TaskBase::RequestCancel() { GetContext().RequestCancel(TaskCancellationReason::kUserRequest); }
+
+void TaskBase::SyncCancel() noexcept { Terminate(TaskCancellationReason::kUserRequest); }
+
+TaskCancellationReason TaskBase::CancellationReason() const { return GetContext().CancellationReason(); }
 
 void TaskBase::BlockingWait() const {
-  UASSERT(context_);
-  UASSERT(!current_task::IsTaskProcessorThread());
+    UASSERT(pimpl_->context);
+    UASSERT(!current_task::IsTaskProcessorThread());
 
-  auto& context = *context_;
-  if (context.IsFinished()) return;
+    auto& context = *pimpl_->context;
+    if (context.IsFinished()) return;
 
-  std::packaged_task<void()> task([&context] {
-    const TaskCancellationBlocker block_cancels;
-    context.Wait();
-  });
-  auto future = task.get_future();
+    std::packaged_task<void()> task([&context] {
+        const TaskCancellationBlocker block_cancels;
+        const auto status = context.WaitUntil(Deadline{});
+        UASSERT(status == FutureStatus::kReady);
+    });
+    auto future = task.get_future();
 
-  engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task))
-      .Detach();
-  future.wait();
-  future.get();
-  UASSERT(context.IsFinished());
+    engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task)).Detach();
+    future.wait();
+    future.get();
+    UASSERT(context.IsFinished());
 }
 
 void TaskBase::Invalidate() noexcept {
-  Terminate(TaskCancellationReason::kAbandoned);
-  context_.reset();
+    Terminate(TaskCancellationReason::kAbandoned);
+    pimpl_->context.reset();
 }
 
 TaskBase::TaskBase() = default;
@@ -123,70 +106,62 @@ TaskBase::TaskBase(TaskBase&&) noexcept = default;
 TaskBase& TaskBase::operator=(TaskBase&&) noexcept = default;
 
 // NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
-TaskBase::TaskBase(const TaskBase& other) noexcept : context_(other.context_) {}
+TaskBase::TaskBase(const TaskBase& other) noexcept : pimpl_(other.pimpl_) {}
 
 // NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default,cert-oop54-cpp)
 TaskBase& TaskBase::operator=(const TaskBase& other) noexcept {
-  context_ = other.context_;
-  return *this;
+    pimpl_->context = other.pimpl_->context;
+    return *this;
 }
 
 impl::TaskContext& TaskBase::GetContext() const noexcept {
-  UASSERT(context_);
-  return *context_;
+    UASSERT(pimpl_->context);
+    return *pimpl_->context;
 }
 
-bool TaskBase::HasSameContext(const TaskBase& other) const noexcept {
-  return context_ == other.context_;
-}
+bool TaskBase::HasSameContext(const TaskBase& other) const noexcept { return pimpl_->context == other.pimpl_->context; }
 
-utils::impl::WrappedCallBase& TaskBase::GetPayload() const noexcept {
-  UASSERT(context_);
-  return context_->GetPayload();
-}
+utils::impl::WrappedCallBase& TaskBase::GetPayload() const noexcept { return GetContext().GetPayload(); }
 
 void TaskBase::Terminate(TaskCancellationReason reason) noexcept {
-  if (!context_) {
-    return;
-  }
+    if (!pimpl_->context) {
+        return;
+    }
 
-  if (!IsFinished()) {
-    // We are not providing an implicit sync from outside
-    // because it's really easy to get a deadlock this way
-    // e.g. between global event thread pool and task processor
-    context_->RequestCancel(reason);
+    if (!IsFinished()) {
+        // We are not providing an implicit sync from outside
+        // because it's really easy to get a deadlock this way
+        // e.g. between global event thread pool and task processor
+        pimpl_->context->RequestCancel(reason);
 
-    const TaskCancellationBlocker cancel_blocker;
-    Wait();
-  }
+        const TaskCancellationBlocker cancel_blocker;
+        Wait();
+    }
 
-  if (reason == TaskCancellationReason::kAbandoned) {
-    context_->ResetPayload();
-  }
+    if (reason == TaskCancellationReason::kAbandoned) {
+        pimpl_->context->ResetPayload();
+    }
 }
 
 namespace current_task {
 
-bool IsTaskProcessorThread() noexcept {
-  return GetCurrentTaskContextUnchecked() != nullptr;
-}
+bool IsTaskProcessorThread() noexcept { return GetCurrentTaskContextUnchecked() != nullptr; }
 
-TaskProcessor& GetTaskProcessor() {
-  return GetCurrentTaskContext().GetTaskProcessor();
-}
+TaskProcessor& GetTaskProcessor() { return GetCurrentTaskContext().GetTaskProcessor(); }
 
-std::size_t GetStackSize() {
-  return GetTaskProcessor()
-      .GetTaskProcessorPools()
-      ->GetCoroPool()
-      .GetStackSize();
-}
+std::size_t GetStackSize() { return GetTaskProcessor().GetTaskProcessorPools()->GetCoroPool().GetStackSize(); }
 
-ev::ThreadControl& GetEventThread() {
-  return GetTaskProcessor().EventThreadPool().NextThread();
-}
+ev::ThreadControl& GetEventThread() { return GetTaskProcessor().EventThreadPool().NextThread(); }
 
 }  // namespace current_task
+
+namespace impl {
+
+std::uint64_t GetCreatedTaskCount(TaskProcessor& task_processor) {
+    return task_processor.GetTaskCounter().GetCreatedTasks().value;
+}
+
+}  // namespace impl
 
 }  // namespace engine
 

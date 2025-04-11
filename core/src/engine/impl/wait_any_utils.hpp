@@ -14,53 +14,53 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 class WaitAnyWaitStrategy final : public WaitStrategy {
- public:
-  WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets,
-                      TaskContext& waiter)
-      : waiter_(waiter), targets_(targets) {}
+public:
+    WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets, TaskContext& waiter)
+        : waiter_(waiter), targets_(targets) {}
 
-  EarlyWakeup SetupWakeups() override {
-    for (auto*& target : targets_) {
-      if (!target) continue;
+    EarlyWakeup SetupWakeups() override {
+        for (auto*& target : targets_) {
+            if (!target) continue;
 
-      utils::FastScopeGuard disable_wakeups([&]() noexcept {
-        DoDisableWakeups(utils::span{targets_.data(), &target});
-      });
+            utils::FastScopeGuard disable_wakeups([&]() noexcept {
+                DoDisableWakeups(utils::span{targets_.data(), &target});
+            });
 
-      // SetupWakeups might throw.
-      const auto early_wakeup = target->TryAppendWaiter(waiter_);
+            // SetupWakeups might throw.
+            const auto early_wakeup = target->TryAppendWaiter(waiter_);
 
-      if (static_cast<bool>(early_wakeup)) {
-        return EarlyWakeup{true};
-      }
+            if (static_cast<bool>(early_wakeup)) {
+                return EarlyWakeup{true};
+            }
 
-      disable_wakeups.Release();
+            disable_wakeups.Release();
+        }
+
+        return EarlyWakeup{false};
     }
 
-    return EarlyWakeup{false};
-  }
+    void DisableWakeups() noexcept override { DoDisableWakeups(targets_); }
 
-  void DisableWakeups() noexcept override { DoDisableWakeups(targets_); }
-
- private:
-  void DoDisableWakeups(utils::span<ContextAccessor*> targets) const noexcept {
-    for (auto* const target : targets) {
-      if (!target) continue;
-      target->RemoveWaiter(waiter_);
+private:
+    void DoDisableWakeups(utils::span<ContextAccessor*> targets) const noexcept {
+        for (auto* const target : targets) {
+            if (!target) continue;
+            target->RemoveWaiter(waiter_);
+        }
     }
-  }
 
-  TaskContext& waiter_;
-  const utils::span<ContextAccessor*> targets_;
+    TaskContext& waiter_;
+    const utils::span<ContextAccessor*> targets_;
 };
 
 inline bool AreUniqueValues(utils::span<ContextAccessor*> targets) {
-  std::vector<ContextAccessor*> sorted;
-  sorted.reserve(targets.size());
-  std::copy_if(targets.begin(), targets.end(), std::back_inserter(sorted),
-               [](const auto& target) { return target != nullptr; });
-  std::sort(sorted.begin(), sorted.end());
-  return std::adjacent_find(sorted.begin(), sorted.end()) == sorted.end();
+    std::vector<ContextAccessor*> sorted;
+    sorted.reserve(targets.size());
+    std::copy_if(targets.begin(), targets.end(), std::back_inserter(sorted), [](const auto& target) {
+        return target != nullptr;
+    });
+    std::sort(sorted.begin(), sorted.end());
+    return std::adjacent_find(sorted.begin(), sorted.end()) == sorted.end();
 }
 
 }  // namespace engine::impl

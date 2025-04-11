@@ -112,7 +112,7 @@ function(_userver_make_sanitize_target)
   target_compile_options(userver-internal-sanitize-options INTERFACE
       ${sanitize_cxx_flags}
   )
-  target_link_libraries(userver-internal-sanitize-options INTERFACE
+  target_link_options(userver-internal-sanitize-options INTERFACE
       ${sanitize_link_flags}
   )
 endfunction()
@@ -127,7 +127,7 @@ function(_userver_make_sanitize_blacklist)
   target_compile_options(userver::internal-sanitize-options INTERFACE
       ${compile_flags_bl}
   )
-  target_link_libraries(userver::internal-sanitize-options INTERFACE
+  target_link_options(userver::internal-sanitize-options INTERFACE
       ${link_flags_bl}
   )
 endfunction()

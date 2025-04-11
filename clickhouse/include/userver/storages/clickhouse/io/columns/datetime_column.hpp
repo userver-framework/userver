@@ -14,13 +14,13 @@ namespace storages::clickhouse::io::columns {
 
 /// @brief Represents ClickHouse DateTime column
 class DateTimeColumn final : public ClickhouseColumn<DateTimeColumn> {
- public:
-  using cpp_type = std::chrono::system_clock::time_point;
-  using container_type = std::vector<cpp_type>;
+public:
+    using cpp_type = std::chrono::system_clock::time_point;
+    using container_type = std::vector<cpp_type>;
 
-  DateTimeColumn(ColumnRef column);
+    DateTimeColumn(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 }  // namespace storages::clickhouse::io::columns

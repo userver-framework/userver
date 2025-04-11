@@ -1,0 +1,25 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        timeout_single_ms:
+            type: integer
+            minimum: 1
+        timeout_all_ms:
+            type: integer
+            minimum: 1
+        best_dc_count:
+            type: integer
+            minimum: 1
+        max_ping_latency_ms:
+            type: integer
+            minimum: 1
+        strategy:
+            type: string
+            enum:
+              - default
+              - every_dc
+              - local_dc_conductor
+              - nearest_server_ping

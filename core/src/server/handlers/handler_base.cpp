@@ -10,20 +10,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-HandlerBase::HandlerBase(const components::ComponentConfig& config,
-                         const components::ComponentContext& context,
-                         bool is_monitor)
+HandlerBase::HandlerBase(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context,
+    bool is_monitor
+)
     : ComponentBase(config, context),
       is_monitor_(config["monitor-handler"].As<bool>(is_monitor)),
       config_(ParseHandlerConfigsWithDefaults(
           config,
           context.FindComponent<components::Server>().GetServer().GetConfig(),
-          is_monitor_)) {}
+          is_monitor_
+      )) {}
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Base class for the HTTP request handlers.
 additionalProperties: false
@@ -81,12 +84,13 @@ properties:
         defaultDescription: <no limit>
     request_body_size_log_limit:
         type: integer
-        description: trim request to this size before logging
-        defaultDescription: 512
+        description: trim the request to this size before logging
+    request_headers_size_log_limit:
+        type: integer
+        description: trim request headers to this size before logging
     response_data_size_log_limit:
         type: integer
         description: trim responses to this size before logging
-        defaultDescription: 512
     max_requests_per_second:
         type: integer
         description: integer to limit RPS to this handler
@@ -138,6 +142,10 @@ properties:
         defaultDescription: taken from server.listener.handler-defaults.deadline_expired_status_code
         minimum: 400
         maximum: 599
+    enable_write_statistics:
+        type: boolean
+        description: whether to write handler statistics
+        defaultDescription: true
 )");
 }
 

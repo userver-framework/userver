@@ -1,0 +1,27 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        errors-threshold-percent:
+            default: 5.0
+            type: number
+        safe-delta-limit:
+            type: integer
+            default: 10
+        deactivate-delta:
+            type: integer
+        timings-burst-times-threshold:
+            type: number
+            default: 5.0
+        min-timings-ms:
+            type: integer
+            x-usrv-cpp-type: std::chrono::milliseconds
+            default: 20
+        min-limit:
+            type: integer
+            default: 10
+        min-qps:
+            type: integer
+            default: 10

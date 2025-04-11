@@ -7,10 +7,6 @@ macro(_userver_module_begin)
   set(oneValueArgs
       # Target name, also used for package name by default
       NAME
-      # Custom package name; NAME is used by default
-      PACKAGE_NAME
-      # For multi-target packages
-      COMMON_NAME
       VERSION
   )
   set(multiValueArgs
@@ -130,6 +126,7 @@ macro(_userver_module_find_part)
       PATH_SUFFIXES ${ARG_PATH_SUFFIXES}
       PATHS ${ARG_PATHS}
   )
+  message(DEBUG "STATUS FIND(${ARG_NAMES}) ARGS: ${find_command_args}")
   if("${ARG_PART_TYPE}" STREQUAL "library")
     find_library(${find_command_args})
   elseif("${ARG_PART_TYPE}" STREQUAL "path")
@@ -214,15 +211,19 @@ macro(_userver_module_end)
     return()
   endif()
 
+  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
+  if(NOT USERVER_CMAKE_DIR)
+    message(
+        FATAL_ERROR
+        "userver_setup_environment() should be run before trying to use any Find* from userver"
+    )
+  endif()
+
   include(FindPackageHandleStandardArgs)
-  include(DetectVersion)
+  include("${USERVER_CMAKE_DIR}/DetectVersion.cmake")
 
   set(name "${ARG_NAME}")
-  if(ARG_PACKAGE_NAME)
-    set(current_package_name "${ARG_PACKAGE_NAME}")
-  else()
-    set(current_package_name "${ARG_NAME}")
-  endif()
+  set(current_package_name "${ARG_NAME}")
   set(libraries_variable "${ARG_NAME}_LIBRARIES")
   set(includes_variable "${ARG_NAME}_INCLUDE_DIRS")
   set(programs_variable "${ARG_NAME}_EXECUTABLE")
@@ -287,17 +288,10 @@ macro(_userver_module_end)
     mark_as_advanced(${required_vars})
   else()
     # Forward to another CMake module, add nice error messages if missing.
-    if(ARG_COMMON_NAME)
-      set(wrapped_package_name "${ARG_COMMON_NAME}")
-    else()
-      set(wrapped_package_name "${current_package_name}")
-    endif()
+    set(wrapped_package_name "${current_package_name}")
     set(find_command_args "${wrapped_package_name}")
     if(ARG_VERSION)
       list(APPEND find_command_args "${ARG_VERSION}")
-    endif()
-    if(ARG_COMMON_NAME)
-      list(APPEND find_command_args COMPONENTS "${name}")
     endif()
     find_package(${find_command_args})
     set("${name}_FOUND" "${${wrapped_package_name}_FOUND}")
@@ -324,23 +318,18 @@ macro(_userver_module_end)
     endif()
   endif()
 
-  if(ARG_COMMON_NAME
-      OR (NOT "${${libraries_variable}}" STREQUAL "")
+  if((NOT "${${libraries_variable}}" STREQUAL "")
       OR (NOT "${${includes_variable}}" STREQUAL ""))
     if(NOT TARGET "${name}")
       add_library("${name}" INTERFACE IMPORTED GLOBAL)
 
-      if(ARG_COMMON_NAME AND TARGET "${ARG_COMMON_NAME}::${name}")
-        target_link_libraries("${name}" INTERFACE "${ARG_COMMON_NAME}::${name}")
-      endif()
-
       if(NOT "${${includes_variable}}" STREQUAL "")
-        target_include_directories("${name}" INTERFACE ${${includes_variable}})
+        set_target_properties("${name}" PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${${includes_variable}}")
         message(STATUS "${name} include directories: ${${includes_variable}}")
       endif()
 
       if(NOT "${${libraries_variable}}" STREQUAL "")
-        target_link_libraries("${name}" INTERFACE ${${libraries_variable}})
+        set_target_properties("${name}" PROPERTIES INTERFACE_LINK_LIBRARIES "${${libraries_variable}}")
         message(STATUS "${name} libraries: ${${libraries_variable}}")
       endif()
     endif()
@@ -352,12 +341,40 @@ macro(_userver_module_end)
 endmacro()
 
 function(_userver_macos_set_default_dir variable command_args)
+  set(default_value "")
   if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT DEFINED ${variable})
     execute_process(
         COMMAND ${command_args}
         OUTPUT_VARIABLE output
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    set("${variable}" "${output}" CACHE PATH "")
+    set(default_value "${output}")
   endif()
+  set("${variable}" "${default_value}" CACHE PATH "")
+endfunction()
+
+function(_userver_print_features_list)
+  get_cmake_property(variable_names CACHE_VARIABLES)
+  list(SORT variable_names)
+  message(STATUS "userver features enabled:")
+  foreach(variable ${variable_names})
+    string(SUBSTRING ${variable} 0 15 variable_prefix)
+    if(NOT ${variable_prefix} STREQUAL USERVER_FEATURE)
+      continue()
+    endif()
+    if(${variable})
+      message(STATUS " * ${variable}")
+    endif()
+  endforeach()
+
+  message(STATUS "userver features disabled:")
+  foreach(variable ${variable_names})
+    string(SUBSTRING ${variable} 0 15 variable_prefix)
+    if(NOT ${variable_prefix} STREQUAL USERVER_FEATURE)
+      continue()
+    endif()
+    if(NOT ${variable})
+      message(STATUS " * ${variable}")
+    endif()
+  endforeach()
 endfunction()

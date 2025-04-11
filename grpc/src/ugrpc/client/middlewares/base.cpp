@@ -10,63 +10,47 @@ namespace ugrpc::client {
 
 void MiddlewareBase::PreStartCall(MiddlewareCallContext& /*context*/) const {}
 
-void MiddlewareBase::PostFinish(MiddlewareCallContext& /*context*/,
-                                const grpc::Status& /*status*/) const {}
+void MiddlewareBase::PostFinish(MiddlewareCallContext& /*context*/, const grpc::Status& /*status*/) const {}
 
-void MiddlewareBase::PreSendMessage(
-    MiddlewareCallContext& /*context*/,
-    const google::protobuf::Message& /*message*/) const {}
+void MiddlewareBase::PreSendMessage(MiddlewareCallContext& /*context*/, const google::protobuf::Message& /*message*/)
+    const {}
 
-void MiddlewareBase::PostRecvMessage(
-    MiddlewareCallContext& /*context*/,
-    const google::protobuf::Message& /*message*/) const {}
+void MiddlewareBase::PostRecvMessage(MiddlewareCallContext& /*context*/, const google::protobuf::Message& /*message*/)
+    const {}
 
 MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-MiddlewareCallContext::MiddlewareCallContext(impl::RpcData& data)
-    : data_(data) {}
+MiddlewareCallContext::MiddlewareCallContext(impl::RpcData& data) : data_(data) {}
 
-grpc::ClientContext& MiddlewareCallContext::GetContext() noexcept {
-  return data_.GetContext();
-}
+grpc::ClientContext& MiddlewareCallContext::GetContext() noexcept { return data_.GetContext(); }
 
-std::string_view MiddlewareCallContext::GetClientName() const noexcept {
-  return data_.GetClientName();
-}
+std::string_view MiddlewareCallContext::GetClientName() const noexcept { return data_.GetClientName(); }
 
-std::string_view MiddlewareCallContext::GetCallName() const noexcept {
-  return data_.GetCallName();
-}
+std::string_view MiddlewareCallContext::GetCallName() const noexcept { return data_.GetCallName(); }
 
-CallKind MiddlewareCallContext::GetCallKind() const noexcept {
-  return data_.GetCallKind();
-}
+tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return data_.GetSpan(); }
 
-tracing::Span& MiddlewareCallContext::GetSpan() noexcept {
-  return data_.GetSpan();
-}
+bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(data_.GetCallKind()); }
 
-impl::RpcData& MiddlewareCallContext::GetData(ugrpc::impl::InternalTag) {
-  return data_;
-}
+bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(data_.GetCallKind()); }
 
-MiddlewareFactoryBase::~MiddlewareFactoryBase() = default;
+impl::RpcData& MiddlewareCallContext::GetData(ugrpc::impl::InternalTag) { return data_; }
 
-namespace impl {
-
-Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories,
-                                   const std::string& client_name) {
-  Middlewares mws;
-  mws.reserve(factories.size());
-  for (const auto& mw_factory : factories) {
-    mws.push_back(mw_factory->GetMiddleware(client_name));
-  }
-  return mws;
-}
-
-}  // namespace impl
+MiddlewarePipelineComponent::MiddlewarePipelineComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent(
+          config,
+          context,
+          {{
+              {"grpc-client-logging", {}},
+              {"grpc-client-baggage", {}},
+              {"grpc-client-deadline-propagation", {}},
+          }}
+      ) {}
 
 }  // namespace ugrpc::client
 

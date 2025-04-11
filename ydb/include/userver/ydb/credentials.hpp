@@ -9,9 +9,7 @@
 #include <userver/components/component_base.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-namespace NYdb {
-class ICredentialsProviderFactory;
-}  // namespace NYdb
+#include <ydb-cpp-sdk/client/types/fwd.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,16 +29,16 @@ namespace ydb {
 // clang-format on
 
 class CredentialsProviderComponent : public components::ComponentBase {
- public:
-  using components::ComponentBase::ComponentBase;
+public:
+    using components::ComponentBase::ComponentBase;
 
-  /// @brief Create credentials provider factory
-  ///
-  /// @param credentials credentials config (`databases.<dbname>.credentials`
-  /// from `ydb::YdbComponent` component config)
-  virtual std::shared_ptr<NYdb::ICredentialsProviderFactory>
-  CreateCredentialsProviderFactory(
-      const yaml_config::YamlConfig& credentials) const = 0;
+    /// @brief Create credentials provider factory
+    ///
+    /// @param credentials credentials config (`databases.<dbname>.credentials`
+    /// from `ydb::YdbComponent` component config)
+    virtual std::shared_ptr<NYdb::ICredentialsProviderFactory> CreateCredentialsProviderFactory(
+        const yaml_config::YamlConfig& credentials
+    ) const = 0;
 };
 
 }  // namespace ydb

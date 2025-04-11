@@ -23,110 +23,99 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct TransparentICaseHash final {
-  using is_transparent = void;
-  std::size_t operator()(std::string_view str) const noexcept {
-    return hasher_(str);
-  }
+    using is_transparent = void;
+    std::size_t operator()(std::string_view str) const noexcept { return hasher_(str); }
 
-  utils::StrIcaseHash hasher_{};
+    utils::StrIcaseHash hasher_{};
 };
 
 struct TransparentICaseEqual final {
-  using is_transparent = void;
-  bool operator()(std::string_view lhs, std::string_view rhs) const noexcept {
-    return utils::StrIcaseEqual{}(lhs, rhs);
-  }
+    using is_transparent = void;
+    bool operator()(std::string_view lhs, std::string_view rhs) const noexcept {
+        return utils::StrIcaseEqual{}(lhs, rhs);
+    }
 };
 
 template <typename KeyEq>
 class LinearSearch final {
- public:
-  void reserve(std::size_t capacity) { values_.reserve(capacity); }
+public:
+    void reserve(std::size_t capacity) { values_.reserve(capacity); }
 
-  auto find(std::string_view key) {
-    return std::find_if(
-        values_.begin(), values_.end(),
-        [this, key](const auto& kvp) { return cmp_(key, kvp.first); });
-  }
-
-  auto try_emplace(std::string key, std::string value) {
-    auto it = find(key);
-    auto inserted = false;
-
-    if (it == values_.end()) {
-      values_.emplace_back(std::piecewise_construct,
-                           std::forward_as_tuple(std::move(key)),
-                           std::forward_as_tuple(std::move(value)));
-      it = --values_.end();
-      inserted = true;
+    auto find(std::string_view key) {
+        return std::find_if(values_.begin(), values_.end(), [this, key](const auto& kvp) {
+            return cmp_(key, kvp.first);
+        });
     }
 
-    return std::make_pair(it, inserted);
-  }
+    auto try_emplace(std::string key, std::string value) {
+        auto it = find(key);
+        auto inserted = false;
 
-  void erase(std::string_view key) {
-    for (std::size_t i = 0; i < values_.size(); ++i) {
-      if (cmp_(key, values_[i].first)) {
-        if (i + 1 != values_.size()) {
-          std::swap(values_[i], values_.back());
+        if (it == values_.end()) {
+            values_.emplace_back(
+                std::piecewise_construct, std::forward_as_tuple(std::move(key)), std::forward_as_tuple(std::move(value))
+            );
+            it = --values_.end();
+            inserted = true;
         }
-        values_.pop_back();
 
-        return;
-      }
+        return std::make_pair(it, inserted);
     }
-  }
 
- private:
-  KeyEq cmp_{};
-  std::vector<std::pair<std::string, std::string>> values_;
+    void erase(std::string_view key) {
+        for (std::size_t i = 0; i < values_.size(); ++i) {
+            if (cmp_(key, values_[i].first)) {
+                if (i + 1 != values_.size()) {
+                    std::swap(values_[i], values_.back());
+                }
+                values_.pop_back();
+
+                return;
+            }
+        }
+    }
+
+private:
+    KeyEq cmp_{};
+    std::vector<std::pair<std::string, std::string>> values_;
 };
 
 using HeaderMap = http::headers::HeaderMap;
-using AbslMap =
-    absl::flat_hash_map<std::string, std::string, TransparentICaseHash,
-                        TransparentICaseEqual>;
+using AbslMap = absl::flat_hash_map<std::string, std::string, TransparentICaseHash, TransparentICaseEqual>;
 using BoostFlatHashMap =
-    boost::unordered_flat_map<std::string, std::string, TransparentICaseHash,
-                              TransparentICaseEqual>;
+    boost::unordered_flat_map<std::string, std::string, TransparentICaseHash, TransparentICaseEqual>;
 using LinearSearchMap = LinearSearch<TransparentICaseEqual>;
-using StdUnorderedMap =
-    std::unordered_map<std::string, std::string, TransparentICaseHash,
-                       TransparentICaseEqual>;
+using StdUnorderedMap = std::unordered_map<std::string, std::string, TransparentICaseHash, TransparentICaseEqual>;
 
 template <typename Map>
 class MapProxyBase {
- public:
-  MapProxyBase(Map& map) : map_{map} {}
-  ~MapProxyBase() = default;
+public:
+    MapProxyBase(Map& map) : map_{map} {}
+    ~MapProxyBase() = default;
 
-  void Reserve(std::size_t capacity) { map_.reserve(capacity); }
+    void Reserve(std::size_t capacity) { map_.reserve(capacity); }
 
-  auto Find(std::string_view header) { return Get().find(header); }
+    auto Find(std::string_view header) { return Get().find(header); }
 
-  auto InsertOrAppend(std::string key, std::string value) {
-    auto [it, inserted] = Get().try_emplace(std::move(key), std::move(value));
-    if (!inserted) {
-      it->second += ',';
-      it->second += value;
+    auto InsertOrAppend(std::string key, std::string value) {
+        auto [it, inserted] = Get().try_emplace(std::move(key), std::move(value));
+        if (!inserted) {
+            it->second += ',';
+            it->second += value;
+        }
+
+        return it;
     }
 
-    return it;
-  }
+    auto FindPredefined(const http::headers::PredefinedHeader& header) { return Get().find(header); }
 
-  auto FindPredefined(const http::headers::PredefinedHeader& header) {
-    return Get().find(header);
-  }
+    void Erase(const http::headers::PredefinedHeader& header) { Get().erase(header); }
 
-  void Erase(const http::headers::PredefinedHeader& header) {
-    Get().erase(header);
-  }
+protected:
+    Map& Get() { return map_; }
 
- protected:
-  Map& Get() { return map_; }
-
- private:
-  Map& map_;
+private:
+    Map& map_;
 };
 
 template <typename Map>
@@ -134,53 +123,49 @@ class MapProxy;
 
 template <>
 class MapProxy<HeaderMap> final : public MapProxyBase<HeaderMap> {
- public:
-  using MapProxyBase<HeaderMap>::MapProxyBase;
+public:
+    using MapProxyBase<HeaderMap>::MapProxyBase;
 
-  // NOLINTNEXTLINE
-  auto InsertOrAppend(std::string key, std::string value) {
-    return Get().InsertOrAppend(std::move(key), std::move(value));
-  }
+    // NOLINTNEXTLINE
+    auto InsertOrAppend(std::string key, std::string value) {
+        return Get().InsertOrAppend(std::move(key), std::move(value));
+    }
 
-  // NOLINTNEXTLINE
-  auto FindPredefined(const http::headers::PredefinedHeader& header) {
-    return Get().find(header);
-  }
+    // NOLINTNEXTLINE
+    auto FindPredefined(const http::headers::PredefinedHeader& header) { return Get().find(header); }
 };
 
 template <>
 class MapProxy<AbslMap> final : public MapProxyBase<AbslMap> {
- public:
-  using MapProxyBase<AbslMap>::MapProxyBase;
+public:
+    using MapProxyBase<AbslMap>::MapProxyBase;
 };
 
 template <>
 class MapProxy<BoostFlatHashMap> final : public MapProxyBase<BoostFlatHashMap> {
- public:
-  using MapProxyBase<BoostFlatHashMap>::MapProxyBase;
+public:
+    using MapProxyBase<BoostFlatHashMap>::MapProxyBase;
 };
 
 template <>
 class MapProxy<LinearSearchMap> final : public MapProxyBase<LinearSearchMap> {
- public:
-  using MapProxyBase<LinearSearchMap>::MapProxyBase;
+public:
+    using MapProxyBase<LinearSearchMap>::MapProxyBase;
 };
 
 template <>
 class MapProxy<StdUnorderedMap> final : public MapProxyBase<StdUnorderedMap> {
- public:
-  using MapProxyBase<StdUnorderedMap>::MapProxyBase;
+public:
+    using MapProxyBase<StdUnorderedMap>::MapProxyBase;
 
-  // NOLINTNEXTLINE
-  auto Find(std::string_view key) { return Get().find(std::string{key}); }
+    // NOLINTNEXTLINE
+    auto Find(std::string_view key) { return Get().find(std::string{key}); }
 
-  // NOLINTNEXTLINE
-  auto FindPredefined(const http::headers::PredefinedHeader& header) {
-    return Find(header);
-  }
+    // NOLINTNEXTLINE
+    auto FindPredefined(const http::headers::PredefinedHeader& header) { return Find(header); }
 
-  // NOLINTNEXTLINE
-  auto Erase(std::string_view key) { Get().erase(std::string{key}); }
+    // NOLINTNEXTLINE
+    auto Erase(std::string_view key) { Get().erase(std::string{key}); }
 };
 
 constexpr http::headers::PredefinedHeader kArbitraryHeaders[] = {
@@ -263,245 +248,237 @@ constexpr http::headers::PredefinedHeader kAllUsedHeaders[] = {
 
 template <typename Map>
 void PopulateMap(MapProxy<Map>& proxy) {
-  for (const auto& header : kArbitraryHeaders) {
-    proxy.InsertOrAppend(std::string{header},
-                         "we don't care, lets make it not small");
-  }
+    for (const auto& header : kArbitraryHeaders) {
+        proxy.InsertOrAppend(std::string{header}, "we don't care, lets make it not small");
+    }
 }
 
 template <typename Map>
-void PopulateHugeMap(
-    MapProxy<Map>& proxy,
-    const std::vector<std::pair<std::string, std::string>>& headers) {
-  for (const auto& [k, v] : headers) {
-    proxy.InsertOrAppend(k, v);
-  }
+void PopulateHugeMap(MapProxy<Map>& proxy, const std::vector<std::pair<std::string, std::string>>& headers) {
+    for (const auto& [k, v] : headers) {
+        proxy.InsertOrAppend(k, v);
+    }
 }
 
 template <typename Map>
 void PopulateMapWithKnown(MapProxy<Map>& proxy) {
-  for (const auto& header : kAllUsedHeaders) {
-    proxy.InsertOrAppend(std::string{header},
-                         "we don't care, lets make it not small");
-  }
+    for (const auto& header : kAllUsedHeaders) {
+        proxy.InsertOrAppend(std::string{header}, "we don't care, lets make it not small");
+    }
 }
 
 }  // namespace
 
 template <typename Map>
 void HttpHeadersMap_Find(benchmark::State& state) {
-  Map map{};
-  MapProxy<Map> proxy{map};
+    Map map{};
+    MapProxy<Map> proxy{map};
 
-  PopulateMap(proxy);
-  for ([[maybe_unused]] auto _ : state) {
-    for (const auto& header : kArbitraryHeaders) {
-      benchmark::DoNotOptimize(proxy.Find(header));
+    PopulateMap(proxy);
+    for ([[maybe_unused]] auto _ : state) {
+        for (const auto& header : kArbitraryHeaders) {
+            benchmark::DoNotOptimize(proxy.Find(header));
+        }
     }
-  }
 }
 
 template <typename Map>
 void HttpHeadersMap_FindPredefined(benchmark::State& state) {
-  Map map{};
-  MapProxy<Map> proxy{map};
+    Map map{};
+    MapProxy<Map> proxy{map};
 
-  PopulateMap(proxy);
-  for ([[maybe_unused]] auto _ : state) {
-    for (const auto& header : kArbitraryHeaders) {
-      benchmark::DoNotOptimize(proxy.FindPredefined(header));
+    PopulateMap(proxy);
+    for ([[maybe_unused]] auto _ : state) {
+        for (const auto& header : kArbitraryHeaders) {
+            benchmark::DoNotOptimize(proxy.FindPredefined(header));
+        }
     }
-  }
 }
 
 template <typename Map>
 void HttpHeadersMap_Populate(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    Map map{};
-    MapProxy<Map> proxy{map};
+    for ([[maybe_unused]] auto _ : state) {
+        Map map{};
+        MapProxy<Map> proxy{map};
 
-    proxy.Reserve(16);
-    PopulateMap(proxy);
+        proxy.Reserve(16);
+        PopulateMap(proxy);
 
-    benchmark::DoNotOptimize(map);
-  }
+        benchmark::DoNotOptimize(map);
+    }
 }
 
 template <typename Map>
 void HttpHeadersMap_PopulateWithKnown(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    Map map{};
-    MapProxy<Map> proxy{map};
+    for ([[maybe_unused]] auto _ : state) {
+        Map map{};
+        MapProxy<Map> proxy{map};
 
-    proxy.Reserve(16);
-    PopulateMapWithKnown(proxy);
+        proxy.Reserve(16);
+        PopulateMapWithKnown(proxy);
 
-    benchmark::DoNotOptimize(map);
-  }
+        benchmark::DoNotOptimize(map);
+    }
 }
 
 template <typename Map, bool Predefined = false>
 void HttpHeadersMap_FindHuge(benchmark::State& state) {
-  constexpr std::size_t size = 10'000;
+    constexpr std::size_t size = 10'000;
 
-  std::vector<std::pair<std::string, std::string>> headers;
-  headers.reserve(size);
-  for (std::size_t i = 0; i < size; ++i) {
-    headers.emplace_back(
-        std::piecewise_construct,
-        std::forward_as_tuple(std::string{"break_sso_break_sso_"} +
-                              std::to_string(i)),
-        std::forward_as_tuple(std::to_string(i) + "break_sso_break_sso_"));
-  }
-  std::vector<USERVER_NAMESPACE::http::headers::PredefinedHeader>
-      Predefined_headers;
-  if constexpr (Predefined) {
-    Predefined_headers.reserve(headers.size());
-    for (const auto& [k, v] : headers) {
-      Predefined_headers.emplace_back(k);
+    std::vector<std::pair<std::string, std::string>> headers;
+    headers.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        headers.emplace_back(
+            std::piecewise_construct,
+            std::forward_as_tuple(std::string{"break_sso_break_sso_"} + std::to_string(i)),
+            std::forward_as_tuple(std::to_string(i) + "break_sso_break_sso_")
+        );
     }
-  }
-
-  Map map{};
-  MapProxy<Map> proxy{map};
-
-  proxy.Reserve(headers.size());
-  for (const auto& kvp : headers) {
-    proxy.InsertOrAppend(kvp.first, kvp.second);
-  }
-
-  if constexpr (Predefined) {
-    for ([[maybe_unused]] auto _ : state) {
-      for (const auto& k : Predefined_headers) {
-        benchmark::DoNotOptimize(proxy.FindPredefined(k));
-      }
-    }
-  } else {
-    for ([[maybe_unused]] auto _ : state) {
-      for (const auto& [k, v] : headers) {
-        const auto it = proxy.Find(k);
-        if (it->second != v) {
-          state.SkipWithError("Find is broken");
+    std::vector<USERVER_NAMESPACE::http::headers::PredefinedHeader> Predefined_headers;
+    if constexpr (Predefined) {
+        Predefined_headers.reserve(headers.size());
+        for (const auto& [k, v] : headers) {
+            Predefined_headers.emplace_back(k);
         }
-      }
     }
-  }
+
+    Map map{};
+    MapProxy<Map> proxy{map};
+
+    proxy.Reserve(headers.size());
+    for (const auto& kvp : headers) {
+        proxy.InsertOrAppend(kvp.first, kvp.second);
+    }
+
+    if constexpr (Predefined) {
+        for ([[maybe_unused]] auto _ : state) {
+            for (const auto& k : Predefined_headers) {
+                benchmark::DoNotOptimize(proxy.FindPredefined(k));
+            }
+        }
+    } else {
+        for ([[maybe_unused]] auto _ : state) {
+            for (const auto& [k, v] : headers) {
+                const auto it = proxy.Find(k);
+                if (it->second != v) {
+                    state.SkipWithError("Find is broken");
+                }
+            }
+        }
+    }
 }
 
 template <typename Map>
 void HttpHeadersMap_PopulateHuge(benchmark::State& state) {
-  constexpr std::size_t size = 10'000;
+    constexpr std::size_t size = 10'000;
 
-  std::vector<std::pair<std::string, std::string>> headers;
-  headers.reserve(size);
-  for (std::size_t i = 0; i < size; ++i) {
-    headers.emplace_back(
-        std::piecewise_construct,
-        std::forward_as_tuple(std::string{"break_sso_break_sso_"} +
-                              std::to_string(i)),
-        std::forward_as_tuple(std::to_string(i) + "break_sso_break_sso_"));
-  }
+    std::vector<std::pair<std::string, std::string>> headers;
+    headers.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        headers.emplace_back(
+            std::piecewise_construct,
+            std::forward_as_tuple(std::string{"break_sso_break_sso_"} + std::to_string(i)),
+            std::forward_as_tuple(std::to_string(i) + "break_sso_break_sso_")
+        );
+    }
 
-  for ([[maybe_unused]] auto _ : state) {
-    Map map{};
-    MapProxy<Map> proxy{map};
+    for ([[maybe_unused]] auto _ : state) {
+        Map map{};
+        MapProxy<Map> proxy{map};
 
-    proxy.Reserve(16);
-    PopulateHugeMap<Map>(proxy, headers);
-  }
+        proxy.Reserve(16);
+        PopulateHugeMap<Map>(proxy, headers);
+    }
 }
 
 template <typename Map>
 void HttpHeadersMap_CopyAndEraseAll(benchmark::State& state) {
-  Map map{};
-  {
-    MapProxy<Map> proxy{map};
-    PopulateMapWithKnown(proxy);
-  }
-
-  for ([[maybe_unused]] auto _ : state) {
-    auto map_copy = map;
-    MapProxy<Map> proxy{map_copy};
-    for (const auto& h : kAllUsedHeaders) {
-      proxy.Erase(h);
+    Map map{};
+    {
+        MapProxy<Map> proxy{map};
+        PopulateMapWithKnown(proxy);
     }
-  }
+
+    for ([[maybe_unused]] auto _ : state) {
+        auto map_copy = map;
+        MapProxy<Map> proxy{map_copy};
+        for (const auto& h : kAllUsedHeaders) {
+            proxy.Erase(h);
+        }
+    }
 }
 
 namespace {
 
-http::headers::PredefinedHeader MyLaunder(
-    http::headers::PredefinedHeader value) {
-  return Launder(value);
-}
+http::headers::PredefinedHeader MyLaunder(http::headers::PredefinedHeader value) { return Launder(value); }
 
 constexpr utils::TrivialBiMap kTrivialHeadersMap = [](auto selector) {
-  return selector()
-      .Case("content-type", 1)
-      .Case("content-encoding", 2)
-      .Case("content-length", 3)
-      .Case("transfer-encoding", 4)
-      .Case("host", 5)
-      .Case("accept", 6)
-      .Case("accept-encoding", 7)
-      .Case("accept-language", 8)
-      .Case("x-yataxi-api-key", 9)
-      .Case("user-agent", 10)
-      .Case("x-request-application", 11)
-      .Case("date", 12)
-      .Case("warning", 13)
-      .Case("access-control-allow-headers", 14)
-      .Case("allow", 15)
-      .Case("server", 16)
-      .Case("set-cookie", 17)
-      .Case("connection", 18)
-      .Case("cookie", 19)
-      .Case("x-yarequestid", 20)
-      .Case("x-yatraceid", 21)
-      .Case("x-yaspanid", 22)
-      .Case("x-requestid", 23)
-      .Case("x-backend-server", 24)
-      .Case("x-taxi-envoyproxy-dstvhost", 25)
-      .Case("baggage", 26)
-      .Case("x-yataxi-allow-auth-request", 27)
-      .Case("x-yataxi-allow-auth-response", 28)
-      .Case("x-yataxi-server-hostname", 29)
-      .Case("x-yataxi-client-timeoutms", 30)
-      .Case("x-yataxi-ratelimited-by", 31)
-      .Case("x-yataxi-ratelimit-reason", 32);
+    return selector()
+        .Case("content-type", 1)
+        .Case("content-encoding", 2)
+        .Case("content-length", 3)
+        .Case("transfer-encoding", 4)
+        .Case("host", 5)
+        .Case("accept", 6)
+        .Case("accept-encoding", 7)
+        .Case("accept-language", 8)
+        .Case("x-yataxi-api-key", 9)
+        .Case("user-agent", 10)
+        .Case("x-request-application", 11)
+        .Case("date", 12)
+        .Case("warning", 13)
+        .Case("access-control-allow-headers", 14)
+        .Case("allow", 15)
+        .Case("server", 16)
+        .Case("set-cookie", 17)
+        .Case("connection", 18)
+        .Case("cookie", 19)
+        .Case("x-yarequestid", 20)
+        .Case("x-yatraceid", 21)
+        .Case("x-yaspanid", 22)
+        .Case("x-requestid", 23)
+        .Case("x-backend-server", 24)
+        .Case("x-taxi-envoyproxy-dstvhost", 25)
+        .Case("baggage", 26)
+        .Case("x-yataxi-allow-auth-request", 27)
+        .Case("x-yataxi-allow-auth-response", 28)
+        .Case("x-yataxi-server-hostname", 29)
+        .Case("x-yataxi-client-timeoutms", 30)
+        .Case("x-yataxi-ratelimited-by", 31)
+        .Case("x-yataxi-ratelimit-reason", 32);
 };
 
 void HttpHeadersMap_FindFromAllUsed_TrivialBiMap(benchmark::State& state) {
-  std::vector<std::string_view> keys{};
-  keys.reserve(std::size(kAllUsedHeaders));
-  for (const auto& h : kAllUsedHeaders) {
-    keys.push_back(MyLaunder(h));
-  }
-
-  for ([[maybe_unused]] auto _ : state) {
-    for (const auto& h : keys) {
-      benchmark::DoNotOptimize(kTrivialHeadersMap.TryFindICase(h));
+    std::vector<std::string_view> keys{};
+    keys.reserve(std::size(kAllUsedHeaders));
+    for (const auto& h : kAllUsedHeaders) {
+        keys.push_back(MyLaunder(h));
     }
-  }
+
+    for ([[maybe_unused]] auto _ : state) {
+        for (const auto& h : keys) {
+            benchmark::DoNotOptimize(kTrivialHeadersMap.TryFindICase(h));
+        }
+    }
 }
 
 void HttpHeadersMap_FindFromAllUsed_HeaderMap(benchmark::State& state) {
-  HeaderMap map{};
-  for (const auto& h : kAllUsedHeaders) {
-    map.insert_or_assign(h, "some pretty long string to break soo");
-  }
-
-  std::vector<http::headers::PredefinedHeader> keys{};
-  keys.reserve(std::size(kAllUsedHeaders));
-  for (const auto& h : kAllUsedHeaders) {
-    keys.push_back(MyLaunder(h));
-  }
-
-  for ([[maybe_unused]] auto _ : state) {
-    for (const auto& h : keys) {
-      benchmark::DoNotOptimize(map.find(h));
+    HeaderMap map{};
+    for (const auto& h : kAllUsedHeaders) {
+        map.insert_or_assign(h, "some pretty long string to break soo");
     }
-  }
+
+    std::vector<http::headers::PredefinedHeader> keys{};
+    keys.reserve(std::size(kAllUsedHeaders));
+    for (const auto& h : kAllUsedHeaders) {
+        keys.push_back(MyLaunder(h));
+    }
+
+    for ([[maybe_unused]] auto _ : state) {
+        for (const auto& h : keys) {
+            benchmark::DoNotOptimize(map.find(h));
+        }
+    }
 }
 
 BENCHMARK(HttpHeadersMap_FindFromAllUsed_TrivialBiMap);
@@ -509,15 +486,15 @@ BENCHMARK(HttpHeadersMap_FindFromAllUsed_HeaderMap);
 
 template <typename Map>
 void HttpHeadersMap_Showcase(benchmark::State& state) {
-  Map map{};
-  MapProxy<Map> proxy{map};
+    Map map{};
+    MapProxy<Map> proxy{map};
 
-  PopulateMapWithKnown(proxy);
-  for ([[maybe_unused]] auto _ : state) {
-    for (const auto& header : kAllUsedHeaders) {
-      benchmark::DoNotOptimize(proxy.FindPredefined(header));
+    PopulateMapWithKnown(proxy);
+    for ([[maybe_unused]] auto _ : state) {
+        for (const auto& header : kAllUsedHeaders) {
+            benchmark::DoNotOptimize(proxy.FindPredefined(header));
+        }
     }
-  }
 }
 
 BENCHMARK_TEMPLATE(HttpHeadersMap_Showcase, LinearSearchMap);

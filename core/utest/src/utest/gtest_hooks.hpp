@@ -17,8 +17,6 @@ void InitMockNow();
 
 void SetLogLevel(logging::Level);
 
-void EnableStackUsageMonitor();
-
 void InitPhdrCache();
 void TeardownPhdrCache();
 ///@}

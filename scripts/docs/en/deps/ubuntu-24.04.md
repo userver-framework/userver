@@ -1,5 +1,6 @@
 build-essential
 ccache
+clang-format
 cmake
 git
 libabsl-dev
@@ -10,7 +11,6 @@ libboost-filesystem1.83-dev
 libboost-iostreams1.83-dev
 libboost-locale1.83-dev
 libboost-program-options1.83-dev
-libboost-regex1.83-dev
 libboost-stacktrace1.83-dev
 libboost1.83-dev
 libbson-dev
@@ -34,12 +34,16 @@ libjemalloc-dev
 libkrb5-dev
 libldap2-dev
 librdkafka-dev
+libre2-dev
+librocksdb-dev
 liblz4-dev
+liblzma-dev
 libmariadb-dev
 libmongoc-dev
 libnghttp2-dev
 libpq-dev
 libprotoc-dev
+libpugixml-dev
 libsnappy-dev
 libsasl2-dev
 libssl-dev

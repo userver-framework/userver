@@ -13,38 +13,29 @@ namespace components {
 
 namespace {
 
-storages::secdist::SecdistConfig::Settings ParseSettings(
-    const ComponentConfig& config, const ComponentContext& context) {
-  storages::secdist::SecdistConfig::Settings settings;
+storages::secdist::SecdistConfig::Settings
+ParseSettings(const ComponentConfig& config, const ComponentContext& context) {
+    storages::secdist::SecdistConfig::Settings settings;
 
-  const auto provider_name =
-      config["provider"].As<std::string>("default-secdist-provider");
-  settings.provider =
-      &context.FindComponent<storages::secdist::SecdistProvider>(provider_name);
-  settings.update_period =
-      utils::StringToDuration(config["update-period"].As<std::string>("0s"));
-  return settings;
+    const auto provider_name = config["provider"].As<std::string>("default-secdist-provider");
+    settings.provider = &context.FindComponent<storages::secdist::SecdistProvider>(provider_name);
+    settings.update_period = utils::StringToDuration(config["update-period"].As<std::string>("0s"));
+    return settings;
 }
 
 }  // namespace
 
 Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase(config, context),
-      secdist_(ParseSettings(config, context)) {}
+    : ComponentBase(config, context), secdist_(ParseSettings(config, context)) {}
 
-const storages::secdist::SecdistConfig& Secdist::Get() const {
-  return secdist_.Get();
-}
+const storages::secdist::SecdistConfig& Secdist::Get() const { return secdist_.Get(); }
 
-rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
-    const {
-  return secdist_.GetSnapshot();
-}
+rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot() const { return secdist_.GetSnapshot(); }
 
 storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
 yaml_config::Schema Secdist::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that stores security related data (keys, passwords, ...).
 additionalProperties: false

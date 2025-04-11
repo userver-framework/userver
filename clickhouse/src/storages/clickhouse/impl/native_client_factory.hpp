@@ -21,31 +21,30 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse::impl {
 
 class NativeClientWrapper final {
- public:
-  NativeClientWrapper(clients::dns::Resolver&,
-                      const clickhouse_cpp::ClientOptions&,
-                      ConnectionSettings::ConnectionMode);
-  ~NativeClientWrapper();
+public:
+    NativeClientWrapper(
+        clients::dns::Resolver&,
+        const clickhouse_cpp::ClientOptions&,
+        ConnectionSettings::ConnectionMode
+    );
+    ~NativeClientWrapper();
 
-  void Execute(const clickhouse_cpp::Query& query, engine::Deadline deadline);
-  void Insert(const std::string& table_name, const clickhouse_cpp::Block& block,
-              engine::Deadline deadline);
-  void Ping(engine::Deadline deadline);
+    void Execute(const clickhouse_cpp::Query& query, engine::Deadline deadline);
+    void Insert(const std::string& table_name, const clickhouse_cpp::Block& block, engine::Deadline deadline);
+    void Ping(engine::Deadline deadline);
 
- private:
-  void SetDeadline(engine::Deadline deadline);
+private:
+    void SetDeadline(engine::Deadline deadline);
 
-  engine::Deadline operations_deadline_;
+    engine::Deadline operations_deadline_;
 
-  std::unique_ptr<clickhouse_cpp::Client> native_client_;
+    std::unique_ptr<clickhouse_cpp::Client> native_client_;
 };
 
 class NativeClientFactory final {
- public:
-  static NativeClientWrapper Create(clients::dns::Resolver&,
-                                    const EndpointSettings&,
-                                    const AuthSettings&,
-                                    const ConnectionSettings&);
+public:
+    static NativeClientWrapper
+    Create(clients::dns::Resolver&, const EndpointSettings&, const AuthSettings&, const ConnectionSettings&);
 };
 
 }  // namespace storages::clickhouse::impl

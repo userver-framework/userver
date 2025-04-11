@@ -12,28 +12,28 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 class GenericWaitList final {
- public:
-  explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
+public:
+    explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
 
-  bool GetSignalOrAppend(boost::intrusive_ptr<TaskContext>&& context) noexcept;
+    bool GetSignalOrAppend(boost::intrusive_ptr<TaskContext>&& context) noexcept;
 
-  void Remove(TaskContext& context) noexcept;
+    void Remove(TaskContext& context) noexcept;
 
-  void SetSignalAndWakeupAll();
+    void SetSignalAndWakeupAll();
 
-  bool IsSignaled() const noexcept;
+    bool IsSignaled() const noexcept;
 
-  bool IsShared() const noexcept;
+    bool IsShared() const noexcept;
 
- private:
-  struct WaitListAndSignal final {
-    std::atomic<bool> signal{false};
-    WaitList wl{};
-  };
+private:
+    struct WaitListAndSignal final {
+        std::atomic<bool> signal{false};
+        WaitList wl{};
+    };
 
-  static auto CreateWaitList(Task::WaitMode wait_mode) noexcept;
+    static auto CreateWaitList(Task::WaitMode wait_mode) noexcept;
 
-  std::variant<WaitListLight, WaitListAndSignal> waiters_;
+    std::variant<WaitListLight, WaitListAndSignal> waiters_;
 };
 
 }  // namespace engine::impl

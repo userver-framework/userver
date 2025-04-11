@@ -16,20 +16,17 @@ class Client;
 namespace testsuite::impl {
 
 class HttpTestpointClient final : public TestpointClientBase {
- public:
-  HttpTestpointClient(clients::http::Client& http_client,
-                      const std::string& url,
-                      std::chrono::milliseconds timeout);
+public:
+    HttpTestpointClient(clients::http::Client& http_client, const std::string& url, std::chrono::milliseconds timeout);
 
-  ~HttpTestpointClient() override;
+    ~HttpTestpointClient() override;
 
-  void Execute(std::string_view name, const formats::json::Value& json,
-               Callback callback) const override;
+    void Execute(std::string_view name, const formats::json::Value& json, Callback callback) const override;
 
- private:
-  clients::http::Client& http_client_;
-  const std::string url_;
-  const std::chrono::milliseconds timeout_;
+private:
+    clients::http::Client& http_client_;
+    const std::string url_;
+    const std::chrono::milliseconds timeout_;
 };
 
 }  // namespace testsuite::impl

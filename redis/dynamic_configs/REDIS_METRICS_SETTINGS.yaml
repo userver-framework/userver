@@ -1,0 +1,25 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    example: |
+        {
+            "timings-enabled": true,
+            "command-timings-enabled": true,
+            "request-sizes-enabled": true,
+            "reply-sizes-enabled": true
+        }
+    properties:
+        timings-enabled:
+            type: boolean
+            default: true
+        command-timings-enabled:
+            type: boolean
+            default: false
+        request-sizes-enabled:
+            type: boolean
+            default: false
+        reply-sizes-enabled:
+            type: boolean
+            default: false

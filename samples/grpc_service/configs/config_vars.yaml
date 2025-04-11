@@ -1,0 +1,3 @@
+# yaml
+# We talk to our own service, which is kind of pointless, but works for an example
+greeter-endpoint: '[::1]:8091'

@@ -12,21 +12,20 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 
 std::string_view GetMachineReadableSeverity(const PGresult* result) {
-  if (!result) {
-    LOG_DEBUG() << "Got null result";
+    if (!result) {
+        LOG_DEBUG() << "Got null result";
+        return {};
+    }
+
+    const char* severity_field = PQresultErrorField(result, PG_DIAG_SEVERITY_NONLOCALIZED);
+    if (severity_field) return severity_field;
+
+    LOG_TRACE() << "Nonlocalized severity unavailable";
+    severity_field = PQresultErrorField(result, PG_DIAG_SEVERITY);
+    if (severity_field) return severity_field;
+
+    LOG_DEBUG() << "Result has no severity (not an error/notice?)";
     return {};
-  }
-
-  const char* severity_field =
-      PQresultErrorField(result, PG_DIAG_SEVERITY_NONLOCALIZED);
-  if (severity_field) return severity_field;
-
-  LOG_TRACE() << "Nonlocalized severity unavailable";
-  severity_field = PQresultErrorField(result, PG_DIAG_SEVERITY);
-  if (severity_field) return severity_field;
-
-  LOG_DEBUG() << "Result has no severity (not an error/notice?)";
-  return {};
 }
 
 }  // namespace storages::postgres::detail

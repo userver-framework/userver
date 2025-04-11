@@ -1,14 +1,22 @@
 ## Writing your first HTTP server
 
+
 ## Before you start
 
-Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
-
-Note that there is a ready to use opensource
-[service template](https://github.com/userver-framework/service_template)
+@warning Note that you can start with a ready to use opensourse [service template](scripts/docs/en/userver/build/build.md)
 to ease the development of your userver based services. The template already has
 a preconfigured CI, build and install scripts, testsuite and unit-tests setups.
+
+@warning @ref service_templates "service template" is an implementation of an HTTP server application from this tutorial.
+You do not need to copy parts of code from this tutorial to @ref service_templates "service template" as it already has them.
+
+
+Make sure that you can compile and run core tests as described at
+@ref scripts/docs/en/userver/build/build.md.
+
+This sample provides some basic information on how to configure the service and how to setup testing. If you are eager
+to prototype and experiment, consider the @ref scripts/docs/en/userver/libraries/easy.md instead.
+
 
 ## Step by step guide
 
@@ -45,7 +53,7 @@ implementation details are hidden and the header is lightweight to include:
 HTTP handlers must derive from `server::handlers::HttpHandlerBase` and have a name, that
 is obtainable at compile time via `kName` variable and is obtainable at runtime via `HandlerName()`.
 
-The primary functionality of the handler should be located in `HandleRequestThrow` function.
+The primary functionality of the handler should be located in `HandleRequest` function.
 Return value of this function is the HTTP response body. If an exception `exc` derived from
 `server::handlers::CustomHandlerException` is thrown from the function then the
 HTTP response code will be set to `exc.GetCode()` and `exc.GetExternalErrorBody()`
@@ -57,7 +65,9 @@ HTTP response code will be set to `500`.
 
 @include samples/hello_service/src/hello_handler.cpp
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data in `Handle*`.
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use
+         @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data
+         in `Handle*`.
 
 
 ### Static config
@@ -80,6 +90,25 @@ add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
 @include samples/hello_service/main.cpp
+
+You can either pass argc, argv to `utils::DaemonRun()` to parse config yaml and config vars
+filepaths from arguments, or you may use embedded config file.
+
+
+### Embedded files
+
+Sometimes it is handy to embed file(s) content into the binary to avoid additional filesystem reads.
+You may use it with `userver_embed_file()` cmake function.
+It generates cmake target which can be linked into your executable target.
+
+Cmake part looks like the following:
+
+@snippet samples/embedded_files/CMakeLists.txt  embedded
+
+C++ part looks simple - include the generated header and use `utils::FindResource()` function to
+get the embedded file contents:
+
+@snippet samples/embedded_files/main.cpp  embedded usage
 
 
 ### CMake
@@ -119,7 +148,6 @@ paths in the configuration files and starts the service.
 To start the service manually run
 `./samples/hello_service/userver-samples-hello_service -c </path/to/static_config.yaml>`.
 
-@note Without file path to `static_config.yaml` `userver-samples-hello_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` and file from `samples` directory into build directory.
 
 Now you can send a request to your server from another terminal:
@@ -166,7 +194,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/faq.md | @ref scripts/docs/en/userver/tutorial/config_service.md ⇨
+⇦ @ref scripts/docs/en/userver/build/userver.md | @ref scripts/docs/en/userver/tutorial/config_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

@@ -6,14 +6,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite::impl::actions {
 
-formats::json::Value HttpAllowedUrlsExtra::Perform(
-    const formats::json::Value& request_body) const {
-  auto allowed_urls_extra =
-      request_body["allowed_urls_extra"].As<std::vector<std::string>>();
+formats::json::Value HttpAllowedUrlsExtra::Perform(const formats::json::Value& request_body) const {
+    auto allowed_urls_extra = request_body["allowed_urls_extra"].As<std::vector<std::string>>();
 
-  http_client_.SetAllowedUrlsExtra(std::move(allowed_urls_extra));
+    http_client_.SetAllowedUrlsExtra(std::move(allowed_urls_extra));
 
-  return {};
+    return {};
 }
 
 }  // namespace testsuite::impl::actions

@@ -12,19 +12,18 @@
 namespace samples::grpc::auth {
 
 class GreeterClient final : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName = "greeter-client";
+public:
+    static constexpr std::string_view kName = "greeter-client";
 
-  GreeterClient(const components::ComponentConfig& config,
-                const components::ComponentContext& context);
+    GreeterClient(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::string SayHello(std::string name);
+    std::string SayHello(std::string name);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  ugrpc::client::ClientFactory& client_factory_;
-  api::GreeterServiceClient client_;
+private:
+    ugrpc::client::ClientFactory& client_factory_;
+    api::GreeterServiceClient client_;
 };
 
 }  // namespace samples::grpc::auth

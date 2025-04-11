@@ -2,6 +2,7 @@ boost-devel
 c-ares-devel
 ccache
 cctz-devel
+clang-tools-extra
 cmake
 cryptopp-devel
 curl-devel
@@ -24,10 +25,12 @@ ninja
 openldap-devel
 openssl-devel
 postgresql-server
+pugixml
 python3-devel
 python3-jinja2
 python3-protobuf
 python3-voluptuous
+re2
 redis
 yaml-cpp-devel
 zlib-devel

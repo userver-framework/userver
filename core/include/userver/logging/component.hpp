@@ -6,7 +6,6 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/alerts/storage.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
@@ -43,7 +42,7 @@ namespace components {
 /// ---- | ----------- | -------------
 /// file_path | path to the log file | -
 /// level | log verbosity | info
-/// format | log output format, either `tskv` or `ltsv` | tskv
+/// format | log output format, one of `tskv`, `ltsv`, `json`, `json_yadeploy` | tskv
 /// flush_level | messages of this and higher levels get flushed to the file immediately | warning
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
@@ -73,59 +72,65 @@ namespace components {
 // clang-format on
 
 class Logging final : public RawComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Logging component
-  static constexpr std::string_view kName = "logging";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Logging component
+    static constexpr std::string_view kName = "logging";
 
-  /// The component constructor
-  Logging(const ComponentConfig&, const ComponentContext&);
-  ~Logging() override;
+    /// The component constructor
+    Logging(const ComponentConfig&, const ComponentContext&);
+    ~Logging() override;
 
-  /// @brief Returns a logger by its name
-  /// @param name Name of the logger
-  /// @returns Pointer to the Logger instance
-  /// @throws std::runtime_error if logger with this name is not registered
-  logging::LoggerPtr GetLogger(const std::string& name);
+    /// @brief Returns a logger by its name
+    /// @param name Name of the logger
+    /// @returns Pointer to the Logger instance
+    /// @throws std::runtime_error if logger with this name is not registered
+    logging::LoggerPtr GetLogger(const std::string& name);
 
-  /// @brief Sets a logger
-  /// @param name Name of the logger
-  /// @param logger Logger to set
-  void SetLogger(const std::string& name, logging::LoggerPtr logger);
+    /// @brief Returns a text logger by its name
+    /// @param name Name of the logger
+    /// @returns Pointer to the Logger instance
+    /// @throws std::runtime_error if logger with this name is not registered
+    /// @throws std::runtime_error if logger is not a text logger
+    logging::TextLoggerPtr GetTextLogger(const std::string& name);
 
-  /// @brief Returns a logger by its name
-  /// @param name Name of the logger
-  /// @returns Pointer to the Logger instance, or `nullptr` if not registered
-  logging::LoggerPtr GetLoggerOptional(const std::string& name);
+    /// @brief Sets a logger
+    /// @param name Name of the logger
+    /// @param logger Logger to set
+    void SetLogger(const std::string& name, logging::LoggerPtr logger);
 
-  void StartSocketLoggingDebug(const std::optional<logging::Level>& log_level);
-  void StopSocketLoggingDebug(const std::optional<logging::Level>& log_level);
+    /// @brief Returns a logger by its name
+    /// @param name Name of the logger
+    /// @returns Pointer to the Logger instance, or `nullptr` if not registered
+    logging::LoggerPtr GetLoggerOptional(const std::string& name);
 
-  /// Reopens log files after rotation
-  void OnLogRotate();
-  void TryReopenFiles();
+    void StartSocketLoggingDebug(const std::optional<logging::Level>& log_level);
+    void StopSocketLoggingDebug(const std::optional<logging::Level>& log_level);
 
-  void WriteStatistics(utils::statistics::Writer& writer) const;
+    /// Reopens log files after rotation
+    void OnLogRotate();
+    void TryReopenFiles();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    void WriteStatistics(utils::statistics::Writer& writer) const;
 
- private:
-  void Init(const ComponentConfig&, const ComponentContext&);
-  void Stop() noexcept;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  void FlushLogs();
+private:
+    void Init(const ComponentConfig&, const ComponentContext&);
+    void Stop() noexcept;
 
-  engine::TaskProcessor* fs_task_processor_{nullptr};
-  std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
-      loggers_;
-  rcu::RcuMap<std::string, logging::LoggerPtr> extra_loggers_;
-  utils::PeriodicTask flush_task_;
-  logging::impl::TcpSocketSink* socket_sink_{nullptr};
-  alerts::Storage& alert_storage_;
+    void FlushLogs();
 
-  // Subscriptions must be the last fields.
-  os_signals::Subscriber signal_subscriber_;
-  utils::statistics::Entry statistics_holder_;
+    engine::TaskProcessor* fs_task_processor_{nullptr};
+    std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>> loggers_;
+    rcu::RcuMap<std::string, logging::LoggerPtr> extra_loggers_;
+    utils::PeriodicTask flush_task_;
+    logging::impl::TcpSocketSink* socket_sink_{nullptr};
+    utils::statistics::MetricsStoragePtr metrics_storage_;
+
+    // Subscriptions must be the last fields.
+    os_signals::Subscriber signal_subscriber_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

@@ -7,7 +7,10 @@
 /// [includes]
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
+
 #include <userver/ugrpc/client/fwd.hpp>
+#include <userver/ugrpc/client/simple_client_component.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
 /// [includes]
@@ -23,41 +26,39 @@ namespace samples {
 // Note that we have both service and client to that service in the same
 // microservice. Ignore that, it's just for the sake of example.
 class GreeterClient final {
- public:
-  explicit GreeterClient(api::GreeterServiceClient&& raw_client);
+public:
+    explicit GreeterClient(api::GreeterServiceClient&& raw_client);
 
-  std::string SayHello(std::string name) const;
+    std::string SayHello(std::string name) const;
 
-  std::vector<std::string> SayHelloResponseStream(std::string name) const;
+    std::vector<std::string> SayHelloResponseStream(std::string name) const;
 
-  std::string SayHelloRequestStream(
-      const std::vector<std::string_view>& names) const;
+    std::string SayHelloRequestStream(const std::vector<std::string_view>& names) const;
 
-  std::vector<std::string> SayHelloStreams(
-      const std::vector<std::string_view>& names) const;
+    std::vector<std::string> SayHelloStreams(const std::vector<std::string_view>& names) const;
 
- private:
-  static std::unique_ptr<grpc::ClientContext> MakeClientContext();
+    static std::optional<ugrpc::impl::StaticServiceMetadata> GetMetadata() { return std::nullopt; }
 
-  api::GreeterServiceClient raw_client_;
+private:
+    static std::unique_ptr<grpc::ClientContext> MakeClientContext();
+
+    api::GreeterServiceClient raw_client_;
 };
 /// [client]
 
+using Client = GreeterClient;
+
 /// [component]
-class GreeterClientComponent final : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName = "greeter-client";
+class GreeterClientComponent final : public ugrpc::client::SimpleClientComponent<Client> {
+public:
+    static constexpr std::string_view kName = "greeter-client";
 
-  GreeterClientComponent(const components::ComponentConfig& config,
-                         const components::ComponentContext& context);
+    using Base = ugrpc::client::SimpleClientComponent<Client>;
 
-  const GreeterClient& GetClient() const;
+    GreeterClientComponent(const ::components::ComponentConfig& config, const ::components::ComponentContext& context)
+        : Base(config, context) {}
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  ugrpc::client::ClientFactory& client_factory_;
-  GreeterClient client_;
+    using Base::GetClient;
 };
 /// [component]
 

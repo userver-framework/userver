@@ -27,6 +27,7 @@ endfunction()
 if(USERVER_CONAN)
   find_package(Protobuf REQUIRED)
   _userver_set_protobuf_version_category()
+  set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
   return()
 endif()
 
@@ -49,6 +50,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
 
   if(Protobuf_FOUND)
     _userver_set_protobuf_version_category()
+    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
     return()
   endif()
 endif()
@@ -66,7 +68,7 @@ CPMAddPackage(
     "protobuf_BUILD_TESTS OFF"
     "protobuf_INSTALL OFF"
     "protobuf_MSVC_STATIC_RUNTIME OFF"
-    "protobuf_ABSL_PROVIDER none"
+    "protobuf_ABSL_PROVIDER package"
 )
 
 set(Protobuf_VERSION "${CPM_PACKAGE_Protobuf_VERSION}")
@@ -78,3 +80,4 @@ set_target_properties(libprotoc PROPERTIES
 write_package_stub(Protobuf)
 mark_targets_as_system("${Protobuf_SOURCE_DIR}")
 _userver_set_protobuf_version_category()
+set(PROTOBUF_PROTOC $<TARGET_FILE:protoc>)

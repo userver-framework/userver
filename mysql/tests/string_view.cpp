@@ -8,51 +8,47 @@ namespace storages::mysql::tests {
 namespace {
 
 struct RowToInsert final {
-  std::string_view value;
+    std::string_view value;
 };
 struct Row {
-  std::string value;
+    std::string value;
 };
 
 }  // namespace
 
 UTEST(StringView, WorksWithSingleInsert) {
-  TmpTable table{"Value TEXT NOT NULL"};
+    TmpTable table{"Value TEXT NOT NULL"};
 
-  const RowToInsert row_to_insert{"hi from std::string_view"};
-  table.GetCluster()->ExecuteDecompose(
-      ClusterHostType::kPrimary,
-      table.FormatWithTableName("INSERT INTO {} VALUES(?)"), row_to_insert);
+    const RowToInsert row_to_insert{"hi from std::string_view"};
+    table.GetCluster()->ExecuteDecompose(
+        ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {} VALUES(?)"), row_to_insert
+    );
 
-  const auto db_row =
-      table.DefaultExecute("SELECT Value FROM {}").AsSingleRow<Row>();
-  EXPECT_EQ(row_to_insert.value, db_row.value);
+    const auto db_row = table.DefaultExecute("SELECT Value FROM {}").AsSingleRow<Row>();
+    EXPECT_EQ(row_to_insert.value, db_row.value);
 }
 
 UTEST(StringView, WorksWithBatchInsert) {
-  TmpTable table{"Value TEXT NOT NULL"};
+    TmpTable table{"Value TEXT NOT NULL"};
 
-  std::vector<RowToInsert> rows_to_insert{{"first value"}, {"second value"}};
-  table.GetCluster()->ExecuteBulk(
-      ClusterHostType::kPrimary,
-      table.FormatWithTableName("INSERT INTO {} VALUES(?)"), rows_to_insert);
+    std::vector<RowToInsert> rows_to_insert{{"first value"}, {"second value"}};
+    table.GetCluster()->ExecuteBulk(
+        ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {} VALUES(?)"), rows_to_insert
+    );
 
-  const auto db_rows =
-      table.DefaultExecute("SELECT Value FROM {}").AsVector<Row>();
-  ASSERT_EQ(rows_to_insert.size(), db_rows.size());
-  ASSERT_EQ(rows_to_insert.size(), 2);
-  EXPECT_EQ(rows_to_insert[0].value, db_rows[0].value);
-  EXPECT_EQ(rows_to_insert[1].value, db_rows[1].value);
+    const auto db_rows = table.DefaultExecute("SELECT Value FROM {}").AsVector<Row>();
+    ASSERT_EQ(rows_to_insert.size(), db_rows.size());
+    ASSERT_EQ(rows_to_insert.size(), 2);
+    EXPECT_EQ(rows_to_insert[0].value, db_rows[0].value);
+    EXPECT_EQ(rows_to_insert[1].value, db_rows[1].value);
 }
 
 UTEST(StringView, FromConstCharNullptr) {
-  TmpTable table{"VALUE TEXT"};
+    TmpTable table{"VALUE TEXT"};
 
-  const auto do_execute = [&table](const char* data) {
-    table.DefaultExecute("INSERT INTO {} VALUES(?)", data);
-  };
+    const auto do_execute = [&table](const char* data) { table.DefaultExecute("INSERT INTO {} VALUES(?)", data); };
 
-  do_execute(nullptr);
+    do_execute(nullptr);
 }
 
 }  // namespace storages::mysql::tests

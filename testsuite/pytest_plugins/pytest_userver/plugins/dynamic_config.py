@@ -45,7 +45,7 @@ class InvalidDefaultsError(BaseError):
 
 
 class UnknownConfigError(BaseError):
-    """Invalid dynamic config name in @pytest.mark.config"""
+    """Invalid dynamic config name in `@pytest.mark.config`"""
 
 
 ConfigDict = typing.Dict[str, typing.Any]
@@ -68,7 +68,10 @@ class _ChangelogEntry:
 
     @classmethod
     def new(
-        cls, *, previous: typing.Optional['_ChangelogEntry'], timestamp: str,
+        cls,
+        *,
+        previous: typing.Optional['_ChangelogEntry'],
+        timestamp: str,
     ):
         if previous:
             prev_state = previous.state
@@ -106,16 +109,18 @@ class Updates:
 
 class _Changelog:
     timestamp: datetime.datetime
-    commited_entries: typing.List[_ChangelogEntry]
+    committed_entries: typing.List[_ChangelogEntry]
     staged_entry: _ChangelogEntry
 
     def __init__(self):
         self.timestamp = datetime.datetime.fromtimestamp(
-            0, datetime.timezone.utc,
+            0,
+            datetime.timezone.utc,
         )
-        self.commited_entries = []
+        self.committed_entries = []
         self.staged_entry = _ChangelogEntry.new(
-            timestamp=self.service_timestamp(), previous=None,
+            timestamp=self.service_timestamp(),
+            previous=None,
         )
 
     def service_timestamp(self) -> str:
@@ -126,14 +131,15 @@ class _Changelog:
         return self.service_timestamp()
 
     def commit(self) -> _ChangelogEntry:
-        """Commit staged changed if any and return last commited entry."""
+        """Commit staged changed if any and return last committed entry."""
         entry = self.staged_entry
-        if entry.has_changes or not self.commited_entries:
+        if entry.has_changes or not self.committed_entries:
             self.staged_entry = _ChangelogEntry.new(
-                timestamp=self.next_timestamp(), previous=entry,
+                timestamp=self.next_timestamp(),
+                previous=entry,
             )
-            self.commited_entries.append(entry)
-        return self.commited_entries[-1]
+            self.committed_entries.append(entry)
+        return self.committed_entries[-1]
 
     def get_updated_since(
         self,
@@ -147,17 +153,21 @@ class _Changelog:
             values = {name: values[name] for name in ids if name in values}
             removed = [name for name in removed if name in ids]
         return Updates(
-            timestamp=entry.timestamp, values=values, removed=removed,
+            timestamp=entry.timestamp,
+            values=values,
+            removed=removed,
         )
 
     def _get_updated_since(
-        self, values: ConfigDict, updated_since: str,
+        self,
+        values: ConfigDict,
+        updated_since: str,
     ) -> typing.Tuple[ConfigDict, typing.List[str]]:
         if not updated_since:
             return values, []
         dirty_keys = set()
         last_known_state = {}
-        for entry in reversed(self.commited_entries):
+        for entry in reversed(self.committed_entries):
             if entry.timestamp > updated_since:
                 dirty_keys.update(entry.dirty_keys)
             else:
@@ -187,14 +197,14 @@ class _Changelog:
             self._do_rollback(defaults)
 
     def _do_rollback(self, defaults: ConfigDict):
-        if not self.commited_entries:
+        if not self.committed_entries:
             return
 
         maybe_dirty = set()
-        for entry in self.commited_entries:
+        for entry in self.committed_entries:
             maybe_dirty.update(entry.dirty_keys)
 
-        last = self.commited_entries[-1]
+        last = self.committed_entries[-1]
         last_state = last.state
         dirty_keys = set()
         reverted = {}
@@ -210,7 +220,7 @@ class _Changelog:
             dirty_keys=dirty_keys,
             prev_state={},
         )
-        self.commited_entries = [entry]
+        self.committed_entries = [entry]
         self.staged_entry = _ChangelogEntry(
             timestamp=self.staged_entry.timestamp,
             dirty_keys=dirty_keys.copy(),
@@ -291,7 +301,8 @@ class DynamicConfig:
 
     @contextlib.contextmanager
     def modify_many(
-        self, *keys: typing.Tuple[str, ...],
+        self,
+        *keys: typing.Tuple[str, ...],
     ) -> typing.Tuple[typing.Any, ...]:
         values = tuple(self.get(key) for key in keys)
         yield values
@@ -349,10 +360,12 @@ def dynamic_config(
 
 def pytest_configure(config):
     config.addinivalue_line(
-        'markers', 'config: per-test dynamic config values',
+        'markers',
+        'config: per-test dynamic config values',
     )
     config.addinivalue_line(
-        'markers', 'disable_config_check: disable config mark keys check',
+        'markers',
+        'disable_config_check: disable config mark keys check',
     )
 
 
@@ -403,7 +416,8 @@ def dynamic_config_fallback_patch() -> ConfigDict:
 
 @pytest.fixture(scope='session')
 def config_service_defaults(
-    config_fallback_path, dynamic_config_fallback_patch,
+    config_fallback_path,
+    dynamic_config_fallback_patch,
 ) -> ConfigDict:
     """
     Fixture that returns default values for dynamic config. You may override
@@ -455,7 +469,7 @@ class _ConfigDefaults:
 # unspecified in tests, on the testsuite side. For that, we ask the service
 # for the dynamic config defaults after it's launched. It's enough to update
 # defaults once per service launch.
-@pytest.fixture(scope='package')
+@pytest.fixture(scope='session')
 def _dynamic_config_defaults_storage() -> _ConfigDefaults:
     return _ConfigDefaults(snapshot=None)
 
@@ -506,10 +520,7 @@ def userver_config_dynconf_fallback(config_service_defaults):
         elif isinstance(defaults_field, str):
             if defaults_field.startswith('$'):
                 return config_vars.get(defaults_field[1:], {})
-        assert False, (
-            f'Unexpected static config option '
-            f'`dynamic-config.defaults`: {defaults_field!r}'
-        )
+        assert False, f'Unexpected static config option `dynamic-config.defaults`: {defaults_field!r}'
 
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
@@ -617,7 +628,8 @@ _CHECK_CONFIG_ERROR = (
 # Should be invoked after _dynamic_config_defaults_storage is filled.
 @pytest.fixture
 def _check_config_marks(
-    request, _dynamic_config_defaults_storage,
+    request,
+    _dynamic_config_defaults_storage,
 ) -> typing.Callable[[], None]:
     def check():
         config_defaults = _dynamic_config_defaults_storage.snapshot
@@ -627,10 +639,7 @@ def _check_config_marks(
             return
 
         unknown_configs = [
-            key
-            for marker in request.node.iter_markers('config')
-            for key in marker.kwargs
-            if key not in config_defaults
+            key for marker in request.node.iter_markers('config') for key in marker.kwargs if key not in config_defaults
         ]
 
         if unknown_configs:

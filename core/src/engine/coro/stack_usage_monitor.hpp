@@ -16,29 +16,28 @@ class CountedCoroutinePtr;
 namespace engine::coro {
 
 class StackUsageMonitor final {
- public:
-  explicit StackUsageMonitor(std::size_t coro_stack_size);
-  ~StackUsageMonitor();
+public:
+    explicit StackUsageMonitor(std::size_t coro_stack_size);
+    ~StackUsageMonitor();
 
-  void Start();
-  void Stop();
+    void Start();
+    void Stop();
 
-  void Register(
-      const boost::coroutines2::coroutine<impl::TaskContext*>::push_type& coro);
+    void Register(const boost::coroutines2::coroutine<impl::TaskContext*>::push_type& coro);
 
-  void RegisterThread();
+    void RegisterThread();
 
-  static impl::CountedCoroutinePtr* GetCurrentTaskCoroutine() noexcept;
+    static impl::CountedCoroutinePtr* GetCurrentTaskCoroutine() noexcept;
 
-  void AccountStackUsage();
-  std::uint16_t GetMaxStackUsagePct() const noexcept;
-  bool IsActive() const noexcept;
+    void AccountStackUsage();
+    std::uint16_t GetMaxStackUsagePct() const noexcept;
+    bool IsActive() const noexcept;
 
-  static bool DebugCanUseUserfaultfd();
+    static bool DebugCanUseUserfaultfd();
 
- private:
-  class Impl;
-  utils::FastPimpl<Impl, 1024, 8> impl_;
+private:
+    class Impl;
+    utils::FastPimpl<Impl, 1024, 8> impl_;
 };
 
 std::size_t GetCurrentTaskStackUsageBytes() noexcept;

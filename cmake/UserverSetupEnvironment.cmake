@@ -29,22 +29,18 @@ function(_userver_setup_environment_impl)
   message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
   cmake_policy(SET CMP0057 NEW)
-  if(NOT USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH)
-    set(CMAKE_MODULE_PATH
-        ${CMAKE_MODULE_PATH}
-        "${USERVER_CMAKE_DIR}"
-        "${USERVER_CMAKE_DIR}/modules"
-        "${CMAKE_BINARY_DIR}"
-        PARENT_SCOPE
-    )
-    set(CMAKE_PREFIX_PATH
-        "${CMAKE_BINARY_DIR}/package_stubs"
-        ${CMAKE_PREFIX_PATH}
-        PARENT_SCOPE
-    )
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    include("${USERVER_CMAKE_DIR}/SetupHomebrew.cmake")
+  endif()
+  if(NOT "${USERVER_CMAKE_DIR}/modules" IN_LIST CMAKE_MODULE_PATH AND NOT USERVER_CONAN)
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${USERVER_CMAKE_DIR}/modules" PARENT_SCOPE)
+  endif()
+  if(NOT "${CMAKE_BINARY_DIR}/package_stubs" IN_LIST CMAKE_PREFIX_PATH)
+    set(CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/package_stubs" ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
   endif()
 
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON PARENT_SCOPE)
+  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES} PARENT_SCOPE)
   if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_STANDARD 17 PARENT_SCOPE)
@@ -54,7 +50,7 @@ function(_userver_setup_environment_impl)
   set(CMAKE_CXX_EXTENSIONS OFF PARENT_SCOPE)
   set(CMAKE_VISIBILITY_INLINES_HIDDEN ON PARENT_SCOPE)
 
-  add_compile_options("-pipe" "-g" "-gz" "-fPIC")
+  add_compile_options("-pipe" "-g" "-fPIC")
   add_compile_definitions("PIC=1")
 
   option(USERVER_COMPILATION_TIME_TRACE "Generate Clang compilation time trace" OFF)
@@ -67,17 +63,27 @@ function(_userver_setup_environment_impl)
 
   include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
   include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
+  include("${USERVER_CMAKE_DIR}/SetupPGO.cmake")
+  include("${USERVER_CMAKE_DIR}/UserverCxxCompileOptionsIfSupported.cmake")
+  include("${USERVER_CMAKE_DIR}/SetupDebugInfoCompression.cmake")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}" PARENT_SCOPE)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}" PARENT_SCOPE)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION "${CMAKE_INTERPROCEDURAL_OPTIMIZATION}" PARENT_SCOPE)
+  message(STATUS "Linker global flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
   option(USERVER_USE_CCACHE "Use ccache for build" ON)
   if(USERVER_USE_CCACHE)
     find_program(CCACHE_EXECUTABLE ccache)
     if (CCACHE_EXECUTABLE)
       message(STATUS "ccache: enabled")
-      set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_EXECUTABLE}" PARENT_SCOPE)
-      set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_EXECUTABLE}" PARENT_SCOPE)
+      if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
+        message(STATUS "Setting compiler launcher: ${CCACHE_EXECUTABLE}")
+        set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_EXECUTABLE}" PARENT_SCOPE)
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_EXECUTABLE}" PARENT_SCOPE)
+      else()
+        message(STATUS "Setting rule launch compile: ${CCACHE_EXECUTABLE}")
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_EXECUTABLE}")
+      endif()
     else()
       message(STATUS "ccache: enabled, but not found")
     endif()
@@ -85,19 +91,18 @@ function(_userver_setup_environment_impl)
     message(STATUS "ccache: disabled")
   endif()
 
-  if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT USERVER_CONAN)
-    set(Boost_NO_BOOST_CMAKE ON PARENT_SCOPE)
-  endif()
-
   # Build type specific
-  if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
-    add_compile_definitions(_GLIBCXX_ASSERTIONS)
-    add_compile_definitions(BOOST_ENABLE_ASSERT_HANDLER)
-  else()
+  if(CMAKE_BUILD_TYPE MATCHES "^.*Rel.*$")  # same as in install/Config.cmake
+    message(STATUS "Release build: CMAKE_BUILD_TYPE == '${CMAKE_BUILD_TYPE}'")
+
     add_compile_definitions(NDEBUG)
 
     # enable additional glibc checks (used in debian packaging, requires -O)
     add_compile_definitions("_FORTIFY_SOURCE=2")
+  else()
+    message(STATUS "Debug build: CMAKE_BUILD_TYPE == '${CMAKE_BUILD_TYPE}'")
+    add_compile_definitions(_GLIBCXX_ASSERTIONS)
+    add_compile_definitions(BOOST_ENABLE_ASSERT_HANDLER)
   endif()
 endfunction()
 

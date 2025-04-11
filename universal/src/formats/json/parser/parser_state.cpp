@@ -23,119 +23,114 @@ namespace formats::json::parser {
 namespace {
 
 std::string ToLimited(std::string_view sw) {
-  if (sw.size() > 128)
-    return std::string(sw.substr(0, 128)) + "... (truncated)";
-  else
-    return std::string{sw};
+    if (sw.size() > 128)
+        return std::string(sw.substr(0, 128)) + "... (truncated)";
+    else
+        return std::string{sw};
 }
 
 }  // namespace
 
 struct ParserState::Impl {
-  struct StackItem final {
-    BaseParser* parser;
-  };
+    struct StackItem final {
+        BaseParser* parser;
+    };
 
-  // JSON in handlers is often 2-5 items in depth
-  boost::container::small_vector<StackItem, 16> stack;
+    // JSON in handlers is often 2-5 items in depth
+    boost::container::small_vector<StackItem, 16> stack;
 
-  void PushParser(BaseParser& parser, ParserState& parser_state);
+    void PushParser(BaseParser& parser, ParserState& parser_state);
 
-  [[nodiscard]] std::string GetPath() const;
+    [[nodiscard]] std::string GetPath() const;
 };
 
-void ParserState::Impl::PushParser(BaseParser& parser,
-                                   ParserState& parser_state) {
-  parser.SetState(parser_state);
-  stack.push_back({&parser});
+void ParserState::Impl::PushParser(BaseParser& parser, ParserState& parser_state) {
+    parser.SetState(parser_state);
+    stack.push_back({&parser});
 }
 
 std::string ParserState::Impl::GetPath() const {
-  std::string result;
+    std::string result;
 
-  for (const auto& item : stack) {
-    const auto str = item.parser->GetPathItem();
-    if (str.empty()) continue;
+    for (const auto& item : stack) {
+        const auto str = item.parser->GetPathItem();
+        if (str.empty()) continue;
 
-    if (!result.empty()) {
-      result += '.';
+        if (!result.empty()) {
+            result += '.';
+        }
+        result += str;
     }
-    result += str;
-  }
 
-  return result;
+    return result;
 }
 
 ParserState::ParserState() = default;
 
 ParserState::~ParserState() = default;
 
-void ParserState::PushParser(BaseParser& parser) {
-  impl_->PushParser(parser, *this);
-}
+void ParserState::PushParser(BaseParser& parser) { impl_->PushParser(parser, *this); }
 
 void ParserState::ProcessInput(std::string_view sw) {
-  rapidjson::Reader reader;
-  rapidjson::MemoryStream is(sw.data(), sw.size());
-  reader.IterativeParseInit();
+    rapidjson::Reader reader;
+    rapidjson::MemoryStream is(sw.data(), sw.size());
+    reader.IterativeParseInit();
 
-  auto& stack = impl_->stack;
+    auto& stack = impl_->stack;
 
-  size_t pos = 0;
-  try {
-    while (!reader.IterativeParseComplete()) {
-      if (stack.empty()) {
-        throw InternalParseError("Symbols after end of document");
-      }
+    size_t pos = 0;
+    try {
+        while (!reader.IterativeParseComplete()) {
+            if (stack.empty()) {
+                throw InternalParseError("Symbols after end of document");
+            }
 
-      if (stack.size() > kDepthParseLimit)
-        throw InternalParseError("Exceeded maximum allowed JSON depth of: " +
-                                 std::to_string(kDepthParseLimit));
+            if (stack.size() > kDepthParseLimit)
+                throw InternalParseError("Exceeded maximum allowed JSON depth of: " + std::to_string(kDepthParseLimit));
 
-      UASSERT(stack.back().parser);
-      ParserHandler handler(*stack.back().parser);
+            UASSERT(stack.back().parser);
+            ParserHandler handler(*stack.back().parser);
 
-      pos = is.Tell();
-      reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(is, handler);
-
-      if (reader.HasParseError()) {
+            pos = is.Tell();
+            static constexpr auto kParseFlags =
+                static_cast<rapidjson::ParseFlag>(rapidjson::kParseDefaultFlags | rapidjson::kParseFullPrecisionFlag);
+            reader.IterativeParseNext<kParseFlags>(is, handler);
+            if (reader.HasParseError()) {
+                throw ParseError{
+                    reader.GetErrorOffset(),
+                    impl_->GetPath(),
+                    rapidjson::GetParseError_En(reader.GetParseErrorCode()),
+                };
+            }
+        }
+    } catch (const ParseError&) {
+        throw;
+    } catch (const std::exception& e) {
+        auto cur_pos = is.Tell();
+        auto msg =
+            (cur_pos == pos) ? "" : fmt::format(", the latest token was {}", ToLimited(sw.substr(pos, cur_pos - pos)));
         throw ParseError{
-            reader.GetErrorOffset(),
+            cur_pos,
             impl_->GetPath(),
-            rapidjson::GetParseError_En(reader.GetParseErrorCode()),
+            e.what() + msg,
         };
-      }
     }
-  } catch (const ParseError&) {
-    throw;
-  } catch (const std::exception& e) {
-    auto cur_pos = is.Tell();
-    auto msg = (cur_pos == pos)
-                   ? ""
-                   : fmt::format(", the latest token was {}",
-                                 ToLimited(sw.substr(pos, cur_pos - pos)));
-    throw ParseError{
-        cur_pos,
-        impl_->GetPath(),
-        e.what() + msg,
-    };
-  }
 
-  if (!stack.empty()) {
-    throw ParseError(is.Tell(), "", "data is expected after the end of file");
-  }
+    if (!stack.empty()) {
+        throw ParseError(is.Tell(), "", "data is expected after the end of file");
+    }
 }
 
 BaseParser& ParserState::GetTopParser() const {
-  UASSERT(!impl_->stack.empty());
-  return *impl_->stack.back().parser;
+    UASSERT(!impl_->stack.empty());
+    return *impl_->stack.back().parser;
 }
 
 void ParserState::PopMe([[maybe_unused]] BaseParser& parser) {
-  UASSERT(!impl_->stack.empty());
-  UASSERT(&parser == impl_->stack.back().parser);
+    UASSERT(!impl_->stack.empty());
+    UASSERT(&parser == impl_->stack.back().parser);
 
-  impl_->stack.pop_back();
+    impl_->stack.pop_back();
 }
 
 }  // namespace formats::json::parser

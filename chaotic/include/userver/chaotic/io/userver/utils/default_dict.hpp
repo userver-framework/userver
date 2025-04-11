@@ -10,24 +10,24 @@ namespace utils {
 
 template <typename T, typename U>
 DefaultDict<T> Convert(const U& value, chaotic::convert::To<DefaultDict<T>>) {
-  auto& extra = value.extra;
-  auto dict = DefaultDict<T>{{extra.begin(), extra.end()}};
+    auto& extra = value.extra;
+    auto dict = DefaultDict<T>{{extra.begin(), extra.end()}};
 
-  if constexpr (meta::kIsOptional<decltype(value.__default__)>) {
-    if (value.__default__) dict.SetDefault(*value.__default__);
-  } else {
-    dict.SetDefault(value.__default__);
-  }
+    if constexpr (meta::kIsOptional<decltype(value.__default__)>) {
+        if (value.__default__) dict.SetDefault(*value.__default__);
+    } else {
+        dict.SetDefault(value.__default__);
+    }
 
-  return dict;
+    return dict;
 }
 
 template <typename T, typename U>
 U Convert(const DefaultDict<T>& value, chaotic::convert::To<U>) {
-  U u;
-  u.extra = {value.begin(), value.end()};
-  if (value.HasDefaultValue()) u.__default__ = value.GetDefaultValue();
-  return u;
+    U u;
+    u.extra = {value.begin(), value.end()};
+    if (value.HasDefaultValue()) u.__default__ = value.GetDefaultValue();
+    return u;
 }
 
 }  // namespace utils

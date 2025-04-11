@@ -11,29 +11,27 @@ USERVER_NAMESPACE_BEGIN
 namespace os_signals {
 
 namespace {
-constexpr std::string_view kOsSignalProcessorChannelName =
-    "os-signal-processor-channel";
+constexpr std::string_view kOsSignalProcessorChannelName = "os-signal-processor-channel";
 
 static_assert(SIGUSR1 == kSigUsr1);
 static_assert(SIGUSR2 == kSigUsr2);
 }  // namespace
 
 Processor::Processor(engine::TaskProcessor& task_processor)
-    : channel_(kOsSignalProcessorChannelName.data()),
-      task_processor_(task_processor) {}
+    : channel_(kOsSignalProcessorChannelName.data()), task_processor_(task_processor) {}
 
 void Processor::Notify(int signum, utils::impl::InternalTag) {
-  UINVARIANT(signum == SIGUSR1 || signum == SIGUSR2,
-             "Processor::Notify() should be used only with SIGUSR1 and SIGUSR2 "
-             "signum values");
-  LOG_DEBUG() << "Send event: " << utils::strsignal(signum);
-  if (engine::current_task::IsTaskProcessorThread()) {
-    channel_.SendEvent(signum);
-  } else {
-    engine::AsyncNoSpan(task_processor_, [this, signum] {
-      channel_.SendEvent(signum);
-    }).BlockingWait();
-  }
+    UINVARIANT(
+        signum == SIGUSR1 || signum == SIGUSR2,
+        "Processor::Notify() should be used only with SIGUSR1 and SIGUSR2 "
+        "signum values"
+    );
+    LOG_DEBUG() << "Send event: " << utils::strsignal(signum);
+    if (engine::current_task::IsTaskProcessorThread()) {
+        channel_.SendEvent(signum);
+    } else {
+        engine::AsyncNoSpan(task_processor_, [this, signum] { channel_.SendEvent(signum); }).BlockingWait();
+    }
 }
 
 }  // namespace os_signals

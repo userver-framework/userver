@@ -3,7 +3,7 @@ project(userver-samples-clickhouse_service CXX)
 
 find_package(userver COMPONENTS clickhouse REQUIRED)
 
-add_executable(${PROJECT_NAME} "clickhouse_service.cpp")
+add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::clickhouse)
 
 userver_testsuite_add_simple(

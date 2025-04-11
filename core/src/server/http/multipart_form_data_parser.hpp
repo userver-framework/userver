@@ -13,14 +13,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-using FormDataArgs =
-    utils::impl::TransparentMap<std::string, std::vector<FormDataArg>,
-                                utils::StrCaseHash>;
+using FormDataArgs = utils::impl::TransparentMap<std::string, std::vector<FormDataArg>, utils::StrCaseHash>;
 
 bool IsMultipartFormDataContentType(std::string_view content_type);
-bool ParseMultipartFormData(const std::string& content_type,
-                            std::string_view body, FormDataArgs& form_data_args,
-                            bool strict_cr_lf = false);
+bool ParseMultipartFormData(
+    const std::string& content_type,
+    std::string_view body,
+    FormDataArgs& form_data_args,
+    bool strict_cr_lf = false
+);
 
 }  // namespace server::http
 

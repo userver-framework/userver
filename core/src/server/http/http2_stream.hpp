@@ -16,46 +16,48 @@ class Socket;
 namespace server::http {
 
 class Stream final {
- public:
-  using Id = utils::StrongTypedef<struct IdTag, std::int32_t>;
+public:
+    using Id = utils::StrongTypedef<struct IdTag, std::int32_t>;
 
-  Stream(HttpRequestConstructor::Config config,
-         const HandlerInfoIndex& handler_info_index,
-         request::ResponseDataAccounter& data_accounter,
-         engine::io::Sockaddr remote_address, Id id);
+    Stream(
+        HttpRequestConstructor::Config config,
+        const HandlerInfoIndex& handler_info_index,
+        request::ResponseDataAccounter& data_accounter,
+        engine::io::Sockaddr remote_address,
+        Id id
+    );
 
-  Stream(const Stream&) = delete;
-  Stream(Stream&&) = delete;
-  Stream& operator=(const Stream&) = delete;
-  Stream& operator=(Stream&&) = delete;
+    Stream(const Stream&) = delete;
+    Stream(Stream&&) = delete;
+    Stream& operator=(const Stream&) = delete;
+    Stream& operator=(Stream&&) = delete;
 
-  Id GetId() const;
-  HttpRequestConstructor& RequestConstructor();
-  bool IsDeferred() const;
-  void SetDeferred(bool deferred);
-  void SetEnd(bool end);
-  bool IsStreaming() const;
-  void SetStreaming(bool streaming);
+    Id GetId() const;
+    HttpRequestConstructor& RequestConstructor();
+    bool IsDeferred() const;
+    void SetDeferred(bool deferred);
+    void SetEnd(bool end);
+    bool IsStreaming() const;
+    void SetStreaming(bool streaming);
 
-  bool CheckUrlComplete();
-  void PushChunk(std::string&& chunk);
-  ssize_t GetMaxSize(std::size_t max_len, std::uint32_t* flags);
-  void Send(engine::io::Socket& socket, std::string_view data_frame_header,
-            std::size_t max_len);
-  nghttp2_data_provider* GetNativeProvider() { return &nghttp2_provider_; }
+    bool CheckUrlComplete();
+    void PushChunk(std::string&& chunk);
+    ssize_t GetMaxSize(std::size_t max_len, std::uint32_t* flags);
+    void Send(engine::io::Socket& socket, std::string_view data_frame_header, std::size_t max_len);
+    nghttp2_data_provider* GetNativeProvider() { return &nghttp2_provider_; }
 
- private:
-  bool url_complete_{false};
-  HttpRequestConstructor constructor_;
-  const Id id_;
-  // Body sending
-  nghttp2_data_provider nghttp2_provider_{};
-  boost::container::small_vector<std::string, 16> chunks_{};
-  std::size_t pos_in_first_chunk_{0};
-  // for the streaming API
-  bool is_streaming_{false};
-  bool is_end_{false};
-  bool is_deferred_{false};
+private:
+    bool url_complete_{false};
+    HttpRequestConstructor constructor_;
+    const Id id_;
+    // Body sending
+    nghttp2_data_provider nghttp2_provider_{};
+    boost::container::small_vector<std::string, 16> chunks_{};
+    std::size_t pos_in_first_chunk_{0};
+    // for the streaming API
+    bool is_streaming_{false};
+    bool is_end_{false};
+    bool is_deferred_{false};
 };
 
 }  // namespace server::http

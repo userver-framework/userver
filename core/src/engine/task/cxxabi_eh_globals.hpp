@@ -16,7 +16,7 @@ namespace engine::impl {
 // This structure is a __cxa_eh_globals storage for coroutines.
 // It is required to allow task switching during unwind.
 struct EhGlobals {
-  void* data[4] = {nullptr, nullptr, nullptr, nullptr};
+    void* data[4] = {nullptr, nullptr, nullptr, nullptr};
 };
 
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
@@ -41,8 +41,8 @@ struct __cxa_exception;
 namespace engine::impl {
 
 struct EhGlobals {
-  __cxxabiv1::__cxa_exception* caught_exceptions{nullptr};
-  unsigned int uncaught_exceptions{0};
+    __cxxabiv1::__cxa_exception* caught_exceptions{nullptr};
+    unsigned int uncaught_exceptions{0};
 };
 
 }  // namespace engine::impl

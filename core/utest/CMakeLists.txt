@@ -40,7 +40,7 @@ _userver_install_targets(COMPONENT core
     TARGETS userver-utest
 )
 
-if(USERVER_IS_THE_ROOT_PROJECT)
+if(USERVER_BUILD_TESTS)
   add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}-unittest SYSTEM PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>

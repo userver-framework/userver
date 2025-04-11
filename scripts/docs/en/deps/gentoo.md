@@ -15,6 +15,7 @@ dev-libs/libfmt
 dev-libs/mongo-c-driver
 dev-libs/openssl
 dev-libs/re2
+dev-libs/pugixml
 dev-python/jinja
 dev-python/pip
 dev-python/voluptuous
@@ -22,6 +23,7 @@ dev-util/ccache
 dev-util/cmake
 dev-util/ninja
 dev-vcs/git
+llvm-core/clang
 net-dns/c-ares
 net-libs/grpc
 net-libs/nghttp2

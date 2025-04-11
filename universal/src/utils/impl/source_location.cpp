@@ -7,8 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 std::string ToString(const SourceLocation& location) {
-  return StrCat(location.GetFunctionName(), " (", location.GetFileName(), ":",
-                location.GetLineString(), ")");
+    return StrCat(location.GetFunctionName(), " (", location.GetFileName(), ":", location.GetLineString(), ")");
 }
 
 }  // namespace utils::impl

@@ -11,15 +11,14 @@ namespace storages::mysql::infra {
 using Counter = utils::statistics::RelaxedCounter<std::uint64_t>;
 
 struct PoolConnectionStatistics final {
-  Counter overload{};
-  Counter closed{};
-  Counter created{};
-  Counter acquired{};
-  Counter released{};
+    Counter overload{};
+    Counter closed{};
+    Counter created{};
+    Counter acquired{};
+    Counter released{};
 };
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolConnectionStatistics& stats);
+void DumpMetric(utils::statistics::Writer& writer, const PoolConnectionStatistics& stats);
 
 }  // namespace storages::mysql::infra
 

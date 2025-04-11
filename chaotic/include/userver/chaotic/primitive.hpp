@@ -10,21 +10,19 @@ namespace chaotic {
 
 template <typename RawType, typename... Validators>
 struct Primitive final {
-  const RawType& value;
+    const RawType& value;
 };
 
 template <typename Value, typename RawType, typename... Validators>
-RawType Parse(const Value& value,
-              formats::parse::To<Primitive<RawType, Validators...>>) {
-  auto result = value.template As<RawType>();
-  chaotic::Validate<Validators...>(result, value);
-  return result;
+RawType Parse(const Value& value, formats::parse::To<Primitive<RawType, Validators...>>) {
+    auto result = value.template As<RawType>();
+    chaotic::Validate<Validators...>(result, value);
+    return result;
 }
 
 template <typename Value, typename RawType, typename... Validators>
-Value Serialize(const Primitive<RawType, Validators...>& ps,
-                formats::serialize::To<Value>) {
-  return typename Value::Builder{ps.value}.ExtractValue();
+Value Serialize(const Primitive<RawType, Validators...>& ps, formats::serialize::To<Value>) {
+    return typename Value::Builder{ps.value}.ExtractValue();
 }
 
 }  // namespace chaotic

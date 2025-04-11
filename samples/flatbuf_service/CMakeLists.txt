@@ -15,7 +15,7 @@ add_custom_command(
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/flatbuffer_schema.fbs"
 )
 
-add_executable(${PROJECT_NAME} flatbuf_service.cpp "${FLATC_OUTPUT}")
+add_executable(${PROJECT_NAME} main.cpp "${FLATC_OUTPUT}")
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(${PROJECT_NAME} userver::core)
 

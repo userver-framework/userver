@@ -41,25 +41,25 @@ async def test_redis_happy(service_client, sentinel_gate, gate):
 
 @pytest.mark.skip(reason='Flaky test TAXICOMMON-6075')
 async def test_smaller_parts(service_client, sentinel_gate, gate):
-    gate.to_server_smaller_parts(20)
-    gate.to_client_smaller_parts(20)
+    await gate.to_server_smaller_parts(20)
+    await gate.to_client_smaller_parts(20)
     await _check_crud(service_client)
 
 
 @pytest.mark.skip(reason='Flaky test TAXICOMMON-6075')
 async def test_redis_disable_reads(service_client, sentinel_gate, gate):
-    gate.to_server_noop()
+    await gate.to_server_noop()
     result = await service_client.delete('/chaos?key=foo')
     assert result.status == 500
-    gate.to_server_pass()
+    await gate.to_server_pass()
     await _check_that_restores(service_client, gate)
 
 
 async def test_redis_disable_writes(service_client, sentinel_gate, gate):
-    gate.to_client_noop()
+    await gate.to_client_noop()
     result = await service_client.delete('/chaos?key=foo')
     assert result.status == 500
-    gate.to_client_pass()
+    await gate.to_client_pass()
     await _check_that_restores(service_client, gate)
 
 

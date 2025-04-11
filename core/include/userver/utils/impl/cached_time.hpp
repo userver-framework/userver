@@ -15,8 +15,8 @@ using SteadyTimePoint = std::chrono::steady_clock::time_point;
 void UpdateGlobalTime();
 
 struct SystemAndSteadyTimePoints {
-  SystemTimePoint system;
-  SteadyTimePoint steady;
+    SystemTimePoint system;
+    SteadyTimePoint steady;
 };
 
 // Note: the two time points are not synchronized. They may also come from

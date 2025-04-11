@@ -23,7 +23,7 @@ def _grpc_server_port(request) -> int:
 
 
 @pytest.fixture(scope='session')
-async def _gate_started(loop, grpc_server_port):
+async def _gate_started(grpc_server_port):
     gate_config = chaos.GateRoute(
         name='grpc tcp proxy',
         host_for_client='localhost',
@@ -36,14 +36,14 @@ async def _gate_started(loop, grpc_server_port):
         f'{gate_config.port_for_client}); ({gate_config.host_to_server}:'
         f'{gate_config.port_to_server} -> server)',
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 
 @pytest.fixture(name='gate')
 async def _gate_ready(service_client, _gate_started):
-    _gate_started.to_server_pass()
-    _gate_started.to_client_pass()
+    await _gate_started.to_server_pass()
+    await _gate_started.to_client_pass()
     _gate_started.start_accepting()
 
     yield _gate_started

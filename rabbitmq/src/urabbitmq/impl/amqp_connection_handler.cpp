@@ -19,77 +19,79 @@ namespace urabbitmq::impl {
 
 namespace {
 
-engine::io::Socket CreateSocket(engine::io::Sockaddr& addr,
-                                engine::Deadline deadline) {
-  engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kTcp};
-  socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
-  socket.Connect(addr, deadline);
+engine::io::Socket CreateSocket(engine::io::Sockaddr& addr, engine::Deadline deadline) {
+    engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kTcp};
+    socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+    socket.Connect(addr, deadline);
 
-  return socket;
+    return socket;
 }
 
-engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
-                                const AMQP::Address& address,
-                                engine::Deadline deadline) {
-  auto addrs = resolver.Resolve(address.hostname(), {});
-  for (auto& addr : addrs) {
-    addr.SetPort(static_cast<int>(address.port()));
-    try {
-      return CreateSocket(addr, deadline);
-    } catch (const std::exception&) {
+engine::io::Socket
+CreateSocket(clients::dns::Resolver& resolver, const AMQP::Address& address, engine::Deadline deadline) {
+    auto addrs = resolver.Resolve(address.hostname(), {});
+    for (auto& addr : addrs) {
+        addr.SetPort(static_cast<int>(address.port()));
+        try {
+            return CreateSocket(addr, deadline);
+        } catch (const std::exception&) {
+        }
     }
-  }
 
-  throw std::runtime_error{"Couldn't connect to any of the resolved addresses"};
+    throw std::runtime_error{"Couldn't connect to any of the resolved addresses"};
 }
 
 std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
-    clients::dns::Resolver& resolver, const AMQP::Address& address,
-    const AuthSettings& auth_settings, engine::Deadline deadline) {
-  auto socket = CreateSocket(resolver, address, deadline);
+    clients::dns::Resolver& resolver,
+    const AMQP::Address& address,
+    const AuthSettings& auth_settings,
+    engine::Deadline deadline
+) {
+    auto socket = CreateSocket(resolver, address, deadline);
 
-  const bool secure = address.secure();
-  if (secure) {
-    if (auth_settings.tls_settings.has_value()) {
-      const auto& tls_settings = *auth_settings.tls_settings;
-      const crypto::Certificate& client_cert =
-          tls_settings.client_cert_settings
-              ? tls_settings.client_cert_settings->cert
-              : crypto::Certificate();
-      const crypto::PrivateKey& client_key =
-          tls_settings.client_cert_settings
-              ? tls_settings.client_cert_settings->key
-              : crypto::PrivateKey();
+    const bool secure = address.secure();
+    if (secure) {
+        if (auth_settings.tls_settings.has_value()) {
+            const auto& tls_settings = *auth_settings.tls_settings;
+            const crypto::Certificate& client_cert =
+                tls_settings.client_cert_settings ? tls_settings.client_cert_settings->cert : crypto::Certificate();
+            const crypto::PrivateKey& client_key =
+                tls_settings.client_cert_settings ? tls_settings.client_cert_settings->key : crypto::PrivateKey();
 
-      return std::make_unique<engine::io::TlsWrapper>(
-          engine::io::TlsWrapper::StartTlsClient(
-              std::move(socket),
-              tls_settings.verify_host ? address.hostname() : "", client_cert,
-              client_key, deadline, tls_settings.ca_certs));
+            return std::make_unique<engine::io::TlsWrapper>(engine::io::TlsWrapper::StartTlsClient(
+                std::move(socket),
+                tls_settings.verify_host ? address.hostname() : "",
+                client_cert,
+                client_key,
+                deadline,
+                tls_settings.ca_certs
+            ));
+        }
+
+        return std::make_unique<engine::io::TlsWrapper>(engine::io::TlsWrapper::StartTlsClient(
+            std::move(socket),
+            address.hostname(),
+            deadline
+        ));  // verify_host is true by default
+    } else {
+        return std::make_unique<engine::io::Socket>(std::move(socket));
     }
-
-    return std::make_unique<engine::io::TlsWrapper>(
-        engine::io::TlsWrapper::StartTlsClient(
-            std::move(socket), address.hostname(),
-            deadline));  // verify_host is true by default
-  } else {
-    return std::make_unique<engine::io::Socket>(std::move(socket));
-  }
 }
 
-AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
-                            const AuthSettings& settings, bool secure) {
-  return {endpoint.host, endpoint.port,
-          AMQP::Login{settings.login, settings.password}, settings.vhost,
-          secure};
+AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint, const AuthSettings& settings, bool secure) {
+    return {endpoint.host, endpoint.port, AMQP::Login{settings.login, settings.password}, settings.vhost, secure};
 }
 
 }  // namespace
 
 AmqpConnectionHandler::AmqpConnectionHandler(
-    clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
-    const AuthSettings& auth_settings, bool secure,
-    statistics::ConnectionStatistics& stats, engine::Deadline deadline)
+    clients::dns::Resolver& resolver,
+    const EndpointInfo& endpoint,
+    const AuthSettings& auth_settings,
+    bool secure,
+    statistics::ConnectionStatistics& stats,
+    engine::Deadline deadline
+)
     : address_{ToAmqpAddress(endpoint, auth_settings, secure)},
       socket_{CreateSocketPtr(resolver, address_, auth_settings, deadline)},
       reader_{*this, *socket_},
@@ -97,76 +99,72 @@ AmqpConnectionHandler::AmqpConnectionHandler(
 
 AmqpConnectionHandler::~AmqpConnectionHandler() { reader_.Stop(); }
 
-void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
-                                         AMQP::Table& client) {
-  client["product"] = "uServer AMQP library";
-  client["copyright"] = "Copyright 2022-2022 Yandex NV";
-  client["information"] = "https://userver.tech/dd/de2/rabbitmq_driver.html";
+void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&, AMQP::Table& client) {
+    client["product"] = "uServer AMQP library";
+    client["copyright"] = "Copyright 2022-2022 Yandex NV";
+    client["information"] = "https://userver.tech/dd/de2/rabbitmq_driver.html";
 }
 
-void AmqpConnectionHandler::onData(AMQP::Connection* connection,
-                                   const char* buffer, size_t size) {
-  if (IsBroken()) {
-    // No further actions can be done
-    return;
-  }
-
-  try {
-    const auto sent = socket_->WriteAll(buffer, size, operation_deadline_);
-    if (sent != size) {
-      throw std::runtime_error{"Connection reset by peer"};
+void AmqpConnectionHandler::onData(AMQP::Connection* connection, const char* buffer, size_t size) {
+    if (IsBroken()) {
+        // No further actions can be done
+        return;
     }
 
-    AccountWrite(size);
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "Failed to send data to socket: " << ex;
-    Invalidate();
+    try {
+        const auto sent = socket_->WriteAll(buffer, size, operation_deadline_);
+        if (sent != size) {
+            throw std::runtime_error{"Connection reset by peer"};
+        }
 
-    // We do fail all the outstanding operations with this,
-    // but it should be ok since we limit them by AmqpConnection::GetAwaiter().
-    // There's no easy way to fail only the current operation,
-    // so it's a compromise between allowing more throughput
-    // (connection is returned to pool without waiting for response)
-    // and error-rate. This behavior is documented in client_settings
-    connection->fail("Underlying connection broke.");
-  }
+        AccountWrite(size);
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Failed to send data to socket: " << ex;
+        Invalidate();
+
+        // We do fail all the outstanding operations with this,
+        // but it should be ok since we limit them by AmqpConnection::GetAwaiter().
+        // There's no easy way to fail only the current operation,
+        // so it's a compromise between allowing more throughput
+        // (connection is returned to pool without waiting for response)
+        // and error-rate. This behavior is documented in client_settings
+        connection->fail("Underlying connection broke.");
+    }
 }
 
 void AmqpConnectionHandler::onError(AMQP::Connection*, const char* message) {
-  Invalidate();
-  if (is_ready_) return;
+    Invalidate();
+    if (is_ready_) return;
 
-  is_ready_.store(true);
-  error_.emplace(message);
-  connection_ready_event_.Send();
+    is_ready_.store(true);
+    error_.emplace(message);
+    connection_ready_event_.Send();
 }
 
 void AmqpConnectionHandler::onClosed(AMQP::Connection*) { Invalidate(); }
 
 void AmqpConnectionHandler::onReady(AMQP::Connection*) {
-  if (is_ready_) {
-    // this shouldn't actually happen
-    return;
-  }
+    if (is_ready_) {
+        // this shouldn't actually happen
+        return;
+    }
 
-  is_ready_.store(true);
-  connection_ready_event_.Send();
+    is_ready_.store(true);
+    connection_ready_event_.Send();
 }
 
-void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection,
-                                                engine::Deadline deadline) {
-  reader_.Start(connection);
+void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection, engine::Deadline deadline) {
+    reader_.Start(connection);
 
-  if (!connection_ready_event_.WaitForEventUntil(deadline)) {
-    reader_.Stop();
-    throw ConnectionSetupTimeout{
-        "Failed to setup a connection within specified deadline"};
-  }
+    if (!connection_ready_event_.WaitForEventUntil(deadline)) {
+        reader_.Stop();
+        throw ConnectionSetupTimeout{"Failed to setup a connection within specified deadline"};
+    }
 
-  if (error_.has_value()) {
-    reader_.Stop();
-    throw ConnectionSetupError{"Failed to setup a connection: " + *error_};
-  }
+    if (error_.has_value()) {
+        reader_.Stop();
+        throw ConnectionSetupError{"Failed to setup a connection: " + *error_};
+    }
 }
 
 void AmqpConnectionHandler::OnConnectionDestruction() { reader_.Stop(); }
@@ -175,25 +173,15 @@ void AmqpConnectionHandler::Invalidate() { broken_ = true; }
 
 bool AmqpConnectionHandler::IsBroken() const { return broken_.load(); }
 
-void AmqpConnectionHandler::AccountRead(size_t size) {
-  stats_.AccountRead(size);
-}
+void AmqpConnectionHandler::AccountRead(size_t size) { stats_.AccountRead(size); }
 
-void AmqpConnectionHandler::AccountWrite(size_t size) {
-  stats_.AccountWrite(size);
-}
+void AmqpConnectionHandler::AccountWrite(size_t size) { stats_.AccountWrite(size); }
 
-void AmqpConnectionHandler::SetOperationDeadline(engine::Deadline deadline) {
-  operation_deadline_ = deadline;
-}
+void AmqpConnectionHandler::SetOperationDeadline(engine::Deadline deadline) { operation_deadline_ = deadline; }
 
-statistics::ConnectionStatistics& AmqpConnectionHandler::GetStatistics() {
-  return stats_;
-}
+statistics::ConnectionStatistics& AmqpConnectionHandler::GetStatistics() { return stats_; }
 
-const AMQP::Address& AmqpConnectionHandler::GetAddress() const {
-  return address_;
-}
+const AMQP::Address& AmqpConnectionHandler::GetAddress() const { return address_; }
 
 }  // namespace urabbitmq::impl
 

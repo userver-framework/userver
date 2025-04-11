@@ -18,53 +18,50 @@ using FlagsFormat = utils::Flags<tracing::Format>;
 const TracingManagerBase& GetTracingManagerFromConfig(
     const GenericTracingManager& default_manager,
     const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  if (config.HasMember("component-name")) {
-    auto tracing_manager_name = config["component-name"].As<std::string>();
-    if (!tracing_manager_name.empty()) {
-      return context.FindComponent<TracingManagerBase>(tracing_manager_name);
+    const components::ComponentContext& context
+) {
+    if (config.HasMember("component-name")) {
+        auto tracing_manager_name = config["component-name"].As<std::string>();
+        if (!tracing_manager_name.empty()) {
+            return context.FindComponent<TracingManagerBase>(tracing_manager_name);
+        }
     }
-  }
-  return default_manager;
+    return default_manager;
 }
 
-FlagsFormat Parse(const yaml_config::YamlConfig& value,
-                  formats::parse::To<FlagsFormat>) {
-  utils::Flags<tracing::Format> format = tracing::Format{};
+FlagsFormat Parse(const yaml_config::YamlConfig& value, formats::parse::To<FlagsFormat>) {
+    utils::Flags<tracing::Format> format = tracing::Format{};
 
-  if (!value.IsArray()) {
-    format |= tracing::FormatFromString(value.As<std::string>("opentelemetry"));
-    format |= tracing::FormatFromString(value.As<std::string>("taxi"));
-  } else {
-    for (const auto& f : value) {
-      format |= tracing::FormatFromString(f.As<std::string>());
+    if (!value.IsArray()) {
+        format |= tracing::FormatFromString(value.As<std::string>("opentelemetry"));
+        format |= tracing::FormatFromString(value.As<std::string>("taxi"));
+    } else {
+        for (const auto& f : value) {
+            format |= tracing::FormatFromString(f.As<std::string>());
+        }
     }
-  }
 
-  return format;
+    return format;
 }
 
 TracingManagerComponentBase::TracingManagerComponentBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : components::ComponentBase(config, context) {}
 
 DefaultTracingManagerLocator::DefaultTracingManagerLocator(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : components::ComponentBase(config, context),
-      default_manager_(config["incoming-format"].As<FlagsFormat>(),
-                       config["new-requests-format"].As<FlagsFormat>()),
-      tracing_manager_(
-          GetTracingManagerFromConfig(default_manager_, config, context)) {}
+      default_manager_(config["incoming-format"].As<FlagsFormat>(), config["new-requests-format"].As<FlagsFormat>()),
+      tracing_manager_(GetTracingManagerFromConfig(default_manager_, config, context)) {}
 
-const TracingManagerBase& DefaultTracingManagerLocator::GetTracingManager()
-    const {
-  return tracing_manager_;
-}
+const TracingManagerBase& DefaultTracingManagerLocator::GetTracingManager() const { return tracing_manager_; }
 
 yaml_config::Schema DefaultTracingManagerLocator::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: component for finding actual tracing manager
 additionalProperties: false

@@ -24,11 +24,7 @@ async def test_works(service_client, put_foo_value, dynamic_config):
         assert response.status == 498
         assert response.text == 'Deadline expired'
 
-    logs = [
-        log
-        for log in capture.select()
-        if log['text'].startswith("exception in 'handler-key-value'")
-    ]
+    logs = [log for log in capture.select() if log['text'].startswith("exception in 'handler-key-value'")]
     assert len(logs) == 1
     text = logs[0]['text']
     assert 'Operation cancelled: deadline propagation' in text, text

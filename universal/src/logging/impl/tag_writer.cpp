@@ -11,41 +11,39 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 void ThrowInvalidEscapedTagKey(std::string_view key) {
-  UINVARIANT(false, fmt::format("TagKey({}) contains an invalid character. Use "
-                                "RuntimeTagKey for such keys",
-                                key));
+    UINVARIANT(
+        false,
+        fmt::format(
+            "TagKey({}) contains an invalid character. Use "
+            "RuntimeTagKey for such keys",
+            key
+        )
+    );
 }
 
 std::string_view TagKey::GetEscapedKey() const noexcept { return escaped_key_; }
 
-RuntimeTagKey::RuntimeTagKey(std::string_view unescaped_key)
-    : unescaped_key_(unescaped_key) {}
+RuntimeTagKey::RuntimeTagKey(std::string_view unescaped_key) : unescaped_key_(unescaped_key) {}
 
-std::string_view RuntimeTagKey::GetUnescapedKey() const noexcept {
-  return unescaped_key_;
-}
+std::string_view RuntimeTagKey::GetUnescapedKey() const noexcept { return unescaped_key_; }
+
+void TagWriter::PutTag(TagKey key, std::string_view value) { lh_.PutSwTag(key.GetEscapedKey(), value); }
 
 void TagWriter::PutLogExtra(const LogExtra& extra) {
-  for (const auto& item : *extra.extra_) {
-    PutTag(RuntimeTagKey{item.first}, item.second.GetValue());
-  }
+    for (const auto& item : *extra.extra_) {
+        PutTag(RuntimeTagKey{item.first}, item.second.GetValue());
+    }
 }
 
 void TagWriter::ExtendLogExtra(const LogExtra& extra) {
-  lh_.pimpl_->GetLogExtra().Extend(extra);
+    for (const auto& item : *extra.extra_) {
+        PutTag(RuntimeTagKey{item.first}, item.second.GetValue());
+    }
 }
+
+void TagWriter::PutTag(RuntimeTagKey key, std::string_view value) { lh_.PutSwTag(key.GetUnescapedKey(), value); }
 
 TagWriter::TagWriter(LogHelper& lh) noexcept : lh_(lh) {}
-
-void TagWriter::PutKey(TagKey key) {
-  lh_.pimpl_->PutRawKey(key.GetEscapedKey());
-}
-
-void TagWriter::PutKey(RuntimeTagKey key) {
-  lh_.pimpl_->PutKey(key.GetUnescapedKey());
-}
-
-void TagWriter::MarkValueEnd() noexcept { lh_.pimpl_->MarkValueEnd(); }
 
 }  // namespace logging::impl
 

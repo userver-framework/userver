@@ -27,29 +27,26 @@ namespace server::handlers {
 /// ---- | ----------- | -------------
 /// warmup-time-secs | how much time it needs to warmup the server | 0
 class Ping final : public HttpHandlerBase {
- public:
-  Ping(const components::ComponentConfig& config,
-       const components::ComponentContext& component_context);
+public:
+    Ping(const components::ComponentConfig& config, const components::ComponentContext& component_context);
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::Ping
-  static constexpr std::string_view kName = "handler-ping";
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::Ping
+    static constexpr std::string_view kName = "handler-ping";
 
-  std::string HandleRequestThrow(
-      const http::HttpRequest& request,
-      request::RequestContext& context) const override;
+    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const override;
 
-  void OnAllComponentsLoaded() override;
+    void OnAllComponentsLoaded() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void AppendWeightHeaders(http::HttpResponse&) const;
+private:
+    void AppendWeightHeaders(http::HttpResponse&) const;
 
-  const components::State components_;
+    const components::State components_;
 
-  std::chrono::steady_clock::time_point load_time_{};
-  std::chrono::seconds awacs_weight_warmup_time_{60};
+    std::chrono::steady_clock::time_point load_time_{};
+    std::chrono::seconds awacs_weight_warmup_time_{60};
 };
 
 }  // namespace server::handlers

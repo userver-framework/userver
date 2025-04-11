@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/redis/utest/redis_fixture.hpp
-/// @brief @copybrief storages::redis::RedisTest
+/// @brief @copybrief storages::redis::utest::RedisTest
 
 #include <userver/utest/utest.hpp>
 
@@ -11,17 +11,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::utest {
 
-/// @brief Redis fixture
+/// @brief Valkey or Redis fixture
 ///
 /// Provides access to redis clients by means
 /// `storages::redis::utest::RedisLocal` class
 ///
 /// see example:
-/// @snippet userver/samples/redis_service/unittests
+/// @snippet samples/redis_service/unittests/redis_test.cpp Unit test
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class RedisTest : public ::testing::Test, public RedisLocal {
- public:
-  RedisTest() { FlushDb(); }
+public:
+    RedisTest() { FlushDb(); }
 };
 
 }  // namespace storages::redis::utest

@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/server/handlers/auth/digest/nonce_cache_settings_component.hpp
-/// @brief @copybrief
-/// server::handlers::auth::digest::NonceCacheSettingsComponent
+/// @brief @copybrief server::handlers::auth::digest::NonceCacheSettingsComponent
 
 #include <chrono>
 #include <cstddef>
@@ -20,8 +19,8 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth::digest {
 
 struct NonceCacheSettings {
-  std::size_t ways{};
-  std::size_t way_size{};
+    std::size_t ways{};
+    std::size_t way_size{};
 };
 
 // clang-format off
@@ -37,29 +36,27 @@ struct NonceCacheSettings {
 // clang-format on
 
 class NonceCacheSettingsComponent final : public AuthCheckerSettingsComponent {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// server::handlers::auth::NonceCacheSettingsComponent
-  static constexpr std::string_view kName = "nonce-cache-settings";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// server::handlers::auth::NonceCacheSettingsComponent
+    static constexpr std::string_view kName = "nonce-cache-settings";
 
-  NonceCacheSettingsComponent(const components::ComponentConfig& config,
-                              const components::ComponentContext& context);
+    NonceCacheSettingsComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~NonceCacheSettingsComponent() final;
+    ~NonceCacheSettingsComponent() final;
 
-  const NonceCacheSettings& GetSettings() const;
+    const NonceCacheSettings& GetSettings() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  NonceCacheSettings settings_;
+private:
+    NonceCacheSettings settings_;
 };
 
 }  // namespace server::handlers::auth::digest
 
 template <>
-inline constexpr bool components::kHasValidate<
-    server::handlers::auth::digest::NonceCacheSettingsComponent> = true;
+inline constexpr bool components::kHasValidate<server::handlers::auth::digest::NonceCacheSettingsComponent> = true;
 
 USERVER_NAMESPACE_END

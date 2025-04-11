@@ -569,6 +569,14 @@ a.button.button_outline {
   opacity: 0.7;
 }
 
+#intro_sample {
+  background-color: var(--primary-color-1);
+  margin-top: 40px;
+  padding-left: 36px;
+  padding-bottom: 18px;
+  border-radius: var(--border-radius-large);
+}
+
 @media (max-width: 1241px) {
   .how__info {
     margin-top: 8px;
@@ -596,6 +604,10 @@ a.button.button_outline {
   }
 
   .codeblock_cpp {
+    display: none;
+  }
+
+  #intro_sample {
     display: none;
   }
 }

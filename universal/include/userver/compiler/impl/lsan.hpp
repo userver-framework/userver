@@ -33,7 +33,7 @@ namespace compiler::impl {
 template <typename T>
 void LsanIgnoreObject([[maybe_unused]] const T* object) {
 #if USERVER_IMPL_HAS_LSAN
-  __lsan_ignore_object(object);
+    __lsan_ignore_object(object);
 #endif
 }
 

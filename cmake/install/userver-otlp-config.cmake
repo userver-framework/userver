@@ -5,7 +5,7 @@ if(userver_otlp_FOUND)
 endif()
 
 find_package(userver REQUIRED COMPONENTS
-    core
+    core grpc
 )
 
 set(userver_otlp_FOUND TRUE)

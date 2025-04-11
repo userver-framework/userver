@@ -14,10 +14,10 @@ namespace logging::impl {
 using Counter = utils::statistics::RateCounter;
 
 struct LogStatistics final {
-  Counter dropped{};
+    Counter dropped{};
 
-  std::array<Counter, kLevelMax + 1> by_level{};
-  std::atomic<bool> has_reopening_error{false};
+    std::array<Counter, kLevelMax + 1> by_level{};
+    std::atomic<bool> has_reopening_error{false};
 };
 
 void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats);

@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 yaml_config::Schema SimpleClientComponentAny::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false
@@ -25,28 +25,39 @@ properties:
     factory-component:
         type: string
         description: ClientFactoryComponent name to use for client creation
+    dedicated-channel-counts:
+        type: object
+        description: a map of rpc method names to channel counts. Used for high-load methods
+        defaultDescription: '{}'
+        additionalProperties:
+            type: integer
+            description: number of channels for this method
+            minimum: 1
+        properties: {}
 )");
 }
 
 ClientFactory& SimpleClientComponentAny::FindFactory(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  return context
-      .FindComponent<ClientFactoryComponent>(
-          config["factory-component"].As<std::string>(
-              ClientFactoryComponent::kName))
-      .GetFactory();
+    const components::ComponentContext& context
+) {
+    return context
+        .FindComponent<ClientFactoryComponent>(config["factory-component"].As<std::string>(ClientFactoryComponent::kName
+        ))
+        .GetFactory();
 }
 
 ClientSettings SimpleClientComponentAny::MakeClientSettings(
     const components::ComponentConfig& config,
-    const dynamic_config::Key<ClientQos>* client_qos) {
-  ClientSettings client_settings;
-  client_settings.client_name =
-      config["client-name"].As<std::string>(config.Name());
-  client_settings.endpoint = config["endpoint"].As<std::string>();
-  client_settings.client_qos = client_qos;
-  return client_settings;
+    const dynamic_config::Key<ClientQos>* client_qos
+) {
+    ClientSettings client_settings;
+    client_settings.client_name = config["client-name"].As<std::string>(config.Name());
+    client_settings.endpoint = config["endpoint"].As<std::string>();
+    client_settings.client_qos = client_qos;
+    client_settings.dedicated_methods_config =
+        config["dedicated-channel-counts"].As<DedicatedMethodsConfig>(client_settings.dedicated_methods_config);
+    return client_settings;
 }
 
 }  // namespace ugrpc::client::impl

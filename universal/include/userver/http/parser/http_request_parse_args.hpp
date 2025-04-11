@@ -18,12 +18,12 @@ namespace http::parser {
 /// Strict URL decoder that throws std::runtime_error on bad input
 std::string UrlDecode(std::string_view url);
 
-void ParseArgs(std::string_view args,
-               std::unordered_map<std::string, std::vector<std::string>,
-                                  utils::StrCaseHash>& result);
+void ParseArgs(
+    std::string_view args,
+    std::unordered_map<std::string, std::vector<std::string>, utils::StrCaseHash>& result
+);
 
-using ArgsConsumer =
-    std::function<void(std::string&& key, std::string&& value)>;
+using ArgsConsumer = std::function<void(std::string&& key, std::string&& value)>;
 
 void ParseAndConsumeArgs(std::string_view args, ArgsConsumer handler);
 

@@ -5,8 +5,8 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 enum class DebugInfoAction {
-  kLeaveAsIs,
-  kLockInMemory,
+    kLeaveAsIs,
+    kLockInMemory,
 };
 
 void InitPhdrCache();

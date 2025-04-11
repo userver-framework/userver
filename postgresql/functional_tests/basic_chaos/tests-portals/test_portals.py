@@ -54,7 +54,7 @@ async def test_timeout(service_client, gate, testpoint, tp_name):
     @testpoint(tp_name)
     async def _hook(_data):
         if should_delay:
-            gate.to_client_delay(DELAY_SECS)
+            await gate.to_client_delay(DELAY_SECS)
 
     logger.debug('Starting "test_timeout" check for 500')
     response = await service_client.get(PORTAL_SMALL_TIMEOUT_URL)
@@ -62,7 +62,7 @@ async def test_timeout(service_client, gate, testpoint, tp_name):
     logger.debug('End of "test_timeout" check for 500')
 
     should_delay = False
-    gate.to_client_pass()
+    await gate.to_client_pass()
     await utils.consume_dead_db_connections(service_client)
 
     logger.debug('Starting "test_timeout" check for 200')

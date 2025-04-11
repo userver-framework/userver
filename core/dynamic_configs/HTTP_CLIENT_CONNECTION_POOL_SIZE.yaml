@@ -1,0 +1,5 @@
+default: 1000
+description: ''
+schema:
+    x-usrv-cpp-type: std::size_t
+    type: integer

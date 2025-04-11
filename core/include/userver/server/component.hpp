@@ -27,7 +27,7 @@ namespace components {
 /// All the classes inherited from server::handlers::HttpHandlerBase and
 /// registered in components list bind to the components::Server component.
 ///
-/// ## Dynamic config
+/// ## components::Server Dynamic config
 /// * @ref USERVER_LOG_REQUEST
 /// * @ref USERVER_LOG_REQUEST_HEADERS
 /// * @ref USERVER_DEADLINE_PROPAGATION_ENABLED
@@ -63,7 +63,7 @@ namespace components {
 /// task_processor | task processor to process incoming requests | -
 /// backlog | max count of new connections pending acceptance | 1024
 /// tls.ca | paths to TLS CAs for client authentication | -
-/// tls.cert | path to TLS server certificate | -
+/// tls.cert | path to TLS server certificate or certificate chain | -
 /// tls.private-key | path to TLS server certificate private key | -
 /// tls.private-key-passphrase-name | passphrase name located in secdist's "passphrases" section | -
 /// handler-defaults.max_url_size | max path/URL size or empty to not limit | 8192
@@ -89,35 +89,33 @@ namespace components {
 // clang-format on
 
 class Server final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Server component
-  static constexpr std::string_view kName = "server";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Server component
+    static constexpr std::string_view kName = "server";
 
-  Server(const components::ComponentConfig& component_config,
-         const components::ComponentContext& component_context);
+    Server(const components::ComponentConfig& component_config, const components::ComponentContext& component_context);
 
-  ~Server() override;
+    ~Server() override;
 
-  void OnAllComponentsLoaded() override;
+    void OnAllComponentsLoaded() override;
 
-  void OnAllComponentsAreStopping() override;
+    void OnAllComponentsAreStopping() override;
 
-  const server::Server& GetServer() const;
+    const server::Server& GetServer() const;
 
-  server::Server& GetServer();
+    server::Server& GetServer();
 
-  void AddHandler(const server::handlers::HttpHandlerBase& handler,
-                  engine::TaskProcessor& task_processor);
+    void AddHandler(const server::handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void WriteStatistics(utils::statistics::Writer& writer);
+private:
+    void WriteStatistics(utils::statistics::Writer& writer);
 
-  std::unique_ptr<server::Server> server_;
-  utils::statistics::Entry server_statistics_holder_;
-  utils::statistics::Entry handler_statistics_holder_;
+    std::unique_ptr<server::Server> server_;
+    utils::statistics::Entry server_statistics_holder_;
+    utils::statistics::Entry handler_statistics_holder_;
 };
 
 template <>

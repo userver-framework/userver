@@ -60,7 +60,7 @@ $ curl http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z -s
 
 We are planning to cache those translations in a std::unordered_map:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - datatypes
+@snippet samples/http_caching/main.cpp  HTTP caching sample - datatypes
 
 
 ### Cache component
@@ -74,14 +74,14 @@ following fields:
   @ref scripts/docs/en/userver/caches.md "that Update is not called concurrently", so there
   is no need to protect it from concurrent access.
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - component
+@snippet samples/http_caching/main.cpp  HTTP caching sample - component
 
 To create a non @ref scripts/docs/en/userver/lru_cache.md "LRU cache" cache you have to
 derive from components::CachingComponentBase, call
 CacheUpdateTrait::StartPeriodicUpdates() at the component constructor and
 CacheUpdateTrait::StopPeriodicUpdates() at the destructor:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - constructor destructor
+@snippet samples/http_caching/main.cpp  HTTP caching sample - constructor destructor
 
 The constructor initializes component fields with data from static
 configuration and with references to clients.
@@ -91,7 +91,7 @@ configuration and with references to clients.
 Depending on cache configuration settings the overloaded Update function is
 periodically called with different options:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - update
+@snippet samples/http_caching/main.cpp  HTTP caching sample - update
 
 In this sample full and incremental data retrieval is implemented in
 GetAllData() and GetUpdatedData() respectively.
@@ -99,7 +99,7 @@ GetAllData() and GetUpdatedData() respectively.
 Both functions return data in the same format and we parse both responses using
 `MergeAndSetData`:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - MergeAndSetData
+@snippet samples/http_caching/main.cpp  HTTP caching sample - MergeAndSetData
 
 At the end of the MergeAndSetData function the components::CachingComponentBase::Set()
 invocation stores data as a new cache.
@@ -116,12 +116,12 @@ To make an HTTP request call clients::http::Client::CreateRequest() to get
 an instance of clients::http::Request builder. Work with builder is quite
 straightforward:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GetAllData
+@snippet samples/http_caching/main.cpp  HTTP caching sample - GetAllData
 
 HTTP requests for incremental update differ only in URL and query parameter
 `last_update`:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GetUpdatedData
+@snippet samples/http_caching/main.cpp  HTTP caching sample - GetUpdatedData
 
 
 ### Static configuration
@@ -141,9 +141,9 @@ should be provided:
 ### Cache component usage
 
 Now the cache could be used just as any other component. For example, a handler
-could get a reference to the cache and use it in `HandleRequestThrow`:
+could get a reference to the cache and use it in `HandleRequest`:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GreetUser
+@snippet samples/http_caching/main.cpp  HTTP caching sample - GreetUser
 
 Note that the cache is concurrency safe
 @ref scripts/docs/en/userver/component_system.md "as all the components".
@@ -155,7 +155,7 @@ Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration `kStaticConfig`.
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - main
+@snippet samples/http_caching/main.cpp  HTTP caching sample - main
 
 
 ### Build and Run
@@ -236,6 +236,14 @@ implemented using the testsuite. To do that you have to:
   patch the service config to use the mocked URL:
   @snippet samples/http_caching/tests/conftest.py patch configs
 
+  Alternatively, use `$mockserver`
+  @ref pytest_userver.plugins.config.userver_config_substitutions "substitute var"
+  in `config_vars.testsuite.yaml`:
+
+  @code{.yaml}
+  translations-url: $mockserver/v1/translations
+  @endcode
+
 * Write the test:
   @snippet samples/http_caching/tests/test_http_caching.py  Functional test
 
@@ -243,7 +251,7 @@ implemented using the testsuite. To do that you have to:
 ## Full sources
 
 See the full example:
-* @ref samples/http_caching/http_caching.cpp
+* @ref samples/http_caching/main.cpp
 * @ref samples/http_caching/static_config.yaml
 * @ref samples/http_caching/CMakeLists.txt
 * @ref samples/http_caching/tests/conftest.py
@@ -255,7 +263,7 @@ See the full example:
 ⇦ @ref scripts/docs/en/userver/tutorial/tcp_full.md | @ref scripts/docs/en/userver/tutorial/flatbuf_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/http_caching/http_caching.cpp
+@example samples/http_caching/main.cpp
 @example samples/http_caching/static_config.yaml
 @example samples/http_caching/CMakeLists.txt
 @example samples/http_caching/tests/conftest.py

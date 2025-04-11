@@ -9,24 +9,18 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 class FormatsUtils<formats::bson::Value> : public ::testing::Test {
- public:
-  using Exception = formats::bson::TypeMismatchException;
+public:
+    using Exception = formats::bson::TypeMismatchException;
 };
 
-INSTANTIATE_TYPED_TEST_SUITE_P(BsonGetAtPathValueBuilder,
-                               FormatsGetAtPathValueBuilder,
-                               formats::bson::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(BsonGetAtPathValueBuilder, FormatsGetAtPathValueBuilder, formats::bson::Value);
 
-INSTANTIATE_TYPED_TEST_SUITE_P(BsonGetAtPathValue, FormatsGetAtPathValue,
-                               formats::bson::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(BsonGetAtPathValue, FormatsGetAtPathValue, formats::bson::Value);
 
-INSTANTIATE_TYPED_TEST_SUITE_P(BsonSetAtPath, FormatsSetAtPath,
-                               formats::bson::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(BsonSetAtPath, FormatsSetAtPath, formats::bson::Value);
 
-INSTANTIATE_TYPED_TEST_SUITE_P(BsonRemoveAtPath, FormatsRemoveAtPath,
-                               formats::bson::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(BsonRemoveAtPath, FormatsRemoveAtPath, formats::bson::Value);
 
-INSTANTIATE_TYPED_TEST_SUITE_P(BsonTypeChecks, FormatsTypeChecks,
-                               formats::bson::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(BsonTypeChecks, FormatsTypeChecks, formats::bson::Value);
 
 USERVER_NAMESPACE_END

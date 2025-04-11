@@ -5,57 +5,63 @@
 #include <string>
 #include <unordered_map>
 
+#include <fmt/format.h>
+#include <boost/range/adaptor/map.hpp>
+
+#include <userver/utils/algo.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 namespace {
 
 class AuthCheckerFactories final {
- public:
-  void RegisterFactory(std::string auth_type,
-                       std::unique_ptr<AuthCheckerFactoryBase>&& factory);
-  const AuthCheckerFactoryBase& GetFactory(const std::string& auth_type) const;
+public:
+    void RegisterFactory(std::string auth_type, impl::AuthCheckerFactoryFactory factory) {
+        auto res = factories_.emplace(std::move(auth_type), factory);
+        if (!res.second) {
+            throw std::runtime_error(fmt::format("can't register auth checker with type {}", res.first->first));
+        }
+    }
 
- private:
-  std::unordered_map<std::string, std::unique_ptr<AuthCheckerFactoryBase>>
-      factories_;
+    impl::AuthCheckerFactoryFactory GetFactory(std::string_view auth_type) const {
+        if (auto* const factory = utils::impl::FindTransparentOrNullptr(factories_, auth_type)) {
+            return *factory;
+        }
+        throw std::runtime_error(fmt::format("unknown type of auth checker: {}", auth_type));
+    }
+
+    std::vector<std::string> GetAllAuthTypes() const {
+        return utils::AsContainer<std::vector<std::string>>(factories_ | boost::adaptors::map_keys);
+    }
+
+private:
+    utils::impl::TransparentMap<std::string, impl::AuthCheckerFactoryFactory> factories_;
 };
 
-void AuthCheckerFactories::RegisterFactory(
-    std::string auth_type, std::unique_ptr<AuthCheckerFactoryBase>&& factory) {
-  auto res = factories_.emplace(std::move(auth_type), std::move(factory));
-  if (!res.second) {
-    throw std::runtime_error("can't register auth checker with type " +
-                             res.first->first);
-  }
-}
-
-const AuthCheckerFactoryBase& AuthCheckerFactories::GetFactory(
-    const std::string& auth_type) const {
-  try {
-    return *factories_.at(auth_type);
-  } catch (const std::exception& ex) {
-    throw std::runtime_error("unknown type of auth checker: " + auth_type);
-  }
-}
-
 AuthCheckerFactories& GetAuthCheckerFactories() {
-  static AuthCheckerFactories auth_checker_factories;
-  return auth_checker_factories;
+    static AuthCheckerFactories auth_checker_factories;
+    return auth_checker_factories;
 }
 
 }  // namespace
 
-void RegisterAuthCheckerFactory(
-    std::string auth_type, std::unique_ptr<AuthCheckerFactoryBase>&& factory) {
-  GetAuthCheckerFactories().RegisterFactory(std::move(auth_type),
-                                            std::move(factory));
+namespace impl {
+
+void DoRegisterAuthCheckerFactory(std::string_view auth_type, AuthCheckerFactoryFactory factory) {
+    GetAuthCheckerFactories().RegisterFactory(std::string{auth_type}, factory);
 }
 
-const AuthCheckerFactoryBase& GetAuthCheckerFactory(
-    const std::string& auth_type) {
-  return GetAuthCheckerFactories().GetFactory(auth_type);
+utils::UniqueRef<AuthCheckerFactoryBase>
+MakeAuthCheckerFactory(std::string_view auth_type, const components::ComponentContext& context) {
+    const auto factory_factory = GetAuthCheckerFactories().GetFactory(auth_type);
+    return factory_factory(context);
 }
+
+std::vector<std::string> GetAllAuthTypes() { return GetAuthCheckerFactories().GetAllAuthTypes(); }
+
+}  // namespace impl
 
 }  // namespace server::handlers::auth
 

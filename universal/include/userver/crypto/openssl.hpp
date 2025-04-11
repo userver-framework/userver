@@ -9,13 +9,13 @@ namespace crypto {
 
 /// @brief Class to initialize OpenSSL with mutexes.
 class Openssl final {
- public:
-  /// Initialize OpenSSL mutexes. Safe to call multiple times. Should be called
-  /// in drivers that use low level libraries that use OpenSSL.
-  static void Init() noexcept;
+public:
+    /// Initialize OpenSSL mutexes. Safe to call multiple times. Should be called
+    /// in drivers that use low level libraries that use OpenSSL.
+    static void Init() noexcept;
 
- private:
-  Openssl() noexcept;
+private:
+    Openssl() noexcept;
 };
 
 }  // namespace crypto

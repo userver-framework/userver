@@ -22,3 +22,10 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+if(NOT TARGET Brotli::dec)
+    add_library(Brotli::dec ALIAS brotlidec)
+endif()
+if(NOT TARGET Brotli::enc)
+    add_library(Brotli::enc ALIAS brotlienc)
+endif()

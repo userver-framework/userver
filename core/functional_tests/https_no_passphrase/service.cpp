@@ -3,7 +3,6 @@
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <userver/alerts/handler.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/logging_configurator.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
@@ -18,16 +17,15 @@
 #include "httpserver_handlers.hpp"
 
 int main(int argc, char* argv[]) {
-  const auto component_list = components::MinimalServerComponentList()
-                                  .Append<https::HttpServerHandler>()
-                                  .Append<components::LoggingConfigurator>()
-                                  .Append<components::HttpClient>()
-                                  .Append<components::TestsuiteSupport>()
-                                  .Append<server::handlers::TestsControl>()
-                                  .Append<server::handlers::ServerMonitor>()
-                                  .Append<clients::dns::Component>()
-                                  .Append<alerts::Handler>()
-                                  .Append<server::handlers::OnLogRotate>();
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<https::HttpServerHandler>()
+                                    .Append<components::LoggingConfigurator>()
+                                    .Append<components::HttpClient>()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<server::handlers::TestsControl>()
+                                    .Append<server::handlers::ServerMonitor>()
+                                    .Append<clients::dns::Component>()
+                                    .Append<server::handlers::OnLogRotate>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

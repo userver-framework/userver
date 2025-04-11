@@ -2,17 +2,42 @@
 
 ## Requirement 📋
 
-The build was tested on Ubuntu 22.04 (and Mac OS Ventura 13.5 for development purposes)
+The build was tested on Ubuntu 22.04 (and macOS Ventura 13.5 for development purposes)
 
 ❗️ Requires doxygen 1.10.0+
 
 ## Instruction 🧾
 
-1. install dependencies: `sudo apt install make graphviz`
-2. download doxygen 1.10.0+: `wget https://www.doxygen.nl/files/doxygen-1.10.0.linux.bin.tar.gz && tar -xvzf doxygen-1.10.0.linux.bin.tar.gz`
-3. in project folder run: `make docs DOXYGEN=/PATH_TO/doxygen-1.10.0/bin/doxygen`
+1. install dependencies:
+   ```shell
+   sudo apt install make graphviz
+   ```
 
-P.S. Do not be afraid of the huge number of errors at the beginning of the build 🙃
+2. run cmake with options:
+   ```shell
+   -DUSERVER_BUILD_ALL_COMPONENTS=1 \
+   -DUSERVER_BUILD_TESTS=1 \
+   -DUSERVER_BUILD_SAMPLES=1 \
+   -DCMAKE_CXX_STANDARD=20 \
+   -DUSERVER_DEBUG_INFO_COMPRESSION=z \
+   -DCMAKE_BUILD_TYPE=Debug \
+   -DCMAKE_C_COMPILER=... \
+   -DCMAKE_CXX_COMPILER=...
+   ```
+   (you might want to add some options depending on your environment)
+
+3. in userver folder run:
+   ```shell
+   BUILD_DIR=/absolute/path/to/build_dir ./scripts/docs/make_docs.sh
+   BUILD_DIR=/absolute/path/to/build_dir ./scripts/docs/upload_docs.sh
+   ```
+   or
+   ```shell
+   BUILD_DIR=/absolute/path/to/build_dir ../scripts/userver/docs/make_docs.sh
+   BUILD_DIR=/absolute/path/to/build_dir ../scripts/userver/docs/upload_docs.sh
+   ```
+
+4. docs will appear in `$BUILD_DIR/docs`, warnings will be printed to `$BUILD_DIR/doxygen.err.log`
 
 ## How to develop? 🛠️
 

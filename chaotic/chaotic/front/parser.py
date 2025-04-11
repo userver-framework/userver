@@ -33,7 +33,11 @@ class ParserError(error.BaseError):
 
 class SchemaParser:
     def __init__(
-        self, *, config: ParserConfig, full_filepath: str, full_vfilepath: str,
+        self,
+        *,
+        config: ParserConfig,
+        full_filepath: str,
+        full_vfilepath: str,
     ) -> None:
         self._config = config
         # Full filepath on real filesystem
@@ -62,7 +66,8 @@ class SchemaParser:
     def _parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
         data = self.do_parse_schema(input__)
         source_location = types.SourceLocation(
-            filepath=self.full_vfilepath, location=self._state.infile_path,
+            filepath=self.full_vfilepath,
+            location=self._state.infile_path,
         )
         # pylint: disable=protected-access
         data._source_location = source_location  # type: ignore
@@ -114,7 +119,9 @@ class SchemaParser:
         return self._parse_oneof_w_discriminator(variants, input__)
 
     def _parse_oneof_i(
-        self, variant: dict, discriminator_property: str,
+        self,
+        variant: dict,
+        discriminator_property: str,
     ) -> types.Ref:
         type_ = self._parse_schema(variant)
         if not isinstance(type_, types.Ref):
@@ -140,24 +147,37 @@ class SchemaParser:
         return type_
 
     def _parse_oneof_disc_mapping(
-        self, user_mapping: dict, variables: List[types.Ref],
-    ) -> List[List[str]]:
-        idx_mapping = collections.defaultdict(list)
+        self,
+        user_mapping: dict,
+        variables: List[types.Ref],
+    ) -> types.DiscMapping:
         with self._path_enter('discriminator/mapping') as _:
+            idx_mapping = collections.defaultdict(list)
+
+            mapping = types.DiscMapping()
+            if all([isinstance(key, str) for key in user_mapping.keys()]):
+                mapping.enable_str()
+            elif all([isinstance(key, int) for key in user_mapping.keys()]):
+                mapping.enable_int()
+            else:
+                self._raise(f'Not uniform mapping: use the same type for keys: {user_mapping.keys()}')
+
             for key, value in user_mapping.items():
-                with self._path_enter(key) as _:
+                with self._path_enter(str(key)) as _:
                     if not isinstance(value, str):
                         self._raise('Not a string in mapping')
                     abs_ref = self._make_abs_ref(value)
+
                     idx_mapping[abs_ref].append(key)
 
-            mapping = []
             for ref in variables:
                 assert isinstance(ref, types.Ref)
-                abs_refs = idx_mapping.pop(ref.ref, None)
-                if not abs_refs:
+                map_value = idx_mapping.pop(ref.ref, None)
+                if map_value is None:
                     self._raise(f'Missing $ref in mapping: {ref.ref}')
-                mapping.append(abs_refs)
+
+                mapping.append(map_value)
+
             if idx_mapping:
                 self._raise(
                     f'$ref(s) outside of oneOf: {list(idx_mapping.keys())}',
@@ -165,7 +185,9 @@ class SchemaParser:
         return mapping
 
     def _parse_oneof_w_discriminator(
-        self, variants: list, input_: dict,
+        self,
+        variants: list,
+        input_: dict,
     ) -> types.OneOfWithDiscriminator:
         with self._path_enter('discriminator') as _:
             types.OneOfDiscriminatorRaw(**input_['discriminator'])
@@ -177,7 +199,8 @@ class SchemaParser:
             for i, variant in enumerate(variants):
                 with self._path_enter(str(i)) as _:
                     type_ = self._parse_oneof_i(
-                        variant, discriminator_property,
+                        variant,
+                        discriminator_property,
                     )
                     variables.append(type_)
 
@@ -185,7 +208,7 @@ class SchemaParser:
         if user_mapping is not None:
             mapping = self._parse_oneof_disc_mapping(user_mapping, variables)
         else:
-            mapping = [[ref.ref.split('/')[-1]] for ref in variables]
+            mapping = types.DiscMapping(str_values=[[ref.ref.split('/')[-1]] for ref in variables], int_values=None)
         obj = types.OneOfWithDiscriminator(
             oneOf=variables,
             discriminator_property=discriminator_property,
@@ -344,7 +367,9 @@ class SchemaParser:
         with self._path_enter('$ref') as _:
             abs_ref = self._make_abs_ref(ref)
             ref_value = types.Ref(
-                ref=abs_ref, indirect=indirect, self_ref=False,
+                ref=abs_ref,
+                indirect=indirect,
+                self_ref=False,
             )
 
             del input_['$ref']

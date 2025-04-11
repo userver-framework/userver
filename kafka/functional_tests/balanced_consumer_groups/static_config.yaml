@@ -7,6 +7,9 @@ components_manager:
         consumer-task-processor:
             thread_name: consumer
             worker_threads: 4
+        consumer-blocking-task-processor:
+            thread_name: consumer-blocking
+            worker_threads: 1
     default_task_processor: main-task-processor
 
     components:
