@@ -9,8 +9,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/server/http/http_method.hpp>
-#include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/storages/sqlite.hpp>
