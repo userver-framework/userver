@@ -4,7 +4,7 @@ find_package(SQLite3 REQUIRED)
 
 userver_module(sqlite
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE sqlite3
+    LINK_LIBRARIES_PRIVATE SQLite::SQLite3
 
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
 )
