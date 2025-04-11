@@ -19,7 +19,7 @@ namespace storages::sqlite::tests {
 namespace {
 
 std::string TestParamNameIsolationLevel(
-    const ::testing::TestParamInfo< ::userver::storages::sqlite::settings::TransactionOptions::IsolationLevel>& info
+    const ::testing::TestParamInfo<sqlite::settings::TransactionOptions::IsolationLevel>& info
 ) {
     return IsolationLevelToString(info.param);
 }

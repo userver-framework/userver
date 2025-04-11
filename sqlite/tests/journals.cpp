@@ -16,8 +16,7 @@ namespace storages::sqlite::tests {
 
 namespace {
 
-std::string TestParamNameJournalMode(
-    const ::testing::TestParamInfo<::userver::storages::sqlite::settings::SQLiteSettings::JournalMode>& info
+std::string TestParamNameJournalMode(const ::testing::TestParamInfo<sqlite::settings::SQLiteSettings::JournalMode>& info
 ) {
     return JournalModeToString(info.param);
 }

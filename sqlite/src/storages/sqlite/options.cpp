@@ -40,19 +40,20 @@ std::string IsolationLevelToString(const TransactionOptions::IsolationLevel& lvl
     }
 }
 
+// helper function for pretty print in tests
 std::string JournalModeToString(const SQLiteSettings::JournalMode& mode) {
     switch (mode) {
-        case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::kDelete:
+        case SQLiteSettings::JournalMode::kDelete:
             return "DELETE";
-        case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::kTruncate:
+        case SQLiteSettings::JournalMode::kTruncate:
             return "TRUNCATE";
-        case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::kPersist:
+        case SQLiteSettings::JournalMode::kPersist:
             return "PERSIST";
-        case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::kMemory:
+        case SQLiteSettings::JournalMode::kMemory:
             return "MEMORY";
-        case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::kWal:
+        case SQLiteSettings::JournalMode::kWal:
             return "WAL";
-        case ::userver::storages::sqlite::settings::SQLiteSettings::JournalMode::kOff:
+        case SQLiteSettings::JournalMode::kOff:
             return "OFF";
         default:
             return "Unknown";
