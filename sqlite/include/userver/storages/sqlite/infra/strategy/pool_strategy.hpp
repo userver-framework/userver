@@ -15,20 +15,19 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::infra::strategy {
 
 class PoolStrategyBase {
- public:
-  virtual ~PoolStrategyBase();
+public:
+    virtual ~PoolStrategyBase();
 
-  static std::unique_ptr<PoolStrategyBase> Create(
-      const settings::SQLiteSettings& settings,
-      engine::TaskProcessor& blocking_task_processor);
+    static std::unique_ptr<PoolStrategyBase>
+    Create(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor);
 
-  Pool& SelectPool(OperationType op_type) const;
+    Pool& SelectPool(OperationType op_type) const;
 
-  virtual void WriteStatistics(utils::statistics::Writer& writer) const = 0;
+    virtual void WriteStatistics(utils::statistics::Writer& writer) const = 0;
 
- protected:
-  virtual Pool& GetReadOnly() const = 0;
-  virtual Pool& GetReadWrite() const = 0;
+protected:
+    virtual Pool& GetReadOnly() const = 0;
+    virtual Pool& GetReadWrite() const = 0;
 };
 
 }  // namespace storages::sqlite::infra::strategy

@@ -10,21 +10,20 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl {
 
 class NativeHandler final {
- public:
-  explicit NativeHandler(const settings::SQLiteSettings& settings,
-                         engine::TaskProcessor& blocking_task_processor);
+public:
+    explicit NativeHandler(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor);
 
-  ~NativeHandler();
+    ~NativeHandler();
 
-  struct sqlite3* GetHandle() const noexcept;
-  void Exec(const std::string& query) const;
+    struct sqlite3* GetHandle() const noexcept;
+    void Exec(const std::string& query) const;
 
- private:
-  struct sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);
-  void SetSettings(const settings::SQLiteSettings& settings);
+private:
+    struct sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);
+    void SetSettings(const settings::SQLiteSettings& settings);
 
-  engine::TaskProcessor& blocking_task_processor_;
-  struct sqlite3* db_handler_;
+    engine::TaskProcessor& blocking_task_processor_;
+    struct sqlite3* db_handler_;
 };
 
 }  // namespace storages::sqlite::impl

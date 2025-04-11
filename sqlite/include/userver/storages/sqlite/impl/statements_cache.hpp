@@ -14,24 +14,22 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl {
 
 class StatementsCache final {
- public:
-  StatementsCache(const NativeHandler& db_handler, std::size_t capacity);
-  ~StatementsCache();
+public:
+    StatementsCache(const NativeHandler& db_handler, std::size_t capacity);
+    ~StatementsCache();
 
-  StatementsCache(StatementsCache&&) noexcept = default;
-  StatementsCache(const StatementsCache&) = delete;
+    StatementsCache(StatementsCache&&) noexcept = default;
+    StatementsCache(const StatementsCache&) = delete;
 
-  StatementsCache& operator=(StatementsCache&&) noexcept = delete;
-  StatementsCache& operator=(const StatementsCache&) = delete;
+    StatementsCache& operator=(StatementsCache&&) noexcept = delete;
+    StatementsCache& operator=(const StatementsCache&) = delete;
 
-  std::shared_ptr<Statement> PrepareStatement(const std::string& statement);
+    std::shared_ptr<Statement> PrepareStatement(const std::string& statement);
 
- private:
-  const NativeHandler& db_handler_;
+private:
+    const NativeHandler& db_handler_;
 
-  cache::LruMap<std::string, std::shared_ptr<Statement>, utils::StrIcaseHash,
-                utils::StrIcaseEqual>
-      cache_;
+    cache::LruMap<std::string, std::shared_ptr<Statement>, utils::StrIcaseHash, utils::StrIcaseEqual> cache_;
 };
 
 }  // namespace storages::sqlite::impl

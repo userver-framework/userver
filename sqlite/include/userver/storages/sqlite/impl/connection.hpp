@@ -20,47 +20,49 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl {
 
 class Connection {
- public:
-  Connection(const settings::SQLiteSettings& settings,
-             engine::TaskProcessor& blocking_task_processor,
-             infra::statistics::PoolStatistics& stat);
+public:
+    Connection(
+        const settings::SQLiteSettings& settings,
+        engine::TaskProcessor& blocking_task_processor,
+        infra::statistics::PoolStatistics& stat
+    );
 
-  ~Connection();
+    ~Connection();
 
-  settings::ConnectionSettings const& GetSettings() const noexcept;
+    settings::ConnectionSettings const& GetSettings() const noexcept;
 
-  StatementPtr PrepareStatement(const Query& query);
+    StatementPtr PrepareStatement(const Query& query);
 
-  void ExecutionStep(StatementBasePtr prepare_statement) const;
+    void ExecutionStep(StatementBasePtr prepare_statement) const;
 
-  void Begin(const settings::TransactionOptions& options);
-  void Commit();
-  void Rollback();
+    void Begin(const settings::TransactionOptions& options);
+    void Commit();
+    void Rollback();
 
-  void Save(const std::string& name);
-  void Release(const std::string& name);
-  void RollbackTo(const std::string& name);
+    void Save(const std::string& name);
+    void Release(const std::string& name);
+    void RollbackTo(const std::string& name);
 
-  void AccountQueryExecute() noexcept;
-  void AccountQueryCompleted() noexcept;
-  void AccountQueryFailed() noexcept;
-  void AccountTransactionStart() noexcept;
-  void AccountTransactionCommit() noexcept;
-  void AccountTransactionRollback() noexcept;
+    void AccountQueryExecute() noexcept;
+    void AccountQueryCompleted() noexcept;
+    void AccountQueryFailed() noexcept;
+    void AccountTransactionStart() noexcept;
+    void AccountTransactionCommit() noexcept;
+    void AccountTransactionRollback() noexcept;
 
-  bool IsBroken() const;
-  void NotifyBroken();
+    bool IsBroken() const;
+    void NotifyBroken();
 
- private:
-  void ExecuteQuery(const std::string& query) const;
+private:
+    void ExecuteQuery(const std::string& query) const;
 
-  engine::TaskProcessor& blocking_task_processor_;
-  impl::NativeHandler db_handler_;
-  settings::SQLiteSettings settings_;
-  impl::StatementsCache statements_cache_;
-  infra::statistics::QueryStatCounter queries_stat_counter_;
-  infra::statistics::TransactionStatCounter transactions_stat_counter_;
-  std::atomic<bool> broken_{false};
+    engine::TaskProcessor& blocking_task_processor_;
+    impl::NativeHandler db_handler_;
+    settings::SQLiteSettings settings_;
+    impl::StatementsCache statements_cache_;
+    infra::statistics::QueryStatCounter queries_stat_counter_;
+    infra::statistics::TransactionStatCounter transactions_stat_counter_;
+    std::atomic<bool> broken_{false};
 };
 
 }  // namespace storages::sqlite::impl

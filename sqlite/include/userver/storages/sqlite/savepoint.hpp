@@ -16,103 +16,95 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite {
 
 class Savepoint final {
- public:
-  Savepoint(std::shared_ptr<infra::ConnectionPtr> connection, std::string name);
-  ~Savepoint();
-  Savepoint(const Savepoint& other) = delete;
-  Savepoint(Savepoint&& other) noexcept;
-  Savepoint& operator=(Savepoint&&) noexcept;
+public:
+    Savepoint(std::shared_ptr<infra::ConnectionPtr> connection, std::string name);
+    ~Savepoint();
+    Savepoint(const Savepoint& other) = delete;
+    Savepoint(Savepoint&& other) noexcept;
+    Savepoint& operator=(Savepoint&&) noexcept;
 
-  template <typename... Args>
-  ResultSet Execute(const Query& query, const Args&... args) const;
+    template <typename... Args>
+    ResultSet Execute(const Query& query, const Args&... args) const;
 
-  template <typename T>
-  ResultSet ExecuteDecompose(const Query& query, const T& row) const;
+    template <typename T>
+    ResultSet ExecuteDecompose(const Query& query, const T& row) const;
 
-  template <typename Container>
-  void ExecuteMany(const Query& query, const Container& params) const;
+    template <typename Container>
+    void ExecuteMany(const Query& query, const Container& params) const;
 
-  template <typename T, typename... Args>
-  CursorResultSet<T> GetCursor(std::size_t batch_size, const Query& query,
-                               const Args&... args) const;
+    template <typename T, typename... Args>
+    CursorResultSet<T> GetCursor(std::size_t batch_size, const Query& query, const Args&... args) const;
 
-  Savepoint Save(std::string name) const;
+    Savepoint Save(std::string name) const;
 
-  void Release();
+    void Release();
 
-  void RollbackTo();
+    void RollbackTo();
 
- private:
-  ResultSet DoExecute(impl::io::ParamsBinderBase& params) const;
-  std::string PrepareString(const std::string& str);
-  void AssertValid() const;
+private:
+    ResultSet DoExecute(impl::io::ParamsBinderBase& params) const;
+    std::string PrepareString(const std::string& str);
+    void AssertValid() const;
 
-  void AccountQueryExecute() const noexcept;
-  void AccountQueryFailed() const noexcept;
+    void AccountQueryExecute() const noexcept;
+    void AccountQueryFailed() const noexcept;
 
-  std::shared_ptr<infra::ConnectionPtr> connection_;
-  std::string name_;
+    std::shared_ptr<infra::ConnectionPtr> connection_;
+    std::string name_;
 };
 
 template <typename... Args>
 ResultSet Savepoint::Execute(const Query& query, const Args&... args) const {
-  AssertValid();
-  AccountQueryExecute();
-  try {
-    auto params_binder = impl::BindHelper::UpdateParamsBindings(
-        query.GetStatement(), *connection_, args...);
-    return DoExecute(params_binder);
-  } catch (const std::exception& err) {
-    AccountQueryFailed();
-    throw;
-  }
+    AssertValid();
+    AccountQueryExecute();
+    try {
+        auto params_binder = impl::BindHelper::UpdateParamsBindings(query.GetStatement(), *connection_, args...);
+        return DoExecute(params_binder);
+    } catch (const std::exception& err) {
+        AccountQueryFailed();
+        throw;
+    }
 }
 
 template <typename T>
 ResultSet Savepoint::ExecuteDecompose(const Query& query, const T& row) const {
-  AssertValid();
-  AccountQueryExecute();
-  try {
-    auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-        query.GetStatement(), *connection_, row);
-    return DoExecute(params_binder);
-  } catch (const std::exception& err) {
-    AccountQueryFailed();
-    throw;
-  }
+    AssertValid();
+    AccountQueryExecute();
+    try {
+        auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(query.GetStatement(), *connection_, row);
+        return DoExecute(params_binder);
+    } catch (const std::exception& err) {
+        AccountQueryFailed();
+        throw;
+    }
 }
 
 template <typename Container>
 void Savepoint::ExecuteMany(const Query& query, const Container& params) const {
-  AssertValid();
-  for (const auto& row : params) {
-    AccountQueryExecute();
-    try {
-      auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(
-          query.GetStatement(), *connection_, row);
-      DoExecute(params_binder);
-    } catch (const std::exception& err) {
-      AccountQueryFailed();
-      throw;
+    AssertValid();
+    for (const auto& row : params) {
+        AccountQueryExecute();
+        try {
+            auto params_binder = impl::BindHelper::UpdateRowAsParamsBindings(query.GetStatement(), *connection_, row);
+            DoExecute(params_binder);
+        } catch (const std::exception& err) {
+            AccountQueryFailed();
+            throw;
+        }
     }
-  }
 }
 
 template <typename T, typename... Args>
-CursorResultSet<T> Savepoint::GetCursor(std::size_t batch_size,
-                                        const Query& query,
-                                        const Args&... args) const {
-  AssertValid();
-  AccountQueryExecute();
-  try {
-    auto params_binder = impl::BindHelper::UpdateParamsBindings(
-        query.GetStatement(), *connection_, args...);
-    return CursorResultSet<T>{DoExecute(params_binder, connection_),
-                              batch_size};
-  } catch (const std::exception& err) {
-    AccountQueryFailed();
-    throw;
-  }
+CursorResultSet<T> Savepoint::GetCursor(std::size_t batch_size, const Query& query, const Args&... args) const {
+    AssertValid();
+    AccountQueryExecute();
+    try {
+        auto params_binder = impl::BindHelper::UpdateParamsBindings(query.GetStatement(), *connection_, args...);
+        return CursorResultSet<T>{DoExecute(params_binder, connection_), batch_size};
+    } catch (const std::exception& err) {
+        AccountQueryFailed();
+        throw;
+    }
 }
 
 }  // namespace storages::sqlite

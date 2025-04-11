@@ -12,17 +12,17 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite {
 
 class Query {
- public:
-  using Name = utils::StrongTypedef<struct NameTag, std::string>;
-  Query(const char* statement, std::optional<Name> = std::nullopt);
-  Query(std::string statement, std::optional<Name> = std::nullopt);
+public:
+    using Name = utils::StrongTypedef<struct NameTag, std::string>;
+    Query(const char* statement, std::optional<Name> = std::nullopt);
+    Query(std::string statement, std::optional<Name> = std::nullopt);
 
-  const std::string& GetStatement() const;
-  const std::optional<Name>& GetName() const;
+    const std::string& GetStatement() const;
+    const std::optional<Name>& GetName() const;
 
- private:
-  std::string statement_;
-  std::optional<Name> name_;
+private:
+    std::string statement_;
+    std::optional<Name> name_;
 };
 
 }  // namespace storages::sqlite

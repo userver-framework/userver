@@ -22,12 +22,10 @@ namespace fs = std::filesystem;
 
 // Auxiliary types for tests
 struct Row final {
-  std::int32_t id{};
-  std::string value;
+    std::int32_t id{};
+    std::string value;
 
-  bool operator==(const Row& other) const {
-    return std::tie(id, value) == std::tie(other.id, other.value);
-  }
+    bool operator==(const Row& other) const { return std::tie(id, value) == std::tie(other.id, other.value); }
 };
 
 using RowTuple = std::tuple<int, std::string>;
@@ -36,149 +34,129 @@ using RowTuple = std::tuple<int, std::string>;
 // Bind -> Execution (step, chech actual status) -> Extract (result set or
 // execution result)
 class MockSQLiteStatement : public impl::StatementBase {
- public:
-  MOCK_METHOD(OperationType, GetOperationType, (), (noexcept, const, override));
+public:
+    MOCK_METHOD(OperationType, GetOperationType, (), (noexcept, const, override));
 
-  MOCK_METHOD(void, Bind, (const int index, const std::int32_t value));
-  MOCK_METHOD(void, Bind, (const int index, const std::int64_t value));
-  MOCK_METHOD(void, Bind, (const int index, const std::uint32_t value));
-  MOCK_METHOD(void, Bind, (const int index, const std::uint64_t value));
-  MOCK_METHOD(void, Bind, (const int index, const double value));
-  MOCK_METHOD(void, Bind, (const int index, const std::string& value));
-  MOCK_METHOD(void, Bind, (const int index, const std::string_view value));
-  MOCK_METHOD(void, Bind, (const int index, const char* value, const int size));
-  MOCK_METHOD(void, Bind,
-              (const int index, const std::vector<std::uint8_t>& value));
-  MOCK_METHOD(void, Bind, (const int index));
+    MOCK_METHOD(void, Bind, (const int index, const std::int32_t value));
+    MOCK_METHOD(void, Bind, (const int index, const std::int64_t value));
+    MOCK_METHOD(void, Bind, (const int index, const std::uint32_t value));
+    MOCK_METHOD(void, Bind, (const int index, const std::uint64_t value));
+    MOCK_METHOD(void, Bind, (const int index, const double value));
+    MOCK_METHOD(void, Bind, (const int index, const std::string& value));
+    MOCK_METHOD(void, Bind, (const int index, const std::string_view value));
+    MOCK_METHOD(void, Bind, (const int index, const char* value, const int size));
+    MOCK_METHOD(void, Bind, (const int index, const std::vector<std::uint8_t>& value));
+    MOCK_METHOD(void, Bind, (const int index));
 
-  MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
-  MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
-  MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
-  MOCK_METHOD(bool, IsFail, (), (const, noexcept, override));
-  MOCK_METHOD(void, Next, (), (noexcept, override));
-  MOCK_METHOD(void, CheckStepStatus, (), (override));
+    MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
+    MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
+    MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
+    MOCK_METHOD(bool, IsFail, (), (const, noexcept, override));
+    MOCK_METHOD(void, Next, (), (noexcept, override));
+    MOCK_METHOD(void, CheckStepStatus, (), (override));
 
-  MOCK_METHOD(std::int64_t, RowsAffected, (), (const, noexcept, override));
-  MOCK_METHOD(std::int64_t, LastInsertRowId, (), (const, noexcept, override));
-  MOCK_METHOD(bool, IsNull, (int column), (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::int8_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::uint8_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::int16_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::uint16_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::int32_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::uint32_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::int64_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::uint64_t& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, float& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, double& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::string& val),
-              (const, noexcept, override));
-  MOCK_METHOD(void, Extract, (int column, std::vector<uint8_t>& val),
-              (const, noexcept, override));
+    MOCK_METHOD(std::int64_t, RowsAffected, (), (const, noexcept, override));
+    MOCK_METHOD(std::int64_t, LastInsertRowId, (), (const, noexcept, override));
+    MOCK_METHOD(bool, IsNull, (int column), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::int8_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::uint8_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::int16_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::uint16_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::int32_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::uint32_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::int64_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::uint64_t& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, float& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, double& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::string& val), (const, noexcept, override));
+    MOCK_METHOD(void, Extract, (int column, std::vector<uint8_t>& val), (const, noexcept, override));
 };
 
 // Main fixture for handle tempory database files
 // Create test tmp dir on start and delete it on finish
 class SQLiteFixture : public ::testing::Test {
- protected:
-  void SetUp() override {
-    test_dir_ = fs::temp_directory_path() / "sqlite_test";
-    fs::create_directory(test_dir_);
-  }
-
-  void TearDown() override {
-    if (fs::exists(test_dir_)) {
-      fs::remove_all(test_dir_);
+protected:
+    void SetUp() override {
+        test_dir_ = fs::temp_directory_path() / "sqlite_test";
+        fs::create_directory(test_dir_);
     }
-  }
 
-  std::string GetTestDbPath(const std::string& db_name) const {
-    return (test_dir_ / db_name).string();
-  }
+    void TearDown() override {
+        if (fs::exists(test_dir_)) {
+            fs::remove_all(test_dir_);
+        }
+    }
 
- private:
-  fs::path test_dir_;
+    std::string GetTestDbPath(const std::string& db_name) const { return (test_dir_ / db_name).string(); }
+
+private:
+    fs::path test_dir_;
 };
 
 template <typename ConnectionProvider>
 class SQLiteCompositeFixture : public SQLiteFixture {
- public:
-  SQLiteCompositeFixture()
-      : connection_provider_(std::make_unique<ConnectionProvider>()) {}
+public:
+    SQLiteCompositeFixture() : connection_provider_(std::make_unique<ConnectionProvider>()) {}
 
-  ~SQLiteCompositeFixture() override = default;
+    ~SQLiteCompositeFixture() override = default;
 
-  void SetUp() override { SQLiteFixture::SetUp(); }
+    void SetUp() override { SQLiteFixture::SetUp(); }
 
-  void TearDown() override { SQLiteFixture::TearDown(); }
+    void TearDown() override { SQLiteFixture::TearDown(); }
 
-  ClientPtr CreateClient(settings::SQLiteSettings settings = {}) {
-    auto client = connection_provider_->CreateClient(settings);
-    PreInitialize(client);
-    return client;
-  }
+    ClientPtr CreateClient(settings::SQLiteSettings settings = {}) {
+        auto client = connection_provider_->CreateClient(settings);
+        PreInitialize(client);
+        return client;
+    }
 
- private:
-  virtual void PreInitialize(const ClientPtr&) {}
+private:
+    virtual void PreInitialize(const ClientPtr&) {}
 
-  std::unique_ptr<ConnectionProvider> connection_provider_;
+    std::unique_ptr<ConnectionProvider> connection_provider_;
 };
 
 // Create sqlite client (set of conection pools) with custom settings
 class SQLiteCustomConnection {
- public:
-  ClientPtr CreateClient(settings::SQLiteSettings settings) {
-    auto client = std::make_shared<storages::sqlite::Client>(
-        settings, engine::current_task::GetTaskProcessor());
-    CheckClient(client);
-    return client;
-  }
+public:
+    ClientPtr CreateClient(settings::SQLiteSettings settings) {
+        auto client = std::make_shared<storages::sqlite::Client>(settings, engine::current_task::GetTaskProcessor());
+        CheckClient(client);
+        return client;
+    }
 
-  void CheckClient(const ClientPtr& client) {
-    ASSERT_TRUE(client) << "Expected non-empty connection pointer";
-    EXPECT_NO_THROW(client->Execute(OperationType::kReadOnly, "SELECT 42"))
-        << "Try execute query";
-  }
+    void CheckClient(const ClientPtr& client) {
+        ASSERT_TRUE(client) << "Expected non-empty connection pointer";
+        EXPECT_NO_THROW(client->Execute(OperationType::kReadOnly, "SELECT 42")) << "Try execute query";
+    }
 };
 
 // Create sqlite client (set of conection pools) without any inits and checks
 class SQLitePureConnection {
- public:
-  ClientPtr CreateClient(settings::SQLiteSettings settings) {
-    return std::make_shared<storages::sqlite::Client>(
-        settings, engine::current_task::GetTaskProcessor());
-  }
+public:
+    ClientPtr CreateClient(settings::SQLiteSettings settings) {
+        return std::make_shared<storages::sqlite::Client>(settings, engine::current_task::GetTaskProcessor());
+    }
 };
 
 // Create sqlite client with in-memory shared connections
 class SQLiteInMemoryConnection : public SQLiteCustomConnection {
- public:
-  ClientPtr CreateClient(settings::SQLiteSettings settings = {}) {
-    settings.db_path = "file::memory:";
-    settings.shared_cashe = true;
-    return SQLiteCustomConnection::CreateClient(settings);
-  }
+public:
+    ClientPtr CreateClient(settings::SQLiteSettings settings = {}) {
+        settings.db_path = "file::memory:";
+        settings.shared_cashe = true;
+        return SQLiteCustomConnection::CreateClient(settings);
+    }
 };
 
 // Parametrized tests fixture
 template <typename ConnectionProvider, typename T>
-class SQLiteParametrizedFixture
-    : public SQLiteCompositeFixture<ConnectionProvider>,
-      public ::testing::WithParamInterface<T> {
- public:
-  void SetUp() override { SQLiteFixture::SetUp(); }
+class SQLiteParametrizedFixture : public SQLiteCompositeFixture<ConnectionProvider>,
+                                  public ::testing::WithParamInterface<T> {
+public:
+    void SetUp() override { SQLiteFixture::SetUp(); }
 
-  void TearDown() override { SQLiteFixture::TearDown(); }
+    void TearDown() override { SQLiteFixture::TearDown(); }
 };
 
 }  // namespace storages::sqlite::tests

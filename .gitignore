@@ -21,4 +21,3 @@ static-analyzer-report
 .settings*
 .clangd
 .vscode
-universal/include/userver/formats/json/gdb_autogen/printers.hpp

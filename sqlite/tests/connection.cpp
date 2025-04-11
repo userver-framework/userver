@@ -16,43 +16,39 @@ namespace storages::sqlite::tests {
 
 namespace {
 
-class SQLiteConnectionTest
-    : public SQLiteCompositeFixture<SQLiteCustomConnection> {};
+class SQLiteConnectionTest : public SQLiteCompositeFixture<SQLiteCustomConnection> {};
 
 }  // namespace
 
 UTEST_F(SQLiteConnectionTest, NonExistent) {
-  // Try to open a non-existing database
-  settings::SQLiteSettings settings;
-  settings.db_path = GetTestDbPath("test.db");
-  settings.create_file = false;
+    // Try to open a non-existing database
+    settings::SQLiteSettings settings;
+    settings.db_path = GetTestDbPath("test.db");
+    settings.create_file = false;
 
-  UEXPECT_THROW(CreateClient(settings), sqlite::SQLiteException)
-      << "Connecting to a non-existent database";
+    UEXPECT_THROW(CreateClient(settings), sqlite::SQLiteException) << "Connecting to a non-existent database";
 }
 
 UTEST_F(SQLiteConnectionTest, CreateOpen) {
-  // Try to open a non-existing database
-  settings::SQLiteSettings settings;
-  settings.db_path = GetTestDbPath("test.db");
-  settings.create_file = true;
+    // Try to open a non-existing database
+    settings::SQLiteSettings settings;
+    settings.db_path = GetTestDbPath("test.db");
+    settings.create_file = true;
 
-  UEXPECT_NO_THROW(CreateClient(settings))
-      << "Connect to a non-existent database, but the file will be created "
-         "automatically";
+    UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to a non-existent database, but the file will be created "
+                                                "automatically";
 
-  // Try to open existing database
-  settings.create_file = false;
-  UEXPECT_NO_THROW(CreateClient(settings))
-      << "Connect to a existent database, but the file will be created "
-         "automatically";
+    // Try to open existing database
+    settings.create_file = false;
+    UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to a existent database, but the file will be created "
+                                                "automatically";
 }
 
 UTEST_F(SQLiteConnectionTest, InMemory) {
-  settings::SQLiteSettings settings;
-  settings.db_path = ":memory:";
+    settings::SQLiteSettings settings;
+    settings.db_path = ":memory:";
 
-  UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to in-memory database";
+    UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to in-memory database";
 }
 
 }  // namespace storages::sqlite::tests

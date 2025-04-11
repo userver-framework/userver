@@ -44,20 +44,20 @@ namespace components {
 // clang-format on
 
 class SQLite final : public components::ComponentBase {
- public:
-  /// Component constructor
-  SQLite(const ComponentConfig&, const ComponentContext&);
-  /// Component destructor
-  ~SQLite() override;
+public:
+    /// Component constructor
+    SQLite(const ComponentConfig&, const ComponentContext&);
+    /// Component destructor
+    ~SQLite() override;
 
-  storages::sqlite::ClientPtr GetClient() const;
+    storages::sqlite::ClientPtr GetClient() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::string name_;
-  const storages::sqlite::ClientPtr client_;
-  utils::statistics::Entry statistics_holder_;
+private:
+    std::string name_;
+    const storages::sqlite::ClientPtr client_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

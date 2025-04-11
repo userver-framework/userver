@@ -12,12 +12,12 @@
 #include <handlers/key_value.hpp>
 
 int main(int argc, char* argv[]) {
-  auto component_list = components::MinimalServerComponentList()
-                            .Append<components::SQLite>("key-value-database")
-                            .Append<components::SQLite>("batch-database")
-                            .Append<components::TestsuiteSupport>()
-                            .Append<clients::dns::Component>();
-  functional_tests::AppendKeyValue(component_list);
-  functional_tests::AppendBatch(component_list);
-  return utils::DaemonMain(argc, argv, component_list);
+    auto component_list = components::MinimalServerComponentList()
+                              .Append<components::SQLite>("key-value-database")
+                              .Append<components::SQLite>("batch-database")
+                              .Append<components::TestsuiteSupport>()
+                              .Append<clients::dns::Component>();
+    functional_tests::AppendKeyValue(component_list);
+    functional_tests::AppendBatch(component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

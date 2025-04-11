@@ -15,30 +15,29 @@ namespace storages::sqlite::impl {
 
 /// @brief Result fetch helper
 class ResultWrapper final {
- public:
-  ResultWrapper(StatementBasePtr prepare_statement,
-                std::shared_ptr<infra::ConnectionPtr> connection_ptr);
-  ~ResultWrapper();
+public:
+    ResultWrapper(StatementBasePtr prepare_statement, std::shared_ptr<infra::ConnectionPtr> connection_ptr);
+    ~ResultWrapper();
 
-  ResultWrapper(const ResultWrapper&) = delete;
-  ResultWrapper(ResultWrapper&&) = delete;
+    ResultWrapper(const ResultWrapper&) = delete;
+    ResultWrapper(ResultWrapper&&) = delete;
 
-  StatementBasePtr GetStatement() noexcept;
+    StatementBasePtr GetStatement() noexcept;
 
-  void FetchAllResult(impl::ExtractorBase& extractor);
+    void FetchAllResult(impl::ExtractorBase& extractor);
 
-  bool FetchResult(impl::ExtractorBase& extractor, size_t batch_size);
+    bool FetchResult(impl::ExtractorBase& extractor, size_t batch_size);
 
-  ExecutionResult GetExecutionResult() noexcept;
+    ExecutionResult GetExecutionResult() noexcept;
 
- private:
-  void ExecutionStep();
+private:
+    void ExecutionStep();
 
-  void AccountQueryCompleted() noexcept;
-  void AccountQueryFailed() noexcept;
+    void AccountQueryCompleted() noexcept;
+    void AccountQueryFailed() noexcept;
 
-  StatementBasePtr prepare_statement_;
-  std::shared_ptr<infra::ConnectionPtr> connection_ptr_;
+    StatementBasePtr prepare_statement_;
+    std::shared_ptr<infra::ConnectionPtr> connection_ptr_;
 };
 
 }  // namespace storages::sqlite::impl

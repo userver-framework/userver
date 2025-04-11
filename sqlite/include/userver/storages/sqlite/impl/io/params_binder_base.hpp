@@ -8,22 +8,21 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl::io {
 
 class ParamsBinderBase {
- public:
-  explicit ParamsBinderBase(const std::string& query,
-                            infra::ConnectionPtr& conn);
+public:
+    explicit ParamsBinderBase(const std::string& query, infra::ConnectionPtr& conn);
 
-  ParamsBinderBase(const ParamsBinderBase& other) = delete;
-  ParamsBinderBase(ParamsBinderBase&& other) noexcept;
+    ParamsBinderBase(const ParamsBinderBase& other) = delete;
+    ParamsBinderBase(ParamsBinderBase&& other) noexcept;
 
-  InputBindingsFwd& GetBinds();
+    InputBindingsFwd& GetBinds();
 
-  InputBindingsPimpl GetBindsPtr();
+    InputBindingsPimpl GetBindsPtr();
 
- protected:
-  ~ParamsBinderBase();
+protected:
+    ~ParamsBinderBase();
 
- private:
-  InputBindingsPimpl binds_impl_;
+private:
+    InputBindingsPimpl binds_impl_;
 };
 
 }  // namespace storages::sqlite::impl::io
