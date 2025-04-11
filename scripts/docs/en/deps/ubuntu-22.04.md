@@ -63,3 +63,4 @@ python3-yaml
 ragel
 yasm
 zlib1g-dev
+libsqlite3-dev
