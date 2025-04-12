@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <userver/logging/log.hpp>
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utest/death_tests.hpp>
 
 #include <userver/storages/sqlite/impl/connection.hpp>
@@ -61,9 +62,9 @@ UTEST_F_DEATH(SQLiteSavepointsDeathTest, UseAfterReleaseDeathTest) {
     UEXPECT_NO_THROW(savepoint.Release()) << "Release savepoint";
 
     // After that savepoint has been released it's invalid to use
-    UEXPECT_DEATH(savepoint.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult(), "");
-    UEXPECT_DEATH(savepoint.Release(), "");
-    UEXPECT_DEATH(savepoint.RollbackTo(), "");
+    EXPECT_UINVARIANT_FAILURE(savepoint.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult());
+    EXPECT_UINVARIANT_FAILURE(savepoint.Release());
+    EXPECT_UINVARIANT_FAILURE(savepoint.RollbackTo());
 }
 
 UTEST_F(SQLiteSavepointsTest, RollbackTo) {

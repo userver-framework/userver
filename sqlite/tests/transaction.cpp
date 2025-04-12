@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <userver/logging/log.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 #include <userver/storages/sqlite/impl/connection.hpp>
 #include <userver/storages/sqlite/infra/connection_ptr.hpp>
@@ -78,9 +79,9 @@ UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
         Transaction trx{nullptr, {}};
         UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {})) << "Begin default transaction";
         UEXPECT_NO_THROW(trx.Commit()) << "Commit transaction";
-        UEXPECT_DEATH(trx.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult(), "");
-        UEXPECT_DEATH(trx.Commit(), "");
-        UEXPECT_DEATH(trx.Rollback(), "");
+        EXPECT_UINVARIANT_FAILURE(trx.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult());
+        EXPECT_UINVARIANT_FAILURE(trx.Commit());
+        EXPECT_UINVARIANT_FAILURE(trx.Rollback());
     }
 
     // Use trx after rollback would be abort
@@ -88,9 +89,9 @@ UTEST_F_DEATH(SQLiteTransactionDeathTest, UseAfterReleaseDeathTest) {
         Transaction trx{nullptr, {}};
         UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {})) << "Begin default transaction";
         UEXPECT_NO_THROW(trx.Rollback()) << "Rollback transaction";
-        UEXPECT_DEATH(trx.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult(), "");
-        UEXPECT_DEATH(trx.Commit(), "");
-        UEXPECT_DEATH(trx.Rollback(), "");
+        EXPECT_UINVARIANT_FAILURE(trx.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult());
+        EXPECT_UINVARIANT_FAILURE(trx.Commit());
+        EXPECT_UINVARIANT_FAILURE(trx.Rollback());
     }
 }
 
