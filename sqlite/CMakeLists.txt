@@ -2,13 +2,6 @@ project(userver-sqlite CXX)
 
 find_package(SQLite3 REQUIRED)
 
-userver_module(sqlite
-    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE SQLite::SQLite3
-
-    UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
-)
-
 # Perhaps with this option it will be work faster, but should guarantee that the connection is used at the same time only one thread
 # https://www.sqlite.org/threadsafe.html
 set(SQLITE_THREADSAFE 2 CACHE STRING
@@ -16,6 +9,13 @@ set(SQLITE_THREADSAFE 2 CACHE STRING
 0 (Single-thread): Disables all mutexes, making SQLite unsafe for use in more than a single thread at once.
 1 (Serialized): Allows SQLite to be safely used by multiple threads with no restrictions.
 2 (Multi-thread): Permits SQLite to be safely used by multiple threads, provided that no single database connection is used simultaneously in two or more threads."
+)
+
+userver_module(sqlite
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+    LINK_LIBRARIES_PRIVATE SQLite::SQLite3
+
+    UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
 )
 
 _userver_directory_install(COMPONENT sqlite FILES
