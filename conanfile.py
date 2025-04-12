@@ -176,7 +176,7 @@ class UserverConan(ConanFile):
         if self.options.with_kafka:
             self.requires('librdkafka/2.4.0')
         if self.options.with_sqlite:
-            self.requires("sqlite3/3.49.1")
+            self.requires('sqlite3/3.46.1')
         if self.options.with_s3api:
             self.requires('pugixml/1.14')
         if self.options.with_otlp:
