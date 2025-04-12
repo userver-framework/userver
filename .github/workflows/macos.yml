@@ -171,7 +171,7 @@ jobs:
                 cd build_debug/postgresql
                 ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
 
-          - name: Run tests (sqlite3)
+          - name: Run tests (sqlite)
             run: |
                 cd build_debug/sqlite
                 ctest -V

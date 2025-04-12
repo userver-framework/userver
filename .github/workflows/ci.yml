@@ -315,7 +315,7 @@ jobs:
                 cd build_debug/scripts/gdb/tests
                 ctest -V
 
-          - name: Run tests (sqlite3)
+          - name: Run tests (sqlite)
             run: |
                 cd build_debug/sqlite
                 ctest -V
