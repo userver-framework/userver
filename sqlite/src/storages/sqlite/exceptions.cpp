@@ -18,9 +18,9 @@ SQLiteException::SQLiteException(const char* error_message, int error_code)
 SQLiteException::SQLiteException(const std::string& error_message, int error_code)
     : SQLiteException(error_message.c_str(), error_code) {}
 
-SQLiteException::SQLiteException(const char* error_message) : SQLiteException(error_message, -1) {}
+SQLiteException::SQLiteException(const char* error_message) : SQLiteException{error_message, -1} {}
 
-SQLiteException::SQLiteException(const std::string& error_message) : SQLiteException(error_message.c_str(), -1) {}
+SQLiteException::SQLiteException(const std::string& error_message) : SQLiteException{error_message.c_str(), -1} {}
 
 SQLiteException::~SQLiteException() = default;
 

@@ -3,6 +3,7 @@
 /// @file userver/storages/sqlite/exceptions.hpp
 
 #include <stdexcept>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
