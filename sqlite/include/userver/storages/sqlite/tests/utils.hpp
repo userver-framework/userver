@@ -3,22 +3,20 @@
 /// @file userver/storages/sqlite/tests/utils.hpp
 /// @brief Utilities for testing logic working with SQLite.
 
-#include <filesystem>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/engine/task/task_base.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
 
 #include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
 #include <userver/storages/sqlite/operation_types.hpp>
+#include "userver/fs/blocking/write.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
-
-namespace fs = std::filesystem;
 
 // Auxiliary types for tests
 struct Row final {
@@ -77,20 +75,16 @@ public:
 class SQLiteFixture : public ::testing::Test {
 protected:
     void SetUp() override {
-        test_dir_ = fs::temp_directory_path() / "sqlite_test";
-        fs::create_directory(test_dir_);
+        test_dir_ = fs::blocking::TempDirectory::Create();
+        fs::blocking::Chmod(test_dir_.GetPath(), boost::filesystem::perms::all_all);
     }
 
-    void TearDown() override {
-        if (fs::exists(test_dir_)) {
-            fs::remove_all(test_dir_);
-        }
-    }
+    void TearDown() override {}
 
-    std::string GetTestDbPath(const std::string& db_name) const { return (test_dir_ / db_name).string(); }
+    std::string GetTestDbPath(const std::string& db_name) const { return test_dir_.GetPath() + db_name; }
 
 private:
-    fs::path test_dir_;
+    fs::blocking::TempDirectory test_dir_;
 };
 
 template <typename ConnectionProvider>
