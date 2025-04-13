@@ -81,7 +81,7 @@ protected:
 
     void TearDown() override {}
 
-    std::string GetTestDbPath(const std::string& db_name) const { return test_dir_.GetPath() + db_name; }
+    std::string GetTestDbPath(const std::string& db_name) const { return test_dir_.GetPath() + "/" + db_name; }
 
 private:
     fs::blocking::TempDirectory test_dir_;
