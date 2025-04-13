@@ -361,13 +361,15 @@ UTEST_F(SQLiteMetricsTest, TransactionsBasic) {
 
     for (size_t i = 0; i < kCommitedWriteTransactions; ++i) {
         auto trx = client->Begin(storages::sqlite::OperationType::kReadWrite, {});
-        UEXPECT_NO_THROW(trx.Execute("INSERT INTO test VALUES (?, ?)", i, "data"));
+        UEXPECT_NO_THROW(trx.Execute("INSERT INTO test VALUES (?, ?)", static_cast<std::uint64_t>(i), "data"));
         trx.Commit();
     }
 
     for (size_t i = 0; i < kRollbackedWriteTransactions; ++i) {
         auto trx = client->Begin(storages::sqlite::OperationType::kReadWrite, {});
-        UEXPECT_THROW(trx.Execute("INSERT INTO test VALUES (?, ?)", i, "data"), SQLiteException);
+        UEXPECT_THROW(
+            trx.Execute("INSERT INTO test VALUES (?, ?)", static_cast<std::uint64_t>(i), "data"), SQLiteException
+        );
     }
 
     for (size_t i = 0; i < kCommitedReadTransactions; ++i) {
