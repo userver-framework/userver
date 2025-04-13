@@ -21,6 +21,7 @@ RUN \
     postgresql-14 \
     rabbitmq-server \
     redis-server \
+    libsqlite3-dev \
     clang-16 lld-16 llvm-16 clang-format-16 libclang-rt-16-dev\
     clang-14 lld-14 llvm clang-format \
     g++-9 gcc-9 \
