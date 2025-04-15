@@ -340,7 +340,7 @@ endif()
 if (USERVER_BUILD_TESTS)
   function (_add_create_service_test FEATURE CMAKE_OPTS)
     add_test(
-      NAME create-service${FEATURE}
+      NAME create-service${FEATURE} 
       COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/create-service-test-helper"
           "${CMAKE_CURRENT_SOURCE_DIR}"
           "${CMAKE_CURRENT_BINARY_DIR}"
@@ -348,7 +348,7 @@ if (USERVER_BUILD_TESTS)
           ${FEATURE}
     )
   endfunction()
-
+  
   _add_create_service_test("" "")
   if(USERVER_FEATURE_MONGODB)
     _add_create_service_test("--mongo" "")

@@ -1,13 +1,17 @@
 include_guard(GLOBAL)
 
-if(userver_sqlite3_FOUND)
+if(userver_sqlite_FOUND)
   return()
 endif()
 
 find_package(userver REQUIRED COMPONENTS
-    core
+  core
 )
 
-include(${USERVER_CMAKE_DIR}/FindSQLite.cmake)
+if(USERVER_CONAN)
+  find_package(SQLite3 REQUIRED)
+else()
+  find_package(SQLite3 REQUIRED)
+endif()
 
-set(userver_sqlite3_FOUND TRUE)
+set(userver_sqlite_FOUND TRUE)

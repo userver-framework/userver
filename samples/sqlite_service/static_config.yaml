@@ -1,34 +1,36 @@
+# yaml
 components_manager:
-    components:                       # Configuring components that were registered via component_list
-        handler-hello:                    # Finally! Our handler.
-            path: /hello                  # Registering handler by URL '/hello'.
-            method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
-            task_processor: main-task-processor  # Run it on CPU bound task processor
-        http-client:
-            fs-task-processor: fs-task-processor
-            user-agent: userver
+    components:
+        handler-key-value:
+            path: /basic/sqlite/key-value
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            db-path: "/tmp/kv.db"
+            task_processor: fs-task-processor
+
+        testsuite-support:
 
         server:
-            listener:                 # configuring the main listening socket...
-                port: 8093            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener:
+                port: 8080
+                task_processor: main-task-processor
         logging:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
-                    file_path: '@stdout'
+                    file_path: "@stderr"
                     level: debug
-                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+                    overflow_behavior: discard
 
         dns-client:
             fs-task-processor: fs-task-processor
 
-    task_processors:                  # Task processor is an executor for coroutine tasks
-
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
-
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
             worker_threads: 4
 
-    default_task_processor: main-task-processor  # Task processor in which components start.
+    default_task_processor: main-task-processor

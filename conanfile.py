@@ -174,7 +174,7 @@ class UserverConan(ConanFile):
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('librdkafka/2.4.0')
+            self.requires('librdkafka/2.6.0')
         if self.options.with_sqlite:
             self.requires('sqlite3/3.46.1')
         if self.options.with_s3api:

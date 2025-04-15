@@ -11,6 +11,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
+// TODO: Can use Query from #include <userver/storages/query.hpp>?
+
 class Query {
 public:
     using Name = utils::StrongTypedef<struct NameTag, std::string>;

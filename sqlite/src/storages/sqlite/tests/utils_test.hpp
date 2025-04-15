@@ -1,18 +1,16 @@
 #pragma once
 
-/// @file userver/storages/sqlite/tests/utils.hpp
 /// @brief Utilities for testing logic working with SQLite.
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/engine/task/task_base.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 #include <userver/storages/sqlite/client.hpp>
 #include <userver/storages/sqlite/impl/statement_base.hpp>
 #include <userver/storages/sqlite/operation_types.hpp>
-#include "userver/fs/blocking/write.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,48 +25,6 @@ struct Row final {
 };
 
 using RowTuple = std::tuple<int, std::string>;
-
-// Mock class for main object in sqlite execution query processs
-// Bind -> Execution (step, chech actual status) -> Extract (result set or
-// execution result)
-class MockSQLiteStatement : public impl::StatementBase {
-public:
-    MOCK_METHOD(OperationType, GetOperationType, (), (noexcept, const, override));
-
-    MOCK_METHOD(void, Bind, (const int index, const std::int32_t value));
-    MOCK_METHOD(void, Bind, (const int index, const std::int64_t value));
-    MOCK_METHOD(void, Bind, (const int index, const std::uint32_t value));
-    MOCK_METHOD(void, Bind, (const int index, const std::uint64_t value));
-    MOCK_METHOD(void, Bind, (const int index, const double value));
-    MOCK_METHOD(void, Bind, (const int index, const std::string& value));
-    MOCK_METHOD(void, Bind, (const int index, const std::string_view value));
-    MOCK_METHOD(void, Bind, (const int index, const char* value, const int size));
-    MOCK_METHOD(void, Bind, (const int index, const std::vector<std::uint8_t>& value));
-    MOCK_METHOD(void, Bind, (const int index));
-
-    MOCK_METHOD(int, ColumnCount, (), (const, noexcept, override));
-    MOCK_METHOD(bool, HasNext, (), (const, noexcept, override));
-    MOCK_METHOD(bool, IsDone, (), (const, noexcept, override));
-    MOCK_METHOD(bool, IsFail, (), (const, noexcept, override));
-    MOCK_METHOD(void, Next, (), (noexcept, override));
-    MOCK_METHOD(void, CheckStepStatus, (), (override));
-
-    MOCK_METHOD(std::int64_t, RowsAffected, (), (const, noexcept, override));
-    MOCK_METHOD(std::int64_t, LastInsertRowId, (), (const, noexcept, override));
-    MOCK_METHOD(bool, IsNull, (int column), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::int8_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::uint8_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::int16_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::uint16_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::int32_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::uint32_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::int64_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::uint64_t& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, float& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, double& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::string& val), (const, noexcept, override));
-    MOCK_METHOD(void, Extract, (int column, std::vector<uint8_t>& val), (const, noexcept, override));
-};
 
 // Main fixture for handle tempory database files
 // Create test tmp dir on start and delete it on finish

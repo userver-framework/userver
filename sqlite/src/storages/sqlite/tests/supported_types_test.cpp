@@ -13,7 +13,7 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/boost_uuid4.hpp>
 
-#include <userver/storages/sqlite/tests/utils.hpp>
+#include <storages/sqlite/tests/utils_test.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
