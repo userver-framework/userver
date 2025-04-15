@@ -12,6 +12,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     clangd-18 \
     clang-format-18 \
     clang-tidy-18 \
+    lldb-18 \
     libclang-rt-18-dev
 apt clean all
 

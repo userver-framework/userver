@@ -123,6 +123,7 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image }} bash -c
                 'cd /userver && cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+                -DUSERVER_OPENTELEMETRY_PROTO=/app/opentelemetry-proto
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Reconfigure cmake
@@ -130,6 +131,7 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image }} bash -c
                 'cd /userver && cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+                -DUSERVER_OPENTELEMETRY_PROTO=/app/opentelemetry-proto
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Compile

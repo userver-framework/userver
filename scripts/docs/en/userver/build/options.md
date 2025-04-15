@@ -150,6 +150,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref postgres_deps_versions "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                       |
 | `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                              | Builds `userver-api-common-protos` |
 | `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                                       | Downloads automatically            |
+| `USERVER_OPENTELEMETRY_PROTO`         | Path to the folder with OpenTelemetry proto files                                                                       | Downloads automatically            |
 
 ### CMake options for various compilation modes
 

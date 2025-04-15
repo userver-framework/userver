@@ -20,24 +20,6 @@ constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServic
 
 }  // namespace
 
-template <>
-struct CallTraits<ugrpc::server::StreamingResult<
-    grpc::
-        ByteBuffer> (GenericServiceBase::*)(ugrpc::server::GenericCallContext&, ugrpc::server::ReaderWriter<grpc::ByteBuffer, grpc::ByteBuffer>&)>
-    final {
-    using ServiceBase = GenericServiceBase;
-    using Request = grpc::ByteBuffer;
-    using Response = grpc::ByteBuffer;
-    using RawCall = impl::RawReaderWriter<Request, Response>;
-    using InitialRequest = NoInitialRequest;
-    using Call = BidirectionalStream<Request, Response>;
-    using ContextType = grpc::GenericServerContext;
-    using ServiceMethod = ugrpc::server::StreamingResult<
-        grpc::
-            ByteBuffer> (ServiceBase::*)(ugrpc::server::GenericCallContext&, ugrpc::server::ReaderWriter<Request, Response>&);
-    static constexpr auto kCallCategory = CallCategory::kGeneric;
-};
-
 struct GenericServiceTag final {};
 
 template <>
@@ -55,7 +37,6 @@ public:
         grpc::ServerCompletionQueue& notification_cq,
         void* tag
     ) {
-        static_assert(CallTraits::kCallCategory == CallCategory::kGeneric);
         UASSERT(method_id == 0);
         service_.RequestCall(&context, &stream, &call_cq, &notification_cq, tag);
     }

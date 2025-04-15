@@ -79,6 +79,7 @@ public:
     Update& operator=(Update&&) noexcept;
 
     void SetOption(options::Upsert);
+    void SetOption(const options::ArrayFilters&);
 
 private:
     friend class storages::mongo::operations::Bulk;

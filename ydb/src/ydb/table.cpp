@@ -111,14 +111,14 @@ auto TableClient::ExecuteWithPathImpl(
         NYdb::NTable::TTableClient&>;
 
     const Query kQuery{"", Query::Name{operation_name}};
-    impl::RequestContext context{*this, kQuery, settings};
+    impl::RequestContext context{*this, kQuery, std::move(settings)};
 
     auto future = impl::RetryOperation(
         context,
         [func = std::forward<Func>(func),
          full_path = JoinDbPath(path),
          query_settings = std::forward<QuerySettings>(query_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](FuncArg arg) mutable {
             impl::ApplyToRequestSettings(query_settings, settings, deadline);
             return func(std::forward<FuncArg>(arg), full_path, query_settings);
@@ -153,13 +153,13 @@ ReadTableResults TableClient::ReadTable(
     OperationSettings settings
 ) {
     const Query kQuery{"", Query::Name{"ReadTable"}};
-    impl::RequestContext context{*this, kQuery, settings, impl::IsStreaming{true}};
+    impl::RequestContext context{*this, kQuery, std::move(settings), impl::IsStreaming{true}};
 
     auto future = impl::RetryOperation(
         context,
         [full_path = JoinDbPath(table),
          read_settings = std::move(read_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TSession session) mutable {
             impl::ApplyToRequestSettings(read_settings, settings, deadline);
             return session.ReadTable(impl::ToString(full_path), read_settings);
@@ -175,14 +175,14 @@ ScanQueryResults TableClient::ExecuteScanQuery(
     const Query& query,
     PreparedArgsBuilder&& builder
 ) {
-    impl::RequestContext context{*this, query, settings, impl::IsStreaming{true}};
+    impl::RequestContext context{*this, query, std::move(settings), impl::IsStreaming{true}};
 
     auto future = impl::RetryOperation(
         context,
         [query = query.Statement(),
          params = std::move(builder).Build(),
          scan_settings = std::move(scan_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TTableClient& table_client) mutable {
             impl::ApplyToRequestSettings(scan_settings, settings, deadline);
             return table_client.StreamExecuteScanQuery(impl::ToString(query), params, scan_settings);
@@ -306,12 +306,14 @@ Transaction TableClient::Begin(std::string transaction_name, TransactionMode tx_
 
 Transaction TableClient::Begin(std::string transaction_name, OperationSettings settings) {
     const Query query{"", Query::Name{"Begin"}};
-    impl::RequestContext context{*this, query, settings};
-    auto tx_settings = PrepareTxSettings(settings);
+    impl::RequestContext context{*this, query, std::move(settings)};
+    auto tx_settings = PrepareTxSettings(context.settings);
 
     auto future = impl::RetryOperation(
         context,
-        [tx_settings = std::move(tx_settings), settings, deadline = context.deadline](NYdb::NTable::TSession session) {
+        [tx_settings = std::move(tx_settings),
+         settings = context.settings,
+         deadline = context.deadline](NYdb::NTable::TSession session) {
             const auto exec_settings = impl::PrepareRequestSettings<NYdb::NTable::TBeginTxSettings>(settings, deadline);
             return session.BeginTransaction(tx_settings, exec_settings);
         }
@@ -324,11 +326,11 @@ Transaction TableClient::Begin(std::string transaction_name, OperationSettings s
 void TableClient::ExecuteSchemeQuery(const std::string& query) {
     const Query nameless_query{query};
     OperationSettings settings{};
-    impl::RequestContext context{*this, nameless_query, settings};
+    impl::RequestContext context{*this, nameless_query, std::move(settings)};
 
     auto retry_future = impl::RetryOperation(
         context,
-        [query, settings = std::move(settings), deadline = context.deadline](NYdb::NTable::TSession session) {
+        [query, settings = context.settings, deadline = context.deadline](NYdb::NTable::TSession session) {
             const auto exec_settings =
                 impl::PrepareRequestSettings<NYdb::NTable::TExecSchemeQuerySettings>(settings, deadline);
             return session.ExecuteSchemeQuery(impl::ToString(query), exec_settings);
@@ -349,14 +351,14 @@ ExecuteResponse TableClient::ExecuteDataQuery(
     const Query& query,
     PreparedArgsBuilder&& builder
 ) {
-    impl::RequestContext context{*this, query, settings};
+    impl::RequestContext context{*this, query, std::move(settings)};
 
     auto future = impl::RetryOperation(
         context,
         [query = query.Statement(),
          params = std::move(builder).Build(),
          exec_settings = ToExecQuerySettings(query_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
             const auto tx_settings = PrepareTxSettings(settings);
@@ -386,14 +388,14 @@ ExecuteResponse TableClient::ExecuteQuery(
         throw std::runtime_error("You set up custom cancel_after in an execution method that does not use it");
     }
 
-    impl::RequestContext context{*this, query, settings};
+    impl::RequestContext context{*this, query, std::move(settings)};
 
     auto future = impl::RetryQuery(
         context,
         [query = query.Statement(),
          params = std::move(builder).Build(),
          exec_settings = std::move(exec_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
             const auto tx_settings = PrepareQueryTxSettings(settings);

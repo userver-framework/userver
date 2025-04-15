@@ -68,7 +68,8 @@ SentinelImpl::SentinelImpl(
     ConnectionSecurity connection_security,
     ReadyChangeCallback ready_callback,
     std::unique_ptr<KeyShard>&& key_shard,
-    dynamic_config::Source dynamic_config_source
+    dynamic_config::Source dynamic_config_source,
+    std::size_t database_index
 )
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
@@ -80,7 +81,8 @@ SentinelImpl::SentinelImpl(
       connection_security_(connection_security),
       check_interval_(ToEvDuration(kSentinelGetHostsCheckInterval)),
       key_shard_(std::move(key_shard)),
-      dynamic_config_source_(dynamic_config_source) {
+      dynamic_config_source_(dynamic_config_source),
+      database_index_(database_index) {
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
     UASSERT_MSG(key_shard_.Get(), "key_shard should be provided");
@@ -528,6 +530,7 @@ void SentinelImpl::ReadSentinels() {
             for (auto shard_conn : info) {
                 if (shards_.find(shard_conn.Name()) != shards_.end()) {
                     shard_conn.SetConnectionSecurity(connection_security_);
+                    shard_conn.SetDatabaseIndex(database_index_);
                     shard_found[shards_[shard_conn.Name()]] = true;
                     watcher->host_port_to_shard[shard_conn.HostPort()] = shards_[shard_conn.Name()];
                     watcher->masters.push_back(std::move(shard_conn));
@@ -562,6 +565,7 @@ void SentinelImpl::ReadSentinels() {
                             shard_conn.SetName(shard);
                             shard_conn.SetReadOnly(true);
                             shard_conn.SetConnectionSecurity(connection_security_);
+                            shard_conn.SetDatabaseIndex(database_index_);
                             if (shards_.find(shard_conn.Name()) != shards_.end())
                                 watcher->host_port_to_shard[shard_conn.HostPort()] = shards_[shard_conn.Name()];
                             watcher->slaves.push_back(std::move(shard_conn));

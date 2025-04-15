@@ -17,10 +17,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-struct RetryBudgetSettings;
-}  // namespace utils
-
 namespace ydb::impl {
 
 namespace secdist {
@@ -60,23 +56,7 @@ DriverSettings ParseDriverSettings(
     std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory
 );
 
-struct ConfigCommandControl {
-    std::optional<std::uint32_t> attempts;
-    std::optional<std::chrono::milliseconds> operation_timeout_ms;
-    std::optional<std::chrono::milliseconds> cancel_after_ms;
-    std::optional<std::chrono::milliseconds> client_timeout_ms;
-    std::optional<std::chrono::milliseconds> get_session_timeout_ms;
-};
-
-ConfigCommandControl Parse(const formats::json::Value& config, formats::parse::To<ConfigCommandControl>);
-
-extern const dynamic_config::Key<std::unordered_map<std::string, ConfigCommandControl>> kQueryCommandControl;
-
 inline constexpr int kDeadlinePropagationExperimentVersion = 1;
-
-extern const dynamic_config::Key<int> kDeadlinePropagationVersion;
-
-extern const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>> kRetryBudgetSettings;
 
 }  // namespace ydb::impl
 

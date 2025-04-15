@@ -147,17 +147,15 @@ public:
 private:
     using InitialRequest = typename CallTraits::InitialRequest;
     using RawCall = typename CallTraits::RawCall;
-    using Call = typename CallTraits::Call;
-
-    using Context =
-        std::conditional_t<CallTraits::kCallCategory == CallCategory::kGeneric, GenericCallContext, CallContext>;
+    using Call = impl::Call<CallTraits>;
+    using Context = typename CallTraits::Context;
 
     auto DoCallHandler(Context& context, Call& responder) {
-        if constexpr (CallTraits::kCallCategory == CallCategory::kGeneric || CallTraits::kCallCategory == CallCategory::kInputStream || CallTraits::kCallCategory == CallCategory::kBidirectionalStream) {
+        if constexpr (CallTraits::kCallKind == CallKind::kInputStream || CallTraits::kCallKind == CallKind::kBidirectionalStream) {
             return (method_data_.service.*(method_data_.service_method))(context, responder);
-        } else if constexpr (CallTraits::kCallCategory == CallCategory::kUnary) {
+        } else if constexpr (CallTraits::kCallKind == CallKind::kUnaryCall) {
             return (method_data_.service.*(method_data_.service_method))(context, std::move(initial_request_));
-        } else if constexpr (CallTraits::kCallCategory == CallCategory::kOutputStream) {
+        } else if constexpr (CallTraits::kCallKind == CallKind::kOutputStream) {
             return (method_data_.service.*(method_data_.service_method))(
                 context, std::move(initial_request_), responder
             );
@@ -170,7 +168,7 @@ private:
         auto call_name = method_data_.call_name;
         auto service_name = method_data_.service_data.metadata.service_full_name;
         auto method_name = method_data_.method_name;
-        if constexpr (CallTraits::kCallCategory == CallCategory::kGeneric) {
+        if constexpr (std::is_same_v<Context, GenericCallContext>) {
             ParseGenericCallName(context_.method(), call_name, service_name, method_name);
         }
 
@@ -193,10 +191,10 @@ private:
                 method_name,
                 statistics_scope,
                 statistics_storage,
-                *access_tskv_logger,
                 span_->Get(),
                 storage_context,
-                middlewares},
+                middlewares,
+            },
             raw_responder_
         );
 
@@ -211,7 +209,13 @@ private:
 
         auto do_handle = [this, &context, &responder] { return DoCallHandler(context, responder); };
         CallProcessor<CallTraits, decltype(do_handle)> call_processor(
-            middleware_context, responder, middlewares, statistics_scope, initial_request, std::move(do_handle)
+            middleware_context,
+            responder,
+            middlewares,
+            statistics_scope,
+            initial_request,
+            *access_tskv_logger,
+            std::move(do_handle)
         );
 
         call_processor.DoCall();
@@ -223,7 +227,7 @@ private:
 
     MethodData<GrpcppService, CallTraits> method_data_;
 
-    typename CallTraits::ContextType context_{};
+    typename CallTraits::RawContext context_{};
     InitialRequest initial_request_{};
     RawCall raw_responder_{&context_};
     ugrpc::impl::AsyncMethodInvocation prepare_;

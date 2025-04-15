@@ -1,0 +1,76 @@
+# yaml
+components_manager:
+    components:
+        handler-sentinel-0:
+            db: redis-sentinel-0
+            path: /redis-sentinel-0
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-sentinel-1:
+            db: redis-sentinel-1
+            path: /redis-sentinel-1
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-sentinel-2:
+            db: redis-sentinel-2
+            path: /redis-sentinel-2
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            groups:
+              - config_name: redis-sentinel-0
+                db: redis-sentinel-0
+              - config_name: redis-sentinel-1
+                db: redis-sentinel-1
+              - config_name: redis-sentinel-2
+                db: redis-sentinel-2
+            subscribe_groups: []
+            thread_pools:
+                redis_thread_pool_size: 2
+                sentinel_thread_pool_size: 1
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        secdist: {}
+        default-secdist-provider:
+            config: /etc/redis_service/secure_data.json
+            missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

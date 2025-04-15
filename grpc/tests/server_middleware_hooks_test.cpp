@@ -3,11 +3,14 @@
 #include <gmock/gmock.h>
 #include <grpcpp/support/status.h>
 
+#include <tests/deadline_helpers.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
+#include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/flags.hpp>
@@ -65,8 +68,11 @@ public:
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class MiddlewaresHooksUnaryTest : public ugrpc::tests::ServiceFixtureBase, public testing::WithParamInterface<Flags> {
 protected:
-    MiddlewaresHooksUnaryTest() : m1(std::make_shared<MockMiddleware>()), m2(std::make_shared<MockMiddleware>()) {
-        SetServerMiddlewares({m1, m2});
+    MiddlewaresHooksUnaryTest()
+        : m0(std::make_shared<MockMiddleware>()),
+          m1(std::make_shared<MockMiddleware>()),
+          m2(std::make_shared<MockMiddleware>()) {
+        SetServerMiddlewares({m0, m1, m2});
         RegisterService(service_);
         StartServer();
     }
@@ -88,6 +94,7 @@ protected:
                             )](ugrpc::server::CallContext&, ::sample::ugrpc::GreetingRequest&&) { return handler(); });
     }
 
+    const MockMiddleware& M0() { return *m0; }
     const MockMiddleware& M1() { return *m1; }
     const MockMiddleware& M2() { return *m2; }
 
@@ -104,6 +111,7 @@ protected:
 
 private:
     MessengerMock service_;
+    std::shared_ptr<MockMiddleware> m0;
     std::shared_ptr<MockMiddleware> m1;
     std::shared_ptr<MockMiddleware> m2;
 };
@@ -318,6 +326,62 @@ UTEST_P(MiddlewaresHooksUnaryTest, ThrowInHandler) {
     EXPECT_CALL(M2(), OnCallFinish).Times(1);
 
     UEXPECT_THROW(client.SayHello(sample::ugrpc::GreetingRequest()), ugrpc::client::UnauthenticatedError);
+}
+
+UTEST_P(MiddlewaresHooksUnaryTest, DeadlinePropagation) {
+    SetSuccessHandler();
+    const auto client = GetClient();
+
+    ugrpc::server::middlewares::deadline_propagation::Middleware deadline_propagation{};
+
+    ON_CALL(M1(), OnCallStart).WillByDefault([&deadline_propagation](ugrpc::server::MiddlewareCallContext& context) {
+        deadline_propagation.OnCallStart(context);
+    });
+
+    // The order if OnCallFinish is reversed: M2 -> M1 -> M0
+    ON_CALL(M2(), OnCallFinish)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, const grpc::Status& status) {
+            EXPECT_TRUE(status.ok());
+            // We want to exceed a deadline for middleware 'grpc-server-deadline-propagation'
+            engine::SleepFor(std::chrono::milliseconds{20});
+        });
+    ON_CALL(M1(), OnCallFinish)
+        .WillByDefault(
+            [&deadline_propagation](ugrpc::server::MiddlewareCallContext& context, const grpc::Status& status) {
+                EXPECT_TRUE(status.ok());
+                /// Here the status will be replaced by 'grpc-server-deadline-propagation' middleware
+                deadline_propagation.OnCallFinish(context, status);
+            }
+        );
+    ON_CALL(M0(), OnCallFinish)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, const grpc::Status& status) {
+            // Status from 'grpc-server-deadline-propagation' middleware
+            EXPECT_TRUE(!status.ok());
+            EXPECT_EQ(status.error_code(), grpc::StatusCode::DEADLINE_EXCEEDED);
+            const auto& msg = status.error_message();
+            EXPECT_EQ("Deadline specified by the client for this RPC was exceeded", msg);
+        });
+
+    EXPECT_CALL(M1(), OnCallStart).Times(1);
+    EXPECT_CALL(M1(), PostRecvMessage).Times(1);
+    EXPECT_CALL(M1(), PreSendMessage).Times(1);
+    // OnCallStart of M1 is successfully => OnCallFinish must be called.
+    EXPECT_CALL(M1(), OnCallFinish).Times(1);
+
+    EXPECT_CALL(M2(), OnCallStart).Times(1);
+    EXPECT_CALL(M2(), PostRecvMessage).Times(1);
+    EXPECT_CALL(M2(), PreSendMessage).Times(1);
+    // OnCallStart of M2 is successfully => OnCallFinish must be called.
+    EXPECT_CALL(M2(), OnCallFinish).Times(1);
+
+    auto context = std::make_unique<grpc::ClientContext>();
+    std::chrono::milliseconds deadline_ms{10};
+    auto deadline = engine::Deadline::FromDuration(deadline_ms);
+    context->set_deadline(deadline);
+
+    UEXPECT_THROW(
+        client.SayHello(sample::ugrpc::GreetingRequest(), std::move(context)), ugrpc::client::DeadlineExceededError
+    );
 }
 
 INSTANTIATE_UTEST_SUITE_P(

@@ -109,7 +109,8 @@ public:
         ConnectionSecurity connection_security,
         ReadyChangeCallback ready_callback,
         std::unique_ptr<KeyShard>&& key_shard,
-        dynamic_config::Source dynamic_config_source
+        dynamic_config::Source dynamic_config_source,
+        std::size_t database_index
     );
     ~SentinelImpl() override;
 
@@ -210,7 +211,7 @@ private:
     Sentinel& sentinel_obj_;
     engine::ev::ThreadControl ev_thread_;
 
-    std::string shard_group_name_;
+    const std::string shard_group_name_;
     std::shared_ptr<const std::vector<std::string>> init_shards_;
     std::vector<std::unique_ptr<ConnectedStatus>> connected_statuses_;
     std::vector<ConnectionInfo> conns_;
@@ -240,6 +241,7 @@ private:
     std::optional<CommandsBufferingSettings> commands_buffering_settings_;
     dynamic_config::Source dynamic_config_source_;
     std::atomic<int> publish_shard_{0};
+    const std::size_t database_index_{0};
 };
 
 }  // namespace storages::redis::impl

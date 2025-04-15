@@ -40,27 +40,6 @@ public:
     impl::CallKind GetCallKind() const { return call_kind_; }
 
     /// @brief Returns call context for storing per-call custom data
-    ///
-    /// The context can be used to pass data from server middleware to client
-    /// handler or from one middleware to another one.
-    ///
-    /// ## Example usage:
-    ///
-    /// In authentication middleware:
-    ///
-    /// @code
-    /// if (password_is_correct) {
-    ///   // Username is authenticated, set it in per-call storage context
-    ///   ctx.GetCall().GetStorageContext().Emplace(kAuthUsername, username);
-    /// }
-    /// @endcode
-    ///
-    /// In client handler:
-    ///
-    /// @code
-    /// const auto& username = rpc.GetStorageContext().Get(kAuthUsername);
-    /// auto msg = fmt::format("Hello, {}!", username);
-    /// @endcode
     utils::AnyStorage<StorageContext>& GetStorageContext() { return params_.storage_context; }
 
     /// @brief Set a custom call name for metric labels
@@ -81,13 +60,9 @@ public:
     /// @endcond
 
 protected:
-    ugrpc::impl::RpcStatisticsScope& GetStatistics() { return params_.statistics; }
-
     void ApplyRequestHook(google::protobuf::Message* request);
 
     void ApplyResponseHook(google::protobuf::Message* response);
-
-    void PreSendStatus(const grpc::Status& status) noexcept;
 
     void PostFinish(const grpc::Status& status) noexcept;
 

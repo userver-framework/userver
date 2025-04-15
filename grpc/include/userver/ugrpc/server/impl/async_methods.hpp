@@ -4,9 +4,9 @@
 #include <string_view>
 #include <utility>
 
-#include <grpcpp/impl/codegen/async_stream.h>
-#include <grpcpp/impl/codegen/async_unary_call.h>
-#include <grpcpp/impl/codegen/status.h>
+#include <grpcpp/support/async_stream.h>
+#include <grpcpp/support/async_unary_call.h>
+#include <grpcpp/support/status.h>
 
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_method_invocation.hpp>
@@ -106,14 +106,6 @@ void WriteAndFinish(
     AsyncMethodInvocation write_and_finish;
     stream.WriteAndFinish(response, options, status, write_and_finish.GetTag());
     CheckInvocationSuccessful(Wait(write_and_finish), call_name, "WriteAndFinish");
-}
-
-template <typename GrpcStream, typename State>
-void SendInitialMetadataIfNew(GrpcStream& stream, std::string_view call_name, State& state) {
-    if (state == State::kNew) {
-        state = State::kOpen;
-        SendInitialMetadata(stream, call_name);
-    }
 }
 
 }  // namespace ugrpc::server::impl

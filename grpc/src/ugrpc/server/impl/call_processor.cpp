@@ -2,11 +2,14 @@
 
 #include <chrono>
 
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/tags.hpp>
 
+#include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
+#include <ugrpc/server/impl/format_log_message.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
 #include <userver/ugrpc/status_codes.hpp>
@@ -72,6 +75,30 @@ grpc::Status ReportCustomError(
     span.AddTag(tracing::kErrorMessage, ex.what());
     span.SetLogLevel(log_level);
     return status;
+}
+
+void WriteAccessLog(
+    MiddlewareCallContext& context,
+    const grpc::Status& status,
+    logging::TextLoggerRef access_tskv_logger
+) noexcept {
+    try {
+        const auto& server_context = context.GetServerContext();
+        constexpr auto kLevel = logging::Level::kInfo;
+
+        if (access_tskv_logger.ShouldLog(kLevel)) {
+            logging::impl::TextLogItem log_item{FormatLogMessage(
+                server_context.client_metadata(),
+                server_context.peer(),
+                context.GetSpan().GetStartSystemTime(),
+                context.GetCallName(),
+                status.error_code()
+            )};
+            access_tskv_logger.Log(kLevel, log_item);
+        }
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Error in WriteAccessLog: " << ex;
+    }
 }
 
 }  // namespace ugrpc::server::impl

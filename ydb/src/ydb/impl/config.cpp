@@ -83,21 +83,6 @@ DriverSettings ParseDriverSettings(
 
 using OptMs = std::optional<std::chrono::milliseconds>;
 
-ConfigCommandControl Parse(const formats::json::Value& config, formats::parse::To<ConfigCommandControl>) {
-    return ConfigCommandControl{
-        config["attempts"].As<std::optional<int>>(),
-        config["operation-timeout-ms"].As<OptMs>(),
-        config["cancel-after-ms"].As<OptMs>(),
-        config["client-timeout-ms"].As<OptMs>(),
-        config["get-session-timeout-ms"].As<OptMs>(),
-    };
-}
-
-const dynamic_config::Key<std::unordered_map<std::string, ConfigCommandControl>>
-    kQueryCommandControl("YDB_QUERIES_COMMAND_CONTROL", dynamic_config::DefaultAsJsonString("{}"));
-
-const dynamic_config::Key<int> kDeadlinePropagationVersion("YDB_DEADLINE_PROPAGATION_VERSION", 1);
-
 const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>>
     kRetryBudgetSettings("YDB_RETRY_BUDGET", dynamic_config::DefaultAsJsonString("{}"));
 

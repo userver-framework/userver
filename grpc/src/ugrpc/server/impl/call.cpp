@@ -2,40 +2,19 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
-#include <userver/logging/impl/logger_base.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
-#include <ugrpc/impl/span.hpp>
-#include <ugrpc/server/impl/format_log_message.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
-
-namespace {
-
-void WriteAccessLog(
-    logging::TextLoggerRef access_tskv_logger,
-    grpc::ServerContext& context,
-    std::chrono::system_clock::time_point start_time,
-    std::string_view call_name,
-    const grpc::Status& status
-) {
-    constexpr auto kLevel = logging::Level::kInfo;
-    if (access_tskv_logger.ShouldLog(kLevel)) {
-        logging::impl::TextLogItem log_item{impl::FormatLogMessage(
-            context.client_metadata(), context.peer(), start_time, call_name, status.error_code()
-        )};
-        access_tskv_logger.Log(kLevel, log_item);
-    }
-}
-
-}  // namespace
 
 std::unique_lock<engine::SingleWaitingTaskMutex> CallAnyBase::TakeMutexIfBidirectional() {
     if (call_kind_ == impl::CallKind::kBidirectionalStream) {
@@ -82,7 +61,7 @@ void CallAnyBase::ApplyRequestHook(google::protobuf::Message* request) {
             middleware->PostRecvMessage(*middleware_call_context_, *request);
             auto& status = middleware_call_context_->GetStatus();
             if (!status.ok()) {
-                throw impl::MiddlewareRpcInterruptionError(std::move(status));
+                throw impl::MiddlewareRpcInterruptionError(std::exchange(status, grpc::Status{}));
             }
         }
     }
@@ -97,30 +76,23 @@ void CallAnyBase::ApplyResponseHook(google::protobuf::Message* response) {
             middleware->PreSendMessage(*middleware_call_context_, *response);
             auto& status = middleware_call_context_->GetStatus();
             if (!status.ok()) {
-                throw impl::MiddlewareRpcInterruptionError(std::move(status));
+                throw impl::MiddlewareRpcInterruptionError(std::exchange(status, grpc::Status{}));
             }
         }
     }
 }
 
-void CallAnyBase::PreSendStatus(const grpc::Status& status) noexcept {
-    try {
-        WriteAccessLog(
-            params_.access_tskv_logger,
-            params_.context,
-            params_.call_span.GetStartSystemTime(),
-            params_.call_name,
-            status
-        );
-    } catch (const std::exception& ex) {
-        LOG_ERROR() << "Error in CallAnyBase::PreSendStatus: " << ex;
-    }
-}
-
 void CallAnyBase::PostFinish(const grpc::Status& status) noexcept {
     try {
-        GetStatistics().OnExplicitFinish(status.error_code());
-        ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
+        params_.statistics.OnExplicitFinish(status.error_code());
+
+        auto& span = params_.call_span;
+        span.AddTag("grpc_code", ugrpc::ToString(status.error_code()));
+        if (!status.ok()) {
+            span.AddTag(tracing::kErrorFlag, true);
+            span.AddTag(tracing::kErrorMessage, status.error_message());
+            span.SetLogLevel(IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning);
+        }
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error in CallAnyBase::PostFinish: " << ex;
     }

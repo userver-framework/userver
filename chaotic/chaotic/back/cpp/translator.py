@@ -20,7 +20,7 @@ class GeneratorConfig:
     # vfull -> namespace
     namespaces: Dict[str, str]
     # infile_path -> cpp type
-    infile_to_name_func: Optional[Callable] = None
+    infile_to_name_func: Callable
     # type: ignore
     include_dirs: Optional[List[str]] = dataclasses.field(
         # type: ignore
@@ -237,10 +237,7 @@ class Generator:
 
     def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
         vfile, infile = jsonschema_name.split('#')
-        if self._config.infile_to_name_func:
-            name = self._config.infile_to_name_func(infile)
-        else:
-            name = infile
+        name = self._config.infile_to_name_func(infile)
         namespace = self._config.namespaces[vfile]
         if namespace:
             return '::' + namespace + '::' + name
