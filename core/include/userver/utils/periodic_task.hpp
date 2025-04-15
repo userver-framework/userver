@@ -62,6 +62,15 @@ public:
 
     /// Configuration parameters for PeriodicTask.
     struct Settings final {
+        struct TimePoint {
+            std::uint8_t hour;
+            std::uint8_t minute;
+
+            bool operator==(const TimePoint& other) const {
+                return std::tie(hour, minute) == std::tie(other.hour, other.minute);
+            }
+        };
+
         static constexpr uint8_t kDistributionPercent = 25;
 
         constexpr /*implicit*/ Settings(
@@ -91,6 +100,12 @@ public:
             UASSERT(distribution_percent <= 100);
         }
 
+        constexpr Settings(
+            TimePoint time_point,
+            logging::Level span_level = logging::Level::kInfo
+        )
+            : strong_mode_anchor(time_point), span_level(span_level)  {}
+
         template <class Rep, class Period>
         constexpr /*implicit*/ Settings(std::chrono::duration<Rep, Period> period)
             : Settings(period, kDistributionPercent, {}, logging::Level::kInfo) {}
@@ -109,6 +124,10 @@ public:
         /// the task is repeated every
         /// `(period +/- distribution) - time of previous execution`
         std::chrono::milliseconds distribution{};
+
+        /// @brief Time point for the task execution. Task is repeated every
+        /// hour:minute UTC of the current/next day
+        std::optional<TimePoint> strong_mode_anchor;
 
         /// @brief Used instead of `period` in case of exception, if set.
         std::optional<std::chrono::milliseconds> exception_period;

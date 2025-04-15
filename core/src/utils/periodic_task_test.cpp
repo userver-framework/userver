@@ -157,6 +157,47 @@ UTEST(PeriodicTask, Strong) {
     task.Stop();
 }
 
+UTEST(PeriodicTask, StrongModeAnchor) {
+    SimpleTaskData simple;
+
+    simple.sleep = 6s;
+
+    const std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
+
+    auto tp_days = std::chrono::time_point_cast<std::chrono::duration<int, std::ratio<86400>>>(tp);
+
+    auto tod = tp - tp_days;
+
+    auto h = std::chrono::duration_cast<std::chrono::hours>(tod);
+    tod -= h;
+    auto m = std::chrono::duration_cast<std::chrono::minutes>(tod);
+
+    auto hour = static_cast<uint8_t>(h.count());
+    auto minute = static_cast<uint8_t>(m.count());
+
+    minute++;
+    if (minute >= 60) {
+        minute = 0;
+        hour++;
+        if (hour >= 24) {
+            hour = 0;
+        }
+    }
+
+    utils::PeriodicTask::Settings::TimePoint mode_anchor{
+        .hour = hour,
+        .minute = minute
+    };
+    utils::PeriodicTask task(
+        "task",
+        utils::PeriodicTask::Settings(mode_anchor),
+        simple.GetTaskFunction()
+    );
+    EXPECT_TRUE(simple.WaitFor(simple.sleep * kSlowRatio, [&] { return simple.GetCount() == 1; }));
+
+    task.Stop();
+}
+
 UTEST(PeriodicTask, Now) {
     SimpleTaskData simple;
 

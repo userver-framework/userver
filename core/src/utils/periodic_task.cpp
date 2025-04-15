@@ -22,8 +22,8 @@ namespace {
 
 auto TieSettings(const PeriodicTask::Settings& settings) {
     // Can't use Boost.Pfr, because Settings has custom constructors.
-    const auto& [f1, f2, f3, f4, f5, f6] = settings;
-    return std::tie(f1, f2, f3, f4, f5, f6);
+    const auto& [f1, f2, f3, f4, f5, f6, f7] = settings;
+    return std::tie(f1, f2, f3, f4, f5, f6, f7);
 }
 
 }  // namespace
@@ -156,7 +156,21 @@ void PeriodicTask::Run() {
         if (!no_exception) period = exception_period;
 
         std::chrono::steady_clock::time_point start;
-        if (settings->flags & Flags::kStrong) {
+
+        if (settings->strong_mode_anchor) {
+            const auto now = utils::datetime::WallCoarseClock::now();
+            const auto today = std::chrono::time_point_cast<std::chrono::duration<long long, std::ratio<86400>>>(now);
+
+            const auto [hours, minutes] = settings->strong_mode_anchor.value();
+            auto anchor_time_point = today + std::chrono::hours(hours) + std::chrono::minutes(minutes);
+            if (now > anchor_time_point) {
+                anchor_time_point += std::chrono::hours(24);
+            }
+
+            start = std::chrono::steady_clock::now()
+            + std::chrono::duration_cast<std::chrono::steady_clock::duration>(anchor_time_point - now);
+        }
+        else if (settings->flags & Flags::kStrong) {
             start = before;
         } else {
             start = std::chrono::steady_clock::now();
