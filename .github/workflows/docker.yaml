@@ -16,7 +16,7 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_STANDARD=17
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=~/.CPMcache
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_SAMPLES=1
@@ -31,7 +31,7 @@ jobs:
                         -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=17
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=~/.CPMcache
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
@@ -45,7 +45,7 @@ jobs:
                         -DCMAKE_C_COMPILER=gcc-11
                         -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=17
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=~/.CPMcache
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -60,7 +60,7 @@ jobs:
                         -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=20
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=~/.CPMcache
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
@@ -73,7 +73,7 @@ jobs:
                         -DCMAKE_C_COMPILER=gcc-11
                         -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=20
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=~/.CPMcache
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -142,7 +142,7 @@ jobs:
           - name: Save cached directories
             uses: actions/cache/save@v4
             with:
-                # Do not save `.cache/CPM`! CPM can not restore if the cache is corrupted
+                # Do not save `.CPMcache`! CPM can not restore if the cache is corrupted
                 path: |
                     .ccache
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
