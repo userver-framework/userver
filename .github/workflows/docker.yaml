@@ -100,7 +100,6 @@ jobs:
             with:
                 path: |
                     .ccache
-                    .cache/CPM
                 key: 'docker-cache-dir ${{matrix.id}} ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     docker-cache-dir ${{matrix.id}} ${{github.ref}}
@@ -143,9 +142,9 @@ jobs:
           - name: Save cached directories
             uses: actions/cache/save@v4
             with:
+                # Do not save `.cache/CPM`! CPM can not restore if the cache is corrupted
                 path: |
                     .ccache
-                    .cache/CPM
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
           - name: Run ydb
