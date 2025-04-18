@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file
+/// @brief Forward declarations of storages::redis::Reply, storages::redis::ReplyData, storages::redis::CommandControl,
+/// storages::redis::Request, storages::redis::Client and storages::redis::SubscribeClient.
+
 #include <userver/storages/redis/client_fwd.hpp>
 
 #include <memory>

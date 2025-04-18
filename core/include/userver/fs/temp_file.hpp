@@ -31,6 +31,7 @@ public:
     /// @brief Create the file at the specified path
     /// @param parent_path The directory where the temporary file will be created
     /// @param name_prefix File name prefix, a random string will be added
+    /// @param fs_task_processor The `engine::TaskProcessor` to use for the blocking fs operations
     /// after the prefix
     /// @throws std::runtime_error
     static TempFile

@@ -45,7 +45,7 @@ void QueryQueue::Reserve(std::size_t size) {
     queries_storage_->descriptions.reserve(size);
 }
 
-std::vector<ResultSet> QueryQueue::Collect() { return QueryQueue::Collect(default_cc_.execute); }
+std::vector<ResultSet> QueryQueue::Collect() { return QueryQueue::Collect(default_cc_.network_timeout_ms); }
 
 std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
     ValidateUsage();
@@ -85,9 +85,9 @@ const UserTypes& QueryQueue::GetConnectionUserTypes() const { return conn_->GetU
 void QueryQueue::DoPush(CommandControl cc, const Query& query, ParamsHolder&& params) {
     ValidateUsage();
 
-    auto prepared_statement_meta = conn_->PrepareStatement(query, params.params_proxy, cc.execute);
+    auto prepared_statement_meta = conn_->PrepareStatement(query, params.params_proxy, cc.network_timeout_ms);
     queries_storage_->queries.emplace_back(
-        std::move(prepared_statement_meta.statement_name), std::move(params), cc.statement
+        std::move(prepared_statement_meta.statement_name), std::move(params), cc.statement_timeout_ms
     );
     queries_storage_->descriptions.emplace_back(std::move(prepared_statement_meta.description));
 }

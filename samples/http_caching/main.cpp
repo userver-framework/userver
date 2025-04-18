@@ -27,7 +27,7 @@ struct KeyLangEq {
 };
 
 struct KeyLangHash {
-    bool operator()(const KeyLang& x) const noexcept;
+    std::size_t operator()(const KeyLang& x) const noexcept;
 };
 
 using KeyLangToTranslation = std::unordered_map<KeyLang, std::string, KeyLangHash, KeyLangEq>;
@@ -41,7 +41,7 @@ bool KeyLangEq::operator()(const KeyLang& x, const KeyLang& y) const noexcept {
     return x.key == y.key && x.language == y.language;
 }
 
-bool KeyLangHash::operator()(const KeyLang& x) const noexcept {
+std::size_t KeyLangHash::operator()(const KeyLang& x) const noexcept {
     std::string data;
     data.append(x.key);
     data.append(x.language);

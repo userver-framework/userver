@@ -15,7 +15,7 @@ namespace impl {
 
 std::string SuggestNameErrorMsg(std::optional<std::string_view> suggest_name) {
     if (suggest_name.has_value()) {
-        return fmt::format(" Perhaps you meant '{}' ?", suggest_name.value());
+        return fmt::format(" Perhaps you meant '{}'?", suggest_name.value());
     }
     return "";
 }

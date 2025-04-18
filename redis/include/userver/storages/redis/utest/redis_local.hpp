@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/redis/utest/redis_local.hpp
-/// @brief @copybrief storages::redis::RedisLocal
+/// @brief @copybrief storages::redis::utest::RedisLocal
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
@@ -14,9 +14,9 @@ namespace impl {
 class RedisLocalImpl;
 }  // namespace impl
 
-/// @brief Redis local class
+/// @brief Valkey or Redis local class
 ///
-/// Provide access to localhost Redis
+/// Provide access to localhost Valkey or Redis
 class RedisLocal {
 public:
     RedisLocal();

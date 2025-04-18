@@ -40,7 +40,8 @@ def close_namespace() -> str:
     if current_namespace:
         data = ''
         for name in reversed(current_namespace.split('::')):
-            data += '} //' + name + '\n'
+            if name:
+                data += '} //' + name + '\n'
         return data
     else:
         return ''
@@ -54,7 +55,8 @@ def open_namespace(new_ns: str) -> str:
     if new_ns:
         res = ''
         for namespace in new_ns.split('::'):
-            res = res + f'namespace {namespace} {{'
+            if namespace:
+                res = res + f'namespace {namespace} {{'
         return res
     else:
         return ''

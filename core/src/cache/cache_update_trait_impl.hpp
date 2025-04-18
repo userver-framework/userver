@@ -6,9 +6,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <variant>
 
-#include <userver/alerts/storage.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dynamic_config/fwd.hpp>
@@ -109,7 +107,7 @@ private:
     const Config static_config_;
     rcu::Variable<Config> config_;
     testsuite::CacheControl& cache_control_;
-    alerts::Storage& alerts_storage_;
+    utils::statistics::MetricsStoragePtr metrics_storage_;
     const std::string name_;
     const std::string update_task_name_;
     engine::TaskProcessor& task_processor_;

@@ -6,12 +6,14 @@
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
+#include <dynamic_config/variables/POSTGRES_DEADLINE_PROPAGATION_VERSION.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
 void CheckDeadlineIsExpired(const dynamic_config::Snapshot& config) {
-    if (config[kDeadlinePropagationVersionConfig] != kDeadlinePropagationExperimentVersion) {
+    if (config[::dynamic_config::POSTGRES_DEADLINE_PROPAGATION_VERSION] != kDeadlinePropagationExperimentVersion) {
         return;
     }
 
@@ -24,9 +26,6 @@ void CheckDeadlineIsExpired(const dynamic_config::Snapshot& config) {
 
 TimeoutDuration AdjustTimeout(TimeoutDuration timeout, bool& adjusted) {
     adjusted = false;
-    if (!USERVER_NAMESPACE::utils::impl::kPgDeadlinePropagationExperiment.IsEnabled()) {
-        return timeout;
-    }
 
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
     if (!inherited_deadline.IsReachable()) return timeout;

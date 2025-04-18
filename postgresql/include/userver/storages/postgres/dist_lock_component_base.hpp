@@ -79,6 +79,7 @@ public:
 
     dist_lock::DistLockedWorker& GetWorker();
 
+    /// @note In testsuite always returns `true`, because there is only one host.
     bool OwnsLock() const noexcept;
 
     static yaml_config::Schema GetStaticConfigSchema();

@@ -61,7 +61,7 @@ NotifyScope Cluster::Listen(std::string_view channel, OptionalCommandControl cmd
 }
 
 QueryQueue Cluster::CreateQueryQueue(ClusterHostTypeFlags flags) {
-    return CreateQueryQueue(flags, pimpl_->GetDefaultCommandControl().execute);
+    return CreateQueryQueue(flags, pimpl_->GetDefaultCommandControl().network_timeout_ms);
 }
 
 QueryQueue Cluster::CreateQueryQueue(ClusterHostTypeFlags flags, TimeoutDuration acquire_timeout) {

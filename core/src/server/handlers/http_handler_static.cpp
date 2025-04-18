@@ -7,33 +7,11 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <dynamic_config/variables/USERVER_FILES_CONTENT_TYPE_MAP.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
-
-namespace {
-
-const dynamic_config::Key<dynamic_config::ValueDict<std::string>> kContentTypeMap{
-    "USERVER_FILES_CONTENT_TYPE_MAP",
-    dynamic_config::DefaultAsJsonString{
-        R"(
-{
-  ".css": "text/css",
-  ".gif": "image/gif",
-  ".htm": "text/html",
-  ".html": "text/html",
-  ".jpeg": "image/jpeg",
-  ".js": "application/javascript",
-  ".json": "application/json",
-  ".md": "text/markdown",
-  ".png": "image/png",
-  ".svg": "image/svg+xml",
-  "__default__": "text/plain"
-}
-)"},
-};
-
-}  // namespace
 
 HttpHandlerStatic::HttpHandlerStatic(
     const components::ComponentConfig& config,
@@ -54,7 +32,7 @@ std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& reque
     if (file) {
         const auto config = config_.GetSnapshot();
         response.SetHeader(USERVER_NAMESPACE::http::headers::kExpires, std::to_string(cache_age_.count()));
-        response.SetContentType(config[kContentTypeMap][file->extension]);
+        response.SetContentType(config[::dynamic_config::USERVER_FILES_CONTENT_TYPE_MAP][file->extension]);
         return file->data;
     }
     response.SetStatusNotFound();

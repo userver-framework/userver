@@ -21,7 +21,7 @@ namespace fs::blocking {
 /// @note The operations on the file are blocking and not thread-safe
 class FileDescriptor final {
 public:
-    /// @brief Open a file using ::open
+    /// @brief Open a file using `::open`
     /// @throws std::runtime_error
     static FileDescriptor Open(
         const std::string& path,

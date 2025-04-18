@@ -4,12 +4,12 @@
 #include <userver/components/component_context.hpp>
 #include <userver/formats/common/merge.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/middlewares/runner.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/server/impl/parse_config.hpp>
-#include <userver/ugrpc/middlewares/pipeline.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
@@ -23,7 +23,7 @@ ServiceComponentBase::ServiceComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : impl::MiddlewareRunner(config, context, kMiddlewarePipelineName),
+    : impl::MiddlewareRunner(config, context, MiddlewarePipelineComponent::kName),
       server_(context.FindComponent<ServerComponent>()),
       config_(server_.ParseServiceConfig(config, context)),
       info_{config.Name()} {

@@ -11,8 +11,8 @@ async def test_server_limit_bytes(grpc_ch, service_client, gate, case):
         return
 
     for i in range(100, 250, 50):
-        gate.to_server_limit_bytes(i)
+        await gate.to_server_limit_bytes(i)
         await requests_client.unavailable_request(service_client, gate, case)
 
-    gate.to_server_pass()
+    await gate.to_server_pass()
     await requests_client.check_200_for(case)(grpc_ch, service_client, gate)

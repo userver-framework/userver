@@ -1,6 +1,6 @@
 #include "test_utils.hpp"
 
-#include <ydb-cpp-sdk/v2/library/issue/yql_issue.h>
+#include <ydb-cpp-sdk/library/issue/yql_issue.h>
 
 #include <ydb/impl/future.hpp>
 #include <ydb/impl/retry.hpp>
@@ -14,7 +14,7 @@ public:
     template <typename Func>
     auto RetryOperationSync(std::size_t retries, Func func) {
         auto settings = MakeOperationSettings(retries);
-        ydb::impl::RequestContext context{GetTableClient(), ydb::Query{}, settings};
+        ydb::impl::RequestContext context{GetTableClient(), ydb::Query{}, std::move(settings)};
 
         auto future = ydb::impl::RetryOperation(context, std::move(func));
 

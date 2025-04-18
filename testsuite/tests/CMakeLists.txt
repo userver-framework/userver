@@ -1,8 +1,7 @@
 project(userver-testsuite-tests)
 
-add_test(NAME ${PROJECT_NAME}
-  COMMAND "${TESTSUITE_PYTHON_BINARY}" -m pytest "${CMAKE_CURRENT_SOURCE_DIR}"
-  WORKING_DIRECTORY "${USERVER_ROOT_DIR}/testsuite/pytest_plugins"
-)
-
-set_tests_properties(${PROJECT_NAME} PROPERTIES TIMEOUT 600)
+add_subdirectory(chaos)
+add_subdirectory(config)
+add_subdirectory(metrics)
+add_subdirectory(sql_coverage_empty)
+# add_subdirectory(sql_coverage_full) TODO: TAXICOMMON-10381

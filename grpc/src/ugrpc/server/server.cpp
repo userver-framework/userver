@@ -20,10 +20,11 @@
 #include <ugrpc/impl/grpc_native_logging.hpp>
 #include <ugrpc/server/impl/generic_service_worker.hpp>
 #include <ugrpc/server/impl/parse_config.hpp>
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
+#include <userver/ugrpc/server/impl/service_internals.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -103,7 +104,7 @@ private:
 
     static std::shared_ptr<grpc::ServerCredentials> BuildCredentials(const TlsConfig& config);
 
-    impl::ServiceSettings MakeServiceSettings(ServiceConfig&& config);
+    impl::ServiceInternals MakeServiceInternals(ServiceConfig&& config);
 
     void AddListeningPort(int port, const TlsConfig& tls_config);
 
@@ -188,8 +189,8 @@ void Server::Impl::AddListeningUnixSocket(std::string_view path, const TlsConfig
     server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri), BuildCredentials(tls_config));
 }
 
-impl::ServiceSettings Server::Impl::MakeServiceSettings(ServiceConfig&& config) {
-    return impl::ServiceSettings{
+impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config) {
+    return impl::ServiceInternals{
         completion_queues_.value(),  //
         config.task_processor,
         statistics_storage_,
@@ -202,13 +203,13 @@ impl::ServiceSettings Server::Impl::MakeServiceSettings(ServiceConfig&& config) 
 void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
     const std::lock_guard lock(configuration_mutex_);
     UASSERT(state_ == State::kConfiguration);
-    service_workers_.push_back(service.MakeWorker(MakeServiceSettings(std::move(config))));
+    service_workers_.push_back(service.MakeWorker(MakeServiceInternals(std::move(config))));
 }
 
 void Server::Impl::AddService(GenericServiceBase& service, ServiceConfig&& config) {
     const std::lock_guard lock(configuration_mutex_);
     UASSERT(state_ == State::kConfiguration);
-    generic_service_workers_.emplace_back(service, MakeServiceSettings(std::move(config)));
+    generic_service_workers_.emplace_back(service, MakeServiceInternals(std::move(config)));
 }
 
 std::vector<std::string_view> Server::Impl::GetServiceNames() const {
@@ -244,7 +245,8 @@ void Server::Impl::Start() {
         state_ = State::kActive;
     } catch (const std::exception& ex) {
         LOG_ERROR() << "The gRPC server failed to start. " << ex;
-        Stop();
+        // Not Stop, because some gRPC clients might be using completion_queues_.
+        StopServing();
         throw;
     }
 }

@@ -70,12 +70,16 @@ public:
     }
 
     bool IsReady(WaitConnectedMode mode) const;
+    std::string GetReadinessInfo() const;
 
     bool HasSameInfos(const ClusterShardHostInfos& infos) const;
 
     const ClusterShardHostInfos& GetShardInfos() const { return infos_; }
     size_t GetVersion() const { return version_; }
-    size_t GetShardsCount() const { return cluster_shards_.size(); }
+    size_t GetShardsCount() const {
+        UASSERT(!cluster_shards_.empty());
+        return cluster_shards_.size();
+    }
     std::chrono::steady_clock::time_point GetTimestamp() const { return timestamp_; }
 
     void GetStatistics(const MetricsSettings& settings, SentinelStatistics& stats) const;

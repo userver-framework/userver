@@ -23,30 +23,18 @@ const storages::secdist::SecdistConfig* GetSecdist(const components::ComponentCo
     return nullptr;
 }
 
-MiddlewareFactories
-FindMiddlewareFactories(const std::vector<std::string>& names, const components::ComponentContext& context) {
-    MiddlewareFactories mws;
-    for (const auto& name : names) {
-        auto& component = context.FindComponent<MiddlewareComponentBase>(name);
-        mws.push_back(component.GetMiddlewareFactory());
-    }
-    return mws;
-}
-
 }  // namespace
 
 ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : ComponentBase(config, context) {
+    : impl::MiddlewareRunner(config, context, MiddlewarePipelineComponent::kName) {
     auto& client_common_component = context.FindComponent<CommonComponent>();
 
     const auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
 
     auto& testsuite_grpc = context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
-
-    auto middlewares = FindMiddlewareFactories(config["middlewares"].As<std::vector<std::string>>(), context);
 
     auto factory_config = config.As<impl::ClientFactoryConfig>();
 
@@ -55,7 +43,7 @@ ClientFactoryComponent::ClientFactoryComponent(
     factory_.emplace(
         MakeFactorySettings(std::move(factory_config), secdist),
         client_common_component.blocking_task_processor_,
-        std::move(middlewares),  //
+        *this,  // impl::PipelineCreatorInterface&
         client_common_component.completion_queues_,
         client_common_component.client_statistics_storage_,
         testsuite_grpc,  //
@@ -66,7 +54,7 @@ ClientFactoryComponent::ClientFactoryComponent(
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
 
 yaml_config::Schema ClientFactoryComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<impl::MiddlewareRunner>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false
@@ -102,13 +90,6 @@ properties:
         description: |
             Number of channels created for each endpoint.
         defaultDescription: 1
-    middlewares:
-        type: array
-        items:
-            type: string
-            description: middleware name
-        description: middlewares names
-        defaultDescription: '[]'
 )");
 }
 

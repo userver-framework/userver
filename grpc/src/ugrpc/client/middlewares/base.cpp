@@ -30,26 +30,27 @@ std::string_view MiddlewareCallContext::GetClientName() const noexcept { return 
 
 std::string_view MiddlewareCallContext::GetCallName() const noexcept { return data_.GetCallName(); }
 
-CallKind MiddlewareCallContext::GetCallKind() const noexcept { return data_.GetCallKind(); }
-
 tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return data_.GetSpan(); }
+
+bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(data_.GetCallKind()); }
+
+bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(data_.GetCallKind()); }
 
 impl::RpcData& MiddlewareCallContext::GetData(ugrpc::impl::InternalTag) { return data_; }
 
-MiddlewareFactoryBase::~MiddlewareFactoryBase() = default;
-
-namespace impl {
-
-Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories, const std::string& client_name) {
-    Middlewares mws;
-    mws.reserve(factories.size());
-    for (const auto& mw_factory : factories) {
-        mws.push_back(mw_factory->GetMiddleware(client_name));
-    }
-    return mws;
-}
-
-}  // namespace impl
+MiddlewarePipelineComponent::MiddlewarePipelineComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent(
+          config,
+          context,
+          {{
+              {"grpc-client-logging", {}},
+              {"grpc-client-baggage", {}},
+              {"grpc-client-deadline-propagation", {}},
+          }}
+      ) {}
 
 }  // namespace ugrpc::client
 

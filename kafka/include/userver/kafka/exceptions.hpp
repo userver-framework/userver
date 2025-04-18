@@ -107,6 +107,15 @@ public:
     GetMetadataTimeoutException(std::string_view topic);
 };
 
+/// @brief Exception throw when parsing consumed messages headers.
+/// @see Message::GetHeaders
+class ParseHeadersException final : std::runtime_error {
+    static constexpr const char* kWhat = "Failed to parse headers";
+
+public:
+    ParseHeadersException(std::string_view error);
+};
+
 }  // namespace kafka
 
 USERVER_NAMESPACE_END

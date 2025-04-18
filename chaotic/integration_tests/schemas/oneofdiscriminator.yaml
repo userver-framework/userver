@@ -28,3 +28,31 @@ definitions:
                 type: string
             b_prop:
                 type: integer
+
+    IntegerOneOfDiscriminator:
+        type: object
+        additionalProperties: false
+        properties:
+            foo:
+                oneOf:
+                  - $ref: '#/definitions/C'
+                  - $ref: '#/definitions/D'
+                discriminator:
+                    propertyName: version
+                    mapping:
+                        42: '#/definitions/C'
+                        52: '#/definitions/D'
+
+    C:
+        type: object
+        additionalProperties: false
+        properties:
+            version:
+                type: integer
+
+    D:
+        type: object
+        additionalProperties: false
+        properties:
+            version:
+                type: integer

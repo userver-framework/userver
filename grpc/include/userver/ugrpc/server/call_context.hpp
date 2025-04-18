@@ -6,21 +6,28 @@
 #include <grpcpp/server_context.h>
 
 #include <userver/tracing/span.hpp>
-#include <userver/ugrpc/server/storage_context.hpp>
 #include <userver/utils/any_storage.hpp>
+
+#include <userver/ugrpc/server/storage_context.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+namespace impl {
 class CallAnyBase;
+}  // namespace impl
 
-/// @brief gRPC call context
-class CallContext {
+class CallContextBase {
 public:
     /// @cond
-    explicit CallContext(CallAnyBase& call);
+    /// For internal use only
+    CallContextBase(utils::impl::InternalTag, impl::CallAnyBase& call);
     /// @endcond
+
+    CallContextBase(CallContextBase&&) = delete;
+    CallContextBase& operator=(CallContextBase&&) = delete;
 
     /// @returns the `ServerContext` used for this RPC
     grpc::ServerContext& GetServerContext();
@@ -63,20 +70,32 @@ public:
 
 protected:
     /// @cond
-    const CallAnyBase& GetCall() const;
+    const impl::CallAnyBase& GetCall(utils::impl::InternalTag) const;
 
-    CallAnyBase& GetCall();
+    impl::CallAnyBase& GetCall(utils::impl::InternalTag);
+
+    // Prevent destruction via pointer to base.
+    ~CallContextBase() = default;
+
     /// @endcond
 
 private:
-    CallAnyBase& call_;
+    impl::CallAnyBase& call_;
+};
+
+/// @brief gRPC call context
+class CallContext final : public CallContextBase {
+public:
+    /// @cond
+    using CallContextBase::CallContextBase;
+    /// @endcond
 };
 
 /// @brief generic gRPC call context
-class GenericCallContext : public CallContext {
+class GenericCallContext final : public CallContextBase {
 public:
     /// @cond
-    using CallContext::CallContext;
+    using CallContextBase::CallContextBase;
     /// @endcond
 
     /// @brief Set a custom call name for metric labels

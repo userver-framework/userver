@@ -40,6 +40,7 @@ function(_userver_setup_environment_impl)
   endif()
 
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON PARENT_SCOPE)
+  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES} PARENT_SCOPE)
   if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_STANDARD 17 PARENT_SCOPE)
@@ -91,14 +92,17 @@ function(_userver_setup_environment_impl)
   endif()
 
   # Build type specific
-  if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
-    add_compile_definitions(_GLIBCXX_ASSERTIONS)
-    add_compile_definitions(BOOST_ENABLE_ASSERT_HANDLER)
-  else()
+  if(CMAKE_BUILD_TYPE MATCHES "^.*Rel.*$")  # same as in install/Config.cmake
+    message(STATUS "Release build: CMAKE_BUILD_TYPE == '${CMAKE_BUILD_TYPE}'")
+
     add_compile_definitions(NDEBUG)
 
     # enable additional glibc checks (used in debian packaging, requires -O)
     add_compile_definitions("_FORTIFY_SOURCE=2")
+  else()
+    message(STATUS "Debug build: CMAKE_BUILD_TYPE == '${CMAKE_BUILD_TYPE}'")
+    add_compile_definitions(_GLIBCXX_ASSERTIONS)
+    add_compile_definitions(BOOST_ENABLE_ASSERT_HANDLER)
   endif()
 endfunction()
 

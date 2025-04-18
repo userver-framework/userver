@@ -39,6 +39,8 @@ private:
     void RunDiscovery();
     void RunCheck(DsnIndex);
 
+    void FillNearestDsnIndex(DsnIndices& dsn_indices);
+
     std::vector<HostState> host_states_;
     rcu::Variable<DsnIndicesByType> dsn_indices_by_type_;
     rcu::Variable<DsnIndices> alive_dsn_indices_;

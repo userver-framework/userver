@@ -29,7 +29,7 @@ enum class PubShard {
 
 /// @ingroup userver_clients
 ///
-/// @brief Redis client.
+/// @brief Valkey or Redis client.
 ///
 /// Usually retrieved from components::Redis component.
 ///
@@ -76,6 +76,12 @@ public:
 
     virtual RequestUnlink Unlink(std::vector<std::string> keys, const CommandControl& command_control) = 0;
 
+    /// @brief Invoke the execution of a server-side Lua script.
+    ///
+    /// For huge scripts consider EvalSha() to save network bandwidth.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample eval usage
     template <typename ScriptResult, typename ReplyType = ScriptResult>
     RequestEval<ScriptResult, ReplyType> Eval(
         std::string script,
@@ -86,6 +92,14 @@ public:
         return RequestEval<ScriptResult, ReplyType>{
             EvalCommon(std::move(script), std::move(keys), std::move(args), command_control)};
     }
+
+    /// @brief Invoke the execution of a server-side Lua script that was previously uploaded to the server via
+    /// ScriptLoad() member function.
+    ///
+    /// For small scripts consider using a simpler Eval() member function.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample evalsha usage
     template <typename ScriptResult, typename ReplyType = ScriptResult>
     RequestEvalSha<ScriptResult, ReplyType> EvalSha(
         std::string script_hash,
@@ -97,8 +111,13 @@ public:
             EvalShaCommon(std::move(script_hash), std::move(keys), std::move(args), command_control)};
     }
 
+    /// @brief Load the script to the server for further execution via EvalSha() member function.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample evalsha usage
     virtual RequestScriptLoad ScriptLoad(std::string script, size_t shard, const CommandControl& command_control) = 0;
 
+    /// @overload
     template <typename ScriptInfo, typename ReplyType = std::decay_t<ScriptInfo>>
     RequestEval<std::decay_t<ScriptInfo>, ReplyType> Eval(
         const ScriptInfo& script_info,

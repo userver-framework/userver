@@ -17,14 +17,24 @@ enum class ValidationMode {
 ValidationMode Parse(const yaml_config::YamlConfig& value, formats::parse::To<ValidationMode>);
 
 namespace impl {
+
+[[noreturn]] void WrapInvalidStaticConfigSchemaException(const std::exception&);
+
 template <typename Component>
 void TryValidateStaticConfig(
     std::string_view component_name,
     const components::ComponentConfig& static_config,
     ValidationMode validation_condition
 ) {
+    if (components::kForceNoValidation<Component>) return;
+
     if (components::kHasValidate<Component> || validation_condition == ValidationMode::kAll) {
-        yaml_config::Schema schema = Component::GetStaticConfigSchema();
+        yaml_config::Schema schema;
+        try {
+            schema = Component::GetStaticConfigSchema();
+        } catch (const std::exception& ex) {
+            WrapInvalidStaticConfigSchemaException(ex);
+        }
         schema.path = component_name;
 
         yaml_config::impl::Validate(static_config, schema);

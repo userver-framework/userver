@@ -1,7 +1,5 @@
 #include "server_common_sentinel_test.hpp"
 
-#include <storages/redis/dynamic_config.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 SentinelTest::SentinelTest(

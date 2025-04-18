@@ -21,6 +21,7 @@
 #include <schemas/object_object.hpp>
 #include <schemas/object_single_field.hpp>
 #include <schemas/one_of.hpp>
+#include <schemas/oneofdiscriminator.hpp>
 #include <schemas/uuid.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -165,7 +166,7 @@ TEST(Simple, IntegerEnum) {
     UEXPECT_THROW_MSG(
         json2["one"].As<ns::IntegerEnum>(),
         chaotic::Error<formats::json::Value>,
-        "Error at path 'one': Invalid enum value (5) for type ns::IntegerEnum"
+        "Error at path 'one': Invalid enum value (5) for type ::ns::IntegerEnum"
     );
 
     EXPECT_EQ(std::size(ns::kIntegerEnumValues), 3);
@@ -190,7 +191,7 @@ TEST(Simple, StringEnum) {
     UEXPECT_THROW_MSG(
         json2["one"].As<ns::StringEnum>(),
         chaotic::Error<formats::json::Value>,
-        "Error at path 'one': Invalid enum value (zoo) for type ns::StringEnum"
+        "Error at path 'one': Invalid enum value (zoo) for type ::ns::StringEnum"
     );
 
     EXPECT_EQ("foo", ToString(ns::StringEnum::kFoo));
@@ -201,14 +202,14 @@ TEST(Simple, StringEnum) {
     UEXPECT_THROW_MSG(
         FromString("zoo", formats::parse::To<ns::StringEnum>{}),
         std::runtime_error,
-        "Invalid enum value (zoo) for type ns::StringEnum"
+        "Invalid enum value (zoo) for type ::ns::StringEnum"
     );
 
     EXPECT_EQ(Parse("foo", formats::parse::To<ns::StringEnum>{}), ns::StringEnum::kFoo);
     UEXPECT_THROW_MSG(
         Parse("zoo", formats::parse::To<ns::StringEnum>{}),
         std::runtime_error,
-        "Invalid enum value (zoo) for type ns::StringEnum"
+        "Invalid enum value (zoo) for type ::ns::StringEnum"
     );
 
     EXPECT_EQ(std::size(ns::kStringEnumValues), 3);
@@ -266,6 +267,11 @@ TEST(Simple, OneOfWithDiscriminator) {
 
     auto json_back = formats::json::ValueBuilder{obj}.ExtractValue();
     EXPECT_EQ(json_back, json) << ToString(json_back);
+}
+
+TEST(Simple, OneOfWithDiscriminatorMapping) {
+    EXPECT_EQ(ns::IntegerOneOfDiscriminator::kFoo_Settings.mapping.Describe(), "'42', '52'");
+    EXPECT_EQ(ns::OneOfDiscriminator::kFoo_Settings.mapping.Describe(), "'aaa', 'bbb'");
 }
 
 TEST(Simple, Indirect) {

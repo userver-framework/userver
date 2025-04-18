@@ -22,7 +22,6 @@
 #include <userver/storages/redis/command_control.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/component.hpp>
-#include <userver/storages/redis/impl/keyshard.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>

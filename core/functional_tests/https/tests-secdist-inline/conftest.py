@@ -29,9 +29,8 @@ def service_baseurl(service_port) -> str:
 
 
 @pytest.fixture(scope='session')
-def service_client_session_factory(event_loop, service_source_dir):
+def service_client_session_factory(service_source_dir):
     def make_session(**kwargs):
-        kwargs.setdefault('loop', event_loop)
         kwargs['connector'] = aiohttp.TCPConnector(verify_ssl=False)
         return aiohttp.ClientSession(**kwargs)
 

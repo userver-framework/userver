@@ -133,7 +133,8 @@ UTEST_F(ConfigurationTest, ProducerSecure) {
     kafka::impl::ProducerConfiguration producer_configuration{};
     producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
         /*security_mechanism=*/"SCRAM-SHA-512",
-        /*ssl_ca_location=*/"probe"};
+        /*ssl_ca_location=*/"probe",
+    };
 
     kafka::impl::Secret secrets;
     secrets.username = kafka::impl::Secret::SecretType{"username"};
@@ -150,11 +151,32 @@ UTEST_F(ConfigurationTest, ProducerSecure) {
     EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "probe");
 }
 
+UTEST_F(ConfigurationTest, ProducerSecurePlaintext) {
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
+        /*security_mechanism=*/"SCRAM-SHA-512",
+    };
+
+    kafka::impl::Secret secrets;
+    secrets.username = kafka::impl::Secret::SecretType{"username"};
+    secrets.password = kafka::impl::Secret::SecretType{"password"};
+
+    std::optional<kafka::impl::Configuration> configuration;
+    UEXPECT_NO_THROW(configuration.emplace(MakeProducerConfiguration("kafka-producer", producer_configuration, secrets))
+    );
+
+    EXPECT_EQ(configuration->GetOption("security.protocol"), "sasl_plaintext");
+    EXPECT_EQ(configuration->GetOption("sasl.mechanism"), "SCRAM-SHA-512");
+    EXPECT_EQ(configuration->GetOption("sasl.username"), "username");
+    EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
+}
+
 UTEST_F(ConfigurationTest, ConsumerSecure) {
     kafka::impl::ConsumerConfiguration consumer_configuration{};
     consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
         /*security_mechanism=*/"SCRAM-SHA-512",
-        /*ssl_ca_location=*/"/etc/ssl/cert.ca"};
+        /*ssl_ca_location=*/"/etc/ssl/cert.ca",
+    };
 
     kafka::impl::Secret secrets;
     secrets.username = kafka::impl::Secret::SecretType{"username"};
@@ -169,6 +191,26 @@ UTEST_F(ConfigurationTest, ConsumerSecure) {
     EXPECT_EQ(configuration->GetOption("sasl.username"), "username");
     EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
     EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "/etc/ssl/cert.ca");
+}
+
+UTEST_F(ConfigurationTest, ConsumerSecurePlaintext) {
+    kafka::impl::ConsumerConfiguration consumer_configuration{};
+    consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
+        /*security_mechanism=*/"SCRAM-SHA-512",
+    };
+
+    kafka::impl::Secret secrets;
+    secrets.username = kafka::impl::Secret::SecretType{"username"};
+    secrets.password = kafka::impl::Secret::SecretType{"password"};
+
+    std::optional<kafka::impl::Configuration> configuration;
+    UEXPECT_NO_THROW(configuration.emplace(MakeConsumerConfiguration("kafka-consumer", consumer_configuration, secrets))
+    );
+
+    EXPECT_EQ(configuration->GetOption("security.protocol"), "sasl_plaintext");
+    EXPECT_EQ(configuration->GetOption("sasl.mechanism"), "SCRAM-SHA-512");
+    EXPECT_EQ(configuration->GetOption("sasl.username"), "username");
+    EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
 }
 
 UTEST_F(ConfigurationTest, IncorrectComponentName) {

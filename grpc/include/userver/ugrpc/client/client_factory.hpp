@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/client/client_factory.hpp
 /// @brief @copybrief ugrpc::client::ClientFactory
 
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -14,6 +15,7 @@
 #include <userver/ugrpc/client/client_settings.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,7 +55,7 @@ public:
     ClientFactory(
         ClientFactorySettings&& client_factory_settings,
         engine::TaskProcessor& channel_task_processor,
-        MiddlewareFactories mws,
+        impl::MiddlewarePipelineCreator& pipeline_creator,
         ugrpc::impl::CompletionQueuePoolBase& completion_queues,
         ugrpc::impl::StatisticsStorage& statistics_storage,
         testsuite::GrpcControl& testsuite_grpc,
@@ -62,11 +64,12 @@ public:
     /// @endcond
 
 private:
-    impl::ClientInternals MakeClientInternals(ClientSettings&& settings);
+    impl::ClientInternals
+    MakeClientInternals(ClientSettings&& settings, std::optional<ugrpc::impl::StaticServiceMetadata> meta);
 
     ClientFactorySettings client_factory_settings_;
     engine::TaskProcessor& channel_task_processor_;
-    MiddlewareFactories mws_;
+    impl::MiddlewarePipelineCreator& pipeline_creator_;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
     ugrpc::impl::StatisticsStorage& client_statistics_storage_;
     const dynamic_config::Source config_source_;
@@ -75,7 +78,7 @@ private:
 
 template <typename Client>
 Client ClientFactory::MakeClient(ClientSettings&& settings) {
-    return Client(MakeClientInternals(std::move(settings)));
+    return Client(MakeClientInternals(std::move(settings), Client::GetMetadata()));
 }
 
 template <typename Client>

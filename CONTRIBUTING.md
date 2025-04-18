@@ -20,4 +20,4 @@ If you agree with these principles, please read and adopt our CLA. By providing 
 
 ## Other questions
 
-If you have any questions, please mail us at opensource@yandex-team.ru.
+If you have any questions, please mail us at opensource-support@yandex-team.ru.

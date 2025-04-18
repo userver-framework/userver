@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/server/metadta_utils.hpp
+/// @file userver/ugrpc/server/metadata_utils.hpp
 /// @brief Utilities to work with the request metadata
 
 #include <map>
@@ -11,7 +11,7 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
-#include <userver/ugrpc/server/call.hpp>
+#include <userver/ugrpc/server/impl/call.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
 
@@ -22,9 +22,9 @@ namespace ugrpc::server {
 /// @brief Returns an std::input_range containing std::string_view
 /// which are non-owning references to the values of the metadata field.
 /// The references must not outlive the call object to avoid undefined behavior.
-inline auto GetRepeatedMetadata(ugrpc::server::CallAnyBase& call, std::string_view field_name) {
+inline auto GetRepeatedMetadata(MiddlewareCallContext& context, std::string_view field_name) {
     UASSERT(field_name == utils::text::ToLower(field_name));
-    const auto& metadata = call.GetContext().client_metadata();
+    const auto& metadata = context.GetServerContext().client_metadata();
     auto [it_begin, it_end] = metadata.equal_range(grpc::string_ref(field_name.data(), field_name.length()));
 
     using Metadata = std::multimap<grpc::string_ref, grpc::string_ref>;

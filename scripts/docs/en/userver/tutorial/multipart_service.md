@@ -49,7 +49,7 @@ Just like in the @ref scripts/docs/en/userver/tutorial/hello_service.md
 the handler itself is a component inherited from
 server::handlers::HttpHandlerBase:
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - component
+@snippet samples/multipart_service/main.cpp  Multipart service sample - component
 
 The primary functionality of the handler should be located in
 `HandleRequest` function. To work with the `multipart/form-data`
@@ -62,7 +62,7 @@ server::http::HttpRequest functions:
 * server::http::HttpRequest::GetFormDataArgVector()
 * server::http::HttpRequest::HasFormDataArg()
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - HandleRequestThrow
+@snippet samples/multipart_service/main.cpp  Multipart service sample - HandleRequestThrow
 
 Note the work with the `image` in the above snippet. The image has a
 binary representation that require no additional decoding. The bytes of a
@@ -95,7 +95,7 @@ Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - main
+@snippet samples/multipart_service/main.cpp  Multipart service sample - main
 
 
 ### Build and Run
@@ -166,7 +166,7 @@ Do not forget to add the plugin in conftest.py:
 ## Full sources
 
 See the full example at:
-* @ref samples/multipart_service/service.cpp
+* @ref samples/multipart_service/main.cpp
 * @ref samples/multipart_service/static_config.yaml
 * @ref samples/multipart_service/CMakeLists.txt
 * @ref samples/multipart_service/tests/conftest.py
@@ -179,7 +179,7 @@ See the full example at:
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/multipart_service/service.cpp
+@example samples/multipart_service/main.cpp
 @example samples/multipart_service/static_config.yaml
 @example samples/multipart_service/CMakeLists.txt
 @example samples/multipart_service/tests/conftest.py

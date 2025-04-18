@@ -142,6 +142,10 @@ properties:
         defaultDescription: taken from server.listener.handler-defaults.deadline_expired_status_code
         minimum: 400
         maximum: 599
+    enable_write_statistics:
+        type: boolean
+        description: whether to write handler statistics
+        defaultDescription: true
 )");
 }
 

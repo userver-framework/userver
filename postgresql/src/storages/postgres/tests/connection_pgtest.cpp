@@ -16,8 +16,8 @@ namespace pg = storages::postgres;
 namespace static_test {
 
 struct no_input_operator {};
-static_assert(!pg::io::traits::HasInputOperator<no_input_operator>::value, "Test input metafunction");
-static_assert(pg::io::traits::HasInputOperator<int>::value, "Test input metafunction");
+static_assert(!pg::io::traits::kHasInputOperator<no_input_operator>, "Test input metafunction");
+static_assert(pg::io::traits::kHasInputOperator<int>, "Test input metafunction");
 static_assert(!pg::io::traits::kHasParser<no_input_operator>, "Test has parser metafunction");
 static_assert(pg::io::traits::kHasParser<int>, "Test has parser metafunction");
 

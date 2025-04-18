@@ -29,19 +29,15 @@ class Middleware final : public ugrpc::server::MiddlewareBase {
 public:
     Middleware(MiddlewareFlag settings) : settings_(settings) {}
 
-    void Handle(ugrpc::server::MiddlewareCallContext& context) const override { context.Next(); }
-
-    void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) override {
+    void PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInRequestHook) {
-            context.GetCall().FinishWithError(
-                ::grpc::Status(::grpc::StatusCode::DATA_LOSS, "Data loss error in request hook")
-            );
+            return context.SetError(::grpc::Status(::grpc::StatusCode::DATA_LOSS, "Data loss error in request hook"));
         }
     }
 
-    void CallResponseHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) override {
+    void PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInResponseHook) {
-            context.GetCall().FinishWithError(
+            return context.SetError(
                 ::grpc::Status(::grpc::StatusCode::OUT_OF_RANGE, "Out of range error in response hook")
             );
         }

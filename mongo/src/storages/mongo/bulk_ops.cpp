@@ -3,9 +3,20 @@
 #include <storages/mongo/bulk_ops_impl.hpp>
 #include <storages/mongo/operations_common.hpp>
 
+#include <userver/utils/string_literal.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::bulk_ops {
+
+namespace {
+
+void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder, const options::ArrayFilters& filters) {
+    static constexpr utils::StringLiteral kOptionName = "arrayFilters";
+    builder.Append(kOptionName, filters.Value());
+}
+
+}  // namespace
 
 InsertOne::InsertOne(formats::bson::Document document) : impl_(std::move(document)) {}
 
@@ -39,6 +50,10 @@ Update& Update::operator=(const Update&) = default;
 Update& Update::operator=(Update&&) noexcept = default;
 
 void Update::SetOption(options::Upsert) { impl::AppendUpsert(impl::EnsureBuilder(impl_->options)); }
+
+void Update::SetOption(const options::ArrayFilters& filters) {
+    AppendArrayFilters(impl::EnsureBuilder(impl_->options), filters);
+}
 
 Delete::Delete(Mode mode, formats::bson::Document selector) : impl_(mode, std::move(selector)) {}
 

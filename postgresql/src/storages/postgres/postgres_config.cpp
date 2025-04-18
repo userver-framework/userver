@@ -17,18 +17,18 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
     for (const auto& [name, val] : formats::common::Items(elem)) {
         const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
         if (name == "network_timeout_ms") {
-            result.execute = ms;
-            if (result.execute.count() <= 0) {
+            result.network_timeout_ms = ms;
+            if (result.network_timeout_ms.count() <= 0) {
                 throw InvalidConfig{
-                    "Invalid network_timeout_ms `" + std::to_string(result.execute.count()) +
+                    "Invalid network_timeout_ms `" + std::to_string(result.network_timeout_ms.count()) +
                     "` in postgres CommandControl. The timeout must be "
                     "greater than 0."};
             }
         } else if (name == "statement_timeout_ms") {
-            result.statement = ms;
-            if (result.statement.count() <= 0) {
+            result.statement_timeout_ms = ms;
+            if (result.statement_timeout_ms.count() <= 0) {
                 throw InvalidConfig{
-                    "Invalid statement_timeout_ms `" + std::to_string(result.statement.count()) +
+                    "Invalid statement_timeout_ms `" + std::to_string(result.statement_timeout_ms.count()) +
                     "` in postgres CommandControl. The timeout must be "
                     "greater than 0."};
             }
@@ -70,18 +70,9 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
     settings.discard_on_connect = config["discard-all-on-connect"].template As<bool>(true)
                                       ? ConnectionSettings::kDiscardAll
                                       : ConnectionSettings::kDiscardNone;
+    settings.deadline_propagation_enabled = config["deadline-propagation-enabled"].template As<bool>(true);
 
     return settings;
-}
-
-PipelineMode ParsePipelineMode(const formats::json::Value& value) {
-    return value.As<int>() > 0 ? PipelineMode::kEnabled : PipelineMode::kDisabled;
-}
-
-OmitDescribeInExecuteMode ParseOmitDescribeInExecuteMode(const formats::json::Value& value) {
-    using Mode = OmitDescribeInExecuteMode;
-
-    return value.As<int>() == kOmitDescribeExperimentVersion ? Mode::kEnabled : Mode::kDisabled;
 }
 
 }  // namespace
@@ -185,20 +176,6 @@ const dynamic_config::Key<Config> kConfig{
         {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
     },
 };
-
-const dynamic_config::Key<PipelineMode> kPipelineModeKey{
-    "POSTGRES_CONNECTION_PIPELINE_EXPERIMENT",
-    ParsePipelineMode,
-    dynamic_config::DefaultAsJsonString{"0"}};
-
-const dynamic_config::Key<bool> kConnlimitModeAutoEnabled{"POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED", true};
-
-const dynamic_config::Key<int> kDeadlinePropagationVersionConfig{"POSTGRES_DEADLINE_PROPAGATION_VERSION", 0};
-
-const dynamic_config::Key<OmitDescribeInExecuteMode> kOmitDescribeInExecuteModeKey{
-    "POSTGRES_OMIT_DESCRIBE_IN_EXECUTE",
-    ParseOmitDescribeInExecuteMode,
-    dynamic_config::DefaultAsJsonString{"1"}};
 
 }  // namespace storages::postgres
 

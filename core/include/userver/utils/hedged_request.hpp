@@ -322,12 +322,13 @@ private:
     Task task_;
 };
 
-/// Synchronously perform bulk hedged requests described by RequestStrategy and
-/// return result of type std::vector<std::optional<ResultType>>. Result
-/// contains replies for each element in @param inputs or std::nullopt in case
-/// either timeouts or bad replies (RequestStrategy::ProcessReply(RequestType&&)
-/// returned std::nullopt and RequestStrategy::ExtractReply() returned
-/// std::nullopt)
+/// @brief Synchronously perform bulk hedged requests described by `RequestStrategy` and
+/// return result of type `std::vector<std::optional<ResultType>>`.
+///
+/// Result contains replies for each element in `inputs` or `std::nullopt` in case
+/// of either timeouts or bad replies (`RequestStrategy::ProcessReply(RequestType&&)`
+/// returned `std::nullopt` and `RequestStrategy::ExtractReply()` returned
+/// `std::nullopt`).
 template <typename RequestStrategy>
 auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs, HedgingSettings hedging_settings) {
     {
@@ -391,12 +392,13 @@ auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs, HedgingSettings hedg
     }
 }
 
-/// Asynchronously perform bulk hedged requests described by RequestStrategy and
-/// return future which returns Result of type
-/// std::vector<std::optional<ResultType>>. Result contains replies for each
-/// element in @param inputs or std::nullopt in case either timeouts or bad
-/// replies (RequestStrategy::ProcessReply(RequestType&&) returned std::nullopt
-/// and RequestStrategy::ExtractReply() returned std::nullopt)
+/// @brief Asynchronously perform bulk hedged requests described by `RequestStrategy` and
+/// return future which returns Result of type `std::vector<std::optional<ResultType>>`.
+///
+/// Result contains replies for each
+/// element in `inputs` or `std::nullopt` in case of either timeouts or bad
+/// replies (`RequestStrategy::ProcessReply(RequestType&&)` returned `std::nullopt`
+/// and `RequestStrategy::ExtractReply()` returned `std::nullopt`).
 template <typename RequestStrategy>
 auto HedgeRequestsBulkAsync(std::vector<RequestStrategy> inputs, HedgingSettings settings) {
     return HedgedRequestBulkFuture<RequestStrategy>(utils::Async(

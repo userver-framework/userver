@@ -103,3 +103,17 @@ if (NOT TARGET "gRPC::grpcpp_channelz")
     add_library(gRPC::grpcpp_channelz ALIAS grpcpp_channelz)
 endif()
 mark_targets_as_system("${gRPC_SOURCE_DIR}")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.0)
+    userver_is_cxx_compile_option_supported(
+        COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW
+        -Wno-error=missing-template-arg-list-after-template-kw
+    )
+    if (COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW)
+        foreach(package grpc grpc++ grpc_unsecure grpc++_unsecure grpc_authorization_provider)
+            target_compile_options(${package} PRIVATE
+                "$<$<COMPILE_LANGUAGE:CXX>:-Wno-error=missing-template-arg-list-after-template-kw>"
+            )
+        endforeach()
+    endif()
+endif()

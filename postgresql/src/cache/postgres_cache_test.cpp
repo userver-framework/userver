@@ -96,6 +96,14 @@ struct PostgresExamplePolicy {
     //
     // Required: no
     static constexpr bool kMayReturnNull = false;
+
+    // Order by clause of the query.
+    //
+    // May be useful for example when a table stores all the events with some timestamp, but in cache we
+    // wish to store only the last event and need ordering and `DISTINCT ON` expression in `kQuery`.
+    //
+    // Required: no
+    static constexpr const char* kOrderBy = "updated asc";
 };
 
 }  // namespace example

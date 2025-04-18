@@ -2,6 +2,7 @@
 
 /// @file userver/formats/json/inline.hpp
 /// @brief Inline value builders
+/// @ingroup userver_universal
 
 #include <chrono>
 #include <cstdint>
@@ -14,13 +15,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json {
 
-/// @ingroup userver_universal userver_formats
+/// @ingroup userver_formats
 ///
 /// Constructs an object Value from provided key-value pairs
 template <typename... Args>
 Value MakeObject(Args&&...);
 
-/// @ingroup userver_universal userver_formats
+/// @ingroup userver_formats
 ///
 /// Constructs an array Value from provided element list
 template <typename... Args>

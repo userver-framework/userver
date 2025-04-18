@@ -1,0 +1,32 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties:
+        $ref: "#/definitions/CommandControl"
+    definitions:
+        CommandControl:
+            type: object
+            additionalProperties: false
+            properties:
+                attempts:
+                    type: integer
+                    minimum: 1
+                operation-timeout-ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                cancel-after-ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                client-timeout-ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                get-session-timeout-ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                use-query-cache:
+                    type: boolean

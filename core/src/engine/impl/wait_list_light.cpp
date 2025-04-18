@@ -169,8 +169,7 @@ bool WaitListLight::GetAndResetSignal() noexcept {
         impl_->waiter.compare_exchange_strong<std::memory_order_relaxed, std::memory_order_relaxed>(expected, Waiter{});
 
     if (!success && expected.context != nullptr) {
-        utils::impl::AbortWithStacktrace(
-            fmt::format("ResetSignal with an active waiter is not allowed: waiter={}", expected)
+        utils::AbortWithStacktrace(fmt::format("ResetSignal with an active waiter is not allowed: waiter={}", expected)
         );
     }
 

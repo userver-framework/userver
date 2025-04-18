@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-#include <ydb-cpp-sdk/v2/client/topic/client.h>
+#include <ydb-cpp-sdk/client/topic/client.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,8 +24,11 @@ struct TopicSettings;
 ///
 /// ## Example usage:
 ///
-/// @snippet userver/samples/ydb_service/components/topic_reader.hpp  Sample
-/// Topic reader
+/// @ref samples/ydb_service/components/topic_reader.hpp
+/// @ref samples/ydb_service/components/topic_reader.cpp
+///
+/// @example samples/ydb_service/components/topic_reader.hpp
+/// @example samples/ydb_service/components/topic_reader.cpp
 class TopicReadSession final {
 public:
     /// @cond

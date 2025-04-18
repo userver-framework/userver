@@ -1,7 +1,7 @@
 #include <userver/ydb/io/insert_row.hpp>
 
-#include <ydb-cpp-sdk/v2/client/params/params.h>
-#include <ydb-cpp-sdk/v2/client/value/value.h>
+#include <ydb-cpp-sdk/client/params/params.h>
+#include <ydb-cpp-sdk/client/value/value.h>
 
 #include <variant>
 

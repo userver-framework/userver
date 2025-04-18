@@ -1,8 +1,7 @@
-# pylint: disable=invalid-name,unused-variable
 import asyncio
 
-import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
-import samples.greeter_pb2_grpc as greeter_pb2_grpc  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_pb2
+import samples.greeter_pb2_grpc as greeter_pb2_grpc
 
 
 class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):

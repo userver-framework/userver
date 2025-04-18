@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/baggage/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::baggage::Component
+/// @brief @copybrief ugrpc::server::middlewares::baggage::Component
 
 #include <userver/ugrpc/server/middlewares/baggage/middleware.hpp>
 
@@ -13,7 +12,7 @@ namespace ugrpc::server::middlewares::baggage {
 
 // clang-format off
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_base_classes
 ///
 /// @brief Component for gRPC server baggage
 ///

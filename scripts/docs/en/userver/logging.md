@@ -377,5 +377,5 @@ logging:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/chaotic.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/formats.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
 @htmlonly </div> @endhtmlonly

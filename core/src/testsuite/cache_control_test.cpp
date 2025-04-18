@@ -18,7 +18,6 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <userver/alerts/component.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -176,7 +175,7 @@ public:
         // ...
 
         // reset_registration_ must be set at the end of the constructor.
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &MyCache::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &MyCache::ResetCache);
     }
 
     std::string GetToken() {
@@ -216,7 +215,7 @@ public:
 
     Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &Component1::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &Component1::ResetCache);
     }
 
     void ResetCache() {
@@ -237,7 +236,7 @@ public:
 
     Component1a(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &Component1a::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &Component1a::ResetCache);
     }
 
     void ResetCache() {
@@ -258,7 +257,7 @@ public:
 
     Component1b(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &Component1b::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &Component1b::ResetCache);
     }
 
     void ResetCache() {
@@ -279,7 +278,7 @@ public:
 
     Component1c(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &Component1c::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &Component1c::ResetCache);
     }
 
     void ResetCache() {
@@ -301,7 +300,7 @@ public:
     Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &Component2::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &Component2::ResetCache);
     }
 
     void ResetCache() {
@@ -323,7 +322,7 @@ public:
     ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &ComponentNotLoaded::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &ComponentNotLoaded::ResetCache);
     }
 
     void ResetCache() { UASSERT(false); }
@@ -346,7 +345,7 @@ public:
         context.FindComponent<Component1b>();
         context.FindComponent<Component1c>();
 
-        reset_registration_ = testsuite::RegisterCache(config, context, this, &Component3::ResetCache);
+        reset_registration_ = testsuite::RegisterCache(context, this, &Component3::ResetCache);
     }
 
     void ResetCache() {
@@ -479,8 +478,7 @@ components::ComponentList MakeComponentList() {
         .Append<Component1a>()
         .Append<Component1b>()
         .Append<Component1c>()
-        .Append<MyCache>()
-        .Append<alerts::StorageComponent>();
+        .Append<MyCache>();
 }
 
 TEST_F(ComponentList, CacheControlConcurrentInvalidation) {

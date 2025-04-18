@@ -59,11 +59,9 @@ public:
     ChannelArgumentsBuilder& operator=(const ChannelArgumentsBuilder&) = delete;
 
     grpc::ChannelArguments Build(const ClientQos& client_qos) const;
-    grpc::ChannelArguments Build() const;
 
 private:
     const grpc::ChannelArguments& channel_args_;
-    const std::optional<std::string>& static_service_config_;
 
     ServiceConfigBuilder service_config_builder_;
 };

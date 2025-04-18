@@ -57,6 +57,18 @@ bool IsMessageEvent(const impl::EventHolder& event) {
     return rd_kafka_event_type(event.GetHandle()) == RD_KAFKA_EVENT_FETCH;
 }
 
+const rd_kafka_headers_t* ParseHeaders(const rd_kafka_message_t* message) {
+    rd_kafka_headers_t* headers_ptr{nullptr};
+    switch (auto error = rd_kafka_message_headers(message, &headers_ptr)) {
+        case RD_KAFKA_RESP_ERR_NO_ERROR:
+            return headers_ptr;
+        case RD_KAFKA_RESP_ERR__NOENT:
+            return nullptr;
+        default:
+            throw ParseHeadersException{rd_kafka_err2str(error)};
+    }
+}
+
 }  // namespace
 
 struct Message::MessageData final {
@@ -100,6 +112,24 @@ std::optional<std::chrono::milliseconds> Message::GetTimestamp() const { return 
 int Message::GetPartition() const { return data_->message->partition; }
 
 std::int64_t Message::GetOffset() const { return data_->message->offset; }
+
+HeadersReader Message::GetHeaders() const& { return HeadersReader{ParseHeaders(data_->message.GetHandle())}; }
+
+std::optional<std::string_view> Message::GetHeader(utils::NullTerminatedView name) const {
+    const auto* headers = ParseHeaders(data_->message.GetHandle());
+    if (headers == nullptr) {
+        return std::nullopt;
+    }
+
+    const void* value{};
+    std::size_t value_size{};
+    switch (rd_kafka_header_get_last(headers, name.c_str(), &value, &value_size)) {
+        case RD_KAFKA_RESP_ERR_NO_ERROR:
+            return std::string_view{static_cast<const char*>(value), value_size};
+        default:
+            return std::nullopt;
+    }
+}
 
 namespace impl {
 

@@ -89,28 +89,85 @@ g(); // The thread has returned to us
 
 @anchor task_cancellation_intro
 ## Task cancellation
-Task can be notified that it needs to discard its progress and finish early. Cancelling a task restricts the execution of blocking operations in that task.
 
-To cancel a task, just call the `engine::Task::RequestCancel()` or `engine::Task::SyncCancel()` method. It cancels only a single task and does not affect the subtasks that were created by the canceled task. The framework typically reports a wait interrupt either by using a return code (for example, `CvStatus` for `engine::ConditionVariable::Wait`), or by throwing a module-specific exception (`WaitInterruptedException` for `engine::Task::Wait`).
+A task can be notified that it needs to discard its progress and finish early. Once cancelled, the task remains cancelled until its completion. Cancelling a task permanently interrupts most awaiting operations in that task.
 
-In addition to explicitly calling `engine::Task::RequestCancel()`, cancellation can occur:
-  * due to application shutdown;
-  * due to the end of the `engine::Task` lifetime;
-  * for other reasons (lack of resources, task hanging, etc.).
+### Ways to cancel a task
+
+Cancellation can occur:
+
+  * by an explicit request;
+  * due to the end of the task object lifetime;
+  * at coroutine engine shutdown (affects tasks launched via `engine::Task::Detach`);
+  * due to the lack of resources.
+
+To cancel a task explicitly, call the `engine::TaskBase::RequestCancel()` or `engine::TaskBase::SyncCancel()` method. It cancels only a single task and does not directly affect the subtasks that were created by the canceled task.
+
+Another way to cancel a task it to drop the `engine::TaskWithResult` without awaiting it, e.g. by returning from the function that stored it in a local variable or by letting an exception fly out.
+
+@snippet core/src/engine/task/cancel_test.cpp stack unwinding destroys task
+
+Tasks can be cancelled due to `engine::TaskProcessor` overload, if configured. This is a last-ditch effort to avoid OOM due to a spam of tasks. Read more in `utils::Async` and `engine::TaskBase::Importance`. Tasks started with `engine::CriticalAsync` are excepted from cancellations due to `TaskProcessor` overload.
+
+### How the task sees its cancellation
+
+Unlike C++20 coroutines, userver does not have a magical way to kill a task. The cancellation will somehow be signaled to the synchronization primitive being waited on, then it will go through the logic of the user's function, then the function will somehow complete.
+
+How some synchronization primitives react to cancellations:
+
+  * `engine::TaskWithResult::Get` and `engine::TaskBase::Wait` throw `engine::WaitIterruptedException`, which typically leads to the destruction of the child task during stack unwinding, cancelling and awaiting it;
+  * `engine::ConditionVariable::Wait` and `engine::Future::wait` return a status code;
+  * `engine::SingleConsumerEvent::WaitForEvent` returns `false`;
+  * `engine::SingleConsumerEvent::WaitForEventFor` returns `false` and needs an additional `engine::current_task::ShouldCancel()` check;
+  * `engine::InterruptibleSleepFor` needs an additional `engine::current_task::ShouldCancel()` check;
+  * `engine::CancellableSemaphore` returns `false` or throws `engine::SemaphoreLockCancelledError`.
+
+Some synchronization primitives deliberately ignore cancellations, notably:
+
+  * `engine::Mutex`;
+  * `engine::Semaphore` (use `engine::CancellableSemaphore` to support cancellations);
+  * `engine::SleepFor` (use `engine::InterruptibleSleepFor` to support cancellations).
+
+Most clients throw a client-specific exception on cancellation. Please explore the docs of the client you are using to find out how it reacts to cancellations. Typically, there is a special exception type thrown in case of cancellations, e.g. `clients::http::CancelException`.
+
+### How the outside world sees the task's cancellation
+
+The general theme is that a task's completion upon cancellation is still a completion. The task's function will ultimately return or throw something, and that is what the parent task will receive in `engine::TaskWithResult::Get` or `engine::TaskBase::Wait`.
+
+If the cancellation is due to the parent task being cancelled, then its `engine::TaskWithResult::Get` or `engine::TaskBase::Wait` will throw an `engine::WaitInterruptedException`, leaving the child task running (for now), so the parent task will likely not have a chance to observe the child task's completion status. Usually the stack unwinding in the parent task then destroys the `engine::Task` handle, which causes it to be cancelled and awaited.
+
+@snippet core/src/engine/task/cancel_test.cpp parent cancelled
+
+If the child task got cancelled without the parent being cancelled, then:
+
+  * `engine::TaskWithResult::Get` will return or throw whatever the child task has returned or thrown, which is practically meaningless (because why else would someone cancel a task?);
+  * `engine::TaskBase::Wait` will return upon completion;
+  * `engine::TaskBase::IsFinished` will return `true` upon completion;
+  * `engine::TaskBase::GetStatus` will return `engine::TaskBase::Status::kCancelled` upon completion.
+
+There is one extra quirk: if the task is cancelled before being started, then only the functor's destructor will be run by default. See details in `utils::Async`. In this case `engine::TaskWithResult::Get` will throw `engine::TaskCancelledException`.
+
+Tasks launched via `utils::CriticalAsync` are always started, even if cancelled before entering the function. The cancellation will take effect immediately after the function starts:
+
+@snippet core/src/engine/task/cancel_test.cpp critical cancel
+
+### Lifetime of a cancelled task
+
+Note that the destructor of `engine::Task` cancels and waits for task to finish if the task has not finished yet. Use `concurrent::BackgroundTaskStorage` to continue task execution out of scope.
+
+The invariant that the task only runs within the lifetime of the `engine::Task` handle or `concurrent::BackgroundTaskStorage` is the backbone of structured concurrency in userver, see `utils::Async` and `concurrent::BackgroundTaskStorage` for details.
+
+### Utilities that interact with cancellations
 
 The user is provided with several mechanisms to control the behavior of the application in case of cancellation:
-  * `engine::current_task::CancellationPoint()` -- if the task is canceled, calling this function throws an exception that is not caught during normal exception handling (not inherited from `std::exception`). This will result in stack unwinding with normal destructor calls for all local objects.
+
+  * `engine::current_task::CancellationPoint()` -- if the task is canceled, calling this function throws an exception that is not caught during normal exception handling (not inherited from `std::exception`). This will result in stack unwinding with normal destructor calls for all local objects. The parent task will receive `engine::TaskCancelledException` from `engine::TaskWithResult::Get`.
   **⚠️🐙❗ Catching this exception results in UB, your code should not have `catch (...)` without `throw;` in the handler body**!
   * `engine::current_task::ShouldCancel()` and `engine::current_task::IsCancelRequested()` -- predicates that return `true` if the task is canceled:
     * by default, use `engine::current_task::ShouldCancel()`. It reports that a cancellation was requested for the task and the cancellation was not blocked (see below);
     * `engine::current_task::IsCancelRequested()` notifies that the task was canceled even if cancellation was blocked; effectively ignoring caller's requests to complete the task regardless of cancellation.
   * `engine::TaskCancellationBlocker` -- scope guard, preventing cancellation in the current task. As long as it is alive all the blocking calls are not interrupted, `engine::current_task::CancellationPoint` throws no exceptions, `engine::current_task::ShouldCancel` returns `false`.
     **⚠️🐙❗ Disabling cancellation does not affect the return value of `engine::current_task::IsCancelRequested()`.**
-
-Calling `engine::TaskWithResult::Get()` on a canceled task would wait for task to finish and a `engine::TaskCancelledException` exception would be thrown afterwards.
-For non-canceled tasks the `engine::TaskWithResult::Get()` returns the result of the task.
-
-Note that the destructor of `engine::Task` cancels and waits for task to finish if the task has not finished yet. Use `concurrent::BackgroundTaskStorage` or `engine::Task::Detach()` to continue task execution out of scope.
 
 
 ----------

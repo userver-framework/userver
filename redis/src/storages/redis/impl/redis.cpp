@@ -22,6 +22,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/retry_budget.hpp>
+#include <userver/utils/scope_guard.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
 #include <storages/redis/impl/command.hpp>
@@ -41,11 +42,6 @@ namespace {
 const auto kPingLatencyExp = 0.7;
 const auto kInitialPingLatencyMs = 1000;
 const size_t kMissedPingStreakThresholdDefault = 3;
-
-// channel is used for periodic subscribe/unsubscribe to calculate actual RTT
-// instead of sending PING commands which are not supported by hiredis in
-// subscriber mode
-const std::string kSubscriberPingChannelName = "_ping_dummy_ch";
 
 // required for libhiredis < 1.0.0
 #ifndef REDIS_ERR_TIMEOUT
@@ -71,46 +67,6 @@ ReplyStatus NativeToReplyStatus(int status) {
         return ReplyStatus::kOtherError;
     }
     return *reply_status;
-}
-
-inline bool AreStringsEqualIgnoreCase(const std::string& l, const std::string& r) {
-    return l.size() == r.size() && !strcasecmp(l.c_str(), r.c_str());
-}
-
-inline bool IsUnsubscribeCommand(const CmdArgs::CmdArgsArray& args) {
-    static const std::string unsubscribe_command{"UNSUBSCRIBE"};
-    static const std::string punsubscribe_command{"PUNSUBSCRIBE"};
-    static const std::string sunsubscribe_command{"SUNSUBSCRIBE"};
-
-    return AreStringsEqualIgnoreCase(args[0], unsubscribe_command) ||
-           AreStringsEqualIgnoreCase(args[0], punsubscribe_command) ||
-           AreStringsEqualIgnoreCase(args[0], sunsubscribe_command);
-}
-
-inline bool IsSubscribeCommand(const CmdArgs::CmdArgsArray& args) {
-    static const std::string subscribe_command{"SUBSCRIBE"};
-    static const std::string psubscribe_command{"PSUBSCRIBE"};
-    static const std::string ssubscribe_command{"SSUBSCRIBE"};
-
-    return AreStringsEqualIgnoreCase(args[0], subscribe_command) ||
-           AreStringsEqualIgnoreCase(args[0], psubscribe_command) ||
-           AreStringsEqualIgnoreCase(args[0], ssubscribe_command);
-}
-
-inline bool IsSubscribesCommand(const CmdArgs::CmdArgsArray& args) {
-    return IsSubscribeCommand(args) || IsUnsubscribeCommand(args);
-}
-
-inline bool IsMultiCommand(const CmdArgs::CmdArgsArray& args) {
-    static const std::string multi_command{"MULTI"};
-
-    return AreStringsEqualIgnoreCase(args[0], multi_command);
-}
-
-inline bool IsExecCommand(const CmdArgs::CmdArgsArray& args) {
-    static const std::string exec_command{"EXEC"};
-
-    return AreStringsEqualIgnoreCase(args[0], exec_command);
 }
 
 bool IsFinalState(Redis::State state) {
@@ -147,7 +103,12 @@ public:
     );
     ~RedisImpl();
 
-    void Connect(const ConnectionInfo::HostVector& host_addrs, int port, const Password& password);
+    void Connect(
+        const ConnectionInfo::HostVector& host_addrs,
+        int port,
+        const Password& password,
+        std::size_t database_index
+    );
     void Disconnect();
 
     bool AsyncCommand(const CommandPtr& command);
@@ -222,6 +183,7 @@ private:
     void ProcessCommand(const CommandPtr& command);
 
     void Authenticate();
+    void SelectDatabase();
     void SendReadOnly();
     void FreeCommands();
 
@@ -237,7 +199,7 @@ private:
 
     static bool WatchCommandTimerEnabled(const CommandsBufferingSettings& commands_buffering_settings);
 
-    bool Connect(const std::string& host, int port, const Password& password);
+    bool Connect(const std::string& host, int port, const Password& password, size_t database_index);
 
     Redis* redis_obj_;
     engine::ev::ThreadControl ev_thread_control_;
@@ -258,6 +220,7 @@ private:
     uint16_t port_ = 0;
     std::string server_;
     Password password_{std::string()};
+    std::size_t database_index_ = 0;
     std::atomic<size_t> commands_size_ = 0;
     size_t sent_count_ = 0;
     size_t cmd_counter_ = 0;
@@ -319,8 +282,13 @@ Redis::~Redis() {
     });
 }
 
-void Redis::Connect(const ConnectionInfo::HostVector& host_addrs, int port, const Password& password) {
-    impl_->Connect(host_addrs, port, password);
+void Redis::Connect(
+    const ConnectionInfo::HostVector& host_addrs,
+    int port,
+    const Password& password,
+    size_t database_index
+) {
+    impl_->Connect(host_addrs, port, password, database_index);
 }
 
 bool Redis::AsyncCommand(const CommandPtr& command) { return impl_->AsyncCommand(command); }
@@ -419,15 +387,20 @@ void Redis::RedisImpl::Detach() {
     attached_ = false;
 }
 
-void Redis::RedisImpl::Connect(const ConnectionInfo::HostVector& host_addrs, int port, const Password& password) {
+void Redis::RedisImpl::Connect(
+    const ConnectionInfo::HostVector& host_addrs,
+    int port,
+    const Password& password,
+    size_t database_index
+) {
     for (const auto& host : host_addrs)
-        if (Connect(host, port, password)) return;
+        if (Connect(host, port, password, database_index)) return;
 
     LOG_ERROR() << "error async connect to Redis server (host addrs =" << host_addrs << ", port=" << port << ")";
     SetState(State::kInitError);
 }
 
-bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password& password) {
+bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password& password, size_t database_index) {
     UASSERT(context_ == nullptr);
     UASSERT(state_ == State::kInit);
 
@@ -438,6 +411,7 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
     log_extra_.Extend("redis_server", GetServer());
     log_extra_.Extend("server_id", GetServerId().GetId());
     password_ = password;
+    database_index_ = database_index;
     LOG_INFO() << log_extra_ << "Async connect to Redis server=" << GetServer();
     context_ = redisAsyncConnect(host.c_str(), port);
 
@@ -698,7 +672,7 @@ void Redis::RedisImpl::SendSubscriberPing() {
 
     is_ping_in_flight_ = true;
     ProcessCommand(PrepareCommand(
-        CmdArgs{"SUBSCRIBE", kSubscriberPingChannelName},
+        CmdArgs{"SUBSCRIBE", CmdWithArgs::kSubscriberPingChannelName},
         [this](const CommandPtr&, ReplyPtr reply) {
             if (!*reply || !reply->data.IsArray()) {
                 Disconnect();
@@ -710,7 +684,9 @@ void Redis::RedisImpl::SendSubscriberPing() {
                 return;
             }
             if (!strcasecmp(reply_array[0].GetString().c_str(), "SUBSCRIBE")) {
-                ProcessCommand(PrepareCommand(CmdArgs{"UNSUBSCRIBE", kSubscriberPingChannelName}, ReplyCallback{}));
+                ProcessCommand(
+                    PrepareCommand(CmdArgs{"UNSUBSCRIBE", CmdWithArgs::kSubscriberPingChannelName}, ReplyCallback{})
+                );
             } else if (!strcasecmp(reply_array[0].GetString().c_str(), "UNSUBSCRIBE")) {
                 is_ping_in_flight_ = false;
             }
@@ -804,10 +780,10 @@ void Redis::RedisImpl::FreeCommands() {
         auto command = commands_.front();
         commands_.pop_front();
         --commands_size_;
-        for (const auto& args : command->args.args) {
+        for (const auto& args : command->args) {
             InvokeCommandError(
                 command,
-                args[0],
+                args.GetCommandName(),
                 ReplyStatus::kEndOfFileError,
                 "Disconnecting, killing commands still waiting in send queue"
             );
@@ -971,19 +947,13 @@ bool Redis::RedisImpl::InitSecureConnection() {
 
 void Redis::RedisImpl::Authenticate() {
     if (password_.GetUnderlying().empty()) {
-        if (send_readonly_)
-            SendReadOnly();
-        else
-            SetState(State::kConnected);
+        SendReadOnly();
     } else {
         ProcessCommand(PrepareCommand(
             CmdArgs{"AUTH", password_.GetUnderlying()},
             [this](const CommandPtr&, ReplyPtr reply) {
                 if (*reply && reply->data.IsStatus()) {
-                    if (send_readonly_)
-                        SendReadOnly();
-                    else
-                        SetState(State::kConnected);
+                    SendReadOnly();
                 } else {
                     if (*reply) {
                         if (reply->IsUnknownCommandError()) {
@@ -1010,10 +980,15 @@ void Redis::RedisImpl::Authenticate() {
 }
 
 void Redis::RedisImpl::SendReadOnly() {
+    if (!send_readonly_) {
+        SelectDatabase();
+        return;
+    }
+
     LOG_DEBUG() << "Send READONLY command to slave " << GetServerId().GetDescription() << " in cluster mode";
     ProcessCommand(PrepareCommand(CmdArgs{"READONLY"}, [this](const CommandPtr&, ReplyPtr reply) {
         if (*reply && reply->data.IsStatus()) {
-            SetState(State::kConnected);
+            SelectDatabase();
         } else {
             if (*reply) {
                 LOG_LIMITED_ERROR() << log_extra_ << "READONLY failed: response type=" << reply->data.GetTypeString()
@@ -1024,6 +999,42 @@ void Redis::RedisImpl::SendReadOnly() {
             }
             Disconnect();
         }
+    }));
+}
+
+void Redis::RedisImpl::SelectDatabase() {
+    // To get rid of the redundant `SELECT 0` command
+    // since 0 is the default database index, and it will be set automatically
+    if (database_index_ == 0) {
+        SetState(RedisState::kConnected);
+        return;
+    }
+
+    ProcessCommand(PrepareCommand(CmdArgs{"SELECT", database_index_}, [this](const CommandPtr&, ReplyPtr reply) {
+        if (*reply && reply->data.IsStatus()) {
+            SetState(RedisState::kConnected);
+            LOG_INFO() << log_extra_ << "Selected redis logical database with index " << database_index_;
+            return;
+        }
+
+        const utils::ScopeGuard auto_disconnect([this]() { Disconnect(); });
+
+        if (!*reply) {
+            LOG_LIMITED_ERROR() << "SELECT failed with status " << reply->status << " (" << reply->status_string << ") "
+                                << log_extra_;
+            return;
+        }
+
+        if (reply->IsUnknownCommandError()) {
+            LOG_WARNING() << log_extra_
+                          << "SELECT failed: unknown command `SELECT` - "
+                             "possible when connecting to Sentinel instead "
+                             "of Redis master or slave instance";
+            return;
+        }
+
+        LOG_LIMITED_ERROR() << log_extra_ << "SELECT failed: response type=" << reply->data.GetTypeString()
+                            << " msg=" << reply->data.ToDebugString();
     }));
 }
 
@@ -1091,65 +1102,59 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
     statistics_.AccountCommandSent(command);
 
     bool multi = false;
-    for (size_t i = 0; i < command->args.args.size(); ++i) {
-        const auto& args = command->args.args[i];
-        const size_t argc = args.size();
-        UASSERT(argc >= 1);
-        if (argc < 1) {
-            LOG_LIMITED_ERROR() << "Skip empty command to redis";
-            continue;
-        }
-
-        if (IsMultiCommand(args)) multi = true;
+    for (const auto& args : command->args) {
+        if (args.IsMultiCommand()) multi = true;
 
         if (!context_) {
             LOG_ERROR() << log_extra_ << "no context";
-            InvokeCommandError(command, args[0], ReplyStatus::kOtherError);
+            InvokeCommandError(command, args.GetCommandName(), ReplyStatus::kOtherError);
             continue;
         }
 
-        const bool is_special = IsSubscribesCommand(args);
+        const bool is_special = args.IsSubscribesCommand();
         if (is_special) subscriber_ = true;
         if (subscriber_ && !is_special) {
-            LOG_ERROR() << log_extra_ << "impossible for subscriber: " << args[0];
-            InvokeCommandError(command, args[0], ReplyStatus::kOtherError);
+            LOG_ERROR() << log_extra_ << "impossible for subscriber: " << args.GetCommandName();
+            InvokeCommandError(command, args.GetCommandName(), ReplyStatus::kOtherError);
             continue;
         }
-        if (is_special && (args.size() <= 1 || args[1] != kSubscriberPingChannelName)) {
-            LOG_INFO() << "Process '" << fmt::to_string(fmt::join(args, " ")) << "' command" << log_extra_;
-        }
-
-        std::vector<const char*> argv;
-        std::vector<size_t> argv_len;
-
-        argv.reserve(argc);
-        argv_len.reserve(argc);
-
-        for (const auto& arg : args) {
-            argv.push_back(arg.data());
-            argv_len.push_back(arg.size());
+        if (is_special && !args.IsSubscriberPingChannel()) {
+            LOG_INFO() << "Process '" << fmt::to_string(args.GetJoinedArgs(" ")) << "' command" << log_extra_;
         }
 
         {
-            if (command->asking && (!multi || IsMultiCommand(args))) {
+            static constexpr std::size_t kTopArgsCount = 8;
+            boost::container::small_vector<const char*, kTopArgsCount> argv;
+            boost::container::small_vector<std::size_t, kTopArgsCount> argv_len;
+            args.FillPointerSizesStorages(argv, argv_len);
+            const auto elements_count = argv.size();
+            UASSERT(elements_count == argv_len.size());
+            UASSERT(elements_count != 0);
+
+            if (command->asking && (!multi || args.IsMultiCommand())) {
                 static const char* asking = "ASKING";
                 static const size_t asking_len = strlen(asking);
                 redisAsyncCommandArgv(context_, nullptr, nullptr, 1, &asking, &asking_len);
             }
             if (redisAsyncCommandArgv(
-                    context_, OnRedisReply, reinterpret_cast<void*>(cmd_counter_), argc, argv.data(), argv_len.data()
+                    context_,
+                    OnRedisReply,
+                    reinterpret_cast<void*>(cmd_counter_),
+                    elements_count,
+                    argv.data(),
+                    argv_len.data()
                 ) != REDIS_OK) {
-                LOG_ERROR() << log_extra_ << "redisAsyncCommandArgv() failed on command " << args[0];
-                InvokeCommandError(command, args[0], ReplyStatus::kOtherError);
+                LOG_ERROR() << log_extra_ << "redisAsyncCommandArgv() failed on command " << args.GetCommandName();
+                InvokeCommandError(command, args.GetCommandName(), ReplyStatus::kOtherError);
                 continue;
             }
         }
 
-        if (IsExecCommand(args)) multi = false;
+        if (args.IsExecCommand()) multi = false;
 
-        if (!IsUnsubscribeCommand(args)) {
+        if (!args.IsUnsubscribeCommand()) {
             auto entry = std::make_unique<SingleCommand>();
-            entry->cmd = args[0];
+            entry->cmd = args.GetCommandName();
             entry->meta = command;
             entry->timer.data = this;
             entry->redis_impl = shared_from_this();

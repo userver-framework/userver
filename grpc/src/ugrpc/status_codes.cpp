@@ -46,14 +46,13 @@ grpc::StatusCode StatusCodeFromString(std::string_view str) {
     throw std::runtime_error(fmt::format("Invalid grpc status code: {}", str));
 }
 
-std::string_view ToString(grpc::StatusCode code) noexcept {
+std::string ToString(grpc::StatusCode code) noexcept {
     const auto str = kStatusCodesMap.TryFindByFirst(code);
     if (str) {
-        return *str;
+        return std::string{*str};
     }
 
-    UASSERT_MSG(false, fmt::format("Invalid grpc status code: {}", utils::UnderlyingValue(code)));
-    return "<invalid status>";
+    return fmt::format("non_standard({})", utils::UnderlyingValue(code));
 }
 
 // See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/

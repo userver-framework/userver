@@ -44,25 +44,34 @@ function(userver_add_sql_library TARGET)
   get_property(USERVER_SQL_SCRIPTS_PATH
       GLOBAL PROPERTY userver_scripts_sql)
 
+  set(TESTSUITE_OUTPUT_DIR ${ARG_OUTPUT_DIR}/testsuite)
+
+  set(
+      output_files
+      ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
+      ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
+      ${TESTSUITE_OUTPUT_DIR}/sql_files.py
+  )
   _userver_initialize_codegen_flag()
   add_custom_command(
-    OUTPUT 
-        ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
-        ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
+    OUTPUT ${output_files}
     COMMAND
         ${USERVER_SQL_PYTHON_BINARY}
 	      ${USERVER_SQL_SCRIPTS_PATH}/generator.py
         --namespace ${ARG_NAMESPACE}
         --output-dir ${ARG_OUTPUT_DIR}
         --query-log-mode ${ARG_QUERY_LOG_MODE}
+        --testsuite-output-dir ${TESTSUITE_OUTPUT_DIR}
         ${SQL_FILES}
     ${CODEGEN}
   )
+  _userver_codegen_register_files("${output_files}")
 
   add_library(${TARGET} STATIC 
     ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
     ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
   )
+  set_target_properties(${TARGET} PROPERTIES USERVER_TESTSUITE_DIRECTORY ${TESTSUITE_OUTPUT_DIR})
   target_include_directories(${TARGET} PUBLIC ${ARG_OUTPUT_DIR}/include)
   target_link_libraries(${TARGET} PUBLIC userver::postgresql)
 endfunction()

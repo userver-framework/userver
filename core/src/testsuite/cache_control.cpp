@@ -9,6 +9,7 @@
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/components/state.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
 #include <userver/engine/shared_mutex.hpp>

@@ -4,6 +4,7 @@
 
 #include <boost/range/irange.hpp>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/enumerate.hpp>

@@ -4,26 +4,21 @@
 /// @brief Classes representing an outgoing RPC
 
 #include <exception>
+#include <functional>
 #include <memory>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 #include <grpcpp/impl/codegen/proto_utils.h>
 
-#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/function_ref.hpp>
 
-#include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/client/call.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
-#include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
-#include <userver/ugrpc/impl/deadline_timepoint.hpp>
-#include <userver/ugrpc/impl/internal_tag_fwd.hpp>
-#include <userver/ugrpc/impl/statistics_scope.hpp>
+#include <userver/ugrpc/deadline_timepoint.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -133,34 +128,6 @@ private:
     typename RPC::RawStream* stream_{};
     std::function<void(impl::RpcData& data)> post_recv_message_;
     std::function<void(impl::RpcData& data, const grpc::Status& status)> post_finish_;
-};
-
-/// @brief Base class for any RPC
-class CallAnyBase {
-protected:
-    /// @cond
-    CallAnyBase(impl::CallParams&& params, CallKind call_kind)
-        : data_(std::make_unique<impl::RpcData>(std::move(params), call_kind)) {}
-    /// @endcond
-
-public:
-    /// @returns the `ClientContext` used for this RPC
-    grpc::ClientContext& GetContext();
-
-    /// @returns client name
-    std::string_view GetClientName() const;
-
-    /// @returns RPC name
-    std::string_view GetCallName() const;
-
-    /// @returns RPC span
-    tracing::Span& GetSpan();
-
-protected:
-    impl::RpcData& GetData();
-
-private:
-    std::unique_ptr<impl::RpcData> data_;
 };
 
 namespace impl {
@@ -503,7 +470,7 @@ namespace impl {
 template <typename Response>
 template <typename PrepareAsyncCall, typename Request>
 UnaryCall<Response>::UnaryCall(impl::CallParams&& params, PrepareAsyncCall prepare_async_call, const Request& req)
-    : CallAnyBase(std::move(params), CallKind::kUnaryCall) {
+    : CallAnyBase(std::move(params), impl::CallKind::kUnaryCall) {
     impl::MiddlewarePipeline::PreStartCall(GetData());
     if constexpr (std::is_base_of_v<google::protobuf::Message, Request>) {
         impl::MiddlewarePipeline::PreSendMessage(GetData(), req);
@@ -546,7 +513,7 @@ UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
 template <typename Response>
 template <typename PrepareAsyncCall, typename Request>
 InputStream<Response>::InputStream(impl::CallParams&& params, PrepareAsyncCall prepare_async_call, const Request& req)
-    : CallAnyBase(std::move(params), CallKind::kInputStream) {
+    : CallAnyBase(std::move(params), impl::CallKind::kInputStream) {
     impl::MiddlewarePipeline::PreStartCall(GetData());
     impl::MiddlewarePipeline::PreSendMessage(GetData(), req);
 
@@ -576,7 +543,7 @@ bool InputStream<Response>::Read(Response& response) {
 template <typename Request, typename Response>
 template <typename PrepareAsyncCall>
 OutputStream<Request, Response>::OutputStream(impl::CallParams&& params, PrepareAsyncCall prepare_async_call)
-    : CallAnyBase(std::move(params), CallKind::kOutputStream), final_response_(std::make_unique<Response>()) {
+    : CallAnyBase(std::move(params), impl::CallKind::kOutputStream), final_response_(std::make_unique<Response>()) {
     impl::MiddlewarePipeline::PreStartCall(GetData());
 
     // 'final_response_' will be filled upon successful 'Finish' async call
@@ -633,7 +600,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
     impl::CallParams&& params,
     PrepareAsyncCall prepare_async_call
 )
-    : CallAnyBase(std::move(params), CallKind::kBidirectionalStream) {
+    : CallAnyBase(std::move(params), impl::CallKind::kBidirectionalStream) {
     impl::MiddlewarePipeline::PreStartCall(GetData());
 
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)

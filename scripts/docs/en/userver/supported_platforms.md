@@ -8,7 +8,7 @@
 |--|-----------------------------|
 | **OS** | Ubuntu, Debian, Fedora, Arch, Gentoo, macOS |
 | **Architectures** | x86, x86_64, AArch64, Arm |
-| **Compilers** | GCC-8 and newer, Clang-10 and newer |
+| **Compilers** | GCC-9 and newer, Clang-14 and newer |
 | **C++ Standards** | C++17, C++20, C++23 |
 | **C++ Standard Libraries** | libstdc++, libc++ |
 
@@ -27,6 +27,11 @@ organization page contains multiple repositories, including:
 
 * [userver](https://github.com/userver-framework/userver) - the C++
   Asynchronous Framework.
+* [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf) -
+  the service to control dynamic configs of the other userver-based services.
+
+Also there are several legacy template services (use userver-create-service script instead):
+
 * [service_template](https://github.com/userver-framework/service_template) -
   template of a C++ service that uses userver framework with ready-to-user
   build, test and CI scripts. 
@@ -36,8 +41,6 @@ organization page contains multiple repositories, including:
 * [pg_grpc_service_template](https://github.com/userver-framework/pg_grpc_service_template) -
   template of a C++ service that uses userver framework with ready-to-user PostgreSQL database, gRPC server,
   build, test and CI scripts. 
-* [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf) -
-  the service to control dynamic configs of the other userver-based services.
 
 All the repositories are part of the userver framework,
 thus they support the same set of architectures, compilers, operating systems

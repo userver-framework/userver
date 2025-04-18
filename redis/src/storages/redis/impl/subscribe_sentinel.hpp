@@ -26,9 +26,9 @@ public:
         ConnectionSecurity connection_security,
         ReadyChangeCallback ready_callback,
         KeyShardFactory key_shard_factory,
-        bool is_cluster_mode = false,
-        CommandControl command_control = {},
-        const testsuite::RedisControl& testsuite_redis_control = {}
+        bool is_cluster_mode,
+        CommandControl command_control,
+        const testsuite::RedisControl& testsuite_redis_control
     );
     ~SubscribeSentinel() override;
 

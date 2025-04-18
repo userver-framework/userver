@@ -1,0 +1,36 @@
+default: {}
+description: ''
+schema:
+    type: object
+    properties:
+        __default__:
+            $ref: "#/definitions/PoolSettings"
+    additionalProperties:
+        $ref: "#/definitions/PoolSettings"
+    definitions:
+        PoolSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                min_pool_size:
+                    type: integer
+                    minimum: 0
+                    default: 4
+                    x-usrv-cpp-type: std::size_t
+                max_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 15
+                    x-usrv-cpp-type: std::size_t
+                max_queue_size:
+                    type: integer
+                    minimum: 1
+                    default: 200
+                connecting_limit:
+                    type: integer
+                    minimum: 0
+                    default: 0
+            required:
+              - min_pool_size
+              - max_pool_size
+              - max_queue_size

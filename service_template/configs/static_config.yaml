@@ -12,8 +12,9 @@ components_manager:
     components:                       # Configuring components that were registered via component_list
         server:
             listener:                 # configuring the main listening socket...
-                port: 8080
+                port: $server-port            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incoming requests on this task processor.
+
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -36,6 +37,8 @@ components_manager:
 
         testsuite-support: {}
 
+        congestion-control:
+
         http-client:
             load-enabled: $is_testing
             fs-task-processor: fs-task-processor
@@ -44,10 +47,11 @@ components_manager:
             fs-task-processor: fs-task-processor
 
         tests-control:
-            load-enabled: $is_testing
+            load-enabled: $is-testing
             path: /tests/{action}
             method: POST
             task_processor: main-task-processor
+
         handler-ping:
             path: /ping
             method: GET
@@ -59,10 +63,15 @@ components_manager:
             path: /hello                  # Registering handler by URL '/hello'.
             method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
-
         # postgres template on
+
+        handler-hello-postgres:          # Our postgres handler.
+            path: /hello-postgres         # Registering handler by URL '/hello-postgres'.
+            method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+
         postgres-db-1:
-            dbconnection: $pg_connection
+            dbconnection: $pg-connection
             dbconnection#env: DB_CONNECTION
             blocking_task_processor: fs-task-processor
             dns_resolver: async
@@ -70,6 +79,22 @@ components_manager:
             connlimit_mode: manual
         # postgres template off
         # mongo template on
+
+        handler-hello-mongo:             # Our mongo handler.
+            path: /hello-mongo            # Registering handler by URL '/hello-mongo'.
+            method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+
         mongo-db-1:
-            dbconnection: $mongo_connection
+            dbconnection: $mongo-connection
+        # mongo template off
+        # grpc template on
+
+        grpc-server:
+            # The single listening port for incoming RPCs
+            port: $grpc-server-port
+            completion-queue-count: 3
+
+        handler-hello-grpc:
+            task-processor: main-task-processor
         # mongo template off

@@ -12,10 +12,18 @@ namespace testme_post {
 
 static constexpr openapi::Name knumber = "number";
 
+static constexpr openapi::Name karray = "array";
+
 void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::Request& http_request) {
     openapi::ParameterSinkHttpClient sink(http_request, "/testme");
 
-    WriteParameter<openapi::TrivialParameter<openapi::In::kQuery, knumber, int>>(request.number, sink);
+    openapi::WriteParameter<openapi::TrivialParameter<openapi::In::kQuery, knumber, std::string, std::string>>(
+        request.number, sink
+    );
+
+    openapi::WriteParameter<openapi::ArrayParameter<openapi::In::kQuery, karray, ',', std::string, std::string>>(
+        request.array, sink
+    );
 
     // http_request.data(ToJsonString(request.body));
     http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));

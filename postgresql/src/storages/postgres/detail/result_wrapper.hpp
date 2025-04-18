@@ -7,8 +7,8 @@
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
 #include <userver/logging/log_extra.hpp>
+#include <userver/storages/postgres/field.hpp>
 #include <userver/storages/postgres/message.hpp>
-#include <userver/storages/postgres/result_set.hpp>
 #include <userver/storages/postgres/sql_state.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 

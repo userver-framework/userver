@@ -11,7 +11,6 @@
 
 #include <userver/cache/update_type.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/state.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,6 +22,7 @@ struct Config;
 
 namespace components {
 class RawComponentBase;
+class State;
 }  // namespace components
 
 namespace testsuite {
@@ -182,16 +182,26 @@ CacheControl& FindCacheControl(const components::ComponentContext& context);
 /// *after* all FindComponent calls. This ensures that reset will first be
 /// called for dependencies, then for dependent components.
 template <typename Component>
-CacheResetRegistration RegisterCache(
-    const components::ComponentConfig& config,
+CacheResetRegistration
+RegisterCache(const components::ComponentContext& context, Component* self, void (Component::*reset_method)()) {
+    auto& cc = testsuite::FindCacheControl(context);
+    return cc.RegisterCache(self, components::GetCurrentComponentName(context), reset_method);
+}
+
+/// @overload
+///
+/// @deprecated Use the overload without the `config` parameter.
+template <typename Component>
+[[deprecated("Remove 'context' parameter from RegisterCache call")]] CacheResetRegistration RegisterCache(
+    [[maybe_unused]] const components::ComponentConfig& config,
     const components::ComponentContext& context,
     Component* self,
     void (Component::*reset_method)()
 ) {
-    auto& cc = testsuite::FindCacheControl(context);
-    return cc.RegisterCache(self, components::GetCurrentComponentName(config), reset_method);
+    return testsuite::RegisterCache(context, self, reset_method);
 }
 
+/// @cond
 template <typename Component>
 CacheResetRegistration
 CacheControl::RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)()) {
@@ -209,6 +219,7 @@ CacheControl::RegisterCache(Component* self, std::string_view name, void (Compon
     auto iter = DoRegisterCache(std::move(info));
     return CacheResetRegistration(*this, std::move(iter));
 }
+/// @endcond
 
 }  // namespace testsuite
 

@@ -67,6 +67,8 @@ ClusterTopology::ClusterTopology(
             ++shard_index;
         }
     }
+
+    UASSERT(!cluster_shards_.empty());
 }
 
 ClusterTopology::~ClusterTopology() = default;
@@ -76,6 +78,20 @@ bool ClusterTopology::IsReady(WaitConnectedMode mode) const {
            std::all_of(cluster_shards_.begin(), cluster_shards_.end(), [mode](const ClusterShard& shard) {
                return shard.IsReady(mode);
            });
+}
+
+std::string ClusterTopology::GetReadinessInfo() const {
+    std::string result = "Shards readiness: [";
+    for (const auto& shard : cluster_shards_) {
+        fmt::format_to(
+            std::back_inserter(result),
+            "master {}, replicas {}; ",
+            shard.IsReady(WaitConnectedMode::kMaster),
+            shard.IsReady(WaitConnectedMode::kSlave)
+        );
+    }
+    result += "]";
+    return result;
 }
 
 bool ClusterTopology::HasSameInfos(const ClusterShardHostInfos& infos) const {

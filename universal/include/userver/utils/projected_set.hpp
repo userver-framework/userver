@@ -7,6 +7,11 @@
 #include <set>
 #include <type_traits>
 #include <unordered_set>
+#include <utility>
+
+#include <userver/utils/impl/projecting_view.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -67,9 +72,12 @@ void DoInsert(Set& set, Value&& value) {
     }
 }
 
+template <typename T>
+using HasHasher = typename T::hasher;
+
 }  // namespace impl::projected_set
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 /// @brief A `std::unordered_set` that compares its elements (of type @a Value)
 /// based on their @a Projection. It allows to create, essentially, an
 /// equivalent of `std::unordered_map` where keys are stored inside values.
@@ -77,20 +85,23 @@ void DoInsert(Set& set, Value&& value) {
 /// Usage example:
 /// @snippet utils/projected_set_test.cpp  user
 /// @snippet utils/projected_set_test.cpp  usage
+///
+/// @see @ref utils::ProjectedInsertOrAssign
+/// @see @ref utils::ProjectedFind
 template <
     typename Value,
     auto Projection,
     typename Hash = void,
     typename Equal = std::equal_to<>,
     typename Allocator = std::allocator<Value>>
-using ProjectedUnorderedSet = std::unordered_set<
+using ProjectedUnorderedSet = utils::impl::TransparentSet<
     Value,
     impl::projected_set::Hash<Value, Projection, Hash>,
     impl::projected_set::Compare<Value, Projection, Equal>,
     Allocator>;
 
-/// @ingroup userver_universal userver_containers
-/// @brief Same as ProjectedUnorderedSet, but for `std::set`.
+/// @ingroup userver_universal
+/// @brief Same as @ref utils::ProjectedUnorderedSet, but for `std::set`.
 template <typename Value, auto Projection, typename Compare = std::less<>, typename Allocator = std::allocator<Value>>
 using ProjectedSet = std::set<Value, impl::projected_set::Compare<Value, Projection, Compare>, Allocator>;
 
@@ -100,6 +111,55 @@ template <typename Container, typename Value>
 void ProjectedInsertOrAssign(Container& set, Value&& value) {
     impl::projected_set::DoInsert(set, std::forward<Value>(value));
 }
+
+/// @brief An equivalent of `std::unordered_map::find` for @ref utils::ProjectedUnorderedSet
+/// and @ref utils::ProjectedSet.
+///
+/// Only required for pre-C++20 compilers, can just use `set.find(key)` otherwise.
+///
+/// @note Always returns const iterator, even for a non-const `set` parameter.
+template <typename Container, typename Key>
+auto ProjectedFind(Container& set, const Key& key) {
+    if constexpr (meta::kIsDetected<impl::projected_set::HasHasher, std::decay_t<Container>>) {
+        return utils::impl::FindTransparent(set, key);
+    } else {
+        return set.find(key);
+    }
+}
+
+namespace impl {
+
+/// @name Mutating elements inside utils::ProjectedUnorderedSet.
+/// @{
+
+/// @brief Used to work around the fact that mutation is prohibited inside utils::ProjectedUnorderedSet.
+///
+/// @warning Use with utmost caution! Mutating the part of the values that serves as key invokes UB.
+template <typename Value>
+class MutableWrapper {
+public:
+    template <typename... Args>
+    /*implicit*/ MutableWrapper(Args&&... args) : value_(std::forward<Args>(args)...) {}
+
+    Value& operator*() const { return value_; }
+    Value* operator->() const { return std::addressof(value_); }
+
+private:
+    mutable Value value_;
+};
+
+template <typename Container, typename Key>
+auto ProjectedFindOrNullptrUnsafe(Container& set, const Key& key) {
+    auto iter = utils::ProjectedFind(set, key);
+    if constexpr (std::is_const_v<Container>) {
+        return iter == set.end() ? nullptr : std::addressof(std::as_const(**iter));
+    } else {
+        return iter == set.end() ? nullptr : std::addressof(**iter);
+    }
+}
+/// @}
+
+}  // namespace impl
 
 namespace impl::projected_set {
 

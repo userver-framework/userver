@@ -46,11 +46,7 @@ struct OrderedKind final {
 template <typename>
 class ProjectedSet : public testing::Test {};
 
-#if __cpp_lib_generic_unordered_lookup >= 201811L
 using ProjectedSetTypes = ::testing::Types<UnorderedKind, OrderedKind>;
-#else
-using ProjectedSetTypes = ::testing::Types<OrderedKind>;
-#endif
 
 TYPED_TEST_SUITE(ProjectedSet, ProjectedSetTypes);
 
@@ -64,8 +60,8 @@ TYPED_TEST(ProjectedSet, Sample) {
     set.insert({"fabulous_tony", "Anthony", 17});
     set.insert({"sassy_nancy", "Anne", 71});
 
-    EXPECT_EQ(set.find("sassy_nancy")->first_name, "Anne");
-    EXPECT_EQ(set.find("meaning_of_life"), set.end());
+    EXPECT_EQ(utils::ProjectedFind(set, "sassy_nancy")->first_name, "Anne");
+    EXPECT_EQ(utils::ProjectedFind(set, "meaning_of_life"), set.end());
     /// [usage]
 }
 
@@ -82,7 +78,7 @@ TYPED_TEST(ProjectedSet, LookupOnlyComparesProjection) {
     // container.
     //
     // In this case the projected value is extracted, then looked up as usual.
-    const auto iter = set.find({10, "z"});
+    const auto iter = utils::ProjectedFind(set, Pair{10, "z"});
     EXPECT_NE(iter, set.end());
     EXPECT_EQ(*iter, Pair(10, "x"));
 }
@@ -104,11 +100,53 @@ TYPED_TEST(ProjectedSet, ProjectedInsertOrAssign) {
 
     utils::ProjectedInsertOrAssign(set, Pair{1, "a"});
     EXPECT_EQ(set.size(), 1);
-    EXPECT_EQ(set.find(1)->second, "a");
+    EXPECT_EQ(utils::ProjectedFind(set, 1)->second, "a");
 
     utils::ProjectedInsertOrAssign(set, Pair{1, "b"});
     EXPECT_EQ(set.size(), 1);
-    EXPECT_EQ(set.find(1)->second, "b");
+    EXPECT_EQ(utils::ProjectedFind(set, 1)->second, "b");
+}
+
+namespace {
+
+// gcc-9 and gcc-11 get confused when using this function in userver-core. Unit tests are fine, though.
+template <typename Value, auto Projection>
+decltype(auto) ProjectedUnwrapThen(const utils::impl::MutableWrapper<Value>& value) {
+    return std::invoke(Projection, std::as_const(*value));
+}
+
+}  // namespace
+
+TYPED_TEST(ProjectedSet, ProjectedFindOrNullptrUnsafe) {
+    using Set = typename TypeParam::template type<utils::impl::MutableWrapper<Pair>, ProjectedUnwrapThen<Pair, kFirst>>;
+    const std::vector<Pair> original{{10, "x"}};
+
+    auto set = utils::AsContainer<Set>(original);
+
+    Pair* const value = utils::impl::ProjectedFindOrNullptrUnsafe(set, 10);
+    ASSERT_TRUE(value);
+    // item->first = 20;  // UB!
+    value->second = "y";
+
+    const auto iter = utils::ProjectedFind(set, 10);
+    ASSERT_TRUE(iter != set.end());
+    EXPECT_EQ(**iter, Pair(10, "y"));
+}
+
+TYPED_TEST(ProjectedSet, ProjectedUnsafeIteration) {
+    using Set = typename TypeParam::template type<utils::impl::MutableWrapper<Pair>, ProjectedUnwrapThen<Pair, kFirst>>;
+    const std::vector<Pair> original{{10, "x"}};
+
+    auto set = utils::AsContainer<Set>(original);
+
+    for (auto& item : set) {
+        // item->first = 20;  // UB!
+        item->second = "y";
+    }
+
+    const auto iter = utils::ProjectedFind(set, 10);
+    ASSERT_TRUE(iter != set.end());
+    EXPECT_EQ(**iter, Pair(10, "y"));
 }
 
 USERVER_NAMESPACE_END

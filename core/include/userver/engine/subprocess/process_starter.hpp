@@ -52,7 +52,7 @@ public:
     explicit ProcessStarter(TaskProcessor& task_processor);
 
     /// @param executable_path the absolute path or relative path. If `use_path` is
-    /// `true`, and `executable_path` does not contains `/`, then it will be searched in
+    /// `true`, and `executable_path` does not contain `/`, then it will be searched in
     /// the colon-separated list of directory pathnames specified in the PATH
     /// environment variable. More details @ref ExecOptions::use_path
     /// @param args exact args passed to the executable
@@ -61,35 +61,6 @@ public:
     /// and PATH not in environment variables
     ChildProcess
     Exec(const std::string& executable_path, const std::vector<std::string>& args, ExecOptions&& options = {});
-
-    /// @overload
-    /// @param executable_path the absolute path or relative path
-    /// @param args exact args passed to the executable
-    /// @param env redefines all environment variables
-    /// @deprecated Use the `Exec` overload taking @ref ExecOptions
-    ChildProcess Exec(
-        const std::string& executable_path,
-        const std::vector<std::string>& args,
-        const EnvironmentVariables& env,
-        // TODO: use something like pipes instead of path to files
-        const std::optional<std::string>& stdout_file = std::nullopt,
-        const std::optional<std::string>& stderr_file = std::nullopt
-    );
-
-    /// @overload
-    /// @param executable_path the absolute path or relative path
-    /// @param args exact args passed to the executable
-    /// @param env_update variables to add to the current environment, overwriting
-    /// existing ones
-    /// @deprecated Use the `Exec` overload taking @ref ExecOptions
-    ChildProcess Exec(
-        const std::string& executable_path,
-        const std::vector<std::string>& args,
-        EnvironmentVariablesUpdate env_update,
-        // TODO: use something like pipes instead of path to files
-        const std::optional<std::string>& stdout_file = std::nullopt,
-        const std::optional<std::string>& stderr_file = std::nullopt
-    );
 
 private:
     ev::ThreadControl& thread_control_;

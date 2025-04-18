@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Transaction.
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -21,6 +24,10 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
+/// @brief Valkey or Redis future for a non-scan and non-eval responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send request to the
+/// Redis return this type or storages::redis::ScanRequest.
 template <typename ResultType, typename ReplyType>
 class [[nodiscard]] Request final {
 public:
@@ -29,10 +36,13 @@ public:
 
     explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
+    /// Wait for the request to finish on Redis server
     void Wait() { impl_->Wait(); }
 
-    void IgnoreResult() const {}
+    /// Ignore the query result and do not wait for the Redis server to finish executing it
+    void IgnoreResult() const noexcept {}
 
+    /// Wait for the request to finish on Redis server and get the result
     ReplyType Get(const std::string& request_description = {}) { return impl_->Get(request_description); }
 
     /// @cond
@@ -55,6 +65,10 @@ private:
     std::unique_ptr<RequestDataBase<ReplyType>> impl_;
 };
 
+/// @brief Redis future for a SCAN-like responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send SCAN-like request
+/// to the Redis return this type or storages::redis::ScanRequest.
 template <ScanTag scan_tag>
 class ScanRequest final {
 public:
@@ -143,6 +157,8 @@ private:
     std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
 };
 
+/// @name Valkey/Redis futures aliases
+/// @{
 using RequestAppend = Request<size_t>;
 using RequestBitop = Request<size_t>;
 using RequestDbsize = Request<size_t>;
@@ -227,6 +243,7 @@ using RequestZremrangebyrank = Request<size_t>;
 using RequestZremrangebyscore = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
+/// @}
 
 }  // namespace storages::redis
 

@@ -1,0 +1,17 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties:
+        $ref: "#/definitions/CommandControl"
+    definitions:
+        CommandControl:
+            type: object
+            additionalProperties: false
+            properties:
+                network_timeout_ms:
+                    type: integer
+                    minimum: 1
+                statement_timeout_ms:
+                    type: integer
+                    minimum: 1

@@ -2,7 +2,6 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <userver/alerts/handler.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/common_server_component_list.hpp>
 #include <userver/components/component.hpp>
@@ -47,7 +46,6 @@ int main(int argc, const char* const argv[]) {
                                     .AppendComponentList(components::CommonComponentList())
                                     .AppendComponentList(components::CommonServerComponentList())
                                     .Append<functional_tests::DynamicConfigForwarder>()
-                                    .Append<server::handlers::Ping>()
-                                    .Append<alerts::Handler>();
+                                    .Append<server::handlers::Ping>();
     return utils::DaemonMain(argc, argv, component_list);
 }

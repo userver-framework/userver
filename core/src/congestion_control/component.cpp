@@ -1,7 +1,6 @@
 #include <userver/congestion_control/component.hpp>
 
 #include <congestion_control/watchdog.hpp>
-#include <userver/congestion_control/config.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
 
 #include <userver/components/component.hpp>
@@ -14,6 +13,9 @@
 #include <userver/server/component.hpp>
 #include <userver/server/server.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <dynamic_config/variables/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.hpp>
+#include <dynamic_config/variables/USERVER_RPS_CCONTROL_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -129,9 +131,8 @@ Component::~Component() {
 }
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-    const auto& conf = cfg[impl::kRpsCcConfig];
-    const bool is_enabled_dynamic = conf.is_enabled;
-    pimpl_->last_activate_factor = conf.activate_factor;
+    const bool is_enabled_dynamic = cfg[::dynamic_config::USERVER_RPS_CCONTROL_ENABLED];
+    pimpl_->last_activate_factor = cfg[::dynamic_config::USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC];
 
     bool enabled = !pimpl_->fake_mode.load() && !pimpl_->force_disabled.load();
     if (enabled && !is_enabled_dynamic) {

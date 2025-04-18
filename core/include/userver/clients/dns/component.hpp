@@ -49,8 +49,6 @@ public:
 
     Resolver& GetResolver();
 
-    static yaml_config::Schema GetStaticConfigSchema();
-
 private:
     void Write(utils::statistics::Writer& writer);
 
@@ -61,6 +59,6 @@ private:
 }  // namespace clients::dns
 
 template <>
-inline constexpr bool components::kHasValidate<clients::dns::Component> = true;
+inline constexpr bool components::kForceNoValidation<clients::dns::Component> = true;
 
 USERVER_NAMESPACE_END

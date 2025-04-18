@@ -55,10 +55,8 @@ private:
 // All userver experiments should be registered here to ensure that they can be globally enabled
 // for all services, no matter whether a specific userver library is used in a given service.
 extern UserverExperiment kJemallocBgThread;
-extern UserverExperiment kCoroutineStackUsageMonitorExperiment;
 extern UserverExperiment kServerSelectionTimeoutExperiment;
 extern UserverExperiment kPgCcExperiment;
-extern UserverExperiment kPgDeadlinePropagationExperiment;
 extern UserverExperiment kYdbDeadlinePropagationExperiment;
 
 }  // namespace utils::impl

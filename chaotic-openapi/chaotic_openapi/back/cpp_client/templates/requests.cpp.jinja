@@ -1,7 +1,16 @@
+{% import "templates/requests.application.json.jinja" as application_json %}
+{% import "templates/requests.application.octet.stream.jinja" as application_octetstream %}
+{% import "templates/requests.application.xwwwformurlencoded.jinja" as application_xwwwformurlencoded %}
+{% import "templates/requests.application.multipart.formdata.jinja" as application_multipartformdata %}
+
 #include <client/{{ name }}/requests.hpp>
 
 #include <userver/chaotic/openapi/parameters_write.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/http/url.hpp>
+#include <userver/clients/http/form.hpp>
+#include <userver/chaotic/openapi/form.hpp>
 
 namespace {{ namespace }} {
 
@@ -24,7 +33,12 @@ void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::
     "{{ op.path }}"
   );
   {% for parameter in op.parameters %}
-    WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
+    {% if parameter.required %}
+      openapi::WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
+    {% else %}
+      if (request.{{ parameter.cpp_name }})
+        openapi::WriteParameter<{{ parameter.parser }}>(*request.{{ parameter.cpp_name}}, sink);
+    {% endif %}
   {% endfor %}
 
   {# body #}
@@ -34,16 +48,26 @@ void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::
   {% elif len(op.request_bodies) > 1 %}
     switch (request.body.index()) {
     {%- for num, body in enumerate(op.request_bodies) -%}
-      case {{ num }}:
-        http_request.headers({kContentType, "{{ body.content_type }}");
+      case {{ num }}: {
+        http_request.headers(USERVER_NAMESPACE::clients::http::Headers{ {USERVER_NAMESPACE::http::headers::kContentType, "{{ body.content_type }}"} });
+
+        {% set body_obj = "std::get<" + str(num) + ">(request.body)" %}
         {% if body.content_type == 'application/json' %}
-          // http_request.data(ToJsonString(std::get<{{ num }}>(request.body)));
-          http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(std::get<{{ num }}>(request.body)).ExtractValue()));
+            {{ application_json.serialize(body_obj, "http_request") }}
+        {% elif body.content_type == 'multipart/form-data' %}
+            {{ application_multipartformdata.serialize(body, body_obj, "http_request") }}
+        {% elif body.content_type == 'application/x-www-form-urlencoded' %}
+            {{ application_xwwwformurlencoded.serialize(body, body_obj, "http_request") }}
         {% else %}
-          http_request.data(std::get<{{ num }}>(request.body).data);
+            {{ application_octetstream.serialize(body_obj, "http_request") }}
         {% endif %}
+        break;
+      }
     {% endfor %}
-    UASSERT(false);
+    default:
+    {# TODO #}
+      UASSERT(false);
+    }
   {% endif %}
 }
 

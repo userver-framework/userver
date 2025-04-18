@@ -4,13 +4,16 @@
 /// @brief @copybrief utils::CheckedPtr
 
 #include <cstdlib>
-#include <stdexcept>
 
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
+
+namespace impl {
+[[noreturn]] void ThrowEmptyCheckedPointerException();
+}
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -53,7 +56,7 @@ private:
 #ifndef NDEBUG
         UASSERT_MSG(checked_, "CheckedPtr contents were not checked before dereferencing");
 #endif
-        if (!ptr_) throw std::runtime_error{"Empty checked_pointer"};
+        if (!ptr_) impl::ThrowEmptyCheckedPointerException();
     }
 #ifndef NDEBUG
     mutable bool checked_{false};

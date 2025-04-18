@@ -4,11 +4,12 @@
 
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/utils/text.hpp>
 
 #include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/secdist_redis.hpp>
 #include <storages/redis/redis_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -83,18 +84,25 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisClusterSettings() {
         const auto port_strings = []() -> std::vector<std::string> {
             static const auto kDefaultPorts =
                 std::vector<std::string>{"17380", "17381", "17382", "17383", "17384", "17385"};
-            // NOLINTNEXTLINE(concurrency-mt-unsafe)
-            const auto* cluster_ports = std::getenv(kTestsuiteClusterRedisPorts);
+            const auto env = engine::subprocess::GetCurrentEnvironmentVariables();
+            const auto* cluster_ports = env.GetValueOptional(kTestsuiteClusterRedisPorts);
             if (!cluster_ports) {
                 return kDefaultPorts;
             }
-            auto ret = utils::text::Split(cluster_ports, ",");
-            if (ret.size() != kDefaultPorts.size()) {
-                return kDefaultPorts;
-            }
+
+            auto ret = utils::text::Split(*cluster_ports, ",");
+            UINVARIANT(
+                ret.size() == 6,
+                fmt::format(
+                    "Expecting {} to have 6 comma separated variables. Instead it contains: {}",
+                    kTestsuiteClusterRedisPorts,
+                    *cluster_ports
+                )
+            );
             return ret;
         }();
-        return storages::secdist::RedisMapSettings{formats::json::FromString(fmt::format(
+
+        auto json_config = fmt::format(
             kRedisClusterSettingsJsonFormat,
             port_strings[0],
             port_strings[1],
@@ -102,7 +110,8 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisClusterSettings() {
             port_strings[3],
             port_strings[4],
             port_strings[5]
-        ))};
+        );
+        return storages::secdist::RedisMapSettings{formats::json::FromString(json_config)};
     }();
 
     return settings_map.GetSettings("cluster-test");
@@ -164,6 +173,8 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         KeyShardFactory{storages::redis::impl::kRedisCluster}
     );
     sentinel_->WaitConnectedDebug();
+    UASSERT(sentinel_->ShardsCount() != 0);
+
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
     subscribe_sentinel_ = storages::redis::impl::SubscribeSentinel::Create(

@@ -5,15 +5,19 @@ Work with the configuration files of the service in testsuite.
 # pylint: disable=redefined-outer-name
 import copy
 import dataclasses
+import itertools
 import logging
 import os
 import pathlib
+import string
 import subprocess
 import types
 from typing import Any
 from typing import Callable
 from typing import List
+from typing import Mapping
 from typing import Optional
+from typing import Union
 
 import pytest
 import yaml
@@ -30,10 +34,11 @@ import yaml
 ##
 ## Example of patching config :
 ##
-## @snippet samples/grpc_service/tests/conftest.py Prepare configs
+## @snippet samples/grpc_service/testsuite/conftest.py Prepare configs
 ##
 ## @hideinitializer
 USERVER_CONFIG_HOOKS = [
+    'userver_config_substitutions',
     'userver_config_http_server',
     'userver_config_http_client',
     'userver_config_logging',
@@ -42,6 +47,8 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_secdist',
     'userver_config_testsuite_middleware',
 ]
+
+ServiceConfigPatch = Callable[[dict, dict], None]
 
 
 # @cond
@@ -215,14 +222,29 @@ def service_config_path_temp(
     service_tmpdir,
     service_config,
     service_config_yaml,
+    service_config_vars,
 ) -> pathlib.Path:
     """
-    Dumps the contents of the service_config_yaml into a static config for
+    Dumps the contents of the service_config_yaml and service_config_vars into a static config for
     testsuite and returns the path to the config file.
 
     @ingroup userver_testsuite_fixtures
     """
     dst_path = service_tmpdir / 'config.yaml'
+
+    service_config_yaml = dict(service_config_yaml)
+    if not service_config_vars:
+        service_config_yaml.pop('config_vars', None)
+    else:
+        config_vars_path = service_tmpdir / 'config_vars.yaml'
+        config_vars_text = yaml.dump(service_config_vars)
+        logger.debug(
+            'userver fixture "service_config_path_temp" writes the patched static config vars to "%s":\n%s',
+            config_vars_path,
+            config_vars_text,
+        )
+        config_vars_path.write_text(config_vars_text)
+        service_config_yaml['config_vars'] = str(config_vars_path)
 
     logger.debug(
         'userver fixture "service_config_path_temp" writes the patched static config to "%s" equivalent to:\n%s',
@@ -375,40 +397,87 @@ def _original_service_config(
 
 @pytest.fixture(scope='session')
 def _service_config_hooked(
+    daemon_scoped_mark,
     pytestconfig,
     request,
-    service_tmpdir,
     _original_service_config,
 ) -> _UserverConfig:
     config_yaml = copy.deepcopy(_original_service_config.config_yaml)
     config_vars = copy.deepcopy(_original_service_config.config_vars)
 
     plugin = pytestconfig.pluginmanager.get_plugin('userver_config')
-    for hook in plugin.userver_config_hooks:
+    local_hooks = (daemon_scoped_mark or {}).get('config_hooks', ())
+
+    for hook in itertools.chain(plugin.userver_config_hooks, local_hooks):
         if not callable(hook):
             hook_func = request.getfixturevalue(hook)
         else:
             hook_func = hook
         hook_func(config_yaml, config_vars)
 
-    if not config_vars:
-        config_yaml.pop('config_vars', None)
-    else:
-        config_vars_path = service_tmpdir / 'config_vars.yaml'
-        config_vars_text = yaml.dump(config_vars)
-        logger.debug(
-            'userver fixture "service_config" writes the patched static config vars to "%s":\n%s',
-            config_vars_path,
-            config_vars_text,
-        )
-        config_vars_path.write_text(config_vars_text)
-        config_yaml['config_vars'] = str(config_vars_path)
-
     return _UserverConfig(config_yaml=config_yaml, config_vars=config_vars)
 
 
 @pytest.fixture(scope='session')
-def userver_config_http_server(service_port, monitor_port):
+def _service_config_substitution_vars(request, mockserver_info) -> Mapping[str, str]:
+    substitution_vars = {
+        'mockserver': mockserver_info.base_url.removesuffix('/'),
+    }
+    if request.config.pluginmanager.hasplugin('pytest_userver.plugins.grpc.mockserver'):
+        grpc_mockserver_endpoint = request.getfixturevalue('grpc_mockserver_endpoint')
+        substitution_vars['grpc_mockserver'] = grpc_mockserver_endpoint
+    return substitution_vars
+
+
+@pytest.fixture(scope='session')
+def userver_config_substitutions(_service_config_substitution_vars) -> ServiceConfigPatch:
+    """
+    Replaces substitution vars in all strings within `config_vars` using
+    [string.Template.substitute](https://docs.python.org/3/library/string.html#string.Template.substitute).
+
+    Substitution vars can be used as a shorthand for writing a full-fledged @ref SERVICE_CONFIG_HOOKS "config hook"
+    in many common cases.
+
+    Unlike normal `config_vars`, substitution vars can also apply to a part of a string.
+    For example, for `config_vars` entry
+
+    @code{.yaml}
+    frobnicator-url: $mockserver/frobnicator
+    @endcode
+
+    a possible patching result is as follows:
+
+    @code{.yaml}
+    frobnicator-url: http://127.0.0.1:1234/frobnicator
+    @endcode
+
+    Currently, the following substitution vars are supported:
+
+    * `mockserver` - mockserver url
+    * `grpc_mockserver` - grpc mockserver endpoint
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _substitute(key, value, parent: Union[list, dict]) -> None:
+        if isinstance(value, str):
+            parent[key] = string.Template(value).safe_substitute(_service_config_substitution_vars)
+        elif isinstance(value, dict):
+            for child_key, child_value in value.items():
+                _substitute(child_key, child_value, value)
+        elif isinstance(value, list):
+            for child_key, child_value in enumerate(value):
+                _substitute(child_key, child_value, value)
+
+    def patch_config(config_yaml, config_vars):
+        for key, value in config_vars.items():
+            _substitute(key, value, config_vars)
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `server.listener.port` to listen on
@@ -452,7 +521,7 @@ def userver_config_http_client(
     mockserver_info,
     mockserver_ssl_info,
     allowed_url_prefixes_extra,
-):
+) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets increased timeout and limits allowed URLs for `http-client` component.
@@ -482,7 +551,7 @@ def userver_config_http_client(
 @pytest.fixture(scope='session')
 def userver_default_log_level() -> str:
     """
-    Default log level to use in userver if no caoomand line option was provided.
+    Default log level to use in userver if no command line option was provided.
 
     Returns 'debug'.
 
@@ -505,7 +574,7 @@ def userver_log_level(pytestconfig, userver_default_log_level) -> str:
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging(userver_log_level, _service_logfile_path):
+def userver_config_logging(userver_log_level, _service_logfile_path) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `logging.loggers.default` to log to `@stderr` with level set
@@ -536,7 +605,7 @@ def userver_config_logging(userver_log_level, _service_logfile_path):
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging_otlp():
+def userver_config_logging_otlp() -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `otlp-logger.load-enabled` to `false` to disable OTLP logging and
@@ -554,7 +623,7 @@ def userver_config_logging_otlp():
 
 
 @pytest.fixture(scope='session')
-def userver_config_testsuite(pytestconfig, mockserver_info):
+def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
 
@@ -611,7 +680,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info):
 
 
 @pytest.fixture(scope='session')
-def userver_config_secdist(service_secdist_path):
+def userver_config_secdist(service_secdist_path) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `default-secdist-provider.config` to the value of
@@ -643,9 +712,7 @@ def userver_config_secdist(service_secdist_path):
 
 
 @pytest.fixture(scope='session')
-def userver_config_testsuite_middleware(
-    userver_testsuite_middleware_enabled: bool,
-):
+def userver_config_testsuite_middleware(userver_testsuite_middleware_enabled: bool) -> ServiceConfigPatch:
     def patch_config(config_yaml, config_vars):
         if not userver_testsuite_middleware_enabled:
             return
@@ -666,5 +733,5 @@ def userver_config_testsuite_middleware(
 
 @pytest.fixture(scope='session')
 def userver_testsuite_middleware_enabled() -> bool:
-    """Enabled testsuite middleware."""
+    """Whether testsuite middleware is enabled."""
     return True

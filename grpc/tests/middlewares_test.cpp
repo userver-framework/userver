@@ -87,25 +87,10 @@ public:
 };
 
 template <typename Middleware>
-class SimpleMiddlewareFactory final : public ugrpc::client::MiddlewareFactoryBase {
-public:
-    template <typename... Args>
-    explicit SimpleMiddlewareFactory(std::in_place_t, Args&&... args)
-        : mw_(std::make_shared<Middleware>(std::forward<Args>(args)...)) {}
-
-    std::shared_ptr<const ugrpc::client::MiddlewareBase> GetMiddleware(std::string_view) const override { return mw_; }
-
-    Middleware& GetTypedMiddleware() { return *mw_; }
-
-private:
-    std::shared_ptr<Middleware> mw_;
-};
-
-template <typename Middleware>
 class MiddlewareFixture : public ugrpc::tests::ServiceFixtureBase {
 protected:
-    MiddlewareFixture() {
-        SetClientMiddlewareFactories({mwf_});
+    MiddlewareFixture() : mw_(std::make_shared<Middleware>()) {
+        SetClientMiddlewares({mw_});
         RegisterService(service_);
         StartServer();
         client_.emplace(MakeClient<sample::ugrpc::UnitTestServiceClient>());
@@ -120,13 +105,12 @@ protected:
 
     UnitTestService& GetService() { return service_; }
 
-    Middleware& GetMiddleware() { return mwf_->GetTypedMiddleware(); }
+    Middleware& GetMiddleware() { return *mw_; }
 
 private:
-    std::shared_ptr<SimpleMiddlewareFactory<Middleware>> mwf_ =
-        std::make_shared<SimpleMiddlewareFactory<Middleware>>(std::in_place);
     UnitTestService service_;
     std::optional<sample::ugrpc::UnitTestServiceClient> client_;
+    std::shared_ptr<Middleware> mw_;
 };
 
 using GrpcMiddlewares = MiddlewareFixture<MockMiddleware>;

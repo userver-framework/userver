@@ -15,7 +15,7 @@ public:
     PostgresControl() = default;
 
     PostgresControl(
-        std::chrono::milliseconds execute_timeout,
+        std::chrono::milliseconds network_timeout,
         std::chrono::milliseconds statement_timeout,
         ReadonlyMaster readonly_master
     );
@@ -27,7 +27,7 @@ public:
     bool IsReadonlyMasterExpected() const;
 
 private:
-    std::chrono::milliseconds execute_timeout_{};
+    std::chrono::milliseconds network_timeout_{};
     std::chrono::milliseconds statement_timeout_{};
     bool is_readonly_master_expected_{false};
 };

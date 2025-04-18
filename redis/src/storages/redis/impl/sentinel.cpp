@@ -15,7 +15,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
-#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/cluster_sentinel_impl.hpp>
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
@@ -71,7 +70,8 @@ Sentinel::Sentinel(
     KeyShardFactory key_shard_factory,
     CommandControl command_control,
     const testsuite::RedisControl& testsuite_redis_control,
-    ConnectionMode mode
+    ConnectionMode mode,
+    std::size_t database_index
 )
     : shard_group_name_(shard_group_name),
       thread_pools_(thread_pools),
@@ -85,6 +85,10 @@ Sentinel::Sentinel(
     sentinel_thread_control_ =
         std::make_unique<engine::ev::ThreadControl>(thread_pools_->GetSentinelThreadPool().NextThread());
 
+    UINVARIANT(
+        !key_shard_factory.IsClusterStrategy() || database_index == 0,
+        "Database index other than 0 now supported in cluster and standalone modes"
+    );
     sentinel_thread_control_->RunInEvLoopBlocking([&]() {
         if (key_shard_factory.IsClusterStrategy()) {
             impl_ = std::make_unique<ClusterSentinelImpl>(
@@ -116,7 +120,7 @@ Sentinel::Sentinel(
                 std::move(ready_callback),
                 key_shard_factory(shards.size()),
                 dynamic_config_source,
-                mode
+                database_index
             );
         }
     });
@@ -216,7 +220,9 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
             dynamic_config_source,
             std::move(key_shard_factory),
             command_control,
-            testsuite_redis_control
+            testsuite_redis_control,
+            ConnectionMode::kCommands,
+            settings.database_index
         );
         client->Start();
     }

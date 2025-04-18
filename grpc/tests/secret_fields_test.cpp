@@ -58,12 +58,9 @@ protected:
 
         if (GetParam() & MiddlewareFlag::kClientLog) {
             ugrpc::client::middlewares::log::Settings client_log_settings;
-            client_log_settings.log_level = logging::Level::kInfo;
             client_log_settings.msg_log_level = logging::Level::kInfo;
             client_log_settings.trim_secrets = !(GetParam() & MiddlewareFlag::kTrimSecretsFalse);
-            SetClientMiddlewareFactories(
-                {std::make_shared<ugrpc::client::middlewares::log::MiddlewareFactory>(client_log_settings)}
-            );
+            SetClientMiddlewares({std::make_shared<ugrpc::client::middlewares::log::Middleware>(client_log_settings)});
         }
 
         RegisterService(service_);

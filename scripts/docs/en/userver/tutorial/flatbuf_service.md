@@ -25,7 +25,7 @@ There are two ways to write a handler that deals with Flatbuffers:
 
 We are going to take the second approach. All the Flatbuffers related action happens in the `HandleRequestFlatbufThrow` method:
 
-@snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - component
+@snippet samples/flatbuf_service/main.cpp Flatbuf service sample - component
 
 
 ### HTTP Flatbuffer request
@@ -33,11 +33,11 @@ We are going to take the second approach. All the Flatbuffers related action hap
 A clients::http::Client is needed to make HTTP requests. It could be obtained from the
 components::HttpClient component.
 
-@snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - http component
+@snippet samples/flatbuf_service/main.cpp Flatbuf service sample - http component
 
 After that, we just send the data and validate the response:
 
-@snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - request
+@snippet samples/flatbuf_service/main.cpp Flatbuf service sample - request
 
 
 ### Build and Run
@@ -101,7 +101,7 @@ Do not forget to add the plugin in conftest.py:
 ## Full sources
 
 See the full example:
-* @ref samples/flatbuf_service/flatbuf_service.cpp
+* @ref samples/flatbuf_service/main.cpp
 * @ref samples/flatbuf_service/flatbuffer_schema.fbs
 * @ref samples/flatbuf_service/static_config.yaml
 * @ref samples/flatbuf_service/CMakeLists.txt
@@ -113,7 +113,7 @@ See the full example:
 ⇦ @ref scripts/docs/en/userver/tutorial/http_caching.md | @ref scripts/docs/en/userver/tutorial/grpc_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/flatbuf_service/flatbuf_service.cpp
+@example samples/flatbuf_service/main.cpp
 @example samples/flatbuf_service/flatbuffer_schema.fbs
 @example samples/flatbuf_service/static_config.yaml
 @example samples/flatbuf_service/CMakeLists.txt

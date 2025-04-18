@@ -2,29 +2,41 @@
 
 namespace functional_tests {
 
-void MySecondMiddleware::CallRequestHook(
-    const ugrpc::server::MiddlewareCallContext&,
+void MySecondMiddleware::PostRecvMessage(
+    ugrpc::server::MiddlewareCallContext& context,
     google::protobuf::Message& request
-) {
-    auto* message = dynamic_cast<samples::api::GreetingRequest*>(&request);
-    auto name = message->name();
-    name += " Two";
-    message->set_name(name);
+) const {
+    const google::protobuf::Descriptor* descriptor = request.GetDescriptor();
+    const google::protobuf::FieldDescriptor* name_field = descriptor->FindFieldByName("name");
+    UINVARIANT(name_field->type() == google::protobuf::FieldDescriptor::TYPE_STRING, "field must be a string");
+    if (name_field) {
+        const google::protobuf::Reflection* reflection = request.GetReflection();
+        auto name = reflection->GetString(request, name_field);
+        name += " Two";
+        reflection->SetString(&request, name_field, name);
+    } else {
+        return context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'name' not found"));
+    }
 }
 
-void MySecondMiddleware::CallResponseHook(
-    const ugrpc::server::MiddlewareCallContext&,
+void MySecondMiddleware::PreSendMessage(
+    ugrpc::server::MiddlewareCallContext& context,
     google::protobuf::Message& response
-) {
-    auto* message = dynamic_cast<samples::api::GreetingResponse*>(&response);
-    auto str = message->greeting();
-    str += " EndTwo";
-    message->set_greeting(str);
+) const {
+    const google::protobuf::Descriptor* descriptor = response.GetDescriptor();
+    const google::protobuf::FieldDescriptor* name_field = descriptor->FindFieldByName("greeting");
+    UINVARIANT(name_field->type() == google::protobuf::FieldDescriptor::TYPE_STRING, "field must be a string");
+    if (name_field) {
+        const google::protobuf::Reflection* reflection = response.GetReflection();
+        auto greeting = reflection->GetString(response, name_field);
+        greeting += " EndTwo";
+        reflection->SetString(&response, name_field, greeting);
+    } else {
+        return context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'greeting' not found"));
+    }
 }
 
-void MySecondMiddleware::Handle(ugrpc::server::MiddlewareCallContext& context) const { context.Next(); }
-
-std::shared_ptr<ugrpc::server::MiddlewareBase>
+std::shared_ptr<const ugrpc::server::MiddlewareBase>
 MySecondMiddlewareComponent::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig&) const {
     return middleware_;
 }

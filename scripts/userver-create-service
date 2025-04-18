@@ -17,27 +17,37 @@ FEATURES = [
 TEMPLATE_ON_REGEX = re.compile(r'.* ([a-z]+) template on.*')
 TEMPLATE_CURRENT_REGEX = re.compile(r'(.*) (//|#) ([a-z]+) template current$')
 
+
 def is_system_installed() -> bool:
     return BINDIR.name == 'bin'
+
 
 def template_path() -> pathlib.Path:
     if is_system_installed():
         return BINDIR / '..' / 'share' / 'userver' / 'service_template'
-    return BINDIR / 'service_template'
+    return BINDIR / '..' / 'service_template'
+
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Create new C++ userver-based service')
+    parser = argparse.ArgumentParser(
+        description='Create new C++ userver-based service')
     for feature in FEATURES:
         parser.add_argument(f'--{feature}', action='store_true')
-    parser.add_argument('service_name')
+    parser.add_argument('service_path')
     return parser.parse_args()
+
+
+def service_name(service_path: str) -> str:
+    return os.path.basename(os.path.normpath(service_path)).replace('-', '_')
+
 
 def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
     orig_text = src.read_text()
     text = []
     skip = False
     for line in orig_text.splitlines():
-        line = line.replace('service_template', args.service_name)
+        line = line.replace('service_template',
+                            service_name(args.service_path))
         match_on = TEMPLATE_ON_REGEX.match(line)
         match_current = TEMPLATE_CURRENT_REGEX.match(line)
         if match_on:
@@ -60,6 +70,7 @@ def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
         return True
     return False
 
+
 def copy_tree(src: pathlib.Path, dst: pathlib.Path, args) -> None:
     for root, _, files in os.walk(src):
         dst_root = dst / pathlib.Path(root).relative_to(src)
@@ -75,6 +86,7 @@ def copy_tree(src: pathlib.Path, dst: pathlib.Path, args) -> None:
         if dst_root_is_empty:
             dst_root.rmdir()
 
+
 def run_ruff(src: pathlib.Path) -> None:
     try:
         subprocess.check_call(['ruff', 'format', str(src)])
@@ -82,16 +94,18 @@ def run_ruff(src: pathlib.Path) -> None:
         print(f'Failed to run ruff ({exc}), skipping.')
 
 
-def check_dst_non_existing(service_name: str):
-    if pathlib.Path(service_name).exists():
-        print(f'Error: {service_name} directory already exists.', file=sys.stderr)
+def check_dst_non_existing(service_path: str):
+    if pathlib.Path(service_path).exists():
+        print(f'Error: {service_path} directory already exists.',
+              file=sys.stderr)
         sys.exit(1)
+
 
 def main() -> None:
     args = parse_args()
-    check_dst_non_existing(args.service_name)
-    copy_tree(template_path(), args.service_name, args)
-    run_ruff(pathlib.Path(args.service_name))
+    check_dst_non_existing(args.service_path)
+    copy_tree(template_path(), args.service_path, args)
+    run_ruff(pathlib.Path(args.service_path))
 
 
 if __name__ == '__main__':

@@ -17,6 +17,7 @@
 #include <gdb_autogen/formats/json/printers.hpp>
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/impl/mutable_value_wrapper.hpp>
+#include <userver/formats/json/serialize.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

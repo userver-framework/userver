@@ -1,8 +1,7 @@
 #include <userver/storages/postgres/message.hpp>
 
-#include <unordered_map>
-
 #include <storages/postgres/detail/result_wrapper.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/trivial_map.hpp>
 

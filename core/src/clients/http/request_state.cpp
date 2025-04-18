@@ -78,7 +78,7 @@ std::error_code TestsuiteResponseHook(Status status_code, const Headers& headers
                 return std::error_code{*opt_value};
             }
 
-            utils::impl::AbortWithStacktrace(fmt::format(
+            utils::AbortWithStacktrace(fmt::format(
                 "Unsupported mockserver protocol X-Testsuite-Error header value: {}. "
                 "Try to update submodules and recompile project first. If it does "
                 "not help please contact testsuite support team.",
@@ -952,7 +952,7 @@ void RequestState::ApplyTestsuiteConfig() {
     if (!prefixes.empty()) {
         auto url = easy().get_original_url();
         if (!IsPrefix(url, prefixes) && !IsPrefix(url, allowed_urls_extra_)) {
-            utils::impl::AbortWithStacktrace(fmt::format(
+            utils::AbortWithStacktrace(fmt::format(
                 "{} forbidden by testsuite config, allowed prefixes={}, "
                 "extra prefixes={}",
                 url,

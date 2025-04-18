@@ -47,7 +47,7 @@ using DlIterateFn = int (*)(DlIterateCb callback, void* data);
 inline auto GetOriginalDlIteratePhdr() {
     static void* func = dlsym(RTLD_NEXT, "dl_iterate_phdr");
     if (!func) {
-        utils::impl::AbortWithStacktrace("Cannot find dl_iterate_phdr function with dlsym");
+        utils::AbortWithStacktrace("Cannot find dl_iterate_phdr function with dlsym");
     }
 
     return reinterpret_cast<DlIterateFn>(func);
@@ -215,14 +215,14 @@ void AssertDynamicLoadingEnabled(std::string_view dl_function_name) {
             "loading/unloading into components constructors/destructors.",
             dl_function_name
         );
-        utils::impl::AbortWithStacktrace(message);
+        utils::AbortWithStacktrace(message);
     }
 }
 
 void AssertDlFunctionFound(void* function, std::string_view dl_function_name) {
     if (!function) {
         const auto message = fmt::format("Cannot find {} function with dlsym", dl_function_name);
-        utils::impl::AbortWithStacktrace(message);
+        utils::AbortWithStacktrace(message);
     }
 }
 

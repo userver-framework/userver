@@ -1,6 +1,6 @@
 #include <ydb/impl/retry.hpp>
 
-#include <ydb-cpp-sdk/v2/library/issue/yql_issue.h>
+#include <ydb-cpp-sdk/library/issue/yql_issue.h>
 
 #include <ydb/impl/operation_settings.hpp>
 

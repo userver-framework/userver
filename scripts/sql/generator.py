@@ -46,6 +46,12 @@ def parse_args():
         required=True,
         help='whether to log query text, "full" for "do log", "name-only" for "do not log"',
     )
+    parser.add_argument(
+        '--testsuite-output-dir',
+        type=str,
+        required=True,
+        help='full path to generated tests',
+    )
     parser.add_argument('files', nargs='*', help='input .sql files to process')
     return parser.parse_args()
 
@@ -63,6 +69,7 @@ class SqlParams:
     namespace: str
     query_log_mode: QueryLogMode
     src_root: str
+    testsuite_output_dir: str = ''
 
 
 def camel_case(string: str) -> str:
@@ -116,6 +123,12 @@ def render(
         exist_ok=True,
     )
 
+    if params.testsuite_output_dir:
+        os.makedirs(
+            pathlib.Path(params.testsuite_output_dir),
+            exist_ok=True,
+        )
+
     loader = jinja2.FileSystemLoader(PARENT_DIR)
     env = jinja2.Environment(loader=loader)
     env.globals['raise_error'] = raise_error
@@ -128,21 +141,21 @@ def render(
         'query_log_mode': params.query_log_mode,
     }
 
-    with open(
-        f'{params.src_root}/include/{params.namespace}/sql_queries.hpp',
-        'w',
-    ) as hpp_file:
+    with open(f'{params.src_root}/include/{params.namespace}/sql_queries.hpp', 'w') as hpp_file:
         tpl = env.get_template('templates/sql.hpp.jinja')
         content = tpl.render(**context)
         hpp_file.write(content)
 
-    with open(
-        f'{params.src_root}/src/{params.namespace}/sql_queries.cpp',
-        'w',
-    ) as cpp_file:
+    with open(f'{params.src_root}/src/{params.namespace}/sql_queries.cpp', 'w') as cpp_file:
         tpl = env.get_template('templates/sql.cpp.jinja')
         content = tpl.render(**context)
         cpp_file.write(content)
+
+    if params.testsuite_output_dir:
+        with open(f'{params.testsuite_output_dir}/sql_files.py', 'w') as py_file:
+            tpl = env.get_template('templates/sql_files.py.jinja')
+            content = tpl.render(**context)
+            py_file.write(content)
 
 
 def main():
@@ -153,6 +166,7 @@ def main():
             namespace=args.namespace,
             src_root=args.output_dir,
             query_log_mode=args.query_log_mode,
+            testsuite_output_dir=args.testsuite_output_dir,
         ),
         items,
         [],

@@ -25,4 +25,7 @@ service UnitTestService {
 
   // Simple RPC with less simple response
   rpc GetData(google.protobuf.Empty) returns(MessageWithDifferentTypes) {}
+  // Returns non-standard status code. Golang can do this and we must check
+  // that at least it doesn't crash us
+  rpc GetCustomStatusCode(google.protobuf.Empty) returns(google.protobuf.Empty) {}
 }

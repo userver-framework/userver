@@ -15,7 +15,7 @@ StandaloneClientFactory::StandaloneClientFactory(client::ClientFactorySettings&&
     : client_factory_{
           std::move(client_factory_settings),
           engine::current_task::GetTaskProcessor(),
-          client::MiddlewareFactories{},
+          simple_client_middleware_pipeline_,
           completion_queues_,
           client_statistics_storage_,
           testsuite_control_,

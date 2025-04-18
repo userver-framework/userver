@@ -26,7 +26,7 @@ Tskv::Tskv(Level level, Format format, const utils::impl::SourceLocation& locati
             fmt::format_to(
                 item_.log_line.data(),
                 FMT_COMPILE("tskv\ttimestamp={}.{:06}\tlevel={}"),
-                GetCurrentTimeString(now).ToStringView(),
+                GetCurrentLocalTimeString(now).ToStringView(),
                 FractionalMicroseconds(now),
                 level_string
             );
@@ -47,7 +47,7 @@ Tskv::Tskv(Level level, Format format, const utils::impl::SourceLocation& locati
             fmt::format_to(
                 item_.log_line.data(),
                 FMT_COMPILE("timestamp:{}.{:06}\tlevel:{}"),
-                GetCurrentTimeString(now).ToStringView(),
+                GetCurrentLocalTimeString(now).ToStringView(),
                 FractionalMicroseconds(now),
                 level_string
             );

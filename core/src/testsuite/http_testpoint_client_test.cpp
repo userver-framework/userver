@@ -1,6 +1,7 @@
 #include <userver/testsuite/http_testpoint_client.hpp>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testpoint_control.hpp>

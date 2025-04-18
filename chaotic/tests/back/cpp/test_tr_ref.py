@@ -7,11 +7,9 @@ from chaotic.front import ref_resolver
 from chaotic.front.parser import ParserConfig
 from chaotic.front.parser import SchemaParser
 from chaotic.front.types import SchemaObject
-from chaotic.main import generate_cpp_name_func
-from chaotic.main import NameMapItem
 
 
-def test_simple_ref(clean):
+def test_simple_ref(clean, cpp_name_func):
     config = ParserConfig(erase_prefix='')
     parser = SchemaParser(
         config=config,
@@ -24,11 +22,6 @@ def test_simple_ref(clean):
         {'type': 'object', 'properties': {}, 'additionalProperties': False},
     )
     parser.parse_schema('/definitions/ref', {'$ref': '#/definitions/Type'})
-
-    cpp_name_func = generate_cpp_name_func(
-        [NameMapItem('/definitions/([^/]*)/={0}')],
-        '',
-    )
 
     schemas = parser.parsed_schemas()
     rr = ref_resolver.RefResolver()
@@ -43,23 +36,23 @@ def test_simple_ref(clean):
     cpp_types = clean(cpp_types)
 
     assert cpp_types == {
-        'Type': CppStruct(
-            raw_cpp_type=type_name.TypeName('Type'),
+        '::Type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::Type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
             fields={},
         ),
-        'ref': CppRef(
+        '::ref': CppRef(
             raw_cpp_type=type_name.TypeName(''),
             json_schema=None,
             nullable=False,
             indirect=False,
             self_ref=False,
-            cpp_name='Type',
+            cpp_name='::Type',
             user_cpp_type=None,
             orig_cpp_type=CppStruct(
-                raw_cpp_type=type_name.TypeName('Type'),
+                raw_cpp_type=type_name.TypeName('::Type'),
                 json_schema=SchemaObject(
                     additionalProperties=False,
                     properties={},

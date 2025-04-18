@@ -12,11 +12,11 @@ USERVER_NAMESPACE_BEGIN
 
 UTEST(TaskProcessor, Overload) {
     engine::TaskProcessorSettings settings;
-    settings.overload_action = engine::TaskProcessorSettings::OverloadAction::kCancel;
-    settings.wait_queue_length_limit = 500;
+    settings.wait_queue_overload.action = engine::TaskProcessorSettingsOverloadAction::kCancel;
+    settings.wait_queue_overload.length_limit = 500;
     constexpr std::size_t kCreatedTasksCount = 1100;
     constexpr std::size_t kMinCanceledTasksCount = 100;
-    engine::current_task::GetTaskProcessor().SetSettings(settings);
+    engine::current_task::GetTaskProcessor().SetSettings(settings, {});
 
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(kCreatedTasksCount);
@@ -70,6 +70,11 @@ UTEST_MT(TaskProcessor, MetricsAliveAndRunning, 2) {
 
     ready = false;
     task.Get();
+
+    // Task decrements `RunningTasks` metric after setting its `IsFinished`.
+    while (task_counter.GetRunningTasks() == 2) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
 
     EXPECT_EQ(task_counter.GetRunningTasks(), 1);
 }

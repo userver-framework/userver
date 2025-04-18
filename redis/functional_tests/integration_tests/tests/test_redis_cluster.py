@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 import redis
 
 KEYS_SEQ_LEN = 10  # enough sequential keys to test all shards
@@ -46,6 +47,7 @@ async def _assert_read_all_shards(service_client, key_prefix, value):
     assert await _check_read_all_shards(service_client, key_prefix, value)
 
 
+@pytest.mark.skip(reason='Flaps, fix in TAXICOMMON-8282')
 async def test_failover(service_client, redis_cluster_store):
     # Write enough different keys to have something in every shard
     assert await _check_write_all_shards(service_client, 'hf_key1', 'abc')

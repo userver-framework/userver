@@ -2,6 +2,7 @@ boost-devel
 c-ares-devel
 ccache
 cctz-devel
+clang-tools-extra
 cmake
 cryptopp-devel
 curl-devel

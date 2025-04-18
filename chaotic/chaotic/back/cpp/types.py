@@ -544,7 +544,7 @@ class CppStructField:
     def _default(self) -> Optional[str]:
         return getattr(self.schema, 'default', None)
 
-    def get_default(self) -> str:
+    def _get_default(self) -> str:
         default = self._default()
         if default is None:
             return ''
@@ -559,6 +559,18 @@ class CppStructField:
                 return 'false'
         else:
             return default
+
+    def get_default(self) -> str:
+        default = self._get_default()
+        if not default:
+            return default
+
+        if self.schema.user_cpp_type:
+            if isinstance(default, str):
+                default = f'std::string_view({default})'
+            type_ = self.schema.user_cpp_type
+            return f'Convert({default}, USERVER_NAMESPACE::chaotic::convert::To<{type_}>{{}})'
+        return default
 
     def cpp_field_type(self) -> str:
         type_ = self.schema
@@ -881,6 +893,7 @@ class CppVariant(CppType):
 class CppVariantWithDiscriminator(CppType):
     property_name: str
     variants: Dict[str, CppType]
+    mapping_type: types.MappingType = types.MappingType.STR
 
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-type', 'x-taxi-cpp-type']
 
@@ -888,6 +901,7 @@ class CppVariantWithDiscriminator(CppType):
 
     def declaration_includes(self) -> List[str]:
         includes = ['variant', 'userver/chaotic/oneof_with_discriminator.hpp']
+
         if self.user_cpp_type:
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
         return includes + flatten([item.declaration_includes() for item in self.variants.values()])
@@ -917,3 +931,9 @@ class CppVariantWithDiscriminator(CppType):
 
     def need_operator_lshift(self) -> bool:
         return False
+
+    def is_str_discriminator(self) -> bool:
+        return self.mapping_type == types.MappingType.STR
+
+    def is_int_discriminator(self) -> bool:
+        return self.mapping_type == types.MappingType.INT

@@ -11,6 +11,7 @@
 
 #include <storages/postgres/detail/pg_message_severity.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

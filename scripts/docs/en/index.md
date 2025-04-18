@@ -73,10 +73,14 @@ are available at the
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
-* @ref scripts/docs/en/userver/chaotic.md
 * @ref scripts/docs/en/userver/logging.md
 * @ref scripts/docs/en/userver/task_processors_guide.md
 * @ref scripts/docs/en/userver/periodics.md
+
+## Code generation
+* @ref scripts/docs/en/userver/codegen_overview.md
+* @ref scripts/docs/en/userver/chaotic.md
+* @ref scripts/docs/en/userver/sql_files.md
 
 
 ## Testing and Benchmarking
@@ -87,8 +91,12 @@ are available at the
 
 
 ## Protocols
-* @ref scripts/docs/en/userver/grpc.md
-    * @ref scripts/docs/en/userver/grpc_server_middlewares.md
+* @ref scripts/docs/en/userver/grpc/grpc.md
+    * Middlewares
+        * @ref scripts/docs/en/userver/grpc/server_middlewares.md
+        * @ref scripts/docs/en/userver/grpc/client_middlewares.md
+        * @ref scripts/docs/en/userver/grpc/middlewares_order.md
+        * @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 * HTTP:
     * @ref clients::http::Client "Client"
     * @ref scripts/docs/en/userver/http_server.md
@@ -110,6 +118,7 @@ are available at the
 * @ref scripts/docs/en/userver/os_signals.md
 * @ref scripts/docs/en/userver/deadline_propagation.md
 * @ref scripts/docs/en/userver/congestion_control.md
+* @ref scripts/docs/en/userver/stack.md
 
 
 ## Caches

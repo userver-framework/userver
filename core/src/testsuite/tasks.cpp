@@ -147,7 +147,7 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
         auto locked_tasks = tasks_.Lock();
         for (const auto& it : *locked_tasks) {
             if (it.second->running_flag) {
-                utils::impl::AbortWithStacktrace(fmt::format("Testsuite task '{}' is still running", it.first));
+                utils::AbortWithStacktrace(fmt::format("Testsuite task '{}' is still running", it.first));
             }
         }
     }
@@ -155,9 +155,7 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
     {
         auto locked = spawned_.Lock();
         for (const auto& it : *locked) {
-            utils::impl::AbortWithStacktrace(
-                fmt::format("Spawned testsuite task '{}' is still running", it.second->name)
-            );
+            utils::AbortWithStacktrace(fmt::format("Spawned testsuite task '{}' is still running", it.second->name));
         }
     }
 }

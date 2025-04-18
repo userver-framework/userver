@@ -1,0 +1,60 @@
+default: {}
+description: ''
+schema:
+    type: object
+    properties:
+        __default__:
+            $ref: "#/definitions/ConnectionSettings"
+    additionalProperties:
+        $ref: "#/definitions/ConnectionSettings"
+    definitions:
+        ConnectionSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                persistent-prepared-statements:
+                    type: boolean
+                    default: true
+                    description: Cache prepared statements or not.
+                user-types-enabled:
+                    type: boolean
+                    default: true
+                    description: Allows usage of user-defined types.
+                check-user-types:
+                    type: boolean
+                    default: false
+                    description: Check on startup that all user types have been loaded.
+                max-prepared-cache-size:
+                    type: integer
+                    minimum: 1
+                    default: 5000
+                    x-usrv-cpp-type: std::size_t
+                    description: Prepared statements cache size limit.
+                recent-errors-threshold:
+                    type: integer
+                    minimum: 1
+                ignore-unused-query-params:
+                    type: boolean
+                    default: false
+                    description: Disable check for not-NULL query params that are
+                        not used in query.
+                max-ttl-sec:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::seconds
+                    description: The maximum lifetime of the connection (in seconds)
+                        after which it will be closed. The actual lifetime will be
+                        chosen randomly within range [max-ttl/2, max-ttl]. By default,
+                        connections live forever.
+                discard-all-on-connect:
+                    type: boolean
+                    default: true
+                    description: Execute DISCARD ALL query after establishing a new
+                        connection, which may be useful when using a connection pooler
+                        in session mode.
+                deadline-propagation-enabled:
+                    type: boolean
+                    default: true
+                    description: Whether statement timeout is affected by deadline
+                        propagation
+

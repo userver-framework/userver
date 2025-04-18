@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 # /// [restore]
 async def _check_that_restores(service_client, gate):
-    gate.to_server_pass()
-    gate.to_client_pass()
+    await gate.to_server_pass()
+    await gate.to_client_pass()
     gate.start_accepting()
 
     await utils.consume_dead_db_connections(service_client)
@@ -56,8 +56,8 @@ async def test_pg_overload_no_accepts(service_client, gate):
 
 # /// [test cc]
 async def test_pg_congestion_control(service_client, gate):
-    gate.to_server_close_on_data()
-    gate.to_client_close_on_data()
+    await gate.to_server_close_on_data()
+    await gate.to_client_close_on_data()
 
     for _ in range(gate.connections_count()):
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
@@ -69,21 +69,21 @@ async def test_pg_congestion_control(service_client, gate):
 
 async def test_close_to_client_limit(service_client, gate):
     for i in range(100, 250, 50):
-        gate.to_client_limit_bytes(i)
+        await gate.to_client_limit_bytes(i)
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
         assert response.status == 500, i
 
-    gate.to_client_pass()
+    await gate.to_client_pass()
     await _check_that_restores(service_client, gate)
 
 
 async def test_close_to_server_limit(service_client, gate):
     for i in range(100, 250, 50):
-        gate.to_server_limit_bytes(i)
+        await gate.to_server_limit_bytes(i)
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
         assert response.status == 500
 
-    gate.to_server_pass()
+    await gate.to_server_pass()
     await _check_that_restores(service_client, gate)
 
 
@@ -91,7 +91,7 @@ async def test_close_to_server_limit(service_client, gate):
     reason='Rarely breaks the server, and corrupted data can still be valid',
 )
 async def test_pg_corrupted_response(service_client, gate):
-    gate.to_client_corrupt_data()
+    await gate.to_client_corrupt_data()
 
     for _ in range(gate.connections_count()):
         response = await service_client.get(SELECT_URL)
@@ -102,7 +102,7 @@ async def test_pg_corrupted_response(service_client, gate):
 
 @pytest.mark.skip(reason='response.status == 200')
 async def test_network_delay_sends(service_client, gate):
-    gate.to_server_delay(DATA_TRANSMISSION_DELAY)
+    await gate.to_server_delay(DATA_TRANSMISSION_DELAY)
 
     logger.debug('Starting "test_network_delay_sends" check for 500')
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
@@ -114,7 +114,7 @@ async def test_network_delay_sends(service_client, gate):
 
 @pytest.mark.skip(reason='response.status == 200')
 async def test_network_delay_recv(service_client, gate):
-    gate.to_client_delay(DATA_TRANSMISSION_DELAY)
+    await gate.to_client_delay(DATA_TRANSMISSION_DELAY)
 
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
     assert response.status == 500
@@ -123,8 +123,8 @@ async def test_network_delay_recv(service_client, gate):
 
 
 async def test_network_delay(service_client, gate):
-    gate.to_server_delay(DATA_TRANSMISSION_DELAY)
-    gate.to_client_delay(DATA_TRANSMISSION_DELAY)
+    await gate.to_server_delay(DATA_TRANSMISSION_DELAY)
+    await gate.to_client_delay(DATA_TRANSMISSION_DELAY)
 
     logger.debug('Starting "test_network_delay" check for 500')
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
@@ -135,7 +135,7 @@ async def test_network_delay(service_client, gate):
 
 
 async def test_network_limit_bps_sends(service_client, gate):
-    gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
+    await gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     logger.debug('Starting "test_network_limit_bps_sends" check for 500')
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
@@ -146,7 +146,7 @@ async def test_network_limit_bps_sends(service_client, gate):
 
 
 async def test_network_limit_bps_recv(service_client, gate):
-    gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
+    await gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     logger.debug('Starting "test_network_limit_bps_recv" check for 500')
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
@@ -157,8 +157,8 @@ async def test_network_limit_bps_recv(service_client, gate):
 
 
 async def test_network_limit_bps(service_client, gate):
-    gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
-    gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
+    await gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
+    await gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     logger.debug('Starting "test_network_limit_bps" check for 500')
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
@@ -170,7 +170,7 @@ async def test_network_limit_bps(service_client, gate):
 
 @pytest.mark.skip(reason='flaky')
 async def test_network_limit_time_sends(service_client, gate):
-    gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    await gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     logger.debug('Starting "test_network_limit_time_sends" check for 500')
     got_error = False
@@ -188,7 +188,7 @@ async def test_network_limit_time_sends(service_client, gate):
 
 @pytest.mark.skip(reason='flaky')
 async def test_network_limit_time_recv(service_client, gate):
-    gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    await gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     logger.debug('Starting "test_network_limit_time_recv" check for 500')
     got_error = False
@@ -206,8 +206,8 @@ async def test_network_limit_time_recv(service_client, gate):
 
 @pytest.mark.skip(reason='flaky')
 async def test_network_limit_time(service_client, gate):
-    gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
-    gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    await gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    await gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     logger.debug('Starting "test_network_limit_time" check for 500')
     got_error = False
@@ -224,22 +224,22 @@ async def test_network_limit_time(service_client, gate):
 
 
 async def test_network_smaller_parts_sends(service_client, gate):
-    gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
+    await gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     response = await service_client.get(SELECT_URL)
     assert response.status == 200
 
 
 async def test_network_smaller_parts_recv(service_client, gate):
-    gate.to_client_smaller_parts(DATA_PARTS_MAX_SIZE)
+    await gate.to_client_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     response = await service_client.get(SELECT_URL)
     assert response.status == 200
 
 
 async def test_network_smaller_parts(service_client, gate):
-    gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
-    gate.to_client_smaller_parts(DATA_PARTS_MAX_SIZE)
+    await gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
+    await gate.to_client_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     response = await service_client.get(SELECT_URL)
     assert response.status == 200
@@ -247,7 +247,7 @@ async def test_network_smaller_parts(service_client, gate):
 
 # TODO: timeout does not work!
 async def test_network_limit_bytes_sends(service_client, gate):
-    gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    await gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     logger.debug('Starting "test_network_limit_bytes_sends" check for 500')
     got_error = False
@@ -264,7 +264,7 @@ async def test_network_limit_bytes_sends(service_client, gate):
 
 
 async def test_network_limit_bytes_recv(service_client, gate):
-    gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    await gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     logger.debug('Starting "test_network_limit_bytes_recv" check for 500')
     got_error = False
@@ -281,8 +281,8 @@ async def test_network_limit_bytes_recv(service_client, gate):
 
 
 async def test_network_limit_bytes(service_client, gate):
-    gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
-    gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    await gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    await gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     logger.debug('Starting "test_network_limit_bytes" check for 500')
     got_error = False
@@ -316,7 +316,10 @@ async def _intercept_server_terminated(
     data = b''
     n_bytes = -1
     while n_bytes < 0:
-        data += await loop.sock_recv(socket_from, 4096)
+        chunk = await loop.sock_recv(socket_from, 4096)
+        if not chunk:
+            raise RuntimeError('Socket connection was closed by the other side')
+        data += chunk
         n_bytes = data.find(ready_for_query)
     await loop.sock_sendall(socket_to, data[:n_bytes])
     await loop.sock_sendall(socket_to, error_msg)
@@ -329,13 +332,13 @@ async def test_close_with_error(service_client, gate, testpoint):
     @testpoint('after_trx_begin')
     async def _hook(_data):
         if should_close:
-            gate.set_to_client_interceptor(_intercept_server_terminated)
+            await gate.set_to_client_interceptor(_intercept_server_terminated)
 
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
     assert response.status == 200
 
     should_close = True
-    gate.set_to_client_interceptor(_intercept_server_terminated)
+    await gate.set_to_client_interceptor(_intercept_server_terminated)
 
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
     assert response.status == 500
@@ -359,19 +362,19 @@ async def test_prepared_statement_already_exists(
     @testpoint('after_trx_begin')
     async def _hook(_data):
         if first[1]:
-            gate.to_client_delay(0.9)
+            await gate.to_client_delay(0.9)
         first[1] = False
 
     @testpoint('pg_cleanup')
     async def pg_cleanup_hook(_data):
-        gate.to_client_pass()
+        await gate.to_client_pass()
 
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
     assert response.status == 500
 
     logger.debug('after slow select')
 
-    gate.to_client_pass()
+    await gate.to_client_pass()
     await asyncio.sleep(2)
 
     logger.debug('after sleep')

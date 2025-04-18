@@ -44,8 +44,8 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 ///
 /// You have to provide a traits class in order to use this.
 ///
-/// ### Avoiding memory leaks
-/// See components::CachingComponentBase
+/// For avoiding "memory leaks", see the respective section
+/// in @ref components::CachingComponentBase.
 ///
 /// ## Static options:
 /// All options of CachingComponentBase and
@@ -175,14 +175,14 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config, const Co
         throw std::logic_error(fmt::format(
             "Incremental update support is requested in config but no update field "
             "name is specified in traits of '{}' cache",
-            components::GetCurrentComponentName(config)
+            components::GetCurrentComponentName(context)
         ));
     }
     if (correction_.count() < 0) {
         throw std::logic_error(fmt::format(
             "Refusing to set forward (negative) update correction requested in "
             "config for '{}' cache",
-            components::GetCurrentComponentName(config)
+            components::GetCurrentComponentName(context)
         ));
     }
 

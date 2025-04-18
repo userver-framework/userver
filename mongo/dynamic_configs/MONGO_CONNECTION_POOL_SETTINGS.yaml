@@ -1,0 +1,57 @@
+default: {}
+description: |
+    Options for MongoDB connections pool (uservices) for service.
+    This options replace static config.
+    When using MultiMongo all pools are updated.
+schema:
+    type: object
+    example: |
+        {
+            // Options for specified component.
+            "mongo-stq_config": {
+                "initial_size": 32,
+                "max_size": 256,
+                "idle_limit": 128,
+                "connecting_limit": 8
+            },
+            // Default options. Applied to all not specified components.
+            "__default__": {
+                "initial_size": 16,
+                "max_size": 128,
+                "idle_limit": 64,
+                "connecting_limit": 8
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/PoolSettings"
+    additionalProperties:
+        $ref: "#/definitions/PoolSettings"
+    definitions:
+        PoolSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                initial_size:
+                    type: integer
+                    minimum: 0
+                    default: 16
+                    description: number of connections created initially.
+                max_size:
+                    type: integer
+                    minimum: 1
+                    default: 128
+                    description: limit for total connections number.
+                idle_limit:
+                    type: integer
+                    minimum: 1
+                    default: 64
+                    description: limit for idle connections number.
+                connecting_limit:
+                    type: integer
+                    minimum: 0
+                    default: 8
+                    description: limit for establishing connections number.
+            required:
+              - max_size
+              - connecting_limit

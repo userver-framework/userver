@@ -496,7 +496,7 @@ public:
         return Case(first);
     }
 
-    template <typename T, typename U>
+    template <typename T, typename U = void>
     constexpr CaseFirstDescriber& Type() {
         return *this;
     }
@@ -841,7 +841,7 @@ TrivialBiMap(BuilderFunc) -> TrivialBiMap<BuilderFunc>;
 /// @brief Unordered set for trivial types, including string literals.
 ///
 /// For a two-value Case statements or efficiency notes
-/// see @ref utils::TrivialBimap.
+/// see @ref utils::TrivialBiMap.
 template <typename BuilderFunc>
 class TrivialSet final {
     using TypesPair = std::invoke_result_t<const BuilderFunc&, impl::SwitchTypesDetector>;
@@ -902,7 +902,7 @@ template <typename BuilderFunc>
 TrivialSet(BuilderFunc) -> TrivialSet<BuilderFunc>;
 
 /// @brief Parses and returns whatever is specified by `map` from a
-/// `formats::*::Value`.
+/// `formats::json::Value` or another format's `Value`.
 /// @throws ExceptionType or `Value::Exception` by default, if `value` is not a
 /// string, or if `value` is not contained in `map`.
 /// @see @ref scripts/docs/en/userver/formats.md

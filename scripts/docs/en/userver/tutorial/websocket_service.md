@@ -19,7 +19,7 @@ Let's write a simple chat server that echoes incoming messages as outgoing messa
 WebSocket handlers must derive from `server::websocket::WebsocketHandlerBase` and have a name, that
 is obtainable at compile time via `kName` variable and is obtainable at runtime via `HandlerName()`.
 
-@snippet samples/websocket_service/websocket_service.cpp  Websocket service sample - component
+@snippet samples/websocket_service/main.cpp  Websocket service sample - component
 
 ### Static config
 
@@ -40,7 +40,7 @@ Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/websocket_service/websocket_service.cpp  Websocket service sample - main
+@snippet samples/websocket_service/main.cpp  Websocket service sample - main
 
 ### Build and Run
 
@@ -87,7 +87,7 @@ Do not forget to add the plugin in conftest.py:
 ## Full sources
 
 See the full example at:
-* @ref samples/websocket_service/websocket_service.cpp
+* @ref samples/websocket_service/main.cpp
 * @ref samples/websocket_service/static_config.yaml
 * @ref samples/websocket_service/CMakeLists.txt
 * @ref samples/websocket_service/tests/conftest.py
@@ -100,7 +100,7 @@ See the full example at:
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/websocket_service/websocket_service.cpp
+@example samples/websocket_service/main.cpp
 @example samples/websocket_service/static_config.yaml
 @example samples/websocket_service/CMakeLists.txt
 @example samples/websocket_service/tests/conftest.py

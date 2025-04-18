@@ -383,7 +383,9 @@ void ProcessGetClusterHostsRequest(
     );
 
     for (const auto& id : ids) {
-        auto cmd = PrepareCommand(request.command.Clone(), context->GenerateCallback());
+        auto cmd = PrepareCommand(request.command.Clone(), [context](const CommandPtr& command, const ReplyPtr& reply) {
+            context->OnResponse(command, reply);
+        });
         cmd->control.force_server_id = id;
         if (!request.sentinel_shard.AsyncCommand(cmd)) {
             context->OnAsyncCommandFailed();
@@ -401,12 +403,6 @@ GetClusterHostsContext::GetClusterHostsContext(
       shard_names_(std::move(shard_names)),
       callback_(std::move(callback)),
       expected_responses_cnt_(expected_responses_cnt) {}
-
-std::function<void(const CommandPtr&, const ReplyPtr&)> GetClusterHostsContext::GenerateCallback() {
-    return [self = shared_from_this()](const CommandPtr& command, const ReplyPtr& reply) {
-        self->OnResponse(command, reply);
-    };
-}
 
 void GetClusterHostsContext::OnAsyncCommandFailed() {
     --expected_responses_cnt_;

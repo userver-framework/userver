@@ -20,7 +20,7 @@ class GeneratorConfig:
     # vfull -> namespace
     namespaces: Dict[str, str]
     # infile_path -> cpp type
-    infile_to_name_func: Optional[Callable] = None
+    infile_to_name_func: Callable
     # type: ignore
     include_dirs: Optional[List[str]] = dataclasses.field(
         # type: ignore
@@ -237,15 +237,12 @@ class Generator:
 
     def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
         vfile, infile = jsonschema_name.split('#')
-        if self._config.infile_to_name_func:
-            name = self._config.infile_to_name_func(infile)
-        else:
-            name = infile
+        name = self._config.infile_to_name_func(infile)
         namespace = self._config.namespaces[vfile]
         if namespace:
-            return namespace + '::' + name
+            return '::' + namespace + '::' + name
         else:
-            return name
+            return '::' + name
 
     def _gen_boolean(
         self,
@@ -593,8 +590,14 @@ class Generator:
         schema: types.OneOfWithDiscriminator,
     ) -> cpp_types.CppType:
         variants = {}
-        for item in zip(schema.oneOf, schema.mapping):
-            field_value, refs = item
+
+        mapping_values: list
+        if schema.mapping.is_str():
+            mapping_values = schema.mapping.as_strs()
+        elif schema.mapping.is_int():
+            mapping_values = schema.mapping.as_ints()
+
+        for field_value, refs in zip(schema.oneOf, mapping_values):
             for ref in refs:
                 variants[ref] = self._gen_ref(
                     type_name.TypeName(''),
@@ -612,6 +615,7 @@ class Generator:
             nullable=schema.nullable,
             variants=variants,
             property_name=schema.discriminator_property,
+            mapping_type=schema.mapping.get_type(),
         )
 
     def _gen_object(

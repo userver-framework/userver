@@ -1,0 +1,61 @@
+default:
+    default-service:
+        default-task-processor:
+            wait_queue_overload:
+                action: ignore
+                length_limit: 5000
+                time_limit_us: 3000
+description: ''
+schema:
+    type: object
+    required:
+      - default-service
+    additionalProperties: false
+    properties:
+        default-service:
+            $ref: '#/definitions/DefaultService'
+    definitions:
+        DefaultService:
+            type: object
+            additionalProperties: false
+            required:
+              - default-task-processor
+            properties:
+                default-task-processor:
+                    $ref: '#/definitions/DefaultTaskProcessor'
+
+        DefaultTaskProcessor:
+            type: object
+            additionalProperties: false
+            required:
+              - wait_queue_overload
+            properties:
+                wait_queue_overload:
+                    $ref: '#/definitions/WaitQueueOverload'
+
+        WaitQueueOverload:
+            type: object
+            additionalProperties: false
+            required:
+              - time_limit_us
+              - length_limit
+              - action
+            properties:
+                time_limit_us:
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::microseconds
+                    minimum: 0
+                length_limit:
+                    x-usrv-cpp-type: unsigned
+                    type: integer
+                    minimum: 0
+                action:
+                    type: string
+                    enum:
+                      - ignore
+                      - cancel
+                sensor_time_limit_us:
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::microseconds
+                    default: 3000
+                    minimum: 0

@@ -28,16 +28,13 @@ def mongodb_settings():
 
 
 @pytest.fixture(scope='session')
-async def _gate_started(
-    loop,
-    mongo_connection_info: connection.ConnectionInfo,
-):
+async def _gate_started(mongo_connection_info: connection.ConnectionInfo):
     gate_config = chaos.GateRoute(
         name='mongo proxy',
         host_to_server=mongo_connection_info.host,
         port_to_server=mongo_connection_info.port,
     )
-    async with chaos.TcpGate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
 
 
@@ -60,8 +57,8 @@ def userver_mongo_config(_gate_started):
 
 @pytest.fixture(name='gate')
 async def _gate_ready(service_client, _gate_started):
-    _gate_started.to_server_pass()
-    _gate_started.to_client_pass()
+    await _gate_started.to_server_pass()
+    await _gate_started.to_client_pass()
     _gate_started.start_accepting()
 
     await _gate_started.wait_for_connections()

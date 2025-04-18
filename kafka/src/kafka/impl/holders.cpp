@@ -169,6 +169,30 @@ const rd_kafka_message_s* MessageHolder::GetHandle() const noexcept { return imp
 
 const rd_kafka_message_s* MessageHolder::operator->() const noexcept { return impl_->message; }
 
+struct HeadersHolder::Impl {
+    explicit Impl(HeaderViews headers) : holder{rd_kafka_headers_new(headers.size())} {
+        auto* handle = holder.GetHandle();
+        for (const auto& header : headers) {
+            const auto name = header.name;
+            const auto value = header.value;
+
+            rd_kafka_header_add(handle, name.c_str(), name.size(), value.data(), value.size());
+        }
+    }
+
+    HolderBase<rd_kafka_headers_t, &rd_kafka_headers_destroy> holder;
+};
+
+HeadersHolder::HeadersHolder(HeaderViews headers) : impl_{headers} {}
+
+rd_kafka_headers_t* HeadersHolder::GetHandle() const noexcept { return impl_->holder.GetHandle(); }
+
+rd_kafka_headers_t* HeadersHolder::release() noexcept { return impl_->holder.release(); }
+
+HeadersHolder::HeadersHolder(HeadersHolder&& other) noexcept = default;
+
+HeadersHolder::~HeadersHolder() = default;
+
 }  // namespace kafka::impl
 
 USERVER_NAMESPACE_END

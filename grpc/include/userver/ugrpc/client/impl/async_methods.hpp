@@ -3,7 +3,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
-#include <utility>
+#include <variant>
 
 #include <google/rpc/status.pb.h>
 
@@ -18,9 +18,9 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/function_ref.hpp>
 
-#include <userver/ugrpc/client/call_kind.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/client/impl/call_kind.hpp>
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>
@@ -51,16 +51,6 @@ struct RpcConfigValues final {
     explicit RpcConfigValues(const dynamic_config::Snapshot& config);
 
     bool enforce_task_deadline;
-};
-
-/// @brief Contains parsed additional data for grpc status
-/// For example parsed status string
-struct ParsedGStatus final {
-    /// @brief Processes status and builds ParsedGStatus
-    static ParsedGStatus ProcessStatus(const grpc::Status& status);
-
-    std::optional<google::rpc::Status> gstatus;
-    std::optional<std::string> gstatus_string;
 };
 
 using ugrpc::client::impl::FinishAsyncMethodInvocation;
@@ -139,7 +129,6 @@ public:
     void SetStatusExtracted() noexcept;
 
     grpc::Status& GetStatus() noexcept;
-    ParsedGStatus& GetParsedGStatus() noexcept;
 
     class AsyncMethodInvocationGuard {
     public:
@@ -173,7 +162,6 @@ private:
     CallKind call_kind_{};
 
     grpc::Status status_;
-    ParsedGStatus parsed_g_status_;
     bool finish_processed_{false};
     bool status_extracted_{false};
 

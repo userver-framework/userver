@@ -38,6 +38,7 @@ CPMAddPackage(
   "WITH_TRACE_TOOLS OFF"
   "USE_RTTI ON"
   "GFLAGS_SHARED FALSE"
+  "CMAKE_SKIP_INSTALL_RULES ON"
 )
 
 mark_targets_as_system("${rocksdb_SOURCE_DIR}")

@@ -9,12 +9,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
-/// Log formats
+/// @brief Text-based log formats
+///
+/// For otlp logs, see @ref scripts/docs/en/userver/logging.md
 enum class Format {
     kTskv,
     kLtsv,
     kRaw,
-    kStruct,
     kJson,
     kJsonYaDeploy,
 };

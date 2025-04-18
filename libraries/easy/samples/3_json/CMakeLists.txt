@@ -5,11 +5,11 @@ find_package(userver COMPONENTS easy chaotic REQUIRED)
 
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen
-    ARGS
-        # Map '/components/schemas/*' JSONSchema types to C++ types in 'schemas' namespace
-        -n "/components/schemas/([^/]*)/=schemas::{0}"
-        # Generate serializers for responses
-        --generate-serializers
+    # Generate serializers for responses
+    GENERATE_SERIALIZERS
+    # Map '/components/schemas/*' JSONSchema types to C++ types in 'schemas' namespace
+    LAYOUT
+        "/components/schemas/([^/]*)/=schemas::{0}"
     OUTPUT_DIR
         ${CMAKE_CURRENT_BINARY_DIR}/src
     SCHEMAS

@@ -10,15 +10,6 @@ namespace components {
 
 namespace impl {
 
-void AddComponentImpl(
-    Manager& manager,
-    const components::ComponentConfigMap& config_map,
-    const std::string& name,
-    ComponentBaseFactory factory
-) {
-    manager.AddComponentImpl(config_map, name, std::move(factory));
-}
-
 ComponentAdderBase::ComponentAdderBase(std::string name, ConfigFileMode config_file_mode)
     : name_(std::move(name)), config_file_mode_{config_file_mode} {}
 

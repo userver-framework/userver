@@ -12,6 +12,7 @@
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/utils/fixed_array.hpp>
 
+#include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/impl/channel_arguments_builder.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/impl/stub_any.hpp>
@@ -32,6 +33,8 @@ struct GenericClientTag final {
 class ClientData final {
 public:
     struct StubState {
+        ClientQos client_qos;
+
         StubPool stubs;
         // method_id -> stub_pool
         utils::FixedArray<StubPool> dedicated_stubs;
@@ -52,8 +55,10 @@ public:
             return StubCast<Stub>(stub_);
         }
 
+        const ClientQos& GetClientQos() const { return state_->client_qos; }
+
     private:
-        rcu::ReadablePtr<StubState> state_;
+        const rcu::ReadablePtr<StubState> state_;
         StubAny& stub_;
     };
 
@@ -74,14 +79,14 @@ public:
         if (internals_.qos) {
             SubscribeOnConfigUpdate<Service>(*internals_.qos);
         } else {
-            ConstructStubState<Service>(channel_arguments_builder_->Build());
+            ConstructStubState<Service>();
         }
     }
 
     template <typename Service>
     ClientData(ClientInternals&& internals, GenericClientTag, std::in_place_type_t<Service>)
         : internals_(std::move(internals)), stub_state_(std::make_unique<rcu::Variable<StubState>>()) {
-        ConstructStubState<Service>(BuildChannelArguments(internals_.channel_args, internals_.default_service_config));
+        ConstructStubState<Service>();
     }
 
     ~ClientData();
@@ -154,12 +159,16 @@ private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config) {
         UASSERT(internals_.qos);
         const auto& client_qos = config[*internals_.qos];
-        UASSERT(channel_arguments_builder_);
-        ConstructStubState<Service>(channel_arguments_builder_->Build(client_qos));
+        ConstructStubState<Service>(client_qos);
     }
 
     template <typename Service>
-    void ConstructStubState(const grpc::ChannelArguments& channel_args) {
+    void ConstructStubState(const ClientQos& client_qos = {}) {
+        const auto channel_args =
+            channel_arguments_builder_.has_value()
+                ? channel_arguments_builder_->Build(client_qos)
+                : BuildChannelArguments(internals_.channel_args, internals_.default_service_config);
+
         auto stubs = StubPool::Create<typename Service::Stub>(
             internals_.channel_count, internals_.channel_factory, channel_args
         );
@@ -171,7 +180,7 @@ private:
                   )
                 : utils::FixedArray<StubPool>{};
 
-        stub_state_->Assign({std::move(stubs), std::move(dedicated_stubs)});
+        stub_state_->Assign({client_qos, std::move(stubs), std::move(dedicated_stubs)});
     }
 
     ClientInternals internals_;

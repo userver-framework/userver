@@ -7,7 +7,7 @@
 
 // userfaultfd is linux-specific,
 // and we use x86-64-specific RSP to calculate stack offsets
-#if defined(__linux__) && defined(__x86_64__)
+#if defined(__linux__) && defined(__x86_64__) && !defined(USERVER_DISABLE_STACK_USAGE_MONITOR)
 #include <sys/syscall.h>
 // Linux kernel version check, basically
 #if defined(__NR_userfaultfd)
@@ -269,11 +269,6 @@ public:
     ~Impl() { Stop(); }
 
     void Start() {
-        if (!utils::impl::kCoroutineStackUsageMonitorExperiment.IsEnabled()) {
-            LOG_INFO() << "StackUsageMonitor is not enabled, skipping initialization";
-            return;
-        }
-
         const auto monitor_fd = CreateUserfaultFd();
         if (monitor_fd == -1) {
             LogWarningWithErrno("Failed to initialize StackUsageMonitor(userfaultfd)");

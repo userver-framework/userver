@@ -5,6 +5,9 @@
 
 #include <userver/baggage/baggage_manager.hpp>
 
+#include <dynamic_config/variables/BAGGAGE_SETTINGS.hpp>
+#include <dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -12,8 +15,8 @@ namespace {
 class BaggageManagerTest : public ::testing::Test {
 protected:
     dynamic_config::StorageMock storage_{
-        {baggage::kBaggageSettings, {{"key1", "key2", "key3", "key4", "key5"}}},
-        {baggage::kBaggageEnabled, true}};
+        {::dynamic_config::BAGGAGE_SETTINGS, {{"key1", "key2", "key3", "key4", "key5"}}},
+        {::dynamic_config::USERVER_BAGGAGE_ENABLED, true}};
     dynamic_config::Source source_ = storage_.GetSource();
     baggage::BaggageManager baggage_manager_ = baggage::BaggageManager(source_);
 };

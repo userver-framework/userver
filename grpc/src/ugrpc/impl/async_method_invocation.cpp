@@ -1,5 +1,7 @@
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 
+#include <userver/utils/assert.hpp>
+
 #include <userver/engine/task/cancel.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -45,8 +47,7 @@ AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::WaitUntil(engine::Deadl
         }
     }
 
-    UASSERT(false);
-    return WaitStatus::kError;
+    utils::AbortWithStacktrace("should be unreachable");
 }
 
 engine::impl::ContextAccessor* AsyncMethodInvocation::TryGetContextAccessor() noexcept {
@@ -55,7 +56,7 @@ engine::impl::ContextAccessor* AsyncMethodInvocation::TryGetContextAccessor() no
 
 bool AsyncMethodInvocation::IsReady() const noexcept { return event_.IsReady(); }
 
-void AsyncMethodInvocation::WaitWhileBusy() {
+void AsyncMethodInvocation::WaitWhileBusy() noexcept {
     if (busy_) {
         engine::TaskCancellationBlocker blocker;
         event_.Wait();

@@ -1,6 +1,7 @@
 project(userver-core CXX)
 
 include(GetUserverVersion)
+include(ChaoticGen)
 message(STATUS "Userver version ${USERVER_VERSION}")
 
 include(CheckFunctionExists)
@@ -88,6 +89,10 @@ if (USERVER_DISABLE_RSEQ_ACCELERATION)
 else()
   add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/librseq librseq)
   target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq)
+endif()
+
+if (NOT USERVER_FEATURE_STACK_USAGE_MONITOR)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_STACK_USAGE_MONITOR)
 endif()
 
 # https://github.com/jemalloc/jemalloc/issues/820
@@ -220,6 +225,31 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+userver_target_generate_chaotic_dynamic_configs(
+    ${PROJECT_NAME}-dynamic-configs
+    dynamic_configs/*.yaml
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-dynamic-configs)
+
+# TODO: move to generator(?)
+userver_target_generate_chaotic(${PROJECT_NAME}-static-config-dns-client
+    INCLUDE_DIRS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/include
+    LAYOUT
+        "/=userver::static_config::DnsClient"
+    OUTPUT_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/static_configs
+    OUTPUT_PREFIX
+        userver/static_config
+    SCHEMAS
+        ${CMAKE_CURRENT_SOURCE_DIR}/static_configs/dns_client.yaml
+    RELATIVE_TO
+        ${CMAKE_CURRENT_SOURCE_DIR}/static_configs
+    INSTALL_INCLUDES_COMPONENT
+        core
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-static-config-dns-client)
+
 # Must go below all the target options and definitions.
 _check_compile_flags(${PROJECT_NAME})
 
@@ -288,7 +318,11 @@ if (USERVER_BUILD_TESTS)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-_userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
+_userver_install_targets(COMPONENT core TARGETS
+    ${PROJECT_NAME}
+    ${PROJECT_NAME}-dynamic-configs
+    ${PROJECT_NAME}-static-config-dns-client
+)
 _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
@@ -301,7 +335,7 @@ _userver_directory_install(COMPONENT core FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
-file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
+file(GLOB TESTSUITE_INSTALL_FILES
     "${USERVER_ROOT_DIR}/testsuite/*.txt"
     "${USERVER_ROOT_DIR}/testsuite/*.py"
 )
@@ -319,4 +353,9 @@ _userver_directory_install(COMPONENT core
 _userver_directory_install(COMPONENT core DIRECTORY
     "${USERVER_ROOT_DIR}/testsuite/pytest_plugins/"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/pytest_plugins/
+)
+
+_userver_directory_install(COMPONENT core DIRECTORY
+    "${USERVER_ROOT_DIR}/testsuite/include_tests/"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/include_tests/
 )

@@ -89,6 +89,9 @@ class SourceLocation:
     # e.g. /definitions/Type
     location: str
 
+    def __str__(self) -> str:
+        return f'{self.filepath}#{self.location}'
+
 
 @dataclasses.dataclass
 class Base:
@@ -387,12 +390,56 @@ class OneOfWithoutDiscriminator(Schema):
     __hash__ = Schema.__hash__
 
 
+class MappingType(enum.Enum):
+    STR = 0
+    INT = 1
+
+
+@dataclasses.dataclass
+class DiscMapping:
+    # only one list must be not none
+    str_values: Optional[List[List[str]]] = None
+    int_values: Optional[List[List[int]]] = None
+
+    def append(self, value: list):
+        if self.str_values is not None:
+            self.str_values.append(typing.cast(List[str], value))
+        elif self.int_values is not None:
+            self.int_values.append(typing.cast(List[int], value))
+
+    def enable_str(self):
+        self.str_values = []
+        self.int_values = None
+
+    def enable_int(self):
+        self.int_values = []
+        self.str_values = None
+
+    def get_type(self) -> MappingType:
+        if self.is_int():
+            return MappingType.INT
+
+        return MappingType.STR
+
+    def as_strs(self) -> List[List[str]]:
+        return typing.cast(List[List[str]], self.str_values)
+
+    def as_ints(self) -> List[List[int]]:
+        return typing.cast(List[List[int]], self.int_values)
+
+    def is_int(self):
+        return self.int_values is not None
+
+    def is_str(self):
+        return self.str_values is not None
+
+
 @smart_fields
 @dataclasses.dataclass
 class OneOfWithDiscriminator(Schema):
     oneOf: List[Ref]  # type:ignore
     discriminator_property: Optional[str] = None
-    mapping: List[List[str]] = dataclasses.field(default_factory=list)
+    mapping: DiscMapping = dataclasses.field(default_factory=DiscMapping)
     nullable: bool = False
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:

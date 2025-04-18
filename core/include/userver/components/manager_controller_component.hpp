@@ -14,7 +14,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+namespace impl {
 class Manager;
+}  // namespace impl
 
 // clang-format off
 
@@ -32,8 +34,9 @@ class Manager;
 /// ---- | ----------- | -------------
 /// coro_pool.initial_size | amount of coroutines to preallocate on startup | 1000
 /// coro_pool.max_size | max amount of coroutines to keep preallocated | 4000
-/// coro_pool.stack_size | size of a single coroutine | 256 * 1024
+/// coro_pool.stack_size | size of a single coroutine stack @ref scripts/docs/en/userver/stack.md | 256 * 1024
 /// coro_pool.local_cache_size | local coroutine cache size per thread | 32
+/// coro_pool.stack_usage_monitor_enabled | whether stack usage is accounted and warnings about too high stack usage are logged @ref scripts/docs/en/userver/stack.md | true
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
 /// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -
@@ -70,20 +73,20 @@ class Manager;
 // clang-format on
 class ManagerControllerComponent final : public RawComponentBase {
 public:
-    ManagerControllerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
-
-    ~ManagerControllerComponent() override;
-
     /// @ingroup userver_component_names
     /// @brief The default name of components::ManagerControllerComponent
     static constexpr std::string_view kName = "manager-controller";
+
+    ManagerControllerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    ~ManagerControllerComponent() override;
 
 private:
     void WriteStatistics(utils::statistics::Writer& writer);
 
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-    const components::Manager& components_manager_;
+    const components::impl::Manager& components_manager_;
     utils::statistics::Entry statistics_holder_;
     concurrent::AsyncEventSubscriberScope config_subscription_;
 };

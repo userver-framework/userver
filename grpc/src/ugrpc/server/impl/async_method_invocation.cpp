@@ -1,5 +1,10 @@
 #include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 
+#include <userver/engine/task/cancel.hpp>
+#include <userver/utils/assert.hpp>
+
+#include <userver/ugrpc/server/exceptions.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
@@ -24,7 +29,7 @@ void RpcFinishedEvent::Notify(bool ok) noexcept {
     event_.Send();
 }
 
-ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async) {
+ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async) noexcept {
     using WaitStatus = ugrpc::impl::AsyncMethodInvocation::WaitStatus;
 
     const engine::TaskCancellationBlocker blocker;
@@ -34,13 +39,33 @@ ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvo
         case WaitStatus::kOk:
         case WaitStatus::kError:
             return status;
+
         case WaitStatus::kCancelled:
         case WaitStatus::kDeadline:
             UASSERT(false);
     }
 
-    UASSERT(false);
-    return status;
+    utils::AbortWithStacktrace("should be unreachable");
+}
+
+void CheckInvocationSuccessful(
+    ugrpc::impl::AsyncMethodInvocation::WaitStatus status,
+    std::string_view call_name,
+    std::string_view stage
+) {
+    switch (status) {
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk:
+            return;
+
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
+            throw RpcInterruptedError(call_name, stage);
+
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kDeadline:
+            UINVARIANT(false, "Deadline happened on server operation");
+
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled:
+            UINVARIANT(false, "Cancel happened on server operation");
+    }
 }
 
 }  // namespace ugrpc::server::impl

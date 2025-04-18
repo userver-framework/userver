@@ -26,7 +26,7 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 utils::DaemonMain initializes and starts the component system with the provided command line arguments:
 
-@snippet samples/production_service/production_service.cpp Production service sample - main
+@snippet samples/production_service/main.cpp Production service sample - main
 
 A path to the static config file should be passed from a command line to start the service:
 
@@ -190,7 +190,7 @@ the @ref TESTSUITE_METRICS_TESTING "testsuite metrics testing".
 List of userver built-in metrics could be found at
 @ref scripts/docs/en/userver/service_monitor.md.
 
-# Alerts
+### Alerts
 
 Alerts is a way to propagate critical errors from your service to a monitoring system.
 
@@ -247,21 +247,21 @@ python3 ../samples/tests/prepare_production_configs.py
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" are used to make sure
 that the service is working fine and
 implements the required functionality. A recommended practice is to build the
-service in Debug and Release modes and tests both of them, then deploy the
-Release build to the production, @ref "disabling all the tests related handlers".
+service in Debug and Release modes and test both of them, then deploy the
+Release build to the production, disabling all the tests-related handlers.
 
 Debug builds of the userver provide numerous assertions that validate the
 framework usage and help to detect bugs at early stages.
 
 Typical functional tests for a service consist of a `conftest.py` file with
-mocks+configs for the sereffectivelyvice and a bunch of `test_*.py` files with actual
+mocks+configs for the service and a bunch of `test_*.py` files with actual
 tests. Such approach allows to reuse mocks and configurations in different
 tests.
 
 ## Full sources
 
 See the full example at 
-* @ref samples/production_service/production_service.cpp
+* @ref samples/production_service/main.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml
 * @ref samples/production_service/CMakeLists.txt
@@ -275,7 +275,7 @@ See the full example at
 ⇦ @ref scripts/docs/en/userver/tutorial/config_service.md | @ref scripts/docs/en/userver/tutorial/tcp_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/production_service/production_service.cpp
+@example samples/production_service/main.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/CMakeLists.txt

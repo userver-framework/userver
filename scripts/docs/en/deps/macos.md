@@ -1,7 +1,8 @@
-boost@1.87
+boost@1.88
 c-ares
 ccache
 cctz
+clang-format
 cmake
 coreutils
 clickhouse-cpp
@@ -12,7 +13,7 @@ git
 google-benchmark
 googletest
 hiredis
-icu4c@76
+icu4c
 jemalloc
 krb5
 libev

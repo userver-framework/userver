@@ -111,7 +111,10 @@ void Tracing::FillResponseWithTracingContext(const tracing::Span& span, http::Ht
 Tracing::LoggingSettings Tracing::ParseLoggingSettings(request::RequestContext& context) const {
     const auto& config_snapshot = context.GetInternalContext().GetConfigSnapshot();
 
-    return {config_snapshot[handlers::kLogRequest], config_snapshot[handlers::kLogRequestHeaders]};
+    return {
+        config_snapshot[::dynamic_config::USERVER_LOG_REQUEST],
+        config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS],
+    };
 }
 
 void Tracing::EnrichLogs(

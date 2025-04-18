@@ -7,3 +7,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-balanced-consumer-groups)
 
 add_subdirectory(integrational_tests)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-integrational-tests)
+
+add_subdirectory(metrics)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)

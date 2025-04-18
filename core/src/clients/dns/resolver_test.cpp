@@ -4,7 +4,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/exception.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/sleep.hpp>
@@ -77,9 +76,9 @@ struct MockedResolver {
               throw std::exception{};
           }},
           resolver{engine::current_task::GetTaskProcessor(), [&] {
-                       clients::dns::ResolverConfig config;
-                       config.file_path = hosts_file.GetPath();
-                       config.file_update_interval = utest::kMaxTestWaitTime;
+                       ::userver::static_config::DnsClient config;
+                       config.hosts_file_path = hosts_file.GetPath();
+                       config.hosts_file_update_interval = utest::kMaxTestWaitTime;
                        config.network_timeout = utest::kMaxTestWaitTime;
                        config.network_attempts = 1;
                        config.cache_max_reply_ttl = std::chrono::seconds{cache_max_ttl};
@@ -161,12 +160,12 @@ UTEST(Resolver, Smoke) {
     UEXPECT_THROW(resolver->Resolve("*.*", test_deadline), clients::dns::NotResolvedException);
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 1);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 1);
+    EXPECT_EQ(counters.file.Load(), 1);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 1);
 }
 
 // 'localhost' should always return loopback IP -- RFC6761 6.3
@@ -207,12 +206,12 @@ UTEST(Resolver, Localhost) {
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 // 'invalid' should always fail -- RFC6761 6.4
@@ -245,12 +244,12 @@ UTEST(Resolver, Invalid) {
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, FileUpdate) {
@@ -269,12 +268,12 @@ UTEST(Resolver, FileUpdate) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("mycomputer", test_deadline), (Expected{"127.0.0.2"}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 3);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 0);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 3);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 0);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheWorks) {
@@ -291,12 +290,12 @@ UTEST(Resolver, CacheWorks) {
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheOverflow) {
@@ -317,12 +316,12 @@ UTEST(Resolver, CacheOverflow) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("second", test_deadline), (Expected{kNetV6String, kNetV4String}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 2);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 4);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 2);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 4);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheStale) {
@@ -341,12 +340,12 @@ UTEST(Resolver, CacheStale) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline), (Expected{kNetV6String, kNetV4String}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 1);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_GE(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 1);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_GE(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheFailures) {
@@ -364,12 +363,12 @@ UTEST(Resolver, CacheFailures) {
     UEXPECT_THROW(resolver->Resolve("fail", test_deadline), clients::dns::NotResolvedException);
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 1);
-    EXPECT_GE(counters.network, 0);
-    EXPECT_EQ(counters.network_failure, 2);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 1);
+    EXPECT_GE(counters.network.Load(), 0);
+    EXPECT_EQ(counters.network_failure.Load(), 2);
 }
 
 UTEST(Resolver, FileDoesNotCache) {
@@ -387,12 +386,12 @@ UTEST(Resolver, FileDoesNotCache) {
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 1);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_GE(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 1);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_GE(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, FileOverridesCache) {
@@ -417,12 +416,12 @@ UTEST(Resolver, FileOverridesCache) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override", test_deadline), (Expected{"127.0.0.5"}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 2);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 1);
-    EXPECT_GE(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 1);
+    EXPECT_EQ(counters.file.Load(), 2);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 1);
+    EXPECT_GE(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 1);
 }
 
 UTEST(Resolver, FirstUpdateCombines) {
@@ -442,12 +441,12 @@ UTEST(Resolver, FirstUpdateCombines) {
     UEXPECT_THROW(second_fail.Get(), clients::dns::NotResolvedException);
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 1);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 1);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 1);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 1);
 }
 
 USERVER_NAMESPACE_END

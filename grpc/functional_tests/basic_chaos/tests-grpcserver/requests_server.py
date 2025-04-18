@@ -179,7 +179,7 @@ async def check_unavailable_for(case, grpc_client, gate):
 
 
 async def close_connection(gate):
-    gate.to_server_pass()
-    gate.to_client_pass()
+    await gate.to_server_pass()
+    await gate.to_client_pass()
     gate.start_accepting()
     await gate.sockets_close()

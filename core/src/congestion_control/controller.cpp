@@ -4,8 +4,6 @@
 
 #include <userver/logging/log.hpp>
 
-#include <userver/congestion_control/config.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace congestion_control {
@@ -15,7 +13,7 @@ Controller::Controller(std::string name, dynamic_config::Source config_source)
 
 bool Controller::IsOverloadedNow(const Sensor::Data& data, const Policy& policy) const {
     // Use on/off limits for anti-flap
-    const size_t overload_limit = state_.is_overloaded ? policy.down_count : policy.up_count;
+    const size_t overload_limit = state_.is_overloaded ? policy.down_level : policy.up_level;
 
     if (data.overload_events_count <= overload_limit) {
         // spurious noise
@@ -74,7 +72,7 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data, const Policy& policy) 
 
 void Controller::Feed(const Sensor::Data& data) {
     const auto config = config_source_.GetSnapshot();
-    const auto& policy = config[impl::kRpsCcConfig].policy;
+    const auto& policy = config[::dynamic_config::USERVER_RPS_CCONTROL];
 
     const auto is_overloaded_pressure = IsOverloadedNow(data, policy);
     const auto old_overloaded = state_.is_overloaded;
@@ -106,7 +104,7 @@ void Controller::Feed(const Sensor::Data& data) {
                 std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch());
             stats_.current_state = 4;
         } else {
-            if (state_.times_wo_overload > policy.overload_off) {
+            if (state_.times_wo_overload > policy.overload_off_seconds) {
                 state_.is_overloaded = false;
             }
 
@@ -125,7 +123,7 @@ void Controller::Feed(const Sensor::Data& data) {
                 stats_.current_state = 0;
             }
         } else {
-            if (state_.times_with_overload > policy.overload_on ||
+            if (state_.times_with_overload > policy.overload_on_seconds ||
                 IsThresholdReached(data, policy.load_limit_crit_percent)) {
                 state_.is_overloaded = true;
             }
@@ -135,7 +133,8 @@ void Controller::Feed(const Sensor::Data& data) {
         }
     }
 
-    if (!state_.is_overloaded && state_.times_wo_overload > policy.no_limit_count) state_.current_limit = std::nullopt;
+    if (!state_.is_overloaded && state_.times_wo_overload > policy.no_limit_seconds)
+        state_.current_limit = std::nullopt;
 
     auto log_level = state_.is_overloaded ? logging::Level::kError
                                           : (state_.current_limit ? logging::Level::kWarning : logging::Level::kInfo);

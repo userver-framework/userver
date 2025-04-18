@@ -1,7 +1,5 @@
 #include <userver/ugrpc/proto_json.hpp>
 
-#include <google/protobuf/util/json_util.h>
-
 #include <grpcpp/support/config.h>
 #include <boost/container/small_vector.hpp>
 
@@ -25,15 +23,23 @@ const google::protobuf::util::JsonPrintOptions kOptions = []() {
 }  // namespace
 
 formats::json::Value MessageToJson(const google::protobuf::Message& message) {
-    return formats::json::FromString(ToJsonString(message));
+    return MessageToJson(message, kOptions);
+}
+
+formats::json::Value
+MessageToJson(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options) {
+    return formats::json::FromString(ToJsonString(message, options));
 }
 
 std::string ToString(const google::protobuf::Message& message) { return message.DebugString(); }
 
-std::string ToJsonString(const google::protobuf::Message& message) {
+std::string ToJsonString(const google::protobuf::Message& message) { return ToJsonString(message, kOptions); }
+
+std::string
+ToJsonString(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options) {
     grpc::string result{};
 
-    auto status = google::protobuf::util::MessageToJsonString(message, &result, kOptions);
+    auto status = google::protobuf::util::MessageToJsonString(message, &result, options);
 
     if (!status.ok()) {
         throw formats::json::Exception("Cannot convert protobuf to string");

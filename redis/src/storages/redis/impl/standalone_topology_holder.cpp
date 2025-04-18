@@ -1,4 +1,7 @@
 #include <storages/redis/impl/standalone_topology_holder.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -9,15 +12,18 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     const Password& password,
+    std::size_t database_index,
     ConnectionInfo conn
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       password_(std::move(password)),
+      database_index_(database_index),
       conn_to_create_(conn),
       create_node_watch_(ev_thread_, [this] {
           // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
           CreateNode();
+          create_node_watch_.Start();
       }) {
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
@@ -36,7 +42,7 @@ void StandaloneTopologyHolder::Stop() {
 
 bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
     LOG_DEBUG() << "WaitReadyOnce in mode " << ToString(mode);
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock lock{mutex_};
     return cv_.WaitUntil(lock, deadline, [this, mode]() {
         if (!is_nodes_received_) return false;
         auto ptr = topology_.Read();
@@ -137,12 +143,13 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
     const auto replication_monitoring_settings_ptr = monitoring_settings_.Lock();
     const auto retry_budget_settings_ptr = retry_budget_settings_.Lock();
     LOG_DEBUG() << "Create new redis instance " << info.Fulltext();
-    return std::make_shared<RedisConnectionHolder>(
+    return RedisConnectionHolder::Create(
         ev_thread_,
         redis_thread_pool_,
         info.HostPort().first,
         info.HostPort().second,
         GetPassword(),
+        database_index_,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr,
@@ -154,7 +161,7 @@ void StandaloneTopologyHolder::CreateNode() {
     LOG_DEBUG() << "Create node started";
 
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        const std::lock_guard lock{mutex_};
         // one shard
         ClusterShardHostInfos shard_infos{// only master, no slaves
                                           ClusterShardHostInfo{conn_to_create_, {}, {}}};
@@ -174,6 +181,8 @@ void StandaloneTopologyHolder::CreateNode() {
                 return;
             }
             topology_holder->GetSignalNodeStateChanged()(host_port, state);
+            { std::lock_guard lock{topology_holder->mutex_}; }
+            topology_holder->cv_.NotifyAll();
         });
 
         NodesStorage nodes;
@@ -191,7 +200,6 @@ void StandaloneTopologyHolder::CreateNode() {
     }
 
     signal_topology_changed_(1);
-    cv_.NotifyAll();
 }
 
 void StandaloneTopologyHolder::UpdatePassword(const Password& password) {
@@ -202,6 +210,10 @@ void StandaloneTopologyHolder::UpdatePassword(const Password& password) {
 Password StandaloneTopologyHolder::GetPassword() {
     const auto lock = password_.Lock();
     return *lock;
+}
+
+std::string StandaloneTopologyHolder::GetReadinessInfo() const {
+    return fmt::format("Nodes received: {}.", is_nodes_received_.load());
 }
 
 }  // namespace storages::redis::impl

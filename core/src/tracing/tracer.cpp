@@ -1,12 +1,9 @@
 #include <userver/tracing/tracer.hpp>
 
-#include <atomic>
-
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/uuid4.hpp>
 
-#include <tracing/no_log_spans.hpp>
 #include <tracing/span_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -38,7 +35,7 @@ auto& GlobalNoLogSpans() {
 }
 
 auto& GlobalTracer() {
-    static rcu::Variable<TracerPtr> tracer(tracing::MakeTracer({}, {}));
+    static rcu::Variable<TracerPtr, rcu::ExclusiveRcuTraits> tracer(tracing::MakeTracer({}, {}));
     return tracer;
 }
 

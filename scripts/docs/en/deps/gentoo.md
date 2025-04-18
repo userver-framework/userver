@@ -23,6 +23,7 @@ dev-util/ccache
 dev-util/cmake
 dev-util/ninja
 dev-vcs/git
+llvm-core/clang
 net-dns/c-ares
 net-libs/grpc
 net-libs/nghttp2

@@ -17,6 +17,7 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/impl/cached_time.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -349,8 +350,7 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::InvalidateByKeyIf(const Key& ke
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(const Key& key, UpdateValueFunc update_func) {
-    stats_.total.background_updates++;
-    stats_.recent.GetCurrentCounter().background_updates++;
+    impl::CacheBackgroundUpdate(stats_);
 
     // cache will wait for all detached tasks in ~ExpirableLruCache()
     engine::AsyncNoSpan([token = wait_token_storage_.GetToken(), this, key, update_func = std::move(update_func)] {

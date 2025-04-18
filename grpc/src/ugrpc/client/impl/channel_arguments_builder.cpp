@@ -6,6 +6,7 @@
 #include <google/protobuf/util/time_util.h>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
@@ -231,9 +232,7 @@ ChannelArgumentsBuilder::ChannelArgumentsBuilder(
     const std::optional<std::string>& static_service_config,
     const ugrpc::impl::StaticServiceMetadata& metadata
 )
-    : channel_args_{channel_args},
-      static_service_config_{static_service_config},
-      service_config_builder_{metadata, static_service_config} {}
+    : channel_args_{channel_args}, service_config_builder_{metadata, static_service_config} {}
 
 grpc::ChannelArguments ChannelArgumentsBuilder::Build(const ClientQos& client_qos) const {
     const auto service_config = service_config_builder_.Build(client_qos);
@@ -241,10 +240,6 @@ grpc::ChannelArguments ChannelArgumentsBuilder::Build(const ClientQos& client_qo
         return channel_args_;
     }
     return BuildChannelArguments(channel_args_, formats::json::ToString(service_config));
-}
-
-grpc::ChannelArguments ChannelArgumentsBuilder::Build() const {
-    return BuildChannelArguments(channel_args_, static_service_config_);
 }
 
 grpc::ChannelArguments

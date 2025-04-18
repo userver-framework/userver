@@ -23,7 +23,7 @@ USERVER_NAMESPACE_BEGIN
 /// Components, clients and helpers for different databases and storages
 namespace storages {}
 
-/// Redis client and helpers
+/// Valkey and Redis client and helpers
 namespace storages::redis {
 
 class SubscribeClientImpl;
@@ -40,9 +40,9 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Redis client component
+/// @brief Valkey and Redis client component
 ///
-/// Provides access to a redis cluster.
+/// Provides access to a valkey or redis cluster.
 ///
 /// ## Dynamic options:
 /// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
@@ -63,7 +63,7 @@ namespace components {
 /// groups | array of redis clusters to work with excluding subscribers | -
 /// groups.[].config_name | key name in secdist with options for this cluster | -
 /// groups.[].db | name to refer to the cluster in components::Redis::GetClient() | -
-/// groups.[].sharding_strategy | one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver | "KeyShardTaximeterCrc32"
+/// groups.[].sharding_strategy | one of RedisCluster, RedisStandalone, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver | "KeyShardTaximeterCrc32"
 /// groups.[].allow_reads_from_master | allows read requests from master instance | false
 /// subscribe_groups | array of redis clusters to work with in subscribe mode | -
 /// subscribe_groups.[].config_name | key name in secdist with options for this cluster | -
@@ -110,10 +110,13 @@ namespace components {
 /// }
 /// @endcode
 ///
-/// ## Cluster Redis setup
+/// For an example of Secdist setup for standalone, sentinel and cluster testsuite configurations see the snippet:
 ///
-/// Redis cluster is the new recommended way of setting up Redis servers
-/// with improved stability.
+/// @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
+///
+/// ## Cluster Valkey or Cluster Redis setup
+///
+/// Valkey/Redis cluster is the new recommended way of setting up key-value datastores with improved stability.
 ///
 /// To start, set `sharding_strategy: RedisCluster` in the static config
 /// as shown above.

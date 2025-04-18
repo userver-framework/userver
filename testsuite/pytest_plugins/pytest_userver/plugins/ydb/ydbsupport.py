@@ -25,7 +25,12 @@ USERVER_CONFIG_HOOKS = ['userver_config_ydb']
 
 
 @pytest.fixture
-def ydb(_ydb_client, _ydb_init):
+def ydb(_ydb_client, _ydb_init) -> client.YdbClient:
+    """
+    YDB client fixture
+
+    @ingroup userver_testsuite_fixtures
+    """
     return _ydb_client
 
 

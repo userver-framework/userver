@@ -1,7 +1,7 @@
 import pathlib
 import sys  # grpc template current
 
-import handlers.hello_pb2_grpc as hello_services  # noqa: E402, E501  # grpc template current
+import handlers.hello_pb2_grpc as hello_services  # grpc template current
 import pytest
 
 from testsuite.databases.pgsql import discover  # postgres template current

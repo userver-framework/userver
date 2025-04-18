@@ -10,7 +10,6 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN

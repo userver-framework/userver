@@ -142,6 +142,15 @@ JsonString ToRelaxedJsonString(const formats::bson::Document& doc) {
     return ApplyConversionToString(doc.GetBson(), &bson_as_relaxed_extended_json);
 }
 
+#if BSON_CHECK_VERSION(1, 29, 0)
+JsonString ToLegacyJsonString(const formats::bson::Document& doc) {
+    return ApplyConversionToString(doc.GetBson(), &bson_as_legacy_extended_json);
+}
+
+JsonString ToArrayJsonString(const formats::bson::Value& array) {
+    return ApplyConversionToString(array.GetInternalArrayDocument().GetBson(), &bson_array_as_legacy_extended_json);
+}
+#else
 JsonString ToLegacyJsonString(const formats::bson::Document& doc) {
     return ApplyConversionToString(doc.GetBson(), &bson_as_json);
 }
@@ -149,6 +158,7 @@ JsonString ToLegacyJsonString(const formats::bson::Document& doc) {
 JsonString ToArrayJsonString(const formats::bson::Value& array) {
     return ApplyConversionToString(array.GetInternalArrayDocument().GetBson(), &bson_array_as_json);
 }
+#endif
 
 JsonString::JsonString(impl::JsonStringImpl&& impl) : impl_(std::move(impl)) {}
 JsonString::~JsonString() = default;

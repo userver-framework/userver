@@ -17,7 +17,6 @@ components_manager:
                 task-processor: main-task-processor
 # /// [Sample grpc server logging middleware component config]
         grpc-server-logging:
-            log-level: info
             msg-log-level: info
             msg-size-log-limit: 512
 # /// [Sample grpc server logging middleware component config]
@@ -37,6 +36,7 @@ components_manager:
             # Nothing
 # /// [Sample grpc server congestion control middleware component config]
 
+        grpc-client-middlewares-pipeline:
         grpc-server-middlewares-pipeline:
             middlewares:
                 grpc-server-headers-propagator:
@@ -52,8 +52,8 @@ components_manager:
             blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
             middlewares:
-              - grpc-client-logging
-              - grpc-client-baggage
+                grpc-client-deadline-propagation:
+                    enabled: false
             channel-args: {}
         greeter-client:
             endpoint: '[::]:8081'
@@ -95,12 +95,11 @@ components_manager:
 
 # /// [Sample grpc client logging middleware component config]
         grpc-client-logging:
-            log-level: info
             msg-log-level: info
             msg-size-log-limit: 512
 # /// [Sample grpc client logging middleware component config]
 
-# /// [Sample grpc client deadline propagation middleware component config]        
+# /// [Sample grpc client deadline propagation middleware component config]
         grpc-client-deadline-propagation:
             # Nothing
 # /// [Sample grpc client deadline propagation middleware component config]

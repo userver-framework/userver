@@ -41,12 +41,12 @@ public:
 
     std::atomic<RedisState> state{RedisState::kInit};
     utils::statistics::RateCounter reconnects{0};
-    std::atomic<std::chrono::milliseconds> session_start_time{};
-    RecentPeriod request_size_percentile;
-    RecentPeriod reply_size_percentile;
-    RecentPeriod timings_percentile;
-    std::unordered_map<std::string_view, RecentPeriod> command_timings_percentile;
-    std::atomic_llong last_ping_ms{};
+    std::atomic<std::chrono::milliseconds> session_start_time{std::chrono::milliseconds::zero()};
+    RecentPeriod request_size_percentile{};
+    RecentPeriod reply_size_percentile{};
+    RecentPeriod timings_percentile{};
+    std::unordered_map<std::string_view, RecentPeriod> command_timings_percentile{};
+    std::atomic_llong last_ping_ms{0};
     std::atomic_bool is_syncing = false;
     std::atomic_size_t offset_from_master_bytes = 0;
 
@@ -90,12 +90,12 @@ struct InstanceStatistics {
     RedisState state{RedisState::kInit};
     utils::statistics::RateCounter reconnects{};
     std::chrono::milliseconds session_start_time{};
-    Statistics::Percentile request_size_percentile;
-    Statistics::Percentile reply_size_percentile;
-    Statistics::Percentile timings_percentile;
-    std::unordered_map<std::string, Statistics::Percentile> command_timings_percentile;
+    Statistics::Percentile request_size_percentile{};
+    Statistics::Percentile reply_size_percentile{};
+    Statistics::Percentile timings_percentile{};
+    std::unordered_map<std::string, Statistics::Percentile> command_timings_percentile{};
     long long last_ping_ms{};
-    bool is_syncing{};
+    bool is_syncing{false};
     long long offset_from_master{};
 
     std::array<utils::statistics::RateCounter, kReplyStatusMap.size()> error_count{{}};

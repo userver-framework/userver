@@ -3,8 +3,6 @@
 /// @file userver/dump/to.hpp
 /// @brief @copybrief dump::To
 
-#include <userver/dump/to.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace dump {

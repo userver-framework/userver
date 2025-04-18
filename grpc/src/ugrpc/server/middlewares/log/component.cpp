@@ -5,8 +5,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/server/middlewares/log/middleware.hpp>
-#include <userver/ugrpc/middlewares/pipeline.hpp>
-#include <userver/ugrpc/server/middlewares/groups.hpp>
+#include <userver/middlewares/groups.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,24 +14,24 @@ namespace ugrpc::server::middlewares::log {
 
 Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
     Settings settings;
-    settings.local_log_level = config["log-level"].As<std::optional<logging::Level>>();
     settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
     settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
     settings.trim_secrets = config["trim-secrets"].As<bool>(settings.trim_secrets);
     return settings;
 }
 
+/// [middleware InGroup]
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : MiddlewareFactoryComponentBase(
           config,
           context,
-          ugrpc::middlewares::MiddlewareDependencyBuilder().InGroup<groups::Logging>()
+          USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
+              .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
       ) {}
+/// [middleware InGroup]
 
-Component::~Component() = default;
-
-std::shared_ptr<MiddlewareBase>
-Component::CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+std::shared_ptr<const MiddlewareBase>
+Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
     return std::make_shared<Middleware>(middleware_config.As<Settings>());
 }
 
@@ -44,9 +43,6 @@ type: object
 description: gRPC service logger component
 additionalProperties: false
 properties:
-    log-level:
-        type: string
-        description: gRPC handlers log level
     msg-log-level:
         type: string
         description: gRPC message body logging level

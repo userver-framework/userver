@@ -5,12 +5,21 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/kafka/exceptions.hpp>
+#include <userver/kafka/headers.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka {
+
+/// @brief Unassigned partition.
+///
+/// The unassigned partition is used by the producer API for messages
+/// that should be partitioned using the default partitioner.
+///
+/// @note By default partitions are distributed uniformly.
+extern const std::optional<std::uint32_t> kUnassignedPartition;
 
 namespace impl {
 
@@ -19,6 +28,8 @@ class ProducerImpl;
 
 struct ProducerConfiguration;
 struct Secret;
+
+class HeadersHolder;
 
 }  // namespace impl
 
@@ -45,16 +56,16 @@ struct Secret;
 /// @see https://docs.confluent.io/platform/current/clients/producer.html
 class Producer final {
 public:
-    /// @brief Creates the Kafka Producer.
-    ///
-    /// @param producer_task_processor is task processor where producer creates
-    /// tasks for message delivery scheduling and waiting.
+    /// @cond
+    // @param producer_task_processor is task processor where producer creates
+    // tasks for message delivery scheduling and waiting.
     Producer(
         const std::string& name,
         engine::TaskProcessor& producer_task_processor,
         const impl::ProducerConfiguration& configuration,
         const impl::Secret& secrets
     );
+    /// @endcond
 
     /// @brief Waits until all messages are sent for at most 2 x
     /// `delivery_timeout` and destroys the producer.
@@ -95,7 +106,8 @@ public:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        std::optional<std::uint32_t> partition = std::nullopt
+        std::optional<std::uint32_t> partition = kUnassignedPartition,
+        HeaderViews headers = {}
     ) const;
 
     /// @brief Same as Producer::Send, but returns the task which can be
@@ -111,7 +123,8 @@ public:
         std::string topic_name,
         std::string key,
         std::string message,
-        std::optional<std::uint32_t> partition = std::nullopt
+        std::optional<std::uint32_t> partition = kUnassignedPartition,
+        HeaderViews headers = {}
     ) const;
 
     /// @brief Dumps per topic messages produce statistics. No expected to be
@@ -124,7 +137,8 @@ private:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        impl::HeadersHolder&& headers_holder
     ) const;
 
 private:

@@ -16,10 +16,17 @@ ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config
           const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control
       ) {
         auto r = http_client_.CreateRequest();
+        r.url(config_.base_url + "{{ op.path }}");
         SerializeRequest(request, r);
         ApplyConfig(r, command_control, config_);
         {# TODO: apply extensions #}
-        auto response = r.perform();
+
+        std::shared_ptr<USERVER_NAMESPACE::clients::http::Response> response;
+        try {
+          response = r.perform();
+        } catch (const USERVER_NAMESPACE::clients::http::TimeoutException& e) {
+          throw {{ op.cpp_namespace() }}::TimeoutException();
+        }
         return {{ op.cpp_namespace() }}::ParseResponse(*response);
       }
   {% endif %}

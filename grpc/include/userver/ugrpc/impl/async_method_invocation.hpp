@@ -58,7 +58,7 @@ public:
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
     /// @endcond
 protected:
-    void WaitWhileBusy();
+    void WaitWhileBusy() noexcept;
 
 private:
     bool ok_{false};

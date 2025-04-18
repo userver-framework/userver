@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/ugrpc/server/middlewares/headers_propagator/component.hpp
-/// @brief @copybrief
-/// ugrpc::server::middlewares::headers_propagator::Component
+/// @brief @copybrief ugrpc::server::middlewares::headers_propagator::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
@@ -37,8 +36,10 @@ public:
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<MiddlewareBase>
-    CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::server::ServiceInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::headers_propagator

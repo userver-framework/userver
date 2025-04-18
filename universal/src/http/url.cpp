@@ -126,6 +126,8 @@ MakeUrl(std::string_view path, std::initializer_list<std::pair<std::string_view,
 
 std::string MakeQuery(const Args& query_args) { return DoMakeQuery(query_args.begin(), query_args.end()); }
 
+std::string MakeQuery(const MultiArgs& query_args) { return DoMakeQuery(query_args.begin(), query_args.end()); }
+
 std::string MakeQuery(const std::unordered_map<std::string, std::string>& query_args) {
     return DoMakeQuery(query_args.begin(), query_args.end());
 }

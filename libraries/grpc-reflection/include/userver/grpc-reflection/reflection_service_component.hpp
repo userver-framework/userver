@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/grpc-reflection/reflection_service_component.hpp
+/// @brief @copybrief grpc_reflection::ReflectionServiceComponent
+
 #include <string_view>
 
 #include <userver/components/component_config.hpp>
@@ -11,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 /// @brief Top namespace for grpc-reflection library
 ///
-/// For more information see @ref grpc-reflection_library.
+/// For more information see @ref scripts/docs/en/userver/libraries/grpc-reflection.md.
 namespace grpc_reflection {
 
 class ProtoServerReflection;
@@ -22,7 +25,7 @@ public:
 
     ReflectionServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    ~ReflectionServiceComponent();
+    ~ReflectionServiceComponent() override;
 
 private:
     void OnAllComponentsLoaded() override;

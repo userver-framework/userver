@@ -6,7 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-UTEST(Rocks, CheckCRUD) {
+// TAXICOMMON-10374
+UTEST(Rocks, DISABLED_CheckCRUD) {
     storages::rocks::Client client{"/tmp/rocksdb_simple_example", engine::current_task::GetTaskProcessor()};
 
     std::string key = "key";

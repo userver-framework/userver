@@ -9,14 +9,16 @@
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/daemon_run.hpp>
+
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/client/component_list.hpp>
 #include <userver/ugrpc/client/generic_client.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
 #include <userver/ugrpc/client/simple_client_component.hpp>
 #include <userver/ugrpc/server/component_list.hpp>
-#include <userver/utils/daemon_run.hpp>
 
 #include <proxy_service.hpp>
 
@@ -31,10 +33,8 @@ int main(int argc, char* argv[]) {
             .Append<clients::dns::Component>()
             .Append<server::handlers::TestsControl>()
             // gRPC client setup
-            .Append<ugrpc::client::CommonComponent>()
+            .AppendComponentList(ugrpc::client::MinimalComponentList())
             .Append<ugrpc::client::ClientFactoryComponent>()
-            .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
-            .Append<ugrpc::client::middlewares::log::Component>()
             .Append<ugrpc::client::SimpleClientComponent<ugrpc::client::GenericClient>>("generic-client")
             // gRPC server setup
             .AppendComponentList(ugrpc::server::MinimalComponentList())

@@ -58,11 +58,6 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: main-task-processor
-
     task_processors:
         main-task-processor:
             worker_threads: 4

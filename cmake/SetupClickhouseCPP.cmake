@@ -26,6 +26,7 @@ include(SetupAbseil)
 CPMAddPackage(
     NAME clickhouse-cpp
     VERSION 2.5.1
+    GIT_TAG f606f9a3b27d54403ebc6f7b055f4110864fb97c
     GITHUB_REPOSITORY ClickHouse/clickhouse-cpp
     SYSTEM
     OPTIONS

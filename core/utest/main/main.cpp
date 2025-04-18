@@ -63,8 +63,6 @@ int main(int argc, char** argv) {
 
     USERVER_NAMESPACE::utest::impl::SetLogLevel(config.log_level);
 
-    USERVER_NAMESPACE::utest::impl::EnableStackUsageMonitor();
-
     // TODO TAXICOMMON-9403
     // const PhdrCacheScope phdr_cache_scope{};
 

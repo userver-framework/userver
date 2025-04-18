@@ -23,6 +23,7 @@ RUN \
     redis-server \
     clang-16 lld-16 llvm-16 clang-format-16 libclang-rt-16-dev\
     clang-14 lld-14 llvm clang-format \
+    g++-9 gcc-9 \
     g++-11 gcc-11 \
     g++-13 gcc-13 \
     && \

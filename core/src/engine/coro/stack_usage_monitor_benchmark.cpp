@@ -42,11 +42,11 @@ __attribute__((noinline)) std::uint64_t SelfLimitingRecursiveFunction() {
 }
 
 void create_async(benchmark::State& state, bool enable) {
-    USERVER_NAMESPACE::utils::impl::UserverExperimentsScope stack_usage_monitor_scope{};
+    engine::TaskProcessorPoolsConfig config;
+    config.is_stack_usage_monitor_enabled = enable;
 
-    stack_usage_monitor_scope.Set(USERVER_NAMESPACE::utils::impl::kCoroutineStackUsageMonitorExperiment, enable);
     for ([[maybe_unused]] auto _ : state) {
-        engine::RunStandalone(1, [&] { SelfLimitingRecursiveFunction(); });
+        engine::RunStandalone(1, config, [&] { SelfLimitingRecursiveFunction(); });
     }
 }
 

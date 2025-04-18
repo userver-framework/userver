@@ -118,7 +118,7 @@ async def service_daemon_scope(
     Configures the health checking to use service_http_ping_url fixture value
     if it is not None; otherwise uses the service_non_http_health_checks info.
 
-    @see @ref service_daemon_instance
+    @see @ref pytest_userver.plugins.service.service_daemon_instance "service_daemon_instance"
     @ingroup userver_testsuite_fixtures
     """
     assert service_http_ping_url or service_non_http_health_checks.tcp, (
@@ -180,10 +180,21 @@ def extra_client_deps() -> None:
 @pytest.fixture
 def auto_client_deps(request) -> None:
     """
-    Service client dependencies hook that knows about pgsql, mongodb,
-    clickhouse, rabbitmq, kafka, redis_store, ydb, and mysql dependencies.
-    To add some other dependencies prefer overriding the
-    @ref extra_client_deps fixture.
+    Ensures that the following fixtures, if available, are run before service start:
+
+    * `pgsql`
+    * `mongodb`
+    * `clickhouse`
+    * `rabbitmq`
+    * kafka (`kafka_producer`, `kafka_consumer`)
+    * `redis_store`
+    * `mysql`
+    * @ref pytest_userver.plugins.ydb.ydbsupport.ydb "ydb"
+    * @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver"
+
+    To add other dependencies prefer overriding the
+    @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
+    fixture.
 
     @ingroup userver_testsuite_fixtures
     """
@@ -197,6 +208,7 @@ def auto_client_deps(request) -> None:
         'redis_store',
         'mysql',
         'ydb',
+        'grpc_mockserver',
     }
 
     try:
@@ -230,7 +242,8 @@ def builtin_client_deps(
     mock_configs_service,
 ):
     """
-    Service client dependencies hook, like @ref extra_client_deps.
+    Service client dependencies hook, like
+    @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps".
 
     Feel free to override globally in a more specific pytest plugin
     (one that comes after userver plugins),
@@ -257,13 +270,14 @@ async def service_daemon_instance(
     extra_client_deps,
 ) -> DaemonInstance:
     """
-    Calls `ensure_daemon_started` on @ref userver_daemon_scope to actually
-    start the service. Makes sure that all the dependencies are prepared
+    Calls `ensure_daemon_started` on
+    @ref pytest_userver.plugins.service.service_daemon_scope "service_daemon_scope"
+    to actually start the service. Makes sure that all the dependencies are prepared
     before the service starts.
 
-    @see @ref extra_client_deps
-    @see @ref auto_client_deps
-    @see @ref builtin_client_deps
+    @see @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
+    @see @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
+    @see @ref pytest_userver.plugins.service.builtin_client_deps "builtin_client_deps"
     @ingroup userver_testsuite_fixtures
     """
     # TODO also run userver_client_cleanup here

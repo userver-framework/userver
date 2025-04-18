@@ -38,6 +38,8 @@ public:
     virtual void UpdatePassword(const Password& password) = 0;
     virtual Password GetPassword() = 0;
 
+    virtual std::string GetReadinessInfo() const = 0;
+
 protected:
     ~TopologyHolderBase() = default;
 };

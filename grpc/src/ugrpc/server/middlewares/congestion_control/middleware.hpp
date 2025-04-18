@@ -10,7 +10,7 @@ namespace ugrpc::server::middlewares::congestion_control {
 
 class Middleware final : public MiddlewareBase, public USERVER_NAMESPACE::server::congestion_control::Limitee {
 public:
-    void Handle(MiddlewareCallContext& context) const override;
+    void OnCallStart(MiddlewareCallContext& context) const override;
 
     void SetLimit(std::optional<size_t> new_limit) override;
 

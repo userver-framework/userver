@@ -44,7 +44,7 @@ public:
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// component-name | name of the component, that implements TracingManagerComponentBase | <use tracing::GenericTracingManager with below settings>
+/// component-name | name of the component, that implements TracingManagerComponentBase | uses tracing::GenericTracingManager with below settings
 /// incoming-format | Array of incoming tracing formats supported by tracing::FormatFromString | ['opentelemetry', 'taxi']
 /// new-requests-format | Send tracing data in those formats supported by tracing::FormatFromString | ['opentelemetry', 'taxi']
 ///

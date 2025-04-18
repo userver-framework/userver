@@ -1,0 +1,13 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    example: |
+        {
+            "per-shard-stats-enabled": true,
+        }
+    properties:
+        per-shard-stats-enabled:
+            type: boolean
+            default: true

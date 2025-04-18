@@ -767,14 +767,12 @@ TEST(YamlConfig, ExplicitStringType) {
 
 TEST(YamlConfig, SampleMultipleWithVarsEnv) {
     const auto node = formats::yaml::FromString(R"(
-# /// [sample multiple]
 # yaml
 some_element:
     some: $variable
     some#file: /some/path/to/the/file.yaml
     some#env: SOME_ENV_VARIABLE
     some#fallback: 100500
-# /// [sample multiple]
   )");
     const auto vars = formats::yaml::FromString("variable#env: VARIABLE_ENV");
 

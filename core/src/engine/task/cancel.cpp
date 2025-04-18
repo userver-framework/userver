@@ -85,8 +85,7 @@ std::string_view ToString(TaskCancellationReason reason) noexcept {
             return "Task processor shutdown";
     }
 
-    utils::impl::AbortWithStacktrace(fmt::format("Garbage task cancellation reason: {}", utils::UnderlyingValue(reason))
-    );
+    utils::AbortWithStacktrace(fmt::format("Garbage task cancellation reason: {}", utils::UnderlyingValue(reason)));
 }
 
 TaskCancellationToken::TaskCancellationToken() noexcept = default;

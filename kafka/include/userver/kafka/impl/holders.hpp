@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
+#include <userver/kafka/headers.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 /// Declaration of `librdkafka` classes.
@@ -11,6 +13,7 @@ struct rd_kafka_conf_s;
 struct rd_kafka_queue_s;
 struct rd_kafka_message_s;
 struct rd_kafka_op_s;
+struct rd_kafka_headers_s;
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,8 +41,9 @@ public:
 private:
     friend class ConfHolder;
     friend class ConsumerImpl;
+    friend class HeadersHolder;
 
-    T* release() noexcept;
+    [[nodiscard]] T* release() noexcept;
 
     std::unique_ptr<T, DeleterType<T>> ptr_;
 };
@@ -67,7 +71,7 @@ private:
     utils::FastPimpl<Impl, 16, 8> impl_;
 };
 
-enum class ClientType { kConsumer, kProducer };
+enum class ClientType : std::uint8_t { kConsumer, kProducer };
 
 /// @brief Kafka client wrapper (consumer or producer).
 /// Holds the client and its events queue.
@@ -107,6 +111,26 @@ public:
 private:
     struct Impl;
     utils::FastPimpl<Impl, 24, 8> impl_;
+};
+
+/// @brief Wrapper for headers list.
+/// Copies all data.
+class HeadersHolder final {
+public:
+    explicit HeadersHolder(HeaderViews headers);
+
+    HeadersHolder(HeadersHolder&&) noexcept;
+
+    ~HeadersHolder();
+
+    rd_kafka_headers_s* GetHandle() const noexcept;
+
+    /// `rd_kafka_producev` takes ownership on headers's data on successful send scheduling.
+    [[nodiscard]] rd_kafka_headers_s* release() noexcept;
+
+private:
+    struct Impl;
+    utils::FastPimpl<Impl, 16, 8> impl_;
 };
 
 }  // namespace kafka::impl

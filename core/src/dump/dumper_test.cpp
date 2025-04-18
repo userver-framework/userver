@@ -105,7 +105,7 @@ private:
     dump::Config config_;
     testsuite::DumpControl control_;
     utils::statistics::Storage statistics_storage_;
-    dynamic_config::StorageMock config_storage_{{dump::kConfigSet, {}}};
+    dynamic_config::StorageMock config_storage_{{::dynamic_config::USERVER_DUMPS, {}}};
     DummyEntity dumpable_;
 };
 

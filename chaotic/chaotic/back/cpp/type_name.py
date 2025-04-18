@@ -18,6 +18,9 @@ class TypeName:
     def __str__(self) -> str:
         return '::'.join(self._components)
 
+    def __repr__(self) -> str:
+        return 'TypeName("{}")'.format(str(self))
+
     def add_suffix(self, suffix: str) -> 'TypeName':
         comp = self._components.copy()
         comp[-1] += suffix

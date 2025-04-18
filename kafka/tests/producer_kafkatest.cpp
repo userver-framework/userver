@@ -1,9 +1,11 @@
 #include <userver/kafka/utest/kafka_fixture.hpp>
 
+#include <array>
 #include <deque>
 #include <vector>
 
 #include <fmt/format.h>
+#include <boost/container/small_vector.hpp>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/sleep.hpp>
@@ -29,6 +31,66 @@ UTEST_F(ProducerTest, OneProducerOneSendAsync) {
     auto producer = MakeProducer("kafka-producer");
     auto task = producer.SendAsync(GenerateTopic(), "test-key", "test-msg");
     UEXPECT_NO_THROW(task.Get());
+}
+
+UTEST_F(ProducerTest, OneProducerHeadersSendSync) {
+    auto producer = MakeProducer("kafka-producer");
+    UEXPECT_NO_THROW(producer.Send(
+        GenerateTopic(),
+        "test-key",
+        "test-msg",
+        /*partition=*/kafka::kUnassignedPartition,
+        {{"key-1", "value-1"}, {"key-2", "value-2"}, {"key-3", "value-3"}}
+    ));
+}
+
+UTEST_F(ProducerTest, OneProducerHeadersDuplicateKeys) {
+    auto producer = MakeProducer("kafka-producer");
+    UEXPECT_NO_THROW(producer.Send(
+        GenerateTopic(),
+        "test-key",
+        "test-msg",
+        /*partition=*/kafka::kUnassignedPartition,
+        {{"key-1", "value-1"}, {"key-1", "value-2"}, {"key-1", "value-3"}}
+    ));
+}
+
+UTEST_F(ProducerTest, OneProducerHeadersSendAsync) {
+    auto producer = MakeProducer("kafka-producer");
+    auto task = producer.SendAsync(
+        GenerateTopic(),
+        "test-key",
+        "test-msg",
+        /*partition=*/kafka::kUnassignedPartition,
+        {{"key-1", "value-1"}, {"key-1", "value-2"}, {"key-3", "value-3"}}
+    );
+    UEXPECT_NO_THROW(task.Get());
+}
+
+UTEST_F(ProducerTest, OneProducerHeadersSendAsyncMemorySafety) {
+    engine::TaskWithResult<void> task_vector;
+    engine::TaskWithResult<void> task_small_vector;
+    engine::TaskWithResult<void> task_deque;
+
+    auto producer = MakeProducer("kafka-producer");
+    {
+        const std::vector<kafka::HeaderView> headers_vector{
+            {"key-1", "value-1"}, {"key-1", "value-2"}, {"key-3", "value-3"}};
+        constexpr std::array headers_array{kafka::HeaderView{"key-deque", "value-deque"}};
+        const boost::container::small_vector<kafka::HeaderView, 2> headers_small_vector{
+            {"key-small", "value-big"}, {"key-big", "value-small"}};
+
+        task_vector = producer.SendAsync(
+            GenerateTopic(), "test-key", "test-msg", /*partition=*/kafka::kUnassignedPartition, headers_vector
+        );
+        task_deque = producer.SendAsync(
+            GenerateTopic(), "test-key", "test-msg", /*partition=*/kafka::kUnassignedPartition, headers_array
+        );
+        task_small_vector = producer.SendAsync(
+            GenerateTopic(), "test-key", "test-msg", /*partition=*/kafka::kUnassignedPartition, headers_small_vector
+        );
+    }
+    UEXPECT_NO_THROW(task_vector.Get());
 }
 
 UTEST_F(ProducerTest, BrokenConfiguration) {

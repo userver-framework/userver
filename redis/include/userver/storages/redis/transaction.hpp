@@ -14,18 +14,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-/// Atomic sequence of commands (https://redis.io/topics/transactions).
-/// Please note that Redis transaction implements isolation, but not
+/// @brief Atomic sequence of Redis commands (https://redis.io/topics/transactions), that is usually retrieved from
+/// storages::redis::Client::Multi().
+///
+/// @note Redis transaction implements isolation, but not
 /// all-or-nothing semantics (IOW a subcommand may fail, but the following
 /// subcommands will succeed).
-/// Methods will add commands to the `Transaction` object.
-/// For each added command a future-like object will be returned.
-/// You can get the result of each transaction's subcommand by calling `Get()`
-/// method for these objects.
-/// Commands will be sent to a server after calling `Exec()` that returns
-/// `RequestExec` object.
+///
+/// Membef functions add commands to the `Transaction` object. For each added command a future-like object is returned.
+/// You can get the result of each transaction's subcommand by calling `Get()` method for these objects.
+/// Commands are be sent to a server after calling `Exec()` that returns `RequestExec` object.
 /// You should not call `Get()` method in a future-like subcommand's object
 /// before calling `Get()` method on `RequestExec` object.
+///
+/// @snippet redis/src/storages/redis/client_redistest.cpp  redis transaction sample
 class Transaction {
 public:
     enum class CheckShards { kNo, kSame };
@@ -35,8 +37,7 @@ public:
     /// Finish current atomic sequence of commands and send it to a server.
     /// Returns 'future-like' request object.
     /// The data will not be set for the future-like objects for subcommands if
-    /// `Get()` method of the returned object is not called or redis did not
-    /// return an array with command responses.
+    /// `Get()` method of the returned object is not called or redis did not return an array with command responses.
     /// In the last case `Get()` will throw a corresponding exception.
     virtual RequestExec Exec(const CommandControl& command_control) = 0;
 

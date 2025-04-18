@@ -7,6 +7,7 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 using namespace std::chrono_literals;
 
@@ -43,6 +44,10 @@ const dynamic_config::Key<SampleStructConfig> kSampleStructConfig{
   }
 )"}};
 /// [struct config cpp]
+
+/// [key bool]
+const dynamic_config::Key<bool> kDocStructConfig{"SAMPLE_BOOL_CONFIG", false};
+/// [key bool]
 
 UTEST(DynamicConfig, SampleStructConfig) {
     const auto& config = dynamic_config::GetDefaultSnapshot();
@@ -472,7 +477,23 @@ UTEST(DynamicConfig, JsonConfig) {
     const auto snapshot = storage.GetSnapshot();
     EXPECT_EQ(snapshot[kJsonConfig], kJson);
 }
-
 }  // namespace
+
+/// [parse enum]
+enum class SomeEnum {
+    kOne,
+    kTwo,
+};
+
+SomeEnum Parse(const formats::json::Value& value, formats::parse::To<SomeEnum>) {
+    static constexpr utils::TrivialBiMap kMap([](auto selector) {
+        return selector().Case(SomeEnum::kOne, "one").Case(SomeEnum::kTwo, "two");
+    });
+
+    return utils::ParseFromValueString(value, kMap);
+}
+
+const dynamic_config::Key<SomeEnum> kEnumConfig{dynamic_config::ConstantConfig{}, SomeEnum::kOne};
+/// [parse enum]
 
 USERVER_NAMESPACE_END

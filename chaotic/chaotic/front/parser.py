@@ -150,23 +150,34 @@ class SchemaParser:
         self,
         user_mapping: dict,
         variables: List[types.Ref],
-    ) -> List[List[str]]:
-        idx_mapping = collections.defaultdict(list)
+    ) -> types.DiscMapping:
         with self._path_enter('discriminator/mapping') as _:
+            idx_mapping = collections.defaultdict(list)
+
+            mapping = types.DiscMapping()
+            if all([isinstance(key, str) for key in user_mapping.keys()]):
+                mapping.enable_str()
+            elif all([isinstance(key, int) for key in user_mapping.keys()]):
+                mapping.enable_int()
+            else:
+                self._raise(f'Not uniform mapping: use the same type for keys: {user_mapping.keys()}')
+
             for key, value in user_mapping.items():
-                with self._path_enter(key) as _:
+                with self._path_enter(str(key)) as _:
                     if not isinstance(value, str):
                         self._raise('Not a string in mapping')
                     abs_ref = self._make_abs_ref(value)
+
                     idx_mapping[abs_ref].append(key)
 
-            mapping = []
             for ref in variables:
                 assert isinstance(ref, types.Ref)
-                abs_refs = idx_mapping.pop(ref.ref, None)
-                if not abs_refs:
+                map_value = idx_mapping.pop(ref.ref, None)
+                if map_value is None:
                     self._raise(f'Missing $ref in mapping: {ref.ref}')
-                mapping.append(abs_refs)
+
+                mapping.append(map_value)
+
             if idx_mapping:
                 self._raise(
                     f'$ref(s) outside of oneOf: {list(idx_mapping.keys())}',
@@ -197,7 +208,7 @@ class SchemaParser:
         if user_mapping is not None:
             mapping = self._parse_oneof_disc_mapping(user_mapping, variables)
         else:
-            mapping = [[ref.ref.split('/')[-1]] for ref in variables]
+            mapping = types.DiscMapping(str_values=[[ref.ref.split('/')[-1]] for ref in variables], int_values=None)
         obj = types.OneOfWithDiscriminator(
             oneOf=variables,
             discriminator_property=discriminator_property,

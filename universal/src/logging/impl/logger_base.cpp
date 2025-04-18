@@ -37,10 +37,6 @@ formatters::BasePtr TextLogger::MakeFormatter(Level level, LogClass, const utils
         case Format::kJson:
         case Format::kJsonYaDeploy:
             return std::make_unique<formatters::Json>(level, format, location);
-
-        case Format::kStruct:
-            UINVARIANT(false, "Invalid logger type");
-            break;
     }
 
     throw std::runtime_error("Invalid logger type");

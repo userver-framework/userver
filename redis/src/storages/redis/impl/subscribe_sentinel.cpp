@@ -7,7 +7,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
-#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/cluster_subscription_storage.hpp>
 
 #include "sentinel_impl.hpp"
@@ -17,6 +16,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 namespace {
+
+constexpr std::size_t kSubscriptionDatabaseIndex = 0;
 
 std::shared_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
     const std::shared_ptr<ThreadPools>& thread_pools,
@@ -62,7 +63,9 @@ SubscribeSentinel::SubscribeSentinel(
           std::move(key_shard_factory),
           command_control,
           testsuite_redis_control,
-          ConnectionMode::kSubscriber
+          ConnectionMode::kSubscriber,
+          kSubscriptionDatabaseIndex
+
       ),
       thread_pools_(thread_pools),
       storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode)),
@@ -158,6 +161,11 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         );
     }
     LOG_DEBUG() << "redis command_control: " << command_control.ToString();
+
+    if (settings.database_index != kSubscriptionDatabaseIndex) {
+        LOG_WARNING() << "`database index` has no effect on susbscriptions. Publishing on database "
+                      << settings.database_index << " will be heard by a subscribers on all other databases.";
+    }
 
     auto subscribe_sentinel = std::make_shared<SubscribeSentinel>(
         thread_pools,

@@ -5,8 +5,9 @@
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
+
+#include <dynamic_config/variables/MONGO_CONNECTION_POOL_SETTINGS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,11 +39,17 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
 
     if (!pool_ptr) {
         auto pool_config = target_->pool_config_;
-        const auto pool_settings = target_->config_source_.GetSnapshot(kPoolSettings);
+        const auto pool_settings =
+            target_->config_source_.GetSnapshot(::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS);
         const auto new_pool_settings = pool_settings->GetOptional(target_->name_);
         if (new_pool_settings.has_value()) {
-            new_pool_settings->Validate(target_->name_);
-            pool_config.pool_settings = new_pool_settings.value();
+            PoolSettings ps;
+            ps.max_size = new_pool_settings->max_size;
+            ps.idle_limit = new_pool_settings->idle_limit;
+            ps.initial_size = new_pool_settings->initial_size;
+            ps.connecting_limit = new_pool_settings->connecting_limit;
+            ps.Validate(target_->name_);
+            pool_config.pool_settings = ps;
         }
 
         pool_ptr = std::make_shared<storages::mongo::Pool>(
@@ -121,14 +128,19 @@ void DumpMetric(utils::statistics::Writer& writer, const MultiMongo& multi_mongo
 }
 
 void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-    const auto new_pool_settings = config[kPoolSettings].GetOptional(name_);
+    const auto new_pool_settings = config[::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS].GetOptional(name_);
     if (new_pool_settings.has_value()) {
-        new_pool_settings->Validate(name_);
+        PoolSettings ps;
+        ps.max_size = new_pool_settings->max_size;
+        ps.idle_limit = new_pool_settings->idle_limit;
+        ps.initial_size = new_pool_settings->initial_size;
+        ps.connecting_limit = new_pool_settings->connecting_limit;
+        ps.Validate(name_);
 
         const auto pool_map = pool_map_.Read();
         for (const auto& [_, pool] : *pool_map) {
             UASSERT(pool);
-            pool->SetPoolSettings(new_pool_settings.value());
+            pool->SetPoolSettings(ps);
         }
     }
 }

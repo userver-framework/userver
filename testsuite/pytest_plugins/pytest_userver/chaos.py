@@ -9,15 +9,28 @@ chaos tests; see
 
 import asyncio
 import dataclasses
-import fcntl
+import functools
+import io
 import logging
-import os
 import random
 import re
 import socket
-import sys
 import time
 import typing
+
+import pytest
+
+from testsuite.utils import callinfo
+
+from pytest_userver import asyncio_socket
+
+
+class BaseError(Exception):
+    pass
+
+
+class ConnectionClosedError(BaseError):
+    pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -65,56 +78,15 @@ class GateInterceptException(Exception):
     pass
 
 
-async def _yield() -> None:
-    # Minamal delay can be 0. This will be fast path for coroutine switching
-    # https://docs.python.org/3/library/asyncio-task.html#sleeping
-
-    min_delay = 0
-    await asyncio.sleep(min_delay)
-
-
-def _try_get_message(
-    recv_socket: Socket,
-    flags: int,
-) -> typing.Tuple[typing.Optional[bytes], typing.Optional[Address]]:
-    try:
-        return recv_socket.recvfrom(RECV_MAX_SIZE, flags)
-    except (BlockingIOError, InterruptedError):
-        return None, None
-
-
-async def _get_message_task(
-    recv_socket: Socket,
-) -> typing.Tuple[bytes, Address]:
-    while True:
-        msg, addr = _try_get_message(recv_socket, 0)
-        if msg:
-            assert addr
-            return msg, addr
-
-        await _yield()
-
-
-def _incoming_data_size(recv_socket: Socket) -> int:
-    msg, _ = _try_get_message(recv_socket, socket.MSG_PEEK)
-    return len(msg) if msg else 0
-
-
 async def _intercept_ok(
     loop: EvLoop,
     socket_from: Socket,
     socket_to: Socket,
 ) -> None:
     data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+    if not data:
+        raise ConnectionClosedError()
     await loop.sock_sendall(socket_to, data)
-
-
-async def _intercept_noop(
-    loop: EvLoop,
-    socket_from: Socket,
-    socket_to: Socket,
-) -> None:
-    pass
 
 
 async def _intercept_drop(
@@ -122,7 +94,9 @@ async def _intercept_drop(
     socket_from: Socket,
     socket_to: Socket,
 ) -> None:
-    await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+    if not data:
+        raise ConnectionClosedError()
 
 
 async def _intercept_delay(
@@ -132,6 +106,8 @@ async def _intercept_delay(
     socket_to: Socket,
 ) -> None:
     data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+    if not data:
+        raise ConnectionClosedError()
     await asyncio.sleep(delay)
     await loop.sock_sendall(socket_to, data)
 
@@ -141,7 +117,9 @@ async def _intercept_close_on_data(
     socket_from: Socket,
     socket_to: Socket,
 ) -> None:
-    await loop.sock_recv(socket_from, 1)
+    data = await loop.sock_recv(socket_from, 1)
+    if not data:
+        raise ConnectionClosedError()
     raise GateInterceptException('Closing socket on data')
 
 
@@ -151,6 +129,8 @@ async def _intercept_corrupt(
     socket_to: Socket,
 ) -> None:
     data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+    if not data:
+        raise ConnectionClosedError()
     await loop.sock_sendall(socket_to, bytearray([not x for x in data]))
 
 
@@ -183,6 +163,8 @@ class _InterceptBpsLimit:
         bytes_to_recv = min(int(self._bytes_left), RECV_MAX_SIZE)
         if bytes_to_recv > 0:
             data = await loop.sock_recv(socket_from, bytes_to_recv)
+            if not data:
+                raise ConnectionClosedError()
             self._bytes_left -= len(data)
 
             await loop.sock_sendall(socket_to, data)
@@ -231,9 +213,9 @@ class _InterceptSmallerParts:
         socket_from: Socket,
         socket_to: Socket,
     ) -> None:
-        incoming_size = _incoming_data_size(socket_from)
-        chunk_size = min(incoming_size, self._max_size)
-        data = await loop.sock_recv(socket_from, chunk_size)
+        data = await loop.sock_recv(socket_from, self._max_size)
+        if not data:
+            raise ConnectionClosedError()
         await asyncio.sleep(self._sleep_per_packet)
         await loop.sock_sendall(socket_to, data)
 
@@ -243,6 +225,7 @@ class _InterceptConcatPackets:
         assert packet_size >= 0
         self._packet_size = packet_size
         self._expire_at: typing.Optional[float] = None
+        self._buf = io.BytesIO()
 
     async def __call__(
         self,
@@ -254,18 +237,20 @@ class _InterceptConcatPackets:
             self._expire_at = time.monotonic() + MAX_DELAY
 
         if self._expire_at <= time.monotonic():
-            logger.error(
+            pytest.fail(
                 f'Failed to make a packet of sufficient size in {MAX_DELAY} '
                 'seconds. Check the test logic, it should end with checking '
                 'that the data was sent and by calling TcpGate function '
                 'to_client_pass() to pass the remaining packets.',
             )
-            sys.exit(2)
 
-        incoming_size = _incoming_data_size(socket_from)
-        if incoming_size >= self._packet_size:
-            data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
-            await loop.sock_sendall(socket_to, data)
+        data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+        if not data:
+            raise ConnectionClosedError()
+        self._buf.write(data)
+        if self._buf.tell() >= self._packet_size:
+            await loop.sock_sendall(socket_to, self._buf.getvalue())
+            self._buf = io.BytesIO()
             self._expire_at = None
 
 
@@ -283,12 +268,13 @@ class _InterceptBytesLimit:
         socket_to: Socket,
     ) -> None:
         data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+        if not data:
+            raise ConnectionClosedError()
         if self._bytes_remain <= len(data):
             await loop.sock_sendall(socket_to, data[0 : self._bytes_remain])
             await self._gate.sockets_close()
             self._bytes_remain = self._bytes_limit
             raise GateInterceptException('Data transmission limit reached')
-
         self._bytes_remain -= len(data)
         await loop.sock_sendall(socket_to, data)
 
@@ -306,6 +292,8 @@ class _InterceptSubstitute:
         socket_to: Socket,
     ) -> None:
         data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+        if not data:
+            raise ConnectionClosedError()
         try:
             res = self._pattern.sub(self._repl, data.decode(self._encoding))
             data = res.encode(self._encoding)
@@ -323,15 +311,14 @@ async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
         await task
     except asyncio.CancelledError:
         return
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.error('Exception in _cancel_and_join: %s', exc)
+    except Exception:  # pylint: disable=broad-except
+        logger.exception('Exception in _cancel_and_join')
 
 
 def _make_socket_nonblocking(sock: Socket) -> None:
     sock.setblocking(False)
     if sock.type == socket.SOCK_STREAM:
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
 
 
 class _UdpDemuxSocketMock:
@@ -339,6 +326,9 @@ class _UdpDemuxSocketMock:
     Emulates a point-to-point connection over UDP socket
     with a non-blocking socket interface
     """
+
+    def gettimeout(self):
+        return self._sock.gettimeout()
 
     def __init__(self, sock: Socket, peer_address: Address):
         self._sock: Socket = sock
@@ -372,11 +362,47 @@ class _UdpDemuxSocketMock:
     def recv(self, bufsize: int, flags: int = 0):
         return self._demux_out.recv(bufsize, flags)
 
+    def get_demux_out(self):
+        return self._demux_out
+
     def fileno(self):
         return self._demux_out.fileno()
 
     def send(self, data: bytes):
         return self._sock.sendto(data, self._peeraddr)
+
+
+class InterceptTask:
+    def __init__(self, socket_from, socket_to, interceptor):
+        self._socket_from = socket_from
+        self._socket_to = socket_to
+        self._condition = asyncio.Condition()
+        self._interceptor = interceptor
+
+    def get_interceptor(self):
+        return self._interceptor
+
+    async def set_interceptor(self, interceptor):
+        async with self._condition:
+            self._interceptor = interceptor
+            self._condition.notify()
+
+    async def run(self):
+        loop = asyncio.get_running_loop()
+        while True:
+            # Applies new interceptors faster.
+            #
+            # To avoid long awaiting on sock_recv in an outdated
+            # interceptor we wait for data before grabbing and applying
+            # the interceptor.
+            await _wait_for_data(self._socket_from)
+
+            # Wait for interceptor attched
+            async with self._condition:
+                interceptor = await self._condition.wait_for(self.get_interceptor)
+
+            logging.trace('running interceptor: %s', interceptor)
+            await interceptor(loop, self._socket_from, self._socket_to)
 
 
 class _SocketsPaired:
@@ -390,98 +416,61 @@ class _SocketsPaired:
         to_client_intercept: Interceptor,
     ) -> None:
         self._proxy_name = proxy_name
-        self._loop = loop
 
         self._client = client
         self._server = server
 
-        self._to_server_intercept: Interceptor = to_server_intercept
-        self._to_client_intercept: Interceptor = to_client_intercept
+        self._task_to_server = InterceptTask(client, server, to_server_intercept)
+        self._task_to_client = InterceptTask(server, client, to_client_intercept)
 
-        self._task_to_server = asyncio.create_task(
-            self._do_pipe_channels(to_server=True),
-        )
-        self._task_to_client = asyncio.create_task(
-            self._do_pipe_channels(to_server=False),
-        )
+        self._task = asyncio.create_task(self._run())
+        self._interceptor_tasks = []
 
-        self._finished_channels = 0
+    async def set_to_server_interceptor(self, interceptor):
+        await self._task_to_server.set_interceptor(interceptor)
 
-    async def _do_pipe_channels(self, *, to_server: bool) -> None:
-        if to_server:
-            socket_from = self._client
-            socket_to = self._server
-        else:
-            socket_from = self._server
-            socket_to = self._client
-
-        try:
-            while True:
-                # Applies new interceptors faster.
-                #
-                # To avoid long awaiting on sock_recv in an outdated
-                # interceptor we wait for data before grabbing and applying
-                # the interceptor.
-                if not _incoming_data_size(socket_from):
-                    await _yield()
-                    continue
-
-                if to_server:
-                    interceptor = self._to_server_intercept
-                else:
-                    interceptor = self._to_client_intercept
-
-                await interceptor(self._loop, socket_from, socket_to)
-                await _yield()
-        except GateInterceptException as exc:
-            logger.info('In "%s": %s', self._proxy_name, exc)
-        except socket.error as exc:
-            logger.error('Exception in "%s": %s', self._proxy_name, exc)
-        finally:
-            self._finished_channels += 1
-            if self._finished_channels == 2:
-                # Closing the sockets here so that the self.shutdown()
-                # returns only when the sockets are actually closed
-                logger.info('"%s" closes  %s', self._proxy_name, self.info())
-                self._close_socket(self._client)
-                self._close_socket(self._server)
-            else:
-                assert self._finished_channels == 1
-                if to_server:
-                    self._task_to_client.cancel()
-                else:
-                    self._task_to_server.cancel()
-
-    def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
-        self._to_server_intercept = interceptor
-
-    def set_to_client_interceptor(self, interceptor: Interceptor) -> None:
-        self._to_client_intercept = interceptor
-
-    def _close_socket(self, self_socket: Socket) -> None:
-        assert self_socket in {self._client, self._server}
-        try:
-            self_socket.close()
-        except socket.error as exc:
-            logger.error(
-                'Exception in "%s" on closing %s: %s',
-                self._proxy_name,
-                'client' if self_socket == self._client else 'server',
-                exc,
-            )
+    async def set_to_client_interceptor(self, interceptor: Interceptor):
+        await self._task_to_client.set_interceptor(interceptor)
 
     async def shutdown(self) -> None:
-        for task in {self._task_to_client, self._task_to_server}:
+        for task in self._interceptor_tasks:
             await _cancel_and_join(task)
+        await _cancel_and_join(self._task)
 
     def is_active(self) -> bool:
-        return not self._task_to_client.done() or not self._task_to_server.done()
+        return not self._task.done()
 
     def info(self) -> str:
         if not self.is_active():
             return '<inactive>'
 
         return f'client fd={self._client.fileno()} <=> server fd={self._server.fileno()}'
+
+    async def _run(self):
+        self._interceptor_tasks = [
+            asyncio.create_task(obj.run()) for obj in (self._task_to_server, self._task_to_client)
+        ]
+        try:
+            done, _ = await asyncio.wait(self._interceptor_tasks, return_when=asyncio.FIRST_EXCEPTION)
+            for task in done:
+                task.result()
+        except GateInterceptException as exc:
+            logger.info('In "%s": %s', self._proxy_name, exc)
+        except socket.error as exc:
+            logger.error('Exception in "%s": %s', self._proxy_name, exc)
+        except Exception:
+            logger.exception('interceptor failed')
+        finally:
+            for task in self._interceptor_tasks:
+                task.cancel()
+
+            # Closing the sockets here so that the self.shutdown()
+            # returns only when the sockets are actually closed
+            for sock in self._server, self._client:
+                try:
+                    sock.close()
+                except socket.error:
+                    logger.exception('Exception in "%s" on closing %s:', self._proxy_name, sock)
 
 
 # @endcond
@@ -511,8 +500,10 @@ class BaseGate:
 
     _NOT_IMPLEMENTED_MESSAGE = 'Do not use BaseGate itself, use one of specializations TcpGate or UdpGate'
 
-    def __init__(self, route: GateRoute, loop: EvLoop) -> None:
+    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None) -> None:
         self._route = route
+        if loop is None:
+            loop = asyncio.get_running_loop()
         self._loop = loop
 
         self._to_server_intercept: Interceptor = _intercept_ok
@@ -555,7 +546,7 @@ class BaseGate:
                 port_for_client=self._accept_sockets[0].getsockname()[1],
             )
 
-        BaseGate.start_accepting(self)
+        self.start_accepting()
 
     def start_accepting(self) -> None:
         """Start accepting tasks"""
@@ -584,10 +575,10 @@ class BaseGate:
         if not self._accept_sockets and not self._sockets:
             return
 
-        self.to_server_pass()
-        self.to_client_pass()
+        await self.to_server_pass()
+        await self.to_client_pass()
 
-        await BaseGate.stop_accepting(self)
+        await self.stop_accepting()
         logger.info('Before close() %s', self.info())
         await self.sockets_close()
         assert not self._sockets
@@ -633,53 +624,59 @@ class BaseGate:
         """
         raise NotImplementedError(self._NOT_IMPLEMENTED_MESSAGE)
 
-    def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
+    async def set_to_server_interceptor(self, interceptor: Interceptor) -> callinfo.AsyncCallQueue:
         """
         Replace existing interceptor of client to server data with a custom
         """
-        self._to_server_intercept = interceptor
+        self._to_server_intercept = _create_callqueue(interceptor)
         for x in self._sockets:
-            x.set_to_server_interceptor(self._to_server_intercept)
+            await x.set_to_server_interceptor(self._to_server_intercept)
+        return self._to_server_intercept
 
-    def set_to_client_interceptor(self, interceptor: Interceptor) -> None:
+    async def set_to_client_interceptor(self, interceptor: Interceptor) -> callinfo.AsyncCallQueue:
         """
         Replace existing interceptor of server to client data with a custom
-        """
-        self._to_client_intercept = interceptor
-        for x in self._sockets:
-            x.set_to_client_interceptor(self._to_client_intercept)
 
-    def to_server_pass(self) -> None:
+        """
+        if interceptor is not None:
+            self._to_client_intercept = _create_callqueue(interceptor)
+        else:
+            self._to_client_intercept = None
+        for x in self._sockets:
+            await x.set_to_client_interceptor(self._to_client_intercept)
+        return self._to_client_intercept
+
+    async def to_server_pass(self) -> callinfo.AsyncCallQueue:
         """Pass data as is"""
         logging.trace('to_server_pass')
-        self.set_to_server_interceptor(_intercept_ok)
+        return await self.set_to_server_interceptor(_intercept_ok)
 
-    def to_client_pass(self) -> None:
+    async def to_client_pass(self) -> callinfo.AsyncCallQueue:
         """Pass data as is"""
         logging.trace('to_client_pass')
-        self.set_to_client_interceptor(_intercept_ok)
+        return await self.set_to_client_interceptor(_intercept_ok)
 
-    def to_server_noop(self) -> None:
+    async def to_server_noop(self) -> callinfo.AsyncCallQueue:
         """Do not read data, causing client to keep multiple data"""
         logging.trace('to_server_noop')
-        self.set_to_server_interceptor(_intercept_noop)
+        return await self.set_to_server_interceptor(None)
 
-    def to_client_noop(self) -> None:
+    async def to_client_noop(self) -> callinfo.AsyncCallQueue:
         """Do not read data, causing server to keep multiple data"""
         logging.trace('to_client_noop')
-        self.set_to_client_interceptor(_intercept_noop)
+        return await self.set_to_client_interceptor(None)
 
-    def to_server_drop(self) -> None:
+    async def to_server_drop(self) -> callinfo.AsyncCallQueue:
         """Read and discard data"""
         logging.trace('to_server_drop')
-        self.set_to_server_interceptor(_intercept_drop)
+        return await self.set_to_server_interceptor(_intercept_drop)
 
-    def to_client_drop(self) -> None:
+    async def to_client_drop(self) -> callinfo.AsyncCallQueue:
         """Read and discard data"""
         logging.trace('to_client_drop')
-        self.set_to_client_interceptor(_intercept_drop)
+        return await self.set_to_client_interceptor(_intercept_drop)
 
-    def to_server_delay(self, delay: float) -> None:
+    async def to_server_delay(self, delay: float) -> callinfo.AsyncCallQueue:
         """Delay data transmission"""
         logging.trace('to_server_delay, delay: %s', delay)
 
@@ -690,9 +687,9 @@ class BaseGate:
         ) -> None:
             await _intercept_delay(delay, loop, socket_from, socket_to)
 
-        self.set_to_server_interceptor(_intercept_delay_bound)
+        return await self.set_to_server_interceptor(_intercept_delay_bound)
 
-    def to_client_delay(self, delay: float) -> None:
+    async def to_client_delay(self, delay: float) -> callinfo.AsyncCallQueue:
         """Delay data transmission"""
         logging.trace('to_client_delay, delay: %s', delay)
 
@@ -703,68 +700,68 @@ class BaseGate:
         ) -> None:
             await _intercept_delay(delay, loop, socket_from, socket_to)
 
-        self.set_to_client_interceptor(_intercept_delay_bound)
+        return await self.set_to_client_interceptor(_intercept_delay_bound)
 
-    def to_server_close_on_data(self) -> None:
+    async def to_server_close_on_data(self) -> callinfo.AsyncCallQueue:
         """Close on first bytes of data from client"""
         logging.trace('to_server_close_on_data')
-        self.set_to_server_interceptor(_intercept_close_on_data)
+        return await self.set_to_server_interceptor(_intercept_close_on_data)
 
-    def to_client_close_on_data(self) -> None:
+    async def to_client_close_on_data(self) -> callinfo.AsyncCallQueue:
         """Close on first bytes of data from server"""
         logging.trace('to_client_close_on_data')
-        self.set_to_client_interceptor(_intercept_close_on_data)
+        return await self.set_to_client_interceptor(_intercept_close_on_data)
 
-    def to_server_corrupt_data(self) -> None:
+    async def to_server_corrupt_data(self) -> callinfo.AsyncCallQueue:
         """Corrupt data received from client"""
         logging.trace('to_server_corrupt_data')
-        self.set_to_server_interceptor(_intercept_corrupt)
+        return await self.set_to_server_interceptor(_intercept_corrupt)
 
-    def to_client_corrupt_data(self) -> None:
+    async def to_client_corrupt_data(self) -> callinfo.AsyncCallQueue:
         """Corrupt data received from server"""
         logging.trace('to_client_corrupt_data')
-        self.set_to_client_interceptor(_intercept_corrupt)
+        return await self.set_to_client_interceptor(_intercept_corrupt)
 
-    def to_server_limit_bps(self, bytes_per_second: float) -> None:
+    async def to_server_limit_bps(self, bytes_per_second: float) -> callinfo.AsyncCallQueue:
         """Limit bytes per second transmission by network from client"""
         logging.trace(
             'to_server_limit_bps, bytes_per_second: %s',
             bytes_per_second,
         )
-        self.set_to_server_interceptor(_InterceptBpsLimit(bytes_per_second))
+        return await self.set_to_server_interceptor(_InterceptBpsLimit(bytes_per_second))
 
-    def to_client_limit_bps(self, bytes_per_second: float) -> None:
+    async def to_client_limit_bps(self, bytes_per_second: float) -> callinfo.AsyncCallQueue:
         """Limit bytes per second transmission by network from server"""
         logging.trace(
             'to_client_limit_bps, bytes_per_second: %s',
             bytes_per_second,
         )
-        self.set_to_client_interceptor(_InterceptBpsLimit(bytes_per_second))
+        return await self.set_to_client_interceptor(_InterceptBpsLimit(bytes_per_second))
 
-    def to_server_limit_time(self, timeout: float, jitter: float) -> None:
+    async def to_server_limit_time(self, timeout: float, jitter: float) -> callinfo.AsyncCallQueue:
         """Limit connection lifetime on receive of first bytes from client"""
         logging.trace(
             'to_server_limit_time, timeout: %s, jitter: %s',
             timeout,
             jitter,
         )
-        self.set_to_server_interceptor(_InterceptTimeLimit(timeout, jitter))
+        return await self.set_to_server_interceptor(_InterceptTimeLimit(timeout, jitter))
 
-    def to_client_limit_time(self, timeout: float, jitter: float) -> None:
+    async def to_client_limit_time(self, timeout: float, jitter: float) -> callinfo.AsyncCallQueue:
         """Limit connection lifetime on receive of first bytes from server"""
         logging.trace(
             'to_client_limit_time, timeout: %s, jitter: %s',
             timeout,
             jitter,
         )
-        self.set_to_client_interceptor(_InterceptTimeLimit(timeout, jitter))
+        return await self.set_to_client_interceptor(_InterceptTimeLimit(timeout, jitter))
 
-    def to_server_smaller_parts(
+    async def to_server_smaller_parts(
         self,
         max_size: int,
         *,
         sleep_per_packet: float = 0,
-    ) -> None:
+    ) -> callinfo.AsyncCallQueue:
         """
         Pass data to server in smaller parts
 
@@ -772,16 +769,16 @@ class BaseGate:
         @param sleep_per_packet Optional sleep interval per packet, seconds
         """
         logging.trace('to_server_smaller_parts, max_size: %s', max_size)
-        self.set_to_server_interceptor(
+        return await self.set_to_server_interceptor(
             _InterceptSmallerParts(max_size, sleep_per_packet),
         )
 
-    def to_client_smaller_parts(
+    async def to_client_smaller_parts(
         self,
         max_size: int,
         *,
         sleep_per_packet: float = 0,
-    ) -> None:
+    ) -> callinfo.AsyncCallQueue:
         """
         Pass data to client in smaller parts
 
@@ -789,53 +786,53 @@ class BaseGate:
         @param sleep_per_packet Optional sleep interval per packet, seconds
         """
         logging.trace('to_client_smaller_parts, max_size: %s', max_size)
-        self.set_to_client_interceptor(
+        return await self.set_to_client_interceptor(
             _InterceptSmallerParts(max_size, sleep_per_packet),
         )
 
-    def to_server_concat_packets(self, packet_size: int) -> None:
+    async def to_server_concat_packets(self, packet_size: int) -> callinfo.AsyncCallQueue:
         """
         Pass data in bigger parts
         @param packet_size minimal size of the resulting packet
         """
         logging.trace('to_server_concat_packets, packet_size: %s', packet_size)
-        self.set_to_server_interceptor(_InterceptConcatPackets(packet_size))
+        return await self.set_to_server_interceptor(_InterceptConcatPackets(packet_size))
 
-    def to_client_concat_packets(self, packet_size: int) -> None:
+    async def to_client_concat_packets(self, packet_size: int) -> callinfo.AsyncCallQueue:
         """
         Pass data in bigger parts
         @param packet_size minimal size of the resulting packet
         """
         logging.trace('to_client_concat_packets, packet_size: %s', packet_size)
-        self.set_to_client_interceptor(_InterceptConcatPackets(packet_size))
+        return await self.set_to_client_interceptor(_InterceptConcatPackets(packet_size))
 
-    def to_server_limit_bytes(self, bytes_limit: int) -> None:
+    async def to_server_limit_bytes(self, bytes_limit: int) -> callinfo.AsyncCallQueue:
         """Drop all connections each `bytes_limit` of data sent by network"""
         logging.trace('to_server_limit_bytes, bytes_limit: %s', bytes_limit)
-        self.set_to_server_interceptor(_InterceptBytesLimit(bytes_limit, self))
+        return await self.set_to_server_interceptor(_InterceptBytesLimit(bytes_limit, self))
 
-    def to_client_limit_bytes(self, bytes_limit: int) -> None:
+    async def to_client_limit_bytes(self, bytes_limit: int) -> callinfo.AsyncCallQueue:
         """Drop all connections each `bytes_limit` of data sent by network"""
         logging.trace('to_client_limit_bytes, bytes_limit: %s', bytes_limit)
-        self.set_to_client_interceptor(_InterceptBytesLimit(bytes_limit, self))
+        return await self.set_to_client_interceptor(_InterceptBytesLimit(bytes_limit, self))
 
-    def to_server_substitute(self, pattern: str, repl: str) -> None:
+    async def to_server_substitute(self, pattern: str, repl: str) -> callinfo.AsyncCallQueue:
         """Apply regex substitution to data from client"""
         logging.trace(
             'to_server_substitute, pattern: %s, repl: %s',
             pattern,
             repl,
         )
-        self.set_to_server_interceptor(_InterceptSubstitute(pattern, repl))
+        return await self.set_to_server_interceptor(_InterceptSubstitute(pattern, repl))
 
-    def to_client_substitute(self, pattern: str, repl: str) -> None:
+    async def to_client_substitute(self, pattern: str, repl: str) -> callinfo.AsyncCallQueue:
         """Apply regex substitution to data from server"""
         logging.trace(
             'to_client_substitute, pattern: %s, repl: %s',
             pattern,
             repl,
         )
-        self.set_to_client_interceptor(_InterceptSubstitute(pattern, repl))
+        return await self.set_to_client_interceptor(_InterceptSubstitute(pattern, repl))
 
 
 class TcpGate(BaseGate):
@@ -849,9 +846,9 @@ class TcpGate(BaseGate):
     @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
-    def __init__(self, route: GateRoute, loop: EvLoop) -> None:
+    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None) -> None:
         self._connected_event = asyncio.Event()
-        BaseGate.__init__(self, route, loop)
+        super().__init__(route, loop)
 
     def connections_count(self) -> int:
         """
@@ -912,8 +909,8 @@ class TcpGate(BaseGate):
         )
         for addr in addrs:
             server = Socket(addr[0], addr[1])
+            _make_socket_nonblocking(server)
             try:
-                _make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
                 logging.trace('Connected to %s', addr[4])
                 return server
@@ -922,7 +919,7 @@ class TcpGate(BaseGate):
                 logging.warning('Could not connect to %s: %s', addr[4], exc)
 
     async def _do_accept(self, accept_sock: Socket) -> None:
-        while accept_sock:
+        while True:
             client, _ = await self._loop.sock_accept(accept_sock)
             _make_socket_nonblocking(client)
 
@@ -956,9 +953,9 @@ class UdpGate(BaseGate):
     @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
-    def __init__(self, route: GateRoute, loop: EvLoop):
+    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None):
         self._clients: typing.Set[_UdpDemuxSocketMock] = set()
-        BaseGate.__init__(self, route, loop)
+        super().__init__(route, loop)
 
     def is_connected(self) -> bool:
         """
@@ -1003,8 +1000,9 @@ class UdpGate(BaseGate):
         self._clients = {c for c in self._clients if c.is_active()}
 
     async def _do_accept(self, accept_sock: Socket):
+        sock = asyncio_socket.from_socket(accept_sock)
         while True:
-            data, addr = await _get_message_task(accept_sock)
+            data, addr = await sock.recvfrom(RECV_MAX_SIZE, timeout=60.0)
 
             client: typing.Optional[_UdpDemuxSocketMock] = None
             for known_clients in self._clients:
@@ -1035,13 +1033,13 @@ class UdpGate(BaseGate):
             await client.push(self._loop, data)
             self._collect_garbage()
 
-    def to_server_concat_packets(self, packet_size: int) -> None:
+    async def to_server_concat_packets(self, packet_size: int) -> None:
         raise NotImplementedError('Udp packets cannot be concatenated')
 
-    def to_client_concat_packets(self, packet_size: int) -> None:
+    async def to_client_concat_packets(self, packet_size: int) -> None:
         raise NotImplementedError('Udp packets cannot be concatenated')
 
-    def to_server_smaller_parts(
+    async def to_server_smaller_parts(
         self,
         max_size: int,
         *,
@@ -1049,10 +1047,34 @@ class UdpGate(BaseGate):
     ) -> None:
         raise NotImplementedError('Udp packets cannot be split')
 
-    def to_client_smaller_parts(
+    async def to_client_smaller_parts(
         self,
         max_size: int,
         *,
         sleep_per_packet: float = 0,
     ) -> None:
         raise NotImplementedError('Udp packets cannot be split')
+
+
+def _create_callqueue(obj):
+    if obj is None:
+        return None
+
+    # workaround testsuite acallqueue that does not work with instances
+    if isinstance(obj, callinfo.AsyncCallQueue):
+        return obj
+    if hasattr(obj, '__name__'):
+        return callinfo.acallqueue(obj)
+
+    @functools.wraps(obj)
+    async def wrapper(*args, **kwargs):
+        return await obj(*args, **kwargs)
+
+    return callinfo.acallqueue(wrapper)
+
+
+async def _wait_for_data(sock, timeout=60.0):
+    if isinstance(sock, _UdpDemuxSocketMock):
+        sock = sock.get_demux_out()
+    sock = asyncio_socket.from_socket(sock)
+    await sock.wait_for_data(timeout=timeout)

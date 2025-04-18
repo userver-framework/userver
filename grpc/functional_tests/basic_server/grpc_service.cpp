@@ -16,7 +16,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
-#include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/client/component_list.hpp>
 #include <userver/ugrpc/server/component_list.hpp>
 #include <userver/ugrpc/server/service_component_base.hpp>
 
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
                                     .Append<congestion_control::Component>()
                                     .Append<components::TestsuiteSupport>()
                                     .AppendComponentList(ugrpc::server::DefaultComponentList())
-                                    .Append<ugrpc::client::CommonComponent>()
+                                    .AppendComponentList(ugrpc::client::MinimalComponentList())
                                     .Append<ugrpc::client::ClientFactoryComponent>()
                                     .Append<samples::GreeterServiceComponent>()
                                     .Append<clients::dns::Component>()

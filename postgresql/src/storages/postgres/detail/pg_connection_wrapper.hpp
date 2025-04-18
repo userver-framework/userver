@@ -129,7 +129,8 @@ public:
     bool TryConsumeInput(Deadline deadline, const PGresult* description);
 
     /// @brief Fills current span with connection info
-    void FillSpanTags(tracing::Span&, const CommandControl& cc) const;
+    void FillSpanTags(tracing::Span&, const CommandControl& cc, std::string&& execute_tag_key = "network_timeout_ms")
+        const;
 
     /// Logs a server-originated notice
     void LogNotice(const PGresult*) const;

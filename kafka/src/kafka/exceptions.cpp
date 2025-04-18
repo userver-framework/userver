@@ -32,6 +32,9 @@ GetMetadataException::GetMetadataException(std::string_view what, std::string_vi
 
 GetMetadataTimeoutException::GetMetadataTimeoutException(std::string_view topic) : GetMetadataException(kWhat, topic) {}
 
+ParseHeadersException::ParseHeadersException(std::string_view error)
+    : std::runtime_error(fmt::format("{}: {}", kWhat, error)) {}
+
 }  // namespace kafka
 
 USERVER_NAMESPACE_END

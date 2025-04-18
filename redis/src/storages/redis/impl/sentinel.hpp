@@ -15,11 +15,11 @@
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/fwd.hpp>
-#include <userver/storages/redis/impl/keyshard.hpp>
-#include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/storages/redis/wait_connected_mode.hpp>
 
+#include <storages/redis/impl/keyshard.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
+#include <storages/redis/impl/secdist_redis.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,9 +71,10 @@ public:
         ReadyChangeCallback ready_callback,
         dynamic_config::Source dynamic_config_source,
         KeyShardFactory key_shard_factory,
-        CommandControl command_control = {},
-        const testsuite::RedisControl& testsuite_redis_control = {},
-        ConnectionMode mode = ConnectionMode::kCommands
+        CommandControl command_control,
+        const testsuite::RedisControl& testsuite_redis_control,
+        ConnectionMode mode,
+        std::size_t database_index
     );
     virtual ~Sentinel();
 

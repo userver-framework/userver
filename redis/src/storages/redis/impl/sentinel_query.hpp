@@ -3,6 +3,7 @@
 #include <atomic>
 
 #include <userver/storages/redis/base.hpp>
+#include <userver/utils/assert.hpp>
 #include "shard.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -15,14 +16,22 @@ struct GetHostsRequest {
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "MASTERS"}),
           master(true),
-          password(std::move(password)) {}
+          password(std::move(password)) {
+        UASSERT(command.GetCommandCount() == 1);
+        UASSERT_MSG(
+            fmt::to_string(command.begin()->GetJoinedArgs(";")) == "SENTINEL;MASTERS",
+            fmt::to_string(command.begin()->GetJoinedArgs(";"))
+        );
+    }
 
     // For SLAVES
     GetHostsRequest(Shard& sentinel_shard, std::string shard_name, Password password)
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "SLAVES", std::move(shard_name)}),
           master(false),
-          password(std::move(password)) {}
+          password(std::move(password)) {
+        UASSERT(command.GetCommandCount() == 1);
+    }
 
     Shard& sentinel_shard;
     CmdArgs command;
@@ -119,7 +128,7 @@ struct MasterSlavesConnInfos {
 
 using ClusterSlotsResponse = std::map<SlotInterval, MasterSlavesConnInfos>;
 
-class GetClusterHostsContext : public std::enable_shared_from_this<GetClusterHostsContext> {
+class GetClusterHostsContext {
 public:
     GetClusterHostsContext(
         Password password,
@@ -128,11 +137,14 @@ public:
         size_t expected_responses_cnt
     );
 
-    std::function<void(const CommandPtr&, const ReplyPtr& reply)> GenerateCallback();
+private:
+    friend void ProcessGetClusterHostsRequest(
+        std::shared_ptr<const std::vector<std::string>> shard_names,
+        GetClusterHostsRequest request,
+        ProcessGetClusterHostsRequestCb callback
+    );
 
     void OnAsyncCommandFailed();
-
-private:
     void OnResponse(const CommandPtr&, const ReplyPtr& reply);
     void ProcessResponses();
     void ProcessResponsesOnce();

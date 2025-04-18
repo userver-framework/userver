@@ -4,7 +4,6 @@
 /// @brief @copybrief ugrpc::server::middlewares::log::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
-#include <userver/utils/box.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +24,6 @@ struct Settings;
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// log-level | log level to use for `Span`, status code and the facts of sending requests receiving responses arriving | debug
 /// msg-log-level | log level to use for request and response messages themselves | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
 /// trim-secrets | trim the secrets from logs as marked by the protobuf option | true (*)
@@ -50,14 +48,14 @@ public:
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    ~Component() override;
-
     static yaml_config::Schema GetStaticConfigSchema();
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<MiddlewareBase>
-    CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::server::ServiceInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::log

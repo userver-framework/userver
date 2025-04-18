@@ -1,10 +1,10 @@
 /// [auth checker declaration]
-#include "auth_bearer.hpp"
-#include "user_info_cache.hpp"
-
 #include <algorithm>
 
 #include <userver/http/common_headers.hpp>
+
+#include "auth_bearer.hpp"
+#include "user_info_cache.hpp"
 
 namespace samples::pg {
 
@@ -80,12 +80,14 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
 /// [auth checker definition 5]
 
 /// [auth checker factory definition]
-server::handlers::auth::AuthCheckerBasePtr CheckerFactory::
-operator()(const ::components::ComponentContext& context, const server::handlers::auth::HandlerAuthConfig& auth_config, const server::handlers::auth::AuthCheckerSettings&)
-    const {
+CheckerFactory::CheckerFactory(const components::ComponentContext& context)
+    : auth_cache_(context.FindComponent<AuthCache>()) {}
+
+server::handlers::auth::AuthCheckerBasePtr CheckerFactory::MakeAuthChecker(
+    const server::handlers::auth::HandlerAuthConfig& auth_config
+) const {
     auto scopes = auth_config["scopes"].As<server::auth::UserScopes>({});
-    const auto& auth_cache = context.FindComponent<AuthCache>();
-    return std::make_shared<AuthCheckerBearer>(auth_cache, std::move(scopes));
+    return std::make_shared<AuthCheckerBearer>(auth_cache_, std::move(scopes));
 }
 /// [auth checker factory definition]
 

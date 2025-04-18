@@ -1,0 +1,5 @@
+default: false
+description: |
+    Whether Congestion Control is enabled for MongoDB.
+schema:
+    type: boolean

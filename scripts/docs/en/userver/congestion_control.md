@@ -87,5 +87,5 @@ that stores profiling settings. After finding such coroutines you need to locate
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/deadline_propagation.md |
-@ref scripts/docs/en/userver/caches.md ⇨
+@ref scripts/docs/en/userver/stack.md ⇨
 @htmlonly </div> @endhtmlonly

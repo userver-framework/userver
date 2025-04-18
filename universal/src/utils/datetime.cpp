@@ -221,6 +221,8 @@ std::chrono::steady_clock::time_point SteadyNow() noexcept { return MockSteadyNo
 
 std::chrono::system_clock::time_point Now() noexcept { return MockNow(); }
 
+WallCoarseClock::time_point WallCoarseNow() noexcept { return MockWallCoarseNow(); }
+
 std::chrono::system_clock::time_point Epoch() noexcept {
     return std::chrono::system_clock::from_time_t(kStartOfTheEpoch);
 }

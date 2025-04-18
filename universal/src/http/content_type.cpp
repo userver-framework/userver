@@ -27,6 +27,7 @@ constexpr utils::StringLiteral kOwsChars = " \t";
 constexpr utils::StringLiteral kTypeTokenInvalidChars = " \t/";  // kOwsChars + '/'
 constexpr utils::StringLiteral kCharsetParamName = "charset";
 constexpr utils::StringLiteral kQualityParamName = "q";
+constexpr utils::StringLiteral kBoundaryParamName = "boundary";
 
 constexpr utils::StringLiteral kTokenAny = "*";
 
@@ -127,6 +128,8 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
             }
         } else if (utils::StrIcaseEqual()(kQualityParamName, param_name)) {
             quality_ = ParseQuality(RtrimOws(unparsed.substr(0, delim_pos)));
+        } else if (utils::StrIcaseEqual()(kBoundaryParamName, param_name)) {
+            boundary_ = unparsed.substr(0, delim_pos);
         }
     }
 
@@ -164,6 +167,8 @@ bool ContentType::DoesAccept(const ContentType& other) const {
     }
     return icase_equal(Charset(), other.Charset());
 }
+
+const std::string& ContentType::Boundary() const { return boundary_; }
 
 std::string ContentType::ToString() const { return string_representation_; }
 

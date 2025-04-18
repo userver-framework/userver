@@ -20,6 +20,7 @@ struct TaskProcessorPoolsConfig final {
     std::size_t ev_threads_num = 1;
     std::string ev_thread_name = "ev";
     bool ev_default_loop_disabled = false;
+    bool is_stack_usage_monitor_enabled = true;
 };
 
 /// @brief Runs a payload in a temporary coroutine engine instance.
@@ -31,14 +32,19 @@ struct TaskProcessorPoolsConfig final {
 /// running.
 ///
 /// @param payload Code to be run in a Task
-/// @param worker_threads Engine thread pool size, 1 by default
-/// @param config A lightweight TaskProcessor config
 void RunStandalone(utils::function_ref<void()> payload);
 
 /// @overload
+///
+/// @param worker_threads Engine thread pool size, 1 by default
+/// @param payload Code to be run in a Task
 void RunStandalone(std::size_t worker_threads, utils::function_ref<void()> payload);
 
 /// @overload
+///
+/// @param worker_threads Engine thread pool size, 1 by default
+/// @param config A lightweight TaskProcessor config
+/// @param payload Code to be run in a Task
 void RunStandalone(
     std::size_t worker_threads,
     const TaskProcessorPoolsConfig& config,

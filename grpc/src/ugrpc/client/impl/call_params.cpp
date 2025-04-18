@@ -1,10 +1,14 @@
 #include <userver/ugrpc/client/impl/call_params.hpp>
 
+#include <google/protobuf/util/time_util.h>
+
 #include <userver/engine/task/cancel.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/utils/algo.hpp>
+
+#include <ugrpc/impl/rpc_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,12 +34,21 @@ void CheckValidCallName(std::string_view call_name) {
 constexpr std::chrono::hours kMaxSafeDeadline{24 * 365};
 
 void SetDeadline(grpc::ClientContext& client_context, const Qos& qos, const testsuite::GrpcControl& testsuite_control) {
-    const auto total_timeout = GetTotalTimeout(qos);
-    if (total_timeout.has_value() && *total_timeout <= kMaxSafeDeadline) {
-        client_context.set_deadline(std::chrono::system_clock::now() + testsuite_control.MakeTimeout(*total_timeout));
-    } else {
+    if (!qos.timeout.has_value() || kMaxSafeDeadline < *qos.timeout) {
         client_context.set_deadline(std::chrono::system_clock::time_point::max());
+        return;
     }
+
+    client_context.AddMetadata(
+        ugrpc::impl::kXYaTaxiPerAttemptTimeout,
+        google::protobuf::util::TimeUtil::ToString(
+            google::protobuf::util::TimeUtil::MillisecondsToDuration(qos.timeout->count())
+        )
+    );
+
+    const auto total_timeout = GetTotalTimeout(qos);
+    UASSERT(total_timeout.has_value());
+    client_context.set_deadline(std::chrono::system_clock::now() + testsuite_control.MakeTimeout(*total_timeout));
 }
 
 // Order of timeout application, from highest to lowest priority:
@@ -43,16 +56,16 @@ void SetDeadline(grpc::ClientContext& client_context, const Qos& qos, const test
 // 2. manual client_context manipulation by the user
 // 3. GRPC_CLIENT_QOS dynamic config
 void ApplyQosConfigs(
-    const ClientData& client_data,
     grpc::ClientContext& client_context,
     const Qos& user_qos,
-    std::string_view call_name
+    const Qos& dynamic_qos,
+    const testsuite::GrpcControl& testsuite_grpc
 ) {
     if (user_qos.timeout) {
         // Consider the explicit Qos parameter the highest-priority source.
         // TODO there is no way to override other sources by setting this timeout
         // to infinity (we treat it as "not set")
-        SetDeadline(client_context, user_qos, client_data.GetTestsuiteControl());
+        SetDeadline(client_context, user_qos, testsuite_grpc);
         return;
     }
 
@@ -62,12 +75,7 @@ void ApplyQosConfigs(
         return;
     }
 
-    if (const auto* const config_key = client_data.GetClientQos()) {
-        const auto config = client_data.GetConfigSnapshot();
-        if (const auto dynamic_qos = config[*config_key].GetOptional(call_name)) {
-            SetDeadline(client_context, *dynamic_qos, client_data.GetTestsuiteControl());
-        }
-    }
+    SetDeadline(client_context, dynamic_qos, testsuite_grpc);
 }
 
 }  // namespace
@@ -85,14 +93,16 @@ CallParams CreateCallParams(
         throw RpcCancelledError(call_name, "RPC construction");
     }
 
-    ApplyQosConfigs(client_data, *client_context, qos, call_name);
+    auto stub = client_data.NextStubFromMethodId(method_id);
+    const auto dynamic_qos = stub.GetClientQos().GetOptional(call_name).value_or(Qos{});
+    ApplyQosConfigs(*client_context, qos, dynamic_qos, client_data.GetTestsuiteControl());
 
     return CallParams{
         client_data.GetClientName(),  //
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
         {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
-        client_data.NextStubFromMethodId(method_id),
+        std::move(stub),
         std::move(client_context),
         client_data.GetStatistics(method_id),
         client_data.GetMiddlewares(),
@@ -115,7 +125,8 @@ CallParams CreateGenericCallParams(
         throw RpcCancelledError(call_name, "RPC construction");
     }
 
-    ApplyQosConfigs(client_data, *client_context, qos, call_name);
+    UINVARIANT(!client_data.GetClientQos(), "Client QOS configs are unsupported for generic services");
+    ApplyQosConfigs(*client_context, qos, {}, client_data.GetTestsuiteControl());
 
     return CallParams{
         client_data.GetClientName(),  //

@@ -2,6 +2,8 @@ import ydb as ydb_native_client
 
 
 class YdbClient:
+    """YDB Client implementation."""
+
     def __init__(self, endpoint, database):
         self._driver = self._init_driver(endpoint, database)
         self._database = database

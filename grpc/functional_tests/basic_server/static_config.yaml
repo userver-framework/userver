@@ -17,8 +17,7 @@ components_manager:
 
         # Creates gRPC clients
         grpc-client-factory:
-            # The list of gRPC client middleware components to use
-            middlewares: []
+            disable-all-pipeline-middlewares: true
 
             # Optional channel parameters for gRPC Core
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
@@ -40,6 +39,7 @@ components_manager:
                     enabled: true
 
         grpc-server-middlewares-pipeline:
+        grpc-client-middlewares-pipeline:
 
         http-client:
             fs-task-processor: main-task-processor

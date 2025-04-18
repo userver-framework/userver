@@ -158,6 +158,7 @@ function(userver_testsuite_add)
       WORKING_DIRECTORY
       PYTHON_BINARY
       PRETTY_LOGS
+      SQL_LIBRARY
   )
   set(multiValueArgs
       PYTEST_ARGS
@@ -232,6 +233,15 @@ function(userver_testsuite_add)
 
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary)
 
+  set(TESTS_PATHS ${ARG_WORKING_DIRECTORY})
+  if (ARG_SQL_LIBRARY)
+    get_target_property(TESTSUITE_OUTPUT_DIR ${ARG_SQL_LIBRARY} USERVER_TESTSUITE_DIRECTORY)
+    list(APPEND ARG_PYTEST_ARGS "-p sql_files")
+    list(APPEND ARG_PYTEST_ARGS "-p pytest_userver.plugins.sql_coverage")
+    list(APPEND TESTS_PATHS "${USERVER_TESTSUITE_DIR}/include_tests/sql_coverage/")
+    list(APPEND ARG_PYTHONPATH ${TESTSUITE_OUTPUT_DIR})
+  endif()
+
   _userver_initialize_codegen_flag()
   add_custom_command(
       OUTPUT "${TESTSUITE_RUNNER}"
@@ -240,7 +250,7 @@ function(userver_testsuite_add)
       "${USERVER_TESTSUITE_DIR}/create_runner.py"
       "--output=${TESTSUITE_RUNNER}"
       "--python=${python_binary}"
-      "--tests-path=${ARG_WORKING_DIRECTORY}"
+      "--tests-path=${TESTS_PATHS}"
       "--working-dir=${CMAKE_CURRENT_BINARY_DIR}"
       "--python-path=${ARG_PYTHONPATH}"
       --
@@ -253,6 +263,7 @@ function(userver_testsuite_add)
       VERBATIM
       ${CODEGEN}
   )
+  _userver_codegen_register_files("${TESTSUITE_RUNNER}")
   # HACK: it seems too verbose to create a separate target for the file.
   target_sources("${ARG_SERVICE_TARGET}" PRIVATE "${TESTSUITE_RUNNER}")
 
@@ -315,6 +326,7 @@ function(userver_testsuite_add_simple)
       DYNAMIC_CONFIG_FALLBACK_PATH
       SECDIST_PATH
       DUMP_CONFIG
+      SQL_LIBRARY
   )
   set(multiValueArgs
       PYTEST_ARGS
@@ -480,6 +492,7 @@ function(userver_testsuite_add_simple)
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHONPATH ${ARG_PYTHONPATH}
       TEST_ENV ${ARG_TEST_ENV}
+      SQL_LIBRARY ${ARG_SQL_LIBRARY}
   )
 endfunction()
 

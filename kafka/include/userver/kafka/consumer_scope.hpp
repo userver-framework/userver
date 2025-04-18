@@ -117,9 +117,11 @@ public:
 
     /// @brief Retrieves the lowest and highest offsets for the specified topic and partition.
     /// @throws OffsetRangeException if offsets could not be retrieved
+    /// @throws OffsetRangeTimeoutException if `timeout` is set and is reached
     /// @warning This is a blocking call
     /// @param topic The name of the topic.
     /// @param partition The partition number of the topic.
+    /// @param timeout The optional timeout for the operation.
     /// @returns Lowest and highest offsets for the given topic and partition.
     /// @see OffsetRange for more explanation
     OffsetRange GetOffsetRange(
@@ -131,8 +133,10 @@ public:
     /// @brief Retrieves the partition IDs for the specified topic.
     /// @throws GetMetadataException if failed to fetch metadata
     /// @throws TopicNotFoundException if topic not found
+    /// @throws OffsetRangeTimeoutException if `timeout` is set and is reached
     /// @warning This is a blocking call
     /// @param topic The name of the topic.
+    /// @param timeout The optional timeout for the operation.
     /// @returns A vector of partition IDs for the given topic.
     std::vector<std::uint32_t>
     GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;

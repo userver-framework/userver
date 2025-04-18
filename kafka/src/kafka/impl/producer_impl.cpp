@@ -126,10 +126,12 @@ DeliveryResult ProducerImpl::Send(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
-    std::optional<std::uint32_t> partition
+    std::optional<std::uint32_t> partition,
+    HeadersHolder headers_holder
 ) const {
     LOG_INFO() << fmt::format("Message to topic '{}' is requested to send", topic_name);
-    auto delivery_result_future = ScheduleMessageDelivery(topic_name, key, message, partition);
+    auto delivery_result_future =
+        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder));
 
     WaitUntilDeliveryReported(delivery_result_future);
 
@@ -140,7 +142,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     const std::string& topic_name,
     std::string_view key,
     std::string_view message,
-    std::optional<std::uint32_t> partition
+    std::optional<std::uint32_t> partition,
+    HeadersHolder headers_holder
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
     auto wait_handle = waiter->GetFuture();
@@ -167,12 +170,13 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     /// the `librdkafka` API requirements. If `msgflags` set to
     /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
     /// data, though not const pointer is required
+    ///
+    /// Headers holder **must** be released if `rd_kafka_producev` succeeded.
 
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
 #endif
-
     // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
     const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
         producer_.GetHandle(),
@@ -180,6 +184,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
         RD_KAFKA_V_KEY(key.data(), key.size()),
         RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
         RD_KAFKA_V_MSGFLAGS(0),
+        RD_KAFKA_V_HEADERS(headers_holder.GetHandle()),
         RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
         RD_KAFKA_V_OPAQUE(waiter.get()),
         RD_KAFKA_V_END
@@ -191,7 +196,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #endif
 
     if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
-        [[maybe_unused]] auto _ = waiter.release();
+        [[maybe_unused]] const auto _headers_holder = headers_holder.release();
+        [[maybe_unused]] const auto _waiter = waiter.release();
     } else {
         LOG_WARNING(
         ) << fmt::format("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
@@ -240,6 +246,9 @@ void ProducerImpl::DispatchEvent(const EventHolder& event_holder) const {
             rd_kafka_event_log(event, &facility, &message, &log_level);
             LogCallback(facility, message, log_level);
         } break;
+        default:
+            // skip other events.
+            break;
     }
 }
 

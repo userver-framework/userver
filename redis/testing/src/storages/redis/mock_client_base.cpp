@@ -8,6 +8,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+using utils::AbortWithStacktrace;
+
 MockClientBase::MockClientBase()
     : mock_transaction_impl_creator_(std::make_unique<MockTransactionImplCreator<MockTransactionImplBase>>()) {}
 
@@ -30,9 +32,7 @@ size_t MockClientBase::ShardByKey(const std::string& /*key*/) const { return 0; 
 const std::string& MockClientBase::GetAnyKeyForShard(size_t /*shard_idx*/) const {
     static const std::string kKey = "a";
     UASSERT_MSG(
-        ShardsCount() == 1,
-        "you should override GetAnyKeyForShard() method if you use it "
-        "with ShardsCount() > 1"
+        ShardsCount() == 1, "You should override GetAnyKeyForShard() method if you use it with ShardsCount() > 1"
     );
     return kKey;
 }
@@ -45,8 +45,7 @@ std::shared_ptr<Client> MockClientBase::GetClientForShard(size_t shard_idx) {
 
 RequestAppend
 MockClientBase::Append(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestAppend{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestBitop MockClientBase::Bitop(
@@ -55,38 +54,31 @@ RequestBitop MockClientBase::Bitop(
     std::vector<std::string> /*src_keys*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestBitop{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestDbsize MockClientBase::Dbsize(size_t /*shard*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestDbsize{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestDecr MockClientBase::Decr(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestDecr{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestDel MockClientBase::Del(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestDel{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestDel MockClientBase::Del(std::vector<std::string> /*keys*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestDel{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestUnlink MockClientBase::Unlink(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestUnlink{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestUnlink MockClientBase::Unlink(std::vector<std::string> /*keys*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestUnlink{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestEvalCommon MockClientBase::EvalCommon(
@@ -95,8 +87,7 @@ RequestEvalCommon MockClientBase::EvalCommon(
     std::vector<std::string> /*args*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestEvalCommon{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestEvalShaCommon MockClientBase::EvalShaCommon(
@@ -105,42 +96,35 @@ RequestEvalShaCommon MockClientBase::EvalShaCommon(
     std::vector<std::string> /*args*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestEvalShaCommon{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestScriptLoad
 MockClientBase::ScriptLoad(std::string /*script*/, size_t /*shard*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestScriptLoad{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestExists MockClientBase::Exists(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestExists{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestExists MockClientBase::Exists(std::vector<std::string> /*keys*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestExists{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestExpire
 MockClientBase::Expire(std::string /*key*/, std::chrono::seconds /*ttl*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestExpire{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGeoadd
 MockClientBase::Geoadd(std::string /*key*/, GeoaddArg /*point_member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGeoadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGeoadd MockClientBase::
     Geoadd(std::string /*key*/, std::vector<GeoaddArg> /*point_members*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGeoadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGeoradius MockClientBase::Georadius(
@@ -151,8 +135,7 @@ RequestGeoradius MockClientBase::Georadius(
     const GeoradiusOptions& /*georadius_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGeoradius{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGeosearch MockClientBase::Geosearch(
@@ -162,8 +145,7 @@ RequestGeosearch MockClientBase::Geosearch(
     const GeosearchOptions& /*geosearch_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGeosearch{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGeosearch MockClientBase::Geosearch(
@@ -174,8 +156,7 @@ RequestGeosearch MockClientBase::Geosearch(
     const GeosearchOptions& /*geosearch_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGeosearch{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGeosearch MockClientBase::Geosearch(
@@ -186,8 +167,7 @@ RequestGeosearch MockClientBase::Geosearch(
     const GeosearchOptions& /*geosearch_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGeosearch{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGeosearch MockClientBase::Geosearch(
@@ -199,48 +179,40 @@ RequestGeosearch MockClientBase::Geosearch(
     const GeosearchOptions& /*geosearch_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGeosearch{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGet MockClientBase::Get(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGet{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestGetset
 MockClientBase::Getset(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestGetset{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHdel
 MockClientBase::Hdel(std::string /*key*/, std::string /*field*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHdel{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHdel MockClientBase::
     Hdel(std::string /*key*/, std::vector<std::string> /*fields*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHdel{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHexists
 MockClientBase::Hexists(std::string /*key*/, std::string /*field*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHexists{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHget
 MockClientBase::Hget(std::string /*key*/, std::string /*field*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHget{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHgetall MockClientBase::Hgetall(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHgetall{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHincrby MockClientBase::Hincrby(
@@ -249,8 +221,7 @@ RequestHincrby MockClientBase::Hincrby(
     int64_t /*increment*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHincrby{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHincrbyfloat MockClientBase::Hincrbyfloat(
@@ -259,24 +230,20 @@ RequestHincrbyfloat MockClientBase::Hincrbyfloat(
     double /*increment*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHincrbyfloat{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHkeys MockClientBase::Hkeys(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHkeys{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHlen MockClientBase::Hlen(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHlen{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHmget MockClientBase::
     Hmget(std::string /*key*/, std::vector<std::string> /*fields*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHmget{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHmset MockClientBase::Hmset(
@@ -284,8 +251,7 @@ RequestHmset MockClientBase::Hmset(
     std::vector<std::pair<std::string, std::string>> /*field_values*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHmset{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 ScanRequest<ScanTag::kHscan> MockClientBase::Hscan(
@@ -293,14 +259,12 @@ ScanRequest<ScanTag::kHscan> MockClientBase::Hscan(
     ScanOptionsTmpl<ScanTag::kHscan> /*options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return ScanRequest<ScanTag::kHscan>{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHset MockClientBase::
     Hset(std::string /*key*/, std::string /*field*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHset{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHsetnx MockClientBase::Hsetnx(
@@ -309,109 +273,90 @@ RequestHsetnx MockClientBase::Hsetnx(
     std::string /*value*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHsetnx{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestHvals MockClientBase::Hvals(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestHvals{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestIncr MockClientBase::Incr(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestIncr{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestKeys
 MockClientBase::Keys(std::string /*keys_pattern*/, size_t /*shard*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestKeys{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLindex
 MockClientBase::Lindex(std::string /*key*/, int64_t /*index*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLindex{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLlen MockClientBase::Llen(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLlen{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLpop MockClientBase::Lpop(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLpop{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLpush
 MockClientBase::Lpush(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLpush{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLpush MockClientBase::
     Lpush(std::string /*key*/, std::vector<std::string> /*values*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLpush{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLpushx
 MockClientBase::Lpushx(std::string /*key*/, std::string /*element*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLpushx{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLrange MockClientBase::
     Lrange(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLrange{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLrem MockClientBase::
     Lrem(std::string /*key*/, int64_t /*count*/, std::string /*element*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLrem{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestLtrim MockClientBase::
     Ltrim(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestLtrim{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestMget MockClientBase::Mget(std::vector<std::string> /*keys*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestMget{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestMset MockClientBase::
     Mset(std::vector<std::pair<std::string, std::string>> /*key_values*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestMset{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestPersist MockClientBase::Persist(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestPersist{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestPexpire MockClientBase::
     Pexpire(std::string /*key*/, std::chrono::milliseconds /*ttl*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestPexpire{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestPing MockClientBase::Ping(size_t /*shard*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestPing{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestPingMessage
 MockClientBase::Ping(size_t /*shard*/, std::string /*message*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestPingMessage{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 void MockClientBase::Publish(
@@ -419,66 +364,60 @@ void MockClientBase::Publish(
     std::string /*message*/,
     const CommandControl& /*command_control*/,
     PubShard /*policy*/
-) {}
+) {
+    AbortWithStacktrace("Redis method not mocked");
+}
 
 void MockClientBase::
-    Spublish(std::string /*channel*/, std::string /*message*/, const CommandControl& /*command_control*/) {}
+    Spublish(std::string /*channel*/, std::string /*message*/, const CommandControl& /*command_control*/) {
+    AbortWithStacktrace("Redis method not mocked");
+}
 
 RequestRename
 MockClientBase::Rename(std::string /*key*/, std::string /*new_key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestRename{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestRpop MockClientBase::Rpop(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestRpop{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestRpush
 MockClientBase::Rpush(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestRpush{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestRpush MockClientBase::
     Rpush(std::string /*key*/, std::vector<std::string> /*values*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestRpush{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestRpushx
 MockClientBase::Rpushx(std::string /*key*/, std::string /*element*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestRpushx{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSadd
 MockClientBase::Sadd(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSadd MockClientBase::
     Sadd(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 ScanRequest<ScanTag::kScan> MockClientBase::
     Scan(size_t /*shard*/, ScanOptionsTmpl<ScanTag::kScan> /*options*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return ScanRequest<ScanTag::kScan>{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestScard MockClientBase::Scard(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestScard{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSet MockClientBase::Set(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSet{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSet MockClientBase::
@@ -486,14 +425,12 @@ RequestSet MockClientBase::
         std::string /*value*/,
         std::chrono::milliseconds /*ttl*/,
         const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSet{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSetIfExist
 MockClientBase::SetIfExist(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSetIfExist{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSetIfExist MockClientBase::SetIfExist(
@@ -502,14 +439,12 @@ RequestSetIfExist MockClientBase::SetIfExist(
     std::chrono::milliseconds /*ttl*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSetIfExist{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSetIfNotExist
 MockClientBase::SetIfNotExist(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSetIfNotExist{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSetIfNotExist MockClientBase::SetIfNotExist(
@@ -518,8 +453,7 @@ RequestSetIfNotExist MockClientBase::SetIfNotExist(
     std::chrono::milliseconds /*ttl*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSetIfNotExist{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSetex MockClientBase::Setex(
@@ -528,42 +462,35 @@ RequestSetex MockClientBase::Setex(
     std::string /*value*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSetex{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSismember
 MockClientBase::Sismember(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSismember{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSmembers MockClientBase::Smembers(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSmembers{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSrandmember MockClientBase::Srandmember(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSrandmember{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSrandmembers
 MockClientBase::Srandmembers(std::string /*key*/, int64_t /*count*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSrandmembers{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSrem
 MockClientBase::Srem(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSrem{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestSrem MockClientBase::
     Srem(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestSrem{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 ScanRequest<ScanTag::kSscan> MockClientBase::Sscan(
@@ -571,34 +498,28 @@ ScanRequest<ScanTag::kSscan> MockClientBase::Sscan(
     ScanOptionsTmpl<ScanTag::kSscan> /*options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return ScanRequest<ScanTag::kSscan>{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestStrlen MockClientBase::Strlen(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestStrlen{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestTime MockClientBase::Time(size_t /*shard*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestTime{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestTtl MockClientBase::Ttl(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestTtl{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestType MockClientBase::Type(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestType{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZadd MockClientBase::
     Zadd(std::string /*key*/, double /*score*/, std::string /*member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZadd MockClientBase::Zadd(
@@ -608,8 +529,7 @@ RequestZadd MockClientBase::Zadd(
     const ZaddOptions& /*options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZadd MockClientBase::Zadd(
@@ -617,8 +537,7 @@ RequestZadd MockClientBase::Zadd(
     std::vector<std::pair<double, std::string>> /*scored_members*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZadd MockClientBase::Zadd(
@@ -627,14 +546,12 @@ RequestZadd MockClientBase::Zadd(
     const ZaddOptions& /*options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZadd{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZaddIncr MockClientBase::
     ZaddIncr(std::string /*key*/, double /*score*/, std::string /*member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZaddIncr{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZaddIncrExisting MockClientBase::ZaddIncrExisting(
@@ -643,25 +560,21 @@ RequestZaddIncrExisting MockClientBase::ZaddIncrExisting(
     std::string /*member*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZaddIncrExisting{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZcard MockClientBase::Zcard(std::string /*key*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZcard{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZcount
 MockClientBase::Zcount(std::string /*key*/, double /*min*/, double /*max*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZcount{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrange MockClientBase::
     Zrange(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrange{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangeWithScores MockClientBase::ZrangeWithScores(
@@ -670,14 +583,12 @@ RequestZrangeWithScores MockClientBase::ZrangeWithScores(
     int64_t /*stop*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangeWithScores{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscore MockClientBase::
     Zrangebyscore(std::string /*key*/, double /*min*/, double /*max*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscore{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscore MockClientBase::Zrangebyscore(
@@ -686,8 +597,7 @@ RequestZrangebyscore MockClientBase::Zrangebyscore(
     std::string /*max*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscore{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscore MockClientBase::Zrangebyscore(
@@ -697,8 +607,7 @@ RequestZrangebyscore MockClientBase::Zrangebyscore(
     const RangeOptions& /*range_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscore{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscore MockClientBase::Zrangebyscore(
@@ -708,8 +617,7 @@ RequestZrangebyscore MockClientBase::Zrangebyscore(
     const RangeOptions& /*range_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscore{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
@@ -718,8 +626,7 @@ RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
     double /*max*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscoreWithScores{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
@@ -728,8 +635,7 @@ RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
     std::string /*max*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscoreWithScores{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
@@ -739,8 +645,7 @@ RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
     const RangeOptions& /*range_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscoreWithScores{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
@@ -750,20 +655,17 @@ RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
     const RangeOptions& /*range_options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrangebyscoreWithScores{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrem
 MockClientBase::Zrem(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrem{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZrem MockClientBase::
     Zrem(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZrem{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZremrangebyrank MockClientBase::Zremrangebyrank(
@@ -772,14 +674,12 @@ RequestZremrangebyrank MockClientBase::Zremrangebyrank(
     int64_t /*stop*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZremrangebyrank{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZremrangebyscore MockClientBase::
     Zremrangebyscore(std::string /*key*/, double /*min*/, double /*max*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZremrangebyscore{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZremrangebyscore MockClientBase::Zremrangebyscore(
@@ -788,8 +688,7 @@ RequestZremrangebyscore MockClientBase::Zremrangebyscore(
     std::string /*max*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZremrangebyscore{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 ScanRequest<ScanTag::kZscan> MockClientBase::Zscan(
@@ -797,14 +696,12 @@ ScanRequest<ScanTag::kZscan> MockClientBase::Zscan(
     ScanOptionsTmpl<ScanTag::kZscan> /*options*/,
     const CommandControl& /*command_control*/
 ) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return ScanRequest<ScanTag::kZscan>{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 RequestZscore
 MockClientBase::Zscore(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
-    UASSERT_MSG(false, "redis method not mocked");
-    return RequestZscore{nullptr};
+    AbortWithStacktrace("Redis method not mocked");
 }
 
 // end of redis commands

@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 option(USERVER_DOWNLOAD_PACKAGE_KAFKA "Download and setup librdkafka if no librdkafka matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 
-set(USERVER_KAFKA_VERSION "2.3.0")
+set(USERVER_KAFKA_VERSION "2.5.0")
 
 include("${CMAKE_CURRENT_LIST_DIR}/SetupCURL.cmake")
 

@@ -34,6 +34,63 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.8
+
+* `sharding_strategy` of the components::Redis now supports `RedisStandalone` configuration, that may be useful for
+  tests or unimportant caches. Many thanks to [Aleksey Ignatiev](https://github.com/ae-ignatiev) for the PR!
+* kafka::Producer now has the API for sending Kafka headers. Many thanks
+  to [Mikhail Romaneev](https://github.com/melonaerial) for the PR and to [Fedor Lobanov](https://github.com/fslobanov)
+  for the fix!
+* kafka::ConsumerScope now has the API for receiving Kafka headers.
+* Add span events to OpenTelemetry via tracing::Span::AddEvent(). Many thanks
+  to [Dudnik Pavel](https://github.com/nepridumalnik) for the PR.
+* Added logging::JsonString to explicitly describe in type system that a string contains loggable JSON. Many thanks
+  to [akhoroshev](https://github.com/akhoroshev) for the PR!
+* Deadline Propagation for PostgreSQL is now enabled by default and can be controlled via `deadline-propagation-enabled`
+  static option of the components::Postgres.
+* Testsuite now supports @ref uservice_oneshot "`@@pytest.mark.uservice_oneshot`".
+* utils::regex now always uses a faster and safer Re2 instead of boost::regex.
+* Dynamic config `USERVER_HANDLER_STREAM_API_ENABLED` is not used any more.
+* server::handlers::HttpHandlerStatic now has a `expires` static config option.
+* kafka::ProducerComponent and kafka::ConsumerComponent now supprt 'SASL_PLAINTEXT'
+  security protocol. Many thanks to [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
+* Implemented OneOf discriminator mapping to integer and generation of fmt::formatters for enums in chaotic.
+* Load `kRoundRobin` load distribution in PostgreSQL is now uniform
+
+* gRPC
+  * Retries are now supported and controlled via dynamic config. See ugrpc::client::Qos for more info.
+  * Clients and servers now use the same configuration approach for middlewares, allowing granular overrides
+    of settings.
+
+* Optimizations
+  * Postgres driver now uses `moodycamel` queue instead of boost::lockfree. Up to 2 times faster retrieval of
+    connection from pool.
+  * utils::TrivialBiMap is used in more cases, leading to faster runtime search and minor decrease in binaries size.
+  * Multiple std::string constants were replaced with `constinit` types, leading to faster startup times and
+    smaller binaries.
+  * Avoid `url` copies in clients::http::Request
+
+* Documentation and Diagnostics:
+  * Fixed typo at @ref scripts/docs/en/userver/build/dependencies.md. Many thanks
+    to [Konstantin Goncharik](https://github.com/botanegg) for the PR.
+  * More docs on @ref scripts/docs/en/userver/sql_files.md
+  * Improved parse failure messages for @ref scripts/docs/en/userver/dynamic_config.md
+  * Improved diagnostics for corrupted tracing::Span
+  * Erroneous attempt to log function address is now captured at build time.
+
+* Testing
+  * Easy grpc mock registration in testsuite.
+  * Daemon-scoped fixtures implemented via `@pytest.mark.uservice_oneshot`.
+
+* Build
+  * Debug symbols of userver libraries are now compressed with `zstd` if the toolset supports it, leading to
+    smaller binaries size.
+  * Docker images now use `zstd` compression too.
+  * Dropped CI testing on Ubuntu 20.04 which lifetime almost ended.
+  * Improved build type matching for installed userver. Many thanks
+    to [Aleksey Ignatiev](https://github.com/ae-ignatiev) for the PR!
+
+
 ### Release v2.7
 
 * Logging in JSON format was implemented. See static option `format` at components::Logging.
@@ -48,15 +105,13 @@ Changelog news also go to the
 * Chaotic exceptions now do not depend on JSON. Thanks to [Artyom](https://github.com/Lookingforcommit) for the PR!
 
 * gRPC
-  * Retries are now supported and controlled via dynamic config. See ugrpc::client::Qos for more info.
-  * Out-the-box cache dump support for Protobuf messages. See
+  * Out-the-box cache dump support for Protobuf messages.
     @ref dump_serialization_guide "Implementing serialization (Write / Read)" for more info.
   * Removed deprecated `*Sync` methods.
 
 * Optimizations
   * Speed up configuration reads on creating new PostgreSQL connections.
   * utils::PeriodicTask now calls RCU Read two times less on each iteration.
-  * Reduced memory allocations count on each Redis request.
 
 * Build
   * Fixed build with `USERVER_FEATURE_JEMALLOC=ON`. Many thanks to [Aleksey Ignatiev](https://github.com/ae-ignatiev)
@@ -178,7 +233,7 @@ Changelog news also go to the
   * gRPC clients now allow configuring channels count for particular methods via `dedicated-channel-counts` static
     config option.
 
-Optimizations:
+* Optimizations:
   * concurrent::MpscQueue was optimized, leading to x2-x3 better performance.
   * rcu::Variable deleter now can be chosen at compile time, leading to smaller size of rcu::Variable if no asynchronous
     deletion required.
@@ -200,7 +255,7 @@ Optimizations:
   * Improved schemes validation messages, including config validation messages because no schema is written.
   * Disambiguated diagnostic messages for component system.
   * Better log messages for the dist locks.
-  * Better docs for gRPC middlewares and gRPC logs at @ref scripts/docs/en/userver/grpc.md.
+  * Better docs for gRPC middlewares and gRPC logs at @ref scripts/docs/en/userver/grpc/grpc.md.
   * Added topology and heartbeats logs and metrics for Mongo.
   * Clarified docs on PostgreSQL data types with timezones. See @ref scripts/docs/en/userver/pg_types.md.
   * Added @ref scripts/docs/en/userver/tutorial/kafka_service.md tutorial.
@@ -266,7 +321,7 @@ Optimizations:
   * Started the work to enable builds in directories with whitespace in names.
 
 * Documentation:
-  * More docs for gRPC middlewares at @ref scripts/docs/en/userver/grpc.md
+  * More docs for gRPC middlewares at @ref scripts/docs/en/userver/grpc/grpc.md
     and @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md.
   * More docs for otlp::LoggerComponent. Thanks to
     [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
@@ -558,7 +613,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
 * clients::http::Form is now movable and slightly more efficient. Thanks to
   [Alexandr Kondratev](https://github.com/theg4sh) for the PR!
 * Redis now supports `SSUBSCRIBE` and removes dead nodes.
-* engine::WaitAny() now can wait for an engine::io::Socket/engine::io::TlsWrapper
+* engine::WaitAny() now can wait for an engine::io::Socket or engine::io::TlsWrapper
   to become readable or writable. For example:
   `engine::WaitAny(socket.GetReadableBase(), task1, tls_socket.GetWritableBase(), future1);`
 * New tracing::Span::MakeRootSpan() helper function.
@@ -814,7 +869,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
   * TESTPOINT() and TESTPOINT_CALLBACK() now produce less instructions and
     guaranteed to not throw it the testpoints are disabled.
 * Documentation:
-  * @ref scripts/docs/en/userver/grpc.md now has a deeper explanation of
+  * @ref scripts/docs/en/userver/grpc/grpc.md now has a deeper explanation of
     middlewares
   * New @ref scripts/docs/en/userver/dynamic_config.md page and related samples.
   * Samples were significantly simplified, more static configuration options
@@ -863,7 +918,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
 * Documentation:
     * Documentation version switch was added to the bottom of the page.
     * gRPC SSL server credentials setup info was added into
-      @ref scripts/docs/en/userver/grpc.md
+      @ref scripts/docs/en/userver/grpc/grpc.md
     * Clarified behavior of server::http::HttpRequest::GetArg()
     * Added @ref scripts/docs/en/userver/tutorial/multipart_service.md
     * More clarifications for the
@@ -1056,7 +1111,7 @@ Detailed descriptions could be found below.
   * HTTP client connection is now preserved on deadline, leading to less
     connections being reopened.
 
-* Cleaned up and added docs for redis::CommandControl.
+* Cleaned up and added docs for storages::redis::CommandControl.
 * MacOS build instructions were enhanced, thanks to
   [Daniil Shvalov](https://github.com/danilshvalov) for the PR!
 * Conan build was fixed, thanks to
@@ -1152,7 +1207,7 @@ Detailed descriptions could be found below.
 * Docs:
   * Some metrics were documented, a human-readable format of metrics
     is now used in documentation. See @ref scripts/docs/en/userver/service_monitor.md.
-  * Custom @ref scripts/docs/en/userver/.md404 "404 page".
+  * Custom @ref scripts/docs/en/userver/404.md "404 page".
   * New pages, including @ref scripts/docs/en/userver/faq.md, @ref scripts/docs/en/userver/periodics.md
     and @ref scripts/docs/en/userver/deploy_env.md.
 
@@ -1210,7 +1265,7 @@ Detailed descriptions could be found below.
     [Anatoly Shirokov](https://github.com/anatoly-spb) for the PR.
   * PostgreSQL libs selection is now possible in CMake if the platform has
     multiple versions installed, see
-    @ref POSTGRES_LIBS "PostgreSQL versions" for more info.
+    @ref postgres_deps_versions "PostgreSQL versions" for more info.
   * Improved support for Arch Linux, many thanks to
     [Konstantin Goncharik](https://github.com/botanegg) for the PR.
 * Multiple improvements for docs, including mockserver clarifications from
@@ -1252,11 +1307,11 @@ Detailed descriptions could be found below.
     implementation of the sink does not rely on spdlog implementation.
   * Configuration step was made much faster.
   * Makefile was simplified and only up-to-date targets were left.
-  * Added a script to prepare docker build, see @ref scripts/docker/Readme.md for
+  * Added a script to prepare docker build, see `scripts/docker/Readme.md` for
     more info.
   * Scripts for generating CMakeLists were simplified and cleared from internal
     stuff.
-  * Added missing dependencies to @ref scripts/docs/en/deps_ubuntu_.md20_04 and sorted all
+  * Added missing dependencies to @ref scripts/docs/en/deps/ubuntu-20.04.md and sorted all
     the dependencies, thanks to [Anatoly Shirokov](https://github.com/anatoly-spb)
     for the PR.
 * Statistics and metrics now do additional lifetime checks in debug builds to
@@ -1509,7 +1564,7 @@ Detailed descriptions could be found below.
 * Better Python3 detection, thanks to
   [Дмитрий Изволов](https://github.com/izvolov) for the PR.
 * Task processors now have an `os-scheduling` static config option and
-  @md_en_userver_task_processors_guide "a usage guide".
+  @ref scripts/docs/en/userver/task_processors_guide.md "a usage guide".
 * Added a [pg_service_template](https://github.com/userver-framework/pg_service_template)
   service template that uses userver the userver framework with PostgreSQL
 * In template services, it is now possible to deploy the environment and run
@@ -1539,8 +1594,9 @@ Detailed descriptions could be found below.
   @ref scripts/docs/en/userver/security_changelog.md,
   @ref scripts/docs/en/userver/profile_context_switches.md,
   @ref scripts/docs/en/userver/driver_guide.md,
-  @md_en_userver_task_processors_guide,
-  @ref scripts/docs/en/userver/os_signals.md and @ref scripts/docs/en/userver/roadmap_and_changelog.md.
+  @ref scripts/docs/en/userver/task_processors_guide.md,
+  @ref scripts/docs/en/userver/os_signals.md and
+  @ref scripts/docs/en/userver/roadmap_and_changelog.md.
 * AArch64 build supported. Tests pass successfully
 * HTTP headers hashing not vulnerable to HashDOS any more, thanks to Ivan
   Trofimov for the report.

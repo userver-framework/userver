@@ -15,13 +15,30 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic {
 
 template <typename BuilderFunc>
-struct OneOfSettings {
+struct OneOfStringSettings {
+    using KeyType = std::string;
+
     std::string_view property_name;
     utils::TrivialSet<BuilderFunc> mapping;
+
+    static std::string_view FieldToString(const KeyType& key) { return key; }
 };
 
 template <typename BuilderFunc>
-OneOfSettings(const char*, utils::TrivialSet<BuilderFunc>) -> OneOfSettings<BuilderFunc>;
+OneOfStringSettings(const char*, utils::TrivialSet<BuilderFunc>) -> OneOfStringSettings<BuilderFunc>;
+
+template <typename BuilderFunc>
+struct OneOfIntegerSettings {
+    using KeyType = int64_t;
+
+    std::string_view property_name;
+    utils::TrivialSet<BuilderFunc> mapping;
+
+    static std::string FieldToString(KeyType key) { return std::to_string(key); }
+};
+
+template <typename BuilderFunc>
+OneOfIntegerSettings(const char*, utils::TrivialSet<BuilderFunc>) -> OneOfIntegerSettings<BuilderFunc>;
 
 template <const auto* Settings, typename... T>
 struct OneOfWithDiscriminator {
@@ -31,11 +48,12 @@ struct OneOfWithDiscriminator {
 template <const auto* Settings, typename... T, typename Value>
 std::variant<formats::common::ParseType<Value, T>...>
 Parse(Value value, formats::parse::To<OneOfWithDiscriminator<Settings, T...>>) {
-    const auto field = value[Settings->property_name].template As<std::string>();
+    using SettingsType = std::decay_t<decltype(*Settings)>;
+    const auto field = value[Settings->property_name].template As<typename SettingsType::KeyType>();
 
     const auto index = Settings->mapping.GetIndex(field);
     if (!index.has_value()) {
-        throw formats::json::UnknownDiscriminatorException(value.GetPath(), field);
+        throw formats::json::UnknownDiscriminatorException(value.GetPath(), SettingsType::FieldToString(field));
     }
 
     using Result = std::variant<formats::common::ParseType<formats::json::Value, T>...>;

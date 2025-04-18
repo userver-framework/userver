@@ -49,7 +49,7 @@ bool TryRegisterThread() noexcept {
 
     const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, 0);
     if (ret != 0) {
-        utils::impl::AbortWithStacktrace("membarrier init failed");
+        utils::AbortWithStacktrace("membarrier init failed");
     }
     return true;
 }
@@ -83,7 +83,7 @@ void AsymmetricThreadFenceHeavy() noexcept {
     if (IsMembarrierAvailableCached()) {
         const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_PRIVATE_EXPEDITED, 0);
         if (ret != 0) {
-            utils::impl::AbortWithStacktrace("membarrier usage failed");
+            utils::AbortWithStacktrace("membarrier usage failed");
         }
     } else {
         std::atomic_thread_fence(std::memory_order_seq_cst);

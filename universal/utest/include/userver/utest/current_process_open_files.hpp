@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/utest/current_process_open_files.hpp
-/// @brief @copybrief std::vector<std::string> CurrentProcessOpenFiles()
+/// @brief @copybrief utest::CurrentProcessOpenFiles
 
 #include <string>
 #include <vector>
@@ -12,7 +12,7 @@ namespace utest {
 
 /// @brief returns files opened by current process
 ///
-/// jemalloc opens /proc/sys/vm/overcommit_memory, other libraries may also
+/// jemalloc opens `/proc/sys/vm/overcommit_memory`, other libraries may also
 /// open some files randomly. To avoid problems in tests and make them reliable
 /// check files for specific prefix.
 std::vector<std::string> CurrentProcessOpenFiles();

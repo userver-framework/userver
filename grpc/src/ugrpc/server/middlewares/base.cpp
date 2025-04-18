@@ -1,10 +1,10 @@
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
-#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/components/component.hpp>
 
+#include <ugrpc/impl/internal_tag.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,53 +14,78 @@ MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
+void MiddlewareBase::OnCallStart(MiddlewareCallContext&) const {}
+
+void MiddlewareBase::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+    if (!status.ok()) {
+        return context.SetError(grpc::Status{status});
+    }
+}
+
+void MiddlewareBase::PostRecvMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
+
+void MiddlewareBase::PreSendMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
 MiddlewareCallContext::MiddlewareCallContext(
-    const Middlewares& middlewares,
-    CallAnyBase& call,
-    utils::function_ref<void()> user_call,
-    const dynamic_config::Snapshot& config,
-    ::google::protobuf::Message* request
+    utils::impl::InternalTag,
+    impl::CallAnyBase& call,
+    dynamic_config::Snapshot&& config
 )
-    : middleware_(middlewares.begin()),
-      middleware_end_(middlewares.end()),
-      user_call_(std::move(user_call)),
-      call_(call),
-      config_(config),
-      request_(request) {}
+    : CallContextBase(utils::impl::InternalTag{}, call), config_(std::move(config)) {}
 
-void MiddlewareCallContext::Next() {
-    if (is_called_from_handle_) {
-        // It is important for non-stream calls
-        if (request_) {
-            (*middleware_)->CallRequestHook(*this, *request_);
-            if (call_.IsFinished()) throw impl::MiddlewareRpcInterruptionError();
-        }
-        ++middleware_;
-    }
-    if (middleware_ == middleware_end_) {
-        ClearMiddlewaresResources();
-        user_call_();
-    } else {
-        is_called_from_handle_ = true;
-        (*middleware_)->Handle(*this);
+void MiddlewareCallContext::SetError(grpc::Status&& status) noexcept {
+    UASSERT(!status.ok());
+    if (!status.ok()) {
+        *status_ = std::move(status);
     }
 }
 
-void MiddlewareCallContext::ClearMiddlewaresResources() {
-    UASSERT(config_);
-    config_.reset();
+bool MiddlewareCallContext::IsClientStreaming() const noexcept {
+    return impl::IsClientStreaming(GetCall(utils::impl::InternalTag{}).GetCallKind());
 }
 
-CallAnyBase& MiddlewareCallContext::GetCall() const { return call_; }
+bool MiddlewareCallContext::IsServerStreaming() const noexcept {
+    return impl::IsServerStreaming(GetCall(utils::impl::InternalTag{}).GetCallKind());
+}
 
 const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig() const {
-    UASSERT(config_);
+    UASSERT(config_.has_value());
     return config_.value();
 }
 
-void MiddlewareBase::CallRequestHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
+ugrpc::impl::RpcStatisticsScope& MiddlewareCallContext::GetStatistics(ugrpc::impl::InternalTag tag) {
+    return GetCall(utils::impl::InternalTag{}).GetStatistics(tag);
+}
 
-void MiddlewareBase::CallResponseHook(const MiddlewareCallContext&, google::protobuf::Message&) {}
+void MiddlewareCallContext::SetStatusPtr(grpc::Status* status) {
+    UASSERT(status);
+    status_ = status;
+}
+
+grpc::Status& MiddlewareCallContext::GetStatus() {
+    UASSERT(status_);
+    return *status_;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+MiddlewarePipelineComponent::MiddlewarePipelineComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent(
+          config,
+          context,
+          {/*middlewares=*/{
+              {"grpc-server-logging", {}},
+              {"grpc-server-baggage", {}},
+              {"grpc-server-congestion-control", {}},
+              {"grpc-server-deadline-propagation", {}},
+              {"grpc-server-headers-propagator", {}},
+          }}
+      ) {}
 
 }  // namespace ugrpc::server
 

@@ -105,8 +105,13 @@ CommonConfiguration Parse(const yaml_config::YamlConfig& config, formats::parse:
 
 SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::parse::To<SecurityConfiguration>) {
     static constexpr std::string_view kPlainTextProtocol{"PLAINTEXT"};
+    static constexpr std::string_view kSaslPlainTextProtocol{"SASL_PLAINTEXT"};
     static constexpr std::string_view kSaslSSLProtocol{"SASL_SSL"};
-    static constexpr std::array kSupportedSecurityProtocols{kPlainTextProtocol, kSaslSSLProtocol};
+    static constexpr std::array kSupportedSecurityProtocols{
+        kPlainTextProtocol,
+        kSaslSSLProtocol,
+        kSaslPlainTextProtocol,
+    };
     static constexpr std::array kSupportedSaslSecurityMechanisms{"PLAIN", "SCRAM-SHA-512"};
 
     SecurityConfiguration security{};
@@ -117,15 +122,23 @@ SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     }
     if (protocol == kPlainTextProtocol) {
         security.security_protocol.emplace<SecurityConfiguration::Plaintext>();
-    } else if (protocol == kSaslSSLProtocol) {
-        const auto mechanism = config["sasl_mechanisms"].As<std::string>();
-        if (!IsSupportedOption(kSupportedSaslSecurityMechanisms, mechanism)) {
-            ThrowUnsupportedOption("SASL security mechanism", mechanism, kSupportedSaslSecurityMechanisms);
-        }
+        return security;
+    }
 
+    const auto mechanism = config["sasl_mechanisms"].As<std::string>();
+    if (!IsSupportedOption(kSupportedSaslSecurityMechanisms, mechanism)) {
+        ThrowUnsupportedOption("SASL security mechanism", mechanism, kSupportedSaslSecurityMechanisms);
+    }
+
+    if (protocol == kSaslPlainTextProtocol) {
+        security.security_protocol.emplace<SecurityConfiguration::SaslPlaintext>(SecurityConfiguration::SaslPlaintext{
+            /*security_mechanism=*/mechanism,
+        });
+    } else if (protocol == kSaslSSLProtocol) {
         security.security_protocol.emplace<SecurityConfiguration::SaslSsl>(SecurityConfiguration::SaslSsl{
             /*security_mechanism=*/mechanism,
-            /*ssl_ca_location=*/config["ssl_ca_location"].As<std::string>()});
+            /*ssl_ca_location=*/config["ssl_ca_location"].As<std::string>(),
+        });
     }
 
     return security;
@@ -229,6 +242,14 @@ void Configuration::SetSecurity(const SecurityConfiguration& security, const Sec
     utils::Visit(
         security.security_protocol,
         [](const SecurityConfiguration::Plaintext&) { LOG_INFO() << "Using PLAINTEXT security protocol"; },
+        [this, &secrets](const SecurityConfiguration::SaslPlaintext& sasl_ssl) {
+            LOG_INFO() << "Using SASL_PLAINTEXT security protocol";
+
+            SetOption("security.protocol", "SASL_PLAINTEXT");
+            SetOption("sasl.mechanism", sasl_ssl.security_mechanism);
+            SetOption("sasl.username", secrets.username);
+            SetOption("sasl.password", secrets.password);
+        },
         [this, &secrets](const SecurityConfiguration::SaslSsl& sasl_ssl) {
             LOG_INFO() << "Using SASL_SSL security protocol";
 

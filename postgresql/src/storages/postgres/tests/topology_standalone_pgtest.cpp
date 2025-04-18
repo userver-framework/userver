@@ -30,7 +30,7 @@ UTEST_F(Standalone, Smoke) {
     EXPECT_EQ(0, hosts->count(pg::ClusterHostType::kSlave));
 
     auto alive = sa.GetAliveDsnIndices();
-    EXPECT_EQ(1, alive->size());
+    EXPECT_EQ(1, alive->indicies.size());
 }
 
 USERVER_NAMESPACE_END

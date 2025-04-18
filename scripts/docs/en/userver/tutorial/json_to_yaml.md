@@ -9,14 +9,14 @@ Make sure that you can compile and run framework tests as described at
 ## Step by step guide
 
 The userver framework allows to use it's non-coroutine parts by using the
-`userver-universal` CMake target. It provides useful utilities like
+`userver::universal` CMake target. It provides useful utilities like
 utils::FastPimpl, utils::TrivialBiMap,
 @ref scripts/docs/en/userver/formats.md "JSON and YAML formats", utils::AnyMovable,
 cache::LruMap and many other utilities. See  @ref userver_universal for a list
 of available functions and classes.
 
 
-Let's write a simple JSON to YAML converter with the help of `userver-universal`.
+Let's write a simple JSON to YAML converter with the help of `userver::universal`.
 
 ### Code
 
@@ -94,12 +94,13 @@ Python with `pytest`:
 ## Full sources
 
 See the full example at:
-* @ref samples/json2yaml/json2yaml.hpp
-* @ref samples/json2yaml/json2yaml.cpp
-* @ref samples/json2yaml/json2yaml_test.cpp
+* @ref samples/json2yaml/src/json2yaml.hpp
+* @ref samples/json2yaml/src/json2yaml.cpp
+* @ref samples/json2yaml/main.cpp
+* @ref samples/json2yaml/unittests/json2yaml_test.cpp
 * @ref samples/json2yaml/CMakeLists.txt
-* @ref samples/json2yaml/tests/conftest.py
-* @ref samples/json2yaml/tests/test_basic.py
+* @ref samples/json2yaml/testsuite/conftest.py
+* @ref samples/json2yaml/testsuite/test_basic.py
 
 ----------
 
@@ -108,9 +109,10 @@ See the full example at:
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/json2yaml/json2yaml.hpp
-@example samples/json2yaml/json2yaml.cpp
-@example samples/json2yaml/json2yaml_test.cpp
+@example samples/json2yaml/src/json2yaml.hpp
+@example samples/json2yaml/src/json2yaml.cpp
+@example samples/json2yaml/main.cpp
+@example samples/json2yaml/unittests/json2yaml_test.cpp
 @example samples/json2yaml/CMakeLists.txt
-@example samples/json2yaml/tests/conftest.py
-@example samples/json2yaml/tests/test_basic.py
+@example samples/json2yaml/testsuite/conftest.py
+@example samples/json2yaml/testsuite/test_basic.py

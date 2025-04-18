@@ -207,7 +207,8 @@ struct ConnectionImpl::ResetTransactionCommandControl {
     ~ResetTransactionCommandControl() {
         connection.transaction_cmd_ctl_.reset();
         connection.current_statement_timeout_ =
-            connection.testsuite_pg_ctl_.MakeStatementTimeout(connection.GetDefaultCommandControl().statement);
+            connection.testsuite_pg_ctl_.MakeStatementTimeout(connection.GetDefaultCommandControl().statement_timeout_ms
+            );
     }
 };
 
@@ -267,7 +268,7 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
     }
     SetParameter("client_encoding", "UTF8", Connection::ParameterScope::kSession, deadline);
     RefreshReplicaState(deadline);
-    SetConnectionStatementTimeout(GetDefaultCommandControl().statement, deadline);
+    SetConnectionStatementTimeout(GetDefaultCommandControl().statement_timeout_ms, deadline);
     if (settings_.user_types != ConnectionSettings::kPredefinedTypesOnly) {
         LoadUserTypes(deadline);
     }
@@ -343,7 +344,9 @@ CommandControl ConnectionImpl::GetDefaultCommandControl() const { return default
 void ConnectionImpl::UpdateDefaultCommandControl() {
     auto cmd_ctl = GetDefaultCommandControl();
     if (cmd_ctl != default_cmd_ctl_) {
-        SetConnectionStatementTimeout(cmd_ctl.statement, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
+        SetConnectionStatementTimeout(
+            cmd_ctl.statement_timeout_ms, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.network_timeout_ms)
+        );
         default_cmd_ctl_ = cmd_ctl;
     }
 }
@@ -374,7 +377,7 @@ ResultSet ConnectionImpl::ExecuteCommand(
         pipeline_guard.emplace([this]() { conn_wrapper_.EnterPipelineMode(); });
     }
 
-    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(statement_cmd_ctl));
+    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(NetworkTimeout(statement_cmd_ctl));
     SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(query, params, deadline);
 }
@@ -384,7 +387,7 @@ void ConnectionImpl::Begin(
     SteadyClock::time_point trx_start_time,
     OptionalCommandControl trx_cmd_ctl
 ) {
-    if (IsInTransaction()) {
+    if (std::exchange(in_transaction_, true)) {
         throw AlreadyInTransaction();
     }
     DiscardOldPreparedStatements(MakeCurrentDeadline());
@@ -402,6 +405,8 @@ void ConnectionImpl::Begin(
 }
 
 void ConnectionImpl::Commit() {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
+
     if (!IsInTransaction()) {
         throw NotInTransaction();
     }
@@ -419,6 +424,8 @@ void ConnectionImpl::Commit() {
 }
 
 void ConnectionImpl::Rollback() {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
+
     if (!IsInTransaction()) {
         throw NotInTransaction();
     }
@@ -454,13 +461,14 @@ Connection::StatementId ConnectionImpl::PortalBind(
     const QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl
 ) {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
     if (settings_.prepared_statements == ConnectionSettings::kNoPreparedStatements) {
         LOG_LIMITED_WARNING() << "Portals without prepared statements are currently unsupported";
         throw LogicError{"Prepared statements shouldn't be turned off while using portals"};
     }  // TODO Prepare unnamed query instead
 
     CheckBusy();
-    TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
+    TimeoutDuration network_timeout = NetworkTimeout(statement_cmd_ctl);
     auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
     tracing::Span span{FindQueryShortInfo(scopes::kBind, statement)};
@@ -485,7 +493,8 @@ ResultSet ConnectionImpl::PortalExecute(
     std::uint32_t n_rows,
     OptionalCommandControl statement_cmd_ctl
 ) {
-    TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
+    TimeoutDuration network_timeout = NetworkTimeout(statement_cmd_ctl);
 
     auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
@@ -517,14 +526,14 @@ ResultSet ConnectionImpl::PortalExecute(
 void ConnectionImpl::Listen(std::string_view channel, OptionalCommandControl cmd_ctl) {
     ExecuteCommandNoPrepare(
         fmt::format(kStatementListen, conn_wrapper_.EscapeIdentifier(channel)),
-        testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(cmd_ctl))
+        testsuite_pg_ctl_.MakeExecuteDeadline(NetworkTimeout(cmd_ctl))
     );
 }
 
 void ConnectionImpl::Unlisten(std::string_view channel, OptionalCommandControl cmd_ctl) {
     ExecuteCommandNoPrepare(
         fmt::format(kStatementUnlisten, conn_wrapper_.EscapeIdentifier(channel)),
-        testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(cmd_ctl))
+        testsuite_pg_ctl_.MakeExecuteDeadline(NetworkTimeout(cmd_ctl))
     );
 }
 
@@ -565,6 +574,7 @@ void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
 }
 
 bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
     const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
     conn_wrapper_.DiscardInput(deadline);
     auto state = GetConnectionState();
@@ -578,7 +588,7 @@ bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
     // We are no more bound with SLA, user has his exception.
     // We need to try and save the connection without canceling current query
     // not to kill the pgbouncer
-    SetConnectionStatementTimeout(GetDefaultCommandControl().statement, deadline);
+    SetConnectionStatementTimeout(GetDefaultCommandControl().statement_timeout_ms, deadline);
     if (IsPipelineActive()) {
         // In pipeline mode SetConnectionStatementTimeout writes a query into
         // connection query queue without waiting for its result.
@@ -638,13 +648,13 @@ void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
 
 tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query, const CommandControl& cc) const {
     tracing::Span span{FindQueryShortInfo(scopes::kQuery, query.Statement())};
-    conn_wrapper_.FillSpanTags(span, cc);
+    conn_wrapper_.FillSpanTags(span, cc, "left_network_timeout_ms");
     query.FillSpanTags(span);
     return span;
 }
 
 engine::Deadline ConnectionImpl::MakeCurrentDeadline() const {
-    return testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout());
+    return testsuite_pg_ctl_.MakeExecuteDeadline(CurrentNetworkTimeout());
 }
 
 void ConnectionImpl::SetTransactionCommandControl(CommandControl cmd_ctl) {
@@ -652,26 +662,28 @@ void ConnectionImpl::SetTransactionCommandControl(CommandControl cmd_ctl) {
         throw NotInTransaction{"Cannot set transaction command control out of transaction"};
     }
     transaction_cmd_ctl_ = cmd_ctl;
-    SetStatementTimeout(cmd_ctl.statement, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
+    SetStatementTimeout(
+        cmd_ctl.statement_timeout_ms, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.network_timeout_ms)
+    );
 }
 
-TimeoutDuration ConnectionImpl::ExecuteTimeout(OptionalCommandControl cmd_ctl) const {
+TimeoutDuration ConnectionImpl::NetworkTimeout(OptionalCommandControl cmd_ctl) const {
     if (!!cmd_ctl) {
-        return cmd_ctl->execute;
+        return cmd_ctl->network_timeout_ms;
     }
-    return CurrentExecuteTimeout();
+    return CurrentNetworkTimeout();
 }
 
-TimeoutDuration ConnectionImpl::CurrentExecuteTimeout() const {
+TimeoutDuration ConnectionImpl::CurrentNetworkTimeout() const {
     if (!!transaction_cmd_ctl_) {
-        return transaction_cmd_ctl_->execute;
+        return transaction_cmd_ctl_->network_timeout_ms;
     }
-    return GetDefaultCommandControl().execute;
+    return GetDefaultCommandControl().network_timeout_ms;
 }
 
 void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
-    if (IsPipelineActive()) {
+    if (IsPipelineActive() && settings_.deadline_propagation_enabled) {
         timeout = AdjustTimeout(timeout, deadline_propagation_is_active_);
     }
     if (current_statement_timeout_ != timeout) {
@@ -684,7 +696,7 @@ void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engi
 
 void ConnectionImpl::SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
-    if (IsPipelineActive()) {
+    if (IsPipelineActive() && settings_.deadline_propagation_enabled) {
         timeout = AdjustTimeout(timeout, deadline_propagation_is_active_);
     }
     if (current_statement_timeout_ != timeout) {
@@ -702,14 +714,19 @@ void ConnectionImpl::SetStatementTimeout(OptionalCommandControl cmd_ctl) {
     deadline_propagation_is_active_ = false;
 
     if (!!cmd_ctl) {
-        SetConnectionStatementTimeout(cmd_ctl->statement, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl->execute));
+        SetConnectionStatementTimeout(
+            cmd_ctl->statement_timeout_ms, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl->network_timeout_ms)
+        );
     } else if (!!transaction_cmd_ctl_) {
         SetStatementTimeout(
-            transaction_cmd_ctl_->statement, testsuite_pg_ctl_.MakeExecuteDeadline(transaction_cmd_ctl_->execute)
+            transaction_cmd_ctl_->statement_timeout_ms,
+            testsuite_pg_ctl_.MakeExecuteDeadline(transaction_cmd_ctl_->network_timeout_ms)
         );
     } else {
         auto cmd_ctl = GetDefaultCommandControl();
-        SetConnectionStatementTimeout(cmd_ctl.statement, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
+        SetConnectionStatementTimeout(
+            cmd_ctl.statement_timeout_ms, testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.network_timeout_ms)
+        );
     }
 }
 
@@ -1036,6 +1053,8 @@ ResultSet ConnectionImpl::WaitResult(
     const ResultSet* description_ptr
 ) {
     const PGresult* description = description_ptr ? description_ptr->pimpl_->handle_.get() : nullptr;
+
+    ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
 
     try {
         auto res = conn_wrapper_.WaitResult(deadline, scope, description);

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Forward declarations of storages::redis::Reply and storages::redis::ReplyData.
+
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN

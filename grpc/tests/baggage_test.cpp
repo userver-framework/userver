@@ -10,18 +10,19 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
-#include <ugrpc/client/impl/client_configs.hpp>
-#include <ugrpc/client/middlewares/baggage/middleware.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
+#include <userver/ugrpc/client/middlewares/baggage/middleware.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/middlewares/baggage/middleware.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
+
+#include <dynamic_config/variables/BAGGAGE_SETTINGS.hpp>
+#include <dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,8 +50,8 @@ public:
         SetServerMiddlewares({std::make_shared<ugrpc::server::middlewares::baggage::Middleware>()});
 
         ExtendDynamicConfig({
-            {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
-            {baggage::kBaggageEnabled, true},
+            {::dynamic_config::BAGGAGE_SETTINGS, {{"key1", "key2", "key3"}}},
+            {::dynamic_config::USERVER_BAGGAGE_ENABLED, true},
         });
 
         RegisterService(service_);
@@ -136,10 +137,10 @@ class GrpcClientTestBaggage : public ugrpc::tests::ServiceFixtureBase {
 public:
     GrpcClientTestBaggage() {
         ExtendDynamicConfig({
-            {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
-            {baggage::kBaggageEnabled, true},
+            {::dynamic_config::BAGGAGE_SETTINGS, {{"key1", "key2", "key3"}}},
+            {::dynamic_config::USERVER_BAGGAGE_ENABLED, true},
         });
-        SetClientMiddlewareFactories({std::make_shared<ugrpc::client::middlewares::baggage::MiddlewareFactory>()});
+        SetClientMiddlewares({std::make_shared<ugrpc::client::middlewares::baggage::Middleware>()});
         RegisterService(service_);
         StartServer();
     };

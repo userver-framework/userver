@@ -3,17 +3,20 @@
 /// @file userver/components/component_context.hpp
 /// @brief @copybrief components::ComponentContext
 
-#include <functional>
-#include <memory>
 #include <stdexcept>
-#include <string>
 #include <string_view>
-#include <vector>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/raw_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
+
+// TODO remove extra includes
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,17 +26,11 @@ class TaskContext;
 
 namespace components {
 
-class Manager;
-class ComponentContext;
-
 namespace impl {
 
-enum class ComponentLifetimeStage;
-class ComponentInfo;
+class Manager;
 class ComponentContextImpl;
-
-using ComponentFactory =
-    std::function<std::unique_ptr<components::RawComponentBase>(const components::ComponentContext&)>;
+class ComponentInfo;
 
 template <class T>
 constexpr auto NameFromComponentType() -> decltype(std::string_view{T::kName}) {
@@ -59,7 +56,7 @@ constexpr auto NameFromComponentType(Args...) {
 class ComponentsLoadCancelledException : public std::runtime_error {
 public:
     ComponentsLoadCancelledException();
-    explicit ComponentsLoadCancelledException(const std::string& message);
+    explicit ComponentsLoadCancelledException(std::string_view message);
 };
 
 /// @brief Class to retrieve other components.
@@ -68,11 +65,18 @@ public:
 /// component constructor (because of that this class is always passed as a
 /// const reference to the constructors).
 ///
-/// For usage outside of the component constructor see components::State
+/// @warning Don't store references to `ComponentContext` in your component!
+/// Lifetime of the passed `ComponentContext` ends as soon as
+/// the constructor ends.
+///
+/// For usage outside the component constructor see components::State.
 ///
 /// @see @ref userver_components
 class ComponentContext final {
 public:
+    ComponentContext(ComponentContext&&) = delete;
+    ComponentContext& operator=(ComponentContext&&) = delete;
+
     /// @brief Finds a component of type T with specified name (if any) and
     /// returns the component after it was initialized.
     ///
@@ -132,14 +136,36 @@ public:
     }
 
     /// @brief Returns an engine::TaskProcessor with the specified name.
-    engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
+    engine::TaskProcessor& GetTaskProcessor(std::string_view name) const;
 
     template <typename T>
     engine::TaskProcessor& GetTaskProcessor(const T&) {
         return ReportMisuse<T>();
     }
 
-    const Manager& GetManager() const;
+    /// @brief Returns the current component name. This is helpful in cases
+    /// where multiple instances of the component class may be created using
+    /// `component_list.Append<T>("custom-name")` syntax.
+    ///
+    /// @warning The lifetime of the returned string ends as soon as
+    /// the current component's constructor completes. Store it
+    /// as an `std::string` if needed.
+    std::string_view GetComponentName() const;
+
+    /// @cond
+    // For internal use only.
+    ComponentContext(
+        utils::impl::InternalTag,
+        impl::ComponentContextImpl& impl,
+        impl::ComponentInfo& component_info
+    ) noexcept;
+
+    // For internal use only.
+    impl::ComponentContextImpl& GetImpl(utils::impl::InternalTag) const;
+
+    // For internal use only.
+    const impl::Manager& GetManager(utils::impl::InternalTag) const;
+    /// @endcond
 
 private:
     /// @returns true if there is a component with the specified name and it
@@ -163,36 +189,15 @@ private:
         return 0;
     }
 
-    friend class Manager;
-    friend class State;
-
-    ComponentContext() noexcept;
-
-    void Emplace(const Manager& manager, std::vector<std::string>&& loading_component_names);
-
-    void Reset() noexcept;
-
-    ~ComponentContext();
-
-    RawComponentBase* AddComponent(std::string_view name, const impl::ComponentFactory& factory);
-
-    void OnAllComponentsLoaded();
-
-    void OnGracefulShutdownStarted();
-
-    void OnAllComponentsAreStopping();
-
-    void ClearComponents();
-
-    void CancelComponentsLoad();
-
     [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name, std::string_view type) const;
+
     [[noreturn]] void
     ThrowComponentTypeMismatch(std::string_view name, std::string_view type, RawComponentBase* component) const;
 
     RawComponentBase* DoFindComponent(std::string_view name) const;
 
-    std::unique_ptr<impl::ComponentContextImpl> impl_;
+    impl::ComponentContextImpl& impl_;
+    impl::ComponentInfo& component_info_;
 };
 
 }  // namespace components

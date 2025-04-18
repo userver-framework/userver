@@ -3,6 +3,7 @@
 /// @file userver/storages/postgres/statistics.hpp
 /// @brief Statistics helpers
 
+#include <string>
 #include <unordered_map>
 #include <vector>
 

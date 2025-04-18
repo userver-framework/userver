@@ -7,6 +7,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
+#include <dynamic_config/variables/USERVER_RPS_CCONTROL_ENABLED.hpp>
+
 #include <userver/utest/using_namespace_userver.hpp>
 
 using namespace congestion_control;
@@ -57,8 +59,11 @@ int main(int argc, char* argv[]) {
     logging::DefaultLoggerGuard guard{
         logging::MakeStderrLogger("default", logging::Format::kTskv, logging::LevelFromString(config.log_level))};
 
-    dynamic_config::StorageMock dynamic_config{{congestion_control::impl::kRpsCcConfig, {config.policy, true}}};
-    Controller ctrl("cc", dynamic_config.GetSource());
+    USERVER_NAMESPACE::dynamic_config::StorageMock dconfig{
+        {::dynamic_config::USERVER_RPS_CCONTROL, config.policy},
+        {::dynamic_config::USERVER_RPS_CCONTROL_ENABLED, true},
+    };
+    Controller ctrl("cc", dconfig.GetSource());
 
     for (;;) {
         Sensor::Data data;

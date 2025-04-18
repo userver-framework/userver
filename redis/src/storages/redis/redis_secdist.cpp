@@ -39,6 +39,8 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
                                          ? USERVER_NAMESPACE::storages::redis::ConnectionSecurity::kTLS
                                          : USERVER_NAMESPACE::storages::redis::ConnectionSecurity::kNone;
 
+        settings.database_index = client_settings["database_index"].As<std::size_t>(0);
+
         const auto& shards = client_settings["shards"];
         CheckIsArray(shards, "shards");
         for (const auto& shard : shards) {

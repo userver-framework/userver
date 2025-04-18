@@ -7,14 +7,6 @@ from testsuite.databases.pgsql import discover
 pytest_plugins = ['pytest_userver.plugins.postgresql']
 
 
-@pytest.fixture(scope='session')
-def prepare_service_config():
-    def patch_config(config, config_vars):
-        pass
-
-    return patch_config
-
-
 @pytest.fixture(name='service_source_dir', scope='session')
 def _service_source_dir():
     """Path to root directory service."""

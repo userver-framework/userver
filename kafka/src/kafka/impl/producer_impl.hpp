@@ -31,7 +31,8 @@ public:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        HeadersHolder headers
     ) const;
 
     /// @brief Waits until scheduled messages are delivered for
@@ -51,7 +52,8 @@ private:
         const std::string& topic_name,
         std::string_view key,
         std::string_view message,
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        HeadersHolder headers
     ) const;
 
     /// @brief Poll a delivery or error event from producer's queue.

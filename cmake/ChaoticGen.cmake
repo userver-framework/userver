@@ -16,6 +16,15 @@ function(_userver_prepare_chaotic)
   message(STATUS "Found chaotic-gen: ${CHAOTIC_BIN}")
   set_property(GLOBAL PROPERTY userver_chaotic_bin "${CHAOTIC_BIN}")
 
+  find_program(CHAOTIC_DYNAMIC_CONFIGS_BIN chaotic-gen-dynamic-configs
+      PATHS
+          "${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/bin-dynamic-configs"
+          "${CMAKE_CURRENT_LIST_DIR}/../../../bin"
+      NO_DEFAULT_PATH
+  )
+  message(STATUS "Found chaotic-gen-dynamic-configs: ${CHAOTIC_DYNAMIC_CONFIGS_BIN}")
+  set_property(GLOBAL PROPERTY userver_chaotic_dynamic_configs_bin "${CHAOTIC_DYNAMIC_CONFIGS_BIN}")
+
   find_program(CHAOTIC_OPENAPI_BIN chaotic-openapi-gen
       PATHS
           "${CMAKE_CURRENT_SOURCE_DIR}/../chaotic-openapi/bin"
@@ -56,10 +65,11 @@ _userver_prepare_chaotic()
 # - FORMAT - can be ON/OFF, enable to format generated files, defaults to USERVER_CHAOTIC_FORMAT
 # - SCHEMAS - JSONSchema source files
 # - ARGS - extra args to chaotic-gen
+# - INSTALL_INCLUDES_COMPONENT - component to install generated includes
 function(userver_target_generate_chaotic TARGET)
-  set(OPTIONS)
-  set(ONE_VALUE_ARGS OUTPUT_DIR RELATIVE_TO FORMAT)
-  set(MULTI_VALUE_ARGS SCHEMAS ARGS)
+  set(OPTIONS GENERATE_SERIALIZERS PARSE_EXTRA_FORMATS)
+  set(ONE_VALUE_ARGS OUTPUT_DIR RELATIVE_TO FORMAT INSTALL_INCLUDES_COMPONENT OUTPUT_PREFIX ERASE_PATH_PREFIX)
+  set(MULTI_VALUE_ARGS SCHEMAS LAYOUT INCLUDE_DIRS)
   cmake_parse_arguments(
       PARSE "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN}
   )
@@ -96,36 +106,79 @@ function(userver_target_generate_chaotic TARGET)
     file(RELATIVE_PATH SCHEMA "${PARSE_RELATIVE_TO}" "${PARSE_SCHEMA}")
 
     string(REGEX REPLACE "^(.*)\\.([^.]*)\$" "\\1" SCHEMA "${SCHEMA}")
-    set(SCHEMA "${PARSE_OUTPUT_DIR}/${SCHEMA}.cpp")
 
-    list(APPEND SCHEMAS "${SCHEMA}")
+    list(APPEND SCHEMAS
+	    "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}/${SCHEMA}.cpp"
+	    "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}/${SCHEMA}.hpp"
+	    "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}/${SCHEMA}_fwd.hpp"
+	    "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}/${SCHEMA}_parsers.ipp"
+    )
   endforeach()
+
+  set(CHAOTIC_ARGS)
+
+  foreach(MAP_ITEM ${PARSE_LAYOUT})
+    list(APPEND CHAOTIC_ARGS "-n" "${MAP_ITEM}")
+  endforeach()
+
+  foreach(INCLUDE_DIR ${PARSE_INCLUDE_DIRS})
+    list(APPEND CHAOTIC_ARGS "-I" "${INCLUDE_DIR}")
+  endforeach()
+
+  if (PARSE_GENERATE_SERIALIZERS)
+    list(APPEND CHAOTIC_ARGS "--generate-serializers")
+  endif()
+
+  if (PARSE_PARSE_EXTRA_FORMATS)
+    list(APPEND CHAOTIC_ARGS "--parse-extra-formats")
+  endif()
+
+  if (PARSE_ERASE_PATH_PREFIX)
+    list(APPEND CHAOTIC_ARGS "-e" "${PARSE_ERASE_PATH_PREFIX}")
+  endif()
+
+  list(APPEND CHAOTIC_ARGS "-o" "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}")
+  list(APPEND CHAOTIC_ARGS "--relative-to" "${PARSE_RELATIVE_TO}")
+  list(APPEND CHAOTIC_ARGS "--clang-format" "${CLANG_FORMAT}")
 
   _userver_initialize_codegen_flag()
   add_custom_command(
       OUTPUT
           ${SCHEMAS}
       COMMAND
-          env
+          ${CMAKE_COMMAND} -E env
           "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
           "${CHAOTIC_BIN}"
           ${CHAOTIC_EXTRA_ARGS}
-          ${PARSE_ARGS}
-          -o "${PARSE_OUTPUT_DIR}"
-          --relative-to "${PARSE_RELATIVE_TO}"
-          --clang-format "${CLANG_FORMAT}"
+          ${CHAOTIC_ARGS}
           ${PARSE_SCHEMAS}
       DEPENDS
           ${PARSE_SCHEMAS}
       WORKING_DIRECTORY
           "${CMAKE_CURRENT_SOURCE_DIR}"
       VERBATIM
-      ${CODEGEN}
+          ${CODEGEN}
   )
+  _userver_codegen_register_files("${SCHEMAS}")
   add_library("${TARGET}" ${SCHEMAS})
   target_link_libraries("${TARGET}" userver::chaotic)
-  target_include_directories("${TARGET}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-  target_include_directories("${TARGET}" PUBLIC "${PARSE_OUTPUT_DIR}")
+  target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>")
+  target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${PARSE_OUTPUT_DIR}>")
+
+  if(PARSE_INSTALL_INCLUDES_COMPONENT)
+    foreach(FILE ${SCHEMAS})
+      string(REGEX REPLACE "^(.*)\\.([^.]*)\$" "\\2" SUFFIX "${FILE}")
+      if(SUFFIX STREQUAL cpp)
+        continue()
+      endif()
+      
+      _userver_directory_install(
+          COMPONENT ${PARSE_INSTALL_INCLUDES_COMPONENT}
+          FILES "${FILE}"
+          DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${PARSE_OUTPUT_PREFIX}"
+      )
+    endforeach()
+  endif()
 endfunction()
 
 function(userver_target_generate_openapi_client TARGET)
@@ -142,7 +195,7 @@ function(userver_target_generate_openapi_client TARGET)
       GLOBAL PROPERTY userver_chaotic_python_binary)
 
   if (NOT DEFINED PARSE_OUTPUT_DIR)
-    set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+          set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${PARSE_NAME}")
   endif()
   file(MAKE_DIRECTORY "${PARSE_OUTPUT_DIR}")
 
@@ -166,6 +219,7 @@ function(userver_target_generate_openapi_client TARGET)
     "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/component.cpp"
     "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/requests.cpp"
     "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/responses.cpp"
+    "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/exceptions.cpp"
   )
 
   _userver_initialize_codegen_flag()
@@ -181,6 +235,8 @@ function(userver_target_generate_openapi_client TARGET)
 	      --name "${PARSE_NAME}"
           -o "${PARSE_OUTPUT_DIR}"
           ${PARSE_SCHEMAS}
+      COMMENT
+          "Generating OpenAPI client ${PARSE_NAME}"
       DEPENDS
           ${PARSE_SCHEMAS}
       WORKING_DIRECTORY
@@ -188,8 +244,62 @@ function(userver_target_generate_openapi_client TARGET)
       VERBATIM
       ${CODEGEN}
   )
+  _userver_codegen_register_files("${SCHEMAS}")
   add_library("${TARGET}" ${SCHEMAS})
   target_link_libraries("${TARGET}" userver::chaotic-openapi)
   # target_include_directories("${TARGET}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
   target_include_directories("${TARGET}" PUBLIC "${PARSE_OUTPUT_DIR}/include")
+endfunction()
+
+function(userver_target_generate_chaotic_dynamic_configs TARGET SCHEMAS_REGEX)
+  file(GLOB CHGEN_FILENAMES ${SCHEMAS_REGEX})
+  set(OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/dynamic_configs)
+
+  get_property(CHAOTIC_DYNAMIC_CONFIGS_BIN GLOBAL PROPERTY userver_chaotic_dynamic_configs_bin)
+  get_property(CHAOTIC_EXTRA_ARGS GLOBAL PROPERTY userver_chaotic_extra_args)
+  get_property(USERVER_CHAOTIC_PYTHON_BINARY GLOBAL PROPERTY userver_chaotic_python_binary)
+  get_property(CLANG_FORMAT_BIN GLOBAL PROPERTY userver_clang_format_bin)
+
+  _userver_initialize_codegen_flag()
+
+  set(OUTPUT_FILENAMES)
+  set(CONFIG_NAMES)
+  foreach(FILENAME ${CHGEN_FILENAMES}) 
+    string(REGEX REPLACE "^(.*)/([^/]*)\\.([^.]*)\$" "\\2" SCHEMA "${FILENAME}")
+    set(CONFIG_NAMES "${CONFIG_NAMES} ${SCHEMA}")
+
+    list(APPEND OUTPUT_FILENAMES
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types_fwd.hpp
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types.hpp
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types_parsers.ipp
+         ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.hpp
+         ${OUTPUT_DIR}/src/dynamic_config/variables/${SCHEMA}.types.cpp
+         ${OUTPUT_DIR}/src/dynamic_config/variables/${SCHEMA}.cpp
+    )
+  endforeach()
+
+  add_custom_command(
+      OUTPUT
+          ${OUTPUT_FILENAMES}
+      COMMAND
+          env
+          "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
+          "${CHAOTIC_DYNAMIC_CONFIGS_BIN}"
+          ${CHAOTIC_EXTRA_ARGS}
+          -I ${CMAKE_CURRENT_LIST_DIR}/../chaotic/include
+          -o "${OUTPUT_DIR}"
+          ${CHGEN_FILENAMES}
+      COMMENT
+          "Generating dynamic configs${CONFIG_NAMES}"
+      DEPENDS
+          ${CHGEN_FILENAMES}
+      WORKING_DIRECTORY
+          "${CMAKE_CURRENT_SOURCE_DIR}"
+      VERBATIM
+           ${CODEGEN}
+  )
+  _userver_codegen_register_files("${OUTPUT_FILENAMES}")
+  add_library("${TARGET}" STATIC ${OUTPUT_FILENAMES})
+  target_link_libraries("${TARGET}" userver::core userver::chaotic)
+  target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${OUTPUT_DIR}/include>")
 endfunction()

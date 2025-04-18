@@ -161,13 +161,13 @@ public:
 
     using DataType = T;
 
-    /// @return cache contents. May be `nullptr` if and only if @ref MayReturnNull
+    /// @return cache contents. May be `nullptr` if and only if `MayReturnNull`
     /// returns `true`.
     /// @throws cache::EmptyCacheError if the contents are `nullptr`, and
-    /// @ref MayReturnNull returns `false` (which is the default behavior).
+    /// `MayReturnNull` returns `false` (which is the default behavior).
     utils::SharedReadablePtr<T> Get() const;
 
-    /// @return cache contents. May be nullptr regardless of MayReturnNull().
+    /// @return cache contents. May be nullptr regardless of `MayReturnNull`.
     utils::SharedReadablePtr<T> GetUnsafe() const;
 
     /// Subscribes to cache updates using a member function. Also immediately
@@ -234,7 +234,7 @@ template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(components::GetCurrentComponentName(config), [this](auto& function) {
+      event_channel_(components::GetCurrentComponentName(context), [this](auto& function) {
           const auto ptr = cache_.ReadCopy();
           if (ptr) function(ptr);
       }) {

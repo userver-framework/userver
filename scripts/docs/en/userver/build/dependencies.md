@@ -44,47 +44,6 @@ sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
 
-### Ubuntu 20.04 (Focal Fossa)
-
-\b Dependencies: @ref scripts/docs/en/deps/ubuntu-20.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-20.04.md"
-
-Dependencies can be installed via:
-
-```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-20.04.md" && \
-sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
-```
-
-Recommended CMake options:
-
-```
-USERVER_FEATURE_CRYPTOPP_BLAKE2=0
-USERVER_FEATURE_REDIS_HI_MALLOC=1
-```
-
-
-### Ubuntu 18.04 (Bionic Beaver)
-
-\b Dependencies: @ref scripts/docs/en/deps/ubuntu-18.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-18.04.md"
-
-Dependencies can be installed via:
-
-```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-18.04.md" && \
-sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
-```
-
-Recommended CMake options:
-
-```
-CMAKE_CXX_COMPILER=g++-8
-CMAKE_C_COMPILER=gcc-8
-USERVER_FEATURE_CRYPTOPP_BLAKE2=0
-USERVER_FEATURE_CRYPTOPP_BASE64_URL=0
-USERVER_USE_LD=gold
-```
-
-
 ### Debian 11
 
 \b Dependencies: @ref scripts/docs/en/deps/debian-11.md "third_party/userver/scripts/docs/en/deps/debian-11.md"
@@ -244,7 +203,7 @@ For current macOS build dependencies, userver expects that following packages ar
 brew link postgresql@16 # postgresql is keg-only (required by PostgreSQL)
 brew link --force openldap # keg-only (required by PostgreSQL)
 brew link --force zlib # keg-only + need for static linkage (required by Universal)
-brew link --force icu4c@76 # keg-only + need for static boost linkage (required by Universal)
+brew link --force icu4c # keg-only + need for static boost linkage (required by Universal)
 brew link --force curl # keg-only (required by Core)
 brew link --force cyrus-sasl # keg-only (required by Mongo and Kafka)
 ```
@@ -253,7 +212,6 @@ Recommended CMake options:
 
 ```Makefile
 USERVER_CHECK_PACKAGE_VERSIONS=0
-USERVER_FEATURE_REDIS_HI_MALLOC=1
 USERVER_FEATURE_CRYPTOPP_BLAKE2=0
 USERVER_FORCE_DOWNLOAD_ABSEIL=1
 USERVER_FORCE_DOWNLOAD_RE2=1

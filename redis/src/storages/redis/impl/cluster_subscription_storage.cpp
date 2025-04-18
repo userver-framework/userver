@@ -123,7 +123,13 @@ void ClusterSubscriptionStorage::Stop() {
     rebalance_scheduler_.reset();
 }
 
-RawPubsubClusterStatistics ClusterSubscriptionStorage::GetStatistics() const { return storage_impl_.GetStatistics(); }
+RawPubsubClusterStatistics ClusterSubscriptionStorage::GetStatistics() const {
+    RawPubsubClusterStatistics ret;
+    /// We need only one shard's stats because GetShardStatistics() for ClusterSubscriptionStorage returns shared stats
+    /// for all real shards.
+    if (storage_impl_.shards_count_ > 0) ret.by_shard.push_back(storage_impl_.GetShardStatistics(0));
+    return ret;
+}
 
 void ClusterSubscriptionStorage::SetCommandControl(const CommandControl& control) {
     storage_impl_.SetCommandControl(control);

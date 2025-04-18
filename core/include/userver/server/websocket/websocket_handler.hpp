@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/server/websocket/websocket_handler.hpp
-/// @brief @copybrief websocket::WebsocketHandlerBase
+/// @brief @copybrief server::websocket::WebsocketHandlerBase
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
@@ -24,14 +24,14 @@ namespace server::websocket {
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// log-level | overrides log level for this handle | <no override>
+/// log-level | overrides log level for this handle | `<no override>`
 /// status-codes-log-level | map of "status": log_level items to override span log level for specific status codes | {}
 /// max-remote-payload | max remote payload size | 65536
 /// fragment-size | max output fragment size | 65536
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/websocket_service/websocket_service.cpp Websocket service sample - component
+/// @snippet samples/websocket_service/main.cpp Websocket service sample - component
 
 // clang-format on
 class WebsocketHandlerBase : public server::handlers::HttpHandlerBase {

@@ -662,12 +662,13 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
     } while (IsSyncingPipeline() && PQstatus(conn_) != CONNECTION_BAD);
 }
 
-void PGConnectionWrapper::FillSpanTags(tracing::Span& span, const CommandControl& cc) const {
+void PGConnectionWrapper::FillSpanTags(tracing::Span& span, const CommandControl& cc, std::string&& execute_tag_key)
+    const {
     // With inheritable tags, they would end up being duplicated in current Span
     // and in log_extra_ (passed by PGCW_LOG_ macros).
     span.AddNonInheritableTags(log_extra_);
-    span.AddTag("network_timeout_ms", cc.execute.count());
-    span.AddTag("statement_timeout_ms", cc.statement.count());
+    span.AddTag(std::move(execute_tag_key), cc.network_timeout_ms.count());
+    span.AddTag("statement_timeout_ms", cc.statement_timeout_ms.count());
 }
 
 PGresult* PGConnectionWrapper::ReadResult(Deadline deadline, const PGresult* description) {

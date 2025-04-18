@@ -3,10 +3,41 @@
 @anchor quick_start_for_beginners
 ## Quick start for beginners
 
+1\. @ref ways_to_get_userver "Get userver".
+
+2\. Create new service with the following command (if you installed userver system-wide):
+
+```shell
+userver-create-service myservice
+```
+
+If you installed userver via CPM or as a git repository, call script from userver directory:
+```shell
+userver/scripts/userver-create-service myservice
+```
+
+If you want to enable gRPC, postgresql, or mongo in your service, use the following flags:
+
+```shell
+userver-create-service --grpc --mongo --postgresql myservice
+```
+
+3\. Build and test your service. Run in the service repo root:
+
+```shell
+make build-release && \
+make test-release
+```
+
+Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
+
+
+## Quick start for beginners (old way)
+
 1\. Press the "Use this template" button at the top right of the
 [GitHub template page](https://github.com/userver-framework/service_template).
 
-@warning @ref https://github.com/userver-framework/service_template "service_template" has no databases and uses HTTP.
+@warning [service_template](https://github.com/userver-framework/service_template) has no databases and uses HTTP.
 If you need gRPC or a database, please use other @ref service_templates "templates".
 
 2\. Clone the service:
@@ -100,7 +131,7 @@ See @ref tutorial_services for minimal usage examples of various userver librari
 @anchor service_templates_presets
 ### Managing cmake options in service templates
 
-@note If you use @userver_install "installed userver", then for most options to take effect, you need to uninstall
+@note If you use @ref userver_install "installed userver", then for most options to take effect, you need to uninstall
 userver (if already installed), then install again, passing the desired cmake options.
 
 Service templates use [cmake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) for managing
@@ -174,6 +205,8 @@ Dev Containers is the easiest and least problematic way to get prebuilt userver 
    * [CLion](https://www.jetbrains.com/help/clion/connect-to-devcontainer.html): "Dev Containers" (**note:** beta)
 
 3. Open the service project. If CMake asks to configure, deny
+
+   * For CLion, please use JetBrains Gateway to open the project, otherwise CLion gets confused
 
 4. Agree to reopen the project in a Dev Container
 
@@ -252,7 +285,7 @@ docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver 
 Pass the @ref cmake_options "cmake options" inside `BUILD_OPTIONS`.
 Make sure to at least:
 
-1. enable the desired @ref userver libraries "userver_libraries";
+1. enable the desired @ref userver_libraries "userver libraries";
 2. pass the required options for @ref scripts/docs/en/userver/build/dependencies.md "build dependencies", if any.
 
 And install the package with the following:
@@ -351,7 +384,7 @@ Alternatively see @ref userver_install "userver install"
 @note The above image is build from `scripts/docker/ubuntu-22.04-pg.dockerfile`,
    `scripts/docker/ubuntu-22.04.dockerfile`
    and `scripts/docker/base-ubuntu-22.04.dockerfile` respectively.
-   See `scripts/docker/` directory and @ref scripts/docker/Readme.md for more
+   See `scripts/docker/` directory and `scripts/docker/Readme.md` for more
    inspiration on building your own custom docker containers.
 
 
@@ -428,11 +461,13 @@ sudo ./scripts/build_and_install_all.sh
 PGO compilation consists of 2 compilation stages: profile collecting and compilation with PGO.
 You can use PGO compilation doing the following steps:
 
-1) configure userver AND your service with cmake option -DUSERVER_PGO_GENERATE=ON, compile the service;
+1) configure userver AND your service with cmake option `-DUSERVER_PGO_GENERATE=ON`, compile the service;
 2) run the resulting binary under the production-like workload to collect profile;
 3) run llvm-profdata to convert profraw profile data format into profdata:
+   ```sh
    llvm-profdata merge -output=code.profdata default.profraw
-4) configure userver AND your service with cmake option -DUSERVER_PGO_USE=<path_to_profdata>, compile the service.
+   ```
+4) configure userver AND your service with cmake option `-DUSERVER_PGO_USE=<path_to_profdata>`, compile the service.
 
 The resulting binary should be 2-15% faster than without PGO, depending on the code and workload.
 
@@ -445,4 +480,3 @@ The resulting binary should be 2-15% faster than without PGO, depending on the c
 @htmlonly </div> @endhtmlonly
 
 @example service-template/CMakeUserPresets.json.example
-@example service-template/Makefile.local

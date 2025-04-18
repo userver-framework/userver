@@ -7,7 +7,6 @@
 
 #include <storages/mongo/cdriver/async_stream.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
-#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/pool_impl.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>

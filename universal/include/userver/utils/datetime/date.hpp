@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/formats/common/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,8 +50,16 @@ public:
     /// @copydoc GetSysDays()
     constexpr explicit operator SysDays() const { return sys_days_; }
 
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
+    constexpr auto operator<=>(const Date&) const = default;
+#else
     constexpr bool operator==(Date other) const { return sys_days_ == other.sys_days_; }
     constexpr bool operator!=(Date other) const { return !(*this == other); }
+    constexpr bool operator<(Date other) const { return sys_days_ < other.sys_days_; }
+    constexpr bool operator<=(Date other) const { return sys_days_ <= other.sys_days_; }
+    constexpr bool operator>(Date other) const { return sys_days_ > other.sys_days_; }
+    constexpr bool operator>=(Date other) const { return sys_days_ >= other.sys_days_; }
+#endif
 
 private:
     SysDays sys_days_{};

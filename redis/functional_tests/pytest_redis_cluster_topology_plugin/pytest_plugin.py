@@ -391,7 +391,7 @@ class RedisClusterTopology:
             await from_client.cluster('SETSLOT', slot, 'MIGRATING', to_id)
 
             batch = 1000
-            timeout = 1000
+            timeout = 10000  # it flaps with 1000: 'IOERR error or timeout reading to target instance'
             db = 0
             while True:
                 keys = await from_client.cluster('GETKEYSINSLOT', slot, batch)

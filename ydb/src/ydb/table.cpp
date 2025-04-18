@@ -97,28 +97,30 @@ TableClient::~TableClient() {
     }
 }
 
-template <typename Settings, typename Func>
+template <typename QuerySettings, typename Func>
 auto TableClient::ExecuteWithPathImpl(
     std::string_view path,
     std::string_view operation_name,
-    OperationSettings&& settings,
+    OperationSettings settings,
+    QuerySettings&& query_settings,
     Func&& func
 ) {
     using FuncArg = std::conditional_t<
-        std::is_invocable_v<const Func&, NYdb::NTable::TSession, const std::string&, Settings&&>,
+        std::is_invocable_v<const Func&, NYdb::NTable::TSession, const std::string&, QuerySettings&&>,
         NYdb::NTable::TSession,
         NYdb::NTable::TTableClient&>;
 
     const Query kQuery{"", Query::Name{operation_name}};
-    impl::RequestContext context{*this, kQuery, settings};
+    impl::RequestContext context{*this, kQuery, std::move(settings)};
 
     auto future = impl::RetryOperation(
         context,
         [func = std::forward<Func>(func),
          full_path = JoinDbPath(path),
-         settings = std::move(settings),
-         deadline = context.deadline](FuncArg arg) {
-            const auto query_settings = impl::PrepareRequestSettings<Settings>(settings, deadline);
+         query_settings = std::forward<QuerySettings>(query_settings),
+         settings = context.settings,
+         deadline = context.deadline](FuncArg arg) mutable {
+            impl::ApplyToRequestSettings(query_settings, settings, deadline);
             return func(std::forward<FuncArg>(arg), full_path, query_settings);
         }
     );
@@ -126,15 +128,22 @@ auto TableClient::ExecuteWithPathImpl(
     return impl::GetFutureValueChecked(std::move(future), operation_name, context);
 }
 
-void TableClient::BulkUpsert(std::string_view table, NYdb::TValue&& rows, OperationSettings settings) {
-    using Settings = NYdb::NTable::TBulkUpsertSettings;
-    ExecuteWithPathImpl<Settings>(
+void TableClient::BulkUpsert(
+    std::string_view table,
+    NYdb::TValue&& rows,
+    OperationSettings settings,
+    BulkUpsertSettings query_settings
+) {
+    ExecuteWithPathImpl(
         table,
         "BulkUpsert",
         std::move(settings),
+        std::move(query_settings),
         [rows = std::move(rows)](
-            NYdb::NTable::TTableClient& table_client, const std::string& full_path, const Settings& settings
-        ) { return table_client.BulkUpsert(impl::ToString(full_path), NYdb::TValue{rows}, settings); }
+            NYdb::NTable::TTableClient& table_client,
+            const std::string& full_path,
+            const BulkUpsertSettings& query_settings
+        ) { return table_client.BulkUpsert(impl::ToString(full_path), NYdb::TValue{rows}, query_settings); }
     );
 }
 
@@ -144,13 +153,13 @@ ReadTableResults TableClient::ReadTable(
     OperationSettings settings
 ) {
     const Query kQuery{"", Query::Name{"ReadTable"}};
-    impl::RequestContext context{*this, kQuery, settings, impl::IsStreaming{true}};
+    impl::RequestContext context{*this, kQuery, std::move(settings), impl::IsStreaming{true}};
 
     auto future = impl::RetryOperation(
         context,
         [full_path = JoinDbPath(table),
          read_settings = std::move(read_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TSession session) mutable {
             impl::ApplyToRequestSettings(read_settings, settings, deadline);
             return session.ReadTable(impl::ToString(full_path), read_settings);
@@ -166,14 +175,14 @@ ScanQueryResults TableClient::ExecuteScanQuery(
     const Query& query,
     PreparedArgsBuilder&& builder
 ) {
-    impl::RequestContext context{*this, query, settings, impl::IsStreaming{true}};
+    impl::RequestContext context{*this, query, std::move(settings), impl::IsStreaming{true}};
 
     auto future = impl::RetryOperation(
         context,
         [query = query.Statement(),
          params = std::move(builder).Build(),
          scan_settings = std::move(scan_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TTableClient& table_client) mutable {
             impl::ApplyToRequestSettings(scan_settings, settings, deadline);
             return table_client.StreamExecuteScanQuery(impl::ToString(query), params, scan_settings);
@@ -196,88 +205,95 @@ NYdb::NQuery::TQueryClient& TableClient::GetNativeQueryClient() { return *query_
 
 utils::RetryBudget& TableClient::GetRetryBudget() { return driver_->GetRetryBudget(); }
 
-void TableClient::MakeDirectory(const std::string& path) {
-    using Settings = NYdb::NScheme::TMakeDirectorySettings;
-    ExecuteWithPathImpl<Settings>(
+void TableClient::MakeDirectory(const std::string& path, MakeDirectorySettings query_settings) {
+    ExecuteWithPathImpl(
         path,
         "MakeDirectory",
         /*settings=*/{},
-        [this](NYdb::NTable::TTableClient&, const std::string& full_path, const Settings& settings) {
-            return scheme_client_->MakeDirectory(impl::ToString(full_path), settings);
+        std::move(query_settings),
+        [this](NYdb::NTable::TTableClient&, const std::string& full_path, const MakeDirectorySettings& query_settings) {
+            return scheme_client_->MakeDirectory(impl::ToString(full_path), query_settings);
         }
     );
 }
 
-void TableClient::RemoveDirectory(const std::string& path) {
-    using Settings = NYdb::NScheme::TRemoveDirectorySettings;
-    ExecuteWithPathImpl<Settings>(
+void TableClient::RemoveDirectory(const std::string& path, RemoveDirectorySettings query_settings) {
+    ExecuteWithPathImpl(
         path,
         "RemoveDirectory",
         /*settings=*/{},
-        [this](NYdb::NTable::TTableClient&, const std::string& full_path, const Settings& settings) {
-            return scheme_client_->RemoveDirectory(impl::ToString(full_path), settings);
-        }
+        std::move(query_settings),
+        [this](
+            NYdb::NTable::TTableClient&, const std::string& full_path, const RemoveDirectorySettings& query_settings
+        ) { return scheme_client_->RemoveDirectory(impl::ToString(full_path), query_settings); }
     );
 }
 
-NYdb::NScheme::TDescribePathResult TableClient::DescribePath(std::string_view path) {
-    using Settings = NYdb::NScheme::TDescribePathSettings;
-    return ExecuteWithPathImpl<Settings>(
+NYdb::NScheme::TDescribePathResult
+TableClient::DescribePath(std::string_view path, DescribePathSettings query_settings) {
+    return ExecuteWithPathImpl(
         path,
         "DescribePath",
         /*settings=*/{},
-        [this](NYdb::NTable::TTableClient&, const std::string& full_path, const Settings& settings) {
-            return scheme_client_->DescribePath(impl::ToString(full_path), settings);
+        std::move(query_settings),
+        [this](NYdb::NTable::TTableClient&, const std::string& full_path, const DescribePathSettings& query_settings) {
+            return scheme_client_->DescribePath(impl::ToString(full_path), query_settings);
         }
     );
 }
 
-NYdb::NTable::TDescribeTableResult TableClient::DescribeTable(std::string_view path) {
-    using Settings = NYdb::NTable::TDescribeTableSettings;
-    return ExecuteWithPathImpl<Settings>(
+NYdb::NTable::TDescribeTableResult
+TableClient::DescribeTable(std::string_view path, DescribeTableSettings query_settings) {
+    return ExecuteWithPathImpl(
         path,
         "DescribeTable",
         /*settings=*/{},
-        [](NYdb::NTable::TSession session, const std::string& full_path, const Settings& settings) {
-            return session.DescribeTable(impl::ToString(full_path), settings);
+        std::move(query_settings),
+        [](NYdb::NTable::TSession session, const std::string& full_path, const DescribeTableSettings& query_settings) {
+            return session.DescribeTable(impl::ToString(full_path), query_settings);
         }
     );
 }
 
-NYdb::NScheme::TListDirectoryResult TableClient::ListDirectory(std::string_view path) {
-    using Settings = NYdb::NScheme::TListDirectorySettings;
-    return ExecuteWithPathImpl<Settings>(
+NYdb::NScheme::TListDirectoryResult
+TableClient::ListDirectory(std::string_view path, ListDirectorySettings query_settings) {
+    return ExecuteWithPathImpl(
         path,
         "ListDirectory",
         /*settings=*/{},
-        [this](NYdb::NTable::TTableClient&, const std::string& full_path, const Settings& settings) {
-            return scheme_client_->ListDirectory(impl::ToString(full_path), settings);
+        std::move(query_settings),
+        [this](NYdb::NTable::TTableClient&, const std::string& full_path, const ListDirectorySettings& query_settings) {
+            return scheme_client_->ListDirectory(impl::ToString(full_path), query_settings);
         }
     );
 }
 
-void TableClient::CreateTable(std::string_view path, NYdb::NTable::TTableDescription&& table_desc) {
-    using Settings = NYdb::NTable::TCreateTableSettings;
-    ExecuteWithPathImpl<Settings>(
+void TableClient::CreateTable(
+    std::string_view path,
+    NYdb::NTable::TTableDescription&& table_desc,
+    CreateTableSettings query_settings
+) {
+    ExecuteWithPathImpl(
         path,
         "CreateTable",
         /*settings=*/{},
+        std::move(query_settings),
         [table_desc = std::move(table_desc
-         )](NYdb::NTable::TSession session, const std::string& full_path, const Settings& settings) {
+         )](NYdb::NTable::TSession session, const std::string& full_path, const CreateTableSettings& query_settings) {
             auto table_desc_copy = table_desc;
-            return session.CreateTable(impl::ToString(full_path), std::move(table_desc_copy), settings);
+            return session.CreateTable(impl::ToString(full_path), std::move(table_desc_copy), query_settings);
         }
     );
 }
 
-void TableClient::DropTable(std::string_view path) {
-    using Settings = NYdb::NTable::TDropTableSettings;
-    ExecuteWithPathImpl<Settings>(
+void TableClient::DropTable(std::string_view path, DropTableSettings query_settings) {
+    ExecuteWithPathImpl(
         path,
         "DropTable",
         /*settings=*/{},
-        [](NYdb::NTable::TSession session, const std::string& full_path, const Settings& settings) {
-            return session.DropTable(impl::ToString(full_path), settings);
+        std::move(query_settings),
+        [](NYdb::NTable::TSession session, const std::string& full_path, const DropTableSettings& query_settings) {
+            return session.DropTable(impl::ToString(full_path), query_settings);
         }
     );
 }
@@ -290,12 +306,14 @@ Transaction TableClient::Begin(std::string transaction_name, TransactionMode tx_
 
 Transaction TableClient::Begin(std::string transaction_name, OperationSettings settings) {
     const Query query{"", Query::Name{"Begin"}};
-    impl::RequestContext context{*this, query, settings};
-    auto tx_settings = PrepareTxSettings(settings);
+    impl::RequestContext context{*this, query, std::move(settings)};
+    auto tx_settings = PrepareTxSettings(context.settings);
 
     auto future = impl::RetryOperation(
         context,
-        [tx_settings = std::move(tx_settings), settings, deadline = context.deadline](NYdb::NTable::TSession session) {
+        [tx_settings = std::move(tx_settings),
+         settings = context.settings,
+         deadline = context.deadline](NYdb::NTable::TSession session) {
             const auto exec_settings = impl::PrepareRequestSettings<NYdb::NTable::TBeginTxSettings>(settings, deadline);
             return session.BeginTransaction(tx_settings, exec_settings);
         }
@@ -308,11 +326,11 @@ Transaction TableClient::Begin(std::string transaction_name, OperationSettings s
 void TableClient::ExecuteSchemeQuery(const std::string& query) {
     const Query nameless_query{query};
     OperationSettings settings{};
-    impl::RequestContext context{*this, nameless_query, settings};
+    impl::RequestContext context{*this, nameless_query, std::move(settings)};
 
     auto retry_future = impl::RetryOperation(
         context,
-        [query, settings = std::move(settings), deadline = context.deadline](NYdb::NTable::TSession session) {
+        [query, settings = context.settings, deadline = context.deadline](NYdb::NTable::TSession session) {
             const auto exec_settings =
                 impl::PrepareRequestSettings<NYdb::NTable::TExecSchemeQuerySettings>(settings, deadline);
             return session.ExecuteSchemeQuery(impl::ToString(query), exec_settings);
@@ -333,14 +351,14 @@ ExecuteResponse TableClient::ExecuteDataQuery(
     const Query& query,
     PreparedArgsBuilder&& builder
 ) {
-    impl::RequestContext context{*this, query, settings};
+    impl::RequestContext context{*this, query, std::move(settings)};
 
     auto future = impl::RetryOperation(
         context,
         [query = query.Statement(),
          params = std::move(builder).Build(),
          exec_settings = ToExecQuerySettings(query_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
             const auto tx_settings = PrepareTxSettings(settings);
@@ -370,14 +388,14 @@ ExecuteResponse TableClient::ExecuteQuery(
         throw std::runtime_error("You set up custom cancel_after in an execution method that does not use it");
     }
 
-    impl::RequestContext context{*this, query, settings};
+    impl::RequestContext context{*this, query, std::move(settings)};
 
     auto future = impl::RetryQuery(
         context,
         [query = query.Statement(),
          params = std::move(builder).Build(),
          exec_settings = std::move(exec_settings),
-         settings = std::move(settings),
+         settings = context.settings,
          deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
             const auto tx_settings = PrepareQueryTxSettings(settings);

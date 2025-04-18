@@ -259,6 +259,11 @@ TEST(JsonStringParser, ArrayBool) {
     std::string input{"[true, false, true]"};
     std::vector<bool> result;
 
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"  // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=59124
+#endif
+
     fjp::BoolParser bool_parser;
     fjp::ArrayParser<bool, fjp::BoolParser> parser(bool_parser);
     fjp::SubscriberSink<decltype(result)> sink(result);
@@ -269,6 +274,10 @@ TEST(JsonStringParser, ArrayBool) {
     state.PushParser(parser);
     state.ProcessInput(input);
     EXPECT_EQ(result, (std::vector<bool>{true, false, true}));
+
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 9
+#pragma GCC diagnostic pop
+#endif
 }
 
 template <class T>

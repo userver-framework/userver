@@ -19,7 +19,9 @@ function(userver_embed_file TARGET)
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
     COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/embedded &&
             touch ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp
+    ${CODEGEN}
   )
+  _userver_codegen_register_files("${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp")
 
   get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
   add_custom_command(
@@ -37,6 +39,7 @@ function(userver_embed_file TARGET)
 	    -P ${USERVER_CMAKE_DIR}/embedded_config.cmake
     ${CODEGEN}
   )
+  _userver_codegen_register_files("${CONFIG_HPP}")
   add_library(${TARGET} STATIC ${CONFIG_HPP} ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp)
   target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/embedded/include)
   target_link_libraries(${TARGET} PUBLIC userver::universal)

@@ -1,0 +1,24 @@
+default: {}
+description: |
+    Retry budget settings for each database.
+schema:
+    type: object
+    additionalProperties:
+        $ref: "#/definitions/CommandControl"
+    definitions:
+        CommandControl:
+            type: object
+            additionalProperties: false
+            properties:
+                max-tokens:
+                    type: number
+                    minimum: 1
+                    maximum: 1000000
+                    default: 100
+                token-ratio:
+                    type: number
+                    minimum: 1
+                    default: 1
+                enabled:
+                    type: boolean
+                    default: true

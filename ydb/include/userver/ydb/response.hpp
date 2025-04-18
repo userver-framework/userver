@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ydb-cpp-sdk/v2/client/query/fwd.h>
-#include <ydb-cpp-sdk/v2/client/result/result.h>
-#include <ydb-cpp-sdk/v2/client/table/table.h>
+#include <ydb-cpp-sdk/client/query/fwd.h>
+#include <ydb-cpp-sdk/client/result/result.h>
+#include <ydb-cpp-sdk/client/table/table.h>
 
 #include <cstddef>
 #include <iterator>

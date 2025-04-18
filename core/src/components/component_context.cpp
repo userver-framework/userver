@@ -9,43 +9,30 @@ namespace components {
 ComponentsLoadCancelledException::ComponentsLoadCancelledException()
     : std::runtime_error("Components load cancelled") {}
 
-ComponentsLoadCancelledException::ComponentsLoadCancelledException(const std::string& message)
-    : std::runtime_error(message) {}
+ComponentsLoadCancelledException::ComponentsLoadCancelledException(std::string_view message)
+    : std::runtime_error(std::string{message}) {}
 
-ComponentContext::ComponentContext() noexcept = default;
+ComponentContext::ComponentContext(
+    utils::impl::InternalTag,
+    impl::ComponentContextImpl& impl,
+    impl::ComponentInfo& component_info
+) noexcept
+    : impl_(impl), component_info_(component_info) {}
 
-void ComponentContext::Emplace(const Manager& manager, std::vector<std::string>&& loading_component_names) {
-    impl_ = std::make_unique<impl::ComponentContextImpl>(manager, std::move(loading_component_names));
+engine::TaskProcessor& ComponentContext::GetTaskProcessor(std::string_view name) const {
+    return impl_.GetTaskProcessor(name);
 }
 
-void ComponentContext::Reset() noexcept { impl_.reset(); }
+std::string_view ComponentContext::GetComponentName() const { return component_info_.GetName(); }
 
-ComponentContext::~ComponentContext() = default;
+impl::ComponentContextImpl& ComponentContext::GetImpl(utils::impl::InternalTag) const { return impl_; }
 
-RawComponentBase* ComponentContext::AddComponent(std::string_view name, const impl::ComponentFactory& factory) {
-    return impl_->AddComponent(name, factory, *this);
-}
+const impl::Manager& ComponentContext::GetManager(utils::impl::InternalTag) const { return impl_.GetManager(); }
 
-void ComponentContext::OnAllComponentsLoaded() { impl_->OnAllComponentsLoaded(); }
-
-void ComponentContext::OnGracefulShutdownStarted() { impl_->OnGracefulShutdownStarted(); }
-
-void ComponentContext::OnAllComponentsAreStopping() { impl_->OnAllComponentsAreStopping(); }
-
-void ComponentContext::ClearComponents() { impl_->ClearComponents(); }
-
-engine::TaskProcessor& ComponentContext::GetTaskProcessor(const std::string& name) const {
-    return impl_->GetTaskProcessor(name);
-}
-
-const Manager& ComponentContext::GetManager() const { return impl_->GetManager(); }
-
-void ComponentContext::CancelComponentsLoad() { impl_->CancelComponentsLoad(); }
-
-bool ComponentContext::Contains(std::string_view name) const noexcept { return impl_->Contains(name); }
+bool ComponentContext::Contains(std::string_view name) const noexcept { return impl_.Contains(name); }
 
 void ComponentContext::ThrowNonRegisteredComponent(std::string_view name, std::string_view type) const {
-    impl_->ThrowNonRegisteredComponent(name, type);
+    impl_.ThrowNonRegisteredComponent(name, type, component_info_);
 }
 
 void ComponentContext::ThrowComponentTypeMismatch(
@@ -53,12 +40,14 @@ void ComponentContext::ThrowComponentTypeMismatch(
     std::string_view type,
     RawComponentBase* component
 ) const {
-    impl_->ThrowComponentTypeMismatch(name, type, component);
+    impl_.ThrowComponentTypeMismatch(name, type, component, component_info_);
 }
 
 RawComponentBase* ComponentContext::DoFindComponent(std::string_view name) const {
-    return impl_->DoFindComponent(name);
+    return impl_.DoFindComponent(name, component_info_);
 }
+
+std::string_view GetCurrentComponentName(const ComponentContext& context) { return context.GetComponentName(); }
 
 }  // namespace components
 

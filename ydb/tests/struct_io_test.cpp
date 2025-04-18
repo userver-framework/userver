@@ -68,6 +68,8 @@ struct MyStructExternalSpecialization {
     std::string key;
     std::string value_str;
     std::int32_t value_int;
+
+    bool operator==(const MyStructExternalSpecialization&) const = default;
 };
 
 }  // namespace struct_test
@@ -146,6 +148,25 @@ UTEST_F(YdbStructIO, BulkUpsert) {
 
     auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
     AssertArePreFilledRows(result.GetSingleCursor(), {1, 2, 3});
+}
+
+UTEST_F(YdbStructIO, WriteAndParseOptional) {
+    const ydb::Query query{R"(
+        --!syntax_v1
+        DECLARE $struct_opt AS Struct<'key': String, 'value_str': String, 'value_int': Int32>?;
+        SELECT $struct_opt;
+    )"};
+    const auto struct_opt_value = std::make_optional(struct_test::MyStructExternalSpecialization{
+        .key = "key1",
+        .value_str = "value1",
+        .value_int = 1,
+    });
+    auto builder = GetTableClient().GetBuilder();
+    builder.Add("$struct_opt", struct_opt_value);
+    auto result = GetTableClient().ExecuteDataQuery({}, query, std::move(builder));
+    for (auto row : result.GetSingleCursor()) {
+        EXPECT_EQ(row.Get<std::optional<struct_test::MyStructExternalSpecialization>>(0), struct_opt_value);
+    }
 }
 
 USERVER_NAMESPACE_END

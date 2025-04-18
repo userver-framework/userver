@@ -7,6 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 namespace {
+
 void ValidateAuthCheckersConsistency(const std::vector<AuthCheckerBasePtr>& auth_checkers) {
     const auto size = auth_checkers.size();
     if (size == 0) {
@@ -23,20 +24,28 @@ void ValidateAuthCheckersConsistency(const std::vector<AuthCheckerBasePtr>& auth
         }
     }
 }
+
 }  // namespace
 
-std::vector<AuthCheckerBasePtr> CreateAuthCheckers(
-    const components::ComponentContext& component_context,
-    const HandlerConfig& config,
-    const AuthCheckerSettings& settings
-) {
+AuthCheckerFactories CreateAuthCheckerFactories(const components::ComponentContext& context) {
+    AuthCheckerFactories factories;
+    for (const auto& auth_type : impl::GetAllAuthTypes()) {
+        factories.emplace(auth_type, impl::MakeAuthCheckerFactory(auth_type, context));
+    }
+    return factories;
+}
+
+std::vector<AuthCheckerBasePtr> CreateAuthCheckers(const AuthCheckerFactories& factories, const HandlerConfig& config) {
     if (!config.auth) return {};
 
     std::vector<AuthCheckerBasePtr> auth_checkers;
 
     for (const auto& auth_type : config.auth->GetTypes()) {
-        const auto& factory = GetAuthCheckerFactory(auth_type);
-        auth_checkers.emplace_back(factory(component_context, *config.auth, settings));
+        const auto factory = utils::impl::FindTransparentOrNullptr(factories, auth_type);
+        if (factory == nullptr) {
+            throw std::runtime_error(fmt::format("Invalid auth type '{}'", auth_type));
+        }
+        auth_checkers.emplace_back((*factory)->MakeAuthChecker(*config.auth));
     }
 
     ValidateAuthCheckersConsistency(auth_checkers);

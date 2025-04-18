@@ -10,6 +10,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <dynamic_config/variables/USERVER_DUMPS.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace dump {
@@ -23,12 +25,7 @@ extern const std::string_view kDump;
 extern const std::string_view kMaxDumpAge;
 extern const std::string_view kMinDumpInterval;
 
-struct ConfigPatch final {
-    std::optional<bool> dumps_enabled;
-    std::optional<std::chrono::milliseconds> min_dump_interval;
-};
-
-ConfigPatch Parse(const formats::json::Value& value, formats::parse::To<ConfigPatch>);
+using ConfigPatch = ::dynamic_config::userver_dumps::ConfigPatch;
 
 struct Config final {
     Config(std::string name, const yaml_config::YamlConfig& config, std::string_view dump_root);
@@ -56,8 +53,6 @@ struct DynamicConfig final {
     bool dumps_enabled;
     std::chrono::milliseconds min_dump_interval;
 };
-
-extern const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>> kConfigSet;
 
 }  // namespace dump
 

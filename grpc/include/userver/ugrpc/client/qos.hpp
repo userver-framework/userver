@@ -20,7 +20,7 @@ struct Qos final {
     /// If set must be minimum 1.
     /// If `std::nullopt`, default grpc++ retry configuration is used.
     ///
-    /// @ref https://grpc.io/docs/guides/retry/
+    /// See also [the official gRPC docs on retries](https://grpc.io/docs/guides/retry/).
     std::optional<int> attempts;
 
     /// @brief An upper bound on the deadline applied to the entire RPC.

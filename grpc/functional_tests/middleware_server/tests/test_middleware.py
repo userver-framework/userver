@@ -1,6 +1,6 @@
 import asyncio
 
-import samples.greeter_pb2 as greeter_protos  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_protos
 
 MD_ONE_REQ = ' One'
 MD_TWO_REQ = ' Two'

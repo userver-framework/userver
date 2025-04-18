@@ -99,7 +99,7 @@ public:
 
     /// @brief Efficiently checks if the message contains any selected structures.
     ///
-    /// You may want to call this before @ref Visit and @ref VisitRecursive
+    /// You may want to call this before @ref BaseVisitor::Visit and @ref BaseVisitor::VisitRecursive
     /// to avoid a copy of the message beforehand if you require one.
     bool ContainsSelected(const google::protobuf::Descriptor* descriptor);
 
@@ -237,9 +237,10 @@ private:
 ///
 /// @warning You should not construct this at runtime as it performs significant
 /// computations in the constructor to precompile the visitors.
-/// You should create this ones at start-up.
+/// You should create these at start-up.
 ///
-/// Example usage: @snippet grpc/src/ugrpc/impl/protobuf_utils.cpp
+/// Example usage:
+/// @snippet grpc/src/ugrpc/impl/protobuf_utils.cpp  fields visitor
 class FieldsVisitor final : public BaseVisitor<FieldVisitCallback> {
 public:
     using Selector = utils::function_ref<bool(const google::protobuf::FieldDescriptor& field)>;

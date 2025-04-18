@@ -3,7 +3,6 @@
 
 #include <logging/log_helper_impl.hpp>
 #include <logging/logging_test.hpp>
-#include <tracing/no_log_spans.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/tracing/opentelemetry.hpp>
@@ -87,8 +86,6 @@ UTEST_F(Span, LogFormat) {
                                                   R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
                                                   R"(level=[A-Z]+\t)"
                                                   R"(module=[\w\d ():./]+\t)"
-                                                  R"(task_id=[0-9A-F]+\t)"
-                                                  R"(thread_id=0x[0-9A-F]+\t)"
                                                   R"(trace_id=[0-9a-f]+\t)"
                                                   R"(span_id=[0-9a-f]+\t)"
                                                   R"(parent_id=[0-9a-f]+\t)"

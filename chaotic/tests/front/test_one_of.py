@@ -4,6 +4,7 @@ from chaotic.front.parser import ParserConfig
 from chaotic.front.parser import ParserError
 from chaotic.front.parser import SchemaParser
 from chaotic.front.types import Boolean
+from chaotic.front.types import DiscMapping
 from chaotic.front.types import Integer
 from chaotic.front.types import Number
 from chaotic.front.types import OneOfWithDiscriminator
@@ -44,6 +45,28 @@ def _parse_after_refs():
                 'additionalProperties': False,
             },
         )
+        parser.parse_schema(
+            '/definitions/type3',
+            {
+                'type': 'object',
+                'properties': {
+                    'version': {'type': 'integer'},
+                    'prop': {'type': 'string'},
+                },
+                'additionalProperties': False,
+            },
+        )
+        parser.parse_schema(
+            '/definitions/type4',
+            {
+                'type': 'object',
+                'properties': {
+                    'version': {'type': 'integer'},
+                    'prop': {'type': 'integer'},
+                },
+                'additionalProperties': False,
+            },
+        )
         parser.parse_schema('/definitions/type_int', {'type': 'integer'})
         parser.parse_schema(
             '/definitions/wrong_type',
@@ -66,6 +89,14 @@ REFS = {
     ),
     'vfull#/definitions/type2': SchemaObject(
         properties={'foo': String(), 'bar': Boolean()},
+        additionalProperties=False,
+    ),
+    'vfull#/definitions/type3': SchemaObject(
+        properties={'version': Integer(), 'prop': String()},
+        additionalProperties=False,
+    ),
+    'vfull#/definitions/type4': SchemaObject(
+        properties={'version': Integer(), 'prop': Integer()},
         additionalProperties=False,
     ),
     'vfull#/definitions/type_int': Integer(),
@@ -203,7 +234,7 @@ def test_wd_ok(parse_after_refs):
                 ),
             ],
             discriminator_property='foo',
-            mapping=[['type1'], ['type2']],
+            mapping=DiscMapping(str_values=[['type1'], ['type2']], int_values=None),
         ),
     }
 
@@ -238,9 +269,65 @@ def test_wd_ok_with_mapping(parse_after_refs):
                 ),
             ],
             discriminator_property='foo',
-            mapping=[['t1'], ['t2']],
+            mapping=DiscMapping(str_values=[['t1'], ['t2']], int_values=None),
         ),
     }
+
+
+def test_wd_ok_with_int_mapping(parse_after_refs):
+    schema = parse_after_refs({
+        'oneOf': [
+            {'$ref': '#/definitions/type3'},
+            {'$ref': '#/definitions/type4'},
+        ],
+        'discriminator': {
+            'propertyName': 'version',
+            'mapping': {
+                0: '#/definitions/type3',
+                1: '#/definitions/type3',
+                2: '#/definitions/type4',
+            },
+        },
+    })
+    assert schema == {
+        **REFS,
+        'vfull#/definitions/type': OneOfWithDiscriminator(
+            oneOf=[
+                Ref(
+                    ref='vfull#/definitions/type3',
+                    indirect=False,
+                    self_ref=False,
+                ),
+                Ref(
+                    ref='vfull#/definitions/type4',
+                    indirect=False,
+                    self_ref=False,
+                ),
+            ],
+            discriminator_property='version',
+            mapping=DiscMapping(str_values=None, int_values=[[0, 1], [2]]),
+        ),
+    }
+
+
+def test_wd_non_uniform_mapping(parse_after_refs):
+    try:
+        parse_after_refs({
+            'oneOf': [
+                {'$ref': '#/definitions/type3'},
+                {'$ref': '#/definitions/type4'},
+            ],
+            'discriminator': {
+                'propertyName': 'version',
+                'mapping': {
+                    42: '#/definitions/type3',
+                    '42': '#/definitions/type4',
+                },
+            },
+        })
+    except ParserError as exc:
+        assert exc.infile_path == '/definitions/type/discriminator/mapping'
+        assert exc.msg.startswith('Not uniform mapping')
 
 
 def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
