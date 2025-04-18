@@ -131,7 +131,7 @@ void Statement::Bind(const int index) {
 
 std::int64_t Statement::RowsAffected() const noexcept {
     // TODO: on MacOS default out-of-the-box SQLite doesn't support sqlite3_changes64
-    return sqlite3_changes(sqlite3_db_handle(prepare_statement_.get()));
+    return sqlite3_changes64(sqlite3_db_handle(prepare_statement_.get()));
 }
 
 std::int64_t Statement::LastInsertRowId() const noexcept {
