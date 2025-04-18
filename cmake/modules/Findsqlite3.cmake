@@ -12,6 +12,7 @@ _userver_module_begin(
 _userver_module_find_include(
     NAMES sqlite3/sqlite3.h sqlite3.h
     PATHS
+    /opt/homebrew/include
     /usr/local/opt/sqlite/include
     /opt/homebrew/opt/sqlite/include
 )
