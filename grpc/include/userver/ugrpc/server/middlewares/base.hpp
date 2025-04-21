@@ -27,6 +27,9 @@ class RpcStatisticsScope;
 
 }  // namespace ugrpc::impl
 
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
+namespace ugrpc::server::middlewares {}
+
 namespace ugrpc::server {
 
 /// @ingroup userver_grpc_server_middlewares

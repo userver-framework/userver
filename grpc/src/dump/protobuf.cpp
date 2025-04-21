@@ -23,6 +23,7 @@ constexpr std::size_t kDelimitedPrefixSize = 10;
 void WriteProtoMessageToDump(Writer& writer, const google::protobuf::MessageLite& message) {
     const auto buffer_size = static_cast<std::size_t>(message.ByteSizeLong()) + kDelimitedPrefixSize;
     // TODO remove a copy on writes, add DumpZeroCopyOutputStream
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     const std::unique_ptr<char[]> buffer{new char[buffer_size]};
     google::protobuf::io::ArrayOutputStream output{buffer.get(), static_cast<int>(buffer_size)};
 

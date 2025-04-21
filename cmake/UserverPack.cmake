@@ -27,13 +27,19 @@ execute_process(
     COMMAND lsb_release -cs
     OUTPUT_VARIABLE OS_CODENAME
 )
-if("${OS_CODENAME}" MATCHES "^jammy")
+if(OS_CODENAME MATCHES "^bookworm")
+  set(DEPENDENCIES_FILE "debian-12.md")
+elseif(OS_CODENAME MATCHES "^bullseye")
+  set(DEPENDENCIES_FILE "debian-11.md")
+elseif(OS_CODENAME MATCHES "^noble")
+  set(DEPENDENCIES_FILE "ubuntu-24.04.md")
+elseif(OS_CODENAME MATCHES "^jammy")
   set(DEPENDENCIES_FILE "ubuntu-22.04.md")
-elseif("${OS_CODENAME}" MATCHES "^impish")
+elseif(OS_CODENAME MATCHES "^impish")
   set(DEPENDENCIES_FILE "ubuntu-21.04.md")
-elseif("${OS_CODENAME}" MATCHES "^focal")
+elseif(OS_CODENAME MATCHES "^focal")
   set(DEPENDENCIES_FILE "ubuntu-20.04.md")
-elseif("${OS_CODENAME}" MATCHES "^bionic")
+elseif(OS_CODENAME MATCHES "^bionic")
   set(DEPENDENCIES_FILE "ubuntu-18.04.md")
 endif()
 

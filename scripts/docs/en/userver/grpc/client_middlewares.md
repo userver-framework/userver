@@ -3,7 +3,7 @@
 @see @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md
 
 The gRPC client can be extended by middlewares.
-Middleware is called on each outgoing (for client) RPC request.
+Middleware is called on each outgoing RPC request and incoming response.
 Different middlewares handle the call in the defined order.
 A middleware may decide to reject the call or call the next middleware in the stack.
 Middlewares may implement almost any enhancement to the gRPC client including authorization
@@ -18,8 +18,9 @@ There are default middlewares:
  - @ref ugrpc::client::middlewares::baggage::Component
  - @ref ugrpc::client::middlewares::testsuite::Component (used only in testsuite)
 
-All of these middlewares are enabled by default. However, you must register components of these middlewares in the component list.
-You should use `ugrpc::client::DefaultComponentList` or `ugrpc::client::MinimalComponentList`.
+If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default. 
+To register core gRPC client components and a set of builtin middlewares use @ref ugrpc::client::DefaultComponentList or @ref ugrpc::client::MinimalComponentList.
+As will be shown below, custom middlewares require additional actions to work: registering in `grpc-client-middleware-pipeline` and writing a required static config entry.
 
 `ugrpc::client::MiddlewarePipelineComponent` is a global configuration of client middlewares. So, you can enable/disable middlewares with the option `enabled` in the global (`grpc-client-middlewares-pipeline`) or middleware config.
 
@@ -57,14 +58,15 @@ components_manager:
 
 ```
 
-For more info about `enabled` see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
+For more information about `enabled`:
+@see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 
 ## Two main classes
 
 There are two main interfaces for implementing a middleware:
-1. `ugrpc::client::MiddlewareBase`. Class that implements the main logic of a middleware
-2. `ugrpc::client::MiddlewareFactoryComponentBase` (the factory for the middleware)
-    * Or for simple cases @ref ugrpc::client::SimpleMiddlewareFactoryComponent
+1. `ugrpc::client::MiddlewareBase`. Class that implements the main logic of a middleware.
+2. `ugrpc::client::MiddlewareFactoryComponentBase` (the factory for the middleware).
+    * Or for simple cases @ref ugrpc::client::SimpleMiddlewareFactoryComponent.
 
 ## MiddlewareBase
 
@@ -73,9 +75,9 @@ There are two main interfaces for implementing a middleware:
 ### PreStartCall and PostFinish
 
 `PreStartCall` is called before the first message is sent.
-`PostFinish` is called after the last message is received or after error status is received from a Handler.
+`PostFinish` is called after the last message is received or after an error status is received from the downstream service.
 
-`PreStartCall` hooks are called in the order of middlewares. `PostFinish` hooks are called in the reverse order of middlewares
+`PreStartCall` hooks are called in the direct middlewares order. `PostFinish` hooks are called in the reversed order.
 
 @dot
 digraph Pipeline {
@@ -143,18 +145,19 @@ digraph Pipeline {
 }
 @enddot
 
-Where are many requests and responses on streaming RPC, but `PreStartCall` and `PostFinish` are called once!
+Streaming RPCs can have multiple requests and responses, but `PreStartCall` and `PostFinish` are called once per RPC in any case.
 
-For more info about the middlewares order see @ref scripts/docs/en/userver/grpc/middlewares_order.md
+For more information about the middlewares order:
+@see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
 
 These hooks are called once per Call (RPC).
 
 @snippet samples/grpc_middleware_service/src/middlewares/client/auth.hpp Middleware declaration
 @snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp gRPC middleware sample - Middleware implementation
 
-Register the Middleware component in the component system
+Register the Middleware component in the component system. See `sample::grpc::auth::client::AuthComponent`.
 
-@snippet samples/grpc_middleware_service/main.cpp client AuthComponent
+@snippet samples/grpc_middleware_service/main.cpp gRPC middleware sample - components registration
 
 The static YAML config.
 
@@ -163,7 +166,7 @@ The static YAML config.
 @anchor grpc_client_hooks
 ### PreSendMessage and PostRecvMessage
 
-`PreSendMessage` hooks are called in the order of middlewares. `PostRecvMessage` hooks are called in the reverse order of middlewares
+`PreSendMessage` hooks are called in the order of middlewares. `PostRecvMessage` hooks are called in the reverse order of middlewares.
 
 @dot
 digraph Pipeline {
@@ -214,28 +217,40 @@ digraph Pipeline {
 }
 @enddot
 
-For more info about the middlewares order see @ref scripts/docs/en/userver/grpc/middlewares_order.md
+For more information about the middlewares order:
+@see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
 
 These hooks are called on each message.
 
 `PreSendMessage`:
     * unary: is called exactly once
     * stream: is called 0, 1 or more
-`PostRecvMessage`
+
+`PostRecvMessage`:
     * unary: is called 0 or 1 (0 if service doesn't return a message)
     * stream: is called 0, 1 or more
 
 @snippet grpc/src/ugrpc/client/middlewares/log/middleware.hpp MiddlewareBase example declaration
 @snippet grpc/src/ugrpc/client/middlewares/log/middleware.cpp MiddlewareBase Message methods example
 
-The static YAML config and component registration are edentical as in example above. So, let's not focus on this.
+The static YAML config and component registration are identical as in example above. So, let's not focus on this.
 
+## Exceptions and errors in middlewares
+
+To fully understand what happens when middlewares hooks are failed, you should understand the middlewares order:
+@see @ref grpc_client_middlewares_order.
+
+All exceptions are rethrown to the user code from client's RPC creating methods, `Read` / `Write` (for streaming), and from methods that return the RPC status.
+
+@anchor grpc_client_middlewares_order
 ## Middlewares order
 
-There are simple cases above: we just set `Auth` group for one middleware and use a default constructor of `MiddlewareDependencyBuilder` in other middleware.
+Before starting to read specifics of client middlewares ordering:
+@see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
+
+There are simple cases above: we just set `Auth` group for one middleware.
 
 Here we say that all client middlewares are located in these groups.
-For more info about the middlewares order see @ref scripts/docs/en/userver/grpc/middlewares_order.md
 
 `PreCore` group is called firstly, then `Logging` and so forth...
 
@@ -290,17 +305,14 @@ digraph Pipeline {
 
 ## MiddlewareFactoryComponentBase
 
-There are two ways to implement a middleware component:
-1. A short-cut `ugrpc::client::SimpleMiddlewareFactoryComponent`
-2. `ugrpc::client::MiddlewareFactoryComponentBase`
+There are two ways to implement a middleware component. You can see above @ref ugrpc::client::SimpleMiddlewareFactoryComponent. This component is need
+for simple cases without static config options of a middleware.
 
-Best practice:
+@warning In that case, `kName` and `kDependency` (@ref middlewares::MiddlewareDependencyBuilder) must be in a middleware class (as shown above).
 
-If your middleware doesn't use static config options, just use a short-cut.
+If you want to use static config options for your middleware, use @ref ugrpc::client::MiddlewareFactoryComponentBase. 
+@see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md.
 
-@warning In that case, `kName` and `kDependency` (like `middlewares::MiddlewareDependencyBuilder`) must be in a Middleware class (as shown above).
-
-If you want to use static config options for your middleware, use @ref ugrpc::client::MiddlewareFactoryComponentBase. See @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/grpc/server_middlewares.md | @ref scripts/docs/en/userver/grpc/middlewares_order.md ⇨

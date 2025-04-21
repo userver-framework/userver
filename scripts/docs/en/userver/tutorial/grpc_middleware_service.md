@@ -5,48 +5,49 @@
 Make sure that you can compile and run core tests and read a basic example
 @ref scripts/docs/en/userver/tutorial/grpc_service.md.
 
-For more info about grpc middlewares see
+For more information about grpc middlewares see:
 1. @ref scripts/docs/en/userver/grpc/server_middlewares.md
 2. @ref scripts/docs/en/userver/grpc/client_middlewares.md
 
 ## Step by step guide
 
 In this example, you will write an authentication middleware for both
-'GreeterService' and 'GreeterClient' of the basic grpc_service. 
-See @ref scripts/docs/en/userver/tutorial/grpc_service.md
+`GreeterService` and `GreeterClient` of the basic gRPC service. 
+See @ref scripts/docs/en/userver/tutorial/grpc_service.md.
 
 ### Installation
 
-Generate and link with necessary libraries:
+Generate wrappers for proto files and link necessary libraries:
 
 @snippet samples/grpc_middleware_service/CMakeLists.txt  gRPC middleware sample - CMake
 
 ### The server middleware
 
-Server middleware, in its turn, will validate metadata that comes with an rpc.
+Server middleware will check metadata that comes with an rpc.
 
 Everything is the same as it is for client middleware, except there is no
 factory and the component stores the middleware itself:
 
 @snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware declaration
 
-For more info about `kDependency` @ref scripts/docs/en/userver/grpc/middlewares_order.md
+For more information about `kDependency`:
+@see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
 
-Handle method of `Middleware` does the actual work:
+`OnCallStart` method of `Middleware` does the actual work:
 
 @snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp Middleware implementation
 
-Lastly, add this component to the static config:
+Lastly, add this component to the static config and register it in the pipeline:
 
 ```yaml
 components_manager:
     components:
         grpc-server-auth:
+        grpc-server-middlewares-pipeline:
+            middlewares:
+                grpc-server-auth:  # register the middleware in the pipeline
+                    enabled: true
 ```
-
-And register it in the pipeline:
-
-@snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-server-middlewares-pipeline
 
 ### The client middleware
 
@@ -56,7 +57,8 @@ Derive `Middleware` and `MiddlewareFactory` from the respective base class and d
 
 @snippet samples/grpc_middleware_service/src/middlewares/client/auth.hpp Middleware declaration
 
-For more info about `kDependency` see @ref scripts/docs/en/userver/grpc/middlewares_order.md
+For more information about `kDependency`:
+@see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
 
 `PreStartCall` method of `Middleware` does the actual work:
 
@@ -66,7 +68,8 @@ Lastly, add this component to the static config:
 
 @snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-auth-client
 
-To add static config options for the middleware see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
+To add static config options for the middleware:
+@see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md.
 
 ### int main()
 

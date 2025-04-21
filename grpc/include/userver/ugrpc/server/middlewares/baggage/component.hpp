@@ -8,9 +8,9 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Server baggage middleware
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
+/// @see @ref ugrpc::server::middlewares::baggage::Component
 namespace ugrpc::server::middlewares::baggage {
-
-// clang-format off
 
 /// @ingroup userver_base_classes
 ///
@@ -21,8 +21,8 @@ namespace ugrpc::server::middlewares::baggage {
 /// ## Static configuration example:
 ///
 /// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc server baggage middleware component config
-
-// clang-format on
+///
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
 
 using Component = SimpleMiddlewareFactoryComponent<Middleware>;
 

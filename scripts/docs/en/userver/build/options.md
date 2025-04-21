@@ -136,6 +136,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FORCE_DOWNLOAD_CURL`            | Download Curl even if it exists in a system                                             | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_PROTOBUF`        | Download Protobuf even if there is an installed system package                          | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_GRPC`            | Download gRPC even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
+| `USERVER_FORCE_DOWNLOAD_FMT`            | Download Fmt even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 
 ### CMake options for paths to dependencies
 

@@ -55,12 +55,15 @@ enum class UpdateState { kNotFinished, kSuccess, kNoChanges, kFailure };
 class UpdateStatisticsScope final {
 public:
     /// @cond
-    // For internal use only
-    UpdateStatisticsScope(impl::Statistics& stats, cache::UpdateType type);
+    // Note: DO NOT try to create `UpdateStatisticsScope` manually for manual `Update` calls.
+    // CachingComponentBase's internals WILL be corrupted.
+    // Call `InvalidateAsync` or `UpdateSyncDebug` instead.
+    // For internal use only.
+    UpdateStatisticsScope(utils::impl::InternalTag, impl::Statistics& stats, cache::UpdateType type);
 
     ~UpdateStatisticsScope();
 
-    // For internal use only
+    // For internal use only.
     impl::UpdateState GetState(utils::impl::InternalTag) const;
     /// @endcond
 

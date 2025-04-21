@@ -138,6 +138,7 @@ AnyStorage<StorageTag>::AnyStorage()
     : raw_data_(new std::byte[CalcOffset() + sizeof(AllocRecord) * any_storage::impl::count<StorageTag>]) {
     static_assert(std::is_trivial_v<AllocRecord>);
 
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     auto records = GetRecords();
     for (std::size_t i = 0; i < any_storage::impl::count<StorageTag>; i++) {
         auto& record = records[i];

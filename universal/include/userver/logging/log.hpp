@@ -55,8 +55,13 @@ private:
     LoggerPtr logger_new_;
 };
 
-/// @brief Allows to override default log level within a scope. Primarily for
-/// use in tests.
+/// @brief Allows to override global log level for the whole service within a scope. Primarily for use in tests.
+///
+/// @warning This is NOT the right tool to toggle writing of certain logs within a scope.
+/// This scope class changes log level GLOBALLY as-if using @ref logging::SetLoggerLevel.
+///
+/// @note To affect what logs are written within a scope, use @ref tracing::Span::SetLogLevel and
+/// @ref tracing::Span::SetLocalLogLevel (read their docs first!).
 class DefaultLoggerLevelScope final {
 public:
     explicit DefaultLoggerLevelScope(logging::Level level);

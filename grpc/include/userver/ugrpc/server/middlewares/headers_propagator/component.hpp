@@ -8,9 +8,9 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Server headers_propagator middleware
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
+/// @see @ref ugrpc::server::middlewares::headers_propagator::Component
 namespace ugrpc::server::middlewares::headers_propagator {
-
-// clang-format off
 
 /// @ingroup userver_components userver_base_classes
 ///
@@ -20,8 +20,8 @@ namespace ugrpc::server::middlewares::headers_propagator {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// headers | array of metadata fields (headers) to propagate | empty
-
-// clang-format on
+///
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
 
 class Component final : public MiddlewareFactoryComponentBase {
 public:

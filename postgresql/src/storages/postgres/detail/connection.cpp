@@ -28,6 +28,7 @@ std::unique_ptr<Connection> Connection::Connect(
     const error_injection::Settings& ei_settings,
     engine::SemaphoreLock&& size_lock
 ) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     std::unique_ptr<Connection> conn(new Connection());
 
     const auto deadline = engine::Deadline::FromDuration(

@@ -4,7 +4,7 @@
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
-namespace sample::grpc::auth::server {
+namespace samples::grpc::auth::server {
 
 struct MiddlewareConfig;
 
@@ -41,4 +41,4 @@ public:
 };
 /// [gRPC middleware sample]
 
-}  // namespace sample::grpc::auth::server
+}  // namespace samples::grpc::auth::server

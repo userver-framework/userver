@@ -22,6 +22,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
+namespace ugrpc::client::middlewares {}
+
 namespace ugrpc::client {
 
 namespace impl {
