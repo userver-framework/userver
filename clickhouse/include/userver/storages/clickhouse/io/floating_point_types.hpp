@@ -3,6 +3,7 @@
 /// @file userver/storages/clickhouse/io/floating_point_types.hpp
 /// @brief @copybrief storages::clickhouse::io::FloatingWithPrecision
 
+#include <fmt/base.h>
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -53,12 +54,22 @@ public:
 private:
     FloatingPointT value_;
 
+#if FMT_VERSION >= 110000
+    constexpr static fmt::format_specs spec_ = []() {
+        fmt::format_specs spec;
+        spec.precision = Precision;
+        spec.set_type(fmt::presentation_type::fixed);
+        return spec;
+    }();
+#else
     constexpr static fmt::basic_format_specs<char> spec_ = []() {
         fmt::basic_format_specs<char> spec;
         spec.precision = Precision;
         spec.type = fmt::presentation_type::fixed_lower;
         return spec;
     }();
+#endif
+
     template <typename U, std::uint32_t AnotherPrecision, typename>
     friend class FloatingWithPrecision;
 };
