@@ -3,7 +3,9 @@
 /// @file userver/storages/clickhouse/io/floating_point_types.hpp
 /// @brief @copybrief storages::clickhouse::io::FloatingWithPrecision
 
+#if FMT_VERSION >= 110000
 #include <fmt/base.h>
+#endif
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -54,11 +56,18 @@ public:
 private:
     FloatingPointT value_;
 
-#if FMT_VERSION >= 110000
+#if FMT_VERSION >= 110100
     constexpr static fmt::format_specs spec_ = []() {
         fmt::format_specs spec;
         spec.precision = Precision;
         spec.set_type(fmt::presentation_type::fixed);
+        return spec;
+    }();
+#elif FMT_VERSION >= 110000
+    constexpr static fmt::format_specs spec_ = []() {
+        fmt::format_specs spec;
+        spec.precision = Precision;
+        spec.type = fmt::presentation_type::fixed;
         return spec;
     }();
 #else
