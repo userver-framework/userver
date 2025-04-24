@@ -200,7 +200,7 @@ At least macOS 10.15 required with
 Dependencies can be installed via:
 
 ```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/arch.md" && \
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/macos.md" && \
 brew install $(wget -q -O - ${DEPS_FILE})
 ```
 
