@@ -3,9 +3,9 @@ c-ares
 ccache
 cctz
 clang-format
+clickhouse-cpp
 cmake
 coreutils
-clickhouse-cpp
 cryptopp
 cyrus-sasl
 fmt
@@ -28,6 +28,7 @@ openssl
 postgresql@16
 pugixml
 rocksdb
+unixodbc
 yaml-cpp
 zlib
 sqlite

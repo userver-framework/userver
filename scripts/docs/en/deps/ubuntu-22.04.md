@@ -35,8 +35,6 @@ libidn11-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
-librdkafka-dev
-libre2-dev
 liblz4-dev
 liblzma-dev
 libmariadb-dev
@@ -47,7 +45,10 @@ libprotoc-dev
 libpugixml-dev
 libsqlite3-dev
 libsnappy-dev
+librdkafka-dev
+libre2-dev
 libsasl2-dev
+libsnappy-dev
 libssl-dev
 libxxhash-dev
 libyaml-cpp-dev
@@ -63,5 +64,6 @@ python3-venv
 python3-voluptuous
 python3-yaml
 ragel
+unixodbc-dev
 yasm
 zlib1g-dev
