@@ -1,14 +1,8 @@
 function(setup_linker_debug_info_compression)
-    write_file("${CMAKE_CURRENT_BINARY_DIR}/empty.cpp" "int main() {return 0;}")
-    try_compile(LINKER_HAS_ZSTD ${CMAKE_CURRENT_BINARY_DIR}
-        SOURCES ${CMAKE_CURRENT_BINARY_DIR}/empty.cpp
-        LINK_OPTIONS -Werror -gz=zstd
-    )
+    include(CheckLinkerFlag)
+    check_linker_flag(CXX "-gz=zstd" LINKER_HAS_STD)
     if (NOT LINKER_HAS_ZSTD)
-        try_compile(LINKER_HAS_GZ ${CMAKE_CURRENT_BINARY_DIR}
-            SOURCES ${CMAKE_CURRENT_BINARY_DIR}/empty.cpp
-            LINK_OPTIONS -Werror -gz
-        )
+        check_linker_flag(CXX "-gz" LINKER_HAS_GZ)
     endif()
     
     if(LINKER_HAS_ZSTD)
