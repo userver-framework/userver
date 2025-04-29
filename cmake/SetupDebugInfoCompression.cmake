@@ -1,6 +1,6 @@
 function(setup_linker_debug_info_compression)
     include(CheckLinkerFlag)
-    check_linker_flag(CXX "-gz=zstd" LINKER_HAS_STD)
+    check_linker_flag(CXX "-gz=zstd" LINKER_HAS_ZSTD)
     if (NOT LINKER_HAS_ZSTD)
         check_linker_flag(CXX "-gz" LINKER_HAS_GZ)
     endif()
