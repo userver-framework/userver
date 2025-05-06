@@ -208,6 +208,43 @@ UTEST_F(Bulk, Update) {
     }
 }
 
+UTEST_F(Bulk, UpdateWithArrayFilters) {
+    auto coll = GetDefaultPool().GetCollection("update_with_filter");
+    {
+        auto bulk = coll.MakeOrderedBulk();
+        bulk.InsertOne(bson::MakeDoc("_id", 1, "x", 1, "array", bson::MakeArray(1, 2, 3)));
+        bulk.InsertOne(bson::MakeDoc("_id", 2, "x", 2, "array", bson::MakeArray(3, 4, 5)));
+        bulk.InsertOne(bson::MakeDoc("_id", 3, "x", 3, "array", bson::MakeArray(5, 6, 7)));
+
+        EXPECT_FALSE(bulk.IsEmpty());
+        auto result = coll.Execute(std::move(bulk));
+
+        EXPECT_EQ(3, result.InsertedCount());
+        EXPECT_TRUE(result.ServerErrors().empty());
+    }
+    {
+        auto bulk = coll.MakeOrderedBulk();
+        auto options = mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc("$gte", 4))});
+
+        bulk.UpdateMany(
+            bson::MakeDoc("array", bson::MakeDoc("$elemMatch", bson::MakeDoc("$gte", 4))),
+            bson::MakeDoc("$set", bson::MakeDoc("array.$[elem]", 10)),
+            options
+        );
+
+        EXPECT_FALSE(bulk.IsEmpty());
+        auto result = coll.Execute(std::move(bulk));
+
+        EXPECT_EQ(0, result.InsertedCount());
+        EXPECT_EQ(2, result.MatchedCount());
+        EXPECT_EQ(2, result.ModifiedCount());
+        EXPECT_EQ(0, result.UpsertedCount());
+        EXPECT_EQ(0, result.DeletedCount());
+        EXPECT_TRUE(result.WriteConcernErrors().empty());
+        EXPECT_TRUE(result.ServerErrors().empty());
+    }
+}
+
 UTEST_F(Bulk, Delete) {
     auto coll = GetDefaultPool().GetCollection("delete");
 

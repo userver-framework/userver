@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Reply for the EXPIRE command
+
 #include <cstdint>
 #include <string>
 

@@ -13,7 +13,6 @@
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
-#include <userver/yaml_config/impl/validate_static_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,9 +25,11 @@ ServiceComponentBase::ServiceComponentBase(
     : impl::MiddlewareRunner(config, context, MiddlewarePipelineComponent::kName),
       server_(context.FindComponent<ServerComponent>()),
       config_(server_.ParseServiceConfig(config, context)),
-      info_{config.Name()} {
-    config_.middlewares = CreateMiddlewares(info_);
+      info_(ServiceInfo{config.Name()}) {
+    config_.middlewares = CreateMiddlewares(*info_);
 }
+
+ServiceComponentBase::~ServiceComponentBase() = default;
 
 void ServiceComponentBase::RegisterService(ServiceBase& service) {
     UINVARIANT(!registered_.exchange(true), "Register must only be called once");

@@ -33,6 +33,7 @@ public:
         const std::string& host,
         uint16_t port,
         Password password,
+        std::size_t database_index,
         CommandsBufferingSettings buffering_settings,
         ReplicationMonitoringSettings replication_monitoring_settings,
         utils::RetryBudgetSettings retry_budget_settings,
@@ -48,6 +49,7 @@ public:
         const std::string& host,
         uint16_t port,
         Password password,
+        std::size_t database_index,
         CommandsBufferingSettings buffering_settings,
         ReplicationMonitoringSettings replication_monitoring_settings,
         utils::RetryBudgetSettings retry_budget_settings,
@@ -78,6 +80,7 @@ private:
     const std::string host_;
     const uint16_t port_;
     const Password password_;
+    const std::size_t database_index_;
     rcu::Variable<std::shared_ptr<Redis>, rcu::BlockingRcuTraits> redis_;
     engine::ev::PeriodicWatcher connection_check_timer_;
     const RedisCreationSettings redis_creation_settings_;

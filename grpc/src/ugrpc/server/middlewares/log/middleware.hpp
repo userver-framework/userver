@@ -26,6 +26,7 @@ public:
     explicit Middleware(const Settings& settings);
 
     void OnCallStart(MiddlewareCallContext& context) const override;
+
     void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
 
     void PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const override;

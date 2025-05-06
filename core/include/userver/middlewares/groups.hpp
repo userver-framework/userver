@@ -3,7 +3,7 @@
 /// @file userver/middlewares/groups.hpp
 /// @brief
 /// There are groups of middlewares to build a pipeline.
-/// @see @ref scripts/docs/en/userver/grpc_middlewares_order.md
+/// @see @ref scripts/docs/en/userver/grpc/middlewares_order.md
 
 #include <userver/middlewares/pipeline.hpp>
 

@@ -1,5 +1,8 @@
+"""
+Plugin that imports the required fixtures for checking SQL/YQL coverage.
+"""
+
 from typing import Set
-import warnings
 
 import pytest
 
@@ -9,19 +12,23 @@ _SQL_COVERAGE_TEST_NAME = 'test_sql_coverage'
 
 
 @pytest.fixture
-def on_uncovered(pytestconfig):
+def on_uncovered():
+    """
+    Will be called when the coverage is incomplete.
+    """
+
     def _on_uncovered(uncovered_statements: Set[str]):
-        msg = f'Uncovered SQL statements: {uncovered_statements}'
-        mode = pytestconfig.option.sql_coverage_notification_mode
-        if mode == coverage.NotificationMode.WARNING:
-            warnings.warn(msg)
-        elif mode == coverage.NotificationMode.ERROR:
-            raise coverage.UncoveredEndpointsError(msg)
+        msg = f'Uncovered SQL/YQL statements: {uncovered_statements}'
+        raise coverage.UncoveredError(msg)
 
     return _on_uncovered
 
 
 class Coverage:
+    """
+    Contains data about the current coverage of statements.
+    """
+
     def __init__(self, files: Set[str]):
         self.covered_statements: Set[str] = set()
         self.uncovered_statements: Set[str] = files
@@ -46,6 +53,10 @@ def sql_coverage(sql_files):
 
 @pytest.fixture(scope='function', autouse=True)
 async def sql_statement_hook(testpoint, sql_coverage):
+    """
+    Hook that accepts requests from the testpoint.
+    """
+
     @testpoint('sql_statement')
     def _hook(request):
         sql_coverage.cover(request['name'])
@@ -55,6 +66,10 @@ async def sql_statement_hook(testpoint, sql_coverage):
 
 @pytest.fixture(scope='function', autouse=True)
 async def yql_statement_hook(testpoint, sql_coverage):
+    """
+    Hook that accepts requests from the testpoint.
+    """
+
     @testpoint('yql_statement')
     def _hook(request):
         sql_coverage.cover(request['name'])
@@ -69,19 +84,3 @@ def pytest_collection_modifyitems(config, items):
         return
 
     coverage.collection_modifyitems(_SQL_COVERAGE_TEST_NAME, config, items)
-
-
-def pytest_addoption(parser) -> None:
-    group = parser.getgroup('services')
-    group.addoption(
-        '--sql-coverage-notification-mode',
-        dest='sql_coverage_notification_mode',
-        type=coverage.NotificationMode,
-        default=coverage.NotificationMode.SILENT,
-        choices=[
-            coverage.NotificationMode.SILENT,
-            coverage.NotificationMode.WARNING,
-            coverage.NotificationMode.ERROR,
-        ],
-        help=('Notification mode for SQL Coverage check. Might be: - "silent", "warning", "error"'),
-    )

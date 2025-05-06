@@ -386,6 +386,14 @@ void LogHelper::PutQuoted(std::string_view value) {
     Put('\"');
 }
 
+void LogHelper::VFormat(fmt::string_view fmt, fmt::format_args args) noexcept {
+    try {
+        fmt::vformat_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), fmt, args);
+    } catch (...) {
+        InternalLoggingError("Failed to extend log with fmt::format_args");
+    }
+}
+
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 void LogHelper::FlushStream() { pimpl_->Stream().flush(); }

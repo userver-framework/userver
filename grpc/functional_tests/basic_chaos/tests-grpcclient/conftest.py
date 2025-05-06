@@ -70,10 +70,14 @@ async def _gate_ready(_gate_started, greeter_mock):
     yield _gate_started
 
 
+# [grpc_mockserver_endpoint example]
 # Overriding userver fixture
 @pytest.fixture(scope='session')
 def grpc_mockserver_endpoint(grpc_client_port):
     return f'[::]:{grpc_client_port}'
+
+
+# [grpc_mockserver_endpoint example]
 
 
 # [installing mockserver servicer]

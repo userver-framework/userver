@@ -36,7 +36,7 @@ UTEST_F(RetryTest, Attempts) {
     ugrpc::client::Qos qos;
     qos.attempts = 4;
     ugrpc::client::ClientQos client_qos;
-    client_qos.SetDefault(qos);
+    client_qos.methods.SetDefault(qos);
     const auto config = std::vector<dynamic_config::KeyValue>{{tests::kUnitTestClientQos, client_qos}};
     ExtendDynamicConfig(config);
 

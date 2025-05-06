@@ -3,7 +3,10 @@
 #include <userver/components/component.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
+#include <userver/ugrpc/server/impl/call_kind.hpp>
+#include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
+#include <userver/ugrpc/server/impl/rpc.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,45 +31,32 @@ void MiddlewareBase::PreSendMessage(MiddlewareCallContext&, google::protobuf::Me
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-MiddlewareCallContext::MiddlewareCallContext(
-    utils::impl::InternalTag,
-    CallAnyBase& call,
-    dynamic_config::Snapshot&& config
-)
-    : CallContextBase(utils::impl::InternalTag{}, call), config_(std::move(config)) {}
+MiddlewareCallContext::MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state)
+    : CallContextBase(utils::impl::InternalTag{}, state) {}
 
 void MiddlewareCallContext::SetError(grpc::Status&& status) noexcept {
     UASSERT(!status.ok());
     if (!status.ok()) {
-        *status_ = std::move(status);
+        status_ = std::move(status);
     }
 }
 
 bool MiddlewareCallContext::IsClientStreaming() const noexcept {
-    return impl::IsClientStreaming(GetCall().GetCallKind());
+    return impl::IsClientStreaming(GetCallState(utils::impl::InternalTag{}).call_kind);
 }
 
 bool MiddlewareCallContext::IsServerStreaming() const noexcept {
-    return impl::IsServerStreaming(GetCall().GetCallKind());
+    return impl::IsServerStreaming(GetCallState(utils::impl::InternalTag{}).call_kind);
 }
 
 const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig() const {
-    UASSERT(config_.has_value());
-    return config_.value();
+    const auto& config_snapshot = GetCallState(utils::impl::InternalTag{}).config_snapshot;
+    UINVARIANT(config_snapshot.has_value(), "GetInitialDynamicConfig can only be called in OnCallStart");
+    return *config_snapshot;
 }
 
-ugrpc::impl::RpcStatisticsScope& MiddlewareCallContext::GetStatistics(ugrpc::impl::InternalTag tag) {
-    return GetCall().GetStatistics(tag);
-}
-
-void MiddlewareCallContext::SetStatusPtr(grpc::Status* status) {
-    UASSERT(status);
-    status_ = status;
-}
-
-grpc::Status& MiddlewareCallContext::GetStatus() {
-    UASSERT(status_);
-    return *status_;
+ugrpc::impl::RpcStatisticsScope& MiddlewareCallContext::GetStatistics(ugrpc::impl::InternalTag /*tag*/) {
+    return GetCallState(utils::impl::InternalTag{}).statistics_scope;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

@@ -233,9 +233,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-dynamic-configs)
 
 # TODO: move to generator(?)
 userver_target_generate_chaotic(${PROJECT_NAME}-static-config-dns-client
-    ARGS
-        -n "/=userver::static_config::DnsClient"
-	-I ${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/include
+    INCLUDE_DIRS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/include
+    LAYOUT
+        "/=userver::static_config::DnsClient"
     OUTPUT_DIR
         ${CMAKE_CURRENT_BINARY_DIR}/static_configs
     OUTPUT_PREFIX
@@ -334,7 +335,7 @@ _userver_directory_install(COMPONENT core FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
-file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
+file(GLOB TESTSUITE_INSTALL_FILES
     "${USERVER_ROOT_DIR}/testsuite/*.txt"
     "${USERVER_ROOT_DIR}/testsuite/*.py"
 )
@@ -352,4 +353,9 @@ _userver_directory_install(COMPONENT core
 _userver_directory_install(COMPONENT core DIRECTORY
     "${USERVER_ROOT_DIR}/testsuite/pytest_plugins/"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/pytest_plugins/
+)
+
+_userver_directory_install(COMPONENT core DIRECTORY
+    "${USERVER_ROOT_DIR}/testsuite/include_tests/"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/include_tests/
 )

@@ -473,7 +473,9 @@ Connection::StatementId ConnectionImpl::PortalBind(
     SetStatementTimeout(std::move(statement_cmd_ctl));
     tracing::Span span{FindQueryShortInfo(scopes::kBind, statement)};
     conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
-    span.AddTag(tracing::kDatabaseStatement, statement);
+    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
+        span.AddTag(tracing::kDatabaseStatement, statement);
+    }
     CheckDeadlineReached(deadline);
     auto scope = span.CreateScopeTime();
     CountPortalBind count_bind(stats_);
@@ -507,7 +509,9 @@ ResultSet ConnectionImpl::PortalExecute(
     );
     tracing::Span span{FindQueryShortInfo(scopes::kExec, prepared_info->statement)};
     conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
-    span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
+    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
+        span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
+    }
     if (deadline.IsReached()) {
         ++stats_.execute_timeout;
         // TODO Portal name function, logging 'unnamed portal' for an empty name
@@ -649,7 +653,9 @@ void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
 tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query, const CommandControl& cc) const {
     tracing::Span span{FindQueryShortInfo(scopes::kQuery, query.Statement())};
     conn_wrapper_.FillSpanTags(span, cc, "left_network_timeout_ms");
-    query.FillSpanTags(span);
+    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
+        query.FillSpanTags(span);
+    }
     return span;
 }
 
@@ -880,7 +886,9 @@ ConnectionImpl::PrepareStatement(const Query& query, const detail::QueryParamete
 
     tracing::Span span{FindQueryShortInfo(scopes::kPrepare, query.Statement())};
     conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
-    span.AddTag(tracing::kDatabaseStatement, statement);
+    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
+        span.AddTag(tracing::kDatabaseStatement, statement);
+    }
 
     auto scope = span.CreateScopeTime();
     return DoPrepareStatement(statement, params, deadline, span, scope);

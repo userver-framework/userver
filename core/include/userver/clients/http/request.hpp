@@ -40,10 +40,14 @@ namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
-/// HTTP request method
+/// @brief HTTP request method
 enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
 
+/// @brief Convert HTTP method enum value to string
 std::string_view ToStringView(HttpMethod method);
+
+/// @brief Convert HTTP method string to enum value
+HttpMethod HttpMethodFromString(std::string_view method_str);
 
 using USERVER_NAMESPACE::http::HttpVersion;
 

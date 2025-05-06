@@ -90,16 +90,7 @@ struct CaseInsensitiveSSEFetcher final {
     }
 
 private:
-    static inline __m128i Load8(const std::uint8_t* data) noexcept {
-        // _mm_loadu_si64 is missing in gcc prior to version 9
-        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=78782
-#if defined(__GNUC__) && !defined(__llvm__) && (__GNUC__ < 9)
-        const auto value = CaseFetcher::Fetch8(data);
-        return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value));
-#else
-        return _mm_loadu_si64(data);
-#endif
-    }
+    static inline __m128i Load8(const std::uint8_t* data) noexcept { return _mm_loadu_si64(data); }
 
     static inline __m128i Load16(const std::uint8_t* data) noexcept {
         return _mm_loadu_si128(reinterpret_cast<const __m128i*>(data));

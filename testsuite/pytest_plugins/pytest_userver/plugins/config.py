@@ -34,7 +34,7 @@ import yaml
 ##
 ## Example of patching config :
 ##
-## @snippet samples/grpc_service/testsuite/conftest.py Prepare configs
+## @snippet grpc/functional_tests/basic_server/tests-tls/conftest.py Prepare service config
 ##
 ## @hideinitializer
 USERVER_CONFIG_HOOKS = [

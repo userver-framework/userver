@@ -28,6 +28,7 @@ def service_env(redis_sentinels, redis_cluster_nodes, redis_cluster_replicas, re
             'redis-sentinel': {
                 'password': '',
                 'sentinels': redis_sentinels,
+                'database_index': 5,  # database index to use, 0 by default
                 'shards': [{'name': 'test_master1'}],
             },
             'redis-standalone': {

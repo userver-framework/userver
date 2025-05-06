@@ -125,7 +125,7 @@ UTEST(ServiceConfigBuilderTest, BuildEmptyRetryPolicy) {
 
     ugrpc::client::Qos qos_default{/*attempts*/ 1, /**/ std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.SetDefault(qos_default);
+    client_qos.methods.SetDefault(qos_default);
 
     const auto service_config = service_config_builder.Build(client_qos);
     LOG_DEBUG() << "service_config: " << service_config;
@@ -162,7 +162,7 @@ UTEST(ServiceConfigBuilderTest, StaticAndQosSameMethod) {
 
     ugrpc::client::Qos qos0{/*attempts*/ 3, /**/ std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.Set(GetMethodFullName(metadata, 0), qos0);
+    client_qos.methods.Set(GetMethodFullName(metadata, 0), qos0);
 
     const auto service_config = service_config_builder.Build(client_qos);
     LOG_DEBUG() << "service_config: " << service_config;
@@ -199,7 +199,7 @@ UTEST(ServiceConfigBuilderTest, StaticAndQosDifferentMethods) {
 
     ugrpc::client::Qos qos1{/*attempts*/ 3, /**/ std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.Set(GetMethodFullName(metadata, 1), qos1);
+    client_qos.methods.Set(GetMethodFullName(metadata, 1), qos1);
 
     const auto service_config = service_config_builder.Build(client_qos);
     LOG_DEBUG() << "service_config: " << service_config;
@@ -244,7 +244,7 @@ UTEST(ServiceConfigBuilderTest, StaticAndDefaultQos) {
 
     ugrpc::client::Qos qos_default{/*attempts*/ 3, /**/ std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.SetDefault(qos_default);
+    client_qos.methods.SetDefault(qos_default);
 
     const auto service_config = service_config_builder.Build(client_qos);
     LOG_DEBUG() << "service_config: " << service_config;
@@ -288,7 +288,7 @@ UTEST(ServiceConfigBuilderTest, DefaultStaticAndQos) {
 
     ugrpc::client::Qos qos0{/*attempts*/ 3, /**/ std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.Set(GetMethodFullName(metadata, 0), qos0);
+    client_qos.methods.Set(GetMethodFullName(metadata, 0), qos0);
 
     const auto service_config = service_config_builder.Build(client_qos);
     LOG_DEBUG() << "service_config: " << service_config;
@@ -335,7 +335,7 @@ UTEST(ServiceConfigBuilderTest, ComplexName) {
 
     ugrpc::client::Qos qos0{/*attempts*/ 3, /**/ std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.Set(GetMethodFullName(metadata, 0), qos0);
+    client_qos.methods.Set(GetMethodFullName(metadata, 0), qos0);
 
     const auto service_config = service_config_builder.Build(client_qos);
     LOG_DEBUG() << "service_config: " << service_config;
@@ -405,10 +405,10 @@ UTEST(ServiceConfigBuilderTest, Complex) {
     ugrpc::client::Qos qos3{/*attempts*/ std::nullopt, /**/ std::nullopt};
     ugrpc::client::Qos qos_default{/*attempts*/ 4, /**/ std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.Set(GetMethodFullName(metadata, 0), qos0);
-    client_qos.Set(GetMethodFullName(metadata, 1), qos1);
-    client_qos.Set(GetMethodFullName(metadata, 3), qos3);
-    client_qos.SetDefault(qos_default);
+    client_qos.methods.Set(GetMethodFullName(metadata, 0), qos0);
+    client_qos.methods.Set(GetMethodFullName(metadata, 1), qos1);
+    client_qos.methods.Set(GetMethodFullName(metadata, 3), qos3);
+    client_qos.methods.SetDefault(qos_default);
 
     const auto service_config = service_config_builder.Build(client_qos);
     LOG_DEBUG() << "service_config: " << service_config;

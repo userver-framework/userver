@@ -14,6 +14,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// Pipeline to configure middlewares order and static configs.
+/// @see @ref scripts/docs/en/userver/grpc/middlewares_order.md
+/// @see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 namespace middlewares {
 
 /// @brief The dependency type between middlewares.

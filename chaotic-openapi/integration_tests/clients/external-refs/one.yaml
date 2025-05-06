@@ -21,4 +21,8 @@ components:
             properties:
                 two:
                     $ref: 'two.yaml#/components/schemas/Two'
+                local:
+                    $ref: '#/components/schemas/Local'
             additionalProperties: false
+        Local:
+            type: integer

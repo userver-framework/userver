@@ -20,6 +20,7 @@ public:
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
         const Password& password,
+        std::size_t database_index,
         ConnectionInfo conn
     );
 
@@ -72,6 +73,7 @@ private:
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
     concurrent::Variable<Password, std::mutex> password_;
+    const std::size_t database_index_;
 
     ///{ Wait ready
     std::mutex mutex_;

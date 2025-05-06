@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from pytest_userver import asyncio_socket
+from testsuite import asyncio_socket
 
 
 @pytest.fixture(name='asyncio_loop')

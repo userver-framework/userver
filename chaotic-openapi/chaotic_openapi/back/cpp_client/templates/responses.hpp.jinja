@@ -3,6 +3,7 @@
 #include <variant>
 
 #include <client/{{ name }}/exceptions.hpp>
+#include <userver/chaotic/openapi/client/exceptions.hpp>
 {% for include in spec.responses_declaration_includes() %}
   #include <{{ include }}>
 {% endfor %}
@@ -22,24 +23,45 @@ namespace {{ namespace }} {
 {% for op in operations %}
   {% if op.client_generate %}
       namespace {{ op.cpp_namespace() }} {
-      class BaseResponseError : public std::runtime_error {
-        public:
-          BaseResponseError() : std::runtime_error("") {}
-      };
+
         {% for response in op.responses %}
+          {% for content_type, body in response.body.items() %}
+            {% if content_type != 'application/json' %}
+              struct {{ response.body_cpp_name(content_type) }} {
+                std::string data;
+
+                bool operator==(const {{ response.body_cpp_name(content_type) }}& other) const { return data == other.data; }
+              };
+            {% endif %}
+          {% endfor %}
+
           {# TODO: description #}
           struct Response{{ response.status }} 
           {%- if response.is_error() -%}
-              : public BaseResponseError
+              : public ExceptionWithStatusCode
           {%- endif -%}
           {
+            {%- if response.is_error() -%}
+                Response{{ response.status }}() : ExceptionWithStatusCode({{ response.status }})
+                {}
+            {%- endif -%}
+
             {% if len(response.body) == 0 %}
               {# No body #}
             {% elif len(response.body) == 1 %}
                 // {{ response.body }}
               {{ list(response.body.values())[0].cpp_user_name() }} body;
             {% else %}
-              {{ NOT_IMPLEMENTED("2+ response content types") }}
+                std::variant<
+                  {%- for content_type, body in response.body.items() -%}
+                    {% if content_type == 'application/json' %}
+                      {{ body.cpp_user_name() }}
+                    {% else %}
+                      {{ response.body_cpp_name(content_type) }}
+                    {% endif %}
+                    {%- if not loop.last %},{% endif %}
+                  {%- endfor -%}
+                > body;
             {% endif %}
 
             {% for header in response.headers %}

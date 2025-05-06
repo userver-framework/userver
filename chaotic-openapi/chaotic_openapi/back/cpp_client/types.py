@@ -70,6 +70,11 @@ class Body:
     content_type: str
     schema: Optional[cpp_types.CppType]
 
+    def cpp_name(self) -> str:
+        return 'RequestBody' + cpp_names.camel_case(
+            cpp_names.cpp_identifier(self.content_type),
+        )
+
 
 @dataclasses.dataclass
 class Response:
@@ -85,6 +90,11 @@ class Response:
 
     def single_body(self) -> cpp_types.CppType:
         return list(self.body.values())[0]
+
+    def body_cpp_name(self, content_type: str) -> str:
+        return f'Response{self.status}' + cpp_names.camel_case(
+            cpp_names.cpp_identifier(content_type),
+        )
 
 
 @dataclasses.dataclass

@@ -5,7 +5,6 @@
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
-#include <userver/utils/log.hpp>
 
 #include <userver/ugrpc/status_codes.hpp>
 #include <userver/ugrpc/status_utils.hpp>
@@ -16,13 +15,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-namespace {
-
-std::string ToLimitedString(const google::protobuf::Message& message, std::size_t max_size) {
-    return utils::log::ToLimitedUtf8(message.Utf8DebugString(), max_size);
-}
-
-}  // namespace
+const std::string kComponentTag{"grpc_component"};
+const std::string kTypeTag{"grpc_type"};
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, MessageLoggingOptions options) {
     if (!logging::ShouldLog(options.log_level)) {
@@ -30,13 +24,13 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, Messa
     }
 
     if (!options.trim_secrets || !HasSecrets(message)) {
-        return ToLimitedString(message, options.max_size);
+        return ugrpc::impl::ToLimitedString(message, options.max_size);
     }
 
     std::unique_ptr<google::protobuf::Message> trimmed{message.New()};
     trimmed->CopyFrom(message);
     TrimSecrets(*trimmed);
-    return ToLimitedString(*trimmed, options.max_size);
+    return ugrpc::impl::ToLimitedString(*trimmed, options.max_size);
 }
 
 std::string GetErrorDetailsForLogging(const grpc::Status& status) {

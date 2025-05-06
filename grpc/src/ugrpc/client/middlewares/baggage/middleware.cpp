@@ -2,8 +2,6 @@
 
 #include <userver/baggage/baggage_manager.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/ugrpc/client/impl/async_methods.hpp>
-#include <userver/utils/log.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>

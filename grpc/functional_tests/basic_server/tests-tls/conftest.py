@@ -7,6 +7,7 @@ import samples.greeter_pb2_grpc as greeter_services  # noqa: E402, E501
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
+# /// [Prepare service config]
 USERVER_CONFIG_HOOKS = ['prepare_service_config']
 
 TESTDIR = pathlib.Path(__file__).parent
@@ -23,6 +24,9 @@ def prepare_service_config(tcp_service_port):
         }
 
     return _do_patch
+
+
+# /// [Prepare service config]
 
 
 @pytest.fixture

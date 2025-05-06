@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief @copybrief storages::redis::RequestEvalSha
+
 #include <userver/storages/redis/parse_reply.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/redis/request.hpp>

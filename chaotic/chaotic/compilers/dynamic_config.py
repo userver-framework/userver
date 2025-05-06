@@ -5,6 +5,7 @@ import subprocess
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Set
 from typing import Tuple
 
 import jinja2
@@ -85,6 +86,7 @@ class CompilerBase:
             Tuple[ResolvedSchemas, Dict[str, types.CppType]],
         ] = {}
         self._defaults: Dict[str, Any] = {}
+        self.seen_includes: Dict[str, Set[str]] = {}
 
     def extract_definition_names(self, filepath: str) -> List[str]:
         with open(filepath, 'r') as ifile:
@@ -135,7 +137,7 @@ class CompilerBase:
         # fname = f'taxi_config/definitions/{name}'
         fname = f'{name}'
 
-        schemas, types = self._generate_types(
+        schemas, types, _ = self._generate_types(
             filepath,
             namespace=f'taxi_config::{name_lower}',
             name_map=name_map,
@@ -177,7 +179,7 @@ class CompilerBase:
         # fname = f'taxi_config/variables/{name}.types.yaml'
         fname = f'{name}'
 
-        schemas, types = self._generate_types(
+        schemas, types, seen_includes = self._generate_types(
             filepath,
             namespace=f'{namespace}::{name_lower}',
             erase_prefix='/schema',
@@ -188,6 +190,7 @@ class CompilerBase:
 
         self._variables_types[name] = types
         self._defaults[name] = self._read_default(filepath)
+        self.seen_includes[filepath] = seen_includes
 
     def _collect_schemas(self) -> List[ResolvedSchemas]:
         schemas = []
@@ -209,7 +212,7 @@ class CompilerBase:
         name_map,
         fname: str,
         include_dirs: List[str],
-    ) -> Tuple[ResolvedSchemas, Dict[str, types.CppType]]:
+    ) -> Tuple[ResolvedSchemas, Dict[str, types.CppType], Set[str]]:
         schemas = read_schemas(
             erase_path_prefix=erase_prefix,
             filepaths=[filepath],
@@ -223,7 +226,7 @@ class CompilerBase:
         )
         gen = translator.Generator(
             config=translator.GeneratorConfig(
-                include_dirs=[INCLUDE_DIR] + include_dirs,
+                include_dirs=include_dirs + [INCLUDE_DIR],
                 namespaces={fname: namespace},
                 infile_to_name_func=cpp_name_func,
                 autodiscover_default_dict=True,
@@ -234,7 +237,7 @@ class CompilerBase:
             schemas,
             external_schemas=self._collect_types(),
         )
-        return schemas, types
+        return schemas, types, gen.seen_includes
 
     def variables_includes_hpp(self, name: str) -> List[str]:
         types = self._variables_types[name]

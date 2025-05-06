@@ -1,88 +1,115 @@
 #pragma once
 
-#include <userver/ugrpc/server/call_context.hpp>
+#include <userver/ugrpc/server/impl/async_methods.hpp>
+#include <userver/ugrpc/server/impl/call_kind.hpp>
+#include <userver/ugrpc/server/impl/stream_adapter.hpp>
 #include <userver/ugrpc/server/result.hpp>
-#include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/stream.hpp>
 
+namespace grpc {
+class GenericServerContext;
+}  // namespace grpc
+
 USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::server {
+class CallContext;
+class GenericCallContext;
+}  // namespace ugrpc::server
 
 namespace ugrpc::server::impl {
 
 struct NoInitialRequest final {};
 
-enum class CallCategory {
-    kUnary,
-    kInputStream,
-    kOutputStream,
-    kBidirectionalStream,
-    kGeneric,
+grpc::ServerContext DetectRawContextType(CallContext&);
+grpc::GenericServerContext DetectRawContextType(GenericCallContext&);
+
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsUnaryCall final {
+    using Request = RequestType;
+    using Response = ResponseType;
+    using RawResponder = impl::RawResponseWriter<ResponseType>;
+    using InitialRequest = Request;
+    using Context = ContextType;
+    using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
+    using StreamAdapter = NoStreamingAdapter;
+    using ServiceBase = ServiceBaseType;
+    using ServiceMethod = Result<Response> (ServiceBase::*)(ContextType&, Request&&);
+    static constexpr auto kCallKind = CallKind::kUnaryCall;
+};
+
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsInputStream final {
+    using Request = RequestType;
+    using Response = ResponseType;
+    using RawResponder = impl::RawReader<Request, Response>;
+    using InitialRequest = NoInitialRequest;
+    using RawContextType = ::grpc::ServerContext;
+    using Context = ContextType;
+    using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
+    using StreamAdapter = ReaderAdapter<CallTraitsInputStream>;
+    using ServiceBase = ServiceBaseType;
+    using ServiceMethod = Result<Response> (ServiceBase::*)(CallContext&, Reader<Request>&);
+    static constexpr auto kCallKind = CallKind::kInputStream;
+};
+
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsOutputStream final {
+    using Request = RequestType;
+    using Response = ResponseType;
+    using RawResponder = impl::RawWriter<Response>;
+    using InitialRequest = Request;
+    using Context = ContextType;
+    using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
+    using StreamAdapter = WriterAdapter<CallTraitsOutputStream>;
+    using ServiceBase = ServiceBaseType;
+    using ServiceMethod = StreamingResult<Response> (ServiceBase::*)(CallContext&, Request&&, Writer<Response>&);
+    static constexpr auto kCallKind = CallKind::kOutputStream;
+};
+
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsBidirectionalStream final {
+    using Request = RequestType;
+    using Response = ResponseType;
+    using RawResponder = impl::RawReaderWriter<Request, Response>;
+    using InitialRequest = NoInitialRequest;
+    using Context = ContextType;
+    using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
+    using StreamAdapter = ReaderWriterAdapter<CallTraitsBidirectionalStream>;
+    using ServiceBase = ServiceBaseType;
+    using ServiceMethod = StreamingResult<Response> (ServiceBase::*)(ContextType&, ReaderWriter<Request, Response>&);
+    static constexpr auto kCallKind = CallKind::kBidirectionalStream;
 };
 
 template <typename HandlerMethod>
-struct CallTraits;
+struct CallTraitsImpl;
 
-template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<ugrpc::server::Result<ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, RequestType&&)>
-    final {
-    using ServiceBase = ServiceBaseType;
-    using Request = RequestType;
-    using Response = ResponseType;
-    using RawCall = impl::RawResponseWriter<ResponseType>;
-    using InitialRequest = Request;
-    using Call = UnaryCall<Response>;
-    using ContextType = ::grpc::ServerContext;
-    using ServiceMethod = ugrpc::server::Result<Response> (ServiceBase::*)(ugrpc::server::CallContext&, Request&&);
-    static constexpr auto kCallCategory = CallCategory::kUnary;
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsImpl<Result<ResponseType> (ServiceBaseType::*)(ContextType&, RequestType&&)> final {
+    using type = CallTraitsUnaryCall<ServiceBaseType, ContextType, RequestType, ResponseType>;
 };
 
-template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<ugrpc::server::Result<
-    ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, ugrpc::server::Reader<RequestType>&)>
-    final {
-    using ServiceBase = ServiceBaseType;
-    using Request = RequestType;
-    using Response = ResponseType;
-    using RawCall = impl::RawReader<Request, Response>;
-    using InitialRequest = NoInitialRequest;
-    using Call = InputStream<Request, Response>;
-    using ContextType = ::grpc::ServerContext;
-    using ServiceMethod =
-        ugrpc::server::Result<Response> (ServiceBase::*)(ugrpc::server::CallContext&, ugrpc::server::Reader<Request>&);
-    static constexpr auto kCallCategory = CallCategory::kInputStream;
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsImpl<Result<ResponseType> (ServiceBaseType::*)(ContextType&, Reader<RequestType>&)> final {
+    using type = CallTraitsInputStream<ServiceBaseType, ContextType, RequestType, ResponseType>;
 };
 
-template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<ugrpc::server::StreamingResult<
-    ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, RequestType&&, ugrpc::server::Writer<ResponseType>&)>
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsImpl<
+    StreamingResult<ResponseType> (ServiceBaseType::*)(ContextType&, RequestType&&, Writer<ResponseType>&)>
     final {
-    using ServiceBase = ServiceBaseType;
-    using Request = RequestType;
-    using Response = ResponseType;
-    using RawCall = impl::RawWriter<Response>;
-    using InitialRequest = Request;
-    using Call = OutputStream<Response>;
-    using ContextType = ::grpc::ServerContext;
-    using ServiceMethod = ugrpc::server::StreamingResult<
-        Response> (ServiceBase::*)(ugrpc::server::CallContext&, Request&&, ugrpc::server::Writer<Response>&);
-    static constexpr auto kCallCategory = CallCategory::kOutputStream;
+    using type = CallTraitsOutputStream<ServiceBaseType, ContextType, RequestType, ResponseType>;
 };
 
-template <typename ServiceBaseType, typename RequestType, typename ResponseType>
-struct CallTraits<ugrpc::server::StreamingResult<
-    ResponseType> (ServiceBaseType::*)(ugrpc::server::CallContext&, ugrpc::server::ReaderWriter<RequestType, ResponseType>&)>
+template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
+struct CallTraitsImpl<
+    StreamingResult<ResponseType> (ServiceBaseType::*)(ContextType&, ReaderWriter<RequestType, ResponseType>&)>
     final {
-    using ServiceBase = ServiceBaseType;
-    using Request = RequestType;
-    using Response = ResponseType;
-    using RawCall = impl::RawReaderWriter<Request, Response>;
-    using InitialRequest = NoInitialRequest;
-    using Call = BidirectionalStream<Request, Response>;
-    using ContextType = ::grpc::ServerContext;
-    using ServiceMethod = ugrpc::server::StreamingResult<
-        Response> (ServiceBase::*)(ugrpc::server::CallContext&, ugrpc::server::ReaderWriter<Request, Response>&);
-    static constexpr auto kCallCategory = CallCategory::kBidirectionalStream;
+    using type = CallTraitsBidirectionalStream<ServiceBaseType, ContextType, RequestType, ResponseType>;
 };
+
+template <typename HandlerMethod>
+using CallTraits = typename CallTraitsImpl<HandlerMethod>::type;
 
 }  // namespace ugrpc::server::impl
 

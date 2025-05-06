@@ -15,13 +15,14 @@ struct RedisSettings {
         std::string host;
         int port;
 
-        explicit HostPort(std::string host = {}, int port = 0) : host(std::move(host)), port(port) {}
+        explicit HostPort(std::string host = {}, int port = 0) noexcept : host(std::move(host)), port(port) {}
     };
 
     std::vector<std::string> shards;
     std::vector<HostPort> sentinels;
     storages::redis::Password password{std::string()};
     storages::redis::ConnectionSecurity secure_connection{storages::redis::ConnectionSecurity::kNone};
+    std::size_t database_index{0};
 };
 
 }  // namespace secdist

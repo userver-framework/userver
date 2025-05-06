@@ -8,6 +8,8 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Server logging middleware
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
+/// @see @ref ugrpc::server::middlewares::log::Component
 namespace ugrpc::server::middlewares::log {
 
 struct Settings;
@@ -37,6 +39,8 @@ struct Settings;
 /// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc server logging middleware component config
 ///
 /// In this example, we enable logs for gRPC clients in production.
+///
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
 
 // clang-format on
 

@@ -11,11 +11,14 @@ schema:
             additionalProperties: false
             properties:
                 max-tokens:
-                    type: integer
+                    type: number
                     minimum: 1
                     maximum: 1000000
+                    default: 100
                 token-ratio:
-                    type: integer
+                    type: number
                     minimum: 1
+                    default: 1
                 enabled:
                     type: boolean
+                    default: true

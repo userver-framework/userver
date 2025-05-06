@@ -8,8 +8,8 @@ import pytest
 from pytest_userver import chaos
 
 # pylint: disable=import-error
-from pytest_userver.asyncio_socket import AsyncioSocket
-from pytest_userver.asyncio_socket import AsyncioSocketsFactory
+from testsuite.asyncio_socket import AsyncioSocket
+from testsuite.asyncio_socket import AsyncioSocketsFactory
 
 _NOTICEABLE_DELAY = 0.5
 TEST_TIMEOUT = 5

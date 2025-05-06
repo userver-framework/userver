@@ -22,11 +22,11 @@ target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
 # cmake
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen
-    ARGS
-        # Map '/components/schemas/*' JSONSchema types to C++ types in 'samples::hello' namespace
-        -n "/components/schemas/([^/]*)/=samples::hello::{0}"
-        # Generate serializers for responses
-        --generate-serializers
+    # Generate serializers for responses
+    GENERATE_SERIALIZERS
+    # Map '/components/schemas/*' JSONSchema types to C++ types in 'samples::hello' namespace
+    LAYOUT
+        "/components/schemas/([^/]*)/=samples::hello::{0}"
     OUTPUT_DIR
         ${CMAKE_CURRENT_BINARY_DIR}/src
     SCHEMAS

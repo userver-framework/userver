@@ -1,6 +1,8 @@
 #include <ugrpc/client/impl/client_factory_config.hpp>
 
+#include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/level_serialization.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -26,6 +28,8 @@ std::shared_ptr<grpc::ChannelCredentials> MakeDefaultCredentials(impl::AuthType 
 grpc::ChannelArguments MakeChannelArgs(const yaml_config::YamlConfig& channel_args) {
     grpc::ChannelArguments args;
     if (!channel_args.IsMissing()) {
+        LOG_DEBUG() << "Set client ChannelArguments: "
+                    << formats::yaml::ToString(channel_args.As<formats::yaml::Value>());
         for (const auto& [key, value] : Items(channel_args)) {
             if (value.IsInt64()) {
                 args.SetInt(ugrpc::impl::ToGrpcString(key), value.As<int>());

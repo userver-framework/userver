@@ -4,9 +4,9 @@
 #include <string_view>
 #include <utility>
 
-#include <grpcpp/impl/codegen/async_stream.h>
-#include <grpcpp/impl/codegen/async_unary_call.h>
-#include <grpcpp/impl/codegen/status.h>
+#include <grpcpp/support/async_stream.h>
+#include <grpcpp/support/async_unary_call.h>
+#include <grpcpp/support/status.h>
 
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_method_invocation.hpp>
@@ -34,44 +34,29 @@ using RawReaderWriter = grpc::ServerAsyncReaderWriter<Response, Request>;
 
 using ugrpc::impl::AsyncMethodInvocation;
 
-void ReportErrorWhileCancelling(std::string_view call_name) noexcept;
-
 extern const grpc::Status kUnimplementedStatus;
 extern const grpc::Status kUnknownErrorStatus;
 
 template <typename GrpcStream, typename Response>
-void Finish(GrpcStream& stream, const Response& response, const grpc::Status& status, std::string_view call_name) {
+[[nodiscard]] bool Finish(GrpcStream& stream, const Response& response, const grpc::Status& status) {
     AsyncMethodInvocation finish;
     stream.Finish(response, status, finish.GetTag());
-    CheckInvocationSuccessful(Wait(finish), call_name, "Finish");
+    return IsInvocationSuccessful(Wait(finish));
 }
 
 template <typename GrpcStream>
-void Finish(GrpcStream& stream, const grpc::Status& status, std::string_view call_name) {
+[[nodiscard]] bool Finish(GrpcStream& stream, const grpc::Status& status) {
     AsyncMethodInvocation finish;
     stream.Finish(status, finish.GetTag());
-    CheckInvocationSuccessful(Wait(finish), call_name, "Finish");
+    return IsInvocationSuccessful(Wait(finish));
 }
 
 template <typename GrpcStream>
-void Cancel(GrpcStream& stream, std::string_view call_name) noexcept {
-    AsyncMethodInvocation cancel;
-    stream.Finish(kUnknownErrorStatus, cancel.GetTag());
-    if (Wait(cancel) != impl::AsyncMethodInvocation::WaitStatus::kOk) ReportErrorWhileCancelling(call_name);
-}
-
-template <typename GrpcStream>
-void CancelWithError(GrpcStream& stream, std::string_view call_name) noexcept {
-    AsyncMethodInvocation cancel;
-    stream.FinishWithError(kUnknownErrorStatus, cancel.GetTag());
-    if (Wait(cancel) != impl::AsyncMethodInvocation::WaitStatus::kOk) ReportErrorWhileCancelling(call_name);
-}
-
-template <typename GrpcStream>
-void FinishWithError(GrpcStream& stream, const grpc::Status& status, std::string_view call_name) {
+[[nodiscard]] bool FinishWithError(GrpcStream& stream, const grpc::Status& status) {
+    UASSERT(!status.ok());
     AsyncMethodInvocation finish;
     stream.FinishWithError(status, finish.GetTag());
-    CheckInvocationSuccessful(Wait(finish), call_name, "FinishWithError");
+    return IsInvocationSuccessful(Wait(finish));
 }
 
 template <typename GrpcStream>
@@ -82,7 +67,7 @@ void SendInitialMetadata(GrpcStream& stream, std::string_view call_name) {
 }
 
 template <typename GrpcStream, typename Request>
-bool Read(GrpcStream& stream, Request& request) {
+[[nodiscard]] bool Read(GrpcStream& stream, Request& request) {
     AsyncMethodInvocation read;
     stream.Read(&request, read.GetTag());
     return Wait(read) == impl::AsyncMethodInvocation::WaitStatus::kOk;
@@ -96,24 +81,11 @@ void Write(GrpcStream& stream, const Response& response, grpc::WriteOptions opti
 }
 
 template <typename GrpcStream, typename Response>
-void WriteAndFinish(
-    GrpcStream& stream,
-    const Response& response,
-    grpc::WriteOptions options,
-    const grpc::Status& status,
-    std::string_view call_name
-) {
+[[nodiscard]] bool
+WriteAndFinish(GrpcStream& stream, const Response& response, grpc::WriteOptions options, const grpc::Status& status) {
     AsyncMethodInvocation write_and_finish;
     stream.WriteAndFinish(response, options, status, write_and_finish.GetTag());
-    CheckInvocationSuccessful(Wait(write_and_finish), call_name, "WriteAndFinish");
-}
-
-template <typename GrpcStream, typename State>
-void SendInitialMetadataIfNew(GrpcStream& stream, std::string_view call_name, State& state) {
-    if (state == State::kNew) {
-        state = State::kOpen;
-        SendInitialMetadata(stream, call_name);
-    }
+    return IsInvocationSuccessful(Wait(write_and_finish));
 }
 
 }  // namespace ugrpc::server::impl

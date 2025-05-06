@@ -94,7 +94,7 @@ CallParams CreateCallParams(
     }
 
     auto stub = client_data.NextStubFromMethodId(method_id);
-    const auto dynamic_qos = stub.GetClientQos().GetOptional(call_name).value_or(Qos{});
+    const auto dynamic_qos = stub.GetClientQos().methods.GetOptional(call_name).value_or(Qos{});
     ApplyQosConfigs(*client_context, qos, dynamic_qos, client_data.GetTestsuiteControl());
 
     return CallParams{

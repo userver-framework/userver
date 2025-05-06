@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/redis/command_control.hpp
+/// @file
 /// @brief @copybrief storages::redis::CommandControl
 
 #include <atomic>

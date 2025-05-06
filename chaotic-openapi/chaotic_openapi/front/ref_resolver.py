@@ -31,7 +31,9 @@ def _extract_refs(filepath: str, content: Any) -> List[str]:
             for item in value.values():
                 visit(item)
             if '$ref' in value:
-                refs.append(normalize_ref(filepath, value['$ref']).split('#')[0])
+                ref = value['$ref']
+                if not ref.startswith('#'):
+                    refs.append(normalize_ref(filepath, ref).split('#')[0])
 
     visit(content)
     return refs

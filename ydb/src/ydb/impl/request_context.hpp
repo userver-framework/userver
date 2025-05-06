@@ -22,7 +22,7 @@ struct RequestContext final {
     RequestContext(
         TableClient& client,
         const Query& query,
-        OperationSettings& settings,
+        OperationSettings&& settings,
         IsStreaming is_streaming = IsStreaming{false},
         tracing::Span* custom_parent_span = nullptr,
         const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
@@ -33,7 +33,7 @@ struct RequestContext final {
     ~RequestContext();
 
     TableClient& table_client;
-    OperationSettings& settings;
+    OperationSettings settings;
     const int initial_uncaught_exceptions;
     StatsScope stats_scope;
     dynamic_config::Snapshot config_snapshot;

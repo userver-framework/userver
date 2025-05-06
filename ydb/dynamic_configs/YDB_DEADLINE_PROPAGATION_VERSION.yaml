@@ -1,0 +1,12 @@
+default: 1
+description: |
+    Whether the task-inherited deadline should be accounted for
+    while executing YDB queries.
+
+    The feature is only enabled if the static version of the feature
+    (fixed at the time of service release) equals the value of this config.
+
+    To disable for a specific service, set the by-service value to 0.
+schema:
+    type: integer
+    minimum: 0

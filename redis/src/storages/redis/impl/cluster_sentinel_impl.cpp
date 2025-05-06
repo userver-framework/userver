@@ -33,9 +33,10 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 namespace {
-const auto kProcessCreationInterval = std::chrono::seconds(3);
-const auto kDeleteNodesCheckInterval = std::chrono::seconds(60);
-const auto kDeleteNodeInterval = std::chrono::seconds(600);
+constexpr auto kProcessCreationInterval = std::chrono::seconds(3);
+constexpr auto kDeleteNodesCheckInterval = std::chrono::seconds(60);
+constexpr auto kDeleteNodeInterval = std::chrono::seconds(600);
+constexpr std::size_t kClusterDatabaseIndex = 0;
 
 bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
     const size_t quorum = requests_sent / 2 + 1;
@@ -681,6 +682,7 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         host,
         port,
         GetPassword(),
+        kClusterDatabaseIndex,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr
@@ -819,8 +821,10 @@ ClusterSentinelImpl::ClusterSentinelImpl(
     } else {
         LOG_DEBUG() << "Contstruct Standalone topology holder";
         UASSERT_MSG(conns.size() == 1, "In standalone mode we expect exactly one redis node to connect!");
-        topology_holder_ =
-            std::make_shared<StandaloneTopologyHolder>(ev_thread_, redis_thread_pool, password, conns.front());
+        // TODO: TAXICOMMON-10376 experiment with providing kClusterDatabaseIndex other than 0 for standalone mode
+        topology_holder_ = std::make_shared<StandaloneTopologyHolder>(
+            ev_thread_, redis_thread_pool, password, kClusterDatabaseIndex, conns.front()
+        );
     }
 
     Init();

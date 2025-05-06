@@ -16,4 +16,6 @@ userver_add_sql_library(
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_sql)
 # /// [Postgres service sample - CMakeLists.txt]
 
-userver_testsuite_add_simple()
+# /// [Postgres sql coverage - CMakeLists.txt]
+userver_testsuite_add_simple(SQL_LIBRARY ${PROJECT_NAME}_sql)
+# /// [Postgres sql coverage - CMakeLists.txt]SQL_FILES

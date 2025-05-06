@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief @copybrief storages::redis::Config
+
 #include <chrono>
 
 #include <userver/dynamic_config/snapshot.hpp>
@@ -33,6 +36,7 @@ Parse(const formats::json::Value& elem, formats::parse::To<ReplicationMonitoring
 
 PubsubMetricsSettings Parse(const formats::json::Value& elem, formats::parse::To<PubsubMetricsSettings>);
 
+/// @brief Main config for the Valkey/Redis
 struct Config final {
     static Config Parse(const dynamic_config::DocsMap& docs_map);
 

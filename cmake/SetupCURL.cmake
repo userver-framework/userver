@@ -1,7 +1,7 @@
 option(USERVER_DOWNLOAD_PACKAGE_CURL "Download and setup libcurl if no libcurl of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 option(USERVER_FORCE_DOWNLOAD_CURL "Download Curl even if there is an installed system package" ${USERVER_FORCE_DOWNLOAD_PACKAGES})
 
-if(NOT USERVUSERVER_FORCE_DOWNLOAD_CURL)
+if(NOT USERVER_FORCE_DOWNLOAD_CURL)
   # Curl has too many dependencies to reliably
   # link with all of them statically without CMake Config
   if (USERVER_USE_STATIC_LIBS)

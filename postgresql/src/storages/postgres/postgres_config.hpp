@@ -28,6 +28,9 @@ StatementMetricsSettings Parse(const formats::json::Value& config, formats::pars
 
 StatementMetricsSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<StatementMetricsSettings>);
 
+ConnectionSettings::StatementLogMode
+Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConnectionSettings::StatementLogMode>);
+
 struct Config final {
     static Config Parse(const dynamic_config::DocsMap& docs_map);
 

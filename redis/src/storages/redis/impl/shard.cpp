@@ -29,6 +29,10 @@ std::pair<std::string, int> ConnectionInfoInt::HostPort() const { return {conn_i
 
 void ConnectionInfoInt::SetPassword(Password password) { conn_info_.password = std::move(password); }
 
+void ConnectionInfoInt::SetDatabaseIndex(size_t index) { conn_info_.database_index = index; }
+
+size_t ConnectionInfoInt::DatabaseIndex() const { return conn_info_.database_index; }
+
 bool ConnectionInfoInt::IsReadOnly() const { return conn_info_.read_only; }
 
 void ConnectionInfoInt::SetReadOnly(bool value) { conn_info_.read_only = value; }
@@ -40,7 +44,7 @@ ConnectionSecurity ConnectionInfoInt::GetConnectionSecurity() const { return con
 const std::string& ConnectionInfoInt::Fulltext() const { return fulltext_; }
 
 void ConnectionInfoInt::Connect(Redis& instance) const {
-    instance.Connect({conn_info_.host}, conn_info_.port, conn_info_.password);
+    instance.Connect({conn_info_.host}, conn_info_.port, conn_info_.password, conn_info_.database_index);
 }
 
 bool operator==(const ConnectionInfoInt& lhs, const ConnectionInfoInt& rhs) { return lhs.Fulltext() == rhs.Fulltext(); }

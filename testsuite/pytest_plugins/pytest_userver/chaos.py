@@ -20,9 +20,8 @@ import typing
 
 import pytest
 
+from testsuite import asyncio_socket
 from testsuite.utils import callinfo
-
-from pytest_userver import asyncio_socket
 
 
 class BaseError(Exception):

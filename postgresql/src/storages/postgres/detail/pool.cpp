@@ -379,6 +379,7 @@ void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
         const auto old_settings = *writer;
         const auto old_version = old_settings.version;
         *writer = settings;
+        writer->statement_log_mode = old_settings.statement_log_mode;
         if (old_settings.RequiresConnectionReset(settings)) {
             writer->version = old_version + 1;
         }

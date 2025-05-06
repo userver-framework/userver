@@ -55,6 +55,9 @@ std::string Escape(int16_t v) { return FormatScalar(v); }
 std::string Escape(int32_t v) { return FormatScalar(v); }
 std::string Escape(int64_t v) { return FormatScalar(v); }
 
+std::string Escape(double number) { return Escape(FloatingWithPrecision<double>(number)); }
+std::string Escape(float number) { return Escape(FloatingWithPrecision<float>(number)); }
+
 std::string Escape(const char* source) { return Escape(std::string_view{source}); }
 
 std::string Escape(const std::string& source) { return Escape(std::string_view{source}); }

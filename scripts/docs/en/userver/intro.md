@@ -54,21 +54,193 @@ See @ref scripts/docs/en/userver/task_processors_guide.md for more info.
 ______
 
 
+@anchor intro_tasks
 ## Tasks
-The asynchronous **task** (`engine::Task`, `engine::TaskWithResult`) can return
+
+The asynchronous **task** (@ref engine::Task, @ref engine::TaskWithResult) can return
 a result (possibly in form of an exception) or return nothing. In any case, the
 task has the semantics of future, i.e. you can wait for it and get the result
 from it.
 
-To create a task call the `utils::Async` function. It accepts the name of a
-task, the user-defined function to execute, and the arguments of the
-user-defined function:
+To create a task call the @ref utils::Async function. It accepts the name of a
+task, and the user-defined function to execute:
 
 ```cpp
-auto task = utils::Async("my_job", &func, arg1, arg2);
+auto task = utils::Async("my_job", [some, &captures] {
+    return Use(some, captures);
+});
 // do something ...
 auto result = task.Get();
 ```
+
+Like `std::async`, you can call an existing function asynchronously, passing it some args:
+
+```cpp
+auto task = utils::Async("my_job", SomeFunc, copied_arg, std::move(moved_arg), std::ref(ref_arg));
+// do something ...
+auto result = task.Get();
+```
+
+@anchor flavors_of_async
+### Flavors of Async
+
+There are multiple orthogonal parameters of the task being started.
+Use this specific overload by default (@ref utils::Async).
+
+By engine::TaskProcessor:
+
+* By default, task processor of the current task is used.
+* Custom task processor can be passed as the first or second function
+  parameter (see function signatures).
+
+By shared-ness:
+
+* By default, functions return engine::TaskWithResult, which can be awaited
+  from 1 task at once. This is a reasonable choice for most cases.
+* Functions from `utils::Shared*Async*` and `engine::Shared*AsyncNoSpan`
+  families return engine::SharedTaskWithResult, which can be awaited
+  from multiple tasks at the same time, at the cost of some overhead.
+
+By engine::TaskBase::Importance ("critical-ness"):
+
+* By default, functions can be cancelled due to engine::TaskProcessor
+  overload. Also, if the task is cancelled before being started, it will not
+  run at all.
+* If the whole service's health (not just one request) depends on the task
+  being run, then functions from `utils::*CriticalAsync*` and
+  `engine::*CriticalAsyncNoSpan*` families can be used. There, execution of
+  the function is guaranteed to start regardless of engine::TaskProcessor
+  load limits
+
+By tracing::Span:
+
+* Functions from `utils::*Async*` family (which you should use by default)
+  create tracing::Span with inherited `trace_id` and `link`, a new `span_id`
+  and the specified `stopwatch_name`, which ensures that logs from the task
+  are categorized correctly and will not get lost.
+* Functions from `engine::*AsyncNoSpan*` family create span-less tasks:
+    * A possible usage scenario is to create a task that will mostly wait
+      in the background and do various unrelated work every now and then.
+      In this case it might make sense to trace execution of work items,
+      but not of the task itself.
+    * Its usage can (albeit very rarely) be justified to squeeze some
+      nanoseconds of performance where no logging is expected.
+      But beware! Using tracing::Span::CurrentSpan() will trigger asserts
+      and lead to UB in production.
+
+By the propagation of engine::TaskInheritedVariable instances:
+
+* Functions from `utils::*Async*` family (which you should use by default)
+  inherit all task-inherited variables from the parent task.
+* Functions from `engine::*AsyncNoSpan*` family do not inherit any
+  task-inherited variables.
+
+By deadline: some `utils::*Async*` functions accept an @ref engine::Deadline
+parameter. If the deadline expires, the task is cancelled. See `*Async*`
+function signatures for details.
+
+### Scoping of tasks
+
+A task is only allowed to run within the lifetime of its @ref engine::TaskWithResult handle.
+If the control flow escapes the task definition scope while the task is running, it is
+cancelled and awaited in the task's destructor:
+
+```cpp
+std::string FrobnicateBoth(std::string_view first, std::string_view second) {
+    auto first_task = utils::Async("frobnicate_first", Frobnicate, first);
+    auto second_task = utils::Async("frobnicate_second", Frobnicate, second);
+    if (SomethingBadHappened()) throw std::runtime_error("Nope");
+    return first_task.Get() + second_task.Get();
+}
+```
+
+If an exception is thrown before the tasks are finished, they will be cancelled and awaited.
+In general, those tasks will be awaited anyway and will not keep running in the background indefinitely.
+
+This is the backbone of **structured concurrency** in userver.
+
+To make the task keep running in the background:
+@see @ref concurrent::BackgroundTaskStorage
+
+For more details on task cancellations:
+@see @ref task_cancellation_intro
+
+### Lifetime of captures
+
+@note To launch background tasks, which are not awaited in the local scope,
+use @ref concurrent::BackgroundTaskStorage.
+
+When launching a task, it's important to ensure that it will not access its
+lambda captures after they are destroyed. Plain data captured by value
+(including by move) is always safe. By-reference captures and objects that
+store references inside are always something to be aware of. Of course,
+copying the world will degrade performance, so let's see how to ensure
+lifetime safety with captured references.
+
+Task objects are automatically cancelled and awaited on destruction, if not
+already finished. The lifetime of the task object is what determines when
+the task may be running and accessing its captures. The task can only safely
+capture by reference objects that outlive the task object.
+
+When the task is just stored in a new local variable and is not moved or
+returned from a function, capturing anything is safe:
+
+@code
+int x{};
+int y{};
+// It's recommended to write out captures explicitly when launching tasks.
+auto task = utils::Async("frobnicate", [&x, &y] {
+// Capturing anything defined before the `task` variable is safe.
+Use(x, y);
+});
+// ...
+task.Get();
+@endcode
+
+A more complicated example, where the task is moved into a container:
+
+@code
+// Variables are destroyed in the reverse definition order: y, tasks, x.
+int x{};
+std::vector<engine::TaskWithResult<void>> tasks;
+int y{};
+
+tasks.push_back(utils::Async("frobnicate", [&x, &y] {
+// Capturing x is safe, because `tasks` outlives `x`.
+Use(x);
+
+    // BUG! The task may keep running for some time after `y` is destroyed.
+    Use(y);
+}));
+@endcode
+
+The bug above can be fixed by placing the declaration of `tasks` after `y`.
+
+In the case above people often think that calling `.Get()` in appropriate
+places solves the problem. It does not! If an exception is thrown somewhere
+before `.Get()`, then the variables' definition order is the source
+of truth.
+
+Same guidelines apply when tasks are stored in classes or structs: the task
+object must be defined below everything that it accesses:
+
+@code
+private:
+Foo foo_;
+// Can access foo_ but not bar_.
+engine::TaskWithResult<void> task_;
+Bar bar_;
+@endcode
+
+Generally, it's a good idea to put task objects as low as possible
+in the list of class members.
+
+Although, tasks are rarely stored in classes on practice,
+@ref concurrent::BackgroundTaskStorage is typically used for that purpose.
+
+Components and their clients can always be safely captured by reference:
+
+@see @ref scripts/docs/en/userver/component_system.md
 
 
 ## Waiting

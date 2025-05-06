@@ -22,6 +22,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
+namespace ugrpc::client::middlewares {}
+
 namespace ugrpc::client {
 
 namespace impl {
@@ -109,7 +112,7 @@ public:
     /// @brief This function is called after rpc, on each rpc. It does nothing by
     /// default
     /// @note Could be not called in case of deadline or network problem
-    /// @see @ref RpcInterruptedError
+    /// @see @ref ugrpc::client::RpcInterruptedError
     virtual void PostFinish(MiddlewareCallContext&, const grpc::Status&) const;
 
 protected:
@@ -150,7 +153,7 @@ using MiddlewareFactoryComponentBase =
 ///
 /// ## Static config example
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml static config grpc-auth-client
+/// @snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-auth-client
 
 template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
@@ -170,7 +173,7 @@ using SimpleMiddlewareFactoryComponent =
 ///
 /// ## Static config example
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml static config grpc-auth-client
+/// @snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-auth-client
 
 class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
 public:

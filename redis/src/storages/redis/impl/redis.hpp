@@ -31,7 +31,12 @@ public:
 
     Redis(Redis&& o) = delete;
 
-    void Connect(const ConnectionInfo::HostVector& host_addrs, int port, const Password& password);
+    void Connect(
+        const ConnectionInfo::HostVector& host_addrs,
+        int port,
+        const Password& password,
+        std::size_t database_index
+    );
 
     bool AsyncCommand(const CommandPtr& command);
     size_t GetRunningCommands() const;

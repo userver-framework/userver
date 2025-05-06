@@ -7,6 +7,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// Client testsuite middleware
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
+/// @see @ref ugrpc::client::middlewares::testsuite::Component
 namespace ugrpc::client::middlewares::testsuite {
 
 /// @ingroup userver_components
@@ -20,6 +23,9 @@ namespace ugrpc::client::middlewares::testsuite {
 /// @see @ref pytest_userver.grpc._mocked_errors.NetworkError "pytest_userver.grpc.NetworkError"
 ///
 /// The component does **not** have any options for service config.
+///
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
+
 class Component : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names

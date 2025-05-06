@@ -25,6 +25,8 @@
 #include <ydb/impl/secdist.hpp>
 #include <ydb/impl/stats.hpp>
 
+#include <dynamic_config/variables/YDB_RETRY_BUDGET.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
@@ -158,8 +160,12 @@ const std::string& YdbComponent::GetDatabasePath(const std::string& dbname) cons
 }
 
 void YdbComponent::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-    for (const auto& [dbname, settings] : cfg[impl::kRetryBudgetSettings]) {
-        databases_[dbname].driver->GetRetryBudget().SetSettings(settings);
+    for (const auto& [dbname, settings] : cfg[::dynamic_config::YDB_RETRY_BUDGET].extra) {
+        databases_[dbname].driver->GetRetryBudget().SetSettings({
+            static_cast<float>(settings.max_tokens),
+            static_cast<float>(settings.token_ratio),
+            settings.enabled,
+        });
     }
 }
 

@@ -2,6 +2,9 @@
 
 #include <userver/clients/http/response.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/http/content_type.hpp>
+#include <userver/logging/log.hpp>
 
 {% for include in spec.responses_definitions_includes() %}
   #include <{{ include }}>
@@ -14,7 +17,8 @@ namespace {{ namespace }} {
     namespace {{ op.cpp_namespace() }} {
       Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& http_response)
       {
-        switch (static_cast<int>(http_response.status_code())) {
+        auto status_code = static_cast<int>(http_response.status_code());
+        switch (status_code) {
         {% for response in op.responses %}
           case {{ response.status }}:
           {
@@ -23,10 +27,38 @@ namespace {{ namespace }} {
                 {% if response.is_single_contenttype() %}
                   {# ignore content type for compatibility with poorly written servers #}
                   {% set body = response.single_body() %}
-                  auto json = USERVER_NAMESPACE::formats::json::FromString(http_response.body());
-                  r.body = json.As<{{ body.parser_type('TODO', 'TODO') }}>();
+                  try {
+                    auto json = USERVER_NAMESPACE::formats::json::FromString(http_response.body());
+                    r.body = json.As<{{ body.parser_type('TODO', 'TODO') }}>();
+                  } catch (const std::exception& e) {
+                    LOG_ERROR() << "Failed to parse JSON response body: " << e;
+                    throw ExceptionWithStatusCode({{ response.status }});
+                  }
                 {% else %}
-                  {{ NOT_IMPLEMENTED("multiple content types in response.content") }}
+                  USERVER_NAMESPACE::http::ContentType content_type = http_response.headers()[USERVER_NAMESPACE::http::headers::kContentType];
+
+                  bool parsed = false;
+                  {% for content_type, body in response.body.items() %}
+                      if (content_type == USERVER_NAMESPACE::http::ContentType{"{{ content_type }}"}) {
+                        {% if content_type == 'application/json' %}
+                          try {
+                            auto json = USERVER_NAMESPACE::formats::json::FromString(http_response.body());
+                            r.body = json.As<{{ body.parser_type('TODO', 'TODO') }}>();
+                          } catch (const std::exception& e) {
+                            LOG_ERROR() << "Failed to parse JSON response body: " << e;
+                            throw ExceptionWithStatusCode({{ response.status }});
+                          }
+                        {% else %}
+                          r.body = {{ response.body_cpp_name(content_type) }}{http_response.body()};
+                        {% endif %}
+                        parsed = true;
+                      }
+                  {% endfor %}
+
+                  if (!parsed) {
+                    LOG_ERROR() << "Unsupported content-type: " << content_type;
+                    throw ExceptionWithStatusCode({{ response.status }});
+                  }
                 {% endif %}
             {% endif %}
 
@@ -40,8 +72,7 @@ namespace {{ namespace }} {
           }
         {% endfor %}
         default:
-          {# TODO #}
-          throw std::runtime_error("unknown status code");
+          throw ExceptionWithStatusCode(status_code);
         }
       }
     }

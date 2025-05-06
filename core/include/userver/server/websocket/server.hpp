@@ -75,10 +75,9 @@ public:
     /// @brief Read a message from websocket, handling pings under the hood.
     /// @param message input message
     /// @throws engine::io::IoException in case of socket errors
-    /// @note Recv() is not thread-safe by itself (you may not call Recv() from
-    /// multiple coroutines at once), but it is safe to call Recv() and Send()
-    /// from different coroutines at once thus implementing full-duplex socket
-    /// connection.
+    /// @note Recv() is **not** thread-safe by itself (you may not call Recv() from
+    /// multiple coroutines at once). It is **not** safe to call Recv() and Send() from different coroutines
+    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instaead.
     virtual void Recv(Message& message) = 0;
 
     /// @brief Behaves in the same way as Recv(), but in case of first bytes of
@@ -91,9 +90,8 @@ public:
     /// @param message message to send
     /// @throws engine::io::IoException in case of socket errors
     /// @note Send() is not thread-safe by itself (you may not call Send() from
-    /// multiple coroutines at once), but it is safe to call Recv() and Send()
-    /// from different coroutines at once thus implementing full-duplex socket
-    /// connection.
+    /// multiple coroutines at once). It is **not** safe to call Recv() and Send() from different coroutines
+    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instaead.
     virtual void Send(const Message& message) = 0;
     virtual void SendText(std::string_view message) = 0;
 

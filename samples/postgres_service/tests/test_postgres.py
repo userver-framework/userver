@@ -1,16 +1,3 @@
-from pytest_userver.test_sql_coverage import *  # noqa
-
-import pytest
-
-
-@pytest.fixture
-def on_uncovered():
-    def _on_uncovered(uncovered_statements):
-        raise Exception(f'Uncovered SQL statements: {uncovered_statements}')
-
-    return _on_uncovered
-
-
 # /// [Functional test]
 async def test_postgres(service_client, pgsql):
     # POSTing 'key=hello&value=world'

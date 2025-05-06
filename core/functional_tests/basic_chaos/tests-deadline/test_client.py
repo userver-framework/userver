@@ -96,7 +96,7 @@ async def test_timeout_expired(
     # Client metrics are counted per attempt.
     assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == attempts
 
-    logs = capture.select(stopwatch_name='external')
+    logs = capture.select(stopwatch_name='external/localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
     assert logs[0]['attempts'] == str(attempts)
@@ -163,7 +163,7 @@ async def test_deadline_expired(
         # Client metrics are counted per attempt.
         assert timed_out == attempts
 
-    logs = capture.select(stopwatch_name='external')
+    logs = capture.select(stopwatch_name='external/localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
     assert logs[0]['max_attempts'] == str(attempts)
@@ -247,7 +247,7 @@ async def test_fake_deadline_expired(
     assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
     assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == 1
 
-    logs = capture.select(stopwatch_name='external')
+    logs = capture.select(stopwatch_name='external/localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
     assert logs[0]['attempts'] == '1'

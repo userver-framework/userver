@@ -3,6 +3,7 @@ import typing
 from typing import Union
 
 from chaotic import cpp_names
+from chaotic import error as chaotic_error
 from chaotic.back.cpp import translator as chaotic_translator
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import ref_resolver
@@ -226,10 +227,33 @@ class Translator:
         assert len(gen_types) == 1
         schema = list(gen_types.values())[0]
 
+        if request_body.content_type == 'application/x-www-form-urlencoded':
+            self._validate_primitive_object(schema)
+
         return types.Body(
             content_type=request_body.content_type,
             schema=schema,
         )
+
+    def _validate_primitive_object(self, schema: cpp_types.CppType) -> None:
+        assert schema.json_schema
+        source_location = schema.json_schema.source_location()
+
+        if not isinstance(schema, cpp_types.CppStruct):
+            raise chaotic_error.BaseError(
+                full_filepath=source_location.filepath,
+                infile_path=source_location.location,
+                schema_type='jsonschema',
+                msg='"application/x-www-form-urlencoded" body allows only "type: object"',
+            )
+        for field in schema.fields.values():
+            if not isinstance(field.schema, cpp_types.CppPrimitiveType):
+                raise chaotic_error.BaseError(
+                    full_filepath=source_location.filepath,
+                    infile_path=source_location.location,
+                    schema_type='jsonschema',
+                    msg='"application/x-www-form-urlencoded" body must contain only bool/integer/number/string fields',
+                )
 
     def _translate_parameter(self, parameter: model.Parameter) -> types.Parameter:
         in_ = parameter.in_

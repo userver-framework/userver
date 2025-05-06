@@ -4,7 +4,7 @@
 
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
-namespace sample::grpc::auth::client {
+namespace samples::grpc::auth::client {
 
 /// [Middleware declaration]
 class AuthMiddleware final : public ugrpc::client::MiddlewareBase {
@@ -12,7 +12,7 @@ public:
     // Name of a middleware-factory that creates this middleware.
     static constexpr std::string_view kName = "grpc-auth-client";
 
-    // 'Auth' is a group for auth authentication. See middlewares groups for more information.
+    // 'Auth' is a group for authentication. See middlewares groups for more information.
     static inline const auto kDependency =
         middlewares::MiddlewareDependencyBuilder().InGroup<middlewares::groups::Auth>();
 
@@ -23,11 +23,11 @@ public:
     void PreStartCall(ugrpc::client::MiddlewareCallContext& context) const override;
 };
 
-// This component creates Middleware. Name of component is 'Middleware::kName'.
-// In this case we use a short-cut for defining a middleware-factory, but you can declare your own factory by
+// This component creates Middleware. Name of the component is 'Middleware::kName'.
+// In this case we use a short-cut for defining a middleware-factory, but you can create your own factory by
 // inheritance from 'ugrpc::client::MiddlewareFactoryComponentBase'
 using AuthComponent = ugrpc::client::SimpleMiddlewareFactoryComponent<AuthMiddleware>;
 
 /// [Middleware declaration]
 
-}  // namespace sample::grpc::auth::client
+}  // namespace samples::grpc::auth::client

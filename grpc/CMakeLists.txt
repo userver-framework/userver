@@ -169,6 +169,7 @@ if (USERVER_BUILD_TESTS)
       tests/global_package.proto
       tests/repeating_word_in_package_name.proto
       tests/secret_fields.proto
+      tests/logging.proto
       INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
   )
 

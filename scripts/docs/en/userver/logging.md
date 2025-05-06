@@ -18,7 +18,7 @@ For information on controlling log level in unit tests see @ref scripts/docs/en/
 
 Macros are used for logging:
 
-@snippet logging/log_test.cpp  Sample logging usage
+@snippet logging/log_test.cpp Sample logging usage
 
 The right part of the expression is calculated only if the logging level is less or equal to the macro log level.
 I.e., the right part of the expression `LOG_DEBUG() << ...` is calculated only in the case of the `DEBUG`
@@ -26,7 +26,7 @@ or `TRACE` logging level.
 
 Sometimes it is useful to set the logging level of a given log entry dynamically:
 
-@snippet logging/log_test.cpp  Example set custom logging usage
+@snippet logging/log_test.cpp Example set custom logging usage
 
 ### Guidelines for choosing log level
 
@@ -135,12 +135,146 @@ Nuances:
 - If the same function with logging via `LOG_LIMITED_X` is called in different places, then all its calls
   use the same counter
 
+### Inline formatting
+
+The userver framework provides a convenient inline formatting feature for logging, which optimizes performance by avoiding the creation of intermediate strings. Instead of using `fmt::format(...)` to create a formatted string and then passing it to `LOG_INFO()`, you can directly write the formatted output into the logging buffer using `LOG_INFO(...)`. This reduces memory allocations and improves efficiency.
+The `LOG_INFO(...)` method allows you to format log messages directly into the logger's buffer. It uses the same syntax as `fmt::format`, leveraging the fmtlib library for string formatting, but avoids constructing a temporary `std::string`. This is particularly useful for high-performance applications where logging overhead needs to be minimized.
+
+#### Syntax
+```cpp
+LOG_INFO(<format-string>, <args>...);
+```
+
+- `<format-string>`: A format string following fmtlib conventions (e.g., "{} {}", "Value: {0}, Name: {1}").
+- `<args>...`: The arguments to be formatted into the placeholders in the format string.
+
+#### Examples
+
+@snippet logging/log_test.cpp Example inline formatting usage
+
+**Basic Usage**
+Instead of:
+```cpp
+LOG_INFO() << fmt::format("User {} logged in from {}", user_id, ip_address);
+```
+
+Use:
+```cpp
+LOG_INFO("User {} logged in from {}", user_id, ip_address);
+```
+
+This writes the formatted message directly to the log buffer.
+
+**Complex Formatting**
+You can use all fmtlib features, such as named arguments, positional arguments, and format specifiers:
+```cpp
+LOG_INFO("Request #{0}: {1} took {2:.3f}ms", request_id, operation, duration_ms);
+```
+
+Output example:
+```
+Request #42: upload took 12.345ms
+```
+
+**Avoiding Temporary Strings**
+For scenarios with complex data, inline formatting prevents unnecessary string construction:
+```cpp
+LOG_INFO("Coordinates: ({:.2f}, {:.2f})", point.x, point.y);
+```
+
+This is more efficient than:
+```cpp
+LOG_INFO() << fmt::format("Coordinates: ({:.2f}, {:.2f})", point.x, point.y);
+```
+
+#### Benefits
+- Performance: Eliminates temporary string allocations, reducing memory usage and CPU overhead.
+- Readability: Keeps log statements concise and clear.
+- Consistency: Uses the familiar fmtlib formatting syntax.
+
+For more details on fmtlib formatting syntax, refer to the fmtlib documentation (https://fmt.dev/latest/syntax.html).
+
+### Lambda-Based Logging
+
+The userver framework provides a powerful mechanism for custom logging of container contents using lambda functions. This approach eliminates the need to build intermediate strings with `std::stringstream` when logging structured data, such as fields of container elements. Instead, you can pass a lambda function to `LOG_INFO()` that defines how to stream the data directly into the log buffer, improving performance and readability.
+
+The userver logging system allows you to pass a lambda function to `LOG_INFO()` to customize how container elements or other data are streamed into the log buffer. The lambda takes an output stream (auto& out) as its parameter, which you can use to write formatted data directly. This avoids the overhead of constructing temporary strings with std::stringstream and provides a flexible way to log complex data structures.
+
+```cpp
+LOG_INFO() << [<capture>](auto& out) {
+    // Custom streaming logic
+    out << <data>;
+};
+```
+
+- `<capture>`: Lambda capture list (e.g., [&list] to capture list by reference).
+- `auto& out`: The output stream provided by the logger to write formatted data.
+- `<data>`: The data (e.g., container elements, fields) to be streamed.
+
+#### Examples
+
+@snippet logging/log_test.cpp Example lambda-based logging usage
+
+**Logging Container Element Fields**
+
+Instead of:
+```cpp
+std::stringstream ss;
+for (const auto& item : list) {
+    ss << item.foo << " " << item.bar << ", ";
+}
+LOG_INFO() << ss.str();
+```
+
+Use:
+
+@snippet logging/log_test.cpp Example Logging Container Element Fields
+
+This streams the foo and bar fields of each item in the list directly to the log buffer.
+
+Output example (for list = {{foo=1, bar="x"}, {foo=2, bar="y"}}):
+```
+1 x, 2 y,
+```
+
+**Adding Custom Formatting**
+
+You can include additional formatting logic in the lambda, such as delimiters or conditional formatting:
+
+@snippet logging/log_test.cpp Example Adding Custom Formatting
+
+Output example (for list = {{foo=1, bar="x"}, {foo=2, bar="y"}}):
+```
+Items: 1:x; 2:y
+```
+
+**Logging Nested Structures**
+
+@note Perhaps the best solution would be to implement a `fmt::formatter`
+
+For more complex data, the lambda can handle nested structures:
+
+@snippet logging/log_test.cpp Example Logging Nested Structures
+
+Output example (for list = {{foo=1, bar="x"}, {foo=2, bar="y"}}):
+```
+Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]
+```
+
+#### Benefits
+- Performance: Avoids temporary string construction, reducing memory allocations and copying.
+- Flexibility: Allows complete control over how data is formatted and streamed.
+- Readability: Keeps formatting logic concise and co-located with the logging statement.
+- Maintainability: Lambda-based logging is easier to modify than stringstream-based concatenation.
+
+For additional formatting control, you can combine this feature with userver's inline formatting (`out.Format(...)`) or default container streaming.
+
 ### Tags
 
 If you want to add tags to as single log record, then you can create an object of type `logging::LogExtra`, add the necessary tags to it
 and output the `LogExtra` object to the log:
 
-@snippet logging/log_extra_test.cpp  Example using LogExtra
+@snippet logging/log_extra_test.cpp Example using LogExtra
 
 If the same fields must be added to each log in a code block, it is recommended
 to use `tracing::Span`, which implicitly adds tags to the log.
@@ -150,7 +284,7 @@ to use `tracing::Span`, which implicitly adds tags to the log.
 Sometimes it is useful to write a full stacktrace to the log. Typical use case is for logging a "never should happen happened"
 situation. Use logging::LogExtra::Stacktrace() for such cases:
 
-@snippet logging/log_extra_test.cpp  Example using stacktrace in log
+@snippet logging/log_extra_test.cpp Example using stacktrace in log
 
 Important: getting a text representation of a stacktrace is an **expensive operation**. In addition, the stacktrace
 itself increases the log record size several times. Therefore, you do not need to use a stack trace for all errors. Use it only
@@ -182,8 +316,8 @@ Note: do not forget to configure the logrotate for your new log file!
 The userver implements a request tracing mechanism that is compatible with the
 [opentelemetry](https://opentelemetry.io/docs/) standard.
 
-It allows you to save dependencies between tasks, between requests through several services, 
-thereby building a trace of requests and interactions. It can be used to identify slow query stages, bottlenecks, 
+It allows you to save dependencies between tasks, between requests through several services,
+thereby building a trace of requests and interactions. It can be used to identify slow query stages, bottlenecks,
 sequential queries, etc.
 
 See tracing::DefaultTracingManagerLocator for more info.
@@ -213,7 +347,7 @@ whose objects can be passed between tasks is not supported.
 In addition to `trace_id`, `span_id`, `parent_id` and other tags specific to opentracing, the `tracing::Span` class can
 store arbitrary custom tags. To do this, Span implicitly contains LogExtra. You can add tags like this:
 
-@snippet tracing/span_test.cpp  Example using Span tracing
+@snippet tracing/span_test.cpp Example using Span tracing
 
 Unlike simple `LogExtra`, tags from `Span` are automatically logged when using `LOG_XXX()`. If you create a `Span`, and
 you already have a `Span`, then `LogExtra` is copied from the old one to the new one (except for the tags added via
@@ -236,12 +370,12 @@ to them (trace_id, span_id, etc.). All `Span` in the current task are implicitly
 similar `Span`, the last created One (i.e., located at the top of the `Span` stack of the current task) will be used for
 logging.
 
-@snippet tracing/span_test.cpp  Example span hierarchy
+@snippet tracing/span_test.cpp Example span hierarchy
 
 If you want to get the current `Span` (for example, you want to write something to `LogExtra`, but do not want to create
 an additional `Span`), then you can use the following approach:
 
-@snippet core/src/tracing/span_test.cpp  Example get current span
+@snippet core/src/tracing/span_test.cpp Example get current span
 
 ### Creating a Span
 
@@ -265,7 +399,7 @@ Names of the headers varry depending on tracing::DefaultTracingManagerLocator
 static configuration and on the chosen tracing::Format value. For example,
 with tracing::Format::kYandexTaxi the following headers would be used:
 
-``` 
+```
 X-YaRequestId
 X-YaSpanId
 X-YaTraceId
@@ -334,7 +468,7 @@ yaml
 otlp-logger:
     endpoint: $otlp-endpoint
     service-name: $service-name
-    log-level: info    
+    log-level: info
     sinks:
         logs: default | otlp | both
         tracing: default | otlp | both
@@ -360,15 +494,15 @@ Otherwise, add the _default_ logger in the `logging` component's `loggers` field
 yaml
 logging:
     fs-task-processor: fs-task-processor
-    loggers: 
+    loggers:
         default:
-            file_path: $log-location 
+            file_path: $log-location
             level: info
             overflow_behavior: discard
         my_rabbit_logger: # you can use additional loggers
-            file_path: $log-location                     
+            file_path: $log-location
             level: error
-            overflow_behavior: discard               
+            overflow_behavior: discard
 ```
 
 @note If you have additional loggers configured, they will function as usual, even if you're using the default

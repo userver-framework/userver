@@ -22,14 +22,17 @@ Component::Component(const components::ComponentConfig& config, const components
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
       ),
       middleware_(std::make_shared<Middleware>()) {
-    auto& cc_component = context.FindComponent<USERVER_NAMESPACE::congestion_control::Component>();
-
-    auto& server_limiter = cc_component.GetServerLimiter();
-    server_limiter.RegisterLimitee(*middleware_);
+    auto* cc_component = context.FindComponentOptional<USERVER_NAMESPACE::congestion_control::Component>();
 
     auto& server = context.FindComponent<ServerComponent>().GetServer();
-    auto& server_sensor = cc_component.GetServerSensor();
-    server_sensor.RegisterRequestsSource(server);
+
+    if (cc_component) {
+        auto& server_limiter = cc_component->GetServerLimiter();
+        server_limiter.RegisterLimitee(*middleware_);
+
+        auto& server_sensor = cc_component->GetServerSensor();
+        server_sensor.RegisterRequestsSource(server);
+    }
 }
 
 std::shared_ptr<const MiddlewareBase>

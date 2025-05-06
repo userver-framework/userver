@@ -20,24 +20,6 @@ constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServic
 
 }  // namespace
 
-template <>
-struct CallTraits<ugrpc::server::StreamingResult<
-    grpc::
-        ByteBuffer> (GenericServiceBase::*)(ugrpc::server::GenericCallContext&, ugrpc::server::ReaderWriter<grpc::ByteBuffer, grpc::ByteBuffer>&)>
-    final {
-    using ServiceBase = GenericServiceBase;
-    using Request = grpc::ByteBuffer;
-    using Response = grpc::ByteBuffer;
-    using RawCall = impl::RawReaderWriter<Request, Response>;
-    using InitialRequest = NoInitialRequest;
-    using Call = BidirectionalStream<Request, Response>;
-    using ContextType = grpc::GenericServerContext;
-    using ServiceMethod = ugrpc::server::StreamingResult<
-        grpc::
-            ByteBuffer> (ServiceBase::*)(ugrpc::server::GenericCallContext&, ugrpc::server::ReaderWriter<Request, Response>&);
-    static constexpr auto kCallCategory = CallCategory::kGeneric;
-};
-
 struct GenericServiceTag final {};
 
 template <>
@@ -50,14 +32,13 @@ public:
         int method_id,
         grpc::GenericServerContext& context,
         typename CallTraits::InitialRequest& /*initial_request*/,
-        typename CallTraits::RawCall& stream,
+        typename CallTraits::RawResponder& responder,
         grpc::CompletionQueue& call_cq,
         grpc::ServerCompletionQueue& notification_cq,
         void* tag
     ) {
-        static_assert(CallTraits::kCallCategory == CallCategory::kGeneric);
         UASSERT(method_id == 0);
-        service_.RequestCall(&context, &stream, &call_cq, &notification_cq, tag);
+        service_.RequestCall(&context, &responder, &call_cq, &notification_cq, tag);
     }
 
     grpc::AsyncGenericService& GetService() { return service_; }
@@ -67,15 +48,15 @@ private:
 };
 
 struct GenericServiceWorker::Impl {
-    Impl(GenericServiceBase& service, ServiceSettings&& settings)
-        : service(service), service_data(std::move(settings), kGenericMetadataFake) {}
+    Impl(GenericServiceBase& service, ServiceInternals&& internals)
+        : service(service), service_data(std::move(internals), kGenericMetadataFake) {}
 
     GenericServiceBase& service;
     ServiceData<GenericServiceTag> service_data;
 };
 
-GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceSettings&& settings)
-    : impl_(service, std::move(settings)) {}
+GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceInternals&& internals)
+    : impl_(service, std::move(internals)) {}
 
 GenericServiceWorker::GenericServiceWorker(GenericServiceWorker&&) noexcept = default;
 

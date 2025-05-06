@@ -1,3 +1,5 @@
+# NOTE: if this CI check breaks, just remove it, docker checks are enough anyway.
+
 name: CI
 
 'on':

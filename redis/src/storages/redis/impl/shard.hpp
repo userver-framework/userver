@@ -28,6 +28,9 @@ public:
 
     void SetPassword(Password);
 
+    void SetDatabaseIndex(size_t index);
+    size_t DatabaseIndex() const;
+
     bool IsReadOnly() const;
     void SetReadOnly(bool);
 

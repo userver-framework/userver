@@ -23,12 +23,12 @@ def test_simple(simple_gen):
                 },
             },
             'additionalProperties': False,
-        })['::/definitions/type']
+        })['::type']
         .fields['foo']
         .schema
     )
 
-    assert foo_schema.raw_cpp_type == type_name.TypeName(['', '/definitions/type', 'Foo'])
+    assert foo_schema.raw_cpp_type == type_name.TypeName(['', 'type', 'Foo'])
     assert len(foo_schema.variants) == 3
 
     assert foo_schema.variants[0].raw_cpp_type == type_name.TypeName('int')

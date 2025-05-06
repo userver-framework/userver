@@ -8,6 +8,8 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Server congestion_control middleware
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
+/// @see @ref ugrpc::server::middlewares::congestion_control::Component
 namespace ugrpc::server::middlewares::congestion_control {
 
 class Middleware;
@@ -23,6 +25,8 @@ class Middleware;
 /// ## Static configuration example:
 ///
 /// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc server congestion control middleware component config
+///
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
 
 // clang-format on
 

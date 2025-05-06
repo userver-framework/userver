@@ -9,6 +9,8 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Client logging middleware
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
+/// @see @ref ugrpc::client::middlewares::deadline_propagation::Component
 namespace ugrpc::client::middlewares::deadline_propagation {
 
 // clang-format off
@@ -25,6 +27,8 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 /// ## Static configuration example:
 ///
 /// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc client deadline propagation middleware component config
+///
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
 
 // clang-format on
 

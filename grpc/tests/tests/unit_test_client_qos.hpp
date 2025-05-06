@@ -13,8 +13,10 @@ inline const dynamic_config::Key<ugrpc::client::ClientQos> kUnitTestClientQos{
     dynamic_config::DefaultAsJsonString{
         R"(
           {
-            "__default__": {
-              "timeout-ms": 100
+            "methods": {
+              "__default__": {
+                "timeout-ms": 100
+              }
             }
           }
         )",

@@ -25,7 +25,7 @@ std::vector<dynamic_config::KeyValue> MakeQosConfig(std::chrono::milliseconds ti
     qos.timeout = timeout;
 
     ugrpc::client::ClientQos client_qos;
-    client_qos.SetDefault(qos);
+    client_qos.methods.SetDefault(qos);
 
     return {
         {tests::kUnitTestClientQos, client_qos},
@@ -37,7 +37,7 @@ std::vector<dynamic_config::KeyValue> MakePerRpcQosConfig(std::chrono::milliseco
     qos.timeout = timeout;
 
     ugrpc::client::ClientQos client_qos;
-    client_qos.Set("sample.ugrpc.UnitTestService/SayHello", qos);
+    client_qos.methods.Set("sample.ugrpc.UnitTestService/SayHello", qos);
 
     return {
         {tests::kUnitTestClientQos, client_qos},

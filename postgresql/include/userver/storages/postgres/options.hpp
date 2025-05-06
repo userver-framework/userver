@@ -224,6 +224,10 @@ struct ConnectionSettings {
         kDiscardNone,
         kDiscardAll,
     };
+    enum StatementLogMode {
+        kLogSkip,
+        kLog,
+    };
     using SettingsVersion = std::size_t;
 
     /// Cache prepared statements or not
@@ -252,6 +256,9 @@ struct ConnectionSettings {
 
     /// Execute discard all after establishing a new connection
     DiscardOnConnectOptions discard_on_connect = kDiscardAll;
+
+    /// Statement logging in span tags
+    StatementLogMode statement_log_mode = kLog;
 
     bool deadline_propagation_enabled = true;
 

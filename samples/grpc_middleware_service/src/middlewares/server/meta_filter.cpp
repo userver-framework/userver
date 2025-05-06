@@ -3,7 +3,7 @@
 #include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 
-namespace sample::grpc::auth::server {
+namespace samples::grpc::auth::server {
 
 namespace {
 
@@ -72,4 +72,4 @@ properties:
 }
 /// [gRPC middleware sample]
 
-}  // namespace sample::grpc::auth::server
+}  // namespace samples::grpc::auth::server

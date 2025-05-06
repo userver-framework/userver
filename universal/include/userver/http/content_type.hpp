@@ -56,6 +56,9 @@ public:
     /// Differs from equality comparison in wildcard support.
     bool DoesAccept(const ContentType&) const;
 
+    /// Value of "boundary" parameter.
+    const std::string& Boundary() const;
+
     /// Builds a string representation of content-type/media-range
     std::string ToString() const;
 
@@ -68,6 +71,7 @@ private:
     std::string type_;
     std::string subtype_;
     std::string charset_;
+    std::string boundary_;
     int quality_;
 
     std::string string_representation_;

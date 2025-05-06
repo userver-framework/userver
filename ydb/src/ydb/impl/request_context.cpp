@@ -9,6 +9,9 @@
 #include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
+#include <dynamic_config/variables/YDB_DEADLINE_PROPAGATION_VERSION.hpp>
+#include <dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
@@ -91,11 +94,11 @@ void PrepareSettings(
         os.tx_mode = default_settings.tx_mode.value();
     }
 
-    const auto& cc_map = config_snapshot[impl::kQueryCommandControl];
+    const auto& cc_map = config_snapshot[::dynamic_config::YDB_QUERIES_COMMAND_CONTROL];
 
     if (!query.GetName()) return;
-    auto it = cc_map.find(query.GetName()->GetUnderlying());
-    if (it == cc_map.end()) return;
+    auto it = cc_map.extra.find(query.GetName()->GetUnderlying());
+    if (it == cc_map.extra.end()) return;
 
     auto& cc = it->second;
 
@@ -110,8 +113,10 @@ void PrepareSettings(
 }
 
 engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
-    if (config_snapshot[impl::kDeadlinePropagationVersion] != impl::kDeadlinePropagationExperimentVersion) {
-        LOG_DEBUG() << "Wrong DP experiment version, config=" << config_snapshot[impl::kDeadlinePropagationVersion]
+    if (config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION] !=
+        impl::kDeadlinePropagationExperimentVersion) {
+        LOG_DEBUG() << "Wrong DP experiment version, config="
+                    << config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION]
                     << ", experiment=" << impl::kDeadlinePropagationExperimentVersion;
         return {};
     }
@@ -137,20 +142,20 @@ engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot
 RequestContext::RequestContext(
     TableClient& table_client_,
     const Query& query,
-    OperationSettings& settings,
+    OperationSettings&& settings,
     IsStreaming is_streaming,
     tracing::Span* custom_parent_span,
     const utils::impl::SourceLocation& location
 )
     : table_client(table_client_),
-      settings(settings),
+      settings(std::move(settings)),
       initial_uncaught_exceptions(std::uncaught_exceptions()),
       stats_scope(*table_client.stats_, query),
       config_snapshot(table_client.config_source_.GetSnapshot()),
       // Note: comma operator is used to insert code between initializations.
       span(
-          (PrepareSettings(query, config_snapshot, settings, is_streaming, table_client.default_settings_),
-           MakeSpan(query, settings, custom_parent_span, location))
+          (PrepareSettings(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
+           MakeSpan(query, this->settings, custom_parent_span, location))
       ),
       deadline(GetDeadline(span, config_snapshot)) {}
 

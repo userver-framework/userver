@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Definitions of structures representing optionas for different commands
+
 #include <optional>
 #include <string>
 #include <vector>

@@ -22,6 +22,10 @@ namespace middlewares {
 
 namespace impl {
 
+// Options for a middleware can be from two places:
+// 1. The global config of a middleware.
+// 2. Overriding in RunnerComponentBase component.
+// We must validate (2) and merge values from (1) and (2).
 yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
     const formats::yaml::Value& global,
     const yaml_config::YamlConfig& local,
@@ -44,6 +48,8 @@ public:
 };
 
 void LogConfiguration(std::string_view component_name, const std::vector<std::string>& names);
+
+void LogValidateError(std::string_view middleware_name, const std::exception& e);
 
 }  // namespace impl
 
@@ -197,10 +203,15 @@ std::vector<std::shared_ptr<const MiddlewareBase>> RunnerComponentBase<Middlewar
     std::vector<std::shared_ptr<const MiddlewareBase>> middlewares{};
     middlewares.reserve(middleware_infos_.size());
     for (const auto& [factory, local_config] : middleware_infos_) {
-        auto config = impl::ValidateAndMergeMiddlewareConfigs(
-            factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
-        );
-        middlewares.push_back(factory->CreateMiddleware(info, config));
+        try {
+            auto config = impl::ValidateAndMergeMiddlewareConfigs(
+                factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
+            );
+            middlewares.push_back(factory->CreateMiddleware(info, config));
+        } catch (const std::exception& e) {
+            impl::LogValidateError(factory->GetMiddlewareDependency(utils::impl::InternalTag{}).middleware_name, e);
+            throw;
+        }
     }
     return middlewares;
 }

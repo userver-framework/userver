@@ -364,6 +364,10 @@ Accessing testpoint userver is not aware of will raise an exception:
 * C++ code: @ref samples/testsuite-support/src/testpoint.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_testpoint.py
 
+#### Dynamic config mock
+
+@see @ref dynamic_config_testsuite
+
 @anchor testsuite_logs_capture
 #### Logs capture
 

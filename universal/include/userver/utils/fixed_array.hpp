@@ -9,18 +9,11 @@
 #include <utility>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
-
-namespace impl {
-
-struct GenerateTag final {
-    explicit GenerateTag() = default;
-};
-
-}  // namespace impl
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -81,7 +74,7 @@ public:
 
     /// @cond
     template <class GeneratorFunc>
-    FixedArray(impl::GenerateTag tag, std::size_t size, GeneratorFunc&& generator);
+    FixedArray(impl::InternalTag tag, std::size_t size, GeneratorFunc&& generator);
     /// @endcond
 
 private:
@@ -130,7 +123,7 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
 
 template <class T>
 template <class GeneratorFunc>
-FixedArray<T>::FixedArray(impl::GenerateTag /*tag*/, std::size_t size, GeneratorFunc&& generator) : size_(size) {
+FixedArray<T>::FixedArray(impl::InternalTag /*tag*/, std::size_t size, GeneratorFunc&& generator) : size_(size) {
     if (size_ == 0) return;
     storage_ = std::allocator<T>{}.allocate(size_);
 
@@ -170,7 +163,7 @@ FixedArray<T>::~FixedArray() {
 template <class GeneratorFunc>
 auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator) {
     using ResultType = std::remove_reference_t<std::invoke_result_t<GeneratorFunc&, std::size_t>>;
-    return FixedArray<ResultType>(impl::GenerateTag{}, size, std::forward<GeneratorFunc>(generator));
+    return FixedArray<ResultType>(impl::InternalTag{}, size, std::forward<GeneratorFunc>(generator));
 }
 
 }  // namespace utils

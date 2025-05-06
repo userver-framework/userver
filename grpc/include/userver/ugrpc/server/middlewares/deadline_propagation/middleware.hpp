@@ -21,6 +21,8 @@ public:
             .After<congestion_control::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak);
 
     void OnCallStart(MiddlewareCallContext& context) const override;
+
+    void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation

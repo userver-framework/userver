@@ -19,6 +19,8 @@ bool HasSecrets(const google::protobuf::Message& message);
 /// See https://github.com/protocolbuffers/protobuf/issues/7801
 void TrimSecrets(google::protobuf::Message& message);
 
+std::string ToLimitedString(const google::protobuf::Message& message, std::size_t limit);
+
 }  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

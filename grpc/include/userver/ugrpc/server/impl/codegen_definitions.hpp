@@ -9,4 +9,5 @@
 #include <utility>
 
 #include <userver/ugrpc/impl/protobuf_collector.hpp>
+#include <userver/ugrpc/server/impl/service_internals.hpp>
 #include <userver/ugrpc/server/impl/service_worker_impl.hpp>

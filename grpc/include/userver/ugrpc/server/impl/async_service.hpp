@@ -25,22 +25,22 @@ public:
         int method_id,
         grpc::ServerContext& context,
         typename CallTraits::InitialRequest& initial_request,
-        typename CallTraits::RawCall& stream,
+        typename CallTraits::RawResponder& stream,
         grpc::CompletionQueue& call_cq,
         grpc::ServerCompletionQueue& notification_cq,
         void* tag
     ) {
-        constexpr auto kCallCategory = CallTraits::kCallCategory;
+        constexpr auto kCallKind = CallTraits::kCallKind;
 
-        if constexpr (kCallCategory == CallCategory::kUnary) {
+        if constexpr (kCallKind == CallKind::kUnaryCall) {
             this->RequestAsyncUnary(method_id, &context, &initial_request, &stream, &call_cq, &notification_cq, tag);
-        } else if constexpr (kCallCategory == CallCategory::kInputStream) {
+        } else if constexpr (kCallKind == CallKind::kInputStream) {
             this->RequestAsyncClientStreaming(method_id, &context, &stream, &call_cq, &notification_cq, tag);
-        } else if constexpr (kCallCategory == CallCategory::kOutputStream) {
+        } else if constexpr (kCallKind == CallKind::kOutputStream) {
             this->RequestAsyncServerStreaming(
                 method_id, &context, &initial_request, &stream, &call_cq, &notification_cq, tag
             );
-        } else if constexpr (kCallCategory == CallCategory::kBidirectionalStream) {
+        } else if constexpr (kCallKind == CallKind::kBidirectionalStream) {
             this->RequestAsyncBidiStreaming(method_id, &context, &stream, &call_cq, &notification_cq, tag);
         } else {
             static_assert(!sizeof(CallTraits), "Invalid kCallCategory");

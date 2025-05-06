@@ -183,7 +183,8 @@ formats::json::Value ServiceConfigBuilder::Build(const ClientQos& client_qos) co
 formats::json::Value ServiceConfigBuilder::BuildMethodConfigArray(const ClientQos& client_qos) const {
     formats::json::ValueBuilder method_config_array;
 
-    const auto qos_default = client_qos.HasDefaultValue() ? client_qos.GetDefaultValue() : std::optional<Qos>{};
+    const auto qos_default =
+        client_qos.methods.HasDefaultValue() ? client_qos.methods.GetDefaultValue() : std::optional<Qos>{};
 
     auto default_method_config = prepared_method_configs_.default_method_config;
     if (default_method_config.has_value() && qos_default.has_value()) {
@@ -194,7 +195,7 @@ formats::json::Value ServiceConfigBuilder::BuildMethodConfigArray(const ClientQo
         const auto method_name = GetMethodName(metadata_, method_id);
         const auto method_full_name = GetMethodFullName(metadata_, method_id);
 
-        const auto qos = client_qos.GetOptional(method_full_name);
+        const auto qos = client_qos.methods.GetOptional(method_full_name);
 
         auto method_config = utils::FindOptional(prepared_method_configs_.method_configs, method_id);
         if (method_config.has_value() && qos_default.has_value()) {
@@ -204,7 +205,7 @@ formats::json::Value ServiceConfigBuilder::BuildMethodConfigArray(const ClientQo
         // add MethodConfig
         // if method Qos with non empty value exists,
         // or `static-service-config` has corresponding MethodConfig entry
-        if (client_qos.HasValue(method_full_name) && HasValue(*qos)) {
+        if (client_qos.methods.HasValue(method_full_name) && HasValue(*qos)) {
             method_config_array.PushBack(BuildMethodConfig(
                 metadata_.service_full_name,
                 method_name,
