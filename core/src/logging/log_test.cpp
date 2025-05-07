@@ -99,6 +99,31 @@ TEST_F(LoggingTest, DocsData) {
     /// [Example set custom logging usage]
 }
 
+TEST_F(LoggingTest, DocsDataInline) {
+    /// [Sample logging usage]
+    LOG_TRACE("Very verbose logs, only enabled using dynamic debug logs");
+    LOG_DEBUG("Some debug info, not logged by default in production");
+    LOG_INFO("This is informational message");
+    LOG_WARNING("Something strange happened");
+    LOG_ERROR("This is unbelievable, fix me, please!");
+    LOG_CRITICAL("The service is about to abort, bye");
+    /// [Sample logging usage]
+}
+
+TEST_F(LoggingTest, DocsDataInlineFormat) {
+    /// [Sample logging usage]
+    LOG_TRACE("Very {} logs, only enabled using dynamic debug logs", "verbose");
+    LOG_DEBUG("Some {} info, not logged by default in production", "debug");
+    LOG_INFO("This is {} message", "informational");
+    LOG_WARNING("Something {} happened", "strange");
+    LOG_ERROR("This is {}, fix me, please!", "unbelievable");
+    LOG_CRITICAL("The service is about to {}, bye", "abort");
+    /// [Sample logging usage]
+
+    // NOTE: Should not be compilable!
+    // LOG_WARNING(fmt::format("Something {} happened", "strange"));
+}
+
 TEST_F(LoggingTest, DatetimeDate) {
     const auto date = utils::datetime::Date(2023, 4, 8);
     EXPECT_EQ("2023-04-08", ToStringViaLogging(date));
@@ -129,9 +154,109 @@ UTEST_F(SocketLoggingTest, Test) {
 }
 
 TEST_F(LoggingTest, LogRaw) {
-    auto& logger = logging::GetDefaultLogger();
-    logging::impl::LogRaw(dynamic_cast<logging::impl::TextLogger&>(logger), logging::Level::kInfo, "foo");
+    logging::impl::LogRaw(*GetStreamLogger(), logging::Level::kInfo, "foo");
     EXPECT_EQ(GetStreamString(), "foo\n");
+}
+
+TEST_F(LoggingTest, DISABLED_Format) {
+    LOG_ERROR("Hello, {}", "world");
+    EXPECT_EQ("Hello, world", LoggedText());
+    ClearLog();
+
+    LOG_ERROR("{}, {}", "Hello", "world");
+    EXPECT_EQ("Hello, world", LoggedText());
+    ClearLog();
+}
+
+TEST_F(LoggingTest, Call) {
+    /// [Example lambda-based logging usage]
+    std::map<int, int> map{{1, 2}, {2, 3}, {3, 4}};
+    LOG_ERROR() << [&map](auto& out) {
+        for (const auto& [key, value] : map) {
+            out << key << "=" << value << ", ";
+        }
+    };
+    /// [Example lambda-based logging usage]
+    EXPECT_EQ("1=2, 2=3, 3=4, ", LoggedText());
+}
+
+TEST_F(LoggingTest, CallFormat) {
+    /// [Example lambda-based logging usage]
+    std::map<int, int> map{{1, 2}, {2, 3}, {3, 4}};
+    LOG_ERROR() << [&map](auto& out) {
+        for (const auto& [key, value] : map) {
+            out.Format("{}={}, ", key, value);
+        }
+    };
+    /// [Example lambda-based logging usage]
+    EXPECT_EQ("1=2, 2=3, 3=4, ", LoggedText());
+}
+
+TEST_F(LoggingTest, LoggingContainerElementFields) {
+    struct Item {
+        int foo;
+        std::string bar;
+    };
+    std::vector<Item> list{{1, "x"}, {2, "y"}};
+    /// [Example Logging Container Element Fields]
+    LOG_INFO() << [&list](auto& out) {
+        for (const auto& item : list) {
+            out << item.foo << " " << item.bar << ", ";
+        }
+    };
+    /// [Example Logging Container Element Fields]
+    EXPECT_EQ("1 x, 2 y, ", LoggedText());
+}
+
+TEST_F(LoggingTest, AddingCustomFormatting) {
+    struct Item {
+        int foo;
+        std::string bar;
+    };
+    std::vector<Item> list{{1, "x"}, {2, "y"}};
+    /// [Example Adding Custom Formatting]
+    LOG_INFO() << [&list](auto& out) {
+        bool first = true;
+        out << "Items: ";
+        for (const auto& item : list) {
+            if (!first) out << "; ";
+            out << item.foo << ":" << item.bar;
+            first = false;
+        }
+    };
+    /// [Example Adding Custom Formatting]
+    EXPECT_EQ("Items: 1:x; 2:y", LoggedText());
+}
+
+TEST_F(LoggingTest, LoggingNestedStructures) {
+    struct Item {
+        int foo;
+        std::string bar;
+    };
+    std::vector<Item> list{{1, "x"}, {2, "y"}};
+
+    /// [Example Logging Nested Structures]
+    LOG_INFO() << [&list](auto& out) {
+        out << "Records: [";
+        for (const auto& item : list) {
+            out << "{foo=" << item.foo << ", bar=" << item.bar << "}, ";
+        }
+        out << "]";
+    };
+    /// [Example Logging Nested Structures]
+    EXPECT_EQ("Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]", LoggedText());
+
+    ClearLog();
+    /// [Example Logging Nested Structures]
+    LOG_INFO() << [&list](auto& out) {
+        out << "Records: [";
+        for (const auto& item : list) {
+            out.Format("{{foo={}, bar={}}}, ", item.foo, item.bar);
+        }
+        out << "]";
+    };
+    /// [Example Logging Nested Structures]
+    EXPECT_EQ("Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]", LoggedText());
 }
 
 USERVER_NAMESPACE_END

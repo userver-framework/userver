@@ -1,5 +1,6 @@
 #include <grpc-protovalidate/server/middleware.hpp>
 
+#include <fmt/core.h>
 #include <google/protobuf/arena.h>
 
 #include <userver/logging/log.hpp>
@@ -30,10 +31,12 @@ void Middleware::PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, 
     auto result = validator.Validate(request);
 
     if (!result.ok()) {
-        // Usually that means some CEL expression in a proto file can not be
-        // parsed or evaluated.
+        // Usually that means some CEL expression in a proto file can not be parsed or evaluated.
         context.SetError(grpc::Status{
-            grpc::StatusCode::INTERNAL, "Validator internal error (check request constraints in the proto file)"});
+            grpc::StatusCode::INTERNAL,
+            fmt::format(
+                "Validator internal error (check request constraints in the proto file): {}", result.status().ToString()
+            )});
     } else if (result.value().violations_size() > 0) {
         for (const auto& violation : result.value().violations()) {
             LOG_ERROR() << "Request constraint violation: " << violation.proto();

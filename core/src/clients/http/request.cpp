@@ -1,8 +1,6 @@
 #include <userver/clients/http/request.hpp>
 
-#include <chrono>
 #include <cstdlib>
-#include <map>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -37,6 +35,17 @@ namespace clients::http {
 namespace {
 
 constexpr std::string_view kHeaderExpect = "Expect";
+
+static constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
+    return selector()
+        .Case(HttpMethod::kGet, "GET")
+        .Case(HttpMethod::kHead, "HEAD")
+        .Case(HttpMethod::kPost, "POST")
+        .Case(HttpMethod::kPut, "PUT")
+        .Case(HttpMethod::kPatch, "PATCH")
+        .Case(HttpMethod::kDelete, "DELETE")
+        .Case(HttpMethod::kOptions, "OPTIONS");
+});
 
 std::string ToString(HttpMethod method) { return std::string{ToStringView(method)}; }
 
@@ -171,19 +180,16 @@ bool IsAllowedSchemaInUrl(std::string_view url) {
 
 }  // namespace
 
-std::string_view ToStringView(HttpMethod method) {
-    static constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector()
-            .Case(HttpMethod::kDelete, "DELETE")
-            .Case(HttpMethod::kGet, "GET")
-            .Case(HttpMethod::kHead, "HEAD")
-            .Case(HttpMethod::kPost, "POST")
-            .Case(HttpMethod::kPut, "PUT")
-            .Case(HttpMethod::kPatch, "PATCH")
-            .Case(HttpMethod::kOptions, "OPTIONS");
-    });
+std::string_view ToStringView(HttpMethod method) { return utils::impl::EnumToStringView(method, kHttpMethodMap); }
 
-    return utils::impl::EnumToStringView(method, kMap);
+HttpMethod HttpMethodFromString(std::string_view method_str) {
+    if (auto method = kHttpMethodMap.TryFindBySecond(method_str)) {
+        return *method;
+    }
+
+    throw std::runtime_error(
+        fmt::format("Unsupported http method '{}' (must be one of {})", method_str, kHttpMethodMap.DescribeSecond())
+    );
 }
 
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {

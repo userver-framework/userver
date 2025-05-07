@@ -10,6 +10,10 @@ class Model(pydantic.BaseModel):
 
     field: str
 
+    def model_post_init(self, context):
+        if self.field == 'wrong':
+            raise ValueError('wrong field value')
+
 
 def wrap_error(model) -> None:
     try:
@@ -67,5 +71,21 @@ Unhandled error while processing filepath
 Path "field", Format "jsonschema"
 Error:
 String type is expected, 1 is found
+==============================================================="""
+    )
+
+
+def test_model_post_init():
+    model = {'field': 'wrong'}
+    with pytest.raises(chaotic.error.BaseError) as exc:
+        wrap_error(model)
+    assert (
+        str(exc.value)
+        == """
+===============================================================
+Unhandled error while processing filepath
+Path "", Format "jsonschema"
+Error:
+Value error, wrong field value
 ==============================================================="""
     )

@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/grpc-protovalidate/buf_validate.hpp
-/// @brief Header which wraps @c buf/validate/validator.h to supress compiler
+/// @brief Header which wraps @c buf/validate/validator.h to suppress compiler
 ///        warnings from it.
 
 #if defined(__GNUC__) && !defined(__clang__)

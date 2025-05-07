@@ -32,13 +32,13 @@ public:
         int method_id,
         grpc::GenericServerContext& context,
         typename CallTraits::InitialRequest& /*initial_request*/,
-        typename CallTraits::RawCall& stream,
+        typename CallTraits::RawResponder& responder,
         grpc::CompletionQueue& call_cq,
         grpc::ServerCompletionQueue& notification_cq,
         void* tag
     ) {
         UASSERT(method_id == 0);
-        service_.RequestCall(&context, &stream, &call_cq, &notification_cq, tag);
+        service_.RequestCall(&context, &responder, &call_cq, &notification_cq, tag);
     }
 
     grpc::AsyncGenericService& GetService() { return service_; }
@@ -48,15 +48,15 @@ private:
 };
 
 struct GenericServiceWorker::Impl {
-    Impl(GenericServiceBase& service, ServiceSettings&& settings)
-        : service(service), service_data(std::move(settings), kGenericMetadataFake) {}
+    Impl(GenericServiceBase& service, ServiceInternals&& internals)
+        : service(service), service_data(std::move(internals), kGenericMetadataFake) {}
 
     GenericServiceBase& service;
     ServiceData<GenericServiceTag> service_data;
 };
 
-GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceSettings&& settings)
-    : impl_(service, std::move(settings)) {}
+GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceInternals&& internals)
+    : impl_(service, std::move(internals)) {}
 
 GenericServiceWorker::GenericServiceWorker(GenericServiceWorker&&) noexcept = default;
 

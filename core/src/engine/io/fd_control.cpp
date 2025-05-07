@@ -72,6 +72,7 @@ FdControl::~FdControl() {
 }
 
 FdControlHolder FdControl::Adopt(int fd) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     FdControlHolder fd_control{new FdControl(current_task::GetEventThread())};
     // TODO: add conditional CLOEXEC set
     SetCloexec(fd);

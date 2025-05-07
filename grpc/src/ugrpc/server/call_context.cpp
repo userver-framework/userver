@@ -1,32 +1,30 @@
 #include <userver/ugrpc/server/call_context.hpp>
 
-#include <userver/ugrpc/server/impl/call.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-CallContextBase::CallContextBase(utils::impl::InternalTag, impl::CallAnyBase& call) : call_(call) {}
+CallContextBase::CallContextBase(utils::impl::InternalTag, impl::CallState& state) : state_(state) {}
 
-const impl::CallAnyBase& CallContextBase::GetCall(utils::impl::InternalTag) const { return call_; }
+grpc::ServerContext& CallContextBase::GetServerContext() { return state_.server_context; }
 
-impl::CallAnyBase& CallContextBase::GetCall(utils::impl::InternalTag) { return call_; }
+std::string_view CallContextBase::GetCallName() const { return state_.call_name; }
 
-grpc::ServerContext& CallContextBase::GetServerContext() { return call_.GetContext(); }
+std::string_view CallContextBase::GetServiceName() const { return state_.service_name; }
 
-std::string_view CallContextBase::GetCallName() const { return call_.GetCallName(); }
+std::string_view CallContextBase::GetMethodName() const { return state_.method_name; }
 
-std::string_view CallContextBase::GetServiceName() const { return call_.GetServiceName(); }
+tracing::Span& CallContextBase::GetSpan() { return state_.GetSpan(); }
 
-std::string_view CallContextBase::GetMethodName() const { return call_.GetMethodName(); }
-
-tracing::Span& CallContextBase::GetSpan() { return call_.GetSpan(); }
-
-utils::AnyStorage<StorageContext>& CallContextBase::GetStorageContext() { return call_.GetStorageContext(); }
+utils::AnyStorage<StorageContext>& CallContextBase::GetStorageContext() { return state_.storage_context; }
 
 void GenericCallContext::SetMetricsCallName(std::string_view call_name) {
-    GetCall(utils::impl::InternalTag{}).SetMetricsCallName(call_name);
+    auto& state = GetCallState(utils::impl::InternalTag{});
+    state.statistics_scope.RedirectTo(state.statistics_storage.GetGenericStatistics(call_name, std::nullopt));
 }
 
 }  // namespace ugrpc::server

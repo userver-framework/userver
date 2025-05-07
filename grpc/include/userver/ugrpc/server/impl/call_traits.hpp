@@ -26,57 +26,57 @@ grpc::GenericServerContext DetectRawContextType(GenericCallContext&);
 
 template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
 struct CallTraitsUnaryCall final {
-    using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
-    using RawCall = impl::RawResponseWriter<ResponseType>;
+    using RawResponder = impl::RawResponseWriter<ResponseType>;
     using InitialRequest = Request;
     using Context = ContextType;
     using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
     using StreamAdapter = NoStreamingAdapter;
+    using ServiceBase = ServiceBaseType;
     using ServiceMethod = Result<Response> (ServiceBase::*)(ContextType&, Request&&);
     static constexpr auto kCallKind = CallKind::kUnaryCall;
 };
 
 template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
 struct CallTraitsInputStream final {
-    using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
-    using RawCall = impl::RawReader<Request, Response>;
+    using RawResponder = impl::RawReader<Request, Response>;
     using InitialRequest = NoInitialRequest;
     using RawContextType = ::grpc::ServerContext;
     using Context = ContextType;
     using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
     using StreamAdapter = ReaderAdapter<CallTraitsInputStream>;
+    using ServiceBase = ServiceBaseType;
     using ServiceMethod = Result<Response> (ServiceBase::*)(CallContext&, Reader<Request>&);
     static constexpr auto kCallKind = CallKind::kInputStream;
 };
 
 template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
 struct CallTraitsOutputStream final {
-    using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
-    using RawCall = impl::RawWriter<Response>;
+    using RawResponder = impl::RawWriter<Response>;
     using InitialRequest = Request;
     using Context = ContextType;
     using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
     using StreamAdapter = WriterAdapter<CallTraitsOutputStream>;
+    using ServiceBase = ServiceBaseType;
     using ServiceMethod = StreamingResult<Response> (ServiceBase::*)(CallContext&, Request&&, Writer<Response>&);
     static constexpr auto kCallKind = CallKind::kOutputStream;
 };
 
 template <typename ServiceBaseType, typename ContextType, typename RequestType, typename ResponseType>
 struct CallTraitsBidirectionalStream final {
-    using ServiceBase = ServiceBaseType;
     using Request = RequestType;
     using Response = ResponseType;
-    using RawCall = impl::RawReaderWriter<Request, Response>;
+    using RawResponder = impl::RawReaderWriter<Request, Response>;
     using InitialRequest = NoInitialRequest;
     using Context = ContextType;
     using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
     using StreamAdapter = ReaderWriterAdapter<CallTraitsBidirectionalStream>;
+    using ServiceBase = ServiceBaseType;
     using ServiceMethod = StreamingResult<Response> (ServiceBase::*)(ContextType&, ReaderWriter<Request, Response>&);
     static constexpr auto kCallKind = CallKind::kBidirectionalStream;
 };

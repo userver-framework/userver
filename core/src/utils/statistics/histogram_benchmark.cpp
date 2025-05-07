@@ -5,7 +5,7 @@
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/rand.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

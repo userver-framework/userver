@@ -89,7 +89,7 @@ endif()
 
 set(USERVER_YDB_DEFAULT OFF)
 if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS AND
-    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20)
   set(USERVER_YDB_DEFAULT ON)
 endif()
 
@@ -191,6 +191,7 @@ include(AddGoogleTests)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
 include(UserverTestsuite)
+include(UserverCodegenTarget)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
 
@@ -340,7 +341,7 @@ endif()
 if (USERVER_BUILD_TESTS)
   function (_add_create_service_test FEATURE CMAKE_OPTS)
     add_test(
-      NAME create-service${FEATURE} 
+      NAME create-service${FEATURE}
       COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/create-service-test-helper"
           "${CMAKE_CURRENT_SOURCE_DIR}"
           "${CMAKE_CURRENT_BINARY_DIR}"
@@ -348,7 +349,7 @@ if (USERVER_BUILD_TESTS)
           ${FEATURE}
     )
   endfunction()
-  
+
   _add_create_service_test("" "")
   if(USERVER_FEATURE_MONGODB)
     _add_create_service_test("--mongo" "")

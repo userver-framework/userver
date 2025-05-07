@@ -25,9 +25,9 @@
 
 namespace sample {
 
-dynamic_config::Key<std::chrono::milliseconds> kSampleDistLockIntervalMs{
+const USERVER_NAMESPACE::dynamic_config::Key<std::chrono::milliseconds> kSampleDistLockIntervalMs{
     "SAMPLE_DIST_LOCK_INTERVAL_MS",
-    dynamic_config::DefaultAsJsonString{"5000"},
+    USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{"5000"},
 };
 
 class SampleDistLock final : public ydb::DistLockComponentBase {
@@ -55,7 +55,7 @@ private:
 
     void Bar() { TESTPOINT("dist-lock-bar", {}); }
 
-    dynamic_config::Source config_source_;
+    USERVER_NAMESPACE::dynamic_config::Source config_source_;
 };
 
 /// [DoWork]

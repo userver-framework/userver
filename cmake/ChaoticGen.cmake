@@ -67,9 +67,9 @@ _userver_prepare_chaotic()
 # - ARGS - extra args to chaotic-gen
 # - INSTALL_INCLUDES_COMPONENT - component to install generated includes
 function(userver_target_generate_chaotic TARGET)
-  set(OPTIONS)
-  set(ONE_VALUE_ARGS OUTPUT_DIR RELATIVE_TO FORMAT INSTALL_INCLUDES_COMPONENT OUTPUT_PREFIX)
-  set(MULTI_VALUE_ARGS SCHEMAS ARGS)
+  set(OPTIONS GENERATE_SERIALIZERS PARSE_EXTRA_FORMATS)
+  set(ONE_VALUE_ARGS OUTPUT_DIR RELATIVE_TO FORMAT INSTALL_INCLUDES_COMPONENT OUTPUT_PREFIX ERASE_PATH_PREFIX)
+  set(MULTI_VALUE_ARGS SCHEMAS LAYOUT INCLUDE_DIRS)
   cmake_parse_arguments(
       PARSE "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN}
   )
@@ -115,6 +115,32 @@ function(userver_target_generate_chaotic TARGET)
     )
   endforeach()
 
+  set(CHAOTIC_ARGS)
+
+  foreach(MAP_ITEM ${PARSE_LAYOUT})
+    list(APPEND CHAOTIC_ARGS "-n" "${MAP_ITEM}")
+  endforeach()
+
+  foreach(INCLUDE_DIR ${PARSE_INCLUDE_DIRS})
+    list(APPEND CHAOTIC_ARGS "-I" "${INCLUDE_DIR}")
+  endforeach()
+
+  if (PARSE_GENERATE_SERIALIZERS)
+    list(APPEND CHAOTIC_ARGS "--generate-serializers")
+  endif()
+
+  if (PARSE_PARSE_EXTRA_FORMATS)
+    list(APPEND CHAOTIC_ARGS "--parse-extra-formats")
+  endif()
+
+  if (PARSE_ERASE_PATH_PREFIX)
+    list(APPEND CHAOTIC_ARGS "-e" "${PARSE_ERASE_PATH_PREFIX}")
+  endif()
+
+  list(APPEND CHAOTIC_ARGS "-o" "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}")
+  list(APPEND CHAOTIC_ARGS "--relative-to" "${PARSE_RELATIVE_TO}")
+  list(APPEND CHAOTIC_ARGS "--clang-format" "${CLANG_FORMAT}")
+
   _userver_initialize_codegen_flag()
   add_custom_command(
       OUTPUT
@@ -124,10 +150,7 @@ function(userver_target_generate_chaotic TARGET)
           "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
           "${CHAOTIC_BIN}"
           ${CHAOTIC_EXTRA_ARGS}
-          ${PARSE_ARGS}
-          -o "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}"
-          --relative-to "${PARSE_RELATIVE_TO}"
-          --clang-format "${CLANG_FORMAT}"
+          ${CHAOTIC_ARGS}
           ${PARSE_SCHEMAS}
       DEPENDS
           ${PARSE_SCHEMAS}

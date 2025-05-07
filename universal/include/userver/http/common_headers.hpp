@@ -118,6 +118,7 @@ inline constexpr PredefinedHeader kSetCookie{"Set-Cookie"};
 /// @{
 inline constexpr PredefinedHeader kWebsocketKey{"Sec-WebSocket-Key"};
 inline constexpr PredefinedHeader kWebsocketAccept{"Sec-WebSocket-Accept"};
+inline constexpr PredefinedHeader kWebsocketProtocol{"Sec-WebSocket-Protocol"};
 inline constexpr PredefinedHeader kWebsocketVersion{"Sec-WebSocket-Version"};
 /// @}
 

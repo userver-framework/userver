@@ -498,10 +498,12 @@ UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
     auto& status = GetData().GetStatus();
     reader_->Finish(&response, &status, finish.GetTag());
     auto post_finish = [&response](impl::RpcData& data, const grpc::Status& status) {
-        if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
-            impl::MiddlewarePipeline::PostRecvMessage(data, response);
-        } else {
-            (void)response;  // unused by now
+        if (status.ok()) {  // response is not filled on bad status
+            if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+                impl::MiddlewarePipeline::PostRecvMessage(data, response);
+            } else {
+                (void)response;  // unused by now
+            }
         }
         impl::MiddlewarePipeline::PostFinish(data, status);
     };
@@ -586,7 +588,15 @@ Response OutputStream<Request, Response>::Finish() {
         impl::WritesDone(*stream_, GetData());
     }
 
-    auto post_finish = [](impl::RpcData& data, const grpc::Status& status) {
+    auto post_finish = [this](impl::RpcData& data, const grpc::Status& status) {
+        if (status.ok()) {  // response is not filled on bad status
+            if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+                UASSERT(final_response_);
+                impl::MiddlewarePipeline::PostRecvMessage(data, *final_response_);
+            } else {
+                // unused by now
+            }
+        }
         impl::MiddlewarePipeline::PostFinish(data, status);
     };
     impl::Finish(*stream_, GetData(), post_finish, true);

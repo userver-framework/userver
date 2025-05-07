@@ -232,7 +232,7 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
     engine::SingleConsumerEvent event;
     /// [CV init]
 
-    auto incrementers = utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
+    auto incrementors = utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
         return engine::CriticalAsyncNoSpan([&count, &event] {
             while (!engine::current_task::ShouldCancel()) {
                 /// [CV notifier]
@@ -262,9 +262,9 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
     EXPECT_TRUE(count_acquired != 0);
     EXPECT_TRUE(count_acquired % 2 == 0);
 
-    for (auto& incrementer : incrementers) {
-        incrementer.RequestCancel();
-        UEXPECT_NO_THROW(incrementer.Get());
+    for (auto& incrementor : incrementors) {
+        incrementor.RequestCancel();
+        UEXPECT_NO_THROW(incrementor.Get());
     }
 }
 

@@ -40,8 +40,8 @@ const auto kEmptyConfig = middlewares::impl::MiddlewareRunnerConfig{
 };
 
 template <typename Middleware>
-middlewares::impl::MiddlewareEnabled Mid(bool enabed = true) {
-    return {std::string{Middleware::kName}, enabed};
+middlewares::impl::MiddlewareEnabled Mid(bool enabled = true) {
+    return {std::string{Middleware::kName}, enabled};
 }
 
 template <typename Group, typename Before, typename After>

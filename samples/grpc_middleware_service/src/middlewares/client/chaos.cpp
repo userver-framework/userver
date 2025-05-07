@@ -5,7 +5,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/rand.hpp>
 
-namespace sample::grpc::auth::client {
+namespace samples::grpc::auth::client {
 
 const ::grpc::string kExperinetFeature = "x-my-experiments-enabled";
 const ::grpc::string kEnable = "enable";
@@ -45,4 +45,4 @@ properties:
 }
 /// [gRPC middleware sample]
 
-}  // namespace sample::grpc::auth::client
+}  // namespace samples::grpc::auth::client

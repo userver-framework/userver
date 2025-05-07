@@ -48,14 +48,19 @@ public:
     /// @brief Get plugin name
     const std::string& GetName() const;
 
-    /// @brief The hook is called before actual HTTP request sending and before
-    ///        DNS name resolution. You might want to use the hook for most of the
-    ///        hook job.
-    virtual void HookPerformRequest(PluginRequest& request) = 0;
-
     /// @brief The hook is called just after the "external" Span is created.
     ///        You might want to add custom tags from the hook.
+    ///        The hook is called only once before any network interaction and is NOT called before each retry.
+    ///        The hook is executed in the context of the parent task which created the request.
     virtual void HookCreateSpan(PluginRequest& request, tracing::Span& span) = 0;
+
+    /// @brief The hook is called before actual HTTP request sending and before
+    ///        DNS name resolution.
+    ///        This hook is called on each retry.
+    ///
+    /// @warning The hook is called in libev thread, not in coroutine context! Do
+    ///          not do any heavy work here, offload it to other hooks.
+    virtual void HookPerformRequest(PluginRequest& request) = 0;
 
     /// @brief The hook is called after the HTTP response is received or the
     ///        timeout is passed.

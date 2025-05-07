@@ -16,6 +16,7 @@
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
@@ -47,7 +48,8 @@ public:
         const DefaultCommandControls& default_cmd_ctls,
         const testsuite::PostgresControl& testsuite_pg_ctl,
         const error_injection::Settings& ei_settings,
-        engine::SemaphoreLock&& size_lock
+        engine::SemaphoreLock&& size_lock,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     void AsyncConnect(const Dsn& dsn, engine::Deadline deadline);
@@ -222,6 +224,7 @@ private:
     OptionalCommandControl transaction_cmd_ctl_;
     TimeoutDuration current_statement_timeout_{};
     const error_injection::Settings ei_settings_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 
     std::unordered_set<std::string> statements_reported_;
     engine::Mutex statements_mutex_;

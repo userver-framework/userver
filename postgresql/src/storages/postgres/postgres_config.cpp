@@ -42,11 +42,20 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
 namespace {
 
 template <typename ConfigType>
+ConnectionSettings::StatementLogMode ParseStatementLogMode(const ConfigType& config) {
+    auto mode = config.template As<std::string>("show");
+    if (mode == "hide") return ConnectionSettings::kLogSkip;
+    if (mode == "show") return ConnectionSettings::kLog;
+    throw std::runtime_error("Unknown statement log mode: " + mode);
+}
+
+template <typename ConfigType>
 ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
     ConnectionSettings settings{};
     settings.prepared_statements = config["persistent-prepared-statements"].template As<bool>(true)
                                        ? ConnectionSettings::kCachePreparedStatements
                                        : ConnectionSettings::kNoPreparedStatements;
+    settings.statement_log_mode = ParseStatementLogMode(config["statement-log-mode"]);
     settings.user_types = config["user-types-enabled"].template As<bool>(true)
                               ? config["check-user-types"].template As<bool>(false)
                                     ? ConnectionSettings::kUserTypesEnforced
@@ -76,6 +85,11 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
 }
 
 }  // namespace
+
+ConnectionSettings::StatementLogMode
+Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConnectionSettings::StatementLogMode>) {
+    return ParseStatementLogMode(config);
+}
 
 ConnectionSettings Parse(const formats::json::Value& config, formats::parse::To<ConnectionSettings>) {
     return ParseConnectionSettings(config);

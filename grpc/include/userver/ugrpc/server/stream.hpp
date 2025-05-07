@@ -9,7 +9,7 @@ namespace ugrpc::server {
 
 /// @brief Interface to read client's requests.
 ///
-/// This class is not thread-safe
+/// This class is not thread-safe.
 ///
 /// If any method throws, further methods must not be called on the same stream.
 template <class Request>
@@ -28,7 +28,7 @@ public:
 
 /// @brief Interface to write server's responses.
 ///
-/// This class is not thread-safe
+/// This class is not thread-safe.
 ///
 /// If any method throws, further methods must not be called on the same stream.
 template <class Response>
@@ -41,17 +41,17 @@ public:
     /// @brief Write the next outgoing message
     /// @param response the next message to write
     /// @throws ugrpc::server::RpcError on an RPC error
+    /// @throws std::exception (internal) on error from middlewares
     virtual void Write(Response& response) = 0;
 
     /// @brief Write the next outgoing message
     /// @param response the next message to write
     /// @throws ugrpc::server::RpcError on an RPC error
+    /// @throws std::exception (internal) on error from middlewares
     virtual void Write(Response&& response) = 0;
 };
 
 /// @brief Interface to both read and write messages.
-///
-/// This class is not thread-safe
 ///
 /// If any method throws, further methods must not be called on the same stream.
 ///

@@ -90,17 +90,18 @@ In testsuite, SSL in gRPC clients is disabled automatically.
 Main page: @ref scripts/docs/en/userver/grpc/client_middlewares.md.
 
 Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code. 
-Middlewares to use are indicated in static config in the defining component. For example:
+Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
 
-```
-# yaml
-components_manager:
-    components:
-        grpc-client-factory:
-            middlewares:
-              - grpc-client-logging
-              - grpc-client-deadline-propagation 
-```
+#### List of standard client middlewares:
+
+  1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests.
+  2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
+  @ref scripts/docs/en/userver/deadline_propagation.md.
+  3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+  4. `grpc-client-middleware-testsuite` with component ugrpc::client::middlewares::testsuite::Component - supports testsuite errors thrown from the mockserver.
+
+
+
 
 #### List of standard client middlewares
 
@@ -178,8 +179,7 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
 
 Main page: @ref scripts/docs/en/userver/grpc/server_middlewares.md.
 
-Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
-new middlewares.
+Use ugrpc::server::MiddlewareBase to implement new middlewares.
 
 #### List of standard server middlewares:
 
@@ -236,13 +236,13 @@ The gRPC driver provides log fields hiding in request-response logs. You need to
 
 2) Import userver/field_options.proto in your proto file.
 
-3) Use `[(userver.field).secret = true]` opposite to the filds that you want to hide. In the following example the fields `password` and `secret_code` will be hidden in the logs:
+3) Use `[debug_redact = true]` opposite to the filds that you want to hide. In the following example the fields `password` and `secret_code` will be hidden in the logs:
 
 ```proto
 message Creds {
   string login = 1;
-  string password = 2 [(userver.field).secret = true];
-  string secret_code = 3 [(userver.field).secret = true];
+  string password = 2 [debug_redact = true];
+  string secret_code = 3 [debug_redact = true];
 }
 ```
 

@@ -230,7 +230,11 @@ class _Changelog:
 
 
 class DynamicConfig:
-    """Simple dynamic config backend."""
+    """
+    @brief Simple dynamic config backend.
+
+    @see @ref pytest_userver.plugins.dynamic_config.dynamic_config "dynamic_config"
+    """
 
     def __init__(
         self,
@@ -329,12 +333,20 @@ def dynamic_config(
     """
     Fixture that allows to control dynamic config values used by the service.
 
-    After change to the config, be sure to call:
-    @code
-    await service_client.update_server_state()
-    @endcode
+    Example:
 
-    HTTP client requests call it automatically before each request.
+    @snippet core/functional_tests/basic_chaos/tests-nonchaos/handlers/test_log_request_headers.py dynamic_config usage
+
+    HTTP and gRPC client requests call `update_server_state` automatically before each request.
+
+    For main dynamic config documentation:
+
+    @see @ref dynamic_config_testsuite
+
+    See also other related fixtures:
+    * @ref pytest_userver.plugins.dynamic_config.dynamic_config "config_service_defaults"
+    * @ref pytest_userver.plugins.dynamic_config.dynamic_config "dynamic_config_fallback_patch"
+    * @ref pytest_userver.plugins.dynamic_config.dynamic_config "mock_configs_service"
 
     @ingroup userver_testsuite_fixtures
     """
@@ -358,6 +370,9 @@ def dynamic_config(
         yield config
 
 
+# @cond
+
+
 def pytest_configure(config):
     config.addinivalue_line(
         'markers',
@@ -367,6 +382,9 @@ def pytest_configure(config):
         'markers',
         'disable_config_check: disable config mark keys check',
     )
+
+
+# @endcond
 
 
 @pytest.fixture(scope='session')
@@ -561,11 +579,17 @@ def userver_config_dynconf_url(mockserver_info):
     return _patch_config
 
 
+# @cond
+
+
 # TODO publish _Changelog and document how to use it in custom config service
 #  mocks.
 @pytest.fixture(scope='session')
 def dynamic_config_changelog() -> _Changelog:
     return _Changelog()
+
+
+# @endcond
 
 
 @pytest.fixture

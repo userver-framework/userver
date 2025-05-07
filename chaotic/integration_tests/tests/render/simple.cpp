@@ -22,6 +22,7 @@
 #include <schemas/object_single_field.hpp>
 #include <schemas/one_of.hpp>
 #include <schemas/oneofdiscriminator.hpp>
+#include <schemas/string64.hpp>
 #include <schemas/uuid.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -365,6 +366,17 @@ TEST(Simple, Uuid) {
 
     auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["uuid"].As<std::string>();
     EXPECT_EQ(str, uuid);
+}
+
+TEST(SIMPLE, String64) {
+    auto str64 = crypto::base64::String64{"hello, userver!"};
+    auto obj = ns::ObjectString64{str64};
+
+    auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["value"].As<std::string>();
+    EXPECT_EQ(str, "aGVsbG8sIHVzZXJ2ZXIh");
+
+    auto new_obj = formats::json::MakeObject("value", str).As<ns::ObjectString64>();
+    EXPECT_EQ(new_obj.value, str64);
 }
 
 USERVER_NAMESPACE_END

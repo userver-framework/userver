@@ -26,8 +26,10 @@ std::unique_ptr<Connection> Connection::Connect(
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings,
-    engine::SemaphoreLock&& size_lock
+    engine::SemaphoreLock&& size_lock,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 ) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     std::unique_ptr<Connection> conn(new Connection());
 
     const auto deadline = engine::Deadline::FromDuration(
@@ -41,7 +43,8 @@ std::unique_ptr<Connection> Connection::Connect(
         default_cmd_ctls,
         testsuite_pg_ctl,
         ei_settings,
-        std::move(size_lock)
+        std::move(size_lock),
+        std::move(metrics)
     );
     if (resolver) {
         try {

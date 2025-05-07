@@ -33,12 +33,12 @@ def parse_args():
         description='Create new C++ userver-based service')
     for feature in FEATURES:
         parser.add_argument(f'--{feature}', action='store_true')
-    parser.add_argument('service_path')
+    parser.add_argument('service_path', type=pathlib.Path)
     return parser.parse_args()
 
 
-def service_name(service_path: str) -> str:
-    return os.path.basename(os.path.normpath(service_path)).replace('-', '_')
+def service_name(service_path: pathlib.Path) -> str:
+    return service_path.resolve().name.replace('-', '_')
 
 
 def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
@@ -46,8 +46,7 @@ def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
     text = []
     skip = False
     for line in orig_text.splitlines():
-        line = line.replace('service_template',
-                            service_name(args.service_path))
+        line = line.replace('service_template', service_name(args.service_path))
         match_on = TEMPLATE_ON_REGEX.match(line)
         match_current = TEMPLATE_CURRENT_REGEX.match(line)
         if match_on:
@@ -74,7 +73,7 @@ def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
 def copy_tree(src: pathlib.Path, dst: pathlib.Path, args) -> None:
     for root, _, files in os.walk(src):
         dst_root = dst / pathlib.Path(root).relative_to(src)
-        os.makedirs(dst_root, exist_ok=True)
+        dst_root.mkdir(parents=True, exist_ok=True)
         dst_root_is_empty = True
 
         for file in files:
@@ -91,13 +90,12 @@ def run_ruff(src: pathlib.Path) -> None:
     try:
         subprocess.check_call(['ruff', 'format', str(src)])
     except BaseException as exc:
-        print(f'Failed to run ruff ({exc}), skipping.')
+        print(f'Warning: Failed to run ruff ({exc}), skipping.', file=sys.stderr)
 
 
-def check_dst_non_existing(service_path: str):
-    if pathlib.Path(service_path).exists():
-        print(f'Error: {service_path} directory already exists.',
-              file=sys.stderr)
+def check_dst_non_existing(service_path: pathlib.Path):
+    if service_path.exists():
+        print(f'Error: {service_path} directory already exists.', file=sys.stderr)
         sys.exit(1)
 
 
@@ -105,7 +103,7 @@ def main() -> None:
     args = parse_args()
     check_dst_non_existing(args.service_path)
     copy_tree(template_path(), args.service_path, args)
-    run_ruff(pathlib.Path(args.service_path))
+    run_ruff(args.service_path)
 
 
 if __name__ == '__main__':

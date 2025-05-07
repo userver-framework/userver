@@ -8,6 +8,7 @@
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/chrono.hpp>
 #include <userver/storages/postgres/null.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -393,7 +394,9 @@ UTEST_F(PostgreCustomConnection, Connect) {
             kCachePreparedStatements,
             GetTestCmdCtls(),
             {},
-            {}
+            {},
+            {},
+            std::make_shared<utils::statistics::MetricsStorage>()
         ),
         pg::InvalidDSN
     ) << "Connected with invalid DSN";
@@ -411,7 +414,9 @@ UTEST_F(PostgreCustomConnection, NoPreparedStatements) {
         kNoPreparedStatements,
         GetTestCmdCtls(),
         {},
-        {}
+        {},
+        {},
+        std::make_shared<utils::statistics::MetricsStorage>()
     ));
 }
 
@@ -427,7 +432,9 @@ UTEST_F(PostgreCustomConnection, NoUserTypes) {
             kNoUserTypes,
             GetTestCmdCtls(),
             {},
-            {}
+            {},
+            {},
+            std::make_shared<utils::statistics::MetricsStorage>()
         )
     );
     ASSERT_TRUE(conn);

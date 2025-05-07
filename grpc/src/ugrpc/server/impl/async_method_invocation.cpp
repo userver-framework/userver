@@ -48,6 +48,24 @@ ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvo
     utils::AbortWithStacktrace("should be unreachable");
 }
 
+[[nodiscard]] bool IsInvocationSuccessful(ugrpc::impl::AsyncMethodInvocation::WaitStatus status) noexcept {
+    switch (status) {
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk:
+            return true;
+
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
+            return false;
+
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kDeadline:
+            utils::AbortWithStacktrace("Deadline happened on server operation");
+
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled:
+            utils::AbortWithStacktrace("Cancel happened on server operation");
+    }
+
+    utils::AbortWithStacktrace("should be unreachable");
+}
+
 void CheckInvocationSuccessful(
     ugrpc::impl::AsyncMethodInvocation::WaitStatus status,
     std::string_view call_name,
@@ -61,11 +79,13 @@ void CheckInvocationSuccessful(
             throw RpcInterruptedError(call_name, stage);
 
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kDeadline:
-            UINVARIANT(false, "Deadline happened on server operation");
+            utils::AbortWithStacktrace("Deadline happened on server operation");
 
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled:
-            UINVARIANT(false, "Cancel happened on server operation");
+            utils::AbortWithStacktrace("Cancel happened on server operation");
     }
+
+    utils::AbortWithStacktrace("should be unreachable");
 }
 
 }  // namespace ugrpc::server::impl

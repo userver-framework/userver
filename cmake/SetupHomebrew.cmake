@@ -1,4 +1,4 @@
-option(USERVER_USE_BREW_LIBRARIES "(MacOS) Find package preferes libraries installed with homebrew and make linker search libraries in brew folders" ON)
+option(USERVER_USE_BREW_LIBRARIES "(MacOS) Find package prefers libraries installed with homebrew and make linker search libraries in brew folders" ON)
 
 if(NOT DEFINED $CACHE{USERVER_BREW_PREFIX})
     find_program(BREW_BIN brew)

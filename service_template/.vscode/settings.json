@@ -1,0 +1,13 @@
+{
+  "cmake.automaticReconfigure": false,
+  "cmake.configureOnEdit":  false,
+  "cmake.configureOnOpen": false,
+  "cmake.copyCompileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+  "clangd.arguments": [
+    "--background-index",
+    "--compile-commands-dir=.vscode",
+    "--clang-tidy",
+    "--completion-style=detailed",
+    "--header-insertion=never"
+  ]
+}

@@ -368,8 +368,7 @@ UTEST(Semaphore, SetCapacityNotifyUnreachable) {
     EXPECT_TRUE(semaphore.try_lock_shared_count(3));
 
     auto task5 = engine::AsyncNoSpan([&] {
-        const bool success =
-            semaphore.try_lock_shared_until_count(engine::Deadline::FromDuration(utest::kMaxTestWaitTime), 5);
+        const bool success = semaphore.try_lock_shared_until_count(engine::Deadline::FromDuration(300ms), 5);
         EXPECT_FALSE(success);
     });
 

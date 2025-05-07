@@ -6,7 +6,7 @@
 
 #include <userver/components/component.hpp>
 
-namespace sample::grpc::auth::server {
+namespace samples::grpc::auth::server {
 
 /// [Middleware implementation]
 Middleware::Middleware() = default;
@@ -23,4 +23,4 @@ void Middleware::OnCallStart(ugrpc::server::MiddlewareCallContext& context) cons
 }
 /// [Middleware implementation]
 
-}  // namespace sample::grpc::auth::server
+}  // namespace samples::grpc::auth::server

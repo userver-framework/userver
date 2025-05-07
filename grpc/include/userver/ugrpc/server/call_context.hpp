@@ -9,21 +9,21 @@
 #include <userver/utils/any_storage.hpp>
 
 #include <userver/ugrpc/server/storage_context.hpp>
-#include <userver/utils/impl/internal_tag_fwd.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
 namespace impl {
-class CallAnyBase;
+struct CallState;
 }  // namespace impl
 
 class CallContextBase {
 public:
     /// @cond
-    /// For internal use only
-    CallContextBase(utils::impl::InternalTag, impl::CallAnyBase& call);
+    // For internal use only.
+    CallContextBase(utils::impl::InternalTag, impl::CallState& state);
     /// @endcond
 
     CallContextBase(CallContextBase&&) = delete;
@@ -70,17 +70,18 @@ public:
 
 protected:
     /// @cond
-    const impl::CallAnyBase& GetCall(utils::impl::InternalTag) const;
+    // For internal use only.
+    const impl::CallState& GetCallState(utils::impl::InternalTag) const { return state_; }
 
-    impl::CallAnyBase& GetCall(utils::impl::InternalTag);
+    // For internal use only.
+    impl::CallState& GetCallState(utils::impl::InternalTag) { return state_; }
 
     // Prevent destruction via pointer to base.
     ~CallContextBase() = default;
-
     /// @endcond
 
 private:
-    impl::CallAnyBase& call_;
+    impl::CallState& state_;
 };
 
 /// @brief gRPC call context

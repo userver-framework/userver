@@ -3,7 +3,7 @@
 #include <server/http/http_request_constructor.hpp>
 #include <userver/http/predefined_header.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

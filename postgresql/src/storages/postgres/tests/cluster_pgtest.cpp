@@ -10,6 +10,7 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,6 +62,7 @@ pg::Cluster CreateCluster(
         {},
         testsuite_tasks,
         source,
+        std::make_shared<utils::statistics::MetricsStorage>(),
         0
     );
 }

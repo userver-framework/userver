@@ -4,7 +4,7 @@
 
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
-namespace sample::grpc::auth::client {
+namespace samples::grpc::auth::client {
 
 class ChaosMiddleware final : public ugrpc::client::MiddlewareBase {
 public:
@@ -33,4 +33,4 @@ public:
 };
 /// [gRPC middleware sample]
 
-}  // namespace sample::grpc::auth::client
+}  // namespace samples::grpc::auth::client

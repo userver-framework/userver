@@ -161,7 +161,7 @@ UTEST_P(PostgreConnection, ChronoTzConversions) {
     RETURNING with_tz, without_tz
   )";
     // ERROR! Types mismatch and are implicitly converted:
-    // * TimePointWithoutTz is converted on the DB side and TZ substracted.
+    // * TimePointWithoutTz is converted on the DB side and TZ subtracted.
     // * TimePointTz is converted on the DB side and TZ added.
     const auto res = connection->Execute(kInsertQuery, pg::TimePointWithoutTz{now}, pg::TimePointTz{now});
 

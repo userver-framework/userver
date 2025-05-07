@@ -35,6 +35,8 @@ private:
 
 ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async) noexcept;
 
+[[nodiscard]] bool IsInvocationSuccessful(ugrpc::impl::AsyncMethodInvocation::WaitStatus status) noexcept;
+
 void CheckInvocationSuccessful(
     ugrpc::impl::AsyncMethodInvocation::WaitStatus status,
     std::string_view call_name,

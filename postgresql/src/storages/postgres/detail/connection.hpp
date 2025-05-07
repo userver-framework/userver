@@ -139,7 +139,8 @@ public:
         const DefaultCommandControls& default_cmd_ctls,
         const testsuite::PostgresControl& testsuite_pg_ctl,
         const error_injection::Settings& ei_settings,
-        engine::SemaphoreLock&& size_lock = engine::SemaphoreLock{}
+        engine::SemaphoreLock&& size_lock,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     /// Close the connection

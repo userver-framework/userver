@@ -7,7 +7,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

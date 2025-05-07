@@ -29,7 +29,6 @@ jobs:
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
-                -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                 -DUSERVER_USE_LD=lld
                 -DUSERVER_FORCE_DOWNLOAD_RE2=1

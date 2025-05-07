@@ -140,7 +140,8 @@ HotStandby::HotStandby(
     const ConnectionSettings& conn_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings
+    error_injection::Settings ei_settings,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 )
     : TopologyBase(
           bg_task_processor,
@@ -150,7 +151,8 @@ HotStandby::HotStandby(
           conn_settings,
           default_cmd_ctls,
           testsuite_pg_ctl,
-          std::move(ei_settings)
+          std::move(ei_settings),
+          std::move(metrics)
       ),
       host_states_{GetDsnList().begin(), GetDsnList().end()},
       dsn_stats_(GetDsnList().size()) {
@@ -262,30 +264,30 @@ void HotStandby::RunDiscovery() {
     // Collect all alive indices
     const auto& dsn_list = GetDsnList();
     DsnIndices alive_dsn_indices{};
-    alive_dsn_indices.indicies.reserve(dsn_list.size());
+    alive_dsn_indices.indices.reserve(dsn_list.size());
     for (DsnIndex i = 0; i < dsn_list.size(); ++i) {
         if (host_states_[i].role != ClusterHostType::kNone) {
-            alive_dsn_indices.indicies.push_back(i);
+            alive_dsn_indices.indices.push_back(i);
         }
     }
 
     // sort indices by hostname to keep round robbin policy consistent
-    UASSERT(alive_dsn_indices.indicies.size() <= host_states_.size());
-    std::sort(alive_dsn_indices.indicies.begin(), alive_dsn_indices.indicies.end(), [this](DsnIndex lhs, DsnIndex rhs) {
+    UASSERT(alive_dsn_indices.indices.size() <= host_states_.size());
+    std::sort(alive_dsn_indices.indices.begin(), alive_dsn_indices.indices.end(), [this](DsnIndex lhs, DsnIndex rhs) {
         return host_states_[lhs].host_name < host_states_[rhs].host_name;
     });
 
     FillNearestDsnIndex(alive_dsn_indices);
 
     DsnIndicesByType dsn_indices_by_type{};
-    for (const DsnIndex idx : alive_dsn_indices.indicies) {
+    for (const DsnIndex idx : alive_dsn_indices.indices) {
         const auto& state = host_states_[idx];
 
-        dsn_indices_by_type[state.role].indicies.push_back(idx);
+        dsn_indices_by_type[state.role].indices.push_back(idx);
         // Always allow using sync slaves for slave requests, mainly for
         // transition purposes -- TAXICOMMON-2006
         if (state.role == ClusterHostType::kSyncSlave) {
-            dsn_indices_by_type[ClusterHostType::kSlave].indicies.push_back(idx);
+            dsn_indices_by_type[ClusterHostType::kSlave].indices.push_back(idx);
         }
     }
 
@@ -375,11 +377,11 @@ std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
 }
 
 void HotStandby::FillNearestDsnIndex(DsnIndices& dsn_indices) {
-    const auto& indicies = dsn_indices.indicies;
-    auto it = std::min_element(indicies.begin(), indicies.end(), [this](DsnIndex lhs, DsnIndex rhs) {
+    const auto& indices = dsn_indices.indices;
+    auto it = std::min_element(indices.begin(), indices.end(), [this](DsnIndex lhs, DsnIndex rhs) {
         return host_states_[lhs].roundtrip_time < host_states_[rhs].roundtrip_time;
     });
-    if (it != indicies.end()) {
+    if (it != indices.end()) {
         dsn_indices.nearest = *it;
     }
 }

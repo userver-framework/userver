@@ -313,7 +313,7 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
 
 // for manual testing of CLUSTER FAILOVER
 UTEST_F(RedisClusterClientTest, LongWork) {
-    bool kIsManualTesing = false;
+    bool kIsManualTesting = false;
     const auto kTestTime = std::chrono::seconds(300);
     auto deadline = engine::Deadline::FromDuration(kTestTime);
 
@@ -360,11 +360,11 @@ UTEST_F(RedisClusterClientTest, LongWork) {
 
         ++iterations;
         engine::SleepFor(std::chrono::milliseconds(10));
-    } while (!deadline.IsReached() && kIsManualTesing);
+    } while (!deadline.IsReached() && kIsManualTesting);
 
     EXPECT_EQ(num_write_errors, 0);
     EXPECT_EQ(num_read_errors, 0);
-    EXPECT_GT(iterations, kIsManualTesing ? 100 : 0);
+    EXPECT_GT(iterations, kIsManualTesting ? 100 : 0);
 }
 
 UTEST_F(RedisClusterClientTest, ClusterSlotsCalled) {

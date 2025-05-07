@@ -26,7 +26,7 @@ set(USERVER_USE_LD "${USERVER_USE_LD_DEFAULT}" CACHE STRING "Linker to use e.g. 
 
 if (USERVER_USE_LD)
   execute_process(COMMAND "${CMAKE_C_COMPILER}" "-fuse-ld=${USERVER_USE_LD}" -Wl,--version
-      ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
+      OUTPUT_VARIABLE LD_VERSION ERROR_VARIABLE LD_CHECK_ERROR)
 
   if ((USERVER_USE_LD MATCHES "gold") AND (LD_VERSION MATCHES "GNU gold"))
     set(CUSTOM_LD_OK ON CACHE INTERNAL CUSTOM_LD_OK)
@@ -34,13 +34,16 @@ if (USERVER_USE_LD)
   elseif((USERVER_USE_LD MATCHES "lld") AND (LD_VERSION MATCHES "LLD"))
     set(CUSTOM_LD_OK ON CACHE INTERNAL CUSTOM_LD_OK)
     message(STATUS "Using LLVM lld linker: ${USERVER_USE_LD}")
+  elseif(LD_VERSION)
+    set(CUSTOM_LD_OK ON CACHE INTERNAL CUSTOM_LD_OK)
+    message(STATUS "Using custom linker: ${USERVER_USE_LD}")
   endif()
 
   if (CUSTOM_LD_OK)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=${USERVER_USE_LD}")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=${USERVER_USE_LD}")
   else()
-    message(STATUS "Custom linker isn't available, using the default system linker.")
+    message(FATAL_ERROR "Custom linker isn't available: ${LD_CHECK_ERROR}")
   endif()
 else()
   message(STATUS "Using the default system linker, probably GNU ld")

@@ -56,7 +56,7 @@ class {{service.name}}Base
 
  private:
   std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
-  MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) final;
+  MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceInternals&& internals) final;
 };
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

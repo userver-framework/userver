@@ -40,6 +40,7 @@ public:
         const error_injection::Settings& ei_settings,
         testsuite::TestsuiteTasks& testsuite_tasks,
         dynamic_config::Source config_source,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics,
         int shard_number
     );
 
@@ -102,6 +103,7 @@ private:
     DefaultCommandControls default_cmd_ctls_;
     const testsuite::PostgresControl testsuite_pg_ctl_;
     const error_injection::Settings ei_settings_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 
     std::atomic<uint32_t> rr_host_idx_;
     std::atomic<bool> connlimit_mode_auto_enabled_;

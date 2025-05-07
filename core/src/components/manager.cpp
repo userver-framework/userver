@@ -317,21 +317,21 @@ void Manager::AddComponents(const ComponentList& component_list) {
         ValidateConfigs(component_list, component_config_map, config_->validate_components_configs);
 
         for (const auto& adder : component_list) {
-            auto task_name = "boot/" + adder->GetComponentName();
+            const auto& component_name = adder->GetComponentName();
+            auto task_name = "boot/" + component_name;
             tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() {
+                tracing::Span::CurrentSpan().AddTag("component_name", component_name);
                 tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kDebug);
                 try {
-                    AddComponentImpl(component_config_map, adder->GetComponentName(), *adder);
+                    AddComponentImpl(component_config_map, component_name, *adder);
                 } catch (const ComponentsLoadCancelledException& ex) {
-                    LOG_WARNING() << "Cannot start component " << adder->GetComponentName() << ": " << ex;
+                    LOG_WARNING() << "Cannot start component " << component_name << ": " << ex;
                     component_context_->CancelComponentsLoad();
                     throw;
                 } catch (const std::exception& ex) {
-                    LOG_ERROR() << "Cannot start component " << adder->GetComponentName() << ": " << ex;
+                    LOG_ERROR() << "Cannot start component " << component_name << ": " << ex;
                     component_context_->CancelComponentsLoad();
-                    throw std::runtime_error(
-                        fmt::format("Cannot start component {}: {}", adder->GetComponentName(), ex.what())
-                    );
+                    throw std::runtime_error(fmt::format("Cannot start component {}: {}", component_name, ex.what()));
                 } catch (...) {
                     component_context_->CancelComponentsLoad();
                     throw;

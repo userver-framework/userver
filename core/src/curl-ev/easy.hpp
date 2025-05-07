@@ -189,6 +189,13 @@ public:                                                                         
 #define CURL_SSLVERSION_NAMESPACE native::
 #endif
 
+// https://github.com/curl/curl/pull/16482
+#if (LIBCURL_VERSION_MAJOR == 8 && LIBCURL_VERSION_MINOR >= 13) || (LIBCURL_VERSION_MAJOR >= 9)
+#define CURL_8_13_NAMESPACE
+#else
+#define CURL_8_13_NAMESPACE native::
+#endif
+
 namespace curl {
 // class form;
 class multi;
@@ -331,9 +338,9 @@ public:
     // authentication options
 
     enum netrc_t {
-        netrc_optional = native::CURL_NETRC_OPTIONAL,
-        netrc_ignored = native::CURL_NETRC_IGNORED,
-        netrc_required = native::CURL_NETRC_REQUIRED
+        netrc_optional = CURL_8_13_NAMESPACE CURL_NETRC_OPTIONAL,
+        netrc_ignored = CURL_8_13_NAMESPACE CURL_NETRC_IGNORED,
+        netrc_required = CURL_8_13_NAMESPACE CURL_NETRC_REQUIRED
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_netrc, native::CURLOPT_NETRC, netrc_t, long);
     IMPLEMENT_CURL_OPTION_STRING(set_netrc_file, native::CURLOPT_NETRC_FILE);
@@ -453,12 +460,12 @@ public:
     IMPLEMENT_CURL_OPTION_STRING(set_cookie_list, native::CURLOPT_COOKIELIST);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_http_get, native::CURLOPT_HTTPGET);
     enum http_version_t {
-        http_version_none = native::CURL_HTTP_VERSION_NONE,
-        http_version_1_0 = native::CURL_HTTP_VERSION_1_0,
-        http_version_1_1 = native::CURL_HTTP_VERSION_1_1,
-        http_version_2_0 = native::CURL_HTTP_VERSION_2_0,
-        http_version_2tls = native::CURL_HTTP_VERSION_2TLS,
-        http_version_2_prior_knowledge = native::CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE,
+        http_version_none = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_NONE,
+        http_version_1_0 = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_1_0,
+        http_version_1_1 = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_1_1,
+        http_version_2_0 = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_2_0,
+        http_version_2tls = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_2TLS,
+        http_version_2_prior_knowledge = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE,
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_http_version, native::CURLOPT_HTTP_VERSION, http_version_t, long);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_ignore_content_length, native::CURLOPT_IGNORE_CONTENT_LENGTH);
@@ -482,8 +489,8 @@ public:
     IMPLEMENT_CURL_OPTION(set_max_file_size, native::CURLOPT_MAXFILESIZE, long);
     IMPLEMENT_CURL_OPTION(set_max_file_size_large, native::CURLOPT_MAXFILESIZE_LARGE, native::curl_off_t);
     enum time_condition_t {
-        if_modified_since = native::CURL_TIMECOND_IFMODSINCE,
-        if_unmodified_since = native::CURL_TIMECOND_IFUNMODSINCE
+        if_modified_since = CURL_8_13_NAMESPACE CURL_TIMECOND_IFMODSINCE,
+        if_unmodified_since = CURL_8_13_NAMESPACE CURL_TIMECOND_IFUNMODSINCE
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_time_condition, native::CURLOPT_TIMECONDITION, time_condition_t, long);
     IMPLEMENT_CURL_OPTION(set_time_value, native::CURLOPT_TIMEVALUE, long);
@@ -509,10 +516,10 @@ public:
     IMPLEMENT_CURL_OPTION_ENUM(set_ip_resolve, native::CURLOPT_IPRESOLVE, ip_resolve_t, long);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_connect_only, native::CURLOPT_CONNECT_ONLY);
     enum use_ssl_t {
-        use_ssl_none = native::CURLUSESSL_NONE,
-        use_ssl_try = native::CURLUSESSL_TRY,
-        use_ssl_control = native::CURLUSESSL_CONTROL,
-        use_ssl_all = native::CURLUSESSL_ALL
+        use_ssl_none = CURL_8_13_NAMESPACE CURLUSESSL_NONE,
+        use_ssl_try = CURL_8_13_NAMESPACE CURLUSESSL_TRY,
+        use_ssl_control = CURL_8_13_NAMESPACE CURLUSESSL_CONTROL,
+        use_ssl_all = CURL_8_13_NAMESPACE CURLUSESSL_ALL
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_use_ssl, native::CURLOPT_USE_SSL, use_ssl_t, long);
     void add_resolve(const std::string& host, const std::string& port, const std::string& addr);

@@ -12,6 +12,7 @@
 #include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 #include <userver/ugrpc/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 

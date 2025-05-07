@@ -13,6 +13,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+namespace impl {
+struct ServiceInternals;
+}  // namespace impl
+
 /// Per-service settings
 struct ServiceConfig final {
     /// TaskProcessor to use for serving RPCs.
@@ -36,7 +40,7 @@ public:
     // Creates a worker that forwards requests to this service.
     // The service must be destroyed after the worker.
     // For internal use only.
-    virtual std::unique_ptr<impl::ServiceWorker> MakeWorker(impl::ServiceSettings&& settings) = 0;
+    virtual std::unique_ptr<impl::ServiceWorker> MakeWorker(impl::ServiceInternals&& internals) = 0;
     /// @endcond
 };
 

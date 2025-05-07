@@ -255,7 +255,7 @@ async def _create_connection(asyncio_socket):
         assert DEFAULT_FRAME_SIZE == events[0].changed_settings[5].new_value
         assert isinstance(events[1], h2.events.SettingsAcknowledged)
 
-        logging.debug('Connection successfuly created')
+        logging.debug('Connection successfully created')
         return sock, conn
 
     return create_connection

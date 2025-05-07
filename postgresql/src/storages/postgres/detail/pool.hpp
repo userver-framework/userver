@@ -55,7 +55,8 @@ public:
         const testsuite::PostgresControl& testsuite_pg_ctl,
         error_injection::Settings ei_settings,
         const congestion_control::v2::LinearController::StaticConfig& cc_config,
-        dynamic_config::Source config_source
+        dynamic_config::Source config_source,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     ~ConnectionPool();
@@ -73,7 +74,8 @@ public:
         const testsuite::PostgresControl& testsuite_pg_ctl,
         error_injection::Settings ei_settings,
         const congestion_control::v2::LinearController::StaticConfig& cc_config,
-        dynamic_config::Source config_source
+        dynamic_config::Source config_source,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
@@ -164,6 +166,7 @@ private:
     USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
     detail::StatementStatsStorage sts_;
     dynamic_config::Source config_source_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 
     // Congestion control stuff
     cc::Sensor cc_sensor_;

@@ -16,7 +16,7 @@ AccumulatedData SumStats(const stats::PoolStatistics& stats) {
         for (const auto& [op, op_stats] : coll_stats->items) {
             result.total_queries += op_stats->GetTotalQueries().value;
             /*
-             * Ignore kPoolOverload - CC leads to a shrinked pool and burst of such
+             * Ignore kPoolOverload - CC leads to a shrank pool and burst of such
              * errors, it is not an explicit sign of bad mongo performance;
              * Ignore kNetwork - Deadline Propagation or simple timeouts might be the
              * reason.

@@ -77,8 +77,13 @@ add_library(userver-internal-compile-options INTERFACE)
 userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
 target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
 target_compile_options(userver-internal-compile-options INTERFACE
-  "-Wall" "-Wextra" "-Wpedantic"
+  "-Wall" "-Wextra"
 )
+
+# as alternative for -Wno-gnu-zero-variadic-macro-arguments
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_STANDARD GREATER_EQUAL 20)
+  target_compile_options(userver-internal-compile-options INTERFACE "-Wpedantic")
+endif()
 
 include(UserverCxxCompileOptionsIfSupported)
 userver_target_cxx_compile_options_if_supported(userver-internal-compile-options INTERFACE
@@ -403,6 +408,7 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverCodegenTarget.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverEmbedFile.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverPreferStaticLibs.cmake"
     "${USERVER_ROOT_DIR}/cmake/embedded_config.cmake"

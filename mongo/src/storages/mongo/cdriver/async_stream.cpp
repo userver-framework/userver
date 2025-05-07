@@ -446,6 +446,7 @@ size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes, engi
 }
 
 cdriver::StreamPtr AsyncStream::Create(engine::io::Socket socket) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     return cdriver::StreamPtr(new AsyncStream(std::move(socket)));
 }
 

@@ -114,6 +114,7 @@ public:
         const error_injection::Settings& ei_settings,
         testsuite::TestsuiteTasks& testsuite_tasks,
         dynamic_config::Source config_source,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics,
         int shard_number
     );
     ~Cluster();

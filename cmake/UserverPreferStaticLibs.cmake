@@ -13,7 +13,7 @@ if(USERVER_USE_STATIC_LIBS)
     list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES ".tbd")
   endif()
 
-  set(_FIND_LIB_PRIORITY_MESSAGE "Static libraries are prefered")
+  set(_FIND_LIB_PRIORITY_MESSAGE "Static libraries are preferred")
 else()
   set(_FIND_LIB_PRIORITY_MESSAGE "Default ordered")
 endif()

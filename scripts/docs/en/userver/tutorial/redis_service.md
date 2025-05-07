@@ -181,7 +181,7 @@ implemented using the testsuite. To do that you have to:
 
 Note that Redis databases support multiple configurations. If your service requires to work with
 cluster configuration or with a standalone configuration, then the conftest.py setup should be
-changed accodringly. Refer to the following snippet that configures all three setups at the same time: 
+changed accordingly. Refer to the following snippet that configures all three setups at the same time: 
 
 @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
 

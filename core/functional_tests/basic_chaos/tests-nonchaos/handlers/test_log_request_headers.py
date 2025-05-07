@@ -34,11 +34,13 @@ async def get_log_request_headers(
     headers_whitelist,
     expected_logged_headers,
 ):
+    # /// [dynamic_config usage]
     dynamic_config.set(
         USERVER_LOG_REQUEST_HEADERS=True,
         USERVER_LOG_REQUEST_HEADERS_WHITELIST=headers_whitelist,
     )
     await service_client.update_server_state()
+    # /// [dynamic_config usage]
 
     async with service_client.capture_logs() as capture:
         await service_client.get(

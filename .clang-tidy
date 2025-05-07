@@ -102,7 +102,7 @@ Checks:
   "
 
 WarningsAsErrors: '*'
-HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|shared|tools)/'
+HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|kafka|shared|tools)/'
 CheckOptions:
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: '1'

@@ -233,9 +233,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-dynamic-configs)
 
 # TODO: move to generator(?)
 userver_target_generate_chaotic(${PROJECT_NAME}-static-config-dns-client
-    ARGS
-        -n "/=userver::static_config::DnsClient"
-	-I ${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/include
+    INCLUDE_DIRS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/include
+    LAYOUT
+        "/=userver::static_config::DnsClient"
     OUTPUT_DIR
         ${CMAKE_CURRENT_BINARY_DIR}/static_configs
     OUTPUT_PREFIX

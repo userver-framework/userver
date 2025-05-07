@@ -14,6 +14,7 @@ env:
     CCACHE_DIR: /home/runner/.cache/ccache
     CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /home/runner/.cache/CPM
+    REDIS_SLEEP_WORKAROUND_SECONDS: 60
 
 jobs:
     posix:

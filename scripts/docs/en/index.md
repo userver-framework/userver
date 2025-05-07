@@ -23,6 +23,7 @@ are available at the
 
 
 ## Introduction
+
 * @ref scripts/docs/en/userver/intro_io_bound_coro.md
 * @ref scripts/docs/en/userver/intro.md
 * @ref scripts/docs/en/userver/framework_comparison.md
@@ -44,6 +45,11 @@ are available at the
 
 @anchor tutorial_services
 ## Tutorial
+
+@note Before tackling domain-specific problems,
+@ref scripts/docs/en/userver/build/build.md "create a service project"
+and make sure that it builds and passes tests.
+
 * @ref scripts/docs/en/userver/tutorial/hello_service.md
 * @ref scripts/docs/en/userver/tutorial/config_service.md
 * @ref scripts/docs/en/userver/tutorial/production_service.md
@@ -96,6 +102,7 @@ are available at the
         * @ref scripts/docs/en/userver/grpc/server_middlewares.md
         * @ref scripts/docs/en/userver/grpc/client_middlewares.md
         * @ref scripts/docs/en/userver/grpc/middlewares_order.md
+        * @ref scripts/docs/en/userver/grpc/middlewares_toggle.md
         * @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 * HTTP:
     * @ref clients::http::Client "Client"

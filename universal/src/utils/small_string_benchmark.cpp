@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 #include <benchmark/benchmark.h>
 

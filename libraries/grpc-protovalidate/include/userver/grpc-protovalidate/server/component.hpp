@@ -16,7 +16,7 @@ namespace grpc_protovalidate::server {
 ///
 /// This component checks whether gRPC request satisfies constraints specified in the *proto* file
 /// using [protovalidate](https://github.com/bufbuild/protovalidate) syntax. If it does not, middleware
-/// stops futher request handling and returns @c INVALID_ARGUMENT error. Also in that case validator adds
+/// stops further request handling and returns @c INVALID_ARGUMENT error. Also in that case validator adds
 /// @c Violations message filled by protovalidate (see *validate.proto* file) to the @c details field of
 /// the @c google.rpc.Status message which is sent sent as @c gprc::Status error details.
 ///

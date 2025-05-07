@@ -57,7 +57,7 @@ using MiddlewareRunner = USERVER_NAMESPACE::middlewares::RunnerComponentBase<Mid
 /// channel-count | Number of underlying grpc::Channel objects | 1
 /// middlewares | middlewares names to use | -
 /// disable-user-pipeline-middlewares | a flag to disable groups::User middlewares from pipeline | false
-/// disable-all-pipeline-middlewares | a flag to disable all middlewares from the pipline | false
+/// disable-all-pipeline-middlewares | a flag to disable all middlewares from the pipeline | false
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 

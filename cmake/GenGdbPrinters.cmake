@@ -1,5 +1,6 @@
 include_guard(GLOBAL)
 
+include("${CMAKE_CURRENT_LIST_DIR}/UserverCodegenTarget.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UserverVenv.cmake")
 
 function(gen_gdb_printers TARGET STRUCTURE)

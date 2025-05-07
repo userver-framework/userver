@@ -17,6 +17,7 @@ Cluster::Cluster(
     const error_injection::Settings& ei_settings,
     testsuite::TestsuiteTasks& testsuite_tasks,
     dynamic_config::Source config_source,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics,
     int shard_number
 ) {
     pimpl_ = std::make_unique<detail::ClusterImpl>(
@@ -29,6 +30,7 @@ Cluster::Cluster(
         ei_settings,
         testsuite_tasks,
         std::move(config_source),
+        std::move(metrics),
         shard_number
     );
 }

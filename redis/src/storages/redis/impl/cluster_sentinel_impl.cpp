@@ -819,7 +819,7 @@ ClusterSentinelImpl::ClusterSentinelImpl(
             ev_thread_, redis_thread_pool, shard_group_name, password, shards, conns
         );
     } else {
-        LOG_DEBUG() << "Contstruct Standalone topology holder";
+        LOG_DEBUG() << "Construct Standalone topology holder";
         UASSERT_MSG(conns.size() == 1, "In standalone mode we expect exactly one redis node to connect!");
         // TODO: TAXICOMMON-10376 experiment with providing kClusterDatabaseIndex other than 0 for standalone mode
         topology_holder_ = std::make_shared<StandaloneTopologyHolder>(

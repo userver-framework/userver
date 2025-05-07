@@ -101,8 +101,12 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
 
     initial_settings_.pool_settings =
         pg_config.pool_settings.GetOptional(name_).value_or(config.As<storages::postgres::PoolSettings>());
+
     initial_settings_.conn_settings =
         pg_config.connection_settings.GetOptional(name_).value_or(config.As<storages::postgres::ConnectionSettings>());
+    initial_settings_.conn_settings.statement_log_mode =
+        config["statement-log-mode"].As<storages::postgres::ConnectionSettings::StatementLogMode>();
+
     initial_settings_.conn_settings.pipeline_mode =
         initial_config[::dynamic_config::POSTGRES_CONNECTION_PIPELINE_EXPERIMENT] > 0
             ? storages::postgres::PipelineMode::kEnabled
@@ -131,6 +135,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     auto& testsuite_tasks = testsuite::GetTestsuiteTasks(context);
 
     auto* resolver = clients::dns::GetResolverPtr(config, context);
+    auto metrics = context.FindComponent<components::StatisticsStorage>().GetMetricsStorage();
 
     int shard_number = 0;
     for (auto& dsns : cluster_desc) {
@@ -147,6 +152,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
             ei_settings,
             testsuite_tasks,
             config_source_,
+            metrics,
             shard_number++
         );
         database_->clusters_.push_back(cluster);
@@ -262,6 +268,13 @@ properties:
         type: boolean
         description: cache prepared statements or not
         defaultDescription: true
+    statement-log-mode:
+        type: string
+        enum:
+          - hide
+          - show
+        description: whether to log SQL statements in a span tag
+        defaultDescription: show
     user-types-enabled:
         type: boolean
         description: disabling will disallow use of user-defined types

@@ -8,9 +8,9 @@
 #include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/middlewares/runner.hpp>
+#include <userver/utils/box.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-#include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
@@ -20,12 +20,13 @@ namespace ugrpc::server {
 
 class ServerComponent;
 class GenericServiceBase;
+class MiddlewareBase;
+struct ServiceInfo;
 
 namespace impl {
 
 /// @brief The interface for a `ServerComponentBase` component. So, `ServerComponentBase` runs with middlewares.
-using MiddlewareRunner =
-    USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ugrpc::server::ServiceInfo>;
+using MiddlewareRunner = USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ServiceInfo>;
 
 }  // namespace impl
 
@@ -40,7 +41,7 @@ using MiddlewareRunner =
 /// ---- | ----------- | -------------
 /// task-processor | the task processor to use for responses | taken from grpc-server.service-defaults
 /// disable-user-pipeline-middlewares | flag to disable `groups::User` middlewares from pipeline | false
-/// disable-all-pipeline-middlewares | flag to disable all middlewares from pipline | false
+/// disable-all-pipeline-middlewares | flag to disable all middlewares from pipeline | false
 /// middlewares | middlewares names to use | `{}` (use server defaults)
 
 // clang-format on
@@ -48,6 +49,8 @@ using MiddlewareRunner =
 class ServiceComponentBase : public impl::MiddlewareRunner {
 public:
     ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    ~ServiceComponentBase() override;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -63,7 +66,7 @@ private:
     ServerComponent& server_;
     ServiceConfig config_;
     std::atomic<bool> registered_{false};
-    ServiceInfo info_{};
+    utils::Box<ServiceInfo> info_;
 };
 
 namespace impl {

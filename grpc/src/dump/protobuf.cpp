@@ -5,6 +5,7 @@
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <google/protobuf/message_lite.h>
 #include <google/protobuf/util/delimited_message_util.h>
+#include <boost/container/small_vector.hpp>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/dump/operations.hpp>
@@ -23,14 +24,14 @@ constexpr std::size_t kDelimitedPrefixSize = 10;
 void WriteProtoMessageToDump(Writer& writer, const google::protobuf::MessageLite& message) {
     const auto buffer_size = static_cast<std::size_t>(message.ByteSizeLong()) + kDelimitedPrefixSize;
     // TODO remove a copy on writes, add DumpZeroCopyOutputStream
-    const std::unique_ptr<char[]> buffer{new char[buffer_size]};
-    google::protobuf::io::ArrayOutputStream output{buffer.get(), static_cast<int>(buffer_size)};
+    boost::container::small_vector<char, 1024> buffer{buffer_size, boost::container::default_init};
+    google::protobuf::io::ArrayOutputStream output{buffer.data(), static_cast<int>(buffer_size)};
 
     if (!google::protobuf::util::SerializeDelimitedToZeroCopyStream(message, &output)) {
         throw dump::Error{fmt::format("Failed to serialize protobuf {}", message.GetTypeName())};
     }
 
-    dump::WriteStringViewUnsafe(writer, std::string_view{buffer.get(), static_cast<std::size_t>(output.ByteCount())});
+    dump::WriteStringViewUnsafe(writer, std::string_view{buffer.data(), static_cast<std::size_t>(output.ByteCount())});
 }
 
 class DumpZeroCopyInputStream final : public google::protobuf::io::ZeroCopyInputStream {

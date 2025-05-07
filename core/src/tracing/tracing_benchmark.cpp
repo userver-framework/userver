@@ -13,7 +13,10 @@ void tracing_noop_ctr(benchmark::State& state) {
     engine::RunStandalone([&] {
         auto tracer = tracing::MakeTracer("test_service", {});
 
-        for ([[maybe_unused]] auto _ : state) benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
+        for ([[maybe_unused]] auto _ : state) {
+            tracing::Span tmp = tracer->CreateSpanWithoutParent("name");
+            benchmark::DoNotOptimize(tmp.GetSpanId());
+        }
     });
 }
 BENCHMARK(tracing_noop_ctr);
@@ -27,7 +30,10 @@ void tracing_happy_log(benchmark::State& state) {
         const logging::DefaultLoggerLevelScope level_scope{logging::Level::kInfo};
         auto tracer = tracing::MakeTracer("test_service", {});
 
-        for ([[maybe_unused]] auto _ : state) benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
+        for ([[maybe_unused]] auto _ : state) {
+            tracing::Span tmp = tracer->CreateSpanWithoutParent("name");
+            benchmark::DoNotOptimize(tmp.GetSpanId());
+        }
     });
 }
 BENCHMARK(tracing_happy_log);
@@ -45,7 +51,8 @@ void tracing_opentracing_ctr(benchmark::State& state) {
     engine::RunStandalone([&] {
         auto tracer = tracing::MakeTracer("test_service", logger);
         for ([[maybe_unused]] auto _ : state) {
-            benchmark::DoNotOptimize(GetSpanWithOpentracingHttpTags(tracer));
+            tracing::Span tmp = GetSpanWithOpentracingHttpTags(tracer);
+            benchmark::DoNotOptimize(tmp.GetSpanId());
         }
     });
 }

@@ -20,9 +20,7 @@ int main(int argc, const char* const argv[]) {
                                     .AppendComponentList(ugrpc::server::DefaultComponentList())
                                     .Append<server::handlers::ServerMonitor>()
                                     .Append<components::TestsuiteSupport>()
-                                    /// [register MyMiddlewareComponent]
                                     .Append<functional_tests::MyMiddlewareComponent>()
-                                    /// [register MyMiddlewareComponent]
                                     .Append<functional_tests::MySecondMiddlewareComponent>()
                                     .Append<functional_tests::GreeterServiceComponent>();
 

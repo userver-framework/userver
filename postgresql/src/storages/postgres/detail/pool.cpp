@@ -84,7 +84,8 @@ ConnectionPool::ConnectionPool(
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings,
     const congestion_control::v2::LinearController::StaticConfig& cc_config,
-    dynamic_config::Source config_source
+    dynamic_config::Source config_source,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 )
     : dsn_{std::move(dsn)},
       resolver_{resolver},
@@ -104,6 +105,7 @@ ConnectionPool::ConnectionPool(
       cancel_limit_{std::max(std::size_t{1}, settings.max_size / kCancelRatio), {1, kCancelPeriod}},
       sts_{statement_metrics_settings},
       config_source_(config_source),
+      metrics_(std::move(metrics)),
       cc_sensor_(*this),
       cc_limiter_(*this),
       cc_controller_(
@@ -142,7 +144,8 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings,
     const congestion_control::v2::LinearController::StaticConfig& cc_config,
-    dynamic_config::Source config_source
+    dynamic_config::Source config_source,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 ) {
     // FP?: pointer magic in boost.lockfree
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
@@ -159,7 +162,8 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
         testsuite_pg_ctl,
         std::move(ei_settings),
         cc_config,
-        config_source
+        config_source,
+        std::move(metrics)
     );
     // Init() uses shared_from_this for connections and cannot be called from
     // ctor
@@ -379,6 +383,7 @@ void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
         const auto old_settings = *writer;
         const auto old_version = old_settings.version;
         *writer = settings;
+        writer->statement_log_mode = old_settings.statement_log_mode;
         if (old_settings.RequiresConnectionReset(settings)) {
             writer->version = old_version + 1;
         }
@@ -427,7 +432,8 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock, ConnectionSettin
             default_cmd_ctls_,
             testsuite_pg_ctl_,
             ei_settings_,
-            std::move(size_lock)
+            std::move(size_lock),
+            metrics_
         );
     } catch (const ConnectionTimeoutError&) {
         // No problem if it's connection error

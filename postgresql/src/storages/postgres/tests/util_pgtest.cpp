@@ -4,6 +4,7 @@
 
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
@@ -99,7 +100,17 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
 
     try {
         conn = pg::detail::Connection::Connect(
-            dsn, nullptr, task_processor, GetTaskStorage(), kConnectionId, settings, GetTestCmdCtls(), {}, {}
+            dsn,
+            nullptr,
+            task_processor,
+            GetTaskStorage(),
+            kConnectionId,
+            settings,
+            GetTestCmdCtls(),
+            {},
+            {},
+            engine::SemaphoreLock{},
+            std::make_shared<utils::statistics::MetricsStorage>()
         );
     } catch (const storages::postgres::Error& ex) {
         ADD_FAILURE() << ex.what();

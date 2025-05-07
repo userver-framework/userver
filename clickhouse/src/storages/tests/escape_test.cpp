@@ -23,7 +23,8 @@ constexpr clock::time_point kFakeNow{
 constexpr clock::time_point kFakeNowLeadingZeros{
     std::chrono::duration_cast<clock::duration>(std::chrono::nanoseconds{1546300800'001002003ULL})};
 
-void ValidateEscaping(const std::string& source, const std::string& expected) {
+template <typename SourceT>
+void ValidateEscaping(const SourceT& source, const std::string& expected) {
     const auto escaped = io::impl::Escape(source);
     EXPECT_EQ(escaped, expected);
 }
@@ -181,6 +182,34 @@ TEST(EscapeQuery, ParamsCountMismatch) {
     // ideally this should throw, but oh well
     // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
     EXPECT_NO_THROW(QueryTester::WithArgs(q, 1, 2, 3, 4));
+}
+
+TEST(EscapeFloatingPoint, Basic) {
+    ValidateEscaping(storages::clickhouse::io::FloatingWithPrecision<double, 5>(0.4), "0.40000");
+    ValidateEscaping(storages::clickhouse::io::FloatingWithPrecision<float, 2>(1234.4), "1234.40");
+    ValidateEscaping(storages::clickhouse::io::FloatingWithPrecision<double, 9>(0.000000001), "0.000000001");
+    ValidateEscaping(storages::clickhouse::io::FloatingWithPrecision<float, 2>(100), "100.00");
+    ValidateEscaping(static_cast<float>(100), "100.000000");
+    ValidateEscaping(static_cast<double>(100), "100.000000000000");
+    ValidateEscaping(std::vector<double>{1, 2, 3}, "[1.000000000000,2.000000000000,3.000000000000]");
+}
+TEST(EscapeFloatingPoint, ExceptionalCases) {
+    ValidateEscaping(
+        storages::clickhouse::io::FloatingWithPrecision<float, 5>(std::numeric_limits<float>::infinity()), "inf"
+    );
+    ValidateEscaping(
+        storages::clickhouse::io::FloatingWithPrecision<float, 5>(-std::numeric_limits<float>::infinity()), "-inf"
+    );
+    ValidateEscaping(
+        storages::clickhouse::io::FloatingWithPrecision<float, 5>(std::numeric_limits<float>::quiet_NaN()), "nan"
+    );
+}
+TEST(EscapeFloatingPoint, SwitchPrecision) {
+    auto floating_number = storages::clickhouse::io::FloatingWithPrecision<double, 5>(100);
+    ValidateEscaping(storages::clickhouse::io::FloatingWithPrecision<float, 2>(floating_number), "100.00");
+    ValidateEscaping(
+        storages::clickhouse::io::FloatingWithPrecision<double, 7>(std::move(floating_number)), "100.0000000"
+    );
 }
 
 USERVER_NAMESPACE_END

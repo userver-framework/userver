@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include <server/http/http_request_constructor.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

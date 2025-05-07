@@ -37,7 +37,7 @@ std::function<void()> CreateDurationNotifier(std::chrono::milliseconds max_callb
         if (callback_duration > max_callback_duration / 2) {
             LOG_WARNING() << fmt::format(
                 "Your callback duration is {}ms. If callback duration "
-                "exceedes the {}ms your consumer will be kicked from the "
+                "exceeds the {}ms your consumer will be kicked from the "
                 "group. If it is okey to have such a long callbacks, "
                 "increase the `max_callback_duration` configuration option.",
                 callback_duration.count(),
