@@ -139,7 +139,9 @@ function(userver_target_generate_chaotic TARGET)
 
   list(APPEND CHAOTIC_ARGS "-o" "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}")
   list(APPEND CHAOTIC_ARGS "--relative-to" "${PARSE_RELATIVE_TO}")
-  list(APPEND CHAOTIC_ARGS "--clang-format" "${CLANG_FORMAT}")
+  if (USERVER_CHAOTIC_FORMAT)
+    list(APPEND CHAOTIC_ARGS "--clang-format" "${CLANG_FORMAT}")
+  endif()
 
   _userver_initialize_codegen_flag()
   add_custom_command(
