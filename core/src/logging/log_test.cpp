@@ -100,25 +100,21 @@ TEST_F(LoggingTest, DocsData) {
 }
 
 TEST_F(LoggingTest, DocsDataInline) {
-    /// [Sample logging usage]
     LOG_TRACE("Very verbose logs, only enabled using dynamic debug logs");
     LOG_DEBUG("Some debug info, not logged by default in production");
     LOG_INFO("This is informational message");
     LOG_WARNING("Something strange happened");
     LOG_ERROR("This is unbelievable, fix me, please!");
     LOG_CRITICAL("The service is about to abort, bye");
-    /// [Sample logging usage]
 }
 
 TEST_F(LoggingTest, DocsDataInlineFormat) {
-    /// [Sample logging usage]
     LOG_TRACE("Very {} logs, only enabled using dynamic debug logs", "verbose");
     LOG_DEBUG("Some {} info, not logged by default in production", "debug");
     LOG_INFO("This is {} message", "informational");
     LOG_WARNING("Something {} happened", "strange");
     LOG_ERROR("This is {}, fix me, please!", "unbelievable");
     LOG_CRITICAL("The service is about to {}, bye", "abort");
-    /// [Sample logging usage]
 
     // NOTE: Should not be compilable!
     // LOG_WARNING(fmt::format("Something {} happened", "strange"));
@@ -181,15 +177,20 @@ TEST_F(LoggingTest, Call) {
 }
 
 TEST_F(LoggingTest, CallFormat) {
-    /// [Example lambda-based logging usage]
-    std::map<int, int> map{{1, 2}, {2, 3}, {3, 4}};
-    LOG_ERROR() << [&map](auto& out) {
-        for (const auto& [key, value] : map) {
-            out.Format("{}={}, ", key, value);
-        }
-    };
-    /// [Example lambda-based logging usage]
-    EXPECT_EQ("1=2, 2=3, 3=4, ", LoggedText());
+    const int user_id = 42;
+    std::string ip_address = "127.0.0.1";
+    std::string_view expected_result = "User 42 logged in from 127.0.0.1";
+
+    /// [Example format bad logging usage]
+    LOG_INFO() << fmt::format("User {} logged in from {}", user_id, ip_address);
+    /// [Example format bad logging usage]
+    EXPECT_EQ(expected_result, LoggedText());
+    ClearLog();
+
+    /// [Example format-based logging usage]
+    LOG_INFO("User {} logged in from {}", user_id, ip_address);
+    /// [Example format-based logging usage]
+    EXPECT_EQ(expected_result, LoggedText());
 }
 
 TEST_F(LoggingTest, LoggingContainerElementFields) {
@@ -243,11 +244,9 @@ TEST_F(LoggingTest, LoggingNestedStructures) {
         }
         out << "]";
     };
-    /// [Example Logging Nested Structures]
     EXPECT_EQ("Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]", LoggedText());
-
     ClearLog();
-    /// [Example Logging Nested Structures]
+
     LOG_INFO() << [&list](auto& out) {
         out << "Records: [";
         for (const auto& item : list) {
@@ -255,8 +254,8 @@ TEST_F(LoggingTest, LoggingNestedStructures) {
         }
         out << "]";
     };
-    /// [Example Logging Nested Structures]
     EXPECT_EQ("Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]", LoggedText());
+    /// [Example Logging Nested Structures]
 }
 
 USERVER_NAMESPACE_END

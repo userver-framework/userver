@@ -446,7 +446,7 @@ void PrintTo(const Value&, std::ostream*);
 /// 'using namespace ABC' may contradict code style of your company.
 namespace formats::literals {
 
-json::Value operator"" _json(const char* str, std::size_t len);
+json::Value operator""_json(const char* str, std::size_t len);
 
 }  // namespace formats::literals
 

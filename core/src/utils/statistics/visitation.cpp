@@ -124,7 +124,7 @@ struct DfsNode {
     )
         : current(next),
           path_node(std::move(path_node_)),
-          label(label_),
+          label(std::move(label_)),
           children_label_name(std::move(children_label_name_)) {}
 
     bool is_in_subtree{false};

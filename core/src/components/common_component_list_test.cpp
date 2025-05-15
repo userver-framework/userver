@@ -32,7 +32,7 @@ constexpr std::string_view kStaticConfig = R"(
 # yaml
 components_manager:
   coro_pool:
-    initial_size: 5000
+    initial_size: 50
     max_size: 50000
   default_task_processor: main-task-processor
   event_thread_pool:

@@ -9,6 +9,7 @@ clickhouse-cpp
 cryptopp
 cyrus-sasl
 fmt
+gdb
 git
 google-benchmark
 googletest

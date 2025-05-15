@@ -66,7 +66,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
             UASSERT(pool_);
             writer = *pool_;
         },
-        {{"mongo_database", section_name}}
+        {{"mongo_database", std::move(section_name)}}
     );
 }
 

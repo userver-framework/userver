@@ -84,6 +84,7 @@ public:
         bool may_fallback_to_any,
         size_t skip_idx,
         bool read_only,
+        bool consider_ping,
         size_t* pinstance_idx
     );
     void Clean();

@@ -46,7 +46,7 @@ auto GetEnabledUserverExperiments() {
 
 }  // namespace
 
-UserverExperiment::UserverExperiment(std::string name) : name_(name) { RegisterExperiment(*this); }
+UserverExperiment::UserverExperiment(std::string name) : name_(std::move(name)) { RegisterExperiment(*this); }
 
 UserverExperimentsScope::UserverExperimentsScope() : old_enabled_(GetEnabledUserverExperiments()) {}
 

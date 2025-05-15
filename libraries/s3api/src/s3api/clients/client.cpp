@@ -90,7 +90,7 @@ std::string GeneratePresignedUrl(
     // balancers support virtual host addressing and https
     generated_url << protocol << request.bucket << "." << host;
     const auto expires_at_time_t = std::chrono::system_clock::to_time_t(expires_at);
-    AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, authenticator);
+    AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, std::move(authenticator));
     return generated_url.str();
 }
 
@@ -495,7 +495,9 @@ ClientPtr GetS3Client(
     std::shared_ptr<authenticators::AccessKey> authenticator,
     std::string bucket
 ) {
-    return GetS3Client(s3conn, std::static_pointer_cast<authenticators::Authenticator>(authenticator), bucket);
+    return GetS3Client(
+        std::move(s3conn), std::static_pointer_cast<authenticators::Authenticator>(authenticator), std::move(bucket)
+    );
 }
 
 ClientPtr GetS3Client(

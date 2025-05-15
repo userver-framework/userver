@@ -10,6 +10,7 @@
 #include <userver/tracing/span_event.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
 #include <userver/utils/regex.hpp>
 #include <userver/utils/text_light.hpp>
 
@@ -99,6 +100,7 @@ UTEST_F(Span, LogFormat) {
                                                   R"(my_tag_key=my_tag_value\t)"
                                                   R"(span_kind=internal\t)"
                                                   R"(text=\n)";
+    tracing::Span parent("parent_span_name");
     {
         tracing::Span span("span_name");
         span.AddTag("my_tag_key", "my_tag_value");
@@ -639,16 +641,15 @@ UTEST_F(Span, DocsData) {
 }
 
 UTEST_F(Span, SetLogLevelDoesntBreakGenealogyRoot) {
-    auto& root_span = tracing::Span::CurrentSpan();
     {
         tracing::Span child_span{"child"};
         child_span.SetLogLevel(logging::Level::kTrace);
         {
             tracing::Span grandchild_span{"grandchild"};
-            EXPECT_EQ(grandchild_span.GetParentId(), root_span.GetSpanId());
+            EXPECT_TRUE(grandchild_span.GetParentId().empty());
         }
         logging::LogFlush();
-        EXPECT_THAT(GetStreamString(), HasSubstr(fmt::format("parent_id={}", root_span.GetSpanId())));
+        EXPECT_THAT(GetStreamString(), HasSubstr("parent_id=\t"));
     }
 }
 
@@ -680,6 +681,15 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyMultiSkip) {
             EXPECT_THAT(GetStreamString(), HasSubstr(fmt::format("parent_id={}", root_span.GetSpanId())));
         }
     }
+}
+
+UTEST_F(Span, SetLogLevelDoesntBreakGenealogyAsync) {
+    tracing::Span root_span{"root_span"};
+    utils::Async("no_log", [&] {
+        tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kTrace);
+        tracing::Span child{"child"};
+        EXPECT_EQ(child.GetParentId(), root_span.GetSpanId());
+    }).Get();
 }
 
 UTEST_F(Span, MakeSpanWithParentIdTraceIdLink) {

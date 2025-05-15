@@ -2,6 +2,7 @@ build-essential
 ccache
 clang-format
 cmake
+gdb
 git
 libabsl-dev
 libbenchmark-dev

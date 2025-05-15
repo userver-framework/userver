@@ -34,6 +34,11 @@ std::size_t GetStackSize();
 ev::ThreadControl& GetEventThread();
 /// @endcond
 
+namespace impl {
+// For internal use only.
+void* GetRawCurrentTaskContext() noexcept;
+}  // namespace impl
+
 }  // namespace current_task
 
 namespace impl {

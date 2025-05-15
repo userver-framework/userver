@@ -8,6 +8,7 @@ cryptopp-devel
 curl-devel
 fmt-devel
 g++
+gdb
 google-benchmark-devel
 grpc-devel
 grpc-plugins

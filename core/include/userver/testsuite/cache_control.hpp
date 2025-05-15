@@ -192,7 +192,7 @@ RegisterCache(const components::ComponentContext& context, Component* self, void
 ///
 /// @deprecated Use the overload without the `config` parameter.
 template <typename Component>
-[[deprecated("Remove 'context' parameter from RegisterCache call")]] CacheResetRegistration RegisterCache(
+[[deprecated("Remove 'config' parameter from RegisterCache call")]] CacheResetRegistration RegisterCache(
     [[maybe_unused]] const components::ComponentConfig& config,
     const components::ComponentContext& context,
     Component* self,

@@ -127,7 +127,9 @@ Pool::Coroutine Pool::CreateCoroutine(bool quiet) {
             LOG_DEBUG() << "Created a coroutine #" << new_total << '/' << config_.max_size;
         }
 
-        stack_usage_monitor_.Register(coroutine);
+        if (new_total <= kStackUsageMonitorLimit) {
+            stack_usage_monitor_.Register(coroutine);
+        }
 
         return coroutine;
     } catch (const std::bad_alloc&) {

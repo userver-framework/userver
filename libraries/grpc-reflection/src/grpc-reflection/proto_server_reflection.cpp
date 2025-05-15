@@ -82,7 +82,7 @@ ProtoServerReflection::ServerReflectionInfo(CallContext& /*context*/, ServerRefl
             FillErrorResponse(status, *response.mutable_error_response());
         }
         response.set_valid_host(request.host());
-        response.set_allocated_original_request(new proto_reflection::ServerReflectionRequest(request));
+        response.set_allocated_original_request(new proto_reflection::ServerReflectionRequest(std::move(request)));
         stream.Write(response);
     }
 

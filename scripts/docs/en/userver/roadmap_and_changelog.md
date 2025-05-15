@@ -36,7 +36,8 @@ Changelog news also go to the
 
 ### Release v2.9
 
-* Logging now supports `fmt` formatting in macro: `LOG_INFO("This is {} message", "informational");`
+* Logging now supports `fmt` formatting in macro `LOG_INFO("User {} logged in from {}", user_id, ip_address);` and
+  lambda formatting. See @ref scripts/docs/en/userver/logging.md for more info.
 * PostgreSQL driver now can disable all the statements logging via static config option `statement-log-mode` 
 * ClickHouse driver now supports doubles in the queries.
 * YDB now can be used with GCC compiler, not only Clang. YDB still requires C++20 support
@@ -1364,7 +1365,7 @@ Detailed descriptions could be found below.
     more info.
   * Scripts for generating CMakeLists were simplified and cleared from internal
     stuff.
-  * Added missing dependencies to @ref scripts/docs/en/deps/ubuntu-20.04.md and sorted all
+  * Added missing dependencies to Ubuntu-20.04 and sorted all
     the dependencies, thanks to [Anatoly Shirokov](https://github.com/anatoly-spb)
     for the PR.
 * Statistics and metrics now do additional lifetime checks in debug builds to

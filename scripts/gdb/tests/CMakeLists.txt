@@ -1,6 +1,7 @@
-if (NOT (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test"))
-  return()
+if (USERVER_SANITIZE)
+  return() # boost ucontext switching is not supported yet
 endif()
+
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   # There is not GDB for MacOS
   return()
@@ -21,8 +22,12 @@ macro(add_gdb_test_program NAME SOURCE DEPS)
   project(userver-gdb-test-${NAME})
 
   add_executable(${PROJECT_NAME} "${SOURCE}")
-  target_link_libraries(${PROJECT_NAME} ${DEPS})
-  target_include_directories(${PROJECT_NAME} PRIVATE "${USERVER_ROOT_DIR}/scripts/gdb/tests/include")
+  target_link_libraries(${PROJECT_NAME} userver-gdb-tests-include ${DEPS})
+  target_include_directories(
+    ${PROJECT_NAME}
+    PRIVATE "${USERVER_ROOT_DIR}/scripts/gdb/tests/include"
+    PRIVATE "${USERVER_ROOT_DIR}/scripts/gdb/include"
+  )
 
   get_directory_property(TEST_PROGRAMS DIRECTORY "${GDB_TESTS_DIR}" TEST_PROGRAMS)
   get_directory_property(TEST_SOURCES DIRECTORY "${GDB_TESTS_DIR}" TEST_SOURCES)
@@ -31,6 +36,7 @@ macro(add_gdb_test_program NAME SOURCE DEPS)
   set_property(DIRECTORY "${GDB_TESTS_DIR}" PROPERTY TEST_SOURCES "${TEST_SOURCES}:${CMAKE_CURRENT_LIST_DIR}/${SOURCE}")
 endmacro()
 
+add_subdirectory(include)
 add_subdirectory(src)
 
 add_test(NAME ${PROJECT_NAME}
@@ -41,4 +47,5 @@ add_test(NAME ${PROJECT_NAME}
 get_directory_property(TEST_PROGRAMS TEST_PROGRAMS)
 get_directory_property(TEST_SOURCES TEST_SOURCES)
 
-set_tests_properties(${PROJECT_NAME} PROPERTIES ENVIRONMENT "TEST_PROGRAMS=${TEST_PROGRAMS};TEST_SOURCES=${TEST_SOURCES};GDB_BIN=${GDB_EXECUTABLE}")
+set_tests_properties(${PROJECT_NAME} PROPERTIES ENVIRONMENT
+                     "TEST_PROGRAMS=${TEST_PROGRAMS};TEST_SOURCES=${TEST_SOURCES};GDB_BIN=${GDB_EXECUTABLE};TESTS_COREDUMP=userver-gdb-test-utask")

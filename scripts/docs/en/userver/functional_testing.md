@@ -445,7 +445,7 @@ For metrics with labels, they could be retrieved in the following way:
 The @ref pytest_userver.metrics.Metric "Metric" python type is hashable and
 comparable:
 
-@snippet testsuite/tests/test_metrics.py  values set
+@snippet testsuite/tests/metrics/test_metrics.py  values set
 
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp

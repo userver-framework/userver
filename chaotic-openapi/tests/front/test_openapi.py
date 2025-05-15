@@ -220,3 +220,139 @@ def test_openapi_security(simple_parser):
             ),
         ],
     )
+
+
+def test_openapi_parameters(simple_parser):
+    assert simple_parser({
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'components': {
+            'parameters': {
+                'pamparam1': {
+                    'name': 'pamparam1',
+                    'in': 'header',
+                    'description': '',
+                    'required': True,
+                    'schema': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'integer',
+                        },
+                    },
+                    'style': 'simple',
+                }
+            },
+        },
+        'paths': {
+            '/': {
+                'parameters': [
+                    {'$ref': '#/components/parameters/pamparam1'},
+                    {
+                        'name': 'pamparam2',
+                        'in': 'path',
+                        'description': '',
+                        'required': True,
+                        'schema': {'type': 'string'},
+                    },
+                    {
+                        'name': 'pamparam2',
+                        'in': 'query',
+                        'description': '',
+                        'required': False,
+                        'schema': {'type': 'array', 'items': {'type': 'string'}},
+                        'style': 'form',
+                        'explode': True,
+                    },
+                ],
+                'get': {
+                    'responses': {},
+                    'parameters': [
+                        {
+                            'name': 'pamparam1',
+                            'in': 'header',
+                            'description': 'override',
+                            'required': True,
+                            'schema': {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'number',
+                                },
+                            },
+                            'style': 'simple',
+                        },
+                        {
+                            'name': 'pamparam2',
+                            'in': 'query',
+                            'description': 'override',
+                            'required': False,
+                            'schema': {'type': 'array', 'items': {'type': 'number'}},
+                            'style': 'form',
+                            'explode': True,
+                        },
+                    ],
+                },
+            },
+        },
+    }) == model.Service(
+        name='test',
+        description='',
+        parameters={
+            '<inline>#/components/parameters/pamparam1': model.Parameter(
+                name='pamparam1',
+                in_=model.In.header,
+                description='',
+                required=True,
+                schema=types.Array(items=types.Integer()),
+                style=model.Style.simple,
+                examples={},
+                deprecated=False,
+                allowEmptyValue=False,
+            )
+        },
+        operations=[
+            model.Operation(
+                description='',
+                path='/',
+                method='get',
+                operationId='Get',
+                responses={},
+                requestBody=[],
+                security=[],
+                parameters=[
+                    model.Parameter(
+                        name='pamparam1',
+                        in_=model.In.header,
+                        description='override',
+                        required=True,
+                        schema=types.Array(items=types.Number()),
+                        style=model.Style.simple,
+                        examples={},
+                        deprecated=False,
+                        allowEmptyValue=False,
+                    ),
+                    model.Parameter(
+                        name='pamparam2',
+                        in_=model.In.path,
+                        description='',
+                        required=True,
+                        schema=types.String(),
+                        style=model.Style.simple,
+                        examples={},
+                        deprecated=False,
+                        allowEmptyValue=False,
+                    ),
+                    model.Parameter(
+                        name='pamparam2',
+                        in_=model.In.query,
+                        description='override',
+                        required=False,
+                        schema=types.Array(items=types.Number()),
+                        style=model.Style.form,
+                        examples={},
+                        deprecated=False,
+                        allowEmptyValue=False,
+                    ),
+                ],
+            )
+        ],
+    )

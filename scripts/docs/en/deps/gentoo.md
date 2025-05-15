@@ -5,6 +5,7 @@ dev-cpp/yaml-cpp
 dev-db/mongodb
 dev-db/postgresql
 dev-db/redis
+dev-debug/gdb 
 dev-lang/python
 dev-libs/crypto++
 dev-libs/hiredis

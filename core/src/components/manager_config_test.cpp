@@ -16,7 +16,7 @@ components_manager:
   coro_pool:
     initial_size: $coro_pool_initial_size
     initial_size#env: ENV_VARIABLE_THAT_DOES_NOT_EXIST
-    initial_size#fallback: 5000
+    initial_size#fallback: 101
     max_size: $coro_pool_max_size
     max_size#fallback: 50000
     stack_size#env: USERVER_STACK_SIZE
@@ -210,7 +210,7 @@ TEST(ManagerConfig, Basic) {
 
     EXPECT_EQ(mc.default_task_processor, "main-task-processor");
     EXPECT_EQ(mc.coro_pool.max_size, 10000) << "config vars do not work";
-    EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
+    EXPECT_EQ(mc.coro_pool.initial_size, 101) << "#fallback does not work";
     EXPECT_FALSE(mc.mlock_debug_info) << "#env does not work with missing substitution vars";
     EXPECT_EQ(mc.coro_pool.stack_size, 1024) << "#env does not work";
 

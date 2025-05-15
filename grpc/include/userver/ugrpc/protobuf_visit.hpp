@@ -4,12 +4,12 @@
 /// @brief Utilities for visiting the fields of protobufs
 
 #include <mutex>
-#include <shared_mutex>
 #include <string_view>
 #include <vector>
 
 #include <google/protobuf/message.h>
 
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
@@ -136,10 +136,10 @@ protected:
     ~VisitorCompiler() = default;
 
     /// @brief Lock the visitor for read
-    std::shared_lock<std::shared_mutex> LockRead();
+    std::shared_lock<engine::SharedMutex> LockRead();
 
     /// @brief Lock the visitor for write
-    std::unique_lock<std::shared_mutex> LockWrite();
+    std::unique_lock<engine::SharedMutex> LockWrite();
 
     const Dependencies& GetFieldsWithSelectedChildren() const { return fields_with_selected_children_; }
     /// @endcond
@@ -157,7 +157,7 @@ private:
     /// @brief Propagate the selection information upwards
     void PropagateSelected(const google::protobuf::Descriptor* descriptor);
 
-    std::shared_mutex mutex_;
+    engine::SharedMutex mutex_;
     const LockBehavior lock_behavior_;
 
     Dependencies fields_with_selected_children_;

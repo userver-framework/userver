@@ -4,6 +4,12 @@ A userver-based service usually consists of components. A component is a basic
 building block that encapsulates dependencies logic with configuration and
 is able to interact with other components.
 
+Each component is a singleton within a service instance, so they should only encapsulate global state,
+not per-request state. (Although *factories* for per-request objects may be appropriate.)
+Any mutable state probably needs @ref scripts/docs/en/userver/synchronization.md "synchronization".
+Built-in userver components perform synchronization internally when needed and are fully thread-safe
+unless specified otherwise.
+
 \b Example:
 
 * There is a `ClientB`, that requires initialization with some `SettingsB`

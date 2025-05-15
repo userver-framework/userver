@@ -24,12 +24,12 @@ class In(str, enum.Enum):
     path = 'path'
     query = 'query'
     header = 'header'
-    form = 'form'
+    formData = 'formData'
 
 
 # https://spec.openapis.org/oas/v2.0.html#parameter-object
 class Parameter(pydantic.BaseModel):
-    name: Optional[str] = None
+    name: str
     in_: In = pydantic.Field(alias='in')
     description: str = ''
     required: bool = False
@@ -40,7 +40,7 @@ class Parameter(pydantic.BaseModel):
     # in != body
     type: Optional[str] = None
     format: Optional[str] = None
-    allowEmptyValue: Optional[str] = None
+    allowEmptyValue: bool = False
     items: Optional[Dict] = None
     collectionFormat: Optional[str] = None
     default: Any = None
@@ -57,9 +57,6 @@ class Parameter(pydantic.BaseModel):
             if self.type == 'array':
                 if not self.items:
                     raise ValueError(errors.missing_field_msg('items'))
-
-
-Parameters = List[Parameter]
 
 
 # https://spec.openapis.org/oas/v2.0.html#header-object
@@ -152,6 +149,8 @@ class SecurityDef(pydantic.BaseModel):
 # https://spec.openapis.org/oas/v2.0.html#security-requirement-object
 Security = Dict[str, List[str]]
 
+Parameters = List[Union[Parameter, Ref]]
+
 
 # https://spec.openapis.org/oas/v2.0.html#operation-object
 class Operation(pydantic.BaseModel):
@@ -195,7 +194,7 @@ class Swagger(pydantic.BaseModel):
     produces: List[str] = pydantic.Field(default_factory=list)
     paths: Paths
     definitions: Dict[str, Schema] = pydantic.Field(default_factory=dict)
-    parameters: Parameters = pydantic.Field(default_factory=list)
+    parameters: Dict[str, Parameter] = pydantic.Field(default_factory=dict)
     responses: Dict[str, Response] = pydantic.Field(default_factory=dict)
     securityDefinitions: Dict[str, SecurityDef] = pydantic.Field(default_factory=dict)
     security: Security = pydantic.Field(default_factory=dict)

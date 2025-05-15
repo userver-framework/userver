@@ -27,7 +27,7 @@ LinearController::LinearController(
       long_timings_(kLongTimingsEpochs),
       short_timings_(kShortTimingsEpochs),
       config_source_(config_source),
-      config_getter_(config_getter) {}
+      config_getter_(std::move(config_getter)) {}
 
 Limit LinearController::Update(const Sensor::Data& current) {
     auto dyn_config = config_source_.GetSnapshot();

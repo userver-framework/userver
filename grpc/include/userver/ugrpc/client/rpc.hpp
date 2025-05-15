@@ -341,7 +341,7 @@ public:
     /// @param response where to put response on success
     /// @return StreamReadFuture future
     /// @throws ugrpc::client::RpcError on an RPC error
-    StreamReadFuture<BidirectionalStream> ReadAsync(Response& response) noexcept;
+    StreamReadFuture<BidirectionalStream> ReadAsync(Response& response);
 
     /// @brief Write the next outgoing message
     ///
@@ -621,7 +621,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
 template <typename Request, typename Response>
 StreamReadFuture<BidirectionalStream<Request, Response>> BidirectionalStream<Request, Response>::ReadAsync(
     Response& response
-) noexcept {
+) {
     impl::ReadAsync(*stream_, response, GetData());
     auto post_recv_message = [&response](impl::RpcData& data) {
         impl::MiddlewarePipeline::PostRecvMessage(data, response);

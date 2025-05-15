@@ -78,7 +78,7 @@ PrivateKey PrivateKey::LoadFromString(std::string_view key, std::string_view pas
     if (!privkey) {
         throw KeyParseError(FormatSslError("Failed to load private key"));
     }
-    return PrivateKey{privkey};
+    return PrivateKey{std::move(privkey)};
 }
 
 }  // namespace crypto

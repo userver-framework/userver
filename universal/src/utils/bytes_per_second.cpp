@@ -72,7 +72,7 @@ BytesPerSecond StringToBytesPerSecond(const std::string& data) {
     }
 
     throw std::logic_error(
-        "StringToBytesPerSecond: unknown format specifier '" + std::string{remained} + "' in string '" + data + "'"
+        "StringToBytesPerSecond: unknown format specifier '" + remained + "' in string '" + data + "'"
     );
 }
 

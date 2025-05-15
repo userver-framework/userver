@@ -34,8 +34,8 @@ std::string GetFallbackName(std::string_view str) { return std::string{str} + "#
 
 template <typename Field>
 YamlConfig MakeMissingConfig(const YamlConfig& config, Field field) {
-    const auto path = formats::common::MakeChildPath(config.GetPath(), field);
-    return {formats::yaml::Value()[path], {}};
+    auto path = formats::common::MakeChildPath(config.GetPath(), field);
+    return {formats::yaml::Value()[std::move(path)], {}};
 }
 
 void AssertEnvMode(YamlConfig::Mode mode) {

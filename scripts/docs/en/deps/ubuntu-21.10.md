@@ -2,6 +2,7 @@ build-essential
 ccache
 clang-format
 cmake
+gdb
 git
 libbenchmark-dev
 libboost-context1.74-dev

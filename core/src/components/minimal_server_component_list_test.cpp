@@ -51,7 +51,7 @@ components_manager:
       worker_threads: 4
       task-trace:
         every: 1
-        max-context-switch-count: 50
+        max-context-switch-count: 1000
         logger: tracer
   components:
     logging:

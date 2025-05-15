@@ -86,6 +86,7 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
     const auto servers_count = available_servers.size();
     const auto is_nearest_ping_server = IsNearestServerPing(cc);
     const auto is_retry = command->counter != 0;
+    const auto consider_ping = cc.consider_ping;
 
     const auto masters_count = 1;
     const auto max_attempts = replicas_.size() + masters_count + 1;
@@ -96,13 +97,22 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
 
         size_t idx = SentinelImpl::kDefaultPrevInstanceIdx;
         const auto instance = GetInstance(
-            available_servers, is_retry, start_idx, attempt, is_nearest_ping_server, cc.best_dc_count, &idx
+            available_servers,
+            is_retry,
+            start_idx,
+            attempt,
+            is_nearest_ping_server,
+            cc.best_dc_count,
+            consider_ping,
+            &idx
         );
         if (!instance) {
             continue;
         }
         command->instance_idx = idx;
-        if (instance->AsyncCommand(command)) return true;
+        if (instance->AsyncCommand(command)) {
+            return true;
+        }
     }
 
     LOG_LIMITED_WARNING() << "No Redis server is ready for shard=" << shard_ << " slave=" << command->read_only
@@ -223,6 +233,7 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
     size_t attempt,
     bool is_nearest_ping_server,
     size_t best_dc_count,
+    bool consider_ping,
     size_t* pinstance_idx
 ) {
     RedisPtr ret;
@@ -238,7 +249,8 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
         const auto& cur_inst = cur->Get();
 
         if (cur_inst && cur_inst->IsAvailable() && (!retry || cur_inst->CanRetry()) &&
-            (!ret || ret->IsDestroying() || cur_inst->GetRunningCommands() < ret->GetRunningCommands())) {
+            (!ret || ret->IsDestroying() ||
+             (consider_ping && cur_inst->GetRunningCommands() < ret->GetRunningCommands()))) {
             if (pinstance_idx) *pinstance_idx = idx;
             ret = cur_inst;
         }

@@ -11,6 +11,7 @@
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/numeric_cast.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/str_icase.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <userver/utils/threads.hpp>
 #include <utils/statistics/thread_statistics.hpp>
@@ -75,7 +76,13 @@ void EmitMagicNanosleep() {
 
 void TaskProcessorThreadStartedHook() {
     utils::impl::AssertStaticRegistrationFinished();
+
+    // uses /dev/urandom
     utils::WithDefaultRandom([](auto&) {});
+
+    // uses /dev/urandom
+    utils::StrCaseHash hash;
+
     for (const auto& func : ThreadStartedHooks()) {
         func();
     }

@@ -263,8 +263,8 @@ bool HasWaitSucceeded(TaskContext::WakeupSource) noexcept;
 
 namespace current_task {
 
-impl::TaskContext& GetCurrentTaskContext() noexcept;
-impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept;
+engine::impl::TaskContext& GetCurrentTaskContext() noexcept;
+engine::impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept;
 
 }  // namespace current_task
 }  // namespace engine

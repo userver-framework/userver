@@ -153,6 +153,12 @@ std::size_t GetStackSize() { return GetTaskProcessor().GetTaskProcessorPools()->
 
 ev::ThreadControl& GetEventThread() { return GetTaskProcessor().EventThreadPool().NextThread(); }
 
+namespace impl {
+
+void* GetRawCurrentTaskContext() noexcept { return current_task::GetCurrentTaskContextUnchecked(); }
+
+}  // namespace impl
+
 }  // namespace current_task
 
 namespace impl {

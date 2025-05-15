@@ -27,6 +27,8 @@
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
 
+#include <gdb_autogen/cmd/utask/cmd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -34,9 +36,9 @@ namespace engine {
 namespace current_task {
 namespace {
 
-compiler::ThreadLocal current_task_context_ptr = []() -> impl::TaskContext* { return nullptr; };
+compiler::ThreadLocal current_task_context_ptr = []() -> engine::impl::TaskContext* { return nullptr; };
 
-void SetCurrentTaskContext(impl::TaskContext* context) {
+void SetCurrentTaskContext(engine::impl::TaskContext* context) {
     auto local_task_context_ptr = current_task_context_ptr.Use();
     UASSERT(!*local_task_context_ptr || !context);
     *local_task_context_ptr = context;
@@ -44,7 +46,7 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 
 }  // namespace
 
-impl::TaskContext& GetCurrentTaskContext() noexcept {
+engine::impl::TaskContext& GetCurrentTaskContext() noexcept {
     auto current_task_context = current_task_context_ptr.Use();
     if (!*current_task_context) {
         // AbortWithStacktrace MUST be a separate function! Putting the body of this
@@ -60,7 +62,7 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
     return **current_task_context;
 }
 
-impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
+engine::impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
     auto current_task_context = current_task_context_ptr.Use();
     return *current_task_context;
 }

@@ -51,6 +51,8 @@ namespace {
 
 constexpr std::string_view kStaticConfigBase = R"(
 components_manager:
+  coro_pool:
+    initial_size: 50
   event_thread_pool:
     threads: 1
   default_task_processor: main-task-processor

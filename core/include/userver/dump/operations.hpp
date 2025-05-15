@@ -16,7 +16,7 @@ namespace dump {
 /// should be performed with a failed dump.
 class Error final : public std::runtime_error {
 public:
-    explicit Error(std::string message) : std::runtime_error(message) {}
+    explicit Error(std::string message) : std::runtime_error(std::move(message)) {}
 };
 
 /// A general interface for binary data output

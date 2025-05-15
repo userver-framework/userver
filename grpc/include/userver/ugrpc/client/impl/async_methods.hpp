@@ -240,7 +240,7 @@ template <typename GrpcStream, typename Response>
 }
 
 template <typename GrpcStream, typename Response>
-void ReadAsync(GrpcStream& stream, Response& response, RpcData& data) noexcept {
+void ReadAsync(GrpcStream& stream, Response& response, RpcData& data) {
     PrepareRead(data);
     data.EmplaceAsyncMethodInvocation();
     auto& read = data.GetAsyncMethodInvocation();

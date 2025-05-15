@@ -170,7 +170,7 @@ components_manager:
         testsuite-support:
     coro_pool:
         initial_size: $coro-pool-initial-size
-        initial_size#fallback: 5000
+        initial_size#fallback: 4000
         max_size: $coro-pool-max-size
         max_size#fallback: 50000
 

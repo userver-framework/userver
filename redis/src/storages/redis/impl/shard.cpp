@@ -162,6 +162,7 @@ std::shared_ptr<Redis> Shard::GetInstance(
     bool may_fallback_to_any,
     size_t skip_idx,
     bool read_only,
+    bool consider_ping,
     size_t* pinstance_idx
 ) {
     std::shared_ptr<Redis> instance;
@@ -177,8 +178,8 @@ std::shared_ptr<Redis> Shard::GetInstance(
 
         const auto& cur_inst = instances_[instance_idx].instance;
         if (cur_inst && cur_inst->IsAvailable() && (!is_retry || cur_inst->CanRetry()) &&
-            (!instance || instance->IsDestroying() || cur_inst->GetRunningCommands() < instance->GetRunningCommands()
-            )) {
+            (!instance || instance->IsDestroying() ||
+             (consider_ping && cur_inst->GetRunningCommands() < instance->GetRunningCommands()))) {
             if (pinstance_idx) *pinstance_idx = instance_idx;
             instance = cur_inst;
         }
@@ -208,6 +209,7 @@ bool Shard::AsyncCommand(CommandPtr command) {
     if (destroying_) return false;
 
     const CommandControlImpl cc{command->control};
+    const bool consider_ping = cc.consider_ping;
     const auto& available_servers =
         GetAvailableServers(command->control, !command->read_only || cc.allow_reads_from_master, command->read_only);
 
@@ -222,7 +224,9 @@ bool Shard::AsyncCommand(CommandPtr command) {
          */
         const bool may_fallback_to_any = (attempt != 0 && cc.force_server_id.IsAny());
 
-        instance = GetInstance(available_servers, is_retry, may_fallback_to_any, skip_idx, command->read_only, &idx);
+        instance = GetInstance(
+            available_servers, is_retry, may_fallback_to_any, skip_idx, command->read_only, consider_ping, &idx
+        );
         command->instance_idx = idx;
 
         if (instance) {

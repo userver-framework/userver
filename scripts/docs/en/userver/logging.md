@@ -150,18 +150,14 @@ LOG_INFO(<format-string>, <args>...);
 
 #### Examples
 
-@snippet logging/log_test.cpp Example inline formatting usage
-
 **Basic Usage**
 Instead of:
-```cpp
-LOG_INFO() << fmt::format("User {} logged in from {}", user_id, ip_address);
-```
+
+@snippet logging/log_test.cpp Example format bad logging usage
 
 Use:
-```cpp
-LOG_INFO("User {} logged in from {}", user_id, ip_address);
-```
+
+@snippet logging/log_test.cpp Example format-based logging usage
 
 This writes the formatted message directly to the log buffer.
 

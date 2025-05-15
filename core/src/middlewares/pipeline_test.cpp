@@ -146,7 +146,7 @@ TEST(MiddlewarePipeline, DisableWeakConnection) {
     ASSERT_EQ(expected, list);
 }
 
-TEST(MiddlewarePipeline, DisableStrongConnection) {
+TEST(MiddlewarePipelineDeathTest, DisableStrongConnection) {
     auto dependencies = kDefaultDependencies;
 
     // disable 'grpc-server-congestion-control'
@@ -158,7 +158,7 @@ TEST(MiddlewarePipeline, DisableStrongConnection) {
     EXPECT_UINVARIANT_FAILURE(middlewares::impl::BuildPipeline(std::move(dependencies)));
 }
 
-TEST(MiddlewarePipeline, DependencyToOtherGroup) {
+TEST(MiddlewarePipelineDeathTest, DependencyToOtherGroup) {
     auto dependencies = kDefaultDependencies;
     // Dependency from User to Core is not allowed
     dependencies.insert(Dependency<middlewares::groups::User, U1, Log>(kWeakConnect));

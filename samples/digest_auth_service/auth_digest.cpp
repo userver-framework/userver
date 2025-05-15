@@ -37,7 +37,7 @@ public:
         storages::postgres::ClusterPtr pg_cluster
     )
         : server::handlers::auth::digest::AuthCheckerBase(digest_settings, std::move(realm), secdist_config),
-          pg_cluster_(pg_cluster),
+          pg_cluster_(std::move(pg_cluster)),
           nonce_ttl_(digest_settings.nonce_ttl) {}
 
     std::optional<UserData> FetchUserData(const std::string& username) const override;

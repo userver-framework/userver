@@ -239,13 +239,13 @@ bool VisitorCompiler::ContainsSelected(const google::protobuf::Descriptor* descr
            IsSelected(*descriptor);
 }
 
-std::shared_lock<std::shared_mutex> VisitorCompiler::LockRead() {
+std::shared_lock<engine::SharedMutex> VisitorCompiler::LockRead() {
     std::shared_lock read_lock(mutex_, std::defer_lock);
     if (lock_behavior_ == LockBehavior::kShared) read_lock.lock();
     return read_lock;
 }
 
-std::unique_lock<std::shared_mutex> VisitorCompiler::LockWrite() {
+std::unique_lock<engine::SharedMutex> VisitorCompiler::LockWrite() {
     std::unique_lock write_lock(mutex_, std::defer_lock);
     if (lock_behavior_ == LockBehavior::kShared) write_lock.lock();
     return write_lock;

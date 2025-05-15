@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/grpc-protovalidate/buf_validate.hpp
+/// @file
 /// @brief Header which wraps @c buf/validate/validator.h to suppress compiler
 ///        warnings from it.
 

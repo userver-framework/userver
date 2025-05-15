@@ -99,6 +99,9 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     if (b.best_dc_count.has_value()) {
         res.best_dc_count = b.best_dc_count;
     }
+    if (b.consider_ping.has_value()) {
+        res.consider_ping = b.consider_ping;
+    }
     if (b.force_request_to_master.has_value()) {
         res.force_request_to_master = b.force_request_to_master;
     }

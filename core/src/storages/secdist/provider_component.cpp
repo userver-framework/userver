@@ -135,7 +135,7 @@ void UpdateFromEnv(formats::json::Value& doc, const std::optional<std::string>& 
 
 }  // namespace
 
-DefaultLoader::DefaultLoader(Settings settings) : settings_{settings} {}
+DefaultLoader::DefaultLoader(Settings settings) : settings_{std::move(settings)} {}
 
 formats::json::Value DefaultLoader::Get() const {
     formats::json::Value doc;

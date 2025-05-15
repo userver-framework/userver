@@ -1,6 +1,7 @@
 ccache
 clang-format
 cmake
+gdb
 git
 libbenchmark-dev
 libboost-filesystem1.74-dev

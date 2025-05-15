@@ -7,6 +7,7 @@ cmake
 crypto++-dev
 curl-dev
 curl-static
+gdb
 gflags-dev
 git
 grpc-cpp

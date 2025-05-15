@@ -75,7 +75,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
         }
     }
 
-    logger_->SetDefaultLogger(default_logger);
+    logger_->SetDefaultLogger(std::move(default_logger));
 
     logging::impl::SetDefaultLoggerRef(*logger_);
     old_logger_.ForwardTo(&*logger_);

@@ -6,6 +6,7 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import pydantic
@@ -66,7 +67,7 @@ class Parser:
         header_dict['in'] = 'header'
 
         parameter = openapi.Parameter(**header_dict)
-        return self._convert_parameter(parameter, infile_path)
+        return self._convert_openapi_parameter(parameter, infile_path)
 
     def _convert_swagger_header(self, name: str, header: swagger.Header, infile_path: str) -> model.Parameter:
         header_dict = header.model_dump(by_alias=True, exclude_none=True)
@@ -101,7 +102,7 @@ class Parser:
         cur = re.sub(self.RIGHT_SLASH_RE, '/', self._state.full_filepath)
         return self._normalize_ref(cur + ref)
 
-    def _convert_parameter(
+    def _convert_openapi_parameter(
         self,
         parameter: Union[openapi.Parameter, openapi.Ref],
         infile_path: str,
@@ -119,6 +120,93 @@ class Parser:
             style=model.Style(parameter.style),
             schema=self._parse_schema(parameter.schema_, infile_path + '/schema'),
         )
+        return p
+
+    def _is_swagger_request_body(
+        self,
+        parameter: Union[swagger.Parameter, swagger.Ref],
+        global_params: Dict[str, Union[model.Parameter, List[model.RequestBody]]],
+    ) -> bool:
+        if isinstance(parameter, swagger.Ref):
+            return isinstance(global_params[self._locate_ref(parameter.ref)], list)
+
+        return parameter.in_ in [swagger.In.body, swagger.In.formData]
+
+    def _convert_swagger_request_body(
+        self,
+        request_body: Union[swagger.Parameter, swagger.Ref],
+        infile_path: str,
+        consumes: List[str] = [],
+    ) -> Union[List[model.RequestBody], model.Ref]:
+        if isinstance(request_body, swagger.Ref):
+            ref = ref_resolver.normalize_ref(
+                self._state.full_filepath,
+                request_body.ref,
+            )
+            return model.Ref(ref)
+
+        if request_body.in_ == swagger.In.body:
+            return [
+                model.RequestBody(
+                    content_type=mime,
+                    schema=self._parse_schema(request_body.schema_, infile_path + '/schema'),
+                    required=True,
+                )
+                for mime in consumes
+            ]
+
+        assert request_body.in_ == swagger.In.formData
+
+        schema = self._parse_schema(
+            request_body.model_dump(
+                by_alias=True,
+                exclude={'name', 'in_', 'description', 'required', 'allowEmptyValue', 'collectionFormat'},
+                exclude_unset=True,
+            ),
+            infile_path,
+        )
+        return [
+            model.RequestBody(
+                content_type=mime,
+                schema=schema,
+                required=True,
+            )
+            for mime in consumes
+        ]
+
+    def _convert_swagger_parameter(
+        self, parameter: Union[swagger.Parameter, swagger.Ref], infile_path: str
+    ) -> model.Parameter:
+        if isinstance(parameter, swagger.Ref):
+            return self._state.service.parameters[self._locate_ref(parameter.ref)]
+
+        schema = self._parse_schema(
+            parameter.model_dump(
+                by_alias=True,
+                exclude={'name', 'in_', 'description', 'required', 'allowEmptyValue', 'collectionFormat'},
+                exclude_unset=True,
+            ),
+            infile_path,
+        )
+
+        style: model.Style
+        if parameter.in_ == swagger.In.query:
+            style = model.Style.form
+        else:
+            style = model.Style.simple
+
+        p = model.Parameter(
+            name=parameter.name,
+            in_=model.In(parameter.in_),
+            description=parameter.description or '',
+            examples={},
+            deprecated=False,
+            required=parameter.required,
+            allowEmptyValue=parameter.allowEmptyValue,
+            style=style,
+            schema=schema,
+        )
+
         return p
 
     def _convert_openapi_response(
@@ -174,7 +262,7 @@ class Parser:
             content={mime: model.MediaType(schema=schema, examples=response.examples[mime]) for mime in produces},
         )
 
-    def _convert_request_body(
+    def _convert_openapi_request_body(
         self,
         request_body: Union[openapi.RequestBody, openapi.Ref],
         infile_path: str,
@@ -330,7 +418,7 @@ class Parser:
             # components/requestBodies
             for name, requestBody in parsed.components.requestBodies.items():
                 infile_path = f'/components/requestBodies/{name}'
-                body = self._convert_request_body(
+                body = self._convert_openapi_request_body(
                     requestBody,
                     infile_path,
                 )
@@ -340,8 +428,8 @@ class Parser:
             # components/parameters
             for name, parameter in parsed.components.parameters.items():
                 infile_path = '/components/parameters/' + name
-                self._state.service.parameters[self._state.full_filepath + '#' + infile_path] = self._convert_parameter(
-                    parameter, infile_path
+                self._state.service.parameters[self._state.full_filepath + '#' + infile_path] = (
+                    self._convert_openapi_parameter(parameter, infile_path)
                 )
 
             # components/responses
@@ -351,20 +439,45 @@ class Parser:
                 assert isinstance(model_resp, model.Response)
                 self._state.service.responses[self._state.full_filepath + '#' + infile_path] = model_resp
 
+            # paths
             for path, path_item in parsed.paths.items():
-                self._append_openapi_operation(path, 'get', path_item.get, _convert_op_security)
-                self._append_openapi_operation(path, 'post', path_item.post, _convert_op_security)
-                self._append_openapi_operation(path, 'put', path_item.put, _convert_op_security)
-                self._append_openapi_operation(path, 'delete', path_item.delete, _convert_op_security)
-                self._append_openapi_operation(path, 'options', path_item.options, _convert_op_security)
-                self._append_openapi_operation(path, 'head', path_item.head, _convert_op_security)
-                self._append_openapi_operation(path, 'patch', path_item.patch, _convert_op_security)
-                self._append_openapi_operation(path, 'trace', path_item.trace, _convert_op_security)
+                infile_path = f'/paths/[{path}]'
+                path_params: Dict[Tuple[str, model.In], model.Parameter] = {}
+                for i, path_parameter in enumerate(path_item.parameters):
+                    param = self._convert_openapi_parameter(path_parameter, infile_path + f'/parameters/{i}')
+                    path_params[(param.name, param.in_)] = param
+
+                self._append_openapi_operation(path, 'get', path_item.get, _convert_op_security, path_params)
+                self._append_openapi_operation(path, 'post', path_item.post, _convert_op_security, path_params)
+                self._append_openapi_operation(path, 'put', path_item.put, _convert_op_security, path_params)
+                self._append_openapi_operation(path, 'delete', path_item.delete, _convert_op_security, path_params)
+                self._append_openapi_operation(path, 'options', path_item.options, _convert_op_security, path_params)
+                self._append_openapi_operation(path, 'head', path_item.head, _convert_op_security, path_params)
+                self._append_openapi_operation(path, 'patch', path_item.patch, _convert_op_security, path_params)
+                self._append_openapi_operation(path, 'trace', path_item.trace, _convert_op_security, path_params)
 
         elif isinstance(parsed, swagger.Swagger):
             parsed = typing.cast(swagger.Swagger, parsed)
             components_schemas = parsed.definitions
             components_schemas_path = '/definitions'
+
+            # consumes
+            consumes = parsed.consumes
+
+            # parameters
+            global_params: Dict[str, Union[model.Parameter, List[model.RequestBody]]] = {}
+            for name, sw_parameter in parsed.parameters.items():
+                if self._is_swagger_request_body(sw_parameter, global_params):
+                    infile_path = '/requestBodies/' + name
+                    sw_bodies = self._convert_swagger_request_body(sw_parameter, infile_path, consumes)
+                    assert not isinstance(sw_bodies, model.Ref)
+                    self._state.service.requestBodies[self._state.full_filepath + '#' + infile_path] = sw_bodies
+                    global_params[self._state.full_filepath + f'#/parameters/{name}'] = sw_bodies
+                else:
+                    infile_path = '/parameters/' + name
+                    sw_param = self._convert_swagger_parameter(sw_parameter, infile_path)
+                    self._state.service.parameters[self._state.full_filepath + '#' + infile_path] = sw_param
+                    global_params[self._state.full_filepath + f'#/parameters/{name}'] = sw_param
 
             # produces
             produces = parsed.produces
@@ -394,23 +507,58 @@ class Parser:
 
                 return securities
 
+            # paths
             for sw_path, sw_path_item in parsed.paths.items():
-                self._append_swagger_operation(parsed.basePath + sw_path, 'get', sw_path_item.get, _convert_op_security)
+                infile_path = f'/paths/[{sw_path}]'
+                sw_path_params: Dict[Tuple[str, model.In], model.Parameter] = {}
+                sw_path_body: Union[List[model.RequestBody], model.Ref] = []
+                for i, sw_path_parameter in enumerate(sw_path_item.parameters):
+                    if self._is_swagger_request_body(sw_path_parameter, global_params):
+                        sw_path_body = self._convert_swagger_request_body(
+                            sw_path_parameter, infile_path + f'/requestBodies/{i}'
+                        )
+                    else:
+                        sw_param = self._convert_swagger_parameter(sw_path_parameter, infile_path + f'/parameters/{i}')
+                        sw_path_params[(sw_param.name, sw_param.in_)] = sw_param
+
+                def _convert_op_params(
+                    op_params: swagger.Parameters,
+                    infile_path: str,
+                    consumes: List[str],
+                ) -> Tuple[List[model.Parameter], Union[List[model.RequestBody], model.Ref]]:
+                    params = sw_path_params.copy()
+                    body = sw_path_body
+                    for i, sw_parameter in enumerate(op_params):
+                        if self._is_swagger_request_body(sw_parameter, global_params):
+                            body = self._convert_swagger_request_body(
+                                sw_parameter, infile_path + '/requestBody', consumes
+                            )
+                        else:
+                            param = self._convert_swagger_parameter(sw_parameter, infile_path + f'/parameters/{i}')
+                            params[(param.name, param.in_)] = param
+
+                    return list(params.values()), body
+
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'post', sw_path_item.post, _convert_op_security
+                    parsed.basePath + sw_path, 'get', sw_path_item.get, _convert_op_security, _convert_op_params
                 )
-                self._append_swagger_operation(parsed.basePath + sw_path, 'put', sw_path_item.put, _convert_op_security)
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'delete', sw_path_item.delete, _convert_op_security
+                    parsed.basePath + sw_path, 'post', sw_path_item.post, _convert_op_security, _convert_op_params
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'options', sw_path_item.options, _convert_op_security
+                    parsed.basePath + sw_path, 'put', sw_path_item.put, _convert_op_security, _convert_op_params
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'head', sw_path_item.head, _convert_op_security
+                    parsed.basePath + sw_path, 'delete', sw_path_item.delete, _convert_op_security, _convert_op_params
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'patch', sw_path_item.patch, _convert_op_security
+                    parsed.basePath + sw_path, 'options', sw_path_item.options, _convert_op_security, _convert_op_params
+                )
+                self._append_swagger_operation(
+                    parsed.basePath + sw_path, 'head', sw_path_item.head, _convert_op_security, _convert_op_params
+                )
+                self._append_swagger_operation(
+                    parsed.basePath + sw_path, 'patch', sw_path_item.patch, _convert_op_security, _convert_op_params
                 )
         else:
             assert False
@@ -468,29 +616,33 @@ class Parser:
         method: str,
         operation: Optional[openapi.Operation],
         security_converter: Callable[[Optional[openapi.Security]], List[model.Security]],
+        path_params: Dict[Tuple[str, model.In], model.Parameter],
     ) -> None:
         if not operation:
             return
 
+        infile_path = f'/paths/[{path}]/{method}'
+
         if operation.requestBody:
-            requestBody = self._convert_request_body(
+            requestBody = self._convert_openapi_request_body(
                 operation.requestBody,
-                f'/paths/[{path}]/{method}/requestBody',
+                infile_path + '/requestBody',
             )
         else:
             requestBody = []
 
-        infile_path = f'/paths/[{path}]/{method}'
+        params = path_params.copy()
+        for i, parameter in enumerate(operation.parameters):
+            param = self._convert_openapi_parameter(parameter, infile_path + f'/parameters/{i}')
+            params[(param.name, param.in_)] = param
+
         self._state.service.operations.append(
             model.Operation(
                 description=operation.description,
                 path=path,
                 method=method,
                 operationId=(operation.operationId or self._gen_operation_id(path, method)),
-                parameters=[
-                    self._convert_parameter(parameter, infile_path + f'/parameters/{num}')
-                    for num, parameter in enumerate(operation.parameters)
-                ],
+                parameters=list(params.values()),
                 requestBody=requestBody,
                 responses={
                     int(status): self._convert_openapi_response(response, infile_path + f'/responses/{status}')
@@ -506,30 +658,17 @@ class Parser:
         method: str,
         operation: Optional[swagger.Operation],
         security_converter: Callable[[Optional[swagger.Security]], List[model.Security]],
+        params_converter: Callable[
+            [swagger.Parameters, str, List[str]],
+            Tuple[List[model.Parameter], Union[List[model.RequestBody], model.Ref]],
+        ],
     ) -> None:
         if not operation:
             return
 
-        requestBody = []
         infile_path = f'/paths/[{path}]/{method}'
 
-        body_parameter: Optional[swagger.Parameter] = None
-        body_parameter_num = 0
-        for i, parameter in enumerate(operation.parameters):
-            if parameter.in_ == swagger.In.body:
-                body_parameter = parameter
-                body_parameter_num = i
-        if body_parameter:
-            schema = self._parse_schema(
-                body_parameter.schema_, infile_path + f'/parameters/{body_parameter_num}/schema'
-            )
-            requestBody.append(
-                model.RequestBody(
-                    content_type='application/json',
-                    schema=schema,
-                    required=True,
-                )
-            )
+        params, body = params_converter(operation.parameters, infile_path, operation.consumes)
 
         self._state.service.operations.append(
             model.Operation(
@@ -537,8 +676,8 @@ class Parser:
                 path=path,
                 method=method,
                 operationId=(operation.operationId or self._gen_operation_id(path, method)),
-                parameters=[],  # TODO
-                requestBody=requestBody,
+                parameters=params,
+                requestBody=body,
                 responses={
                     int(status): self._convert_swagger_response(
                         response, operation.produces, infile_path + f'/responses/{status}'

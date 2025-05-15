@@ -221,6 +221,9 @@ public:
     const std::string& GetSpanId() const;
     const std::string& GetParentId() const;
 
+    /// Get name the Span was created with
+    const std::string& GetName() const;
+
     /// @returns true if this span would be logged with the current local and
     /// global log levels to the default logger.
     bool ShouldLogDefault() const noexcept;

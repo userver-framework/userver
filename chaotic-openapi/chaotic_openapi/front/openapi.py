@@ -243,7 +243,7 @@ class Path(pydantic.BaseModel):
     trace: Optional[Operation] = None
 
     servers: List[Server] = pydantic.Field(default_factory=list)
-    parameters: List[Parameter] = pydantic.Field(default_factory=list)
+    parameters: List[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#schema

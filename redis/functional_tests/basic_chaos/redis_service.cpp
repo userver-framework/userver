@@ -13,6 +13,7 @@
 #include <userver/dynamic_config/updater/component.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
@@ -113,11 +114,72 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
     return std::to_string(result);
 }
 
+class MakeManyRequests final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName = "handler-chaos-many-requests";
+
+    MakeManyRequests(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override;
+
+private:
+    std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const;
+
+    storages::redis::ClientPtr redis_client_;
+    storages::redis::CommandControl redis_cc_;
+};
+
+MakeManyRequests::MakeManyRequests(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : server::handlers::HttpHandlerBase(config, context),
+      redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("test")},
+      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4} {
+    redis_cc_.allow_reads_from_master = true;
+}
+
+std::string MakeManyRequests::
+    HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/) const {
+    constexpr size_t kRequestsCount = 1000;
+
+    auto cc = redis_cc_;
+
+    const auto& consider_ping = request.GetArg("consider_ping");
+    if (consider_ping == "False") {
+        LOG_DEBUG() << "Consider ping: False";
+        cc.consider_ping = false;
+    }
+
+    std::vector<storages::redis::RequestGet> requests;
+    requests.reserve(kRequestsCount);
+    for (size_t i = 0; i < kRequestsCount; ++i) {
+        requests.push_back(redis_client_->Get(std::string("some_key"), cc));
+    }
+
+    for (auto& redis_request : requests) {
+        try {
+            const auto result = redis_request.Get();
+        } catch (const storages::redis::RequestFailedException& e) {
+            if (e.GetStatus() == storages::redis::ReplyStatus::kTimeoutError) {
+                request.SetResponseStatus(server::http::HttpStatus::kServiceUnavailable);
+                return "timeout";
+            }
+
+            throw;
+        }
+    }
+    return "ok";
+}
+
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<chaos::KeyValue>()
+                                    .Append<chaos::MakeManyRequests>()
+                                    .Append<server::handlers::ServerMonitor>()
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()
                                     .Append<components::Redis>("key-value-database")

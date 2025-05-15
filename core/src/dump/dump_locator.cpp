@@ -23,7 +23,7 @@ const std::string kTimeZone = "UTC";
 }  // namespace
 
 DumpLocator::DumpLocator(Config static_config)
-    : config_(static_config),
+    : config_(std::move(static_config)),
       filename_regex_(GenerateFilenameRegex(FileFormatType::kNormal)),
       tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp)) {}
 

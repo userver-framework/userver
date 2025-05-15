@@ -7,6 +7,7 @@ cmake
 crypto++
 curl
 fmt
+gdb
 git
 grpc
 gtest
