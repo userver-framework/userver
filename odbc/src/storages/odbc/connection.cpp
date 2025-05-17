@@ -3,8 +3,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <storages/odbc/impl/query_result.hpp>
 #include <userver/storages/odbc/connection.hpp>
+#include <userver/storages/odbc/odbc_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,6 +42,21 @@ Connection::Connection(const settings::ODBCSettings& settings) : env_(SQL_NULL_H
         SQLFreeHandle(SQL_HANDLE_ENV, env_);
         throw std::runtime_error("Failed to connect to database");
     }
+
+    SQLUINTEGER scrollOption = 0;
+    ret = SQLGetInfo(handle_, SQL_SCROLL_OPTIONS, &scrollOption, sizeof(scrollOption), nullptr);
+    if (!SQL_SUCCEEDED(ret)) {
+        SQLFreeHandle(SQL_HANDLE_DBC, handle_);
+        SQLFreeHandle(SQL_HANDLE_ENV, env_);
+        throw std::runtime_error("Failed to get scroll options");
+    }
+
+    // TODO: add support for other scroll options
+    if (!(scrollOption & SQL_FD_FETCH_ABSOLUTE)) {
+        SQLFreeHandle(SQL_HANDLE_DBC, handle_);
+        SQLFreeHandle(SQL_HANDLE_ENV, env_);
+        throw std::runtime_error("SQL_FD_FETCH_ABSOLUTE is not supported");
+    }
 }
 
 Connection::~Connection() {
@@ -56,49 +71,20 @@ Connection::~Connection() {
 
 namespace {
 
-impl::QueryResult FetchResultSet(SQLHSTMT stmt) {
-    impl::QueryResult result;
-    SQLSMALLINT columns_count = 0;
-    SQLRETURN ret = SQLNumResultCols(stmt, &columns_count);
-    if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to get columns count");
-    }
-
-    while (true) {
-        ret = SQLFetch(stmt);
-        if (ret == SQL_NO_DATA) break;
-        if (!SQL_SUCCEEDED(ret)) {
-            throw std::runtime_error("Failed to fetch row");
-        }
-
-        impl::QueryResultRow row;
-        for (SQLSMALLINT i = 1; i <= columns_count; ++i) {
-            SQLCHAR buffer[4096];
-            SQLLEN indicator = 0;
-            ret = SQLGetData(stmt, i, SQL_C_CHAR, buffer, sizeof(buffer), &indicator);
-            if (!SQL_SUCCEEDED(ret)) {
-                throw std::runtime_error("Failed to get column data");
-            }
-
-            if (indicator == SQL_NULL_DATA) {
-                row.AppendField(std::string{});
-            } else {
-                row.AppendField(std::string(reinterpret_cast<char*>(buffer), indicator));
-            }
-        }
-        result.AppendRow(std::move(row));
-    }
-
-    return result;
-}
+detail::ResultWrapper FetchResultSet(SQLHSTMT stmt) { return detail::ResultWrapper(detail::MakeResultHandle(stmt)); }
 
 }  // namespace
 
-CommandResultSet Connection::Query(const std::string& query) {
+ResultSet Connection::Query(const std::string& query) {
     SQLHSTMT stmt = nullptr;
     SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, handle_, &stmt);
     if (!SQL_SUCCEEDED(ret)) {
         throw std::runtime_error("Failed to allocate statement handle");
+    }
+
+    ret = SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, reinterpret_cast<SQLPOINTER>(SQL_CURSOR_DYNAMIC), 0);
+    if (!SQL_SUCCEEDED(ret)) {
+        throw std::runtime_error("Failed to set cursor type");
     }
 
     std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
@@ -109,35 +95,8 @@ CommandResultSet Connection::Query(const std::string& query) {
         throw std::runtime_error("Failed to execute query");
     }
 
-    auto result = FetchResultSet(stmt);
-    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-    return CommandResultSet(std::move(result));
-}
-
-StatementResultSet Connection::Execute(const std::string& query) {
-    SQLHSTMT stmt = nullptr;
-    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, handle_, &stmt);
-    if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to allocate statement handle");
-    }
-
-    std::vector<SQLCHAR> queryBuffer(query.begin(), query.end());
-    queryBuffer.push_back('\0');
-    ret = SQLPrepare(stmt, queryBuffer.data(), SQL_NTS);
-    if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-        throw std::runtime_error("Failed to prepare statement");
-    }
-
-    ret = SQLExecute(stmt);
-    if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-        throw std::runtime_error("Failed to execute prepared statement");
-    }
-
-    auto result = FetchResultSet(stmt);
-    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-    return StatementResultSet(std::move(result));
+    auto wrapper = std::make_shared<detail::ResultWrapper>(FetchResultSet(stmt));
+    return ResultSet(std::move(wrapper));
 }
 
 }  // namespace storages::odbc

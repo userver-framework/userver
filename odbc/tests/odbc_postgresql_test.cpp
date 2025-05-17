@@ -29,13 +29,20 @@ UTEST(Query, Works) {
     storages::odbc::Connection conn(settings);
 
     auto result = conn.Query("SELECT 1");
-    EXPECT_EQ(result.RowsCount(), 1);
-    EXPECT_EQ(result.At(0, 0), "1");
+    EXPECT_EQ(result.Size(), 1);
+    EXPECT_FALSE(result.IsEmpty());
+    auto row = result[0];
+    EXPECT_EQ(row.Size(), 1);
+    EXPECT_FALSE(row[0].IsNull());
+    EXPECT_EQ(row[0].GetInt32(), 1);
 
     auto multipleRows = conn.Query("SELECT generate_series(1, 10)");
-    EXPECT_EQ(multipleRows.RowsCount(), 10);
-    for (std::size_t i = 0; i < multipleRows.RowsCount(); i++) {
-        EXPECT_EQ(multipleRows.At(i, 0), std::to_string(i + 1));
+    EXPECT_EQ(multipleRows.Size(), 10);
+    for (std::size_t i = 0; i < multipleRows.Size(); i++) {
+        auto row = multipleRows[i];
+        EXPECT_EQ(row.Size(), 1);
+        EXPECT_FALSE(row[0].IsNull());
+        EXPECT_EQ(row[0].GetInt32(), i + 1);
     }
 }
 
