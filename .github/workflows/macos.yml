@@ -66,6 +66,7 @@ jobs:
                 brew link --force curl # keg-only
                 brew link --force cyrus-sasl # keg-only
                 brew link --force openldap # keg-only
+                brew link --force sqlite # keg-only
                 brew remove --ignore-dependencies abseil
 
           - name: Install test dependencies
