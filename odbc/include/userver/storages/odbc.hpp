@@ -4,7 +4,7 @@
 /// This file is mainly for documentation purposes and inclusion of all headers
 /// that are required for working with ODBC µserver component.
 
-#include <userver/storages/odbc/connection.hpp>
+#include <userver/storages/odbc/cluster.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

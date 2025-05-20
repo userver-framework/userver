@@ -6,6 +6,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
+LogicError::LogicError(std::string msg) : Error(msg), msg_(std::move(msg)) {}
+
+const char* LogicError::what() const noexcept { return msg_.c_str(); }
+
 ResultSetError::ResultSetError(std::string msg) : Error(msg), msg_(std::move(msg)) {}
 
 const char* ResultSetError::what() const noexcept { return msg_.c_str(); }

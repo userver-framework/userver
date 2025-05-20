@@ -3,14 +3,13 @@
 #include <stdexcept>
 #include <vector>
 
-#include <userver/storages/odbc/connection.hpp>
-#include <userver/storages/odbc/odbc_fwd.hpp>
+#include <storages/odbc/detail/connection.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-Connection::Connection(const settings::ODBCSettings& settings) : env_(SQL_NULL_HENV), handle_(SQL_NULL_HDBC) {
+Connection::Connection(const std::string& dsn) : env_(SQL_NULL_HENV), handle_(SQL_NULL_HDBC) {
     SQLRETURN ret =
         SQLSetEnvAttr(env_, SQL_ATTR_CONNECTION_POOLING, reinterpret_cast<SQLPOINTER>(SQL_CP_ONE_PER_DRIVER), 0);
     if (!SQL_SUCCEEDED(ret)) {
@@ -34,7 +33,7 @@ Connection::Connection(const settings::ODBCSettings& settings) : env_(SQL_NULL_H
         throw std::runtime_error("Failed to allocate connection handle");
     }
 
-    std::vector<SQLCHAR> dsnBuffer(settings.DSN.begin(), settings.DSN.end());
+    std::vector<SQLCHAR> dsnBuffer(dsn.begin(), dsn.end());
     dsnBuffer.push_back('\0');
     ret = SQLDriverConnect(handle_, nullptr, dsnBuffer.data(), SQL_NTS, nullptr, 0, nullptr, SQL_DRIVER_COMPLETE);
     if (!SQL_SUCCEEDED(ret)) {

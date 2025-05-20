@@ -12,16 +12,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-namespace settings {
-struct ODBCSettings {
-    std::string DSN;
-};
-}  // namespace settings
-
 /// @brief ODBC connection wrapper
 class Connection final {
 public:
-    explicit Connection(const settings::ODBCSettings& settings);
+    explicit Connection(const std::string& dsn);
 
     ~Connection();
 

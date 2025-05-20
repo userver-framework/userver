@@ -1,10 +1,9 @@
 #pragma once
 
 #include <limits>
-#include <string>
 #include <memory>
 
-#include <userver/storages/odbc/detail/result_wrapper.hpp>
+#include <storages/odbc/detail/result_wrapper.hpp>
 #include <userver/storages/odbc/row.hpp>
 
 USERVER_NAMESPACE_BEGIN

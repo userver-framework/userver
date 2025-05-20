@@ -1,4 +1,5 @@
-#include <userver/storages/odbc/detail/result_wrapper.hpp>
+#include <storages/odbc/detail/result_wrapper.hpp>
+
 #include "userver/storages/odbc/exception.hpp"
 
 USERVER_NAMESPACE_BEGIN

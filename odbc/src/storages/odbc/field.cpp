@@ -1,6 +1,6 @@
 #include <userver/storages/odbc/field.hpp>
 
-#include <userver/storages/odbc/detail/result_wrapper.hpp>
+#include <storages/odbc/detail/result_wrapper.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -3,11 +3,10 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
+
 #include <functional>
 #include <memory>
 #include <string>
-#include <vector>
-#include <optional>
 #include <cstdint>
 
 USERVER_NAMESPACE_BEGIN
