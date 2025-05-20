@@ -1,6 +1,11 @@
 project(userver-sqlite CXX)
 
-find_package(SQLite3 REQUIRED)
+if(${USERVER_BREW_PREFIX})
+  find_package(SQLite3 REQUIRED PATHS ${USERVER_BREW_PREFIX}/lib)
+else()
+  find_package(SQLite3 REQUIRED)
+endif()
+
 
 # Perhaps with this option it will be work faster, but should guarantee that the connection is used at the same time only one thread
 # https://www.sqlite.org/threadsafe.html
