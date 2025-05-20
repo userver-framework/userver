@@ -1,7 +1,10 @@
 project(userver-sqlite CXX)
 
-if(${USERVER_BREW_PREFIX})
-  find_package(SQLite3 REQUIRED PATHS ${USERVER_BREW_PREFIX}/lib)
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  set(CMAKE_FIND_FRAMEWORK_OLD ${CMAKE_FIND_FRAMEWORK})
+  set(CMAKE_FIND_FRAMEWORK NEVER)
+  find_package(SQLite3 REQUIRED)
+  set(CMAKE_FIND_FRAMEWORK ${CMAKE_FIND_FRAMEWORK})
 else()
   find_package(SQLite3 REQUIRED)
 endif()
