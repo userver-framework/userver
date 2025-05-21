@@ -80,19 +80,21 @@ public:
     const T& operator*() const noexcept { return *AsHeld(); }
 
     ~FastPimpl() noexcept {
-        Validate<sizeof(T), alignof(T)>();
+        Validate<sizeof(T), alignof(T), noexcept(std::declval<T*>()->~T())>();
         AsHeld()->~T();
     }
 
 private:
     // Use a template to make actual sizes visible in the compiler error message.
-    template <std::size_t ActualSize, std::size_t ActualAlignment>
+    template <std::size_t ActualSize, std::size_t ActualAlignment, bool ActualNoexcept>
     static void Validate() noexcept {
         static_assert(Size >= ActualSize, "invalid Size: Size >= sizeof(T) failed");
         static_assert(!Strict || Size == ActualSize, "invalid Size: Size == sizeof(T) failed");
 
         static_assert(Alignment % ActualAlignment == 0, "invalid Alignment: Alignment % alignof(T) == 0 failed");
         static_assert(!Strict || Alignment == ActualAlignment, "invalid Alignment: Alignment == alignof(T) failed");
+
+        static_assert(ActualNoexcept, "Destructor of FastPimpl is marked as noexcept, the ~T() is not");
     }
 
     alignas(Alignment) std::byte storage_[Size];
