@@ -3,7 +3,6 @@
 /// @file userver/storages/odbc/odbc_fwd.hpp
 /// @brief Forward declarations of some popular odbc related types
 
-#include <functional>
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN

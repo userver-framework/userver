@@ -1,5 +1,6 @@
 #include <userver/storages/odbc/exception.hpp>
 
+#include <string>
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN

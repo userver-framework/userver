@@ -25,16 +25,16 @@ SQLRETURN ResultWrapper::GetStatus() const {
 }
 
 std::size_t ResultWrapper::RowCount() const {
-    // TODO: drivers may return -1 or 0 if rows are not fetched yet, needs checking
-    SQLLEN row_count = 0;
-    CheckStatus(SQLRowCount(handle_.get(), &row_count));
-    return static_cast<std::size_t>(row_count);
+    // TODO: drivers may return -1 or 0 if rows are not fetched yet, overall implementation for select is driver-dependent, needs checking
+    SQLLEN rowCount = 0;
+    CheckStatus(SQLRowCount(handle_.get(), &rowCount));
+    return static_cast<std::size_t>(rowCount);
 }
 
 std::size_t ResultWrapper::FieldCount() const {
-    SQLSMALLINT field_count = 0;
-    CheckStatus(SQLNumResultCols(handle_.get(), &field_count));
-    return static_cast<std::size_t>(field_count);
+    SQLSMALLINT fieldCount = 0;
+    CheckStatus(SQLNumResultCols(handle_.get(), &fieldCount));
+    return static_cast<std::size_t>(fieldCount);
 }
 
 std::size_t ResultWrapper::RowsAffected() const { return RowCount(); }
@@ -56,9 +56,9 @@ SQLSMALLINT ResultWrapper::GetColumnType(std::size_t col) const {
 std::string ResultWrapper::GetString(std::size_t row, std::size_t col) const {
     CheckStatus(SQLFetchScroll(handle_.get(), SQL_FETCH_ABSOLUTE, row + 1));
     SQLCHAR value[1024];
-    SQLLEN value_len = sizeof(value);
-    CheckStatus(SQLGetData(handle_.get(), col + 1, SQL_C_CHAR, value, sizeof(value), &value_len));
-    return std::string(reinterpret_cast<char*>(value), value_len);
+    SQLLEN valueLen = sizeof(value);
+    CheckStatus(SQLGetData(handle_.get(), col + 1, SQL_C_CHAR, value, sizeof(value), &valueLen));
+    return std::string(reinterpret_cast<char*>(value), valueLen);
 }
 
 std::int32_t ResultWrapper::GetInt32(std::size_t row, std::size_t col) const {
@@ -84,9 +84,10 @@ double ResultWrapper::GetDouble(std::size_t row, std::size_t col) const {
 
 bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const {
     CheckStatus(SQLFetchScroll(handle_.get(), SQL_FETCH_ABSOLUTE, row + 1));
-    SQLLEN is_null = 0;
-    CheckStatus(SQLGetData(handle_.get(), col + 1, SQL_C_BIT, &is_null, sizeof(is_null), nullptr));
-    return is_null == SQL_NULL_DATA;
+    SQLLEN marker = 0;
+    bool dummy = false; // NOTE: odbc requires a buffer for SQL_C_DEFAULT
+    CheckStatus(SQLGetData(handle_.get(), col + 1, SQL_C_DEFAULT, &dummy, sizeof(dummy), &marker));
+    return marker == SQL_NULL_DATA;
 }
 
 }  // namespace storages::odbc::detail

@@ -18,7 +18,6 @@ const char* ToStringRaw(ClusterHostType ht) {
     switch (ht) {
         case ClusterHostType::kNone:
             return "default";
-
         case ClusterHostType::kMaster:
             return "master";
         case ClusterHostType::kSlave:

@@ -1,5 +1,6 @@
 #include <storages/odbc/detail/cluster_impl.hpp>
 #include <storages/odbc/detail/connection.hpp>
+#include "userver/storages/odbc/cluster_types.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,7 +13,11 @@ ClusterImpl::ClusterImpl(const std::vector<std::string>& dsns) : dsns_(dsns) {
 }
 
 ResultSet ClusterImpl::Execute([[maybe_unused]] ClusterHostTypeFlags flags, const Query& query) {
-    return connections_[0]->Query(query.Statement());
+    if (flags & ClusterHostType::kMaster || flags & ClusterHostType::kNone || connections_.size() == 1) {
+        return connections_[0]->Query(query.Statement());
+    }
+
+    return connections_[1]->Query(query.Statement());
 }
 
 }  // namespace storages::odbc::detail

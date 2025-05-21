@@ -10,10 +10,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-namespace impl {
-class QueryResult;
-}
-
 /// @brief Result set for ODBC query execution
 class ResultSet final {
 public:
