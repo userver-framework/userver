@@ -15,9 +15,12 @@ namespace storages::odbc {
 /// @brief ODBC connection wrapper
 class Connection final {
 public:
+    using EnvironmentHandle = std::unique_ptr<std::remove_pointer_t<SQLHENV>, std::function<void(SQLHENV)>>;
+    using DatabaseHandle = std::unique_ptr<std::remove_pointer_t<SQLHDBC>, std::function<void(SQLHDBC)>>;
+    
     explicit Connection(const std::string& dsn);
 
-    ~Connection();
+    ~Connection() = default;
 
     Connection(const Connection&) = delete;
     Connection& operator=(const Connection&) = delete;
@@ -28,8 +31,8 @@ public:
     ResultSet Query(const std::string& query);
 
 private:
-    SQLHENV env_;
-    SQLHDBC handle_;
+    EnvironmentHandle env_;
+    DatabaseHandle handle_;
 };
 
 }  // namespace storages::odbc

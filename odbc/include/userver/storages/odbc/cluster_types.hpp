@@ -20,7 +20,7 @@ enum class ClusterHostType : uint8_t {
     /// Connect to cluster's master. Only this connection may be
     /// used for read-write transactions.
     kMaster = 0x01,
-    /// Connect to one of cluster's slaves. May fallback to master. Can be used
+    /// Connect to one of cluster's slaves. Can be used
     /// only for read only transactions.
     kSlave = 0x02,
     /// @}

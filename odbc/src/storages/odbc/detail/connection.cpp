@@ -9,80 +9,94 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-Connection::Connection(const std::string& dsn) : env_(SQL_NULL_HENV), handle_(SQL_NULL_HDBC) {
-    SQLRETURN ret =
-        SQLSetEnvAttr(env_, SQL_ATTR_CONNECTION_POOLING, reinterpret_cast<SQLPOINTER>(SQL_CP_ONE_PER_DRIVER), 0);
+namespace {
+Connection::EnvironmentHandle MakeEnvironmentHandle() {
+    SQLHENV env = SQL_NULL_HENV;
+    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env);
     if (!SQL_SUCCEEDED(ret)) {
         throw std::runtime_error("Failed to allocate environment handle");
     }
+    
+    auto deleter = [](SQLHENV handle) {
+        if (handle != SQL_NULL_HENV) {
+            SQLFreeHandle(SQL_HANDLE_ENV, handle);
+        }
+    };
+    
+    return Connection::EnvironmentHandle(env, deleter);
+}
 
-    ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env_);
+Connection::DatabaseHandle MakeDatabaseHandle(SQLHENV env) {
+    SQLHDBC dbc = SQL_NULL_HDBC;
+    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to allocate environment handle");
-    }
-
-    ret = SQLSetEnvAttr(env_, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0);
-    if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
-        throw std::runtime_error("Failed to set ODBC version");
-    }
-
-    ret = SQLAllocHandle(SQL_HANDLE_DBC, env_, &handle_);
-    if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
         throw std::runtime_error("Failed to allocate connection handle");
     }
+    
+    auto deleter = [](SQLHDBC handle) {
+        if (handle != SQL_NULL_HDBC) {
+            SQLDisconnect(handle);
+            SQLFreeHandle(SQL_HANDLE_DBC, handle);
+        }
+    };
+    
+    return Connection::DatabaseHandle(dbc, deleter);
+}
 
+detail::ResultWrapper FetchResultSet(SQLHSTMT stmt) { 
+    return detail::ResultWrapper(detail::MakeResultHandle(stmt)); 
+}
+}  // namespace
+
+Connection::Connection(const std::string& dsn) {
+    env_ = MakeEnvironmentHandle();
+    
+    SQLRETURN ret = SQLSetEnvAttr(env_.get(), SQL_ATTR_CONNECTION_POOLING, 
+                               reinterpret_cast<SQLPOINTER>(SQL_CP_ONE_PER_DRIVER), 0);
+    if (!SQL_SUCCEEDED(ret)) {
+        throw std::runtime_error("Failed to set connection pooling attribute");
+    }
+    
+    ret = SQLSetEnvAttr(env_.get(), SQL_ATTR_ODBC_VERSION, 
+                     reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0);
+    if (!SQL_SUCCEEDED(ret)) {
+        throw std::runtime_error("Failed to set ODBC version");
+    }
+    
+    handle_ = MakeDatabaseHandle(env_.get());
+    
     std::vector<SQLCHAR> dsnBuffer(dsn.begin(), dsn.end());
     dsnBuffer.push_back('\0');
-    ret = SQLDriverConnect(handle_, nullptr, dsnBuffer.data(), SQL_NTS, nullptr, 0, nullptr, SQL_DRIVER_COMPLETE);
+    ret = SQLDriverConnect(handle_.get(), nullptr, dsnBuffer.data(), SQL_NTS, 
+                        nullptr, 0, nullptr, SQL_DRIVER_COMPLETE);
     if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_DBC, handle_);
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
         throw std::runtime_error("Failed to connect to database");
     }
-
+    
     SQLUINTEGER scrollOption = 0;
-    ret = SQLGetInfo(handle_, SQL_SCROLL_OPTIONS, &scrollOption, sizeof(scrollOption), nullptr);
+    ret = SQLGetInfo(handle_.get(), SQL_SCROLL_OPTIONS, &scrollOption, 
+                  sizeof(scrollOption), nullptr);
     if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_DBC, handle_);
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
         throw std::runtime_error("Failed to get scroll options");
     }
-
+    
     // TODO: add support for other scroll options
     if (!(scrollOption & SQL_FD_FETCH_ABSOLUTE)) {
-        SQLFreeHandle(SQL_HANDLE_DBC, handle_);
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
         throw std::runtime_error("SQL_FD_FETCH_ABSOLUTE is not supported");
     }
 }
 
-Connection::~Connection() {
-    if (handle_ != SQL_NULL_HDBC) {
-        SQLDisconnect(handle_);
-        SQLFreeHandle(SQL_HANDLE_DBC, handle_);
-    }
-    if (env_ != SQL_NULL_HENV) {
-        SQLFreeHandle(SQL_HANDLE_ENV, env_);
-    }
-}
-
-namespace {
-
-detail::ResultWrapper FetchResultSet(SQLHSTMT stmt) { return detail::ResultWrapper(detail::MakeResultHandle(stmt)); }
-
-}  // namespace
-
 ResultSet Connection::Query(const std::string& query) {
     SQLHSTMT stmt = nullptr;
-    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, handle_, &stmt);
+    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, handle_.get(), &stmt);
     if (!SQL_SUCCEEDED(ret)) {
         throw std::runtime_error("Failed to allocate statement handle");
     }
 
-    ret = SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, reinterpret_cast<SQLPOINTER>(SQL_CURSOR_DYNAMIC), 0);
+    ret = SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, 
+                       reinterpret_cast<SQLPOINTER>(SQL_CURSOR_DYNAMIC), 0);
     if (!SQL_SUCCEEDED(ret)) {
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
         throw std::runtime_error("Failed to set cursor type");
     }
 
