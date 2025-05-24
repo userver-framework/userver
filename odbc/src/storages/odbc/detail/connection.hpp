@@ -15,8 +15,8 @@ namespace storages::odbc {
 /// @brief ODBC connection wrapper
 class Connection final {
 public:
-    using EnvironmentHandle = std::unique_ptr<std::remove_pointer_t<SQLHENV>, std::function<void(SQLHENV)>>;
-    using DatabaseHandle = std::unique_ptr<std::remove_pointer_t<SQLHDBC>, std::function<void(SQLHDBC)>>;
+    using EnvironmentHandle = std::unique_ptr<std::remove_pointer_t<SQLHENV>, void(*)(SQLHENV)>;
+    using DatabaseHandle = std::unique_ptr<std::remove_pointer_t<SQLHDBC>, void(*)(SQLHDBC)>;
     
     explicit Connection(const std::string& dsn);
 

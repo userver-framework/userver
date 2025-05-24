@@ -20,7 +20,7 @@ ResultSet ClusterImpl::Execute([[maybe_unused]] ClusterHostTypeFlags flags, cons
         return connections_[0]->Query(query.Statement());
     }
 
-    UINVARIANT(connections_.size() < 1, "Cluster should have at least 2 connections for ClusterHostType::kSlave");
+    UINVARIANT(connections_.size() > 1, "Cluster should have at least 2 connections for ClusterHostType::kSlave");
     return connections_[1]->Query(query.Statement());
 }
 
