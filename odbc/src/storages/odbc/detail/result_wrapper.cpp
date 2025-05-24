@@ -1,3 +1,4 @@
+#include <sqlext.h>
 #include <storages/odbc/detail/result_wrapper.hpp>
 
 #include "userver/storages/odbc/exception.hpp"
@@ -12,10 +13,32 @@ void CheckStatus(SQLRETURN ret) {
     }
     throw ResultSetError("SQLFunctionFailed failed: " + std::to_string(ret));
 }
+
+void DestroyResultHandle(SQLHSTMT handle) {
+    if (handle != SQL_NULL_HSTMT) {
+        SQLFreeHandle(SQL_HANDLE_STMT, handle);
+    }
+}
 }  // namespace
 
-ResultWrapper::ResultWrapper(ResultHandle&& res) : handle_{std::move(res)} { CheckStatus(SQLFetch(handle_.get())); }
-ResultWrapper::~ResultWrapper() { SQLFreeStmt(handle_.get(), SQL_CLOSE); }
+ResultWrapper::ResultHandle MakeResultHandle(SQLHDBC handle) {
+    SQLHSTMT stmt = nullptr;
+    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, handle, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        throw std::runtime_error("Failed to allocate statement handle");
+    }
+    auto resultHandle = ResultWrapper::ResultHandle{stmt, &DestroyResultHandle};
+
+    ret = SQLSetStmtAttr(resultHandle.get(), SQL_ATTR_CURSOR_TYPE, reinterpret_cast<SQLPOINTER>(SQL_CURSOR_DYNAMIC), 0);
+    if (!SQL_SUCCEEDED(ret)) {
+        throw std::runtime_error("Failed to set cursor type");
+    }
+
+    return resultHandle;
+}
+
+ResultWrapper::ResultWrapper(ResultHandle&& res) : handle_{std::move(res)} {}
+ResultWrapper::~ResultWrapper() = default;
 
 ResultWrapper::ResultWrapper(ResultWrapper&& other) noexcept = default;
 
@@ -24,8 +47,11 @@ SQLRETURN ResultWrapper::GetStatus() const {
     return ret;
 }
 
+void ResultWrapper::Fetch() { CheckStatus(SQLFetch(handle_.get())); }
+
 std::size_t ResultWrapper::RowCount() const {
-    // TODO: drivers may return -1 or 0 if rows are not fetched yet, overall implementation for select is driver-dependent, needs checking
+    // TODO: drivers may return -1 or 0 if rows are not fetched yet, overall implementation for select is
+    // driver-dependent, needs checking
     SQLLEN rowCount = 0;
     CheckStatus(SQLRowCount(handle_.get(), &rowCount));
     return static_cast<std::size_t>(rowCount);
@@ -64,7 +90,7 @@ std::string ResultWrapper::GetString(std::size_t row, std::size_t col) const {
 std::int32_t ResultWrapper::GetInt32(std::size_t row, std::size_t col) const {
     CheckStatus(SQLFetchScroll(handle_.get(), SQL_FETCH_ABSOLUTE, row + 1));
     SQLINTEGER value = 0;
-    CheckStatus(SQLGetData(const_cast<SQLHSTMT>(handle_.get()), col + 1, SQL_C_SLONG, &value, 0, nullptr));
+    CheckStatus(SQLGetData(handle_.get(), col + 1, SQL_C_SLONG, &value, 0, nullptr));
     return static_cast<std::int32_t>(value);
 }
 
@@ -85,7 +111,7 @@ double ResultWrapper::GetDouble(std::size_t row, std::size_t col) const {
 bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const {
     CheckStatus(SQLFetchScroll(handle_.get(), SQL_FETCH_ABSOLUTE, row + 1));
     SQLLEN marker = 0;
-    bool dummy = false; // NOTE: odbc requires a buffer for SQL_C_DEFAULT
+    bool dummy = false;  // NOTE: odbc requires a buffer for SQL_C_DEFAULT
     CheckStatus(SQLGetData(handle_.get(), col + 1, SQL_C_DEFAULT, &dummy, sizeof(dummy), &marker));
     return marker == SQL_NULL_DATA;
 }

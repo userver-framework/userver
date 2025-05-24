@@ -44,7 +44,6 @@ Connection::DatabaseHandle MakeDatabaseHandle(SQLHENV env) {
     return Connection::DatabaseHandle(dbc, &DestroyDatabaseHandle);
 }
 
-detail::ResultWrapper FetchResultSet(SQLHSTMT stmt) { return detail::ResultWrapper(detail::MakeResultHandle(stmt)); }
 }  // namespace
 
 Connection::Connection(const std::string& dsn)
@@ -82,27 +81,18 @@ Connection::Connection(const std::string& dsn)
 }
 
 ResultSet Connection::Query(const std::string& query) {
-    SQLHSTMT stmt = nullptr;
-    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, handle_.get(), &stmt);
-    if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to allocate statement handle");
-    }
-
-    ret = SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, reinterpret_cast<SQLPOINTER>(SQL_CURSOR_DYNAMIC), 0);
-    if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-        throw std::runtime_error("Failed to set cursor type");
-    }
+    auto stmt = detail::MakeResultHandle(handle_.get());
 
     std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
     query_buffer.push_back('\0');
-    ret = SQLExecDirect(stmt, query_buffer.data(), SQL_NTS);
+    SQLRETURN ret = SQLExecDirect(stmt.get(), query_buffer.data(), SQL_NTS);
     if (!SQL_SUCCEEDED(ret)) {
-        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
         throw std::runtime_error("Failed to execute query");
     }
 
-    auto wrapper = std::make_shared<detail::ResultWrapper>(FetchResultSet(stmt));
+    auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(stmt));
+    wrapper->Fetch();
+
     return ResultSet(std::move(wrapper));
 }
 

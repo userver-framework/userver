@@ -4,7 +4,6 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <cstdint>
@@ -15,13 +14,15 @@ namespace storages::odbc::detail {
 
 class ResultWrapper {
 public:
-    using ResultHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, std::function<void(SQLHSTMT)>>;
+    using ResultHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, void(*)(SQLHSTMT)>;
 
     ResultWrapper(ResultHandle&& res);
     ~ResultWrapper();
 
     ResultWrapper(const ResultWrapper&) = delete;
     ResultWrapper(ResultWrapper&& other) noexcept;
+
+    void Fetch();
 
     SQLRETURN GetStatus() const;
 
@@ -43,10 +44,7 @@ public:
     ResultHandle handle_;
 };
 
-inline ResultWrapper::ResultHandle MakeResultHandle(SQLHSTMT stmt) {
-    auto deleter = [](SQLHSTMT handle) { SQLFreeStmt(handle, SQL_CLOSE); };
-    return {stmt, deleter};
-}
+ResultWrapper::ResultHandle MakeResultHandle(SQLHDBC);
 
 }  // namespace storages::odbc::detail
 
