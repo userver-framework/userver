@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/sqlite/result_set.hpp
+/// @copybrief storages::sqlite::ResultSet
+
 #include <memory>
 #include <optional>
 #include <vector>
@@ -14,6 +17,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
+/// @brief A proxy for statement execution result.
+///
+/// This type can't be constructed in user code and is always retrieved from
+/// storages::sqlite::Client, storages::sqlite::Transaction or storages::sqlite::Savepoint methods.
 class ResultSet {
 public:
     explicit ResultSet(impl::ResultWrapperPtr pimpl);

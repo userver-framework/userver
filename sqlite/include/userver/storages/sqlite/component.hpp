@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/sqlite/component.hpp
-/// @brief @copybrief components::SQLite
+/// @brief components::SQLite
 
 #include <userver/components/component_base.hpp>
 
@@ -17,7 +17,33 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief SQLite client component.
+/// @brief SQLite client component
+///
+/// Provides access to a SQLite connections.
+///
+/// ## Static configuration example:
+///
+/// ```
+///  # yaml
+///  sqlite-dv:
+///    db-path: "/tmp/kv.db"
+///    task_processor: fs-task-processor
+///    journal_mode: wal
+///    busy_timeout: 1000 # ms
+///    read_only: false
+///    initial_read_only_pool_size: 4
+///    max_read_only_pool_size: 16
+//     persistent_prepared_statements: true
+///    cache_size: -65536 # KiB
+///    foreign_keys: true
+/// ```
+/// You must specify either `db-path`.
+///
+/// You must specify `blocking_task_processor` as well.
+///
+/// Please see [SQLite documentation](https://www.sqlite.org/pragma.html)
+/// on connection strings.
+///
 /// ## Static options:
 /// Name                               | Description                                                                       | Default value
 /// ---------------------------------- | --------------------------------------------------------------------------------- | ---------------
@@ -47,9 +73,11 @@ class SQLite final : public components::ComponentBase {
 public:
     /// Component constructor
     SQLite(const ComponentConfig&, const ComponentContext&);
+
     /// Component destructor
     ~SQLite() override;
 
+    /// Client accessor
     storages::sqlite::ClientPtr GetClient() const;
 
     static yaml_config::Schema GetStaticConfigSchema();

@@ -162,6 +162,12 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/ydb.md
 
 
+## SQLite
+* @ref scripts/docs/en/userver/sqlite/sqlite_driver.md
+* @ref scripts/docs/en/userver/sqlite/supported_types.md
+* @ref scripts/docs/en/userver/sqlite/design_and_details.md
+
+
 ## Non relational databases
 * @ref scripts/docs/en/userver/mongodb.md
 * @ref scripts/docs/en/userver/redis.md

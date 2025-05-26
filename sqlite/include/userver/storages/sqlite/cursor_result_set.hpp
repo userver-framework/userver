@@ -10,17 +10,16 @@ namespace storages::sqlite {
 
 /// @brief A wrapper for read-only cursor.
 ///
-/// You should always retrieve it from `storages::mysql::Cluster` for correct
+/// You should always retrieve it from `storages::sqlite::Client` for correct
 /// behavior.
 template <typename T>
 class CursorResultSet final {
 public:
     explicit CursorResultSet(ResultSet&& result_set, size_t batch_size);
+    ~CursorResultSet();
 
     CursorResultSet(const CursorResultSet& other) = delete;
     CursorResultSet(CursorResultSet&& other) noexcept;
-
-    ~CursorResultSet();
 
     /// @brief Fetches all the rows from cursor and for each new row executes
     /// row_callback.

@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/sqlite/options.hpp
-/// @brief Options
+/// @brief SQLite options
 
 #include <string>
 
@@ -11,9 +11,27 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::settings {
 
+/// @brief SQLite transaction options.
 struct TransactionOptions {
-    enum LockingMode { kDeferred, kImmediate, kExclusive };
-    enum class IsolationLevel { kSerializable, kReadUncommitted };  // Read Uncommitted to work requires shared-cashe
+    /// @brief Locking mode for the transaction.
+    ///
+    /// Determines how database locks are acquired during the transaction.
+    /// @see https://www.sqlite.org/lang_transaction.html
+    enum LockingMode {
+        kDeferred,   ///< Locks are acquired as needed (default behavior).
+        kImmediate,  ///< Acquires a reserved lock immediately.
+        kExclusive   ///< Acquires an exclusive lock immediately.
+    };
+
+    /// @brief Isolation level for the transaction.
+    ///
+    /// SQLite supports limited isolation levels. Note that full support for
+    /// READ UNCOMMITTED requires shared-cache mode.
+    /// @see https://www.sqlite.org/isolation.html
+    enum class IsolationLevel {
+        kSerializable,    ///< Default isolation level; ensures full isolation.
+        kReadUncommitted  ///< Allows reading uncommitted changes; requires shared-cache mode.
+    };
 
     IsolationLevel isolation_level = IsolationLevel::kSerializable;
     LockingMode mode = LockingMode::kDeferred;
@@ -23,6 +41,7 @@ struct TransactionOptions {
     constexpr TransactionOptions(IsolationLevel lvl, LockingMode m) : isolation_level{lvl}, mode{m} {}
     constexpr explicit TransactionOptions(LockingMode m) : mode{m} {}
 
+    /// @brief Creates a TransactionOptions instance with deferred locking mode.
     static constexpr TransactionOptions Deferred() { return TransactionOptions{kDeferred}; }
 };
 
@@ -32,31 +51,46 @@ constexpr inline bool operator==(const TransactionOptions& lhs, const Transactio
 
 std::string IsolationLevelToString(const TransactionOptions::IsolationLevel& lvl);
 
+/// @brief Default maximum size for the prepared statements cache.
 inline constexpr std::size_t kDefaultMaxPreparedCacheSize = 200;
+
+/// @brief Default setting for caching prepared statements.
 inline constexpr bool kDefaultPrepareStatement = true;
 
+/// @brief SQLite connection settings.
+///
+/// Configures behavior related to prepared statements and their caching.
 struct ConnectionSettings {
+    /// @brief Options for handling prepared statements.
     enum PreparedStatementOptions {
-        kCachePreparedStatements,
-        kNoPreparedStatements,
+        kCachePreparedStatements,  ///< Enable caching of prepared statements.
+        kNoPreparedStatements,     ///< Disable caching of prepared statements.
     };
 
     /// Cache prepared statements or not
     PreparedStatementOptions prepared_statements =
         kDefaultPrepareStatement ? kCachePreparedStatements : kNoPreparedStatements;
 
-    /// Limits the size or prepared statements cache
+    /// Maximum number of prepared statements to cache
     std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
     static ConnectionSettings Create(const components::ComponentConfig& config);
 };
 
-/// Default connection pool settings
+/// @brief Default initial size for the connection pool
 inline constexpr std::size_t kDefaulInitialPoolSize = 5;
+
+/// @brief Default maximum size for the connection pool
 inline constexpr std::size_t kDefaultMaxPoolSize = 10;
 
+/// @brief SQLite connection pool settings.
+///
+/// Configures the behavior of the connection pool, including its size.
 struct PoolSettings final {
+    /// @brief Number of connections created initially.
     std::size_t initial_pool_size{kDefaulInitialPoolSize};
+
+    /// @brief Maximum number of connections in the pool.
     std::size_t max_pool_size{kDefaultMaxPoolSize};
 
     static PoolSettings Create(const components::ComponentConfig& config);
@@ -76,11 +110,39 @@ inline constexpr int kDefaultJournalSizeLimit = 67108864;
 inline constexpr int kDefaultMmapSize = 134217728;
 inline constexpr int kDefaultPageSize = 4096;
 
+/// @brief Comprehensive SQLite settings.
+///
+/// Aggregates various settings for configuring SQLite behavior.
 struct SQLiteSettings {
-    enum class ReadMode { kReadOnly, kReadWrite };
-    enum class JournalMode { kDelete, kTruncate, kPersist, kMemory, kWal, kOff };
-    enum Synchronous { kExtra, kFull, kNormal, kOff };
-    enum TempStore { kMemory, kFile };
+    /// @brief Read mode for the database.
+    enum class ReadMode {
+        kReadOnly,  ///< Open the database in read-only mode
+        kReadWrite  ///< Open the database in read-write mode
+    };
+
+    /// @brief Journal mode options.
+    enum class JournalMode {
+        kDelete,    ///< Delete the journal file after each transaction.
+        kTruncate,  ///< Truncate the journal file to zero length.
+        kPersist,   ///< Keep the journal file but zero its header.
+        kMemory,    ///< Store the journal in memory.
+        kWal,       ///< Use write-ahead logging.
+        kOff        ///< Disable the journal.
+    };
+
+    /// @brief Synchronous setting options.
+    enum Synchronous {
+        kExtra,   ///< Extra synchronization.
+        kFull,    ///< Full synchronization.
+        kNormal,  ///< Normal synchronization.
+        kOff      ///< No synchronization.
+    };
+
+    /// @brief Temporary store options.
+    enum TempStore {
+        kMemory,  ///< Store temporary tables in memory.
+        kFile     ///< Store temporary tables in a file.
+    };
 
     ReadMode read_mode = !kDefaultIsReadOnly ? ReadMode::kReadWrite : ReadMode::kReadOnly;
     bool create_file = kDefaultCreateFile;
