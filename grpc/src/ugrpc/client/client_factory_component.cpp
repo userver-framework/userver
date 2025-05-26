@@ -9,6 +9,7 @@
 
 #include <ugrpc/client/impl/client_factory_config.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/client/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <ugrpc/server/middlewares/headers_propagator/middleware.hpp>
 
 #include <userver/server/request/task_inherited_request.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>

@@ -7,7 +7,7 @@ namespace ugrpc::client {
 ClientFactory::ClientFactory(
     ClientFactorySettings&& client_factory_settings,
     engine::TaskProcessor& channel_task_processor,
-    impl::MiddlewarePipelineCreator& pipeline_creator,
+    impl::MiddlewarePipelineCreator& middleware_pipeline_creator,
     ugrpc::impl::CompletionQueuePoolBase& completion_queues,
     ugrpc::impl::StatisticsStorage& statistics_storage,
     testsuite::GrpcControl& testsuite_grpc,
@@ -15,7 +15,7 @@ ClientFactory::ClientFactory(
 )
     : client_factory_settings_(std::move(client_factory_settings)),
       channel_task_processor_(channel_task_processor),
-      pipeline_creator_(pipeline_creator),
+      middleware_pipeline_creator_(middleware_pipeline_creator),
       completion_queues_(completion_queues),
       client_statistics_storage_(statistics_storage),
       config_source_(config_source),
@@ -36,7 +36,7 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
         info.service_full_name.emplace(meta.value().service_full_name);
     }
 
-    auto mws = pipeline_creator_.CreateMiddlewares(info);
+    auto mws = middleware_pipeline_creator_.CreateMiddlewares(info);
 
     auto channel_credentials = testsuite_grpc_.IsTlsEnabled()
                                    ? GetClientCredentials(client_factory_settings_, client_settings.client_name)

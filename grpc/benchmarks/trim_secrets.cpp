@@ -1,5 +1,8 @@
 #include <benchmark/benchmark.h>
 
+#include <google/protobuf/stubs/common.h>
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
+
 #include <google/protobuf/util/json_util.h>
 #include <grpcpp/support/config.h>
 
@@ -202,3 +205,5 @@ BENCHMARK(CloneTrimLogBench);
 }  // namespace ugrpc
 
 USERVER_NAMESPACE_END
+
+#endif

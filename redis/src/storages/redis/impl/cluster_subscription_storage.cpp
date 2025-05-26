@@ -154,10 +154,6 @@ void ClusterSubscriptionStorage::DoRebalance(size_t shard_idx, ServerWeights wei
     storage_impl_.DoRebalance(shard_idx, std::move(weights));
 }
 
-void ClusterSubscriptionStorage::SwitchToNonClusterMode() {
-    throw std::runtime_error(std::string(__func__) + " Unimplemented yet");
-}
-
 void ClusterSubscriptionStorage::SubscribeImpl(
     const std::string& channel,
     Sentinel::UserMessageCallback cb,

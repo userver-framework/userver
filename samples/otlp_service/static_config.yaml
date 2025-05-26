@@ -12,7 +12,7 @@ components_manager:
             blocking-task-processor: grpc-blocking-task-processor
 
         # Creates gRPC clients
-        grpc-client-factory:
+        grpc-otlp-factory:
             # Optional channel parameters for gRPC Core
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
             channel-args: {}
@@ -25,6 +25,7 @@ components_manager:
 # /// [otlp logger]
         otlp-logger:
             endpoint: '0.0.0.0:4317'
+            client-factory-name: grpc-otlp-factory
             service-name: otlp-example
             log-level: debug
             # How to rename attributes, if you really need to

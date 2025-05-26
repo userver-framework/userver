@@ -9,6 +9,15 @@ UTEST(TextNumberFormat, ArabicLocale) {
     EXPECT_EQ(Format(123.45, "ru", 10, false), "123,45");
 }
 
+UTEST(TextNumberFormat, NepaleseLocale) {
+    using utils::text::Format;
+
+    EXPECT_EQ(Format(123.45, "ne", 10, false), "123.45");
+
+    // Ideally, should be like this but the issue seems to be similar to the one with Arabic numerals
+    // EXPECT_EQ(Format(123.45, "ne", 10, false), "१२३.४५");
+}
+
 UTEST(TextToUpper, EnLocale) {
     using utils::text::ToUpper;
     EXPECT_EQ(ToUpper("teSt", "en"), "TEST");

@@ -1,6 +1,6 @@
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
-#include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/ugrpc/client/impl/call_state.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
 
@@ -22,35 +22,21 @@ MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-MiddlewareCallContext::MiddlewareCallContext(impl::RpcData& data) : data_(data) {}
+MiddlewareCallContext::MiddlewareCallContext(impl::CallState& state) : state_(state) {}
 
-grpc::ClientContext& MiddlewareCallContext::GetContext() noexcept { return data_.GetContext(); }
+grpc::ClientContext& MiddlewareCallContext::GetContext() noexcept { return state_.GetContext(); }
 
-std::string_view MiddlewareCallContext::GetClientName() const noexcept { return data_.GetClientName(); }
+std::string_view MiddlewareCallContext::GetClientName() const noexcept { return state_.GetClientName(); }
 
-std::string_view MiddlewareCallContext::GetCallName() const noexcept { return data_.GetCallName(); }
+std::string_view MiddlewareCallContext::GetCallName() const noexcept { return state_.GetCallName(); }
 
-tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return data_.GetSpan(); }
+tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return state_.GetSpan(); }
 
-bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(data_.GetCallKind()); }
+bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(state_.GetCallKind()); }
 
-bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(data_.GetCallKind()); }
+bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(state_.GetCallKind()); }
 
-impl::RpcData& MiddlewareCallContext::GetData(ugrpc::impl::InternalTag) { return data_; }
-
-MiddlewarePipelineComponent::MiddlewarePipelineComponent(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
-    : USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent(
-          config,
-          context,
-          {{
-              {"grpc-client-logging", {}},
-              {"grpc-client-baggage", {}},
-              {"grpc-client-deadline-propagation", {}},
-          }}
-      ) {}
+impl::CallState& MiddlewareCallContext::GetState(ugrpc::impl::InternalTag) { return state_; }
 
 }  // namespace ugrpc::client
 

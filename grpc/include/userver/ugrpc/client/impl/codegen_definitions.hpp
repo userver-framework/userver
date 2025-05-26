@@ -8,4 +8,5 @@
 #include <string_view>
 #include <utility>
 
+#include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/impl/protobuf_collector.hpp>

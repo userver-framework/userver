@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <ugrpc/client/middlewares/log/middleware.hpp>
 
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>

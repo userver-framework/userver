@@ -14,7 +14,6 @@ public:
     static constexpr std::size_t kUnknownShard = std::numeric_limits<std::size_t>::max();
 
     size_t ShardByKey(const std::string&) const override { return kUnknownShard; }
-    bool IsGenerateKeysForShardsEnabled() const override { return true; }
 };
 
 }  // namespace storages::redis::impl

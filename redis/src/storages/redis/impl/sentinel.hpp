@@ -58,8 +58,6 @@ public:
         kOverflowDiscarded,
     };
 
-    using ReadyChangeCallback = std::function<void(size_t shard, const std::string& shard_name, bool ready)>;
-
     Sentinel(
         const std::shared_ptr<ThreadPools>& thread_pools,
         const std::vector<std::string>& shards,
@@ -68,12 +66,10 @@ public:
         const std::string& client_name,
         const Password& password,
         ConnectionSecurity connection_security,
-        ReadyChangeCallback ready_callback,
         dynamic_config::Source dynamic_config_source,
         KeyShardFactory key_shard_factory,
         CommandControl command_control,
         const testsuite::RedisControl& testsuite_redis_control,
-        ConnectionMode mode,
         std::size_t database_index
     );
     virtual ~Sentinel();
@@ -106,33 +102,19 @@ public:
         const CommandControl& command_control = {},
         const testsuite::RedisControl& testsuite_redis_control = {}
     );
-    static std::shared_ptr<Sentinel> CreateSentinel(
-        const std::shared_ptr<ThreadPools>& thread_pools,
-        const USERVER_NAMESPACE::secdist::RedisSettings& settings,
-        std::string shard_group_name,
-        dynamic_config::Source dynamic_config_source,
-        const std::string& client_name,
-        ReadyChangeCallback ready_callback,
-        KeyShardFactory key_shard_factory,
-        const CommandControl& command_control = {},
-        const testsuite::RedisControl& testsuite_redis_control = {}
-    );
-
-    void Restart();
 
     std::unordered_map<ServerId, size_t, ServerIdHasher>
     GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc = {}) const;
 
     void AsyncCommand(CommandPtr command, bool master = true, size_t shard = 0);
     void AsyncCommand(CommandPtr command, const std::string& key, bool master = true);
-    void AsyncCommandToSentinel(CommandPtr command);
 
     // return a new temporary key with the same shard index
     static std::string CreateTmpKey(const std::string& key, std::string prefix = "tmp:");
 
     size_t ShardByKey(const std::string& key) const;
     size_t ShardsCount() const;
-    bool IsInClusterMode() const;
+    bool IsInClusterMode() const noexcept { return is_in_cluster_mode_; }
     void CheckShardIdx(size_t shard_idx) const;
     static void CheckShardIdx(size_t shard_idx, size_t shard_count);
 
@@ -148,8 +130,6 @@ public:
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     boost::signals2::signal<void(size_t shard)> signal_instances_changed;
-    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-    boost::signals2::signal<void()> signal_not_in_cluster_mode;
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     boost::signals2::signal<void(size_t shards_count)> signal_topology_changed;
 
@@ -173,13 +153,6 @@ public:
         return {*this, std::forward<CmdArgs>(args), shard, master, command_control, replies_to_skip};
     }
 
-    std::vector<Request> MakeRequests(
-        CmdArgs&& args,
-        bool master = true,
-        const CommandControl& command_control = {},
-        size_t replies_to_skip = 0
-    );
-
     CommandControl GetCommandControl(const CommandControl& cc) const;
     PublishSettings GetPublishSettings() const;
 
@@ -202,8 +175,6 @@ public:
     using UnsubscribeCallback = std::function<void(ServerId, const std::string& channel, size_t count)>;
 
 protected:
-    std::vector<std::shared_ptr<const Shard>> GetMasterShards() const;
-
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     std::unique_ptr<SentinelImplBase> impl_;
 
@@ -230,8 +201,6 @@ public:
     );
 
 private:
-    void CheckRenameParams(const std::string& key, const std::string& newkey) const;
-
     friend class Transaction;
 
     const std::string shard_group_name_;
@@ -241,6 +210,7 @@ private:
     utils::SwappingSmart<CommandControl> config_default_command_control_;
     std::atomic_int publish_shard_{0};
     testsuite::RedisControl testsuite_redis_control_;
+    const bool is_in_cluster_mode_;
 };
 
 }  // namespace storages::redis::impl

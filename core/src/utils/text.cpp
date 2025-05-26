@@ -18,6 +18,8 @@ namespace {
 
 const std::string kLocaleArabic = "ar";
 const std::string kLocaleArabicNumbersLatn = "ar@numbers=latn";
+const std::string kLocaleNepalese = "ne";
+const std::string kLocaleNepaleseNumbersLatn = "ne@numbers=latn";
 
 }  // namespace
 
@@ -28,6 +30,9 @@ std::string Format(double value, const std::string& locale, int ndigits, bool is
     if (locale == kLocaleArabic) {
         // see: https://sites.google.com/site/icuprojectuserguide/locale
         res.imbue(GetLocale(kLocaleArabicNumbersLatn));
+    } else if (locale == kLocaleNepalese) {
+        // The same goes for the Nepalese numerals
+        res.imbue(GetLocale(kLocaleNepaleseNumbersLatn));
     } else {
         res.imbue(GetLocale(locale));
     }

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/utils/datetime.hpp
+/// @file userver/utils/datetime_light.hpp
 /// @brief Date and Time related converters
 /// @ingroup userver_universal
 
@@ -11,6 +11,7 @@
 #include <string>
 
 #include <cctz/civil_time.h>
+#include <cctz/time_zone.h>
 
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 
@@ -91,94 +92,66 @@ bool IsTimeBetween(
     bool include_time_to = false
 ) noexcept;
 
-/// @brief Returns time in a string of specified format
-///
-/// @throws utils::datetime::TimezoneLookupError
-///
-/// Example:
-///
-/// @snippet utils/datetime/datetime_test.cpp  Timestring C time example
-///
-/// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
-/// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::string Timestring(
-    std::time_t timestamp,
-    const std::string& timezone = kDefaultTimezone,
-    const std::string& format = kDefaultFormat
-);
+/// @brief Extracts time point from a string, guessing the format
+/// @note Use GuessStringtime instead
+/// @throws utils::datetime::DateParseError
+std::chrono::system_clock::time_point DoGuessStringtime(const std::string& timestring, const cctz::time_zone& timezone);
 
-/// @brief Returns time in a string of specified format
+/// @brief Returns time in a string of specified format in local timezone
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::string LocalTimezoneTimestring(std::time_t timestamp, const std::string& format = kDefaultFormat);
 
-/// @brief Returns time in a string of specified format
-/// @throws utils::datetime::TimezoneLookupError
-///
-/// Example:
-///
-/// @snippet utils/datetime/datetime_test.cpp Timestring example
+/// @brief Returns time in a string of specified format in UTC timezone
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::string Timestring(
-    std::chrono::system_clock::time_point tp,
-    const std::string& timezone = kDefaultTimezone,
-    const std::string& format = kDefaultFormat
-);
+std::string UtcTimestring(std::time_t timestamp, const std::string& format = kDefaultFormat);
 
-/// @brief Returns time in a string of specified format
+std::string Timestring(std::chrono::system_clock::time_point tp);
+
+/// @brief Returns time in a string of specified format in local timezone
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::string
 LocalTimezoneTimestring(std::chrono::system_clock::time_point tp, const std::string& format = kDefaultFormat);
 
-/// @brief Extracts time point from a string of a specified format
-/// @throws utils::datetime::DateParseError
-/// @throws utils::datetime::TimezoneLookupError
-///
-/// Example:
-///
-/// @snippet utils/datetime/datetime_test.cpp  Stringtime example
+/// @brief Returns time in a string of specified format in UTC timezone
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::chrono::system_clock::time_point Stringtime(
-    const std::string& timestring,
-    const std::string& timezone = kDefaultTimezone,
-    const std::string& format = kDefaultFormat
-);
+std::string UtcTimestring(std::chrono::system_clock::time_point tp, const std::string& format = kDefaultFormat);
 
-/// @brief Extracts time point from a string of a specified format
+/// @brief Extracts time point from a string of a specified format in local timezone
 /// @throws utils::datetime::DateParseError
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::chrono::system_clock::time_point
 LocalTimezoneStringtime(const std::string& timestring, const std::string& format = kDefaultFormat);
 
-/// @brief Extracts time point from a string, guessing the format
+/// @brief Extracts time point from a string of a specified format in UTC timezone
 /// @throws utils::datetime::DateParseError
-/// @throws utils::datetime::TimezoneLookupError
-///
-/// Example:
-///
-/// @snippet utils/datetime/datetime_test.cpp  GuessStringtime example
-std::chrono::system_clock::time_point GuessStringtime(const std::string& timestamp, const std::string& timezone);
+/// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
+/// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
+std::chrono::system_clock::time_point
+UtcStringtime(const std::string& timestring, const std::string& format = kDefaultFormat);
+
+/// @brief Extracts time point from a string of a kDefaultFormat format in UTC timezone
+/// @throws utils::datetime::DateParseError
+std::chrono::system_clock::time_point Stringtime(const std::string& timestring);
+
+/// @brief Extracts time point from a string of a specified format
+/// @throws utils::datetime::DateParseError
+/// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
+/// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
+std::optional<std::chrono::system_clock::time_point>
+OptionalStringtime(const std::string& timestring, const cctz::time_zone& timezone, const std::string& format);
+
+/// @brief Extracts time point from a string of a kDefaultFormat format in UTC timezone
+/// @throws utils::datetime::DateParseError
+std::optional<std::chrono::system_clock::time_point> OptionalStringtime(const std::string& timestring);
 
 /// @brief Extracts time point from a string, guessing the format
 /// @throws utils::datetime::DateParseError
 std::chrono::system_clock::time_point GuessLocalTimezoneStringtime(const std::string& timestamp);
-
-/// @brief Returns optional time in a string of specified format
-///
-/// Example:
-///
-/// @snippet utils/datetime/datetime_test.cpp OptionalStringtime example
-/// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
-/// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
-    const std::string& timestring,
-    const std::string& timezone = kDefaultTimezone,
-    const std::string& format = kDefaultFormat
-);
 
 /// @brief Converts time point to std::time_t
 ///
@@ -196,25 +169,8 @@ std::time_t Timestamp() noexcept;
 std::uint32_t ParseDayTime(const std::string& str);
 
 /// @brief Converts absolute time in std::chrono::system_clock::time_point to
-/// a civil time of a particular timezone.
-/// @throws utils::datetime::TimezoneLookupError
-///
-/// Example:
-///
-/// @snippet utils/datetime/datetime_test.cpp  Localize example
-cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp, const std::string& timezone);
-
-/// @brief Converts absolute time in std::chrono::system_clock::time_point to
 /// a civil time of a local timezone.
 cctz::civil_second LocalTimezoneLocalize(const std::chrono::system_clock::time_point& tp);
-
-/// @brief Converts a civil time in a specified timezone into an absolute time.
-/// @throws utils::datetime::TimezoneLookupError
-///
-/// Example:
-///
-/// @snippet utils/datetime/datetime_test.cpp  Localize example
-std::time_t Unlocalize(const cctz::civil_second& local_tp, const std::string& timezone);
 
 /// @brief Converts a civil time in a local timezone into an absolute time.
 std::time_t LocalTimezoneUnlocalize(const cctz::civil_second& local_tp);

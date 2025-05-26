@@ -26,16 +26,7 @@ RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
         throw EmptyTransactionException("Can't determine shard. Empty transaction?");
     }
 
-    const auto client_force_shard_idx = client_->GetForcedShardIdx();
-    if (client_force_shard_idx) {
-        if (command_control.force_shard_idx && *command_control.force_shard_idx != *client_force_shard_idx)
-            throw InvalidArgumentException(
-                "forced shard idx from CommandControl != forced shard for client (" +
-                std::to_string(*command_control.force_shard_idx) + " != " + std::to_string(*client_force_shard_idx) +
-                ')'
-            );
-        shard_ = *client_force_shard_idx;
-    } else if (command_control.force_shard_idx) {
+    if (command_control.force_shard_idx) {
         shard_ = *command_control.force_shard_idx;
     }
     client_->CheckShardIdx(*shard_);

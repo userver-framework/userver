@@ -30,6 +30,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
+// https://github.com/boostorg/signals2/issues/59
+// NOLINTBEGIN(clang-analyzer-cplusplus.NewDelete)
+
 namespace storages::redis::impl {
 
 namespace {
@@ -196,8 +199,6 @@ public:
           create_nodes_watch_(
               ev_thread_,
               [this] {
-                  // https://github.com/boostorg/signals2/issues/59
-                  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
                   CreateNodes();
                   create_nodes_watch_.Start();
               }
@@ -258,8 +259,6 @@ public:
 
         sentinels_ = std::make_shared<Shard>(std::move(shard_options));
 
-        // https://github.com/boostorg/signals2/issues/59
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
         sentinels_->SignalInstanceStateChange().connect([this](ServerId id, Redis::State state) {
             LOG_TRACE() << "Signaled server " << id.GetDescription() << " state=" << StateToString(state);
             if (state != Redis::State::kInit) sentinels_process_state_update_watch_.Send();
@@ -386,16 +385,15 @@ public:
     }
 
 private:
-    void ProcessStateUpdate() { sentinels_->ProcessStateUpdate(); }
     std::shared_ptr<RedisConnectionHolder> CreateRedisInstance(const HostPort& host_port);
 
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
 
-    std::string shard_group_name_;
+    const std::string shard_group_name_;
     concurrent::Variable<Password, std::mutex> password_;
     std::shared_ptr<const std::vector<std::string>> shards_names_;
-    std::vector<ConnectionInfo> conns_;
+    const std::vector<ConnectionInfo> conns_;
     std::shared_ptr<Shard> sentinels_;
 
     std::atomic_size_t current_topology_version_{0};
@@ -752,7 +750,7 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
             /// Run in ev_thread because topology_.Assign can free some old
             /// topologies with their related redis connections, and these
             /// connections must be freed on "sentinel" thread.
-            ev_thread_.RunInEvLoopAsync([this, topology{std::move(topology)}] {
+            ev_thread_.RunInEvLoopAsync([this, topology{std::move(topology)}]() mutable {
                 try {
                     const auto new_shards_count = topology.GetShardsCount();
                     topology_.Assign(std::move(topology));
@@ -796,10 +794,8 @@ ClusterSentinelImpl::ClusterSentinelImpl(
     const std::string& client_name,
     const Password& password,
     ConnectionSecurity /*connection_security*/,
-    ReadyChangeCallback ready_callback,
     std::unique_ptr<KeyShard>&& key_shard,
-    dynamic_config::Source dynamic_config_source,
-    ConnectionMode /*mode*/
+    dynamic_config::Source dynamic_config_source
 )
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
@@ -810,7 +806,6 @@ ClusterSentinelImpl::ClusterSentinelImpl(
       )),
       shard_group_name_(std::move(shard_group_name)),
       conns_(conns),
-      ready_callback_(std::move(ready_callback)),
       redis_thread_pool_(redis_thread_pool),
       client_name_(client_name),
       dynamic_config_source_(std::move(dynamic_config_source)) {
@@ -826,9 +821,6 @@ ClusterSentinelImpl::ClusterSentinelImpl(
             ev_thread_, redis_thread_pool, password, kClusterDatabaseIndex, conns.front()
         );
     }
-
-    Init();
-    LOG_DEBUG() << "Created ClusterSentinelImpl, shard_group_name=" << shard_group_name_;
 }
 
 ClusterSentinelImpl::~ClusterSentinelImpl() { Stop(); }
@@ -1013,21 +1005,16 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t p
     }
 }
 
-void ClusterSentinelImpl::AsyncCommandToSentinel(CommandPtr /*command*/) {
-    throw std::runtime_error(std::string(__func__) + " Unimplemented yet");
-}
-
 size_t ClusterSentinelImpl::ShardByKey(const std::string& key) const {
     const auto slot = HashSlot(key);
     const auto ptr = topology_holder_->GetTopology();
     return ptr->GetShardIndexBySlot(slot);
 }
 
-const std::string& ClusterSentinelImpl::GetAnyKeyForShard(size_t /*shard_idx*/) const {
-    throw std::runtime_error("GetAnyKeyForShard() is not supported in redis cluster mode");
-}
-
 void ClusterSentinelImpl::Start() {
+    Init();
+    LOG_DEBUG() << "Created ClusterSentinelImpl, shard_group_name=" << shard_group_name_;
+
     topology_holder_->Start();
     process_waiting_commands_timer_->Start();
 }
@@ -1045,14 +1032,6 @@ void ClusterSentinelImpl::Stop() {
         ProcessWaitingCommandsOnStop();
     });
 }
-
-std::vector<std::shared_ptr<const Shard>> ClusterSentinelImpl::GetMasterShards() const {
-    throw std::runtime_error("Unimplemented yet");
-    /// just return all Shards
-    // return {master_shards_.begin(), master_shards_.end()};
-}
-
-bool ClusterSentinelImpl::IsInClusterMode() const { return true; }
 
 void ClusterSentinelImpl::SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings) {
     if (topology_holder_) {
@@ -1109,5 +1088,7 @@ PublishSettings ClusterSentinelImpl::GetPublishSettings() {
 }
 
 }  // namespace storages::redis::impl
+
+// NOLINTEND(clang-analyzer-cplusplus.NewDelete)
 
 USERVER_NAMESPACE_END

@@ -9,22 +9,19 @@
 
 #include <userver/tracing/span.hpp>
 
-#include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/ugrpc/client/impl/call_kind.hpp>
-#include <userver/ugrpc/client/impl/call_params.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
+namespace impl {
+struct CallParams;
+class CallState;
+}  // namespace impl
+
 /// @brief Base class for any RPC
 class CallAnyBase {
-protected:
-    /// @cond
-    CallAnyBase(impl::CallParams&& params, impl::CallKind call_kind)
-        : data_(std::make_unique<impl::RpcData>(std::move(params), call_kind)) {}
-    /// @endcond
-
 public:
     /// @returns the `ClientContext` used for this RPC
     grpc::ClientContext& GetContext();
@@ -39,11 +36,22 @@ public:
     tracing::Span& GetSpan();
 
 protected:
-    impl::RpcData& GetData();
-    const impl::RpcData& GetData() const;
+    /// @cond
+    CallAnyBase(impl::CallParams&& params, impl::CallKind call_kind);
+
+    // Protected to prevent slicing.
+    CallAnyBase(CallAnyBase&& other) noexcept;
+    CallAnyBase& operator=(CallAnyBase&& other) noexcept;
+
+    // Prevent ownership via pointer to base.
+    ~CallAnyBase();
+
+    impl::CallState& GetState();
+    const impl::CallState& GetState() const;
+    /// @endcond
 
 private:
-    std::unique_ptr<impl::RpcData> data_;
+    std::unique_ptr<impl::CallState> data_;
 };
 
 }  // namespace ugrpc::client

@@ -215,17 +215,17 @@ Dev Containers is the easiest and least problematic way to get prebuilt userver 
 4. Agree to reopen the project in a Dev Container
 
 5. The Docker container for development will automatically be downloaded (~6GB, may take a while), unpacked and run
-   using the config from
-   [.devcontainer](https://github.com/userver-framework/service_template/tree/develop/.devcontainer)
-   directory
+   using the config from `.devcontainer` directory
 
-6. When prompted, select `Debug` cmake preset
+6. On the CMake panel, `Configure > Select Preset > Debug > Do Configure`
 
-7. (Optional)
+7. Open any C++ file in the project, IntelliSense will think for a few seconds, then should start to work properly
+
+8. (Optional)
    [Share Git credentials](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials)
    with the container to perform VCS operations from the IDE
 
-8. You can configure, build, debug and run tests using either the IDE itself or `Makefile` (see the service's README.md)
+9. You can configure, build, debug and run tests using either the IDE itself or `Makefile` (see the service's README.md)
    using the IDE's integrated terminal
 
 ## Downloading packages using CPM

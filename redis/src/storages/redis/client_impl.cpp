@@ -39,8 +39,7 @@ void DoCheckShard(size_t shard, std::optional<size_t> force_shard_idx) {
 
 }  // namespace
 
-ClientImpl::ClientImpl(std::shared_ptr<impl::Sentinel> sentinel, std::optional<size_t> force_shard_idx)
-    : redis_client_(std::move(sentinel)), force_shard_idx_(force_shard_idx) {}
+ClientImpl::ClientImpl(std::shared_ptr<impl::Sentinel> sentinel) : redis_client_(std::move(sentinel)) {}
 
 void ClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
     redis_client_->WaitConnectedOnce(wait_connected);
@@ -50,16 +49,6 @@ size_t ClientImpl::ShardsCount() const { return redis_client_->ShardsCount(); }
 bool ClientImpl::IsInClusterMode() const { return redis_client_->IsInClusterMode(); }
 
 size_t ClientImpl::ShardByKey(const std::string& key) const { return redis_client_->ShardByKey(key); }
-
-const std::string& ClientImpl::GetAnyKeyForShard(size_t shard_idx) const {
-    return redis_client_->GetAnyKeyForShard(shard_idx);
-}
-
-std::shared_ptr<Client> ClientImpl::GetClientForShard(size_t shard_idx) {
-    return std::make_shared<ClientImpl>(redis_client_, shard_idx);
-}
-
-std::optional<size_t> ClientImpl::GetForcedShardIdx() const { return force_shard_idx_; }
 
 Request<ScanReplyTmpl<ScanTag::kScan>> ClientImpl::MakeScanRequestNoKey(
     size_t shard,
@@ -1175,10 +1164,6 @@ CommandControl ClientImpl::GetCommandControl(const CommandControl& cc) const {
 }
 
 size_t ClientImpl::GetPublishShard(PubShard policy, const PublishSettings& settings) {
-    if (force_shard_idx_) {
-        return *force_shard_idx_;
-    }
-
     switch (policy) {
         case PubShard::kZeroShard:
             return 0;
@@ -1191,21 +1176,10 @@ size_t ClientImpl::GetPublishShard(PubShard policy, const PublishSettings& setti
 }
 
 size_t ClientImpl::ShardByKey(const std::string& key, const CommandControl& cc) const {
-    if (force_shard_idx_) {
-        if (cc.force_shard_idx && *cc.force_shard_idx != *force_shard_idx_)
-            throw InvalidArgumentException(
-                "forced shard idx from CommandControl != forced shard for client (" +
-                std::to_string(*cc.force_shard_idx) + " != " + std::to_string(*force_shard_idx_) + ')'
-            );
-        return *force_shard_idx_;
-    }
     return cc.force_shard_idx.value_or(ShardByKey(key));
 }
 
-void ClientImpl::CheckShard(size_t shard, const CommandControl& cc) const {
-    DoCheckShard(shard, force_shard_idx_);
-    DoCheckShard(shard, cc.force_shard_idx);
-}
+void ClientImpl::CheckShard(size_t shard, const CommandControl& cc) const { DoCheckShard(shard, cc.force_shard_idx); }
 
 template Request<ScanReplyTmpl<ScanTag::kSscan>> ClientImpl::MakeScanRequestWithKey(
     std::string key,

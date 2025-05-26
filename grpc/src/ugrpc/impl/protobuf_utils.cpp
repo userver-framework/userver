@@ -1,8 +1,8 @@
 #include <ugrpc/impl/protobuf_utils.hpp>
 
+#include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <google/protobuf/text_format.h>
-
 #include <boost/container/small_vector.hpp>
 
 #include <userver/compiler/thread_local.hpp>
@@ -17,46 +17,23 @@ namespace ugrpc::impl {
 namespace {
 
 [[maybe_unused]] bool HasDebugRedactOption([[maybe_unused]] const google::protobuf::FieldDescriptor& field) {
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if defined(ARCADIA_ROOT) || GOOGLE_PROTOBUF_VERSION >= 4022000
     return field.options().debug_redact();
 #else
     return false;
 #endif
 }
 
-#ifdef ARCADIA_ROOT
-compiler::ThreadLocal kSecretFieldsVisitor = [] {
-    return ugrpc::FieldsVisitor(
-        [](const google::protobuf::FieldDescriptor& field) {
-            // TODO enable this check.
-            if constexpr (false) {
-                UASSERT_MSG(
-                    !GetFieldOptions(field).secret(), "Please use debug_redact instead of (userver.field).secret"
-                );
-            }
-            return field.options().debug_redact() || GetFieldOptions(field).secret();
-        },
-        ugrpc::FieldsVisitor::LockBehavior::kNone
-    );
-};
-#else
 /// [fields visitor]
 compiler::ThreadLocal kSecretFieldsVisitor = [] {
     return ugrpc::FieldsVisitor(
-        [](const google::protobuf::FieldDescriptor& field) {
-            return HasDebugRedactOption(field) || GetFieldOptions(field).secret();
-        },
+        [](const google::protobuf::FieldDescriptor& field) { return HasDebugRedactOption(field); },
         ugrpc::FieldsVisitor::LockBehavior::kNone
     );
 };
 /// [fields visitor]
-#endif
 
 }  // namespace
-
-const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
-    return field.options().GetExtension(userver::field);
-}
 
 bool IsMessage(const google::protobuf::FieldDescriptor& field) {
     return field.type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE ||
@@ -124,12 +101,11 @@ std::string ToLimitedString(const google::protobuf::Message& message, std::size_
     printer.SetUseUtf8StringEscaping(true);
     printer.SetExpandAny(true);
 
-    // throwing exception added for optimization
-    // this allows terminate message traversal once limit reached
+    // Throwing an exception is apparently the only way to terminate message traversal once size limit is reached.
     try {
         printer.Print(message, &limiting_output_stream);
     } catch (const LimitingOutputStream::LimitReachedException& /*ex*/) {
-        /// output reach limit
+        // Buffer limit has been reached.
     }
 
     return std::string{output_buffer.data(), static_cast<std::size_t>(output_stream.ByteCount())};

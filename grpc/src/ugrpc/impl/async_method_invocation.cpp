@@ -58,8 +58,7 @@ bool AsyncMethodInvocation::IsReady() const noexcept { return event_.IsReady(); 
 
 void AsyncMethodInvocation::WaitWhileBusy() noexcept {
     if (busy_) {
-        engine::TaskCancellationBlocker blocker;
-        event_.Wait();
+        event_.WaitNonCancellable();
     }
     busy_ = false;
 }

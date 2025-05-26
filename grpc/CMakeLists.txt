@@ -153,6 +153,11 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 if (USERVER_BUILD_TESTS)
+  set(secret_fields_proto)
+  if(Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0)
+    list(APPEND secret_fields_proto tests/secret_fields.proto)
+  endif()
+
   userver_add_grpc_library(${PROJECT_NAME}-unittest-proto
       PROTOS
       # Absolute paths are allowed
@@ -163,7 +168,7 @@ if (USERVER_BUILD_TESTS)
       tests/same_service_and_method_name.proto
       tests/global_package.proto
       tests/repeating_word_in_package_name.proto
-      tests/secret_fields.proto
+      ${secret_fields_proto}
       tests/logging.proto
       INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
   )

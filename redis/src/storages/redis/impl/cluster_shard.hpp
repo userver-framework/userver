@@ -28,14 +28,13 @@ public:
     ClusterShard() : current_(utils::RandRange(std::numeric_limits<size_t>::max())) {}
     ClusterShard(size_t shard, RedisConnectionPtr master, std::vector<RedisConnectionPtr> replicas)
         : replicas_(std::move(replicas)), master_(std::move(master)), shard_(shard) {}
-    ClusterShard(const ClusterShard& other)
-        : replicas_(other.replicas_), master_(other.master_), current_(other.current_.load()), shard_(other.shard_) {}
+    ClusterShard(const ClusterShard& other) = delete;
     ClusterShard(ClusterShard&& other) noexcept
         : replicas_(std::move(other.replicas_)),
           master_(std::move(other.master_)),
           current_(other.current_.load()),
           shard_(other.shard_) {}
-    ClusterShard& operator=(const ClusterShard& other);
+    ClusterShard& operator=(const ClusterShard& other) = delete;
     ClusterShard& operator=(ClusterShard&& other) noexcept;
     bool IsReady(WaitConnectedMode mode) const;
     bool AsyncCommand(CommandPtr command) const;

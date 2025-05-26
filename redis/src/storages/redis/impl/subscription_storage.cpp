@@ -722,6 +722,7 @@ SubscriptionStorage::SubscriptionStorage(
       shard_names_(std::move(shard_names)),
       is_cluster_mode_(is_cluster_mode),
       shard_rotate_counter_(utils::RandRange(storage_impl_.shards_count_)) {
+    UINVARIANT(!is_cluster_mode_, "Internal logic error with cluster mode setup");
     for (size_t shard_idx = 0; shard_idx < storage_impl_.shards_count_; shard_idx++) {
         rebalance_schedulers_.emplace_back(
             std::make_unique<SubscriptionRebalanceScheduler>(thread_pools->GetSentinelThreadPool(), *this, shard_idx)
@@ -737,7 +738,9 @@ SubscriptionStorage::SubscriptionStorage(
     : storage_impl_(shards_count, *this),
       shard_names_(std::move(shard_names)),
       is_cluster_mode_(is_cluster_mode),
-      shard_rotate_counter_(utils::RandRange(storage_impl_.shards_count_)) {}
+      shard_rotate_counter_(utils::RandRange(storage_impl_.shards_count_)) {
+    UINVARIANT(!is_cluster_mode_, "Internal logic error with cluster mode setup");
+}
 
 SubscriptionStorage::~SubscriptionStorage() = default;
 
@@ -799,55 +802,6 @@ void SubscriptionStorage::DoRebalance(size_t shard_idx, ServerWeights weights) {
         );
 
     storage_impl_.DoRebalance(shard_idx, std::move(weights));
-}
-
-void SubscriptionStorage::SwitchToNonClusterMode() {
-    const std::lock_guard<std::mutex> lock(storage_impl_.mutex_);
-    UASSERT(is_cluster_mode_);
-    is_cluster_mode_ = false;
-    LOG_INFO() << "SwitchToNonClusterMode for subscription storage";
-
-    for (auto& channel_item : storage_impl_.callback_map_) {
-        auto& channel_info = channel_item.second;
-        if (channel_info.callbacks.empty()) continue;
-
-        auto& infos = channel_info.info;
-        ChannelName channel_name(
-            channel_item.first,
-            /*pattern=*/false,
-            /*sharded=*/false
-        );
-        for (size_t i = 0; i < storage_impl_.shards_count_; ++i) {
-            if (!infos[i].fsm) {
-                ++channel_info.active_fsm_count;
-                infos[i].fsm = std::make_shared<shard_subscriber::Fsm>(i);
-                LOG_DEBUG() << "Create fsm for non-cluster: shard_idx=" << i
-                            << ", channel_name=" << channel_name.channel;
-                storage_impl_.ReadActions(infos[i].fsm, channel_name);
-            }
-        }
-    }
-
-    for (auto& channel_item : storage_impl_.pattern_callback_map_) {
-        auto& channel_info = channel_item.second;
-        if (channel_info.callbacks.empty()) continue;
-
-        auto& infos = channel_info.info;
-        ChannelName channel_name(
-            channel_item.first,
-            /*pattern=*/true,
-            /*sharded=*/false
-        );
-        for (size_t i = 0; i < storage_impl_.shards_count_; ++i) {
-            if (!infos[i].fsm) {
-                ++channel_info.active_fsm_count;
-                infos[i].fsm = std::make_shared<shard_subscriber::Fsm>(i);
-                LOG_DEBUG() << "Create fsm for non-cluster: shard_idx=" << i
-                            << ", pattern_name=" << channel_name.channel;
-                storage_impl_.ReadActions(infos[i].fsm, channel_name);
-            }
-        }
-    }
 }
 
 RawPubsubClusterStatistics SubscriptionStorage::GetStatistics() const { return storage_impl_.GetStatistics(); }

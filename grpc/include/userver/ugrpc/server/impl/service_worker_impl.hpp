@@ -56,8 +56,8 @@ void ParseGenericCallName(
 /// Per-gRPC-service data
 template <typename GrpcppService>
 struct ServiceData final {
-    ServiceData(const ServiceInternals& internals, const ugrpc::impl::StaticServiceMetadata& metadata)
-        : internals(internals), metadata(metadata) {}
+    ServiceData(ServiceInternals&& internals, const ugrpc::impl::StaticServiceMetadata& metadata)
+        : internals(std::move(internals)), metadata(metadata) {}
 
     ~ServiceData() { wait_tokens.WaitForAllTokens(); }
 

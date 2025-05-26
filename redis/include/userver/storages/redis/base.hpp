@@ -67,11 +67,6 @@ struct CommandsBufferingSettings {
     }
 };
 
-enum class ConnectionMode {
-    kCommands,
-    kSubscriber,
-};
-
 struct MetricsSettings {
     enum class Level { kCluster, kShard, kInstance };
 

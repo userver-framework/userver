@@ -8,20 +8,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-class RpcData;
+class CallState;
 
 /// AsyncMethodInvocation for Finish method that stops stats and Span timers
 /// ASAP, without waiting for a Task to wake up
 class FinishAsyncMethodInvocation final : public ugrpc::impl::AsyncMethodInvocation {
 public:
-    explicit FinishAsyncMethodInvocation(RpcData& data);
+    explicit FinishAsyncMethodInvocation(CallState& state);
 
     ~FinishAsyncMethodInvocation() override;
 
     void Notify(bool ok) noexcept override;
 
 private:
-    RpcData& data_;
+    CallState& state_;
 };
 
 ugrpc::impl::AsyncMethodInvocation::WaitStatus

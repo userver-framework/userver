@@ -5,6 +5,7 @@ import os
 import pathlib
 from typing import List
 from typing import NoReturn
+from typing import Optional
 
 import jinja2
 
@@ -113,6 +114,7 @@ def render(
     params: SqlParams,
     sql_items: List[SqlQuery],
     yql_items: List[SqlQuery],
+    env: Optional[jinja2.Environment] = None,
 ) -> None:
     os.makedirs(
         pathlib.Path(f'{params.src_root}/include/{params.namespace}'),
@@ -129,8 +131,9 @@ def render(
             exist_ok=True,
         )
 
-    loader = jinja2.FileSystemLoader(PARENT_DIR)
-    env = jinja2.Environment(loader=loader)
+    if not env:
+        loader = jinja2.FileSystemLoader(PARENT_DIR)
+        env = jinja2.Environment(loader=loader)
     env.globals['raise_error'] = raise_error
     env.globals['QueryLogMode'] = QueryLogMode
 

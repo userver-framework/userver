@@ -6,7 +6,6 @@
 #include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
-#include <userver/ugrpc/server/impl/rpc.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,8 +27,6 @@ void MiddlewareBase::OnCallFinish(MiddlewareCallContext& context, const grpc::St
 void MiddlewareBase::PostRecvMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
 
 void MiddlewareBase::PreSendMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
-
-/////////////////////////////////////////////////////////////////////////////////////
 
 MiddlewareCallContext::MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state)
     : CallContextBase(utils::impl::InternalTag{}, state) {}
@@ -58,24 +55,6 @@ const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
 ugrpc::impl::RpcStatisticsScope& MiddlewareCallContext::GetStatistics(ugrpc::impl::InternalTag /*tag*/) {
     return GetCallState(utils::impl::InternalTag{}).statistics_scope;
 }
-
-/////////////////////////////////////////////////////////////////////////////////////
-
-MiddlewarePipelineComponent::MiddlewarePipelineComponent(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
-    : USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent(
-          config,
-          context,
-          {/*middlewares=*/{
-              {"grpc-server-logging", {}},
-              {"grpc-server-baggage", {}},
-              {"grpc-server-congestion-control", {}},
-              {"grpc-server-deadline-propagation", {}},
-              {"grpc-server-headers-propagator", {}},
-          }}
-      ) {}
 
 }  // namespace ugrpc::server
 

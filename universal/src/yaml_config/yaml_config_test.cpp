@@ -235,6 +235,23 @@ TEST(YamlConfig, SampleFile) {
     EXPECT_THAT(yaml["some"]["some_key"][0].GetPath(), testing::StrEq("some.some_key[0]"));
 }
 
+TEST(YamlConfig, MissingVarWithEnv) {
+    auto node = formats::yaml::FromString(R"(
+some_element:
+    some: $missing_variable
+    some#env: SOME_ENV_VARIABLE
+  )");
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("SOME_ENV_VARIABLE", "100", 1);
+
+    yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::unsetenv("SOME_ENV_VARIABLE");
+}
+
 TEST(YamlConfig, FileFallback) {
     auto node = formats::yaml::FromString(R"(
 some_element:

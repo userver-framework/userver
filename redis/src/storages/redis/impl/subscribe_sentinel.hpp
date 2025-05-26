@@ -24,7 +24,6 @@ public:
         const std::string& client_name,
         const Password& password,
         ConnectionSecurity connection_security,
-        ReadyChangeCallback ready_callback,
         KeyShardFactory key_shard_factory,
         bool is_cluster_mode,
         CommandControl command_control,
@@ -38,17 +37,6 @@ public:
         std::string shard_group_name,
         dynamic_config::Source dynamic_config_source,
         const std::string& client_name,
-        std::string sharding_strategy,
-        const CommandControl& command_control,
-        const testsuite::RedisControl& testsuite_redis_control
-    );
-    static std::shared_ptr<SubscribeSentinel> Create(
-        const std::shared_ptr<ThreadPools>& thread_pools,
-        const USERVER_NAMESPACE::secdist::RedisSettings& settings,
-        std::string shard_group_name,
-        dynamic_config::Source dynamic_config_source,
-        const std::string& client_name,
-        ReadyChangeCallback ready_callback,
         std::string sharding_strategy,
         const CommandControl& command_control,
         const testsuite::RedisControl& testsuite_redis_control
@@ -79,7 +67,6 @@ public:
     void SetRebalanceMinInterval(std::chrono::milliseconds interval);
 
     using Sentinel::IsInClusterMode;
-    using Sentinel::Restart;
     using Sentinel::SetConfigDefaultCommandControl;
     using Sentinel::ShardsCount;
     using Sentinel::WaitConnectedDebug;

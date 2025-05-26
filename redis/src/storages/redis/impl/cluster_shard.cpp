@@ -33,17 +33,6 @@ bool IsNearestServerPing(const CommandControlImpl& control) {
 
 }  // namespace
 
-ClusterShard& ClusterShard::operator=(const ClusterShard& other) {
-    if (&other == this) {
-        return *this;
-    }
-    replicas_ = other.replicas_;
-    master_ = other.master_;
-    current_ = other.current_.load();
-    shard_ = other.shard_;
-    return *this;
-}
-
 ClusterShard& ClusterShard::operator=(ClusterShard&& other) noexcept {
     if (&other == this) {
         return *this;

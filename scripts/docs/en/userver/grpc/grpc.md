@@ -98,6 +98,7 @@ Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
   2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
   @ref scripts/docs/en/userver/deadline_propagation.md.
   3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+  3. `grpc-client-headers-propagator` with component ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
   4. `grpc-client-middleware-testsuite` with component ugrpc::client::middlewares::testsuite::Component - supports testsuite errors thrown from the mockserver.
 
 ## gRPC services

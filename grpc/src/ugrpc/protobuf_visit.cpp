@@ -144,7 +144,7 @@ DescriptorList GetNestedMessageDescriptors(const google::protobuf::Descriptor& d
 const google::protobuf::Descriptor* FindGeneratedMessage(std::string_view name) {
     const google::protobuf::DescriptorPool* pool = google::protobuf::DescriptorPool::generated_pool();
     UINVARIANT(pool, "pool is nullptr");
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     return pool->FindMessageTypeByName(name);
 #else
     return pool->FindMessageTypeByName(std::string(name));
@@ -154,7 +154,7 @@ const google::protobuf::Descriptor* FindGeneratedMessage(std::string_view name) 
 const google::protobuf::FieldDescriptor*
 FindField(const google::protobuf::Descriptor* descriptor, std::string_view field) {
     UINVARIANT(descriptor, "descriptor is nullptr");
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     return descriptor->FindFieldByName(field);
 #else
     return descriptor->FindFieldByName(std::string(field));

@@ -8,7 +8,7 @@
 
 #include <userver/dynamic_config/snapshot.hpp>
 
-#include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/stub_handle.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/qos.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>
@@ -18,12 +18,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
+class ClientData;
+
 struct CallParams {
     std::string_view client_name;
     grpc::CompletionQueue& queue;
     dynamic_config::Snapshot config;
     ugrpc::impl::MaybeOwnedString call_name;
-    ClientData::StubHandle stub;
+    StubHandle stub;
     std::unique_ptr<grpc::ClientContext> context;
     ugrpc::impl::MethodStatistics& statistics;
     const Middlewares& mws;

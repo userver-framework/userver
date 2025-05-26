@@ -69,7 +69,7 @@ public:
     GenericClient& operator=(GenericClient&&) noexcept = delete;
 
     /// Initiate a `single request -> single response` RPC with the given name.
-    client::ResponseFuture<grpc::ByteBuffer> AsyncUnaryCall(
+    ResponseFuture<grpc::ByteBuffer> AsyncUnaryCall(
         std::string_view call_name,
         const grpc::ByteBuffer& request,
         std::unique_ptr<grpc::ClientContext> context = std::make_unique<grpc::ClientContext>(),

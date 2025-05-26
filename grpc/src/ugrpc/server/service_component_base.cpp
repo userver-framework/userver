@@ -10,7 +10,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/server/impl/parse_config.hpp>
-#include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/server/middlewares/pipeline.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 

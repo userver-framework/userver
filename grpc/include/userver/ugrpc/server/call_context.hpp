@@ -56,7 +56,7 @@ public:
     /// @code
     /// if (password_is_correct) {
     ///   // Username is authenticated, set it in per-call storage context
-    ///   ctx.GetCall().GetStorageContext().Emplace(kAuthUsername, username);
+    ///   context.GetStorageContext().Emplace(kAuthUsername, username);
     /// }
     /// @endcode
     ///

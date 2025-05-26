@@ -25,7 +25,7 @@ endif()
 set(USERVER_USE_LD "${USERVER_USE_LD_DEFAULT}" CACHE STRING "Linker to use e.g. gold, lld")
 
 if (USERVER_USE_LD)
-  execute_process(COMMAND "${CMAKE_C_COMPILER}" "-fuse-ld=${USERVER_USE_LD}" -Wl,--version
+  execute_process(COMMAND "${CMAKE_CXX_COMPILER}" "-fuse-ld=${USERVER_USE_LD}" -Wl,--version
       OUTPUT_VARIABLE LD_VERSION ERROR_VARIABLE LD_CHECK_ERROR)
 
   if ((USERVER_USE_LD MATCHES "gold") AND (LD_VERSION MATCHES "GNU gold"))

@@ -17,7 +17,6 @@ std::unique_lock<engine::SingleWaitingTaskMutex> ResponderBase::TakeMutexIfBidir
         // * accessing StorageContext;
         // * accessing Span (AddTag);
         // * accessing ServerContext (e.g. setting metadata);
-        // * calling SetError.
         //
         // For now, this mutex lock mitigates most of these issues.
         // There is still some data race potential remaining:

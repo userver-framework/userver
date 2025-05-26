@@ -33,5 +33,6 @@ python3-protobuf
 python3-voluptuous
 re2
 redis
+unixODBC-devel
 yaml-cpp-devel
 zlib-devel

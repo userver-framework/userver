@@ -26,10 +26,8 @@ public:
         const std::string& client_name,
         const Password& password,
         ConnectionSecurity connection_security,
-        ReadyChangeCallback ready_callback,
         std::unique_ptr<KeyShard>&& key_shard,
-        dynamic_config::Source dynamic_config_source,
-        ConnectionMode mode = ConnectionMode::kCommands
+        dynamic_config::Source dynamic_config_source
     );
     ~ClusterSentinelImpl() override;
 
@@ -43,22 +41,15 @@ public:
     void ForceUpdateHosts() override;
 
     void AsyncCommand(const SentinelCommand& scommand, size_t prev_instance_idx /*= -1*/) override;
-    void AsyncCommandToSentinel(CommandPtr command) override;
 
     size_t ShardByKey(const std::string& key) const override;
 
     size_t ShardsCount() const override;
 
-    const std::string& GetAnyKeyForShard(size_t shard_idx) const override;
     SentinelStatistics GetStatistics(const MetricsSettings& settings) const override;
 
-    void Init() override;
     void Start() override;
     void Stop() override;
-
-    std::vector<std::shared_ptr<const Shard>> GetMasterShards() const override;
-
-    bool IsInClusterMode() const override;
 
     void SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings) override;
     void SetReplicationMonitoringSettings(const ReplicationMonitoringSettings& replication_monitoring_settings
@@ -73,6 +64,8 @@ public:
     void UpdatePassword(const Password& password) override;
 
 private:
+    void Init();  // used from constructor
+
     void AsyncCommandFailed(const SentinelCommand& scommand);
     void EnqueueCommand(const SentinelCommand& command);
 
@@ -85,13 +78,12 @@ private:
 
     std::shared_ptr<TopologyHolderBase> topology_holder_;
 
-    std::string shard_group_name_;
-    std::vector<ConnectionInfo> conns_;
-    ReadyChangeCallback ready_callback_;
+    const std::string shard_group_name_;
+    const std::vector<ConnectionInfo> conns_;
 
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
 
-    std::string client_name_;
+    const std::string client_name_;
 
     std::vector<SentinelCommand> commands_;
     std::mutex command_mutex_;

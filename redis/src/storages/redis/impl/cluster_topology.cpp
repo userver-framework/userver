@@ -82,15 +82,22 @@ bool ClusterTopology::IsReady(WaitConnectedMode mode) const {
 
 std::string ClusterTopology::GetReadinessInfo() const {
     std::string result = "Shards readiness: [";
+    bool at_least_one_is_fine = false;
     for (const auto& shard : cluster_shards_) {
+        const auto master_ready = shard.IsReady(WaitConnectedMode::kMaster);
+        const auto replica_ready = shard.IsReady(WaitConnectedMode::kSlave);
         fmt::format_to(
-            std::back_inserter(result),
-            "master {}, replicas {}; ",
-            shard.IsReady(WaitConnectedMode::kMaster),
-            shard.IsReady(WaitConnectedMode::kSlave)
+            std::back_inserter(result), "master: {}, replicas: {}", master_ready, replica_ready
+
         );
+        at_least_one_is_fine = (at_least_one_is_fine || master_ready || replica_ready);
     }
     result += "]";
+
+    if (!at_least_one_is_fine) {
+        result += ". Failed to connect to the Redis shards";
+    }
+
     return result;
 }
 

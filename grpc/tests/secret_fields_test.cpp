@@ -1,5 +1,8 @@
 #include <userver/utest/utest.hpp>
 
+#include <google/protobuf/stubs/common.h>
+#if defined(ARCADIA_ROOT) || GOOGLE_PROTOBUF_VERSION >= 4022000
+
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
@@ -140,3 +143,5 @@ INSTANTIATE_UTEST_SUITE_P(
 );
 
 USERVER_NAMESPACE_END
+
+#endif

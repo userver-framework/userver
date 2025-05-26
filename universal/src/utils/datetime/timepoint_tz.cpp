@@ -3,8 +3,8 @@
 #include <tuple>
 
 #include <userver/logging/log_helper.hpp>
-#include <userver/utils/datetime.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

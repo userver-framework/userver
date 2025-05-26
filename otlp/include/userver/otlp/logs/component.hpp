@@ -27,6 +27,7 @@ class Logger;
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// endpoint | URI of otel collector (e.g. 127.0.0.1:4317) | -
+/// client-factory-name | Name of the grpc client factory | -
 /// max-queue-size | Maximum async queue size | 65535
 /// max-batch-delay | Maximum batch delay | 100ms
 /// service-name | Service name | unknown_service

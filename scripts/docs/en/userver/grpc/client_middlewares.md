@@ -16,6 +16,7 @@ There are default middlewares:
  - @ref ugrpc::client::middlewares::log::Component
  - @ref ugrpc::client::middlewares::deadline_propagation::Component
  - @ref ugrpc::client::middlewares::baggage::Component
+ - @ref ugrpc::client::middlewares::headers_propagator::Component
  - @ref ugrpc::client::middlewares::testsuite::Component (used only in testsuite)
 
 If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default. 
@@ -286,9 +287,10 @@ digraph Pipeline {
     rankdir=LR;
 
     Baggage [label = "grpc-client-baggage", shape=box, width=2.0];
+    HeadersPropagator [label = "grpc-client-headers-propagator", shape=box, width=2.0];
     Testsuite [label = "grpc-client-testsuite", shape=box, width=2.0];
 
-    Baggage -> Testsuite;
+    Baggage -> HeadersPropagator -> Testsuite;
   }
 
   subgraph cluster_Core {

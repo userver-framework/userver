@@ -3,13 +3,9 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 
-#include <userver/field_options.pb.h>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
-
-const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field);
 
 bool IsMessage(const google::protobuf::FieldDescriptor& field);
 

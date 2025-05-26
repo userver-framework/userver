@@ -213,7 +213,7 @@ Password StandaloneTopologyHolder::GetPassword() {
 }
 
 std::string StandaloneTopologyHolder::GetReadinessInfo() const {
-    return fmt::format("Nodes received: {}.", is_nodes_received_.load());
+    return fmt::format("Nodes config parsed: {}.", is_nodes_received_.load());
 }
 
 }  // namespace storages::redis::impl

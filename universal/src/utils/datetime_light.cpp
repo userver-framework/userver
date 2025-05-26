@@ -1,4 +1,4 @@
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 #include <array>
 #include <ctime>
@@ -29,50 +29,9 @@ constexpr std::int64_t k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart =
     62135596800L * 10000000L;  // sec to 100nanosec
 constexpr std::int64_t kNanosecondsIs100Nanoseconds = 100;
 
-std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& tzname) {
-#if defined(BSD) && !defined(__APPLE__)
-    if (tzname == "GMT") return GetOptionalTimezone("UTC");
-#endif
-    cctz::time_zone tz;
-    if (!load_time_zone(tzname, &tz)) {
-        return std::nullopt;
-    }
-    return tz;
-}
-
-cctz::time_zone GetTimezone(const std::string& tzname) {
-    auto tz = GetOptionalTimezone(tzname);
-    if (!tz.has_value()) {
-        throw TimezoneLookupError(tzname);
-    }
-    return *tz;
-}
-
 const cctz::time_zone& GetLocalTimezone() {
     static const cctz::time_zone kLocalTz = cctz::local_time_zone();
     return kLocalTz;
-}
-
-std::optional<std::chrono::system_clock::time_point>
-OptionalStringtime(const std::string& timestring, const cctz::time_zone& timezone, const std::string& format) {
-    std::chrono::system_clock::time_point tp;
-    if (cctz::parse(format, timestring, timezone, &tp)) {
-        return tp;
-    }
-    return {};
-}
-
-std::chrono::system_clock::time_point
-DoGuessStringtime(const std::string& timestring, const cctz::time_zone& timezone) {
-    static const std::array<std::string, 3> formats{
-        {"%Y-%m-%dT%H:%M:%E*S%Ez", "%Y-%m-%dT%H:%M:%E*S%z", "%Y-%m-%dT%H:%M:%E*SZ"}};
-    for (const auto& format : formats) {
-        const auto optional_tp = OptionalStringtime(timestring, timezone, format);
-        if (optional_tp) {
-            return *optional_tp;
-        }
-    }
-    throw utils::datetime::DateParseError(timestring);
 }
 
 }  // namespace
@@ -114,41 +73,37 @@ bool IsTimeBetween(
     return false;
 }
 
-std::string
-Timestring(std::chrono::system_clock::time_point tp, const std::string& timezone, const std::string& format) {
-    return cctz::format(format, tp, GetTimezone(timezone));
-}
-
-std::optional<std::chrono::system_clock::time_point>
-OptionalStringtime(const std::string& timestring, const std::string& timezone, const std::string& format) {
-    auto tz = GetOptionalTimezone(timezone);
-    if (!tz.has_value()) {
-        return std::nullopt;
-    }
-    return OptionalStringtime(timestring, *tz, format);
-}
-
 std::string LocalTimezoneTimestring(std::chrono::system_clock::time_point tp, const std::string& format) {
     return cctz::format(format, tp, GetLocalTimezone());
 }
 
-std::string Timestring(time_t timestamp, const std::string& timezone, const std::string& format) {
+std::string UtcTimestring(std::time_t timestamp, const std::string& format) {
     auto tp = std::chrono::system_clock::from_time_t(timestamp);
-    return Timestring(tp, timezone, format);
+    return cctz::format(format, tp, cctz::utc_time_zone());
 }
+
+std::string UtcTimestring(std::chrono::system_clock::time_point tp, const std::string& format) {
+    return cctz::format(format, tp, cctz::utc_time_zone());
+}
+
+std::string Timestring(std::chrono::system_clock::time_point tp) { return UtcTimestring(tp); }
 
 std::string LocalTimezoneTimestring(time_t timestamp, const std::string& format) {
     auto tp = std::chrono::system_clock::from_time_t(timestamp);
     return LocalTimezoneTimestring(tp, format);
 }
 
-std::chrono::system_clock::time_point
-Stringtime(const std::string& timestring, const std::string& timezone, const std::string& format) {
-    const auto optional_tp = OptionalStringtime(timestring, GetTimezone(timezone), format);
-    if (!optional_tp) {
-        throw DateParseError(timestring);
+std::optional<std::chrono::system_clock::time_point>
+OptionalStringtime(const std::string& timestring, const cctz::time_zone& timezone, const std::string& format) {
+    std::chrono::system_clock::time_point tp;
+    if (cctz::parse(format, timestring, timezone, &tp)) {
+        return tp;
     }
-    return *optional_tp;
+    return {};
+}
+
+std::optional<std::chrono::system_clock::time_point> OptionalStringtime(const std::string& timestring) {
+    return OptionalStringtime(timestring, cctz::utc_time_zone(), kDefaultFormat);
 }
 
 std::chrono::system_clock::time_point
@@ -160,8 +115,27 @@ LocalTimezoneStringtime(const std::string& timestring, const std::string& format
     return *optional_tp;
 }
 
-std::chrono::system_clock::time_point GuessStringtime(const std::string& timestamp, const std::string& timezone) {
-    return DoGuessStringtime(timestamp, GetTimezone(timezone));
+std::chrono::system_clock::time_point UtcStringtime(const std::string& timestring, const std::string& format) {
+    const auto optional_tp = OptionalStringtime(timestring, cctz::utc_time_zone(), format);
+    if (!optional_tp) {
+        throw DateParseError(timestring);
+    }
+    return *optional_tp;
+}
+
+std::chrono::system_clock::time_point Stringtime(const std::string& timestring) { return UtcStringtime(timestring); }
+
+std::chrono::system_clock::time_point
+DoGuessStringtime(const std::string& timestring, const cctz::time_zone& timezone) {
+    static const std::array<std::string, 3> formats{
+        {"%Y-%m-%dT%H:%M:%E*S%Ez", "%Y-%m-%dT%H:%M:%E*S%z", "%Y-%m-%dT%H:%M:%E*SZ"}};
+    for (const auto& format : formats) {
+        const auto optional_tp = OptionalStringtime(timestring, timezone, format);
+        if (optional_tp) {
+            return *optional_tp;
+        }
+    }
+    throw utils::datetime::DateParseError(timestring);
 }
 
 std::chrono::system_clock::time_point GuessLocalTimezoneStringtime(const std::string& timestamp) {
@@ -201,16 +175,8 @@ std::uint32_t ParseDayTime(const std::string& str) {
     return seconds + 60 * minutes + 3600 * hours;
 }
 
-cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp, const std::string& timezone) {
-    return cctz::convert(tp, GetTimezone(timezone));
-}
-
 cctz::civil_second LocalTimezoneLocalize(const std::chrono::system_clock::time_point& tp) {
     return cctz::convert(tp, GetLocalTimezone());
-}
-
-time_t Unlocalize(const cctz::civil_second& local_tp, const std::string& timezone) {
-    return Timestamp(cctz::convert(local_tp, GetTimezone(timezone)));
 }
 
 time_t LocalTimezoneUnlocalize(const cctz::civil_second& local_tp) {

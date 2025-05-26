@@ -29,18 +29,6 @@ bool MockClientBase::IsInClusterMode() const { return false; }
 
 size_t MockClientBase::ShardByKey(const std::string& /*key*/) const { return 0; }
 
-const std::string& MockClientBase::GetAnyKeyForShard(size_t /*shard_idx*/) const {
-    static const std::string kKey = "a";
-    UASSERT_MSG(
-        ShardsCount() == 1, "You should override GetAnyKeyForShard() method if you use it with ShardsCount() > 1"
-    );
-    return kKey;
-}
-
-std::shared_ptr<Client> MockClientBase::GetClientForShard(size_t shard_idx) {
-    return std::make_shared<MockClientBase>(mock_transaction_impl_creator_, shard_idx);
-}
-
 // redis commands:
 
 RequestAppend

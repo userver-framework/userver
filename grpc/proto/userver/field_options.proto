@@ -7,8 +7,9 @@ option go_package = "a.yandex-team.ru/taxi/uservices/userver/grpc/proto;userver"
 import "google/protobuf/descriptor.proto";
 
 message FieldOptions {
-  // Deprecated, use [debug_redact = true] instead.
-  bool secret = 1;
+  // (userver.field).secret has been replaced with [debug_redact = true].
+  // Please upgrade to Protobuf 4.20+ to use it.
+  reserved 1;
 }
 
 // https://github.com/protocolbuffers/protobuf/blob/main/docs/options.md

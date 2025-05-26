@@ -3,8 +3,7 @@
 /// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
-#include <optional>
-#include <string_view>
+#include <string>
 
 #include <google/protobuf/message.h>
 #include <grpcpp/support/status.h>
@@ -17,7 +16,6 @@
 
 #include <userver/ugrpc/impl/internal_tag_fwd.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
-#include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -177,38 +175,6 @@ template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
     USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
 
-/// @ingroup userver_components userver_grpc_server_middlewares
-///
-/// @brief Component to create middlewares pipeline.
-///
-/// You must register your server middleware in this component.
-/// Use `MiddlewareDependencyBuilder` to set a dependency of your middleware from others.
-///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// middlewares | middlewares names and configs to use | `{}`
-///
-/// ## Static config example
-///
-/// @snippet grpc/functional_tests/middleware_server/static_config.yaml middleware pipeline component config
-
-class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
-public:
-    /// @ingroup userver_component_names
-    /// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the server side.
-    static constexpr std::string_view kName = "grpc-server-middlewares-pipeline";
-
-    MiddlewarePipelineComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
-};
-
 }  // namespace ugrpc::server
-
-template <>
-inline constexpr bool components::kHasValidate<ugrpc::server::MiddlewarePipelineComponent> = true;
-
-template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::server::MiddlewarePipelineComponent> =
-    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

@@ -35,7 +35,7 @@ template <class Item, class Value>
 void AddAttribute(Item& item, std::string_view key, const Value& value) {
     auto* attribute = item.add_attributes();
 
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     attribute->set_key(key);
 #else
     attribute->set_key(std::string{key});
@@ -334,7 +334,11 @@ void Logger::DoLog(
     LogClient& client
 ) {
     try {
-        auto response = client.Export(request);
+        auto response_future = client.AsyncExport(request);
+        // this will disable tracing, but not logging. One must disable
+        // logging middleware in grpc client factory configuration
+        response_future.GetCall().GetSpan().SetLogLevel(logging::Level::kNone);
+        auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;
@@ -349,7 +353,11 @@ void Logger::DoTrace(
     TraceClient& trace_client
 ) {
     try {
-        auto response = trace_client.Export(request);
+        auto response_future = trace_client.AsyncExport(request);
+        // this will disable tracing, but not logging. One must disable
+        // logging middleware in grpc client factory configuration
+        response_future.GetCall().GetSpan().SetLogLevel(logging::Level::kNone);
+        auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;

@@ -5,6 +5,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/mongo/component.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/utils/datetime.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 

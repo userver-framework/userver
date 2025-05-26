@@ -96,7 +96,6 @@ public:
     size_t InstancesSize() const;
     const std::string& ShardName() const;
     boost::signals2::signal<void(ServerId, Redis::State)>& SignalInstanceStateChange();
-    boost::signals2::signal<void()>& SignalNotInClusterMode();
     boost::signals2::signal<void(ServerId, bool)>& SignalInstanceReady();
 
     void SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings);

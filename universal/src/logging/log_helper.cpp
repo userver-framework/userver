@@ -18,7 +18,7 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/null_logger.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -399,7 +399,7 @@ std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 void LogHelper::FlushStream() { pimpl_->Stream().flush(); }
 
 LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
-    lh << utils::datetime::Timestring(tp);
+    lh << utils::datetime::UtcTimestring(tp);
     return lh;
 }
 

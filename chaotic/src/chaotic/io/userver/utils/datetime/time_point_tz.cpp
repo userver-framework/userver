@@ -4,8 +4,8 @@
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/datetime.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +21,7 @@ TimePointTz Convert(const std::string& str, chaotic::convert::To<TimePointTz>) {
 
     UINVARIANT(s.size() >= kZeroTimePoint.size(), "Invalid datetime");
     memcpy(s.data(), kZeroTimePoint.data(), kZeroTimePoint.length());
-    auto tp_tz = utils::datetime::Stringtime(s, utils::datetime::kDefaultTimezone, utils::datetime::kRfc3339Format);
+    auto tp_tz = utils::datetime::UtcStringtime(s, utils::datetime::kRfc3339Format);
     return TimePointTz{tp, -std::chrono::duration_cast<std::chrono::seconds>(tp_tz.time_since_epoch())};
 }
 

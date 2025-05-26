@@ -84,7 +84,6 @@ public:
 
     virtual void DoRebalance(size_t shard_idx, ServerWeights weights) = 0;
 
-    virtual void SwitchToNonClusterMode() = 0;
     virtual void SetShardsCount(size_t /*shards_count*/) = 0;
 
     virtual const std::string& GetShardName(size_t shard_idx) const = 0;
@@ -270,7 +269,6 @@ public:
 
     void DoRebalance(size_t shard_idx, ServerWeights weights) override;
 
-    void SwitchToNonClusterMode() override;
     void SetShardsCount(size_t /*shards_count*/) override {}
     const std::string& GetShardName(size_t shard_idx) const override;
 

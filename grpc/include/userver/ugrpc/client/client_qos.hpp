@@ -3,7 +3,7 @@
 /// @file userver/ugrpc/client/client_qos.hpp
 /// @brief @copybrief ugrpc::client::ClientQos
 
-#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/utils/default_dict.hpp>
 
 #include <userver/ugrpc/client/qos.hpp>

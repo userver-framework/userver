@@ -14,8 +14,8 @@
 
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/parse/to.hpp>
-#include <userver/utils/datetime.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/string_to_duration.hpp>
 

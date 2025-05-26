@@ -24,5 +24,7 @@ schema:
             type: boolean
         allow_reads_from_master:
             type: boolean
+        consider_ping:
+            type: boolean
     type: object
 

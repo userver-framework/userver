@@ -1,28 +1,31 @@
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 
-#include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/ugrpc/client/impl/call_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-FinishAsyncMethodInvocation::FinishAsyncMethodInvocation(RpcData& data) : data_(data) {}
+FinishAsyncMethodInvocation::FinishAsyncMethodInvocation(CallState& state) : state_(state) {}
 
 FinishAsyncMethodInvocation::~FinishAsyncMethodInvocation() { WaitWhileBusy(); }
 
 void FinishAsyncMethodInvocation::Notify(bool ok) noexcept {
     if (ok) {
         try {
-            auto& status = data_.GetStatus();
-            data_.GetStatsScope().OnExplicitFinish(status.error_code());
+            auto& status = state_.GetStatus();
+            state_.GetStatsScope().OnExplicitFinish(status.error_code());
 
-            if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED && data_.IsDeadlinePropagated()) {
-                data_.GetStatsScope().OnCancelledByDeadlinePropagation();
+            if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED && state_.IsDeadlinePropagated()) {
+                state_.GetStatsScope().OnCancelledByDeadlinePropagation();
             }
 
-            data_.GetStatsScope().Flush();
+            state_.GetStatsScope().Flush();
         } catch (const std::exception& ex) {
             LOG_LIMITED_ERROR() << "Error in FinishAsyncMethodInvocation::Notify: " << ex;
+        } catch (...) {
+            // We have to catch any exception to notify a task in any case.
+            LOG_LIMITED_ERROR() << "Error in FinishAsyncMethodInvocation::Notify: <non std::exception-based>";
         }
     }
     AsyncMethodInvocation::Notify(ok);

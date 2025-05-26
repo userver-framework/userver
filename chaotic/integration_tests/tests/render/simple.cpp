@@ -322,7 +322,7 @@ TEST(Simple, DateTime) {
     auto obj = json.As<ns::ObjectDate>();
 
     utils::datetime::TimePointTz tp{
-        utils::datetime::Stringtime("2020-10-01T00:00:56Z"), std::chrono::seconds(12 * 60 * 60 + 34 * 60)};
+        utils::datetime::UtcStringtime("2020-10-01T00:00:56Z"), std::chrono::seconds(12 * 60 * 60 + 34 * 60)};
     EXPECT_EQ(obj.updated_at, tp);
 
     auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["updated_at"].As<std::string>();
@@ -335,7 +335,7 @@ TEST(Simple, DateTimeExtra) {
     auto obj = json.As<ns::ObjectDate>();
 
     utils::datetime::TimePointTz tp{
-        utils::datetime::Stringtime("2020-10-01T00:00:56Z"), std::chrono::seconds(12 * 60 * 60 + 34 * 60)};
+        utils::datetime::UtcStringtime("2020-10-01T00:00:56Z"), std::chrono::seconds(12 * 60 * 60 + 34 * 60)};
     EXPECT_EQ(obj.updated_at_extra->time_point, tp);
 
     auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["updated_at_extra"].As<std::string>();
@@ -348,7 +348,7 @@ TEST(Simple, DateTimeIsoBasic) {
     auto obj = json.As<ns::ObjectDate>();
 
     utils::datetime::TimePointTzIsoBasic tp{
-        utils::datetime::Stringtime("2020-10-01T00:00:56Z"), std::chrono::seconds(12 * 60 * 60 + 34 * 60)};
+        utils::datetime::UtcStringtime("2020-10-01T00:00:56Z"), std::chrono::seconds(12 * 60 * 60 + 34 * 60)};
     EXPECT_EQ(obj.deleted_at, tp);
 
     auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["deleted_at"].As<std::string>();

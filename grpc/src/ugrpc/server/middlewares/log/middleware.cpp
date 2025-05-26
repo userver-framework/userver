@@ -1,4 +1,4 @@
-#include "middleware.hpp"
+#include <ugrpc/server/middlewares/log/middleware.hpp>
 
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>

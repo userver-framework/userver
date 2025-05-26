@@ -9,6 +9,7 @@
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
+#include <userver/ugrpc/client/impl/client_data.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

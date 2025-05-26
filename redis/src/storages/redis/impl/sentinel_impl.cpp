@@ -66,7 +66,6 @@ SentinelImpl::SentinelImpl(
     const std::string& client_name,
     const Password& password,
     ConnectionSecurity connection_security,
-    ReadyChangeCallback ready_callback,
     std::unique_ptr<KeyShard>&& key_shard,
     dynamic_config::Source dynamic_config_source,
     std::size_t database_index
@@ -76,8 +75,8 @@ SentinelImpl::SentinelImpl(
       shard_group_name_(std::move(shard_group_name)),
       init_shards_(std::make_shared<const std::vector<std::string>>(shards)),
       conns_(conns),
-      ready_callback_(std::move(ready_callback)),
       redis_thread_pool_(redis_thread_pool),
+      client_name_(client_name),
       connection_security_(connection_security),
       check_interval_(ToEvDuration(kSentinelGetHostsCheckInterval)),
       key_shard_(std::move(key_shard)),
@@ -85,28 +84,18 @@ SentinelImpl::SentinelImpl(
       database_index_(database_index) {
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-    UASSERT_MSG(key_shard_.Get(), "key_shard should be provided");
+    UASSERT_MSG(key_shard_, "key_shard should be provided");
     for (size_t i = 0; i < init_shards_->size(); ++i) {
         shards_[(*init_shards_)[i]] = i;
         connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
     }
-    client_name_ = client_name;
     UpdatePassword(password);
 
     Init();
-    InitKeyShard();
-    LOG_DEBUG() << "Created SentinelImpl, shard_group_name=" << shard_group_name_
-                << ", cluster_mode=" << IsInClusterMode();
+    LOG_DEBUG() << "Created SentinelImpl, shard_group_name=" << shard_group_name_ << ", cluster_mode=false";
 }
 
 SentinelImpl::~SentinelImpl() { Stop(); }
-
-void SentinelImpl::SetSentinelConnectionInfo(const std::vector<ConnectionInfo>& sentinel_conns) {
-    std::vector<ConnectionInfoInt> cii;
-    cii.reserve(sentinel_conns.size());
-    for (const auto& conn : sentinel_conns) cii.emplace_back(ConnectionInfoInt{conn});
-    sentinels_->SetConnectionInfo(cii);
-}
 
 std::unordered_map<ServerId, size_t, ServerIdHasher>
 SentinelImpl::GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const {
@@ -146,12 +135,12 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
 void SentinelImpl::ForceUpdateHosts() { ev_thread_.Send(watch_create_); }
 
 void SentinelImpl::Init() {
-    InitShards(*init_shards_, master_shards_, ready_callback_);
+    InitShards(*init_shards_, master_shards_);
 
     Shard::Options shard_options;
     shard_options.shard_name = "(sentinel)";
     shard_options.shard_group_name = shard_group_name_;
-    shard_options.cluster_mode = IsInClusterMode();
+    shard_options.cluster_mode = false;
     shard_options.ready_change_callback = [this](bool ready) {
         if (ready) ev_thread_.Send(watch_create_);
     };
@@ -163,17 +152,11 @@ void SentinelImpl::Init() {
         LOG_TRACE() << "Signaled server " << id.GetDescription() << " state=" << StateToString(state);
         if (state != Redis::State::kInit) ev_thread_.Send(watch_state_);
     });
-#ifndef NDEBUG
-    // https://github.com/boostorg/signals2/issues/59
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-    sentinels_->SignalNotInClusterMode().connect([]() { UASSERT_MSG(false, "Not in cluster mode"); });
-#endif
 }
 
 void SentinelImpl::InitShards(
     const std::vector<std::string>& shards,
-    std::vector<std::shared_ptr<Shard>>& shard_objects,
-    const ReadyChangeCallback& ready_callback
+    std::vector<std::shared_ptr<Shard>>& shard_objects
 ) {
     size_t i = 0;
     shard_objects.clear();
@@ -181,9 +164,10 @@ void SentinelImpl::InitShards(
         Shard::Options shard_options;
         shard_options.shard_name = shard;
         shard_options.shard_group_name = shard_group_name_;
-        shard_options.cluster_mode = IsInClusterMode();
-        shard_options.ready_change_callback = [i, shard, ready_callback](bool ready) {
-            if (ready_callback) ready_callback(i, shard, ready);
+        shard_options.cluster_mode = false;
+        shard_options.ready_change_callback = [i, shard](bool ready) {
+            LOG_INFO() << "redis: ready_callback:"
+                       << "  shard = " << i << "  shard_name = " << shard << "  ready = " << (ready ? "true" : "false");
         };
         auto object = std::make_shared<Shard>(std::move(shard_options));
         // https://github.com/boostorg/signals2/issues/59
@@ -340,24 +324,11 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
     }
 }
 
-void SentinelImpl::AsyncCommandToSentinel(CommandPtr command) {
-    UASSERT(sentinels_);
-    sentinels_->AsyncCommand(std::move(command));
-}
-
 size_t SentinelImpl::ShardByKey(const std::string& key) const {
     UASSERT(!master_shards_.empty());
-    auto key_shard = key_shard_.Get();
-    UASSERT_MSG(key_shard, "Filed to get shard");
-    size_t shard = key_shard->ShardByKey(key);
+    size_t shard = key_shard_->ShardByKey(key);
     LOG_TRACE() << "key=" << key << " shard=" << shard;
     return shard;
-}
-
-const std::string& SentinelImpl::GetAnyKeyForShard(size_t shard_idx) const {
-    auto keys_for_shards = keys_for_shards_.Get();
-    if (!keys_for_shards) throw std::runtime_error("keys were not generated with GenerateKeysForShards()");
-    return keys_for_shards->GetAnyKeyForShard(shard_idx);
 }
 
 void SentinelImpl::Start() {
@@ -380,22 +351,6 @@ void SentinelImpl::Start() {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_timer_init(&check_timer_, OnCheckTimer, 0.0, 0.0);
     ev_thread_.Start(check_timer_);
-}
-
-void SentinelImpl::InitKeyShard() {
-    auto key_shard = key_shard_.Get();
-    UASSERT(key_shard);
-    try {
-        if (key_shard->IsGenerateKeysForShardsEnabled()) GenerateKeysForShards();
-    } catch (const std::exception& ex) {
-        LOG_ERROR() << "GenerateKeysForShards() failed: " << ex << ", shard_group_name=" << shard_group_name_;
-    }
-}
-
-void SentinelImpl::GenerateKeysForShards(size_t max_len) {
-    keys_for_shards_.Set(std::make_shared<KeysForShards>(
-        ShardsCount(), [this](const std::string& key) { return ShardByKey(key); }, max_len
-    ));
 }
 
 void SentinelImpl::AsyncCommandFailed(const SentinelCommand& scommand) {
@@ -480,12 +435,6 @@ void SentinelImpl::Stop() {
         sentinels_->Clean();
     });
 }
-
-std::vector<std::shared_ptr<const Shard>> SentinelImpl::GetMasterShards() const {
-    return {master_shards_.begin(), master_shards_.end()};
-}
-
-bool SentinelImpl::IsInClusterMode() const { return false; }
 
 void SentinelImpl::SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings) {
     if (commands_buffering_settings_ && *commands_buffering_settings_ == commands_buffering_settings) return;

@@ -2,6 +2,7 @@
 
 #include <grpcpp/generic/generic_stub.h>
 
+#include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,7 +24,7 @@ GenericClient::GenericClient(impl::ClientInternals&& internals)
     UINVARIANT(!impl_.GetClientQos(), "Client QOS configs are unsupported for generic services");
 }
 
-client::ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
+ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
     std::string_view call_name,
     const grpc::ByteBuffer& request,
     std::unique_ptr<grpc::ClientContext> context,
@@ -35,7 +36,7 @@ client::ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
             impl_, call_name, std::move(context), generic_options.qos, generic_options.metrics_call_name
         ),
         [&method_name](
-            impl::ClientData::StubHandle& stub,
+            impl::StubHandle& stub,
             grpc::ClientContext* context,
             const grpc::ByteBuffer& request,
             grpc::CompletionQueue* cq

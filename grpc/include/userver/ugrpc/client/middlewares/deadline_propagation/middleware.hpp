@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp
+/// @brief @copybrief ugrpc::client::middlewares::deadline_propagation::Middleware
+
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN

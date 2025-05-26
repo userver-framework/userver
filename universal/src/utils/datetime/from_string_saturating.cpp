@@ -2,7 +2,7 @@
 
 #include <cctz/time_zone.h>
 
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

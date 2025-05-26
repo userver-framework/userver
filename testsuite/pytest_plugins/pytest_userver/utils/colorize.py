@@ -207,7 +207,6 @@ def format_json(obj):
 
 def try_reformat_json(body):
     try:
-        # TODO: unescape string
         data = json.loads(body)
         return format_json(data)
     except ValueError:

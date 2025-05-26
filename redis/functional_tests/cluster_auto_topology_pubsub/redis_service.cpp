@@ -137,21 +137,14 @@ std::string ReadStoreReturn::Get(const server::http::HttpRequest& request) const
     {
         const auto& publish_msg = request.GetArg("publish");
         if (!publish_msg.empty()) {
-            const auto& shard_str = request.GetArg("shard");
-            if (!shard_str.empty()) {
-                /// Publish message to specified shard
-                const auto shard = std::stoul(shard_str);
-                const auto shard_count = redis_subscribe_client_->ShardsCount();
-                if (shard >= shard_count) {
-                    throw server::handlers::ClientError(server::handlers::ExternalBody{
-                        fmt::format("Shard is out of range shard:{} count:{}", shard, shard_count)});
-                }
-                auto shard_client = redis_client_->GetClientForShard(shard);
-                shard_client->Publish("output_channel", publish_msg, storages::redis::CommandControl());
+            storages::redis::CommandControl cc{};
+            if (request.GetArg("round_robin") == "true") {
+                /// Publish message to different shards
+                redis_client_->Publish("output_channel", publish_msg, cc, storages::redis::PubShard::kRoundRobin);
                 return {};
             }
-            /// Publish to any accessible shard
-            redis_client_->Publish("output_channel", publish_msg, storages::redis::CommandControl());
+            /// Publish to first shard
+            redis_client_->Publish("output_channel", publish_msg, cc, storages::redis::PubShard::kZeroShard);
             return {};
         }
     }

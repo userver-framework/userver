@@ -13,7 +13,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/middlewares/impl/middleware_pipeline_config.hpp>
-#include <userver/middlewares/impl/simple_middleware_pipeline.hpp>
+#include <userver/middlewares/impl/pipeline_creator_interface.hpp>
 #include <userver/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN

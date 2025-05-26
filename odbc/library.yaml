@@ -1,0 +1,9 @@
+project-name: userver-odbc
+project-alt-names:
+  - yandex-userver-odbc
+maintainers:
+  - Common components
+description: ODBC driver wrapper
+
+libraries:
+  - userver-core
