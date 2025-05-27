@@ -120,6 +120,16 @@ void TaskCancellationToken::RequestCancel() {
     context_->RequestCancel(TaskCancellationReason::kUserRequest);
 }
 
+TaskCancellationReason TaskCancellationToken::CancellationReason() const noexcept {
+    UASSERT(context_);
+    return context_->CancellationReason();
+}
+
+bool TaskCancellationToken::IsCancelRequested() const noexcept {
+    UASSERT(context_);
+    return context_->IsCancelRequested();
+}
+
 bool TaskCancellationToken::IsValid() const noexcept { return !!context_; }
 
 }  // namespace engine

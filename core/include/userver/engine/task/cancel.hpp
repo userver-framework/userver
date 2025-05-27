@@ -119,6 +119,15 @@ public:
     /// This method should not be called on invalid TaskCancellationToken
     void RequestCancel();
 
+    /// @see engine::Task::CancellationReason
+    /// This method should not be called on invalid TaskCancellationToken
+    TaskCancellationReason CancellationReason() const noexcept;
+
+    /// @see @ref task_cancellation_intro
+    /// True if there is pending cancellation request for the associated task
+    /// This method should not be called on invalid TaskCancellationToken
+    bool IsCancelRequested() const noexcept;
+
     /// True if this token is associated with a task
     bool IsValid() const noexcept;
 
