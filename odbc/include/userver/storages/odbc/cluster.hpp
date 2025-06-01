@@ -3,17 +3,11 @@
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
+#include <userver/storages/odbc/settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
-
-namespace settings {
-struct ODBCClusterSettings {
-    /// @param dsns list of DSNs to connect to, first DSN is used as a master
-    std::vector<std::string> dsns;
-};
-}  // namespace settings
 
 namespace detail {
 

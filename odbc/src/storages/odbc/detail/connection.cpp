@@ -118,6 +118,10 @@ ResultSet Connection::Query(const std::string& query) {
     return ResultSet(std::move(wrapper));
 }
 
+bool Connection::IsBroken() const { return false; }
+
+void Connection::NotifyBroken() {}
+
 }  // namespace storages::odbc
 
 USERVER_NAMESPACE_END

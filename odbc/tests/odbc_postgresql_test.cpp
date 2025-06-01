@@ -14,13 +14,14 @@ constexpr auto kDSN =
     "PWD=password;";
 
 namespace {
-auto kSettings = storages::odbc::settings::ODBCClusterSettings{{kDSN}};
-}
+auto kHostSettings = storages::odbc::settings::HostSettings{kDSN, {}};
+auto kSettings = storages::odbc::settings::ODBCClusterSettings{{kHostSettings}};
+}  // namespace
 
 UTEST(CreateConnection, Works) { storages::odbc::Cluster cluster(kSettings); }
 
 UTEST(CreateConnection, MultipleDSN) {
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{kDSN, kDSN}});
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{kHostSettings, kHostSettings}});
 }
 
 UTEST(Query, Works) {

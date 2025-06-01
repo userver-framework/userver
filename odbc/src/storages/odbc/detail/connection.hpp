@@ -30,6 +30,10 @@ public:
     /// @return ResultSet containing the query results
     ResultSet Query(const std::string& query);
 
+    // required by ConnectionPool
+    bool IsBroken() const;
+    void NotifyBroken();
+
 private:
     EnvironmentHandle env_;
     DatabaseHandle handle_;

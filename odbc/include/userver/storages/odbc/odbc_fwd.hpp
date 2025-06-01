@@ -20,6 +20,11 @@ using ClusterPtr = std::shared_ptr<Cluster>;
 namespace detail {
 class ResultWrapper;
 using ResultWrapperPtr = std::shared_ptr<const ResultWrapper>;
+
+class ConnectionPtr;
+
+class Pool;
+using PoolPtr = std::shared_ptr<Pool>;
 }  // namespace detail
 
 }  // namespace storages::odbc
