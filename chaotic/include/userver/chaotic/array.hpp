@@ -20,6 +20,9 @@ struct Array final {
 
 template <typename Value, typename ItemType, typename UserType, typename... Validators>
 UserType Parse(const Value& value, formats::parse::To<Array<ItemType, UserType, Validators...>>) {
+    value.CheckNotMissing();
+    value.CheckArrayOrNull();
+
     UserType arr;
     if constexpr (meta::kIsReservable<UserType>) {
         arr.reserve(value.GetSize());
@@ -39,6 +42,9 @@ UserType Parse(const Value& value, formats::parse::To<Array<ItemType, UserType, 
 template <typename Value, typename ItemType, typename... Validators>
 std::vector<formats::common::ParseType<Value, ItemType>>
 Parse(const Value& value, formats::parse::To<Array<ItemType, std::vector<formats::common::ParseType<Value, ItemType>>, Validators...>>) {
+    value.CheckNotMissing();
+    value.CheckArrayOrNull();
+
     std::vector<formats::common::ParseType<Value, ItemType>> arr;
     arr.reserve(value.GetSize());
     for (const auto& item : value) {

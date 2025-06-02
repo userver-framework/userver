@@ -72,6 +72,17 @@ TEST(Array, OfEmptyArraySerializer) {
     EXPECT_EQ(formats::json::ValueBuilder{Arr{kJson.As<Arr>()}}.ExtractValue(), kJson);
 }
 
+TEST(Array, FromObjectShouldThrow) {
+    const auto kJson = formats::json::MakeObject("lat", 56.008889, "lon", 92.871944);
+    using Arr = chaotic::Array<double, std::vector<double>>;
+
+    UEXPECT_THROW_MSG(
+        kJson.As<Arr>(),
+        formats::json::TypeMismatchException,
+        "Error at path '/': Wrong type. Expected: arrayValue, actual: objectValue"
+    );
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END
