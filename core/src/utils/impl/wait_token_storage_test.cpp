@@ -66,10 +66,10 @@ UTEST_MT(WaitTokenStorage, MultipleTokens, 4) {
 
             for (std::size_t j = 0; j < kWorkersPerLauncher; ++j) {
                 // Note: the token is created in one task and moved into another one
-                engine::AsyncNoSpan([&, token = wts.GetToken()] {
+                engine::DetachUnscopedUnsafe(engine::AsyncNoSpan([&, token = wts.GetToken()] {
                     const std::shared_lock allowed_to_finish_lock(allowed_to_finish);
                     ++workers_completed;
-                }).Detach();
+                }));
             }
         }));
     }

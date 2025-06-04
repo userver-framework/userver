@@ -52,7 +52,7 @@ void RunOnTaskProcessorSync(TaskProcessor& tp, utils::function_ref<void()> user_
         user_cb();
     });
     auto future = packaged_task.get_future();
-    engine::AsyncNoSpan(tp, std::move(packaged_task)).Detach();
+    engine::DetachUnscopedUnsafe(engine::AsyncNoSpan(tp, std::move(packaged_task)));
     future.get();
 }
 

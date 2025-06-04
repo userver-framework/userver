@@ -378,7 +378,7 @@ auto MakeAsyncDeleter(engine::TaskProcessor& task_processor, Deleter deleter) {
     return [&task_processor, deleter = std::move(deleter)](const T* raw_ptr) mutable {
         std::unique_ptr<const T, Deleter> ptr(raw_ptr, std::move(deleter));
 
-        engine::CriticalAsyncNoSpan(task_processor, [ptr = std::move(ptr)]() mutable {}).Detach();
+        engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(task_processor, [ptr = std::move(ptr)]() mutable {}));
     };
 }
 

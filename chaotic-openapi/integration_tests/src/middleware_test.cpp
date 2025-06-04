@@ -26,7 +26,7 @@ constexpr http::headers::PredefinedHeader kLocation("Location");
 UTEST(TestMiddleware, TimeoutRetryMiddleware) {
     int request_count = 0;
 
-    utest::HttpServerMock http_server([&request_count](const utest::HttpServerMock::HttpRequest&) {
+    const utest::HttpServerMock http_server([&request_count](const utest::HttpServerMock::HttpRequest&) {
         request_count++;
 
         if (request_count <= 2) {
@@ -56,7 +56,7 @@ UTEST(TestMiddleware, TimeoutRetryMiddleware) {
 UTEST(TestMiddleware, FollowRedirectsMiddleware) {
     bool redirect_visited = false;
 
-    utest::HttpServerMock http_server([&redirect_visited](const utest::HttpServerMock::HttpRequest& request) {
+    const utest::HttpServerMock http_server([&redirect_visited](const utest::HttpServerMock::HttpRequest& request) {
         if (request.path == "/test") {
             auto response = utest::HttpServerMock::HttpResponse{302};
             response.headers[kLocation] = "/redirected";
@@ -89,7 +89,7 @@ UTEST(TestMiddleware, FollowRedirectsMiddleware) {
 }
 
 UTEST(TestMiddleware, ProxyMiddleware) {
-    utest::HttpServerMock destination_server([](const utest::HttpServerMock::HttpRequest& request) {
+    const utest::HttpServerMock destination_server([](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(request.path, "/test");
 
         auto response = utest::HttpServerMock::HttpResponse{200};
@@ -98,7 +98,7 @@ UTEST(TestMiddleware, ProxyMiddleware) {
     });
 
     bool proxy_called = false;
-    utest::HttpServerMock proxy_server([&proxy_called](const utest::HttpServerMock::HttpRequest& /*request*/) {
+    const utest::HttpServerMock proxy_server([&proxy_called](const utest::HttpServerMock::HttpRequest& /*request*/) {
         proxy_called = true;
 
         auto response = utest::HttpServerMock::HttpResponse{200};
@@ -143,7 +143,7 @@ vnt5k03sADG1HQMJJ+okTNhM3X0nbmxSxQw3arVzkTtkY39zGPqQxKgDch2uCzEv
 iW5OwYvGErHvYQaO0LtwjzO8LamystYgUIXVV+fFL3w6
 -----END CERTIFICATE-----)";
 
-    utest::HttpServerMock http_server([](const utest::HttpServerMock::HttpRequest& request) {
+    const utest::HttpServerMock http_server([](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(request.path, "/test");
 
         auto response = utest::HttpServerMock::HttpResponse{200};

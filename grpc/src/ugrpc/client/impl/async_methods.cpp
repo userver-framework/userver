@@ -75,7 +75,7 @@ void PrepareFinish(CallState& state) {
     state.SetFinished();
 }
 
-void ProcessFinish(CallState& state, google::protobuf::Message* final_response) {
+void ProcessFinish(CallState& state, const google::protobuf::Message* final_response) {
     const auto& status = state.GetStatus();
 
     ProcessCallStatistics(state, status);

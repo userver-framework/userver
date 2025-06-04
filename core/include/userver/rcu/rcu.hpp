@@ -159,10 +159,10 @@ public:
             SyncDeleter{}.Delete(std::move(handle));
         } else {
             try {
-                engine::CriticalAsyncNoSpan(
+                engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
                     // The order of captures is important, 'handle' must be destroyed before 'token'.
                     [token = wait_token_storage_.GetToken(), handle = std::move(handle)]() mutable {}
-                ).Detach();
+                ));
                 // NOLINTNEXTLINE(bugprone-empty-catch)
             } catch (...) {
                 // Task creation somehow failed.

@@ -18,7 +18,7 @@
 USERVER_NAMESPACE_BEGIN
 
 UTEST(Middlewares, TimeoutRetrySchema) {
-    std::string schema = chaotic::openapi::TimeoutRetryMiddleware::GetStaticConfigSchemaStr();
+    const std::string schema = chaotic::openapi::TimeoutRetryMiddleware::GetStaticConfigSchemaStr();
 
     EXPECT_FALSE(schema.empty());
     EXPECT_NE(schema.find("timeout_ms"), std::string::npos);
@@ -26,28 +26,28 @@ UTEST(Middlewares, TimeoutRetrySchema) {
 }
 
 UTEST(Middlewares, FollowRedirectsSchema) {
-    std::string schema = chaotic::openapi::FollowRedirectsMiddleware::GetStaticConfigSchemaStr();
+    const std::string schema = chaotic::openapi::FollowRedirectsMiddleware::GetStaticConfigSchemaStr();
 
     EXPECT_FALSE(schema.empty());
     EXPECT_NE(schema.find("enabled"), std::string::npos);
 }
 
 UTEST(Middlewares, ProxySchema) {
-    std::string schema = chaotic::openapi::ProxyMiddleware::GetStaticConfigSchemaStr();
+    const std::string schema = chaotic::openapi::ProxyMiddleware::GetStaticConfigSchemaStr();
 
     EXPECT_FALSE(schema.empty());
     EXPECT_NE(schema.find("url"), std::string::npos);
 }
 
 UTEST(Middlewares, SslSchema) {
-    std::string schema = chaotic::openapi::SslMiddleware::GetStaticConfigSchemaStr();
+    const std::string schema = chaotic::openapi::SslMiddleware::GetStaticConfigSchemaStr();
 
     EXPECT_FALSE(schema.empty());
     EXPECT_NE(schema.find("certificate"), std::string::npos);
 }
 
 UTEST(Middlewares, LoggingSchema) {
-    std::string schema = chaotic::openapi::LoggingMiddleware::GetStaticConfigSchemaStr();
+    const std::string schema = chaotic::openapi::LoggingMiddleware::GetStaticConfigSchemaStr();
 
     EXPECT_FALSE(schema.empty());
     EXPECT_NE(schema.find("request_level"), std::string::npos);

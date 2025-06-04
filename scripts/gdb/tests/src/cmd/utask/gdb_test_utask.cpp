@@ -65,7 +65,7 @@ __attribute__((noinline)) static void TestSingleCoroutine() {
 __attribute__((noinline)) static void TestSleepingCoroutine(bool no_span = false) {
     engine::RunStandalone([&] {
         void* volatile root_coro = engine::current_task::impl::GetRawCurrentTaskContext();
-        std::string root_coro_name{tracing::Span::CurrentSpan().GetName()};
+        const std::string root_coro_name{tracing::Span::CurrentSpan().GetName()};
         auto root_stacktrace = boost::stacktrace::stacktrace();
         auto payload = [&] {
             void* volatile new_coro = engine::current_task::impl::GetRawCurrentTaskContext();
@@ -125,7 +125,7 @@ __attribute__((noinline)) static void TestMultipleCoroutines(int tasks_cnt = 11,
             tasks.emplace_back(utils::Async("task_" + std::to_string(i), [&] {
                 engine::Yield();
                 if (cnt.fetch_add(1) == tasks_cnt - 1) {
-                    std::unique_lock lock(mutex);
+                    const std::lock_guard lock(mutex);
                     void* volatile current_task = engine::current_task::impl::GetRawCurrentTaskContext();
                     auto& tasks_ref = tasks;
                     auto& threads_ref = threads;
@@ -167,7 +167,7 @@ __attribute__((noinline)) static void TestMultipleCoroutines(int tasks_cnt = 11,
 
 __attribute__((noinline)) void BenchmarkHeavyService(size_t tasks_cnt, size_t threads_cnt, size_t memory_per_task) {
     engine::RunStandalone(threads_cnt, [&] {
-        struct RecursivePayload {
+        const struct RecursivePayload {
             void operator()(size_t index) const {
                 std::vector<std::vector<int>> some_used_memory(1000, std::vector<int>(memory_per_task / 1000, 1));
                 if (index == tasks_cnt) {

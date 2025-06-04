@@ -13,7 +13,6 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/logging/null_logger.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
 #include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
@@ -70,9 +69,6 @@ struct ServerConfig final {
 
     /// Serve a web page with runtime info about gRPC connections
     bool enable_channelz{false};
-
-    /// 'access-tskv.log' logger
-    logging::TextLoggerPtr access_tskv_logger{logging::MakeNullLogger()};
 
     /// TLS settings
     TlsConfig tls;

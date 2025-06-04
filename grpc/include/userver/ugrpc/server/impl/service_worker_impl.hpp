@@ -8,7 +8,6 @@
 #include <utility>
 
 #include <grpcpp/completion_queue.h>
-#include <grpcpp/impl/service_type.h>
 #include <grpcpp/server_context.h>
 
 #include <userver/engine/async.hpp>
@@ -137,9 +136,9 @@ public:
     }
 
     static void ListenAsync(const MethodData<GrpcppService, CallTraits>& method_data) {
-        engine::CriticalAsyncNoSpan(
+        engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
             method_data.service_data.internals.task_processor, utils::LazyPrvalue([&] { return CallData(method_data); })
-        ).Detach();
+        ));
     }
 
 private:
@@ -166,7 +165,6 @@ private:
                 span_storage_,
                 method_data_.service_data.internals.middlewares,
                 method_data_.service_data.internals.config_source,
-                *method_data_.service_data.internals.access_tskv_logger,
             },
             raw_responder_,
             initial_request_,

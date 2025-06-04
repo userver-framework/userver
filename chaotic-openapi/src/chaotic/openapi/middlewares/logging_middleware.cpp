@@ -63,8 +63,8 @@ static logging::Level ParseLogLevel(const std::string& log_level) {
 }
 
 std::shared_ptr<client::Middleware> LoggingMiddlewareFactory::Create(const yaml_config::YamlConfig& config) {
-    logging::Level log_request_level = ParseLogLevel(config["request_level"].As<std::string>("debug"));
-    logging::Level log_response_level = ParseLogLevel(config["response_level"].As<std::string>("debug"));
+    const logging::Level log_request_level = ParseLogLevel(config["request_level"].As<std::string>("debug"));
+    const logging::Level log_response_level = ParseLogLevel(config["response_level"].As<std::string>("debug"));
     return std::make_shared<LoggingMiddleware>(
         log_request_level, log_response_level, config["body_limit"].As<size_t>(1024)
     );

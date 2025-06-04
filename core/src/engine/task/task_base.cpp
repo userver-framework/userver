@@ -88,7 +88,7 @@ void TaskBase::BlockingWait() const {
     });
     auto future = task.get_future();
 
-    engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task)).Detach();
+    engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task)));
     future.wait();
     future.get();
     UASSERT(context.IsFinished());

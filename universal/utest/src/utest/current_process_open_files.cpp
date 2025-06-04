@@ -51,12 +51,12 @@ std::vector<std::string> CurrentProcessOpenFiles() {
 #else
 
 #ifdef BSD
-    boost::filesystem::path open_files_dir = "/dev/fd";
+    const boost::filesystem::path open_files_dir = "/dev/fd";
 #else
-    boost::filesystem::path open_files_dir = fmt::format("/proc/{}/fd", pid);
+    const boost::filesystem::path open_files_dir = fmt::format("/proc/{}/fd", pid);
 #endif
     boost::filesystem::directory_iterator it{open_files_dir};
-    boost::filesystem::directory_iterator end;
+    const boost::filesystem::directory_iterator end;
     for (; it != end; ++it) {
         boost::system::error_code err;
         const auto path = boost::filesystem::read_symlink(it->path(), err);

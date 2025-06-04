@@ -239,6 +239,9 @@ public:
     void SetOption(const options::WriteConcern&);
     void SetOption(options::SuppressServerExceptions);
 
+    /// @note Available starting in MongoDB 4.4
+    void SetOption(const options::Hint&);
+
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 

@@ -6,7 +6,7 @@
 
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/middlewares/groups.hpp>
-#include <userver/ugrpc/server/middlewares/log/component.hpp>
+#include <userver/ugrpc/server/middlewares/access_log/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,6 +28,7 @@ Component::Component(const components::ComponentConfig& config, const components
           context,
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
+              .After<access_log::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak)
       ) {}
 /// [middleware InGroup]
 

@@ -708,23 +708,25 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
     plugin_pipeline_.HookPerformRequest(*this);
 
     if (resolver_ && retry_.current == 1) {
-        engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
-            try {
-                ResolveTargetAddress(*resolver_);
-                easy().async_perform(std::move(handler));
-            } catch (const clients::dns::ResolverException& ex) {
-                // TODO: should retry - TAXICOMMON-4932
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
+        engine::DetachUnscopedUnsafe(
+            engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
+                try {
+                    ResolveTargetAddress(*resolver_);
+                    easy().async_perform(std::move(handler));
+                } catch (const clients::dns::ResolverException& ex) {
+                    // TODO: should retry - TAXICOMMON-4932
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise_.set_exception(std::current_exception());
+                    }
+                } catch (const BaseException& ex) {
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise_.set_exception(std::current_exception());
+                    }
                 }
-            } catch (const BaseException& ex) {
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
-                }
-            }
-        }).Detach();
+            })
+        );
     } else {
         easy().async_perform(std::move(handler));
     }

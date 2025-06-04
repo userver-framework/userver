@@ -24,12 +24,13 @@ class SubscriptionRebalanceScheduler;
 
 class SubscriptionToken {
 public:
-    SubscriptionToken() = default;
-    SubscriptionToken(std::weak_ptr<SubscriptionStorageBase> storage, SubscriptionId subscription_id);
+    SubscriptionToken() = delete;
+    SubscriptionToken(SubscriptionStorageBase& storage, SubscriptionId subscription_id);
     SubscriptionToken(SubscriptionToken&& token) noexcept;
     SubscriptionToken(const SubscriptionToken& token) = delete;
 
     SubscriptionToken& operator=(SubscriptionToken&& token) noexcept;
+    SubscriptionToken& operator=(const SubscriptionToken& token) = delete;
 
     bool Subscribed() const { return subscription_id_ != 0; }
 
@@ -38,11 +39,11 @@ public:
     void Unsubscribe();
 
 private:
-    std::weak_ptr<SubscriptionStorageBase> storage_;
+    SubscriptionStorageBase& storage_;
     SubscriptionId subscription_id_{0};
 };
 
-class SubscriptionStorageBase : public std::enable_shared_from_this<SubscriptionStorageBase> {
+class SubscriptionStorageBase {
 public:
     using ServerWeights = std::unordered_map<ServerId, size_t, ServerIdHasher>;
     using CommandCb = std::function<void(size_t shard, CommandPtr command)>;

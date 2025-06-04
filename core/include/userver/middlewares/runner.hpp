@@ -40,7 +40,6 @@ public:
     WithMiddlewareDependencyComponentBase(
         const components::ComponentConfig& config,
         const components::ComponentContext& context
-
     )
         : components::ComponentBase(config, context) {}
 

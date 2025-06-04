@@ -12,10 +12,6 @@ USERVER_NAMESPACE_BEGIN
 /// @see @ref ugrpc::server::middlewares::log::Component
 namespace ugrpc::server::middlewares::log {
 
-struct Settings;
-
-// clang-format off
-
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Component for gRPC server logging
@@ -42,9 +38,6 @@ struct Settings;
 /// In this example, we enable logs for gRPC clients in production.
 ///
 /// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
-
-// clang-format on
-
 class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names

@@ -37,7 +37,6 @@ struct CallParams {
     std::optional<tracing::InPlaceSpan>& span_storage;
     const Middlewares& middlewares;
     const dynamic_config::Source& config_source;
-    logging::TextLoggerRef access_tskv_logger;
 };
 
 // Non-templated state of CallProcessor. Can be non-movable.

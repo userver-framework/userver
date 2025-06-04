@@ -19,7 +19,7 @@ namespace {
 
 constexpr std::size_t kSubscriptionDatabaseIndex = 0;
 
-std::shared_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
+std::unique_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const std::vector<std::string>& shards,
     bool is_cluster_mode
@@ -27,10 +27,10 @@ std::shared_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
     const auto shards_count = shards.size();
     auto shard_names = std::make_shared<const std::vector<std::string>>(shards);
     if (is_cluster_mode) {
-        return std::make_shared<ClusterSubscriptionStorage>(thread_pools, shards_count);
+        return std::make_unique<ClusterSubscriptionStorage>(thread_pools, shards_count);
     }
 
-    return std::make_shared<SubscriptionStorage>(thread_pools, shards_count, is_cluster_mode, std::move(shard_names));
+    return std::make_unique<SubscriptionStorage>(thread_pools, shards_count, is_cluster_mode, std::move(shard_names));
 }
 
 }  // namespace
@@ -64,7 +64,6 @@ SubscribeSentinel::SubscribeSentinel(
           kSubscriptionDatabaseIndex
 
       ),
-      thread_pools_(thread_pools),
       storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode)) {
     InitStorage();
 }

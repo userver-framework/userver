@@ -18,7 +18,7 @@ server::ServiceConfig ParseServiceConfig(
     const ServiceDefaults& defaults
 );
 
-ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const components::ComponentContext& context);
+ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value);
 
 }  // namespace ugrpc::server::impl
 

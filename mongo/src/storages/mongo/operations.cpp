@@ -392,6 +392,8 @@ void Delete::SetOption(const options::WriteConcern& write_concern) {
 
 void Delete::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
+void Delete::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 FindAndModify::FindAndModify(formats::bson::Document query, const formats::bson::Document& update)
     : impl_(std::move(query)) {

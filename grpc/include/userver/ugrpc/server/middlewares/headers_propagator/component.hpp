@@ -22,12 +22,10 @@ namespace ugrpc::server::middlewares::headers_propagator {
 /// headers | array of metadata fields (headers) to propagate | empty
 ///
 /// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
-
 class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of
-    /// ugrpc::server::middlewares::headers_propagator::Component
+    /// @brief The default name of ugrpc::server::middlewares::headers_propagator::Component
     static constexpr std::string_view kName = "grpc-server-headers-propagator";
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);

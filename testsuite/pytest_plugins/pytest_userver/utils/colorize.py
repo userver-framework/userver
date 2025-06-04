@@ -97,7 +97,13 @@ class Colorizer:
         extra_fields = []
         if entry_type == 'request':
             self._requests[link] = self._build_request_info(row)
-            if 'body' in row:
+
+            uri = row.pop('uri')
+            uri_sep_pos = uri.find('?')
+            if uri_sep_pos != -1:
+                text += self.textcolor(uri[uri_sep_pos:], Colors.GREEN)
+
+            if row.get('body'):
                 extra_fields.append(
                     'request_body='
                     + self.textcolor(
@@ -118,13 +124,14 @@ class Colorizer:
                 )
             if not text:
                 text = 'Response finished'
-            extra_fields.append(
-                'response_body='
-                + self.textcolor(
-                    try_reformat_json(row.pop('body')),
-                    Colors.YELLOW,
-                ),
-            )
+            if row.get('body'):
+                extra_fields.append(
+                    'response_body='
+                    + self.textcolor(
+                        try_reformat_json(row.pop('body')),
+                        Colors.YELLOW,
+                    ),
+                )
         elif entry_type == 'mockserver_request':
             text = 'Mockserver request finished'
             if 'meta_code' in row:
@@ -149,14 +156,23 @@ class Colorizer:
 
         fields = [
             self.textcolor(f'{level:<8}', level_color),
-            self.textcolor(logid, flow_color),
         ]
+
+        if 'service' in row:
+            service = row.pop('service')
+            fields.append(self.textcolor(f'[{service}]', Colors.colorize(service)))
+
+        fields.append(self.textcolor(logid, flow_color))
+
         if text:
             if 'http_url' in row:
                 localhost_pos = text.find(HTTP_LOCALHOST_PREFIX)
                 if localhost_pos != -1:
                     start_url_pos = text.find('/', localhost_pos + len(HTTP_LOCALHOST_PREFIX))
                     text = text[:localhost_pos] + self.textcolor(text[start_url_pos:], Colors.GREEN)
+                else:
+                    start_url_pos = text.rfind(' ')
+                    text = text[:start_url_pos] + self.textcolor(text[start_url_pos:], Colors.GREEN)
 
                 meta_code = row.pop('meta_code', None)
                 if meta_code:
@@ -164,7 +180,7 @@ class Colorizer:
                         self._http_status('meta_code', meta_code),
                     )
 
-                if 'body' in row:
+                if row.get('body'):
                     extra_fields.append(
                         'body='
                         + self.textcolor(
@@ -173,6 +189,15 @@ class Colorizer:
                         ),
                     )
 
+            if 'db_statement_name' in row:
+                extra_fields.append(
+                    'db_statement_name='
+                    + self.textcolor(
+                        row['db_statement_name'],
+                        Colors.YELLOW,
+                    ),
+                )
+
             fields.append(text)
         elif self.verbose:
             fields.append('<NO TEXT>')
@@ -180,9 +205,12 @@ class Colorizer:
             return None
 
         fields.extend(extra_fields)
+        result = ' '.join(fields)
+
         if self.verbose:
-            fields.extend([f'{k}={v}' for k, v in row.items()])
-        return ' '.join(fields)
+            result += '\n' + self.textcolor(' '.join([f'{k}={v}' for k, v in row.items()]), Colors.GRAY)
+
+        return result
 
     def textcolor(self, text, color):
         if not self.colors_enabled:
@@ -194,11 +222,11 @@ class Colorizer:
         return self.textcolor(f'{key}={status}', color)
 
     def _build_request_info(self, row):
-        if 'uri' not in row:
+        if 'meta_type' not in row:
             return None
-        uri = row['uri']
+        meta_type = row['meta_type']
         method = row.get('method', 'UNKNOWN')
-        return f'{method} {uri}'
+        return f'{method} {meta_type}'
 
 
 def format_json(obj):

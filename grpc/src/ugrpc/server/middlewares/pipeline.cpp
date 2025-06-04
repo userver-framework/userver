@@ -12,6 +12,7 @@ MiddlewarePipelineComponent::MiddlewarePipelineComponent(
           config,
           context,
           {/*built-in middlewares=*/{
+              {"grpc-server-access-log", {}},
               {"grpc-server-logging", {}},
               {"grpc-server-baggage", {}},
               {"grpc-server-congestion-control", {}},

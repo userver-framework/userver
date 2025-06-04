@@ -75,6 +75,11 @@ void AppendUpsert(formats::bson::impl::BsonBuilder& builder) {
     builder.Append(kOptionName, true);
 }
 
+void AppendHint(formats::bson::impl::BsonBuilder& builder, const options::Hint& hint) {
+    static constexpr utils::StringLiteral kOptionName = "hint";
+    builder.Append(kOptionName, hint.Value());
+}
+
 }  // namespace storages::mongo::impl
 
 USERVER_NAMESPACE_END

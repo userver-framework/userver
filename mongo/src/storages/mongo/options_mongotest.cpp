@@ -604,6 +604,9 @@ UTEST_F(Options, Hint) {
     );
 
     UEXPECT_NO_THROW(coll.Count({}, mongo::options::Hint{"some_index"}));
+
+    UEXPECT_NO_THROW(coll.DeleteOne(bson::MakeDoc("_id", 1), mongo::options::Hint{"some_index"}));
+    UEXPECT_NO_THROW(coll.DeleteMany({}, mongo::options::Hint{"some_index"}));
 }
 
 UTEST_F(Options, AllowPartialResults) {

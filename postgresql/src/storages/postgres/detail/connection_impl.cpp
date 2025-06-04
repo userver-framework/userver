@@ -1130,7 +1130,7 @@ void ConnectionImpl::ReportStatement(const std::string& name) {
 
     try {
         TESTPOINT_CALLBACK("sql_statement", formats::json::MakeObject("name", name), ([&name, this](auto) {
-                               std::unique_lock<engine::Mutex> lock{statements_mutex_};
+                               const std::lock_guard<engine::Mutex> lock{statements_mutex_};
                                statements_reported_.insert(name);
                            }));
     } catch (const std::exception& e) {

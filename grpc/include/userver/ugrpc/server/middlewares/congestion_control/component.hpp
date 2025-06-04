@@ -33,8 +33,7 @@ class Middleware;
 class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of
-    /// ugrpc::server::middlewares::congestion_control::Component
+    /// @brief The default name of ugrpc::server::middlewares::congestion_control::Component
     static constexpr std::string_view kName = "grpc-server-congestion-control";
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);

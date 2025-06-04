@@ -38,7 +38,7 @@ using RawReaderWriter = std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, R
 /// @}
 
 template <typename Message>
-google::protobuf::Message* ToBaseMessage(Message& message) {
+const google::protobuf::Message* ToBaseMessage(const Message& message) {
     if constexpr (std::is_base_of_v<google::protobuf::Message, Message>) {
         return &message;
     } else {
@@ -66,14 +66,19 @@ void StartCall(GrpcStream& stream, CallState& state) {
 
 void PrepareFinish(CallState& state);
 
-void ProcessFinish(CallState& state, google::protobuf::Message* final_response);
+void ProcessFinish(CallState& state, const google::protobuf::Message* final_response);
 
 void ProcessFinishCancelled(CallState& state);
 
 void CheckFinishStatus(CallState& state);
 
 template <typename GrpcStream>
-void Finish(GrpcStream& stream, CallState& state, google::protobuf::Message* final_response, bool throw_on_error) {
+void Finish(
+    GrpcStream& stream,
+    CallState& state,
+    const google::protobuf::Message* final_response,
+    bool throw_on_error
+) {
     PrepareFinish(state);
 
     FinishAsyncMethodInvocation finish;

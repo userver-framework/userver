@@ -135,7 +135,7 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
 
         const auto& header_whitelist = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS_WHITELIST];
 
-        std::string_view meta_type =
+        const std::string_view meta_type =
             misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
 
         LOG_INFO("start handling {} {}", request.GetMethodStr(), meta_type) << LogRequestExtra(

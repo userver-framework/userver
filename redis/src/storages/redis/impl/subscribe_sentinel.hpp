@@ -78,8 +78,7 @@ public:
 private:
     void InitStorage();
 
-    std::shared_ptr<ThreadPools> thread_pools_;
-    std::shared_ptr<SubscriptionStorageBase> storage_;
+    std::unique_ptr<SubscriptionStorageBase> storage_;
 };
 
 }  // namespace storages::redis::impl

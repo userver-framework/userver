@@ -9,7 +9,6 @@
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/server/impl/format_log_message.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
@@ -138,30 +137,6 @@ ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerExcept
     } catch (const std::exception& new_ex) {
         LOG_ERROR() << "Error in ReportCustomError: " << new_ex;
         return grpc::Status{grpc::StatusCode::INTERNAL, ""};
-    }
-}
-
-void WriteAccessLog(
-    MiddlewareCallContext& context,
-    const grpc::Status& status,
-    logging::TextLoggerRef access_tskv_logger
-) noexcept {
-    try {
-        const auto& server_context = context.GetServerContext();
-        constexpr auto kLevel = logging::Level::kInfo;
-
-        if (access_tskv_logger.ShouldLog(kLevel)) {
-            logging::impl::TextLogItem log_item{FormatLogMessage(
-                server_context.client_metadata(),
-                server_context.peer(),
-                context.GetSpan().GetStartSystemTime(),
-                context.GetCallName(),
-                status.error_code()
-            )};
-            access_tskv_logger.Log(kLevel, log_item);
-        }
-    } catch (const std::exception& ex) {
-        LOG_ERROR() << "Error in WriteAccessLog: " << ex;
     }
 }
 

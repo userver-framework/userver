@@ -41,7 +41,7 @@ TEST(ScopeGuard, Exception) {
 TEST(ScopeGuard, ExceptionPropagation) {
     struct TestException : std::exception {};
 
-    EXPECT_THROW([] { utils::ScopeGuard guard{[] { throw TestException{}; }}; }(), TestException);
+    EXPECT_THROW([] { const utils::ScopeGuard guard{[] { throw TestException{}; }}; }(), TestException);
 }
 
 TEST(ScopeGuard, ExceptionSuppression) {

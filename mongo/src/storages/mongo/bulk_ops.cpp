@@ -55,6 +55,8 @@ void Update::SetOption(const options::ArrayFilters& filters) {
     AppendArrayFilters(impl::EnsureBuilder(impl_->options), filters);
 }
 
+void Update::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+
 Delete::Delete(Mode mode, formats::bson::Document selector) : impl_(mode, std::move(selector)) {}
 
 Delete::~Delete() = default;
@@ -63,6 +65,8 @@ Delete::Delete(const Delete&) = default;
 Delete::Delete(Delete&&) noexcept = default;
 Delete& Delete::operator=(const Delete&) = default;
 Delete& Delete::operator=(Delete&&) noexcept = default;
+
+void Delete::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 }  // namespace storages::mongo::bulk_ops
 

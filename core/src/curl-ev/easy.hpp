@@ -148,7 +148,7 @@ public:                                                                         
 #define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME)                                                     \
     inline long FUNCTION_NAME() {                                                                                      \
         long info;                                                                                                     \
-        std::error_code ec =                                                                                           \
+        const std::error_code ec =                                                                                     \
             std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
         return info;                                                                                                   \
@@ -158,7 +158,7 @@ public:                                                                         
 #define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME)                                               \
     inline long FUNCTION_NAME() {                                                                                      \
         native::curl_off_t info;                                                                                       \
-        std::error_code ec =                                                                                           \
+        const std::error_code ec =                                                                                     \
             std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
         return info;                                                                                                   \
@@ -169,7 +169,7 @@ public:                                                                         
     inline std::vector<std::string> FUNCTION_NAME() {                                                                  \
         struct native::curl_slist* info;                                                                               \
         std::vector<std::string> results;                                                                              \
-        std::error_code ec =                                                                                           \
+        const std::error_code ec =                                                                                     \
             std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
         struct native::curl_slist* it = info;                                                                          \

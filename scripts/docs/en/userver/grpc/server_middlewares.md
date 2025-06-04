@@ -13,6 +13,7 @@ and authentication, ratelimiting, logging, tracing, audit, etc.
 
 There is an @ref ugrpc::server::MiddlewarePipelineComponent component for configuring the middlewares pipeline. 
 There are default middlewares:
+ - @ref ugrpc::server::middlewares::access_log::Component (not included in default lists)
  - @ref ugrpc::server::middlewares::log::Component
  - @ref ugrpc::server::middlewares::congestion_control::Component
  - @ref ugrpc::server::middlewares::deadline_propagation::Component
@@ -322,6 +323,7 @@ digraph Pipeline {
     label = "Logging";
     center=true;
 
+    AccessLog [label="grpc-server-access-log", shape=box, width=2.0];
     Logging [label = "grpc-server-logging", shape=box, width=2.0];
   }
 
@@ -329,7 +331,7 @@ digraph Pipeline {
   Auth [label = "Auth", shape=box, width=2.0];
   PostCore [label = "PostCore", shape=box, width=2.0];
 
-  PreCore -> Logging -> Auth -> CongestionControl;
+  PreCore -> AccessLog -> Logging -> Auth -> CongestionControl;
   DeadlinePropagation -> PostCore -> Baggage;
 
   Pipeline[label = "grpc-server-middlewares-pipeline\n from the start to the end", shape=plaintext, rank="main"];

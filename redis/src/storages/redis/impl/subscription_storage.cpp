@@ -16,11 +16,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
 
-SubscriptionToken::SubscriptionToken(std::weak_ptr<SubscriptionStorageBase> storage, SubscriptionId subscription_id)
+SubscriptionToken::SubscriptionToken(SubscriptionStorageBase& storage, SubscriptionId subscription_id)
     : storage_(storage), subscription_id_(subscription_id) {}
 
 SubscriptionToken::SubscriptionToken(SubscriptionToken&& token) noexcept
-    : storage_(std::move(token.storage_)), subscription_id_(token.subscription_id_) {
+    : storage_(token.storage_), subscription_id_(token.subscription_id_) {
     token.subscription_id_ = 0;
 }
 
@@ -35,8 +35,7 @@ SubscriptionToken& SubscriptionToken::operator=(SubscriptionToken&& token) noexc
 void SubscriptionToken::Unsubscribe() {
     if (subscription_id_ > 0) {
         LOG_DEBUG() << "Unsubscribe id=" << subscription_id_;
-        auto storage = storage_.lock();
-        if (storage) storage->Unsubscribe(subscription_id_);
+        storage_.Unsubscribe(subscription_id_);
         subscription_id_ = 0;
     }
 }
@@ -221,7 +220,6 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
     CommandPtr cmd;
     const std::weak_ptr<shard_subscriber::Fsm> weak_fsm = fsm;
     const size_t shard = fsm->GetShard();
-    auto self = implemented_.shared_from_this();
 
     switch (action.type) {
         case shard_subscriber::Action::Type::kSubscribe: {
@@ -229,7 +227,7 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
              * Use weak ptr as Fsm may be destroyed by unsubscribe() earlier
              * than SUBSCRIBE reply is received.
              */
-            auto subscribe_cb = [this, self, weak_fsm, channel_name](ServerId server_id, SubscriberEvent event) {
+            auto subscribe_cb = [this, weak_fsm, channel_name](ServerId server_id, SubscriberEvent event) {
                 auto fsm = weak_fsm.lock();
                 if (!fsm) {
                     // possible after Stop() only
@@ -650,7 +648,7 @@ SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, 
         const std::lock_guard<std::mutex> lock{mutex_};
         id = GetNextSubscriptionId(lock);
     }
-    SubscriptionToken token(implemented_.shared_from_this(), id);
+    SubscriptionToken token(implemented_, id);
     LOG_DEBUG() << "Subscribe on channel=" << channel << " id=" << id;
     implemented_.SubscribeImpl(channel, std::move(cb), std::move(control), id);
     return token;
@@ -667,7 +665,7 @@ SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, 
         const std::lock_guard<std::mutex> lock{mutex_};
         id = GetNextSubscriptionId(lock);
     }
-    SubscriptionToken token(implemented_.shared_from_this(), id);
+    SubscriptionToken token(implemented_, id);
     LOG_DEBUG() << "Ssubscribe on channel=" << channel << " id=" << id;
     implemented_.SsubscribeImpl(channel, std::move(cb), std::move(control), id);
     return token;
@@ -684,7 +682,7 @@ SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, 
         const std::lock_guard<std::mutex> lock{mutex_};
         id = GetNextSubscriptionId(lock);
     }
-    SubscriptionToken token(implemented_.shared_from_this(), id);
+    SubscriptionToken token(implemented_, id);
     LOG_DEBUG() << "Psubscribe on channel=" << channel << " id=" << id;
     implemented_.PsubscribeImpl(channel, std::move(cb), std::move(control), id);
     return token;
@@ -888,7 +886,7 @@ void SubscriptionStorage::PsubscribeImpl(
         const size_t selected_shard_idx = is_cluster_mode_ ? shard_rotate_counter_++ % shards_count : 0;
         infos.reserve(shards_count);
         for (size_t i = 0; i < shards_count; ++i) {
-            bool fake = is_cluster_mode_ && i != selected_shard_idx;
+            const bool fake = is_cluster_mode_ && i != selected_shard_idx;
             infos.emplace_back(i, fake);
             if (!fake) storage_impl_.ReadActions(infos.back().fsm, channel_name);
         }

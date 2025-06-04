@@ -20,12 +20,12 @@ public:
     }
 
     void Register(const std::string& name, std::unique_ptr<MiddlewareFactory> factory) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         factories_.emplace(name, std::move(factory));
     }
 
     const std::unordered_map<std::string, std::unique_ptr<MiddlewareFactory>>& GetFactories() const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         return factories_;
     }
 

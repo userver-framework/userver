@@ -24,11 +24,11 @@ std::string Restart::HandleRequestThrow(const http::HttpRequest& request, reques
     }
 
     health_ = components::ComponentHealth::kFatal;
-    engine::CriticalAsyncNoSpan([delay] {
+    engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan([delay] {
         engine::InterruptibleSleepFor(std::chrono::seconds(delay));
         if (engine::current_task::ShouldCancel()) return;
         components::RequestStop();
-    }).Detach();
+    }));
 
     return "OK";
 }

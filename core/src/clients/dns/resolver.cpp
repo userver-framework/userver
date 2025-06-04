@@ -302,15 +302,14 @@ void Resolver::Impl::MoveQueryToBackground(
 ) {
     UASSERT(lock);
     UASSERT(lock.mutex() == &mutex);
-    engine::CriticalAsyncNoSpan(
+    engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
         [token = wait_token_storage_.GetToken(), this, name, failure_mode](auto&& mutex, auto&& future) {
             std::unique_lock lock{mutex, std::adopt_lock};
             this->FinishNetUpdate(lock, std::forward<decltype(future)>(future), name, nullptr, failure_mode);
         },
         std::forward<Mutex>(mutex),
         std::move(future)
-    )
-        .Detach();
+    ));
     lock.release();
 }
 

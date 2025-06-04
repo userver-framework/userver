@@ -127,7 +127,6 @@ private:
 
     ugrpc::impl::StatisticsStorage statistics_storage_;
     const dynamic_config::Source config_source_;
-    logging::TextLoggerPtr access_tskv_logger_;
 };
 
 Server::Impl::Impl(
@@ -135,9 +134,7 @@ Server::Impl::Impl(
     utils::statistics::Storage& statistics_storage,
     dynamic_config::Source config_source
 )
-    : statistics_storage_(statistics_storage, ugrpc::impl::StatisticsDomain::kServer),
-      config_source_(config_source),
-      access_tskv_logger_(std::move(config.access_tskv_logger)) {
+    : statistics_storage_(statistics_storage, ugrpc::impl::StatisticsDomain::kServer), config_source_(config_source) {
     LOG_INFO() << "Configuring the gRPC server";
     ugrpc::impl::SetupNativeLogging();
     ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
@@ -199,7 +196,6 @@ impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config
         config.task_processor,
         statistics_storage_,
         std::move(config.middlewares),
-        access_tskv_logger_,
         config_source_,
     };
 }

@@ -397,7 +397,7 @@ Socket Socket::Accept(Deadline deadline) {
 
 // MAC_COMPAT: no accept4
 #ifdef HAVE_ACCEPT4
-        int fd = ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
+        const int fd = ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 #else
         const int fd = ::accept(dir.Fd(), buf.Data(), &len);
 #endif

@@ -74,7 +74,7 @@ server::ServiceConfig ParseServiceConfig(
     };
 }
 
-ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const components::ComponentContext& context) {
+ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value) {
     ServerConfig config;
     config.unix_socket_path = value["unix-socket-path"].As<std::optional<std::string>>();
     config.port = value["port"].As<std::optional<int>>();
@@ -98,14 +98,6 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const compo
 
     if (config.tls.key && !config.tls.cert) {
         throw std::runtime_error("'tls.cert' cannot be missing if 'tls.key' is set");
-    }
-
-    const auto logger_name = value["access-tskv-logger"];
-    if (!logger_name.IsMissing()) {
-        config.access_tskv_logger =
-            context.FindComponent<components::Logging>().GetTextLogger(logger_name.As<std::string>());
-    } else {
-        config.access_tskv_logger = logging::MakeNullLogger();
     }
 
     return config;

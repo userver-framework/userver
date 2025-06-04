@@ -302,4 +302,19 @@ UTEST_F(Bulk, Mixed) {
     EXPECT_TRUE(upserted_ids[5].IsOid());
 }
 
+UTEST_F(Bulk, Hint) {
+    auto coll = GetDefaultPool().GetCollection("hint");
+
+    auto bulk = coll.MakeUnorderedBulk();
+    bulk.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+    bulk.UpdateOne(
+        bson::MakeDoc("x", 1),
+        bson::MakeDoc("$set", bson::MakeDoc("x", 2)),
+        mongo::options::Hint{bson::MakeDoc("_id", 1)}
+    );
+    bulk.DeleteOne(bson::MakeDoc("x", 2), mongo::options::Hint{bson::MakeDoc("_id", 1)});
+
+    UEXPECT_NO_THROW(coll.Execute(std::move(bulk)));
+}
+
 USERVER_NAMESPACE_END

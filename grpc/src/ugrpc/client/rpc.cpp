@@ -9,8 +9,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-UnaryFinishFutureImpl::UnaryFinishFutureImpl(impl::CallState& state, google::protobuf::Message* final_response) noexcept
-    : state_(&state), final_response_(final_response) {
+UnaryFinishFutureImpl::UnaryFinishFutureImpl(impl::CallState& state, const google::protobuf::Message* response) noexcept
+    : state_(&state), response_(response) {
     // We expect that FinishAsyncMethodInvocation was already emplaced
     // For unary future it is done in UnaryCall::FinishAsync
     UASSERT(state_->HoldsFinishAsyncMethodInvocationDebug());
@@ -19,7 +19,7 @@ UnaryFinishFutureImpl::UnaryFinishFutureImpl(impl::CallState& state, google::pro
 UnaryFinishFutureImpl::UnaryFinishFutureImpl(UnaryFinishFutureImpl&& other) noexcept
     // state_ == nullptr signals that *this is empty. Other fields may remain garbage in `other`.
     : state_{std::exchange(other.state_, nullptr)},
-      final_response_(other.final_response_),
+      response_(other.response_),
       exception_(std::move(other.exception_)) {}
 
 UnaryFinishFutureImpl& UnaryFinishFutureImpl::operator=(UnaryFinishFutureImpl&& other) noexcept {
@@ -27,7 +27,7 @@ UnaryFinishFutureImpl& UnaryFinishFutureImpl::operator=(UnaryFinishFutureImpl&& 
     [[maybe_unused]] auto for_destruction = std::move(*this);
     // state_ == nullptr signals that *this is empty. Other fields may remain garbage in `other`.
     state_ = std::exchange(other.state_, nullptr);
-    final_response_ = other.final_response_;
+    response_ = other.response_;
     exception_ = std::move(other.exception_);
     return *this;
 }
@@ -68,7 +68,7 @@ engine::FutureStatus UnaryFinishFutureImpl::WaitUntil(engine::Deadline deadline)
                     "Client-side Finish: ok should always be true"
                 );
                 state_->GetStatsScope().SetFinishTime(finish.GetFinishTime());
-                ProcessFinish(*state_, final_response_);
+                ProcessFinish(*state_, response_);
             } catch (...) {
                 exception_ = std::current_exception();
             }
