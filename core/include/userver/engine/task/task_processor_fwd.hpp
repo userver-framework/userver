@@ -16,6 +16,9 @@ namespace engine {
 /// section of the components::ManagerControllerComponent static configuration.
 class TaskProcessor;
 
+/// @brief Get task processor queue size
+size_t GetQueueSize(const TaskProcessor& task_processor);
+
 /// @brief Register a function that runs on all threads on task processor
 /// creation. Used for pre-initializing thread_local variables with heavy
 /// constructors (constructor that does blocking system calls, file access,
