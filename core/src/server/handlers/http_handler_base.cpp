@@ -250,7 +250,7 @@ void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request
     context.GetInternalContext().ResetConfigSnapshot();
 
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime("http_handle_request");
-    if (response.IsBodyStreamed()) {
+    if (IsStreamed(http_request, context)) {
         HandleRequestStream(http_request, context);
     } else {
         // !IsBodyStreamed()
