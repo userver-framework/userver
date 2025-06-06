@@ -44,7 +44,7 @@ Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline deadline) {
     try {
         return std::make_unique<Connection>(dsn_);
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "Failed to create ODBC connection: " << ex.what();
+        LOG_ERROR() << "Failed to create ODBC connection: " << ex;
         throw;
     }
 }

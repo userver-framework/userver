@@ -1,5 +1,6 @@
 #include <userver/storages/odbc.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -81,6 +82,85 @@ UTEST(Query, DifferentHostTypes) {
     cluster.Execute(storages::odbc::ClusterHostType::kNone, query);
 }
 
+UTEST(Pool, LessQueriesThanConnections) {
+    std::size_t poolConnections = 5;
+    auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+
+    std::vector<engine::TaskWithResult<ResultSet>> futures;
+    futures.reserve(poolConnections);
+
+    for (std::size_t i = 0; i < poolConnections - 1; i++) {
+        futures.emplace_back(utils::Async("LessQueriesThanConnections", [&cluster]() {
+            return cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
+        }));
+    }
+
+    for (auto& future : futures) {
+        auto result = future.Get();
+        EXPECT_EQ(result.Size(), 1);
+    }
+}
+
+UTEST(Pool, EqualQueriesAndConnections) {
+    std::size_t poolConnections = 5;
+    auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+
+    std::vector<engine::TaskWithResult<ResultSet>> futures;
+    futures.reserve(poolConnections);
+
+    for (std::size_t i = 0; i < poolConnections; i++) {
+        futures.emplace_back(utils::Async("EqualQueriesAndConnections", [&cluster]() {
+            return cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
+        }));
+    }
+
+    for (auto& future : futures) {
+        auto result = future.Get();
+        EXPECT_EQ(result.Size(), 1);
+    }
+}
+
+UTEST(Pool, MoreQueriesThanConnectionsButLessThanPoolSize) {
+    std::size_t poolConnections = 5;
+    auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections * 2}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+
+    std::vector<engine::TaskWithResult<ResultSet>> futures;
+    futures.reserve(poolConnections + 2);
+
+    for (std::size_t i = 0; i < poolConnections + 2; i++) {
+        futures.emplace_back(utils::Async("MoreQueriesThanConnectionsButLessThanPoolSize", [&cluster]() {
+            return cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
+        }));
+    }
+
+    for (auto& future : futures) {
+        auto result = future.Get();
+        EXPECT_EQ(result.Size(), 1);
+    }
+}
+
+UTEST(Pool, MoreQueriesThanConnectionsAndPoolSize) {
+    std::size_t poolConnections = 5;
+    auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+
+    std::vector<engine::TaskWithResult<ResultSet>> futures;
+    futures.reserve(poolConnections * 2);
+
+    for (std::size_t i = 0; i < poolConnections * 2; i++) {
+        futures.emplace_back(utils::Async("MoreQueriesThanConnectionsAndPoolSize", [&cluster]() {
+            return cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
+        }));
+    }
+
+    for (auto& future : futures) {
+        auto result = future.Get();
+        EXPECT_EQ(result.Size(), 1);
+    }
+}
 }  // namespace storages::odbc::tests
 
 USERVER_NAMESPACE_END

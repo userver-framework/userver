@@ -13,7 +13,7 @@ struct PoolSettings final {
 };
 
 struct HostSettings final {
-    std::string dsn;
+    const std::string dsn;
     PoolSettings pool;
 };
 
