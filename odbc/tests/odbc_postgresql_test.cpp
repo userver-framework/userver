@@ -1,3 +1,4 @@
+#include <gtest/gtest.h>
 #include <userver/storages/odbc.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -160,6 +161,23 @@ UTEST(Pool, MoreQueriesThanConnectionsAndPoolSize) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
     }
+}
+
+UTEST(Pool, RestoresBrokenConnection) {
+    auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {1, 1}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+
+    auto killConnectionQuery = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'postgres';";
+
+    try {
+        cluster.Execute(storages::odbc::ClusterHostType::kMaster, killConnectionQuery);
+    } catch (...) {
+        // terminating the connection brokes query
+    }
+
+    auto selectRes = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
+    EXPECT_EQ(selectRes.Size(), 1);
+    EXPECT_EQ(selectRes[0][0].GetInt32(), 1);
 }
 }  // namespace storages::odbc::tests
 
