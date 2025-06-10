@@ -20,7 +20,7 @@ krb5
 libev
 librdkafka
 mariadb
-mongo-c-driver
+mongo-c-driver@1
 nghttp2
 ninja
 openldap
