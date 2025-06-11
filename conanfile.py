@@ -82,6 +82,7 @@ class UserverConan(ConanFile):
         'grpc/*:ruby_plugin': False,
         'grpc/*:csharp_plugin': False,
         'grpc/*:objective_c_plugin': False,
+        'hiredis/*:with_ssl': True,
         'librdkafka/*:ssl': True,
         'librdkafka/*:curl': True,
         'librdkafka/*:sasl': True,

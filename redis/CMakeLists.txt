@@ -30,7 +30,7 @@ if(USERVER_FEATURE_REDIS_TLS)
 endif()
 
 if (USERVER_FEATURE_REDIS_TLS)
-  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis_ssl)
 endif()
 target_include_directories(${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
