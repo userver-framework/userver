@@ -21,6 +21,36 @@ private:
     std::string msg_;
 };
 
+class RuntimeError : public Error {
+public:
+    explicit RuntimeError(std::string msg);
+
+    const char* what() const noexcept override;
+
+private:
+    std::string msg_;
+};
+
+class ConnectionError : public RuntimeError {
+public:
+    explicit ConnectionError(std::string msg);
+
+    const char* what() const noexcept override;
+
+private:
+    std::string msg_;
+};
+
+class StatementError : public RuntimeError {
+public:
+    explicit StatementError(std::string msg);
+
+    const char* what() const noexcept override;
+
+private:
+    std::string msg_;
+};
+
 class ResultSetError : public Error {
 public:
     explicit ResultSetError(std::string msg);

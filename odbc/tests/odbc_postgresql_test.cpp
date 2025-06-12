@@ -100,6 +100,7 @@ UTEST(Pool, LessQueriesThanConnections) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 
@@ -120,6 +121,7 @@ UTEST(Pool, EqualQueriesAndConnections) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 
@@ -140,6 +142,7 @@ UTEST(Pool, MoreQueriesThanConnectionsButLessThanPoolSize) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 
@@ -160,6 +163,7 @@ UTEST(Pool, MoreQueriesThanConnectionsAndPoolSize) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 

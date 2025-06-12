@@ -11,6 +11,18 @@ LogicError::LogicError(std::string msg) : Error(msg), msg_(std::move(msg)) {}
 
 const char* LogicError::what() const noexcept { return msg_.c_str(); }
 
+RuntimeError::RuntimeError(std::string msg) : Error(msg), msg_(std::move(msg)) {}
+
+const char* RuntimeError::what() const noexcept { return msg_.c_str(); }
+
+ConnectionError::ConnectionError(std::string msg) : RuntimeError(msg), msg_(std::move(msg)) {}
+
+const char* ConnectionError::what() const noexcept { return msg_.c_str(); }
+
+StatementError::StatementError(std::string msg) : RuntimeError(msg), msg_(std::move(msg)) {}
+
+const char* StatementError::what() const noexcept { return msg_.c_str(); }
+
 ResultSetError::ResultSetError(std::string msg) : Error(msg), msg_(std::move(msg)) {}
 
 const char* ResultSetError::what() const noexcept { return msg_.c_str(); }
