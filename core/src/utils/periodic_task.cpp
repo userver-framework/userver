@@ -22,8 +22,8 @@ namespace {
 
 auto TieSettings(const PeriodicTask::Settings& settings) {
     // Can't use Boost.Pfr, because Settings has custom constructors.
-    const auto& [f1, f2, f3, f4, f5, f6] = settings;
-    return std::tie(f1, f2, f3, f4, f5, f6);
+    const auto& [f1, f2, f3, f4, f5, f6, f7] = settings;
+    return std::tie(f1, f2, f3, f4, f5, f6, f7);
 }
 
 }  // namespace
@@ -106,7 +106,7 @@ void PeriodicTask::SetSettings(Settings settings) {
             return;
         }
         settings.flags = writer->flags;
-        should_notify_task = settings.period != writer->period || settings.exception_period != writer->exception_period;
+        should_notify_task = settings.period != writer->period || settings.exception_period != writer->exception_period || settings.enabled != writer->enabled;
         *writer = std::move(settings);
         writer.Commit();
     }
@@ -144,12 +144,13 @@ void PeriodicTask::Run() {
     while (!engine::current_task::ShouldCancel()) {
         const auto before = std::chrono::steady_clock::now();
         bool no_exception = true;
+        bool force_step = should_force_step_.exchange(false);
+        const auto settings = settings_.Read();
 
-        if (!std::exchange(skip_step, false)) {
+        if (force_step || (settings->enabled && !std::exchange(skip_step, false))) {
             no_exception = Step();
         }
 
-        const auto settings = settings_.Read();
         auto period = settings->period;
         const auto exception_period = settings->exception_period.value_or(period);
 

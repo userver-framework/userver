@@ -67,17 +67,19 @@ public:
         constexpr /*implicit*/ Settings(
             std::chrono::milliseconds period,
             utils::Flags<Flags> flags = {},
-            logging::Level span_level = logging::Level::kInfo
+            logging::Level span_level = logging::Level::kInfo,
+            bool enabled = true
         )
-            : Settings(period, kDistributionPercent, flags, span_level) {}
+            : Settings(period, kDistributionPercent, flags, span_level, enabled) {}
 
         constexpr Settings(
             std::chrono::milliseconds period,
             std::chrono::milliseconds distribution,
             utils::Flags<Flags> flags = {},
-            logging::Level span_level = logging::Level::kInfo
+            logging::Level span_level = logging::Level::kInfo,
+            bool enabled = true
         )
-            : period(period), distribution(distribution), flags(flags), span_level(span_level) {
+            : period(period), distribution(distribution), flags(flags), span_level(span_level), enabled(enabled) {
             UASSERT(distribution <= period);
         }
 
@@ -85,9 +87,10 @@ public:
             std::chrono::milliseconds period,
             uint8_t distribution_percent,
             utils::Flags<Flags> flags = {},
-            logging::Level span_level = logging::Level::kInfo
+            logging::Level span_level = logging::Level::kInfo,
+            bool enabled = true
         )
-            : Settings(period, period * distribution_percent / 100, flags, span_level) {
+            : Settings(period, period * distribution_percent / 100, flags, span_level, enabled) {
             UASSERT(distribution_percent <= 100);
         }
 
@@ -124,6 +127,9 @@ public:
         /// PeriodicTask::Start() calls engine::current_task::GetTaskProcessor()
         /// to get the TaskProcessor.
         engine::TaskProcessor* task_processor{nullptr};
+
+        /// @brief If false, the task will skip executions until re-enabled.
+        bool enabled{true};
     };
 
     /// Signature of the task to be executed each period.
