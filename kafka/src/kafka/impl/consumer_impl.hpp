@@ -10,6 +10,7 @@
 #include <userver/kafka/impl/holders.hpp>
 #include <userver/kafka/message.hpp>
 #include <userver/kafka/offset_range.hpp>
+#include <userver/kafka/rebalance_types.hpp>
 
 #include <kafka/impl/holders_aliases.hpp>
 
