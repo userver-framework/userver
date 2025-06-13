@@ -606,6 +606,10 @@ void ConsumerImpl::Seek(
         throw SeekException(fmt::format("Offset value have to be >= 0. offset: {}", offset));
     }
 
+    if (timeout.count() <= 0) {
+        throw SeekException(fmt::format("Timeout value have to be > 0. value(ms): {}", timeout.count()));
+    }
+
     const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
     if (!topic_holder) {
         throw SeekException(fmt::format("Failed to create new rdkafka topic with name: {}", topic));

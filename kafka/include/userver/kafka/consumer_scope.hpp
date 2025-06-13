@@ -161,7 +161,7 @@ public:
     /// @param topic The name of the topic.
     /// @param partition_id The partition ID of the given topic.
     /// @param offset The offset to seek to, must be >= 0 or SeekException occurs.
-    /// @param timeout The timeout duration for the operation.
+    /// @param timeout The timeout duration for the operation, must be > 0 or SeekException occurs.
     void Seek(
         const std::string& topic,
         std::uint32_t partition_id,
@@ -175,7 +175,7 @@ public:
     /// @warning This is a blocking call and should only be called after `Start()`.
     /// @param topic The name of the topic.
     /// @param partition_id The partition ID of the given topic.
-    /// @param timeout The timeout duration for the operation.
+    /// @param timeout The timeout duration for the operation, must be > 0 or SeekException occurs.
     void SeekToBeginning(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
     /// @brief Seeks the specified topic partition to the end.
@@ -184,7 +184,7 @@ public:
     /// @warning This is a blocking call and should only be called after `Start()`.
     /// @param topic The name of the topic.
     /// @param partition_id The partition ID of the given topic.
-    /// @param timeout The timeout duration for the operation.
+    /// @param timeout The timeout duration for the operation, must be > 0 or SeekException occurs.
     void SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
 private:
