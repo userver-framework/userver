@@ -269,8 +269,8 @@ void ConsumerImpl::UserRebalanceCallback(
 
     for (const auto& topic_partition : kafka_topic_partitions) {
         topic_partitions.emplace_back(TopicPartitionView{
-            .topic = std::string_view(topic_partition.topic),
-            .partition_id = static_cast<std::uint32_t>(topic_partition.partition),
+            std::string_view(topic_partition.topic),
+            static_cast<std::uint32_t>(topic_partition.partition),
         });
     }
 
