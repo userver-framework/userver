@@ -29,6 +29,34 @@ ConsumerScope::GetPartitionIds(const std::string& topic, std::optional<std::chro
     return consumer_.GetPartitionIds(topic, timeout);
 }
 
+void ConsumerScope::Seek(
+    const std::string& topic,
+    std::uint32_t partition_id,
+    std::int64_t offset,
+    std::chrono::milliseconds timeout
+) const {
+    consumer_.Seek(topic, partition_id, offset, timeout);
+}
+
+void ConsumerScope::SeekToBeginning(
+    const std::string& topic,
+    std::uint32_t partition_id,
+    std::chrono::milliseconds timeout
+) const {
+    consumer_.SeekToBeginning(topic, partition_id, timeout);
+}
+
+void ConsumerScope::SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
+    const {
+    consumer_.SeekToEnd(topic, partition_id, timeout);
+}
+
+void ConsumerScope::SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback) {
+    consumer_.SetRebalanceCallback(std::move(rebalance_callback));
+}
+
+void ConsumerScope::ResetRebalanceCallback() { consumer_.ResetRebalanceCallback(); }
+
 }  // namespace kafka
 
 USERVER_NAMESPACE_END

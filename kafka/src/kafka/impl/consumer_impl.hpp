@@ -49,6 +49,26 @@ public:
     std::vector<std::uint32_t>
     GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
 
+    /// @brief Seeks the partition ID for the specified \b topic to a given \b offset .
+    void Seek(
+        const std::string& topic,
+        std::uint32_t partition_id,
+        std::int64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
+
+    /// @brief Seeks the partition ID for the specified \b topic to the beginning offset .
+    void SeekToBeginning(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
+
+    /// @brief Seeks the partition ID for the specified \b topic to the end offset .
+    void SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
+
+    /// @brief Sets the \b rebalance_callback for consumer. It is called after assigning and revoking the partitions.
+    void SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback);
+
+    /// @brief Removes the rebalance callback for consumer. It is called after assigning and revoking the partitions.
+    void ResetRebalanceCallback();
+
     /// @brief Effectively calls `PollMessage` until `deadline` is reached
     /// and no more than `max_batch_size` messages polled.
     MessageBatch PollBatch(std::size_t max_batch_size, engine::Deadline deadline);
@@ -105,6 +125,9 @@ private:
     /// @brief Revokes `partitions` from the current consumer.
     void RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
 
+    /// @brief Calls user's rebalance callback if it is set.
+    void UserRebalanceCallback(const rd_kafka_topic_partition_list_s* partitions, RebalanceEventType event_type);
+
     /// @brief Callback which is called after succeeded/failed commit.
     /// Currently, used for logging purposes.
     void OffsetCommitCallback(rd_kafka_resp_err_t err, const rd_kafka_topic_partition_list_s* committed_offsets);
@@ -119,6 +142,7 @@ private:
 
     const std::vector<std::string> topics_;
 
+    ConsumerRebalanceCallback rebalance_callback_;
     engine::SingleConsumerEvent queue_became_non_empty_event_;
 
     ConsumerHolder consumer_;

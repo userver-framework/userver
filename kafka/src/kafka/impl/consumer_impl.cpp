@@ -238,15 +238,45 @@ void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_top
         case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
             AssignPartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_subscribed", name_));
+            UserRebalanceCallback(partitions, RebalanceEventType::kAssigned);
             break;
         case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
             RevokePartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_revoked", name_));
+            UserRebalanceCallback(partitions, RebalanceEventType::kRevoked);
             break;
         default:
             LOG_ERROR() << fmt::format("Failed when rebalancing: {}", rd_kafka_err2str(err));
             break;
     }
+}
+
+void ConsumerImpl::UserRebalanceCallback(
+    const rd_kafka_topic_partition_list_s* partitions,
+    RebalanceEventType event_type
+) try {
+    tracing::Span span{"user_rebalance_callback"};
+
+    if ((rebalance_callback_ == nullptr) || (partitions == nullptr) || (partitions->cnt <= 0)) {
+        return;
+    }
+
+    utils::span<const rd_kafka_topic_partition_t> kafka_topic_partitions{
+        partitions->elems, partitions->elems + static_cast<std::size_t>(partitions->cnt)
+    };
+    std::vector<TopicPartitionView> topic_partitions;
+    topic_partitions.reserve(kafka_topic_partitions.size());
+
+    for (const auto& topic_partition : kafka_topic_partitions) {
+        topic_partitions.emplace_back(TopicPartitionView{
+            .topic = std::string_view(topic_partition.topic),
+            .partition_id = static_cast<std::uint32_t>(topic_partition.partition),
+        });
+    }
+
+    rebalance_callback_(topic_partitions, event_type);
+} catch (const std::exception& exc) {
+    LOG_WARNING() << fmt::format("User's rebalance callback throws an exception. exc: {} .", exc.what());
 }
 
 void ConsumerImpl::OffsetCommitCallback(
@@ -561,6 +591,61 @@ void ConsumerImpl::AccountMessageBatchProcessingFailed(const MessageBatch& batch
         AccountMessageProcessingFailed(message);
     }
 }
+
+void ConsumerImpl::Seek(
+    const std::string& topic,
+    std::uint32_t partition_id,
+    std::int64_t offset,
+    std::chrono::milliseconds timeout
+) const {
+    if (offset < 0) {
+        throw SeekException(fmt::format("Offset value have to be >= 0. offset: {}", offset));
+    }
+
+    const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
+    if (!topic_holder) {
+        throw CreateResourceException(fmt::format("Failed to create new rdkafka topic with name: {}", topic));
+    }
+
+    auto err = rd_kafka_seek(
+        topic_holder.GetHandle(), static_cast<std::int32_t>(partition_id), offset, static_cast<int>(timeout.count())
+    );
+    if (err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
+        throw TimeoutException(
+            fmt::format("Failed to seek topic: {} partition_id: {} to a given offset.", topic, partition_id)
+        );
+    }
+
+    if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        throw SeekException(fmt::format(
+            "Failed to seek topic: {} partition_id: {} to a given offset. err: {}",
+            topic,
+            partition_id,
+            rd_kafka_err2str(err)
+        ));
+    }
+}
+
+void ConsumerImpl::SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
+    const {
+    const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
+    Seek(topic, partition_id, RD_KAFKA_OFFSET_END, timeout);
+}
+
+void ConsumerImpl::SeekToBeginning(
+    const std::string& topic,
+    std::uint32_t partition_id,
+    std::chrono::milliseconds timeout
+) const {
+    const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
+    Seek(topic, partition_id, RD_KAFKA_OFFSET_BEGINNING, timeout);
+}
+
+void ConsumerImpl::SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback) {
+    rebalance_callback_ = std::move(rebalance_callback);
+}
+
+void ConsumerImpl::ResetRebalanceCallback() { rebalance_callback_ = nullptr; }
 
 }  // namespace impl
 

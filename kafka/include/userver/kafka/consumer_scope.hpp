@@ -4,6 +4,7 @@
 
 #include <userver/kafka/message.hpp>
 #include <userver/kafka/offset_range.hpp>
+#include <userver/kafka/rebalance_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -140,6 +141,54 @@ public:
     /// @returns A vector of partition IDs for the given topic.
     std::vector<std::uint32_t>
     GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+
+    /// @brief Sets the rebalance callback for consumer.
+    /// @warning The rebalance callback must be set before calling `Start()` or after calling `Stop()`.
+    /// The callback must not throw exceptions; any thrown exceptions will be caught and logged by the consumer
+    /// implementation. The callback is invoked after the assign or revoke event has been successfully processed.
+    void SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback);
+
+    /// @brief Resets the rebalance callback for consumer.
+    /// @warning The rebalance callback must be set before calling `Start()` or after calling `Stop()`.
+    /// The callback must not throw exceptions; any thrown exceptions will be caught and logged by the consumer
+    /// implementation. The callback is invoked after the assign or revoke event has been successfully processed.
+    void ResetRebalanceCallback();
+
+    /// @brief Seeks the specified topic partition to the given \b offset.
+    /// @throws ResourceCreateException if the librdkafka topic object could not be created.
+    /// @throws TimeoutException if the operation times out.
+    /// @throws SeekException if an error occurs during the seek operation.
+    /// @warning This is a blocking call and should only be called after `Start()`.
+    /// @param topic The name of the topic.
+    /// @param partition_id The partition ID of the given topic.
+    /// @param offset The offset to seek to, must be >= 0 or SeekException occurs.
+    /// @param timeout The timeout duration for the operation.
+    void Seek(
+        const std::string& topic,
+        std::uint32_t partition_id,
+        std::int64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
+
+    /// @brief Seeks the specified topic partition to the beginning.
+    /// @throws ResourceCreateException if the librdkafka topic object could not be created.
+    /// @throws TimeoutException if the operation times out.
+    /// @throws SeekException if an error occurs during the seek operation.
+    /// @warning This is a blocking call and should only be called after `Start()`.
+    /// @param topic The name of the topic.
+    /// @param partition_id The partition ID of the given topic.
+    /// @param timeout The timeout duration for the operation.
+    void SeekToBeginning(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
+
+    /// @brief Seeks the specified topic partition to the end.
+    /// @throws ResourceCreateException if the librdkafka topic object could not be created.
+    /// @throws TimeoutException if the operation times out.
+    /// @throws SeekException if an error occurs during the seek operation.
+    /// @warning This is a blocking call and should only be called after `Start()`.
+    /// @param topic The name of the topic.
+    /// @param partition_id The partition ID of the given topic.
+    /// @param timeout The timeout duration for the operation.
+    void SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
 private:
     friend class impl::Consumer;

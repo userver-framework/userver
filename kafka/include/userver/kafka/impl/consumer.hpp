@@ -97,6 +97,31 @@ public:
     GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
     /// @endcond
 
+    /// @brief Seeks the \b partition_id for the specified \b topic to a given \b offset .
+    /// @see ConsumerScope::Seek for better commitment process
+    void Seek(
+        const std::string& topic,
+        std::uint32_t partition_id,
+        std::int64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
+
+    /// @brief Seeks the \b partition_id for the specified \b topic to the begginning offset .
+    /// @see ConsumerScope::SeekToBeginning for better commitment process
+    void SeekToBeginning(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
+
+    /// @brief Seeks the \b partition_id for the specified \b topic to the end offset .
+    /// @see ConsumerScope::SeekToEnd for better commitment process
+    void SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
+
+    /// @brief Sets the \b rebalance_callback for consumer .
+    /// @see ConsumerScope::SetRebalanceCallback for better commitment process
+    void SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback);
+
+    /// @brief Resets the rebalance callback for consumer .
+    /// @see ConsumerScope::ResetRebalanceCallback for better commitment process
+    void ResetRebalanceCallback();
+
 private:
     friend class kafka::ConsumerScope;
 
