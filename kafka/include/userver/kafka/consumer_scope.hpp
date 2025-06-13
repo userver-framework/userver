@@ -155,7 +155,6 @@ public:
     void ResetRebalanceCallback();
 
     /// @brief Seeks the specified topic partition to the given \b offset.
-    /// @throws ResourceCreateException if the librdkafka topic object could not be created.
     /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
     /// @warning This is a blocking call and should only be called after `Start()`.
@@ -171,7 +170,6 @@ public:
     ) const;
 
     /// @brief Seeks the specified topic partition to the beginning.
-    /// @throws ResourceCreateException if the librdkafka topic object could not be created.
     /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
     /// @warning This is a blocking call and should only be called after `Start()`.
@@ -181,7 +179,6 @@ public:
     void SeekToBeginning(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
     /// @brief Seeks the specified topic partition to the end.
-    /// @throws ResourceCreateException if the librdkafka topic object could not be created.
     /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
     /// @warning This is a blocking call and should only be called after `Start()`.

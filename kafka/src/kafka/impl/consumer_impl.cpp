@@ -394,6 +394,10 @@ ConsumerImpl::GetPartitionIds(const std::string& topic, std::optional<std::chron
     const MetadataHolder metadata{[this, &topic, &timeout] {
         const rd_kafka_metadata_t* raw_metadata{nullptr};
         const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
+        if (!topic_holder) {
+            throw GetMetadataException{fmt::format("Failed to create new rdkafka topic with name: {}", topic)};
+        }
+
         auto err = rd_kafka_metadata(
             consumer_.GetHandle(),
             /*all_topics=*/0,
@@ -604,7 +608,7 @@ void ConsumerImpl::Seek(
 
     const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
     if (!topic_holder) {
-        throw CreateResourceException(fmt::format("Failed to create new rdkafka topic with name: {}", topic));
+        throw SeekException(fmt::format("Failed to create new rdkafka topic with name: {}", topic));
     }
 
     auto err = rd_kafka_seek(
@@ -628,7 +632,6 @@ void ConsumerImpl::Seek(
 
 void ConsumerImpl::SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
     const {
-    const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
     Seek(topic, partition_id, RD_KAFKA_OFFSET_END, timeout);
 }
 
@@ -637,7 +640,6 @@ void ConsumerImpl::SeekToBeginning(
     std::uint32_t partition_id,
     std::chrono::milliseconds timeout
 ) const {
-    const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
     Seek(topic, partition_id, RD_KAFKA_OFFSET_BEGINNING, timeout);
 }
 

@@ -119,11 +119,6 @@ public:
     ParseHeadersException(std::string_view error);
 };
 
-class CreateResourceException final : public std::runtime_error {
-public:
-    using std::runtime_error::runtime_error;
-};
-
 class TimeoutException final : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
