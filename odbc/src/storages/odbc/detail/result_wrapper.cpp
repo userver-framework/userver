@@ -1,7 +1,7 @@
-#include <sqlext.h>
-#include <storages/odbc/detail/result_wrapper.hpp>
-
 #include <fmt/format.h>
+#include <sqlext.h>
+#include <storages/odbc/detail/diag_wrapper.hpp>
+#include <storages/odbc/detail/result_wrapper.hpp>
 #include <userver/storages/odbc/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -9,32 +9,12 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::odbc::detail {
 namespace {
 
-std::string ErrorString(SQLHANDLE handle, SQLSMALLINT type) {
-    std::string result;
-
-    for (SQLINTEGER i = 1;; ++i) {
-        SQLINTEGER native;
-        SQLCHAR state[7];
-        SQLCHAR text[SQL_MAX_MESSAGE_LENGTH];
-        SQLSMALLINT len;
-
-        const auto ret = SQLGetDiagRec(type, handle, i, state, &native, text, sizeof(text), &len);
-        if (!SQL_SUCCEEDED(ret)) {
-            break;
-        }
-
-        result += fmt::format("{} (code {})", reinterpret_cast<char*>(&text[0]), native);
-    }
-
-    return result;
-}
-
 void CheckStatus(SQLRETURN ret, SQLHANDLE handle, SQLSMALLINT type) {
     if (ret == SQL_SUCCESS) {
         return;
     }
-
-    throw ResultSetError("SQLFunctionFailed failed: " + std::to_string(ret) + " " + ErrorString(handle, type));
+    auto exceptionMessage = fmt::format("SQLFunctionFailed failed: {} {}", ret, GetSQLDiagString(handle, type));
+    throw ResultSetError(exceptionMessage);
 }
 
 void DestroyResultHandle(SQLHSTMT handle) {
@@ -163,7 +143,7 @@ double ResultWrapper::GetDouble(std::size_t row, std::size_t col) const {
 bool ResultWrapper::GetBool(std::size_t row, std::size_t col) const {
     // NOTE: typecheck for bools omitted, since drivers may handle bools differently, but always support SQL_C_BIT
     CheckStatus(SQLFetchScroll(handle_.get(), SQL_FETCH_ABSOLUTE, row + 1), handle_.get(), SQL_HANDLE_STMT);
-    bool value;
+    bool value = false;
     CheckStatus(
         SQLGetData(handle_.get(), col + 1, SQL_C_BIT, &value, sizeof(value), nullptr), handle_.get(), SQL_HANDLE_STMT
     );
