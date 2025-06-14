@@ -31,11 +31,44 @@ UTEST(ConnectionError, InvalidDSN) {
     );
 }
 
+UTEST(ConnectionError, InvalidCredentials) {
+    storages::odbc::Cluster cluster(
+        storages::odbc::settings::ODBCClusterSettings{{storages::odbc::settings::HostSettings{
+            "DRIVER={PostgreSQL Unicode};"
+            "SERVER=localhost;"
+            "PORT=15433;"
+            "DATABASE=postgres;"
+            "UID=invalid_user;"
+            "PWD=invalid_password;",
+            {5, 10}
+        }}}
+    );
+
+    UEXPECT_THROW(
+        cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1"), storages::odbc::ConnectionError
+    );
+}
+
 UTEST(StatementError, QueryingUnexistentTable) {
     storages::odbc::Cluster cluster(kSettings);
 
     UEXPECT_THROW(
         cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT * FROM some_table"),
+        storages::odbc::StatementError
+    );
+}
+
+UTEST(StatementError, InvalidSyntax) {
+    storages::odbc::Cluster cluster(kSettings);
+
+    UEXPECT_THROW(cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELEC 1"), storages::odbc::StatementError);
+}
+
+UTEST(StatementError, InvalidColumnReference) {
+    storages::odbc::Cluster cluster(kSettings);
+
+    UEXPECT_THROW(
+        cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT nonexistent_column FROM pg_tables"),
         storages::odbc::StatementError
     );
 }
@@ -50,6 +83,19 @@ UTEST(ResultSetError, GettingInvalidFieldIndex) {
     storages::odbc::Cluster cluster(kSettings);
     auto resultSet = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
     UEXPECT_THROW(resultSet[0][1], storages::odbc::FieldIndexOutOfBounds);
+}
+
+UTEST(ResultSetError, TypeConversionError) {
+    storages::odbc::Cluster cluster(kSettings);
+    auto resultSet = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 'not_a_number'");
+    UEXPECT_THROW(resultSet[0][0].GetInt32(), storages::odbc::ResultSetError);
+}
+
+UTEST(ResultSetError, NullValueAccess) {
+    storages::odbc::Cluster cluster(kSettings);
+    auto resultSet = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT NULL");
+    EXPECT_TRUE(resultSet[0][0].IsNull());
+    UEXPECT_THROW(resultSet[0][0].GetInt32(), storages::odbc::ResultSetError);
 }
 
 }  // namespace storages::odbc::tests

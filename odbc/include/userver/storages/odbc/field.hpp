@@ -19,6 +19,7 @@ public:
     int64_t GetInt64() const;
     int32_t GetInt32() const;
     double GetDouble() const;
+    bool GetBool() const;
 
 protected:
     friend class Row;
