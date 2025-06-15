@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdexcept>
-#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,53 +11,23 @@ class Error : public std::runtime_error {
 };
 
 class LogicError : public Error {
-public:
-    explicit LogicError(std::string msg);
-
-    const char* what() const noexcept override;
-
-private:
-    std::string msg_;
+    using Error::Error;
 };
 
 class RuntimeError : public Error {
-public:
-    explicit RuntimeError(std::string msg);
-
-    const char* what() const noexcept override;
-
-private:
-    std::string msg_;
+    using Error::Error;
 };
 
 class ConnectionError : public RuntimeError {
-public:
-    explicit ConnectionError(std::string msg);
-
-    const char* what() const noexcept override;
-
-private:
-    std::string msg_;
+    using RuntimeError::RuntimeError;
 };
 
 class StatementError : public RuntimeError {
-public:
-    explicit StatementError(std::string msg);
-
-    const char* what() const noexcept override;
-
-private:
-    std::string msg_;
+    using RuntimeError::RuntimeError;
 };
 
-class ResultSetError : public Error {
-public:
-    explicit ResultSetError(std::string msg);
-
-    const char* what() const noexcept override;
-
-private:
-    std::string msg_;
+class ResultSetError : public RuntimeError {
+    using RuntimeError::RuntimeError;
 };
 
 class RowIndexOutOfBounds : public ResultSetError {

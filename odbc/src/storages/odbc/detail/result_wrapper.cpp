@@ -14,7 +14,7 @@ void CheckStatus(SQLRETURN ret, SQLHANDLE handle, SQLSMALLINT type) {
         return;
     }
     auto exceptionMessage = fmt::format("SQLFunctionFailed failed: {} {}", ret, GetSQLDiagString(handle, type));
-    throw ResultSetError(exceptionMessage);
+    throw ResultSetError(std::move(exceptionMessage));
 }
 
 void DestroyResultHandle(SQLHSTMT handle) {
