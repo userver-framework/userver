@@ -76,13 +76,13 @@ UTEST(StatementError, InvalidColumnReference) {
 UTEST(ResultSetError, GettingInvalidRowIndex) {
     storages::odbc::Cluster cluster(kSettings);
     auto resultSet = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
-    UEXPECT_THROW(resultSet[1], storages::odbc::RowIndexOutOfBounds);
+    UASSERT_THROW_MSG(resultSet[1], storages::odbc::RowIndexOutOfBounds, "Row index 1 is out of bounds");
 }
 
 UTEST(ResultSetError, GettingInvalidFieldIndex) {
     storages::odbc::Cluster cluster(kSettings);
     auto resultSet = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
-    UEXPECT_THROW(resultSet[0][1], storages::odbc::FieldIndexOutOfBounds);
+    UASSERT_THROW_MSG(resultSet[0][1], storages::odbc::FieldIndexOutOfBounds, "Field index 1 is out of bounds");
 }
 
 UTEST(ResultSetError, TypeConversionError) {
