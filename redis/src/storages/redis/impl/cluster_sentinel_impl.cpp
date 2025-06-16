@@ -163,7 +163,8 @@ public:
         std::string shard_group_name,
         Password password,
         const std::vector<std::string>& /*shards*/,
-        const std::vector<ConnectionInfo>& conns
+        const std::vector<ConnectionInfo>& conns,
+        ConnectionSecurity connection_security
     )
         : ev_thread_(sentinel_thread_control),
           redis_thread_pool_(redis_thread_pool),
@@ -236,7 +237,8 @@ public:
               }
           ),
           is_topology_received_(false),
-          update_cluster_slots_flag_(false) {
+          update_cluster_slots_flag_(false),
+          connection_security_(connection_security) {
         LOG_DEBUG() << "Created ClusterTopologyHolder, shard_group_name=" << shard_group_name_;
     }
 
@@ -454,6 +456,8 @@ private:
     rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string>> ip_by_fqdn_;
 
     static std::atomic<size_t> cluster_slots_call_counter_;
+
+    ConnectionSecurity connection_security_;
 };
 
 std::atomic<size_t> ClusterTopologyHolder::cluster_slots_call_counter_(0);
@@ -676,6 +680,8 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
     const auto replication_monitoring_settings_ptr = monitoring_settings_.Lock();
     const auto retry_budget_settings_ptr = retry_budget_settings_.Lock();
     LOG_DEBUG() << "Create new redis instance " << host_port;
+    auto creation_settings = RedisConnectionHolder::makeDefaultRedisCreationSettings();
+    creation_settings.connection_security = connection_security_;
     return RedisConnectionHolder::Create(
         ev_thread_,
         redis_thread_pool_,
@@ -685,7 +691,8 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         kClusterDatabaseIndex,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
-        *retry_budget_settings_ptr
+        *retry_budget_settings_ptr,
+        creation_settings
     );
 }
 
@@ -795,7 +802,7 @@ ClusterSentinelImpl::ClusterSentinelImpl(
     std::string shard_group_name,
     const std::string& client_name,
     const Password& password,
-    ConnectionSecurity /*connection_security*/,
+    ConnectionSecurity connection_security,
     std::unique_ptr<KeyShard>&& key_shard,
     dynamic_config::Source dynamic_config_source
 )
@@ -810,10 +817,11 @@ ClusterSentinelImpl::ClusterSentinelImpl(
       conns_(conns),
       redis_thread_pool_(redis_thread_pool),
       client_name_(client_name),
-      dynamic_config_source_(std::move(dynamic_config_source)) {
+      dynamic_config_source_(std::move(dynamic_config_source)),
+      connection_security_(connection_security) {
     if (!key_shard) {
-        topology_holder_ = std::make_unique<ClusterTopologyHolder>(
-            ev_thread_, redis_thread_pool, shard_group_name, password, shards, conns
+        topology_holder_ = std::make_shared<ClusterTopologyHolder>(
+            ev_thread_, redis_thread_pool, shard_group_name, password, shards, conns, connection_security
         );
     } else {
         LOG_DEBUG() << "Construct Standalone topology holder";

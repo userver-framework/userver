@@ -91,6 +91,8 @@ private:
     SentinelStatisticsInternal statistics_internal_;
 
     dynamic_config::Source dynamic_config_source_;
+
+    ConnectionSecurity connection_security_;
 };
 
 }  // namespace storages::redis::impl
