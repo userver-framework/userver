@@ -118,8 +118,7 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
 
         auto batch_processing_task =
             utils::Async(main_task_processor_, "messages_processing", callback, utils::span{polled_messages});
-        const utils::ScopeGuard callback_duration_notifier{CreateDurationNotifier(execution_params.max_callback_duration
-        )};
+        const utils::ScopeGuard callback_duration_notifier{CreateDurationNotifier(execution_params.max_callback_duration)};
 
         try {
             batch_processing_task.Get();
@@ -228,7 +227,7 @@ void Consumer::SeekToBeginning(const std::string& topic, std::uint32_t partition
     return utils::Async(
                consumer_task_processor_,
                "consumer_seek_to_beginning",
-               [this, &topic, partition_id, &timeout] {
+               [this, &topic, partition_id, timeout] {
                    ExtendCurrentSpan();
 
                    return consumer_->SeekToBeginning(topic, partition_id, timeout);
@@ -243,7 +242,7 @@ void Consumer::SeekToEnd(const std::string& topic, std::uint32_t partition_id, s
     return utils::Async(
                consumer_task_processor_,
                "consumer_seek_to_end",
-               [this, &topic, partition_id, &timeout] {
+               [this, &topic, partition_id, timeout] {
                    ExtendCurrentSpan();
 
                    return consumer_->SeekToEnd(topic, partition_id, timeout);
