@@ -442,8 +442,7 @@ ConsumerImpl::GetPartitionIds(const std::string& topic, std::optional<std::chron
     }()};
 
     const utils::span<const rd_kafka_metadata_topic> topics{
-        metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)
-    };
+        metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)};
     const auto* topic_it =
         std::find_if(topics.begin(), topics.end(), [&topic](const rd_kafka_metadata_topic& topic_raw) {
             return topic == topic_raw.topic;
@@ -453,8 +452,7 @@ ConsumerImpl::GetPartitionIds(const std::string& topic, std::optional<std::chron
     }
 
     const utils::span<const rd_kafka_metadata_partition> partitions{
-        topic_it->partitions, static_cast<std::size_t>(topic_it->partition_cnt)
-    };
+        topic_it->partitions, static_cast<std::size_t>(topic_it->partition_cnt)};
     std::vector<std::uint32_t> partition_ids;
     partition_ids.reserve(partitions.size());
 
