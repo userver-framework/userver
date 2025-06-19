@@ -118,7 +118,8 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
 
         auto batch_processing_task =
             utils::Async(main_task_processor_, "messages_processing", callback, utils::span{polled_messages});
-        const utils::ScopeGuard callback_duration_notifier{CreateDurationNotifier(execution_params.max_callback_duration)};
+        const utils::ScopeGuard callback_duration_notifier{
+            CreateDurationNotifier(execution_params.max_callback_duration)};
 
         try {
             batch_processing_task.Get();
