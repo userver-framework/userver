@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 
+#include <userver/utils/null_terminated_view.hpp>
 #include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
