@@ -23,6 +23,9 @@ struct TopicPartitionView final {
 
     /// @brief Offset for current partition.
     std::uint64_t offset;
+
+    TopicPartitionView(utils::NullTerminatedView t, std::uint32_t pid, std::uint64_t off)
+        : topic(t), partition_id(pid), offset(off) {}
 };
 
 using TopicPartitionBatchView = utils::span<const TopicPartitionView>;
