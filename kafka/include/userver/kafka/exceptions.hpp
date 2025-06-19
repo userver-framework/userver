@@ -116,11 +116,6 @@ public:
     ParseHeadersException(std::string_view error);
 };
 
-class TimeoutException final : public std::runtime_error {
-public:
-    using std::runtime_error::runtime_error;
-};
-
 class SeekException final : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;

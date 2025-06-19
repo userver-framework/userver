@@ -175,7 +175,6 @@ public:
     ) const;
 
     /// @brief Seeks the specified topic partition to the beginning.
-    /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
     /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start() call and before
     /// ConsumerScope::Stop() call. It works only when the consumer has assigned partitions; otherwise, it throws
@@ -187,7 +186,6 @@ public:
     void SeekToBeginning(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
     /// @brief Seeks the specified topic partition to the end.
-    /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
     /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start() call and before
     /// ConsumerScope::Stop() call. It works only when the consumer has assigned partitions; otherwise, it throws

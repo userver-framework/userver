@@ -121,7 +121,7 @@ private:
 
     /// @brief Assigns (subscribes) the `partitions` list to the current
     /// consumer.
-    /// @return Returns true if partitions have been successfully assigned.See
+    /// @return Returns true if partitions have been successfully assigned.
     bool AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
 
     /// @brief Revokes `partitions` from the current consumer.

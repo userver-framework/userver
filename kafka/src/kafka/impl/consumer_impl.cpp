@@ -237,20 +237,22 @@ void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_top
     ) << fmt::format("Consumer group rebalanced ('{}' protocol)", rd_kafka_rebalance_protocol(consumer_.GetHandle()));
 
     switch (err) {
-        case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
+        case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS: {
             bool ok = AssignPartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_subscribed", name_));
             if (ok) {
                 CallUserverRebalanceCallback(partitions, RebalanceEventType::kAssigned);
             }
             break;
-        case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
+        }
+        case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS: {
             bool ok = RevokePartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_revoked", name_));
             if (ok) {
                 CallUserverRebalanceCallback(partitions, RebalanceEventType::kRevoked);
             }
             break;
+        }
         default:
             LOG_ERROR() << fmt::format("Failed when rebalancing: {}", rd_kafka_err2str(err));
             break;
