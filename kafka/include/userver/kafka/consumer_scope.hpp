@@ -143,36 +143,44 @@ public:
     GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
 
     /// @brief Sets the rebalance callback for consumer.
-    /// @warning The rebalance callback must be set before calling `Start()` or after calling `Stop()`.
+    /// @warning The rebalance callback must be set before calling ConsumerScope::Start() or after calling ConsumerScope::Stop().
     /// The callback must not throw exceptions; any thrown exceptions will be caught and logged by the consumer
-    /// implementation. The callback is invoked after the assign or revoke event has been successfully processed.
+    /// implementation.
+    /// @note The callback is invoked after the assign or revoke event has been successfully processed.
     void SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback);
 
     /// @brief Resets the rebalance callback for consumer.
-    /// @warning The rebalance callback must be set before calling `Start()` or after calling `Stop()`.
+    /// @warning The rebalance callback must be set before calling ConsumerScope::Start() or after calling ConsumerScope::Stop().
     /// The callback must not throw exceptions; any thrown exceptions will be caught and logged by the consumer
-    /// implementation. The callback is invoked after the assign or revoke event has been successfully processed.
+    /// implementation.
+    /// @note The callback is invoked after the assign or revoke event has been successfully processed.
     void ResetRebalanceCallback();
 
     /// @brief Seeks the specified topic partition to the given \b offset.
     /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
-    /// @warning This is a blocking call and should only be called after `Start()`.
+    /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start() call and before
+    /// ConsumerScope::Stop() call. It works only when the consumer has assigned partitions; otherwise, it throws
+    /// SeekException.
+    /// @note It is recommended to call this from within the ConsumerRebalanceCallback.
     /// @param topic The name of the topic.
     /// @param partition_id The partition ID of the given topic.
-    /// @param offset The offset to seek to, must be >= 0 or SeekException occurs.
+    /// @param offset The offset to seek to, must be <= std::int64_t::max() or SeekException occurs.
     /// @param timeout The timeout duration for the operation, must be > 0 or SeekException occurs.
     void Seek(
         const std::string& topic,
         std::uint32_t partition_id,
-        std::int64_t offset,
+        std::uint64_t offset,
         std::chrono::milliseconds timeout
     ) const;
 
     /// @brief Seeks the specified topic partition to the beginning.
     /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
-    /// @warning This is a blocking call and should only be called after `Start()`.
+    /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start() call and before
+    /// ConsumerScope::Stop() call. It works only when the consumer has assigned partitions; otherwise, it throws
+    /// SeekException.
+    /// @note It is recommended to call this from within the ConsumerRebalanceCallback.
     /// @param topic The name of the topic.
     /// @param partition_id The partition ID of the given topic.
     /// @param timeout The timeout duration for the operation, must be > 0 or SeekException occurs.
@@ -181,7 +189,10 @@ public:
     /// @brief Seeks the specified topic partition to the end.
     /// @throws TimeoutException if the operation times out.
     /// @throws SeekException if an error occurs during the seek operation.
-    /// @warning This is a blocking call and should only be called after `Start()`.
+    /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start() call and before
+    /// ConsumerScope::Stop() call. It works only when the consumer has assigned partitions; otherwise, it throws
+    /// SeekException.
+    /// @note It is recommended to call this from within the ConsumerRebalanceCallback.
     /// @param topic The name of the topic.
     /// @param partition_id The partition ID of the given topic.
     /// @param timeout The timeout duration for the operation, must be > 0 or SeekException occurs.

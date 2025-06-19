@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <limits>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -282,7 +283,9 @@ void ConsumerImpl::UserRebalanceCallback(
 
     rebalance_callback_(topic_partitions, event_type);
 } catch (const std::exception& exc) {
-    LOG_WARNING() << fmt::format("User's rebalance callback throws an exception. exc: {} .", exc.what());
+    LOG_WARNING() << "User's rebalance callback throws an exception." << exc;
+} catch (...) {
+    LOG_WARNING() << "User's rebalance callback throws unknown exception.";
 }
 
 void ConsumerImpl::OffsetCommitCallback(
@@ -605,39 +608,45 @@ void ConsumerImpl::AccountMessageBatchProcessingFailed(const MessageBatch& batch
 void ConsumerImpl::Seek(
     const std::string& topic,
     std::uint32_t partition_id,
+    std::uint64_t offset,
+    std::chrono::milliseconds timeout
+) const {
+    if (offset > std::numeric_limits<std::int64_t>::max()) {
+        throw SeekException(fmt::format("Offset value have to be <= std::int64_t::max() . offset: {}", offset));
+    }
+
+    SeekToOffset(topic, partition_id, static_cast<std::int64_t>(offset), timeout);
+}
+
+void ConsumerImpl::SeekToOffset(
+    const std::string& topic,
+    std::uint32_t partition_id,
     std::int64_t offset,
     std::chrono::milliseconds timeout
 ) const {
-    if (offset < 0) {
-        throw SeekException(fmt::format("Offset value have to be >= 0. offset: {}", offset));
-    }
-
     if (timeout.count() <= 0) {
         throw SeekException(fmt::format("Timeout value have to be > 0. value(ms): {}", timeout.count()));
     }
 
-    const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
-    if (!topic_holder) {
-        throw SeekException(fmt::format("Failed to create new rdkafka topic with name: {}", topic));
-    }
-
-    auto err = rd_kafka_seek(
-        topic_holder.GetHandle(), static_cast<std::int32_t>(partition_id), offset, static_cast<int>(timeout.count())
+    TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(1)};
+    rd_kafka_topic_partition_list_add(
+        topic_partitions_list.GetHandle(), topic.c_str(), static_cast<std::int32_t>(partition_id)
     );
-    if (err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
-        throw TimeoutException(
-            fmt::format("Failed to seek topic: {} partition_id: {} to a given offset.", topic, partition_id)
-        );
+
+    const auto* err = rd_kafka_seek_partitions(
+        consumer_.GetHandle(), topic_partitions_list.GetHandle(), static_cast<int>(timeout.count())
+    );
+    if (err == nullptr) {
+        LOG_DEBUG() << fmt::format("Seeked to offset: {} for partition: {} topic: {} successfully", offset, partition_id, topic);
+        return;
     }
 
-    if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-        throw SeekException(fmt::format(
-            "Failed to seek topic: {} partition_id: {} to a given offset. err: {}",
-            topic,
-            partition_id,
-            rd_kafka_err2str(err)
-        ));
-    }
+    throw SeekException(fmt::format(
+        "Failed to seek topic: {} partition_id: {} to a given offset. err: {}",
+        topic,
+        partition_id,
+        rd_kafka_error_string(err)
+    ));
 }
 
 void ConsumerImpl::SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)

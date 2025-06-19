@@ -102,7 +102,7 @@ public:
     void Seek(
         const std::string& topic,
         std::uint32_t partition_id,
-        std::int64_t offset,
+        std::uint64_t offset,
         std::chrono::milliseconds timeout
     ) const;
 

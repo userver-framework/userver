@@ -54,7 +54,7 @@ public:
     void Seek(
         const std::string& topic,
         std::uint32_t partition_id,
-        std::int64_t offset,
+        std::uint64_t offset,
         std::chrono::milliseconds timeout
     ) const;
 
@@ -121,7 +121,7 @@ private:
 
     /// @brief Assigns (subscribes) the `partitions` list to the current
     /// consumer.
-    /// @return Returns true if partitions have been successfully assigned.
+    /// @return Returns true if partitions have been successfully assigned.See
     bool AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
 
     /// @brief Revokes `partitions` from the current consumer.
@@ -130,6 +130,14 @@ private:
 
     /// @brief Calls user's rebalance callback if it is set.
     void UserRebalanceCallback(const rd_kafka_topic_partition_list_s* partitions, RebalanceEventType event_type);
+
+    /// @brief Seeks the partition ID for the specified \b topic to a given \b offset .
+    void SeekToOffset(
+        const std::string& topic,
+        std::uint32_t partition_id,
+        std::int64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
 
     /// @brief Callback which is called after succeeded/failed commit.
     /// Currently, used for logging purposes.

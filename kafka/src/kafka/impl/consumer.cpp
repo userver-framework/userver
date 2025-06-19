@@ -205,7 +205,7 @@ Consumer::GetPartitionIds(const std::string& topic, std::optional<std::chrono::m
 void Consumer::Seek(
     const std::string& topic,
     std::uint32_t partition_id,
-    std::int64_t offset,
+    std::uint64_t offset,
     std::chrono::milliseconds timeout
 ) const {
     UINVARIANT(processing_.load(), "Message processing is not currently started");
@@ -213,7 +213,7 @@ void Consumer::Seek(
     return utils::Async(
                consumer_task_processor_,
                "consumer_seek",
-               [this, &topic, partition_id, &offset, &timeout] {
+               [this, &topic, partition_id, offset, timeout] {
                    ExtendCurrentSpan();
 
                    return consumer_->Seek(topic, partition_id, offset, timeout);

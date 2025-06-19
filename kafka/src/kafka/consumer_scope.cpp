@@ -32,7 +32,7 @@ ConsumerScope::GetPartitionIds(const std::string& topic, std::optional<std::chro
 void ConsumerScope::Seek(
     const std::string& topic,
     std::uint32_t partition_id,
-    std::int64_t offset,
+    std::uint64_t offset,
     std::chrono::milliseconds timeout
 ) const {
     consumer_.Seek(topic, partition_id, offset, timeout);
