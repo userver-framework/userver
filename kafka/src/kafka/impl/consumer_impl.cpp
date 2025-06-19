@@ -275,22 +275,14 @@ void ConsumerImpl::CallUserverRebalanceCallback(
     topic_partitions.reserve(kafka_topic_partitions.size());
 
     for (const auto& topic_partition : kafka_topic_partitions) {
-        if (topic_partition.partition < 0) {
+        if (topic_partition.partition < 0 || topic_partition.offset < 0) {
             LOG_ERROR() << fmt::format(
-                "Skipped topic: {} partition: {} for user's rebalance callback, because get negative partition id from "
+                "Skipped topic: {} partition: {} offset: {} for user's rebalance callback, because got negative number "
+                "for partition id or offset from "
                 "librdkafka.",
                 std::string(topic_partition.topic),
-                topic_partition.partition
-            );
-            continue;
-        }
-
-        if (topic_partition.offset < 0) {
-            LOG_ERROR() << fmt::format(
-                "Skipped topic: {} partition: {} for user's rebalance callback, because get negative offset from "
-                "librdkafka,",
-                std::string(topic_partition.topic),
-                topic_partition.partition
+                topic_partition.partition,
+                topic_partition.offset
             );
             continue;
         }
