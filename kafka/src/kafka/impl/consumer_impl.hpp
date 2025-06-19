@@ -31,7 +31,7 @@ class ConsumerImpl final {
 public:
     ConsumerImpl(
         const std::string& name,
-        std::optional<ConsumerRebalanceCallback> rebalance_callback_opt,
+        const std::optional<ConsumerRebalanceCallback>& rebalance_callback_opt,
         const std::vector<std::string>& topics,
         const ConfHolder& conf,
         Stats& stats
