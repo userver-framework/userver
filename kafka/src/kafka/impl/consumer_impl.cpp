@@ -423,7 +423,7 @@ OffsetRange ConsumerImpl::GetOffsetRange(
         throw OffsetRangeException{fmt::format("Failed to get offsets: invalid offset."), topic, partition};
     }
 
-    return {low_offset, high_offset};
+    return {static_cast<std::uint32_t>(low_offset), static_cast<std::uint32_t>(high_offset)};
 }
 
 std::vector<std::uint32_t>
