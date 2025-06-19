@@ -121,10 +121,12 @@ private:
 
     /// @brief Assigns (subscribes) the `partitions` list to the current
     /// consumer.
-    void AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
+    /// @return Returns true if partitions have been successfully assigned.
+    bool AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
 
     /// @brief Revokes `partitions` from the current consumer.
-    void RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
+    /// @return Returns true if partitions have been successfully revoked.
+    bool RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
 
     /// @brief Calls user's rebalance callback if it is set.
     void UserRebalanceCallback(const rd_kafka_topic_partition_list_s* partitions, RebalanceEventType event_type);

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <cstdint>
@@ -25,9 +24,10 @@ struct TopicPartitionView final {
 using TopicPartitionBatchView = utils::span<const TopicPartitionView>;
 
 /// @brief Callback invoked when a rebalance event occurs.
-/// @warning The rebalance callback must be set before calling `Start()` or after calling `Stop()`.
+/// @warning The rebalance callback must be set before calling ConsumeScope::Start or after calling ConsumeScope::Stop .
 /// The callback must not throw exceptions; any thrown exceptions will be caught and logged by the consumer
-/// implementation. The callback is invoked after the assign or revoke event has been successfully processed.
+/// implementation.
+/// @note The callback is invoked after the assign or revoke event has been successfully processed.
 using ConsumerRebalanceCallback = std::function<void(TopicPartitionBatchView, RebalanceEventType)>;
 
 }  // namespace kafka

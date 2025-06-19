@@ -178,7 +178,7 @@ void CallTestpoints(const rd_kafka_topic_partition_list_t* list, const std::stri
 
 }  // namespace
 
-void ConsumerImpl::AssignPartitions(const rd_kafka_topic_partition_list_t* partitions) {
+bool ConsumerImpl::AssignPartitions(const rd_kafka_topic_partition_list_t* partitions) {
     LOG_INFO() << "Assigning new partitions to consumer";
     PrintTopicPartitionsList(partitions, [](const rd_kafka_topic_partition_t& partition) {
         return fmt::format("Partition {} for topic '{}' assigning", partition.partition, partition.topic);
@@ -187,13 +187,14 @@ void ConsumerImpl::AssignPartitions(const rd_kafka_topic_partition_list_t* parti
     const auto assign_err = rd_kafka_assign(consumer_.GetHandle(), partitions);
     if (assign_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
         LOG_ERROR() << fmt::format("Failed to assign partitions: {}", rd_kafka_err2str(assign_err));
-        return;
+        return false;
     }
 
     LOG_INFO() << "Successfully assigned partitions";
+    return true;
 }
 
-void ConsumerImpl::RevokePartitions(const rd_kafka_topic_partition_list_t* partitions) {
+bool ConsumerImpl::RevokePartitions(const rd_kafka_topic_partition_list_t* partitions) {
     LOG_INFO() << "Revoking existing partitions from consumer";
 
     PrintTopicPartitionsList(partitions, [](const rd_kafka_topic_partition_t& partition) {
@@ -203,10 +204,11 @@ void ConsumerImpl::RevokePartitions(const rd_kafka_topic_partition_list_t* parti
     const auto revocation_err = rd_kafka_assign(consumer_.GetHandle(), nullptr);
     if (revocation_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
         LOG_ERROR() << fmt::format("Failed to revoke partitions: {}", rd_kafka_err2str(revocation_err));
-        return;
+        return false;
     }
 
     LOG_INFO() << "Successfully revoked partitions";
+    return true;
 }
 
 void ConsumerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason, bool is_fatal) {
@@ -236,14 +238,18 @@ void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_top
 
     switch (err) {
         case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
-            AssignPartitions(partitions);
+            bool ok = AssignPartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_subscribed", name_));
-            UserRebalanceCallback(partitions, RebalanceEventType::kAssigned);
+            if (ok) {
+                UserRebalanceCallback(partitions, RebalanceEventType::kAssigned);
+            }
             break;
         case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
-            RevokePartitions(partitions);
+            bool ok = RevokePartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_revoked", name_));
-            UserRebalanceCallback(partitions, RebalanceEventType::kRevoked);
+            if (ok) {
+                UserRebalanceCallback(partitions, RebalanceEventType::kRevoked);
+            }
             break;
         default:
             LOG_ERROR() << fmt::format("Failed when rebalancing: {}", rd_kafka_err2str(err));
