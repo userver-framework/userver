@@ -146,6 +146,7 @@ private:
 private:
     std::atomic<bool> processing_{false};
     Stats stats_;
+    std::optional<ConsumerRebalanceCallback> rebalance_callback_opt_;
 
     const std::string name_;
     const std::vector<std::string> topics_;

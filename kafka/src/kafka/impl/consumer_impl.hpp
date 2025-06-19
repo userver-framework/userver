@@ -29,7 +29,13 @@ class ConsumerImpl final {
     using MessageBatch = std::vector<Message>;
 
 public:
-    ConsumerImpl(const std::string& name, const ConfHolder& conf, const std::vector<std::string>& topics, Stats& stats);
+    ConsumerImpl(
+        const std::string& name,
+        std::optional<ConsumerRebalanceCallback> rebalance_callback_opt,
+        const ConfHolder& conf,
+        const std::vector<std::string>& topics,
+        Stats& stats
+    );
 
     const Stats& GetStats() const;
 
@@ -63,12 +69,6 @@ public:
 
     /// @brief Seeks the partition ID for the specified \b topic to the end offset .
     void SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
-
-    /// @brief Sets the \b rebalance_callback for consumer. It is called after assigning and revoking the partitions.
-    void SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback);
-
-    /// @brief Removes the rebalance callback for consumer. It is called after assigning and revoking the partitions.
-    void ResetRebalanceCallback();
 
     /// @brief Effectively calls `PollMessage` until `deadline` is reached
     /// and no more than `max_batch_size` messages polled.
@@ -149,11 +149,11 @@ private:
 
 private:
     const std::string& name_;
+    std::optional<ConsumerRebalanceCallback> rebalance_callback_opt_;
     Stats& stats_;
 
     const std::vector<std::string> topics_;
 
-    ConsumerRebalanceCallback rebalance_callback_;
     engine::SingleConsumerEvent queue_became_non_empty_event_;
 
     ConsumerHolder consumer_;

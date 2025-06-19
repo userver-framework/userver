@@ -66,7 +66,7 @@ Consumer::Consumer(
       consumer_blocking_task_processor_(consumer_blocking_task_processor),
       main_task_processor_(main_task_processor),
       conf_(Configuration{name, configuration, secrets}.Release()),
-      consumer_(std::make_unique<ConsumerImpl>(name_, conf_, topics_, stats_)) {
+      consumer_(std::make_unique<ConsumerImpl>(name_, rebalance_callback_opt_, conf_, topics_, stats_)) {
     /// To check configuration validity
     [[maybe_unused]] auto _ = ConsumerHolder{conf_};
 }
@@ -93,7 +93,7 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
     // note: Consumer must be recreated after each stop,
     // because stop invalidates some internal consumer state (in librdkafka).
     // Nevertheless, it is possible to use blocking consumer methods after stop.
-    consumer_ = std::make_unique<ConsumerImpl>(name_, conf_, topics_, stats_);
+    consumer_ = std::make_unique<ConsumerImpl>(name_, rebalance_callback_, conf_, topics_, stats_);
     consumer_->StartConsuming();
 
     LOG_INFO() << fmt::format("Started messages polling");
@@ -258,7 +258,7 @@ void Consumer::SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback
         "call ."
     );
 
-    consumer_->SetRebalanceCallback(std::move(rebalance_callback));
+    rebalance_callback_opt_ = rebalance_callback;
 }
 
 void Consumer::ResetRebalanceCallback() {
@@ -268,7 +268,7 @@ void Consumer::ResetRebalanceCallback() {
         "call ."
     );
 
-    consumer_->ResetRebalanceCallback();
+    rebalance_callback_opt_ = std::nullopt;
 }
 
 void Consumer::Stop() noexcept {

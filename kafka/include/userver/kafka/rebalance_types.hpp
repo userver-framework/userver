@@ -10,15 +10,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka {
 
-enum class RebalanceEventType : int { kAssigned, kRevoked };
+enum class RebalanceEventType { kAssigned, kRevoked };
 
 /// @brief Represents the topic's partition for certain topic.
 struct TopicPartitionView final {
     /// @brief Topic's name.
-    std::string_view topic;
+    utils::NullTerminatedView topic;
 
     /// @brief Partition ID for a topic
     std::uint32_t partition_id;
+
+    /// @brief Offset for current partition.
+    std::uint64_t offset;
 };
 
 using TopicPartitionBatchView = utils::span<const TopicPartitionView>;
