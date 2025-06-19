@@ -153,8 +153,7 @@ void PrintTopicPartitionsList(
     }
 
     const utils::span<const rd_kafka_topic_partition_t> topic_partitions{
-        list->elems, list->elems + static_cast<std::size_t>(list->cnt)
-    };
+        list->elems, list->elems + static_cast<std::size_t>(list->cnt)};
     for (const auto& topic_partition : topic_partitions) {
         if (skip_invalid_offsets && topic_partition.offset == RD_KAFKA_OFFSET_INVALID) {
             /// @note `librdkafka` does not sets offsets for partitions that were
