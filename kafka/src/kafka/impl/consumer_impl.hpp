@@ -129,7 +129,7 @@ private:
     bool RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
 
     /// @brief Calls user's rebalance callback if it is set.
-    void UserRebalanceCallback(const rd_kafka_topic_partition_list_s* partitions, RebalanceEventType event_type);
+    void CallUserverRebalanceCallback(const rd_kafka_topic_partition_list_s* partitions, RebalanceEventType event_type);
 
     /// @brief Seeks the partition ID for the specified \b topic to a given \b offset .
     void SeekToOffset(

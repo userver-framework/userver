@@ -242,14 +242,14 @@ void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_top
             bool ok = AssignPartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_subscribed", name_));
             if (ok) {
-                UserRebalanceCallback(partitions, RebalanceEventType::kAssigned);
+                CallUserverRebalanceCallback(partitions, RebalanceEventType::kAssigned);
             }
             break;
         case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
             bool ok = RevokePartitions(partitions);
             CallTestpoints(partitions, fmt::format("tp_{}_revoked", name_));
             if (ok) {
-                UserRebalanceCallback(partitions, RebalanceEventType::kRevoked);
+                CallUserverRebalanceCallback(partitions, RebalanceEventType::kRevoked);
             }
             break;
         default:
@@ -258,7 +258,7 @@ void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_top
     }
 }
 
-void ConsumerImpl::UserRebalanceCallback(
+void ConsumerImpl::CallUserverRebalanceCallback(
     const rd_kafka_topic_partition_list_s* partitions,
     RebalanceEventType event_type
 ) try {
