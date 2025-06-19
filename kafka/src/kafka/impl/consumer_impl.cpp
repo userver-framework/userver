@@ -279,7 +279,7 @@ void ConsumerImpl::CallUserverRebalanceCallback(
                 "Skipped topic: {} partition: {} offset: {} for user's rebalance callback, because got negative number "
                 "for partition id or offset from "
                 "librdkafka.",
-                std::string(topic_partition.topic),
+                topic_partition.topic,
                 topic_partition.partition,
                 topic_partition.offset
             );
