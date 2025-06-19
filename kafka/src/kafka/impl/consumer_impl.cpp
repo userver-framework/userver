@@ -351,11 +351,12 @@ OffsetRange ConsumerImpl::GetOffsetRange(
     if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
         throw OffsetRangeException{fmt::format("Failed to get offsets: {}", rd_kafka_err2str(err)), topic, partition};
     }
-    if (low_offset == RD_KAFKA_OFFSET_INVALID || high_offset == RD_KAFKA_OFFSET_INVALID) {
-        throw OffsetRangeException{fmt::format("Failed to get offsets: invalid offset."), topic, partition};
+    if (low_offset == RD_KAFKA_OFFSET_INVALID || high_offset == RD_KAFKA_OFFSET_INVALID || low_offset < 0 ||
+        high_offset < 0) {
+        throw OffsetRangeException{"Failed to get offsets: invalid offset.", topic, partition};
     }
 
-    return {low_offset, high_offset};
+    return {static_cast<std::uint64_t>(low_offset), static_cast<std::uint64_t>(high_offset)};
 }
 
 std::vector<std::uint32_t>
