@@ -32,8 +32,8 @@ public:
     ConsumerImpl(
         const std::string& name,
         std::optional<ConsumerRebalanceCallback> rebalance_callback_opt,
-        const ConfHolder& conf,
         const std::vector<std::string>& topics,
+        const ConfHolder& conf,
         Stats& stats
     );
 
@@ -149,10 +149,9 @@ private:
 
 private:
     const std::string& name_;
-    std::optional<ConsumerRebalanceCallback> rebalance_callback_opt_;
-    Stats& stats_;
-
+    const std::optional<ConsumerRebalanceCallback> rebalance_callback_opt_;
     const std::vector<std::string> topics_;
+    Stats& stats_;
 
     engine::SingleConsumerEvent queue_became_non_empty_event_;
 

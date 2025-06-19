@@ -333,14 +333,14 @@ void ConsumerImpl::OffsetCommitCallback(
 ConsumerImpl::ConsumerImpl(
     const std::string& name,
     std::optional<ConsumerRebalanceCallback> rebalance_callback_opt,
-    const ConfHolder& conf,
     const std::vector<std::string>& topics,
+    const ConfHolder& conf,
     Stats& stats
 )
     : name_(name),
       rebalance_callback_opt_(std::move(rebalance_callback_opt)),
-      stats_(stats),
       topics_(topics),
+      stats_(stats),
       consumer_(conf) {}
 
 const Stats& ConsumerImpl::GetStats() const { return stats_; }
