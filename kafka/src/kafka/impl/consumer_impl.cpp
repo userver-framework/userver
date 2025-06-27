@@ -442,7 +442,8 @@ ConsumerImpl::GetPartitionIds(const std::string& topic, std::optional<std::chron
     }()};
 
     const utils::span<const rd_kafka_metadata_topic> topics{
-        metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)};
+        metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)
+    };
     const auto* topic_it =
         std::find_if(topics.begin(), topics.end(), [&topic](const rd_kafka_metadata_topic& topic_raw) {
             return topic == topic_raw.topic;
@@ -452,7 +453,8 @@ ConsumerImpl::GetPartitionIds(const std::string& topic, std::optional<std::chron
     }
 
     const utils::span<const rd_kafka_metadata_partition> partitions{
-        topic_it->partitions, static_cast<std::size_t>(topic_it->partition_cnt)};
+        topic_it->partitions, static_cast<std::size_t>(topic_it->partition_cnt)
+    };
     std::vector<std::uint32_t> partition_ids;
     partition_ids.reserve(partitions.size());
 
@@ -628,7 +630,9 @@ void ConsumerImpl::Seek(
     std::chrono::milliseconds timeout
 ) const {
     if (offset > std::numeric_limits<std::int64_t>::max()) {
-        throw SeekException(fmt::format("Offset value have to be <= std::int64_t::max() . offset: {}", offset));
+        throw SeekInvalidArgumentException(
+            fmt::format("Offset value have to be <= std::int64_t::max() . offset: {}", offset)
+        );
     }
 
     SeekToOffset(topic, partition_id, static_cast<std::int64_t>(offset), timeout);
@@ -641,7 +645,7 @@ void ConsumerImpl::SeekToOffset(
     std::chrono::milliseconds timeout
 ) const {
     if (timeout.count() <= 0) {
-        throw SeekException(fmt::format("Timeout value have to be > 0. value: {}ms", timeout.count()));
+        throw SeekInvalidArgumentException(fmt::format("Timeout value have to be > 0. value: {}ms", timeout.count()));
     }
 
     TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(1)};
@@ -653,7 +657,7 @@ void ConsumerImpl::SeekToOffset(
         consumer_.GetHandle(), topic_partitions_list.GetHandle(), static_cast<int>(timeout.count())
     );
     if (err == nullptr) {
-        LOG_DEBUG() << fmt::format(
+        LOG_INFO() << fmt::format(
             "Seeked to offset: {}"
             " for partition: {} topic: {} successfully",
             offset,

@@ -118,8 +118,8 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
 
         auto batch_processing_task =
             utils::Async(main_task_processor_, "messages_processing", callback, utils::span{polled_messages});
-        const utils::ScopeGuard callback_duration_notifier{
-            CreateDurationNotifier(execution_params.max_callback_duration)};
+        const utils::ScopeGuard callback_duration_notifier{CreateDurationNotifier(execution_params.max_callback_duration
+        )};
 
         try {
             batch_processing_task.Get();
@@ -258,7 +258,7 @@ void Consumer::SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback
         "call ."
     );
 
-    rebalance_callback_opt_ = rebalance_callback;
+    rebalance_callback_opt_ = std::move(rebalance_callback);
 }
 
 void Consumer::ResetRebalanceCallback() {
