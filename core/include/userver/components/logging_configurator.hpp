@@ -6,8 +6,7 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
-#include <userver/dynamic_config/source.hpp>
-#include <userver/rcu/rcu.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 #include <dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.hpp>
 
@@ -58,8 +57,9 @@ public:
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
+    utils::statistics::MetricsStoragePtr metrics_storage_;
+    // config_subscription_ must be the last field!
     concurrent::AsyncEventSubscriberScope config_subscription_;
-    rcu::Variable<logging::DynamicDebugConfig> dynamic_debug_;
 };
 
 /// }@

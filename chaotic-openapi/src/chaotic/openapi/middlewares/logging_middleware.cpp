@@ -16,12 +16,12 @@ LoggingMiddleware::LoggingMiddleware(logging::Level request_level, logging::Leve
 
 void LoggingMiddleware::OnRequest(clients::http::Request& request) {
     LOG(request_level_) << "Request body: " << utils::log::ToLimitedUtf8(request.GetData(), body_log_limit_)
-                        << ::logging::LogExtra{{"http_url", request.GetUrl()}};
+                        << USERVER_NAMESPACE::logging::LogExtra{{"http_url", request.GetUrl()}};
 }
 
 void LoggingMiddleware::OnResponse(clients::http::Response& response) {
     LOG(response_level_) << "Response body: " << utils::log::ToLimitedUtf8(response.body_view(), body_log_limit_)
-                         << ::logging::LogExtra{{"meta_code", response.status_code()}};
+                         << USERVER_NAMESPACE::logging::LogExtra{{"meta_code", response.status_code()}};
 }
 
 std::string LoggingMiddleware::GetStaticConfigSchemaStr() {

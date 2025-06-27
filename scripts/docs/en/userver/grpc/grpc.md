@@ -339,20 +339,18 @@ These are the metrics provided for each gRPC method:
      `TryCancel`. Client-side, this likely means that either the parent
      handler was interrupted, or the RPC was dropped as unnecessary.
      See ugrpc::client::RpcCancelledError and
-     ugrpc::server::RpcInterruptedError
+     ugrpc::server::RpcInterruptedError.
    * `cancelled-by-deadline-propagation` — RPCs, the handling of which was
      interrupted because the deadline specified in the request was reached.
      (Available for both server and client-side.)
      See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation"
    * `network-error` — other RPCs that finished abruptly without a status,
      see ugrpc::client::RpcInterruptedError and
-     ugrpc::server::RpcInterruptedError
+     ugrpc::server::RpcInterruptedError.
 * `abandoned-error` — RPCs that we forgot to `Finish`
-  (always a bug in `ugrpc` usage). Such RPCs also separately report
-  the status or network error that occurred during the automatic
-  request termination
+  A client code drops an RPC object and don't wait of a response from a server OR is a bug in `ugrpc` usage.
 * `deadline-propagated` — RPCs, for which deadline was specified.
-  See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation"
+  See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation".
 * `rps` — requests per second:
   ```
   sum(status) + network-error + cancelled + cancelled-by-deadline-propagation

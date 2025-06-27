@@ -9,66 +9,72 @@
 #include <userver/storages/redis/exception.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
 ReplyData::ReplyData(const redisReply* reply) {
+    UASSERT(data_.index() == utils::UnderlyingValue(Type::kNoReply));
     if (!reply) return;
 
     switch (reply->type) {
         case REDIS_REPLY_STRING:
-            type_ = Type::kString;
-            string_ = std::string(reply->str, reply->len);
+            data_ = String(reply->str, reply->len);
+            UASSERT(data_.index() == utils::UnderlyingValue(Type::kString));
             break;
         case REDIS_REPLY_ARRAY:
-            type_ = Type::kArray;
-            array_.reserve(reply->elements);
-            for (size_t i = 0; i < reply->elements; i++) array_.emplace_back(reply->element[i]);
+            data_ = Array(reply->element, reply->element + reply->elements);
+            UASSERT(data_.index() == utils::UnderlyingValue(Type::kArray));
             break;
         case REDIS_REPLY_INTEGER:
-            type_ = Type::kInteger;
-            integer_ = reply->integer;
+            data_ = reply->integer;
+            UASSERT(data_.index() == utils::UnderlyingValue(Type::kInteger));
             break;
         case REDIS_REPLY_NIL:
-            type_ = Type::kNil;
+            data_ = Nil{};
+            UASSERT(data_.index() == utils::UnderlyingValue(Type::kNil));
             break;
         case REDIS_REPLY_STATUS:
-            type_ = Type::kStatus;
-            string_ = std::string(reply->str, reply->len);
+            data_ = Status(reply->str, reply->len);
+            UASSERT(data_.index() == utils::UnderlyingValue(Type::kStatus));
             break;
         case REDIS_REPLY_ERROR:
-            type_ = Type::kError;
-            string_ = std::string(reply->str, reply->len);
+            data_ = Error(reply->str, reply->len);
+            UASSERT(data_.index() == utils::UnderlyingValue(Type::kError));
             break;
         default:
-            type_ = Type::kNoReply;
+            data_ = NoReply{};
+            UASSERT(data_.index() == utils::UnderlyingValue(Type::kNoReply));
             break;
     }
 }
 
-ReplyData::ReplyData(Array&& array) : type_(Type::kArray), array_(std::move(array)) {}
+ReplyData::ReplyData(Array&& array) : data_(std::move(array)) {}
 
-ReplyData::ReplyData(std::string s) : type_(Type::kString), string_(std::move(s)) {}
+ReplyData::ReplyData(std::string s) : data_(String(std::move(s))) {}
 
-ReplyData::ReplyData(int value) : type_(Type::kInteger), integer_(value) {}
+ReplyData::ReplyData(int value) : data_(Integer{value}) {}
 
 ReplyData ReplyData::CreateError(std::string&& error_msg) {
-    ReplyData data(std::move(error_msg));
-    data.type_ = Type::kError;
+    ReplyData data;
+    data.data_ = Error(std::move(error_msg));
+    UASSERT(data.data_.index() == utils::UnderlyingValue(Type::kError));
     return data;
 }
 
 ReplyData ReplyData::CreateStatus(std::string&& status_msg) {
-    ReplyData data(std::move(status_msg));
-    data.type_ = Type::kStatus;
+    ReplyData data;
+    data.data_ = Status(std::move(status_msg));
+    UASSERT(data.data_.index() == utils::UnderlyingValue(Type::kStatus));
     return data;
 }
 
 ReplyData ReplyData::CreateNil() {
     ReplyData data;
-    data.type_ = Type::kNil;
+    data.data_ = Nil{};
+    UASSERT(data.data_.index() == utils::UnderlyingValue(Type::kNil));
     return data;
 }
 
@@ -81,17 +87,20 @@ std::string ReplyData::ToDebugString() const {
         case ReplyData::Type::kNil:
             return "(nil)";
         case ReplyData::Type::kString:
+            return GetString();
         case ReplyData::Type::kStatus:
+            return GetStatus();
         case ReplyData::Type::kError:
-            return string_;
+            return GetError();
         case ReplyData::Type::kInteger:
-            return std::to_string(integer_);
+            return std::to_string(GetInt());
         case ReplyData::Type::kArray: {
             std::ostringstream os;
+            const auto& array = GetArray();
             os << "[";
-            for (size_t i = 0; i < array_.size(); i++) {
+            for (size_t i = 0; i < array.size(); i++) {
                 if (i) os << ", ";
-                os << array_[i].ToDebugString();
+                os << array[i].ToDebugString();
             }
             os << "]";
             return os.str();
@@ -101,22 +110,13 @@ std::string ReplyData::ToDebugString() const {
     }
 }
 
-ReplyData::KeyValues ReplyData::GetKeyValues() const {
-    if (!IsArray())
-        throw ParseReplyException("Incorrect ReplyData type: expected kArray, found " + TypeToString(GetType()));
-    if (GetArray().size() & 1) throw ParseReplyException("Array size is odd: " + std::to_string(GetArray().size()));
-    for (const auto& elem : GetArray())
-        if (!elem.IsString()) throw ParseReplyException("Non-string element (" + elem.GetTypeString() + ')');
-    return ReplyData::KeyValues(array_);
-}
-
 ReplyData::MovableKeyValues ReplyData::GetMovableKeyValues() {
     if (!IsArray())
         throw ParseReplyException("Incorrect ReplyData type: expected kArray, found " + TypeToString(GetType()));
     if (GetArray().size() & 1) throw ParseReplyException("Array size is odd: " + std::to_string(GetArray().size()));
     for (const auto& elem : GetArray())
         if (!elem.IsString()) throw ParseReplyException("Non-string element (" + elem.GetTypeString() + ')');
-    return ReplyData::MovableKeyValues(array_);
+    return ReplyData::MovableKeyValues(GetArray());
 }
 
 std::string ReplyData::TypeToString(Type type) {
@@ -137,30 +137,32 @@ std::string ReplyData::TypeToString(Type type) {
             return "kError";
     };
 
-    return "Unknown (" + std::to_string(static_cast<int>(type)) + ")";
+    return "Unknown (" + std::to_string(utils::UnderlyingValue(type)) + ")";
 }
 
-size_t ReplyData::GetSize() const {
-    size_t sum = 0;
+std::size_t ReplyData::GetSize() const noexcept {
+    std::size_t sum = 0;
 
-    switch (type_) {
+    switch (GetType()) {
         case Type::kNoReply:
             return 1;
 
         case Type::kArray:
-            for (const auto& data : array_) sum += data.GetSize();
+            for (const auto& data : GetArray()) sum += data.GetSize();
             return sum;
 
         case Type::kInteger:
-            return sizeof(integer_);
+            return sizeof(Integer);
 
         case Type::kNil:
             return 1;
 
         case Type::kString:
+            return GetString().size();
         case Type::kStatus:
+            return GetStatus().size();
         case Type::kError:
-            return string_.size();
+            return GetError().size();
     }
     return 1;
 }
@@ -277,46 +279,6 @@ void Reply::ExpectIsOk(const std::string& request_description) const {
     if (!IsOk()) {
         throw RequestFailedException(GetRequestDescription(request_description), status);
     }
-}
-
-void Reply::ExpectType(ReplyData::Type type, const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectType(type, GetRequestDescription(request_description));
-}
-
-void Reply::ExpectString(const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectString(GetRequestDescription(request_description));
-}
-
-void Reply::ExpectArray(const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectArray(GetRequestDescription(request_description));
-}
-
-void Reply::ExpectInt(const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectInt(GetRequestDescription(request_description));
-}
-
-void Reply::ExpectNil(const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectNil(GetRequestDescription(request_description));
-}
-
-void Reply::ExpectStatus(const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectStatus(GetRequestDescription(request_description));
-}
-
-void Reply::ExpectStatusEqualTo(const std::string& expected_status_str, const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectStatusEqualTo(expected_status_str, GetRequestDescription(request_description));
-}
-
-void Reply::ExpectError(const std::string& request_description) const {
-    ExpectIsOk(request_description);
-    data.ExpectError(GetRequestDescription(request_description));
 }
 
 const std::string& Reply::GetRequestDescription(const std::string& request_description) const {

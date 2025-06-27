@@ -259,7 +259,8 @@ Request& Request::url(std::string url) & {
     /// `curl::easy::set_url(std::string&&, std::error_code&)` doesn't consume the string if fails.
     if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
 
-    impl.SetDestinationMetricNameAuto(USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(impl.easy().get_original_url()));
+    impl.SetDestinationMetricNameAuto(std::string{
+        USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(impl.easy().get_original_url())});
     return *this;
 }
 Request Request::url(std::string url) && { return std::move(this->url(std::move(url))); }

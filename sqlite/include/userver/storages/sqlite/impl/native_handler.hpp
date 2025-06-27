@@ -1,7 +1,7 @@
 #pragma once
 
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/null_terminated_view.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <userver/storages/sqlite/impl/sqlite3_include.hpp>
 #include <userver/storages/sqlite/options.hpp>
@@ -17,7 +17,7 @@ public:
     ~NativeHandler();
 
     struct sqlite3* GetHandle() const noexcept;
-    void Exec(utils::NullTerminatedView query) const;
+    void Exec(utils::zstring_view query) const;
 
 private:
     struct sqlite3* OpenDatabase(const settings::SQLiteSettings& settings);

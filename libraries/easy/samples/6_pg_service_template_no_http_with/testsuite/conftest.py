@@ -1,5 +1,3 @@
-import pathlib
-
 import pytest
 
 from testsuite.databases.pgsql import discover
@@ -7,12 +5,6 @@ from testsuite.databases.pgsql import discover
 pytest_plugins = ['pytest_userver.plugins.postgresql']
 
 USERVER_CONFIG_HOOKS = ['userver_actions_service']
-
-
-@pytest.fixture(scope='session')
-def service_source_dir():
-    """Path to root directory service."""
-    return pathlib.Path(__file__).parent.parent
 
 
 @pytest.fixture(scope='session')

@@ -7,12 +7,12 @@
 #include <userver/engine/task/current_task.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
 #include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/stream.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

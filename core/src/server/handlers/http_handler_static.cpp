@@ -26,9 +26,19 @@ HttpHandlerStatic::HttpHandlerStatic(
       cache_age_(config["expires"].As<std::chrono::seconds>(600)) {}
 
 std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
-    LOG_DEBUG() << "Handler: " << request.GetRequestPath();
+    std::string search_path;
+    search_path.reserve(request.GetRequestPath().size());
+
+    for (std::size_t i = 0; i < request.PathArgCount(); ++i) {
+        auto& arg = request.GetPathArg(i);
+        search_path += "/";
+        search_path += arg;
+    }
+
+    LOG_DEBUG() << "search_path: " << search_path;
+
     auto& response = request.GetHttpResponse();
-    const auto file = storage_.TryGetFile(request.GetRequestPath());
+    const auto file = storage_.TryGetFile(search_path);
     if (file) {
         const auto config = config_.GetSnapshot();
         response.SetHeader(USERVER_NAMESPACE::http::headers::kExpires, std::to_string(cache_age_.count()));

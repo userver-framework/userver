@@ -30,7 +30,7 @@ namespace components {
 /// ---- | ----------- | -------------
 /// port | port to listen on | -
 /// unix-socket | unix socket to listen on instead of listening on a port | ''
-/// task_processor | task processor to accept incoming connections | -
+/// task_processor | task processor to accept incoming connections | the 'default_task_processor' value from components::ManagerControllerComponent
 /// backlog | max count of new connections pending acceptance | 1024
 /// no_delay | whether to set the `TCP_NODELAY` option on incoming sockets | true
 /// sockets_task_processor | task processor to process accepted sockets | value of `task_processor`

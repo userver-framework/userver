@@ -85,7 +85,7 @@ private:
 
     utils::statistics::MetricsStoragePtr metrics_storage_;
     const std::string fs_cache_path_;
-    engine::TaskProcessor* fs_task_processor_;
+    engine::TaskProcessor& fs_task_processor_;
 
     dynamic_config::impl::StorageData cache_;
     std::string fs_loading_error_msg_;
@@ -107,16 +107,9 @@ private:
 DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext& context)
     : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
       fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
-      fs_task_processor_([&] {
-          const auto name = config["fs-task-processor"].As<std::optional<std::string>>();
-          return name ? &context.GetTaskProcessor(*name) : nullptr;
-      }()),
+      fs_task_processor_(GetFsTaskProcessor(config, context)),
       updates_enabled_(config["updates-enabled"].As<bool>(false)),
       fs_write_enabled_(AreCacheDumpsEnabled(context)) {
-    if (!fs_cache_path_.empty() && !fs_task_processor_) {
-        throw std::logic_error("fs-task-processor must be set if there is fs-cache-path");
-    }
-
     ReadFallback(config);
     ReadFsCache();
 
@@ -249,16 +242,9 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
     }
 
     if (default_overrides_path) {
-        if (!fs_task_processor_) {
-            throw std::runtime_error(
-                "dynamic-config.defaults-path option requires specifying "
-                "dynamic-config.fs-task-processor"
-            );
-        }
-
         const tracing::Span span("dynamic_config_fallback_read");
         try {
-            const auto fallback_contents = fs::ReadFileContents(*fs_task_processor_, *default_overrides_path);
+            const auto fallback_contents = fs::ReadFileContents(fs_task_processor_, *default_overrides_path);
             fallback_config_.Parse(fallback_contents, true);
         } catch (const std::exception& ex) {
             throw std::runtime_error(
@@ -279,13 +265,13 @@ void DynamicConfig::Impl::ReadFsCache() {
 
     const tracing::Span span("dynamic_config_fs_cache_read");
     try {
-        if (!fs::FileExists(*fs_task_processor_, fs_cache_path_)) {
+        if (!fs::FileExists(fs_task_processor_, fs_cache_path_)) {
             fs_loading_error_msg_ = "No cache file found";
             LOG_WARNING() << "No filesystem cache for dynamic config found, waiting "
                              "until the updater fetches fresh configs";
             return;
         }
-        const auto contents = fs::ReadFileContents(*fs_task_processor_, fs_cache_path_);
+        const auto contents = fs::ReadFileContents(fs_task_processor_, fs_cache_path_);
 
         dynamic_config::DocsMap docs_map;
         docs_map.Parse(contents, /*empty_ok=*/true);
@@ -313,8 +299,8 @@ void DynamicConfig::Impl::WriteFsCache(const dynamic_config::DocsMap& docs_map) 
         const auto contents = formats::json::ToString(docs_map.AsJson());
         using perms = boost::filesystem::perms;
         auto mode = perms::owner_read | perms::owner_write | perms::group_read | perms::others_read;
-        fs::CreateDirectories(*fs_task_processor_, boost::filesystem::path(fs_cache_path_).parent_path().string());
-        fs::RewriteFileContentsAtomically(*fs_task_processor_, fs_cache_path_, contents, mode);
+        fs::CreateDirectories(fs_task_processor_, boost::filesystem::path(fs_cache_path_).parent_path().string());
+        fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_, contents, mode);
 
         LOG_INFO() << "Successfully wrote dynamic_config from FS cache";
     } catch (const std::exception& e) {
@@ -392,7 +378,7 @@ properties:
     fs-task-processor:
         type: string
         description: name of the task processor to run the blocking file write operations
-        defaultDescription: required if defaults-path or fs-cache-path is specified
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
 )");
 }
 

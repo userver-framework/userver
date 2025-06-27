@@ -2,7 +2,7 @@
 
 #include <userver/components/component_context.hpp>
 
-#include <client/test/component.hpp>
+#include <clients/test/component.hpp>
 
 namespace samples::hello {
 

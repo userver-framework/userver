@@ -10,7 +10,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 
-#include <userver/ugrpc/deadline_timepoint.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 #include <userver/utest/utest.hpp>
 

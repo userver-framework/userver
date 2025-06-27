@@ -48,14 +48,14 @@ UTEST(Query, Works) {
 }
 
 UTEST(Query, VariousTypes) {
-    auto query = "SELECT 42, 'test', 1.0, false, null";
+    auto query = "SELECT 42, 'test', 1.0, false, null, true";
     storages::odbc::Cluster cluster(kSettings);
 
     auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, query);
     EXPECT_EQ(result.Size(), 1);
     EXPECT_FALSE(result.IsEmpty());
     auto row = result[0];
-    EXPECT_EQ(row.Size(), 5);
+    EXPECT_EQ(row.Size(), 6);
 
     auto intField = row[0];
     EXPECT_EQ(intField.GetInt32(), 42);
@@ -67,10 +67,13 @@ UTEST(Query, VariousTypes) {
     EXPECT_DOUBLE_EQ(doubleField.GetDouble(), 1.0);
 
     auto boolField = row[3];
-    EXPECT_EQ(boolField.GetInt32(), 0);
+    EXPECT_EQ(boolField.GetBool(), false);
 
     auto nullField = row[4];
     EXPECT_TRUE(nullField.IsNull());
+
+    auto trueBool = row[5];
+    EXPECT_EQ(trueBool.GetBool(), true);
 }
 
 UTEST(Query, DifferentHostTypes) {
@@ -100,6 +103,7 @@ UTEST(Pool, LessQueriesThanConnections) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 
@@ -120,6 +124,7 @@ UTEST(Pool, EqualQueriesAndConnections) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 
@@ -140,6 +145,7 @@ UTEST(Pool, MoreQueriesThanConnectionsButLessThanPoolSize) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 
@@ -160,6 +166,7 @@ UTEST(Pool, MoreQueriesThanConnectionsAndPoolSize) {
     for (auto& future : futures) {
         auto result = future.Get();
         EXPECT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 1);
     }
 }
 

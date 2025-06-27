@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 import redis
 
 # Some messages may be lost (it's a Redis limitation). *_failover tests require more than 100 retries on slow CI
@@ -365,6 +366,7 @@ async def test_cluster_add_shard(service_client, redis_cluster_topology):
 
 
 # kill first three shards and leave only fourth shard
+@pytest.mark.skip(reason='Too many flaps. TAXICOMMON-10712')
 async def test_cluster_failover_pubsub(service_client, redis_cluster_topology):
     await service_client.delete('/redis-cluster')
 

@@ -217,7 +217,7 @@ std::size_t ResultWrapper::RowsAffected() const {
     return 0;
 }
 
-std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
+std::size_t ResultWrapper::IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const {
     auto n = PQfnumber(handle_.get(), name.c_str());
     if (n < 0) return ResultSet::npos;
     return n;

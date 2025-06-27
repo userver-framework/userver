@@ -155,7 +155,9 @@ HttpHandlerBase::HttpHandlerBase(
 
     auto& server_component = context.FindComponent<components::Server>();
 
-    engine::TaskProcessor& task_processor = context.GetTaskProcessor(GetConfig().task_processor);
+    engine::TaskProcessor& task_processor = GetConfig().task_processor
+                                                ? context.GetTaskProcessor(*GetConfig().task_processor)
+                                                : engine::current_task::GetTaskProcessor();
     try {
         server_component.AddHandler(*this, task_processor);
     } catch (const std::exception& ex) {

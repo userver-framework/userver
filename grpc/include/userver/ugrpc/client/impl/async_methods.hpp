@@ -64,9 +64,16 @@ void StartCall(GrpcStream& stream, CallState& state) {
     CheckOk(state, WaitAndTryCancelIfNeeded(start_call, state.GetContext()), "StartCall");
 }
 
-void PrepareFinish(CallState& state);
+enum class ShouldCallMiddlewares {
+    kNone = 0,
+    kCall = 1,
+};
 
-void ProcessFinish(CallState& state, const google::protobuf::Message* final_response);
+void ProcessFinish(
+    CallState& state,
+    const google::protobuf::Message* final_response,
+    ShouldCallMiddlewares call_middlewares = ShouldCallMiddlewares::kCall
+);
 
 void ProcessFinishCancelled(CallState& state) noexcept;
 
@@ -79,9 +86,10 @@ void Finish(
     GrpcStream& stream,
     CallState& state,
     const google::protobuf::Message* final_response,
-    bool throw_on_error
+    bool throw_on_error,
+    ShouldCallMiddlewares call_middlewares = ShouldCallMiddlewares::kCall
 ) {
-    PrepareFinish(state);
+    state.SetFinished();
 
     FinishAsyncMethodInvocation finish;
     auto& status = state.GetStatus();
@@ -91,7 +99,15 @@ void Finish(
     switch (wait_status) {
         case impl::AsyncMethodInvocation::WaitStatus::kOk:
             state.GetStatsScope().SetFinishTime(finish.GetFinishTime());
-            ProcessFinish(state, final_response);
+            try {
+                ProcessFinish(state, final_response, call_middlewares);
+            } catch (const std::exception& ex) {
+                if (throw_on_error) {
+                    throw;
+                } else {
+                    LOG_WARNING() << "There is a caught exception in 'impl::Finish': " << ex;
+                }
+            }
             if (throw_on_error) {
                 CheckFinishStatus(state);
             }

@@ -37,7 +37,7 @@ namespace components {
 /// pool-statistics-disable | set to true to disable statistics for connection pool | false
 /// thread-name-prefix | set OS thread name to this value | ''
 /// threads | number of threads to process low level HTTP related IO system calls | 8
-/// fs-task-processor | task processor to run blocking HTTP related calls, like DNS resolving or hosts reading | -
+/// fs-task-processor | task processor to run blocking HTTP related calls, like DNS resolving or hosts reading | engine::current_task::GetBlockingTaskProcessor()
 /// destination-metrics-auto-max-size | set max number of automatically created destination metrics | 100
 /// user-agent | User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty | empty
 /// bootstrap-http-proxy | HTTP proxy to use at service start. Will be overridden by @ref USERVER_HTTP_PROXY at runtime config update | ''
@@ -84,6 +84,9 @@ private:
 
 template <>
 inline constexpr bool kHasValidate<HttpClient> = true;
+
+template <>
+inline constexpr auto kConfigFileMode<HttpClient> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

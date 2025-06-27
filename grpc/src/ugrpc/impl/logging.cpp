@@ -1,7 +1,5 @@
 #include <ugrpc/impl/logging.hpp>
 
-#include <memory>
-
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
@@ -15,19 +13,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
+const std::string kBodyTag{"body"};
+const std::string kCodeTag{"grpc_code"};
 const std::string kComponentTag{"grpc_component"};
+const std::string kMessageMarshalledLenTag{"grpc_message_marshalled_len"};
 const std::string kTypeTag{"grpc_type"};
 
-std::string GetMessageForLogging(const google::protobuf::Message& message, MessageLoggingOptions options) {
-    if (!logging::ShouldLog(options.log_level)) {
-        return "hidden by log level";
-    }
-    return ugrpc::impl::ToLimitedDebugString(message, options.max_size);
+std::string GetMessageForLogging(const google::protobuf::Message& message, std::size_t max_size) {
+    return ugrpc::impl::ToLimitedDebugString(message, max_size);
 }
 
 std::string GetErrorDetailsForLogging(const grpc::Status& status) {
     if (status.ok()) {
-        return {};
+        return "";
     }
 
     const auto gstatus = ugrpc::ToGoogleRpcStatus(status);

@@ -143,6 +143,11 @@ components_manager:
     logging:
       fs-task-processor: fs-task-processor
       loggers:
+        default:
+          file_path: $default_log_path
+          level: $log_level
+          level#fallback: debug
+          overflow_behavior: discard
         access:
           file_path: $access_log_path
           overflow_behavior: discard
@@ -151,11 +156,6 @@ components_manager:
           file_path: $access_tskv_log_path
           overflow_behavior: discard
           format: raw
-        default:
-          file_path: $default_log_path
-          level: $log_level
-          level#fallback: debug
-          overflow_behavior: discard
         tracer:
           file_path: '@stdout'
           overflow_behavior: discard

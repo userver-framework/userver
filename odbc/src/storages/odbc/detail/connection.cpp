@@ -1,6 +1,8 @@
 #include <storages/odbc/detail/connection.hpp>
 
-#include <stdexcept>
+#include <storages/odbc/detail/diag_wrapper.hpp>
+#include <userver/storages/odbc/exception.hpp>
+
 #include <vector>
 
 #include <fmt/format.h>
@@ -12,26 +14,6 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::odbc {
 
 namespace {
-
-std::string ErrorString(SQLHANDLE handle, SQLSMALLINT type) {
-    std::string result;
-
-    for (SQLINTEGER i = 1;; ++i) {
-        SQLINTEGER native;
-        SQLCHAR state[7];
-        SQLCHAR text[SQL_MAX_MESSAGE_LENGTH];
-        SQLSMALLINT len;
-
-        const auto ret = SQLGetDiagRec(type, handle, i, state, &native, text, sizeof(text), &len);
-        if (!SQL_SUCCEEDED(ret)) {
-            break;
-        }
-
-        result += fmt::format("{} (code {})", reinterpret_cast<char*>(&text[0]), native);
-    }
-
-    return result;
-}
 
 void DestroyEnvironmentHandle(SQLHENV handle) {
     if (handle != SQL_NULL_HENV) {
@@ -50,7 +32,9 @@ Connection::EnvironmentHandle MakeEnvironmentHandle() {
     SQLHENV env = SQL_NULL_HENV;
     SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to allocate environment handle");
+        throw ConnectionError(
+            "Failed to allocate environment handle:" + detail::GetSQLDiagString(SQL_NULL_HANDLE, SQL_HANDLE_ENV)
+        );
     }
 
     return Connection::EnvironmentHandle(env, &DestroyEnvironmentHandle);
@@ -60,7 +44,9 @@ Connection::DatabaseHandle MakeDatabaseHandle(SQLHENV env) {
     SQLHDBC dbc = SQL_NULL_HDBC;
     SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to allocate connection handle");
+        throw ConnectionError(
+            "Failed to allocate connection handle:" + detail::GetSQLDiagString(SQL_NULL_HANDLE, SQL_HANDLE_DBC)
+        );
     }
 
     return Connection::DatabaseHandle(dbc, &DestroyDatabaseHandle);
@@ -73,12 +59,14 @@ Connection::Connection(const std::string& dsn)
     SQLRETURN ret =
         SQLSetEnvAttr(env_.get(), SQL_ATTR_CONNECTION_POOLING, reinterpret_cast<SQLPOINTER>(SQL_CP_ONE_PER_DRIVER), 0);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to set connection pooling attribute");
+        throw ConnectionError(
+            "Failed to set connection pooling attribute:" + detail::GetSQLDiagString(env_.get(), SQL_HANDLE_ENV)
+        );
     }
 
     ret = SQLSetEnvAttr(env_.get(), SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to set ODBC version");
+        throw ConnectionError("Failed to set ODBC version:" + detail::GetSQLDiagString(env_.get(), SQL_HANDLE_ENV));
     }
 
     handle_ = MakeDatabaseHandle(env_.get());
@@ -87,18 +75,22 @@ Connection::Connection(const std::string& dsn)
     dsnBuffer.push_back('\0');
     ret = SQLDriverConnect(handle_.get(), nullptr, dsnBuffer.data(), SQL_NTS, nullptr, 0, nullptr, SQL_DRIVER_COMPLETE);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to connect to database: " + ErrorString(handle_.get(), SQL_HANDLE_DBC));
+        throw ConnectionError(
+            "Failed to connect to database: " + detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+        );
     }
 
     SQLUINTEGER scrollOption = 0;
     ret = SQLGetInfo(handle_.get(), SQL_SCROLL_OPTIONS, &scrollOption, sizeof(scrollOption), nullptr);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to get scroll options");
+        throw ConnectionError(
+            "Failed to get scroll options:" + detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+        );
     }
 
     // TODO: add support for other scroll options
     if (!(scrollOption & SQL_FD_FETCH_ABSOLUTE)) {
-        throw std::runtime_error("SQL_FD_FETCH_ABSOLUTE is not supported");
+        throw ConnectionError("SQL_FD_FETCH_ABSOLUTE is not supported");
     }
 }
 
@@ -109,7 +101,7 @@ ResultSet Connection::Query(const std::string& query) {
     query_buffer.push_back('\0');
     SQLRETURN ret = SQLExecDirect(stmt.get(), query_buffer.data(), SQL_NTS);
     if (!SQL_SUCCEEDED(ret)) {
-        throw std::runtime_error("Failed to execute query");
+        throw StatementError("Failed to execute query:" + detail::GetSQLDiagString(stmt.get(), SQL_HANDLE_STMT));
     }
 
     auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(stmt));

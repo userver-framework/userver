@@ -50,6 +50,7 @@ class Parser:
             return openapi.OpenApi
         elif 'swagger' in schema or 'definitions' in schema:
             return swagger.Swagger
+        assert False, schema
 
     def _convert_openapi_header(
         self,
@@ -99,8 +100,10 @@ class Parser:
     RIGHT_SLASH_RE = re.compile('/[^/]*$')
 
     def _locate_ref(self, ref: str) -> str:
+        if ref.startswith('#'):
+            return self._state.full_filepath + ref
         cur = re.sub(self.RIGHT_SLASH_RE, '/', self._state.full_filepath)
-        return self._normalize_ref(cur + ref)
+        return chaotic_parser.SchemaParser._normalize_ref(cur + ref)
 
     def _convert_openapi_parameter(
         self,
@@ -252,14 +255,20 @@ class Parser:
             assert ref.count('#') == 1, ref
             return model.Ref(ref)
 
-        schema = self._parse_schema(response.schema_, infile_path + '/schema')
+        if response.schema_:
+            schema = self._parse_schema(response.schema_, infile_path + '/schema')
+            content = {
+                mime: model.MediaType(schema=schema, examples=response.examples.get(mime, {})) for mime in produces
+            }
+        else:
+            content = {}
         return model.Response(
             description=response.description,
             headers={
                 name: self._convert_swagger_header(name, header, infile_path + f'/headers/{name}')
                 for name, header in response.headers.items()
             },
-            content={mime: model.MediaType(schema=schema, examples=response.examples[mime]) for mime in produces},
+            content=content,
         )
 
     def _convert_openapi_request_body(
@@ -455,7 +464,7 @@ class Parser:
                 self._append_openapi_operation(path, 'head', path_item.head, _convert_op_security, path_params)
                 self._append_openapi_operation(path, 'patch', path_item.patch, _convert_op_security, path_params)
                 self._append_openapi_operation(path, 'trace', path_item.trace, _convert_op_security, path_params)
-
+            self._make_sure_operations_are_unique()
         elif isinstance(parsed, swagger.Swagger):
             parsed = typing.cast(swagger.Swagger, parsed)
             components_schemas = parsed.definitions
@@ -560,6 +569,7 @@ class Parser:
                 self._append_swagger_operation(
                     parsed.basePath + sw_path, 'patch', sw_path_item.patch, _convert_op_security, _convert_op_params
                 )
+            self._make_sure_operations_are_unique()
         else:
             assert False
 
@@ -576,17 +586,17 @@ class Parser:
         for name, schema in parsed_schemas.schemas.items():
             self._state.service.schemas[name] = schema
 
+    def _make_sure_operations_are_unique(self) -> None:
+        seen = set()
+        for operation in self._state.service.operations:
+            new = (operation.path, operation.method.upper())
+            if new in seen:
+                raise Exception(f'Operation {operation.method.upper()} {operation.path} is duplicated')
+            seen.add(new)
+
     @staticmethod
     def _gen_operation_id(path: str, method: str) -> str:
         return cpp_names.camel_case((path + '_' + method).replace('/', '_'))
-
-    REF_SHRINK_RE = re.compile('/[^/]+/../')
-
-    @staticmethod
-    def _normalize_ref(ref: str) -> str:
-        while Parser.REF_SHRINK_RE.search(ref):
-            ref = re.sub(Parser.REF_SHRINK_RE, '/', ref)
-        return ref
 
     def _parse_schema(self, schema: Any, infile_path: str) -> Union[types.Schema, types.Ref]:
         parser = chaotic_parser.SchemaParser(
@@ -601,7 +611,7 @@ class Parser:
 
         if isinstance(schema_ref, types.Ref):
             ref = types.Ref(
-                self._normalize_ref(schema_ref.ref),
+                chaotic_parser.SchemaParser._normalize_ref(schema_ref.ref),
                 indirect=schema_ref.indirect,
                 self_ref=schema_ref.self_ref,
             )

@@ -4,6 +4,7 @@
 /// @brief @copybrief utils::FastPimpl
 
 #include <cstddef>
+#include <memory>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -81,7 +82,7 @@ public:
 
     ~FastPimpl() noexcept {
         Validate<sizeof(T), alignof(T), noexcept(std::declval<T*>()->~T())>();
-        AsHeld()->~T();
+        std::destroy_at(AsHeld());
     }
 
 private:

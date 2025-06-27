@@ -28,8 +28,8 @@ std::shared_ptr<grpc::ChannelCredentials> MakeDefaultCredentials(impl::AuthType 
 grpc::ChannelArguments MakeChannelArgs(const yaml_config::YamlConfig& channel_args) {
     grpc::ChannelArguments args;
     if (!channel_args.IsMissing()) {
-        LOG_DEBUG() << "Set client ChannelArguments: "
-                    << formats::yaml::ToString(channel_args.As<formats::yaml::Value>());
+        LOG_INFO() << "Set client ChannelArguments: "
+                   << formats::yaml::ToString(channel_args.As<formats::yaml::Value>());
         for (const auto& [key, value] : Items(channel_args)) {
             if (value.IsInt64()) {
                 args.SetInt(ugrpc::impl::ToGrpcString(key), value.As<int>());

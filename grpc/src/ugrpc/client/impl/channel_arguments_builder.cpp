@@ -249,7 +249,7 @@ BuildChannelArguments(const grpc::ChannelArguments& channel_args, const std::opt
         return channel_args;
     }
 
-    LOG_DEBUG() << "Building ChannelArguments, ServiceConfig: " << *service_config;
+    LOG_INFO() << "Building ChannelArguments, ServiceConfig: " << *service_config;
     auto effective_channel_args{channel_args};
     effective_channel_args.SetServiceConfigJSON(ugrpc::impl::ToGrpcString(*service_config));
 #ifdef GRPC_ARG_EXPERIMENTAL_ENABLE_HEDGING

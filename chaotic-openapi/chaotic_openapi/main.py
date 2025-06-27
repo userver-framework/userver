@@ -38,12 +38,14 @@ def do_main():
     spec = translator.Translator(
         parser.service(),
         args.namespace or f'clients::{args.name}',
+        [],
     ).spec()
 
     # render
     ctx = renderer.Context(
         generate_path='',
         clang_format_bin=args.clang_format,
+        uservices_library_tvm_guard_hack=False,
     )
     outputs = renderer.render(spec, ctx)
     renderer.CppOutput.save(outputs, args.output_dir)

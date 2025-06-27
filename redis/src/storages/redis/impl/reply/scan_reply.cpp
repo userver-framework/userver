@@ -7,9 +7,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 ScanReply ScanReply::parse(ReplyPtr reply) {
-    reply->ExpectArray();
-
     const ReplyData& data = reply->data;
+    data.ExpectArray();
 
     const ReplyData::Array& top_array = data.GetArray();
     if (top_array.size() != 2) {

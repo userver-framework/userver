@@ -12,11 +12,11 @@ namespace storages::postgres {
 
 CommandControl Parse(const formats::json::Value& elem, formats::parse::To<CommandControl>);
 
-ConnectionSettings Parse(const formats::json::Value& config, formats::parse::To<ConnectionSettings>);
+ConnectionSettingsDynamic Parse(const formats::json::Value& config, formats::parse::To<ConnectionSettingsDynamic>);
 
 ConnectionSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConnectionSettings>);
 
-PoolSettings Parse(const formats::json::Value& config, formats::parse::To<PoolSettings>);
+PoolSettingsDynamic Parse(const formats::json::Value& config, formats::parse::To<PoolSettingsDynamic>);
 
 PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolSettings>);
 
@@ -37,9 +37,9 @@ struct Config final {
     CommandControl default_command_control;
     CommandControlByHandlerMap handlers_command_control;
     CommandControlByQueryMap queries_command_control;
-    dynamic_config::ValueDict<PoolSettings> pool_settings;
+    dynamic_config::ValueDict<PoolSettingsDynamic> pool_settings;
     dynamic_config::ValueDict<TopologySettings> topology_settings;
-    dynamic_config::ValueDict<ConnectionSettings> connection_settings;
+    dynamic_config::ValueDict<ConnectionSettingsDynamic> connection_settings;
     dynamic_config::ValueDict<StatementMetricsSettings> statement_metrics_settings;
 };
 

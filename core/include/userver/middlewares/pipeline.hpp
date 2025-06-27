@@ -22,7 +22,7 @@ namespace middlewares {
 /// @brief The dependency type between middlewares.
 ///
 /// Iff dependency type from 'X' to 'Y' is `kStrong` and 'Y' is disabled, middlewares pipeline will failure when start,
-/// otherwise (in `kWeak`) we ignore this dependency.
+/// otherwise (`kWeak`) we ignore this dependency.
 enum class DependencyType {
     kStrong = 0,
     kWeak = 1,
@@ -84,7 +84,7 @@ public:
     AnyMiddlewarePipelineComponent(
         const components::ComponentConfig& config,
         const components::ComponentContext& context,
-        impl::BasePipelineConfig&& base_config
+        impl::BuiltInConfig&& builtin_config
     );
 
     static yaml_config::Schema GetStaticConfigSchema();

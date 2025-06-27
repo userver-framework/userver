@@ -23,23 +23,11 @@ bool CheckRatelimit(utils::TokenBucket& rate_limit, std::string_view call_name) 
 
 }  // namespace
 
-void Middleware::SetLimit(std::optional<size_t> new_limit) {
-    if (new_limit) {
-        const auto rps_val = *new_limit;
-        if (rps_val > 0) {
-            rate_limit_.SetMaxSize(rps_val);
-            rate_limit_.SetRefillPolicy({1, utils::TokenBucket::Duration{std::chrono::seconds(1)} / rps_val});
-        } else {
-            rate_limit_.SetMaxSize(0);
-        }
-    } else {
-        rate_limit_.SetMaxSize(1);  // in case it was zero
-        rate_limit_.SetInstantRefillPolicy();
-    }
-}
+Middleware::Middleware(const Settings& settings, std::shared_ptr<utils::TokenBucket> rate_limit)
+    : rate_limit_(std::move(rate_limit)), settings_(settings) {}
 
 void Middleware::OnCallStart(MiddlewareCallContext& context) const {
-    if (!CheckRatelimit(rate_limit_, context.GetCallName())) {
+    if (!CheckRatelimit(*rate_limit_, context.GetCallName())) {
         auto& server_context = context.GetServerContext();
 
         server_context.AddInitialMetadata(ugrpc::impl::kXYaTaxiRatelimitedBy, ugrpc::impl::kHostname);
@@ -47,8 +35,7 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
             ugrpc::impl::kXYaTaxiRatelimitReason, ugrpc::impl::kCongestionControlRatelimitReason
         );
 
-        return context.SetError(grpc::Status{
-            grpc::StatusCode::RESOURCE_EXHAUSTED, "Congestion control: rate limit exceeded"});
+        return context.SetError(grpc::Status{settings_.reject_status_code, "Congestion control: rate limit exceeded"});
     }
 }
 

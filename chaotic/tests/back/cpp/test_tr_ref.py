@@ -44,7 +44,7 @@ def test_simple_ref(clean, cpp_name_func):
             fields={},
         ),
         '::ref': CppRef(
-            raw_cpp_type=type_name.TypeName(''),
+            raw_cpp_type=type_name.TypeName('::ref'),
             json_schema=None,
             nullable=False,
             indirect=False,

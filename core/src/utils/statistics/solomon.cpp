@@ -39,7 +39,15 @@ public:
                     UASSERT(false);
                     return;
                 }
-                WriteToStream(x, builder_);
+                {
+                    const formats::json::StringBuilder::ObjectGuard object_guard{builder_};
+                    builder_.Key("bounds");
+                    WriteToStream(impl::histogram::Access::Bounds(x), builder_);
+                    builder_.Key("buckets");
+                    WriteToStream(impl::histogram::Access::Values(x), builder_);
+                    builder_.Key("inf");
+                    WriteToStream(x.GetValueAtInf(), builder_);
+                }
                 builder_.Key("type");
                 builder_.WriteString("HIST_RATE");
             },

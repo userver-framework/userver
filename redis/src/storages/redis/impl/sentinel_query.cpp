@@ -232,10 +232,15 @@ enum class ClusterSlotsResponseStatus {
 std::optional<std::string> GetIpFromMeta(const ReplyData::Array& host_info_array) {
     if (host_info_array.size() < 4) return std::nullopt;
     const auto& meta = host_info_array[3];
-    if (!meta.IsArray() || meta.GetSize() < 2 || !meta[0].IsString() || !meta[1].IsString() ||
-        meta[0].GetString() != "ip")
+    if (!meta.IsArray() || meta.GetSize() < 2) {
         return std::nullopt;
-    return meta[1].GetString();
+    }
+
+    const auto& array = meta.GetArray();
+    if (!array[0].IsString() || !array[1].IsString() || array[0].GetString() != "ip") {
+        return std::nullopt;
+    }
+    return array[1].GetString();
 }
 
 std::string GetIpFromHostInfo(const ReplyData::Array& host_info_array) {

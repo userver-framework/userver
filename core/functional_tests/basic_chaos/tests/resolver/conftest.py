@@ -136,17 +136,9 @@ async def _dns_mock2_lazy(dns_info2):
     return create_server(dns_info2, 'secondary')
 
 
-@pytest.fixture(name='for_dns_mock_port', scope='session')
-def _for_dns_mock_port(request) -> int:
-    # This fixture might be defined in an outer scope.
-    if 'dns_mock_port' in request.fixturenames:
-        return request.getfixturevalue('dns_mock_port')
-    return 11053
-
-
 @pytest.fixture(scope='session', name='dns_info')
-def _dns_info(for_dns_mock_port) -> DnsInfo:
-    return DnsInfo('::1', for_dns_mock_port)
+def _dns_info(choose_free_port) -> DnsInfo:
+    return DnsInfo('::1', choose_free_port(11053))
 
 
 @pytest.fixture(scope='session', name='dns_info2')

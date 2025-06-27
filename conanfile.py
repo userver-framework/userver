@@ -34,6 +34,7 @@ class UserverConan(ConanFile):
         'with_postgresql': [True, False],
         'with_postgresql_extra': [True, False],
         'with_redis': [True, False],
+        'with_redis_tls': [True, False],
         'with_grpc': [True, False],
         'with_clickhouse': [True, False],
         'with_rabbitmq': [True, False],
@@ -59,6 +60,7 @@ class UserverConan(ConanFile):
         'with_postgresql': True,
         'with_postgresql_extra': False,
         'with_redis': True,
+        'with_redis_tls': True,
         'with_grpc': True,
         'with_clickhouse': True,
         'with_rabbitmq': True,
@@ -80,6 +82,7 @@ class UserverConan(ConanFile):
         'grpc/*:ruby_plugin': False,
         'grpc/*:csharp_plugin': False,
         'grpc/*:objective_c_plugin': False,
+        'hiredis/*:with_ssl': True,
         'librdkafka/*:ssl': True,
         'librdkafka/*:curl': True,
         'librdkafka/*:sasl': True,
@@ -217,6 +220,7 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
         tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
         tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
+        tool_ch.variables['USERVER_FEATURE_REDIS_TLS'] = self.options.with_redis_tls
         tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
         tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
         tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq

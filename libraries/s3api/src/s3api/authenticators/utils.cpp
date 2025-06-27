@@ -9,7 +9,7 @@
 
 #include <userver/clients/http/request.hpp>
 #include <userver/crypto/hash.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,25 +51,7 @@ std::string RemoveExcessiveSpaces(std::string value) {
     return result;
 }
 
-std::string MakeHeaderDate() {
-    static constexpr int kHeaderDateLength{64};
-
-    std::string header_date(kHeaderDateLength, '\0');
-
-    auto time = std::chrono::system_clock::to_time_t(utils::datetime::Now());
-    std::tm ptm{};
-    gmtime_r(&time, &ptm);
-    auto result_len = std::strftime(&header_date.front(), header_date.size(), "%a, %d %b %Y %T %z", &ptm);
-
-    if (result_len) {
-        header_date.resize(result_len);
-    } else {
-        const std::string kErrorMessage{"MakeHeaderDate strftime fail [exceed maxsize]"};
-        throw std::runtime_error{kErrorMessage};
-    }
-
-    return header_date;
-}
+std::string MakeHeaderDate() { return utils::datetime::UtcTimestring(utils::datetime::Now(), "%a, %d %b %Y %T %z"); }
 
 std::string MakeHeaderContentMd5(const std::string& data) {
     return crypto::hash::weak::Md5(data, crypto::hash::OutputEncoding::kBase64);

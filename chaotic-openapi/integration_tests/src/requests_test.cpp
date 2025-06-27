@@ -6,13 +6,13 @@
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
 
-#include <client/multiple_content_types/requests.hpp>
+#include <clients/multiple_content_types/requests.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-namespace client = ::clients::multiple_content_types::test1_post;
+namespace client = ::clients::multiple_content_types::test1::post;
 
 UTEST(RequestsMultipleContentTypes, Json) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {

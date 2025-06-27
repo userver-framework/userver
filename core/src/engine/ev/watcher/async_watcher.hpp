@@ -17,6 +17,7 @@ public:
     ~AsyncWatcher();
 
     void Start();
+    void Stop();
 
     void Send();
 

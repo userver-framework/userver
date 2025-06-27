@@ -28,7 +28,8 @@ void MiddlewarePipeline::PostRecvMessage(CallState& state, const google::protobu
     }
 }
 
-void MiddlewarePipeline::PostFinish(CallState& state, const grpc::Status& status) {
+void MiddlewarePipeline::PostFinish(CallState& state) {
+    const auto& status = state.GetStatus();
     MiddlewareCallContext context{state};
     for (const auto& mw : state.GetMiddlewares()) {
         mw->PostFinish(context, status);

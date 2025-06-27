@@ -7,9 +7,9 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/get_all.hpp>
 
-#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

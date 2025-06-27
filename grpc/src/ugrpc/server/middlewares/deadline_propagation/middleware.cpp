@@ -11,10 +11,10 @@
 
 #include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 #include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 #include <dynamic_config/variables/USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE.hpp>
@@ -57,7 +57,7 @@ bool CheckAndSetupDeadline(
         return true;
     }
 
-    auto deadline_duration = ugrpc::impl::ExtractDeadlineDuration(server_context.raw_deadline());
+    auto deadline_duration = ugrpc::TimespecToDuration(server_context.raw_deadline());
 
     const auto per_attempt_timeout = ExtractPerAttemptTimeout(server_context);
     if (per_attempt_timeout.has_value()) {

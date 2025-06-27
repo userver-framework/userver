@@ -1,4 +1,4 @@
-# postgres template on
+# postgresql template on
 # Start the tests via `make test-debug` or `make test-release`
 
 import pytest
@@ -36,4 +36,4 @@ async def test_db_initial_data(service_client):
     assert response.text == 'Hi again, user-from-initial_data.sql!\n'
 
 
-# postgres template on
+# postgresql template on

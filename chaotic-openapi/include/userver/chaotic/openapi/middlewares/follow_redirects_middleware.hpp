@@ -42,6 +42,6 @@ public:
 USERVER_NAMESPACE_END
 
 template <>
-inline constexpr auto
-    USERVER_NAMESPACE::components::kConfigFileMode<chaotic::openapi::FollowRedirectsMiddlewareFactory> =
-        USERVER_NAMESPACE::components::ConfigFileMode::kNotRequired;
+inline constexpr auto USERVER_NAMESPACE::components::kConfigFileMode<
+    USERVER_NAMESPACE::chaotic::openapi::FollowRedirectsMiddlewareFactory> =
+    USERVER_NAMESPACE::components::ConfigFileMode::kNotRequired;

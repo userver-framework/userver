@@ -60,9 +60,11 @@ public:
     bool IsValid() const override;
 
     /// Suspends current task until the socket has data available.
+    /// @returns false on timeout or on task cancellations; true otherwise.
     [[nodiscard]] bool WaitReadable(Deadline) override;
 
     /// Suspends current task until the socket can accept more data.
+    /// @returns false on timeout or on task cancellations; true otherwise.
     [[nodiscard]] bool WaitWriteable(Deadline) override;
 
     /// @brief Receives at least one byte from the socket.

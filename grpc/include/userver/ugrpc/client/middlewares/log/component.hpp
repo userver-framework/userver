@@ -27,9 +27,9 @@ struct Settings;
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// msg-log-level | log level to use for request and response messages themselves | debug
+/// log-level | log level threshold | debug
+/// msg-log-level | logging level to use for request and response messages themselves | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
-/// local-log-level | local log level for the span with client logs | debug
 ///
 /// ## Static configuration example:
 ///

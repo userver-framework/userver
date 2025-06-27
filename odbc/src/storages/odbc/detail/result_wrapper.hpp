@@ -38,6 +38,7 @@ public:
     std::int32_t GetInt32(std::size_t row, std::size_t col) const;
     std::int64_t GetInt64(std::size_t row, std::size_t col) const;
     double GetDouble(std::size_t row, std::size_t col) const;
+    bool GetBool(std::size_t row, std::size_t col) const;
 
     bool IsFieldNull(std::size_t row, std::size_t col) const;
 

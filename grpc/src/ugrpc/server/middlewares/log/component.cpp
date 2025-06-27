@@ -14,6 +14,7 @@ namespace ugrpc::server::middlewares::log {
 
 Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
     Settings settings;
+    settings.log_level = config["log-level"].As<logging::Level>(settings.log_level);
     settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
     settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
     settings.local_log_level = config["local-log-level"].As<logging::Level>(settings.local_log_level);
@@ -44,15 +45,18 @@ type: object
 description: gRPC service logger component
 additionalProperties: false
 properties:
+    log-level:
+        type: string
+        description: set log level threshold
     msg-log-level:
         type: string
-        description: gRPC message body logging level
+        description: set up logging level for request/response messages
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated
     local-log-level:
         type: string
-        description: local log level for the span with client logs
+        description: local log level of the span for user-provided handler
 )");
 }
 

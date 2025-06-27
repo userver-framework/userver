@@ -54,7 +54,9 @@ void PortInfo::Init(
 ) {
     LOG_DEBUG() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
-    engine::TaskProcessor& task_processor = component_context.GetTaskProcessor(listener_config.task_processor);
+    engine::TaskProcessor& task_processor = listener_config.task_processor
+                                                ? component_context.GetTaskProcessor(*listener_config.task_processor)
+                                                : engine::current_task::GetTaskProcessor();
 
     request_handler_.emplace(
         component_context, config.logger_access, config.logger_access_tskv, is_monitor, config.server_name

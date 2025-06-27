@@ -9,7 +9,7 @@ def test_array_int(simple_gen):
     types = simple_gen({'type': 'array', 'items': {'type': 'integer'}})
     assert types == {
         '::type': CppArray(
-            raw_cpp_type=type_name.TypeName('NOT_USED'),
+            raw_cpp_type=type_name.TypeName('::type'),
             user_cpp_type=None,
             json_schema=None,
             nullable=False,
@@ -33,12 +33,12 @@ def test_array_array_with_validators(simple_gen):
     })
     assert types == {
         '::type': CppArray(
-            raw_cpp_type=type_name.TypeName('NOT_USED'),
+            raw_cpp_type=type_name.TypeName('::type'),
             user_cpp_type=None,
             json_schema=None,
             nullable=False,
             items=CppArray(
-                raw_cpp_type=type_name.TypeName('NOT_USED'),
+                raw_cpp_type=type_name.TypeName('::typeA'),
                 user_cpp_type=None,
                 json_schema=None,
                 nullable=False,

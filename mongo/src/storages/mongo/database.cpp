@@ -35,7 +35,7 @@ void Database::DropDatabase() {
     }
 }
 
-bool Database::HasCollection(utils::NullTerminatedView collection_name) const {
+bool Database::HasCollection(utils::zstring_view collection_name) const {
     if (!utils::text::IsCString(collection_name)) {
         throw MongoException(utils::StrCat("Invalid collection name: '", collection_name, "\'"));
     }

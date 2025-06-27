@@ -72,7 +72,7 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Li
     config.handler_defaults = value["handler-defaults"].As<request::HttpRequestConfig>();
     config.max_connections = value["max_connections"].As<size_t>(config.max_connections);
     config.shards = value["shards"].As<std::optional<size_t>>(config.shards);
-    config.task_processor = value["task_processor"].As<std::string>();
+    config.task_processor = value["task_processor"].As<std::optional<std::string>>();
     config.backlog = value["backlog"].As<int>(config.backlog);
 
     config.ports = value["ports"].As<std::vector<PortConfig>>({});

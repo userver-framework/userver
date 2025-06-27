@@ -2,7 +2,9 @@
 
 #include <logging/dynamic_debug.hpp>
 #include <logging/dynamic_debug_config.hpp>
+#include <userver/alerts/source.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/tracing/tracer.hpp>
@@ -28,14 +30,17 @@ const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
   }
 )"}};
 
+alerts::Source kDynamicDebugInvalidLocation{"dynamic_debug_invalid_location"};
+
 }  // namespace
 
-LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context) {
+LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context)
+    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()) {
     logging::impl::SetLogLimitedEnable(config["limited-logging-enable"].As<bool>());
     logging::impl::SetLogLimitedInterval(config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
     config_subscription_ = context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
-        this, kName, &LoggingConfigurator::OnConfigUpdate
+        this, kName, &LoggingConfigurator::OnConfigUpdate, ::dynamic_config::USERVER_NO_LOG_SPANS, kDynamicDebugConfig
     );
 }
 
@@ -45,38 +50,45 @@ void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config)
     (void)this;  // silence clang-tidy
     tracing::SetNoLogSpans(tracing::NoLogSpans{config[::dynamic_config::USERVER_NO_LOG_SPANS]});
 
-    try {
-        const auto& dd = config[kDynamicDebugConfig];
-        auto old_dd = dynamic_debug_.Read();
-        if (!(*old_dd == dd)) {
-            auto lock = dynamic_debug_.StartWrite();
-            *lock = dd;
+    const auto& dd = config[kDynamicDebugConfig];
 
-            /* There is a race between multiple AddDynamicDebugLog(), thus some logs
-             * may be logged or not logged by mistake. This is on purpose as logging
-             * locking would be too slow and heavy.
-             */
+    /* There is a race between multiple AddDynamicDebugLog(), thus some logs
+     * may be logged or not logged by mistake. This is on purpose as logging
+     * locking would be too slow and heavy.
+     */
 
-            // Flush
-            logging::RemoveAllDynamicDebugLog();
+    // Flush
+    logging::RemoveAllDynamicDebugLog();
+    bool has_error = false;
 
-            for (const auto& [location, level] : dd.force_disabled) {
-                const auto [path, line] = logging::SplitLocation(location);
-                logging::EntryState state;
-                state.force_disabled_level_plus_one = logging::GetForceDisabledLevelPlusOne(level);
-                AddDynamicDebugLog(path, line, state);
-            }
-            for (const auto& [location, level] : dd.force_enabled) {
-                const auto [path, line] = logging::SplitLocation(location);
-                logging::EntryState state;
-                state.force_enabled_level = level;
-                AddDynamicDebugLog(path, line, state);
-            }
-
-            lock.Commit();
+    for (const auto& [location, level] : dd.force_disabled) {
+        try {
+            const auto [path, line] = logging::SplitLocation(location);
+            logging::EntryState state;
+            state.force_disabled_level_plus_one = logging::GetForceDisabledLevelPlusOne(level);
+            AddDynamicDebugLog(path, line, state);
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Failed to disable dynamic debug log at '" << location << "': " << e;
+            has_error = true;
         }
-    } catch (const std::exception& e) {
-        LOG_ERROR() << "Failed to set dynamic debug logs from config: " << e;
+    }
+
+    for (const auto& [location, level] : dd.force_enabled) {
+        try {
+            const auto [path, line] = logging::SplitLocation(location);
+            logging::EntryState state;
+            state.force_enabled_level = level;
+            AddDynamicDebugLog(path, line, state);
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Failed to enable dynamic debug log at '" << location << "': " << e;
+            has_error = true;
+        }
+    }
+
+    if (has_error) {
+        kDynamicDebugInvalidLocation.FireAlert(*metrics_storage_, alerts::Source::kInfiniteDuration);
+    } else {
+        kDynamicDebugInvalidLocation.StopAlertNow(*metrics_storage_);
     }
 }
 

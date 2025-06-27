@@ -1,5 +1,7 @@
 #include <userver/concurrent/impl/semaphore_capacity_control.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {

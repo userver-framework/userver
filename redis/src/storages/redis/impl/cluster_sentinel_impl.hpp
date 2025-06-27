@@ -76,7 +76,7 @@ private:
     void ProcessWaitingCommands();
     void ProcessWaitingCommandsOnStop();
 
-    std::shared_ptr<TopologyHolderBase> topology_holder_;
+    std::unique_ptr<TopologyHolderBase> topology_holder_;
 
     const std::string shard_group_name_;
     const std::vector<ConnectionInfo> conns_;

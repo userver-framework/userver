@@ -105,7 +105,7 @@ grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noex
     }
 }
 
-grpc::Status ReportRpcInterruptedError(CallState& state) noexcept {
+void ReportRpcInterruptedError(CallState& state) noexcept {
     try {
         // RPC interruption leads to asynchronous task cancellation by RpcFinishedEvent,
         // so the task either is already cancelled, or is going to be cancelled.
@@ -116,10 +116,8 @@ grpc::Status ReportRpcInterruptedError(CallState& state) noexcept {
         span.AddNonInheritableTag(tracing::kErrorMessage, "RPC interrupted");
         span.AddNonInheritableTag(tracing::kErrorFlag, true);
         span.SetLogLevel(logging::Level::kWarning);
-        return grpc::Status::CANCELLED;
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error in ReportRpcInterruptedError: " << ex;
-        return grpc::Status{grpc::StatusCode::INTERNAL, ""};
     }
 }
 

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Definitions of structures representing different Redis replies.
+
 #include <string>
 #include <vector>
 
@@ -43,6 +46,10 @@ struct GeoPoint final {
     bool operator!=(const GeoPoint& rhs) const { return !(*this == rhs); }
 };
 
+/// @brief Data type that holds `member` and `score`.
+///
+/// Sample usage:
+/// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Zscan usage
 struct MemberScore final {
     std::string member;
     double score{0.0};

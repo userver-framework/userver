@@ -5,8 +5,8 @@
 
 There are two main interfaces for implementing a middleware:
 1. @ref ugrpc::client::MiddlewareBase. Class that implements the main logic of a middleware.
-2. @ref ugrpc::client::MiddlewareFactoryComponentBase The factory for the middleware to declare static options.
-    * Or for simple cases without static options @ref ugrpc::client::SimpleMiddlewareFactoryComponent.
+2. @ref ugrpc::client::SimpleMiddlewareFactoryComponent short-cut for simple cases without static options. 
+    * Or @ref ugrpc::client::MiddlewareFactoryComponentBase to declare static options.
 
 ## MiddlewareBase
 
@@ -177,7 +177,12 @@ These hooks are called on each message.
 @snippet grpc/src/ugrpc/client/middlewares/log/middleware.hpp MiddlewareBase example declaration
 @snippet grpc/src/ugrpc/client/middlewares/log/middleware.cpp MiddlewareBase Message methods example
 
-The static YAML config and component registration are identical as in example above. So, let's not focus on this.
+The static YAML config and component registration are identical as in the example above. So, let's not focus on this.
+
+## MiddlewareFactoryComponent
+
+We use a simple short-cut @ref ugrpc::client::SimpleMiddlewareFactoryComponent in the example above. 
+To declare static config options of your middleware see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md.
 
 ## Exceptions and errors in middlewares
 

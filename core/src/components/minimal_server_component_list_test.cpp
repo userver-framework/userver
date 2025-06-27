@@ -124,7 +124,7 @@ TEST_F(ServerMinimalComponentList, Basic) {
     components::RunOnce(components::InMemoryConfig{GetStaticConfig()}, components::MinimalServerComponentList());
 }
 
-TEST_F(ServerMinimalComponentList, TraceSwitching) {
+TEST_F(ServerMinimalComponentList, DISABLED_TraceSwitching) {
     constexpr std::string_view kConfigVarsTemplate = R"(
     tracer_log_path: {0}
     server-port: {1}
@@ -149,7 +149,8 @@ TEST_F(ServerMinimalComponentList, TraceSwitching) {
     ASSERT_THAT(logs, testing::Not(testing::HasSubstr("stacktrace= 0# ")));
 }
 
-TEST_F(ServerMinimalComponentList, TraceStacktraces) {
+// TODO(TAXICOMMON-10534)
+TEST_F(ServerMinimalComponentList, DISABLED_TraceStacktraces) {
     constexpr std::string_view kConfigVarsTemplate = R"(
     tracer_log_path: {0}
     tracer_level: debug

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime/date.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
 
 #include <cctz/time_zone.h>
@@ -36,6 +37,11 @@ TEST(Datetime, UtcTimestring) {
     const auto tp = utils::datetime::UtcStringtime("2014-03-17T02:47:07+0000");
     EXPECT_EQ(utils::datetime::UtcTimestring(tp), "2014-03-17T02:47:07+0000");
     /// [UtcTimestring example]
+}
+
+TEST(Datetime, UtcTimestringDate) {
+    const auto tp = utils::datetime::Date(2025, 11, 15).GetSysDays();
+    EXPECT_EQ(utils::datetime::UtcTimestring<utils::datetime::Days>(tp), "2025-11-15T00:00:00+0000");
 }
 
 TEST(Datetime, UtcTimestringCTime) {

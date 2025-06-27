@@ -112,6 +112,7 @@ public:
     ///
     /// @return A new Span that is the root of a new Span hierarchy.
     /// @param name Name of a new Span
+    /// @param source_location Implementation detail, do not touch.
     static Span MakeRootSpan(
         std::string name,
         const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()

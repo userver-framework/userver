@@ -13,7 +13,7 @@
 #include <userver/compiler/impl/constexpr.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/null_terminated_view.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,7 +24,7 @@ namespace utils {
 /// @brief Non-empty string view to a compile time known null terminated char array that lives for the lifetime of
 /// program, as per [lex.string]; a drop-in replacement for `static const std::string kVar = "value"` and
 /// `constexpr std::string_view kVar = "value"`.
-class StringLiteral : public NullTerminatedView {
+class StringLiteral : public zstring_view {
 public:
     StringLiteral() = delete;
 
@@ -35,7 +35,7 @@ public:
     USERVER_IMPL_CONSTEVAL
 #endif
         StringLiteral(const char* literal) noexcept
-        : NullTerminatedView{literal} {
+        : zstring_view{literal} {
         // data()[size()] == '\0' is guaranteed by std::string_view that calls std::strlen(literal)
     }
 
@@ -47,7 +47,7 @@ public:
 
 private:
     explicit constexpr StringLiteral(const char* str, std::size_t len) noexcept
-        : NullTerminatedView{NullTerminatedView::UnsafeMake(str, len)} {}
+        : zstring_view{zstring_view::UnsafeMake(str, len)} {}
 };
 
 template <class Value>

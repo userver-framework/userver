@@ -3,6 +3,8 @@
 /// @file userver/http/http_version.hpp
 /// @brief @copybrief http::HttpVersion
 
+#include <string_view>
+
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +20,10 @@ enum class HttpVersion {
     k2Tls,             ///< HTTP/2 over TLS only, otherwise (no TLS or h2) HTTP/1.1
     k2PriorKnowledge,  ///< HTTP/2 only (without Upgrade)
 };
+
+std::string_view ToString(HttpVersion version);
+
+HttpVersion HttpVersionFromString(std::string_view version);
 
 HttpVersion Parse(const yaml_config::YamlConfig& value, formats::parse::To<HttpVersion>);
 

@@ -51,7 +51,7 @@ namespace components {
 /// format | config format, one of `json`, `yaml`, `yaml_config` | 'json'
 /// missing-ok | do not terminate components load if no file found by the config option | false
 /// environment-secrets-key | name of environment variable from which to load additional data | -
-/// blocking-task-processor | name of task processor for background blocking operations | --
+/// blocking-task-processor | name of task processor for background blocking operations | engine::current_task::GetBlockingTaskProcessor()
 
 // clang-format on
 

@@ -54,7 +54,7 @@ namespace components {
 /// defaults | overrides the defaults from dynamic_config::Key definitions in code | {}
 /// fallback-path | a path to the fallback config | defaults are taken from dynamic_config::Key definitions
 /// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | cache is disabled
-/// fs-task-processor | name of the task processor to run the blocking file write operations | required if `fs-cache-path` is present
+/// fs-task-processor | name of the task processor to run the blocking file write operations | engine::current_task::GetBlockingTaskProcessor()
 ///
 /// ## Static configuration example:
 ///

@@ -27,6 +27,7 @@ void DumpMetric(utils::statistics::Writer& writer, const SourceData& m);
 class Source final {
 public:
     static constexpr std::chrono::seconds kDefaultDuration{120};
+    static constexpr std::chrono::hours kInfiniteDuration{24 * 365 * 10};  // In 10 years, someone should notice.
 
     explicit Source(const std::string& name);
 

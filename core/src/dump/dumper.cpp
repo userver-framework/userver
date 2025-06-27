@@ -498,7 +498,8 @@ Dumper::Dumper(const Config& initial_config, const components::ComponentContext&
     : impl_(
           initial_config,
           CreateOperationsFactory(initial_config, context),
-          context.GetTaskProcessor(initial_config.fs_task_processor),
+          initial_config.fs_task_processor ? context.GetTaskProcessor(*initial_config.fs_task_processor)
+                                           : engine::current_task::GetBlockingTaskProcessor(),
           context.FindComponent<components::DynamicConfig>().GetSource(),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::TestsuiteSupport>().GetDumpControl(),

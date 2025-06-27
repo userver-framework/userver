@@ -476,6 +476,8 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
             err = easy.rate_limit_error();
         }
 
+        holder->plugin_pipeline_.HookOnError(*holder, err);
+
         span.AddTag(tracing::kErrorFlag, true);
         span.AddTag(tracing::kErrorMessage, err.message());
         span.AddTag(tracing::kHttpStatusCode, kFakeHttpErrorCode);
@@ -536,9 +538,13 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
     // - if we used all attempts
     // - if failed to reach server, and we should not retry on fails
     // - if this request was cancelled
-    const bool not_need_retry = (!err && !holder->ShouldRetryResponse()) ||
-                                (holder->retry_.current >= holder->retry_.retries) ||
-                                (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
+    bool not_need_retry = (!err && !holder->ShouldRetryResponse()) ||
+                          (holder->retry_.current >= holder->retry_.retries) || (err && !holder->retry_.on_fails) ||
+                          holder->is_cancelled_.load();
+
+    if (!not_need_retry) {
+        not_need_retry = !holder->plugin_pipeline_.HookOnRetry(*holder);
+    }
 
     if (not_need_retry) {
         // finish if no need to retry
@@ -977,7 +983,7 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
     UINVARIANT(!span_storage_, "Attempt to reuse request while the previous one has not finished");
 
     span_storage_.emplace(
-        kTracingClientName + USERVER_NAMESPACE::http::ExtractHostname(easy().get_original_url()), location
+        kTracingClientName + std::string{USERVER_NAMESPACE::http::ExtractHostname(easy().get_original_url())}, location
     );
     auto& span = span_storage_->Get();
 

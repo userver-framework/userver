@@ -172,8 +172,9 @@ storages::secdist::DefaultLoader::Settings
 ParseSettings(const components::ComponentConfig& config, const components::ComponentContext& context) {
     storages::secdist::DefaultLoader::Settings settings;
     auto blocking_task_processor_name = config["blocking-task-processor"].As<std::optional<std::string>>();
-    settings.blocking_task_processor =
-        blocking_task_processor_name ? &context.GetTaskProcessor(*blocking_task_processor_name) : nullptr;
+    settings.blocking_task_processor = blocking_task_processor_name
+                                           ? &context.GetTaskProcessor(*blocking_task_processor_name)
+                                           : &engine::current_task::GetBlockingTaskProcessor();
     settings.config_path = config["config"].As<std::string>({});
     settings.inline_config = config["inline"].As<formats::json::Value>({});
     if (!settings.config_path.empty() && !settings.inline_config.IsNull()) {
@@ -223,6 +224,7 @@ properties:
     blocking-task-processor:
         type: string
         description: name of task processor for background blocking operations
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
 )");
 }
 

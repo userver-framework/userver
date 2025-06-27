@@ -861,13 +861,16 @@ class CppVariant(CppType):
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
         return (
             includes
-            + ['variant', 'userver/formats/parse/variant.hpp']
+            + [
+                'variant',
+                'userver/formats/parse/variant.hpp',
+                'userver/formats/json/serialize_variant.hpp',
+            ]
             + flatten([item.declaration_includes() for item in self.variants])
         )
 
     def definition_includes(self) -> List[str]:
         return [
-            'userver/formats/json/serialize_variant.hpp',
             'userver/chaotic/primitive.hpp',
             'userver/chaotic/variant.hpp',
         ] + flatten([item.definition_includes() for item in self.variants])

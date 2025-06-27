@@ -100,7 +100,7 @@ ugrpc::impl::RpcStatisticsScope& CallState::GetStatsScope() noexcept {
 
 void CallState::SetFinished() noexcept {
     UASSERT(context_);
-    UINVARIANT(!is_finished_, "Tried to finish already finished call");
+    UINVARIANT(!is_finished_, "Tried to finish an already finished call");
     is_finished_ = true;
 }
 

@@ -43,6 +43,10 @@ In static configuration we use different names for task processors. The name
 does not affect the task processor behavior, only gives a hint on its usage
 for the developer.
 
+However, components::ManagerControllerComponent has defaults for `default_task_processor` and `fs_task_processor`
+static config options. So if the task processor names in your project differ from the usual names in userver samples,
+specify the `default_task_processor` and `fs_task_processor`.
+
 
 ### main-task-processor
 

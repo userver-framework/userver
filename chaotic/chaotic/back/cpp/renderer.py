@@ -295,3 +295,12 @@ class OneToOneFileRenderer:
             )
 
         return output
+
+    @staticmethod
+    def get_output_files(stem: str, path: str) -> List[str]:
+        return [
+            f'include/{path}/{stem}_fwd.hpp',
+            f'include/{path}/{stem}_parsers.ipp',
+            f'include/{path}/{stem}.hpp',
+            f'src/{path}/{stem}.cpp',
+        ]

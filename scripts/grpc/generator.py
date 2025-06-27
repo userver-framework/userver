@@ -15,11 +15,14 @@ import enum
 import itertools
 import os
 import sys
+from typing import Any
+from typing import Dict
 from typing import Iterable
 from typing import Optional
 from typing import Tuple
 
 from google.protobuf.compiler import plugin_pb2 as plugin
+import google.protobuf.descriptor_pb2 as descriptor
 import jinja2
 
 _AUTOGEN_EMPTY_HEADER = '\n'.join([
@@ -45,18 +48,18 @@ class Mode(enum.Enum):
         return self == self.Both
 
 
-def _grpc_to_cpp_name(in_str):
+def _grpc_to_cpp_name(in_str: str) -> str:
     return in_str.replace('.', '::')
 
 
-def _to_package_prefix(package):
+def _to_package_prefix(package: str):
     return f'{package}.' if package else ''
 
 
 class _CodeGenerator:
     def __init__(
         self,
-        proto_file,
+        proto_file: descriptor.FileDescriptorProto,
         response: plugin.CodeGeneratorResponse,
         jinja_env: jinja2.Environment,
         mode: Mode,
@@ -75,7 +78,7 @@ class _CodeGenerator:
             self._generate_code_empty()
 
     def _generate_code_with_service(self) -> None:
-        data = {
+        data: Dict[str, Any] = {
             'source_file': self.proto_file.name,
             'source_file_without_ext': self._proto_file_stem(),
             'package_prefix': _to_package_prefix(self.proto_file.package),
@@ -149,7 +152,7 @@ def generate(
         # HTML special characters, it is safer to turn on autoescaping.
         autoescape=True,
     )
-    jinja_env.filters['grpc_to_cpp_name'] = _grpc_to_cpp_name
+    jinja_env.filters['grpc_to_cpp_name'] = _grpc_to_cpp_name  # type: ignore
 
     # pylint: disable=no-member
     for proto_file in request.proto_file:

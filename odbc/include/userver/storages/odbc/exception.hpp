@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cstddef>
 #include <stdexcept>
-#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,23 +12,23 @@ class Error : public std::runtime_error {
 };
 
 class LogicError : public Error {
-public:
-    explicit LogicError(std::string msg);
-
-    const char* what() const noexcept override;
-
-private:
-    std::string msg_;
+    using Error::Error;
 };
 
-class ResultSetError : public Error {
-public:
-    explicit ResultSetError(std::string msg);
+class RuntimeError : public Error {
+    using Error::Error;
+};
 
-    const char* what() const noexcept override;
+class ConnectionError : public RuntimeError {
+    using RuntimeError::RuntimeError;
+};
 
-private:
-    std::string msg_;
+class StatementError : public RuntimeError {
+    using RuntimeError::RuntimeError;
+};
+
+class ResultSetError : public RuntimeError {
+    using RuntimeError::RuntimeError;
 };
 
 class RowIndexOutOfBounds : public ResultSetError {

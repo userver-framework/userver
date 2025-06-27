@@ -33,7 +33,6 @@ public:
     void SetOption(options::ReadConcern);
     void SetOption(options::Skip);
     void SetOption(options::Limit);
-    void SetOption(options::ForceCountImpl);
     void SetOption(const options::MaxServerTime&);
     void SetOption(const options::Hint&);
 

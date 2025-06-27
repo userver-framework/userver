@@ -119,7 +119,7 @@ bool Connection::IsBroken() const { return broken_.load(); }
 
 void Connection::NotifyBroken() { broken_.store(true); }
 
-void Connection::ExecuteQuery(utils::NullTerminatedView query) const { db_handler_.Exec(query); }
+void Connection::ExecuteQuery(utils::zstring_view query) const { db_handler_.Exec(query); }
 
 }  // namespace storages::sqlite::impl
 

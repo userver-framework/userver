@@ -40,34 +40,57 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// file_path | path to the log file | -
-/// level | log verbosity | info
-/// format | log output format, one of `tskv`, `ltsv`, `json`, `json_yadeploy` | tskv
-/// flush_level | messages of this and higher levels get flushed to the file immediately | warning
-/// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
-/// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
-/// testsuite-capture | if exists, setups additional TCP log sink for testing purposes | {}
-/// fs-task-processor | task processor for disk I/O operations for this logger | fs-task-processor of the loggers component
+/// `fs-task-processor` | task processor for disk I/O operations | engine::current_task::GetBlockingTaskProcessor()
+/// `loggers.<logger-name>.file_path` | path to the log file | -
+/// `loggers.<logger-name>.level` | log verbosity | `info`
+/// `loggers.<logger-name>.format` | log output format, one of `tskv`, `ltsv`, `json`, `json_yadeploy` | `tskv`
+/// `loggers.<logger-name>.flush_level` | messages of this and higher levels get flushed to the file immediately | `warning`
+/// `loggers.<logger-name>.message_queue_size` | the size of internal message queue, must be a power of 2 | 65536
+/// `loggers.<logger-name>.overflow_behavior` | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | `discard`
+/// `loggers.<logger-name>.testsuite-capture` | if exists, setups additional TCP log sink for testing purposes | {}
+/// `loggers.<logger-name>.fs-task-processor` | task processor for disk I/O operations for this logger | top-level `fs-task-processor` option
+///
+/// `default` logger is the one used for `LOG_*`.
 ///
 /// ### Logs output
-/// You can specify logger output, in `file_path` option:
-/// - Use `@stdout` to write your logs to standard output stream;
-/// - Use `@stderr` to write your logs to standard error stream;
-/// - Use `@null` to suppress sending of logs;
-/// - Use `%file_name%` to write your logs in file. Use USR1 signal or `OnLogRotate` handler to reopen files after log rotation;
-/// - Use `unix:%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener after service is shut down.
+/// You can specify where logs are written in the `file_path` option:
+/// - Use <tt>file_path: '@stdout'</tt> to write your logs to standard output stream;
+/// - Use <tt>file_path: '@stderr'</tt> to write your logs to standard error stream;
+/// - Use <tt>file_path: '@null'</tt> to suppress sending of logs;
+/// - Use <tt>file_path: /absolute/path/to/log/file.log</tt> to write your logs to file. Use USR1 signal or @ref server::handlers::OnLogRotate to reopen files after log rotation;
+/// - Use <tt>file_path: 'unix:/absolute/path/to/logs.sock'</tt> to write your logs to unix socket. Socket must be created before the service starts and closed by listener after service is shut down.
+///
+/// For sending logs directly to an otlp (opentelemetry) sink, see @ref opentelemetry.
+///
+/// Customization of log sinks beyond the ones listed above is not supported at the moment.
+///
+/// ### Logs format
+/// You can specify in what format logs are written in the `format` option:
+/// - Use `format: tskv` for traditional optimized userver-flavoured TSKV representation. See @ref utils::encoding::TskvParser for the exact format specification;
+/// - Use `format: ltsv` for the same format, with `:` instead of `=` for key-value separator;
+/// - Use `format: raw` for TSKV logs with timestamp and other default tags stripped, useful for @ref custom_loggers "custom loggers";
+/// - Use `format: json` for JSON logs. @ref logging::JsonString can be used with this format for rich hierarchical log tags;
+/// - Use `format: json_yadeploy` for JSON logs with a slightly different structure.
+///
+/// When sending logs using @ref opentelemetry, logs are written to otlp protobuf messages.
+///
+/// Customization of log formats beyond the ones listed above is not supported at the moment.
 ///
 /// ### testsuite-capture options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// host | testsuite hostname, e.g. localhost | -
-/// port | testsuite port | -
+/// `loggers.<logger-name>.testsuite-capture.host` | testsuite hostname, e.g. `localhost` | -
+/// `loggers.<logger-name>.testsuite-capture.host` | testsuite port | -
 ///
-/// ## Static configuration example:
+/// ## Static configuration examples:
+///
+/// Writing logs to stderr:
+///
+/// @snippet core/functional_tests/basic_chaos/static_config.yaml logging
+///
+/// Advanced configuration showing options for access logs and a custom opentracing logger:
 ///
 /// @snippet components/common_component_list_test.cpp Sample logging component config
-///
-/// `default` section configures the default logger for LOG_*.
 
 // clang-format on
 
@@ -121,7 +144,7 @@ private:
 
     void FlushLogs();
 
-    engine::TaskProcessor* fs_task_processor_{nullptr};
+    engine::TaskProcessor& fs_task_processor_;
     std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>> loggers_;
     rcu::RcuMap<std::string, logging::LoggerPtr> extra_loggers_;
     utils::PeriodicTask flush_task_;

@@ -7,11 +7,12 @@ from typing import Union
 
 import pydantic
 
+from . import base_model
 from . import errors
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#info-object
-class Info(pydantic.BaseModel):
+class Info(base_model.BaseModel):
     title: str
     description: Optional[str] = None
     termsOfService: Optional[str] = None
@@ -21,7 +22,7 @@ class Info(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#server-object
-class Server(pydantic.BaseModel):
+class Server(base_model.BaseModel):
     url: str
     description: Optional[str] = None
     variables: Dict[str, Any] = pydantic.Field(default_factory=dict)
@@ -42,7 +43,7 @@ class Style(str, enum.Enum):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#header-object
-class Header(pydantic.BaseModel):
+class Header(base_model.BaseModel):
     description: Optional[str] = None
     required: bool = False
     deprecated: bool = False
@@ -57,7 +58,7 @@ class Header(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#media-type-object
-class MediaType(pydantic.BaseModel):
+class MediaType(base_model.BaseModel):
     schema_: Schema = pydantic.Field(alias='schema', default=None)
     example: Any = None
     examples: Dict[str, Any] = pydantic.Field(default_factory=dict)
@@ -65,12 +66,12 @@ class MediaType(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#reference-object
-class Ref(pydantic.BaseModel):
+class Ref(base_model.BaseModel):
     ref: str = pydantic.Field(alias='$ref')
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#responses-object
-class Response(pydantic.BaseModel):
+class Response(base_model.BaseModel):
     description: str
     headers: Dict[str, Union[Header, Ref]] = pydantic.Field(default_factory=dict)
     content: Dict[str, MediaType] = pydantic.Field(default_factory=dict)
@@ -85,7 +86,7 @@ class In(str, enum.Enum):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#parameter-object
-class Parameter(pydantic.BaseModel):
+class Parameter(base_model.BaseModel):
     name: str
     in_: In = pydantic.Field(alias='in')
     description: Optional[str] = None
@@ -103,6 +104,7 @@ class Parameter(pydantic.BaseModel):
     # content: Dict[str, MediaType] = {}
 
     def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
         if self.style:
             return
 
@@ -115,7 +117,7 @@ class Parameter(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#request-body-object
-class RequestBody(pydantic.BaseModel):
+class RequestBody(base_model.BaseModel):
     description: Optional[str] = None
     content: Dict[str, MediaType]
     required: bool = False
@@ -134,25 +136,25 @@ class SecurityIn(str, enum.Enum):
     cookie = 'cookie'
 
 
-class ImplicitFlow(pydantic.BaseModel):
+class ImplicitFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
     scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
     authorizationUrl: str
 
 
-class PasswordFlow(pydantic.BaseModel):
+class PasswordFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
     scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
     tokenUrl: str
 
 
-class ClientCredFlow(pydantic.BaseModel):
+class ClientCredFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
     scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
     tokenUrl: str
 
 
-class AuthCodeFlow(pydantic.BaseModel):
+class AuthCodeFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
     scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
     authorizationUrl: str
@@ -160,7 +162,7 @@ class AuthCodeFlow(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#oauth-flows-object
-class OAuthFlows(pydantic.BaseModel):
+class OAuthFlows(base_model.BaseModel):
     implicit: Optional[ImplicitFlow] = None
     password: Optional[PasswordFlow] = None
     clientCredentials: Optional[ClientCredFlow] = None
@@ -168,7 +170,7 @@ class OAuthFlows(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#security-scheme-object
-class SecurityScheme(pydantic.BaseModel):
+class SecurityScheme(base_model.BaseModel):
     type: SecurityType
     description: Optional[str] = None
     name: Optional[str] = None
@@ -179,6 +181,8 @@ class SecurityScheme(pydantic.BaseModel):
     openIdConnectUrl: Optional[str] = None
 
     def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+
         if self.type == SecurityType.apiKey:
             if not self.name:
                 raise ValueError(errors.missing_field_msg('name'))
@@ -203,8 +207,9 @@ Security = Dict[str, List[str]]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#components-object
-class Components(pydantic.BaseModel):
+class Components(base_model.BaseModel):
     schemas: Dict[str, Schema] = pydantic.Field(default_factory=dict)
+    requests: Dict[str, Any] = pydantic.Field(default_factory=dict)  # TODO
     responses: Dict[str, Response] = pydantic.Field(default_factory=dict)
     parameters: Dict[str, Parameter] = pydantic.Field(default_factory=dict)
     headers: Dict[str, Header] = pydantic.Field(default_factory=dict)
@@ -212,8 +217,12 @@ class Components(pydantic.BaseModel):
     securitySchemes: SecuritySchemes = pydantic.Field(default_factory=dict)
 
 
+class XTaxiMiddlewares(base_model.BaseModel):
+    tvm: bool = True
+
+
 # https://spec.openapis.org/oas/v3.0.0.html#operation-object
-class Operation(pydantic.BaseModel):
+class Operation(base_model.BaseModel):
     tags: List[str] = pydantic.Field(default_factory=list)
     summary: Optional[str] = None
     description: str = ''
@@ -227,9 +236,14 @@ class Operation(pydantic.BaseModel):
     security: Optional[Security] = None
     servers: List[Server] = pydantic.Field(default_factory=list)
 
+    x_taxi_middlewares: Optional[XTaxiMiddlewares] = pydantic.Field(
+        default=None,
+        alias='x-taxi-middlewares',
+    )
+
 
 # https://spec.openapis.org/oas/v3.0.0.html#path-item-object
-class Path(pydantic.BaseModel):
+class Path(base_model.BaseModel):
     summary: Optional[str] = None
     description: str = ''
 
@@ -246,8 +260,12 @@ class Path(pydantic.BaseModel):
     parameters: List[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
 
 
+class XTaxiClientQos(base_model.BaseModel):
+    taxi_config: str = pydantic.Field(alias='taxi-config')
+
+
 # https://spec.openapis.org/oas/v3.0.0.html#schema
-class OpenApi(pydantic.BaseModel):
+class OpenApi(base_model.BaseModel):
     openapi: str = '3.0.0'
     info: Optional[Info] = None
     servers: List[Server] = pydantic.Field(default_factory=list)
@@ -256,6 +274,15 @@ class OpenApi(pydantic.BaseModel):
     security: Security = pydantic.Field(default_factory=dict)
     tags: List[Any] = pydantic.Field(default_factory=list)
     externalDocs: Any = None
+
+    x_taxi_client_qos: Optional[XTaxiClientQos] = pydantic.Field(
+        default=None,
+        alias='x-taxi-client-qos',
+    )
+    x_taxi_middlewares: Optional[XTaxiMiddlewares] = pydantic.Field(
+        default=None,
+        alias='x-taxi-middlewares',
+    )
 
     def validate_security(self, security: Optional[Security]) -> None:
         if not security:
@@ -279,6 +306,8 @@ class OpenApi(pydantic.BaseModel):
                         raise ValueError(f'For security "{name}" the array must be empty')
 
     def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+
         self.validate_security(self.security)
 
         for path in self.paths.values():

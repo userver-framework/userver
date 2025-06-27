@@ -38,7 +38,7 @@ void AssertStaticRegistrationAllowed();
 
 template <typename T>
 void Delete(std::byte* data) noexcept {
-    reinterpret_cast<T*>(data)->~T();
+    std::destroy_at(reinterpret_cast<T*>(data));
 }
 
 }  // namespace any_storage::impl

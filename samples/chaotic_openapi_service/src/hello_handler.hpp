@@ -3,7 +3,7 @@
 #include <userver/components/component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
-#include <client/test/client.hpp>
+#include <clients/test/client.hpp>
 
 // Note: this is for the purposes of tests/samples only
 #include <userver/utest/using_namespace_userver.hpp>

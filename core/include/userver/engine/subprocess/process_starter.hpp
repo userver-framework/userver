@@ -48,7 +48,7 @@ struct ExecOptions final {
 class ProcessStarter {
 public:
     /// @param task_processor will be used for executing asynchronous fork + exec.
-    /// `main-task-processor is OK for this purpose.
+    /// `main-task-processor` is OK for this purpose.
     explicit ProcessStarter(TaskProcessor& task_processor);
 
     /// @param executable_path the absolute path or relative path. If `use_path` is

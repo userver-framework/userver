@@ -1,0 +1,50 @@
+swagger: '2.0'
+description: test-object client
+
+paths:
+    /test1/PATH-123:
+        post:
+            parameters:
+              - in: header
+                name: X-Header-123
+                type: string
+              - $ref: '#/parameters/Parameter'
+              # - $ref: '#/parameters/Body'
+            responses:
+                '200':
+                    description: OK
+                    # headers:
+                    #     X-Header-123:
+                    #         type: string
+                    schema:
+                        $ref: '#/definitions/Schema'
+                '404':
+                    $ref: '#/responses/Response404'
+
+
+parameters:
+    X-Header-456:
+        in: header
+        name: X-Header-456
+        type: string
+    Parameter:
+        in: query
+        name: some-header
+        type: string
+    Body:
+        in: body
+        name: body
+        schema:
+            type: object
+
+responses:
+    Response404:
+        description: Not found
+        schema:
+            type: string
+
+definitions:
+    Schema:
+        type: object
+        additionalProperties: false
+        properties: {}

@@ -3,7 +3,7 @@
 #include <userver/components/component_base.hpp>
 #include <userver/yaml_config/schema.hpp>
 
-#include <client/{{ name }}/client_impl.hpp>
+#include <clients/{{ name }}/client_impl.hpp>
 
 namespace {{ namespace }} {
 
@@ -15,7 +15,7 @@ public:
     
     Client& GetClient();
     
-    static yaml_config::Schema GetStaticConfigSchema();
+    static USERVER_NAMESPACE::yaml_config::Schema GetStaticConfigSchema();
 
 private:
     ClientImpl client_;

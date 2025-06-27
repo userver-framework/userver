@@ -1,4 +1,5 @@
-add_test(NAME "${PROJECT_NAME}-metrics"
+add_test(
+    NAME "${PROJECT_NAME}-metrics"
     COMMAND "${TESTSUITE_PYTHON_BINARY}" -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
     WORKING_DIRECTORY "${USERVER_ROOT_DIR}/testsuite/pytest_plugins"
 )

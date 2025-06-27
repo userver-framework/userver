@@ -11,7 +11,7 @@ import sys
 BINDIR = pathlib.Path(__file__).parent
 FEATURES = [
     'mongo',
-    'postgres',
+    'postgresql',
     'grpc',
 ]
 TEMPLATE_ON_REGEX = re.compile(r'.* ([a-z]+) template on.*')
@@ -51,13 +51,13 @@ def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
         match_current = TEMPLATE_CURRENT_REGEX.match(line)
         if match_on:
             feature = match_on.group(1)
-            assert feature in FEATURES
+            assert feature in FEATURES, f'{feature} not in {FEATURES}'
             skip = not getattr(args, feature)
         elif 'template off' in line:
             skip = False
         elif match_current:
             feature = match_current.group(3)
-            assert feature in FEATURES
+            assert feature in FEATURES, f'{feature} not in {FEATURES}'
             if getattr(args, feature):
                 text.append(match_current.group(1))
         else:

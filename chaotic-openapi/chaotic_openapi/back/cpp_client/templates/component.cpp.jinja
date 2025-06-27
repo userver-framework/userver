@@ -1,10 +1,18 @@
-#include <client/{{ name }}/component.hpp>
+#include <clients/{{ name }}/component.hpp>
 
 #include <userver/chaotic/openapi/client/config.hpp>
 #include <userver/chaotic/openapi/client/middleware_factory.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/clients/http/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+{% if tvm_hack %}
+#undef USERVER_TVM2_HTTP_CLIENT
+{% endif %}
+#include <userver/clients/http/component.hpp>
+{% if tvm_hack %}
+#define USERVER_TVM2_HTTP_CLIENT
+{% endif %}
+
 
 namespace {{ namespace }} {
 
@@ -19,7 +27,7 @@ Component::Component(const USERVER_NAMESPACE::components::ComponentConfig& confi
         const auto& mw_config = config["middlewares"];
         
         for (const auto& [name, config] : Items(mw_config)) {
-            auto &factory = context.FindComponent<chaotic::openapi::client::MiddlewareFactory>("chaotic-client-middleware-" + name);
+            auto &factory = context.FindComponent<USERVER_NAMESPACE::chaotic::openapi::client::MiddlewareFactory>("chaotic-client-middleware-" + name);
             auto middleware = factory.Create(config);
             client_.RegisterMiddleware(middleware);
         }

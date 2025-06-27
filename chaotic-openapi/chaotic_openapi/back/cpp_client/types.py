@@ -97,6 +97,13 @@ class Response:
         )
 
 
+def map_method(method: str) -> str:
+    method = method.lower()
+    if method == 'delete':
+        return 'delete_'
+    return method
+
+
 @dataclasses.dataclass
 class Operation:
     method: str
@@ -110,11 +117,11 @@ class Operation:
     client_generate: bool = True
 
     def cpp_namespace(self) -> str:
-        return cpp_names.namespace(self.path + '_' + self.method)
+        return cpp_names.namespace(self.path) + '::' + map_method(self.method)
 
     def cpp_method_name(self) -> str:
         return cpp_names.camel_case(
-            cpp_names.namespace(self.path + '_' + self.method),
+            cpp_names.namespace(self.path) + '_' + map_method(self.method),
         )
 
     def empty_request(self) -> bool:
@@ -149,6 +156,9 @@ class ClientSpec:
     description: str = ''
     operations: List[Operation] = dataclasses.field(default_factory=list)
 
+    # Internal types which cannot be referred to
+    internal_schemas: Dict[str, cpp_types.CppType] = dataclasses.field(default_factory=dict)
+    # Types which can be referred to
     schemas: Dict[str, cpp_types.CppType] = dataclasses.field(default_factory=dict)
 
     def has_multiple_content_type_request(self) -> bool:
@@ -180,6 +190,8 @@ class ClientSpec:
             for response in op.responses:
                 for _, body in response.body.items():
                     includes.update(body.declaration_includes())
+                for header in response.headers:
+                    includes.update(header.declaration_includes())
         return sorted(includes)
 
     def responses_definitions_includes(self) -> List[str]:
@@ -199,7 +211,7 @@ class ClientSpec:
             assert cpp_type.json_schema
             filepath = cpp_type.json_schema.source_location().filepath
             includes.append(
-                'client/{}/{}.hpp'.format(
+                'clients/{}/{}.hpp'.format(
                     self.client_name,
                     filepath.split('/')[-1].split('.')[0],
                 ),
@@ -208,32 +220,6 @@ class ClientSpec:
 
     def extract_cpp_types(self) -> Dict[str, cpp_types.CppType]:
         types = self.schemas.copy()
-
-        for operation in self.operations:
-            for body in operation.request_bodies:
-                if body.schema:
-                    name = '{}::{}_{}::Body{}'.format(
-                        self.cpp_namespace,
-                        operation.path[1:],
-                        operation.method.lower(),
-                        cpp_names.camel_case(
-                            cpp_names.cpp_identifier(body.content_type),
-                        ),
-                    )
-                    types[name] = body.schema
-            for response in operation.responses:
-                for content_type, cpp_type in response.body.items():
-                    name = '{}::{}_{}::Response{}Body{}'.format(
-                        self.cpp_namespace,
-                        operation.path[1:],
-                        operation.method.lower(),
-                        response.status,
-                        cpp_names.camel_case(
-                            cpp_names.cpp_identifier(content_type),
-                        ),
-                    )
-                    types[name] = cpp_type
-
-        # TODO: response.content
+        types.update(self.internal_schemas)
 
         return types

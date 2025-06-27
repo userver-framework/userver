@@ -23,13 +23,16 @@ public:
     bool IsValid() const override;
 
     /// Suspends current task until the pipe has data available.
+    /// @returns false on timeout or on task cancellations; true otherwise.
     [[nodiscard]] bool WaitReadable(Deadline) override;
 
     /// Receives at least one bytes from the pipe.
+    /// @returns count of bytes read from the pipe
     [[nodiscard]] size_t ReadSome(void* buf, size_t len, Deadline deadline) override;
 
     /// Receives exactly len bytes from the pipe.
     /// @note Can return less than len if pipe is closed by peer.
+    /// @returns count of bytes read from the pipe
     [[nodiscard]] size_t ReadAll(void* buf, size_t len, Deadline deadline) override;
 
     /// File descriptor corresponding to the read end of the pipe.
@@ -59,10 +62,12 @@ public:
     bool IsValid() const;
 
     /// Suspends current task until the pipe can accept more data.
+    /// @returns false on timeout or on task cancellations; true otherwise.
     [[nodiscard]] bool WaitWriteable(Deadline) override;
 
     /// Sends exactly len bytes to the pipe.
     /// @note Can return less than len if pipe is closed by peer.
+    /// @returns count of bytes written to the pipe
     [[nodiscard]] size_t WriteAll(const void* buf, size_t len, Deadline deadline) override;
 
     /// File descriptor corresponding to the write end of the pipe.

@@ -15,8 +15,8 @@
 #include <userver/middlewares/runner.hpp>
 #include <userver/tracing/span.hpp>
 
-#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/internal_tag_fwd.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

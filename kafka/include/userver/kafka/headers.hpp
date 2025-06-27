@@ -4,8 +4,8 @@
 #include <iterator>
 #include <string_view>
 
-#include <userver/utils/null_terminated_view.hpp>
 #include <userver/utils/span.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 struct rd_kafka_headers_s;
 
@@ -17,7 +17,7 @@ namespace kafka {
 /// Header `name` must be valid null-terminated string.
 /// Header `value` is treated as a binary data by Kafka.
 struct HeaderView final {
-    utils::NullTerminatedView name;
+    utils::zstring_view name;
     std::string_view value;
 
     bool operator==(const HeaderView&) const;

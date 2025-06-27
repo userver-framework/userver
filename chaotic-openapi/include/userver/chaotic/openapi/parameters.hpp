@@ -18,7 +18,7 @@ enum class In {
 using Name = const char* const;
 
 template <typename T>
-inline constexpr bool kIsTrivialRawType = std::is_integral_v<T>;
+inline constexpr bool kIsTrivialRawType = std::is_integral_v<T> || std::is_enum_v<T>;
 
 template <>
 inline constexpr bool kIsTrivialRawType<bool> = true;

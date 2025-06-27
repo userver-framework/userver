@@ -55,7 +55,7 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
             config.path = *opt_fallback;
     }
 
-    config.task_processor = value["task_processor"].As<std::string>();
+    config.task_processor = value["task_processor"].As<std::optional<std::string>>();
     config.method = value["method"].As<std::string>();
     config.request_config.max_request_size = value["max_request_size"].As<size_t>(handler_defaults.max_request_size);
     config.request_config.max_headers_size = value["max_headers_size"].As<size_t>(handler_defaults.max_headers_size);

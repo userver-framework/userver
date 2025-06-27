@@ -16,9 +16,7 @@ constexpr std::string_view kDnsReplySource = "dns_reply_source";
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase{config, context},
-      resolver_{
-          context.GetTaskProcessor(config["fs-task-processor"].As<std::string>()),
-          config.As<::userver::static_config::DnsClient>()} {
+      resolver_{GetFsTaskProcessor(config, context), config.As<::userver::static_config::DnsClient>()} {
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
     statistics_holder_ = storage.RegisterWriter(config.Name() + ".replies", [this](auto& writer) { Write(writer); });
 }

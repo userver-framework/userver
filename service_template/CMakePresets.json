@@ -37,7 +37,7 @@
       "generator": "Ninja",
       "cacheVariables": {
         "USERVER_FEATURE_GRPC": "ON",  // grpc template current
-        "USERVER_FEATURE_POSTGRESQL": "ON",  // postgres template current
+        "USERVER_FEATURE_POSTGRESQL": "ON",  // postgresql template current
         "USERVER_FEATURE_MONGODB": "ON",  // mongo template current
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }

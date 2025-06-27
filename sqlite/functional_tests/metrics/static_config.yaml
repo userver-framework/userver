@@ -8,13 +8,8 @@ components_manager:
 
         key-value-database:
             db-path: "/tmp/kv.db"
-            task_processor: fs-task-processor
 
         testsuite-support:
-
-        http-client:
-            fs-task-processor: main-task-processor
-
         tests-control:
             method: POST
             path: /tests/{action}
@@ -36,7 +31,6 @@ components_manager:
                     requests_queue_size_threshold: 100
                 task_processor: main-task-processor
         logging:
-            fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
@@ -47,9 +41,6 @@ components_manager:
             path: /service/monitor
             method: GET
             task_processor: main-task-processor
-
-        dns-client:
-            fs-task-processor: fs-task-processor
 
     task_processors:
         main-task-processor:

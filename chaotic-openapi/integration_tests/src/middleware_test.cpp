@@ -172,3 +172,5 @@ iW5OwYvGErHvYQaO0LtwjzO8LamystYgUIXVV+fFL3w6
     EXPECT_EQ(response->status_code(), 200);
     EXPECT_EQ(response->body(), R"({"status":"ok"})");
 }
+
+USERVER_NAMESPACE_END

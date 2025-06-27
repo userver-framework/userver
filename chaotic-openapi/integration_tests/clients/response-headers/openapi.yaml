@@ -1,0 +1,22 @@
+openapi: 3.0.0
+info:
+    title: test-object client
+    version: '1.0'
+
+paths:
+    /test1:
+        post:
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: false
+                                properties: {}
+                    headers:
+                        X-Header:
+                            schema:
+                                type: string
+components: {}

@@ -156,7 +156,7 @@ TEST(TrivialBiMap, StringToString) {
     EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("DrEi"), "three");
     EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("Drei"), "three");
 
-    // utils::NullTerminatedView related checks
+    // utils::zstring_view related checks
     utils::StringLiteral res = kEnglishToGerman.TryFindBySecond(std::string{"drei"}).value();
     EXPECT_EQ(res.c_str(), std::string_view{"three"});
 
@@ -191,7 +191,7 @@ TEST(TrivialBiMap, MakeTrivialBiMap) {
     EXPECT_EQ(kMap.DescribeByType<std::string_view>(), "'zero', 'one', 'two', 'three'");
 }
 
-constexpr utils::NullTerminatedView kToIntKeysZeroTerm[] = {"zero", "one", "two", "three"};
+constexpr utils::zstring_view kToIntKeysZeroTerm[] = {"zero", "one", "two", "three"};
 
 TEST(TrivialBiMap, MakeTrivialBiMap2) {
     static constexpr auto kMap = utils::MakeTrivialBiMap<kToIntKeysZeroTerm, kToIntValues>();
@@ -200,7 +200,7 @@ TEST(TrivialBiMap, MakeTrivialBiMap2) {
     EXPECT_EQ(kMap.TryFind(std::string("ten")), std::nullopt);
     EXPECT_EQ(kMap.TryFind(2), "two");
 
-    const utils::NullTerminatedView res = kMap.TryFind(2).value();
+    const utils::zstring_view res = kMap.TryFind(2).value();
     EXPECT_EQ(res.c_str(), std::string_view{"two"});
     EXPECT_EQ(kMap.TryFind(42), std::nullopt);
 

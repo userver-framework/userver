@@ -38,7 +38,7 @@ class TimeoutException: public USERVER_NAMESPACE::chaotic::openapi::client::Time
 namespace {{ op.cpp_namespace() }} {
 
 /// @brief Base exception class for all client {{ op.method }} operations with URL '{{ op.path }}'
-class Exception: public clients::{{ name }}::Exception {
+class Exception: public {{ namespace }}::Exception {
  public:
     const char* what() const noexcept override;
 
@@ -50,17 +50,17 @@ class Exception: public clients::{{ name }}::Exception {
 /// @brief Error response with ErrorKind for all client {{ op.method }} operations with URL '{{ op.path }}'
 class HttpException
     : public Exception
-    , public clients::{{ name }}::HttpException
+    , public {{ namespace }}::HttpException
 {
   public:
-    using clients::{{ name }}::HttpException::HttpException;
+    using {{ namespace }}::HttpException::HttpException;
     ~HttpException();
 };
 
 /// @brief Timeout exception class for all client {{ op.method }} operations with URL '{{ op.path }}'
 class TimeoutException
     : public HttpException
-    , public clients::{{ name }}::TimeoutException
+    , public {{ namespace }}::TimeoutException
 {
   public:
     TimeoutException();
@@ -70,10 +70,10 @@ class TimeoutException
 /// @brief Error response with HTTP status code for all client {{ op.method }} operations with URL '{{ op.path }}'
 class ExceptionWithStatusCode
     : public Exception
-    , public clients::{{ name }}::ExceptionWithStatusCode
+    , public {{ namespace }}::ExceptionWithStatusCode
 {
   public:
-    using clients::{{ name }}::ExceptionWithStatusCode::ExceptionWithStatusCode;
+    using {{ namespace }}::ExceptionWithStatusCode::ExceptionWithStatusCode;
     ~ExceptionWithStatusCode();
 };
 

@@ -119,7 +119,7 @@ namespace components {
 /// ----------------------- | ----------------------------------------------------------------------------- | -------------
 /// dbalias                 | name of the database in secdist config (if available)                         | --
 /// dbconnection            | connection DSN string (used if no dbalias specified)                          | --
-/// blocking_task_processor | name of task processor for background blocking operations                     | --
+/// blocking_task_processor | name of task processor for background blocking operations                     | engine::current_task::GetBlockingTaskProcessor()
 /// max_replication_lag     | replication lag limit for usable slaves                                       | 60s
 /// sync-start              | perform initial connections synchronously                                     | true
 /// dns_resolver            | server hostname resolver type (getaddrinfo or async)                          | 'async'

@@ -16,6 +16,7 @@ import google.protobuf.descriptor_pool
 import google.protobuf.message
 import grpc
 
+import testsuite.mockserver.exceptions
 import testsuite.utils.callinfo
 
 from ._mocked_errors import MockedError
@@ -92,9 +93,12 @@ async def _raise_unimplemented_error(
     method_descriptor: _MethodDescriptor,
     state: _ServiceMockState,
 ) -> NoReturn:
-    message = f"Trying to call a missing grpc mock for '{_get_full_method_name(method_descriptor)}' method"
     if state.asyncexc_append is not None:
-        state.asyncexc_append(NotImplementedError(message))
+        state.asyncexc_append(
+            testsuite.mockserver.exceptions.HandlerNotFoundError(
+                f"gRPC mockserver handler is not installed for '{_get_full_method_name(method_descriptor)}'."
+            )
+        )
     # This error is identical to the builtin pytest error.
     await context.abort(grpc.StatusCode.UNIMPLEMENTED, 'Method not found!')
 

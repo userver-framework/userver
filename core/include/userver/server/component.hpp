@@ -60,7 +60,7 @@ namespace components {
 /// port | port to listen on | 0
 /// unix-socket | unix socket to listen on instead of listening on a port and network address | ''
 /// max_connections | max connections count to keep | 32768
-/// task_processor | task processor to process incoming requests | -
+/// task_processor | task processor to process incoming requests | the 'default_task_processor' value from components::ManagerControllerComponent
 /// backlog | max count of new connections pending acceptance | 1024
 /// tls.ca | paths to TLS CAs for client authentication | -
 /// tls.cert | path to TLS server certificate or certificate chain | -

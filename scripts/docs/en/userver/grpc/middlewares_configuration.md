@@ -1,8 +1,8 @@
 # gRPC middlewares configuration
 
 If your middleware doesn't have static config options, just use:
-1. @ref ugrpc::server::SimpleMiddlewareFactoryComponent 
-2. @ref ugrpc::client::SimpleMiddlewareFactoryComponent
+1. @ref ugrpc::server::SimpleMiddlewareFactoryComponent and see @ref scripts/docs/en/userver/grpc/server_middleware_implementation.md
+2. @ref ugrpc::client::SimpleMiddlewareFactoryComponent and see @ref scripts/docs/en/userver/grpc/client_middleware_implementation.md
 
 ## Yaml config for a middleware
 

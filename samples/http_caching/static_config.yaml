@@ -10,15 +10,10 @@ components_manager:
             update-interval: 15m
 # /// [HTTP caching sample - static config cache]
 
-# /// [HTTP caching sample - static config deps]
-        http-client:
-            fs-task-processor: fs-task-processor
-
-        dns-client:                     # Asynchronous DNS component
-            fs-task-processor: fs-task-processor
-
+# /// [HTTP caching sample - static config deps]        
         testsuite-support:
         tests-control:
+            load-enabled: $testsuite-enabled
             # Some options from server::handlers::HttpHandlerBase
             path: /tests/{action}
             method: POST

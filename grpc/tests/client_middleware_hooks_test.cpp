@@ -514,11 +514,28 @@ UTEST_F(ClientMiddlewaresHooksTest, MiddlewareExceptionBidirectionalStreaming) {
     UEXPECT_THROW(auto future = Client().Chat(), std::runtime_error);
 }
 
+UTEST_F(ClientMiddlewaresHooksTest, ThrowInDestructorUnaryCall) {
+    SetHappyPathUnary();
+
+    EXPECT_CALL(Middleware(0), PreStartCall).Times(1);
+    EXPECT_CALL(Middleware(0), PreSendMessage).Times(1);
+    EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);
+    EXPECT_CALL(Middleware(0), PostFinish).Times(0);  // We don't call middlewares in a destructor.
+
+    ON_CALL(Middleware(0), PostFinish)
+        .WillByDefault([](const ugrpc::client::MiddlewareCallContext&, const grpc::Status&) {
+            throw std::runtime_error{"mock error"};
+        });
+
+    Request request;
+    UEXPECT_NO_THROW(auto future = Client().AsyncSayHello(request));
+}
+
 UTEST_F(ClientMiddlewaresHooksTest, ExceptionWhenCancelledUnary) {
     EXPECT_CALL(Middleware(0), PreStartCall).Times(1);
     EXPECT_CALL(Middleware(0), PreSendMessage).Times(1);
-    EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);  // skipped, because no response message
-    EXPECT_CALL(Middleware(0), PostFinish).Times(1);
+    EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);  // skipped, because no response message.
+    EXPECT_CALL(Middleware(0), PostFinish).Times(0);
 
     SetUnary([](CallContext&, Request&&) -> UnaryResult {
         engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
@@ -529,12 +546,12 @@ UTEST_F(ClientMiddlewaresHooksTest, ExceptionWhenCancelledUnary) {
     {
         Request request;
         request.set_name("userver");
-        auto future = Client().AsyncSayHello(request);
+        const auto future = Client().AsyncSayHello(request);
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
-        // The destructor of `future` will cancel the RPC and await grpcpp cleanup, then run middlewares.
-        // The exception from PostFinish should not lead to a crash.
+        // The destructor of `future` will cancel the RPC and await grpcpp cleanup (and don't run middlewares).
+        // Cancellation should not lead to a crash.
     }
 }
 
@@ -566,14 +583,33 @@ UTEST_F(ClientMiddlewaresHooksTest, BadStatusClientStreaming) {
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "mocked status"};
     });
 
-    StreamRequest request;
-    request.set_name("userver");
     auto stream = Client().WriteMany();
 
+    StreamRequest request;
+    request.set_name("userver");
     UASSERT_NO_THROW(stream.WriteAndCheck(request));
     wait_write.Send();
 
     UEXPECT_THROW(auto response = stream.Finish(), ugrpc::client::InvalidArgumentError);
+}
+
+UTEST_F(ClientMiddlewaresHooksTest, ThrowInDestructorOutputStream) {
+    EXPECT_CALL(Middleware(0), PreStartCall).Times(2);  // Two streams were created.
+    EXPECT_CALL(Middleware(0), PreSendMessage).Times(1);
+    EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);  // Skipped, because no response message.
+    EXPECT_CALL(Middleware(0), PostFinish).Times(0);       // We don't call middlewares in a destructor.
+
+    ON_CALL(Middleware(0), PostFinish)
+        .WillByDefault([](const ugrpc::client::MiddlewareCallContext&, const grpc::Status&) {
+            throw std::runtime_error{"mock error"};
+        });
+
+    {
+        auto stream = Client().WriteMany();
+        StreamRequest request;
+        UASSERT_NO_THROW(stream.WriteAndCheck(request));
+    }
+    UASSERT_NO_THROW(const auto stream = Client().WriteMany());
 }
 
 UTEST_F(ClientMiddlewaresHooksTest, BadStatusServerStreaming) {
@@ -643,6 +679,25 @@ UTEST_F(ClientMiddlewaresHooksTest, BadStatusBidirectionalStreaming) {
     wait_read.Send();
 
     UEXPECT_THROW([[maybe_unused]] auto ok = stream.Read(response), ugrpc::client::InvalidArgumentError);
+}
+
+UTEST_F(ClientMiddlewaresHooksTest, ThrowInDestructorBidirectional) {
+    SetBidirectionalStreaming([](CallContext&, ReaderWriter&) -> BidirectionalStreamingResult {
+        return grpc::Status{};
+    });
+    EXPECT_CALL(Middleware(0), PreStartCall).Times(1);
+    EXPECT_CALL(Middleware(0), PreSendMessage).Times(0);
+    EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);
+    EXPECT_CALL(Middleware(0), PostFinish).Times(1);
+
+    ON_CALL(Middleware(0), PostFinish)
+        .WillByDefault([](const ugrpc::client::MiddlewareCallContext&, const grpc::Status&) {
+            throw std::runtime_error{"mock error"};
+        });
+
+    auto stream = Client().Chat();
+    StreamResponse response;
+    UEXPECT_NO_THROW(const auto future = stream.ReadAsync(response));
 }
 
 USERVER_NAMESPACE_END

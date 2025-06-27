@@ -33,10 +33,10 @@ class NameMapItem:
         self.pattern = re.compile(pattern)
         self.dest = dest
 
-    def match(self, data: str) -> Optional[str]:
+    def match(self, data: str, *, stem: str) -> Optional[str]:
         match = self.pattern.fullmatch(data)  # pylint: disable=no-member
         if match:
-            return self.dest.format(*match.groups())
+            return self.dest.format(*match.groups(), stem=stem)
         return None
 
 
@@ -118,11 +118,10 @@ def generate_cpp_name_func(
     name_map: List[NameMapItem],
     erase_prefix: str,
 ) -> Callable:
-    def cpp_name_func(schema_name: str) -> str:
+    def cpp_name_func(schema_name: str, stem: str) -> str:
         for item in name_map:
             s = erase_prefix + schema_name + '/'
-            # print(f'x: {schema_name} {s}')
-            cpp_name = item.match(s)
+            cpp_name = item.match(s, stem=stem)
             if cpp_name:
                 return cpp_name
         raise Exception(f'Cannot match name: {schema_name}')
@@ -132,7 +131,7 @@ def generate_cpp_name_func(
 
 def vfilepath_from_filepath(filepath: str, file_map: List[NameMapItem]) -> str:
     for item in file_map:
-        vfilepath = item.match(filepath)
+        vfilepath = item.match(filepath, stem=pathlib.Path(filepath).stem)
         if vfilepath:
             return vfilepath
     raise Exception(f'Cannot match path: {filepath}')

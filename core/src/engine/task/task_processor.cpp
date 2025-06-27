@@ -305,6 +305,8 @@ TaskProcessor& TaskProcessor::GetBlockingTaskProcessor() {
 
 void TaskProcessor::SetBlockingTaskProcessor(TaskProcessor& task_processor) { fs_task_processor_ = &task_processor; }
 
+size_t GetQueueSize(const TaskProcessor& task_processor) { return task_processor.GetTaskQueueSize(); }
+
 void RegisterThreadStartedHook(std::function<void()> func) {
     utils::impl::AssertStaticRegistrationAllowed("Calling engine::RegisterThreadStartedHook()");
     ThreadStartedHooks().push_back(std::move(func));

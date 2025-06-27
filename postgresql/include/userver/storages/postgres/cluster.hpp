@@ -100,6 +100,7 @@ public:
     /// @param ei_settings error injection settings
     /// @param testsuite_tasks see @ref testsuite::TestsuiteTasks
     /// @param config_source see @ref dynamic_config::Source
+    /// @param metrics metrics storage for alerts
     /// @param shard_number shard number
     /// @note When `max_connection_pool_size` is reached, and no idle connections
     /// available, `PoolError` is thrown for every new connection

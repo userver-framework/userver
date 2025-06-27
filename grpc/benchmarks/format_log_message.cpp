@@ -33,7 +33,7 @@ void FormatLogMessage(benchmark::State& state) {
                     "ip=2a02:aaaa:aaaa:aaaa::1:1f\t"
                     "x_real_ip=2a02:aaaa:aaaa:aaaa::1:1f\t"
                     "request=hello.HelloService/SayHello\t"
-                    "upstream_response_time_ms=") != std::string::npos,
+                    "request_time=") != std::string::npos,
         "Fail 2"
     );
 

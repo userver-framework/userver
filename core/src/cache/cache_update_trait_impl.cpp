@@ -121,7 +121,7 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
         dumper_.emplace(
             *dependencies.dump_config,
             CheckNotNull(std::move(dependencies.dump_rw_factory)),
-            *CheckNotNull(dependencies.fs_task_processor),
+            dependencies.fs_task_processor,
             *CheckNotNull(dependencies.config_source),
             dependencies.statistics_storage,
             dependencies.dump_control,

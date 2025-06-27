@@ -1,13 +1,13 @@
 function(setup_linker_debug_info_compression)
     # check_linker_flag is available from 3.18
-    if (CMAKE_VERSION LESS 3.18)
+    if(CMAKE_VERSION LESS 3.18)
         message(STATUS "Using linker debug info compression: none")
         return()
     endif()
 
     include(CheckLinkerFlag)
     check_linker_flag(CXX "-Wl,--compress-debug-sections=zstd" LINKER_HAS_ZSTD)
-    if (NOT LINKER_HAS_ZSTD)
+    if(NOT LINKER_HAS_ZSTD)
         check_linker_flag(CXX "-Wl,--compress-debug-sections=zlib" LINKER_HAS_GZ)
     endif()
 
@@ -34,8 +34,10 @@ function(setup_compiler_debug_info_compression)
     endif()
 endfunction()
 
-
-set(USERVER_DEBUG_INFO_COMPRESSION "auto" CACHE STRING "Linker and compiler debug info compression algorithm (z, zstd, none, auto)")
+set(USERVER_DEBUG_INFO_COMPRESSION
+    "auto"
+    CACHE STRING "Linker and compiler debug info compression algorithm (z, zstd, none, auto)"
+)
 
 if(USERVER_DEBUG_INFO_COMPRESSION STREQUAL "z")
     message(STATUS "Using compiler debug info compression: z")

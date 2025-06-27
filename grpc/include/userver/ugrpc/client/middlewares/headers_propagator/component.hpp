@@ -14,7 +14,7 @@ namespace ugrpc::client::middlewares::headers_propagator {
 
 /// @ingroup userver_components userver_base_classes
 ///
-/// @brief The component for @ref ugrpc::client::middlewares::headers_propagator::Middleware.
+/// @brief gRPC client middleware for sending headers stored by the respective HTTP and gRPC server middlewares.
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -26,8 +26,7 @@ namespace ugrpc::client::middlewares::headers_propagator {
 class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of
-    /// ugrpc::client::middlewares::headers_propagator::Component.
+    /// @brief The default name of ugrpc::client::middlewares::headers_propagator::Component.
     static constexpr std::string_view kName = "grpc-client-headers-propagator";
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);

@@ -59,7 +59,7 @@ def test_import(cpp_name_func):
             orig_cpp_type=ext_types['::type1'],
             indirect=False,
             self_ref=False,
-            raw_cpp_type=type_name.TypeName(''),
+            raw_cpp_type=type_name.TypeName('::type2'),
             nullable=False,
             user_cpp_type=None,
             json_schema=new_schemas.schemas['vfull#/type2'],

@@ -36,8 +36,12 @@ constexpr std::chrono::minutes kEasyReinitPeriod{1};
 long ClampToLong(size_t value) { return std::min<size_t>(value, std::numeric_limits<long>::max()); }
 
 const tracing::TracingManagerBase* GetTracingManager(const ClientSettings& settings) {
-    UASSERT(settings.tracing_manager);
-    return settings.tracing_manager;
+    if (settings.tracing_manager) {
+        return settings.tracing_manager;
+    }
+
+    static const tracing::GenericTracingManager noop_tracing{tracing::Format{0}, tracing::Format{0}};
+    return &noop_tracing;
 }
 
 }  // namespace

@@ -32,7 +32,6 @@ public:
     stats::OperationKey op_key{stats::OpType::kCount};
     impl::cdriver::ReadPrefsPtr read_prefs;
     std::optional<formats::bson::impl::BsonBuilder> options;
-    bool use_new_count{true};
     std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 

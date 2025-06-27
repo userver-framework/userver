@@ -85,7 +85,7 @@ public:
     /// memory ordering. Must only be called by the waiting task.
     void Reset() noexcept;
 
-    /// Sets the signal flag and wakes a coroutine that waits on it (if any).
+    /// Sets the signal flag and wakes a task that waits on it (if any).
     /// If the signal flag is already set, does nothing.
     ///
     /// The waiter is allowed to destroy the SingleConsumerEvent immediately

@@ -55,7 +55,9 @@ inline const bool k{{service.name}}TypesRegistration =
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
             impl_, {{method_id}}, std::move(context), qos
         ),
-        &{{service.name}}::Stub::PrepareAsync{{method.name}},
+        USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
+            &{{service.name}}::Stub::PrepareAsync{{method.name}}
+        ),
         request,
     };
 }

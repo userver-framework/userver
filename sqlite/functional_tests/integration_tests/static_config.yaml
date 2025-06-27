@@ -12,8 +12,6 @@ components_manager:
             method: GET,DELETE,POST
 
         testsuite-support:
-        http-client:
-            fs-task-processor: main-task-processor
         tests-control:
             load-enabled: $testsuite-enabled
             path: /tests/{action}
@@ -22,26 +20,20 @@ components_manager:
 
         key-value-database:
             db-path: "/tmp/kv.db"
-            task_processor: fs-task-processor
 
         batch-database:
             db-path: "/tmp/batch.db"
-            task_processor: fs-task-processor
 
         server:
             listener:
                 port: 8080
                 task_processor: main-task-processor
         logging:
-            fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: "@stderr"
                     level: debug
                     overflow_behavior: discard
-
-        dns-client:
-            fs-task-processor: fs-task-processor
 
     task_processors:
         main-task-processor:

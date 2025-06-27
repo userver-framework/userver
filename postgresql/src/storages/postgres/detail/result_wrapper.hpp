@@ -37,7 +37,7 @@ public:
     std::string CommandStatus() const;
     std::size_t RowsAffected() const;
 
-    std::size_t IndexOfName(const std::string& name) const;
+    std::size_t IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const;
 
     std::string_view GetFieldName(std::size_t col) const;
     FieldDescription GetFieldDescription(std::size_t col) const;

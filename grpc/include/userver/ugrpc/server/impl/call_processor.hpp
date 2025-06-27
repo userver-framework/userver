@@ -35,7 +35,7 @@ void SetupSpan(
 
 grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noexcept;
 
-grpc::Status ReportRpcInterruptedError(CallState& state) noexcept;
+void ReportRpcInterruptedError(CallState& state) noexcept;
 
 grpc::Status
 ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state) noexcept;
@@ -170,7 +170,7 @@ private:
             // So, we watch to count of these middlewares.
             ++success_pre_hooks_count_;
             if constexpr (std::is_base_of_v<google::protobuf::Message, InitialRequest>) {
-                RunWithCatch([this, m] { m->PostRecvMessage(context_, initial_request_); });
+                RunWithCatch([this, &m] { m->PostRecvMessage(context_, initial_request_); });
                 if (!Status().ok()) {
                     return;
                 }

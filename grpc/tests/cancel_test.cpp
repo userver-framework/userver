@@ -88,7 +88,7 @@ UTEST_F_MT(GrpcCancelDeadline, TryCancel, 2) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
     auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(50ms));
+    context->set_deadline(engine::Deadline::FromDuration(500ms));
     try {
         auto call = client.Chat(std::move(context));
         for (;;) {
@@ -129,7 +129,7 @@ UTEST_F_MT(GrpcCancelWritesDone, TryCancel, 2) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
     auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(50ms));
+    context->set_deadline(engine::Deadline::FromDuration(500ms));
     auto call = client.Chat(std::move(context));
     const auto is_written = call.Write({});
     if (!is_written) {
@@ -171,7 +171,7 @@ UTEST_F_MT(GrpcCancelAfterRead, TryCancel, 2) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
     auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(150ms));
+    context->set_deadline(engine::Deadline::FromDuration(1000ms));
     auto call = client.Chat(std::move(context));
     EXPECT_TRUE(call.Write({}));
 
@@ -275,7 +275,7 @@ UTEST_F_MT(GrpcCancelByClient, CancelByClient, 3) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
     auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(100ms));
+    context->set_deadline(engine::Deadline::FromDuration(500ms));
     context->set_wait_for_ready(true);
     UEXPECT_THROW(client.SayHello({}, std::move(context)), ugrpc::client::BaseError);
 
@@ -286,7 +286,7 @@ UTEST_F_MT(GrpcCancelByClient, CancelByClientNoReadyWait, 3) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
     auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(100ms));
+    context->set_deadline(engine::Deadline::FromDuration(500ms));
     UEXPECT_THROW(client.SayHello({}, std::move(context)), ugrpc::client::BaseError);
 
     ASSERT_TRUE(GetService().GetFinishEvent().WaitForEventFor(std::chrono::seconds{5}));
@@ -314,7 +314,7 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
         client.SayHello(
             {},
             std::make_unique<::grpc::ClientContext>(),
-            ugrpc::client::Qos{std::nullopt, std::chrono::milliseconds(100)}
+            ugrpc::client::Qos{std::nullopt, std::chrono::milliseconds(500)}
         ),
         ugrpc::client::DeadlineExceededError
     );
@@ -346,13 +346,44 @@ public:
 using GrpcCancelError = utest::LogCaptureFixture<ugrpc::tests::ServiceFixture<UnitTestServiceCancelError>>;
 
 UTEST_F(GrpcCancelError, CancelByError) {
+    constexpr std::string_view kAbandoned = "abandoned-error";
+    constexpr std::string_view kCancelled = "cancelled";
+
+    const auto get_metric = [this](std::string_view name, std::vector<utils::statistics::Label> labels = {}) {
+        const auto stats = GetStatistics("grpc.client.total", labels);
+        return stats.SingleMetric(std::string{name}, labels).AsRate();
+    };
+
     {
         auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
         auto call = client.Chat();
+
+        EXPECT_EQ(get_metric(kAbandoned), 0);
+        EXPECT_EQ(get_metric(kCancelled), 0);
+        EXPECT_EQ(get_metric("status", {{"grpc_code", "OK"}}), 0);
+        EXPECT_FALSE(GetStatistics("grpc.client.total", {{"grpc_code", "CANCELLED"}}).SingleMetricOptional("status"));
+        EXPECT_EQ(get_metric("status", {{"grpc_code", "UNKNOWN"}}), 0);
+
+        // Make sure server process request
+        const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+        while (0 == GetServer().GetTotalRequests()) {
+            if (deadline.IsReached()) {
+                FAIL() << "Server do not process request until max test timeout";
+            }
+            engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
+        }
     }
 
     // Make sure server logs are written.
     GetServer().StopServing();
+
+    // implicit finish is a abandoned-error + grpc_code=CANCELLED.
+    EXPECT_EQ(get_metric(kAbandoned), 1);
+    EXPECT_EQ(get_metric("status", {{"grpc_code", "CANCELLED"}}), 1);
+
+    EXPECT_EQ(get_metric(kCancelled), 0);
+    EXPECT_EQ(get_metric("status", {{"grpc_code", "OK"}}), 0);
+    EXPECT_EQ(get_metric("status", {{"grpc_code", "UNKNOWN"}}), 0);
 
     ASSERT_THAT(
         GetLogCapture().Filter(

@@ -100,13 +100,21 @@ async def websocket_client(service_client, service_port):
     """
     Fixture that provides access to userver based websocket service.
 
+    Usage example:
+
+    @snippet samples/websocket_service/tests/test_websocket.py Functional test
+
+    You can pass extra kwargs to `get`, they will be forwarded to [websockets.connect][1].
+
+    [1]: https://websockets.readthedocs.io/en/stable/reference/asyncio/client.html#websockets.asyncio.client.connect
+
     @anchor websocket_client
     @ingroup userver_testsuite_fixtures
     """
 
     class Client:
         @contextlib.asynccontextmanager
-        async def get(self, path):
+        async def get(self, path, **kwargs):
             update_server_state = getattr(
                 service_client,
                 'update_server_state',
@@ -114,9 +122,7 @@ async def websocket_client(service_client, service_port):
             )
             if update_server_state:
                 await update_server_state()
-            ws_context = websockets.connect(
-                f'ws://localhost:{service_port}/{path}',
-            )
+            ws_context = websockets.connect(uri=f'ws://localhost:{service_port}/{path}', **kwargs)
             async with ws_context as socket:
                 yield socket
 

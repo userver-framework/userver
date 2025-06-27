@@ -8,6 +8,8 @@
 #include <grpcpp/support/async_unary_call.h>
 #include <grpcpp/support/status.h>
 
+#include <userver/utils/assert.hpp>
+
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 

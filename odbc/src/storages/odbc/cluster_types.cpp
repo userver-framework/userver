@@ -25,7 +25,7 @@ const char* ToStringRaw(ClusterHostType ht) {
     }
     const auto msg = fmt::format("invalid host type {} in ToStringRaw", USERVER_NAMESPACE::utils::UnderlyingValue(ht));
     UASSERT_MSG(false, msg);
-    throw LogicError(msg);
+    throw LogicError(std::move(msg));
 }
 
 }  // namespace

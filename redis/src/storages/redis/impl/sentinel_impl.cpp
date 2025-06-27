@@ -404,6 +404,8 @@ void SentinelImpl::RefreshConnectionInfo() {
 }
 
 void SentinelImpl::Stop() {
+    UASSERT(engine::current_task::IsTaskProcessorThread());
+
     ev_thread_.RunInEvLoopBlocking([this] {
         ev_thread_.Stop(check_timer_);
         ev_thread_.Stop(watch_state_);

@@ -23,6 +23,9 @@ To use additional userver libraries later, see @ref service_templates_libraries.
 make build-debug && \
 make test-debug
 ```
+If the tests fail and you see messages like "No XXX installation found. Install it...", then the database server is not
+installed in the environment you are running tests. Do not hesitate to install the missing database servers, like
+PostgreSQL, MongoDB and others.
 
 4\. To get a feel for how the service runs without needing to set up full production environment, run:
 

@@ -37,11 +37,14 @@ std::string GetHeadersLogString(
     formats::json::StringBuilder sb{};
     {
         const formats::json::StringBuilder::ObjectGuard guard{sb};
+        bool some_headers_did_not_fit = false;
 
         auto write_header = [&](std::string_view header_name, std::string_view header_value) {
             if (sb.GetStringView().size() + header_name.size() + header_value.size() <= response_data_size_log_limit) {
                 sb.Key(header_name);
                 sb.WriteString(header_value);
+            } else {
+                some_headers_did_not_fit = true;
             }
         };
 
@@ -56,6 +59,11 @@ std::string GetHeadersLogString(
             if (headers_whitelist.find(header_name) == headers_whitelist.end()) {
                 write_header(header_name, "***");
             }
+        }
+
+        if (some_headers_did_not_fit) {
+            sb.Key("HEADERS-DID-NOT-FIT-IN-SIZE-LIMIT");
+            sb.WriteBool(true);
         }
     }
     return sb.GetString();

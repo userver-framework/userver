@@ -14,10 +14,9 @@ TESTDIR = pathlib.Path(__file__).parent
 
 
 @pytest.fixture(scope='session')
-def prepare_service_config(tcp_service_port):
+def prepare_service_config():
     def _do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        components['grpc-server']['port'] = tcp_service_port
         components['grpc-server']['tls'] = {
             'key': str(TESTDIR / 'private_key.key'),
             'cert': str(TESTDIR / 'cert.crt'),

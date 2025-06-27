@@ -1,5 +1,7 @@
 from chaotic_openapi.front import model
+import pytest
 
+from chaotic import error
 from chaotic.front import types
 
 
@@ -356,3 +358,27 @@ def test_openapi_parameters(simple_parser):
             )
         ],
     )
+
+
+def test_unknown_usrv_tag(simple_parser):
+    expected = """
+===============================================================
+Unhandled error while processing <inline>
+Path "paths./.get", Format "openapi"
+Error:
+Assertion failed, Field x-usrv-tag is not allowed in this context
+==============================================================="""
+
+    with pytest.raises(error.BaseError, match=expected):
+        simple_parser({
+            'openapi': '3.0.0',
+            'info': {'title': '', 'version': '1.0'},
+            'paths': {
+                '/': {
+                    'get': {
+                        'x-usrv-tag': '1',
+                        'responses': {},
+                    },
+                },
+            },
+        })

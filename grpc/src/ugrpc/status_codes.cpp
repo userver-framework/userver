@@ -52,7 +52,7 @@ std::string ToString(grpc::StatusCode code) noexcept {
         return std::string{*str};
     }
 
-    return fmt::format("non_standard({})", utils::UnderlyingValue(code));
+    return fmt::format("CODE({})", utils::UnderlyingValue(code));
 }
 
 // See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/

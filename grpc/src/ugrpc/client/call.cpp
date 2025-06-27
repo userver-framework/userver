@@ -6,11 +6,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-grpc::ClientContext& CallAnyBase::GetContext() { return GetState().GetContext(); }
+grpc::ClientContext& CallAnyBase::GetContext() noexcept { return GetState().GetContext(); }
 
-std::string_view CallAnyBase::GetClientName() const { return GetState().GetClientName(); }
+std::string_view CallAnyBase::GetClientName() const noexcept { return GetState().GetClientName(); }
 
-std::string_view CallAnyBase::GetCallName() const { return GetState().GetCallName(); }
+std::string_view CallAnyBase::GetCallName() const noexcept { return GetState().GetCallName(); }
 
 tracing::Span& CallAnyBase::GetSpan() { return GetState().GetSpan(); }
 
@@ -23,12 +23,12 @@ CallAnyBase& CallAnyBase::operator=(CallAnyBase&& other) noexcept = default;
 
 CallAnyBase::~CallAnyBase() = default;
 
-impl::CallState& CallAnyBase::GetState() {
+impl::CallState& CallAnyBase::GetState() noexcept {
     UASSERT(state_);
     return *state_;
 }
 
-const impl::CallState& CallAnyBase::GetState() const {
+const impl::CallState& CallAnyBase::GetState() const noexcept {
     UASSERT(state_);
     return *state_;
 }

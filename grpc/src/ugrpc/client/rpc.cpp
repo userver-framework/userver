@@ -1,4 +1,4 @@
-#include <userver/ugrpc/client/response_future.hpp>
+#include <userver/ugrpc/client/rpc.hpp>
 
 #include <userver/engine/task/cancel.hpp>
 
@@ -38,7 +38,7 @@ UnaryFinishFutureImpl::~UnaryFinishFutureImpl() {
         state_->GetContext().TryCancel();
 
         const engine::TaskCancellationBlocker cancel_blocker;
-        const auto future_status = WaitUntil(engine::Deadline{});
+        const auto future_status = WaitUntil(engine::Deadline{}, ShouldCallMiddlewares::kNone);
         UASSERT(future_status == engine::FutureStatus::kReady);
 
         UASSERT(state_->IsFinishProcessed());
@@ -51,7 +51,8 @@ bool UnaryFinishFutureImpl::IsReady() const noexcept {
     return finish.IsReady();
 }
 
-engine::FutureStatus UnaryFinishFutureImpl::WaitUntil(engine::Deadline deadline) const noexcept {
+engine::FutureStatus UnaryFinishFutureImpl::WaitUntil(engine::Deadline deadline, ShouldCallMiddlewares call_middlewares)
+    const noexcept {
     UASSERT_MSG(state_, "'WaitUntil' called on a moved out future");
     if (!state_) return engine::FutureStatus::kReady;
 
@@ -64,7 +65,7 @@ engine::FutureStatus UnaryFinishFutureImpl::WaitUntil(engine::Deadline deadline)
             state_->SetFinishProcessed();
             state_->GetStatsScope().SetFinishTime(finish.GetFinishTime());
             try {
-                ProcessFinish(*state_, response_);
+                ProcessFinish(*state_, response_, call_middlewares);
             } catch (...) {
                 exception_ = std::current_exception();
             }

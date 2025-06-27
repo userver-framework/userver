@@ -1,6 +1,7 @@
 import collections
 import dataclasses
 import os
+import pathlib
 import re
 from typing import Callable
 from typing import Dict
@@ -247,7 +248,7 @@ class Generator:
 
     def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
         vfile, infile = jsonschema_name.split('#')
-        name = self._config.infile_to_name_func(infile)
+        name = self._config.infile_to_name_func(infile, pathlib.Path(vfile).stem)
         namespace = self._config.namespaces[vfile]
         if namespace:
             return '::' + namespace + '::' + name
@@ -442,7 +443,7 @@ class Generator:
                 )
             user_cpp_type = f'userver::utils::StrongTypedef<{typedef_tag}, std::string>'
 
-        if schema.format:
+        if schema.format and schema.format != types.StringFormat.BINARY:
             if schema.format == types.StringFormat.BYTE:
                 format_cpp_type = 'crypto::base64::String64'
             elif schema.format == types.StringFormat.UUID:
@@ -453,6 +454,8 @@ class Generator:
                 format_cpp_type = 'userver::utils::datetime::TimePointTz'
             elif schema.format == types.StringFormat.DATE_TIME_ISO_BASIC:
                 format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
+            elif schema.format == types.StringFormat.DATE_TIME_FRACTION:
+                format_cpp_type = 'userver::utils::datetime::TimePointTzFraction'
             else:
                 self._raise(
                     schema,
@@ -531,8 +534,7 @@ class Generator:
             user_cpp_type = None
 
         return cpp_types.CppArray(
-            # _cpp_type() is overridden in array
-            raw_cpp_type=type_name.TypeName('NOT_USED'),
+            raw_cpp_type=name,
             json_schema=schema,
             nullable=schema.nullable,
             user_cpp_type=user_cpp_type,
@@ -703,7 +705,7 @@ class Generator:
                 nullable=False,
                 user_cpp_type=None,
             ),
-            raw_cpp_type=type_name.TypeName(''),
+            raw_cpp_type=name,
             indirect=False,
             self_ref=False,
         )

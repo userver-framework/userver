@@ -143,7 +143,7 @@ NativeHandler::~NativeHandler() {
 
 struct sqlite3* NativeHandler::GetHandle() const noexcept { return db_handler_; }
 
-void NativeHandler::Exec(utils::NullTerminatedView query) const {
+void NativeHandler::Exec(utils::zstring_view query) const {
     engine::AsyncNoSpan(blocking_task_processor_, [this, query] {
         if (const int ret_code = sqlite3_exec(db_handler_, query.c_str(), nullptr, nullptr, nullptr);
             ret_code != SQLITE_OK) {

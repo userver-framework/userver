@@ -10,7 +10,7 @@ def translate_single_schema():
         parser.parse_schema(schema, '<inline>')
         service = parser.service()
 
-        tr = translator.Translator(service, 'test_namespace')
+        tr = translator.Translator(service, 'test_namespace', [])
         return tr.spec()
 
     return func

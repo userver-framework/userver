@@ -92,9 +92,10 @@ std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(cons
                        : impl::ToSeconds(n.template As<std::string>(), n);
 }
 
-template <class Value>
-std::chrono::system_clock::time_point Parse(const Value& n, To<std::chrono::system_clock::time_point>) {
-    return utils::datetime::FromRfc3339StringSaturating(n.template As<std::string>());
+template <class Value, class Duration>
+std::chrono::time_point<std::chrono::system_clock, Duration>
+Parse(const Value& n, To<std::chrono::time_point<std::chrono::system_clock, Duration>>) {
+    return utils::datetime::FromRfc3339StringSaturating<Duration>(n.template As<std::string>());
 }
 
 template <class Value>

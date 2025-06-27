@@ -23,7 +23,7 @@ namespace clients::dns {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// fs-task-processor | task processor for disk I/O operations | -
+/// fs-task-processor | task processor for disk I/O operations | engine::current_task::GetBlockingTaskProcessor()
 /// hosts-file-path | path to the `hosts` file | /etc/hosts
 /// hosts-file-update-interval | `hosts` file cache reload interval | 5m
 /// network-timeout | timeout for network requests | 1s
@@ -60,5 +60,8 @@ private:
 
 template <>
 inline constexpr bool components::kForceNoValidation<clients::dns::Component> = true;
+
+template <>
+inline constexpr auto components::kConfigFileMode<clients::dns::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

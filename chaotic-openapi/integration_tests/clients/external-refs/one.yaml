@@ -11,6 +11,8 @@ paths:
             responses:
                 '200':
                     $ref: 'two.yaml#/components/responses/Two'
+                '201':
+                    $ref: './two.yaml#/components/responses/Two'
             requestBody:
                 $ref: 'two.yaml#/components/requestBodies/Two'
 

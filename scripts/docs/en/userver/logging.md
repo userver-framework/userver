@@ -14,6 +14,10 @@ Below are the introductions to main developer logging facilities.
 
 For information on controlling log level in unit tests see @ref scripts/docs/en/userver/testing.md
 
+### Setting up logs
+
+You can find a detailed manual for configuring how logs are written in @ref components::Logging.
+
 ### Log level
 
 Macros are used for logging:
@@ -286,10 +290,11 @@ Important: getting a text representation of a stacktrace is an **expensive opera
 itself increases the log record size several times. Therefore, you do not need to use a stack trace for all errors. Use it only
 when it is 100% useful for diagnostics and other diagnostic tools are ineffective.
 
+@anchor custom_loggers
 ### Additional loggers
 
 You can create any number of additional loggers. All you need is to add them to
-your `logging.loggers` section of the static config (see components::Logging for an example)
+your `logging.loggers` section of the static config (see @ref components::Logging for an example)
 
 After that, you can get a logger in the code like this:
 

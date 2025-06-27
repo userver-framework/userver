@@ -8,7 +8,7 @@
 // Note: this is for the purposes of tests/samples only
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <client/test/component.hpp>
+#include <clients/test/component.hpp>
 
 #include <hello_handler.hpp>
 

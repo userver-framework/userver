@@ -16,7 +16,7 @@ struct MiddlewarePipeline {
 
     static void PostRecvMessage(CallState& state, const google::protobuf::Message& message);
 
-    static void PostFinish(CallState& state, const grpc::Status& status);
+    static void PostFinish(CallState& state);
 };
 
 }  // namespace ugrpc::client::impl

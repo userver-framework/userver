@@ -28,7 +28,7 @@ struct CacheDependencies final {
     testsuite::CacheControl& cache_control;
     std::optional<dump::Config> dump_config;
     std::unique_ptr<dump::OperationsFactory> dump_rw_factory;
-    engine::TaskProcessor* fs_task_processor;
+    engine::TaskProcessor& fs_task_processor;
     testsuite::DumpControl& dump_control;
 
     static CacheDependencies

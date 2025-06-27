@@ -1,58 +1,61 @@
 cmake_policy(SET CMP0079 NEW)
 
-option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC"
-    ${USERVER_DOWNLOAD_PACKAGES})
-option(
-    USERVER_FORCE_DOWNLOAD_GRPC
-    "Download gRPC even if there is an installed system package"
-    ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC" ${USERVER_DOWNLOAD_PACKAGES})
+option(USERVER_FORCE_DOWNLOAD_GRPC "Download gRPC even if there is an installed system package"
+       ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )
 
 macro(try_find_cmake_grpc)
-  find_package(gRPC QUIET CONFIG)
-  if(NOT gRPC_FOUND)
-    find_package(gRPC QUIET)
-  endif()
+    find_package(gRPC QUIET CONFIG)
+    if(NOT gRPC_FOUND)
+        find_package(gRPC QUIET)
+    endif()
 
-  if(gRPC_FOUND)
-    # Use the found CMake-enabled gRPC package
-    get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
-    get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-  endif()
+    if(gRPC_FOUND)
+        # Use the found CMake-enabled gRPC package
+        get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
+        get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
+    endif()
 endmacro()
 
 macro(try_find_system_grpc)
-  # Find the system gRPC package
-  set(GRPC_USE_SYSTEM_PACKAGE ON CACHE INTERNAL "")
+    # Find the system gRPC package
+    set(GRPC_USE_SYSTEM_PACKAGE
+        ON
+        CACHE INTERNAL ""
+    )
 
-  if(USERVER_DOWNLOAD_PACKAGE_GRPC)
-    find_package(UserverGrpc QUIET)
-  else()
-    find_package(UserverGrpc REQUIRED)
-  endif()
-
-  if(UserverGrpc_FOUND)
-    set(gRPC_VERSION "${UserverGrpc_VERSION}" CACHE INTERNAL "")
-
-    if(NOT TARGET gRPC::grpc++)
-      add_library(gRPC::grpc++ ALIAS UserverGrpc)
+    if(USERVER_DOWNLOAD_PACKAGE_GRPC)
+        find_package(UserverGrpc QUIET)
+    else()
+        find_package(UserverGrpc REQUIRED)
     endif()
 
-    find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
-    find_program(PROTO_GRPC_PYTHON_PLUGIN grpc_python_plugin)
-  endif()
+    if(UserverGrpc_FOUND)
+        set(gRPC_VERSION
+            "${UserverGrpc_VERSION}"
+            CACHE INTERNAL ""
+        )
+
+        if(NOT TARGET gRPC::grpc++)
+            add_library(gRPC::grpc++ ALIAS UserverGrpc)
+        endif()
+
+        find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
+        find_program(PROTO_GRPC_PYTHON_PLUGIN grpc_python_plugin)
+    endif()
 endmacro()
 
 if(NOT USERVER_FORCE_DOWNLOAD_GRPC)
-  try_find_cmake_grpc()
-  if(gRPC_FOUND)
-    return()
-  endif()
+    try_find_cmake_grpc()
+    if(gRPC_FOUND)
+        return()
+    endif()
 
-  try_find_system_grpc()
-  if(UserverGrpc_FOUND)
-    return()
-  endif()
+    try_find_system_grpc()
+    if(UserverGrpc_FOUND)
+        return()
+    endif()
 endif()
 
 include(SetupAbseil)
@@ -62,10 +65,13 @@ include(DownloadUsingCPM)
 
 set(USERVER_GPRC_BUILD_FROM_SOURCE ON)
 
-CPMAddPackage(
-    NAME gRPC
-    VERSION 1.59.1
-    GITHUB_REPOSITORY grpc/grpc
+cpmaddpackage(
+    NAME
+    gRPC
+    VERSION
+    1.59.1
+    GITHUB_REPOSITORY
+    grpc/grpc
     SYSTEM
     OPTIONS
     "BUILD_SHARED_LIBS OFF"
@@ -93,26 +99,25 @@ set(gRPC_VERSION "${CPM_PACKAGE_gRPC_VERSION}")
 set(PROTO_GRPC_CPP_PLUGIN $<TARGET_FILE:grpc_cpp_plugin>)
 set(PROTO_GRPC_PYTHON_PLUGIN $<TARGET_FILE:grpc_python_plugin>)
 write_package_stub(gRPC)
-if (NOT TARGET "gRPC::grpc++")
+if(NOT TARGET "gRPC::grpc++")
     add_library(gRPC::grpc++ ALIAS grpc++)
 endif()
-if (NOT TARGET "gRPC::grpc_cpp_plugin")
+if(NOT TARGET "gRPC::grpc_cpp_plugin")
     add_executable(gRPC::grpc_cpp_plugin ALIAS grpc_cpp_plugin)
 endif()
-if (NOT TARGET "gRPC::grpcpp_channelz")
+if(NOT TARGET "gRPC::grpcpp_channelz")
     add_library(gRPC::grpcpp_channelz ALIAS grpcpp_channelz)
 endif()
 mark_targets_as_system("${gRPC_SOURCE_DIR}")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.0)
     userver_is_cxx_compile_option_supported(
-        COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW
-        -Wno-error=missing-template-arg-list-after-template-kw
+        COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW -Wno-error=missing-template-arg-list-after-template-kw
     )
-    if (COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW)
+    if(COMPILER_HAS_MISSING_TEMPLATE_ARG_LIST_AFTER_TEMPLATE_KW)
         foreach(package grpc grpc++ grpc_unsecure grpc++_unsecure grpc_authorization_provider)
-            target_compile_options(${package} PRIVATE
-                "$<$<COMPILE_LANGUAGE:CXX>:-Wno-error=missing-template-arg-list-after-template-kw>"
+            target_compile_options(
+                ${package} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Wno-error=missing-template-arg-list-after-template-kw>"
             )
         endforeach()
     endif()

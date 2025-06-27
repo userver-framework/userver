@@ -71,12 +71,21 @@ void RetryBudget::SetSettings(const RetryBudgetSettings& settings) {
     token_ratio_.store(settings.token_ratio * kMillis, std::memory_order_relaxed);
 }
 
-RetryBudgetSettings Parse(const formats::json::Value& elem, formats::parse::To<RetryBudgetSettings>) {
+template <typename Value>
+RetryBudgetSettings DoParse(const Value& elem, formats::parse::To<RetryBudgetSettings>) {
     RetryBudgetSettings result;
-    result.max_tokens = elem["max-tokens"].As<float>(result.max_tokens);
-    result.token_ratio = elem["token-ratio"].As<float>(result.token_ratio);
-    result.enabled = elem["enabled"].As<bool>(result.enabled);
+    result.max_tokens = elem["max-tokens"].template As<float>(result.max_tokens);
+    result.token_ratio = elem["token-ratio"].template As<float>(result.token_ratio);
+    result.enabled = elem["enabled"].template As<bool>(result.enabled);
     return result;
+}
+
+RetryBudgetSettings Parse(const formats::json::Value& elem, formats::parse::To<RetryBudgetSettings> to) {
+    return DoParse(elem, to);
+}
+
+RetryBudgetSettings Parse(const yaml_config::Value& elem, formats::parse::To<RetryBudgetSettings> to) {
+    return DoParse(elem, to);
 }
 
 void DumpMetric(statistics::Writer& writer, const RetryBudget& budget) {

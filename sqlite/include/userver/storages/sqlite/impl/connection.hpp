@@ -1,7 +1,7 @@
 #pragma once
 
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/null_terminated_view.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <userver/storages/sqlite/impl/native_handler.hpp>
 #include <userver/storages/sqlite/impl/result_wrapper.hpp>
@@ -56,7 +56,7 @@ public:
     void NotifyBroken();
 
 private:
-    void ExecuteQuery(utils::NullTerminatedView query) const;
+    void ExecuteQuery(utils::zstring_view query) const;
 
     engine::TaskProcessor& blocking_task_processor_;
     impl::NativeHandler db_handler_;

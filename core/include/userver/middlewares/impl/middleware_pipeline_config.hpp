@@ -14,17 +14,19 @@ struct BaseMiddlewareConfig final {
     bool enabled{true};
 };
 
-struct BasePipelineConfig final {
-    std::unordered_map<std::string, BaseMiddlewareConfig> middlewares{};
-};
-
 BaseMiddlewareConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<BaseMiddlewareConfig>);
 
-struct MiddlewarePipelineConfig final {
-    std::unordered_map<std::string, BaseMiddlewareConfig> middlewares{};
+using MiddlewaresMap = std::unordered_map<std::string, BaseMiddlewareConfig>;
+
+struct BuiltInConfig final {
+    MiddlewaresMap middlewares{};
 };
 
-MiddlewarePipelineConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<MiddlewarePipelineConfig>);
+struct MiddlewaresConfig final {
+    MiddlewaresMap middlewares{};
+};
+
+MiddlewaresConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<MiddlewaresConfig>);
 
 struct MiddlewareRunnerConfig final {
     std::unordered_map<std::string, yaml_config::YamlConfig> middlewares{};

@@ -82,10 +82,6 @@ std::string UtcTimestring(std::time_t timestamp, const std::string& format) {
     return cctz::format(format, tp, cctz::utc_time_zone());
 }
 
-std::string UtcTimestring(std::chrono::system_clock::time_point tp, const std::string& format) {
-    return cctz::format(format, tp, cctz::utc_time_zone());
-}
-
 std::string Timestring(std::chrono::system_clock::time_point tp) { return UtcTimestring(tp); }
 
 std::string LocalTimezoneTimestring(time_t timestamp, const std::string& format) {

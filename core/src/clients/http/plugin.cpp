@@ -30,6 +30,8 @@ void PluginRequest::SetTimeout(std::chrono::milliseconds ms) {
     state_.SetEasyTimeout(ms);
 }
 
+const std::string& PluginRequest::GetOriginalUrl() const { return state_.easy().get_original_url(); }
+
 Plugin::Plugin(std::string name) : name_(std::move(name)) {}
 
 const std::string& Plugin::GetName() const { return name_; }
@@ -54,6 +56,25 @@ void PluginPipeline::HookOnCompleted(RequestState& request_state, Response& resp
         const auto& plugin = *it;
         plugin->HookOnCompleted(req, response);
     }
+}
+
+void PluginPipeline::HookOnError(RequestState& request_state, std::error_code ec) {
+    PluginRequest req(request_state);
+
+    // NOLINTNEXTLINE(modernize-loop-convert)
+    for (auto it = plugins_.rbegin(); it != plugins_.rend(); ++it) {
+        const auto& plugin = *it;
+        plugin->HookOnError(req, ec);
+    }
+}
+
+bool PluginPipeline::HookOnRetry(RequestState& request_state) {
+    PluginRequest req(request_state);
+
+    for (const auto& plugin : plugins_) {
+        if (!plugin->HookOnRetry(req)) return false;
+    }
+    return true;
 }
 
 void PluginPipeline::HookPerformRequest(RequestState& request_state) {

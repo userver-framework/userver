@@ -89,6 +89,14 @@ private:
             fmt::to_string(histogram.GetTotalCount()),
             labels
         );
+
+        AppendHistogramMetric(
+            "sum",
+            prometheus_name,
+            /* upper_bound */ "",
+            fmt::to_string(histogram.GetTotalSum()),
+            labels
+        );
     }
 
     void DumpMetricNameAndType(std::string_view name, const MetricValue& value) {

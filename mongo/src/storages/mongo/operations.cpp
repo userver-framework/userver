@@ -170,10 +170,6 @@ void Count::SetOption(options::Skip skip) { AppendSkip(impl::EnsureBuilder(impl_
 
 void Count::SetOption(options::Limit limit) { AppendLimit(impl::EnsureBuilder(impl_->options), limit); }
 
-void Count::SetOption(options::ForceCountImpl count_impl) {
-    impl_->use_new_count = (count_impl == options::ForceCountImpl::kAggregate);
-}
-
 void Count::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }

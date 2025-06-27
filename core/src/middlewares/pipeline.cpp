@@ -21,10 +21,10 @@ namespace {
 impl::Dependencies MakeDependencies(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    impl::BasePipelineConfig&& base_config
+    impl::BuiltInConfig&& builtin_config
 ) {
-    auto builtin_middlewares = base_config.middlewares;
-    auto pipeline_config = config.As<impl::MiddlewarePipelineConfig>();
+    auto builtin_middlewares = builtin_config.middlewares;
+    auto pipeline_config = config.As<impl::MiddlewaresConfig>();
     pipeline_config.middlewares.merge(std::move(builtin_middlewares));
 
     impl::Dependencies dependencies{};
@@ -36,7 +36,7 @@ impl::Dependencies MakeDependencies(
             auto dep = middleware->GetMiddlewareDependency(utils::impl::InternalTag{});
             dep.enabled = conf.enabled;
             dependencies.emplace(mname, std::move(dep));
-        } else if (base_config.middlewares.count(mname) != 0) {
+        } else if (builtin_config.middlewares.count(mname) != 0) {
             impl::MiddlewareDependency fake_dep;
             fake_dep.middleware_name = mname;
             fake_dep.enabled = false;
@@ -60,7 +60,7 @@ std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl
     const auto& per_service_middlewares = config.middlewares;
     for (const auto& [name, enabled] : pipeline_) {
         if (const auto it = per_service_middlewares.find(name); it != per_service_middlewares.end()) {
-            // Per-service enabled is high priority
+            // Per-service `enabled` has a higher priority than a global priority.
             if (it->second.As<BaseMiddlewareConfig>().enabled) {
                 res.push_back(name);
             }
@@ -84,7 +84,7 @@ std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl
 AnyMiddlewarePipelineComponent::AnyMiddlewarePipelineComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    impl::BasePipelineConfig&& base_config
+    impl::BuiltInConfig&& base_config
 )
     : components::ComponentBase(config, context),
       pipeline_(MakeDependencies(config, context, std::move(base_config))) {}

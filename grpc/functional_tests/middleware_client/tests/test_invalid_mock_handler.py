@@ -54,7 +54,10 @@ async def test_missing(service_client, asyncexc_check):
     # through testsuite's asyncexc mechanism.
     with pytest.raises(Exception) as ex_info:
         asyncexc_check(really_check=True)
-    expected_error = f"NotImplementedError: Trying to call a missing grpc mock for '{SAY_HELLO}' method"
+    expected_error = (
+        f'testsuite.mockserver.exceptions.HandlerNotFoundError: '
+        f"gRPC mockserver handler is not installed for '{SAY_HELLO}'."
+    )
     assert expected_error in full_exception_message(ex_info.value)
 
 

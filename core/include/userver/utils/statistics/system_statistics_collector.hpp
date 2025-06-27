@@ -26,7 +26,7 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// fs-task-processor | Task processor to use for statistics gathering | -
+/// fs-task-processor | Task processor to use for statistics gathering | engine::current_task::GetBlockingTaskProcessor()
 /// with-nginx | Whether to collect and report nginx processes statistics | false
 ///
 /// Note that `with-nginx` is a relatively expensive option as it requires full

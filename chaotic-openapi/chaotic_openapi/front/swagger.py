@@ -7,15 +7,18 @@ from typing import Union
 
 import pydantic
 
+from . import base_model
 from . import errors
 
 
-class Info(pydantic.BaseModel):
-    pass
+class Info(base_model.BaseModel):
+    description: Optional[str] = None
+    title: Optional[str] = None
+    version: Optional[str] = None
 
 
 # https://spec.openapis.org/oas/v2.0.html#reference-object
-class Ref(pydantic.BaseModel):
+class Ref(base_model.BaseModel):
     ref: str = pydantic.Field(alias='$ref')
 
 
@@ -28,7 +31,7 @@ class In(str, enum.Enum):
 
 
 # https://spec.openapis.org/oas/v2.0.html#parameter-object
-class Parameter(pydantic.BaseModel):
+class Parameter(base_model.BaseModel):
     name: str
     in_: In = pydantic.Field(alias='in')
     description: str = ''
@@ -60,7 +63,7 @@ class Parameter(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v2.0.html#header-object
-class Header(pydantic.BaseModel):
+class Header(base_model.BaseModel):
     description: Optional[str] = None
     type: str
     format: Optional[str] = None
@@ -82,14 +85,14 @@ Schema = Any
 
 
 # https://spec.openapis.org/oas/v2.0.html#response-object
-class Response(pydantic.BaseModel):
+class Response(base_model.BaseModel):
     description: str
     schema_: Schema = pydantic.Field(alias='schema', default=None)
     headers: Dict[str, Header] = pydantic.Field(default_factory=dict)
     examples: Dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
-Responses = Dict[str, Union[Response, Ref]]
+Responses = Dict[Union[str, int], Union[Response, Ref]]
 
 
 class SecurityType(str, enum.Enum):
@@ -111,7 +114,7 @@ class OAuthFlow(str, enum.Enum):
 
 
 # https://spec.openapis.org/oas/v2.0.html#security-definitions-object
-class SecurityDef(pydantic.BaseModel):
+class SecurityDef(base_model.BaseModel):
     type: SecurityType
     description: Optional[str] = None
     name: Optional[str] = None
@@ -153,8 +156,8 @@ Parameters = List[Union[Parameter, Ref]]
 
 
 # https://spec.openapis.org/oas/v2.0.html#operation-object
-class Operation(pydantic.BaseModel):
-    tags: Optional[str] = None
+class Operation(base_model.BaseModel):
+    tags: Optional[List[str]] = None
     summary: Optional[str] = None
     description: str = ''
     externalDocs: Optional[Dict] = None
@@ -169,7 +172,7 @@ class Operation(pydantic.BaseModel):
 
 
 # https://spec.openapis.org/oas/v2.0.html#paths-object
-class Path(pydantic.BaseModel):
+class Path(base_model.BaseModel):
     get: Optional[Operation] = None
     post: Optional[Operation] = None
     put: Optional[Operation] = None
@@ -184,15 +187,15 @@ Paths = Dict[str, Path]
 
 
 # https://spec.openapis.org/oas/v2.0.html#schema
-class Swagger(pydantic.BaseModel):
-    swagger: str
-    info: Info
+class Swagger(base_model.BaseModel):
+    swagger: str = '2.0'
+    info: Optional[Info] = None
     host: Optional[str] = None
     basePath: str = ''
     schemes: List[str] = pydantic.Field(default_factory=list)
     consumes: List[str] = pydantic.Field(default_factory=list)
     produces: List[str] = pydantic.Field(default_factory=list)
-    paths: Paths
+    paths: Paths = pydantic.Field(default_factory=dict)
     definitions: Dict[str, Schema] = pydantic.Field(default_factory=dict)
     parameters: Dict[str, Parameter] = pydantic.Field(default_factory=dict)
     responses: Dict[str, Response] = pydantic.Field(default_factory=dict)

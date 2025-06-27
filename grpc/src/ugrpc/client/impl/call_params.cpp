@@ -8,8 +8,10 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <ugrpc/impl/rpc_metadata.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/time_utils.hpp>
+
+#include <ugrpc/impl/rpc_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,7 +38,7 @@ constexpr std::chrono::hours kMaxSafeDeadline{24 * 365};
 
 void SetDeadline(grpc::ClientContext& client_context, const Qos& qos, const testsuite::GrpcControl& testsuite_control) {
     if (!qos.timeout.has_value() || kMaxSafeDeadline < *qos.timeout) {
-        client_context.set_deadline(std::chrono::system_clock::time_point::max());
+        client_context.set_deadline(engine::Deadline{});
         return;
     }
 
@@ -49,7 +51,7 @@ void SetDeadline(grpc::ClientContext& client_context, const Qos& qos, const test
 
     const auto total_timeout = GetTotalTimeout(qos);
     UASSERT(total_timeout.has_value());
-    client_context.set_deadline(std::chrono::system_clock::now() + testsuite_control.MakeTimeout(*total_timeout));
+    client_context.set_deadline(engine::Deadline::FromDuration(testsuite_control.MakeTimeout(*total_timeout)));
 }
 
 // Order of timeout application, from highest to lowest priority:

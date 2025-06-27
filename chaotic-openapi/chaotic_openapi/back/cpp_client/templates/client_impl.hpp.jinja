@@ -1,12 +1,20 @@
 #pragma once
 
-#include <client/{{ name }}/client.hpp>
+#include <clients/{{ name }}/client.hpp>
+
 
 #include <userver/chaotic/openapi/client/config.hpp>
 #include <userver/chaotic/openapi/middlewares/manager.hpp>
-#include <userver/clients/http/client.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/yaml_config/schema.hpp>
+
+{% if tvm_hack %}
+#undef USERVER_TVM2_HTTP_CLIENT
+{% endif %}
+#include <userver/clients/http/client.hpp>
+{% if tvm_hack %}
+#define USERVER_TVM2_HTTP_CLIENT
+{% endif %}
 
 namespace {{ namespace }} {
 

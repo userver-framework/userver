@@ -2,7 +2,6 @@
 #include <client/test/component.hpp>
 
 #include <userver/chaotic/openapi/client/config.hpp>
-#include <userver/chaotic/openapi/client/middleware_registry.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component_context.hpp>
 

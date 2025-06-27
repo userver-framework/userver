@@ -2,6 +2,7 @@ import collections
 import contextlib
 import dataclasses
 import os
+import re
 from typing import Dict
 from typing import Generator
 from typing import List
@@ -327,6 +328,17 @@ class SchemaParser:
             fmt = None
         return types.String(**input_, format=fmt)
 
+    REF_SHRINK_RE = re.compile('/[^/]+/\\.\\./')
+    REF_SHRINK_DOT_RE = re.compile('/\\./')
+
+    @staticmethod
+    def _normalize_ref(ref: str) -> str:
+        while SchemaParser.REF_SHRINK_RE.search(ref):
+            ref = re.sub(SchemaParser.REF_SHRINK_RE, '/', ref)
+        while SchemaParser.REF_SHRINK_DOT_RE.search(ref):
+            ref = re.sub(SchemaParser.REF_SHRINK_DOT_RE, '/', ref)
+        return ref
+
     def _make_abs_ref(self, ref: str) -> str:
         assert self._state
 
@@ -336,8 +348,7 @@ class SchemaParser:
         else:
             my_ref = '/'.join(self.full_vfilepath.split('/')[:-1])
             file, infile = ref.split('#')
-            out_file = os.path.join(my_ref, file)
-            # print(f'ref: {out_file} # {infile}')
+            out_file = self._normalize_ref(os.path.join(my_ref, file))
             return out_file + '#' + infile
 
     def _parse_ref(self, ref: str, input_: dict) -> types.Ref:
@@ -372,8 +383,8 @@ class SchemaParser:
                 self_ref=False,
             )
 
-            del input_['$ref']
-            ref_value.x_properties = input_
+            ref_value.x_properties = input_.copy()
+            del ref_value.x_properties['$ref']
 
             return ref_value
 

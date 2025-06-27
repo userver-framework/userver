@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-MongoError::MongoError() : value_{0, 0, {'\0'}} {}
+MongoError::MongoError() : value_{} {}
 
 MongoError::operator bool() const { return !!value_.code; }
 

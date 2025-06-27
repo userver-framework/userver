@@ -67,7 +67,8 @@ UTEST_F(GrpcAccessLog, Test) {
                                                   R"(ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
                                                   R"(x_real_ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
                                                   R"(request=[a-zA-Z./0-9]+\t)"
-                                                  R"(upstream_response_time_ms=\d+\.\d+\t)"
+                                                  R"(request_time=\d+\.\d+\t)"
+                                                  R"(upstream_response_time=\d+\.\d+\t)"
                                                   R"(grpc_status=\d+\t)"
                                                   R"(grpc_status_code=[A-Z_]+\n)";
 

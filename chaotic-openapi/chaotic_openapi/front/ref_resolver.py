@@ -1,20 +1,25 @@
 import collections
+import re
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
 
+from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref_resolver
+
+REF_SHRINK_RE = re.compile('/[^/]+/../')
 
 
 def normalize_ref(filepath: str, ref: str) -> str:
     if ref.startswith('#'):
         return filepath + ref
 
-    # TODO: kill all smth/..
-    return '{}/{}'.format(
-        filepath.rsplit('/', 1)[0],
-        ref,
+    return chaotic_parser.SchemaParser._normalize_ref(
+        '{}/{}'.format(
+            filepath.rsplit('/', 1)[0],
+            ref,
+        )
     )
 
 

@@ -24,13 +24,13 @@ class CallState;
 class CallAnyBase {
 public:
     /// @returns the `ClientContext` used for this RPC
-    grpc::ClientContext& GetContext();
+    grpc::ClientContext& GetContext() noexcept;
 
     /// @returns client name
-    std::string_view GetClientName() const;
+    std::string_view GetClientName() const noexcept;
 
     /// @returns RPC name
-    std::string_view GetCallName() const;
+    std::string_view GetCallName() const noexcept;
 
     /// @returns RPC span
     tracing::Span& GetSpan();
@@ -46,8 +46,11 @@ protected:
     // Prevent ownership via pointer to base.
     ~CallAnyBase();
 
-    impl::CallState& GetState();
-    const impl::CallState& GetState() const;
+    impl::CallState& GetState() noexcept;
+
+    const impl::CallState& GetState() const noexcept;
+
+    bool IsValid() const noexcept { return state_.get(); }
     /// @endcond
 
 private:

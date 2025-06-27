@@ -14,7 +14,7 @@ FsCache::FsCache(const components::ComponentConfig& config, const components::Co
       client_(
           config["dir"].As<std::string>("/var/www"),
           config["update-period"].As<std::chrono::milliseconds>(0),
-          context.GetTaskProcessor(config["fs-task-processor"].As<std::string>("fs-task-processor"))
+          GetFsTaskProcessor(config, context)
       ) {}
 
 yaml_config::Schema FsCache::GetStaticConfigSchema() {
@@ -35,7 +35,7 @@ properties:
     fs-task-processor:
         type: string
         description: task processor to do filesystem operations
-        defaultDescription: fs-task-processor
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
 )");
 }
 

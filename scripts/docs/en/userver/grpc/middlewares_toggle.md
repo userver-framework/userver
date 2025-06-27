@@ -89,7 +89,3 @@ Example of the static YAML config.
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/grpc/middlewares_order.md | @ref scripts/docs/en/userver/grpc/middlewares_configuration.md ⇨
 @htmlonly </div> @endhtmlonly
-
-@example samples/grpc_middleware_service/src/middlewares/server/meta_filter.hpp
-@example samples/grpc_middleware_service/src/middlewares/server/meta_filter.cpp
-@example samples/grpc_middleware_service/main.cpp

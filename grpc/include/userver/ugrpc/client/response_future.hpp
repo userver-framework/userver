@@ -55,14 +55,13 @@ public:
 
     /// @cond
     // For internal use only
-    template <typename PrepareAsyncMethod, typename Request, typename... PrepareExtra>
+    template <typename Stub, typename Request>
     ResponseFuture(
         impl::CallParams&& params,
-        PrepareAsyncMethod prepare_async_method,
-        const Request& request,
-        PrepareExtra&&... extra
+        impl::PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
+        const Request& request
     )
-        : call_(std::move(params), prepare_async_method, request, std::forward<PrepareExtra>(extra)...) {}
+        : call_(std::move(params), std::move(prepare_unary_call), request) {}
 
     // For internal use only.
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept {

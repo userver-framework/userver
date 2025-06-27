@@ -59,7 +59,7 @@ components_manager:
 ```
 
 For more information about `enabled`:
-@see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md.
+@see @ref scripts/docs/en/userver/grpc/middlewares_toggle.md.
 
 
 ## Static config options of a middleware

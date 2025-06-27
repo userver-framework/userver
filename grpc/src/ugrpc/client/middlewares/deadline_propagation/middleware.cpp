@@ -4,7 +4,7 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/ugrpc/client/impl/call_state.hpp>
-#include <userver/ugrpc/deadline_timepoint.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,7 +26,7 @@ void UpdateDeadline(impl::CallState& state) {
 
     auto& context = state.GetContext();
 
-    const auto context_time_left = ugrpc::impl::ExtractDeadlineDuration(context.raw_deadline());
+    const auto context_time_left = ugrpc::TimespecToDuration(context.raw_deadline());
     const engine::Deadline task_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
 
     const auto client_deadline_reachable = (context_time_left != engine::Deadline::Duration::max());
@@ -48,7 +48,7 @@ void UpdateDeadline(impl::CallState& state) {
         span.AddTag("deadline_updated", true);
         state.SetDeadlinePropagated();
 
-        context.set_deadline(ugrpc::impl::ToGprTimePoint(task_time_left));
+        context.set_deadline(ugrpc::DurationToTimespec(task_time_left));
 
         AddTimeoutMsToSpan(span, task_time_left);
     } else {

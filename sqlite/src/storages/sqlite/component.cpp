@@ -75,7 +75,7 @@ storages::sqlite::settings::SQLiteSettings GetSettings(const components::Compone
 SQLite::SQLite(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
       settings_(GetSettings(config)),
-      fs_task_processor_(context.GetTaskProcessor(config["task_processor"].As<std::string>())),
+      fs_task_processor_(GetFsTaskProcessor(config, context)),
       client_(std::make_shared<storages::sqlite::Client>(settings_, fs_task_processor_)) {
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
     statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
@@ -114,9 +114,10 @@ type: object
 description: SQLite client component
 additionalProperties: false
 properties:
-    task_processor:
+    fs-task-processor:
         type: string
         description: name of the task processor to handle the blocking file operations
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
     db-path:
         type: string
         description: path to the database file or `::memory::` for in-memory mode

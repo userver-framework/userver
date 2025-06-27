@@ -35,7 +35,7 @@ void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& 
         WriteRateAndLegacyMetrics(tasks["created"], created);
         tasks["alive"] = (created - std::min(destroyed, created)).value;
         tasks["running"] = counter.GetRunningTasks();
-        tasks["queued"] = task_processor.GetTaskQueueSize();
+        tasks["queued"] = GetQueueSize(task_processor);
         WriteRateAndLegacyMetrics(tasks["finished"], stopped);
         WriteRateAndLegacyMetrics(tasks["cancelled"], counter.GetCancelledTasks());
         WriteRateAndLegacyMetrics(tasks["cancelled_overload"], counter.GetCancelledTasksOverload());

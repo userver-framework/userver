@@ -85,7 +85,7 @@ public:
         // disarm dtor, transfer ownership (noexcept)
         std::unique_ptr<Storage> raw(reinterpret_cast<Storage*>(obj.release()));
         // call dtor
-        reinterpret_cast<T*>(raw.get())->~T();
+        std::destroy_at(reinterpret_cast<T*>(raw.get()));
         // store into pool
         pool->PushBack(std::move(raw));
     }

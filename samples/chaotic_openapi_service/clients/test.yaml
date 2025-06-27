@@ -27,4 +27,7 @@ paths:
                             schema:
                                 type: string
 
-components: {}
+components:
+    schemas:
+        Test:
+            type: integer

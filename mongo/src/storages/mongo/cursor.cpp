@@ -14,6 +14,10 @@ Cursor& Cursor::operator=(Cursor&&) noexcept = default;
 
 bool Cursor::HasMore() const { return impl_->IsValid(); }
 
+std::uint32_t Cursor::GetBatchSize() const { return impl_->GetBatchSize(); }
+
+void Cursor::SetBatchSize(std::uint32_t size) { impl_->SetBatchSize(size); }
+
 Cursor::Iterator Cursor::begin() { return Iterator(this); }
 
 // no, part of the iterator interface

@@ -1,9 +1,10 @@
 # pylint: disable=redefined-outer-name
-import pathlib
-import sys
-
-import healthchecking.healthchecking_pb2_grpc as healthchecking_pb2_grpc
 import pytest
+
+try:
+    from src.proto.grpc.health.v1 import health_pb2_grpc
+except ImportError:
+    from health.v1 import health_pb2_grpc
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
@@ -28,14 +29,6 @@ def prepare_service_config(grpc_server_port):
     return patch_config
 
 
-def pytest_configure(config):
-    sys.path.append(
-        str(
-            pathlib.Path(config.rootdir) / 'grpc/handlers/proto/healthchecking',
-        ),
-    )
-
-
 @pytest.fixture(scope='function')
 def grpc_client(grpc_channel, service_client):
-    return healthchecking_pb2_grpc.HealthStub(grpc_channel)
+    return health_pb2_grpc.HealthStub(grpc_channel)

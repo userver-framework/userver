@@ -27,6 +27,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-18
                         -DCMAKE_C_COMPILER=clang-18
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DCMAKE_CXX_STANDARD=17
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -47,6 +48,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-13
                         -DCMAKE_C_COMPILER=gcc-13
                         -DCMAKE_BUILD_TYPE=Release
+                        -DCMAKE_CXX_STANDARD=17
                         -DUSERVER_SANITIZE=""
                         -DUSERVER_NO_WERROR=1
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -63,6 +65,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-14
                         -DCMAKE_C_COMPILER=clang-14
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DCMAKE_CXX_STANDARD=17
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -84,6 +87,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-9
                         -DCMAKE_C_COMPILER=gcc-9
                         -DCMAKE_BUILD_TYPE=Release
+                        -DCMAKE_CXX_STANDARD=17
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1

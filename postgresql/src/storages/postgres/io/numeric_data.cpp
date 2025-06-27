@@ -22,8 +22,8 @@ namespace {
 
 enum ValidSigns : std::uint16_t { kNumericPositive = 0x0000, kNumericNegative = 0x4000, kNumericNan = 0xc000 };
 
-const Smallint kBinEncodingBase = 10000;
-const std::int64_t kPowersOfTen[]{
+constexpr Smallint kBinEncodingBase = 10000;
+constexpr std::int64_t kPowersOfTen[]{
     1,
     10,
     100,
@@ -44,12 +44,12 @@ const std::int64_t kPowersOfTen[]{
     100'000'000'000'000'000,
     1'000'000'000'000'000'000};
 
-const auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
+constexpr auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
 
-const std::uint16_t kDscaleMask = 0x3fff;
+constexpr std::uint16_t kDscaleMask = 0x3fff;
 
 // Number of decimal digits in
-const int kDigitWidth = 4;
+constexpr int kDigitWidth = 4;
 
 void WriteDigit(std::string& res, std::uint16_t bin_dgt, bool truncate_leading_zeros) {
     std::array<char, 8> buffer{'0', '0', '0', '0', '0', '0', '0', '0'};
@@ -165,7 +165,7 @@ struct NumericData {
     // Get binary representation
     [[nodiscard]] std::string GetBuffer() const;
     // Parse string
-    void Parse(const std::string&);
+    void Parse(USERVER_NAMESPACE::utils::zstring_view);
     // Output to string
     [[nodiscard]] std::string ToString() const;
     // Create buffer representation from an int64 value representation
@@ -251,7 +251,7 @@ std::string NumericData::ToString() const {
     return res;
 }
 
-void NumericData::Parse(const std::string& str) {
+void NumericData::Parse(USERVER_NAMESPACE::utils::zstring_view str) {
     if (str.empty()) {
         throw InvalidInputFormat{"Empty numeric string representation"};
     }
@@ -464,7 +464,7 @@ std::string NumericBufferToString(const FieldBuffer& buffer) {
     return num_data.ToString();
 }
 
-std::string StringToNumericBuffer(const std::string& str_rep) {
+std::string StringToNumericBuffer(USERVER_NAMESPACE::utils::zstring_view str_rep) {
     NumericData num_data;
     num_data.Parse(str_rep);
     return num_data.GetBuffer();

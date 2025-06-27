@@ -57,10 +57,7 @@ components_manager:
             pool-statistics-disable: true
             thread-name-prefix: stats
             user-agent: $server-name
-        dns-client:
-            fs-task-processor: fs-task-processor
         logging:
-            fs-task-processor: fs-task-processor
             loggers:
                 access:
                     file_path: $access-log-path
