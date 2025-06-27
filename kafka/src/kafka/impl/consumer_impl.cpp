@@ -290,7 +290,7 @@ void ConsumerImpl::CallUserverRebalanceCallback(
         }
 
         topic_partitions.emplace_back(
-            utils::NullTerminatedView(topic_partition.topic),
+            utils::zstring_view(topic_partition.topic),
             static_cast<std::uint32_t>(topic_partition.partition),
             static_cast<std::uint64_t>(topic_partition.offset)
         );

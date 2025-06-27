@@ -4,8 +4,8 @@
 #include <functional>
 #include <string>
 
-#include <userver/utils/null_terminated_view.hpp>
 #include <userver/utils/span.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +16,7 @@ enum class RebalanceEventType { kAssigned, kRevoked };
 /// @brief Represents the topic's partition for certain topic.
 struct TopicPartitionView final {
     /// @brief Topic's name.
-    utils::NullTerminatedView topic;
+    utils::zstring_view topic;
 
     /// @brief Partition ID for a topic
     std::uint32_t partition_id;
