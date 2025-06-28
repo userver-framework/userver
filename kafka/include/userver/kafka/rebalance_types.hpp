@@ -21,10 +21,10 @@ struct TopicPartitionView final {
     /// @brief Partition ID for a topic
     std::uint32_t partition_id;
 
-    /// @brief Offset for current partition.
-    std::uint64_t offset;
+    /// @brief Offset for current partition if it has commited offset
+    std::optional<std::uint64_t> offset;
 
-    TopicPartitionView(utils::zstring_view t, std::uint32_t pid, std::uint64_t off)
+    TopicPartitionView(utils::zstring_view t, std::uint32_t pid, std::optional<std::uint64_t> off)
         : topic(t), partition_id(pid), offset(off) {}
 };
 

@@ -277,22 +277,25 @@ void ConsumerImpl::CallUserverRebalanceCallback(
     topic_partitions.reserve(kafka_topic_partitions.size());
 
     for (const auto& topic_partition : kafka_topic_partitions) {
-        if (topic_partition.partition < 0 || topic_partition.offset < 0) {
+        if (topic_partition.partition < 0) {
             LOG_ERROR() << fmt::format(
-                "Skipped topic: {} partition: {} offset: {} for user's rebalance callback, because got negative number "
-                "for partition id or offset from "
-                "librdkafka.",
+                "Skipped topic: {} partition: {} for user's rebalance callback, because got "
+                "negative number for partition id from librdkafka.",
                 topic_partition.topic,
-                topic_partition.partition,
-                topic_partition.offset
+                topic_partition.partition
             );
             continue;
+        }
+
+        std::optional<std::uint64_t> partition_offset;
+        if (topic_partition.offset > 0) {
+            partition_offset = static_cast<std::uint64_t>(topic_partition.offset);
         }
 
         topic_partitions.emplace_back(
             utils::zstring_view(topic_partition.topic),
             static_cast<std::uint32_t>(topic_partition.partition),
-            static_cast<std::uint64_t>(topic_partition.offset)
+            partition_offset
         );
     }
 
@@ -650,9 +653,20 @@ void ConsumerImpl::SeekToOffset(
     }
 
     TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(1)};
-    rd_kafka_topic_partition_list_add(
+    rd_kafka_topic_partition_t* part = rd_kafka_topic_partition_list_add(
         topic_partitions_list.GetHandle(), topic.c_str(), static_cast<std::int32_t>(partition_id)
     );
+    part->offset = offset;
+
+    PrintTopicPartitionsList(topic_partitions_list.GetHandle(), [](const rd_kafka_topic_partition_t& partition) {
+        return fmt::format(
+            "Partition {} for topic '{}' seeking to offset: {}", partition.partition, partition.topic, partition.offset
+        );
+    });
+
+    // Added `rd_kafka_queue_pol` call to activate the assign operation
+    // if it is called from RebalanceCallback.
+    { EventHolder event{rd_kafka_queue_poll(consumer_.GetQueue(), static_cast<int>(timeout.count()))}; }
 
     const auto* err = rd_kafka_seek_partitions(
         consumer_.GetHandle(), topic_partitions_list.GetHandle(), static_cast<int>(timeout.count())
@@ -678,7 +692,7 @@ void ConsumerImpl::SeekToOffset(
 
 void ConsumerImpl::SeekToEnd(const std::string& topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
     const {
-    Seek(topic, partition_id, RD_KAFKA_OFFSET_END, timeout);
+    SeekToOffset(topic, partition_id, RD_KAFKA_OFFSET_END, timeout);
 }
 
 void ConsumerImpl::SeekToBeginning(
@@ -686,7 +700,7 @@ void ConsumerImpl::SeekToBeginning(
     std::uint32_t partition_id,
     std::chrono::milliseconds timeout
 ) const {
-    Seek(topic, partition_id, RD_KAFKA_OFFSET_BEGINNING, timeout);
+    SeekToOffset(topic, partition_id, RD_KAFKA_OFFSET_BEGINNING, timeout);
 }
 
 }  // namespace impl
