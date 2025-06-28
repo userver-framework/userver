@@ -62,8 +62,7 @@ public:
     /// To use custom delivery timeout in test, pass `configuration` argument to
     /// MakeProducer.
     static constexpr const std::chrono::milliseconds kDefaultTestProducerTimeout{
-        USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2
-    };
+        USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2};
 
     KafkaCluster();
 
@@ -112,7 +111,7 @@ public:
         std::optional<std::function<void(MessageBatchView)>> user_callback = {}
     );
 
-    /// @brief The same as previous, but working with consumer_scope passed to function.ß
+    /// @brief The same as previous, but working with consumer_scope passed to function.
     std::vector<Message> ReceiveMessages(
         ConsumerScope& consumer,
         std::size_t expected_messages_count,

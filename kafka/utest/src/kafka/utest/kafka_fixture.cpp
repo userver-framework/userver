@@ -103,8 +103,7 @@ Producer KafkaCluster::MakeProducer(const std::string& name, impl::ProducerConfi
         name,
         engine::current_task::GetTaskProcessor(),
         PatchDeliveryTimeout(std::move(configuration)),
-        MakeSecrets(bootstrap_servers_)
-    };
+        MakeSecrets(bootstrap_servers_)};
 }
 
 std::deque<Producer> KafkaCluster::MakeProducers(
@@ -157,8 +156,7 @@ impl::Consumer KafkaCluster::MakeConsumer(
         engine::current_task::GetTaskProcessor(),
         configuration,
         MakeSecrets(bootstrap_servers_),
-        std::move(params)
-    };
+        std::move(params)};
 }
 
 std::vector<Message> KafkaCluster::ReceiveMessages(
@@ -193,8 +191,7 @@ std::vector<Message> KafkaCluster::ReceiveMessages(
                 std::string{message.GetKey()},
                 std::string{message.GetPayload()},
                 message.GetPartition(),
-                std::vector<kafka::OwningHeader>{reader.begin(), reader.end()}
-            });
+                std::vector<kafka::OwningHeader>{reader.begin(), reader.end()}});
         }
         if (user_callback) {
             (*user_callback)(messages);
