@@ -410,7 +410,7 @@ UTEST_F(ConsumerTest, SeekToOffset) {
 
     engine::SingleUseEvent event;
     auto consumer_scope = consumer.MakeConsumerScope();
-    auto rebalance_callback = [&consumer_scope, &event, poll_timeout, kMessagesToSkip](
+    auto rebalance_callback = [&consumer_scope, &event, poll_timeout](
                                   kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type
                               ) {
         if (event_type == kafka::RebalanceEventType::kAssigned) {
