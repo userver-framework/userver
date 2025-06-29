@@ -284,7 +284,7 @@ Make sure to use the same build mode as for your service, otherwise subtle linka
 ### Building Debian package using Docker
 
 For Ubuntu 22.04 or Ubuntu 24.04, to build `libuserver-all-dev.deb` package using Docker,
-run the following shell command from userver directory:
+run the following shell command from directory where userver is located. For example, if userver is located in `~/userver` directory you need to run the script below in `~/` directory:
 
 ```shell
 docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
