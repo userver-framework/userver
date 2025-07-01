@@ -280,9 +280,10 @@ ConsumerImpl::ConsumerImpl(
     const std::string& name,
     const ConfHolder& conf,
     const std::vector<std::string>& topics,
+    bool log_key_message_in_hex,
     Stats& stats
 )
-    : name_(name), stats_(stats), topics_(topics), consumer_(conf) {}
+    : name_(name), log_key_message_in_hex_(log_key_message_in_hex), stats_(stats), topics_(topics), consumer_(conf) {}
 
 const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
@@ -441,6 +442,16 @@ void ConsumerImpl::EventCallback() {
     queue_became_non_empty_event_.Send();
 }
 
+std::string ConsumerImpl::GetMessageKey(const Message& message) const {
+    if (log_key_message_in_hex_) {
+        std::string ret;
+        boost::algorithm::hex(message.GetKey().begin(), message.GetKey().end(), std::back_inserter(ret));
+        return ret;
+    }
+
+    return message.GetKey();
+}
+
 std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder) {
     UASSERT(IsMessageEvent(event_holder));
     UASSERT(rd_kafka_event_message_count(event_holder.GetHandle()) == 1);
@@ -455,11 +466,13 @@ std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder
 
     AccountPolledMessageStat(polled_message);
 
+    std::string
+
     LOG_DEBUG() << fmt::format(
         "Message from kafka topic '{}' received by key '{}' with "
         "partition {} by offset {}",
         polled_message.GetTopic(),
-        polled_message.GetKey(),
+        GetMessageKey(polled_message),
         polled_message.GetPartition(),
         polled_message.GetOffset()
     );
@@ -537,7 +550,7 @@ void ConsumerImpl::AccountPolledMessageStat(const Message& polled_message) {
         topic_stats->avg_ms_spent_time.GetCurrentCounter().Account(ms_duration);
     } else {
         LOG_WARNING() << fmt::format(
-            "No timestamp in messages to topic '{}' by key '{}'", polled_message.GetTopic(), polled_message.GetKey()
+            "No timestamp in messages to topic '{}' by key '{}'", polled_message.GetTopic(), GetMessageKey(polled_message)
         );
     }
 }

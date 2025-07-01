@@ -43,6 +43,10 @@ struct ConsumerExecutionParams final {
     /// @brief Time consumer suspends execution after user-callback exception.
     /// @note After consumer restart, all uncommitted messages come again.
     std::chrono::milliseconds restart_after_failure_delay{10000};
+
+    /// @brief Time consumer suspends execution after user-callback exception.
+    /// @note After consumer restart, all uncommitted messages come again.
+    bool log_message_key_in_hex{false};
 };
 
 class Consumer final {

@@ -37,6 +37,8 @@ ConsumerComponent::ConsumerComponent(
               params.restart_after_failure_delay =
                   config["restart_after_failure_delay"].As<std::chrono::milliseconds>(params.restart_after_failure_delay
                   );
+              params.log_message_key_in_hex = config["log_message_key_in_hex"].As<bool>(params.log_message_key_in_hex
+                  );
 
               return params;
           }()
@@ -85,6 +87,10 @@ properties:
         type: string
         description: maximum amount of time consumer waits for new messages before calling a callback
         defaultDescription: 1s
+    log_message_key_in_hex:
+        type: boolean
+        description: if true, then log kafka key for message in hex format.
+        defaultDescription: false
     max_callback_duration:
         type: string
         description: |
