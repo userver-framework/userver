@@ -281,10 +281,10 @@ ConsumerImpl::ConsumerImpl(
     const std::string& name,
     const ConfHolder& conf,
     const std::vector<std::string>& topics,
-    bool log_key_message_in_hex,
+    bool log_message_key_in_hex,
     Stats& stats
 )
-    : name_(name), log_key_message_in_hex_(log_key_message_in_hex), stats_(stats), topics_(topics), consumer_(conf) {}
+    : name_(name), log_message_key_in_hex_(log_message_key_in_hex), stats_(stats), topics_(topics), consumer_(conf) {}
 
 const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
@@ -444,7 +444,7 @@ void ConsumerImpl::EventCallback() {
 }
 
 std::string ConsumerImpl::GetMessageKey(const Message& message) const {
-    if (log_key_message_in_hex_) {
+    if (log_message_key_in_hex_) {
         std::string ret;
         boost::algorithm::hex(message.GetKey().begin(), message.GetKey().end(), std::back_inserter(ret));
         return ret;

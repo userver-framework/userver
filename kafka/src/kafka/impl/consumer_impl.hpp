@@ -28,7 +28,7 @@ class ConsumerImpl final {
     using MessageBatch = std::vector<Message>;
 
 public:
-    ConsumerImpl(const std::string& name, const ConfHolder& conf, const std::vector<std::string>& topics, bool log_key_message_in_hex, Stats& stats);
+    ConsumerImpl(const std::string& name, const ConfHolder& conf, const std::vector<std::string>& topics, bool log_message_key_in_hex, Stats& stats);
 
     const Stats& GetStats() const;
 
@@ -117,7 +117,7 @@ private:
 
 private:
     const std::string& name_;
-    const bool log_key_message_in_hex_;
+    const bool log_message_key_in_hex_;
     Stats& stats_;
 
     const std::vector<std::string> topics_;
