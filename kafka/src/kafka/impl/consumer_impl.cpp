@@ -4,6 +4,7 @@
 #include <chrono>
 #include <iostream>
 
+#include <boost/algorithm/hex.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
