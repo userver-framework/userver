@@ -649,6 +649,10 @@ void ConsumerImpl::SeekToOffset(
         throw SeekInvalidArgumentException(fmt::format("Timeout value have to be > 0. value: {}ms", timeout.count()));
     }
 
+    // Added `rd_kafka_queue_poll` call to activate the assign operation
+    // if it is called from RebalanceCallback.
+    { EventHolder event{rd_kafka_queue_poll(consumer_.GetQueue(), static_cast<int>(timeout.count()))}; }
+
     TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(1)};
     rd_kafka_topic_partition_t* part = rd_kafka_topic_partition_list_add(
         topic_partitions_list.GetHandle(), topic.c_str(), static_cast<std::int32_t>(partition_id)
@@ -660,10 +664,6 @@ void ConsumerImpl::SeekToOffset(
             "Partition {} for topic '{}' seeking to offset: {}", partition.partition, partition.topic, partition.offset
         );
     });
-
-    // Added `rd_kafka_queue_pol` call to activate the assign operation
-    // if it is called from RebalanceCallback.
-    { EventHolder event{rd_kafka_queue_poll(consumer_.GetQueue(), static_cast<int>(timeout.count()))}; }
 
     const auto* err = rd_kafka_seek_partitions(
         consumer_.GetHandle(), topic_partitions_list.GetHandle(), static_cast<int>(timeout.count())
