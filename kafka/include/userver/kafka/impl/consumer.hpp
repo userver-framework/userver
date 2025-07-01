@@ -45,8 +45,8 @@ struct ConsumerExecutionParams final {
     /// @note After consumer restart, all uncommitted messages come again.
     std::chrono::milliseconds restart_after_failure_delay{10000};
 
-    /// @brief If true, logs the message key in hex format.
-    /// This can be useful for log systems that don't support non-UTF-8 strings.
+    /// @brief Specifies the logging format for the message key.
+    /// 'plaintext' - logs the message key as-is, 'hex' - logs in hex.
     MessageKeyLogFormat message_key_log_format;
 };
 
