@@ -70,16 +70,10 @@ struct ProducerConfiguration final {
     RdKafkaOptions rd_kafka_options;
 };
 
-enum class MessageKeyLogFormat {
-    kPlainText,
-    kHex,
-};
-
 CommonConfiguration Parse(const yaml_config::YamlConfig& config, formats::parse::To<CommonConfiguration>);
 SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::parse::To<SecurityConfiguration>);
 ConsumerConfiguration Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConsumerConfiguration>);
 ProducerConfiguration Parse(const yaml_config::YamlConfig& config, formats::parse::To<ProducerConfiguration>);
-MessageKeyLogFormat Parse(const yaml_config::YamlConfig& config, formats::parse::To<MessageKeyLogFormat>);
 
 /// @brief Wrapper for `librdkafka` `rd_kafka_conf_t`. Used as proxy between
 /// userver YAML configs and `librdkafka` configuration classes.

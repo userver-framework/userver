@@ -8,6 +8,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/kafka/impl/holders.hpp>
+#include <userver/kafka/impl/log_format.hpp>
 #include <userver/kafka/message.hpp>
 #include <userver/kafka/offset_range.hpp>
 

@@ -184,18 +184,6 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     return producer;
 }
 
-MessageKeyLogFormat Parse(const yaml_config::YamlConfig& config, formats::parse::To<MessageKeyLogFormat>) {
-    auto log_format = config.As<std::string>("plaintext");
-    if (log_format == "plaintext") {
-        return MessageKeyLogFormat::kPlainText;
-    }
-    if (log_format == "hex") {
-        return MessageKeyLogFormat::kHex;
-    }
-
-    throw std::runtime_error("Unknown message_key_log_format value: " + log_format);
-}
-
 Configuration::Configuration(const std::string& name, const ConsumerConfiguration& configuration, const Secret& secrets)
     : name_(name), conf_(rd_kafka_conf_new()) {
     VerifyComponentNamePrefix(name, "kafka-consumer");

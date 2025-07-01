@@ -8,6 +8,7 @@
 #include <userver/kafka/consumer_scope.hpp>
 #include <userver/kafka/impl/holders.hpp>
 #include <userver/kafka/impl/stats.hpp>
+#include <userver/kafka/impl/log_format.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,7 +19,6 @@ class ConsumerImpl;
 
 struct ConsumerConfiguration;
 struct Secret;
-enum class MessageKeyLogFormat;
 
 /// @brief Parameters Consumer uses in runtime.
 /// The struct is used only for documentation purposes, Consumer can be
@@ -47,7 +47,7 @@ struct ConsumerExecutionParams final {
 
     /// @brief Specifies the logging format for the message key.
     /// 'plaintext' - logs the message key as-is, 'hex' - logs in hex.
-    MessageKeyLogFormat message_key_log_format;
+    MessageKeyLogFormat message_key_log_format{MessageKeyLogFormat::kPlainText};
 };
 
 class Consumer final {
@@ -141,6 +141,6 @@ private:
     engine::Task poll_task_;
 };
 
-USERVER_NAMESPACE_END
-
 }  // namespace kafka::impl
+
+USERVER_NAMESPACE_END
