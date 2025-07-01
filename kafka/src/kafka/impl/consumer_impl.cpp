@@ -453,6 +453,9 @@ std::string ConsumerImpl::GetMessageKey(const Message& message) const {
         case MessageKeyLogFormat::kPlainText: {
             return std::string(message.GetKey());
         }
+        default:
+            UINVARIANT(false, "Unsupported message key log format");
+            return {};
     }
 }
 
