@@ -18,6 +18,7 @@ class ConsumerImpl;
 
 struct ConsumerConfiguration;
 struct Secret;
+enum class MessageKeyLogFormat;
 
 /// @brief Parameters Consumer uses in runtime.
 /// The struct is used only for documentation purposes, Consumer can be
@@ -46,7 +47,7 @@ struct ConsumerExecutionParams final {
 
     /// @brief If true, logs the message key in hex format.
     /// This can be useful for log systems that don't support non-UTF-8 strings.
-    bool log_message_key_in_hex{false};
+    MessageKeyLogFormat message_key_log_format;
 };
 
 class Consumer final {
