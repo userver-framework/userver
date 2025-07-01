@@ -93,7 +93,7 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
     // note: Consumer must be recreated after each stop,
     // because stop invalidates some internal consumer state (in librdkafka).
     // Nevertheless, it is possible to use blocking consumer methods after stop.
-    consumer_ = std::make_unique<ConsumerImpl>(name_, conf_, topics_, params.log_message_key_in_hex, stats_);
+    consumer_ = std::make_unique<ConsumerImpl>(name_, conf_, topics_, execution_params.log_message_key_in_hex, stats_);
     consumer_->StartConsuming();
 
     LOG_INFO() << fmt::format("Started messages polling");

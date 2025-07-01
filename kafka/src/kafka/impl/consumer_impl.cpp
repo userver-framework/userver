@@ -450,7 +450,7 @@ std::string ConsumerImpl::GetMessageKey(const Message& message) const {
         return ret;
     }
 
-    return message.GetKey();
+    return std::string(message.GetKey());
 }
 
 std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder) {
@@ -466,8 +466,6 @@ std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder
     Message polled_message{std::move(message)};
 
     AccountPolledMessageStat(polled_message);
-
-    std::string
 
     LOG_DEBUG() << fmt::format(
         "Message from kafka topic '{}' received by key '{}' with "
