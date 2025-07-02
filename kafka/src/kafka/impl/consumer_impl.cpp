@@ -298,10 +298,10 @@ ConsumerImpl::ConsumerImpl(
     const std::string& name,
     const ConfHolder& conf,
     const std::vector<std::string>& topics,
-    MessageKeyLogFormat message_key_log_format,
+    ConsumerExecutionParams execution_params,
     Stats& stats
 )
-    : name_(name), message_key_log_format_(message_key_log_format), stats_(stats), topics_(topics), consumer_(conf) {}
+    : name_(name), execution_params_(execution_params), stats_(stats), topics_(topics), consumer_(conf) {}
 
 const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
@@ -478,7 +478,7 @@ std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder
         "Message from kafka topic '{}' received by key '{}' with "
         "partition {} by offset {}",
         polled_message.GetTopic(),
-        GetMessageKeyForLogging(message_key_log_format_, polled_message),
+        GetMessageKeyForLogging(execution_params_.message_key_log_format, polled_message),
         polled_message.GetPartition(),
         polled_message.GetOffset()
     );
@@ -556,7 +556,7 @@ void ConsumerImpl::AccountPolledMessageStat(const Message& polled_message) {
         topic_stats->avg_ms_spent_time.GetCurrentCounter().Account(ms_duration);
     } else {
         LOG_WARNING() << fmt::format(
-            "No timestamp in messages to topic '{}' by key '{}'", polled_message.GetTopic(), GetMessageKeyForLogging(message_key_log_format_, polled_message)
+            "No timestamp in messages to topic '{}' by key '{}'", polled_message.GetTopic(), GetMessageKeyForLogging(execution_params_.message_key_log_format, polled_message)
         );
     }
 }

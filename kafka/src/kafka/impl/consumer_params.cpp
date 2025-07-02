@@ -1,4 +1,4 @@
-#include <userver/kafka/impl/log_format.hpp>
+#include <userver/kafka/impl/consumer_params.hpp>
 
 #include <userver/yaml_config/yaml_config.hpp>
 

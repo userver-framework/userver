@@ -7,8 +7,8 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
+#include <userver/kafka/impl/consumer_params.hpp>
 #include <userver/kafka/impl/holders.hpp>
-#include <userver/kafka/impl/log_format.hpp>
 #include <userver/kafka/message.hpp>
 #include <userver/kafka/offset_range.hpp>
 
@@ -20,7 +20,6 @@ namespace kafka::impl {
 
 struct Stats;
 struct TopicStats;
-enum class MessageKeyLogFormat;
 
 /// @brief Consumer implementation based on `librdkafka`.
 /// @warning All methods calls the `librdkafka` functions that very often uses
@@ -30,7 +29,7 @@ class ConsumerImpl final {
     using MessageBatch = std::vector<Message>;
 
 public:
-    ConsumerImpl(const std::string& name, const ConfHolder& conf, const std::vector<std::string>& topics, MessageKeyLogFormat message_key_log_format, Stats& stats);
+    ConsumerImpl(const std::string& name, const ConfHolder& conf, const std::vector<std::string>& topics, ConsumerExecutionParams execution_params, Stats& stats);
 
     const Stats& GetStats() const;
 
@@ -117,7 +116,7 @@ private:
 
 private:
     const std::string& name_;
-    const MessageKeyLogFormat message_key_log_format_;
+    const ConsumerExecutionParams execution_params_;
     Stats& stats_;
 
     const std::vector<std::string> topics_;

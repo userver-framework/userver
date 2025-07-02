@@ -67,7 +67,7 @@ Consumer::Consumer(
       consumer_blocking_task_processor_(consumer_blocking_task_processor),
       main_task_processor_(main_task_processor),
       conf_(Configuration{name, configuration, secrets}.Release()),
-      consumer_(std::make_unique<ConsumerImpl>(name_, conf_, topics_, params.message_key_log_format, stats_)) {
+      consumer_(std::make_unique<ConsumerImpl>(name_, conf_, topics_, params, stats_)) {
     /// To check configuration validity
     [[maybe_unused]] auto _ = ConsumerHolder{conf_};
 }
@@ -94,7 +94,7 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
     // note: Consumer must be recreated after each stop,
     // because stop invalidates some internal consumer state (in librdkafka).
     // Nevertheless, it is possible to use blocking consumer methods after stop.
-    consumer_ = std::make_unique<ConsumerImpl>(name_, conf_, topics_, execution_params.message_key_log_format, stats_);
+    consumer_ = std::make_unique<ConsumerImpl>(name_, conf_, topics_, execution_params, stats_);
     consumer_->StartConsuming();
 
     LOG_INFO() << fmt::format("Started messages polling");
