@@ -176,6 +176,23 @@ void CallTestpoints(const rd_kafka_topic_partition_list_t* list, const std::stri
     }
 }
 
+
+std::string GetMessageKeyForLogging(MessageKeyLogFormat log_format, const Message& message) {
+    switch (log_format) {
+        case MessageKeyLogFormat::kHex: {
+            std::string ret;
+            boost::algorithm::hex(message.GetKey().begin(), message.GetKey().end(), std::back_inserter(ret));
+            return ret;
+        }
+        case MessageKeyLogFormat::kPlainText: {
+            return std::string(message.GetKey());
+        }
+        default:
+            UINVARIANT(false, "Unsupported message key log format");
+            return {};
+    }
+}
+
 }  // namespace
 
 void ConsumerImpl::AssignPartitions(const rd_kafka_topic_partition_list_t* partitions) {
@@ -443,22 +460,6 @@ void ConsumerImpl::EventCallback() {
     queue_became_non_empty_event_.Send();
 }
 
-std::string ConsumerImpl::GetMessageKey(const Message& message) const {
-    switch (message_key_log_format_) {
-        case MessageKeyLogFormat::kHex: {
-            std::string ret;
-            boost::algorithm::hex(message.GetKey().begin(), message.GetKey().end(), std::back_inserter(ret));
-            return ret;
-        }
-        case MessageKeyLogFormat::kPlainText: {
-            return std::string(message.GetKey());
-        }
-        default:
-            UINVARIANT(false, "Unsupported message key log format");
-            return {};
-    }
-}
-
 std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder) {
     UASSERT(IsMessageEvent(event_holder));
     UASSERT(rd_kafka_event_message_count(event_holder.GetHandle()) == 1);
@@ -477,7 +478,7 @@ std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder
         "Message from kafka topic '{}' received by key '{}' with "
         "partition {} by offset {}",
         polled_message.GetTopic(),
-        GetMessageKey(polled_message),
+        GetMessageKeyForLogging(message_key_log_format_, polled_message),
         polled_message.GetPartition(),
         polled_message.GetOffset()
     );
@@ -555,7 +556,7 @@ void ConsumerImpl::AccountPolledMessageStat(const Message& polled_message) {
         topic_stats->avg_ms_spent_time.GetCurrentCounter().Account(ms_duration);
     } else {
         LOG_WARNING() << fmt::format(
-            "No timestamp in messages to topic '{}' by key '{}'", polled_message.GetTopic(), GetMessageKey(polled_message)
+            "No timestamp in messages to topic '{}' by key '{}'", polled_message.GetTopic(), GetMessageKeyForLogging(message_key_log_format_, polled_message)
         );
     }
 }

@@ -115,8 +115,6 @@ private:
 
     void AccountPolledMessageStat(const Message& polled_message);
 
-    std::string GetMessageKey(const Message& polled_message) const;
-
 private:
     const std::string& name_;
     const MessageKeyLogFormat message_key_log_format_;
