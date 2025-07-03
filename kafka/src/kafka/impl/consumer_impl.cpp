@@ -185,6 +185,7 @@ std::string GetMessageKeyForLogging(MessageKeyLogFormat log_format, const Messag
     switch (log_format) {
         case MessageKeyLogFormat::kHex: {
             std::string ret;
+            ret.reserve(message.GetKey().size() * 2);
             boost::algorithm::hex(message.GetKey().begin(), message.GetKey().end(), std::back_inserter(ret));
             return ret;
         }
@@ -356,7 +357,7 @@ ConsumerImpl::ConsumerImpl(
     const std::string& name,
     const ConfHolder& conf,
     const std::vector<std::string>& topics,
-    ConsumerExecutionParams execution_params,
+    const ConsumerExecutionParams& execution_params,
     const std::optional<ConsumerRebalanceCallback>& rebalance_callback_opt,
     Stats& stats
 )

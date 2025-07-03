@@ -35,7 +35,7 @@ public:
         const std::string& name,
         const ConfHolder& conf,
         const std::vector<std::string>& topics,
-        ConsumerExecutionParams execution_params,
+        const ConsumerExecutionParams& execution_params,
         const std::optional<ConsumerRebalanceCallback>& rebalance_callback_opt,
         Stats& stats
     );
