@@ -1,6 +1,9 @@
+
 #include <userver/storages/clickhouse/io/impl/escape.hpp>
 
 #include <userver/storages/clickhouse/io/type_traits.hpp>
+
+#include <boost/uuid/uuid_io.hpp>
 
 #include <fmt/format.h>
 
