@@ -73,6 +73,10 @@ std::string Escape(std::string_view source) {
     return result;
 }
 
+std::string Escape(const boost::uuids::uuid& uuid) {
+    return fmt::format("toUUID('{}')", boost::uuids::to_string(uuid));
+}
+
 std::string Escape(std::chrono::system_clock::time_point source) {
     return fmt::format(
         "toDateTime({})", std::chrono::duration_cast<std::chrono::seconds>(source.time_since_epoch()).count()
