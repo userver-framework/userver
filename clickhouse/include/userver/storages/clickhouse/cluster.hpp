@@ -61,6 +61,10 @@ public:
     template <typename... Args>
     ExecutionResult Execute(OptionalCommandControl, const Query& query, const Args&... args) const;
 
+    ExecutionResult Execute(const Query& query, const ParameterStore& params) const;
+
+    ExecutionResult Execute(OptionalCommandControl, const Query& query, const ParameterStore& params) const;
+
     /// @brief Insert data at some host of the cluster;
     /// `T` is expected to be a struct of vectors of same length.
     /// @param table_name table to insert into

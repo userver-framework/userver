@@ -50,6 +50,17 @@ Cluster::Cluster(
 
 Cluster::~Cluster() = default;
 
+ExecutionResult Cluster::Execute(const Query& query, const ParameterStore& params) const {
+    auto formatted_query = query.WithArgs(params);
+    return DoExecute(OptionalCommandControl{}, formatted_query);
+}
+
+ExecutionResult Cluster::Execute(OptionalCommandControl optional_cc, const Query& query, const ParameterStore& params)
+    const {
+    auto formatted_query = query.WithArgs(params);
+    return DoExecute(optional_cc, formatted_query);
+}
+
 ExecutionResult Cluster::DoExecute(OptionalCommandControl optional_cc, const Query& query) const {
     return GetPool().Execute(optional_cc, query);
 }

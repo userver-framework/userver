@@ -11,6 +11,7 @@
 #include <userver/utils/strong_typedef.hpp>
 
 #include <userver/storages/clickhouse/io/impl/escape.hpp>
+#include <userver/storages/clickhouse/parameter_store.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,12 +47,24 @@ public:
     friend class impl::Pool;
 
 private:
+    inline std::size_t CountBraces(std::string_view s) const;
+
     template <typename... Args>
     Query WithArgs(const Args&... args) const {
-        // we should throw on params count mismatch
-        // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
+        auto expected = CountBraces(text_);
+        auto actual = sizeof...(args);
+        if (expected != actual) {
+            throw std::runtime_error(fmt::format(
+                "Parameter count mismatch: query ({}) expects {} placeholders, but got {} parameters.\n",
+                text_,
+                expected,
+                actual
+            ));
+        }
         return Query{fmt::format(fmt::runtime(text_), io::impl::Escape(args)...), name_};
     }
+
+    Query WithArgs(const ParameterStore& params) const;
 
     void FillSpanTags(tracing::Span&) const;
 
