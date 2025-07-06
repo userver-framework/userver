@@ -251,18 +251,9 @@ if(USERVER_BUILD_TESTS)
 endif()
 
 if(USERVER_FEATURE_UTEST)
-    check_cxx_source_compiles("
-    #include <benchmark/benchmark.h>
-    int main() {
-        void* p = (void*)&benchmark::MaybeReenterWithoutASLR;
-        return 0;
-    }
-" MAYBE_REENTER_WITHOUT_ASLR_EXISTS)
-
     add_library(userver-ubench ${LIBUBENCH_SOURCES})
     target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-    target_compile_definitions(userver-ubench PRIVATE MAYBE_REENTER_WITHOUT_ASLR_EXISTS)
     target_link_libraries(
         userver-ubench
         PUBLIC ${PROJECT_NAME} userver-universal-internal-ubench
