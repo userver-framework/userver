@@ -4,6 +4,10 @@
 #include <userver/utils/impl/static_registration.hpp>
 
 int main(int argc, char** argv) {
+#ifdef MAYBE_REENTER_WITHOUT_ASLR_EXISTS
+    benchmark::MaybeReenterWithoutASLR(argc, argv);
+#endif
+
     USERVER_NAMESPACE::utils::impl::FinishStaticRegistration();
 
     const USERVER_NAMESPACE::logging::DefaultLoggerLevelScope level_scope{USERVER_NAMESPACE::logging::Level::kError};
