@@ -47,20 +47,10 @@ public:
     friend class impl::Pool;
 
 private:
-    inline std::size_t CountBraces(std::string_view s) const;
-
     template <typename... Args>
     Query WithArgs(const Args&... args) const {
-        auto expected = CountBraces(text_);
-        auto actual = sizeof...(args);
-        if (expected != actual) {
-            throw std::runtime_error(fmt::format(
-                "Parameter count mismatch: query ({}) expects {} placeholders, but got {} parameters.\n",
-                text_,
-                expected,
-                actual
-            ));
-        }
+        // we should throw on params count mismatch
+        // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
         return Query{fmt::format(fmt::runtime(text_), io::impl::Escape(args)...), name_};
     }
 
