@@ -36,10 +36,12 @@ namespace server::handlers {
 /// Inherits all the options from server::handlers::HttpHandlerBase and adds the
 /// following ones:
 ///
-/// Name               | Description                               | Default value
-/// ------------------ | ----------------------------------------- | -------------
-/// fs-cache-component | Name of the components::FsCache component | fs-cache-component
-/// expires            | Cache age in seconds                      | 600
+/// Name               | Description                                                                               | Default value
+/// ------------------ | ----------------------------------------------------------------------------------------- | -------------
+/// fs-cache-component | Name of the components::FsCache component                                                 | fs-cache-component
+/// expires            | Cache age in seconds                                                                      | 600
+/// directory-file     | File to return for directory requests. File name (not path) search in requested directory | "index.html"
+/// not-found-file     | File to return for missing files                                                          | "/404.html"
 ///
 /// ## Example usage:
 ///
@@ -65,6 +67,8 @@ private:
     dynamic_config::Source config_;
     const fs::FsCacheClient& storage_;
     const std::chrono::seconds cache_age_;
+    const std::string directory_file_;
+    const std::string not_found_file_;
 };
 
 }  // namespace server::handlers

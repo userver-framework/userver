@@ -23,7 +23,9 @@ HttpHandlerStatic::HttpHandlerStatic(
           context.FindComponent<components::FsCache>(config["fs-cache-component"].As<std::string>("fs-cache-component"))
               .GetClient()
       ),
-      cache_age_(config["expires"].As<std::chrono::seconds>(600)) {}
+      cache_age_(config["expires"].As<std::chrono::seconds>(600)),
+      directory_file_(config["directory-file"].As<std::string>("index.html")),
+      not_found_file_(config["not-found-file"].As<std::string>("/404.html")) {}
 
 std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
     std::string search_path;
@@ -38,7 +40,23 @@ std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& reque
     LOG_DEBUG() << "search_path: " << search_path;
 
     auto& response = request.GetHttpResponse();
-    const auto file = storage_.TryGetFile(search_path);
+    auto file = storage_.TryGetFile(search_path);
+    if (!file && !directory_file_.empty()) {
+        if (directory_file_.front() == '/') {
+            search_path = directory_file_;
+        } else if (search_path.empty() || search_path[search_path.size() - 1] != '/') {
+            search_path += "/" + directory_file_;
+        } else {
+            search_path += directory_file_;
+        }
+        LOG_DEBUG() << "search_path 2: " << search_path;
+        file = storage_.TryGetFile(search_path);
+    }
+    if (!file) {
+        file = storage_.TryGetFile(not_found_file_);
+        response.SetStatusNotFound();
+    }
+
     if (file) {
         const auto config = config_.GetSnapshot();
         response.SetHeader(USERVER_NAMESPACE::http::headers::kExpires, std::to_string(cache_age_.count()));
@@ -65,6 +83,14 @@ properties:
         type: string
         description: Cache age in seconds
         defaultDescription: 600
+    directory-file:
+        type: string
+        description: File to return for directory requests. File name (not path) search in requested directory
+        defaultDescription: index.html
+    not-found-file:
+        type: string
+        description: File to return for missing files
+        defaultDescription: /404.html
 )");
 }
 
