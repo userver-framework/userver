@@ -225,8 +225,10 @@ function(userver_testsuite_add)
         VERBATIM ${CODEGEN}
     )
     _userver_codegen_register_files("${TESTSUITE_RUNNER}")
-    # HACK: it seems too verbose to create a separate target for the file.
-    target_sources("${ARG_SERVICE_TARGET}" PRIVATE "${TESTSUITE_RUNNER}")
+
+    set(CREATE_TESTSUITE_RUNNER_TARGET "create-runtests-${service_target_with_suffix}")
+    add_custom_target("${CREATE_TESTSUITE_RUNNER_TARGET}" SOURCES "${TESTSUITE_RUNNER}")
+    add_dependencies("${ARG_SERVICE_TARGET}" "${CREATE_TESTSUITE_RUNNER_TARGET}")
 
     set(PRETTY_LOGS_MODE "")
     if(ARG_PRETTY_LOGS)
