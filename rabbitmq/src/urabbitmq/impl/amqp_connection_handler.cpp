@@ -153,6 +153,23 @@ void AmqpConnectionHandler::onReady(AMQP::Connection*) {
     connection_ready_event_.Send();
 }
 
+uint16_t AmqpConnectionHandler::onNegotiate(AMQP::Connection* connection, uint16_t interval) {
+    // we accept the suggestion from the server, but if the interval is smaller
+    // that one minute, we will use a one minute interval instead
+    if (interval < 60) interval = 60;
+
+    heartbeats_.Start(
+        fmt::format("rabbitmq_heartbeats_for_{}:{}", address_.hostname(), address_.port()),
+        std::chrono::seconds(interval),
+        [this, connection] {
+            if (!IsBroken()) connection->heartbeat();
+        }
+    );
+
+    // return the interval that we want to use
+    return interval;
+}
+
 void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection, engine::Deadline deadline) {
     reader_.Start(connection);
 
@@ -169,7 +186,10 @@ void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection, engi
 
 void AmqpConnectionHandler::OnConnectionDestruction() { reader_.Stop(); }
 
-void AmqpConnectionHandler::Invalidate() { broken_ = true; }
+void AmqpConnectionHandler::Invalidate() {
+    heartbeats_.Stop();
+    broken_ = true;
+}
 
 bool AmqpConnectionHandler::IsBroken() const { return broken_.load(); }
 

@@ -12,6 +12,8 @@
 
 #include <amqpcpp.h>
 
+#include "userver/utils/periodic_task.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
@@ -61,6 +63,8 @@ public:
 
     void onReady(AMQP::Connection* connection) override;
 
+    uint16_t onNegotiate(AMQP::Connection* connection, uint16_t interval) override;
+
     void OnConnectionCreated(AmqpConnection* connection, engine::Deadline deadline);
     void OnConnectionDestruction();
 
@@ -90,6 +94,8 @@ private:
 
     std::atomic<bool> is_ready_{false};
     std::optional<std::string> error_;
+
+    utils::PeriodicTask heartbeats_;
 };
 
 }  // namespace impl
