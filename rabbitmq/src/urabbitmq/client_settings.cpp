@@ -28,10 +28,10 @@ std::vector<std::string> ParseHosts(const formats::json::Value& secdist_doc) {
     const auto hosts_json = secdist_doc["hosts"];
     auto hosts = hosts_json.As<std::vector<std::string>>();
 
-    UINVARIANT(!hosts.empty(), "Empty list of hosts in clickhouse secdist");
+    UINVARIANT(!hosts.empty(), "Empty list of hosts in rabbitmq secdist");
     const auto unique_count = std::unordered_set<std::string>{hosts.begin(), hosts.end()}.size();
 
-    UINVARIANT(unique_count == hosts.size(), "Hosts are not unique in clickhouse secdist");
+    UINVARIANT(unique_count == hosts.size(), "Hosts are not unique in rabbitmq secdist");
 
     return hosts;
 }
