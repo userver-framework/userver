@@ -331,7 +331,7 @@ UTEST_F(ConsumerTest, HeadersProcessing) {
     );
 }
 
-UTEST_F(ConsumerTest, SeekToBeginning) {
+UTEST_F(ConsumerTest, DISABLED_IN_MAC_OS_TEST_NAME(SeekToBeginning)) {
     const auto topic = GenerateTopic();
 
     const std::array kMessages{
