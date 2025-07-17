@@ -32,9 +32,8 @@ public:
     using NameView = utils::zstring_view;
 
     /// Compile time literal with query name
-    struct NameLiteral : utils::StrongTypedef<NameLiteral, utils::StringLiteral> {
-        using StrongTypedef::StrongTypedef;
-        NameLiteral() = delete;
+    struct NameLiteral : utils::StringLiteral {
+        using utils::StringLiteral::StringLiteral;
     };
 
     enum class LogMode : unsigned char { kFull, kNameOnly };
