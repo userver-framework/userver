@@ -32,8 +32,17 @@ public:
     using NameView = utils::zstring_view;
 
     /// Compile time literal with query name
-    struct NameLiteral : utils::StringLiteral {
-        using utils::StringLiteral::StringLiteral;
+    class NameLiteral : public zstring_view {
+    public:
+        NameLiteral() = delete;
+
+#if defined(__clang__) && __clang_major__ < 18
+        // clang-16 and below lose (optimize out) the pointer to `literal` with consteval. Clang-18 is know to work
+        constexpr
+#else
+        USERVER_IMPL_CONSTEVAL
+#endif
+        NameLiteral(const char* literal) noexcept : zstring_view{literal} {}
     };
 
     enum class LogMode : unsigned char { kFull, kNameOnly };
