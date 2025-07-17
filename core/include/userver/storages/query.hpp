@@ -47,7 +47,7 @@ public:
     Query& operator=(Query&& other) = default;
 
     /*TODO: constexpr*/ Query(utils::StringLiteral statement, NameLiteral name, LogMode log_mode = LogMode::kFull)
-        : Query(std::string{statement}, Name{std::string{name.GetUnderlying()}}, log_mode) {}
+        : Query(std::string{statement}, Name{std::string{name}}, log_mode) {}
 
     Query(const char* statement, std::optional<Name> name = std::nullopt, LogMode log_mode = LogMode::kFull)
         : Query(std::string{statement}, std::move(name), log_mode) {}
