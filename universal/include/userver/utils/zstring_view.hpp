@@ -54,6 +54,24 @@ Value Serialize(zstring_view view, formats::serialize::To<Value>) {
     return typename Value::Builder(std::string_view{view}).ExtractValue();
 }
 
+namespace impl {
+
+struct NoUseType {
+    explicit operator std::string_view() const { return std::string_view{}; }
+};
+
+template <class T>
+constexpr auto FmtRuntimeHandlesZStringView(long) -> decltype(fmt::runtime(T{""}), std::true_type{}) {
+    return {};
+}
+
+template <class T>
+constexpr std::false_type FmtRuntimeHandlesZStringView(int) {
+    return {};
+}
+
+}  // namespace impl
+
 }  // namespace utils
 
 USERVER_NAMESPACE_END
@@ -64,7 +82,12 @@ struct fmt::formatter<USERVER_NAMESPACE::utils::zstring_view, char> : fmt::forma
 namespace fmt {
 
 // Allow fmt::runtime() to work with utils::zstring_view
-inline auto runtime(USERVER_NAMESPACE::utils::zstring_view s) -> decltype(fmt::runtime(std::string_view{s})) {
+inline auto runtime(
+    std::conditional_t<
+        USERVER_NAMESPACE::utils::impl::FmtRuntimeHandlesZStringView<USERVER_NAMESPACE::utils::zstring_view>(1L),
+        USERVER_NAMESPACE::utils::zstring_view,
+        USERVER_NAMESPACE::utils::impl::NoUseType> s
+) {
     return fmt::runtime(std::string_view{s});
 }
 
