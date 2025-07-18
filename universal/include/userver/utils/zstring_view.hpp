@@ -85,8 +85,8 @@ namespace fmt {
 inline auto runtime(
     std::conditional_t<
         USERVER_NAMESPACE::utils::impl::FmtRuntimeHandlesZStringView<USERVER_NAMESPACE::utils::zstring_view>(1L),
-        USERVER_NAMESPACE::utils::zstring_view,
-        USERVER_NAMESPACE::utils::impl::NoUseType> s
+        USERVER_NAMESPACE::utils::impl::NoUseType,
+        USERVER_NAMESPACE::utils::zstring_view> s
 ) {
     return fmt::runtime(std::string_view{s});
 }
