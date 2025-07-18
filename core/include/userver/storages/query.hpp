@@ -32,7 +32,7 @@ public:
     using NameView = utils::zstring_view;
 
     /// Compile time literal with query name
-    class NameLiteral : public zstring_view {
+    class NameLiteral : public utils::zstring_view {
     public:
         NameLiteral() = delete;
 
