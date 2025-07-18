@@ -64,9 +64,8 @@ struct fmt::formatter<USERVER_NAMESPACE::utils::zstring_view, char> : fmt::forma
 namespace fmt {
 
 // Allow fmt::runtime() to work with utils::zstring_view
-template <class T>
-inline auto runtime(T s)
-    -> std::enable_if_t<std::is_same_v<T, USERVER_NAMESPACE::utils::zstring_view>, decltype(fmt::runtime(std::string_view{}))>
-{ return fmt::runtime(std::string_view{s}); }
+inline auto runtime(USERVER_NAMESPACE::utils::zstring_view s) -> decltype(fmt::runtime(std::string_view{s})) {
+    return fmt::runtime(std::string_view{s});
+}
 
 }  // namespace fmt
