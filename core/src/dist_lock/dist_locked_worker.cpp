@@ -48,7 +48,7 @@ void DistLockedWorker::UpdateSettings(const DistLockSettings& settings) { locker
 void DistLockedWorker::Start() {
     LOG_INFO() << "Starting DistLockedWorker " << Name();
 
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     locker_task_ = locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kWorker, DistLockWaitingMode::kWait);
 
     LOG_INFO() << "Started DistLockedWorker " << Name();
@@ -57,7 +57,7 @@ void DistLockedWorker::Start() {
 void DistLockedWorker::RunOnce() {
     LOG_INFO() << "Running DistLockedWorker once " << Name();
 
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     locker_task_ = locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kOneshot, DistLockWaitingMode::kWait);
     locker_task_.Get();
 
@@ -67,7 +67,7 @@ void DistLockedWorker::RunOnce() {
 void DistLockedWorker::Stop() {
     LOG_INFO() << "Stopping DistLockedWorker " << Name();
 
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     if (locker_task_.IsValid()) locker_task_.RequestCancel();
     impl::GetTask(locker_task_, impl::LockerName(Name()), "cancel and wait in DistLockedWorker::Stop()");
 
@@ -75,7 +75,7 @@ void DistLockedWorker::Stop() {
 }
 
 bool DistLockedWorker::IsRunning() const {
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     return locker_task_.IsValid();
 }
 

@@ -12,9 +12,9 @@ namespace ugrpc::client::middlewares::log {
 
 Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
     Settings settings;
+    settings.log_level = config["log-level"].As<logging::Level>(settings.log_level);
     settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
     settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
-    settings.trim_secrets = config["trim-secrets"].As<bool>(settings.trim_secrets);
     return settings;
 }
 
@@ -43,18 +43,15 @@ type: object
 description: gRPC service logger component
 additionalProperties: false
 properties:
+    log-level:
+        type: string
+        description: set log level threshold
     msg-log-level:
         type: string
-        description: set up log level for request/response messages body
+        description: set up logging level for request/response messages
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated
-    trim-secrets:
-        type: boolean
-        description: |
-            trim the secrets from logs as marked by the protobuf option.
-            you should set this to false if the responses contain
-            optional fields and you are using protobuf prior to 3.13
 )");
 }
 

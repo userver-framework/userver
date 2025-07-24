@@ -73,7 +73,7 @@ public:
         stats_.msg_sent++;
         stats_.bytes_sent += message.data.size();
 
-        const std::unique_lock lock(write_mutex_);
+        const std::lock_guard lock(write_mutex_);
 
         LOG_TRACE() << "Write message " << message.data.size() << " bytes";
         if (message.opcode == impl::WSOpcodes::kPing) {

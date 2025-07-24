@@ -53,6 +53,8 @@ class Consumer;
 /// topic_metadata_refresh_interval    | period of time at which topic and broker metadata is refreshed | 5m
 /// metadata_max_age                   | metadata cache max age | 15
 /// rd_kafka_custom_options            | a map of librdkafka library additional options | '{}'
+/// debug_info_log_level               | log level for everything debug information | debug
+/// operation_log_level                | log level for infos about ordinary actions | info
 
 // clang-format on
 

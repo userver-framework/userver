@@ -27,6 +27,8 @@
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
 
+#include <gdb_autogen/cmd/utask/cmd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -34,9 +36,9 @@ namespace engine {
 namespace current_task {
 namespace {
 
-compiler::ThreadLocal current_task_context_ptr = []() -> impl::TaskContext* { return nullptr; };
+compiler::ThreadLocal current_task_context_ptr = []() -> engine::impl::TaskContext* { return nullptr; };
 
-void SetCurrentTaskContext(impl::TaskContext* context) {
+void SetCurrentTaskContext(engine::impl::TaskContext* context) {
     auto local_task_context_ptr = current_task_context_ptr.Use();
     UASSERT(!*local_task_context_ptr || !context);
     *local_task_context_ptr = context;
@@ -44,7 +46,7 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 
 }  // namespace
 
-impl::TaskContext& GetCurrentTaskContext() noexcept {
+engine::impl::TaskContext& GetCurrentTaskContext() noexcept {
     auto current_task_context = current_task_context_ptr.Use();
     if (!*current_task_context) {
         // AbortWithStacktrace MUST be a separate function! Putting the body of this
@@ -60,7 +62,7 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
     return **current_task_context;
 }
 
-impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
+engine::impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
     auto current_task_context = current_task_context_ptr.Use();
     return *current_task_context;
 }
@@ -194,7 +196,16 @@ void TaskContext::DoStep() {
 
     SleepState::Flags clear_flags{SleepFlags::kSleeping};
     if (!coro_) {
-        coro_ = task_processor_.GetCoroutine();
+        try {
+            coro_ = task_processor_.GetCoroutine();
+        } catch (...) {
+            // Seems we're out of memory
+            cancellation_reason_ = TaskCancellationReason::kOOM;
+            SetState(TaskBase::State::kCancelled);
+            finish_waiters_->SetSignalAndWakeupAll();
+            throw;
+        }
+
         clear_flags |= SleepFlags::kWakeupByBootstrap;
         ArmCancellationTimer();
     }
@@ -203,7 +214,7 @@ void TaskContext::DoStep() {
     // eh_globals is replaced in task scope, we must proxy the exception
     std::exception_ptr uncaught;
     {
-        CurrentTaskScope current_task_scope(*this, eh_globals_);
+        const CurrentTaskScope current_task_scope(*this, eh_globals_);
         try {
             SetState(Task::State::kRunning);
             auto& coro_ref = *coro_;
@@ -444,6 +455,19 @@ void TaskContext::Wakeup(WakeupSource source, NoEpoch) {
     }
 }
 
+class TaskContext::YieldReasonGuard {
+public:
+    explicit YieldReasonGuard(TaskContext& context) noexcept : context_(context) {}
+
+    ~YieldReasonGuard() noexcept { context_.yield_reason_ = yield_reason_; }
+
+    void SetYieldReason(YieldReason reason) noexcept { yield_reason_ = reason; }
+
+private:
+    TaskContext& context_;
+    YieldReason yield_reason_{YieldReason::kNone};
+};
+
 class TaskContext::LocalStorageGuard {
 public:
     explicit LocalStorageGuard(TaskContext& context) : context_(context) { context_.local_storage_.emplace(); }
@@ -454,49 +478,61 @@ private:
     TaskContext& context_;
 };
 
+class TaskContext::ProfilerExecutionGuard {
+public:
+    explicit ProfilerExecutionGuard(TaskContext& context) noexcept : context_(context) {
+        static_assert(noexcept(context_.ProfilerStartExecution()));
+        context_.ProfilerStartExecution();
+    }
+
+    ~ProfilerExecutionGuard() {
+        static_assert(noexcept(context_.ProfilerStopExecution()));
+        context_.ProfilerStopExecution();
+    }
+
+private:
+    TaskContext& context_;
+};
+
 void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     for (TaskContext* context : task_pipe) {
         UASSERT(context);
         context->TsanReleaseBarrier();
-        context->yield_reason_ = YieldReason::kNone;
         context->task_pipe_ = &task_pipe;
 
-        context->ProfilerStartExecution();
+        {
+            // Set yield_reason_ outside ~LocalStorageGuard as Sleep in dtors would otherwise clobber it.
+            YieldReasonGuard yield_reason_guard(*context);
+            // Destroy contents of LocalStorage in the coroutine as dtors may want to schedule.
+            const LocalStorageGuard local_storage_guard(*context);
+            // Uses task-local storage for logging.
+            const ProfilerExecutionGuard profiler_execution_guard(*context);
 
-        // We only let tasks ran with CriticalAsync enter function body, others
-        // get terminated ASAP.
-        if (context->IsCancelRequested() && !context->WasStartedAsCritical()) {
-            context->SetCancellable(false);
-            // It is important to destroy payload here as someone may want
-            // to synchronize in its dtor (e.g. lambda closure).
-            {
-                LocalStorageGuard local_storage_guard(*context);
+            // We only let tasks ran with CriticalAsync enter function body, others
+            // get terminated ASAP.
+            if (context->IsCancelRequested() && !context->WasStartedAsCritical()) {
+                context->SetCancellable(false);
+                // It is important to destroy payload here as someone may want
+                // to synchronize in its dtor (e.g. lambda closure).
                 context->ResetPayload();
-            }
-            context->yield_reason_ = YieldReason::kTaskCancelled;
-        } else {
-            try {
-                {
-                    // Destroy contents of LocalStorage in the coroutine
-                    // as dtors may want to schedule
-                    LocalStorageGuard local_storage_guard(*context);
-
+                yield_reason_guard.SetYieldReason(YieldReason::kTaskCancelled);
+            } else {
+                try {
                     context->TraceStateTransition(Task::State::kRunning);
                     context->payload_->Perform();
+                    yield_reason_guard.SetYieldReason(YieldReason::kTaskComplete);
+                } catch (const CoroUnwinder&) {
+                    yield_reason_guard.SetYieldReason(YieldReason::kTaskCancelled);
+                } catch (...) {
+                    utils::AbortWithStacktrace(
+                        "An exception that is not derived from std::exception has been "
+                        "thrown: " +
+                        boost::current_exception_diagnostic_information() +
+                        " Such exceptions are not supported by userver."
+                    );
                 }
-                context->yield_reason_ = YieldReason::kTaskComplete;
-            } catch (const CoroUnwinder&) {
-                context->yield_reason_ = YieldReason::kTaskCancelled;
-            } catch (...) {
-                utils::AbortWithStacktrace(
-                    "An exception that is not derived from std::exception has been "
-                    "thrown: " +
-                    boost::current_exception_diagnostic_information() + " Such exceptions are not supported by userver."
-                );
             }
         }
-
-        context->ProfilerStopExecution();
 
         context->task_pipe_ = nullptr;
         context->TsanAcquireBarrier();
@@ -577,7 +613,7 @@ void TaskContext::Schedule() {
     // NOTE: may be executed at this point
 }
 
-void TaskContext::ProfilerStartExecution() {
+void TaskContext::ProfilerStartExecution() noexcept {
     auto threshold_us = task_processor_.GetProfilerThreshold();
     if (threshold_us.count() > 0) {
         execute_started_ = std::chrono::steady_clock::now();
@@ -586,7 +622,7 @@ void TaskContext::ProfilerStartExecution() {
     }
 }
 
-void TaskContext::ProfilerStopExecution() {
+void TaskContext::ProfilerStopExecution() noexcept {
     auto threshold_us = task_processor_.GetProfilerThreshold();
     if (threshold_us.count() <= 0) return;
 

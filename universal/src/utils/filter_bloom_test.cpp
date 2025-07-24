@@ -51,7 +51,7 @@ TEST(FilterBloom, ApproximateCount) {
     }
     for (std::size_t i = 0; i < 20; ++i) {
         value -= 0.1;
-        std::size_t count = filter.Estimate(value);
+        const std::size_t count = filter.Estimate(value);
         EXPECT_LE(1, count);
         EXPECT_GE(3, count);
     }

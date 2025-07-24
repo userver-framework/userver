@@ -152,7 +152,7 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
     auto stream = client.CheckConstraintsStreaming();
 
     std::vector<types::ConstrainedRequest> requests(kRequestCount);
-    std::vector<types::ConstrainedResponse> responses;
+    const std::vector<types::ConstrainedResponse> responses;
 
     types::ConstrainedRequest request;
     request.set_field(1);
@@ -197,7 +197,7 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
     EXPECT_EQ(response.field(), 1);
 
     try {
-        [[maybe_unused]] bool result = stream.Read(response);
+        [[maybe_unused]] const bool result = stream.Read(response);
         ADD_FAILURE() << "Call must fail";
     } catch (const ugrpc::client::InvalidArgumentError& err) {
         auto violations = tests::GetViolations(err);

@@ -3,21 +3,18 @@
 /// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
-#include <optional>
-#include <string_view>
+#include <string>
 
 #include <google/protobuf/message.h>
 #include <grpcpp/support/status.h>
 
 #include <userver/components/component_base.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/middlewares/groups.hpp>
 #include <userver/middlewares/runner.hpp>
-#include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 
 #include <userver/ugrpc/server/call_context.hpp>
-#include <userver/ugrpc/server/impl/call.hpp>
-#include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +43,7 @@ class MiddlewareCallContext final : public CallContextBase {
 public:
     /// @cond
     // For internal use only
-    MiddlewareCallContext(utils::impl::InternalTag, impl::CallAnyBase& call, dynamic_config::Snapshot&& config);
+    MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state);
     /// @endcond
 
     /// @brief Aborts the RPC, returning the specified status to the upstream client, see details below.
@@ -57,7 +54,7 @@ public:
     ///
     /// 1. @ref MiddlewareBase::OnCallStart - remaining OnCallStart hooks won't be called. Will be called OnCallFinish
     ///    hooks of middlewares that was called before `SetError`
-    /// 2. @ref MiddlewareBase::PostRecvMessage or @ref MiddlewareBase::PreSendMessage:
+    /// 2. @ref MiddlewareBase::PostRecvMessage or @ref ugrpc::server::MiddlewareBase::PreSendMessage :
     ///    * unary: handler won't be called - all. All `OnCallFinish` hooks will be called.
     ///    * stream: from Read/Write throws a special exception, that ends a handler. All `OnCallFinish` hooks will be
     ///      called.
@@ -81,18 +78,15 @@ public:
     const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
 
     /// @cond
-    // For internal use only
-    ugrpc::impl::RpcStatisticsScope& GetStatistics(ugrpc::impl::InternalTag);
+    // For internal use only.
+    ugrpc::impl::RpcStatisticsScope& GetStatistics(utils::impl::InternalTag);
 
-    void ResetInitialDynamicConfig(utils::impl::InternalTag) { config_.reset(); }
-
-    void SetStatusPtr(grpc::Status* status);
-    grpc::Status& GetStatus();
+    // For internal use only.
+    grpc::Status& GetStatus(utils::impl::InternalTag) { return status_; }
     /// @endcond
 
 private:
-    std::optional<dynamic_config::Snapshot> config_;
-    grpc::Status* status_{nullptr};
+    grpc::Status status_;
 };
 
 /// @ingroup userver_base_classes userver_grpc_server_middlewares
@@ -154,7 +148,7 @@ public:
 ///
 /// And there is a possibility to override the middleware config per service:
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config server middleware
+/// @snippet samples/grpc_middleware_service/configs/static_config.yaml gRPC greeter-service sample
 
 using MiddlewareFactoryComponentBase =
     USERVER_NAMESPACE::middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ServiceInfo>;
@@ -174,44 +168,12 @@ using MiddlewareFactoryComponentBase =
 ///
 /// ## Static config example
 ///
-/// @snippet samples/grpc_middleware_service/static_config.yaml  static config grpc-server-middlewares-pipeline
+/// @snippet samples/grpc_middleware_service/configs/static_config.yaml grpc-server-auth static config
 
 template <typename Middleware>
 using SimpleMiddlewareFactoryComponent =
     USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
 
-/// @ingroup userver_components userver_grpc_server_middlewares
-///
-/// @brief Component to create middlewares pipeline.
-///
-/// You must register your server middleware in this component.
-/// Use `MiddlewareDependencyBuilder` to set a dependency of your middleware from others.
-///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// middlewares | middlewares names and configs to use | `{}`
-///
-/// ## Static config example
-///
-/// @snippet grpc/functional_tests/middleware_server/static_config.yaml middleware pipeline component config
-
-class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
-public:
-    /// @ingroup userver_component_names
-    /// @brief The default name of ugrpc::middlewares::MiddlewarePipelineComponent for the server side.
-    static constexpr std::string_view kName = "grpc-server-middlewares-pipeline";
-
-    MiddlewarePipelineComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
-};
-
 }  // namespace ugrpc::server
-
-template <>
-inline constexpr bool components::kHasValidate<ugrpc::server::MiddlewarePipelineComponent> = true;
-
-template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::server::MiddlewarePipelineComponent> =
-    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

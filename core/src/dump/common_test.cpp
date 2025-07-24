@@ -209,7 +209,7 @@ TEST(DumpCommon, JsonValue) { TestWriteReadCycle(formats::json::MakeObject("foo"
 TEST(DumpCommon, ReadEntire) {
     for (int pre_read = 0; pre_read <= 1; ++pre_read) {
         for (int exp_size = 0; exp_size < 25; ++exp_size) {
-            std::string data(1 << exp_size, 'a');
+            const std::string data(1 << exp_size, 'a');
 
             dump::MockReader reader(data);
             if (pre_read) dump::ReadStringViewUnsafe(reader, 1);

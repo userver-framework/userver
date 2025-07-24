@@ -10,7 +10,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(CFile, NullFile) {
-    fs::blocking::CFile file;
+    const fs::blocking::CFile file;
     EXPECT_FALSE(file.IsOpen());
 }
 

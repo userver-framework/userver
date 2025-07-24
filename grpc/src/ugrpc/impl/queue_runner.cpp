@@ -5,7 +5,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/thread_name.hpp>
 
-#include <userver/ugrpc/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/impl/event_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

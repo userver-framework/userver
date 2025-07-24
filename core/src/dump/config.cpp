@@ -19,7 +19,6 @@ constexpr std::string_view kMaxDumpCount = "max-count";
 constexpr std::string_view kWorldReadable = "world-readable";
 constexpr std::string_view kEncrypted = "encrypted";
 
-constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
 constexpr auto kDefaultMaxDumpCount = uint64_t{1};
 
 }  // namespace
@@ -47,7 +46,7 @@ Config::Config(std::string name, const yaml_config::YamlConfig& config, std::str
       dump_format_version(config[kDumpFormatVersion].As<uint64_t>()),
       world_readable(config[kWorldReadable].As<bool>()),
       dump_directory(fmt::format("{}/{}", dump_root, this->name)),
-      fs_task_processor(config[kFsTaskProcessor].As<std::string>(kDefaultFsTaskProcessor)),
+      fs_task_processor(config[kFsTaskProcessor].As<std::optional<std::string>>()),
       max_dump_count(config[kMaxDumpCount].As<uint64_t>(kDefaultMaxDumpCount)),
       max_dump_age(config[kMaxDumpAge].As<std::optional<std::chrono::milliseconds>>()),
       max_dump_age_set(config.HasMember(kMaxDumpAge)),

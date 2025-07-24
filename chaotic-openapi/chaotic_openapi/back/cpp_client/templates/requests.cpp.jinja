@@ -3,7 +3,7 @@
 {% import "templates/requests.application.xwwwformurlencoded.jinja" as application_xwwwformurlencoded %}
 {% import "templates/requests.application.multipart.formdata.jinja" as application_multipartformdata %}
 
-#include <client/{{ name }}/requests.hpp>
+#include <clients/{{ name }}/requests.hpp>
 
 #include <userver/chaotic/openapi/parameters_write.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -25,12 +25,12 @@ namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
     static constexpr openapi::Name k{{ parameter.cpp_name }} = "{{ parameter.raw_name }}";
 {% endfor %}
 
-void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::Request& http_request)
+void SerializeRequest(const Request& request, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request)
 {
   {# parameters #}
   openapi::ParameterSinkHttpClient sink(
     http_request,
-    "{{ op.path }}"
+    base_url + "{{ op.path }}"
   );
   {% for parameter in op.parameters %}
     {% if parameter.required %}
@@ -69,6 +69,8 @@ void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::
       UASSERT(false);
     }
   {% endif %}
+
+  sink.Flush();
 }
 
 } // namespace

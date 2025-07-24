@@ -48,7 +48,8 @@ CacheDependencies::Make(const components::ComponentConfig& config, const compone
         context.FindComponent<components::TestsuiteSupport>().GetCacheControl(),
         dump_config,
         dump_config ? dump::CreateOperationsFactory(*dump_config, context) : nullptr,
-        dump_config ? &context.GetTaskProcessor(dump_config->fs_task_processor) : nullptr,
+        dump_config && dump_config->fs_task_processor ? context.GetTaskProcessor(*dump_config->fs_task_processor)
+                                                      : engine::current_task::GetBlockingTaskProcessor(),
         context.FindComponent<components::TestsuiteSupport>().GetDumpControl(),
     };
 }

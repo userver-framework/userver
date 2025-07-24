@@ -103,7 +103,7 @@ Value FromString(std::string_view doc) {
     }
 
     impl::Document json{&g_allocator};
-    rapidjson::ParseResult ok =
+    const rapidjson::ParseResult ok =
         json.Parse<rapidjson::kParseDefaultFlags | rapidjson::kParseIterativeFlag | rapidjson::kParseFullPrecisionFlag>(
             doc.data(), doc.size()
         );
@@ -130,7 +130,7 @@ Value FromStream(std::istream& is) {
 
     rapidjson::IStreamWrapper in(is);
     impl::Document json{&g_allocator};
-    rapidjson::ParseResult ok = json.ParseStream<
+    const rapidjson::ParseResult ok = json.ParseStream<
         rapidjson::kParseDefaultFlags | rapidjson::kParseIterativeFlag | rapidjson::kParseFullPrecisionFlag>(in);
     if (!ok) {
         throw ParseException(

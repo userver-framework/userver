@@ -168,7 +168,7 @@ std::string EnumValueToString(DigestSize bits) {
 }
 
 bool IsMatchingKeyCurve(EVP_PKEY* pkey, DigestSize bits) {
-    std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)> ec_key(EVP_PKEY_get1_EC_KEY(pkey), EC_KEY_free);
+    const std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)> ec_key(EVP_PKEY_get1_EC_KEY(pkey), EC_KEY_free);
     return ec_key && EC_GROUP_get_curve_name(EC_KEY_get0_group(ec_key.get())) == CurveNidByDigestSize(bits);
 }
 

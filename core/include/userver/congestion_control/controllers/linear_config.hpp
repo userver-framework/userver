@@ -16,6 +16,7 @@ struct Config {
     std::chrono::milliseconds min_timings{20};
     std::size_t min_limit{10};
     std::size_t min_qps{10};
+    bool use_separate_stats{false};
 };
 
 template <typename T>
@@ -27,6 +28,7 @@ Config ConvertConfig(const T& cfg) {
     config.min_timings = cfg.min_timings_ms;
     config.min_limit = cfg.min_limit;
     config.min_qps = cfg.min_qps;
+    config.use_separate_stats = cfg.use_separate_stats;
     return config;
 }
 

@@ -256,7 +256,7 @@ pqCommandQueueAdvanceGlue(PGconn *conn, bool isReadyForQuery, bool gotSync)
   if (conn->cmd_queue_head->queryclass == PGQUERY_SYNC && !gotSync)
     return;
 
-  /* delink element from queue */
+  /* unlink element from queue */
   prevquery = conn->cmd_queue_head;
   conn->cmd_queue_head = conn->cmd_queue_head->next;
 

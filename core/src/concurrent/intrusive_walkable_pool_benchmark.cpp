@@ -13,15 +13,19 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct IntNode final {
-    std::atomic<std::uint64_t> value{0};
     concurrent::impl::IntrusiveWalkablePoolHook<IntNode> hook;
+    std::atomic<std::uint64_t> value{0};
 };
 
 }  // namespace
 
 void intrusive_walkable_pool(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
-        concurrent::impl::IntrusiveWalkablePool<IntNode, concurrent::impl::MemberHook<&IntNode::hook>> pool;
+        concurrent::impl::IntrusiveWalkablePool<  //
+            IntNode,
+            concurrent::impl::MemberHook<&IntNode::hook>,
+            offsetof(IntNode, hook)>
+            pool;
 
         RunParallelBenchmark(state, [&pool](auto& range) {
             for ([[maybe_unused]] auto _ : range) {

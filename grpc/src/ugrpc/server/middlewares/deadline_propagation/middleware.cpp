@@ -8,12 +8,13 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
-#include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <userver/ugrpc/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 #include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 #include <dynamic_config/variables/USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE.hpp>
@@ -56,7 +57,7 @@ bool CheckAndSetupDeadline(
         return true;
     }
 
-    auto deadline_duration = ugrpc::impl::ExtractDeadlineDuration(server_context.raw_deadline());
+    auto deadline_duration = ugrpc::TimespecToDuration(server_context.raw_deadline());
 
     const auto per_attempt_timeout = ExtractPerAttemptTimeout(server_context);
     if (per_attempt_timeout.has_value()) {
@@ -84,7 +85,7 @@ bool CheckAndSetupDeadline(
         return false;
     }
 
-    USERVER_NAMESPACE::server::request::TaskInheritedData inherited_data{
+    const USERVER_NAMESPACE::server::request::TaskInheritedData inherited_data{
         service_name, method_name, std::chrono::steady_clock::now(), engine::Deadline::FromDuration(deadline_duration)};
     USERVER_NAMESPACE::server::request::kTaskInheritedData.Set(inherited_data);
 
@@ -99,7 +100,7 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
             context.GetServerContext(),
             context.GetServiceName(),
             context.GetMethodName(),
-            context.GetStatistics(ugrpc::impl::InternalTag{}),
+            context.GetStatistics(utils::impl::InternalTag{}),
             context.GetInitialDynamicConfig(),
             context.GetStorageContext()
         )) {

@@ -54,7 +54,7 @@ DistLockedTask::~DistLockedTask() {
     if (IsValid()) {
         RequestCancel();
 
-        engine::TaskCancellationBlocker cancel_blocker;
+        const engine::TaskCancellationBlocker cancel_blocker;
         Wait();
     }
 }
@@ -76,7 +76,7 @@ void DistLockedTask::Get() noexcept(false) {
         throw engine::TaskCancelledException(CancellationReason());
     }
 
-    utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
+    const utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
     utils::impl::CastWrappedCall<void>(GetPayload()).Retrieve();
 }
 

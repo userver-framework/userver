@@ -251,7 +251,7 @@ UTEST(TlsWrapper, InitListSmall) {
     const auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
 
     server_task.Get();
-    std::string result(buffer.data(), bytes_rcvd);
+    const std::string result(buffer.data(), bytes_rcvd);
     EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
 }
 
@@ -291,7 +291,7 @@ UTEST(TlsWrapper, InitListLarge) {
     const auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
 
     server_task.Get();
-    std::string result(buffer.data(), bytes_rcvd);
+    const std::string result(buffer.data(), bytes_rcvd);
     EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
 }
 
@@ -327,7 +327,7 @@ UTEST(TlsWrapper, InitListSmallThenLarge) {
     auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
 
     server_task.Get();
-    std::string result(buffer.data(), bytes_rcvd);
+    const std::string result(buffer.data(), bytes_rcvd);
     EXPECT_EQ(result, kStringSmall + kStringSmall + kStringSmall + kStringSmall + kStringLarge);
 }
 
@@ -406,7 +406,7 @@ UTEST_MT(TlsWrapper, DocTest, 2) {
     /// [TLS wrapper usage]
 
     server_task.Get();
-    std::string_view result(buffer.data(), bytes_rcvd);
+    const std::string_view result(buffer.data(), bytes_rcvd);
     EXPECT_EQ(result, kData.substr(0, result.size()));
 }
 

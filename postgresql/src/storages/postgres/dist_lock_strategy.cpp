@@ -67,7 +67,7 @@ void DistLockStrategy::UpdateCommandControl(CommandControl cc) {
 }
 
 void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::string& locker_id) {
-    double timeout_seconds = lock_ttl.count() / 1000.0;
+    const double timeout_seconds = lock_ttl.count() / 1000.0;
     auto cc_ptr = cc_.Read();
     auto result = cluster_->Execute(
         ClusterHostType::kMaster,

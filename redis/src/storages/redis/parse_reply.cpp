@@ -35,7 +35,7 @@ ReplyData::MovableKeyValues GetKeyValues(ReplyData& array_data, const std::strin
 
 Point ParsePointArray(const redis::ReplyData& elem, const std::string& request_description) {
     const auto& array = elem.GetArray();
-    size_t size = array.size();
+    const size_t size = array.size();
     if (size != 2) {
         throw ParseReplyException(
             "Unexpected reply to '" + request_description + "'. Expected 2 elements in array, got " +

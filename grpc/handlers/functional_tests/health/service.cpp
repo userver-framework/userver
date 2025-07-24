@@ -1,9 +1,5 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <chrono>
-#include <string_view>
-#include <utility>
-
 #include <fmt/format.h>
 
 #include <userver/components/component.hpp>

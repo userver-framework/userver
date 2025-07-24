@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp
+/// @brief @copybrief ugrpc::client::middlewares::deadline_propagation::Middleware
+
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -10,8 +13,7 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 class Middleware final : public MiddlewareBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of
-    /// ugrpc::client::middlewares::deadline_propagation::Component.
+    /// @brief The default name of ugrpc::client::middlewares::deadline_propagation::Component.
     static constexpr std::string_view kName = "grpc-client-deadline-propagation";
 
     /// @brief dependency of this middleware. Core group.

@@ -77,7 +77,7 @@ public:
     /// @throws engine::io::IoException in case of socket errors
     /// @note Recv() is **not** thread-safe by itself (you may not call Recv() from
     /// multiple coroutines at once). It is **not** safe to call Recv() and Send() from different coroutines
-    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instaead.
+    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instead.
     virtual void Recv(Message& message) = 0;
 
     /// @brief Behaves in the same way as Recv(), but in case of first bytes of
@@ -91,7 +91,7 @@ public:
     /// @throws engine::io::IoException in case of socket errors
     /// @note Send() is not thread-safe by itself (you may not call Send() from
     /// multiple coroutines at once). It is **not** safe to call Recv() and Send() from different coroutines
-    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instaead.
+    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instead.
     virtual void Send(const Message& message) = 0;
     virtual void SendText(std::string_view message) = 0;
 

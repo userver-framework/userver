@@ -8,6 +8,7 @@
 #include <optional>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

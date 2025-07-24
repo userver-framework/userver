@@ -111,7 +111,7 @@ UTEST(Execute, IterationMovesFromUnderlying) {
         ASSERT_EQ(it->string, expected[ind]);
         IteratorTester<RowData>::CheckCurrentValue<1>(it, std::string{});
         ASSERT_EQ(it->string, expected[ind]);
-        [[maybe_unused]] std::string tmp{std::move(it->string)};
+        [[maybe_unused]] const std::string tmp{std::move(it->string)};
         ASSERT_TRUE(it->string.empty());
     }
 }

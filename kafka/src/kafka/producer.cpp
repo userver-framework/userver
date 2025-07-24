@@ -31,10 +31,11 @@ void SendToTestPoint(
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
-    const std::vector<OwningHeader>& headers
+    const std::vector<OwningHeader>& headers,
+    const std::optional<std::string>& suffix = std::nullopt
 ) {
     // Testpoint server does not accept non-utf8 data
-    TESTPOINT(fmt::format("tp_{}", component_name), [&] {
+    TESTPOINT(fmt::format("tp_{}{}", component_name, suffix.value_or("")), [&] {
         formats::json::ValueBuilder builder;
         builder["topic"] = topic_name;
         builder["key"] = key;
@@ -85,7 +86,11 @@ Producer::Producer(
 )
     : name_(name),
       producer_task_processor_(producer_task_processor),
-      producer_(impl::Configuration{name, configuration, secrets}) {}
+      producer_(
+          impl::Configuration{name, configuration, secrets},
+          configuration.debug_info_log_level,
+          configuration.operation_log_level
+      ) {}
 
 Producer::~Producer() {
     utils::Async(producer_task_processor_, "producer_shutdown", [this] {
@@ -138,11 +143,15 @@ void Producer::SendImpl(
     impl::HeadersHolder&& headers_holder
 ) const {
     tracing::Span::CurrentSpan().AddTag("kafka_producer", name_);
+    tracing::Span::CurrentSpan().AddTag("kafka_send_key", std::string{key});
 
     std::vector<OwningHeader> headers_copy;
     if (testsuite::AreTestpointsAvailable()) {
         auto reader = HeadersReader{headers_holder.GetHandle()};
         headers_copy = std::vector<OwningHeader>{reader.begin(), reader.end()};
+    }
+    if (testsuite::AreTestpointsAvailable()) {
+        SendToTestPoint(name_, topic_name, key, message, partition, headers_copy, "::started");
     }
 
     const impl::DeliveryResult delivery_result =

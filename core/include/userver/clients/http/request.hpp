@@ -40,10 +40,14 @@ namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
-/// HTTP request method
+/// @brief HTTP request method
 enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
 
+/// @brief Convert HTTP method enum value to string
 std::string_view ToStringView(HttpMethod method);
+
+/// @brief Convert HTTP method string to enum value
+HttpMethod HttpMethodFromString(std::string_view method_str);
 
 using USERVER_NAMESPACE::http::HttpVersion;
 
@@ -70,7 +74,7 @@ enum class ProxyAuthType {
     kAnySafe,    ///< "any_safe"
 };
 
-ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name);
+ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name);
 
 /// Class for creating and performing new http requests
 class Request final {
@@ -155,23 +159,25 @@ public:
     Request& headers(const Headers& headers) &;
     Request headers(const Headers& headers) &&;
     /// Headers for request as list
-    Request& headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) &;
-    Request headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) &&;
+    Request& headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &;
+    Request headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &&;
     /// Sets http auth type to use.
-    Request& http_auth_type(HttpAuthType value, bool auth_only, std::string_view user, std::string_view password) &;
-    Request http_auth_type(HttpAuthType value, bool auth_only, std::string_view user, std::string_view password) &&;
+    Request&
+    http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) &;
+    Request
+    http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) &&;
     /// Proxy headers for request as map
     Request& proxy_headers(const Headers& headers) &;
     Request proxy_headers(const Headers& headers) &&;
     /// Proxy headers for request as list
-    Request& proxy_headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) &;
-    Request proxy_headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) &&;
+    Request& proxy_headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &;
+    Request proxy_headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &&;
     /// Sets the User-Agent header
-    Request& user_agent(const std::string& value) &;
-    Request user_agent(const std::string& value) &&;
+    Request& user_agent(utils::zstring_view value) &;
+    Request user_agent(utils::zstring_view value) &&;
     /// Sets proxy to use. Example: [::1]:1080
-    Request& proxy(const std::string& value) &;
-    Request proxy(const std::string& value) &&;
+    Request& proxy(utils::zstring_view value) &;
+    Request proxy(utils::zstring_view value) &&;
     /// Sets proxy auth type to use.
     Request& proxy_auth_type(ProxyAuthType value) &;
     Request proxy_auth_type(ProxyAuthType value) &&;
@@ -193,14 +199,14 @@ public:
     Request& verify(bool verify = true) &;
     Request verify(bool verify = true) &&;
     /// Set file holding one or more certificates to verify the peer with
-    Request& ca_info(const std::string& file_path) &;
-    Request ca_info(const std::string& file_path) &&;
+    Request& ca_info(utils::zstring_view file_path) &;
+    Request ca_info(utils::zstring_view file_path) &&;
     /// Set CA
     Request& ca(crypto::Certificate cert) &;
     Request ca(crypto::Certificate cert) &&;
     /// Set CRL-file
-    Request& crl_file(const std::string& file_path) &;
-    Request crl_file(const std::string& file_path) &&;
+    Request& crl_file(utils::zstring_view file_path) &;
+    Request crl_file(utils::zstring_view file_path) &&;
     /// Set private client key and certificate for request.
     ///
     /// @warning Do not use this function on MacOS as it may cause Segmentation
@@ -223,8 +229,8 @@ public:
     /// Set unix domain socket as connection endpoint and provide path to it
     /// When enabled, request will connect to the Unix domain socket instead
     /// of establishing a TCP connection to a host.
-    Request& unix_socket_path(const std::string& path) &;
-    Request unix_socket_path(const std::string& path) &&;
+    Request& unix_socket_path(utils::zstring_view path) &;
+    Request unix_socket_path(utils::zstring_view path) &&;
 
     /// Set CURL_IPRESOLVE_V4 for ipv4 resolving
     Request& use_ipv4() &;

@@ -17,6 +17,7 @@ namespace {
 congestion_control::v2::Stats stats;
 FakeSensor sensor;
 FakeLimiter limiter;
+const auto kDefaultObjectName = "default";
 }  // namespace
 
 TEST(CCLinear, Zero) {
@@ -26,8 +27,8 @@ TEST(CCLinear, Zero) {
         });
 
     for (size_t i = 0; i < 1000; i++) {
-        auto limit = controller.Update({});
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update({});
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 }
 
@@ -39,11 +40,11 @@ TEST(CCLinear, FirstSeconds) {
 
     for (size_t i = 0; i < 30; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 10000;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 10000 * 100;
+        data.objects[kDefaultObjectName].total = 100;
 
-        auto limit = controller.Update(data);
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 }
 
@@ -55,21 +56,21 @@ TEST(CCLinear, SmallRps) {
     // First seconds
     for (size_t i = 0; i < 30; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 10000;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 10000 * 100;
+        data.objects[kDefaultObjectName].total = 100;
 
-        auto limit = controller.Update(data);
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 
     // Small RPS
     for (size_t i = 0; i < 100; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 10000;
-        data.total = 1;
+        data.objects[kDefaultObjectName].timings_sum_ms = 10000;
+        data.objects[kDefaultObjectName].total = 1;
 
-        auto limit = controller.Update(data);
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 }
 
@@ -81,31 +82,31 @@ TEST(CCLinear, SmallSpike) {
     // First seconds
     for (size_t i = 0; i < 30; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 100;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 100 * 100;
+        data.objects[kDefaultObjectName].total = 100;
 
-        auto limit = controller.Update(data);
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 
     // Extra Load
     congestion_control::v2::Sensor::Data data;
-    data.timings_avg_ms = 4000;
-    data.total = 1;
+    data.objects[kDefaultObjectName].timings_sum_ms = 4000;
+    data.objects[kDefaultObjectName].total = 1;
 
-    auto limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+    auto limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 0;
 
     // Back to normal
-    data.timings_avg_ms = 100;
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 1;
+    data.objects[kDefaultObjectName].timings_sum_ms = 100;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 1;
 
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 2;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 2;
 
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 3;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 3;
 }
 
 TEST(CCLinear, ExtraLoad) {
@@ -117,35 +118,35 @@ TEST(CCLinear, ExtraLoad) {
     // Init
     for (size_t i = 0; i < 31; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 100;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 100;
+        data.objects[kDefaultObjectName].total = 100;
 
-        auto limit = controller.Update(data);
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 
     // Extra load
     for (size_t i = 0; i < 2; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 5001;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 5001 * 100;
+        data.objects[kDefaultObjectName].total = 100;
 
         controller.Update(data);
     }
     for (size_t i = 0; i < 100; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 5001;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 5001 * 100;
+        data.objects[kDefaultObjectName].total = 100;
 
-        auto limit = controller.Update(data);
-        EXPECT_NE(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_NE(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 
     // Back to normal
     for (size_t i = 0; i < 100; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 100;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 100 * 100;
+        data.objects[kDefaultObjectName].total = 100;
 
         controller.Update(data);
     }
@@ -153,11 +154,11 @@ TEST(CCLinear, ExtraLoad) {
     // Normal
     for (size_t i = 0; i < 1000; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 100;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 100 * 100;
+        data.objects[kDefaultObjectName].total = 100;
 
-        auto limit = controller.Update(data);
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 }
 
@@ -169,37 +170,37 @@ TEST(CCLinear, MinMax) {
     // First seconds
     for (size_t i = 0; i < 30; i++) {
         congestion_control::v2::Sensor::Data data;
-        data.timings_avg_ms = 0;
-        data.total = 100;
+        data.objects[kDefaultObjectName].timings_sum_ms = 0;
+        data.objects[kDefaultObjectName].total = 100;
 
-        auto limit = controller.Update(data);
-        EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+        auto limits_with_details = controller.Update(data);
+        EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << i;
     }
 
     // Extra Load
     congestion_control::v2::Sensor::Data data;
-    data.timings_avg_ms = 0;
-    data.total = 100;
+    data.objects[kDefaultObjectName].timings_sum_ms = 0;
+    data.objects[kDefaultObjectName].total = 100;
 
-    auto limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+    auto limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 0;
 
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 0;
 
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 0;
 
-    data.timings_avg_ms = 1;
+    data.objects[kDefaultObjectName].timings_sum_ms = 1 * 100;
 
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 0;
 
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 0;
 
-    limit = controller.Update(data);
-    EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+    limits_with_details = controller.Update(data);
+    EXPECT_EQ(limits_with_details.limit.load_limit, std::nullopt) << 0;
 }
 
 USERVER_NAMESPACE_END

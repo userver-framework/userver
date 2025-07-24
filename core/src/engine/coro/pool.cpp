@@ -24,14 +24,14 @@ Pool::Pool(PoolConfig config, Executor executor)
       idle_coroutines_num_(config_.initial_size),
       total_coroutines_num_(0) {
     UASSERT(local_coroutine_move_size_ <= config_.local_cache_size);
-    moodycamel::ProducerToken token(initial_coroutines_);
+    const moodycamel::ProducerToken token(initial_coroutines_);
 
     if (config_.is_stack_usage_monitor_enabled) {
         stack_usage_monitor_.Start();
     }
 
     for (std::size_t i = 0; i < config_.initial_size; ++i) {
-        bool ok = initial_coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
+        const bool ok = initial_coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
         UINVARIANT(ok, "Failed to allocate the initial coro pool");
     }
 }
@@ -127,7 +127,9 @@ Pool::Coroutine Pool::CreateCoroutine(bool quiet) {
             LOG_DEBUG() << "Created a coroutine #" << new_total << '/' << config_.max_size;
         }
 
-        stack_usage_monitor_.Register(coroutine);
+        if (new_total <= kStackUsageMonitorLimit) {
+            stack_usage_monitor_.Register(coroutine);
+        }
 
         return coroutine;
     } catch (const std::bad_alloc&) {

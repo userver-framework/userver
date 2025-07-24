@@ -28,31 +28,15 @@ void RpcStatisticsScope::OnCancelledByDeadlinePropagation() noexcept {
 
 void RpcStatisticsScope::OnDeadlinePropagated() noexcept { is_deadline_propagated_ = true; }
 
-void RpcStatisticsScope::OnCancelled() noexcept {
-    // If the task is cancelled, then this is what typically happens:
-    //
-    // 1. after cancelling the wait, the task calls OnCancelled
-    // 2. the task calls ClientContext::TryCancel
-    // 3. grpc-core thread notifies CompletionQueue
-    // 4. FinishAsyncMethodInvocation::Notify calls Flush, which accounts
-    //    is_cancelled_
-    // 5. Notify wakes up the task
-    //
-    // However, there is a small chance the request completes on its own
-    // between (1) and (2). It will call Notify and Flush, which might miss
-    // is_cancelled_ from the task, which is being cancelled in parallel, and just
-    // write normal request completion stats. This is fine, because the actual
-    // request was not cancelled because of the task cancellation.
-    is_cancelled_.store(true, std::memory_order_relaxed);
+void RpcStatisticsScope::OnCancelled() noexcept { finish_kind_ = std::max(finish_kind_, FinishKind::kCancelled); }
+
+void RpcStatisticsScope::SetFinishTime(std::chrono::steady_clock::time_point finish_time) noexcept {
+    finish_time_ = finish_time;
 }
 
 void RpcStatisticsScope::Flush() noexcept {
     if (!start_time_) {
         return;
-    }
-
-    if (is_cancelled_.load()) {
-        finish_kind_ = std::max(finish_kind_, FinishKind::kCancelled);
     }
 
     if (is_deadline_propagated_) {
@@ -62,7 +46,6 @@ void RpcStatisticsScope::Flush() noexcept {
     AccountTiming();
     switch (finish_kind_) {
         case FinishKind::kAutomatic:
-            statistics_->AccountStatus(grpc::StatusCode::UNKNOWN);
             statistics_->AccountInternalError();
             return;
         case FinishKind::kExplicit:
@@ -93,9 +76,8 @@ void RpcStatisticsScope::RedirectTo(MethodStatistics& statistics) {
 void RpcStatisticsScope::AccountTiming() noexcept {
     if (!start_time_) return;
 
-    statistics_->AccountTiming(
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - *start_time_)
-    );
+    const auto finish_time = finish_time_.has_value() ? *finish_time_ : std::chrono::steady_clock::now();
+    statistics_->AccountTiming(std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - *start_time_));
     start_time_.reset();
 }
 

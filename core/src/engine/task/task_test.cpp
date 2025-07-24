@@ -18,7 +18,7 @@ USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
 
-TEST(Task, Ctr) { engine::Task task; }
+TEST(Task, Ctr) { const engine::Task task; }
 
 UTEST(Task, Wait) {
     auto task = engine::AsyncNoSpan([] {});
@@ -46,7 +46,7 @@ UTEST(Task, EarlyCancel) {
 
 UTEST(Task, EarlyCancelResourceCleanup) {
     auto shared = std::make_shared<int>(1);
-    std::weak_ptr<int> weak = shared;
+    const std::weak_ptr<int> weak = shared;
 
     // Unlike `engine::TaskWithResult` the `engine::Task` frees resources on
     // finish
@@ -269,7 +269,7 @@ UTEST_MT(Task, MultiWait, 4) {
     for (size_t i = 0; i < kWaitingTasksCount; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&shared_task, &mutex, &cv, &tasks_started, test_deadline]() {
             {
-                std::unique_lock<engine::Mutex> lock{mutex};
+                const std::lock_guard<engine::Mutex> lock{mutex};
                 tasks_started++;
                 cv.NotifyOne();
             }

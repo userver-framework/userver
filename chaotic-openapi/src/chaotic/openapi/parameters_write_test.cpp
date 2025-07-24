@@ -120,7 +120,7 @@ UTEST(OpenapiParameters, TypeBoolean) {
     ParameterSinkMock sink;
     EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"true"}));
 
-    bool bool_var = true;
+    const bool bool_var = true;
     co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, bool>>(bool_var, sink);
 }
 
@@ -128,14 +128,14 @@ UTEST(OpenapiParameters, TypeDouble) {
     ParameterSinkMock sink;
     EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"2.1"}));
 
-    double double_var = 2.1;
+    const double double_var = 2.1;
     co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, double>>(double_var, sink);
 }
 
 UTEST(OpenapiParameters, TypeInt) {
     ParameterSinkMock sink;
     EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"1"}));
-    int int_var = 1;
+    const int int_var = 1;
     co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, int>>(int_var, sink);
 }
 
@@ -154,7 +154,7 @@ UTEST(OpenapiParameters, SinkHttpClient) {
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = http_client_ptr->CreateRequest();
     bool called = false;
-    utest::HttpServerMock http_server([&called](const utest::HttpServerMock::HttpRequest& request) {
+    const utest::HttpServerMock http_server([&called](const utest::HttpServerMock::HttpRequest& request) {
         constexpr http::headers::PredefinedHeader kName("name");
         constexpr http::headers::PredefinedHeader kCookie("cookie");
 

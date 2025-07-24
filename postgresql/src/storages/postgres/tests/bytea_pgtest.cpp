@@ -120,8 +120,8 @@ UTEST_P(PostgreConnection, ByteaRoundTripTypes) {
 
     {
         /// [bytea_simple]
-        pg::ResultSet res = GetConn()->Execute("select 'foobar'::bytea");
-        std::string s = "foobar"s;
+        const pg::ResultSet res = GetConn()->Execute("select 'foobar'::bytea");
+        const std::string s = "foobar"s;
 
         // reading a binary string
         std::string received;
@@ -134,7 +134,7 @@ UTEST_P(PostgreConnection, ByteaRoundTripTypes) {
         /// [bytea_string]
         // sending a binary string
         std::string s = "\0\xff\x0afoobar"s;
-        pg::ResultSet res = GetConn()->Execute("select $1", pg::Bytea(s));
+        const pg::ResultSet res = GetConn()->Execute("select $1", pg::Bytea(s));
 
         // reading a binary string
         std::string received;

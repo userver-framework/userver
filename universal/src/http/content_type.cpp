@@ -48,7 +48,7 @@ std::string_view RtrimOws(std::string_view view) {
     return view;
 }
 
-int ParseQuality(std::string_view param_value) {
+int ParseQuality(std::string_view param_value, std::string_view full_string) {
     static constexpr size_t kFullPrecisionLength = 5;  // "1.000"
 
     if (!param_value.empty() && param_value.size() <= kFullPrecisionLength) {
@@ -77,19 +77,23 @@ int ParseQuality(std::string_view param_value) {
             return kMaxQuality;
         }
     }
-    throw MalformedContentType("Invalid quality value: \'" + std::string(param_value) + '\'');
+    throw MalformedContentType(
+        fmt::format("Invalid quality value '{}' in a parameter of content type '{}'", param_value, full_string)
+    );
 }
 
 }  // namespace
 
 ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
+    const auto full_string = unparsed;
+
     auto delim_pos = unparsed.find('/');
     if (delim_pos == std::string::npos) {
-        throw MalformedContentType("Invalid media type: '" + std::string(unparsed) + '\'');
+        throw MalformedContentType(fmt::format("Content type does not contain /: '{}'", full_string));
     }
     type_ = std::string(LtrimOws(unparsed.substr(0, delim_pos)));
     if (type_.empty() || type_.find_first_of(kTypeTokenInvalidChars) != std::string::npos) {
-        throw MalformedContentType("Invalid media type: '" + std::string(unparsed) + '\'');
+        throw MalformedContentType(fmt::format("Invalid media type in content type: '{}'", full_string));
     }
     unparsed.remove_prefix(delim_pos + 1);
 
@@ -97,7 +101,7 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
     subtype_ = std::string(RtrimOws(unparsed.substr(0, delim_pos)));
     if (subtype_.empty() || subtype_.find_first_of(kTypeTokenInvalidChars) != std::string::npos ||
         (type_ == kTokenAny && subtype_ != kTokenAny)) {
-        throw MalformedContentType("Invalid media type: \'" + type_ + '/' + std::string(unparsed) + '\'');
+        throw MalformedContentType(fmt::format("Invalid media subtype in content type: '{}'", full_string));
     }
 
     while (delim_pos != std::string::npos) {
@@ -105,29 +109,37 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
 
         auto param_name_end = unparsed.find('=');
         if (param_name_end == std::string::npos) {
-            throw MalformedContentType("Malformed parameter in content type");
+            throw MalformedContentType(fmt::format("Malformed parameter in content type: '{}'", full_string));
         }
         auto param_name = LtrimOws(unparsed.substr(0, param_name_end));
         if (param_name.find_first_of(kOwsChars) != std::string_view::npos) {
-            throw MalformedContentType("Malformed parameter name in content type: '" + std::string(param_name) + '\'');
+            throw MalformedContentType(
+                fmt::format("Malformed parameter name '{}' in content type '{}'", param_name, full_string)
+            );
         }
         unparsed.remove_prefix(param_name_end + 1);
 
         if (unparsed.empty()) {
-            throw MalformedContentType("Missing value for parameter: '" + std::string(param_name) + '\'');
+            throw MalformedContentType(
+                fmt::format("Missing value for parameter '{}' in content type '{}'", param_name, full_string)
+            );
         }
         if (unparsed[0] == '"') {
-            throw MalformedContentType("Quoted parameter values are not supported");
+            throw MalformedContentType(
+                fmt::format("Quoted parameter values are not supported in content type: '{}'", full_string)
+            );
         }
         delim_pos = unparsed.find(';');
 
         if (utils::StrIcaseEqual()(kCharsetParamName, param_name)) {
             charset_ = std::string(RtrimOws(unparsed.substr(0, delim_pos)));
             if (charset_.empty() || charset_.find_first_of(kOwsChars) != std::string::npos) {
-                throw MalformedContentType("Invalid charset in content type: '" + charset_ + '\'');
+                throw MalformedContentType(
+                    fmt::format("Invalid charset '{}' in content type '{}'", charset_, full_string)
+                );
             }
         } else if (utils::StrIcaseEqual()(kQualityParamName, param_name)) {
-            quality_ = ParseQuality(RtrimOws(unparsed.substr(0, delim_pos)));
+            quality_ = ParseQuality(RtrimOws(unparsed.substr(0, delim_pos)), full_string);
         } else if (utils::StrIcaseEqual()(kBoundaryParamName, param_name)) {
             boundary_ = unparsed.substr(0, delim_pos);
         }

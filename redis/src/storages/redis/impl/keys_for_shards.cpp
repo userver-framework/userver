@@ -47,7 +47,7 @@ void KeysForShards::GenerateLexMinKeysForShards(
     std::vector<std::string>& keys
 ) {
     if (pos == len) {
-        size_t shard = shard_by_key(key_buf);
+        const size_t shard = shard_by_key(key_buf);
         if (keys.at(shard).empty()) {
             keys[shard] = key_buf;
             UASSERT(need > 0);

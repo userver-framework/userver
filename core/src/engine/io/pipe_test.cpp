@@ -21,7 +21,7 @@ constexpr std::chrono::milliseconds kIoTimeout{10};
 
 }  // namespace
 
-UTEST(Pipe, Smoke) { io::Pipe pipe; }
+UTEST(Pipe, Smoke) { const io::Pipe pipe; }
 
 UTEST(Pipe, Wait) {
     io::Pipe pipe;

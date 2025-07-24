@@ -349,7 +349,7 @@ public:
                 */
 #ifndef NDEBUG
         ssl_usage_level++;
-        utils::FastScopeGuard ssl_usage_guard([this]() noexcept { --ssl_usage_level; });
+        const utils::FastScopeGuard ssl_usage_guard([this]() noexcept { --ssl_usage_level; });
 #endif
 
         bio_data.current_deadline = deadline;

@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <string>
 
+#include <userver/utils/span.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::encoding {
@@ -43,6 +45,12 @@ constexpr size_t FromHexUpperBound(size_t size) noexcept {
 /// @param input bytes to convert
 /// @param out string to write data. out will be cleared
 void ToHex(std::string_view input, std::string& out) noexcept;
+
+/// @brief Converts input to hex and writes data to output @p out.
+/// @warning `out` must be pre-allocated to at least @ref LengthInHexForm bytes.
+/// @param input bytes to convert
+/// @param out buffer to write data
+void ToHexBuffer(std::string_view input, utils::span<char> out) noexcept;
 
 /// @brief Allocates std::string, converts input and writes into said string
 /// @param data range of input bytes

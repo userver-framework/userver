@@ -53,7 +53,7 @@ enum class ServiceLifetimeStage {
     /// This stage starts after constructors for all components have completed without an exception.
     ///
     /// The order of `OnAllComponentsLoaded` hooks invocations respects the order of components defined
-    /// at @ref ServiceLifetimeStage::kComponentsLoading stage.
+    /// at @ref ServiceLifetimeStage::kLoading stage.
     kOnAllComponentsLoadedIsRunning,
 
     /// This stage marks that all `OnAllComponentsLoaded` hooks (as described
@@ -80,7 +80,7 @@ enum class ServiceLifetimeStage {
     /// @ref components::ComponentBase::OnLoadingCancelled for all constructed components.
     ///
     /// The order of `OnAllComponentsAreStopping` hooks invocations respects the order of components defined
-    /// at @ref ServiceLifetimeStage::kComponentsLoading stage (they run in the reverse-dependency order).
+    /// at @ref ServiceLifetimeStage::kLoading stage (they run in the reverse-dependency order).
     kOnAllComponentsAreStoppingIsRunning,
 
     /// Destructors are running for all components. This stage starts once
@@ -90,7 +90,7 @@ enum class ServiceLifetimeStage {
     /// after @ref ServiceLifetimeStage::kOnAllComponentsAreStoppingIsRunning for all constructed components.
     ///
     /// The order of destructor invocations respects the order of components defined
-    /// at @ref ServiceLifetimeStage::kComponentsLoading stage (they run in the reverse-dependency order).
+    /// at @ref ServiceLifetimeStage::kLoading stage (they run in the reverse-dependency order).
     kStopping,
 };
 

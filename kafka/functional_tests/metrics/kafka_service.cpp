@@ -2,8 +2,6 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <fmt/format.h>
-
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/component_config.hpp>
@@ -208,11 +206,11 @@ std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const st
     auto thisMessages = messages_by_topic_.Lock();
 
     if (topic.empty()) {
-        LOG_WARNING() << "Consuming messages from all topics!";
+        LOG_WARNING("Consuming messages from all topics!");
 
         std::vector<formats::json::Value> consumed_messages;
         for (auto&& topic_messages : *thisMessages) {
-            LOG_WARNING() << "Clearing topic: " << topic_messages.first;
+            LOG_WARNING("Clearing topic: {}", topic_messages.first);
             auto& messages = topic_messages.second;
             consumed_messages.reserve(consumed_messages.size() + messages.size());
             std::move(
@@ -261,7 +259,7 @@ void HandlerKafkaConsumer::DumpCurrentConsumed(
     const MessagesByTopic& messages_by_topic,
     const std::optional<std::string>& topic
 ) const {
-    LOG_DEBUG() << fmt::format("Messages of {}:\n", topic.value_or("all topics"));
+    LOG_DEBUG("Messages of {}:\n", topic.value_or("all topics"));
 
     const auto format_topic_messages = [](const std::string& topic, const MessagesByTopic::mapped_type& messages) {
         std::stringstream ss;
@@ -329,7 +327,7 @@ formats::json::Value HandlerKafkaProducers::HandleRequestJsonThrow(
 
         return builder.ExtractValue();
     } catch (...) {
-        LOG_ERROR() << "Caught unknown exception when producing";
+        LOG_ERROR("Caught unknown exception when producing");
         request.SetResponseStatus(server::http::HttpStatus::kInternalServerError);
 
         return formats::json::FromString(kErrorUnknown);

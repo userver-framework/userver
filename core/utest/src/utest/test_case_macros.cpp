@@ -77,7 +77,7 @@ void DoRunTest(
 
         test->SetThreadCount(worker_threads);
 
-        utils::FastScopeGuard tear_down_guard{[&]() noexcept {
+        const utils::FastScopeGuard tear_down_guard{[&]() noexcept {
             // gtest invokes TearDown even if SetUp fails
             CallLoggingExceptions("TearDown()", [&] { test->TearDown(); });
         }};

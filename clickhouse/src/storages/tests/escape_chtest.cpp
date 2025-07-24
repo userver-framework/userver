@@ -142,7 +142,7 @@ UTEST(ExecuteWithArgs, InsertSelectNull) {
         "('mango', NULL)"
     );
 
-    std::optional<uint64_t> null_price;
+    const std::optional<uint64_t> null_price;
     const storages::clickhouse::Query query{
         "SELECT fruit, price FROM fruits "
         "WHERE price is {0}"};
@@ -165,7 +165,7 @@ UTEST(ExecuteWithArgs, InsertSelectNotNull) {
         "('mango', NULL)"
     );
 
-    std::optional<uint64_t> price = 300;
+    const std::optional<uint64_t> price = 300;
     const storages::clickhouse::Query query{
         "SELECT fruit, price FROM fruits "
         "WHERE price = {0}"};

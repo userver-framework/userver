@@ -47,7 +47,7 @@ void Merge(SystemStats& to, const SystemStats& from) {
 }
 
 bool IsProcStatMatchesName(std::string_view data, std::string_view name) {
-    size_t pos = data.find(' ');
+    const size_t pos = data.find(' ');
     return pos != std::string_view::npos && pos + 2 + name.size() < data.size() && data[pos + 1] == '(' &&
            data.substr(pos + 2, name.size()) == name && data[pos + 2 + name.size()] == ')';
 }

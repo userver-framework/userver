@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <userver/utils/zstring_view.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace curl {
@@ -22,14 +24,14 @@ public:
     Form& operator=(Form&&) noexcept;
 
     void AddContent(std::string_view key, std::string_view content);
-    void AddContent(std::string_view key, std::string_view content, const std::string& content_type);
+    void AddContent(std::string_view key, std::string_view content, utils::zstring_view content_type);
 
-    void AddBuffer(const std::string& key, const std::string& file_name, const std::shared_ptr<std::string>& buffer);
+    void AddBuffer(std::string_view key, utils::zstring_view file_name, const std::shared_ptr<std::string>& buffer);
     void AddBuffer(
-        const std::string& key,
-        const std::string& file_name,
+        std::string_view key,
+        utils::zstring_view file_name,
         const std::shared_ptr<std::string>& buffer,
-        const std::string& content_type
+        utils::zstring_view content_type
     );
 
     /// @cond

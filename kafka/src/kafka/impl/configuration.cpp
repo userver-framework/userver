@@ -3,12 +3,12 @@
 #include <array>
 #include <string_view>
 
-#include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include <librdkafka/rdkafka.h>
 
 #include <userver/engine/subprocess/environment_variables.hpp>
+#include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/utils/algo.hpp>
@@ -180,6 +180,8 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
         config["message_send_max_retries"].As<std::uint32_t>(producer.message_send_max_retries);
     producer.retry_backoff = config["retry_backoff"].As<std::chrono::milliseconds>(producer.retry_backoff);
     producer.retry_backoff_max = config["retry_backoff_max"].As<std::chrono::milliseconds>(producer.retry_backoff_max);
+    producer.debug_info_log_level = config["debug_info_log_level"].As<logging::Level>(producer.debug_info_log_level);
+    producer.operation_log_level = config["operation_log_level"].As<logging::Level>(producer.operation_log_level);
 
     return producer;
 }
@@ -241,9 +243,9 @@ void Configuration::SetSecurity(const SecurityConfiguration& security, const Sec
 
     utils::Visit(
         security.security_protocol,
-        [](const SecurityConfiguration::Plaintext&) { LOG_INFO() << "Using PLAINTEXT security protocol"; },
+        [](const SecurityConfiguration::Plaintext&) { LOG_INFO("Using PLAINTEXT security protocol"); },
         [this, &secrets](const SecurityConfiguration::SaslPlaintext& sasl_ssl) {
-            LOG_INFO() << "Using SASL_PLAINTEXT security protocol";
+            LOG_INFO("Using SASL_PLAINTEXT security protocol");
 
             SetOption("security.protocol", "SASL_PLAINTEXT");
             SetOption("sasl.mechanism", sasl_ssl.security_mechanism);
@@ -251,7 +253,7 @@ void Configuration::SetSecurity(const SecurityConfiguration& security, const Sec
             SetOption("sasl.password", secrets.password);
         },
         [this, &secrets](const SecurityConfiguration::SaslSsl& sasl_ssl) {
-            LOG_INFO() << "Using SASL_SSL security protocol";
+            LOG_INFO("Using SASL_SSL security protocol");
 
             SetOption("security.protocol", "SASL_SSL");
             SetOption("sasl.mechanism", sasl_ssl.security_mechanism);
@@ -268,7 +270,7 @@ void Configuration::SetRdKafka(const RdKafkaOptions& rd_kafka_options) {
     }
 
     for (const auto& [option, value] : rd_kafka_options) {
-        LOG_WARNING() << fmt::format("Setting custom rdkafka option '{}'", option);
+        LOG_WARNING("Setting custom rdkafka option '{}'", option);
         SetOption(option.c_str(), value.c_str(), value);
     }
 }
@@ -277,7 +279,7 @@ void Configuration::SetConsumer(const ConsumerConfiguration& configuration) {
     const auto group_id = ResolveGroupId(configuration);
     UINVARIANT(!group_id.empty(), "Consumer group_id must not be empty");
 
-    LOG_INFO() << fmt::format("Consumer '{}' is going to join group '{}'", name_, group_id);
+    LOG_INFO("Consumer '{}' is going to join group '{}'", name_, group_id);
 
     SetOption("group.id", group_id);
     SetOption("enable.auto.commit", "false");
@@ -319,7 +321,7 @@ void Configuration::SetOption(const char* option, const char* value, T to_print)
 #pragma GCC diagnostic pop
 #endif
     if (err == RD_KAFKA_CONF_OK) {
-        LOG_INFO() << fmt::format("Kafka conf option: '{}' -> '{}'", option, to_print);
+        LOG_INFO("Kafka conf option: '{}' -> '{}'", option, to_print);
         return;
     }
 

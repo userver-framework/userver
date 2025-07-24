@@ -6,10 +6,12 @@
 #include <chrono>
 #include <cstddef>
 #include <string_view>
+#include <type_traits>
 
 #include <userver/compiler/select.hpp>
 #include <userver/formats/bson/types.hpp>
 #include <userver/formats/bson/value.hpp>
+#include <userver/formats/bson/value_builder.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -40,7 +42,14 @@ public:
     BsonBuilder& Append(std::string_view key, double);
     BsonBuilder& Append(std::string_view key, const char*);
     BsonBuilder& Append(std::string_view key, std::string_view);
-    BsonBuilder& Append(std::string_view key, std::chrono::system_clock::time_point);
+
+    template <typename Duration>
+    BsonBuilder& Append(std::string_view key, std::chrono::time_point<std::chrono::system_clock, Duration> value) {
+        return Append(key, std::chrono::time_point_cast<std::chrono::milliseconds>(value));
+    }
+    BsonBuilder&
+    Append(std::string_view key, std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>);
+
     BsonBuilder& Append(std::string_view key, const Oid&);
     BsonBuilder& Append(std::string_view key, const Binary&);
     BsonBuilder& Append(std::string_view key, const Decimal128&);
@@ -51,6 +60,16 @@ public:
     BsonBuilder& Append(std::string_view key, const Value&);
 
     BsonBuilder& Append(std::string_view key, const bson_t*);
+
+    template <typename T>
+    std::enable_if_t<
+        !std::is_integral_v<T> &&                           //
+            !std::is_convertible_v<T, std::string_view> &&  //
+            !std::is_convertible_v<T, Value>,               // Excludes Document that inherits Value
+        BsonBuilder&>
+    Append(std::string_view key, const T& val) {
+        return Append(key, ValueBuilder(val).ExtractValue());
+    }
 
     const bson_t* Get() const;
     bson_t* Get();

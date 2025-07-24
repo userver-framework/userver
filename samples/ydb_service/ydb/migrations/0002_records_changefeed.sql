@@ -13,4 +13,5 @@ WITH (
     MODE = 'NEW_AND_OLD_IMAGES'
 );
 
-ALTER TOPIC `records/changefeed` ADD CONSUMER `sample-consumer`;
+ALTER TOPIC `records/changefeed` ADD CONSUMER `sample-topic-consumer`;
+ALTER TOPIC `records/changefeed` ADD CONSUMER `sample-federated-topic-consumer`;

@@ -18,19 +18,18 @@ struct Settings;
 ///
 /// @brief Component for gRPC client logging
 ///
+/// `google::protobuf::Message` fields with the option `[debug_redact = true]` are logged as `[REDACTED]` string
+/// to avoid print secrets in logs. `debug_redact` is available in protobuf version >= 22.
+///
 /// @warning Logs are currently written with log level `debug` by default, which typically means that they are not
 /// written in production. See details below.
 ///
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// msg-log-level | log level to use for request and response messages themselves | debug
+/// log-level | log level threshold | debug
+/// msg-log-level | logging level to use for request and response messages themselves | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
-/// trim-secrets | trim the secrets from logs as marked by the protobuf option | true (*)
-///
-/// @warning * Trimming secrets causes a segmentation fault for messages that contain
-/// optional fields in protobuf versions prior to 3.13. You should set trim-secrets to false
-/// if this is the case for you. See https://github.com/protocolbuffers/protobuf/issues/7801
 ///
 /// ## Static configuration example:
 ///

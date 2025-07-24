@@ -40,7 +40,7 @@ public:
     /// If the event is auto-resetting, clears the signal flag upon waking up. If
     /// already in a signaled state, does the same without sleeping.
     ///
-    /// If we the waiting failed (the event did not signal), because the optional
+    /// If the waiting failed (the event did not signal), because the optional
     /// deadline is expired or the current task is cancelled, returns `false`.
     ///
     /// @return whether the event signaled
@@ -60,7 +60,7 @@ public:
     /// @brief Works like `std::condition_variable::wait_until`. Waits until
     /// @a stop_waiting becomes `true`, and we are notified via `Send`.
     ///
-    /// If @a stop_waiting` is already `true`, returns right away.
+    /// If @a stop_waiting is already `true`, returns right away.
     ///
     /// Unlike `std::condition_variable` and engine::ConditionVariable, there are
     /// no locks around the state watched by @a stop_waiting, so that state must
@@ -85,7 +85,7 @@ public:
     /// memory ordering. Must only be called by the waiting task.
     void Reset() noexcept;
 
-    /// Sets the signal flag and wakes a coroutine that waits on it (if any).
+    /// Sets the signal flag and wakes a task that waits on it (if any).
     /// If the signal flag is already set, does nothing.
     ///
     /// The waiter is allowed to destroy the SingleConsumerEvent immediately

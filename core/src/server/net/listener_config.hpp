@@ -38,7 +38,7 @@ struct ListenerConfig {
     int backlog = 1024;  // truncated to net.core.somaxconn
     size_t max_connections = 32768;
     std::optional<size_t> shards;
-    std::string task_processor;
+    std::optional<std::string> task_processor;
 
     std::vector<PortConfig> ports;
 };

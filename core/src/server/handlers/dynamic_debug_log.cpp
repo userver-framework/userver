@@ -27,7 +27,7 @@ std::string StateToString(logging::EntryState state) {
 }
 
 std::string ProcessGet(const http::HttpRequest& request, request::RequestContext&) {
-    std::string_view location = request.GetArg("location");
+    const std::string_view location = request.GetArg("location");
 
     const auto& locations = logging::GetDynamicDebugLocations();
     if (!location.empty()) {

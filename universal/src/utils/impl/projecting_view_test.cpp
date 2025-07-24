@@ -7,7 +7,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(ProjectingView, Keys) {
-    std::map<int, char> cont{
+    const std::map<int, char> cont{
         {1, '1'},
         {2, '2'},
     };

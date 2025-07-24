@@ -38,7 +38,7 @@ void SubscriptionTokenImpl::Unsubscribe() {
 void SubscriptionTokenImpl::ProcessMessages() {
     ChannelSubscriptionQueueItem msg;
     while (queue_.PopMessage(msg)) {
-        tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
+        const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
         if (on_message_cb_) on_message_cb_(channel_, msg.message);
     }
 }
@@ -66,7 +66,7 @@ void PsubscriptionTokenImpl::Unsubscribe() {
 void PsubscriptionTokenImpl::ProcessMessages() {
     PatternSubscriptionQueueItem msg;
     while (queue_.PopMessage(msg)) {
-        tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
+        const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
         if (on_pmessage_cb_) on_pmessage_cb_(pattern_, msg.channel, msg.message);
     }
 }
@@ -94,7 +94,7 @@ void SsubscriptionTokenImpl::Unsubscribe() {
 void SsubscriptionTokenImpl::ProcessMessages() {
     ShardedSubscriptionQueueItem msg;
     while (queue_.PopMessage(msg)) {
-        tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
+        const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
         if (on_message_cb_) on_message_cb_(channel_, msg.message);
     }
 }

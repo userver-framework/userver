@@ -36,18 +36,6 @@ public:
     Task(const Task&) = delete;
     Task& operator=(const Task&) = delete;
 
-    /// @brief Detaches task, allowing it to continue execution out of scope;
-    /// memory safety is much better with concurrent::BackgroundTaskStorage
-    ///
-    /// @note After detach, Task becomes invalid
-    ///
-    /// @warning Variables, which are captured by reference for this task in
-    /// `Async*`, should outlive the task execution. This is hard to achieve in
-    /// general, detached tasks may outlive all the components!
-    /// Use concurrent::BackgroundTaskStorage as a safe and efficient alternative
-    /// to calling Detach().
-    void Detach() &&;
-
     /// @cond
     // For internal use only.
     impl::ContextAccessor* TryGetContextAccessor() noexcept;
@@ -58,7 +46,21 @@ protected:
     // For internal use only.
     explicit Task(impl::TaskContextHolder&& context);
     /// @endcond
+
+private:
+    friend void DetachUnscopedUnsafe(Task&& task);
 };
+
+/// @brief Detaches task, allowing it to continue execution out of scope;
+/// memory safety is much better with concurrent::BackgroundTaskStorage.
+///
+/// @note After detach, Task becomes invalid.
+///
+/// @warning Variables, which are captured by reference for this task in
+/// `Async*`, should outlive the task execution. This is hard to achieve in
+/// general, detached tasks may outlive all the components!
+/// Use concurrent::BackgroundTaskStorage as a safe and efficient alternative.
+void DetachUnscopedUnsafe(Task&& task);
 
 }  // namespace engine
 

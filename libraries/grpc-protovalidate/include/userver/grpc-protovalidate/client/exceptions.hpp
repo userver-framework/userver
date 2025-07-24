@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/grpc-protovalidate/client/component.hpp
+/// @file
 /// @brief Exceptions thrown by gRPC client validator middleware
 
 #include <userver/grpc-protovalidate/buf_validate.hpp>

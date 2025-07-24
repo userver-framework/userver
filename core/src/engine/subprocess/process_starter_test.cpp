@@ -58,7 +58,7 @@ std::optional<std::string>
 GetEnvironmentInsideExec(engine::subprocess::ProcessStarter& starter, const std::string& variable_name) {
     auto stdout_file = fs::TempFile::Create(engine::current_task::GetTaskProcessor());
 
-    engine::subprocess::EnvironmentVariablesScope scope{};
+    const engine::subprocess::EnvironmentVariablesScope scope{};
     SetEnvironmentVariable("PATH", kPath, engine::subprocess::Overwrite::kAllowed);
 
     engine::subprocess::ExecOptions options{};
@@ -103,7 +103,7 @@ UTEST(Subprocess, EnvironmentVariablesScope) {
 
     const auto before = engine::subprocess::GetCurrentEnvironmentVariables();
     {
-        engine::subprocess::EnvironmentVariablesScope scope{};
+        const engine::subprocess::EnvironmentVariablesScope scope{};
         SetEnvironmentVariable(kEnvVariableName, kEnvVariableValue, engine::subprocess::Overwrite::kAllowed);
 
         EXPECT_EQ(kEnvVariableValue, engine::subprocess::GetCurrentEnvironmentVariables().GetValue(kEnvVariableName));
@@ -120,7 +120,7 @@ UTEST(Subprocess, EnvironmentVariablesScope) {
 UTEST(Subprocess, ExecvpSuccess) {
     engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
 
-    engine::subprocess::EnvironmentVariablesScope scope{};
+    const engine::subprocess::EnvironmentVariablesScope scope{};
     SetEnvironmentVariable("PATH", kPath, engine::subprocess::Overwrite::kAllowed);
 
     engine::subprocess::ExecOptions options{};
@@ -134,7 +134,7 @@ UTEST(Subprocess, ExecvpSuccess) {
 UTEST(Subprocess, ExecvpVulnerability) {
     engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
 
-    engine::subprocess::EnvironmentVariablesScope scope{};
+    const engine::subprocess::EnvironmentVariablesScope scope{};
     engine::subprocess::UnsetEnvironmentVariable("PATH");
 
     engine::subprocess::ExecOptions options{};

@@ -4,7 +4,8 @@
 
 #include <userver/engine/sleep.hpp>
 
-#include "server_common_sentinel_test.hpp"
+#include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/server_common_sentinel_test.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -93,7 +94,7 @@ UTEST(Redis, SentinelMastersChangingErrors) {
             master_idx = i;
             std::vector<MockRedisServer::HandlerPtr> masters_handlers;
             for (size_t sentinel_idx = 0; sentinel_idx < sentinel_count; sentinel_idx++) {
-                size_t quorum = sentinel_count / 2 + 1;
+                const size_t quorum = sentinel_count / 2 + 1;
                 if (master_idx == bad_redis_idx && sentinel_idx < quorum) {
                     masters_handlers.push_back(
                         sentinel_test.Sentinel(sentinel_idx)
@@ -218,6 +219,31 @@ UTEST(Redis, SentinelCcRetryToMasterOnNilReply) {
         EXPECT_EQ(slave_nil_handler->GetReplyCount(), 1UL);
         EXPECT_EQ(master_nil_handler->GetReplyCount(), 1UL);
     }
+}
+
+UTEST(Redis, SentinelClusterdown) {
+    const size_t master_count = 3;
+    ClusterTest sentinel_test{master_count};
+    auto& sentinel = sentinel_test.SentinelClient();
+
+    EXPECT_TRUE(sentinel_test.Master().WaitForFirstPingReply(kSmallPeriod));
+    EXPECT_TRUE(sentinel_test.Slave().WaitForFirstPingReply(kSmallPeriod));
+
+    for (auto& server : sentinel_test.Slaves()) {
+        server->RegisterErrorReplyHandler("GET", "CLUSTERDOWN");
+    }
+
+    for (auto& server : sentinel_test.Masters()) {
+        server->RegisterErrorReplyHandler("GET", "CLUSTERDOWN");
+    }
+
+    storages::redis::CommandControl cc;
+    cc.max_retries = 2;
+    std::string key = "some key";
+    auto res = sentinel.MakeRequest({"GET", key}, key, false, sentinel.GetCommandControl(cc)).Get();
+    EXPECT_TRUE(!res->IsOk());
+    EXPECT_TRUE(res->status != storages::redis::ReplyStatus::kOk);
+    EXPECT_TRUE(res->data.IsError());
 }
 
 UTEST(Redis, SentinelForceShardIdx) {

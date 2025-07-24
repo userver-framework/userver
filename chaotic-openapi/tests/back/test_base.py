@@ -10,4 +10,5 @@ def test_base(translate_single_schema):
     assert translate_single_schema(schema) == types.ClientSpec(
         client_name='test',
         cpp_namespace='test_namespace',
+        dynamic_config='',
     )

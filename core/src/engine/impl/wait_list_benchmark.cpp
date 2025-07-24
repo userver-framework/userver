@@ -115,7 +115,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
         tasks.reserve(state.range(0) - 1);
         for (int i = 0; i < state.range(0) - 1; i++)
             tasks.push_back(engine::AsyncNoSpan([&]() {
-                boost::intrusive_ptr<TaskContext> ctx = MakeContext();
+                const boost::intrusive_ptr<TaskContext> ctx = MakeContext();
                 while (run) {
                     {
                         WaitList::Lock guard{wl};
@@ -126,7 +126,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
                 }
             }));
 
-        boost::intrusive_ptr<TaskContext> ctx = MakeContext();
+        const boost::intrusive_ptr<TaskContext> ctx = MakeContext();
         for ([[maybe_unused]] auto _ : state) {
             {
                 WaitList::Lock guard{wl};

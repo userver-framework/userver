@@ -11,7 +11,7 @@ std::chrono::milliseconds Convert(const std::string& str, chaotic::convert::To<s
 }
 
 std::chrono::milliseconds Convert(std::string_view str, chaotic::convert::To<std::chrono::milliseconds>) {
-    return std::chrono::milliseconds{utils::StringToDuration(std::string{str})};
+    return std::chrono::milliseconds{utils::StringToDuration(str)};
 }
 
 }  // namespace chaotic::convert

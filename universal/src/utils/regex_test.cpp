@@ -9,9 +9,9 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(Regex, Ctors) {
-    utils::regex r1;
+    const utils::regex r1;
     utils::regex r2("regex*test");
-    utils::regex r3(std::move(r2));
+    const utils::regex r3(std::move(r2));
     utils::regex r4(r3);
     utils::regex r5;
     r5 = std::move(r4);
@@ -26,7 +26,7 @@ TEST(Regex, NegativeLookaheadDisallowed) {
 }
 
 TEST(Regex, Match) {
-    utils::regex r("^[a-z][0-9]+");
+    const utils::regex r("^[a-z][0-9]+");
     EXPECT_FALSE(utils::regex_match({}, r));
     EXPECT_FALSE(utils::regex_match("a", r));
     EXPECT_FALSE(utils::regex_match("123", r));
@@ -65,7 +65,7 @@ TEST(Regex, MatchNewlines) {
 }
 
 TEST(Regex, Search) {
-    utils::regex r("^[a-z][0-9]+");
+    const utils::regex r("^[a-z][0-9]+");
     EXPECT_FALSE(utils::regex_search({}, r));
     EXPECT_FALSE(utils::regex_search("a", r));
     EXPECT_FALSE(utils::regex_search("123", r));
@@ -75,13 +75,13 @@ TEST(Regex, Search) {
 }
 
 TEST(Regex, EmptyRegex) {
-    utils::regex r{""};
+    const utils::regex r{""};
     EXPECT_TRUE(utils::regex_search("", r));
     EXPECT_TRUE(utils::regex_match("", r));
 }
 
 TEST(Regex, SearchWithResult) {
-    utils::regex r("^[a-z][0-9]+");
+    const utils::regex r("^[a-z][0-9]+");
     utils::match_results fail;
     const std::string str_empty{};
     EXPECT_FALSE(utils::regex_search(str_empty, fail, r));
@@ -270,8 +270,8 @@ TEST(RegexDeathTest, SearchEmptyResult) {
 }
 
 TEST(Regex, Replace) {
-    utils::regex r("[a-z]{2}");
-    std::string repl{"R"};
+    const utils::regex r("[a-z]{2}");
+    const std::string repl{"R"};
     EXPECT_EQ(utils::regex_replace({}, r, repl), "");
     EXPECT_EQ(utils::regex_replace({"a0AB1c2"}, r, repl), "a0AB1c2");
     EXPECT_EQ(utils::regex_replace("ab0ef1", r, repl), "R0R1");

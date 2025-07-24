@@ -25,7 +25,7 @@ TYPED_TEST_SUITE(TimeOfDayTest, TimeOfDayTypes);
 
 TYPED_TEST(TimeOfDayTest, DefaultConstruct) {
     EXPECT_NO_THROW(TypeParam{});
-    TypeParam tod;
+    const TypeParam tod;
     EXPECT_EQ(0, tod.Hours().count());
     EXPECT_EQ(0, tod.Minutes().count());
     EXPECT_EQ(0, tod.Seconds().count());
@@ -90,35 +90,35 @@ TEST(TimeOfDay, StringConstruct) {
     EXPECT_THROW(Milli{"25:00"}, std::runtime_error) << "Out of range";
     EXPECT_THROW(Milli{"24:01"}, std::runtime_error) << "Out of range";
     {
-        Milli tod{"1:30"};
+        const Milli tod{"1:30"};
         EXPECT_EQ(1, tod.Hours().count());
         EXPECT_EQ(30, tod.Minutes().count());
         EXPECT_EQ(0, tod.Seconds().count());
         EXPECT_EQ(0, tod.Subseconds().count());
     }
     {
-        Milli tod{"10:20:30.1"};
+        const Milli tod{"10:20:30.1"};
         EXPECT_EQ(10, tod.Hours().count());
         EXPECT_EQ(20, tod.Minutes().count());
         EXPECT_EQ(30, tod.Seconds().count());
         EXPECT_EQ(100, tod.Subseconds().count());
     }
     {
-        Milli tod{"10:20:30.001"};
+        const Milli tod{"10:20:30.001"};
         EXPECT_EQ(10, tod.Hours().count());
         EXPECT_EQ(20, tod.Minutes().count());
         EXPECT_EQ(30, tod.Seconds().count());
         EXPECT_EQ(1, tod.Subseconds().count());
     }
     {
-        Milli tod{"10:20:30.0012345"};
+        const Milli tod{"10:20:30.0012345"};
         EXPECT_EQ(10, tod.Hours().count());
         EXPECT_EQ(20, tod.Minutes().count());
         EXPECT_EQ(30, tod.Seconds().count());
         EXPECT_EQ(1, tod.Subseconds().count());
     }
     {
-        Mins tod{"24:00"};
+        const Mins tod{"24:00"};
         EXPECT_EQ(0, tod.Hours().count());
         EXPECT_EQ(0, tod.Minutes().count());
         EXPECT_EQ(0, tod.Seconds().count());

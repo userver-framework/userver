@@ -108,7 +108,7 @@ impl::BsonHolder DoParseJsonString(std::string_view json) {
 }
 
 char FirstNonWhitespace(std::string_view str) {
-    for (char c : str) {
+    for (const char c : str) {
         if (!utils::text::IsAsciiSpace(c)) {
             return c;
         }

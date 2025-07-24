@@ -16,7 +16,7 @@ UTEST(HeadersTest, Iterate) {
         kafka::HeaderView{"key-4", "value-4"},
     };
 
-    kafka::impl::HeadersHolder holder{kHeaders};
+    const kafka::impl::HeadersHolder holder{kHeaders};
     const auto* handle = holder.GetHandle();
 
     std::size_t index{0};
@@ -27,13 +27,13 @@ UTEST(HeadersTest, Iterate) {
     }
     EXPECT_EQ(index, kHeaders.size());
     {
-        kafka::HeadersReader reader{handle};
+        const kafka::HeadersReader reader{handle};
         EXPECT_EQ(reader.size(), kHeaders.size());
     }
 }
 
 UTEST(HeadersTest, ReadHeadersEmpty) {
-    kafka::impl::HeadersHolder holder{{}};
+    const kafka::impl::HeadersHolder holder{{}};
 
     for (auto header : kafka::HeadersReader{holder.GetHandle()}) {
         (void)header;
@@ -52,9 +52,9 @@ UTEST(HeadersTest, ReadHeadersCollect) {
     std::vector<kafka::OwningHeader> headers;
     {
         const std::array kHeaders{kExpectedHeaders};
-        kafka::impl::HeadersHolder holder{kExpectedHeaders};
+        const kafka::impl::HeadersHolder holder{kExpectedHeaders};
 
-        kafka::HeadersReader reader{holder.GetHandle()};
+        const kafka::HeadersReader reader{holder.GetHandle()};
         EXPECT_EQ(reader.size(), kHeaders.size());
         headers = std::vector<kafka::OwningHeader>(reader.begin(), reader.end());
     }

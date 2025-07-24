@@ -90,25 +90,17 @@ In testsuite, SSL in gRPC clients is disabled automatically.
 Main page: @ref scripts/docs/en/userver/grpc/client_middlewares.md.
 
 Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code. 
-Middlewares to use are indicated in static config in the defining component. For example:
+Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
 
-```
-# yaml
-components_manager:
-    components:
-        grpc-client-factory:
-            middlewares:
-              - grpc-client-logging
-              - grpc-client-deadline-propagation 
-```
+#### List of standard client middlewares:
 
-#### List of standard client middlewares
+  1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
+  2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
+  @ref scripts/docs/en/userver/deadline_propagation.md.
+  3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+  3. `grpc-client-headers-propagator` with component ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
+  4. `grpc-client-middleware-testsuite` with component ugrpc::client::middlewares::testsuite::Component - supports testsuite errors thrown from the mockserver.
 
- 1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
- 2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
- @ref scripts/docs/en/userver/deadline_propagation.md.
- 3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
- 
 ## gRPC services
 
 ### Service creation
@@ -178,8 +170,7 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
 
 Main page: @ref scripts/docs/en/userver/grpc/server_middlewares.md.
 
-Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
-new middlewares.
+Use ugrpc::server::MiddlewareBase to implement new middlewares.
 
 #### List of standard server middlewares:
 
@@ -190,6 +181,35 @@ new middlewares.
   See Congestion Control section of @ref scripts/docs/en/userver/tutorial/production_service.md.
   4. `grpc-server-baggage` with component ugrpc::server::middlewares::baggage::Component - passes request baggage to subrequests.
   5. `grpc-server-headers-propagator` with component ugrpc::server::middlewares::headers_propagator::Component - propagates headers.
+
+## gRPC compression
+
+Userver doesn't compress messages by default. You can enable compression using the `channel-args` option on a client and a server.
+See static options of @ref ugrpc::server::ServerComponent and @ref ugrpc::client::ClientFactoryComponent components.
+See [gRPC channel arguments docs](https://grpc.github.io/grpc/core/group__grpc__arg__keys.html): `GRPC_COMPRESSION_CHANNEL_DEFAULT_ALGORITHM` and `GRPC_COMPRESSION_CHANNEL_DEFAULT_LEVEL`.
+
+See native [docs about compression](https://github.com/grpc/grpc/blob/master/doc/compression.md#compression-levels-and-algorithms).
+
+### Key notes from the native gRPC documentation
+
+  1. When a compression level is not specified for either the channel or the message, the default channel level none is considered: data MUST NOT be compressed.
+  2. You can set a compression **algorithm** and a compression **level** on the server side. 
+  3. On client side, one can set a compression **algorithm**.
+  4. `GRPC_COMPRESS_LEVEL_LOW` mapping to "gzip -3" and `GRPC_COMPRESS_LEVEL_HIGH` mapping to "gzip -9".
+
+@note If you enable compress on the server side and a client doesn't support a compression, the server won't compress messages.
+See docs for more information https://grpc.io/docs/guides/compression.
+
+Config example:
+```yaml
+        grpc-client-factory:
+            channel-args:
+                grpc.default_compression_algorithm: 2 # GRPC_COMPRESS_GZIP
+        grpc-server:
+            channel-args:
+                grpc.default_compression_algorithm: 2 # GRPC_COMPRESS_GZIP
+                grpc.default_compression_level: 1 # GRPC_COMPRESS_LEVEL_LOW
+```
 
 ## gRPC Logs
 
@@ -236,13 +256,13 @@ The gRPC driver provides log fields hiding in request-response logs. You need to
 
 2) Import userver/field_options.proto in your proto file.
 
-3) Use `[(userver.field).secret = true]` opposite to the filds that you want to hide. In the following example the fields `password` and `secret_code` will be hidden in the logs:
+3) Use `[debug_redact = true]` opposite to the filds that you want to hide. In the following example the fields `password` and `secret_code` will be hidden in the logs:
 
 ```proto
 message Creds {
   string login = 1;
-  string password = 2 [(userver.field).secret = true];
-  string secret_code = 3 [(userver.field).secret = true];
+  string password = 2 [debug_redact = true];
+  string secret_code = 3 [debug_redact = true];
 }
 ```
 
@@ -319,20 +339,18 @@ These are the metrics provided for each gRPC method:
      `TryCancel`. Client-side, this likely means that either the parent
      handler was interrupted, or the RPC was dropped as unnecessary.
      See ugrpc::client::RpcCancelledError and
-     ugrpc::server::RpcInterruptedError
+     ugrpc::server::RpcInterruptedError.
    * `cancelled-by-deadline-propagation` — RPCs, the handling of which was
      interrupted because the deadline specified in the request was reached.
      (Available for both server and client-side.)
      See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation"
    * `network-error` — other RPCs that finished abruptly without a status,
      see ugrpc::client::RpcInterruptedError and
-     ugrpc::server::RpcInterruptedError
+     ugrpc::server::RpcInterruptedError.
 * `abandoned-error` — RPCs that we forgot to `Finish`
-  (always a bug in `ugrpc` usage). Such RPCs also separately report
-  the status or network error that occurred during the automatic
-  request termination
+  A client code drops an RPC object and don't wait of a response from a server OR is a bug in `ugrpc` usage.
 * `deadline-propagated` — RPCs, for which deadline was specified.
-  See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation"
+  See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation".
 * `rps` — requests per second:
   ```
   sum(status) + network-error + cancelled + cancelled-by-deadline-propagation
@@ -369,7 +387,7 @@ These are the metrics provided for each gRPC method:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/profile_context_switches.md | @ref scripts/docs/en/userver/grpc/server_middlewares.md ⇨
+⇦ @ref scripts/docs/en/userver/gdb_debugging.md | @ref scripts/docs/en/userver/grpc/server_middlewares.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example grpc-generic-proxy/src/proxy_service.hpp

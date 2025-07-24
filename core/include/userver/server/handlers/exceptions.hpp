@@ -185,7 +185,7 @@ private:
 
     template <typename MessageBuilder>
     void Apply(MessageBuilder&& builder) {
-        impl::MessageExtractor<MessageBuilder> extractor{builder};
+        const impl::MessageExtractor<MessageBuilder> extractor{builder};
         is_external_body_formatted = extractor.IsExternalBodyFormatted();
         service_code = extractor.GetServiceCode();
         external_body = extractor.GetExternalBody();

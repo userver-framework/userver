@@ -32,7 +32,7 @@ StorageData::StorageData() : StorageData(SnapshotData{}) {}
 rcu::ReadablePtr<SnapshotData> StorageData::Read() const { return config_.Read(); }
 
 void StorageData::Update(SnapshotData config, AfterAssignHook after_assign_hook) {
-    std::lock_guard lock(update_mutex_);
+    const std::lock_guard lock(update_mutex_);
 
     std::optional<Snapshot> previous_config;
     {
@@ -71,7 +71,7 @@ StorageData::DoUpdateAndListen(concurrent::FunctionId id, std::string_view name,
     //
     // As a result, the subscriber receives two `Diff` object with 'new_config' as
     // a `current` field.
-    std::lock_guard lock(update_mutex_);
+    const std::lock_guard lock(update_mutex_);
 
     auto updater = [&, func_copy = func] {
         const Diff diff{std::nullopt, GetSnapshot()};

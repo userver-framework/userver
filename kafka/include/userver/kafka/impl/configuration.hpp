@@ -9,6 +9,7 @@
 #include <userver/formats/parse/to.hpp>
 #include <userver/kafka/impl/broker_secrets.hpp>
 #include <userver/kafka/impl/holders.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -66,6 +67,8 @@ struct ProducerConfiguration final {
     std::uint32_t message_send_max_retries{2147483647};
     std::chrono::milliseconds retry_backoff{100};
     std::chrono::milliseconds retry_backoff_max{1000};
+    logging::Level debug_info_log_level{logging::Level::kDebug};
+    logging::Level operation_log_level{logging::Level::kInfo};
 
     RdKafkaOptions rd_kafka_options;
 };

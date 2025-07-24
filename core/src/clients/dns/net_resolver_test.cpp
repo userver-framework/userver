@@ -128,7 +128,7 @@ UTEST(NetResolver, EmptyResponse) {
 }
 
 UTEST(NetResolver, NetworkTimeout) {
-    Mock mock([](const auto&) -> Mock::DnsAnswerVector { throw Mock::NoAnswer{}; });
+    const Mock mock([](const auto&) -> Mock::DnsAnswerVector { throw Mock::NoAnswer{}; });
 
     auto resolver = clients::dns::NetResolver{
         engine::current_task::GetTaskProcessor(), std::chrono::milliseconds{100}, 1, {mock.GetServerAddress()}};

@@ -82,7 +82,7 @@ bool DoShouldLog(Level level) noexcept {
 
 void PrependCommonTags(TagWriter writer, Level logger_level) {
     auto* const span = tracing::Span::CurrentSpanUnchecked();
-    if (span) span->LogTo(writer);
+    if (span) span->LogTo(utils::impl::InternalTag{}, writer);
 
     if (logger_level <= Level::kDebug) {
         const void* const task = engine::current_task::GetCurrentTaskContextUnchecked();

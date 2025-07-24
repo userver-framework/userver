@@ -7,9 +7,9 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/get_all.hpp>
 
-#include <userver/ugrpc/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +29,7 @@ DoTryWaitForConnected(grpc::Channel& channel, grpc::CompletionQueue& queue, engi
         if (state == ::GRPC_CHANNEL_SHUTDOWN) return false;
 
         ugrpc::impl::AsyncMethodInvocation operation;
-        channel.NotifyOnStateChange(state, deadline, &queue, operation.GetTag());
+        channel.NotifyOnStateChange(state, deadline, &queue, operation.GetCompletionTag());
         if (operation.Wait() != ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk) return false;
     }
 }

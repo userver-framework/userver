@@ -39,7 +39,15 @@ public:
                     UASSERT(false);
                     return;
                 }
-                WriteToStream(x, builder_);
+                {
+                    const formats::json::StringBuilder::ObjectGuard object_guard{builder_};
+                    builder_.Key("bounds");
+                    WriteToStream(impl::histogram::Access::Bounds(x), builder_);
+                    builder_.Key("buckets");
+                    WriteToStream(impl::histogram::Access::Values(x), builder_);
+                    builder_.Key("inf");
+                    WriteToStream(x.GetValueAtInf(), builder_);
+                }
                 builder_.Key("type");
                 builder_.WriteString("HIST_RATE");
             },
@@ -126,11 +134,11 @@ std::string ToSolomonFormat(
     formats::json::StringBuilder builder;
     SolomonJsonBuilder solomon_json_builder(builder);
     {
-        formats::json::StringBuilder::ObjectGuard object_guard(builder);
+        const formats::json::StringBuilder::ObjectGuard object_guard(builder);
         solomon_json_builder.AddCommonLabels(common_labels);
 
         builder.Key("metrics");
-        formats::json::StringBuilder::ArrayGuard array_guard(builder);
+        const formats::json::StringBuilder::ArrayGuard array_guard(builder);
         statistics.VisitMetrics(solomon_json_builder, request);
     }
     return builder.GetString();

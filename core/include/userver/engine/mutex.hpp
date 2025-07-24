@@ -35,32 +35,29 @@ public:
     Mutex& operator=(const Mutex&) = delete;
     Mutex& operator=(Mutex&&) = delete;
 
-    /// Locks the mutex. Blocks current coroutine if the mutex is locked by
-    /// another coroutine. Throws if a coroutine tries to lock a mutex
-    /// which is already locked by the current coroutine.
+    /// Locks the mutex. Blocks current task if the mutex is locked by
+    /// another task. Throws if a task tries to lock a mutex
+    /// which is already locked by the current task.
     ///
     /// @note The method waits for the mutex even if the current task is
     /// cancelled.
     void lock();
 
-    /// Unlocks the mutex. Before calling this method the mutex should be locked
-    /// by the current coroutine.
+    /// Unlocks the mutex. Before calling this method the mutex should be locked by the current task.
     ///
-    /// @note the order of coroutines to unblock is unspecified. Any code assuming
+    /// @note the order of tasks to unblock is unspecified. Any code assuming
     /// any specific order (e.g. FIFO) is incorrect and should be fixed.
     void unlock();
 
-    /// Tries to lock the mutex without blocking the coroutine, returns true if
-    /// succeeded.
+    /// Tries to lock the mutex without blocking the task, returns true if succeeded.
     ///
     /// @note The behavior of the function is not affected by the cancellation
     /// requests.
     [[nodiscard]] bool try_lock() noexcept;
 
-    /// Tries to lock the mutex in specified duration. Blocks current coroutine if
-    /// the mutex is locked by another coroutine up to the provided duration.
-    /// Throws if a coroutine tries to lock a mutex
-    /// which is already locked by the current coroutine.
+    /// Tries to lock the mutex in specified duration. Blocks current task if
+    /// the mutex is locked by another task up to the provided duration.
+    /// Throws if a task tries to lock a mutex which is already locked by the current task.
     ///
     /// @returns true if the locking succeeded
     ///
@@ -70,9 +67,8 @@ public:
     [[nodiscard]] bool try_lock_for(const std::chrono::duration<Rep, Period>&);
 
     /// Tries to lock the mutex till specified time point. Blocks current
-    /// coroutine if the mutex is locked by another coroutine up to the provided
-    /// time point. Throws if a coroutine tries to lock a mutex
-    /// which is already locked by the current coroutine.
+    /// task if the mutex is locked by another task up to the provided
+    /// time point. Throws if a task tries to lock a mutex which is already locked by the current task.
     ///
     /// @returns true if the locking succeeded
     ///

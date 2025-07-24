@@ -24,8 +24,8 @@ section to make a service from a template and build it. If there's a strong need
    cd build_debug
    # Adjust with flags from "Platform-specific build dependencies" section
    cmake -S .. \
-       -DCMAKE_C_COMPILER=clang-16 \
-       -DCMAKE_CXX_COMPILER=clang++-16 \
+       -DCMAKE_C_COMPILER=clang-18 \
+       -DCMAKE_CXX_COMPILER=clang++-18 \
        -DCMAKE_BUILD_TYPE=Debug \
        -DCPM_SOURCE_CACHE=~/cpm \
        -DUSERVER_BUILD_ALL_COMPONENTS=1 \

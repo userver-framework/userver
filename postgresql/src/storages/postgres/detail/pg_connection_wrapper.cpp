@@ -137,7 +137,7 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
 }
 
 struct Openssl {
-    static void Init() noexcept { [[maybe_unused]] static Openssl lock; }
+    static void Init() noexcept { [[maybe_unused]] static const Openssl lock; }
 
 private:
     Openssl() {
@@ -166,7 +166,7 @@ PGConnectionWrapper::PGConnectionWrapper(
 PGConnectionWrapper::~PGConnectionWrapper() { bg_task_storage_.Detach(Close()); }
 
 template <typename ExceptionType>
-void PGConnectionWrapper::CheckError(const std::string& cmd, int pg_dispatch_result) {
+void PGConnectionWrapper::CheckError(USERVER_NAMESPACE::utils::zstring_view cmd, int pg_dispatch_result) {
     static constexpr std::string_view kCheckConnectionQuota =
         ". It may be useful to check the user's connection quota in the cloud "
         "or the server configuration";
@@ -176,7 +176,7 @@ void PGConnectionWrapper::CheckError(const std::string& cmd, int pg_dispatch_res
         auto* msg = PQerrorMessage(conn_);
         PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg
                            << (std::is_base_of_v<ConnectionError, ExceptionType> ? kCheckConnectionQuota : "");
-        throw ExceptionType(cmd + " execution error: " + msg);
+        throw ExceptionType(fmt::format("{} execution error: {}", cmd, msg));
     }
 }
 
@@ -244,12 +244,12 @@ engine::Task PGConnectionWrapper::Close() {
 
             if (tmp_conn != nullptr) {
                 if (is_broken) {
-                    int pq_fd = PQsocket(tmp_conn);
+                    const int pq_fd = PQsocket(tmp_conn);
                     if (fd != -1 && pq_fd != -1 && fd != pq_fd) {
                         LOG_LIMITED_ERROR() << "fd from socket != fd from PQsocket (" << fd << " != " << pq_fd << ')';
                     }
                     if (pq_fd >= 0) {
-                        int res = shutdown(pq_fd, SHUT_RDWR);
+                        const int res = shutdown(pq_fd, SHUT_RDWR);
                         if (res < 0) {
                             auto old_errno = errno;
                             LOG_WARNING() << "error while shutdown() socket (" << old_errno
@@ -705,7 +705,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         case PGRES_BAD_RESPONSE:
             CloseWithError(ConnectionError{"Failed to parse server response"});
         case PGRES_NONFATAL_ERROR: {
-            Message msg{wrapper};
+            const Message msg{wrapper};
             switch (msg.GetSeverity()) {
                 case Message::Severity::kDebug:
                     PGCW_LOG_DEBUG() << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
@@ -732,7 +732,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
             break;
         }
         case PGRES_FATAL_ERROR: {
-            Message msg{wrapper};
+            const Message msg{wrapper};
             if (!IsWhitelistedState(msg.GetSqlState())) {
                 PGCW_LOG_LIMITED_ERROR() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
             } else {
@@ -762,7 +762,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
     return ResultSet{wrapper};
 }
 
-void PGConnectionWrapper::SendQuery(const std::string& statement, tracing::ScopeTime& scope) {
+void PGConnectionWrapper::SendQuery(USERVER_NAMESPACE::utils::zstring_view statement, tracing::ScopeTime& scope) {
     scope.Reset(scopes::kLibpqSendQueryParams);
     CheckError<CommandError>(
         "PQsendQueryParams",
@@ -772,7 +772,7 @@ void PGConnectionWrapper::SendQuery(const std::string& statement, tracing::Scope
 }
 
 void PGConnectionWrapper::SendQuery(
-    const std::string& statement,
+    USERVER_NAMESPACE::utils::zstring_view statement,
     const QueryParameters& params,
     tracing::ScopeTime& scope
 ) {
@@ -798,8 +798,8 @@ void PGConnectionWrapper::SendQuery(
 }
 
 void PGConnectionWrapper::SendPrepare(
-    const std::string& name,
-    const std::string& statement,
+    USERVER_NAMESPACE::utils::zstring_view name,
+    USERVER_NAMESPACE::utils::zstring_view statement,
     const QueryParameters& params,
     tracing::ScopeTime& scope
 ) {
@@ -815,14 +815,14 @@ void PGConnectionWrapper::SendPrepare(
     UpdateLastUse();
 }
 
-void PGConnectionWrapper::SendDescribePrepared(const std::string& name, tracing::ScopeTime& scope) {
+void PGConnectionWrapper::SendDescribePrepared(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime& scope) {
     scope.Reset(scopes::kLibpqSendDescribePrepared);
     CheckError<CommandError>("PQsendDescribePrepared", PQsendDescribePrepared(conn_, name.c_str()));
     UpdateLastUse();
 }
 
 void PGConnectionWrapper::SendPreparedQuery(
-    const std::string& name,
+    USERVER_NAMESPACE::utils::zstring_view name,
     const QueryParameters& params,
     tracing::ScopeTime& scope,
     PGresult* description
@@ -862,8 +862,8 @@ void PGConnectionWrapper::SendPreparedQuery(
 
 #ifndef USERVER_NO_LIBPQ_PATCHES
 void PGConnectionWrapper::SendPortalBind(
-    const std::string& statement_name,
-    const std::string& portal_name,
+    USERVER_NAMESPACE::utils::zstring_view statement_name,
+    USERVER_NAMESPACE::utils::zstring_view portal_name,
     const QueryParameters& params,
     tracing::ScopeTime& scope
 ) {
@@ -901,7 +901,7 @@ void PGConnectionWrapper::SendPortalBind(
 }
 
 void PGConnectionWrapper::SendPortalExecute(
-    const std::string& portal_name,
+    USERVER_NAMESPACE::utils::zstring_view portal_name,
     std::uint32_t n_rows,
     tracing::ScopeTime& scope
 ) {
@@ -911,11 +911,12 @@ void PGConnectionWrapper::SendPortalExecute(
 }
 #else
 void PGConnectionWrapper::
-    SendPortalBind(const std::string&, const std::string&, const QueryParameters&, tracing::ScopeTime&) {
+    SendPortalBind(USERVER_NAMESPACE::utils::zstring_view, USERVER_NAMESPACE::utils::zstring_view, const QueryParameters&, tracing::ScopeTime&) {
     UINVARIANT(false, "Portals are disabled by CMake option USERVER_FEATURE_PATCH_LIBPQ");
 }
 
-void PGConnectionWrapper::SendPortalExecute(const std::string&, std::uint32_t, tracing::ScopeTime&) {
+void PGConnectionWrapper::
+    SendPortalExecute(USERVER_NAMESPACE::utils::zstring_view, std::uint32_t, tracing::ScopeTime&) {
     UINVARIANT(false, "Portals are disabled by CMake option USERVER_FEATURE_PATCH_LIBPQ");
 }
 

@@ -44,7 +44,9 @@ namespace kafka {
 /// security_protocol            | protocol used to communicate with brokers | --
 /// sasl_mechanisms              | SASL mechanism to use for authentication | none
 /// ssl_ca_location              | file or directory path to CA certificate(s) for verifying the broker's key | none
-/// rd_kafka_custom_options  | a map of librdkafka library additional options | '{}'
+/// rd_kafka_custom_options      | a map of librdkafka library additional options | '{}'
+/// debug_info_log_level         | log level for everything debug information | debug
+/// operation_log_level          | log level for infos about ordinary actions | info
 
 // clang-format on
 

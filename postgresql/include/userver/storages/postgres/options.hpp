@@ -132,13 +132,12 @@ using OptionalCommandControl = std::optional<CommandControl>;
 using CommandControlByMethodMap = USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 using CommandControlByHandlerMap =
     USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControlByMethodMap>;
-using CommandControlByQueryMap = std::unordered_map<std::string, CommandControl>;
+using CommandControlByQueryMap = USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 
 OptionalCommandControl
 GetHandlerOptionalCommandControl(const CommandControlByHandlerMap& map, std::string_view path, std::string_view method);
 
-OptionalCommandControl
-GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, const std::string& query_name);
+OptionalCommandControl GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, std::string_view query_name);
 
 /// Default initial pool connection count
 inline constexpr std::size_t kDefaultPoolMinSize = 4;
@@ -170,7 +169,7 @@ struct TopologySettings {
 /// @brief PostgreSQL connection pool options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_POOL_SETTINGS
-struct PoolSettings {
+struct PoolSettings final {
     /// Number of connections created initially
     std::size_t min_size{kDefaultPoolMinSize};
 
@@ -187,6 +186,15 @@ struct PoolSettings {
         return min_size == rhs.min_size && max_size == rhs.max_size && max_queue_size == rhs.max_queue_size &&
                connecting_limit == rhs.connecting_limit;
     }
+};
+
+// Configs with a suffix `Dynamic` are need to compatibility with static:
+// We must update only fields that were updated in a dynamic config (not a full config!).
+struct PoolSettingsDynamic final {
+    std::optional<std::size_t> min_size;
+    std::optional<std::size_t> max_size;
+    std::optional<std::size_t> max_queue_size;
+    std::optional<std::size_t> connecting_limit;
 };
 
 /// Default size limit for prepared statements cache
@@ -224,6 +232,10 @@ struct ConnectionSettings {
         kDiscardNone,
         kDiscardAll,
     };
+    enum StatementLogMode {
+        kLogSkip,
+        kLog,
+    };
     using SettingsVersion = std::size_t;
 
     /// Cache prepared statements or not
@@ -253,6 +265,9 @@ struct ConnectionSettings {
     /// Execute discard all after establishing a new connection
     DiscardOnConnectOptions discard_on_connect = kDiscardAll;
 
+    /// Statement logging in span tags
+    StatementLogMode statement_log_mode = kLog;
+
     bool deadline_propagation_enabled = true;
 
     /// Helps keep track of the changes in settings
@@ -272,6 +287,17 @@ struct ConnectionSettings {
                max_ttl != rhs.max_ttl || discard_on_connect != rhs.discard_on_connect ||
                omit_describe_mode != rhs.omit_describe_mode;
     }
+};
+
+struct ConnectionSettingsDynamic final {
+    std::optional<ConnectionSettings::PreparedStatementOptions> prepared_statements{};
+    std::optional<ConnectionSettings::UserTypesOptions> user_types{};
+    std::optional<std::size_t> max_prepared_cache_size{};
+    std::optional<std::size_t> recent_errors_threshold{};
+    std::optional<ConnectionSettings::CheckQueryParamsOptions> ignore_unused_query_params{};
+    std::optional<std::chrono::seconds> max_ttl{};
+    std::optional<ConnectionSettings::DiscardOnConnectOptions> discard_on_connect{};
+    std::optional<bool> deadline_propagation_enabled{};
 };
 
 /// @brief PostgreSQL statements metrics options

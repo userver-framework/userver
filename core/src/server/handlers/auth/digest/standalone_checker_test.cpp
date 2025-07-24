@@ -106,7 +106,7 @@ UTEST_F(StandAloneCheckerTest, NonceTTL) {
     utils::datetime::MockNowSet(utils::datetime::Now());
     checker_.PushUnnamedNonce(kValidNonce);
 
-    UserData test_data{kValidHA1, kValidNonce, utils::datetime::Now(), 0};
+    const UserData test_data{kValidHA1, kValidNonce, utils::datetime::Now(), 0};
     utils::datetime::MockSleep(kNonceTTL - std::chrono::milliseconds(100));
     EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
 
@@ -139,7 +139,7 @@ UTEST_F(StandAloneCheckerTest, InvalidNonce) {
 
 UTEST_F(StandAloneCheckerTest, NonceCountConvertingThrow) {
     client_context_.nc = "not-a-hex-number";
-    UserData test_data{kValidHA1, kValidNonce, utils::datetime::Now(), 0};
+    const UserData test_data{kValidHA1, kValidNonce, utils::datetime::Now(), 0};
     EXPECT_THROW(checker_.ValidateUserData(client_context_, test_data), std::runtime_error);
 }
 

@@ -23,6 +23,7 @@ are available at the
 
 
 ## Introduction
+
 * @ref scripts/docs/en/userver/intro_io_bound_coro.md
 * @ref scripts/docs/en/userver/intro.md
 * @ref scripts/docs/en/userver/framework_comparison.md
@@ -44,6 +45,11 @@ are available at the
 
 @anchor tutorial_services
 ## Tutorial
+
+@note Before tackling domain-specific problems,
+@ref scripts/docs/en/userver/build/build.md "create a service project"
+and make sure that it builds and passes tests.
+
 * @ref scripts/docs/en/userver/tutorial/hello_service.md
 * @ref scripts/docs/en/userver/tutorial/config_service.md
 * @ref scripts/docs/en/userver/tutorial/production_service.md
@@ -60,6 +66,7 @@ are available at the
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
+* @ref scripts/docs/en/userver/tutorial/static_content.md
 * @ref scripts/docs/en/userver/tutorial/multipart_service.md
 * @ref scripts/docs/en/userver/tutorial/s3api.md
 * @ref scripts/docs/en/userver/tutorial/json_to_yaml.md
@@ -88,14 +95,18 @@ are available at the
 * @ref scripts/docs/en/userver/functional_testing.md
 * @ref scripts/docs/en/userver/chaos_testing.md
 * @ref scripts/docs/en/userver/profile_context_switches.md
+* @ref scripts/docs/en/userver/gdb_debugging.md
 
 
 ## Protocols
 * @ref scripts/docs/en/userver/grpc/grpc.md
     * Middlewares
         * @ref scripts/docs/en/userver/grpc/server_middlewares.md
+            * @ref scripts/docs/en/userver/grpc/server_middleware_implementation.md
         * @ref scripts/docs/en/userver/grpc/client_middlewares.md
+            * @ref scripts/docs/en/userver/grpc/client_middleware_implementation.md
         * @ref scripts/docs/en/userver/grpc/middlewares_order.md
+        * @ref scripts/docs/en/userver/grpc/middlewares_toggle.md
         * @ref scripts/docs/en/userver/grpc/middlewares_configuration.md
 * HTTP:
     * @ref clients::http::Client "Client"
@@ -153,6 +164,12 @@ are available at the
 
 ## YDB
 * @ref scripts/docs/en/userver/ydb.md
+
+
+## SQLite
+* @ref scripts/docs/en/userver/sqlite/sqlite_driver.md
+* @ref scripts/docs/en/userver/sqlite/supported_types.md
+* @ref scripts/docs/en/userver/sqlite/design_and_details.md
 
 
 ## Non relational databases

@@ -58,7 +58,7 @@ public:
             throw TaskCancelledException(CancellationReason());
         }
 
-        utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
+        const utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
         return utils::impl::CastWrappedCall<T>(GetPayload()).Retrieve();
     }
 

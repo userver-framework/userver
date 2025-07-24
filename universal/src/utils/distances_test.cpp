@@ -82,7 +82,7 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST_P(NearestNameFixture, NearestName) {
-    NearestNameTestData data = GetParam();
+    const NearestNameTestData data = GetParam();
     std::map<std::string, int> map_data;
     std::set<std::string> set_data;
     std::unordered_map<std::string, int> un_map_data;

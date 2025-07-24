@@ -1,5 +1,6 @@
 benchmark
 boost
+boost-stacktrace-backtrace
 c-ares
 ccache
 clang-format-git
@@ -7,6 +8,7 @@ cmake
 crypto++
 curl
 fmt
+gdb
 git
 grpc
 gtest
@@ -15,6 +17,8 @@ jemalloc
 krb5
 libev
 libnghttp2
+makepkg|cctz
+makepkg|libbacktrace-git
 mongo-c-driver
 ninja
 openssl
@@ -29,8 +33,6 @@ python-voluptuous
 python-yaml
 re2
 rocksdb
+unixodbc-dev
 yaml-cpp
 zlib
-makepkg|cctz
-makepkg|libbacktrace-git
-boost-stacktrace-backtrace

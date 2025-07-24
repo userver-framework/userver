@@ -4,11 +4,9 @@
 /// @brief Exceptions thrown by gRPC client streams
 
 #include <exception>
-#include <optional>
 #include <string>
 #include <string_view>
 
-#include <google/rpc/status.pb.h>
 #include <grpcpp/support/status.h>
 
 USERVER_NAMESPACE_BEGIN

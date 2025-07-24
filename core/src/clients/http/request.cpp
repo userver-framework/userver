@@ -1,8 +1,6 @@
 #include <userver/clients/http/request.hpp>
 
-#include <chrono>
 #include <cstdlib>
-#include <map>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -37,6 +35,17 @@ namespace clients::http {
 namespace {
 
 constexpr std::string_view kHeaderExpect = "Expect";
+
+static constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
+    return selector()
+        .Case(HttpMethod::kGet, "GET")
+        .Case(HttpMethod::kHead, "HEAD")
+        .Case(HttpMethod::kPost, "POST")
+        .Case(HttpMethod::kPut, "PUT")
+        .Case(HttpMethod::kPatch, "PATCH")
+        .Case(HttpMethod::kDelete, "DELETE")
+        .Case(HttpMethod::kOptions, "OPTIONS");
+});
 
 std::string ToString(HttpMethod method) { return std::string{ToStringView(method)}; }
 
@@ -124,9 +133,7 @@ bool IsUserAgentHeader(std::string_view header_name) {
     return utils::StrIcaseEqual{}(header_name, USERVER_NAMESPACE::http::headers::kUserAgent);
 }
 
-void SetUserAgent(curl::easy& easy, const std::string& value) { easy.set_user_agent(value); }
-
-void SetUserAgent(curl::easy& easy, std::string_view value) { easy.set_user_agent(std::string{value}); }
+void SetUserAgent(curl::easy& easy, utils::zstring_view value) { easy.set_user_agent(value); }
 
 template <class Range>
 void SetHeaders(curl::easy& easy, const Range& headers_range) {
@@ -171,22 +178,19 @@ bool IsAllowedSchemaInUrl(std::string_view url) {
 
 }  // namespace
 
-std::string_view ToStringView(HttpMethod method) {
-    static constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector()
-            .Case(HttpMethod::kDelete, "DELETE")
-            .Case(HttpMethod::kGet, "GET")
-            .Case(HttpMethod::kHead, "HEAD")
-            .Case(HttpMethod::kPost, "POST")
-            .Case(HttpMethod::kPut, "PUT")
-            .Case(HttpMethod::kPatch, "PATCH")
-            .Case(HttpMethod::kOptions, "OPTIONS");
-    });
+std::string_view ToStringView(HttpMethod method) { return utils::impl::EnumToStringView(method, kHttpMethodMap); }
 
-    return utils::impl::EnumToStringView(method, kMap);
+HttpMethod HttpMethodFromString(std::string_view method_str) {
+    if (auto method = kHttpMethodMap.TryFindBySecond(method_str)) {
+        return *method;
+    }
+
+    throw std::runtime_error(
+        fmt::format("Unsupported http method '{}' (must be one of {})", method_str, kHttpMethodMap.DescribeSecond())
+    );
 }
 
-ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
+ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name) {
     auto value = kAuthTypeMap.TryFindICase(auth_name);
     if (!value) {
         throw std::runtime_error(
@@ -253,7 +257,8 @@ Request& Request::url(std::string url) & {
     /// `curl::easy::set_url(std::string&&, std::error_code&)` doesn't consume the string if fails.
     if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
 
-    impl.SetDestinationMetricNameAuto(USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(impl.easy().get_original_url()));
+    impl.SetDestinationMetricNameAuto(std::string{
+        USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(impl.easy().get_original_url())});
     return *this;
 }
 Request Request::url(std::string url) && { return std::move(this->url(std::move(url))); }
@@ -276,11 +281,11 @@ Request& Request::verify(bool verify) & {
 }
 Request Request::verify(bool verify) && { return std::move(this->verify(verify)); }
 
-Request& Request::ca_info(const std::string& file_path) & {
+Request& Request::ca_info(utils::zstring_view file_path) & {
     pimpl_->ca_info(file_path);
     return *this;
 }
-Request Request::ca_info(const std::string& file_path) && { return std::move(this->ca_info(file_path)); }
+Request Request::ca_info(utils::zstring_view file_path) && { return std::move(this->ca_info(file_path)); }
 
 Request& Request::ca(crypto::Certificate cert) & {
     pimpl_->ca(std::move(cert));
@@ -288,11 +293,11 @@ Request& Request::ca(crypto::Certificate cert) & {
 }
 Request Request::ca(crypto::Certificate cert) && { return std::move(this->ca(std::move(cert))); }
 
-Request& Request::crl_file(const std::string& file_path) & {
+Request& Request::crl_file(utils::zstring_view file_path) & {
     pimpl_->crl_file(file_path);
     return *this;
 }
-Request Request::crl_file(const std::string& file_path) && { return std::move(this->crl_file(file_path)); }
+Request Request::crl_file(utils::zstring_view file_path) && { return std::move(this->crl_file(file_path)); }
 
 Request& Request::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) & {
     pimpl_->client_key_cert(std::move(pkey), std::move(cert));
@@ -316,11 +321,11 @@ Request& Request::retry(short retries, bool on_fails) & {
 }
 Request Request::retry(short retries, bool on_fails) && { return std::move(this->retry(retries, on_fails)); }
 
-Request& Request::unix_socket_path(const std::string& path) & {
+Request& Request::unix_socket_path(utils::zstring_view path) & {
     pimpl_->unix_socket_path(path);
     return *this;
 }
-Request Request::unix_socket_path(const std::string& path) && { return std::move(this->unix_socket_path(path)); }
+Request Request::unix_socket_path(utils::zstring_view path) && { return std::move(this->unix_socket_path(path)); }
 
 Request& Request::use_ipv4() & {
     pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v4);
@@ -360,21 +365,21 @@ Request& Request::headers(const Headers& headers) & {
 }
 Request Request::headers(const Headers& headers) && { return std::move(this->headers(headers)); }
 
-Request& Request::headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) & {
+Request& Request::headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) & {
     SetHeaders(pimpl_->easy(), headers);
     return *this;
 }
-Request Request::headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) && {
+Request Request::headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) && {
     return std::move(this->headers(headers));
 }
 
 Request&
-Request::http_auth_type(HttpAuthType value, bool auth_only, std::string_view user, std::string_view password) & {
+Request::http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) & {
     pimpl_->http_auth_type(HttpAuthTypeToNative(value), auth_only, user, password);
     return *this;
 }
 Request
-Request::http_auth_type(HttpAuthType value, bool auth_only, std::string_view user, std::string_view password) && {
+Request::http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) && {
     return std::move(this->http_auth_type(value, auth_only, user, password));
 }
 
@@ -384,25 +389,28 @@ Request& Request::proxy_headers(const Headers& headers) & {
 }
 Request Request::proxy_headers(const Headers& headers) && { return std::move(this->proxy_headers(headers)); }
 
-Request& Request::proxy_headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) & {
+Request& Request::proxy_headers(
+    const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers
+) & {
     SetProxyHeaders(pimpl_->easy(), headers);
     return *this;
 }
-Request Request::proxy_headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) && {
+Request Request::proxy_headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers
+) && {
     return std::move(this->proxy_headers(headers));
 }
 
-Request& Request::user_agent(const std::string& value) & {
+Request& Request::user_agent(utils::zstring_view value) & {
     pimpl_->easy().set_user_agent(value.c_str());
     return *this;
 }
-Request Request::user_agent(const std::string& value) && { return std::move(this->user_agent(value)); }
+Request Request::user_agent(utils::zstring_view value) && { return std::move(this->user_agent(value)); }
 
-Request& Request::proxy(const std::string& value) & {
+Request& Request::proxy(utils::zstring_view value) & {
     pimpl_->proxy(value);
     return *this;
 }
-Request Request::proxy(const std::string& value) && { return std::move(this->proxy(value)); }
+Request Request::proxy(utils::zstring_view value) && { return std::move(this->proxy(value)); }
 
 Request& Request::proxy_auth_type(ProxyAuthType value) & {
     pimpl_->proxy_auth_type(ProxyAuthTypeToNative(value));

@@ -1,4 +1,4 @@
-import sys
+import sys  # noqa: I001
 
 from chaotic.front import types
 from chaotic_openapi.front import model

@@ -28,7 +28,7 @@ std::vector<unsigned char> ConvertEcSignature(std::string_view raw_signature) {
     constexpr size_t kDerEcdsaSignatureBufferSize = 256;
 
     std::vector<unsigned char> der_signature(kDerEcdsaSignatureBufferSize, '\0');
-    size_t siglen = CryptoPP::DSAConvertSignatureFormat(
+    const size_t siglen = CryptoPP::DSAConvertSignatureFormat(
         der_signature.data(),
         der_signature.size(),
         CryptoPP::DSASignatureFormat::DSA_DER,
@@ -212,7 +212,7 @@ void DsaVerifier<type, bits>::VerifyDigest(std::string_view digest, std::string_
         throw VerificationError("Invalid digest size for " + Name() + " verifier");
     }
 
-    std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
+    const std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
         EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free
     );
     if (!pkey_ctx) {

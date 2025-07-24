@@ -20,7 +20,7 @@ S3ApiSampleComponent::S3ApiSampleComponent(
     : LoggableComponentBase(config, context),
       http_client_(context.FindComponent<::components::HttpClient>().GetHttpClient()) {
     auto my_client = GetClient();
-    DoVeryImportantThingsInS3(my_client);
+    DoVeryImportantThingsInS3(std::move(my_client));
 }
 
 /// [create_client]
@@ -42,7 +42,7 @@ s3api::ClientPtr S3ApiSampleComponent::GetClient() {
     auto auth = std::make_shared<s3api::authenticators::AccessKey>("my-access-key", s3api::Secret("my-secret-key"));
 
     // create and return client
-    return s3api::GetS3Client(s3_connection, auth, "mybucket");
+    return s3api::GetS3Client(std::move(s3_connection), std::move(auth), "mybucket");
 }
 
 /// [create_client]
@@ -53,7 +53,7 @@ void DoVeryImportantThingsInS3(s3api::ClientPtr client) {
     std::string path = "path/to/object";
     std::string data{"some string data"};
 
-    client->PutObject(path, data);
+    client->PutObject(path, std::move(data));
     client->GetObject(path);
 }
 

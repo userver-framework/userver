@@ -40,8 +40,8 @@ std::optional<std::string_view> GetNearestString(
     std::optional<std::string_view> nearest_str;
     std::size_t min_distance = 0;
     for (const auto& str : strings) {
-        std::string_view obj_view(str);
-        std::size_t cur_distance = distance_func(key, obj_view);
+        const std::string_view obj_view(str);
+        const std::size_t cur_distance = distance_func(key, obj_view);
         if (!nearest_str.has_value() || cur_distance < min_distance) {
             nearest_str = obj_view;
             min_distance = cur_distance;

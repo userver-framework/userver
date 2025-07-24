@@ -22,7 +22,6 @@ struct ServiceInternals final {
     engine::TaskProcessor& task_processor;
     ugrpc::impl::StatisticsStorage& statistics_storage;
     Middlewares middlewares;
-    logging::TextLoggerPtr access_tskv_logger;
     const dynamic_config::Source config_source;
 };
 

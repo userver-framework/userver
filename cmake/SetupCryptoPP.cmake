@@ -1,32 +1,34 @@
-if (TARGET CryptoPP)
+if(TARGET CryptoPP)
     return()
 endif()
 
-option(
-    USERVER_DOWNLOAD_PACKAGE_CRYPTOPP
-    "Download and setup CryptoPP if no CryptoPP of matching version was found"
-    ${USERVER_DOWNLOAD_PACKAGES}
+option(USERVER_DOWNLOAD_PACKAGE_CRYPTOPP "Download and setup CryptoPP if no CryptoPP of matching version was found"
+       ${USERVER_DOWNLOAD_PACKAGES}
 )
 
-if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
-  if (USERVER_DOWNLOAD_PACKAGE_CRYPTOPP)
-      find_package(cryptopp QUIET)
-  else()
-      find_package(cryptopp REQUIRED)
-  endif()
+if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+    if(USERVER_DOWNLOAD_PACKAGE_CRYPTOPP)
+        find_package(cryptopp QUIET)
+    else()
+        find_package(cryptopp REQUIRED)
+    endif()
 
-  if (cryptopp_FOUND)
-      return()
-  endif()
+    if(cryptopp_FOUND)
+        return()
+    endif()
 endif()
 
 include(DownloadUsingCPM)
 
-CPMAddPackage(
-    NAME cryptopp-cmake
-    VERSION 8.9.0
-    GITHUB_REPOSITORY abdes/cryptopp-cmake
-    GIT_TAG CRYPTOPP_8_9_0
+cpmaddpackage(
+    NAME
+    cryptopp-cmake
+    VERSION
+    8.9.0
+    GITHUB_REPOSITORY
+    abdes/cryptopp-cmake
+    GIT_TAG
+    CRYPTOPP_8_9_0
     OPTIONS
     "CRYPTOPP_BUILD_SHARED OFF"
     "CRYPTOPP_BUILD_TESTING OFF"

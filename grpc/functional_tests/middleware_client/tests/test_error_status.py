@@ -16,6 +16,7 @@ async def test_error_status(service_client, grpc_mockserver):
     with pytest.raises(pytest_userver.client.TestsuiteTaskFailed) as ex_info:
         await service_client.run_task('call-say-hello')
     ex_info.match("'samples.api.GreeterService/SayHello' failed: code=UNAVAILABLE, message='Greeter is down'")
+    assert mock_say_hello.times_called == 1
     # /// [Mocked error status]
 
 
@@ -29,3 +30,4 @@ async def test_error_status_via_result(service_client, grpc_mockserver):
     with pytest.raises(pytest_userver.client.TestsuiteTaskFailed) as ex_info:
         await service_client.run_task('call-say-hello')
     ex_info.match("'samples.api.GreeterService/SayHello' failed: code=UNAVAILABLE, message='Greeter is down'")
+    assert mock_say_hello.times_called == 1

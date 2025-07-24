@@ -23,6 +23,9 @@ components_manager:
         grpc-client-common:
             blocking-task-processor: grpc-blocking-task-processor
 
+        grpc-client-headers-propagator:
+            skip-headers:
+                skipped-header: true
         grpc-client-factory:
             middlewares:
                 grpc-client-deadline-propagation:

@@ -11,7 +11,7 @@ TEST(MockClientTest, Basic) {
 
     EXPECT_CALL(*client_mock, ShardByKey("test_shard")).Times(1).WillRepeatedly([](const std::string&) { return 1; });
 
-    size_t shardCount = client_mock->ShardByKey("test_shard");
+    const size_t shardCount = client_mock->ShardByKey("test_shard");
     ASSERT_EQ(shardCount, 1);
 }
 

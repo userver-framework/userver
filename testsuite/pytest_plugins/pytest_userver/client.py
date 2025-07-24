@@ -20,6 +20,7 @@ import warnings
 
 import aiohttp
 
+from testsuite import logcapture
 from testsuite import utils
 from testsuite.daemons import service_client
 from testsuite.utils import approx
@@ -760,7 +761,7 @@ class AiohttpClient(service_client.AiohttpClient):
         *,
         config: TestsuiteClientConfig,
         mocked_time,
-        log_capture_fixture,
+        log_capture_fixture: logcapture.CaptureServer,
         testpoint,
         testpoint_control,
         cache_invalidation_state,
@@ -905,8 +906,8 @@ class AiohttpClient(service_client.AiohttpClient):
         log_level: str = 'DEBUG',
         testsuite_skip_prepare: bool = False,
     ):
-        async with self._log_capture_fixture.start_capture(
-            log_level=log_level,
+        async with self._log_capture_fixture.capture(
+            log_level=logcapture.LogLevel.from_string(log_level),
         ) as capture:
             logger.debug('Starting logcapture')
             await self._testsuite_action(
@@ -920,10 +921,9 @@ class AiohttpClient(service_client.AiohttpClient):
                 await self._log_capture_fixture.wait_for_client()
                 yield capture
             finally:
-                logger.debug('Finishing logcapture')
                 await self._testsuite_action(
                     'log_capture',
-                    log_level=self._log_capture_fixture.default_log_level,
+                    log_level=self._log_capture_fixture.default_log_level.name,
                     socket_logging_duplication=False,
                     testsuite_skip_prepare=testsuite_skip_prepare,
                 )

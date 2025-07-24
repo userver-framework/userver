@@ -27,7 +27,7 @@ void HttpTestpointClient::Execute(std::string_view name, const formats::json::Va
     const auto& testpoint_id = span.GetSpanId();
     const auto& data = formats::json::ToString(json);
 
-    span.AddTag("testpoint_id", testpoint_id);
+    span.AddTag("testpoint_id", std::string{testpoint_id});
     span.AddTag("testpoint", std::string(name));
 
     formats::json::ValueBuilder request;

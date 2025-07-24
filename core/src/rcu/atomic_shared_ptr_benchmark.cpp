@@ -30,7 +30,7 @@ private:
 
 void atomic_shared_ptr_read(benchmark::State& state) {
     engine::RunStandalone([&] {
-        AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
+        const AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
 
         for ([[maybe_unused]] auto _ : state) {
             auto snapshot_ptr = ptr.Load();

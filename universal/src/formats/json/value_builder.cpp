@@ -9,7 +9,7 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 #include <formats/json/impl/types_impl.hpp>
 
@@ -260,7 +260,7 @@ impl::Value& ValueBuilder::AddMember(std::string_view key, CheckMemberExists che
 }
 
 Value Serialize(std::chrono::system_clock::time_point tp, formats::serialize::To<Value>) {
-    json::ValueBuilder builder = utils::datetime::Timestring(tp, "UTC", utils::datetime::kRfc3339Format);
+    json::ValueBuilder builder = utils::datetime::UtcTimestring(tp, utils::datetime::kRfc3339Format);
     return builder.ExtractValue();
 }
 

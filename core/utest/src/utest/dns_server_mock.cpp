@@ -74,7 +74,7 @@ public:
         char* size_pos = pos_;
         Push(0);
         char current_label_size = 0;
-        for (char c : value) {
+        for (const char c : value) {
             if (c == '.') {
                 *size_pos = current_label_size;
                 size_pos = pos_;

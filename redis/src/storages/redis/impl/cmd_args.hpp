@@ -133,8 +133,8 @@ private:
 
     void PutArg(const std::vector<std::pair<double, std::string>>& arg);
 
-    void PutArg(std::optional<ScanOptionsBase::Match> arg);
-    void PutArg(std::optional<ScanOptionsBase::Count> arg);
+    void PutArg(std::optional<ScanOptionsGeneric::Match> arg);
+    void PutArg(std::optional<ScanOptionsGeneric::Count> arg);
     void PutArg(GeoaddArg arg);
     void PutArg(std::vector<GeoaddArg> arg);
     void PutArg(const GeoradiusOptions& arg);

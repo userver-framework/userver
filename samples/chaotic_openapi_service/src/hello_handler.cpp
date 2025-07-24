@@ -1,19 +1,26 @@
 #include "hello_handler.hpp"
 
-#include "say_hello.hpp"
+#include <userver/components/component_context.hpp>
+
+#include <clients/test/component.hpp>
 
 namespace samples::hello {
+
+/// [get]
+HelloHandler::HelloHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : server::handlers::HttpHandlerBase(config, context),
+      test_(context.FindComponent<::clients::test::Component>().GetClient()) {}
+/// [get]
 
 std::string
 HelloHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& /*request_context*/)
     const {
-    // Setting Content-Type: text/plain in a microservice response ensures
-    // the client interprets it as plain text, preventing misinterpretation or
-    // errors. Without this header, the client might assume a different format,
-    // such as JSON, HTML or XML, leading to potential processing issues or
-    // incorrect handling of the data.
-    request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
-    return samples::hello::SayHelloTo(request.GetArg("name"));
+    auto name = request.GetArg("name");
+
+    /// [use]
+    auto response = test_.TestGet({name});
+    /// [use]
+    return response.body;
 }
 
 }  // namespace samples::hello

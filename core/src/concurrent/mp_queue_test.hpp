@@ -249,7 +249,7 @@ TYPED_UTEST_P(TypedQueueFixture, Noblock) {
 }
 
 TYPED_UTEST_P(TypedQueueFixture, NotMovedValueOnFalse) {
-    engine::SingleConsumerEvent wait_consumer_event_;
+    const engine::SingleConsumerEvent wait_consumer_event_;
     auto queue = TypeParam::Create();
     queue->SetSoftMaxSize(2);
 

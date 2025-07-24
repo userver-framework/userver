@@ -198,15 +198,15 @@ CloseStatus ReadWSFrameImpl(
             }
         }
 
-        size_t newPayloadOffset = frame.payload->size();
+        const size_t newPayloadOffset = frame.payload->size();
         frame.payload->resize(frame.payload->size() + payload_len);
         RecvExactly(io, MakeSpan(frame.payload->data() + newPayloadOffset, payload_len), {});
         if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
         if (mask.mask32) XorMaskInplace(reinterpret_cast<uint8_t*>(frame.payload->data()), frame.payload->size(), mask);
     }
-    char opcode = hdr.bits.opcode;
-    char fin = hdr.bits.fin;
+    const char opcode = hdr.bits.opcode;
+    const char fin = hdr.bits.fin;
 
     switch (opcode) {
         case kPing:

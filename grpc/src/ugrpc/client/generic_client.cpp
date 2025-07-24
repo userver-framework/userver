@@ -1,7 +1,10 @@
 #include <userver/ugrpc/client/generic_client.hpp>
 
+#include <utility>
+
 #include <grpcpp/generic/generic_stub.h>
 
+#include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,23 +26,16 @@ GenericClient::GenericClient(impl::ClientInternals&& internals)
     UINVARIANT(!impl_.GetClientQos(), "Client QOS configs are unsupported for generic services");
 }
 
-client::ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
+ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
     std::string_view call_name,
     const grpc::ByteBuffer& request,
-    std::unique_ptr<grpc::ClientContext> context,
-    const GenericOptions& generic_options
+    CallOptions call_options,
+    GenericOptions generic_options
 ) const {
     auto method_name = utils::StrCat<grpc::string>("/", call_name);
     return {
-        impl::CreateGenericCallParams(
-            impl_, call_name, std::move(context), generic_options.qos, generic_options.metrics_call_name
-        ),
-        [&method_name](
-            impl::ClientData::StubHandle& stub,
-            grpc::ClientContext* context,
-            const grpc::ByteBuffer& request,
-            grpc::CompletionQueue* cq
-        ) { return stub.Get<grpc::GenericStub>().PrepareUnaryCall(context, method_name, request, cq); },
+        impl::CreateGenericCallParams(impl_, call_name, std::move(call_options), std::move(generic_options)),
+        impl::PrepareUnaryCallProxy(&grpc::GenericStub::PrepareUnaryCall, std::move(method_name)),
         request,
     };
 }
@@ -47,10 +43,10 @@ client::ResponseFuture<grpc::ByteBuffer> GenericClient::AsyncUnaryCall(
 grpc::ByteBuffer GenericClient::UnaryCall(
     std::string_view call_name,
     const grpc::ByteBuffer& request,
-    std::unique_ptr<grpc::ClientContext> context,
-    const GenericOptions& generic_options
+    CallOptions call_options,
+    GenericOptions generic_options
 ) const {
-    return AsyncUnaryCall(call_name, request, std::move(context), generic_options).Get();
+    return AsyncUnaryCall(call_name, request, std::move(call_options), std::move(generic_options)).Get();
 }
 
 }  // namespace ugrpc::client

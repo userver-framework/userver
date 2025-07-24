@@ -108,7 +108,7 @@ private:
               NGHTTP2_NV_FLAG_NONE}}};
 
         auto session_ptr = dynamic_cast<Http2Session*>(parser_http2_.get())->GetNghttp2SessionPtr();
-        int rv = nghttp2_submit_response(session_ptr, cur_stream_id_, headers.data(), headers.size(), nullptr);
+        const int rv = nghttp2_submit_response(session_ptr, cur_stream_id_, headers.data(), headers.size(), nullptr);
 
         UASSERT(!rv);
 
@@ -243,7 +243,7 @@ UTEST_F(Http2SessionTest, Headers) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    clients::http::Headers headers{
+    const clients::http::Headers headers{
         std::make_pair(std::string{"test_header"}, std::string{"test_value"}),
         std::make_pair(std::string{"empty_header"}, std::string{""}),
         std::make_pair(std::string{"a"}, std::string{"b"}),
@@ -275,7 +275,7 @@ UTEST_F(Http2SessionTest, Body) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    std::string data{"test_data"};
+    const std::string data{"test_data"};
 
     const auto response = client.CreateRequest()
                               .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
@@ -288,7 +288,7 @@ UTEST_F(Http2SessionTest, Body) {
     EXPECT_TRUE(consumer.Pop(request));
     EXPECT_EQ(request->RequestBody(), "test_data");
 
-    std::string empty_data{};
+    const std::string empty_data{};
     const auto response2 = client.CreateRequest()
                                .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
                                .post(url, empty_data)
@@ -329,8 +329,8 @@ UTEST_F(Http2SessionTest, HeavyHeader) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    std::string heavy_header(10000, '!');
-    clients::http::Headers headers{std::make_pair(std::string{"heavy_header"}, heavy_header)};
+    const std::string heavy_header(10000, '!');
+    const clients::http::Headers headers{std::make_pair(std::string{"heavy_header"}, heavy_header)};
 
     const auto response = client.CreateRequest()
                               .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
@@ -352,10 +352,10 @@ UTEST_F(Http2SessionTest, ForCurl) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    std::string heavy_header(100, '!');
-    clients::http::Headers headers{std::make_pair(std::string{"heavy_header"}, heavy_header)};
+    const std::string heavy_header(100, '!');
+    const clients::http::Headers headers{std::make_pair(std::string{"heavy_header"}, heavy_header)};
 
-    std::string body{"swag"};
+    const std::string body{"swag"};
     const auto response = client.CreateRequest()
                               .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
                               .headers(headers)

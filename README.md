@@ -1,11 +1,20 @@
 # userver [<img src="./scripts/docs/img/logo.svg" align='right' width="10%">](https://userver.tech/)
 
-| Service Templates | Develop / Green Trunk  | v2.0 | v1.0 |
-|-------------------|------------------------|------|------|
-| Core: | [![CI](https://github.com/userver-framework/service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/service_template/) | [[➚]](https://github.com/userver-framework/service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/service_template/tree/v1.0.0) |
-| PostgreSQL: | [![CI](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_service_template/) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v1.0.0) |
-| gRPC+PostgreSQL: | [![CI](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template)| [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v1.0.0) |
-| gRPC+Mongo: | [![CI](https://github.com/userver-framework/mongo_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/mongo_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/mongo_grpc_service_template)| — | — |
+[![Ubuntu](https://github.com/userver-framework/userver/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/ci.yml)
+[![MacOS](https://github.com/userver-framework/userver/actions/workflows/macos.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/macos.yml)
+[![Alpine](https://github.com/userver-framework/userver/actions/workflows/alpine.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/alpine.yml)
+[![Docker CI](https://github.com/userver-framework/userver/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/docker.yaml)
+[![Conan](https://github.com/userver-framework/userver/actions/workflows/ci-conan.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/ci-conan.yml)
+[![CodeQL](https://github.com/userver-framework/userver/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/codeql-analysis.yml)
+
+[![Build and publish ubuntu-24.04-userver images](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-24.04-images.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-24.04-images.yaml)
+[![Build and publish ubuntu-22.04-userver images](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-22.04-images.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-22.04-images.yaml)
+
+[![uservice-dynconf CI](https://github.com/userver-framework/uservice-dynconf/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/uservice-dynconf/actions/workflows/ci.yml)
+[![uservice-dynconf Docker build](https://github.com/userver-framework/uservice-dynconf/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/uservice-dynconf/actions/workflows/docker.yaml)
+[![urealmedium CI](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml)
+[![urealmedium Docker build](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml)
+
 
 **userver** is an open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
@@ -56,7 +65,7 @@ You can learn more about history and key features of userver from our
 ## Other Features
 
 * Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Valkey,
-  Redis, ClickHouse, MySQL/MariaDB, YDB ...) and data transfer protocols
+  Redis, ClickHouse, MySQL/MariaDB, YDB, SQLite ...) and data transfer protocols
   (HTTP/{1.1, 2.0}, gRPC, AMQP 0-9-1, Kafka, TCP, TLS,
   WebSocket ...), tasks construction and cancellation.
 * Rich set of high-level components for caches, tasks, distributed locking,

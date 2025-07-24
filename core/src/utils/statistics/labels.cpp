@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 LabelView::LabelView(const Label& label) : name_(label.Name()), value_(label.Value()) {
-    UINVARIANT(!name_.empty(), "The lable name must not be empty.");
+    UINVARIANT(!name_.empty(), "The label name must not be empty.");
 }
 
 LabelsSpan::LabelsSpan(const LabelView* begin, const LabelView* end) noexcept : begin_(begin), end_(end) {

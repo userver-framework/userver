@@ -29,7 +29,7 @@ public:
         ASSERT_TRUE(info_reply->data.IsString());
         const auto info = info_reply->data.GetString();
 
-        utils::regex redis_version_regex(R"(redis_version:(\d+.\d+.\d+))");
+        const utils::regex redis_version_regex(R"(redis_version:(\d+.\d+.\d+))");
         utils::match_results redis_version_matches;
         ASSERT_TRUE(utils::regex_search(info, redis_version_matches, redis_version_regex));
         version_ = MakeVersion(redis_version_matches[1]);
@@ -46,7 +46,7 @@ public:
 
 private:
     static Version MakeVersion(std::string_view from) {
-        utils::regex rgx(R"((\d+).(\d+).(\d+))");
+        const utils::regex rgx(R"((\d+).(\d+).(\d+))");
         utils::match_results matches;
         const auto result = utils::regex_search(from, matches, rgx);
         EXPECT_TRUE(result);

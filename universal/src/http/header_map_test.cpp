@@ -42,6 +42,93 @@ TEST(HeaderMap, Basic) {
     EXPECT_EQ(map.find(key), map.end());
 }
 
+TEST(HeaderMap, Construct) {
+    {
+        HeaderMap map{
+            {"key", "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string_view{"key"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string_view{"key"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {utils::zstring_view{"key"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {utils::zstring_view{"key"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {utils::zstring_view{"key"}, utils::zstring_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string{"key"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string{"key"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string{"key"}, std::string{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {PredefinedHeader{"key_of_predefined_header"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {PredefinedHeader{"key_of_predefined_header"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {PredefinedHeader{"key_of_predefined_header"}, std::string{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+}
+
 TEST(HeaderMap, Collision) {
     const auto [first_key, second_key] = []() -> std::pair<std::string, std::string> {
         const auto hasher = impl::UnsafeConstexprHasher{};

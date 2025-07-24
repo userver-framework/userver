@@ -60,7 +60,7 @@ namespace {{ namespace }} {
           {% endif %}
         };
 
-        void SerializeRequest(const Request& request, USERVER_NAMESPACE::clients::http::Request& http_request);
+        void SerializeRequest(const Request& request, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request);
       }
     {%- endif %}
   {% endif %}

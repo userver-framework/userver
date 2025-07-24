@@ -29,7 +29,7 @@ BytesPerSecond StringToBytesPerSecond(const std::string& data);
 
 template <class Value>
 BytesPerSecond Parse(const Value& v, formats::parse::To<BytesPerSecond>) {
-    return StringToBytesPerSecond(v.template As<std::string>());
+    return utils::StringToBytesPerSecond(v.template As<std::string>());
 }
 
 }  // namespace utils

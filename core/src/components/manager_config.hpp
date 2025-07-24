@@ -23,6 +23,7 @@ struct ManagerConfig {
     std::vector<components::ComponentConfig> components;
     std::vector<engine::TaskProcessorConfig> task_processors;
     std::string default_task_processor;
+    std::string fs_task_processor;
     ValidationMode validate_components_configs{};
     utils::impl::UserverExperimentSet enabled_experiments;
     std::chrono::milliseconds graceful_shutdown_interval{};

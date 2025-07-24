@@ -10,9 +10,6 @@ servers:
   - url: uservice-sample.tst.yandex.net
     description: testing
 
-# x-usrv-middlewares:
-#     tvm: true
-
 # x-usrv-client-qos:
 #     dynamic-config: taxi/schemas/schemas/configs/declarations/uservice-template/USERVICE_TEMPLATE_CLIENT_QOS.yaml
 

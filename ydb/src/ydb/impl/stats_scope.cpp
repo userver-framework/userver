@@ -18,7 +18,7 @@ StatsCounters& GetCountersForQuery(Stats& stats, const Query& query) {
     }
 
     const auto insertion_result =
-        stats.by_query.TryEmplace(query_name.value().GetUnderlying(), stats.by_database_histogram_bounds);
+        stats.by_query.TryEmplace(std::string{query_name.value()}, stats.by_database_histogram_bounds);
     // No need to retain a shared_ptr. References to items are stable.
     // Items are never removed from the map.
     return *insertion_result.value;

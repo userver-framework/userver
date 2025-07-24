@@ -15,7 +15,7 @@ ChildProcessImpl::ChildProcessImpl(int pid, Future<ChildProcessStatus>&& status_
     : pid_(pid), status_future_(std::move(status_future)) {}
 
 void ChildProcessImpl::WaitNonCancellable() {
-    TaskCancellationBlocker cancel_blocker;
+    const TaskCancellationBlocker cancel_blocker;
     const auto status = status_future_.wait();
     UASSERT(status == FutureStatus::kReady);
 }
@@ -25,7 +25,7 @@ bool ChildProcessImpl::WaitUntil(engine::Deadline deadline) {
 }
 
 ChildProcessStatus ChildProcessImpl::Get() {
-    TaskCancellationBlocker cancel_blocker;
+    const TaskCancellationBlocker cancel_blocker;
     return status_future_.get();
 }
 

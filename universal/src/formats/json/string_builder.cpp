@@ -11,7 +11,7 @@
 #include <userver/formats/common/validations.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/value.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -84,7 +84,7 @@ void WriteToStream(const formats::json::Value& value, StringBuilder& sw) { sw.Wr
 void WriteToStream(const std::string& value, StringBuilder& sw) { WriteToStream(std::string_view{value}, sw); }
 
 void WriteToStream(std::chrono::system_clock::time_point tp, StringBuilder& sw) {
-    WriteToStream(utils::datetime::Timestring(tp, "UTC", utils::datetime::kRfc3339Format), sw);
+    WriteToStream(utils::datetime::UtcTimestring(tp, utils::datetime::kRfc3339Format), sw);
 }
 
 StringBuilder::ObjectGuard::ObjectGuard(StringBuilder& sw) : sw_(sw) { sw_.impl_->writer.StartObject(); }

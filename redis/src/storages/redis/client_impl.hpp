@@ -29,7 +29,7 @@ class TransactionImpl;
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ClientImpl final : public Client, public std::enable_shared_from_this<ClientImpl> {
 public:
-    explicit ClientImpl(std::shared_ptr<impl::Sentinel> sentinel, std::optional<size_t> force_shard_idx = std::nullopt);
+    explicit ClientImpl(std::shared_ptr<impl::Sentinel> sentinel);
 
     void WaitConnectedOnce(RedisWaitConnected wait_connected) override;
 
@@ -37,12 +37,6 @@ public:
     bool IsInClusterMode() const override;
 
     size_t ShardByKey(const std::string& key) const override;
-
-    const std::string& GetAnyKeyForShard(size_t shard_idx) const override;
-
-    std::shared_ptr<Client> GetClientForShard(size_t shard_idx) override;
-
-    std::optional<size_t> GetForcedShardIdx() const;
 
     Request<ScanReplyTmpl<ScanTag::kScan>> MakeScanRequestNoKey(
         size_t shard,
@@ -56,7 +50,7 @@ public:
         std::string key,
         size_t shard,
         typename ScanReplyTmpl<scan_tag>::Cursor cursor,
-        ScanOptionsTmpl<scan_tag> options,
+        ScanOptionsGeneric options,
         const CommandControl& command_control
     );
 
@@ -262,8 +256,7 @@ public:
     ScanRequest<ScanTag::kScan> Scan(size_t shard, ScanOptions options, const CommandControl& command_control) override;
 
     template <ScanTag scan_tag>
-    ScanRequest<scan_tag>
-    ScanTmpl(std::string key, ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control);
+    ScanRequest<scan_tag> ScanTmpl(std::string key, ScanOptionsGeneric options, const CommandControl& command_control);
 
     RequestScard Scard(std::string key, const CommandControl& command_control) override;
 
@@ -286,6 +279,16 @@ public:
         override;
 
     RequestSetIfNotExist SetIfNotExist(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) override;
+
+    RequestSetIfNotExistOrGet
+    SetIfNotExistOrGet(std::string key, std::string value, const CommandControl& command_control) override;
+
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(
         std::string key,
         std::string value,
         std::chrono::milliseconds ttl,
@@ -465,8 +468,6 @@ private:
     void CheckShard(size_t shard, const CommandControl& cc) const;
 
     std::shared_ptr<impl::Sentinel> redis_client_;
-    std::atomic<int> publish_shard_{0};
-    const std::optional<size_t> force_shard_idx_;
 };
 
 }  // namespace storages::redis

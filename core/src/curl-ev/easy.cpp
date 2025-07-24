@@ -146,7 +146,7 @@ engine::ev::ThreadControl& easy::GetThreadControl() { return multi_->GetThreadCo
 
 void easy::async_perform(handler_type handler) {
     LOG_TRACE() << "easy::async_perform start " << this;
-    size_t request_num = ++request_counter_;
+    const size_t request_num = ++request_counter_;
     if (multi_) {
         multi_->GetThreadControl().RunInEvLoopAsync(
             [self = shared_from_this(), this, handler = std::move(handler), request_num]() mutable {
@@ -171,7 +171,7 @@ void easy::do_ev_async_perform(handler_type handler, size_t request_num) {
         throw std::runtime_error("attempt to perform async. operation without assigning a multi object");
     }
 
-    BusyMarker busy(multi_->Statistics().get_busy_storage());
+    const BusyMarker busy(multi_->Statistics().get_busy_storage());
 
     // Cancel all previous async. operations
     cancel(request_num - 1);
@@ -213,7 +213,7 @@ void easy::do_ev_cancel(size_t request_num) {
     // execution in do_ev_async_perform().
     if (cancelled_request_max_ < request_num) cancelled_request_max_ = request_num;
     if (multi_registered_) {
-        BusyMarker busy(multi_->Statistics().get_busy_storage());
+        const BusyMarker busy(multi_->Statistics().get_busy_storage());
 
         handle_completion(std::make_error_code(std::errc::operation_canceled));
         multi_->remove(this);
@@ -649,11 +649,9 @@ easy::time_point::duration easy::time_to_start() const {
 }
 
 native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
-    std::error_code ec;
-
     LOG_TRACE() << "open_tcp_socket family=" << address->family;
 
-    int fd = socket(address->family, address->socktype, address->protocol);
+    const int fd = socket(address->family, address->socktype, address->protocol);
     if (fd == -1) {
         const auto old_errno = errno;
         LOG_ERROR() << "socket(2) failed with error: " << utils::strerror(old_errno);
@@ -665,7 +663,7 @@ native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
 
 size_t easy::write_function(char* ptr, size_t size, size_t nmemb, void* userdata) noexcept {
     easy* self = static_cast<easy*>(userdata);
-    size_t actual_size = size * nmemb;
+    const size_t actual_size = size * nmemb;
 
     if (!actual_size) {
         return 0;
@@ -685,7 +683,7 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb, void* userdata)
     // FIXME readsome doesn't work with TFTP (see cURL docs)
 
     easy* self = static_cast<easy*>(userdata);
-    size_t actual_size = size * nmemb;
+    const size_t actual_size = size * nmemb;
 
     if (!self->source_) return CURL_READFUNC_ABORT;
 
@@ -693,7 +691,7 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb, void* userdata)
         return 0;
     }
 
-    std::streamsize chars_stored = self->source_->readsome(static_cast<char*>(ptr), actual_size);
+    const std::streamsize chars_stored = self->source_->readsome(static_cast<char*>(ptr), actual_size);
 
     if (!*self->source_) {
         return CURL_READFUNC_ABORT;
@@ -795,7 +793,7 @@ int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {
     auto* multi_handle = static_cast<multi*>(clientp);
     multi_handle->UnbindEasySocket(item);
 
-    int ret = close(item);
+    const int ret = close(item);
     if (ret == -1) {
         const auto old_errno = errno;
         LOG_ERROR() << "close(2) failed with error: " << utils::strerror(old_errno);

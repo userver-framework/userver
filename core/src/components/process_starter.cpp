@@ -31,6 +31,7 @@ properties:
     task_processor:
         type: string
         description: the name of the TaskProcessor for process starting
+        defaultDescription: the 'default_task_processor' value from components::ManagerControllerComponent
 )");
 }
 

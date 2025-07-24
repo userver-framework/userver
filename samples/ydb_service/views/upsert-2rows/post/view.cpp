@@ -23,7 +23,8 @@ DECLARE $state_key AS Json?;
 UPSERT INTO events (id, name, service, channel, created, state)
 VALUES ($id_key, $name_key, $service_key, $channel_key, CurrentUtcTimestamp(), $state_key);
       )",
-        ydb::Query::Name{"upsert-2rows"},
+        ydb::Query::NameLiteral{"upsert-2rows"},
+        ydb::Query::LogMode::kNameOnly,
     };
 
     auto trx = Ydb().Begin("trx", ydb::TransactionMode::kSerializableRW);

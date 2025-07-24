@@ -25,7 +25,7 @@ namespace server::handlers {
 /// ---- | ----------- | -------------
 /// path | if a request matches this path wildcard then process it by handler | -
 /// as_fallback | set to "implicit-http-options" and do not specify a path if this handler processes the OPTIONS requests for paths that do not process OPTIONS method | -
-/// task_processor | a task processor to execute the requests | -
+/// task_processor | a task processor to execute the requests | the 'default_task_processor' value from components::ManagerControllerComponent
 /// method | comma-separated list of allowed HTTP methods. HEAD method is implicitly enabled if GET method is enabled | -
 /// max_request_size | max size of the whole request | 1024 * 1024
 /// max_headers_size | max request headers size | 65536

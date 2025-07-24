@@ -80,7 +80,7 @@ Row::reference Row::operator[](size_type index) const {
     return {res_, row_index_, index};
 }
 
-Row::reference Row::operator[](const std::string& name) const {
+Row::reference Row::operator[](USERVER_NAMESPACE::utils::zstring_view name) const {
     auto idx = IndexOfName(name);
     if (idx == ResultSet::npos) throw FieldNameDoesntExist{name};
     return (*this)[idx];
@@ -99,7 +99,7 @@ std::ptrdiff_t Row::Distance(const Row& rhs) const {
 Row& Row::Advance(std::ptrdiff_t distance) {
     if (IsValid()) {
         // movement is defined only for valid iterators
-        std::ptrdiff_t target = distance + row_index_;
+        const std::ptrdiff_t target = distance + row_index_;
         if (target < 0 || target > static_cast<std::ptrdiff_t>(res_->RowCount())) {
             row_index_ = ResultSet::npos;
         } else {
@@ -123,7 +123,7 @@ Row& Row::Advance(std::ptrdiff_t distance) {
     return *this;
 }
 
-Row::size_type Row::IndexOfName(const std::string& name) const { return res_->IndexOfName(name); }
+Row::size_type Row::IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const { return res_->IndexOfName(name); }
 
 FieldView Row::GetFieldView(size_type index) const { return FieldView{*res_, row_index_, index}; }
 

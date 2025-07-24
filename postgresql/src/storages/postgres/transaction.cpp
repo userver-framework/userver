@@ -65,7 +65,7 @@ ResultSet Transaction::DoExecute(
         throw NotInTransaction("Transaction handle is not valid");
     }
     if (!statement_cmd_ctl) {
-        statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetName());
+        statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetOptionalNameView());
     }
     auto source = conn_.GetConfigSource();
     if (source) CheckDeadlineIsExpired(source->GetSnapshot());

@@ -1,11 +1,9 @@
 include_guard(GLOBAL)
 
 if(userver_otlp_FOUND)
-  return()
+    return()
 endif()
 
-find_package(userver REQUIRED COMPONENTS
-    core grpc
-)
+find_package(userver REQUIRED COMPONENTS core grpc)
 
 set(userver_otlp_FOUND TRUE)

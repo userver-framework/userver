@@ -13,15 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-namespace {
-
 using server::net::ListenerConfig;
-
-std::string SocketsTaskProcessorName(const ComponentConfig& config, const ListenerConfig& acceptor_config) {
-    return config["sockets_task_processor"].As<std::string>(acceptor_config.task_processor);
-}
-
-}  // namespace
 
 TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config, const ComponentContext& context)
     : TcpAcceptorBase(config, context, config.As<ListenerConfig>()) {}
@@ -47,6 +39,7 @@ properties:
   task_processor:
       type: string
       description: task processor to accept incoming connections
+      defaultDescription: the 'default_task_processor' value from components::ManagerControllerComponent
   backlog:
       type: integer
       description: max count of new connections pending acceptance
@@ -69,8 +62,15 @@ TcpAcceptorBase::TcpAcceptorBase(
 )
     : ComponentBase(config, context),
       no_delay_(config["no_delay"].As<bool>(true)),
-      acceptor_task_processor_(context.GetTaskProcessor(acceptor_config.task_processor)),
-      sockets_task_processor_(context.GetTaskProcessor(SocketsTaskProcessorName(config, acceptor_config))) {
+      acceptor_task_processor_(
+          acceptor_config.task_processor ? context.GetTaskProcessor(*acceptor_config.task_processor)
+                                         : engine::current_task::GetTaskProcessor()
+      ),
+      sockets_task_processor_(
+          config["sockets_task_processor"].IsMissing()
+              ? acceptor_task_processor_
+              : context.GetTaskProcessor(config["sockets_task_processor"].As<std::string>())
+      ) {
     for (const auto& port : acceptor_config.ports) {
         auto socket = server::net::CreateSocket(acceptor_config, port);
         sockets_.emplace_back(SocketData{std::move(socket), {}});

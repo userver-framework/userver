@@ -177,7 +177,7 @@ void HttpRequestHandler::AddHandler(const handlers::HttpHandlerBase& handler, en
             (is_monitor_ ? "" : "non-") + "monitor HttpRequestHandler"
         );
     }
-    std::lock_guard<engine::Mutex> lock(handler_infos_mutex_);
+    const std::lock_guard<engine::Mutex> lock(handler_infos_mutex_);
     handler_info_index_.AddHandler(handler, task_processor);
 }
 

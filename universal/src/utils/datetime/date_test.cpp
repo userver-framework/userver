@@ -57,7 +57,7 @@ TEST(Date, Streaming) {
 
     formats::json::StringBuilder sw;
     {
-        formats::json::StringBuilder::ObjectGuard guard{sw};
+        const formats::json::StringBuilder::ObjectGuard guard{sw};
         sw.Key("field1");
         WriteToStream(date, sw);
     }

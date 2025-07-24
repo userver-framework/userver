@@ -24,6 +24,10 @@ namespace server::handlers {
 
 class HttpHandlerJsonBase : public HttpHandlerBase {
 public:
+    using Value = formats::json::Value;
+    using HttpRequest = server::http::HttpRequest;
+    using RequestContext = server::request::RequestContext;
+
     HttpHandlerJsonBase(
         const components::ComponentConfig& config,
         const components::ComponentContext& component_context,
@@ -32,11 +36,8 @@ public:
 
     std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const final;
 
-    virtual formats::json::Value HandleRequestJsonThrow(
-        const http::HttpRequest& request,
-        const formats::json::Value& request_json,
-        request::RequestContext& context
-    ) const = 0;
+    virtual Value HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext& context)
+        const = 0;
 
     static yaml_config::Schema GetStaticConfigSchema();
 

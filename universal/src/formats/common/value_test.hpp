@@ -322,7 +322,7 @@ TYPED_TEST_P(Parsing, TransientParserType) {
     result = this->FromString("{}")["1"].template As<IntWrapper>(1);
     EXPECT_EQ(result, 1);
 
-    typename TypeParam::DefaultConstructed dc;
+    const typename TypeParam::DefaultConstructed dc;
     result = this->FromString("{}")["1"].template As<IntWrapper>(dc);
     EXPECT_EQ(result, 0);
 }

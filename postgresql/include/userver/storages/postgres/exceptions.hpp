@@ -3,6 +3,7 @@
 /// @file userver/storages/postgres/exceptions.hpp
 /// @brief Postgres errors
 
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 

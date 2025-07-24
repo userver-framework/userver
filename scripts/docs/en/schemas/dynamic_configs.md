@@ -88,7 +88,7 @@ schema:
             description: Percent of errors to enable СС
             type: number
         deactivate-delta:
-            description: СС turned off if this amount of free connections is reached 
+            description: СС turned off if this amount of free connections is reached
             type: integer
         timings-burst-times-threshold:
             description: CC is turned on if request times grow to this value
@@ -285,7 +285,7 @@ properties:
     max_replication_lag_ms:
       type: integer
       minimum: 0
-      description: maximum allowed replication lag. If equals 0 no replication 
+      description: maximum allowed replication lag. If equals 0 no replication
       lag checks are performed
     disabled_replicas:
       type: array
@@ -768,8 +768,13 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 ## USERVER_LOG_DYNAMIC_DEBUG
 
 Logging per line and file overrides.
-Log locations are defined as path prefix from the Arcadia root ("taxi/uservices/services/").
+Log locations are defined as path prefix from the Arcadia root (`taxi/uservices/services/`).
 Location of file may be followed by `:[line index]` to specify 1 exact log in that file.
+
+See @ref USERVER_LOG_DYNAMIC_DEBUG_details for detailed semantics.
+
+@note In order for `USERVER_LOG_DYNAMIC_DEBUG` to work, you should `Append` @ref components::LoggingConfigurator
+component or use @ref components::CommonComponentList.
 
 ```
 yaml
@@ -905,6 +910,9 @@ Used by all the caches derived from cache::LruCacheComponent.
 ## USERVER_NO_LOG_SPANS
 
 Prefixes or full names of tracing::Span instances to not log.
+
+@note In order for `USERVER_NO_LOG_SPANS` to work, you should `Append` @ref components::LoggingConfigurator
+component or use @ref components::CommonComponentList.
 
 @include core/dynamic_configs/USERVER_NO_LOG_SPANS.yaml
 

@@ -11,15 +11,23 @@ servers:
     description: testing
 
 paths:
-    /v1/test:
+    /test:
         get:
             parameters:
               - in: query
-                name: uid
+                name: name
                 schema:
                     type: string
+                required: true
             responses:
                 200:
                     description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: string
 
-components: {}
+components:
+    schemas:
+        Test:
+            type: integer

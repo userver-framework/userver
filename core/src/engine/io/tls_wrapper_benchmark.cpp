@@ -110,9 +110,9 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
             std::move(server)
         );
 
-        engine::io::IoData msg{"msg", 3};
+        const engine::io::IoData msg{"msg", 3};
         const std::string payload(state.range(0), 'x');
-        engine::io::IoData big_msg{payload.data(), payload.size()};
+        const engine::io::IoData big_msg{payload.data(), payload.size()};
 
         auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
 
@@ -154,9 +154,9 @@ BENCHMARK(tls_write_all_buffered)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->U
             std::move(server)
         );
 
-        engine::io::IoData msg{"msg", 3};
+        const engine::io::IoData msg{"msg", 3};
         const std::string payload(state.range(0), 'x');
-        engine::io::IoData big_msg{payload.data(), payload.size()};
+        const engine::io::IoData big_msg{payload.data(), payload.size()};
 
         auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
 

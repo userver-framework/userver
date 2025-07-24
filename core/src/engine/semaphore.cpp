@@ -74,10 +74,7 @@ void CancellableSemaphore::SetCapacity(Counter capacity) {
     }
 }
 
-CancellableSemaphore::Counter CancellableSemaphore::GetCapacity()  //
-    const noexcept {
-    return capacity_.load();
-}
+CancellableSemaphore::Counter CancellableSemaphore::GetCapacity() const noexcept { return capacity_.load(); }
 
 std::size_t CancellableSemaphore::RemainingApprox() const {
     const auto acquired = acquired_locks_.load(std::memory_order_relaxed);

@@ -76,7 +76,14 @@ const T& GetKey(const T& key) noexcept {
     return key;
 }
 
-template <typename T, typename U, typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
+template <class T>
+using StringToStringView = std::conditional_t<std::is_same_v<T, std::string>, std::string_view, T>;
+
+template <
+    typename T,
+    typename U,
+    typename Hash = std::hash<StringToStringView<T>>,
+    typename Equal = std::equal_to<StringToStringView<T>>>
 class LruBase final {
 public:
     using NodeType = std::unique_ptr<LruNode<T, U>>;
@@ -111,7 +118,13 @@ public:
 
     void Erase(const T& key);
 
-    U* Get(const T& key);
+    U* Get(const T& key) { return GetTransparentImpl(key); }
+
+    template <class Key>
+    U* GetTransparent(const Key& key) {
+        static_assert(std::is_same_v<T, std::string>, "Only std::string as T supported for transparent comparisons");
+        return GetTransparentImpl(std::string_view{key});
+    }
 
     const T* GetLeastUsedKey() const;
 
@@ -137,6 +150,9 @@ public:
     std::size_t GetCapacity() const;
 
 private:
+    template <class Key>
+    U* GetTransparentImpl(const Key& key);
+
     using Node = LruNode<T, U>;
     using List = boost::intrusive::list<Node, boost::intrusive::constant_time_size<false>>;
 
@@ -220,7 +236,8 @@ void LruBase<T, U, Hash, Eq>::Erase(const T& key) {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-U* LruBase<T, U, Hash, Eq>::Get(const T& key) {
+template <class Key>
+U* LruBase<T, U, Hash, Eq>::GetTransparentImpl(const Key& key) {
     auto it = map_.find(key, map_.hash_function(), map_.key_eq());
     if (it == map_.end()) return nullptr;
     MarkRecentlyUsed(*it);

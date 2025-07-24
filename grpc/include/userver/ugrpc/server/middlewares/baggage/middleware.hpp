@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/server/middlewares/baggage/middleware.hpp
+/// @brief @copybrief ugrpc::server::middlewares::baggage::Middleware
+
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN

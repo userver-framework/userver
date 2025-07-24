@@ -131,15 +131,8 @@ Hint::Hint(formats::bson::Document index_spec) : value_(std::move(index_spec)) {
 
 const formats::bson::Value& Hint::Value() const { return value_; }
 
-ArrayFilters::ArrayFilters(std::initializer_list<formats::bson::Document> filters) {
-    formats::bson::ValueBuilder builder{formats::common::Type::kArray};
-
-    for (const auto& filter : filters) {
-        builder.PushBack(filter);
-    }
-
-    value_ = builder.ExtractValue();
-}
+ArrayFilters::ArrayFilters(std::initializer_list<formats::bson::Document> filters)
+    : ArrayFilters(filters.begin(), filters.end()) {}
 
 const formats::bson::Value& ArrayFilters::Value() const { return value_; }
 

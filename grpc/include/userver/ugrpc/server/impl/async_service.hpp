@@ -25,7 +25,7 @@ public:
         int method_id,
         grpc::ServerContext& context,
         typename CallTraits::InitialRequest& initial_request,
-        typename CallTraits::RawCall& stream,
+        typename CallTraits::RawResponder& stream,
         grpc::CompletionQueue& call_cq,
         grpc::ServerCompletionQueue& notification_cq,
         void* tag

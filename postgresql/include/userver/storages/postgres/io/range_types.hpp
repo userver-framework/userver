@@ -275,7 +275,7 @@ struct RangeBinaryParser : BufferParserBase<Range<T>> {
         char wire_range_flags{0};
 
         buffer.Read(wire_range_flags, BufferCategory::kPlainBuffer);
-        RangeFlags range_flags(static_cast<RangeFlag>(wire_range_flags));
+        const RangeFlags range_flags(static_cast<RangeFlag>(wire_range_flags));
 
         ValueType wire_value;
         if (range_flags != RangeFlag::kEmpty) {
@@ -328,7 +328,7 @@ struct RangeBinaryFormatter : BufferFormatterBase<Range<T>> {
                 range_flags |= RangeFlag::kUpperBoundInclusive;
             }
         }
-        char wire_range_flags = static_cast<char>(range_flags.GetValue());
+        const char wire_range_flags = static_cast<char>(range_flags.GetValue());
         io::WriteBuffer(types, buffer, wire_range_flags);
         if (!this->value.Empty()) {
             // Write lower/upper bounds
@@ -484,7 +484,7 @@ bool Range<T>::RangeData::HasBound(RangeBounds side) const {
 
 template <typename T>
 bool Range<T>::RangeData::BoundEqual(const RangeData& rhs, RangeBounds side) const {
-    bool has_bound = HasBound(side);
+    const bool has_bound = HasBound(side);
     if (has_bound != rhs.HasBound(side)) {
         return false;
     }

@@ -94,9 +94,9 @@ UTEST(CacheControl, Smoke) {
     const yaml_config::YamlConfig config{formats::yaml::FromString(kConfigContents), {}};
     cache::MockEnvironment env;
 
-    FakeCache test_cache(kCacheName, config, env);
+    const FakeCache test_cache(kCacheName, config, env);
 
-    FakeCache test_cache_alternative(kCacheNameAlternative, config, env);
+    const FakeCache test_cache_alternative(kCacheNameAlternative, config, env);
 
     // Periodic updates are disabled, so a synchronous update will be performed
     EXPECT_EQ(1, test_cache.UpdatesCount());
@@ -153,7 +153,7 @@ UTEST(CacheControl, Smoke) {
 UTEST_DEATH(CacheControlDeathTest, MissingCache) {
     const yaml_config::YamlConfig config{formats::yaml::FromString(kConfigContents), {}};
     cache::MockEnvironment env;
-    FakeCache test_cache(kCacheName, config, env);
+    const FakeCache test_cache(kCacheName, config, env);
 
     EXPECT_UINVARIANT_FAILURE(env.dump_control.WriteCacheDumps({"missing"}));
     EXPECT_UINVARIANT_FAILURE(env.dump_control.ReadCacheDumps({"missing"}));
@@ -389,13 +389,13 @@ void AssertConcurrentResets() {
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime / 2);
 
     {
-        std::unique_lock lock{block_updates_mutex};
+        const std::lock_guard lock{block_updates_mutex};
         updates_cond_var.NotifyAll();
     }
 
     std::unique_lock lock{block_updates_mutex};
     updates_cond_var.WaitUntil(lock, deadline, [] {
-        bool result =
+        const bool result =
             Component1::resets_count == expected_resets_count && Component1a::resets_count == expected_resets_count &&
             Component1b::resets_count == expected_resets_count && Component1c::resets_count == expected_resets_count;
         if (!result) {
@@ -448,6 +448,7 @@ components_manager:
   event_thread_pool:
     threads: 1
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   task_processors:
     main-task-processor:
       worker_threads: 1

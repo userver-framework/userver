@@ -24,12 +24,13 @@ class SubscriptionRebalanceScheduler;
 
 class SubscriptionToken {
 public:
-    SubscriptionToken() = default;
-    SubscriptionToken(std::weak_ptr<SubscriptionStorageBase> storage, SubscriptionId subscription_id);
+    SubscriptionToken() = delete;
+    SubscriptionToken(SubscriptionStorageBase& storage, SubscriptionId subscription_id);
     SubscriptionToken(SubscriptionToken&& token) noexcept;
     SubscriptionToken(const SubscriptionToken& token) = delete;
 
     SubscriptionToken& operator=(SubscriptionToken&& token) noexcept;
+    SubscriptionToken& operator=(const SubscriptionToken& token) = delete;
 
     bool Subscribed() const { return subscription_id_ != 0; }
 
@@ -38,11 +39,11 @@ public:
     void Unsubscribe();
 
 private:
-    std::weak_ptr<SubscriptionStorageBase> storage_;
+    SubscriptionStorageBase& storage_;
     SubscriptionId subscription_id_{0};
 };
 
-class SubscriptionStorageBase : public std::enable_shared_from_this<SubscriptionStorageBase> {
+class SubscriptionStorageBase {
 public:
     using ServerWeights = std::unordered_map<ServerId, size_t, ServerIdHasher>;
     using CommandCb = std::function<void(size_t shard, CommandPtr command)>;
@@ -84,7 +85,6 @@ public:
 
     virtual void DoRebalance(size_t shard_idx, ServerWeights weights) = 0;
 
-    virtual void SwitchToNonClusterMode() = 0;
     virtual void SetShardsCount(size_t /*shards_count*/) = 0;
 
     virtual const std::string& GetShardName(size_t shard_idx) const = 0;
@@ -193,8 +193,9 @@ protected:
             size_t shard_idx
         );
         void OnSmessage(ServerId server_id, const std::string& channel, const std::string& message, size_t shard_idx);
-        size_t GetChannelsCountApprox() const;
-        PubsubShardStatistics GetShardStatistics(size_t shard_idx) const;
+        size_t GetChannelsCountApprox(const std::lock_guard<std::mutex>& /*held_lock*/) const;
+        PubsubShardStatistics GetShardStatistics(size_t shard_idx, const std::lock_guard<std::mutex>& /*held_lock*/)
+            const;
         RawPubsubClusterStatistics GetStatistics() const;
 
         template <typename Map>
@@ -204,25 +205,48 @@ protected:
         void RebalanceMoveSubscriptions(RebalanceState& state);
 
         void SetCommandControl(const CommandControl& control);
-        void DoRebalance(size_t shard_idx, ServerWeights weights);
+        void DoRebalance(size_t shard_idx, ServerWeights weights, const std::lock_guard<std::mutex>& /*held_lock*/);
         SubscriptionToken
         Subscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control);
         SubscriptionToken
         Ssubscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control);
         SubscriptionToken
         Psubscribe(const std::string& channel, Sentinel::UserPmessageCallback cb, CommandControl control);
-        SubscriptionId GetNextSubscriptionId();
 
+        SubscriptionId GetNextSubscriptionId(const std::lock_guard<std::mutex>& /*held_lock*/);
+
+        const CommandControl& GetCommandControl(const ChannelName& channel_name) const;
+
+        std::size_t GetShardsCount(const std::lock_guard<std::mutex>& /*held_lock*/) const noexcept {
+            return shards_count_;
+        }
+        void SetShardsCount(std::size_t shards_count) {
+            const std::lock_guard lock{mutex_};
+            shards_count_ = shards_count;
+        }
+
+        void ClearCallbackMaps() {
+            const std::lock_guard lock{mutex_};
+            callback_map_.clear();
+            pattern_callback_map_.clear();
+            sharded_callback_map_.clear();
+        }
+
+        // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
         mutable std::mutex mutex_;
         CommandCb subscribe_callback_;
         CommandCb unsubscribe_callback_;
         ShardedCommandCb sharded_subscribe_callback_;
         ShardedCommandCb sharded_unsubscribe_callback_;
+
         CallbackMap callback_map_;
         PcallbackMap pattern_callback_map_;
         CallbackMap sharded_callback_map_;
+        // NOLINTEND(misc-non-private-member-variables-in-classes)
+
+    private:
         CommandControl common_command_control_;
-        size_t shards_count_{0};
+        std::size_t shards_count_{0};
         SubscriptionStorageBase& implemented_;
         SubscriptionId next_subscription_id_{1};
     };
@@ -268,7 +292,6 @@ public:
 
     void DoRebalance(size_t shard_idx, ServerWeights weights) override;
 
-    void SwitchToNonClusterMode() override;
     void SetShardsCount(size_t /*shards_count*/) override {}
     const std::string& GetShardName(size_t shard_idx) const override;
 

@@ -25,7 +25,7 @@ AND created > $created_key;
 formats::json::Value SelectRowsHandler::
     HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request_json, server::request::RequestContext&)
         const {
-    ydb::OperationSettings query_params = {
+    const ydb::OperationSettings query_params = {
         3,                                // retries
         std::chrono::milliseconds(1000),  // operation_timeout
         std::chrono::milliseconds(1000),  // cancel_after

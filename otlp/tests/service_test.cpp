@@ -166,7 +166,7 @@ UTEST_F(LogServiceTest, SmokeLogs) {
 UTEST_F(LogServiceTest, SmokeTrace) {
     const auto timestamp1 =
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
-    { tracing::Span span("some_span"); }
+    { const tracing::Span span("some_span"); }
     const auto timestamp2 =
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
 

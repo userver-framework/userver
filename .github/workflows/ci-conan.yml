@@ -45,7 +45,9 @@ jobs:
 
                 sudo apt update
                 sudo apt install -y postgresql redis mongodb-org mongodb-mongosh
-                sudo ./scripts/kafka/ubuntu_install_kafka.sh
+
+                sudo ./scripts/kafka/install_kafka.sh
+
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
           - name: Install MacOS packages
@@ -53,7 +55,10 @@ jobs:
             run: |
                 brew update
                 brew tap mongodb/brew
-                brew install clang-format postgresql redis kafka rabbitmq mongodb-community
+                brew install clang-format postgresql redis rabbitmq mongodb-community
+
+                sudo ./scripts/kafka/install_kafka.sh
+
                 brew install python@3.11
 
           - name: Install common packages

@@ -57,13 +57,10 @@ public:
     HeaderMap();
     /// Constructor from initializer list: `HeaderMap({{"a", "b"}, {"c", "d"}})`.
     /// Its unspecified which pair is inserted in case of names not being unique.
-    HeaderMap(std::initializer_list<std::pair<std::string, std::string>> headers);
-    /// Constructor from initializer list: `HeaderMap({{"a", "b"}, {"c", "d"}})`.
-    /// Its unspecified which pair is inserted in case of names not being unique.
-    HeaderMap(std::initializer_list<std::pair<PredefinedHeader, std::string>> headers);
+    /*implicit*/ HeaderMap(std::initializer_list<std::pair<std::string_view, std::string_view>> headers);
     /// Constructor with capacity: preallocates `capacity` elements for internal
     /// storage.
-    HeaderMap(std::size_t capacity);
+    explicit HeaderMap(std::size_t capacity);
     /// Constructor from iterator pair:
     /// `HeaderMap{key_value_pairs.begin(), key_value_pairs.end()}`.
     /// Its unspecified which pair is inserted in case of names not being unique.

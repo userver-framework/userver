@@ -23,7 +23,7 @@ Supported features:
 
 ## CMake integration
 
-### CMake integration via `userver_testsuite_add()`
+### CMake integration via userver_testsuite_add()
 
 With `userver_testsuite_add()` function you can easily add testsuite support to your project.
 Its main purpose is:
@@ -37,7 +37,7 @@ Its main purpose is:
 Then create testsuite target:
 @snippet samples/testsuite-support/CMakeLists.txt testsuite - cmake
 
-### `userver_testsuite_add()` arguments
+### userver_testsuite_add() arguments
 
 * SERVICE_TARGET, required CMake name of the target service to test. Used as
   suffix for `testsuite-` and `start-` CMake target names.
@@ -66,7 +66,7 @@ Some of the most useful arguments for PYTEST_ARGS:
 | `--service-wait`                | With this argument the testsuite will wait for the service start by user. For example under gdb. Testsuite outputs a hint on starting the service |
 | `-rf`                           | Show a summary of failed tests          |
 
-### CMake integration via `userver_testsuite_add_simple()`
+### CMake integration via userver_testsuite_add_simple()
 
 `userver_testsuite_add_simple()` is a version of `userver_testsuite_add()`
 that makes some assumptions of the project structure.
@@ -445,7 +445,7 @@ For metrics with labels, they could be retrieved in the following way:
 The @ref pytest_userver.metrics.Metric "Metric" python type is hashable and
 comparable:
 
-@snippet testsuite/tests/test_metrics.py  values set
+@snippet testsuite/tests/metrics/test_metrics.py  values set
 
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
@@ -500,7 +500,7 @@ def test_service(service_client):
 
 Testsuite allows to create tests that start a new service instance for the test and stop it on test finish:
 
-@snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample 
+@snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample
 
 Such functionality slows down the tests run, but it may be required
 * to test service state right after the service start,

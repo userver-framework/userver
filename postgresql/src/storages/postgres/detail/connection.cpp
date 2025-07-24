@@ -26,7 +26,8 @@ std::unique_ptr<Connection> Connection::Connect(
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings,
-    engine::SemaphoreLock&& size_lock
+    engine::SemaphoreLock&& size_lock,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 ) {
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     std::unique_ptr<Connection> conn(new Connection());
@@ -42,7 +43,8 @@ std::unique_ptr<Connection> Connection::Connect(
         default_cmd_ctls,
         testsuite_pg_ctl,
         ei_settings,
-        std::move(size_lock)
+        std::move(size_lock),
+        std::move(metrics)
     );
     if (resolver) {
         try {
@@ -67,7 +69,7 @@ bool Connection::IsReadOnly() const { return pimpl_->IsReadOnly(); }
 
 void Connection::RefreshReplicaState(engine::Deadline deadline) const { pimpl_->RefreshReplicaState(deadline); }
 
-ConnectionSettings const& Connection::GetSettings() const { return pimpl_->GetSettings(); }
+const ConnectionSettings& Connection::GetSettings() const { return pimpl_->GetSettings(); }
 
 ConnectionState Connection::GetState() const { return pimpl_->GetConnectionState(); }
 
@@ -147,7 +149,7 @@ ResultSet Connection::Execute(CommandControl statement_cmd_ctl, const Query& que
 }
 
 Connection::StatementId Connection::PortalBind(
-    const std::string& statement,
+    USERVER_NAMESPACE::utils::zstring_view statement,
     const std::string& portal_name,
     const detail::QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl
@@ -190,7 +192,7 @@ void Connection::Ping() { pimpl_->Ping(); }
 
 void Connection::MarkAsBroken() { pimpl_->MarkAsBroken(); }
 
-OptionalCommandControl Connection::GetQueryCmdCtl(const std::optional<Query::Name>& query_name) const {
+OptionalCommandControl Connection::GetQueryCmdCtl(std::optional<Query::NameView> query_name) const {
     return pimpl_->GetNamedQueryCommandControl(query_name);
 }
 

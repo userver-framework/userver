@@ -19,10 +19,10 @@ using X = std::pair<int, int>;
 
 }  // namespace
 
-UTEST(Rcu, Ctr) { rcu::Variable<X> ptr; }
+UTEST(Rcu, Ctr) { const rcu::Variable<X> ptr; }
 
 UTEST(Rcu, ReadInit) {
-    rcu::Variable<X> ptr(1, 2);
+    const rcu::Variable<X> ptr(1, 2);
 
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(1, 2), *reader);
@@ -422,7 +422,7 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
         tasks.push_back(engine::AsyncNoSpan([&] {
             while (keep_running) {
                 {
-                    std::lock_guard lock(ping_pong_mutex);
+                    const std::lock_guard lock(ping_pong_mutex);
                     // copy a ptr created by another thread
                     ptr = rcu::ReadablePtr{ptr};
                     ASSERT_GT(ptr->value, 0);
@@ -572,7 +572,7 @@ UTEST_MT(Rcu, Core, 3) {
 }
 
 TEST(Rcu, StdMutexInit) {
-    rcu::Variable<X, rcu::BlockingRcuTraits> ptr(1, 2);
+    const rcu::Variable<X, rcu::BlockingRcuTraits> ptr(1, 2);
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(1, 2), *reader);
 }

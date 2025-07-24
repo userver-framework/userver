@@ -37,7 +37,10 @@ ExecutionResult Pool::Execute(OptionalCommandControl optional_cc, const Query& q
     auto conn_ptr = impl_->Acquire();
 
     auto span = PrepareExecutionSpan(impl::scopes::kQuery, impl_->GetHostName());
-    query.FillSpanTags(span);
+    UASSERT(query.GetLogMode() == Query::LogMode::kNameOnly || query.GetLogMode() == Query::LogMode::kFull);
+    if (query.GetOptionalNameView().has_value()) {
+        span.AddTag(tracing::kDatabaseStatementName, std::string{*query.GetOptionalNameView()});
+    }
 
     const auto timer = impl_->GetExecuteTimer();
     return conn_ptr->Execute(optional_cc, query);

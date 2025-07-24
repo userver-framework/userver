@@ -217,7 +217,8 @@ ValueImpl::ValueImpl(std::string value) : bson_value_(kDefaultBsonValue) {
 }
 
 ValueImpl::ValueImpl(const std::chrono::system_clock::time_point& value) : ValueImpl() {
-    int64_t ms_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(value.time_since_epoch()).count();
+    const int64_t ms_since_epoch =
+        std::chrono::duration_cast<std::chrono::milliseconds>(value.time_since_epoch()).count();
     bson_value_.value_type = BSON_TYPE_DATE_TIME;
     bson_value_.value.v_datetime = ms_since_epoch;
 }
@@ -583,8 +584,8 @@ void ValueImpl::EnsureParsed() {
                 bson_value_.value.v_doc.data_len,
                 path_,
                 [this, &parsed_array, indexer = ArrayIndexer()](bson_iter_t* it) mutable {
-                    std::string_view expected_key = indexer.GetKey();
-                    std::string_view actual_key(bson_iter_key(it), bson_iter_key_len(it));
+                    const std::string_view expected_key = indexer.GetKey();
+                    const std::string_view actual_key(bson_iter_key(it), bson_iter_key_len(it));
                     if (expected_key != actual_key) {
                         throw ParseException(fmt::format(
                             "malformed BSON array at {}: index "
@@ -618,7 +619,7 @@ void ValueImpl::EnsureParsed() {
                 bson_value_.value.v_doc.data_len,
                 path_,
                 [this, &parsed_doc](bson_iter_t* it) {
-                    std::string_view key(bson_iter_key(it), bson_iter_key_len(it));
+                    const std::string_view key(bson_iter_key(it), bson_iter_key_len(it));
                     const bson_value_t* iter_value = bson_iter_value(it);
                     if (!iter_value) {
                         throw ParseException(fmt::format("malformed BSON element at {}.{}", path_.ToStringView(), key));

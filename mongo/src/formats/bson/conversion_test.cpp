@@ -5,7 +5,9 @@
 #include <boost/optional.hpp>
 
 #include <userver/formats/bson.hpp>
+#include <userver/formats/bson/inline.hpp>
 #include <userver/formats/parse/boost_optional.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -429,6 +431,14 @@ TEST(BsonConversion, Containers) {
     EXPECT_TRUE(doc["n"].ConvertTo<std::vector<int>>().empty());
     EXPECT_FALSE(doc["n"].ConvertTo<boost::optional<std::string>>());
     EXPECT_FALSE(doc["n"].ConvertTo<std::optional<std::string>>());
+}
+
+TEST(BsonConversion, CommonContainerToDocument) {
+    const std::vector<std::string> data{"abc", "def"};
+    const auto doc = fb::MakeDoc("a", data);
+    EXPECT_EQ(2, doc["a"].GetSize());
+    EXPECT_EQ("abc", doc["a"][0].As<std::string>());
+    EXPECT_EQ("def", doc["a"][1].As<std::string>());
 }
 
 USERVER_NAMESPACE_END

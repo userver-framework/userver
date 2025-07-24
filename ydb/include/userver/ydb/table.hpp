@@ -90,6 +90,9 @@ public:
     /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
     /// if needed.
     ///
+    /// It is convinient to keep YQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// for more info.
+    ///
     /// @{
     template <typename... Args>
     ExecuteResponse ExecuteDataQuery(const Query& query, Args&&... args);

@@ -35,23 +35,20 @@ void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& 
         WriteRateAndLegacyMetrics(tasks["created"], created);
         tasks["alive"] = (created - std::min(destroyed, created)).value;
         tasks["running"] = counter.GetRunningTasks();
-        tasks["queued"] = task_processor.GetTaskQueueSize();
+        tasks["queued"] = GetQueueSize(task_processor);
         WriteRateAndLegacyMetrics(tasks["finished"], stopped);
         WriteRateAndLegacyMetrics(tasks["cancelled"], counter.GetCancelledTasks());
         WriteRateAndLegacyMetrics(tasks["cancelled_overload"], counter.GetCancelledTasksOverload());
     }
 
-    writer["errors"].ValueWithLabels(
-        counter.GetTasksOverload().value, {{"task_processor_error", "wait_queue_overload"}}
-    );
+    writer["errors"].ValueWithLabels(counter.GetTasksOverload(), {{"task_processor_error", "wait_queue_overload"}});
 
     if (auto context_switch = writer["context_switch"]) {
-        context_switch["slow"] = counter.GetTasksStartedRunning().value;
-        context_switch["fast"] = 0;
-        context_switch["spurious_wakeups"] = counter.GetSpuriousWakeups().value;
+        WriteRateAndLegacyMetrics(context_switch["slow"], counter.GetTasksStartedRunning());
+        WriteRateAndLegacyMetrics(context_switch["spurious_wakeups"], counter.GetSpuriousWakeups());
 
-        context_switch["overloaded"] = counter.GetTasksOverloadSensor().value;
-        context_switch["no_overloaded"] = counter.GetTasksNoOverloadSensor().value;
+        WriteRateAndLegacyMetrics(context_switch["overloaded"], counter.GetTasksOverloadSensor());
+        WriteRateAndLegacyMetrics(context_switch["no_overloaded"], counter.GetTasksNoOverloadSensor());
     }
 
     writer["worker-threads"] = task_processor.GetWorkerCount();

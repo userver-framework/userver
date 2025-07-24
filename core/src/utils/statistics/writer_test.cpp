@@ -148,7 +148,7 @@ UTEST(MetricsWriter, Sample) {
             // Metric without labels
             writer["metric1"] = 42;
 
-            ComponentMetrics& metrics = component_metrics_;
+            const ComponentMetrics& metrics = component_metrics_;
             writer["more_metrics"] = metrics;
         },
         {{"label_for_all", "labell value"}}

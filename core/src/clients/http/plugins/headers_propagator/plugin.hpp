@@ -16,6 +16,10 @@ public:
 
     void HookOnCompleted(PluginRequest&, Response&) override;
 
+    void HookOnError(PluginRequest& request, std::error_code ec) override;
+
+    bool HookOnRetry(PluginRequest&) override;
+
 private:
     const std::vector<std::string> headers_;
 };

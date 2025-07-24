@@ -25,6 +25,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -69,11 +70,11 @@ public:
     /// set verify flags
     void verify(bool verify);
     /// set file holding one or more certificates to verify the peer with
-    void ca_info(const std::string& file_path);
+    void ca_info(utils::zstring_view file_path);
     /// set certificate to verify the peer with
     void ca(crypto::Certificate cert);
     /// set CRL-file
-    void crl_file(const std::string& file_path);
+    void crl_file(utils::zstring_view file_path);
     /// set private key and certificate from memory
     void client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert);
     /// Set HTTP version
@@ -83,15 +84,20 @@ public:
     /// set number of retries
     void retry(short retries, bool on_fails);
     /// set unix socket as transport instead of TCP
-    void unix_socket_path(const std::string& path);
+    void unix_socket_path(utils::zstring_view path);
     /// set connect_to option
     void connect_to(const ConnectTo& connect_to);
     /// sets proxy to use
-    void proxy(const std::string& value);
+    void proxy(utils::zstring_view value);
     /// sets proxy auth type to use
     void proxy_auth_type(curl::easy::proxyauth_t value);
     /// sets proxy auth type and credentials to use
-    void http_auth_type(curl::easy::httpauth_t value, bool auth_only, std::string_view user, std::string_view password);
+    void http_auth_type(
+        curl::easy::httpauth_t value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    );
 
     /// get timeout value in milliseconds
     long timeout() const { return original_timeout_.count(); }

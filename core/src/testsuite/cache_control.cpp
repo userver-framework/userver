@@ -234,7 +234,7 @@ void CacheControl::DoResetCachesConcurrently(
     }
 
     {
-        const std::unique_lock lock{tasks_init_mutex};
+        const std::lock_guard lock{tasks_init_mutex};
         for (std::size_t i = 0; i < async_jobs.size(); ++i) {
             async_jobs[i].task = engine::SharedAsyncNoSpan(
                 [i, &async_jobs, &tasks_init_mutex, &force_incremental_names, update_type, state] {

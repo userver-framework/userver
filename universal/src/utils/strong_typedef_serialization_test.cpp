@@ -106,7 +106,7 @@ TEST(SerializeStrongTypedef, ParseOptionalIntNone) {
 }
 
 TEST(SerializeStrongTypedef, SerializeCycleInt) {
-    IntTypedef reference{10};
+    const IntTypedef reference{10};
     // Serialize
     auto json_object = formats::json::ValueBuilder(reference).ExtractValue();
 
@@ -130,7 +130,7 @@ TEST(SerializeStrongTypedef, SerializeCycleOptionalInt) {
 }
 
 TEST(SerializeStrongTypedef, SerializeCycleOptionalIntNone) {
-    OptionalIntTypedef reference{boost::none};
+    const OptionalIntTypedef reference{boost::none};
     // Serialize
     auto json_object = formats::json::ValueBuilder(reference).ExtractValue();
 

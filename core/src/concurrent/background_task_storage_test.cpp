@@ -15,6 +15,11 @@ using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
+UTEST(BackgroundTaskStorage, Unused) {
+    const concurrent::BackgroundTaskStorage bts;
+    EXPECT_EQ(bts.ActiveTasksApprox(), 0);
+}
+
 UTEST(BackgroundTaskStorage, TaskStart) {
     concurrent::BackgroundTaskStorage bts;
 

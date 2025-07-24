@@ -40,6 +40,10 @@ void Plugin::HookOnCompleted(PluginRequest&, Response& response) {
     }
 }
 
+void Plugin::HookOnError(PluginRequest&, std::error_code) {}
+
+bool Plugin::HookOnRetry(PluginRequest&) { return true; }
+
 }  // namespace clients::http::plugins::yandex_tracing
 
 USERVER_NAMESPACE_END

@@ -10,12 +10,14 @@
 #include <fmt/ranges.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <curl-ev/error_code.hpp>
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/http/url.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
@@ -23,6 +25,7 @@
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/text_light.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,7 +53,7 @@ constexpr Status kLeastHttpCodeForDeadlineExpired{400};
 
 constexpr Status kFakeHttpErrorCode{599};
 
-constexpr std::string_view kTracingClientName = "external";
+const std::string kTracingClientName = "external/";
 
 constexpr utils::TrivialBiMap kTestsuiteActions = [](auto selector) {
     return selector()
@@ -266,7 +269,7 @@ void RequestState::verify(bool verify) {
     easy().set_ssl_verify_peer(verify);
 }
 
-void RequestState::ca_info(const std::string& file_path) { easy().set_ca_info(file_path.c_str()); }
+void RequestState::ca_info(utils::zstring_view file_path) { easy().set_ca_info(file_path.c_str()); }
 
 void RequestState::ca(crypto::Certificate cert) {
     UINVARIANT(cert, "No certificate");
@@ -280,7 +283,7 @@ void RequestState::ca(crypto::Certificate cert) {
     }
 }
 
-void RequestState::crl_file(const std::string& file_path) { easy().set_crl_file(file_path.c_str()); }
+void RequestState::crl_file(utils::zstring_view file_path) { easy().set_crl_file(file_path.c_str()); }
 
 void RequestState::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) {
     UINVARIANT(pkey, "No private key");
@@ -341,7 +344,7 @@ void RequestState::retry(short retries, bool on_fails) {
     retry_.on_fails = on_fails;
 }
 
-void RequestState::unix_socket_path(const std::string& path) { easy().set_unix_socket_path(path); }
+void RequestState::unix_socket_path(utils::zstring_view path) { easy().set_unix_socket_path(path); }
 
 void RequestState::connect_to(const ConnectTo& connect_to) {
     curl::native::curl_slist* ptr = connect_to.GetUnderlying();
@@ -350,7 +353,7 @@ void RequestState::connect_to(const ConnectTo& connect_to) {
     }
 }
 
-void RequestState::proxy(const std::string& value) {
+void RequestState::proxy(utils::zstring_view value) {
     proxy_url_ = value;
     easy().set_proxy(value);
 }
@@ -360,12 +363,12 @@ void RequestState::proxy_auth_type(curl::easy::proxyauth_t value) { easy().set_p
 void RequestState::http_auth_type(
     curl::easy::httpauth_t value,
     bool auth_only,
-    std::string_view user,
-    std::string_view password
+    utils::zstring_view user,
+    utils::zstring_view password
 ) {
     easy().set_http_auth(value, auth_only);
-    easy().set_user(std::string{user}.c_str());
-    easy().set_password(std::string{password}.c_str());
+    easy().set_user(user.c_str());
+    easy().set_password(password.c_str());
 }
 
 void RequestState::Cancel() {
@@ -475,6 +478,8 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
             err = easy.rate_limit_error();
         }
 
+        holder->plugin_pipeline_.HookOnError(*holder, err);
+
         span.AddTag(tracing::kErrorFlag, true);
         span.AddTag(tracing::kErrorMessage, err.message());
         span.AddTag(tracing::kHttpStatusCode, kFakeHttpErrorCode);
@@ -535,9 +540,13 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
     // - if we used all attempts
     // - if failed to reach server, and we should not retry on fails
     // - if this request was cancelled
-    const bool not_need_retry = (!err && !holder->ShouldRetryResponse()) ||
-                                (holder->retry_.current >= holder->retry_.retries) ||
-                                (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
+    bool not_need_retry = (!err && !holder->ShouldRetryResponse()) ||
+                          (holder->retry_.current >= holder->retry_.retries) || (err && !holder->retry_.on_fails) ||
+                          holder->is_cancelled_.load();
+
+    if (!not_need_retry) {
+        not_need_retry = !holder->plugin_pipeline_.HookOnRetry(*holder);
+    }
 
     if (not_need_retry) {
         // finish if no need to retry
@@ -604,7 +613,9 @@ void RequestState::parse_header(char* ptr, size_t size) try {
     const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
     if (col_pos == nullptr) {
         if (IsHttpStatusLineStart(ptr, size)) {
-            for (auto& [k, v] : response_->headers()) LOG_INFO() << "drop header " << k << "=" << v;
+            if (!response()->headers().empty()) {
+                LOG_INFO() << "Drop headers: " << (response_->headers() | boost::adaptors::map_keys);
+            }
             // In case of redirect drop 1st response headers
             response_->headers().clear();
         }
@@ -707,23 +718,25 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
     plugin_pipeline_.HookPerformRequest(*this);
 
     if (resolver_ && retry_.current == 1) {
-        engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
-            try {
-                ResolveTargetAddress(*resolver_);
-                easy().async_perform(std::move(handler));
-            } catch (const clients::dns::ResolverException& ex) {
-                // TODO: should retry - TAXICOMMON-4932
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
+        engine::DetachUnscopedUnsafe(
+            engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
+                try {
+                    ResolveTargetAddress(*resolver_);
+                    easy().async_perform(std::move(handler));
+                } catch (const clients::dns::ResolverException& ex) {
+                    // TODO: should retry - TAXICOMMON-4932
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise_.set_exception(std::current_exception());
+                    }
+                } catch (const BaseException& ex) {
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise_.set_exception(std::current_exception());
+                    }
                 }
-            } catch (const BaseException& ex) {
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
-                }
-            }
-        }).Detach();
+            })
+        );
     } else {
         easy().async_perform(std::move(handler));
     }
@@ -973,7 +986,9 @@ void RequestState::ApplyTestsuiteConfig() {
 void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
     UINVARIANT(!span_storage_, "Attempt to reuse request while the previous one has not finished");
 
-    span_storage_.emplace(std::string{kTracingClientName}, location);
+    span_storage_.emplace(
+        kTracingClientName + std::string{USERVER_NAMESPACE::http::ExtractHostname(easy().get_original_url())}, location
+    );
     auto& span = span_storage_->Get();
 
     auto request_editable_instance = GetEditableRequestInstance();

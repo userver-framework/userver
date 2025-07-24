@@ -13,18 +13,15 @@ StripedReadIndicator::StripedReadIndicator() = default;
 
 StripedReadIndicator::~StripedReadIndicator() { UASSERT_MSG(IsFree(), "ReadIndicator is destroyed while being used"); }
 
-StripedReadIndicatorLock StripedReadIndicator::Lock() noexcept {
-    DoLock();
-    return StripedReadIndicatorLock{*this};
-}
+StripedReadIndicatorLock StripedReadIndicator::GetLock() noexcept { return StripedReadIndicatorLock{*this}; }
 
-bool StripedReadIndicator::IsFree() const noexcept { return GetActiveCountApprox() == 0; }
+bool StripedReadIndicator::IsFree() const noexcept { return GetActiveCountUpperEstimate() == 0; }
 
 std::uintptr_t StripedReadIndicator::GetAcquireCountApprox() const noexcept { return acquired_count_.Read(); }
 
 std::uintptr_t StripedReadIndicator::GetReleaseCountApprox() const noexcept { return released_count_.Read(); }
 
-std::uintptr_t StripedReadIndicator::GetActiveCountApprox() const noexcept {
+std::uintptr_t StripedReadIndicator::GetActiveCountUpperEstimate() const noexcept {
     // It's important that for every lock operation, if released_count_.Add(1)
     // is seen by an IsFree() call, then the preceding acquired_count_.Add(1)
     // is also seen by it. Otherwise IsFree() could falsely report 'true'.
@@ -59,14 +56,16 @@ std::uintptr_t StripedReadIndicator::GetActiveCountApprox() const noexcept {
     return acquired - released;
 }
 
-void StripedReadIndicator::DoLock() noexcept { acquired_count_.Add(1); }
+void StripedReadIndicator::lock() noexcept { acquired_count_.Add(1); }
 
-void StripedReadIndicator::DoUnlock() noexcept {
+void StripedReadIndicator::unlock() noexcept {
     std::atomic_thread_fence(std::memory_order_release);  // (A)
     released_count_.Add(1);                               // (X)
 }
 
-StripedReadIndicatorLock::StripedReadIndicatorLock(StripedReadIndicator& indicator) noexcept : indicator_(&indicator) {}
+StripedReadIndicatorLock::StripedReadIndicatorLock(StripedReadIndicator& indicator) noexcept : indicator_(&indicator) {
+    indicator_->lock();
+}
 
 StripedReadIndicatorLock::StripedReadIndicatorLock(StripedReadIndicatorLock&& other) noexcept
     : indicator_(std::exchange(other.indicator_, nullptr)) {}
@@ -74,14 +73,14 @@ StripedReadIndicatorLock::StripedReadIndicatorLock(StripedReadIndicatorLock&& ot
 StripedReadIndicatorLock::StripedReadIndicatorLock(const StripedReadIndicatorLock& other) noexcept
     : indicator_(other.indicator_) {
     if (indicator_ != nullptr) {
-        indicator_->DoLock();
+        indicator_->lock();
     }
 }
 
 StripedReadIndicatorLock& StripedReadIndicatorLock::operator=(StripedReadIndicatorLock&& other) noexcept {
     if (this != &other) {
         if (indicator_ != nullptr) {
-            indicator_->DoUnlock();
+            indicator_->unlock();
         }
         indicator_ = std::exchange(other.indicator_, nullptr);
     }
@@ -95,7 +94,7 @@ StripedReadIndicatorLock& StripedReadIndicatorLock::operator=(const StripedReadI
 
 StripedReadIndicatorLock::~StripedReadIndicatorLock() {
     if (indicator_ != nullptr) {
-        indicator_->DoUnlock();
+        indicator_->unlock();
     }
 }
 

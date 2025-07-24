@@ -24,7 +24,8 @@ public:
         const ConnectionSettings& conn_settings,
         const DefaultCommandControls& default_cmd_ctls,
         const testsuite::PostgresControl& testsuite_pg_ctl,
-        error_injection::Settings ei_settings
+        error_injection::Settings ei_settings,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     ~HotStandby() override;

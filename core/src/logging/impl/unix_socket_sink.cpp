@@ -43,7 +43,7 @@ void UnixSocketClient::send(std::string_view message) {
 void UnixSocketClient::close() {
     if (socket_ != -1) {
         if (::close(socket_) == -1) {
-            std::string error_msg = utils::strerror(errno);
+            const std::string error_msg = utils::strerror(errno);
             std::cerr << "Error while closing socket: " << error_msg << std::endl;
         }
 

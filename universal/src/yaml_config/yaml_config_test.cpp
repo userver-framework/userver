@@ -35,7 +35,7 @@ TEST(YamlConfig, SampleVars) {
   )");
     auto vars = formats::yaml::FromString("variable: 42");
 
-    yaml_config::YamlConfig yaml(std::move(node), vars);
+    const yaml_config::YamlConfig yaml(std::move(node), vars);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
     EXPECT_EQ(yaml["some_element"]["some"].GetPath(), "some_element.some");
     /// [sample vars]
@@ -48,7 +48,7 @@ TEST(YamlConfig, SampleVarsFallback) {
         some#fallback: 42
   )");
 
-    yaml_config::YamlConfig yaml(std::move(node), {});
+    const yaml_config::YamlConfig yaml(std::move(node), {});
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
 }
 
@@ -72,7 +72,7 @@ TEST(YamlConfig, SampleEnv) {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     ::setenv("ENV_VARIABLE_NAME", "100", 1);
 
-    yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
+    const yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
     /// [sample env]
 }
@@ -143,7 +143,7 @@ element2:
 
     const auto vars = formats::yaml::FromString("variable: 0");
 
-    yaml_config::YamlConfig yaml(node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    const yaml_config::YamlConfig yaml(node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
 
     std::size_t count = 0;
     for (auto [key, value] : Items(yaml["element1"])) {
@@ -215,7 +215,7 @@ some_element:
 # /// [sample env fallback]
   )");
 
-    yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
+    const yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
     EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 }
@@ -229,10 +229,27 @@ TEST(YamlConfig, SampleFile) {
     const auto yaml_content = fmt::format("some#file: {}", path_to_file);
     auto node = formats::yaml::FromString(yaml_content);
 
-    yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    const yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some"]["some_key"][0].As<std::string>(), "a");
     /// [sample read_file]
     EXPECT_THAT(yaml["some"]["some_key"][0].GetPath(), testing::StrEq("some.some_key[0]"));
+}
+
+TEST(YamlConfig, MissingVarWithEnv) {
+    auto node = formats::yaml::FromString(R"(
+some_element:
+    some: $missing_variable
+    some#env: SOME_ENV_VARIABLE
+  )");
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("SOME_ENV_VARIABLE", "100", 1);
+
+    const yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::unsetenv("SOME_ENV_VARIABLE");
 }
 
 TEST(YamlConfig, FileFallback) {
@@ -242,7 +259,7 @@ some_element:
     some#fallback: 5
   )");
 
-    yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+    const yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
     EXPECT_THAT(yaml["some_element"]["some"].GetPath(), testing::StrEq("some_element.some"));
 }
@@ -270,7 +287,7 @@ TEST(YamlConfig, Basic) {
     int: 42
   )");
 
-    yaml_config::YamlConfig conf(std::move(node), {});
+    const yaml_config::YamlConfig conf(std::move(node), {});
     EXPECT_EQ(conf["string"].As<std::string>(), "hello");
     EXPECT_EQ(conf["duration1"].As<std::chrono::milliseconds>(), std::chrono::seconds(10));
     EXPECT_EQ(conf["duration2"].As<std::chrono::milliseconds>(), std::chrono::milliseconds(10));
@@ -316,11 +333,11 @@ TEST(YamlConfig, VariableMap) {
     EXPECT_EQ(conf["duration2"].As<std::chrono::milliseconds>(), std::chrono::milliseconds(10));
     EXPECT_EQ(conf["duration3"].As<std::chrono::milliseconds>(), std::chrono::seconds(1));
     EXPECT_EQ(conf["int"].As<int>(), 42);
-    std::vector<std::string> expected_vec{"str123", "str222"};
+    const std::vector<std::string> expected_vec{"str123", "str222"};
     EXPECT_EQ(conf["array"].As<std::vector<std::string>>(), expected_vec);
     UEXPECT_THROW(conf["bad_array"].As<std::vector<std::string>>(), yaml_config::Exception);
 
-    std::vector<std::optional<std::string>> expected_vec_miss{
+    const std::vector<std::optional<std::string>> expected_vec_miss{
         std::nullopt, std::optional<std::string>("str333"), std::optional<std::string>("xxx"), std::nullopt};
     EXPECT_EQ(conf["array_with_missing"].As<std::vector<std::optional<std::string>>>(), expected_vec_miss);
 }
@@ -450,9 +467,9 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
       - $test4
       - str5
   )");
-    yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+    const yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
-    yaml_config::YamlConfig root_array_data = conf["root"];
+    const yaml_config::YamlConfig root_array_data = conf["root"];
     Accessor root_array(root_array_data);
     EXPECT_TRUE(root_array_data.IsArray());
 
@@ -521,9 +538,9 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
       e4: $test4
       e5: str5
   )");
-    yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+    const yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
-    yaml_config::YamlConfig root_object_data = conf["root"];
+    const yaml_config::YamlConfig root_object_data = conf["root"];
     Accessor root_object(root_object_data);
     EXPECT_TRUE(root_object_data.IsObject());
 
@@ -577,7 +594,7 @@ TEST(YamlConfig, PathsParseInto) {
     path_array_vm: $path_array_vm
   )");
 
-    yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+    const yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
     auto path = conf["path"].As<std::string>();
     EXPECT_EQ(path, "/hello/1");
@@ -612,7 +629,7 @@ TEST(YamlConfig, Subconfig) {
       duration2: $duration2
   )");
 
-    yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+    const yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
     EXPECT_EQ(conf["member"].As<std::string>(), "hello");
     // Get subconfig
     auto subconf = conf["subconfig"];
@@ -631,7 +648,7 @@ TEST(YamlConfig, SubconfigNotObject) {
     member: hello
   )");
 
-    yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+    const yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
     EXPECT_EQ(conf["member"].As<std::string>(), "hello");
     EXPECT_TRUE(conf.IsObject());
     // Get subconfig that is not an object
@@ -656,7 +673,7 @@ TEST(YamlConfig, IteratorArray) {
       -  member2:  $string
          duration: $duration2
   )");
-    yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+    const yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
     auto root_array = conf["root"];
     EXPECT_TRUE(root_array.IsArray());

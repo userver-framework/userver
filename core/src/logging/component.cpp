@@ -1,13 +1,12 @@
 #include <userver/logging/component.hpp>
 
 #include <chrono>
+#include <iostream>
 #include <stdexcept>
 
+#include <fmt/chrono.h>
 #include <fmt/ranges.h>
-#include <logging/config.hpp>
-#include <logging/impl/tcp_socket_sink.hpp>
-#include <logging/tp_logger.hpp>
-#include <logging/tp_logger_utils.hpp>
+
 #include <userver/alerts/source.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -22,6 +21,11 @@
 #include <userver/utils/thread_name.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <logging/config.hpp>
+#include <logging/impl/tcp_socket_sink.hpp>
+#include <logging/tp_logger.hpp>
+#include <logging/tp_logger_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,7 +45,8 @@ alerts::Source kLogReopeningAlert("log_reopening_error");
 
 /// [Signals sample - init]
 Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
-    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
+    : fs_task_processor_{GetFsTaskProcessor(config, context)},
+      metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
       signal_subscriber_(context.FindComponent<os_signals::ProcessorComponent>()
                              .Get()
                              .AddListener(this, kName, os_signals::kSigUsr1, &Logging::OnLogRotate))
@@ -58,9 +63,6 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
 }
 
 void Logging::Init(const ComponentConfig& config, const ComponentContext& context) {
-    const auto fs_task_processor_name = config["fs-task-processor"].As<std::string>();
-    fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
-
     const auto logger_configs = yaml_config::ParseMapToArray<logging::LoggerConfig>(config["loggers"]);
 
     if (logger_configs.empty()) {
@@ -70,8 +72,6 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
 
     for (const auto& logger_config : logger_configs) {
         const bool is_default_logger = (logger_config.logger_name == "default");
-
-        const auto tp_name = logger_config.fs_task_processor.value_or(fs_task_processor_name);
 
         if (logger_config.testsuite_capture && !is_default_logger) {
             throw std::runtime_error(
@@ -99,7 +99,10 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
         }
 
         logger->StartConsumerTask(
-            context.GetTaskProcessor(tp_name), logger_config.message_queue_size, logger_config.queue_overflow_behavior
+            logger_config.fs_task_processor ? context.GetTaskProcessor(*logger_config.fs_task_processor)
+                                            : fs_task_processor_,
+            logger_config.message_queue_size,
+            logger_config.queue_overflow_behavior
         );
 
         auto insertion_result = loggers_.emplace(logger_config.logger_name, std::move(logger));
@@ -203,7 +206,7 @@ void Logging::TryReopenFiles() {
     std::unordered_map<std::string_view, engine::TaskWithResult<void>> tasks;
     tasks.reserve(loggers_.size() + 1);
     for (const auto& [name, logger] : loggers_) {
-        tasks.emplace(name, engine::CriticalAsyncNoSpan(*fs_task_processor_, ReopenLoggerFile, logger));
+        tasks.emplace(name, engine::CriticalAsyncNoSpan(fs_task_processor_, ReopenLoggerFile, logger));
     }
 
     std::string result_messages;
@@ -222,9 +225,11 @@ void Logging::TryReopenFiles() {
 
     if (!result_messages.empty()) {
         kLogReopeningAlert.FireAlert(*metrics_storage_);
-        LOG_ERROR() << fmt::format(
-            "loggers [{}] failed to reopen the log "
+        const auto now = std::chrono::system_clock::now();
+        std::cerr << fmt::format(
+            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log "
             "file: logs are getting lost now",
+            now,
             fmt::join(failed_loggers, ", ")
         );
 
@@ -255,6 +260,7 @@ properties:
     fs-task-processor:
         type: string
         description: task processor for disk I/O operations
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
     loggers:
         type: object
         description: logger options
@@ -299,7 +305,7 @@ properties:
                 fs-task-processor:
                     type: string
                     description: task processor for disk I/O operations for this logger
-                    defaultDescription: fs-task-processor of the loggers component
+                    defaultDescription: fs-task-processor of the logger component
                 testsuite-capture:
                     type: object
                     description: if exists, setups additional TCP log sink for testing purposes

@@ -8,6 +8,7 @@ cryptopp-devel
 curl-devel
 fmt-devel
 g++
+gdb
 google-benchmark-devel
 grpc-devel
 grpc-plugins
@@ -32,5 +33,6 @@ python3-protobuf
 python3-voluptuous
 re2
 redis
+unixODBC-devel
 yaml-cpp-devel
 zlib-devel

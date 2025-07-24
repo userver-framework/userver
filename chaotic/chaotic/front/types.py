@@ -68,7 +68,6 @@ def validate_type(field_name: str, value, type_) -> None:
         except AttributeError:
             pytype = type_
 
-    # print(f'{value} is {pytype}?')
     try:
         if not isinstance(value, pytype):
             # TODO: better text
@@ -170,6 +169,9 @@ class Ref(Schema):
     self_ref: bool
     schema: Schema = _NOT_IMPL
 
+    def __post_init__(self):
+        assert self.ref.find('/../') == -1
+
     __hash__ = Schema.__hash__
 
 
@@ -248,9 +250,12 @@ class Number(Schema):
 
 
 class StringFormat(enum.Enum):
+    BINARY = enum.auto()
+    BYTE = enum.auto()
     DATE = enum.auto()
     DATE_TIME = enum.auto()
     DATE_TIME_ISO_BASIC = enum.auto()
+    DATE_TIME_FRACTION = enum.auto()
     UUID = enum.auto()
 
     @classmethod
@@ -262,9 +267,12 @@ class StringFormat(enum.Enum):
 
 
 STRING_FORMAT_TO_FORMAT = {
+    'binary': StringFormat.BINARY,
+    'byte': StringFormat.BYTE,
     'date': StringFormat.DATE,
     'date-time': StringFormat.DATE_TIME,
     'date-time-iso-basic': StringFormat.DATE_TIME_ISO_BASIC,
+    'date-time-fraction': StringFormat.DATE_TIME_FRACTION,
     'uuid': StringFormat.UUID,
 }
 

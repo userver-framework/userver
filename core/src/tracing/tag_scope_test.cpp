@@ -42,7 +42,7 @@ UTEST_F(TagScopeTest, IntegerTypeFrozen) {
 }
 
 UTEST_F(TagScopeTest, AutomaticSpanFinding) {
-    tracing::Span myspan{"myspan"};
+    const tracing::Span myspan{"myspan"};
     const tracing::TagScope tag{"key", 123};
     LOG_INFO() << "1";
     logging::LogFlush();
@@ -50,7 +50,7 @@ UTEST_F(TagScopeTest, AutomaticSpanFinding) {
 }
 
 UTEST_F(TagScopeTest, AutomaticSpanFindingFrozen) {
-    tracing::Span myspan{"myspan"};
+    const tracing::Span myspan{"myspan"};
     const tracing::TagScope tag{"key", 123, logging::LogExtra::ExtendType::kFrozen};
     LOG_INFO() << "1";
     logging::LogFlush();
@@ -354,7 +354,7 @@ UTEST_F(TagScopeTest, BasicLogExtraFrozen) {
 }
 
 UTEST_F(TagScopeTest, AutomaticSpanFindingLogExtra) {
-    tracing::Span myspan{"myspan"};
+    const tracing::Span myspan{"myspan"};
     const tracing::TagScope tag_scope{logging::LogExtra{std::make_pair("key", "value"), std::make_pair("foo", 123)}};
 
     LOG_INFO() << "1";
@@ -416,16 +416,16 @@ UTEST_F(TagScopeTest, RegularTagBrokenLogExtra) {
 }
 
 UTEST_F(TagScopeTest, RegularAndFrozenTagLogExtra) {
-    tracing::Span myspan{"myspan"};
+    const tracing::Span myspan{"myspan"};
     logging::LogExtra extra1;
     extra1.Extend(std::make_pair("key", "value"));
     extra1.Extend(std::make_pair("foo", 123), logging::LogExtra::ExtendType::kFrozen);
-    tracing::TagScope tag_scope1{std::move(extra1)};
+    const tracing::TagScope tag_scope1{std::move(extra1)};
     {
         logging::LogExtra extra2;
         extra2.Extend(std::make_pair("key", "2value2"), logging::LogExtra::ExtendType::kFrozen);
         extra2.Extend(std::make_pair("foo", 321));
-        tracing::TagScope tag_scope2{std::move(extra2)};
+        const tracing::TagScope tag_scope2{std::move(extra2)};
 
         LOG_INFO() << "1";
         logging::LogFlush();

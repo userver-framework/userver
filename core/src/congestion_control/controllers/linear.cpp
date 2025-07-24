@@ -8,8 +8,19 @@ namespace congestion_control::v2 {
 
 namespace {
 constexpr std::size_t kCurrentLoadEpochs = 3;
-constexpr std::size_t kShortTimingsEpochs = 3;
-constexpr std::size_t kLongTimingsEpochs = 30;
+
+Sensor::SingleObjectData MergeIntoSingleObjectData(
+    const std::unordered_map<std::string, Sensor::SingleObjectData>& objects
+) {
+    Sensor::SingleObjectData result;
+    for (const auto& [_, object_stats] : objects) {
+        result.timings_sum_ms += object_stats.timings_sum_ms;
+        result.total += object_stats.total;
+        result.timeouts += object_stats.timeouts;
+    }
+    return result;
+}
+
 }  // namespace
 
 LinearController::LinearController(
@@ -24,48 +35,74 @@ LinearController::LinearController(
     : Controller(name, sensor, limiter, stats, {config.fake_mode, config.enabled}),
       config_(config),
       current_load_(kCurrentLoadEpochs),
-      long_timings_(kLongTimingsEpochs),
-      short_timings_(kShortTimingsEpochs),
       config_source_(config_source),
-      config_getter_(config_getter) {}
+      config_getter_(std::move(config_getter)) {}
 
-Limit LinearController::Update(const Sensor::Data& current) {
+Controller::LimitWithDetails LinearController::Update(const Sensor::Data& current) {
+    if (current.objects.empty()) {
+        return {Limit{}, std::nullopt};
+    }
     auto dyn_config = config_source_.GetSnapshot();
     v2::Config config = config_getter_(dyn_config);
-
-    auto rate = current.GetRate();
-
-    short_timings_.Update(current.timings_avg_ms);
-
+    bool overloaded = false;
+    std::string cc_details;
     current_load_.Update(current.current_load);
     auto current_load = current_load_.GetSmoothed();
 
-    bool overloaded = 100 * rate > config.errors_threshold_percent;
+    const auto& objects =
+        (config.use_separate_stats
+             ? current.objects
+             : std::unordered_map<std::string, Sensor::SingleObjectData>{
+                   {Sensor::SingleObjectData::kCommonObjectName, MergeIntoSingleObjectData(current.objects)}});
 
-    std::size_t divisor = std::max<std::size_t>(long_timings_.GetSmoothed(), config.min_timings.count());
+    for (const auto& [object_name, object_stats] : objects) {
+        auto rate = object_stats.GetRate();
+        auto& current_object_timings = separate_timings_[object_name];
+        auto& short_timings = current_object_timings.short_timings;
+        auto& long_timings = current_object_timings.long_timings;
 
-    LOG_DEBUG() << "CC mongo:"
-                << " sensor=(" << current.ToLogString() << ") divisor=" << divisor
-                << " short_timings_.GetMinimal()=" << short_timings_.GetMinimal()
-                << " long_timings_.GetSmoothed()=" << long_timings_.GetSmoothed();
+        auto timings_avg_ms = object_stats.timings_sum_ms / object_stats.total;
 
-    if (current.total < config.min_qps && !current_limit_) {
-        // Too little QPS, timings avg data is VERY noisy, EPS is noisy
-        return {current_limit_, current.current_load};
-    }
+        short_timings.Update(timings_avg_ms);
 
-    if (epochs_passed_ < kLongTimingsEpochs) {
-        // First seconds of service life might be too noisy
-        epochs_passed_++;
-        long_timings_.Update(current.timings_avg_ms);
-        return {std::nullopt, current.current_load};
-    }
+        bool object_overloaded = 100 * rate > config.errors_threshold_percent;
 
-    if (static_cast<std::size_t>(short_timings_.GetMinimal()) > config.timings_burst_threshold * divisor) {
-        // Do not update long_timings_, it is sticky to "good" timings
-        overloaded = true;
-    } else {
-        long_timings_.Update(current.timings_avg_ms);
+        const std::size_t divisor = std::max<std::size_t>(long_timings.GetSmoothed(), config.min_timings.count());
+
+        std::string sensor_string;
+        if (config.use_separate_stats) {
+            sensor_string =
+                fmt::format("{} current_load={} object_name={}", object_stats.ToLogString(), current_load, object_name);
+        } else {
+            sensor_string = fmt::format("{} current_load={}", object_stats.ToLogString(), current_load);
+            cc_details = sensor_string;
+        }
+
+        LOG_DEBUG() << "CC mongo:"
+                    << " sensor=(" << sensor_string << ") divisor=" << divisor
+                    << " short_timings_.GetMinimal()=" << short_timings.GetMinimal()
+                    << " long_timings_.GetSmoothed()=" << long_timings.GetSmoothed();
+
+        if (object_stats.total < config.min_qps && !current_limit_) {
+            // Too little QPS, timings avg data is VERY noisy, EPS is noisy
+            continue;
+        }
+
+        if (epochs_passed_ < kLongTimingsEpochs) {
+            // First seconds of service life might be too noisy
+            epochs_passed_++;
+            long_timings.Update(timings_avg_ms);
+            continue;
+        }
+
+        if (static_cast<std::size_t>(short_timings.GetMinimal()) > config.timings_burst_threshold * divisor) {
+            // Do not update long_timings_, it is sticky to "good" timings
+            object_overloaded = true;
+            cc_details = sensor_string;
+        } else {
+            long_timings.Update(timings_avg_ms);
+        }
+        overloaded = overloaded || object_overloaded;
     }
 
     if (overloaded) {
@@ -93,8 +130,7 @@ Limit LinearController::Update(const Sensor::Data& current) {
     if (current_limit_.has_value() && current_limit_ < config.min_limit) {
         current_limit_ = config.min_limit;
     }
-
-    return {current_limit_, current.current_load};
+    return {{current_limit_, current.current_load}, cc_details};
 }
 
 LinearController::StaticConfig

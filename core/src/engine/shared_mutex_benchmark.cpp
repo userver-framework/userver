@@ -14,13 +14,13 @@ void shared_mutex_benchmark(benchmark::State& state) {
 
         auto initial_lock_holder = engine::AsyncNoSpan([&] {
             // ensure the locks are actually needed
-            std::unique_lock lock(mutex);
+            const std::lock_guard lock(mutex);
             variable = 1;
         });
 
         RunParallelBenchmark(state, [&](auto& range) {
             for ([[maybe_unused]] auto _ : range) {
-                std::shared_lock lock(mutex);
+                const std::shared_lock lock(mutex);
                 benchmark::DoNotOptimize(variable);
             }
         });

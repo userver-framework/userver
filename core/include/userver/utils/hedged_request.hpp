@@ -288,8 +288,12 @@ struct HedgedRequestBulkFuture {
     HedgedRequestBulkFuture(HedgedRequestBulkFuture&&) noexcept = default;
     ~HedgedRequestBulkFuture() { task_.SyncCancel(); }
 
+    /// @brief Wait for the request finish or for a caller task cancellation.
     void Wait() { task_.Wait(); }
+
+    /// @copydoc engine::TaskWithResult::Get()
     std::vector<std::optional<ReplyType>> Get() { return task_.Get(); }
+
     engine::impl::ContextAccessor* TryGetContextAccessor() { return task_.TryGetContextAccessor(); }
 
 private:
@@ -309,9 +313,14 @@ struct HedgedRequestFuture {
     HedgedRequestFuture(HedgedRequestFuture&&) noexcept = default;
     ~HedgedRequestFuture() { task_.SyncCancel(); }
 
+    /// @brief Wait for the request finish or for a caller task cancellation.
     void Wait() { task_.Wait(); }
+
+    /// @copydoc engine::TaskWithResult::Get()
     std::optional<ReplyType> Get() { return task_.Get(); }
+
     void IgnoreResult() {}
+
     engine::impl::ContextAccessor* TryGetContextAccessor() { return task_.TryGetContextAccessor(); }
 
 private:

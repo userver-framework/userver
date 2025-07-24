@@ -7,6 +7,7 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 
+#include <tests/deadline_helpers.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
@@ -17,10 +18,12 @@ using namespace std::chrono_literals;
 
 namespace {
 
+constexpr auto kSayHelloSleepTime = std::chrono::milliseconds{20};
+
 class UnitTestServiceForStatistics final : public sample::ugrpc::UnitTestServiceBase {
 public:
     SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& /*request*/) override {
-        engine::SleepFor(std::chrono::milliseconds{20});
+        engine::SleepFor(kSayHelloSleepTime);
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "message", "details"};
     }
 
@@ -67,11 +70,10 @@ UTEST_F(GrpcStatistics, LongRequest) {
     }
 }
 
-UTEST_F(GrpcStatistics, StatsBeforeGet) {
-    // In this test, we ensure that stats are accounted for even if we don't call
-    // future.Get(). Consider a situation where such futures are stockpiled
+UTEST_F(GrpcStatistics, DelayBeforeGet) {
+    // Consider a situation where response futures are stockpiled
     // somewhere, and the task awaits something else (more responses?) before
-    // calling Get. In this case, metrics should still be written as soon as
+    // calling response futures Get. In this case, metrics should still contain timings
     // the response is actually received on the network.
 
     utils::datetime::MockNowSet({});
@@ -87,22 +89,18 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
         {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"},
     };
 
-    // Here we intend to wait until the client finishes processing the request and
-    // updates the metrics asynchronously without actually calling Get. Pretty
-    // much the only guaranteed way to await this is to wait until the metrics
-    // arrive.
-    const auto test_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-    while (true) {
-        if (test_deadline.IsReached()) {
-            FAIL() << "Client failed to set metrics until max test time";
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (!future.IsReady()) {
+        if (deadline.IsReached()) {
+            FAIL() << "Response could not reach Client until max test timeout";
         }
-
-        if (GetStatistics(kMetricsPath, kMetricsLabels).SingleMetric("rps").AsRate() >= utils::statistics::Rate{1}) {
-            break;
-        }
-
-        engine::SleepFor(std::chrono::milliseconds{1});
+        engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
     }
+
+    const auto delay_before_get = tests::kLongTimeout;
+    engine::InterruptibleSleepFor(delay_before_get);
+
+    UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
 
     // So that RecentPeriod "timings" metric makes the current epoch readable.
     utils::datetime::MockSleep(6s);
@@ -115,11 +113,9 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
     EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
 
     // check timings
-    auto timing = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();
-    EXPECT_GE(timing, 20);
-    EXPECT_LT(timing, std::chrono::milliseconds{utest::kMaxTestWaitTime}.count());
-
-    UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
+    const auto timing_ms = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();
+    EXPECT_GE(timing_ms, std::chrono::duration_cast<std::chrono::milliseconds>(kSayHelloSleepTime).count());
+    EXPECT_LT(timing_ms, std::chrono::duration_cast<std::chrono::milliseconds>(delay_before_get).count());
 }
 
 UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {

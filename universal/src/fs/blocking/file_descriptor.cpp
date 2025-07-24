@@ -95,7 +95,7 @@ FileDescriptor::FileDescriptor(FileDescriptor&& other) noexcept : fd_(std::excha
 
 FileDescriptor& FileDescriptor::operator=(FileDescriptor&& other) noexcept {
     if (&other != this) {
-        FileDescriptor temp = std::move(*this);
+        const FileDescriptor temp = std::move(*this);
         fd_ = std::exchange(other.fd_, kNoFd);
     }
     return *this;
@@ -128,7 +128,7 @@ void FileDescriptor::Write(std::string_view contents) {
     size_t len = contents.size();
 
     while (len > 0) {
-        ssize_t s = ::write(fd_, buffer, len);
+        const ssize_t s = ::write(fd_, buffer, len);
         if (s < 0) {
             if (errno == EAGAIN || errno == EINTR) continue;
 

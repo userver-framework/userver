@@ -155,7 +155,7 @@ void Statistics::AccountStateChanged(RedisState new_state) {
 
 void Statistics::AccountCommandSent(const CommandPtr& cmd) {
     for (const auto& args : cmd->args) {
-        std::size_t size = args.GetCommandBytesLength();
+        const std::size_t size = args.GetCommandBytesLength();
         request_size_percentile.GetCurrentCounter().Account(size);
     }
 }
@@ -229,9 +229,9 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
             );
         }
 
-        long long session_time_ms = stats.state == impl::Redis::State::kConnected
-                                        ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
-                                        : 0;
+        const long long session_time_ms = stats.state == impl::Redis::State::kConnected
+                                              ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
+                                              : 0;
         writer["session-time-ms"] = session_time_ms;
     }
 }

@@ -13,9 +13,9 @@
 {% for service in proto.services %}
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
-inline constexpr std::string_view k{{service.name}}MethodNames[] = {
+inline constexpr std::array<std::string_view, {{service.method | length}}> k{{service.name}}MethodNames{
   {% for method in service.method %}
-  "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+  std::string_view{"{{proto.package_prefix}}{{service.name}}/{{method.name}}"},
   {% endfor %}
 };
 
@@ -77,10 +77,11 @@ std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
 
   return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<
       {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
-      std::move(internals), k{{service.name}}MethodNames, *this,
+      std::move(internals), k{{service.name}}MethodNames, *this{% if service.method %},{% endif %}
       {% for method in service.method %}
-      &{{service.name}}Base::{{method.name}}{{ "," if not loop.last else ");" }}
+      &{{service.name}}Base::{{method.name}}{{ "," if not loop.last }}
       {% endfor %}
+      );
 }
 
 {% endfor %}

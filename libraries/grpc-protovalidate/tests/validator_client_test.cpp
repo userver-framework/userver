@@ -106,7 +106,7 @@ UTEST_P_MT(GrpcClientValidatorTest, AllValid, 2) {
     auto client = MakeClient<types::UnitTestServiceClient>();
     auto stream = client.CheckConstraintsStreaming();
 
-    types::ConstrainedRequest request;
+    const types::ConstrainedRequest request;
     std::vector<types::ConstrainedRequest> requests(kRequestCount);
     std::vector<types::ConstrainedResponse> responses;
 
@@ -151,7 +151,7 @@ UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
 
     types::ConstrainedRequest request;
     std::vector<types::ConstrainedRequest> requests(kRequestCount);
-    std::vector<types::ConstrainedResponse> responses;
+    const std::vector<types::ConstrainedResponse> responses;
 
     request.set_field(1);
     requests[0] = request;
@@ -188,7 +188,7 @@ UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
     EXPECT_EQ(response.field(), 1);
 
     try {
-        [[maybe_unused]] bool result = stream.Read(response);
+        [[maybe_unused]] const bool result = stream.Read(response);
         ADD_FAILURE() << "Call must fail";
     } catch (const grpc_protovalidate::client::ResponseError& err) {
         if (streaming_settings.fail_fast) {

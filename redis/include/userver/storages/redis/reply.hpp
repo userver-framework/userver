@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cassert>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <userver/logging/log_extra.hpp>
@@ -31,82 +31,41 @@ public:
         kError,
     };
 
-    class KeyValues final {
-    public:
-        class KeyValue final {
-        public:
-            KeyValue(const Array& array, size_t index) : array_(array), index_(index) {}
-
-            std::string Key() const { return array_[index_ * 2].GetString(); }
-            std::string Value() const { return array_[index_ * 2 + 1].GetString(); }
-
-        private:
-            const Array& array_;
-            size_t index_;
-        };
-
-        class KeyValueIt final {
-        public:
-            KeyValueIt(const Array& array, size_t index) : array_(array), index_(index) {}
-            KeyValueIt& operator++() {
-                ++index_;
-                return *this;
-            }
-            bool operator!=(const KeyValueIt& r) const { return index_ != r.index_; }
-            KeyValue operator*() const { return {array_, index_}; }
-
-        private:
-            const Array& array_;
-            size_t index_;
-        };
-
-        explicit KeyValues(const Array& array) : array_(array) {}
-
-        KeyValueIt begin() const { return {array_, 0}; }
-        KeyValueIt end() const { return {array_, size()}; }
-
-        size_t size() const { return array_.size() / 2; }
-
-    private:
-        const Array& array_;
-    };
-
     class MovableKeyValues final {
     public:
-        class MovableKeyValue final {
+        class View final {
         public:
-            MovableKeyValue(ReplyData& key_data, ReplyData& value_data)
-                : key_data_(key_data), value_data_(value_data) {}
+            View(ReplyData& key_data, ReplyData& value_data) noexcept : key_data_(key_data), value_data_(value_data) {}
 
-            std::string& Key() { return key_data_.GetString(); }
-            std::string& Value() { return value_data_.GetString(); }
+            std::string& Key() noexcept { return key_data_.GetString(); }
+            std::string& Value() noexcept { return value_data_.GetString(); }
 
         private:
             ReplyData& key_data_;
             ReplyData& value_data_;
         };
 
-        class MovableKeyValueIt final {
+        class Iterator final {
         public:
-            MovableKeyValueIt(Array& array, size_t index) : array_(array), index_(index) {}
-            MovableKeyValueIt& operator++() {
+            constexpr Iterator(Array& array, std::size_t index) noexcept : array_(array), index_(index) {}
+            Iterator& operator++() noexcept {
                 ++index_;
                 return *this;
             }
-            bool operator!=(const MovableKeyValueIt& r) const { return index_ != r.index_; }
-            MovableKeyValue operator*() { return {array_[index_ * 2], array_[index_ * 2 + 1]}; }
+            bool operator!=(const Iterator& r) const noexcept { return index_ != r.index_; }
+            View operator*() noexcept { return {array_[index_ * 2], array_[index_ * 2 + 1]}; }
 
         private:
             Array& array_;
-            size_t index_;
+            std::size_t index_;
         };
 
-        explicit MovableKeyValues(Array& array) : array_(array) {}
+        explicit MovableKeyValues(Array& array) noexcept : array_(array) {}
 
-        MovableKeyValueIt begin() const { return {array_, 0}; }
-        MovableKeyValueIt end() const { return {array_, size()}; }
+        Iterator begin() const noexcept { return {array_, 0}; }
+        Iterator end() const noexcept { return {array_, size()}; }
 
-        size_t size() const { return array_.size() / 2; }
+        std::size_t size() const noexcept { return array_.size() / 2; }
 
     private:
         Array& array_;
@@ -122,86 +81,78 @@ public:
     static ReplyData CreateStatus(std::string&& status_msg);
     static ReplyData CreateNil();
 
-    explicit operator bool() const { return type_ != Type::kNoReply; }
+    explicit operator bool() const noexcept { return GetType() != Type::kNoReply; }
 
-    Type GetType() const { return type_; }
+    Type GetType() const noexcept {
+        UASSERT(!data_.valueless_by_exception());
+        return Type(data_.index());
+    }
     std::string GetTypeString() const;
 
-    inline bool IsString() const { return type_ == Type::kString; }
-    inline bool IsArray() const { return type_ == Type::kArray; }
-    inline bool IsInt() const { return type_ == Type::kInteger; }
-    inline bool IsNil() const { return type_ == Type::kNil; }
-    inline bool IsStatus() const { return type_ == Type::kStatus; }
-    inline bool IsError() const { return type_ == Type::kError; }
+    inline bool IsString() const noexcept { return GetType() == Type::kString; }
+    inline bool IsArray() const noexcept { return GetType() == Type::kArray; }
+    inline bool IsInt() const noexcept { return GetType() == Type::kInteger; }
+    inline bool IsNil() const noexcept { return GetType() == Type::kNil; }
+    inline bool IsStatus() const noexcept { return GetType() == Type::kStatus; }
+    inline bool IsError() const noexcept { return GetType() == Type::kError; }
     bool IsUnusableInstanceError() const;
     bool IsReadonlyError() const;
     bool IsUnknownCommandError() const;
 
-    bool IsErrorMoved() const { return IsError() && !string_.compare(0, 6, "MOVED "); }
+    bool IsErrorMoved() const { return IsError() && !GetError().compare(0, 6, "MOVED "); }
 
-    bool IsErrorAsk() const { return IsError() && !string_.compare(0, 4, "ASK "); }
+    bool IsErrorAsk() const { return IsError() && !GetError().compare(0, 4, "ASK "); }
 
-    bool IsErrorClusterdown() const { return IsError() && !string_.compare(0, 12, "CLUSTERDOWN "); }
+    bool IsErrorClusterdown() const { return IsError() && !GetError().compare(0, 12, "CLUSTERDOWN "); }
 
     const std::string& GetString() const {
         UASSERT(IsString());
-        return string_;
+        return std::get_if<String>(&data_)->GetUnderlying();
     }
 
     std::string& GetString() {
         UASSERT(IsString());
-        return string_;
+        return std::get_if<String>(&data_)->GetUnderlying();
     }
 
     const Array& GetArray() const {
         UASSERT(IsArray());
-        return array_;
+        return *std::get_if<Array>(&data_);
     }
 
     Array& GetArray() {
         UASSERT(IsArray());
-        return array_;
+        return *std::get_if<Array>(&data_);
     }
 
-    int64_t GetInt() const {
+    std::int64_t GetInt() const {
         UASSERT(IsInt());
-        return integer_;
+        return *std::get_if<Integer>(&data_);
     }
 
     const std::string& GetStatus() const {
         UASSERT(IsStatus());
-        return string_;
+        return std::get_if<Status>(&data_)->GetUnderlying();
     }
 
     std::string& GetStatus() {
         UASSERT(IsStatus());
-        return string_;
+        return std::get_if<Status>(&data_)->GetUnderlying();
     }
 
     const std::string& GetError() const {
         UASSERT(IsError());
-        return string_;
+        return std::get_if<Error>(&data_)->GetUnderlying();
     }
 
     std::string& GetError() {
         UASSERT(IsError());
-        return string_;
+        return std::get_if<Error>(&data_)->GetUnderlying();
     }
 
-    const ReplyData& operator[](size_t idx) const {
-        UASSERT(IsArray());
-        return array_.at(idx);
-    }
-
-    ReplyData& operator[](size_t idx) {
-        UASSERT(IsArray());
-        return array_.at(idx);
-    }
-
-    size_t GetSize() const;
+    std::size_t GetSize() const noexcept;
 
     std::string ToDebugString() const;
-    KeyValues GetKeyValues() const;
     static std::string TypeToString(Type type);
 
     void ExpectType(ReplyData::Type type, const std::string& request_description = {}) const;
@@ -219,29 +170,34 @@ private:
 
     [[noreturn]] void ThrowUnexpectedReplyType(ReplyData::Type expected, const std::string& request_description) const;
 
-    Type type_ = Type::kNoReply;
+    struct NoReply {};
+    using String = utils::StrongTypedef<class StringTag, std::string>;
+    using Integer = std::int64_t;
+    struct Nil {};
+    using Status = utils::StrongTypedef<class StatusTag, std::string>;
+    using Error = utils::StrongTypedef<class ErrorTag, std::string>;
 
-    int64_t integer_{};
-    Array array_;
-    std::string string_;
+    // Matches `enum class Type`
+    std::variant<NoReply, String, Array, Integer, Nil, Status, Error> data_{};
 };
 
 class Reply final {
 public:
-    Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status);
-    Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status, std::string status_string);
-    Reply(std::string cmd, ReplyData&& data);
+    Reply(std::string command, ReplyData&& reply_data, ReplyStatus reply_status = ReplyStatus::kOk);
 
     std::string server;
     ServerId server_id;
-    std::string cmd;
+    const std::string cmd;
     ReplyData data;
-    ReplyStatus status;
-    std::string status_string;
+    const ReplyStatus status;
     double time = 0.0;
     logging::LogExtra log_extra;
 
     operator bool() const { return IsOk(); }
+
+    std::string_view GetStatusString() const {
+        return (!IsOk() && data.IsError() ? data.GetError() : std::string_view{});
+    }
 
     bool IsOk() const;
     bool IsLoggableError() const;
@@ -252,15 +208,6 @@ public:
     void FillSpanTags(tracing::Span& span) const;
 
     void ExpectIsOk(const std::string& request_description = {}) const;
-    void ExpectType(ReplyData::Type type, const std::string& request_description = {}) const;
-
-    void ExpectString(const std::string& request_description = {}) const;
-    void ExpectArray(const std::string& request_description = {}) const;
-    void ExpectInt(const std::string& request_description = {}) const;
-    void ExpectNil(const std::string& request_description = {}) const;
-    void ExpectStatus(const std::string& request_description = {}) const;
-    void ExpectStatusEqualTo(const std::string& expected_status_str, const std::string& request_description = {}) const;
-    void ExpectError(const std::string& request_description = {}) const;
 
     const std::string& GetRequestDescription(const std::string& request_description) const;
 };

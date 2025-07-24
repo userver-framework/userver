@@ -10,6 +10,7 @@
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/text.hpp>
@@ -43,7 +44,7 @@ private:
     formats::bson::impl::UninitializedBson bson_;
 };
 
-std::optional<std::string> GetCurrentSpanLink() {
+std::optional<std::string_view> GetCurrentSpanLink() {
     auto* span = tracing::Span::CurrentSpanUnchecked();
     if (span) return span->GetLink();
     return std::nullopt;
@@ -51,7 +52,7 @@ std::optional<std::string> GetCurrentSpanLink() {
 
 void SetLinkComment(formats::bson::impl::BsonBuilder& builder, bool& has_comment_option) {
     auto link = GetCurrentSpanLink();
-    if (link) operations::AppendComment(builder, has_comment_option, options::Comment("link=" + *link));
+    if (link) operations::AppendComment(builder, has_comment_option, options::Comment(utils::StrCat("link=", *link)));
 }
 
 impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(const impl::cdriver::FindAndModifyOptsPtr& options) {
@@ -189,40 +190,14 @@ size_t CDriverCollectionImpl::Execute(const operations::Count& operation) const 
     MongoError error;
     stats::OperationStopwatch stopwatch(std::move(context.stats));
     const bson_t* native_filter_bson_ptr = operation.impl_->filter.GetBson().get();
-    int64_t count = -1;
-    if (operation.impl_->use_new_count) {
-        count = mongoc_collection_count_documents(
-            context.collection.get(),
-            native_filter_bson_ptr,
-            impl::GetNative(operation.impl_->options),
-            operation.impl_->read_prefs.Get(),
-            nullptr,
-            error.GetNative()
-        );
-    } else {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-        count = mongoc_collection_count_with_opts(
-            context.collection.get(),
-            MONGOC_QUERY_NONE,
-            native_filter_bson_ptr,  //
-            0,
-            0,  // skip and limit are set in options
-            impl::GetNative(operation.impl_->options),
-            operation.impl_->read_prefs.Get(),
-            error.GetNative()
-        );
-#ifdef __clang__
-#pragma clang diagnostic pop
-#else
-#pragma GCC diagnostic pop
-#endif
-    }
+    int64_t count = mongoc_collection_count_documents(
+        context.collection.get(),
+        native_filter_bson_ptr,
+        impl::GetNative(operation.impl_->options),
+        operation.impl_->read_prefs.Get(),
+        nullptr,
+        error.GetNative()
+    );
     if (count < 0) {
         stopwatch.AccountError(error.GetKind());
         error.Throw("Error counting documents");

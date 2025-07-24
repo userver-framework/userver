@@ -65,7 +65,7 @@ components_manager:
             completion-queue-count: 3
 
         # Our GreeterService implementation
-# /// [gRPC middleware sample - static config server middleware]
+# /// [gRPC greeter-service sample]
         # yaml
         greeter-service:
             task-processor: main-task-processor
@@ -75,7 +75,7 @@ components_manager:
                     # The middleware of this service will get this header instead of 'global-header'
                     headers:
                       - specific-header
-# /// [gRPC middleware sample - static config server middleware]
+# /// [gRPC greeter-service sample]
 
         # In this example, the tests still communicate with the microservice
         # using HTTP, so we still need an HTTP server and an HTTP handler.

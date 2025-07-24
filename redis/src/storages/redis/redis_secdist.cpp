@@ -57,7 +57,7 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
             if (host_port.host.empty()) {
                 throw InvalidSecdistJson("Empty redis sentinel host");
             }
-            int port = GetInt(sentinel, "port", kDefaultSentinelPort);
+            const int port = GetInt(sentinel, "port", kDefaultSentinelPort);
             if (port <= 0 || port >= 65536) {
                 throw InvalidSecdistJson("Invalid redis sentinel port");
             }

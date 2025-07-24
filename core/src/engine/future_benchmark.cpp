@@ -26,7 +26,7 @@ public:
 
     void Send() {
         {
-            std::lock_guard lock(mutex_);
+            const std::lock_guard lock(mutex_);
             done_ = true;
         }
         cv_.notify_one();

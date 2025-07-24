@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/engine/sleep.hpp
-/// @brief Time-based coroutine suspension helpers
+/// @brief Time-based task suspension helpers
 
 #include <chrono>
 

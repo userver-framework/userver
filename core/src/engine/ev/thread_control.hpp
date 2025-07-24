@@ -34,7 +34,7 @@ public:
     explicit UniquePayloadAsync(const Func& func) : func_(func) {}
 
     void DoPerformAndRelease() {
-        utils::FastScopeGuard guard([this]() noexcept { delete this; });
+        const utils::FastScopeGuard guard([this]() noexcept { delete this; });
         func_();
     }
 
@@ -56,7 +56,7 @@ public:
     }
 
     void DoPerformAndRelease() noexcept(std::is_nothrow_invocable_v<Func>) {
-        utils::FastScopeGuard guard([this]() noexcept { event_.Send(); });
+        const utils::FastScopeGuard guard([this]() noexcept { event_.Send(); });
         func_();
     }
 
@@ -82,7 +82,7 @@ public:
     explicit CallerOwnedPayloadBlocking(Func& func) noexcept : func_(func) {}
 
     void DoPerformAndRelease() {
-        utils::FastScopeGuard guard([this]() noexcept { Notify(); });
+        const utils::FastScopeGuard guard([this]() noexcept { Notify(); });
         func_();
     }
 
@@ -94,7 +94,7 @@ public:
 private:
     void Notify() noexcept {
         {
-            std::lock_guard lock(mutex_);
+            const std::lock_guard lock(mutex_);
             finished_ = true;
             // It's important to do this under lock to preserve the object lifetime,
             // otherwise the object could be destroyed if the waiting thread sees

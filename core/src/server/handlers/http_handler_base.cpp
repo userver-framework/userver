@@ -155,7 +155,9 @@ HttpHandlerBase::HttpHandlerBase(
 
     auto& server_component = context.FindComponent<components::Server>();
 
-    engine::TaskProcessor& task_processor = context.GetTaskProcessor(GetConfig().task_processor);
+    engine::TaskProcessor& task_processor = GetConfig().task_processor
+                                                ? context.GetTaskProcessor(*GetConfig().task_processor)
+                                                : engine::current_task::GetTaskProcessor();
     try {
         server_component.AddHandler(*this, task_processor);
     } catch (const std::exception& ex) {
@@ -250,7 +252,7 @@ void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request
     context.GetInternalContext().ResetConfigSnapshot();
 
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime("http_handle_request");
-    if (response.IsBodyStreamed()) {
+    if (IsStreamed(http_request, context)) {
         HandleRequestStream(http_request, context);
     } else {
         // !IsBodyStreamed()

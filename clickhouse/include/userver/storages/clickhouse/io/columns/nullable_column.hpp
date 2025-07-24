@@ -67,7 +67,7 @@ public:
 };
 
 template <typename T>
-NullableColumn<T>::NullableColumn(ColumnRef column) : ClickhouseColumn<NullableColumn>{column} {}
+NullableColumn<T>::NullableColumn(ColumnRef column) : ClickhouseColumn<NullableColumn>{std::move(column)} {}
 
 template <typename T>
 NullableColumn<T>::NullableDataHolder::NullableDataHolder(

@@ -8,6 +8,7 @@
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/chrono.hpp>
 #include <userver/storages/postgres/null.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -268,7 +269,8 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
 
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     // Network timeout
-    DefaultCommandControlScope scope(pg::CommandControl{std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+    const DefaultCommandControlScope scope(pg::CommandControl{
+        std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
     GetConn()->Begin({}, {});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
     EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
@@ -277,7 +279,8 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     EXPECT_FALSE(GetConn()->IsBroken());
     // Query cancelled
-    DefaultCommandControlScope scope2(pg::CommandControl{std::chrono::seconds{2}, std::chrono::milliseconds{200}});
+    const DefaultCommandControlScope scope2(pg::CommandControl{std::chrono::seconds{2}, std::chrono::milliseconds{200}}
+    );
     GetConn()->Begin({}, {});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
     EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
@@ -292,7 +295,8 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
 
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     // Network timeout
-    DefaultCommandControlScope scope(pg::CommandControl{std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+    const DefaultCommandControlScope scope(pg::CommandControl{
+        std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
     GetConn()->Begin({}, {});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
     EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
@@ -301,7 +305,8 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     EXPECT_FALSE(GetConn()->IsBroken());
     // Query cancelled
-    DefaultCommandControlScope scope2(pg::CommandControl{std::chrono::seconds{2}, std::chrono::milliseconds{200}});
+    const DefaultCommandControlScope scope2(pg::CommandControl{std::chrono::seconds{2}, std::chrono::milliseconds{200}}
+    );
     GetConn()->Begin({}, {});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
     EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
@@ -318,14 +323,16 @@ UTEST_P(PostgreConnection, StatementTimeout) {
 
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     // Network timeout
-    DefaultCommandControlScope scope(pg::CommandControl{std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+    const DefaultCommandControlScope scope(pg::CommandControl{
+        std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
     EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
     UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     EXPECT_FALSE(GetConn()->IsBroken());
     // Query cancelled
-    DefaultCommandControlScope scope2(pg::CommandControl{std::chrono::seconds{2}, std::chrono::milliseconds{200}});
+    const DefaultCommandControlScope scope2(pg::CommandControl{std::chrono::seconds{2}, std::chrono::milliseconds{200}}
+    );
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
@@ -336,7 +343,7 @@ UTEST_P(PostgreConnection, StatementTimeout) {
 void CleanupConnectionTest(storages::postgres::detail::ConnectionPtr& conn, bool use_cancel) {
     EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 
-    DefaultCommandControlScope scope(pg::CommandControl{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime});
+    const DefaultCommandControlScope scope(pg::CommandControl{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime});
 
     engine::SingleConsumerEvent task_started;
     auto task = engine::AsyncNoSpan([&] {
@@ -393,7 +400,9 @@ UTEST_F(PostgreCustomConnection, Connect) {
             kCachePreparedStatements,
             GetTestCmdCtls(),
             {},
-            {}
+            {},
+            {},
+            std::make_shared<utils::statistics::MetricsStorage>()
         ),
         pg::InvalidDSN
     ) << "Connected with invalid DSN";
@@ -411,7 +420,9 @@ UTEST_F(PostgreCustomConnection, NoPreparedStatements) {
         kNoPreparedStatements,
         GetTestCmdCtls(),
         {},
-        {}
+        {},
+        {},
+        std::make_shared<utils::statistics::MetricsStorage>()
     ));
 }
 
@@ -427,7 +438,9 @@ UTEST_F(PostgreCustomConnection, NoUserTypes) {
             kNoUserTypes,
             GetTestCmdCtls(),
             {},
-            {}
+            {},
+            {},
+            std::make_shared<utils::statistics::MetricsStorage>()
         )
     );
     ASSERT_TRUE(conn);

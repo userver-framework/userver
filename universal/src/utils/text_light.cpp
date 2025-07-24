@@ -162,13 +162,13 @@ size_t FindTruncatedEndingCorrectSize(std::string_view str) {
     }
 
     // no symbol with a length > 4 => no proper prefix with a length > 3
-    size_t max_suffix_len = std::min(str.size(), std::size_t{3});
+    const size_t max_suffix_len = std::min(str.size(), std::size_t{3});
     for (size_t suffix_len = 1; suffix_len <= max_suffix_len; ++suffix_len) {
-        size_t pos = str.size() - suffix_len;
+        const size_t pos = str.size() - suffix_len;
 
         // first byte of a multibyte character
         if ((str[pos] & 0xc0) == 0xc0) {
-            size_t expected_len = utf8::CodePointLengthByFirstByte(str[pos]);
+            const size_t expected_len = utf8::CodePointLengthByFirstByte(str[pos]);
             // check if current suffix is a proper prefix of some multibyte character
             if (expected_len > suffix_len) {
                 return str.size() - suffix_len;
@@ -252,7 +252,7 @@ std::size_t GetCodePointsCount(std::string_view text) {
 }
 
 void TrimTruncatedEnding(std::string& str) {
-    size_t correct_size = FindTruncatedEndingCorrectSize(std::string_view{str});
+    const size_t correct_size = FindTruncatedEndingCorrectSize(std::string_view{str});
     UASSERT_MSG(
         correct_size <= str.size(),
         "Function FindTruncatedEndingCorrectSize is broken: "
@@ -265,7 +265,7 @@ void TrimTruncatedEnding(std::string& str) {
 }
 
 void TrimViewTruncatedEnding(std::string_view& view) {
-    size_t correct_size = FindTruncatedEndingCorrectSize(view);
+    const size_t correct_size = FindTruncatedEndingCorrectSize(view);
     UASSERT_MSG(
         correct_size <= view.size(),
         "Function FindTruncatedEndingCorrectSize is broken: "

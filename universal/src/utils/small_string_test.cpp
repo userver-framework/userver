@@ -161,7 +161,7 @@ TEST(SmallString, Assign) {
 }
 
 TEST(SmallString, Log) {
-    utils::SmallString<10> str("abcd");
+    const utils::SmallString<10> str("abcd");
     LOG_INFO() << str;
 }
 
@@ -201,11 +201,11 @@ TEST(SmallString, ParseJson) {
 }
 
 TEST(SmallString, SerializeJson) {
-    utils::SmallString<3> str("abcd");
+    const utils::SmallString<3> str("abcd");
     auto j = formats::json::ValueBuilder{str}.ExtractValue();
     EXPECT_EQ(j.As<std::string>(), str);
 
-    utils::SmallString<5> str2("abcd");
+    const utils::SmallString<5> str2("abcd");
     auto j2 = formats::json::ValueBuilder{str2}.ExtractValue();
     EXPECT_EQ(j2.As<std::string>(), str2);
 }
@@ -223,7 +223,7 @@ TEST(SmallString, Indexing) {
     utils::SmallString<3> str("abcd");
     str[2] = 'x';
     EXPECT_EQ(str, "abxd");
-    char c = str[2];
+    const char c = str[2];
     EXPECT_EQ(c, 'x');
 
     const auto& s = str;

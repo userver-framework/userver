@@ -17,7 +17,7 @@ namespace {
 std::string kStaticConfig = R"(
 components_manager:
   coro_pool:
-    initial_size: 5000
+    initial_size: 50
     max_size: 50000
     stack_usage_monitor_enabled: false
   default_task_processor: main-task-processor

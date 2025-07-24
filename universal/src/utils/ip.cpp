@@ -14,13 +14,13 @@ namespace utils::ip {
 namespace {
 
 template <size_t N>
-AddressBase<N> AddressFromString(const std::string& str) {
+AddressBase<N> AddressFromString(utils::zstring_view str) {
     typename AddressBase<N>::BytesType bytes;
     const auto compare = [](const int& ret, const int& err_mark) { return ret <= err_mark; };
     const auto family = N == 4 ? AF_INET : AF_INET6;
     utils::CompareSyscallWithCustomException<AddressSystemError>(
         compare,
-        ::inet_pton(family, str.data(), &bytes),
+        ::inet_pton(family, str.c_str(), &bytes),
         0,
         fmt::format("converting {} address from string", N == 4 ? "IPv4" : "IPv6")
     );
@@ -80,11 +80,11 @@ NetworkBase<Address> TransformToCidrNetwork(NetworkBase<Address> address) {
 
 }  // namespace
 
-AddressV4 AddressV4FromString(const std::string& str) { return AddressFromString<4>(str); }
+AddressV4 AddressV4FromString(utils::zstring_view str) { return AddressFromString<4>(str); }
 
 std::string AddressV4ToString(const AddressV4& address) { return AddressToString(address); }
 
-AddressV6 AddressV6FromString(const std::string& str) { return AddressFromString<16>(str); }
+AddressV6 AddressV6FromString(utils::zstring_view str) { return AddressFromString<16>(str); }
 
 std::string AddressV6ToString(const AddressV6& address) { return AddressToString(address); }
 

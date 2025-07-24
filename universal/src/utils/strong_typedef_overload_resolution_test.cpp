@@ -44,7 +44,7 @@ constexpr bool operator==(T, MyId) {
 USERVER_NAMESPACE_BEGIN
 
 TEST(StrongTypedef, StringOverloadResolutionADL) {
-    some_namespace::MyString str{"word"};
+    const some_namespace::MyString str{"word"};
 
     EXPECT_TRUE(OverloadResolutionLValue(some_namespace::MyString{"word"}));
     EXPECT_TRUE(OverloadResolutionLValue(str));
@@ -70,7 +70,7 @@ TEST(StrongTypedef, StringOverloadResolution) {
 }
 
 TEST(StrongTypedef, IdADL) {
-    some_namespace::MyId id{1};
+    const some_namespace::MyId id{1};
 
     // Following lines will fail to compile because of ambiguity if there are
     // transparent comparison operators from StrongTypedef.
@@ -81,7 +81,7 @@ TEST(StrongTypedef, IdADL) {
 TEST(StrongTypedef, Id) {
     // NOLINTNEXTLINE(google-build-using-namespace)
     using namespace some_namespace;
-    MyId id{1};
+    const MyId id{1};
 
     // Following lines will fail to compile because of ambiguity if there are
     // transparent comparison operators from StrongTypedef.

@@ -91,7 +91,7 @@ UTEST(CacheUpdateTrait, FirstIsFull) {
     const yaml_config::YamlConfig config{formats::yaml::FromString(kFakeCacheConfig), {}};
     cache::MockEnvironment environment;
 
-    FakeCache test_cache(config, environment);
+    const FakeCache test_cache(config, environment);
 
     EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 }
@@ -280,14 +280,14 @@ public:
 }  // namespace
 
 UTEST_P(CacheUpdateTraitDumpedIncrementalThenAsyncFull, Test) {
-    DumpedCache cache(Config(), GetEnvironment(), GetDataSource());
+    const DumpedCache cache(Config(), GetEnvironment(), GetDataSource());
 
     // There will be no data race because only one thread is using
     while (cache.GetUpdatesLog().size() < 3) {
         engine::Yield();
     }
 
-    size_t updates = cache.GetUpdatesLog().size();
+    const size_t updates = cache.GetUpdatesLog().size();
 
     GetDataSource().Set(20);
 
@@ -324,7 +324,7 @@ INSTANTIATE_UTEST_SUITE_P(
 
 UTEST_P(CacheUpdateTraitDumpedNoUpdate, Test) {
     try {
-        DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
+        const DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
         EXPECT_EQ(cache.GetUpdatesLog(), std::vector<UpdateType>{}) << ParamsString();
     } catch (const cache::ConfigError&) {
         // Some of the tested config combinations are invalid, it's not very
@@ -350,7 +350,7 @@ INSTANTIATE_UTEST_SUITE_P(
 
 UTEST_P(CacheUpdateTraitDumpedFull, Test) {
     try {
-        DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
+        const DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
         EXPECT_EQ(cache.GetUpdatesLog(), std::vector{UpdateType::kFull}) << ParamsString();
     } catch (const cache::ConfigError&) {
         // Some of the tested config combinations are invalid, it's not very
@@ -453,7 +453,7 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(CacheUpdateTraitDumpedFailureOk, Test) {
     try {
         Config() = UpdateConfig(Config(), formats::yaml::FromString("first-update-fail-ok: true"));
-        DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
+        const DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
         SUCCEED();
     } catch (const cache::MockError&) {
         FAIL() << ParamsString();
@@ -480,7 +480,7 @@ INSTANTIATE_UTEST_SUITE_P(
 
 UTEST_P(CacheUpdateTraitDumpedFailure, Test) {
     try {
-        DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
+        const DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
         FAIL() << ParamsString();
     } catch (const cache::MockError&) {
         SUCCEED();
@@ -715,7 +715,7 @@ void SetExpirableUpdatesEnabled(dynamic_config::StorageMock& config_storage, boo
 UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
     auto config = MakeExpirableCacheConfig(2);
     cache::MockEnvironment environment(testsuite::impl::PeriodicUpdatesMode::kEnabled);
-    ExpirableCache cache(config, environment, [](auto i) -> bool {
+    const ExpirableCache cache(config, environment, [](auto i) -> bool {
         std::vector<int> failed{1, 3, 4, 5, 7, 9, 10, 11};
         return std::count(failed.begin(), failed.end(), i);
     });
@@ -734,7 +734,7 @@ UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
 UTEST(ExpirableCacheUpdateTrait, UpdatesDisabled) {
     auto config = MakeExpirableCacheConfig(2);
     cache::MockEnvironment environment(testsuite::impl::PeriodicUpdatesMode::kEnabled);
-    ExpirableCache cache(config, environment, [&environment](auto i) -> bool {
+    const ExpirableCache cache(config, environment, [&environment](auto i) -> bool {
         if (i == 3) {
             SetExpirableUpdatesEnabled(environment.config_storage, false);
         }
@@ -930,7 +930,7 @@ UTEST(CacheInvalidateAsyncTest, TestsuiteUpdateTypes) {
 
 UTEST_P(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
     cache::MockEnvironment environment{GetParam()};
-    ForcedUpdateCache cache{
+    const ForcedUpdateCache cache{
         MakeForcedUpdateCacheConfig(),
         environment,
         {

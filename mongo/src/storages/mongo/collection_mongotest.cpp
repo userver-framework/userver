@@ -96,6 +96,38 @@ UTEST_F(Collection, Read) {
     }
     {
         auto cursor = coll.Find({});
+        EXPECT_EQ(cursor.GetBatchSize(), 0) << "Deafault value should be 0 (use server side size)";
+        EXPECT_NO_THROW(cursor.SetBatchSize(0)) << "Setting to 0 should be fine";
+        EXPECT_TRUE(cursor);
+        EXPECT_TRUE(cursor.HasMore());
+        for ([[maybe_unused]] const auto& doc : cursor)
+            ;  // exhaust
+        EXPECT_FALSE(cursor);
+        EXPECT_FALSE(cursor.HasMore());
+        for ([[maybe_unused]] const auto& doc : cursor) {
+            ADD_FAILURE() << "read from exhausted cursor succeeded";
+        }
+    }
+    {
+        auto cursor = coll.Find({});
+        EXPECT_NO_THROW(cursor.SetBatchSize(1));
+        EXPECT_EQ(cursor.GetBatchSize(), 1);
+
+        EXPECT_TRUE(cursor);
+        EXPECT_TRUE(cursor.HasMore());
+        for ([[maybe_unused]] const auto& doc : cursor)
+            ;  // exhaust
+        EXPECT_FALSE(cursor);
+        EXPECT_FALSE(cursor.HasMore());
+        for ([[maybe_unused]] const auto& doc : cursor) {
+            ADD_FAILURE() << "read from exhausted cursor succeeded";
+        }
+    }
+    {
+        auto cursor = coll.Find({});
+        EXPECT_NO_THROW(cursor.SetBatchSize(1024));
+        EXPECT_EQ(cursor.GetBatchSize(), 1024);
+
         EXPECT_TRUE(cursor);
         EXPECT_TRUE(cursor.HasMore());
         for ([[maybe_unused]] const auto& doc : cursor)

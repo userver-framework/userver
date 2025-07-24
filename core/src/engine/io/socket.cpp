@@ -265,7 +265,7 @@ std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
     }
     auto& dir = fd_control_->Read();
     dir.ResetReady();
-    impl::Direction::SingleUserGuard guard(dir);
+    const impl::Direction::SingleUserGuard guard(dir);
     const auto bytesRead = RecvWrapper(fd_control_->Fd(), buf, len);
     if (bytesRead >= 0)
         return {bytesRead};
@@ -390,16 +390,16 @@ Socket Socket::Accept(Deadline deadline) {
     }
     auto& dir = fd_control_->Read();
     dir.ResetReady();
-    impl::Direction::SingleUserGuard guard(dir);
+    const impl::Direction::SingleUserGuard guard(dir);
     for (;;) {
         Sockaddr buf;
         auto len = buf.Capacity();
 
 // MAC_COMPAT: no accept4
 #ifdef HAVE_ACCEPT4
-        int fd = ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
+        const int fd = ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 #else
-        int fd = ::accept(dir.Fd(), buf.Data(), &len);
+        const int fd = ::accept(dir.Fd(), buf.Data(), &len);
 #endif
 
         UASSERT(len <= buf.Capacity());

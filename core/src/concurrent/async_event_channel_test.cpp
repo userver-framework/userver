@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-TEST(AsyncEventChannel, Ctr) { concurrent::AsyncEventChannel<int> channel("channel"); }
+TEST(AsyncEventChannel, Ctr) { const concurrent::AsyncEventChannel<int> channel("channel"); }
 
 namespace {
 
@@ -168,7 +168,7 @@ private:
 
 UTEST(AsyncEventChannel, UpdateAndListenSample) {
     WeatherStorage weather_storage(WeatherKind::kSunny);
-    CoatStorage coat_storage(weather_storage);
+    const CoatStorage coat_storage(weather_storage);
     EXPECT_EQ(coat_storage.Get(), CoatKind::kJacket);
     weather_storage.Set(WeatherKind::kRainy);
     EXPECT_EQ(coat_storage.Get(), CoatKind::kRaincoat);

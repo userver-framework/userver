@@ -75,7 +75,7 @@ const storages::postgres::Query kSelectValue{
 };
 
 std::string KeyValue::GetValue(std::string_view key, const server::http::HttpRequest& request) const {
-    storages::postgres::ResultSet res =
+    const storages::postgres::ResultSet res =
         pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave, kSelectValue, key);
     if (res.IsEmpty()) {
         request.SetResponseStatus(server::http::HttpStatus::kNotFound);

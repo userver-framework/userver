@@ -4,7 +4,7 @@
 
 #include <userver/engine/deadline.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

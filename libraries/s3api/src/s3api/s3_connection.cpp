@@ -85,7 +85,7 @@ std::shared_ptr<clients::http::Response> S3Connection::StartApiRequest(const Req
 
 std::string S3Connection::GetUrl(const Request& r, S3ConnectionType connection_type) const {
     std::string full_url = api_url_;
-    bool is_localhost = api_url_.find("localhost:") != std::string::npos;
+    const bool is_localhost = api_url_.find("localhost:") != std::string::npos;
     const auto schema_pos = full_url.find("://");
     if (schema_pos == std::string::npos) {
         if (!is_localhost && !r.bucket.empty()) {

@@ -27,7 +27,7 @@ public:
         if (type == "cancel") {
             engine::InterruptibleSleepFor(std::chrono::seconds(20));
             if (engine::current_task::IsCancelRequested()) {
-                engine::TaskCancellationBlocker block_cancel;
+                const engine::TaskCancellationBlocker block_cancel;
                 TESTPOINT("testpoint_cancel", {});
             }
             return kDefaultAnswer;

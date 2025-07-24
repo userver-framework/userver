@@ -33,7 +33,6 @@ public:
     void SetOption(options::ReadConcern);
     void SetOption(options::Skip);
     void SetOption(options::Limit);
-    void SetOption(options::ForceCountImpl);
     void SetOption(const options::MaxServerTime&);
     void SetOption(const options::Hint&);
 
@@ -238,6 +237,9 @@ public:
     void SetOption(options::WriteConcern::Level);
     void SetOption(const options::WriteConcern&);
     void SetOption(options::SuppressServerExceptions);
+
+    /// @note Available starting in MongoDB 4.4
+    void SetOption(const options::Hint&);
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;

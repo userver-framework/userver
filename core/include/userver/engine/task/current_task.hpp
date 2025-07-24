@@ -26,6 +26,9 @@ bool IsTaskProcessorThread() noexcept;
 /// Returns reference to the task processor executing the caller
 TaskProcessor& GetTaskProcessor();
 
+/// Returns reference to the blocking task processor
+TaskProcessor& GetBlockingTaskProcessor();
+
 /// Returns task coroutine stack size
 std::size_t GetStackSize();
 
@@ -33,6 +36,11 @@ std::size_t GetStackSize();
 // Returns ev thread handle, internal use only
 ev::ThreadControl& GetEventThread();
 /// @endcond
+
+namespace impl {
+// For internal use only.
+void* GetRawCurrentTaskContext() noexcept;
+}  // namespace impl
 
 }  // namespace current_task
 

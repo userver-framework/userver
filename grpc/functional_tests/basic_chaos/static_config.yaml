@@ -9,12 +9,22 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
+                grpc-access-tskv:
+                    file_path: $access-tskv-log-path
+                    level: info
+                    overflow_behavior: discard
 
         # gRPC server and service
         grpc-server:
             port: 8091
             service-defaults:
                 task-processor: main-task-processor
+
+# /// [grpc server access log]
+        grpc-server-access-log:
+            access-tskv-logger: grpc-access-tskv
+# /// [grpc server access log]
+
 # /// [Sample grpc server logging middleware component config]
         grpc-server-logging:
             msg-log-level: info

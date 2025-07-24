@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/grpc-protovalidate/client/component.hpp
+/// @file
 /// @brief @copybrief grpc_protovalidate::client::ValidatorComponent
 
 #include <userver/ugrpc/client/middlewares/base.hpp>

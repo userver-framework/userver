@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include <userver/utils/not_null.hpp>
@@ -34,6 +35,8 @@ public:
 
     void SetTimeout(std::chrono::milliseconds ms);
 
+    const std::string& GetOriginalUrl() const;
+
 private:
     RequestState& state_;
 };
@@ -48,21 +51,37 @@ public:
     /// @brief Get plugin name
     const std::string& GetName() const;
 
-    /// @brief The hook is called before actual HTTP request sending and before
-    ///        DNS name resolution. You might want to use the hook for most of the
-    ///        hook job.
-    virtual void HookPerformRequest(PluginRequest& request) = 0;
-
     /// @brief The hook is called just after the "external" Span is created.
     ///        You might want to add custom tags from the hook.
+    ///        The hook is called only once before any network interaction and is NOT called before each retry.
+    ///        The hook is executed in the context of the parent task which created the request.
     virtual void HookCreateSpan(PluginRequest& request, tracing::Span& span) = 0;
 
-    /// @brief The hook is called after the HTTP response is received or the
-    ///        timeout is passed.
+    /// @brief The hook is called before actual HTTP request sending and before
+    ///        DNS name resolution.
+    ///        This hook is called on each retry.
+    ///
+    /// @warning The hook is called in libev thread, not in coroutine context! Do
+    ///          not do any heavy work here, offload it to other hooks.
+    virtual void HookPerformRequest(PluginRequest& request) = 0;
+
+    /// @brief The hook is called after the HTTP response is received. It does not
+    ///        include timeout, network or other error.
     ///
     /// @warning The hook is called in libev thread, not in coroutine context! Do
     ///          not do any heavy work here, offload it to other hooks.
     virtual void HookOnCompleted(PluginRequest& request, Response& response) = 0;
+
+    /// @brief The hook is called on timeout and other errors. The hook is not called
+    ///        for error HTTP responses, use HookOnCompleted instead.
+    ///
+    /// @warning The hook is called in libev thread, not in coroutine context! Do
+    ///          not do any heavy work here, offload it to other hooks.
+    virtual void HookOnError(PluginRequest& request, std::error_code ec) = 0;
+
+    /// @brief The hook is called before every call attempt except the first one.
+    /// @return whether the retry is allowed.
+    virtual bool HookOnRetry(PluginRequest& request) = 0;
 
 private:
     const std::string name_;
@@ -79,6 +98,10 @@ public:
     void HookCreateSpan(RequestState& request, tracing::Span& span);
 
     void HookOnCompleted(RequestState& request, Response& response);
+
+    void HookOnError(RequestState& request, std::error_code ec);
+
+    bool HookOnRetry(RequestState& request);
 
 private:
     const std::vector<utils::NotNull<Plugin*>> plugins_;

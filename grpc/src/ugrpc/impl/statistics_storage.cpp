@@ -57,6 +57,12 @@ StatisticsStorage::GetServiceStatistics(const StaticServiceMetadata& metadata, s
 
 MethodStatistics&
 StatisticsStorage::GetGenericStatistics(std::string_view call_name, std::optional<std::string_view> client_name) {
+    UASSERT_MSG(!call_name.empty(), "call_name must NOT be empty");
+    UASSERT_MSG(call_name[0] != '/', utils::StrCat("call_name must NOT start with /, given: ", call_name));
+    UASSERT_MSG(
+        call_name.find('/') != std::string_view::npos, utils::StrCat("call_name must contain /, given: ", call_name)
+    );
+
     const GenericKeyView generic_key{call_name, client_name};
 
     {

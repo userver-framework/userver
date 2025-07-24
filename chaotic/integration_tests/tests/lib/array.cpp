@@ -16,7 +16,7 @@ namespace {
 TEST(Array, OfInt) {
     const auto kJson = formats::json::MakeArray("foo", "bar");
     using Arr = chaotic::Array<std::string, std::vector<std::string>>;
-    std::vector<std::string> x = kJson.As<Arr>();
+    const std::vector<std::string> x = kJson.As<Arr>();
 
     ASSERT_THAT(x, ::testing::ElementsAre("foo", "bar"));
 }
@@ -24,7 +24,7 @@ TEST(Array, OfInt) {
 TEST(Array, OfIntSerializer) {
     const auto kJson = formats::json::MakeArray("foo", "bar");
     using Arr = chaotic::Array<std::string, std::vector<std::string>>;
-    std::vector<std::string> x = kJson.As<Arr>();
+    const std::vector<std::string> x = kJson.As<Arr>();
 
     auto result = formats::json::ValueBuilder{Arr{kJson.As<Arr>()}}.ExtractValue();
     EXPECT_EQ(result, kJson);
@@ -33,7 +33,7 @@ TEST(Array, OfIntSerializer) {
 TEST(Array, OfIntWithValidators) {
     const auto kJson = formats::json::MakeArray("foo", "bar");
     using Arr = chaotic::Array<std::string, std::vector<std::string>, chaotic::MinItems<2>>;
-    std::vector<std::string> x = kJson.As<Arr>();
+    const std::vector<std::string> x = kJson.As<Arr>();
     ASSERT_THAT(x, ::testing::ElementsAre("foo", "bar"));
 
     const auto kJson1 = formats::json::MakeArray("foo");
@@ -55,7 +55,7 @@ TEST(Array, OfArrayOfString) {
 
     using Arr =
         chaotic::Array<chaotic::Array<std::string, std::vector<std::string>>, std::vector<std::vector<std::string>>>;
-    std::vector<std::vector<std::string>> x = kJson.As<Arr>();
+    const std::vector<std::vector<std::string>> x = kJson.As<Arr>();
 }
 
 TEST(Array, OfArrayOfStringSerializer) {
@@ -70,6 +70,17 @@ TEST(Array, OfEmptyArraySerializer) {
     const auto kJson = formats::json::MakeArray();
     using Arr = chaotic::Array<std::string, std::vector<std::string>>;
     EXPECT_EQ(formats::json::ValueBuilder{Arr{kJson.As<Arr>()}}.ExtractValue(), kJson);
+}
+
+TEST(Array, FromObjectShouldThrow) {
+    const auto kJson = formats::json::MakeObject("lat", 56.008889, "lon", 92.871944);
+    using Arr = chaotic::Array<double, std::vector<double>>;
+
+    UEXPECT_THROW_MSG(
+        kJson.As<Arr>(),
+        formats::json::TypeMismatchException,
+        "Error at path '/': Wrong type. Expected: arrayValue, actual: objectValue"
+    );
 }
 
 }  // namespace

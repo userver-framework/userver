@@ -1,13 +1,19 @@
 _userver_module_begin(
-    NAME PythonDev
-    DEBIAN_NAMES python3-dev
-    FORMULA_NAMES python3-dev
-    RPM_NAMES python3-dev
-    PACMAN_NAMES python
+    NAME
+    PythonDev
+    DEBIAN_NAMES
+    python3-dev
+    FORMULA_NAMES
+    python3-dev
+    RPM_NAMES
+    python3-dev
+    PACMAN_NAMES
+    python
 )
 
 _userver_module_find_include(
-    NAMES Python.h
+    NAMES
+    Python.h
     PATHS
     /usr/include/python3m
     /usr/include/python3.6m

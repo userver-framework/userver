@@ -121,7 +121,7 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
         dumper_.emplace(
             *dependencies.dump_config,
             CheckNotNull(std::move(dependencies.dump_rw_factory)),
-            *CheckNotNull(dependencies.fs_task_processor),
+            dependencies.fs_task_processor,
             *CheckNotNull(dependencies.config_source),
             dependencies.statistics_storage,
             dependencies.dump_control,
@@ -400,6 +400,7 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type, const Config& conf
 
     const auto update_type_str = ToString(update_type);
     tracing::Span::CurrentSpan().AddTag("update_type", std::string{update_type_str});
+    tracing::Span::CurrentSpan().AddTag("cache_name", name_);
 
     UpdateStatisticsScope stats(utils::impl::InternalTag{}, statistics_, update_type);
     LOG_INFO() << "Updating cache update_type=" << update_type_str << " name=" << name_;

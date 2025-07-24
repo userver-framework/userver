@@ -58,8 +58,6 @@ public:
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     boost::signals2::signal<void(State)> signal_state_change;
-    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-    boost::signals2::signal<void()> signal_not_in_cluster_mode;
 
 private:
     class RedisImpl;

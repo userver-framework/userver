@@ -41,14 +41,14 @@ void CmdWithArgs::PutArg(const std::vector<std::pair<double, std::string>>& arg)
     }
 }
 
-void CmdWithArgs::PutArg(std::optional<ScanOptionsBase::Match> arg) {
+void CmdWithArgs::PutArg(std::optional<ScanOptionsGeneric::Match> arg) {
     if (arg) {
         args_.emplace_back("MATCH");
         args_.emplace_back(std::move(arg)->Get());
     }
 }
 
-void CmdWithArgs::PutArg(std::optional<ScanOptionsBase::Count> arg) {
+void CmdWithArgs::PutArg(std::optional<ScanOptionsGeneric::Count> arg) {
     if (arg) {
         args_.emplace_back("COUNT");
         args_.emplace_back(std::to_string(arg->Get()));

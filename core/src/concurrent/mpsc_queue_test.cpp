@@ -140,7 +140,7 @@ private:
 
             try {
                 // You might want to measure the time it takes to process an item.
-                tracing::Span process_span{"foo-processor"};
+                const tracing::Span process_span{"foo-processor"};
 
                 DoProcess(item);
             } catch (const std::exception& ex) {
@@ -270,7 +270,7 @@ UTEST_MT(MpscQueue, FifoTest, kProducersCount + 1) {
 
         std::size_t value{};
         while (consumer.Pop(value)) {
-            std::size_t step = value / kMessageCount;
+            const std::size_t step = value / kMessageCount;
             ASSERT_TRUE(previous[step] == 0 || previous[step] < value % kMessageCount);
             previous[step] = value % kMessageCount;
             ++consumed_messages[value];

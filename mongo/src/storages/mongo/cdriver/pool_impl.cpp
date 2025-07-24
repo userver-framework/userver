@@ -292,6 +292,18 @@ void TopologyClosed(const mongoc_apm_topology_closed_t*) {
     LOG_DEBUG() << "The driver stops monitoring a server topology and destroys it";
 }
 
+void CreateGlobalInitializer() {
+    // Initialize static variable, and wait not on std::mutex, but on engine::Mutex.
+    // Otherwise, CPU will burn.
+    static engine::Mutex mutex;
+    const std::lock_guard lock(mutex);
+
+    static std::optional<GlobalInitializer> kInitMongoc;
+    engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [] {
+        if (!kInitMongoc) kInitMongoc.emplace();
+    }).Get();
+}
+
 }  // namespace
 
 CDriverPoolImpl::CDriverPoolImpl(
@@ -314,7 +326,7 @@ CDriverPoolImpl::CDriverPoolImpl(
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.pool_settings.max_size) {
-    static const GlobalInitializer kInitMongoc;
+    CreateGlobalInitializer();
     GlobalInitializer::LogInitWarningsOnce();
 
     SetConnectionString(uri_string);
@@ -329,7 +341,7 @@ CDriverPoolImpl::CDriverPoolImpl(
 
     std::size_t i = 0;
     try {
-        tracing::Span span("mongo_prepopulate");
+        const tracing::Span span("mongo_prepopulate");
         LOG_INFO() << "Creating " << config.pool_settings.initial_size << " mongo connections";
         for (; i < config.pool_settings.initial_size; ++i) {
             engine::SemaphoreLock lock(in_use_semaphore_);
@@ -358,7 +370,7 @@ CDriverPoolImpl::CDriverPoolImpl(
 CDriverPoolImpl::~CDriverPoolImpl() {
     Stop();  // Must be the first line in the destructor
 
-    tracing::Span span("mongo_destroy");
+    const tracing::Span span("mongo_destroy");
     maintenance_task_.Stop();
 }
 

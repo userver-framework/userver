@@ -2,7 +2,6 @@
 
 #include <stdexcept>
 
-#include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 
 USERVER_NAMESPACE_BEGIN

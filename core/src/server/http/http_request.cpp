@@ -17,13 +17,13 @@ namespace {
 
 std::string EscapeLogString(std::string_view str, const std::array<uint8_t, 256>& need_escape_map) {
     size_t esc_cnt = 0;
-    for (char ch : str) {
+    for (const char ch : str) {
         if (need_escape_map[static_cast<uint8_t>(ch)]) esc_cnt++;
     }
     if (!esc_cnt) return std::string{str};
     std::string res;
     res.reserve(str.size() + esc_cnt * 3);
-    for (char ch : str) {
+    for (const char ch : str) {
         if (need_escape_map[static_cast<uint8_t>(ch)]) {
             res += '\\';
             res += 'x';
@@ -295,7 +295,12 @@ void HttpRequest::MarkAsInternalServerError() const {
     // TODO : refactor, this being here is a bit ridiculous
     pimpl_->response_.SetStatus(http::HttpStatus::kInternalServerError);
     pimpl_->response_.SetData({});
+
+    std::string server_header = pimpl_->response_.GetHeader(USERVER_NAMESPACE::http::headers::kServer);
     pimpl_->response_.ClearHeaders();
+    if (!server_header.empty()) {
+        pimpl_->response_.SetHeader(USERVER_NAMESPACE::http::headers::kServer, std::move(server_header));
+    }
 }
 
 void HttpRequest::SetHttpHandler(const handlers::HttpHandlerBase& handler) { pimpl_->handler_ = &handler; }

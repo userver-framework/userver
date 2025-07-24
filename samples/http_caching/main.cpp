@@ -133,7 +133,7 @@ void HttpCachedTranslations::Update(
         content = *snapshot;          // copying the shared data
     }
 
-    MergeAndSetData(std::move(content), json, stats_scope);
+    MergeAndSetData(std::move(content), std::move(json), stats_scope);
 }
 /// [HTTP caching sample - update]
 

@@ -42,8 +42,8 @@ namespace ugrpc::server {
 /// Metrics are accounted for `"Generic/Generic"` fake call name by default.
 /// This is the safe choice that avoids potential OOMs.
 /// To use the real dynamic RPC name for metrics, use
-/// @ref CallAnyBase::SetMetricsCallName in conjunction with
-/// @ref CallAnyBase::GetCallName.
+/// @ref ugrpc::server::GenericCallContext::SetMetricsCallName in conjunction with
+/// @ref ugrpc::server::GenericCallContext::GetCallName.
 ///
 /// @warning If the microservice serves as a proxy and has untrusted clients, it
 /// is a good idea to avoid having per-RPC metrics to avoid the

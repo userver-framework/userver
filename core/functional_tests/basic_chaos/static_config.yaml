@@ -83,13 +83,15 @@ components_manager:
             listener-monitor:
                 port: 8188
                 task_processor: main-task-processor
+
+# /// [logging]
         logging:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
-                    level: debug
-                    overflow_behavior: discard
+                    level: info
+# /// [logging]
 
         dynamic-config:
             updates-enabled: true

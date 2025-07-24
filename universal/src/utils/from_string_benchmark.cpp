@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 template <typename T>
 void ConstFromString(benchmark::State& state) {
     std::string str;
-    std::size_t len = state.range(0);
+    const std::size_t len = state.range(0);
 
     for (std::size_t i = 1; i < len + 1; ++i) {
         str.push_back('0' + i % 10);

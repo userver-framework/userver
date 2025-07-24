@@ -197,6 +197,11 @@ properties:
     default_task_processor:
         type: string
         description: name of the default task processor to use in components
+        defaultDescription: main-task-processor
+    fs_task_processor:
+        type: string
+        description: name of the fs task processor to use in components
+        defaultDescription: fs-task-processor
     mlock_debug_info:
         type: boolean
         description: whether to mlock(2) process debug info
@@ -250,7 +255,8 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     }
     config.components = yaml_config::ParseMapToArray<components::ComponentConfig>(value["components"]);
     config.task_processors = yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(value["task_processors"]);
-    config.default_task_processor = value["default_task_processor"].As<std::string>();
+    config.default_task_processor = value["default_task_processor"].As<std::string>("main-task-processor");
+    config.fs_task_processor = value["fs_task_processor"].As<std::string>("fs-task-processor");
 
     config.mlock_debug_info = value["mlock_debug_info"].As<bool>(config.mlock_debug_info);
     config.disable_phdr_cache = value["disable_phdr_cache"].As<bool>(config.disable_phdr_cache);

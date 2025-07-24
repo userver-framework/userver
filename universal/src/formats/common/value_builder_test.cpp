@@ -23,7 +23,7 @@ Value Serialize(const MyKeyValue& data, formats::serialize::To<Value>) {
 }
 
 TEST(CommonFormats, Serialize) {
-    MyKeyValue obj = {"val", 1};
+    const MyKeyValue obj = {"val", 1};
 
     // json
     formats::json::ValueBuilder builderJson;

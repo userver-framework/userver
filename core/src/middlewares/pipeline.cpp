@@ -7,10 +7,10 @@
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <middlewares/impl/middlewares_graph.hpp>
 #include <userver/middlewares/groups.hpp>
 #include <userver/middlewares/pipeline.hpp>
 #include <userver/middlewares/runner.hpp>
-#include "impl/middlewares_graph.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,24 +21,28 @@ namespace {
 impl::Dependencies MakeDependencies(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    impl::BasePipelineConfig&& base_config
+    impl::BuiltInConfig&& builtin_config
 ) {
-    impl::BasePipelineConfig userver_deps{base_config};
-    auto pipeline_config = config.As<impl::MiddlewarePipelineConfig>();
-    pipeline_config.middlewares.merge(userver_deps.middlewares);
+    auto builtin_middlewares = builtin_config.middlewares;
+    auto pipeline_config = config.As<impl::MiddlewaresConfig>();
+    pipeline_config.middlewares.merge(std::move(builtin_middlewares));
+
     impl::Dependencies dependencies{};
     dependencies.reserve(pipeline_config.middlewares.size());
+
     for (const auto& [mname, conf] : pipeline_config.middlewares) {
         const auto* middleware = context.FindComponentOptional<impl::WithMiddlewareDependencyComponentBase>(mname);
         if (middleware) {
             auto dep = middleware->GetMiddlewareDependency(utils::impl::InternalTag{});
             dep.enabled = conf.enabled;
             dependencies.emplace(mname, std::move(dep));
+        } else if (builtin_config.middlewares.count(mname) != 0) {
+            impl::MiddlewareDependency fake_dep;
+            fake_dep.middleware_name = mname;
+            fake_dep.enabled = false;
+            dependencies.emplace(mname, std::move(fake_dep));
         } else {
-            UINVARIANT(
-                base_config.middlewares.count(mname) != 0,
-                fmt::format("The User middleware '{}' is not registered in the component system", mname)
-            );
+            UINVARIANT(false, fmt::format("Pipeline middleware '{}' is not registered in the component system", mname));
         }
     }
     return dependencies;
@@ -56,7 +60,7 @@ std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl
     const auto& per_service_middlewares = config.middlewares;
     for (const auto& [name, enabled] : pipeline_) {
         if (const auto it = per_service_middlewares.find(name); it != per_service_middlewares.end()) {
-            // Per-service enabled is high priority
+            // Per-service `enabled` has a higher priority than a global priority.
             if (it->second.As<BaseMiddlewareConfig>().enabled) {
                 res.push_back(name);
             }
@@ -80,7 +84,7 @@ std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl
 AnyMiddlewarePipelineComponent::AnyMiddlewarePipelineComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    impl::BasePipelineConfig&& base_config
+    impl::BuiltInConfig&& base_config
 )
     : components::ComponentBase(config, context),
       pipeline_(MakeDependencies(config, context, std::move(base_config))) {}

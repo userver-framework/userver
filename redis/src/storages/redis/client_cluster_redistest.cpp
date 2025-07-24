@@ -93,17 +93,17 @@ UTEST_F(RedisClusterClientTest, MgetCrossSlot) {
     auto shard = client->ShardByKey(MakeKey(idx[0]));
     while (client->ShardByKey(MakeKey(idx[1])) != shard) ++idx[1];
 
-    for (unsigned long i : idx) {
+    for (const unsigned long i : idx) {
         auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
         UASSERT_NO_THROW(req.Get());
     }
 
     {
         auto req = client->Mget({MakeKey(idx[0]), MakeKey(idx[1])}, kDefaultCc);
-        UASSERT_THROW(req.Get(), storages::redis::ParseReplyException);
+        UASSERT_THROW(req.Get(), storages::redis::RequestFailedException);
     }
 
-    for (unsigned long i : idx) {
+    for (const unsigned long i : idx) {
         auto req = client->Del(MakeKey(i), kDefaultCc);
         EXPECT_EQ(req.Get(), 1);
     }
@@ -171,7 +171,7 @@ UTEST_F(RedisClusterClientTest, TransactionCrossSlot) {
         auto set = transaction->Set(MakeKey(idx[i]), std::to_string(add + i));
         auto get = transaction->Get(MakeKey(idx[i]));
     }
-    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::ParseReplyException);
+    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::RequestFailedException);
 }
 
 UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
@@ -185,7 +185,7 @@ UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
         auto set = transaction->Set(MakeKey(i), std::to_string(add + i));
         auto get = transaction->Get(MakeKey(i));
     }
-    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::ParseReplyException);
+    UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::RequestFailedException);
 }
 
 UTEST_F(RedisClusterClientTest, Eval) {
@@ -313,7 +313,7 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
 
 // for manual testing of CLUSTER FAILOVER
 UTEST_F(RedisClusterClientTest, LongWork) {
-    bool kIsManualTesing = false;
+    const bool kIsManualTesting = false;
     const auto kTestTime = std::chrono::seconds(300);
     auto deadline = engine::Deadline::FromDuration(kTestTime);
 
@@ -360,11 +360,11 @@ UTEST_F(RedisClusterClientTest, LongWork) {
 
         ++iterations;
         engine::SleepFor(std::chrono::milliseconds(10));
-    } while (!deadline.IsReached() && kIsManualTesing);
+    } while (!deadline.IsReached() && kIsManualTesting);
 
     EXPECT_EQ(num_write_errors, 0);
     EXPECT_EQ(num_read_errors, 0);
-    EXPECT_GT(iterations, kIsManualTesing ? 100 : 0);
+    EXPECT_GT(iterations, kIsManualTesting ? 100 : 0);
 }
 
 UTEST_F(RedisClusterClientTest, ClusterSlotsCalled) {

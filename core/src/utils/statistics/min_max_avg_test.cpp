@@ -33,7 +33,7 @@ void CheckCurrent(const utils::statistics::MinMaxAvg<int>& mma, int expected_min
 }
 
 TEST(MinMaxAvg, Default) {
-    utils::statistics::MinMaxAvg<int> mma;
+    const utils::statistics::MinMaxAvg<int> mma;
     CheckCurrent(mma, 0, 0, 0);
 }
 

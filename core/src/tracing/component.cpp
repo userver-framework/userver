@@ -32,9 +32,7 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
             LOG_INFO() << "Opentracing logger is not registered";
         }
 
-        tracing::Tracer::SetTracer(
-            tracing::MakeTracer(std::move(service_name), std::move(opentracing_logger), tracer_type)
-        );
+        tracing::Tracer::SetTracer(tracing::Tracer(std::move(service_name), std::move(opentracing_logger)));
     } else {
         throw std::runtime_error("Tracer type is not supported: " + tracer_type);
     }

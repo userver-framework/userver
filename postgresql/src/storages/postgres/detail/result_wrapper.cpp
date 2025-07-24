@@ -11,6 +11,7 @@
 
 #include <storages/postgres/detail/pg_message_severity.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/message.hpp>
 #include <userver/storages/postgres/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -217,7 +218,7 @@ std::size_t ResultWrapper::RowsAffected() const {
     return 0;
 }
 
-std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
+std::size_t ResultWrapper::IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const {
     auto n = PQfnumber(handle_.get(), name.c_str());
     if (n < 0) return ResultSet::npos;
     return n;
@@ -268,35 +269,52 @@ io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row, std::size_t col) 
 }
 
 std::string ResultWrapper::GetErrorMessage() const {
-    auto* msg = PQresultErrorMessage(handle_.get());
+    const char* msg = PQresultErrorMessage(handle_.get());
     return {msg ? msg : "no error message"};
 }
 
-std::string ResultWrapper::GetPrimaryErrorMessage() const { return GetMessageField(PG_DIAG_MESSAGE_PRIMARY); }
+std::string ResultWrapper::GetPrimaryErrorMessage() const {
+    return GetMessageField(PG_DIAG_MESSAGE_PRIMARY).value_or(Message::kUnknown);
+}
 
-std::string ResultWrapper::GetDetailErrorMessage() const { return GetMessageField(PG_DIAG_MESSAGE_DETAIL); }
+std::string ResultWrapper::GetDetailErrorMessage() const {
+    return GetMessageField(PG_DIAG_MESSAGE_DETAIL).value_or(Message::kUnknown);
+}
 
-std::string ResultWrapper::GetMessageSeverityString() const { return GetMessageField(PG_DIAG_SEVERITY); }
+std::string ResultWrapper::GetMessageSeverityString() const {
+    return GetMessageField(PG_DIAG_SEVERITY).value_or(Message::kUnknown);
+}
 
 Message::Severity ResultWrapper::GetMessageSeverity() const {
     return Message::SeverityFromString(GetMachineReadableSeverity(handle_.get()));
 }
 
-std::string ResultWrapper::GetSqlCode() const { return GetMessageField(PG_DIAG_SQLSTATE); }
+std::string ResultWrapper::GetSqlCode() const { return GetMessageField(PG_DIAG_SQLSTATE).value(); }
 
-SqlState ResultWrapper::GetSqlState() const {
-    auto* msg = PQresultErrorField(handle_.get(), PG_DIAG_SQLSTATE);
-    return msg ? SqlStateFromString(msg) : SqlState::kUnknownState;
+SqlState ResultWrapper::GetSqlState() const { return SqlStateFromString(GetSqlCode()); }
+
+std::string ResultWrapper::GetMessageSchema() const {
+    return GetMessageField(PG_DIAG_SCHEMA_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageTable() const {
+    return GetMessageField(PG_DIAG_TABLE_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageColumn() const {
+    return GetMessageField(PG_DIAG_COLUMN_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageDatatype() const {
+    return GetMessageField(PG_DIAG_DATATYPE_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageConstraint() const {
+    return GetMessageField(PG_DIAG_CONSTRAINT_NAME).value_or(Message::kUnknown);
 }
 
-std::string ResultWrapper::GetMessageSchema() const { return GetMessageField(PG_DIAG_SCHEMA_NAME); }
-std::string ResultWrapper::GetMessageTable() const { return GetMessageField(PG_DIAG_TABLE_NAME); }
-std::string ResultWrapper::GetMessageColumn() const { return GetMessageField(PG_DIAG_COLUMN_NAME); }
-std::string ResultWrapper::GetMessageDatatype() const { return GetMessageField(PG_DIAG_DATATYPE_NAME); }
-std::string ResultWrapper::GetMessageConstraint() const { return GetMessageField(PG_DIAG_CONSTRAINT_NAME); }
-
-std::string ResultWrapper::GetMessageField(int fieldcode) const {
-    return {PQresultErrorField(handle_.get(), fieldcode)};
+std::optional<std::string> ResultWrapper::GetMessageField(int fieldcode) const {
+    const char* res = PQresultErrorField(handle_.get(), fieldcode);
+    if (res == nullptr) {
+        return std::nullopt;
+    }
+    return std::string{res};
 }
 
 logging::LogExtra ResultWrapper::GetMessageLogExtra() const {
@@ -308,9 +326,9 @@ logging::LogExtra ResultWrapper::GetMessageLogExtra() const {
     }
 
     for (auto [key, field] : kExtraErrorFields) {
-        auto* msg = PQresultErrorField(handle_.get(), field);
+        const auto msg = GetMessageField(field);
         if (msg) {
-            log_extra.Extend(key, std::string{msg});
+            log_extra.Extend(key, *msg);
         }
     }
     return log_extra;

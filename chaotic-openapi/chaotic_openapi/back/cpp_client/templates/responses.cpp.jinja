@@ -1,4 +1,4 @@
-#include <client/{{ name }}/responses.hpp>
+#include <clients/{{ name }}/responses.hpp>
 
 #include <userver/clients/http/response.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -62,7 +62,15 @@ namespace {{ namespace }} {
                 {% endif %}
             {% endif %}
 
-            {# TODO: headers #}
+            {% for header in response.headers %}
+            {
+              static const USERVER_NAMESPACE::http::headers::PredefinedHeader kHeader("{{ header.raw_name }}");
+              auto it = http_response.headers().find(kHeader);
+              if (it != http_response.headers().end()) {
+                r.{{ header.cpp_name }} = it->second;
+              }
+            }
+            {% endfor %}
 
             {% if response.is_error() %}
               throw r;

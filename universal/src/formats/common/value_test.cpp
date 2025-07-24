@@ -23,7 +23,7 @@ MyKeyValue Parse(const Value& data, formats::parse::To<MyKeyValue>) {
 
 TEST(CommonFormats, Parse) {
     // json
-    formats::json::Value json = formats::json::FromString(R"({
+    const formats::json::Value json = formats::json::FromString(R"({
     "my_value": {
         "field1": "one",
         "field2": 1
@@ -34,7 +34,7 @@ TEST(CommonFormats, Parse) {
     EXPECT_EQ(data_json.field2, 1);
 
     // yaml
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
     my_value:
         field1: "one"
         field2: 1

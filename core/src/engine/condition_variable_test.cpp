@@ -76,7 +76,7 @@ UTEST_MT(ConditionVariable, SatisfyMultiple, 10) {
     engine::SleepFor(std::chrono::milliseconds(50));
 
     {
-        std::lock_guard<engine::Mutex> lock(mutex);
+        const std::lock_guard<engine::Mutex> lock(mutex);
         ok = true;
         cv.NotifyAll();
     }
@@ -96,7 +96,7 @@ UTEST(ConditionVariable, WaitStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             cv.NotifyOne();
         }
         EXPECT_EQ(engine::CvStatus::kNoTimeout, task.Get());
@@ -109,7 +109,7 @@ UTEST(ConditionVariable, WaitStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
         }
         EXPECT_EQ(engine::CvStatus::kCancelled, task.Get());
@@ -129,7 +129,7 @@ UTEST(ConditionVariable, WaitPredicateStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             flag = true;
             cv.NotifyOne();
         }
@@ -144,7 +144,7 @@ UTEST(ConditionVariable, WaitPredicateStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
         }
         EXPECT_FALSE(task.Get());
@@ -163,7 +163,7 @@ UTEST(ConditionVariable, WaitForStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             cv.NotifyOne();
         }
         EXPECT_EQ(engine::CvStatus::kNoTimeout, task.Get());
@@ -185,7 +185,7 @@ UTEST(ConditionVariable, WaitForStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
         }
         EXPECT_EQ(engine::CvStatus::kCancelled, task.Get());
@@ -205,7 +205,7 @@ UTEST(ConditionVariable, WaitForPredicateStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
 
             flag = true;
             cv.NotifyOne();
@@ -231,7 +231,7 @@ UTEST(ConditionVariable, WaitForPredicateStatus) {
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
         }
         EXPECT_FALSE(task.Get());
@@ -246,18 +246,18 @@ UTEST(ConditionVariable, BlockedCancelWait) {
         auto task = engine::AsyncNoSpan([&] {
             std::unique_lock<engine::Mutex> lock(mutex);
             has_started_event.Send();
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             return cv.Wait(lock);
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
         }
         task.WaitFor(kWaitPeriod);
         EXPECT_FALSE(task.IsFinished());
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             cv.NotifyOne();
         }
         EXPECT_EQ(engine::CvStatus::kNoTimeout, task.Get());
@@ -273,12 +273,12 @@ UTEST(ConditionVariable, BlockedCancelWaitPredicate) {
         auto task = engine::AsyncNoSpan([&] {
             std::unique_lock<engine::Mutex> lock(mutex);
             has_started_event.Send();
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             return cv.Wait(lock, [&] { return flag; });
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
             flag = true;
             cv.NotifyOne();
@@ -290,19 +290,19 @@ UTEST(ConditionVariable, BlockedCancelWaitPredicate) {
         auto task = engine::AsyncNoSpan([&] {
             std::unique_lock<engine::Mutex> lock(mutex);
             has_started_event.Send();
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             return cv.Wait(lock, [&] { return flag; });
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
         }
         task.WaitFor(kWaitPeriod);
         EXPECT_FALSE(task.IsFinished());
 
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             flag = true;
             cv.NotifyOne();
         }
@@ -318,12 +318,12 @@ UTEST(ConditionVariable, BlockedCancelWaitFor) {
         auto task = engine::AsyncNoSpan([&] {
             std::unique_lock<engine::Mutex> lock(mutex);
             has_started_event.Send();
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             return cv.WaitFor(lock, kWaitPeriod);
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
             cv.NotifyOne();
         }
@@ -333,12 +333,12 @@ UTEST(ConditionVariable, BlockedCancelWaitFor) {
         auto task = engine::AsyncNoSpan([&] {
             std::unique_lock<engine::Mutex> lock(mutex);
             has_started_event.Send();
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             return cv.WaitFor(lock, kWaitPeriod);
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
         }
         EXPECT_EQ(engine::CvStatus::kTimeout, task.Get());
@@ -354,12 +354,12 @@ UTEST(ConditionVariable, BlockedCancelWaitForPredicate) {
         auto task = engine::AsyncNoSpan([&] {
             std::unique_lock<engine::Mutex> lock(mutex);
             has_started_event.Send();
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             return cv.WaitFor(lock, kWaitPeriod, [&] { return flag; });
         });
         has_started_event.WaitForEvent();
         {
-            std::unique_lock<engine::Mutex> lock(mutex);
+            const std::lock_guard<engine::Mutex> lock(mutex);
             task.RequestCancel();
             flag = true;
             cv.NotifyOne();

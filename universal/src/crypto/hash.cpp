@@ -63,7 +63,7 @@ std::string CalculateHmac(std::string_view key, std::string_view data, crypto::h
 
     try {
         CryptoPP::HMAC<HashAlgorithm> hmac(reinterpret_cast<const byte*>(key.data()), key.size());
-        CryptoPP::StringSource ss_key(
+        const CryptoPP::StringSource ss_key(
             reinterpret_cast<const byte*>(data.data()),
             data.size(),
             true,

@@ -16,7 +16,7 @@ ChaosMiddleware::ChaosMiddleware(bool feature_enabled) : feature_enabled_(featur
 void ChaosMiddleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context) const {
     const auto rand = utils::Rand();
     const auto enabled = feature_enabled_ && rand % 10 == 0;
-    context.GetContext().AddMetadata(kExperinetFeature, enabled ? kEnable : kDisable);
+    context.GetClientContext().AddMetadata(kExperinetFeature, enabled ? kEnable : kDisable);
 }
 
 /// [gRPC middleware sample]

@@ -5,13 +5,8 @@
 //
 // Do not include this header in your code, use non-impl includes instead!
 
-#include <grpcpp/completion_queue.h>
-
-#include <userver/ugrpc/client/client_qos.hpp>
+#include <userver/ugrpc/client/call_options.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
-#include <userver/ugrpc/client/middlewares/fwd.hpp>
-#include <userver/ugrpc/client/qos.hpp>
 #include <userver/ugrpc/client/response_future.hpp>
-#include <userver/ugrpc/client/rpc.hpp>
+#include <userver/ugrpc/client/stream.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
-#include <userver/ugrpc/impl/statistics.hpp>

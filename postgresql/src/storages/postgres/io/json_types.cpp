@@ -35,7 +35,7 @@ void JsonParser::operator()(const FieldBuffer& buffer) {
         --length;
     }
 
-    std::string_view json_string(start, length);
+    const std::string_view json_string(start, length);
     value = formats::json::FromString(json_string);
 }
 

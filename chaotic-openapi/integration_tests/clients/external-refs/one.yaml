@@ -11,6 +11,8 @@ paths:
             responses:
                 '200':
                     $ref: 'two.yaml#/components/responses/Two'
+                '201':
+                    $ref: './two.yaml#/components/responses/Two'
             requestBody:
                 $ref: 'two.yaml#/components/requestBodies/Two'
 
@@ -21,4 +23,8 @@ components:
             properties:
                 two:
                     $ref: 'two.yaml#/components/schemas/Two'
+                local:
+                    $ref: '#/components/schemas/Local'
             additionalProperties: false
+        Local:
+            type: integer

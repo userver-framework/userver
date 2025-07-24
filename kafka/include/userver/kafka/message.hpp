@@ -5,8 +5,8 @@
 
 #include <userver/kafka/headers.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-#include <userver/utils/null_terminated_view.hpp>
 #include <userver/utils/span.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -57,7 +57,7 @@ public:
 
     /// @brief Returns **last** header with given name.
     /// @warning This operation has O(N) complexity, where N == number of all message headers.
-    std::optional<std::string_view> GetHeader(utils::NullTerminatedView name) const;
+    std::optional<std::string_view> GetHeader(utils::zstring_view name) const;
 
 private:
     friend class impl::ConsumerImpl;

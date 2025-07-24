@@ -19,7 +19,7 @@ namespace {
 
 constexpr std::size_t kSubscriptionDatabaseIndex = 0;
 
-std::shared_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
+std::unique_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const std::vector<std::string>& shards,
     bool is_cluster_mode
@@ -27,10 +27,10 @@ std::shared_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
     const auto shards_count = shards.size();
     auto shard_names = std::make_shared<const std::vector<std::string>>(shards);
     if (is_cluster_mode) {
-        return std::make_shared<ClusterSubscriptionStorage>(thread_pools, shards_count);
+        return std::make_unique<ClusterSubscriptionStorage>(thread_pools, shards_count);
     }
 
-    return std::make_shared<SubscriptionStorage>(thread_pools, shards_count, is_cluster_mode, std::move(shard_names));
+    return std::make_unique<SubscriptionStorage>(thread_pools, shards_count, is_cluster_mode, std::move(shard_names));
 }
 
 }  // namespace
@@ -44,7 +44,6 @@ SubscribeSentinel::SubscribeSentinel(
     const std::string& client_name,
     const Password& password,
     ConnectionSecurity connection_security,
-    ReadyChangeCallback ready_callback,
     KeyShardFactory key_shard_factory,
     bool is_cluster_mode,
     CommandControl command_control,
@@ -58,45 +57,20 @@ SubscribeSentinel::SubscribeSentinel(
           client_name,
           password,
           connection_security,
-          ready_callback,
           dynamic_config_source,
           std::move(key_shard_factory),
           command_control,
           testsuite_redis_control,
-          ConnectionMode::kSubscriber,
           kSubscriptionDatabaseIndex
 
       ),
-      thread_pools_(thread_pools),
-      storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode)),
-      stopper_(std::make_shared<Stopper>()) {
+      storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode)) {
     InitStorage();
-    auto stopper = stopper_;
-    signal_instances_changed.connect([this, stopper](size_t shard_idx) {
-        std::lock_guard<std::mutex> lock(stopper->mutex);
-        if (stopper->stopped) return;
-        RebalanceSubscriptions(shard_idx);
-    });
-    signal_not_in_cluster_mode.connect([this, stopper, thread_pools, shards_size = shards.size()]() {
-        std::lock_guard<std::mutex> lock(stopper->mutex);
-        if (stopper->stopped) return;
-        storage_->SwitchToNonClusterMode();
-    });
-
-    signal_topology_changed.connect([this, stopper](size_t shards_count) {
-        const std::lock_guard<std::mutex> lock(stopper->mutex);
-        if (stopper->stopped) return;
-
-        storage_->SetShardsCount(shards_count);
-    });
 }
 
 SubscribeSentinel::~SubscribeSentinel() {
-    {
-        std::lock_guard<std::mutex> lock(stopper_->mutex);
-        stopper_->stopped = true;
-    }
     storage_->Stop();
+    Stop();
 }
 
 std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
@@ -105,37 +79,6 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name,
-    std::string sharding_strategy,
-    const CommandControl& command_control,
-    const testsuite::RedisControl& testsuite_redis_control
-) {
-    auto ready_callback = [](size_t shard, const std::string& shard_name, bool ready) {
-        LOG_INFO() << "redis: ready_callback:"
-                   << "  shard = " << shard << "  shard_name = " << shard_name
-                   << "  ready = " << (ready ? "true" : "false");
-    };
-    // https://github.com/boostorg/signals2/issues/59
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-    return Create(
-        thread_pools,
-        settings,
-        std::move(shard_group_name),
-        dynamic_config_source,
-        client_name,
-        std::move(ready_callback),
-        std::move(sharding_strategy),
-        command_control,
-        testsuite_redis_control
-    );
-}
-
-std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
-    const std::shared_ptr<ThreadPools>& thread_pools,
-    const secdist::RedisSettings& settings,
-    std::string shard_group_name,
-    dynamic_config::Source dynamic_config_source,
-    const std::string& client_name,
-    ReadyChangeCallback ready_callback,
     std::string sharding_strategy,
     const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control
@@ -176,7 +119,6 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         client_name,
         password,
         settings.secure_connection,
-        std::move(ready_callback),
         std::move(keysShardFactory),
         is_cluster_mode,
         command_control,

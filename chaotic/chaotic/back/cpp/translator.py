@@ -1,12 +1,14 @@
 import collections
 import dataclasses
 import os
+import pathlib
 import re
 from typing import Callable
 from typing import Dict
 from typing import List
 from typing import NoReturn
 from typing import Optional
+from typing import Set
 
 from chaotic import cpp_names
 from chaotic import error
@@ -36,6 +38,7 @@ class GeneratorState:
     refs: Dict[types.Schema, str]  # type: ignore
     ref_objects: List[cpp_types.CppRef]
     external_types: Dict[types.Schema, cpp_types.CppType]  # type: ignore
+    seen_includes: Set[str]
 
 
 NON_NAME_SYMBOL_RE = re.compile('[^_0-9a-zA-Z]')
@@ -107,6 +110,7 @@ class Generator:
             refs={},
             ref_objects=[],
             external_types={},
+            seen_includes=set(),
         )
         self._state.ref_objects = []
 
@@ -115,6 +119,8 @@ class Generator:
         schemas: types.ResolvedSchemas,
         external_schemas: Dict[str, cpp_types.CppType] = {},
     ) -> Dict[str, cpp_types.CppType]:
+        self._state.seen_includes = set()
+
         for cpp_type in external_schemas.values():
             schema = cpp_type.json_schema
             assert schema
@@ -133,6 +139,10 @@ class Generator:
 
         return self._state.types
 
+    @property
+    def seen_includes(self) -> Set[str]:
+        return self._state.seen_includes
+
     def _validate_type(self, type_: cpp_types.CppType) -> None:
         if not type_.user_cpp_type:
             return
@@ -147,6 +157,7 @@ class Generator:
         for include_dir in self._config.include_dirs:
             path = os.path.join(include_dir, user_include)
             if os.path.exists(path):
+                self._state.seen_includes.add(path)
                 return
 
         assert type_.json_schema
@@ -237,7 +248,7 @@ class Generator:
 
     def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
         vfile, infile = jsonschema_name.split('#')
-        name = self._config.infile_to_name_func(infile)
+        name = self._config.infile_to_name_func(infile, pathlib.Path(vfile).stem)
         namespace = self._config.namespaces[vfile]
         if namespace:
             return '::' + namespace + '::' + name
@@ -432,24 +443,19 @@ class Generator:
                 )
             user_cpp_type = f'userver::utils::StrongTypedef<{typedef_tag}, std::string>'
 
-        if schema.format:
-            if schema.format == types.StringFormat.UUID:
+        if schema.format and schema.format != types.StringFormat.BINARY:
+            if schema.format == types.StringFormat.BYTE:
+                format_cpp_type = 'crypto::base64::String64'
+            elif schema.format == types.StringFormat.UUID:
                 format_cpp_type = 'boost::uuids::uuid'
             elif schema.format == types.StringFormat.DATE:
                 format_cpp_type = 'userver::utils::datetime::Date'
-            elif schema.format in [
-                types.StringFormat.DATE_TIME,
-                types.StringFormat.DATE_TIME_ISO_BASIC,
-            ]:
-                if schema.format == types.StringFormat.DATE_TIME:
-                    format_cpp_type = 'userver::utils::datetime::TimePointTz'
-                elif schema.format == types.StringFormat.DATE_TIME_ISO_BASIC:
-                    format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
-                else:
-                    self._raise(
-                        schema,
-                        f'Using unknown "format: {schema.format}"',
-                    )
+            elif schema.format == types.StringFormat.DATE_TIME:
+                format_cpp_type = 'userver::utils::datetime::TimePointTz'
+            elif schema.format == types.StringFormat.DATE_TIME_ISO_BASIC:
+                format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
+            elif schema.format == types.StringFormat.DATE_TIME_FRACTION:
+                format_cpp_type = 'userver::utils::datetime::TimePointTzFraction'
             else:
                 self._raise(
                     schema,
@@ -528,8 +534,7 @@ class Generator:
             user_cpp_type = None
 
         return cpp_types.CppArray(
-            # _cpp_type() is overridden in array
-            raw_cpp_type=type_name.TypeName('NOT_USED'),
+            raw_cpp_type=name,
             json_schema=schema,
             nullable=schema.nullable,
             user_cpp_type=user_cpp_type,
@@ -700,7 +705,7 @@ class Generator:
                 nullable=False,
                 user_cpp_type=None,
             ),
-            raw_cpp_type=type_name.TypeName(''),
+            raw_cpp_type=name,
             indirect=False,
             self_ref=False,
         )

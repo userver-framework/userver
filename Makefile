@@ -15,6 +15,22 @@ CMAKE_RELEASE_FLAGS += -DCMAKE_BUILD_TYPE=Release $(CMAKE_COMMON_FLAGS)
 .PHONY: all
 all: test-debug test-release
 
+.PHONY: docs
+docs:
+	BUILD_DIR=$(BUILD_DIR) ./scripts/docs/make_docs.sh
+
+.PHONY: docs-upload
+docs-upload:
+	BUILD_DIR=$(BUILD_DIR) ./scripts/docs/upload_docs.sh
+
+.PHONY: docs-internal
+docs-internal:
+	BUILD_DIR=$(BUILD_DIR) ../scripts/userver/docs/make_docs.sh
+
+.PHONY: docs-internal-upload
+docs-internal-upload:
+	BUILD_DIR=$(BUILD_DIR) OAUTH_TOKEN=$(OAUTH_TOKEN) ../scripts/userver/docs/upload_docs.sh
+
 # Run cmake
 .PHONY: cmake-debug
 cmake-debug:

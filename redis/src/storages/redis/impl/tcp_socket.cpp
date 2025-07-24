@@ -16,10 +16,10 @@ namespace storages::redis::impl {
 std::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd) {
 // MAC_COMPAT
 #ifdef TCP_INFO
-    int optname = TCP_INFO;
+    const int optname = TCP_INFO;
     struct tcp_info ti {};
 #else
-    int optname = TCP_CONNECTION_INFO;
+    const int optname = TCP_CONNECTION_INFO;
     struct tcp_connection_info ti {};
 #endif
     socklen_t tisize = sizeof(ti);

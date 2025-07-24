@@ -27,6 +27,7 @@ components_manager:
     initial_size: 50
     max_size: 500
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:
@@ -80,6 +81,7 @@ components_manager:
     initial_size: 50
     max_size: 500
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:

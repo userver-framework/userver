@@ -244,7 +244,7 @@ TYPED_TEST_P(MemberAccess, MemberPaths) {
     using Value = typename TestFixture::Value;
 
     // copy/move constructor behaves as if it copied references not values
-    Value js_copy = this->doc_;
+    const Value js_copy = this->doc_;
     // check pointer equality of native objects
     EXPECT_TRUE(js_copy.DebugIsReferencingSameMemory(this->doc_));
 
@@ -287,7 +287,7 @@ TYPED_TEST_P(MemberAccess, CopyMoveSubobject) {
     using Value = typename TestFixture::Value;
 
     // copy/move constructor behaves as if it copied references from subobjects
-    Value v(this->doc_["key3"]);
+    const Value v(this->doc_["key3"]);
 
     EXPECT_EQ(v, this->doc_["key3"]);
     EXPECT_TRUE(v.DebugIsReferencingSameMemory(this->doc_["key3"]));
@@ -296,7 +296,7 @@ TYPED_TEST_P(MemberAccess, CopyMoveSubobject) {
 TYPED_TEST_P(MemberAccess, IteratorOnNull) {
     using Value = typename TestFixture::Value;
 
-    Value v;
+    const Value v;
     EXPECT_EQ(v.begin(), v.end());
 }
 
@@ -304,7 +304,7 @@ TYPED_TEST_P(MemberAccess, IteratorOnMissingThrows) {
     using Value = typename TestFixture::Value;
     using MemberMissingException = typename TestFixture::MemberMissingException;
 
-    Value v;
+    const Value v;
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(v["missing_key"].begin(), MemberMissingException);
@@ -314,7 +314,7 @@ TYPED_TEST_P(MemberAccess, CloneValues) {
     using Value = typename TestFixture::Value;
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    Value v = this->doc_.Clone();
+    const Value v = this->doc_.Clone();
     EXPECT_EQ(v, this->doc_);
 
     this->doc_ = ValueBuilder(-1).ExtractValue();
@@ -326,7 +326,7 @@ TYPED_TEST_P(MemberAccess, CreateEmptyAndAccess) {
     using Value = typename TestFixture::Value;
     using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-    Value v;
+    const Value v;
     EXPECT_TRUE(v.IsRoot());
     EXPECT_EQ(v.GetPath(), "/");
     EXPECT_TRUE(v.IsNull());
@@ -343,7 +343,7 @@ TYPED_TEST_P(MemberAccess, Subfield) {
 
     ValueBuilder body_builder(Type::kObject);
 
-    Value old = this->doc_["key1"].Clone();
+    const Value old = this->doc_["key1"].Clone();
     EXPECT_EQ(old, this->doc_["key1"]);
 
     body_builder["key1"] = this->doc_["key1"];
@@ -380,7 +380,7 @@ TYPED_TEST_P(MemberAccess, ConstFunctionsOnMissing) {
     using Value = typename TestFixture::Value;
     using MemberMissingException = typename TestFixture::MemberMissingException;
 
-    Value v = Value()["missing"];
+    const Value v = Value()["missing"];
     ASSERT_NO_THROW(v.IsMissing());
     ASSERT_TRUE(v.IsMissing());
 

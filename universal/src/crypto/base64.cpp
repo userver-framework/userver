@@ -19,7 +19,7 @@ std::string Base64Encode(std::string_view data, Pad pad) {
     std::string response;
     try {
         Base64Encoder encoder(new CryptoPP::StringSink(response));
-        CryptoPP::AlgorithmParameters params = CryptoPP::MakeParameters(CryptoPP::Name::Pad(), Pad::kWith == pad)(
+        const CryptoPP::AlgorithmParameters params = CryptoPP::MakeParameters(CryptoPP::Name::Pad(), Pad::kWith == pad)(
             CryptoPP::Name::InsertLineBreaks(), false
         );
         encoder.IsolatedInitialize(params);

@@ -222,6 +222,16 @@ bool Value::IsInt64() const noexcept {
     return false;
 }
 
+bool Value::IsUInt() const noexcept {
+    if (IsMissing()) return false;
+    const auto& native = GetNative();
+    if (native.IsUint()) return true;
+    if (native.IsDouble()) {
+        return IsNonOverflowingIntegral<unsigned int>(native.GetDouble());
+    }
+    return false;
+}
+
 bool Value::IsUInt64() const noexcept {
     if (IsMissing()) return false;
     const auto& native = GetNative();

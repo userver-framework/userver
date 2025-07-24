@@ -41,9 +41,10 @@ void PoolImpl::Stop() noexcept {
 }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-    bool cc_enabled = config[::dynamic_config::MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS].GetOptional(id_).value_or(
-        config[::dynamic_config::MONGO_CONGESTION_CONTROL_ENABLED]
-    );
+    const bool cc_enabled =
+        config[::dynamic_config::MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS].GetOptional(id_).value_or(
+            config[::dynamic_config::MONGO_CONGESTION_CONTROL_ENABLED]
+        );
     cc_controller_.SetEnabled(cc_enabled);
 
     const auto new_pool_settings = config[::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS].GetOptional(id_);

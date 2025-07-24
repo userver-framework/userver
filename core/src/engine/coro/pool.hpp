@@ -5,6 +5,7 @@
 
 #include <moodycamel/concurrentqueue.h>
 
+#include <engine/coro/marked_allocator.hpp>
 #include <engine/coro/pool_config.hpp>
 #include <engine/coro/pool_stats.hpp>
 #include <engine/coro/stack_usage_monitor.hpp>
@@ -60,10 +61,10 @@ private:
     // outside of any coroutine.
     static inline thread_local std::vector<Coroutine> local_coro_buffer_;
 
-    boost::coroutines2::protected_fixedsize_stack stack_allocator_;
+    debug::MarkedAllocator stack_allocator_;
     // Some pointers arithmetic in StackUsageMonitor depends on this.
     // If you change the allocator, adjust the math there accordingly.
-    static_assert(std::is_same_v<decltype(stack_allocator_), boost::coroutines2::protected_fixedsize_stack>);
+    static_assert(std::is_base_of_v<boost::coroutines2::protected_fixedsize_stack, decltype(stack_allocator_)>);
     StackUsageMonitor stack_usage_monitor_;
 
     // We aim to reuse coroutines as much as possible,

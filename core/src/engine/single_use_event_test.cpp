@@ -18,7 +18,7 @@ using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
-TEST(SingleUseEvent, UnusedEvent) { engine::SingleUseEvent event; }
+TEST(SingleUseEvent, UnusedEvent) { const engine::SingleUseEvent event; }
 
 UTEST(SingleUseEvent, IsReady) {
     engine::SingleUseEvent event;

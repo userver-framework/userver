@@ -83,7 +83,7 @@ public:
 
     void SetStructField(std::string_view field_name, google::protobuf::Value&& field) {
         UINVARIANT(type == Type::kStruct, "invalid type");
-#if GOOGLE_PROTOBUF_VERSION >= 3014000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
         (*value.mutable_struct_value()->mutable_fields())[field_name] = std::move(field);
 #else
         // No transparent comparisons till

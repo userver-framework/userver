@@ -28,7 +28,7 @@ storages::redis::Request<ScanReplyTmpl<scan_tag>> MakeScanRequest(
     std::string key,
     size_t shard,
     typename ScanReplyTmpl<scan_tag>::Cursor cursor,
-    ScanOptionsTmpl<scan_tag> options,
+    ScanOptionsGeneric options,
     const CommandControl& command_control
 ) {
     if constexpr (scan_tag == ScanTag::kScan) {
@@ -133,7 +133,7 @@ public:
     RequestScanData(
         std::shared_ptr<ClientImpl> client,
         size_t shard,
-        ScanOptionsTmpl<scan_tag> options,
+        ScanOptionsGeneric options,
         const CommandControl& command_control,
         std::enable_if_t<scan_tag_param == ScanTag::kScan>* = nullptr
     )
@@ -144,7 +144,7 @@ public:
         std::shared_ptr<ClientImpl> client,
         std::string key,
         size_t shard,
-        ScanOptionsTmpl<scan_tag> options,
+        ScanOptionsGeneric options,
         const CommandControl& command_control,
         std::enable_if_t<scan_tag_param != ScanTag::kScan>* = nullptr
     )
@@ -161,7 +161,7 @@ private:
         std::shared_ptr<ClientImpl> client,
         std::string key,
         size_t shard,
-        ScanOptionsTmpl<scan_tag> options,
+        ScanOptionsGeneric options,
         const CommandControl& command_control,
         ScanTag
     );
@@ -171,7 +171,7 @@ private:
     std::shared_ptr<ClientImpl> client_;
     std::string key_;
     size_t shard_{-1UL};
-    ScanOptionsTmpl<scan_tag> options_;
+    ScanOptionsGeneric options_;
     CommandControl command_control_;
 
     using ScanReply = ScanReplyTmpl<scan_tag>;
@@ -187,7 +187,7 @@ RequestScanData<scan_tag>::RequestScanData(
     std::shared_ptr<ClientImpl> client,
     std::string key,
     size_t shard,
-    ScanOptionsTmpl<scan_tag> options,
+    ScanOptionsGeneric options,
     const CommandControl& command_control,
     ScanTag
 )

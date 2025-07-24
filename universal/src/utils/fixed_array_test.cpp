@@ -28,9 +28,9 @@ TEST(FixedArray, Sample) {
 }
 
 TEST(FixedArray, Iteration) {
-    utils::FixedArray<int> array(4, 2);
+    const utils::FixedArray<int> array(4, 2);
     int sum = 0;
-    for (int value : array) {
+    for (const int value : array) {
         sum += value;
     }
     ASSERT_EQ(sum, 8);

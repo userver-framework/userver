@@ -18,6 +18,8 @@ namespace {
 
 const std::string kLocaleArabic = "ar";
 const std::string kLocaleArabicNumbersLatn = "ar@numbers=latn";
+const std::string kLocaleNepalese = "ne";
+const std::string kLocaleNepaleseNumbersLatn = "ne@numbers=latn";
 
 }  // namespace
 
@@ -28,6 +30,9 @@ std::string Format(double value, const std::string& locale, int ndigits, bool is
     if (locale == kLocaleArabic) {
         // see: https://sites.google.com/site/icuprojectuserguide/locale
         res.imbue(GetLocale(kLocaleArabicNumbersLatn));
+    } else if (locale == kLocaleNepalese) {
+        // The same goes for the Nepalese numerals
+        res.imbue(GetLocale(kLocaleNepaleseNumbersLatn));
     } else {
         res.imbue(GetLocale(locale));
     }
@@ -56,17 +61,17 @@ const std::locale& GetLocale(const std::string& name) {
     using locales_map_t = std::unordered_map<std::string, std::locale>;
     static locales_map_t locales;
     {
-        std::shared_lock read_lock(m);
+        const std::shared_lock read_lock(m);
         auto it = static_cast<const locales_map_t&>(locales).find(name);
         if (it != locales.cend()) {
             return it->second;
         }
     }
 
-    boost::locale::generator gen;
-    std::locale loc = gen(name);
+    const boost::locale::generator gen;
+    const std::locale loc = gen(name);
     {
-        std::unique_lock write_lock(m);
+        const std::lock_guard write_lock(m);
         return locales.emplace(name, std::move(loc)).first->second;
     }
 }

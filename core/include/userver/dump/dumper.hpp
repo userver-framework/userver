@@ -83,7 +83,7 @@ enum class UpdateType {
 /// `max-age` | optional `string` (duration) | Overdue dumps are ignored | null
 /// `max-count` | optional `integer` | Old dumps over the limit are removed from disk | `1`
 /// `min-interval` | `string` (duration) | `WriteDumpAsync` calls performed in a fast succession are ignored | `0s`
-/// `fs-task-processor` | `string` | `TaskProcessor` for blocking disk IO | `fs-task-processor`
+/// `fs-task-processor` | `string` | `TaskProcessor` for blocking disk IO | engine::current_task::GetBlockingTaskProcessor()
 /// `encrypted` | `boolean` | Whether to encrypt the dump | `false`
 ///
 /// ## Sample usage
@@ -171,7 +171,7 @@ private:
     Dumper(const Config& initial_config, const components::ComponentContext& context, DumpableEntity& dumpable);
 
     class Impl;
-    utils::FastPimpl<Impl, 1088, 16> impl_;
+    utils::FastPimpl<Impl, 1120, 16> impl_;
 };
 
 }  // namespace dump

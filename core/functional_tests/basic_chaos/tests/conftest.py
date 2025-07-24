@@ -11,27 +11,18 @@ def userver_testsuite_middleware_enabled():
 
 
 @pytest.fixture(name='for_client_gate_port', scope='module')
-def _for_client_gate_port(request) -> int:
-    # This fixture might be defined in an outer scope.
-    if 'for_client_gate_port_override' in request.fixturenames:
-        return request.getfixturevalue('for_client_gate_port_override')
-    return 11433
+def _for_client_gate_port(choose_free_port) -> int:
+    return choose_free_port(11433)
 
 
 @pytest.fixture(name='for_dns_gate_port', scope='session')
-def _for_dns_gate_port(request) -> int:
-    # This fixture might be defined in an outer scope.
-    if 'for_dns_gate_port_override' in request.fixturenames:
-        return request.getfixturevalue('for_dns_gate_port_override')
-    return 11455
+def _for_dns_gate_port(choose_free_port) -> int:
+    return choose_free_port(11455)
 
 
 @pytest.fixture(name='for_dns_gate_port2', scope='session')
-def _for_dns_gate_port2(request) -> int:
-    # This fixture might be defined in an outer scope.
-    if 'for_dns_gate_port2_override' in request.fixturenames:
-        return request.getfixturevalue('for_dns_gate_port2_override')
-    return 11456
+def _for_dns_gate_port2(choose_free_port) -> int:
+    return choose_free_port(11456)
 
 
 @pytest.fixture(scope='session')

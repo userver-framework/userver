@@ -2,7 +2,7 @@
 
 #include <variant>
 
-#include <client/{{ name }}/exceptions.hpp>
+#include <clients/{{ name }}/exceptions.hpp>
 #include <userver/chaotic/openapi/client/exceptions.hpp>
 {% for include in spec.responses_declaration_includes() %}
   #include <{{ include }}>
@@ -65,7 +65,12 @@ namespace {{ namespace }} {
             {% endif %}
 
             {% for header in response.headers %}
-              {{ NOT_IMPLEMENTED("response header") }}
+              {% if header.cpp_type.nullable %}
+                std::optional<{{ header.cpp_type.cpp_global_name() }}>
+              {%- else -%}
+                {{ header.cpp_type.cpp_global_name() }}
+              {% endif -%}
+              {{ header.cpp_name }};
             {% endfor %}
           };
         {% endfor %}

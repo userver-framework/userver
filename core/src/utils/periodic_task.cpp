@@ -179,7 +179,8 @@ bool PeriodicTask::DoStep() {
     auto settings_ptr = settings_.Read();
     const auto span_log_level = settings_ptr->span_level;
     const auto name = GetName();
-    tracing::Span span(std::string{name}, tracing::ReferenceType::kChild, span_log_level);
+    tracing::Span span(std::string{name});
+    span.SetLogLevel(span_log_level);
     try {
         callback_();
         return true;
@@ -190,7 +191,7 @@ bool PeriodicTask::DoStep() {
 }
 
 bool PeriodicTask::Step() {
-    std::lock_guard lock_step(step_mutex_);
+    const std::lock_guard lock_step(step_mutex_);
 
     if (suspend_state_.load() == SuspendState::kSuspended) {
         LOG_INFO() << "Skipping suspended PeriodicTask with name=" << GetName();
@@ -201,7 +202,7 @@ bool PeriodicTask::Step() {
 }
 
 bool PeriodicTask::StepDebug(bool preserve_span) {
-    std::lock_guard lock_step(step_mutex_);
+    const std::lock_guard lock_step(step_mutex_);
 
     std::optional<tracing::Span> testsuite_oneshot_span;
     if (preserve_span) {

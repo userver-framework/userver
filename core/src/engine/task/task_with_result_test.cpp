@@ -13,7 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-TEST(TaskWithResult, Ctr) { engine::TaskWithResult<void> task; }
+TEST(TaskWithResult, Ctr) { const engine::TaskWithResult<void> task; }
 
 UTEST(TaskWithResult, Wait) {
     auto container = std::vector{1, 2, 3, 4, 5, 6};

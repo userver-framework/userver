@@ -19,7 +19,7 @@ public:
     RpcFinishedEvent(RpcFinishedEvent&&) = delete;
     RpcFinishedEvent& operator=(RpcFinishedEvent&&) = delete;
 
-    void* GetTag() noexcept;
+    void* GetCompletionTag() noexcept;
 
     /// @see EventBase::Notify
     void Notify(bool ok) noexcept override;
@@ -34,6 +34,8 @@ private:
 };
 
 ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async) noexcept;
+
+[[nodiscard]] bool IsInvocationSuccessful(ugrpc::impl::AsyncMethodInvocation::WaitStatus status) noexcept;
 
 void CheckInvocationSuccessful(
     ugrpc::impl::AsyncMethodInvocation::WaitStatus status,

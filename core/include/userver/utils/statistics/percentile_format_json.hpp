@@ -29,7 +29,7 @@ formats::json::ValueBuilder PercentileToJson(const T& perc, std::initializer_lis
         "json-serializable value"
     );
     formats::json::ValueBuilder result;
-    for (double percent : percents) {
+    for (const double percent : percents) {
         result[GetPercentileFieldName(percent)] = perc.GetPercentile(percent);
     }
     utils::statistics::SolomonChildrenAreLabelValues(result, "percentile");

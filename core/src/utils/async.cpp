@@ -3,6 +3,7 @@
 #include <tracing/span_impl.hpp>
 #include <userver/baggage/baggage_manager.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
+#include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -10,15 +11,14 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 struct SpanWrapCall::Impl {
-    explicit Impl(std::string&& name, InheritVariables inherit_variables);
+    explicit Impl(std::string&& name, InheritVariables inherit_variables, const SourceLocation& location);
 
-    tracing::Span::Impl span_impl_;
-    tracing::Span span_;
+    tracing::InPlaceSpan span_;
     engine::impl::task_local::Storage storage_;
 };
 
-SpanWrapCall::Impl::Impl(std::string&& name, InheritVariables inherit_variables)
-    : span_impl_(std::move(name)), span_(span_impl_) {
+SpanWrapCall::Impl::Impl(std::string&& name, InheritVariables inherit_variables, const SourceLocation& location)
+    : span_(std::move(name), tracing::InPlaceSpan::DetachedTag{}, location) {
     if (!engine::current_task::IsTaskProcessorThread()) {
         return;
     }
@@ -29,12 +29,12 @@ SpanWrapCall::Impl::Impl(std::string&& name, InheritVariables inherit_variables)
     }
 }
 
-SpanWrapCall::SpanWrapCall(std::string&& name, InheritVariables inherit_variables)
-    : pimpl_(std::move(name), inherit_variables) {}
+SpanWrapCall::SpanWrapCall(std::string&& name, InheritVariables inherit_variables, const SourceLocation& location)
+    : pimpl_(std::move(name), inherit_variables, location) {}
 
 void SpanWrapCall::DoBeforeInvoke() {
     engine::impl::task_local::GetCurrentStorage().InitializeFrom(std::move(pimpl_->storage_));
-    pimpl_->span_.AttachToCoroStack();
+    pimpl_->span_.Get().AttachToCoroStack();
 }
 
 SpanWrapCall::~SpanWrapCall() = default;

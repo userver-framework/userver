@@ -139,7 +139,8 @@ public:
         const DefaultCommandControls& default_cmd_ctls,
         const testsuite::PostgresControl& testsuite_pg_ctl,
         const error_injection::Settings& ei_settings,
-        engine::SemaphoreLock&& size_lock = engine::SemaphoreLock{}
+        engine::SemaphoreLock&& size_lock,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     /// Close the connection
@@ -151,7 +152,7 @@ public:
     bool IsInRecovery() const;
     bool IsReadOnly() const;
     void RefreshReplicaState(engine::Deadline) const;
-    ConnectionSettings const& GetSettings() const;
+    const ConnectionSettings& GetSettings() const;
 
     /// Get current connection state
     ConnectionState GetState() const;
@@ -249,7 +250,7 @@ public:
     ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store);
 
     StatementId PortalBind(
-        const std::string& statement,
+        USERVER_NAMESPACE::utils::zstring_view statement,
         const std::string& portal_name,
         const detail::QueryParameters& params,
         OptionalCommandControl
@@ -295,7 +296,7 @@ public:
 
     void MarkAsBroken();
 
-    OptionalCommandControl GetQueryCmdCtl(const std::optional<Query::Name>& query_name) const;
+    OptionalCommandControl GetQueryCmdCtl(std::optional<Query::NameView> query_name) const;
 
     /// Used in tests.
     const OptionalCommandControl& GetTransactionCommandControl() const;

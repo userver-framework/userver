@@ -41,7 +41,7 @@ std::optional<double> CpuLimitRtc() {
         return {};
     }
 
-    std::string cpu_limit(cpu_limit_c_str);
+    const std::string cpu_limit(cpu_limit_c_str);
     LOG_DEBUG() << "CPU_LIMIT='" << cpu_limit << "'";
 
     try {

@@ -220,7 +220,7 @@ bool Connection::ReadSome() {
     if (pending_data_size_ == pending_data_.size()) return true;
 
     try {
-        engine::TaskCancellationBlocker blocker;
+        const engine::TaskCancellationBlocker blocker;
 
         auto count = peer_socket_->ReadSome(
             pending_data_.data() + pending_data_size_,

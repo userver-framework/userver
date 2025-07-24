@@ -99,6 +99,27 @@ TEST_F(LoggingTest, DocsData) {
     /// [Example set custom logging usage]
 }
 
+TEST_F(LoggingTest, DocsDataInline) {
+    LOG_TRACE("Very verbose logs, only enabled using dynamic debug logs");
+    LOG_DEBUG("Some debug info, not logged by default in production");
+    LOG_INFO("This is informational message");
+    LOG_WARNING("Something strange happened");
+    LOG_ERROR("This is unbelievable, fix me, please!");
+    LOG_CRITICAL("The service is about to abort, bye");
+}
+
+TEST_F(LoggingTest, DocsDataInlineFormat) {
+    LOG_TRACE("Very {} logs, only enabled using dynamic debug logs", "verbose");
+    LOG_DEBUG("Some {} info, not logged by default in production", "debug");
+    LOG_INFO("This is {} message", "informational");
+    LOG_WARNING("Something {} happened", "strange");
+    LOG_ERROR("This is {}, fix me, please!", "unbelievable");
+    LOG_CRITICAL("The service is about to {}, bye", "abort");
+
+    // NOTE: Should not be compilable!
+    // LOG_WARNING(fmt::format("Something {} happened", "strange"));
+}
+
 TEST_F(LoggingTest, DatetimeDate) {
     const auto date = utils::datetime::Date(2023, 4, 8);
     EXPECT_EQ("2023-04-08", ToStringViaLogging(date));
@@ -107,19 +128,19 @@ TEST_F(LoggingTest, DatetimeDate) {
 }
 
 TEST_F(LoggingTest, StdTuple) {
-    std::tuple<int> one{1234};
+    const std::tuple<int> one{1234};
     EXPECT_EQ("(1234)", ToStringViaLogging(one));
 
-    std::tuple<int, float, char, std::string> many{42, 3.14, 'c', "str"};
+    const std::tuple<int, float, char, std::string> many{42, 3.14, 'c', "str"};
     EXPECT_EQ("(42, 3.14, c, str)", ToStringViaLogging(many));
 
-    std::tuple<std::vector<int>> container{{1, 2, 3, 4}};
+    const std::tuple<std::vector<int>> container{{1, 2, 3, 4}};
     EXPECT_EQ("([1, 2, 3, 4])", ToStringViaLogging(container));
 
-    std::tuple<std::optional<int>, std::optional<int>> optionals{std::nullopt, 0};
+    const std::tuple<std::optional<int>, std::optional<int>> optionals{std::nullopt, 0};
     EXPECT_EQ("((none), 0)", ToStringViaLogging(optionals));
 
-    std::tuple<> empty{};
+    const std::tuple<> empty{};
     EXPECT_EQ("()", ToStringViaLogging(empty));
 }
 
@@ -129,9 +150,112 @@ UTEST_F(SocketLoggingTest, Test) {
 }
 
 TEST_F(LoggingTest, LogRaw) {
-    auto& logger = logging::GetDefaultLogger();
-    logging::impl::LogRaw(dynamic_cast<logging::impl::TextLogger&>(logger), logging::Level::kInfo, "foo");
+    logging::impl::LogRaw(*GetStreamLogger(), logging::Level::kInfo, "foo");
     EXPECT_EQ(GetStreamString(), "foo\n");
+}
+
+TEST_F(LoggingTest, DISABLED_Format) {
+    LOG_ERROR("Hello, {}", "world");
+    EXPECT_EQ("Hello, world", LoggedText());
+    ClearLog();
+
+    LOG_ERROR("{}, {}", "Hello", "world");
+    EXPECT_EQ("Hello, world", LoggedText());
+    ClearLog();
+}
+
+TEST_F(LoggingTest, Call) {
+    /// [Example lambda-based logging usage]
+    std::map<int, int> map{{1, 2}, {2, 3}, {3, 4}};
+    LOG_ERROR() << [&map](auto& out) {
+        for (const auto& [key, value] : map) {
+            out << key << "=" << value << ", ";
+        }
+    };
+    /// [Example lambda-based logging usage]
+    EXPECT_EQ("1=2, 2=3, 3=4, ", LoggedText());
+}
+
+TEST_F(LoggingTest, DISABLED_CallFormat) {
+    const int user_id = 42;
+    const std::string ip_address = "127.0.0.1";
+    const std::string_view expected_result = "User 42 logged in from 127.0.0.1";
+
+    /// [Example format bad logging usage]
+    LOG_INFO() << fmt::format("User {} logged in from {}", user_id, ip_address);
+    /// [Example format bad logging usage]
+    EXPECT_EQ(expected_result, LoggedText());
+    ClearLog();
+
+    /// [Example format-based logging usage]
+    LOG_INFO("User {} logged in from {}", user_id, ip_address);
+    /// [Example format-based logging usage]
+    EXPECT_EQ(expected_result, LoggedText());
+}
+
+TEST_F(LoggingTest, LoggingContainerElementFields) {
+    struct Item {
+        int foo;
+        std::string bar;
+    };
+    std::vector<Item> list{{1, "x"}, {2, "y"}};
+    /// [Example Logging Container Element Fields]
+    LOG_INFO() << [&list](auto& out) {
+        for (const auto& item : list) {
+            out << item.foo << " " << item.bar << ", ";
+        }
+    };
+    /// [Example Logging Container Element Fields]
+    EXPECT_EQ("1 x, 2 y, ", LoggedText());
+}
+
+TEST_F(LoggingTest, AddingCustomFormatting) {
+    struct Item {
+        int foo;
+        std::string bar;
+    };
+    std::vector<Item> list{{1, "x"}, {2, "y"}};
+    /// [Example Adding Custom Formatting]
+    LOG_INFO() << [&list](auto& out) {
+        bool first = true;
+        out << "Items: ";
+        for (const auto& item : list) {
+            if (!first) out << "; ";
+            out << item.foo << ":" << item.bar;
+            first = false;
+        }
+    };
+    /// [Example Adding Custom Formatting]
+    EXPECT_EQ("Items: 1:x; 2:y", LoggedText());
+}
+
+TEST_F(LoggingTest, LoggingNestedStructures) {
+    struct Item {
+        int foo;
+        std::string bar;
+    };
+    std::vector<Item> list{{1, "x"}, {2, "y"}};
+
+    /// [Example Logging Nested Structures]
+    LOG_INFO() << [&list](auto& out) {
+        out << "Records: [";
+        for (const auto& item : list) {
+            out << "{foo=" << item.foo << ", bar=" << item.bar << "}, ";
+        }
+        out << "]";
+    };
+    EXPECT_EQ("Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]", LoggedText());
+    ClearLog();
+
+    LOG_INFO() << [&list](auto& out) {
+        out << "Records: [";
+        for (const auto& item : list) {
+            out.Format("{{foo={}, bar={}}}, ", item.foo, item.bar);
+        }
+        out << "]";
+    };
+    EXPECT_EQ("Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]", LoggedText());
+    /// [Example Logging Nested Structures]
 }
 
 USERVER_NAMESPACE_END

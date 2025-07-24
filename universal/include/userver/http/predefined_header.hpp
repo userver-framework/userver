@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 
 #include <userver/utils/small_string_fwd.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -166,8 +167,12 @@ class Map;
 /// doesn't own its data, so don't do that until really needed.
 class PredefinedHeader final {
 public:
-    explicit constexpr PredefinedHeader(std::string_view name)
+    explicit constexpr PredefinedHeader(utils::StringLiteral name)
         : name{name}, hash{impl::UnsafeConstexprHasher{}(name)}, header_index{impl::GetHeaderIndexForLookup(name)} {}
+
+    constexpr operator utils::StringLiteral() const { return name; }
+
+    constexpr operator utils::zstring_view() const { return name; }
 
     constexpr operator std::string_view() const { return name; }
 
@@ -178,7 +183,7 @@ private:
     friend class header_map::Map;
 
     // Header name.
-    const std::string_view name;
+    const utils::StringLiteral name;
 
     // Unsafe constexpr hash (unsafe in a hash-flood sense).
     const std::size_t hash;

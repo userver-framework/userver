@@ -26,7 +26,6 @@ struct ServiceDefaults;
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// access-tskv-logger | logger name for access-tskv.log | -
 /// port | the port to use for all gRPC services, or 0 to pick any available | -
 /// unix-socket-path | unix socket absolute path to listen to, instead of listening on `port` | -
 /// completion-queue-count | count of completion queues to create | 2

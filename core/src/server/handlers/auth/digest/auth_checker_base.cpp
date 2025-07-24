@@ -189,7 +189,7 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request, req
 
 AuthCheckerBase::ValidateResult
 AuthCheckerBase::ValidateUserData(const ContextFromClient& client_context, const UserData& user_data) const {
-    bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(user_data.nonce, client_context.nonce);
+    const bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(user_data.nonce, client_context.nonce);
     if (!are_nonces_equal) {
         // "nonce" may be in temporary storage.
         auto nonce_creation_time = GetUnnamedNonceCreationTime(client_context.nonce);
@@ -202,7 +202,7 @@ AuthCheckerBase::ValidateUserData(const ContextFromClient& client_context, const
         SetUserData(client_context.username, client_context.nonce, 0, nonce_creation_time.value());
     }
 
-    bool is_nonce_expired = user_data.timestamp + nonce_ttl_ < utils::datetime::Now();
+    const bool is_nonce_expired = user_data.timestamp + nonce_ttl_ < utils::datetime::Now();
     if (is_nonce_expired) {
         LOG_WARNING() << "Nonces are equal, but expired.";
         return ValidateResult::kWrongUserData;

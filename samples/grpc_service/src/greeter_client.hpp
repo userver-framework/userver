@@ -40,7 +40,7 @@ public:
     static std::optional<ugrpc::impl::StaticServiceMetadata> GetMetadata() { return std::nullopt; }
 
 private:
-    static std::unique_ptr<grpc::ClientContext> MakeClientContext();
+    static ugrpc::client::CallOptions MakeCallOptions();
 
     api::GreeterServiceClient raw_client_;
 };

@@ -1,7 +1,5 @@
 #include <userver/kafka/impl/broker_secrets.hpp>
 
-#include <fmt/format.h>
-
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
 
@@ -20,7 +18,7 @@ Secret Parse(const formats::json::Value& doc, formats::parse::To<Secret>) {
 
 BrokerSecrets::BrokerSecrets(const formats::json::Value& doc) {
     if (!doc.HasMember("kafka_settings")) {
-        LOG_ERROR() << "No 'kafka_settings' in secdist";
+        LOG_ERROR("No 'kafka_settings' in secdist");
     }
     secret_by_component_name_ = doc["kafka_settings"].As<std::map<std::string, Secret>>({});
 }

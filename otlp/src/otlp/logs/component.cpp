@@ -25,7 +25,10 @@ namespace otlp {
 
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : old_logger_(logging::GetDefaultLogger()) {
-    auto& client_factory = context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory();
+    auto client_factory_name = config["client-factory-name"].As<std::string>();
+
+    auto& client_factory =
+        context.FindComponent<ugrpc::client::ClientFactoryComponent>(client_factory_name).GetFactory();
 
     auto endpoint = config["endpoint"].As<std::string>();
     auto client = client_factory.MakeClient<opentelemetry::proto::collector::logs::v1::LogsServiceClient>(
@@ -75,7 +78,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
         }
     }
 
-    logger_->SetDefaultLogger(default_logger);
+    logger_->SetDefaultLogger(std::move(default_logger));
 
     logging::impl::SetDefaultLoggerRef(*logger_);
     old_logger_.ForwardTo(&*logger_);
@@ -110,6 +113,21 @@ properties:
         type: string
         description: >
             Hostname:port of otel collector (gRPC).
+    client-factory-name:
+        type: string
+        description: >
+            This component needs ugrpc::client::ClientFactoryComponent to
+            work and we will look for it with name given in this
+            parameter.
+            You need to set that component propertly, e.g. disable
+            middlwares (otherwise it will be an infinite loop of client
+            producing logs that go into otlp logger and back to client
+            and that causes even more logs).
+
+            Although it is possible to omit this parameter and use
+            default ClientFactoryComponent instance, it is not recommended
+            and will cause severe problems in the long run.
+
     log-level:
         type: string
         description: log level

@@ -1,4 +1,4 @@
 default: false
-description: ''
+description: 'Option used to only disable a connlimit-auto mode.'
 schema:
     type: boolean

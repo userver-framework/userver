@@ -34,7 +34,7 @@ SubscriptionRebalanceScheduler::~SubscriptionRebalanceScheduler() { Stop(); }
 void SubscriptionRebalanceScheduler::RequestRebalance(ServerWeights weights) {
     bool need_notify = false;
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         weights_ = std::move(weights);
         if (!next_rebalance_scheduled_) {
             next_rebalance_scheduled_ = true;
@@ -54,19 +54,19 @@ void SubscriptionRebalanceScheduler::Stop() {
 }
 
 void SubscriptionRebalanceScheduler::SetRebalanceMinInterval(std::chrono::milliseconds interval) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard<std::mutex> lock(mutex_);
     rebalance_min_interval_ = interval;
 }
 
 std::chrono::milliseconds SubscriptionRebalanceScheduler::GetRebalanceMinInterval() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard<std::mutex> lock(mutex_);
     return rebalance_min_interval_;
 }
 
 void SubscriptionRebalanceScheduler::DoRebalance() {
     ServerWeights weights;
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         weights.swap(weights_);
         if (weights.empty()) {
             next_rebalance_scheduled_ = false;

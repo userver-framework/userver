@@ -40,8 +40,8 @@ const auto kEmptyConfig = middlewares::impl::MiddlewareRunnerConfig{
 };
 
 template <typename Middleware>
-middlewares::impl::MiddlewareEnabled Mid(bool enabed = true) {
-    return {std::string{Middleware::kName}, enabed};
+middlewares::impl::MiddlewareEnabled Mid(bool enabled = true) {
+    return {std::string{Middleware::kName}, enabled};
 }
 
 template <typename Group, typename Before, typename After>
@@ -146,7 +146,7 @@ TEST(MiddlewarePipeline, DisableWeakConnection) {
     ASSERT_EQ(expected, list);
 }
 
-TEST(MiddlewarePipeline, DisableStrongConnection) {
+TEST(MiddlewarePipelineDeathTest, DisableStrongConnection) {
     auto dependencies = kDefaultDependencies;
 
     // disable 'grpc-server-congestion-control'
@@ -158,7 +158,7 @@ TEST(MiddlewarePipeline, DisableStrongConnection) {
     EXPECT_UINVARIANT_FAILURE(middlewares::impl::BuildPipeline(std::move(dependencies)));
 }
 
-TEST(MiddlewarePipeline, DependencyToOtherGroup) {
+TEST(MiddlewarePipelineDeathTest, DependencyToOtherGroup) {
     auto dependencies = kDefaultDependencies;
     // Dependency from User to Core is not allowed
     dependencies.insert(Dependency<middlewares::groups::User, U1, Log>(kWeakConnect));
@@ -391,7 +391,7 @@ TEST(MiddlewarePipeline, DurabilityOrder) {
     const middlewares::impl::MiddlewarePipeline pipeline2{std::move(dependencies2)};
     const auto list2 = pipeline2.GetPerServiceMiddlewares(kEmptyConfig);
 
-    std::vector<std::string> expected2{
+    const std::vector<std::string> expected2{
         std::string{Log::kName},
         std::string{Congestion::kName},
         std::string{Deadline::kName},

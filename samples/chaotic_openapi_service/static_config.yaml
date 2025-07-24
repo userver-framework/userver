@@ -28,7 +28,33 @@ components_manager:
             fs-task-processor: fs-task-processor
             user-agent: 'sample'
 
+        test-client:
+            middlewares:
+                qos-test: {}
+
         handler-hello-sample:             # Finally! Our handler.
             path: /hello                  # Registering handler by URL '/hello'.
             method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
+
+        dynamic-config:
+            updates-enabled: true
+            fs-task-processor: fs-task-processor
+        dynamic-config-client:
+            config-url: localhost:8080
+            http-retries: 5
+            http-timeout: 20s
+            service-name: chaotic-openapi-test
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false

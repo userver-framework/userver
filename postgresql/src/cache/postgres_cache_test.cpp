@@ -316,14 +316,14 @@ static_assert(MyCache7::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 // Update() instantiation test
 [[maybe_unused]] void
 VerifyUpdateCompiles(const components::ComponentConfig& config, const components::ComponentContext& context) {
-    MyCache1 cache1{config, context};
-    MyCache2 cache2{config, context};
-    MyCache3 cache3{config, context};
-    MyCache4 cache4{config, context};
-    MyTrivialCache my_trivial_cache{config, context};
-    MyCache5 cache5{config, context};
-    MyCache6 cache6{config, context};
-    MyCache7 cache7{config, context};
+    const MyCache1 cache1{config, context};
+    const MyCache2 cache2{config, context};
+    const MyCache3 cache3{config, context};
+    const MyCache4 cache4{config, context};
+    const MyTrivialCache my_trivial_cache{config, context};
+    const MyCache5 cache5{config, context};
+    const MyCache6 cache6{config, context};
+    const MyCache7 cache7{config, context};
 }
 
 inline auto SampleOfComponentRegistration() {

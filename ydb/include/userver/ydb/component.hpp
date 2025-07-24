@@ -31,7 +31,7 @@ class Driver;
 ///
 /// @brief YDB client component
 ///
-/// Provides access to ydb::TableClient, ydb::TopicClient, ydb::CoordinationClient.
+/// Provides access to ydb::TableClient, ydb::TopicClient, ydb::FederatedTopicClient, ydb::CoordinationClient.
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -65,7 +65,7 @@ public:
 
     YdbComponent(const components::ComponentConfig&, const components::ComponentContext&);
 
-    ~YdbComponent();
+    ~YdbComponent() override;
 
     /// Get table client
     /// @param dbname database name from static config key
@@ -74,6 +74,10 @@ public:
     /// Get topic client
     /// @param dbname database name from static config key
     std::shared_ptr<TopicClient> GetTopicClient(const std::string& dbname) const;
+
+    /// Get topic client
+    /// @param dbname database name from static config key
+    std::shared_ptr<FederatedTopicClient> GetFederatedTopicClient(const std::string& dbname) const;
 
     /// Get coordination client
     /// @param dbname database name from static config key
@@ -99,6 +103,7 @@ private:
         std::shared_ptr<impl::Driver> driver;
         std::shared_ptr<TableClient> table_client;
         std::shared_ptr<TopicClient> topic_client;
+        std::shared_ptr<FederatedTopicClient> federated_topic_client;
         std::shared_ptr<CoordinationClient> coordination_client;
     };
 

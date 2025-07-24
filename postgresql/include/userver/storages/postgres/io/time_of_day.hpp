@@ -27,7 +27,7 @@ struct BufferFormatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>>
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) const {
-        Bigint usec = std::chrono::duration_cast<std::chrono::microseconds>(this->value.SinceMidnight()).count();
+        const Bigint usec = std::chrono::duration_cast<std::chrono::microseconds>(this->value.SinceMidnight()).count();
         io::WriteBuffer(types, buffer, usec);
     }
 };

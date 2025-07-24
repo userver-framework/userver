@@ -58,7 +58,7 @@ void WriteToStream(
     bool /*hide_brackets*/,
     [[maybe_unused]] const char* /*hide_field_name*/
 ) {
-    formats::json::StringBuilder::ObjectGuard guard{sw};
+    const formats::json::StringBuilder::ObjectGuard guard{sw};
 }
 
 void WriteToStream(
@@ -130,7 +130,7 @@ TEST(JsonStringBuilder, Double) {
 TEST(JsonStringBuilder, Object) {
     StringBuilder sw;
     {
-        StringBuilder::ObjectGuard guard(sw);
+        const StringBuilder::ObjectGuard guard(sw);
         sw.Key("123");
         sw.WriteInt64(42);
     }
@@ -141,7 +141,7 @@ TEST(JsonStringBuilder, Object) {
 TEST(JsonStringBuilder, Array) {
     StringBuilder sw;
     {
-        StringBuilder::ArrayGuard guard(sw);
+        const StringBuilder::ArrayGuard guard(sw);
         sw.WriteString("123");
         sw.WriteBool(true);
     }
@@ -152,7 +152,7 @@ TEST(JsonStringBuilder, Array) {
 TEST(JsonStringBuilder, RawValue) {
     StringBuilder sw;
     {
-        StringBuilder::ArrayGuard guard(sw);
+        const StringBuilder::ArrayGuard guard(sw);
         sw.WriteRawString("{1:2}");
     }
 
@@ -160,7 +160,7 @@ TEST(JsonStringBuilder, RawValue) {
 }
 
 TEST(JsonStringBuilder, TestResponse) {
-    testing::Response200 v{};
+    const testing::Response200 v{};
     StringBuilder sw;
 
     WriteToStream(v, sw);
@@ -188,7 +188,7 @@ TEST(JsonStringBuilder, String) {
 }
 
 TEST(JsonStringBuilder, VectorBool) {
-    std::vector<bool> v = {true, false};
+    const std::vector<bool> v = {true, false};
     StringBuilder sw;
     WriteToStream(v, sw);
     EXPECT_EQ(sw.GetString(), "[true,false]");
@@ -244,7 +244,7 @@ using StringBuilderIntegralTypes = ::testing::Types<
 TYPED_TEST_SUITE(JsonStringBuilderIntegralTypes, StringBuilderIntegralTypes);
 
 TYPED_TEST(JsonStringBuilderIntegralTypes, Value) {
-    TypeParam v = 42;
+    const TypeParam v = 42;
 
     StringBuilder sw;
 
@@ -254,7 +254,7 @@ TYPED_TEST(JsonStringBuilderIntegralTypes, Value) {
 }
 
 TYPED_TEST(JsonStringBuilderIntegralTypes, Vector) {
-    std::vector<TypeParam> v = {1, 2, 3};
+    const std::vector<TypeParam> v = {1, 2, 3};
 
     StringBuilder sw;
 
@@ -270,7 +270,7 @@ using StringBuilderFloatingTypes = ::testing::Types<float, double>;
 TYPED_TEST_SUITE(JsonStringBuilderFloatingTypesAndDeathTest, StringBuilderFloatingTypes);
 
 TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Value) {
-    TypeParam v = 2.0;
+    const TypeParam v = 2.0;
 
     StringBuilder sw;
 
@@ -280,7 +280,7 @@ TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Value) {
 }
 
 TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Array) {
-    std::array<TypeParam, 2> v = {4.0, 2.0};
+    const std::array<TypeParam, 2> v = {4.0, 2.0};
 
     StringBuilder sw;
 
@@ -327,7 +327,7 @@ struct MyKeyValue {
 // The function must be declared in the namespace of your type
 inline void WriteToStream(const MyKeyValue& data, formats::json::StringBuilder& sw) {
     // A class that adds '{' in the constructor and '}' in the destructor to JSON
-    formats::json::StringBuilder::ObjectGuard guard{sw};
+    const formats::json::StringBuilder::ObjectGuard guard{sw};
 
     sw.Key("field1");
     // Use the WriteToStream functions for values, don't work with StringBuilder
@@ -340,7 +340,7 @@ inline void WriteToStream(const MyKeyValue& data, formats::json::StringBuilder& 
 
 TEST(JsonStringBuilder, ExampleUsage) {
     StringBuilder sb;
-    MyKeyValue data = {"one", 1};
+    const MyKeyValue data = {"one", 1};
     WriteToStream(data, sb);
     ASSERT_EQ(sb.GetString(), "{\"field1\":\"one\",\"field2\":1}");
 }

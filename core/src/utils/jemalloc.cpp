@@ -27,12 +27,12 @@ std::error_code MakeErrorCode(int rc) { return {rc, std::system_category()}; }
 
 template <typename T>
 std::error_code MallCtl(const char* name, T new_value) {
-    int rc = mallctl(name, nullptr, nullptr, &new_value, sizeof(new_value));
+    const int rc = mallctl(name, nullptr, nullptr, &new_value, sizeof(new_value));
     return MakeErrorCode(rc);
 }
 
 std::error_code MallCtl(const char* name) {
-    int rc = mallctl(name, nullptr, nullptr, nullptr, 0);
+    const int rc = mallctl(name, nullptr, nullptr, nullptr, 0);
     return MakeErrorCode(rc);
 }
 
@@ -66,7 +66,7 @@ std::error_code SetMaxBgThreads(size_t max_bg_threads) {
 }
 
 std::error_code EnableBgThreads() {
-    utils::CurrentThreadNameGuard bg_thread_name_guard("je_bg_thread");
+    const utils::CurrentThreadNameGuard bg_thread_name_guard("je_bg_thread");
     return MallCtl<bool>("background_thread", true);
 }
 

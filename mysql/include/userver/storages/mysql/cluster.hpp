@@ -299,7 +299,7 @@ StatementResultSet Cluster::Execute(
 ) const {
     auto params_binder = impl::BindHelper::BindParams(args...);
 
-    return DoExecute(command_control, host_type, query.GetStatement(), params_binder, std::nullopt);
+    return DoExecute(command_control, host_type, query, params_binder, std::nullopt);
 }
 
 template <typename T>
@@ -335,7 +335,7 @@ StatementResultSet Cluster::ExecuteBulk(
 
     auto params_binder = impl::BindHelper::BindContainerAsParams(params);
 
-    return DoExecute(command_control, host_type, query.GetStatement(), params_binder, std::nullopt);
+    return DoExecute(command_control, host_type, query, params_binder, std::nullopt);
 }
 
 template <typename MapTo, typename Container>
@@ -355,7 +355,7 @@ StatementResultSet Cluster::ExecuteBulkMapped(
 
     auto params_binder = impl::BindHelper::BindContainerAsParamsMapped<MapTo>(params);
 
-    return DoExecute(command_control, host_type, query.GetStatement(), params_binder, std::nullopt);
+    return DoExecute(command_control, host_type, query, params_binder, std::nullopt);
 }
 
 template <typename T, typename... Args>

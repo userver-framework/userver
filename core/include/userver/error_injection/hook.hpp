@@ -57,7 +57,7 @@ public:
             return;
         }
 
-        engine::Deadline deadline = CalcPostHookDeadline();
+        const engine::Deadline deadline = CalcPostHookDeadline();
         if (deadline.IsReached()) return;
 
         LOG_ERROR() << "Error injection hook triggered verdict: max-delay / random-delay";

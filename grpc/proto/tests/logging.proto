@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package sample.ugrpc;
+
+message LoggingMessage {
+  string id = 1;
+
+  repeated string names = 2;
+
+  message Item {
+    int32 index = 1;
+    string value = 2;
+  }
+  repeated Item items = 3;
+
+  map<string, string> properties = 4;
+}

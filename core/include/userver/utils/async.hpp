@@ -22,7 +22,7 @@ namespace impl {
 struct SpanWrapCall {
     enum class InheritVariables { kYes, kNo };
 
-    explicit SpanWrapCall(std::string&& name, InheritVariables inherit_variables);
+    explicit SpanWrapCall(std::string&& name, InheritVariables inherit_variables, const SourceLocation& location);
 
     SpanWrapCall(const SpanWrapCall&) = delete;
     SpanWrapCall(SpanWrapCall&&) = delete;
@@ -41,14 +41,20 @@ private:
 
     struct Impl;
 
-    static constexpr std::size_t kImplSize = 4280;
+    static constexpr std::size_t kImplSize = 4432;
     static constexpr std::size_t kImplAlign = 8;
     utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };
 
-// Note: 'name' must outlive the result of this function
-inline auto SpanLazyPrvalue(std::string&& name) {
-    return utils::LazyPrvalue([&name] { return SpanWrapCall(std::move(name), SpanWrapCall::InheritVariables::kYes); });
+// Note: 'name' and 'location' must outlive the result of this function
+inline auto SpanLazyPrvalue(
+    std::string&& name,
+    SpanWrapCall::InheritVariables inherit_variables = SpanWrapCall::InheritVariables::kYes,
+    const SourceLocation& location = SourceLocation::Current()
+) {
+    return utils::LazyPrvalue([&name, inherit_variables, &location] {
+        return SpanWrapCall(std::move(name), inherit_variables, location);
+    });
 }
 
 }  // namespace impl
@@ -366,9 +372,7 @@ template <typename Function, typename... Args>
 AsyncBackground(std::string name, engine::TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return engine::AsyncNoSpan(
         task_processor,
-        utils::LazyPrvalue([&] {
-            return impl::SpanWrapCall(std::move(name), impl::SpanWrapCall::InheritVariables::kNo);
-        }),
+        impl::SpanLazyPrvalue(std::move(name), impl::SpanWrapCall::InheritVariables::kNo),
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
@@ -392,9 +396,7 @@ template <typename Function, typename... Args>
 CriticalAsyncBackground(std::string name, engine::TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return engine::CriticalAsyncNoSpan(
         task_processor,
-        utils::LazyPrvalue([&] {
-            return impl::SpanWrapCall(std::move(name), impl::SpanWrapCall::InheritVariables::kNo);
-        }),
+        impl::SpanLazyPrvalue(std::move(name), impl::SpanWrapCall::InheritVariables::kNo),
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );

@@ -72,9 +72,11 @@ Checks:
   ,-hicpp-special-member-functions\
   ,-hicpp-uppercase-literal-suffix\
   ,-hicpp-vararg\
+  ,-misc-const-correctness\
   ,-misc-include-cleaner\
   ,-misc-no-recursion\
   ,-misc-unconventional-assign-operator\
+  ,-misc-use-anonymous-namespace\
   ,-modernize-avoid-c-arrays\
   ,-modernize-pass-by-value\
   ,-modernize-return-braced-init-list\
@@ -102,7 +104,7 @@ Checks:
   "
 
 WarningsAsErrors: '*'
-HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|shared|tools)/'
+HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|kafka|shared|tools)/'
 CheckOptions:
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: '1'

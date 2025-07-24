@@ -16,8 +16,8 @@ TEST(UUID, Boost) {
 }
 
 TEST(UUID, Format) {
-    std::string str("0ad56dfc-bbbf-44af-87e3-37eb98b6452f");
-    boost::uuids::string_generator string_gen;
+    const std::string str("0ad56dfc-bbbf-44af-87e3-37eb98b6452f");
+    const boost::uuids::string_generator string_gen;
     EXPECT_EQ(str, fmt::format("{}", string_gen(str)));
 
     auto id = utils::generators::GenerateBoostUuid();
@@ -25,14 +25,14 @@ TEST(UUID, Format) {
 }
 
 TEST(UUID, ParseOk) {
-    std::vector<std::string> spelling_variants(
+    const std::vector<std::string> spelling_variants(
         {"0ad56dfc-bbbf-44af-87e3-37eb98b6452f",
          "0ad56dfcbbbf44af87e337eb98b6452f",
          "{0ad56dfc-bbbf-44af-87e3-37eb98b6452f}",
          "{0ad56dfcbbbf44af87e337eb98b6452f}"}
     );
 
-    std::string expected_format("0ad56dfc-bbbf-44af-87e3-37eb98b6452f");
+    const std::string expected_format("0ad56dfc-bbbf-44af-87e3-37eb98b6452f");
     for (const auto& str : spelling_variants) {
         auto id = utils::BoostUuidFromString(str);
 
@@ -41,7 +41,7 @@ TEST(UUID, ParseOk) {
 }
 
 TEST(UUID, ParseFail) {
-    std::vector<std::string> invalid_uuids({
+    const std::vector<std::string> invalid_uuids({
         "0ad56dfc-bbbf-44af-87e337eb98b6452f",
         "0ad56dfcbbbf44af87e337eb98-b6452f",
         "{xad56dfc-bbbf-44af-87e3-37eb98b6452f}",

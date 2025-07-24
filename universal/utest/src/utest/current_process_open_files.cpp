@@ -32,12 +32,12 @@ std::vector<std::string> CurrentProcessOpenFiles() {
     if (buffer_size < 0) {
         throw std::runtime_error("proc_pidinfo call with buffer failed");
     }
-    int num_of_fds = buffer_size / PROC_PIDLISTFD_SIZE;
+    const int num_of_fds = buffer_size / PROC_PIDLISTFD_SIZE;
 
     for (int i = 0; i < num_of_fds; ++i) {
         if (proc_fd_info[i].proc_fdtype == PROX_FDTYPE_VNODE) {
             struct vnode_fdinfowithpath vnode_info {};
-            int bytes_used = proc_pidfdinfo(
+            const int bytes_used = proc_pidfdinfo(
                 pid, proc_fd_info[i].proc_fd, PROC_PIDFDVNODEPATHINFO, &vnode_info, PROC_PIDFDVNODEPATHINFO_SIZE
             );
             if (bytes_used == PROC_PIDFDVNODEPATHINFO_SIZE) {
@@ -51,12 +51,12 @@ std::vector<std::string> CurrentProcessOpenFiles() {
 #else
 
 #ifdef BSD
-    boost::filesystem::path open_files_dir = "/dev/fd";
+    const boost::filesystem::path open_files_dir = "/dev/fd";
 #else
-    boost::filesystem::path open_files_dir = fmt::format("/proc/{}/fd", pid);
+    const boost::filesystem::path open_files_dir = fmt::format("/proc/{}/fd", pid);
 #endif
     boost::filesystem::directory_iterator it{open_files_dir};
-    boost::filesystem::directory_iterator end;
+    const boost::filesystem::directory_iterator end;
     for (; it != end; ++it) {
         boost::system::error_code err;
         const auto path = boost::filesystem::read_symlink(it->path(), err);

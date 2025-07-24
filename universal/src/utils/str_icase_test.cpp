@@ -9,7 +9,7 @@ constexpr std::string_view kLowercaseChars = "abcdefghijklmnopqrstuvwxyz01234567
 constexpr std::string_view kUppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@#$%^&*()\n\r\t\v\b\a;:\"\'\\/,.";
 
 TEST(StrIcases, Hash) {
-    utils::StrIcaseHash hash{};
+    const utils::StrIcaseHash hash{};
 
     const auto hash1 = hash(kLowercaseChars);
     const auto hash2 = hash(kUppercaseChars);
@@ -30,7 +30,7 @@ TEST(StrIcases, Hash) {
 }
 
 TEST(StrCases, Hash) {
-    utils::StrCaseHash hash{};
+    const utils::StrCaseHash hash{};
 
     const auto hash1 = hash(kLowercaseChars);
     const auto hash2 = hash(kUppercaseChars);
@@ -38,9 +38,9 @@ TEST(StrCases, Hash) {
 }
 
 TEST(StrIcases, HashIsRandomlySeeded) {
-    utils::StrIcaseHash hash1;
-    utils::StrIcaseHash hash2;
-    std::string_view value = "foo";
+    const utils::StrIcaseHash hash1;
+    const utils::StrIcaseHash hash2;
+    const std::string_view value = "foo";
     EXPECT_NE(hash1(value), hash2(value));
 }
 

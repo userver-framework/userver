@@ -23,7 +23,7 @@ jobs:
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_FEATURE_CORE=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base
                     info: ubuntu + gcc + cxx17 + core
                     id: ubuntu_gcc_cxx17_core
@@ -37,7 +37,7 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang-16 + cxx17
                     id: ubuntu_clang16_cxx17
@@ -52,7 +52,7 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc-11 + cxx17
                     id: ubuntu_gcc11_cxx17
@@ -80,7 +80,7 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc-13 + cxx20
                     id: ubuntu_gcc13_cxx20
@@ -149,11 +149,11 @@ jobs:
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
           - name: Run ydb
-            if: matrix.id == 'ubuntu_clang16_cxx20'
+            if: matrix.id == 'ubuntu_clang16_cxx20' || matrix.id == 'ubuntu_gcc13_cxx20'
             run: docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
 
           - name: Watch ydb
-            if: matrix.id == 'ubuntu_clang16_cxx20'
+            if: matrix.id == 'ubuntu_clang16_cxx20' || matrix.id == 'ubuntu_gcc13_cxx20'
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c

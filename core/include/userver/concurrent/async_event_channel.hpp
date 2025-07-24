@@ -118,7 +118,7 @@ public:
     template <typename UpdaterFunc>
     AsyncEventSubscriberScope
     DoUpdateAndListen(FunctionId id, std::string_view name, Function&& func, UpdaterFunc&& updater) {
-        std::lock_guard lock(event_mutex_);
+        const std::lock_guard lock(event_mutex_);
         std::forward<UpdaterFunc>(updater)();
         return DoAddListener(id, name, std::move(func));
     }
@@ -141,7 +141,7 @@ public:
     /// processed a new event may be delivered for the subscribers, same
     /// listener/subscriber is never called concurrently.
     void SendEvent(Args... args) const {
-        std::lock_guard lock(event_mutex_);
+        const std::lock_guard lock(event_mutex_);
         auto data = data_.Lock();
         auto& listeners = data->listeners;
 
@@ -175,7 +175,7 @@ private:
     };
 
     void RemoveListener(FunctionId id, UnsubscribingKind kind) noexcept final {
-        engine::TaskCancellationBlocker blocker;
+        const engine::TaskCancellationBlocker blocker;
         auto data = data_.Lock();
         auto& listeners = data->listeners;
         const auto iter = listeners.find(id);

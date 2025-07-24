@@ -271,6 +271,15 @@ MockTransactionImplBase::SetIfNotExist(std::string /*key*/, std::string /*value*
     AbortWithStacktrace("Redis method not mocked");
 }
 
+RequestSetIfNotExistOrGet MockTransactionImplBase::SetIfNotExistOrGet(std::string /*key*/, std::string /*value*/) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
+RequestSetIfNotExistOrGet MockTransactionImplBase::
+    SetIfNotExistOrGet(std::string /*key*/, std::string /*value*/, std::chrono::milliseconds /*ttl*/) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
 RequestSetex
 MockTransactionImplBase::Setex(std::string /*key*/, std::chrono::seconds /*seconds*/, std::string /*value*/) {
     AbortWithStacktrace("Redis method not mocked");

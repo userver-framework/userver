@@ -20,7 +20,7 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// task_processor | the name of the TaskProcessor for asynchronous process starting | `main-task-processor`
+/// task_processor | the name of the TaskProcessor for asynchronous process starting | the 'default_task_processor' value from components::ManagerControllerComponent
 
 // clang-format on
 class ProcessStarter final : public ComponentBase {

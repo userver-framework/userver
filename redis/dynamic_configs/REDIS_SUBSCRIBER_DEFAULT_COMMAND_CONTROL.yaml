@@ -16,6 +16,10 @@ schema:
         max_ping_latency_ms:
             type: integer
             minimum: 1
+        allow_reads_from_master:
+            type: boolean
+        consider_ping:
+            type: boolean
         strategy:
             type: string
             enum:

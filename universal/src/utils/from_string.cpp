@@ -24,11 +24,12 @@ ThrowFromStringException(std::string_view message, std::string_view input, std::
 
 }  // namespace impl
 
-std::int64_t FromHexString(const std::string& str) {
+std::int64_t FromHexString(std::string_view str) {
     std::int64_t result{};
-    try {
-        result = std::stoll(str, nullptr, 16);
-    } catch (std::logic_error& ex) {
+    const auto* str_begin = str.data();
+    const auto* str_end = str_begin + str.size();
+    const auto [end, error_code] = std::from_chars(str_begin, str_end, result, 16);
+    if (error_code != std::errc{} || end != str_end) {
         throw std::runtime_error(
             fmt::format(R"(utils::FromHexString error: Error while converting "{}" to std::int64_t)", str)
         );

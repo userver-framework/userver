@@ -175,14 +175,14 @@ void HandlerKafkaConsumerGroups::Consume(const std::string& consumer_name, kafka
     auto& messages_storage = messages_it->second;
     for (const auto& message : messages) {
         if (should_fail_.load() && message.GetPayload() == kMessageToFail && consumer_name == kFaultyConsumer) {
-            LOG_WARNING() << "Received fail message!";
+            LOG_WARNING("Received fail message!");
             throw std::runtime_error{"Bad messages, i am going to fail forever!"};
         }
 
         messages_storage.emplace_back(Serialize(message, formats::serialize::To<formats::json::Value>{}));
     }
 
-    LOG_DEBUG() << fmt::format("Consumer '{}' consumed: {}", consumer_name, fmt::join(messages_storage, ", "));
+    LOG_DEBUG("Consumer '{}' consumed: {}", consumer_name, fmt::join(messages_storage, ", "));
 }
 
 formats::json::Value HandlerKafkaConsumerGroups::ReleaseMessages(const std::string& consumer_name) const {
@@ -238,6 +238,8 @@ int main(int argc, char* argv[]) {
     const auto components_list = components::MinimalServerComponentList()
                                      .Append<kafka::ConsumerComponent>("kafka-consumer-first")
                                      .Append<kafka::ConsumerComponent>("kafka-consumer-second")
+                                     .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-first")
+                                     .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-second")
                                      .Append<components::TestsuiteSupport>()
                                      .Append<components::Secdist>()
                                      .Append<components::DefaultSecdistProvider>()

@@ -54,13 +54,13 @@ constexpr size_t kWorkerThreads = 1;
 UTEST_MT(TaskContext, DetachedAndCancelledOnStart, kWorkerThreads) {
     auto task = engine::AsyncNoSpan([checker = DtorInCoroChecker()] { FAIL() << "Cancelled task started"; });
     task.RequestCancel();
-    std::move(task).Detach();
+    engine::DetachUnscopedUnsafe(std::move(task));
 }
 
 UTEST_MT(TaskContext, DetachedAndCancelledOnStartWithWrappedCall, kWorkerThreads) {
     auto task = engine::AsyncNoSpan([](auto&&) { FAIL() << "Cancelled task started"; }, DtorInCoroChecker());
     task.RequestCancel();
-    std::move(task).Detach();
+    engine::DetachUnscopedUnsafe(std::move(task));
 }
 
 UTEST(TaskContext, WaitInterruptedReason) {

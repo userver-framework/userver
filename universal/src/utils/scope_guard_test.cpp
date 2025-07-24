@@ -10,7 +10,7 @@ TEST(ScopeGuard, Dtr) {
     /// [ScopeGuard usage example]
     int x = 0;
     {
-        utils::ScopeGuard d([&x] { x = 1; });
+        const utils::ScopeGuard d([&x] { x = 1; });
         EXPECT_EQ(x, 0);
     }
     EXPECT_EQ(x, 1);
@@ -30,7 +30,7 @@ TEST(ScopeGuard, Cancel) {
 TEST(ScopeGuard, Exception) {
     int x = 0;
     try {
-        utils::ScopeGuard d([&x] { x = 1; });
+        const utils::ScopeGuard d([&x] { x = 1; });
         EXPECT_EQ(x, 0);
         throw std::runtime_error("");
     } catch (const std::runtime_error&) {
@@ -41,7 +41,7 @@ TEST(ScopeGuard, Exception) {
 TEST(ScopeGuard, ExceptionPropagation) {
     struct TestException : std::exception {};
 
-    EXPECT_THROW([] { utils::ScopeGuard guard{[] { throw TestException{}; }}; }(), TestException);
+    EXPECT_THROW([] { const utils::ScopeGuard guard{[] { throw TestException{}; }}; }(), TestException);
 }
 
 TEST(ScopeGuard, ExceptionSuppression) {
@@ -51,7 +51,7 @@ TEST(ScopeGuard, ExceptionSuppression) {
     struct TestExceptionOuter : std::exception {};
 
     const auto test_body = [] {
-        utils::ScopeGuard guard{[] { throw TestExceptionInner{}; }};
+        const utils::ScopeGuard guard{[] { throw TestExceptionInner{}; }};
         throw TestExceptionOuter{};
     };
 

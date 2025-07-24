@@ -498,8 +498,8 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config, co
         clusters_[i] = pg_cluster_comp.GetClusterForShard(i);
     }
 
-    LOG_INFO() << "Cache " << kName << " full update query `" << GetAllQuery().Statement()
-               << "` incremental update query `" << GetDeltaQuery().Statement() << "`";
+    LOG_INFO() << "Cache " << kName << " full update query `" << GetAllQuery().GetStatementView()
+               << "` incremental update query `" << GetDeltaQuery().GetStatementView() << "`";
 
     this->StartPeriodicUpdates();
 }
@@ -540,16 +540,16 @@ std::string PostgreCache<PostgreCachePolicy>::GetOrderByClause() {
 
 template <typename PostgreCachePolicy>
 storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetAllQuery() {
-    storages::postgres::Query query = PolicyCheckerType::GetQuery();
-    return fmt::format("{} {} {}", query.Statement(), GetWhereClause(), GetOrderByClause());
+    const storages::postgres::Query query = PolicyCheckerType::GetQuery();
+    return fmt::format("{} {} {}", query.GetStatementView(), GetWhereClause(), GetOrderByClause());
 }
 
 template <typename PostgreCachePolicy>
 storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
     if constexpr (kIncrementalUpdates) {
-        storages::postgres::Query query = PolicyCheckerType::GetQuery();
+        const storages::postgres::Query query = PolicyCheckerType::GetQuery();
         return storages::postgres::Query{
-            fmt::format("{} {} {}", query.Statement(), GetDeltaWhereClause(), GetOrderByClause()),
+            fmt::format("{} {} {}", query.GetStatementView(), GetDeltaWhereClause(), GetOrderByClause()),
             query.GetName(),
         };
     } else {
@@ -623,7 +623,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
             }
             trx.Commit();
         } else {
-            bool has_parameter = query.Statement().find('$') != std::string::npos;
+            const bool has_parameter = query.GetStatementView().find('$') != std::string::npos;
             auto res = has_parameter ? cluster->Execute(
                                            kClusterHostTypeFlags,
                                            pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},

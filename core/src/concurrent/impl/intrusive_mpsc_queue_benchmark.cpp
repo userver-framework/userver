@@ -91,7 +91,7 @@ public:
     void Produce(std::size_t /*producer_id*/) { queue_.Push(*new Node()); }
 
     bool TryConsume() {
-        auto* const node = queue_.TryPopBlocking();
+        const auto* node = queue_.TryPopBlocking();
         if (node) {
             benchmark::DoNotOptimize(node->foo);
             delete node;

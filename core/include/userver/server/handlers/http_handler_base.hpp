@@ -151,6 +151,11 @@ protected:
     /// "response-body-streamed" value from static config.
     virtual bool IsStreamed() const { return is_body_streamed_; }
 
+    /// Override it if you need a custom streamed logic based on request and context.
+    /// @note The default implementation returns the cached value of
+    /// "response-body-streamed" value from static config.
+    virtual bool IsStreamed(const http::HttpRequest&, server::request::RequestContext&) const { return IsStreamed(); }
+
     /// Override it to show per HTTP-method statistics besides statistics for all
     /// methods
     virtual bool IsMethodStatisticIncluded() const { return false; }

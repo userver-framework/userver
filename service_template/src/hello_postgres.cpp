@@ -1,4 +1,4 @@
-// postgres template on
+// postgresql template on
 #include <hello_postgres.hpp>
 
 #include <greeting.hpp>
@@ -39,4 +39,4 @@ std::string HelloPostgres::
 }
 
 }  // namespace service_template
-// postgres template off
+// postgresql template off

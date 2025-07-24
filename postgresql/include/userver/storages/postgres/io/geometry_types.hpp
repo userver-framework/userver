@@ -190,7 +190,7 @@ struct PathFormatter : BufferFormatterBase<Path> {
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) const {
         io::WriteBuffer(types, buffer, value.is_closed);
-        Integer points_no = value.points.size();
+        const Integer points_no = value.points.size();
         io::WriteBuffer(types, buffer, points_no);
         for (const auto& p : value.points) {
             io::WriteBuffer(types, buffer, p);
@@ -218,7 +218,7 @@ struct PolygonFormatter : BufferFormatterBase<Polygon> {
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) const {
-        Integer points_no = value.points.size();
+        const Integer points_no = value.points.size();
         io::WriteBuffer(types, buffer, points_no);
         for (const auto& p : value.points) {
             io::WriteBuffer(types, buffer, p);

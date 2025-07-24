@@ -32,16 +32,16 @@ TEST(OptionalRef, Values) {
     int b1_val = 1;
     int b2_val = 2;
 
-    utils::OptionalRef<int> a1(a1_val);
-    utils::OptionalRef<int> b1(b1_val);
-    utils::OptionalRef<int> b2(b2_val);
+    const utils::OptionalRef<int> a1(a1_val);
+    const utils::OptionalRef<int> b1(b1_val);
+    const utils::OptionalRef<int> b2(b2_val);
     EXPECT_TRUE(a1 == b1);
     EXPECT_FALSE(a1 != b1);
 
     EXPECT_FALSE(a1 == b2);
     EXPECT_TRUE(a1 != b2);
 
-    utils::OptionalRef<int> def;
+    const utils::OptionalRef<int> def;
     EXPECT_FALSE(a1 == def);
     EXPECT_TRUE(a1 != def);
     EXPECT_FALSE(b2 == def);
@@ -49,20 +49,20 @@ TEST(OptionalRef, Values) {
 }
 
 TEST(OptionalRef, ConstValues) {
-    int a1_val = 1;
+    const int a1_val = 1;
     const int b1_val = 1;
-    int b2_val = 2;
+    const int b2_val = 2;
 
-    utils::OptionalRef<const int> a1(a1_val);
-    utils::OptionalRef<const int> b1(b1_val);
-    utils::OptionalRef<const int> b2(b2_val);
+    const utils::OptionalRef<const int> a1(a1_val);
+    const utils::OptionalRef<const int> b1(b1_val);
+    const utils::OptionalRef<const int> b2(b2_val);
     EXPECT_TRUE(a1 == b1);
     EXPECT_FALSE(a1 != b1);
 
     EXPECT_FALSE(a1 == b2);
     EXPECT_TRUE(a1 != b2);
 
-    utils::OptionalRef<const int> def;
+    const utils::OptionalRef<const int> def;
     EXPECT_FALSE(a1 == def);
     EXPECT_TRUE(a1 != def);
     EXPECT_FALSE(b2 == def);
@@ -74,16 +74,16 @@ TEST(OptionalRef, OptionalValues) {
     std::optional<int> b1_val = 1;
     std::optional<int> b2_val = 2;
 
-    utils::OptionalRef<int> a1(a1_val);
-    utils::OptionalRef<int> b1(b1_val);
-    utils::OptionalRef<int> b2(b2_val);
+    const utils::OptionalRef<int> a1(a1_val);
+    const utils::OptionalRef<int> b1(b1_val);
+    const utils::OptionalRef<int> b2(b2_val);
     EXPECT_TRUE(a1 == b1);
     EXPECT_FALSE(a1 != b1);
 
     EXPECT_FALSE(a1 == b2);
     EXPECT_TRUE(a1 != b2);
 
-    utils::OptionalRef<int> def;
+    const utils::OptionalRef<int> def;
     EXPECT_FALSE(a1 == def);
     EXPECT_TRUE(a1 != def);
     EXPECT_FALSE(b2 == def);
@@ -95,16 +95,16 @@ TEST(OptionalRef, ConstOptionalValues) {
     std::optional<const int> b1_val = 1;
     const std::optional<int> b2_val = 2;
 
-    utils::OptionalRef<const int> a1(a1_val);
-    utils::OptionalRef<const int> b1(b1_val);
-    utils::OptionalRef<const int> b2(b2_val);
+    const utils::OptionalRef<const int> a1(a1_val);
+    const utils::OptionalRef<const int> b1(b1_val);
+    const utils::OptionalRef<const int> b2(b2_val);
     EXPECT_TRUE(a1 == b1);
     EXPECT_FALSE(a1 != b1);
 
     EXPECT_FALSE(a1 == b2);
     EXPECT_TRUE(a1 != b2);
 
-    utils::OptionalRef<const int> def;
+    const utils::OptionalRef<const int> def;
     EXPECT_FALSE(a1 == def);
     EXPECT_TRUE(a1 != def);
     EXPECT_FALSE(b2 == def);
@@ -118,11 +118,11 @@ TEST(OptionalRef, BaseDerived) {
     struct Derived : Base {};
 
     Derived derived1;
-    Derived derived2;
+    const Derived derived2;
 
-    utils::OptionalRef<const Base> cb1(derived1);
-    utils::OptionalRef<const Base> cb2(derived2);
-    utils::OptionalRef<Base> b1(derived1);
+    const utils::OptionalRef<const Base> cb1(derived1);
+    const utils::OptionalRef<const Base> cb2(derived2);
+    const utils::OptionalRef<Base> b1(derived1);
 
     EXPECT_TRUE(cb1 != cb2);
     EXPECT_TRUE(cb1 == b1);
@@ -145,14 +145,14 @@ TEST(OptionalRef, ImplicitConversion) {
 TEST(OptionalRef, Methods) {
     int a1_val = 1;
 
-    utils::OptionalRef<int> a1(a1_val);
+    const utils::OptionalRef<int> a1(a1_val);
     EXPECT_TRUE(a1);
     EXPECT_TRUE(a1.has_value());
 
     EXPECT_EQ(*a1, a1_val);
     EXPECT_EQ(a1.value(), a1_val);
 
-    utils::OptionalRef<int> def;
+    const utils::OptionalRef<int> def;
     EXPECT_FALSE(def);
     EXPECT_FALSE(def.has_value());
     EXPECT_THROW(def.value(), std::bad_optional_access);
@@ -165,7 +165,7 @@ TEST(OptionalRef, ArrowOperator) {
 
     Object o_val;
 
-    utils::OptionalRef<Object> o(o_val);
+    const utils::OptionalRef<Object> o(o_val);
     EXPECT_EQ(o->GetThis(), &o_val);
 }
 

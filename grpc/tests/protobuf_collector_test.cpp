@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <gmock/gmock.h>
+#include <google/protobuf/stubs/common.h>
 #include <gtest/gtest.h>
 
 #include <userver/ugrpc/impl/protobuf_collector.hpp>
@@ -14,13 +15,15 @@ USERVER_NAMESPACE_BEGIN
 TEST(GetGeneratedMessages, Ok) {
     const ugrpc::DescriptorList generated_message = ugrpc::impl::GetGeneratedMessages();
 
-    // Currently, there are 8 different request/response types in the binary.
-    // You should adjust this number if you start using new types
-    // as requests/responses in the tests' protobufs
-    EXPECT_EQ(generated_message.size(), 8);
+    // Please adjust this number if new test proto schemas are added.
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
+    constexpr std::size_t kExpectedRpcCount = 4;
+#else
+    constexpr std::size_t kExpectedRpcCount = 3;
+#endif
 
-    EXPECT_THAT(generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.SendRequest")));
-    EXPECT_THAT(generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.SendResponse")));
+    EXPECT_EQ(generated_message.size(), kExpectedRpcCount * 2);
+
     EXPECT_THAT(generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.GreetingRequest")));
     EXPECT_THAT(generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.GreetingResponse")));
     EXPECT_THAT(

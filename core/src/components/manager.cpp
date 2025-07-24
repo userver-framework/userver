@@ -23,6 +23,7 @@
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/os_signals/component.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/distances.hpp>
 
@@ -170,7 +171,23 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config, const ComponentList& c
     const auto& task_processors_map = task_processors_storage_.GetMap();
     const auto default_task_processor_it = task_processors_map.find(config_->default_task_processor);
     if (default_task_processor_it == task_processors_map.end()) {
-        throw std::runtime_error("Cannot start components manager: missing default task processor");
+        throw std::runtime_error(
+            "Cannot start components manager: failed to find default task processor with name '" +
+            config_->default_task_processor + "'"
+        );
+    }
+
+    UINVARIANT(!config_->fs_task_processor.empty(), "fs_task_processor cannot be empty");
+    auto* fs_task_processor = utils::FindOrNullptr(task_processors_map, config_->fs_task_processor);
+    UINVARIANT(
+        fs_task_processor,
+        utils::StrCat(
+            "Cannot find task processor with name '", config_->fs_task_processor, "', is fs_task_processor correct?"
+        )
+    );
+
+    for (auto& [name, tp] : task_processors_map) {
+        tp->SetBlockingTaskProcessor(**fs_task_processor);
     }
 
     {
@@ -232,7 +249,7 @@ engine::TaskProcessor& Manager::GetTaskProcessor(std::string_view name) const {
 }
 
 void Manager::OnSignal(int signum) {
-    std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
+    const std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
     if (components_cleared_) return;
     if (signal_processor_) {
         signal_processor_->Get().Notify(signum, utils::impl::InternalTag{});
@@ -248,7 +265,7 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
     for (const auto& adder : component_list) {
         auto [it, inserted] = loading_component_names.insert(adder->GetComponentName());
         if (!inserted) {
-            std::string message = "duplicate component name in component_list: " + *it;
+            const std::string message = "duplicate component name in component_list: " + *it;
             LOG_ERROR() << message;
             throw std::runtime_error(message);
         }
@@ -317,21 +334,21 @@ void Manager::AddComponents(const ComponentList& component_list) {
         ValidateConfigs(component_list, component_config_map, config_->validate_components_configs);
 
         for (const auto& adder : component_list) {
-            auto task_name = "boot/" + adder->GetComponentName();
+            const auto& component_name = adder->GetComponentName();
+            auto task_name = "boot/" + component_name;
             tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() {
+                tracing::Span::CurrentSpan().AddTag("component_name", component_name);
                 tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kDebug);
                 try {
-                    AddComponentImpl(component_config_map, adder->GetComponentName(), *adder);
+                    AddComponentImpl(component_config_map, component_name, *adder);
                 } catch (const ComponentsLoadCancelledException& ex) {
-                    LOG_WARNING() << "Cannot start component " << adder->GetComponentName() << ": " << ex;
+                    LOG_WARNING() << "Cannot start component " << component_name << ": " << ex;
                     component_context_->CancelComponentsLoad();
                     throw;
                 } catch (const std::exception& ex) {
-                    LOG_ERROR() << "Cannot start component " << adder->GetComponentName() << ": " << ex;
+                    LOG_ERROR() << "Cannot start component " << component_name << ": " << ex;
                     component_context_->CancelComponentsLoad();
-                    throw std::runtime_error(
-                        fmt::format("Cannot start component {}: {}", adder->GetComponentName(), ex.what())
-                    );
+                    throw std::runtime_error(fmt::format("Cannot start component {}: {}", component_name, ex.what()));
                 } catch (...) {
                     component_context_->CancelComponentsLoad();
                     throw;
@@ -409,7 +426,7 @@ void Manager::AddComponentImpl(
 
 void Manager::ClearComponents() noexcept {
     {
-        std::unique_lock<std::shared_timed_mutex> lock(context_mutex_);
+        const std::lock_guard<std::shared_timed_mutex> lock(context_mutex_);
         components_cleared_ = true;
     }
     try {

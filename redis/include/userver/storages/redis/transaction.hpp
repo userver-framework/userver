@@ -199,6 +199,11 @@ public:
 
     virtual RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, std::chrono::milliseconds ttl) = 0;
 
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) = 0;
+
+    virtual RequestSetIfNotExistOrGet
+    SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl) = 0;
+
     virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) = 0;
 
     virtual RequestSismember Sismember(std::string key, std::string member) = 0;

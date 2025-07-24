@@ -84,6 +84,7 @@ public:
         bool may_fallback_to_any,
         size_t skip_idx,
         bool read_only,
+        bool consider_ping,
         size_t* pinstance_idx
     );
     void Clean();
@@ -95,7 +96,6 @@ public:
     size_t InstancesSize() const;
     const std::string& ShardName() const;
     boost::signals2::signal<void(ServerId, Redis::State)>& SignalInstanceStateChange();
-    boost::signals2::signal<void()>& SignalNotInClusterMode();
     boost::signals2::signal<void(ServerId, bool)>& SignalInstanceReady();
 
     void SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings);

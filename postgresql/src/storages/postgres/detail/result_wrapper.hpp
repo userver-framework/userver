@@ -2,6 +2,7 @@
 
 #include <libpq-fe.h>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include <userver/storages/postgres/postgres_fwd.hpp>
@@ -37,7 +38,7 @@ public:
     std::string CommandStatus() const;
     std::size_t RowsAffected() const;
 
-    std::size_t IndexOfName(const std::string& name) const;
+    std::size_t IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const;
 
     std::string_view GetFieldName(std::size_t col) const;
     FieldDescription GetFieldDescription(std::size_t col) const;
@@ -65,7 +66,7 @@ public:
     std::string GetMessageDatatype() const;
     std::string GetMessageConstraint() const;
 
-    std::string GetMessageField(int fieldcode) const;
+    std::optional<std::string> GetMessageField(int fieldcode) const;
 
     logging::LogExtra GetMessageLogExtra() const;
     //@}

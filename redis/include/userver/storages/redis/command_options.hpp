@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief Definitions of structures representing optionas for different commands
+/// @brief Definitions of structures representing options for different commands
 
 #include <optional>
 #include <string>
@@ -105,44 +105,59 @@ constexpr ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptio
     return {return_value, compare};
 }
 
-class ScanOptionsBase {
+/// @brief A command option to use in Scan, Hscan, Scan and Zscan commands.
+///
+/// Sample usage:
+/// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Scan usage
+class Match final {
 public:
-    ScanOptionsBase() = default;
-    ScanOptionsBase(ScanOptionsBase& other) = default;
-    ScanOptionsBase(const ScanOptionsBase& other) = default;
+    explicit Match(std::string value) : value_(std::move(value)) {}
 
-    ScanOptionsBase(ScanOptionsBase&& other) = default;
+    const std::string& Get() const& { return value_; }
+
+    std::string Get() && { return std::move(value_); }
+
+private:
+    std::string value_;
+};
+
+/// @brief A hint for Scan, Hscan, Scan and Zscan commands.
+class Count final {
+public:
+    explicit constexpr Count(std::size_t value) noexcept : value_(value) {}
+
+    constexpr std::size_t Get() const noexcept { return value_; }
+
+private:
+    std::size_t value_;
+};
+
+/// @brief A command option to use in Scan, Hscan, Scan and Zscan commands that combines Match and Count options.
+class ScanOptionsGeneric {
+public:
+    using Match = storages::redis::Match;
+    using Count = storages::redis::Count;
+
+    ScanOptionsGeneric() = default;
+
+    ScanOptionsGeneric(const ScanOptionsGeneric& other) = default;
+    ScanOptionsGeneric& operator=(const ScanOptionsGeneric& other) = default;
+
+    ScanOptionsGeneric(ScanOptionsGeneric&& other) = default;
+    ScanOptionsGeneric& operator=(ScanOptionsGeneric&& other) = default;
 
     template <typename... Args>
-    ScanOptionsBase(Args&&... args) {
-        (Apply(std::forward<Args>(args)), ...);
+    ScanOptionsGeneric(Args... args) {
+        (Apply(std::move(args)), ...);
     }
 
-    class Match {
-    public:
-        explicit Match(std::string value) : value_(std::move(value)) {}
+    const std::optional<Match>& GetMatchOptional() const noexcept { return pattern_; }
 
-        const std::string& Get() const& { return value_; }
+    const std::optional<Count>& GetCountOptional() const noexcept { return count_; }
 
-        std::string Get() && { return std::move(value_); }
+    std::optional<Match> ExtractMatch() noexcept { return std::move(pattern_); }
 
-    private:
-        std::string value_;
-    };
-
-    class Count {
-    public:
-        explicit Count(size_t value) : value_(value) {}
-
-        size_t Get() const { return value_; }
-
-    private:
-        size_t value_;
-    };
-
-    std::optional<Match> ExtractMatch() { return std::move(pattern_); }
-
-    std::optional<Count> ExtractCount() { return std::move(count_); }
+    std::optional<Count> ExtractCount() noexcept { return std::move(count_); }
 
 private:
     void Apply(Match pattern) {
@@ -159,16 +174,13 @@ private:
     std::optional<Count> count_;
 };
 
-// strong typedef
 template <ScanTag scan_tag>
-class ScanOptionsTmpl : public ScanOptionsBase {
-    using ScanOptionsBase::ScanOptionsBase;
-};
+using ScanOptionsTmpl [[deprecated("Just use ScanOptionsGeneric")]] = ScanOptionsGeneric;
 
-using ScanOptions = ScanOptionsTmpl<ScanTag::kScan>;
-using SscanOptions = ScanOptionsTmpl<ScanTag::kSscan>;
-using HscanOptions = ScanOptionsTmpl<ScanTag::kHscan>;
-using ZscanOptions = ScanOptionsTmpl<ScanTag::kZscan>;
+using ScanOptions = ScanOptionsGeneric;
+using SscanOptions = ScanOptionsGeneric;
+using HscanOptions = ScanOptionsGeneric;
+using ZscanOptions = ScanOptionsGeneric;
 
 struct SetOptions {
     enum class Exist { kSetAlways, kSetIfNotExist, kSetIfExist };

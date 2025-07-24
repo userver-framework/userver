@@ -9,6 +9,7 @@
 
 #include <ugrpc/client/impl/client_factory_config.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/client/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +30,7 @@ ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : impl::MiddlewareRunner(config, context, MiddlewarePipelineComponent::kName) {
+    : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName) {
     auto& client_common_component = context.FindComponent<CommonComponent>();
 
     const auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
@@ -54,7 +55,7 @@ ClientFactoryComponent::ClientFactoryComponent(
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
 
 yaml_config::Schema ClientFactoryComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<impl::MiddlewareRunner>(R"(
+    return yaml_config::MergeSchemas<impl::MiddlewareRunnerComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false

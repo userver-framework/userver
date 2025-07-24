@@ -49,10 +49,10 @@ logging::LogExtra Command::PrepareLogExtra() {
     const auto* span = tracing::Span::CurrentSpanUnchecked();
     if (span) {
         return {
-            {"trace_id", span->GetTraceId()},
-            {"parent_id", span->GetParentId()},
-            {"span_id", span->GetSpanId()},
-            {"link", span->GetLink()},
+            {"trace_id", std::string{span->GetTraceId()}},
+            {"parent_id", std::string{span->GetParentId()}},
+            {"span_id", std::string{span->GetSpanId()}},
+            {"link", std::string{span->GetLink()}},
         };
     } else {
         // Non-user requests (e.g. PING)

@@ -11,14 +11,21 @@ ERROR_MESSAGES = {
 }
 
 
+def missing_field_msg(field: str) -> str:
+    return ERROR_MESSAGES['missing'].format(field=field)
+
+
 def convert_error(full_filepath: str, schema_type: str, err: pydantic.ValidationError) -> chaotic.error.BaseError:
     assert len(err.errors()) >= 1
 
     # show only the first error
     error = err.errors()[0]
 
-    # the last location is the missing field name
-    field = error['loc'][-1]
+    if len(error['loc']) > 0:
+        # the last location is the missing field name
+        field = error['loc'][-1]
+    else:
+        field = ''
 
     if error['type'] in ERROR_MESSAGES:
         msg = ERROR_MESSAGES[error['type']].format(**error, field=field)

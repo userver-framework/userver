@@ -136,7 +136,7 @@ void WildcardPathIndex::AddPath(
     std::vector<PathItem>&& fixed_path,
     std::vector<PathItem> wildcards
 ) {
-    size_t length = fixed_path.size() + wildcards.size();
+    const size_t length = fixed_path.size() + wildcards.size();
     Node* cur = &root_;
     for (auto& path_item : std::move(fixed_path)) {
         cur = &cur->next[path_item.index][std::move(path_item.name)];
@@ -172,7 +172,7 @@ bool WildcardPathIndex::MatchRequest(
         auto it = node_next_it->second.find(kAnySuffixMark);
         if (it != node_next_it->second.end()) {
             if (GetFromHandlerMethodIndex(it->second, method, path, match_result, false)) {
-                size_t asterisk_pos = node_next_it->first;
+                const size_t asterisk_pos = node_next_it->first;
                 match_result.matched_path_length = asterisk_pos;
                 for (size_t i = 0; i < asterisk_pos; i++) {
                     match_result.matched_path_length += path[i].size();

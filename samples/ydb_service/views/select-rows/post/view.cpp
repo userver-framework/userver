@@ -15,7 +15,7 @@ formats::json::Value SelectRowsHandler::
     HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&)
         const {
     request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
-    ydb::OperationSettings query_params = {
+    const ydb::OperationSettings query_params = {
         3,                                // retries
         std::chrono::milliseconds(1000),  // operation_timeout
         std::chrono::milliseconds(1000),  // cancel_after
@@ -30,7 +30,9 @@ formats::json::Value SelectRowsHandler::
         "FROM events VIEW sample_index "
         "WHERE service = $service_key AND channel IN $channel_keys "
         "AND created > $created_key;",
-        ydb::Query::Name("select")};
+        ydb::Query::NameLiteral("select"),
+        ydb::Query::LogMode::kNameOnly,
+    };
 
     auto response = Ydb().ExecuteDataQuery(
         query_params,

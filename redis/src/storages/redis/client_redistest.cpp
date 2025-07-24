@@ -116,7 +116,7 @@ UTEST_F(RedisClientTest, Unlink) {
 }
 
 UTEST_F(RedisClientTest, Geosearch) {
-    Version since{6, 2, 0};
+    const Version since{6, 2, 0};
     if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Geosearch", since);
 
     auto client = GetClient();
@@ -698,7 +698,7 @@ UTEST_F(RedisClientTest, Zadd) {
 }
 
 UTEST_F(RedisClientTest, ZaddGtLt) {
-    Version since{6, 2, 0};
+    const Version since{6, 2, 0};
     if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Zadd gt/lt", since);
 
     auto client = GetClient();

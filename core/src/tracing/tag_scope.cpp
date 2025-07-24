@@ -13,7 +13,7 @@ void TagScope::AddTag(std::string&& key, logging::LogExtra::ProtectedValue&& val
     auto* it = parent_.pimpl_->log_extra_inheritable_.Find(key);
     if (it) {
         if (!it->second.IsFrozen()) {
-            std::size_t tag_index = it - parent_.pimpl_->log_extra_inheritable_.extra_->data();
+            const std::size_t tag_index = it - parent_.pimpl_->log_extra_inheritable_.extra_->data();
             previous_values_.emplace_back(std::move(tag_index), std::move(it->second));
 
             it->second = std::move(value);

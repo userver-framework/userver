@@ -125,7 +125,7 @@ Connection::~Connection() {
     Close(engine::Deadline::FromDuration(kDefaultCloseTimeout));
 }
 
-QueryResult Connection::ExecuteQuery(const std::string& query, engine::Deadline deadline) {
+QueryResult Connection::ExecuteQuery(std::string_view query, engine::Deadline deadline) {
     auto guard = GetBrokenGuard();
 
     return guard.Execute([&] {
@@ -136,7 +136,7 @@ QueryResult Connection::ExecuteQuery(const std::string& query, engine::Deadline 
 }
 
 StatementFetcher Connection::ExecuteStatement(
-    const std::string& statement,
+    std::string_view statement,
     io::ParamsBinderBase& params,
     engine::Deadline deadline,
     std::optional<std::size_t> batch_size
@@ -315,7 +315,7 @@ void Connection::Close(engine::Deadline deadline) noexcept {
 }
 
 Statement& Connection::PrepareStatement(
-    const std::string& statement,
+    std::string_view statement,
     engine::Deadline deadline,
     std::optional<std::size_t> batch_size
 ) {

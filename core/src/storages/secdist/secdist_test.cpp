@@ -81,7 +81,7 @@ TEST(SecdistConfig, Sample) {
 
     storages::secdist::DefaultLoader provider{
         {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false, std::nullopt, nullptr, {}}};
-    storages::secdist::SecdistConfig secdist_config{{&provider}};
+    const storages::secdist::SecdistConfig secdist_config{{&provider}};
     /// [Secdist Usage Sample - SecdistConfig]
     const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -97,7 +97,7 @@ TEST(SecdistYamlConfig, Sample) {
 
     storages::secdist::DefaultLoader provider{
         {temp_file.GetPath(), storages::secdist::SecdistFormat::kYaml, false, std::nullopt, nullptr, {}}};
-    storages::secdist::SecdistConfig secdist_config{{&provider}};
+    const storages::secdist::SecdistConfig secdist_config{{&provider}};
 
     const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -120,7 +120,7 @@ UTEST(SecdistYamlConfigConfig, Sample) {
 
     storages::secdist::DefaultLoader provider{
         {temp_file.GetPath(), storages::secdist::SecdistFormat::kYamlConfig, false, std::nullopt, nullptr, {}}};
-    storages::secdist::SecdistConfig secdist_config{{&provider}};
+    const storages::secdist::SecdistConfig secdist_config{{&provider}};
 
     const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -145,7 +145,7 @@ UTEST(SecdistConfig, EnvironmentVariable) {
 
     storages::secdist::DefaultLoader provider{
         {"", storages::secdist::SecdistFormat::kJson, false, kVarName, nullptr, {}}};
-    storages::secdist::SecdistConfig secdist_config{{&provider}};
+    const storages::secdist::SecdistConfig secdist_config{{&provider}};
 
     const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -188,7 +188,7 @@ UTEST(SecdistConfig, FileAndEnvironmentVariable) {
 
     storages::secdist::DefaultLoader provider{
         {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false, kVarName, nullptr, {}}};
-    storages::secdist::SecdistConfig secdist_config{{&provider}};
+    const storages::secdist::SecdistConfig secdist_config{{&provider}};
 
     const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -211,7 +211,7 @@ UTEST(Secdist, WithoutUpdates) {
 
     storages::secdist::DefaultLoader provider{
         {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false, std::nullopt, nullptr, {}}};
-    storages::secdist::Secdist secdist{{&provider}};
+    const storages::secdist::Secdist secdist{{&provider}};
 
     const auto& secdist_config = secdist.Get();
 

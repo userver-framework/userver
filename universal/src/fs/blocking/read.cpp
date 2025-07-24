@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 namespace fs::blocking {
 
 std::string ReadFileContents(const std::string& path) {
-    std::ifstream ifs(path);
+    const std::ifstream ifs(path);
     if (!ifs) {
         throw std::runtime_error("Error opening '" + path + '\'');
     }

@@ -107,17 +107,17 @@ private:
 using GrpcClientTest = TestService<UnitTestService, false>;
 using GrpcClientTestWithLogging = TestService<UnitTestService, true>;
 
-std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
-    auto context = std::make_unique<grpc::ClientContext>();
-    context->AddMetadata("req_header", "value");
-    return context;
+ugrpc::client::CallOptions PrepareCallOptions() {
+    ugrpc::client::CallOptions call_options;
+    call_options.AddMetadata("req_header", "value");
+    return call_options;
 }
 
 void UnaryRPCPayload(sample::ugrpc::UnitTestServiceClient& client) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
     sample::ugrpc::GreetingResponse in;
-    in = client.SayHello(out, PrepareClientContext());
+    in = client.SayHello(out, PrepareCallOptions());
     UINVARIANT("Hello " + out.name() == in.name(), "Behavior broken");
 }
 

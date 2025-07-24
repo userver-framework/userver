@@ -92,7 +92,13 @@ components_manager:
             task_processor: main-task-processor
 
         sample-topic-reader:
-            consumer-name: sample-consumer
+            consumer-name: sample-topic-consumer
+            topics:
+              - records/changefeed
+            restart-session-delay: 200ms
+
+        sample-federated-topic-reader:
+            consumer-name: sample-federated-topic-consumer
             topics:
               - records/changefeed
             restart-session-delay: 200ms

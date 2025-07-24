@@ -1,0 +1,44 @@
+openapi: 3.0.0
+info:
+    title: test-object client
+    version: '1.0'
+
+paths:
+    /test1:
+        post:
+            parameters:
+              - name: enum
+                in: query
+                schema:
+                    type: string
+                    enum:
+                      - one
+                      - two
+                      - three
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                foo:
+                                    type: string
+                            additionalProperties: false
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    bar:
+                                        type: string
+                                additionalProperties: false
+                '201':
+                    description: OK
+                '400':
+                    description: Some error
+                '500':
+                    description: Some error
+components: {}

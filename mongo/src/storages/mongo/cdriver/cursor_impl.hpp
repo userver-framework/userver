@@ -25,6 +25,8 @@ public:
 
     bool IsValid() const override;
     bool HasMore() const override;
+    std::uint32_t GetBatchSize() const override;
+    void SetBatchSize(std::uint32_t) override;
 
     const formats::bson::Document& Current() const override;
     void Next() override;

@@ -228,7 +228,7 @@ TYPED_TEST_P(MemberModify, NonArrayThrowIsEmpty) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
     using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-    ValueBuilder bld(true);
+    const ValueBuilder bld(true);
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(bld.IsEmpty(), TypeMismatchException);
@@ -238,7 +238,7 @@ TYPED_TEST_P(MemberModify, NonArrayThrowGetSize) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
     using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-    ValueBuilder bld(true);
+    const ValueBuilder bld(true);
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(bld.GetSize(), TypeMismatchException);
@@ -314,7 +314,7 @@ TYPED_TEST_P(MemberModify, IteratorOutlivesRoot) {
 
     auto it = this->GetBuiltValue().begin();
     {
-        Value v = this->GetBuiltValue();
+        const Value v = this->GetBuiltValue();
         it = v["key4"].begin();
         EXPECT_EQ(it->GetPath(), "key4[0]");
     }
@@ -324,7 +324,7 @@ TYPED_TEST_P(MemberModify, IteratorOutlivesRoot) {
 TYPED_TEST_P(MemberModify, SubdocOutlivesRoot) {
     using Value = typename TestFixture::Value;
 
-    Value v = this->GetBuiltValue()["key3"];
+    const Value v = this->GetBuiltValue()["key3"];
     EXPECT_TRUE(v.HasMember("sub"));
 }
 
@@ -388,7 +388,7 @@ TYPED_TEST_P(MemberModify, CannotBuildFromMissing) {
     using Value = typename TestFixture::Value;
     using MemberMissingException = typename TestFixture::MemberMissingException;
 
-    Value v;
+    const Value v;
     ValueBuilder bld;
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)

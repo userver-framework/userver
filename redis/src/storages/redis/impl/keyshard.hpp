@@ -13,7 +13,6 @@ class KeyShard {
 public:
     virtual ~KeyShard() = default;
     virtual size_t ShardByKey(const std::string& key) const = 0;
-    virtual bool IsGenerateKeysForShardsEnabled() const = 0;
 };
 
 class KeyShardFactory {
@@ -23,11 +22,6 @@ public:
     KeyShardFactory(const std::string& type) : type_(type) {}
     std::unique_ptr<KeyShard> operator()(size_t nshards);
     bool IsClusterStrategy() const;
-};
-
-enum class PubShard {
-    kZeroShard,
-    kRoundRobin,
 };
 
 }  // namespace storages::redis::impl

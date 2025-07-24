@@ -55,7 +55,7 @@ constexpr unsigned kRepetitions = 1000;
 
 }  // namespace
 
-UTEST(Poller, Ctr) { Poller poller; }
+UTEST(Poller, Ctr) { const Poller poller; }
 
 UTEST(Poller, ReadEvent) {
     Pipe pipe;

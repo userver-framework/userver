@@ -1,5 +1,6 @@
 import re
 import typing
+from typing import List
 from typing import Union
 
 from chaotic import cpp_names
@@ -13,11 +14,19 @@ from chaotic_openapi.front import model
 
 
 class Translator:
-    def __init__(self, service: model.Service, cpp_namespace: str) -> None:
+    def __init__(
+        self,
+        service: model.Service,
+        *,
+        cpp_namespace: str,
+        dynamic_config: str,
+        include_dirs: List[str],
+    ) -> None:
         self._spec = types.ClientSpec(
             client_name=service.name,
             description=service.description,
             cpp_namespace=cpp_namespace,
+            dynamic_config=dynamic_config,
             operations=[],
             schemas={},
         )
@@ -31,6 +40,7 @@ class Translator:
             chaotic_translator.GeneratorConfig(
                 namespaces={schema.source_location().filepath: '' for schema in service.schemas.values()},
                 infile_to_name_func=self.map_infile_path_to_cpp_type,
+                include_dirs=include_dirs,
             )
         )
         self._spec.schemas = gen.generate_types(resolved_schemas)
@@ -63,8 +73,14 @@ class Translator:
         # TODO: responses
         # TODO: parameters
 
-    def map_infile_path_to_cpp_type(self, name: str) -> str:
+    def map_infile_path_to_cpp_type(self, name: str, stem: str) -> str:
         if name.startswith('/components/schemas/'):
+            return '{}::{}'.format(
+                self._spec.cpp_namespace,
+                name.split('/')[-1],
+            )
+
+        if name.startswith('/definitions/'):
             return '{}::{}'.format(
                 self._spec.cpp_namespace,
                 name.split('/')[-1],
@@ -72,30 +88,30 @@ class Translator:
 
         match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/requestBody/content/\\[([^\\]]*)\\]/schema', name)
         if match:
-            return '{}::{}_{}::Body{}'.format(
+            return '{}::{}::{}::Body{}'.format(
                 self._spec.cpp_namespace,
-                match.group(1)[1:],
-                match.group(2),
+                cpp_names.namespace(match.group(1)),
+                types.map_method(match.group(2)),
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(3)),
                 ),
             )
 
         match = re.fullmatch(
-            '/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/responses/([0-9]*)/headers/([a-zA-Z0-9_]*)/schema', name
+            '/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/responses/([0-9]*)/headers/([-a-zA-Z0-9_]*)/schema', name
         )
         if match:
-            return '{}::{}_{}::Response{}Header{}'.format(
+            return '{}::{}::{}::Response{}Header{}'.format(
                 self._spec.cpp_namespace,
-                match.group(1)[:1],
-                match.group(2),
+                cpp_names.namespace(match.group(1)),
+                types.map_method(match.group(2)),
                 match.group(3),
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(4)),
                 ),
             )
 
-        match = re.fullmatch('/components/responses/([a-zA-Z_0-9]*)/content/(.*)/schema', name)
+        match = re.fullmatch('/components/responses/([-a-zA-Z_0-9]*)/content/(.*)/schema', name)
         if match:
             return '{}::Response{}Body{}'.format(
                 self._spec.cpp_namespace,
@@ -105,28 +121,37 @@ class Translator:
                 ),
             )
 
-        match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/parameters/([0-9]*)/schema', name)
+        match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/parameters/([0-9]*)(/schema)?', name)
         if match:
-            return '{}::{}_{}::Parameter{}'.format(
+            return '{}::{}::{}::Parameter{}'.format(
                 self._spec.cpp_namespace,
-                match.group(1)[1:],
-                match.group(2),
+                cpp_names.namespace(match.group(1)),
+                types.map_method(match.group(2)),
+                match.group(3),
+            )
+
+        match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/responses/([0-9]*)/schema', name)
+        if match:
+            return '{}::{}::{}::Response{}Body'.format(
+                self._spec.cpp_namespace,
+                cpp_names.namespace(match.group(1)),
+                types.map_method(match.group(2)),
                 match.group(3),
             )
 
         match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/responses/([0-9]*)/content/(.*)/schema', name)
         if match:
-            return '{}::{}_{}::Response{}Body{}'.format(
+            return '{}::{}::{}::Response{}Body{}'.format(
                 self._spec.cpp_namespace,
-                match.group(1)[1:],
-                match.group(2),
+                cpp_names.namespace(match.group(1)),
+                types.map_method(match.group(2)),
                 match.group(3),
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(4)),
                 ),
             )
 
-        match = re.fullmatch('/components/requestBodies/([a-zA-Z0-9_]*)/content/\\[([^\\]]*)\\]/schema', name)
+        match = re.fullmatch('/components/requestBodies/([-a-zA-Z0-9_]*)/content/\\[([^\\]]*)\\]/schema', name)
         if match:
             return '{}::{}{}'.format(
                 self._spec.cpp_namespace,
@@ -136,7 +161,7 @@ class Translator:
                 ),
             )
 
-        match = re.fullmatch('/components/parameters/([a-zA-Z0-9_]*)/schema', name)
+        match = re.fullmatch('/parameters/([-a-zA-Z0-9_]*)', name)
         if match:
             return '{}::Parameter{}'.format(
                 self._spec.cpp_namespace,
@@ -144,7 +169,16 @@ class Translator:
                     cpp_names.cpp_identifier(match.group(1)),
                 ),
             )
-        match = re.fullmatch('/components/headers/([a-zA-Z0-9]*)/schema', name)
+
+        match = re.fullmatch('/components/parameters/([-a-zA-Z0-9_]*)/schema', name)
+        if match:
+            return '{}::Parameter{}'.format(
+                self._spec.cpp_namespace,
+                cpp_names.camel_case(
+                    cpp_names.cpp_identifier(match.group(1)),
+                ),
+            )
+        match = re.fullmatch('/components/headers/([-a-zA-Z0-9]*)/schema', name)
         if match:
             return '{}::Header{}'.format(
                 self._spec.cpp_namespace,
@@ -177,9 +211,13 @@ class Translator:
             resolved_schemas,
             external_schemas=self._spec.schemas,
         )
+        gen_type = list(gen_types.values())[0]
+        if not isinstance(gen_type, cpp_types.CppPrimitiveType):
+            assert str(gen_type.raw_cpp_type), gen_type
+            self._spec.internal_schemas[str(gen_type.raw_cpp_type)] = gen_type
 
         assert len(gen_types) == 1
-        return list(gen_types.values())[0]
+        return gen_type
 
     def _translate_response(
         self,
@@ -203,36 +241,14 @@ class Translator:
         )
 
     def _translate_request_body(self, request_body: model.RequestBody) -> types.Body:
-        parsed_schemas = chaotic_types.ParsedSchemas(
-            schemas={str(request_body.schema.source_location()): request_body.schema},
-        )
-        # TODO: components/schemas (external schemas)
-        resolved_schemas = ref_resolver.RefResolver().sort_schemas(
-            parsed_schemas,
-            external_schemas=chaotic_types.ResolvedSchemas(
-                self._raw_schemas,
-            ),
-        )
-        gen = chaotic_translator.Generator(
-            chaotic_translator.GeneratorConfig(
-                namespaces={request_body.schema.source_location().filepath: ''},
-                infile_to_name_func=self.map_infile_path_to_cpp_type,
-            )
-        )
-        gen_types = gen.generate_types(
-            resolved_schemas,
-            external_schemas=self._spec.schemas,
-        )
-
-        assert len(gen_types) == 1
-        schema = list(gen_types.values())[0]
+        cpp_type = self._translate_single_schema(request_body.schema)
 
         if request_body.content_type == 'application/x-www-form-urlencoded':
-            self._validate_primitive_object(schema)
+            self._validate_primitive_object(cpp_type)
 
         return types.Body(
             content_type=request_body.content_type,
-            schema=schema,
+            schema=cpp_type,
         )
 
     def _validate_primitive_object(self, schema: cpp_types.CppType) -> None:
@@ -258,6 +274,7 @@ class Translator:
     def _translate_parameter(self, parameter: model.Parameter) -> types.Parameter:
         in_ = parameter.in_
         in_str = in_[0].title() + in_[1:]
+        cpp_name = cpp_names.cpp_identifier(parameter.name)
 
         if isinstance(parameter.schema, chaotic_types.Array):
             delimiter = {
@@ -275,12 +292,12 @@ class Translator:
             raw_item_type = cpp_type.items.cpp_global_name()
             user_item_type = cpp_type.items.cpp_user_name()
 
-            parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{parameter.name}, '{delimiter}', {raw_item_type}, {user_item_type}>"
+            parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {raw_item_type}, {user_item_type}>"
         else:
             cpp_type = self._translate_single_schema(parameter.schema)
             user_type = cpp_type
 
-            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{parameter.name}, {cpp_type.cpp_global_name()}, {user_type.cpp_global_name()}>'
+            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {cpp_type.cpp_global_name()}, {user_type.cpp_global_name()}>'
 
         if not parameter.required:
             cpp_type.nullable = True
@@ -288,7 +305,7 @@ class Translator:
         return types.Parameter(
             description=parameter.description,
             raw_name=parameter.name,
-            cpp_name=cpp_names.cpp_identifier(parameter.name),
+            cpp_name=cpp_name,
             cpp_type=cpp_type,
             parser=parser,
             required=parameter.required,

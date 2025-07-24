@@ -38,7 +38,7 @@ UTEST_MT(RacyLazyAllocation, DoesntHappen, 3) {
         engine::Yield();
 
         {
-            const std::unique_lock lock{m};
+            const std::lock_guard lock{m};
             ok = true;
         }
         cv.NotifyAll();

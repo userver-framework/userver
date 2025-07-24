@@ -37,12 +37,12 @@ MemLogger& MemLogger::GetMemLogger() noexcept {
 }
 
 void MemLogger::DropLogs() {
-    std::unique_lock lock(pimpl_->mutex_);
+    const std::lock_guard lock(pimpl_->mutex_);
     pimpl_->data_.clear();
 }
 
 size_t MemLogger::GetPendingLogsCount() {
-    std::unique_lock lock(pimpl_->mutex_);
+    const std::lock_guard lock(pimpl_->mutex_);
     return pimpl_->data_.size();
 }
 
@@ -51,7 +51,7 @@ void MemLogger::Log(Level level, formatters::LoggerItemRef msg) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto& item = static_cast<formatters::LogItem&>(msg);
 
-    std::unique_lock lock(pimpl_->mutex_);
+    const std::lock_guard lock(pimpl_->mutex_);
     if (pimpl_->forward_logger_) {
         auto formatter = pimpl_->forward_logger_->MakeFormatter(level, item.log_class, item.location);
         DispatchItem(item, *formatter);
@@ -72,7 +72,7 @@ MemLogger::MakeFormatter(Level level, LogClass log_class, const utils::impl::Sou
 }
 
 void MemLogger::ForwardTo(LoggerBase* logger_to) {
-    std::unique_lock lock(pimpl_->mutex_);
+    const std::lock_guard lock(pimpl_->mutex_);
     if (logger_to) {
         for (auto& log : pimpl_->data_) {
             auto formatter = logger_to->MakeFormatter(log.level, log.log_class, log.location);

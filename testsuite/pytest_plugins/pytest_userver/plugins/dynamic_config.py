@@ -9,7 +9,15 @@ import dataclasses
 import datetime
 import json
 import pathlib
-import typing
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
 
 import pytest
 
@@ -48,31 +56,57 @@ class UnknownConfigError(BaseError):
     """Invalid dynamic config name in `@pytest.mark.config`"""
 
 
-ConfigDict = typing.Dict[str, typing.Any]
+ConfigValuesDict = Dict[str, Any]
 
 
-class RemoveKey:
+class _RemoveKey:
     pass
 
 
-class Missing:
+_REMOVE_KEY = _RemoveKey()
+
+
+class _Missing:
     pass
+
+
+_MISSING = _Missing()
+
+
+@dataclasses.dataclass(frozen=True)
+class _ConfigEntry:
+    value: Any
+    static_default_preferred: bool
+
+
+_ConfigDict = Dict[str, _ConfigEntry | _RemoveKey]
+
+
+def _create_config_dict(values: ConfigValuesDict, kill_switches_disabled: Optional[Set[str]] = None) -> _ConfigDict:
+    if kill_switches_disabled is None:
+        kill_switches_disabled = set()
+
+    result = {}
+    for key, value in values.items():
+        static_default_preferred = key in kill_switches_disabled
+        result[key] = _ConfigEntry(value, static_default_preferred)
+    return result
 
 
 @dataclasses.dataclass
 class _ChangelogEntry:
     timestamp: str
-    dirty_keys: typing.Set[str]
-    state: ConfigDict
-    prev_state: ConfigDict
+    dirty_keys: Set[str]
+    state: _ConfigDict
+    prev_state: _ConfigDict
 
     @classmethod
     def new(
         cls,
         *,
-        previous: typing.Optional['_ChangelogEntry'],
+        previous: Optional['_ChangelogEntry'],
         timestamp: str,
-    ):
+    ) -> '_ChangelogEntry':
         if previous:
             prev_state = previous.state
         else:
@@ -88,9 +122,9 @@ class _ChangelogEntry:
     def has_changes(self) -> bool:
         return bool(self.dirty_keys)
 
-    def update(self, values: ConfigDict):
+    def update(self, values: _ConfigDict):
         for key, value in values.items():
-            if value == self.prev_state.get(key, Missing):
+            if value == self.prev_state.get(key, _MISSING):
                 self.dirty_keys.discard(key)
             else:
                 self.dirty_keys.add(key)
@@ -98,10 +132,11 @@ class _ChangelogEntry:
 
 
 @dataclasses.dataclass(frozen=True)
-class Updates:
+class _Updates:
     timestamp: str
-    values: ConfigDict
-    removed: typing.List[str]
+    values: ConfigValuesDict
+    removed: List[str]
+    kill_switches_disabled: List[str]
 
     def is_empty(self) -> bool:
         return not self.values and not self.removed
@@ -109,7 +144,7 @@ class Updates:
 
 class _Changelog:
     timestamp: datetime.datetime
-    committed_entries: typing.List[_ChangelogEntry]
+    committed_entries: List[_ChangelogEntry]
     staged_entry: _ChangelogEntry
 
     def __init__(self):
@@ -143,28 +178,37 @@ class _Changelog:
 
     def get_updated_since(
         self,
-        values: ConfigDict,
+        config_dict: _ConfigDict,
         updated_since: str,
-        ids: typing.Optional[typing.List[str]] = None,
-    ) -> Updates:
+        ids: Optional[List[str]] = None,
+    ) -> _Updates:
         entry = self.commit()
-        values, removed = self._get_updated_since(values, updated_since)
+        config_dict, removed = self._get_updated_since(config_dict, updated_since)
         if ids:
-            values = {name: values[name] for name in ids if name in values}
+            config_dict = {name: config_dict[name] for name in ids if name in config_dict}
             removed = [name for name in removed if name in ids]
-        return Updates(
+
+        values = {}
+        kill_switches_disabled = []
+        for name, config_entry in config_dict.items():
+            values[name] = config_entry.value
+            if config_entry.static_default_preferred:
+                kill_switches_disabled.append(name)
+
+        return _Updates(
             timestamp=entry.timestamp,
             values=values,
             removed=removed,
+            kill_switches_disabled=kill_switches_disabled,
         )
 
     def _get_updated_since(
         self,
-        values: ConfigDict,
+        config_dict: _ConfigDict,
         updated_since: str,
-    ) -> typing.Tuple[ConfigDict, typing.List[str]]:
+    ) -> Tuple[_ConfigDict, List[str]]:
         if not updated_since:
-            return values, []
+            return config_dict, []
         dirty_keys = set()
         last_known_state = {}
         for entry in reversed(self.committed_entries):
@@ -178,25 +222,25 @@ class _Changelog:
         result = {}
         removed = []
         for key in dirty_keys:
-            value = values.get(key, RemoveKey)
-            if last_known_state.get(key, Missing) != value:
-                if value is RemoveKey:
+            config_entry = config_dict.get(key, _REMOVE_KEY)
+            if last_known_state.get(key, _MISSING) != config_entry:
+                if config_entry is _REMOVE_KEY:
                     removed.append(key)
                 else:
-                    result[key] = value
+                    result[key] = config_entry
         return result, removed
 
-    def add_entries(self, values: ConfigDict):
-        self.staged_entry.update(values)
+    def add_entries(self, config_dict: _ConfigDict) -> None:
+        self.staged_entry.update(config_dict)
 
     @contextlib.contextmanager
-    def rollback(self, defaults: ConfigDict):
+    def rollback(self, defaults: ConfigValuesDict) -> Iterator[None]:
         try:
             yield
         finally:
             self._do_rollback(defaults)
 
-    def _do_rollback(self, defaults: ConfigDict):
+    def _do_rollback(self, defaults: ConfigValuesDict) -> None:
         if not self.committed_entries:
             return
 
@@ -206,10 +250,11 @@ class _Changelog:
 
         last = self.committed_entries[-1]
         last_state = last.state
+        config_dict = _create_config_dict(defaults)
         dirty_keys = set()
         reverted = {}
         for key in maybe_dirty:
-            original = defaults.get(key, RemoveKey)
+            original = config_dict.get(key, _REMOVE_KEY)
             if last_state[key] != original:
                 dirty_keys.add(key)
             reverted[key] = original
@@ -239,13 +284,14 @@ class DynamicConfig:
     def __init__(
         self,
         *,
-        initial_values: ConfigDict,
-        defaults: typing.Optional[ConfigDict],
-        config_cache_components: typing.Iterable[str],
+        initial_values: ConfigValuesDict,
+        defaults: Optional[ConfigValuesDict],
+        config_cache_components: Iterable[str],
         cache_invalidation_state: caches.InvalidationState,
         changelog: _Changelog,
-    ):
+    ) -> None:
         self._values = initial_values.copy()
+        self._kill_switches_disabled = set()
         # Defaults are only there for convenience, to allow accessing them
         # in tests using dynamic_config.get. They are not sent to the service.
         self._defaults = defaults
@@ -253,22 +299,47 @@ class DynamicConfig:
         self._config_cache_components = config_cache_components
         self._changelog = changelog
 
-    def set_values(self, values: ConfigDict):
+    def set_values(self, values: ConfigValuesDict) -> None:
         self.set_values_unsafe(copy.deepcopy(values))
 
-    def set_values_unsafe(self, values: ConfigDict):
+    def set_values_unsafe(self, values: ConfigValuesDict) -> None:
         self._values.update(values)
-        self._changelog.add_entries(values)
+        for key in values:
+            self._kill_switches_disabled.discard(key)
+
+        config_dict = _create_config_dict(values)
+        self._changelog.add_entries(config_dict)
         self._sync_with_service()
 
-    def set(self, **values):
+    def set(self, **values) -> None:
         self.set_values(values)
 
-    def get_values_unsafe(self) -> ConfigDict:
+    def switch_to_static_default(self, *keys: str) -> None:
+        for key in keys:
+            self._kill_switches_disabled.add(key)
+
+        config_dict = _create_config_dict(
+            values={key: self._values.get(key, None) for key in keys}, kill_switches_disabled=set(keys)
+        )
+        self._changelog.add_entries(config_dict)
+        self._sync_with_service()
+
+    def switch_to_dynamic_value(self, *keys: str) -> None:
+        for key in keys:
+            self._kill_switches_disabled.discard(key)
+
+        config_dict = _create_config_dict(values={key: self._values[key] for key in keys if key in self._values})
+        self._changelog.add_entries(config_dict)
+        self._sync_with_service()
+
+    def get_values_unsafe(self) -> ConfigValuesDict:
         return self._values
 
-    def get(self, key: str, default: typing.Any = None) -> typing.Any:
-        if key in self._values:
+    def get_kill_switches_disabled_unsafe(self) -> Set[str]:
+        return self._kill_switches_disabled
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self._values and key not in self._kill_switches_disabled:
             return copy.deepcopy(self._values[key])
         if self._defaults is not None and key in self._defaults:
             return copy.deepcopy(self._defaults[key])
@@ -283,7 +354,7 @@ class DynamicConfig:
             )
         raise DynamicConfigNotFoundError(f'Config {key!r} is not found')
 
-    def remove_values(self, keys):
+    def remove_values(self, keys: Iterable[str]) -> None:
         extra_keys = set(keys).difference(self._values.keys())
         if extra_keys:
             raise DynamicConfigNotFoundError(
@@ -291,14 +362,16 @@ class DynamicConfig:
             )
         for key in keys:
             self._values.pop(key)
-        self._changelog.add_entries({key: RemoveKey for key in keys})
+            self._kill_switches_disabled.discard(key)
+
+        self._changelog.add_entries({key: _REMOVE_KEY for key in keys})
         self._sync_with_service()
 
-    def remove(self, key):
+    def remove(self, key: str) -> None:
         return self.remove_values([key])
 
     @contextlib.contextmanager
-    def modify(self, key: str) -> typing.Any:
+    def modify(self, key: str) -> Any:
         value = self.get(key)
         yield value
         self.set_values({key: value})
@@ -306,16 +379,23 @@ class DynamicConfig:
     @contextlib.contextmanager
     def modify_many(
         self,
-        *keys: typing.Tuple[str, ...],
-    ) -> typing.Tuple[typing.Any, ...]:
+        *keys: Tuple[str, ...],
+    ) -> Tuple[Any, ...]:
         values = tuple(self.get(key) for key in keys)
         yield values
         self.set_values(dict(zip(keys, values)))
 
-    def _sync_with_service(self):
+    def _sync_with_service(self) -> None:
         self._cache_invalidation_state.invalidate(
             self._config_cache_components,
         )
+
+
+class UseStaticDefault:
+    pass
+
+
+USE_STATIC_DEFAULT = UseStaticDefault()
 
 
 @pytest.fixture
@@ -336,6 +416,10 @@ def dynamic_config(
     Example:
 
     @snippet core/functional_tests/basic_chaos/tests-nonchaos/handlers/test_log_request_headers.py dynamic_config usage
+
+    Example with @ref kill_switches "kill switches":
+
+    @snippet core/functional_tests/dynamic_configs/tests/test_examples.py dynamic_config usage with kill switches
 
     HTTP and gRPC client requests call `update_server_state` automatically before each request.
 
@@ -364,9 +448,18 @@ def dynamic_config(
             values = _dynconf_load_json_cached(path)
             updates.update(values)
         for marker in request.node.iter_markers('config'):
-            marker_json = object_substitute(marker.kwargs)
-            updates.update(marker_json)
+            value_update_kwargs = {
+                key: value for key, value in marker.kwargs.items() if value is not USE_STATIC_DEFAULT
+            }
+            value_updates_json = object_substitute(value_update_kwargs)
+            updates.update(value_updates_json)
         config.set_values_unsafe(updates)
+
+        kill_switches_disabled = []
+        for marker in request.node.iter_markers('config'):
+            kill_switches_disabled.extend(key for key, value in marker.kwargs.items() if value is USE_STATIC_DEFAULT)
+        config.switch_to_static_default(*kill_switches_disabled)
+
         yield config
 
 
@@ -388,7 +481,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(scope='session')
-def dynconf_cache_names() -> typing.Iterable[str]:
+def dynconf_cache_names() -> Iterable[str]:
     return tuple(USERVER_CACHE_CONTROL_HOOKS.keys())
 
 
@@ -416,7 +509,7 @@ def taxi_config(dynamic_config) -> DynamicConfig:
 
 
 @pytest.fixture(scope='session')
-def dynamic_config_fallback_patch() -> ConfigDict:
+def dynamic_config_fallback_patch() -> ConfigValuesDict:
     """
     Override this fixture to replace some dynamic config values specifically
     for testsuite tests:
@@ -436,7 +529,7 @@ def dynamic_config_fallback_patch() -> ConfigDict:
 def config_service_defaults(
     config_fallback_path,
     dynamic_config_fallback_patch,
-) -> ConfigDict:
+) -> ConfigValuesDict:
     """
     Fixture that returns default values for dynamic config. You may override
     it in your local conftest.py or fixture:
@@ -467,7 +560,7 @@ def config_service_defaults(
 
 @dataclasses.dataclass(frozen=False)
 class _ConfigDefaults:
-    snapshot: typing.Optional[ConfigDict]
+    snapshot: Optional[ConfigValuesDict]
 
     async def update(self, client, dynamic_config) -> None:
         if self.snapshot is None:
@@ -608,13 +701,18 @@ def mock_configs_service(
     @mockserver.json_handler('/configs-service/configs/values')
     def _mock_configs(request):
         updates = dynamic_config_changelog.get_updated_since(
-            dynamic_config.get_values_unsafe(),
+            _create_config_dict(
+                dynamic_config.get_values_unsafe(),
+                dynamic_config.get_kill_switches_disabled_unsafe(),
+            ),
             request.json.get('updated_since', ''),
             request.json.get('ids'),
         )
         response = {'configs': updates.values, 'updated_at': updates.timestamp}
         if updates.removed:
             response['removed'] = updates.removed
+        if updates.kill_switches_disabled:
+            response['kill_switches_disabled'] = updates.kill_switches_disabled
         return response
 
     @mockserver.json_handler('/configs-service/configs/status')
@@ -654,7 +752,7 @@ _CHECK_CONFIG_ERROR = (
 def _check_config_marks(
     request,
     _dynamic_config_defaults_storage,
-) -> typing.Callable[[], None]:
+) -> Callable[[], None]:
     def check():
         config_defaults = _dynamic_config_defaults_storage.snapshot
         assert config_defaults is not None

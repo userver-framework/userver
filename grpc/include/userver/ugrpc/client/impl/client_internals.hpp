@@ -24,7 +24,7 @@ namespace ugrpc::client::impl {
 /// Contains all non-code-generated dependencies for creating a gRPC client
 struct ClientInternals final {
     std::string client_name;
-    Middlewares mws;
+    Middlewares middlewares;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues;
     ugrpc::impl::StatisticsStorage& statistics_storage;
     dynamic_config::Source config_source;

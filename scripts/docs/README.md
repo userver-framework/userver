@@ -1,10 +1,8 @@
-# README for frontend developers who mysteriously got here
+# Building and uploading userver docs
 
 ## Requirement 📋
 
 The build was tested on Ubuntu 22.04 (and macOS Ventura 13.5 for development purposes)
-
-❗️ Requires doxygen 1.10.0+
 
 ## Instruction 🧾
 
@@ -28,13 +26,13 @@ The build was tested on Ubuntu 22.04 (and macOS Ventura 13.5 for development pur
 
 3. in userver folder run:
    ```shell
-   BUILD_DIR=/absolute/path/to/build_dir ./scripts/docs/make_docs.sh
-   BUILD_DIR=/absolute/path/to/build_dir ./scripts/docs/upload_docs.sh
+   make docs BUILD_DIR=/absolute/path/to/build_dir
+   make docs-upload BUILD_DIR=/absolute/path/to/build_dir
    ```
    or
    ```shell
-   BUILD_DIR=/absolute/path/to/build_dir ../scripts/userver/docs/make_docs.sh
-   BUILD_DIR=/absolute/path/to/build_dir ../scripts/userver/docs/upload_docs.sh
+   make docs-internal BUILD_DIR=/absolute/path/to/build_dir
+   make docs-internal-upload BUILD_DIR=/absolute/path/to/build_dir OAUTH_TOKEN=...
    ```
 
 4. docs will appear in `$BUILD_DIR/docs`, warnings will be printed to `$BUILD_DIR/doxygen.err.log`

@@ -7,6 +7,7 @@
 #include <librdkafka/rdkafka.h>
 
 #include <userver/kafka/impl/stats.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <kafka/impl/concurrent_event_waiter.hpp>
@@ -21,7 +22,11 @@ class Configuration;
 
 class ProducerImpl final {
 public:
-    explicit ProducerImpl(Configuration&& configuration);
+    explicit ProducerImpl(
+        Configuration&& configuration,
+        const logging::Level debug_info_log_level,
+        const logging::Level operation_log_level
+    );
 
     const Stats& GetStats() const;
 
@@ -87,6 +92,8 @@ private:
 
 private:
     const std::chrono::milliseconds delivery_timeout_;
+    const logging::Level debug_info_log_level_;
+    const logging::Level operation_log_level_;
 
     mutable Stats stats_;
 

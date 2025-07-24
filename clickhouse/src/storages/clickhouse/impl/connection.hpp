@@ -10,11 +10,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
-
+namespace storages {
 class Query;
+}
 
-namespace impl {
+namespace storages::clickhouse::impl {
 
 struct EndpointSettings;
 struct AuthSettings;
@@ -42,7 +42,7 @@ private:
     NativeClientWrapper client_;
     bool broken_{false};
 };
-}  // namespace impl
-}  // namespace storages::clickhouse
+
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

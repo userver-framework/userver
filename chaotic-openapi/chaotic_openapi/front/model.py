@@ -3,6 +3,7 @@ import enum
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Union
 
 from chaotic.front import types
@@ -66,6 +67,66 @@ class Ref:
     ref: str
 
 
+class SecurityIn(str, enum.Enum):
+    query = 'query'
+    header = 'header'
+    cookie = 'cookie'
+
+
+@dataclasses.dataclass
+class Security:
+    description: str
+
+
+@dataclasses.dataclass
+class ApiKeySecurity(Security):
+    name: str
+    in_: SecurityIn
+
+
+@dataclasses.dataclass
+class Flow:
+    refreshUrl: str
+    scopes: Dict[str, str]
+
+
+@dataclasses.dataclass
+class ImplicitFlow(Flow):
+    authorizationUrl: str
+
+
+@dataclasses.dataclass
+class PasswordFlow(Flow):
+    tokenUrl: str
+
+
+@dataclasses.dataclass
+class ClientCredFlow(Flow):
+    tokenUrl: str
+
+
+@dataclasses.dataclass
+class AuthCodeFlow(Flow):
+    authorizationUrl: str
+    tokenUrl: str
+
+
+@dataclasses.dataclass
+class OAuthSecurity(Security):
+    flows: List[Flow]
+
+
+@dataclasses.dataclass
+class HttpSecurity(Security):
+    scheme: str
+    bearerFormat: Optional[str] = None
+
+
+@dataclasses.dataclass
+class OpenIdConnectSecurity(Security):
+    openIdConnectUrl: str
+
+
 @dataclasses.dataclass
 class Operation:
     description: str
@@ -75,6 +136,7 @@ class Operation:
     parameters: List[Parameter]
     requestBody: Union[List[RequestBody], Ref]
     responses: Dict[int, Union[Response, Ref]]
+    security: List[Security]
 
 
 @dataclasses.dataclass
@@ -88,3 +150,4 @@ class Service:
     parameters: Dict[str, Parameter] = dataclasses.field(default_factory=dict)
     headers: Dict[str, Parameter] = dataclasses.field(default_factory=dict)
     requestBodies: Dict[str, List[RequestBody]] = dataclasses.field(default_factory=dict)
+    security: Dict[str, Security] = dataclasses.field(default_factory=dict)

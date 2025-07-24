@@ -112,7 +112,6 @@ class RefResolver:
             )
             if not indirect:
                 if not is_external:
-                    # print(f'add {name} -> {local_schema.ref}')
                     edges[name].append(local_schema.ref)
             else:
                 # skip indirect link

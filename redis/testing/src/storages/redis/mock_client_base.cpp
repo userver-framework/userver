@@ -29,18 +29,6 @@ bool MockClientBase::IsInClusterMode() const { return false; }
 
 size_t MockClientBase::ShardByKey(const std::string& /*key*/) const { return 0; }
 
-const std::string& MockClientBase::GetAnyKeyForShard(size_t /*shard_idx*/) const {
-    static const std::string kKey = "a";
-    UASSERT_MSG(
-        ShardsCount() == 1, "You should override GetAnyKeyForShard() method if you use it with ShardsCount() > 1"
-    );
-    return kKey;
-}
-
-std::shared_ptr<Client> MockClientBase::GetClientForShard(size_t shard_idx) {
-    return std::make_shared<MockClientBase>(mock_transaction_impl_creator_, shard_idx);
-}
-
 // redis commands:
 
 RequestAppend
@@ -256,7 +244,7 @@ RequestHmset MockClientBase::Hmset(
 
 ScanRequest<ScanTag::kHscan> MockClientBase::Hscan(
     std::string /*key*/,
-    ScanOptionsTmpl<ScanTag::kHscan> /*options*/,
+    HscanOptions /*options*/,
     const CommandControl& /*command_control*/
 ) {
     AbortWithStacktrace("Redis method not mocked");
@@ -407,8 +395,8 @@ RequestSadd MockClientBase::
     AbortWithStacktrace("Redis method not mocked");
 }
 
-ScanRequest<ScanTag::kScan> MockClientBase::
-    Scan(size_t /*shard*/, ScanOptionsTmpl<ScanTag::kScan> /*options*/, const CommandControl& /*command_control*/) {
+ScanRequest<ScanTag::kScan>
+MockClientBase::Scan(size_t /*shard*/, ScanOptions /*options*/, const CommandControl& /*command_control*/) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -456,6 +444,20 @@ RequestSetIfNotExist MockClientBase::SetIfNotExist(
     AbortWithStacktrace("Redis method not mocked");
 }
 
+RequestSetIfNotExistOrGet MockClientBase::
+    SetIfNotExistOrGet(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
+RequestSetIfNotExistOrGet MockClientBase::SetIfNotExistOrGet(
+    std::string /*key*/,
+    std::string /*value*/,
+    std::chrono::milliseconds /*ttl*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
 RequestSetex MockClientBase::Setex(
     std::string /*key*/,
     std::chrono::seconds /*seconds*/,
@@ -495,7 +497,7 @@ RequestSrem MockClientBase::
 
 ScanRequest<ScanTag::kSscan> MockClientBase::Sscan(
     std::string /*key*/,
-    ScanOptionsTmpl<ScanTag::kSscan> /*options*/,
+    SscanOptions /*options*/,
     const CommandControl& /*command_control*/
 ) {
     AbortWithStacktrace("Redis method not mocked");
@@ -693,7 +695,7 @@ RequestZremrangebyscore MockClientBase::Zremrangebyscore(
 
 ScanRequest<ScanTag::kZscan> MockClientBase::Zscan(
     std::string /*key*/,
-    ScanOptionsTmpl<ScanTag::kZscan> /*options*/,
+    ZscanOptions /*options*/,
     const CommandControl& /*command_control*/
 ) {
     AbortWithStacktrace("Redis method not mocked");

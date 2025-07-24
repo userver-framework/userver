@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/compiler/thread_local.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/text_light.hpp>
@@ -74,17 +75,18 @@ std::string FormatLogMessage(
 ) {
     static const auto timezone = utils::datetime::LocalTimezoneTimestring(start_time, "%z");
 
-    auto it = metadata.find("user-agent");
+    const auto it = metadata.find("user-agent");
     std::string_view user_agent;
     if (it != metadata.end()) {
-        auto ref = it->second;
-        user_agent = std::string_view(ref.data(), ref.size());
+        user_agent = ugrpc::impl::ToStringView(it->second);
     }
 
-    auto ip = ParseIp(peer);
+    const auto ip = ParseIp(peer);
 
-    auto now = std::chrono::system_clock::now();
-    auto response_time = std::chrono::duration_cast<std::chrono::microseconds>(now - start_time).count();
+    const auto now = std::chrono::system_clock::now();
+    const auto request_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time);
+    const auto request_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(request_time);
+    const auto request_time_milliseconds = request_time - request_time_seconds;
 
     // FMT_COMPILE makes it slower
     return fmt::format(
@@ -95,7 +97,8 @@ std::string FormatLogMessage(
         "\tip={}"
         "\tx_real_ip={}"
         "\trequest={}"
-        "\tupstream_response_time_ms={}.{:0>3}"
+        "\trequest_time={}.{:0>3}"
+        "\tupstream_response_time={}.{:0>3}"
         "\tgrpc_status={}"
         "\tgrpc_status_code={}\n",
         GetCurrentTimeString(start_time),
@@ -104,8 +107,14 @@ std::string FormatLogMessage(
         ip,
         ip,
         EscapeForAccessTskvLog(call_name),
-        response_time / 1000,
-        response_time % 1000,
+        // request_time should represent the time from the first byte received to the last byte sent.
+        // We are currently being inexact here by not including the time for initial request deserialization
+        // and the time for the final response serialization.
+        request_time_seconds.count(),
+        request_time_milliseconds.count(),
+        // TODO remove, this is for safe migration from old access log parsers.
+        request_time_seconds.count(),
+        request_time_milliseconds.count(),
         static_cast<int>(code),
         ToString(code)
     );

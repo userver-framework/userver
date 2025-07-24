@@ -31,8 +31,8 @@ const USERVER_NAMESPACE::storages::Query kSelectValue = {
 };
 @endcode
 
-You may use it as usual by passing to `storages::postgres::Cluster::Execute()`
-for SQL files or `ydb::TableClient::ExecuteDataQuery()` for YQL files:
+You may use it as usual by passing to @ref storages::postgres::Cluster::Execute() or @ref storages::clickhouse::Cluster
+for SQL files or @ref ydb::TableClient::ExecuteDataQuery() for YQL files:
 
 @code{.cpp}
 #include <samples_postgres_service/sql_queries.hpp>

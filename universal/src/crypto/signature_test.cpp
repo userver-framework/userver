@@ -232,12 +232,12 @@ TEST(Crypto, SignatureNone) {
 }
 
 TEST(Crypto, SignatureHs1) {
-    crypto::SignerHs1 signer("secret");
+    const crypto::SignerHs1 signer("secret");
     auto sig = signer.Sign({"test"});
     auto bad_sig = signer.Sign({"bad test"});
     EXPECT_EQ("1aa349585ed7ecbd3b9c486a30067e395ca4b356", utils::encoding::ToHex(sig));
 
-    crypto::VerifierHs1 verifier("secret");
+    const crypto::VerifierHs1 verifier("secret");
     EXPECT_NO_THROW(verifier.Verify({"test"}, sig));
     EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
     EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);
@@ -245,12 +245,12 @@ TEST(Crypto, SignatureHs1) {
 }
 
 TEST(Crypto, SignatureHs256) {
-    crypto::SignerHs256 signer("secret");
+    const crypto::SignerHs256 signer("secret");
     auto sig = signer.Sign({"test"});
     auto bad_sig = signer.Sign({"bad test"});
     EXPECT_EQ("0329a06b62cd16b33eb6792be8c60b158d89a2ee3a876fce9a881ebb488c0914", utils::encoding::ToHex(sig));
 
-    crypto::VerifierHs256 verifier("secret");
+    const crypto::VerifierHs256 verifier("secret");
     EXPECT_NO_THROW(verifier.Verify({"test"}, sig));
     EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
     EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);

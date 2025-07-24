@@ -27,7 +27,7 @@ void engine_task_create(benchmark::State& state) {
     // We use 2 threads to ensure that detached tasks are deallocated,
     // otherwise this benchmark OOMs after some time.
     engine::RunStandalone(2, [&] {
-        for ([[maybe_unused]] auto _ : state) engine::AsyncNoSpan([]() {}).Detach();
+        for ([[maybe_unused]] auto _ : state) engine::DetachUnscopedUnsafe(engine::AsyncNoSpan([]() {}));
     });
 }
 BENCHMARK(engine_task_create);

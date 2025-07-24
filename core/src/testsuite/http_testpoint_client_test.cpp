@@ -28,7 +28,7 @@ utest::HttpServerMock::HttpResponse EchoTestpoint(const utest::HttpServerMock::H
 }  // namespace
 
 UTEST(HttpTestpointClient, Smoke) {
-    utest::HttpServerMock mock_server(&EchoTestpoint);
+    const utest::HttpServerMock mock_server(&EchoTestpoint);
     const auto testpoint_url = mock_server.GetBaseUrl() + "/testpoint";
     const auto http_client = utest::CreateHttpClient();
 

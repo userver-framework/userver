@@ -135,6 +135,16 @@ properties:
             type: string
             description: librdkafka option value
         defaultDescription: '{}'
+    debug_info_log_level:
+        type: string
+        description: |
+            log level for everything debug information
+        defaultDescription: debug
+    operation_log_level:
+        type: string
+        description: |
+            log level for infos about ordinary actions
+        defaultDescription: debug
 )");
 }
 

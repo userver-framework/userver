@@ -351,7 +351,7 @@ private:
         if (*dim != element.size()) {
             throw InvalidDimensions{*dim, element.size()};
         }
-        for (bool sub : element) {
+        for (const bool sub : element) {
             io::WriteRawBinary(types, buffer, sub);
         }
     }
@@ -605,6 +605,32 @@ private:
     }
 };
 
+template <
+    typename Container,
+    typename Seq = std::make_index_sequence<boost::pfr::tuple_size_v<typename Container::value_type>>>
+struct ColumnsDecomposerHelper;
+
+template <typename Container, std::size_t... Indexes>
+struct ColumnsDecomposerHelper<Container, std::index_sequence<Indexes...>> final {
+    static_assert(sizeof...(Indexes) > 0, "The aggregate having 0 fields doesn't make sense");
+
+    template <std::size_t Index>
+    struct FieldProjection {
+        using RowType = typename Container::value_type;
+        using FieldType = boost::pfr::tuple_element_t<Index, typename Container::value_type>;
+
+        const FieldType& operator()(const RowType& value) const noexcept { return boost::pfr::get<Index>(value); }
+    };
+
+    template <std::size_t Index>
+    using FieldView = USERVER_NAMESPACE::utils::impl::ProjectingView<const Container, FieldProjection<Index>>;
+
+    template <typename Fn>
+    static auto Perform(const Container& container, const Fn& fn) {
+        return fn(FieldView<Indexes>{container}...);
+    }
+};
+
 /// Utility class to iterate chunks of input array in column-wise way
 template <typename Container>
 class ContainerByColumnsSplitter final {
@@ -620,6 +646,20 @@ public:
 private:
     const Container& container_;
     const std::size_t chunk_elements_;
+};
+
+template <typename Container>
+class ContainerByColumnsDecomposer final {
+public:
+    ContainerByColumnsDecomposer(const Container& container) : container_(container) {}
+
+    template <typename Fn>
+    auto Perform(const Fn& fn) {
+        return ColumnsDecomposerHelper<Container>::Perform(container_, fn);
+    }
+
+private:
+    const Container& container_;
 };
 
 }  // namespace detail
@@ -642,6 +682,11 @@ template <typename Container>
 detail::ContainerByColumnsSplitter<Container>
 SplitContainerByColumns(const Container& container, std::size_t chunk_elements) {
     return {container, chunk_elements};
+}
+
+template <typename Container>
+detail::ContainerByColumnsDecomposer<Container> DecomposeContainerByColumns(const Container& container) {
+    return {container};
 }
 
 }  // namespace storages::postgres::io

@@ -604,6 +604,9 @@ UTEST_F(Options, Hint) {
     );
 
     UEXPECT_NO_THROW(coll.Count({}, mongo::options::Hint{"some_index"}));
+
+    UEXPECT_NO_THROW(coll.DeleteOne(bson::MakeDoc("_id", 1), mongo::options::Hint{"some_index"}));
+    UEXPECT_NO_THROW(coll.DeleteMany({}, mongo::options::Hint{"some_index"}));
 }
 
 UTEST_F(Options, AllowPartialResults) {
@@ -848,23 +851,25 @@ UTEST_F(Options, ArrayFilters) {
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
-
     {
-        auto result = coll.UpdateMany(
-            {},
-            bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 101)),
-            mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))})
+        std::vector<formats::bson::Document> filters{
+            bson::MakeDoc("low", bson::MakeDoc("$lt", 95)), bson::MakeDoc("high", bson::MakeDoc("$gte", 95))};
+        auto result = coll.UpdateOne(
+            bson::MakeDoc("_id", 1),
+            bson::MakeDoc("$set", bson::MakeDoc("grades.$[low]", 90, "grades.$[high]", 100)),
+            mongo::options::ArrayFilters(filters.begin(), filters.end())
         );
 
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
-
     {
+        std::vector<formats::bson::Document> empty_filters;
+
         UEXPECT_NO_THROW(coll.FindAndModify(
             bson::MakeDoc("_id", 1),
-            bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 100)),
-            mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))})
+            bson::MakeDoc("$set", bson::MakeDoc("grades", bson::MakeArray(100, 100, 100))),
+            mongo::options::ArrayFilters(empty_filters.begin(), empty_filters.end())
         ));
     }
 }

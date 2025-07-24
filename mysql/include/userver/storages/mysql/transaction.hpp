@@ -109,7 +109,7 @@ template <typename... Args>
 StatementResultSet Transaction::Execute(const Query& query, const Args&... args) const {
     auto params_binder = impl::BindHelper::BindParams(args...);
 
-    return DoExecute(query.GetStatement(), params_binder);
+    return DoExecute(query, params_binder);
 }
 
 template <typename T>
@@ -125,7 +125,7 @@ StatementResultSet Transaction::ExecuteBulk(const Query& query, const Container&
 
     auto params_binder = impl::BindHelper::BindContainerAsParams(params);
 
-    return DoExecute(query.GetStatement(), params_binder);
+    return DoExecute(query, params_binder);
 }
 
 template <typename MapTo, typename Container>
@@ -134,7 +134,7 @@ StatementResultSet Transaction::ExecuteBulkMapped(const Query& query, const Cont
 
     auto params_binder = impl::BindHelper::BindContainerAsParamsMapped<MapTo>(params);
 
-    return DoExecute(query.GetStatement(), params_binder);
+    return DoExecute(query, params_binder);
 }
 
 }  // namespace storages::mysql

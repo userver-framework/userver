@@ -52,7 +52,7 @@ struct CountingStruct {
 
 template <int LogAttempts>
 int CountLimitedLoggedTimes() {
-    CountingStruct cs;
+    const CountingStruct cs;
     for (int i = 0; i < LogAttempts; ++i) {
         LOG_LIMITED_CRITICAL() << cs;
     }
@@ -219,7 +219,7 @@ TEST_F(LoggingTest, AttachedException) {
 }
 
 TEST_F(LoggingTest, IfExpressionWithoutBraces) {
-    bool true_flag = true;
+    const bool true_flag = true;
     if (true_flag)
         LOG(logging::Level::kNone) << "test";
     else
@@ -272,7 +272,7 @@ TEST_F(LoggingTest, ExternalModulePath) {
     static constexpr std::string_view kPath = "/somewhere_else/src/test.cpp";
 
     {
-        logging::LogHelper a(
+        const logging::LogHelper a(
             logging::GetDefaultLogger(),
             logging::Level::kCritical,
             logging::LogClass::kLog,
@@ -323,7 +323,7 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
     static const std::string kPath = kRealPath.substr(0, kRealPath.find('/', 1) + 1) + "somewhere_else/src/test.cpp";
 
     {
-        logging::LogHelper a(
+        const logging::LogHelper a(
             logging::GetDefaultLogger(),
             logging::Level::kCritical,
             logging::LogClass::kLog,
@@ -337,7 +337,7 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
 
 TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {
     const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
-    std::string input(str, str + sizeof(tskv_test::data_bin));
+    const std::string input(str, str + sizeof(tskv_test::data_bin));
 
     LOG_CRITICAL() << input;
     logging::LogFlush();
@@ -363,7 +363,7 @@ TEST_F(LoggingTest, TAXICOMMON1362) {
 
     LOG_CRITICAL() << logging::LogExtra{{"body", input}};
     logging::LogFlush();
-    std::string result = GetStreamString();
+    const std::string result = GetStreamString();
 
     const auto ascii_pos = result.find(tskv_test::ascii_part);
     EXPECT_TRUE(ascii_pos != std::string::npos) << "Result: " << result;
@@ -445,14 +445,15 @@ TEST_F(LoggingTest, RangeOverflow) {
 
 TEST_F(LoggingTest, ImmediateRangeOverflow) {
     const std::string filler(100000, 'A');
-    std::vector<int> range{42};
+    const std::vector<int> range{42};
 
     LOG_CRITICAL() << filler << range;
     EXPECT_THAT(LoggedText(), testing::HasSubstr("[...1 more]"));
 }
 
 TEST_F(LoggingTest, NestedRangeOverflow) {
-    std::vector<std::vector<std::string>> range{{"1", "2", "3"}, {std::string(100000, 'A'), "4", "5"}, {"6", "7"}};
+    const std::vector<std::vector<std::string>> range{
+        {"1", "2", "3"}, {std::string(100000, 'A'), "4", "5"}, {"6", "7"}};
 
     LOG_CRITICAL() << range;
     EXPECT_THAT(LoggedText(), testing::HasSubstr(R"([["1", "2", "3"], ["AAA)"));
@@ -473,7 +474,7 @@ TEST_F(LoggingTest, MapOverflow) {
 TEST_F(LoggingTest, FilesystemPath) { EXPECT_EQ(ToStringViaLogging(boost::filesystem::path("a/b/c")), R"("a/b/c")"); }
 
 TEST_F(LoggingTest, StringEscaping) {
-    std::vector<std::string> range{"", "A", "\"", "\\", "\n"};
+    const std::vector<std::string> range{"", "A", "\"", "\\", "\n"};
     EXPECT_EQ(ToStringViaLogging(range), R"(["", "A", "\\"", "\\\\", "\n"])");
 }
 

@@ -80,7 +80,7 @@ TEST(GetIf, Basic) {
     }
 
     {
-        std::shared_ptr<A> a;
+        const std::shared_ptr<A> a;
         EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
     }
 }

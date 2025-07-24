@@ -10,12 +10,12 @@ namespace {
 UTEST(Rocks, DISABLED_CheckCRUD) {
     storages::rocks::Client client{"/tmp/rocksdb_simple_example", engine::current_task::GetTaskProcessor()};
 
-    std::string key = "key";
+    const std::string key = "key";
 
     std::string res = client.Get(key);
     EXPECT_EQ("", res);
 
-    std::string value = "value";
+    const std::string value = "value";
     client.Put(key, value);
     res = client.Get(key);
     EXPECT_EQ(value, res);

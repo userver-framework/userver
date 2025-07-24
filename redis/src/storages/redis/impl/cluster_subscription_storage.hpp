@@ -32,7 +32,6 @@ public:
     void SetRebalanceMinInterval(std::chrono::milliseconds interval) override;
     void RequestRebalance(size_t shard_idx, ServerWeights weights) override;
     void DoRebalance(size_t shard_idx, ServerWeights weights) override;
-    void SwitchToNonClusterMode() override;
     void SetShardsCount(size_t shards_count) override;
     const std::string& GetShardName(size_t shard_idx) const override;
 

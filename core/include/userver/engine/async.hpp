@@ -37,13 +37,22 @@ template <template <typename> typename TaskType, typename Function, typename... 
 /// @brief Runs an asynchronous function call using the specified task processor.
 ///
 /// @warning If any logs are written in the task function (outside any manual tracing::Span scopes),
-/// then those logs will have no `span_id` (yikes!). **Prefer utils::Async by default instead.**
+/// then those logs will have no `span_id` (yikes!).
+/// If you create a span there manually, it will be disconnected from the outside trace.
+/// **Prefer utils::Async by default instead.**
 ///
-/// Also, some clients may call tracing::Span::CurrentSpan unconditionally, so don't be too surprised
+/// @warning To hide a spammy span from traces, use @ref tracing::Span::CurrentSpan plus
+/// @ref tracing::Span::SetLogLevel instead.
+/// Logs will then be linked to the nearest span that is written out.
+///
+/// @warning Some clients may call tracing::Span::CurrentSpan unconditionally, so don't be too surprised
 /// if they won't work without a span scope. Do write tests.
 ///
-/// `AsyncNoSpan` is useful for implementing periodic tasks (like utils::PeriodicTask), task pools,
-/// and some low-level (e.g. driver) code where logs are definitely not written, or where `span_id` is useless.
+/// `AsyncNoSpan` is useful for:
+/// * implementing periodic tasks (like utils::PeriodicTask);
+/// * worker tasks that typically run until service shutdown, and it makes no sense to have a span for the task itself;
+/// * some low-level (e.g. driver or filesystem-IO) code where logs are definitely not written;
+/// * breaking traces e.g. this is (rarely) wanted for some background tasks.
 ///
 /// @see utils::Async for main documentation on `Async` function family.
 template <typename Function, typename... Args>

@@ -39,7 +39,7 @@ TEST(FormatsJson, RapidjsonContiguousMaps) {
 
     auto* begin = &*json.MemberBegin();
     for (int i = 0, size = json.MemberCount(); i < size; i++) {
-        std::string index = std::to_string(i);
+        const std::string index = std::to_string(i);
         ASSERT_EQ(&json[index], &begin[i].value);
     }
 }

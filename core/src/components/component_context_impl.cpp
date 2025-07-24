@@ -94,7 +94,7 @@ RawComponentBase* ComponentContextImpl::AddComponent(
     const ComponentAdderBase& adder
 ) {
     auto& component_info = GetComponentInfo(*this, name);
-    LoadingComponentScope loading_component_scope(*this, component_info);
+    const LoadingComponentScope loading_component_scope(*this, component_info);
 
     if (component_info.GetComponent())
         throw std::runtime_error("trying to add component " + std::string{name} + " multiple times");
@@ -119,7 +119,7 @@ void ComponentContextImpl::OnAllComponentsLoaded() {
     StopPrintAddingComponentsTask();
 
     service_lifetime_stage_ = ServiceLifetimeStage::kOnAllComponentsLoadedIsRunning;
-    tracing::Span span(kOnAllComponentsLoadedRootName);
+    const tracing::Span span(kOnAllComponentsLoadedRootName);
     ProcessAllComponentLifetimeStageSwitchings(
         {impl::ComponentLifetimeStage::kRunning,
          &impl::ComponentInfo::OnAllComponentsLoaded,
@@ -156,7 +156,7 @@ void ComponentContextImpl::OnAllComponentsAreStopping() {
 
 void ComponentContextImpl::ClearComponents() {
     StopPrintAddingComponentsTask();
-    tracing::Span span(kClearComponentsRootName);
+    const tracing::Span span(kClearComponentsRootName);
     OnAllComponentsAreStopping();
 
     service_lifetime_stage_ = ServiceLifetimeStage::kStopping;

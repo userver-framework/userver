@@ -32,13 +32,13 @@ public:
         int method_id,
         grpc::GenericServerContext& context,
         typename CallTraits::InitialRequest& /*initial_request*/,
-        typename CallTraits::RawCall& stream,
+        typename CallTraits::RawResponder& responder,
         grpc::CompletionQueue& call_cq,
         grpc::ServerCompletionQueue& notification_cq,
         void* tag
     ) {
         UASSERT(method_id == 0);
-        service_.RequestCall(&context, &stream, &call_cq, &notification_cq, tag);
+        service_.RequestCall(&context, &responder, &call_cq, &notification_cq, tag);
     }
 
     grpc::AsyncGenericService& GetService() { return service_; }

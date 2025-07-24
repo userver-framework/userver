@@ -34,7 +34,7 @@ struct Config final {
     uint64_t dump_format_version;
     bool world_readable;
     std::string dump_directory;
-    std::string fs_task_processor;
+    std::optional<std::string> fs_task_processor;
     uint64_t max_dump_count;
     std::optional<std::chrono::milliseconds> max_dump_age;
     bool max_dump_age_set;

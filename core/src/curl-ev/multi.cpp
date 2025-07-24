@@ -142,22 +142,22 @@ void multi::SetMaxHostConnections(long value) { SetOptionAsync(native::CURLMOPT_
 void multi::SetConnectionCacheSize(long value) { SetOptionAsync(native::CURLMOPT_MAXCONNECTS, value); }
 
 void multi::add_handle(native::CURL* native_easy) {
-    std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_add_handle(handle_, native_easy))};
+    const std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_add_handle(handle_, native_easy))};
     throw_error(ec, "add_handle");
 }
 
 void multi::remove_handle(native::CURL* native_easy) {
-    std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_remove_handle(handle_, native_easy))};
+    const std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_remove_handle(handle_, native_easy))};
     throw_error(ec, "remove_handle");
 }
 
 void multi::assign(native::curl_socket_t sockfd, void* user_data) {
-    std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_assign(handle_, sockfd, user_data))};
+    const std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_assign(handle_, sockfd, user_data))};
     throw_error(ec, "multi_assign");
 }
 
 void multi::socket_action(native::curl_socket_t s, int event_bitmask) {
-    std::error_code ec{static_cast<errc::MultiErrorCode>(
+    const std::error_code ec{static_cast<errc::MultiErrorCode>(
         native::curl_multi_socket_action(handle_, s, event_bitmask, &pimpl_->still_running_)
     )};
     throw_error(ec, "socket_action");
@@ -168,35 +168,35 @@ void multi::socket_action(native::curl_socket_t s, int event_bitmask) {
 }
 
 void multi::set_socket_function(socket_function_t socket_function) {
-    std::error_code ec{static_cast<errc::MultiErrorCode>(
+    const std::error_code ec{static_cast<errc::MultiErrorCode>(
         native::curl_multi_setopt(handle_, native::CURLMOPT_SOCKETFUNCTION, socket_function)
     )};
     throw_error(ec, "set_socket_function");
 }
 
 void multi::set_socket_data(void* socket_data) {
-    std::error_code ec{
+    const std::error_code ec{
         static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(handle_, native::CURLMOPT_SOCKETDATA, socket_data)
         )};
     throw_error(ec, "set_socket_data");
 }
 
 void multi::set_timer_function(timer_function_t timer_function) {
-    std::error_code ec{static_cast<errc::MultiErrorCode>(
+    const std::error_code ec{static_cast<errc::MultiErrorCode>(
         native::curl_multi_setopt(handle_, native::CURLMOPT_TIMERFUNCTION, timer_function)
     )};
     throw_error(ec, "set_timer_function");
 }
 
 void multi::set_timer_data(void* timer_data) {
-    std::error_code ec{
+    const std::error_code ec{
         static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(handle_, native::CURLMOPT_TIMERDATA, timer_data))};
     throw_error(ec, "set_timer_data");
 }
 
 void multi::SetOptionAsync(native::CURLMoption option, long value) {
     GetThreadControl().RunInEvLoopAsync([this, option, value] {
-        std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(handle_, option, value))};
+        const std::error_code ec{static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(handle_, option, value))};
         if (ec) {
             LOG_ERROR() << GetSetterName(option) << " failed: " << ec.message();
         }
@@ -213,7 +213,7 @@ void multi::monitor_socket(socket_info* si, int action) {
         return;
     }
 
-    BusyMarker busy(Statistics().get_busy_storage());
+    const BusyMarker busy(Statistics().get_busy_storage());
 
     if (si->monitor_read && !si->pending_read_op) {
         start_read_op(si);
@@ -289,7 +289,7 @@ void multi::handle_socket_write(std::error_code err, socket_info* si) {
     si->pending_write_op = false;
     if (!si->watcher.HasFd()) return;
 
-    BusyMarker busy(Statistics().get_busy_storage());
+    const BusyMarker busy(Statistics().get_busy_storage());
 
     if (!err) {
         socket_action(si->watcher.GetFd(), CURL_CSELECT_OUT);
@@ -305,7 +305,7 @@ void multi::handle_socket_write(std::error_code err, socket_info* si) {
 
 void multi::handle_timeout(const std::error_code& err) {
     if (!err) {
-        BusyMarker busy(Statistics().get_busy_storage());
+        const BusyMarker busy(Statistics().get_busy_storage());
         LOG_TRACE() << "handle_timeout " << this;
         socket_action(CURL_SOCKET_TIMEOUT, 0);
         process_messages();

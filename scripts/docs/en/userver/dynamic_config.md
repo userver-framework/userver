@@ -433,7 +433,7 @@ definitions:
                 example: '2018-08-24T18:36:00.15Z'
             removed:
                 type: array
-                description: | 
+                description: |
                     Configs that were removed from the last update.
                     Should be returned only by testsuite mocks, but not by real config services.
                     Used only in case of incremental updates, i.e. updated_since is present.
@@ -569,6 +569,7 @@ Main testsuite page:
 
 @see @ref scripts/docs/en/userver/functional_testing.md
 
+@anchor dynamic_config_testsuite_global_override
 #### Overriding dynamic config for testsuite globally
 
 Dynamic config can be overridden specifically for testsuite. It can be done
@@ -600,10 +601,12 @@ dynamic config (as shown above) in each of those directories in different ways.
 If the service has config updates enabled, then you can change dynamic config
 per-test as follows:
 
-```python
-@pytest.mark.config(MY_CONFIG_NAME=42, MY_OTHER_CONFIG_NAME=True)
-async def test_whatever(service_client, ...):
-```
+@snippet core/functional_tests/dynamic_configs/tests/test_examples.py pytest marker basic usage
+
+In a similar way, you can disable the @ref kill_switches "kill switches"
+whose values are @ref dynamic_config_testsuite_global_override "globally overridden":
+
+@snippet core/functional_tests/dynamic_configs/tests/test_examples.py kill switch disabling using a pytest marker
 
 Dynamic config can also be modified mid-test using
 @ref pytest_userver.plugins.dynamic_config.dynamic_config "dynamic_config"
@@ -615,6 +618,62 @@ Such dynamic config changes are applied (sent to the service) at the first
 ```python
 await service_client.update_server_state()
 ```
+
+#### Changing dynamic configs in testsuite for a subset of tests
+
+The testsuite provides multiple ways to set dynamic config values for specific groups of tests:
+
+1. **Directory-level configuration**
+
+   To apply configs to all tests in a directory:
+   - Create `config.json` in the directory's `static` subfolder
+   - OR create `default/config.json` in the `static` subfolder
+
+   Example folder structure for directory `foo`:
+   ```
+   foo/
+   ├── static/
+   │   └── config.json
+   └── test_bar.py
+   ```
+
+   The `config.json` file would contain:
+   ```json
+   {
+     "MY_CONFIG_NAME": 42,
+     "MY_OTHER_CONFIG_NAME": true,
+   }
+   ```
+
+2. **Test file-specific configuration**
+
+   To apply configs to tests in a specific file:
+   - Create a directory matching the test filename in `static`
+   - Place `config.json` in this directory
+
+   Example for `foo/test_bar.py`:
+   ```
+   foo/
+   ├── static/
+   │   └── test_bar/
+   │       └── config.json
+   └── test_bar.py
+   ```
+
+3. **Test function-specific configuration**
+
+   To apply configs to individual test functions:
+   @snippet core/functional_tests/dynamic_configs/tests/test_examples.py pytest marker in a variable
+
+#### Precedence rules of dynamic config modification in testsuite
+
+Dynamic config modifications are applied with the following order,
+going from the lowest to the highest priority:
+1. Global defaults
+2. Directory-level configs, if any
+3. Test file-specific configs, if any
+4. Test function-level markers, if any
+5. Mid-test modifications, if any
 
 
 ----------

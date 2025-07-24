@@ -16,7 +16,7 @@ public:
     StatementsCache(Connection& connection, std::size_t capacity);
     ~StatementsCache();
 
-    Statement& PrepareStatement(const std::string& statement, engine::Deadline deadline);
+    Statement& PrepareStatement(std::string_view statement, engine::Deadline deadline);
 
 private:
     Connection& connection_;

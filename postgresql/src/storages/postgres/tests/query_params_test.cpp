@@ -28,9 +28,9 @@ const pg::UserTypes types;
 
 TEST(PostgreIO, OutputIntegral) {
     pg::detail::DynamicQueryParameters params;
-    pg::Smallint s{42};
-    pg::Integer i{42};
-    pg::Bigint b{42};
+    const pg::Smallint s{42};
+    const pg::Integer i{42};
+    const pg::Bigint b{42};
 
     params.Write(types, s);
     params.Write(types, i);
@@ -44,9 +44,9 @@ TEST(PostgreIO, OutputIntegral) {
 
 TEST(PostgreIO, OutputIntegralStatic) {
     pg::detail::StaticQueryParameters<3> params;
-    pg::Smallint s{42};
-    pg::Integer i{42};
-    pg::Bigint b{42};
+    const pg::Smallint s{42};
+    const pg::Integer i{42};
+    const pg::Bigint b{42};
 
     params.Write(types, s, i, b);
     EXPECT_EQ(3, params.Size());
@@ -55,8 +55,8 @@ TEST(PostgreIO, OutputIntegralStatic) {
 TEST(PostgreIO, OutputString) {
     pg::detail::DynamicQueryParameters params;
     const char* c_str = "foo";
-    std::string str{"foo"};
-    std::string_view sw{str};
+    const std::string str{"foo"};
+    const std::string_view sw{str};
 
     params.Write(types, "foo");
     params.Write(types, c_str);
@@ -81,8 +81,8 @@ TEST(PostgreIO, OutputString) {
 TEST(PostgreIO, OutputStringStatic) {
     pg::detail::StaticQueryParameters<4> params;
     const char* c_str = "foo";
-    std::string str{"foo"};
-    std::string_view sw{str};
+    const std::string str{"foo"};
+    const std::string_view sw{str};
 
     params.Write(types, "foo", c_str, str, sw);
 

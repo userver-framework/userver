@@ -7,7 +7,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(SentinelQuery, SingleBadReply) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -47,7 +47,7 @@ const auto kHost1 = "127.0.0.1";
 const auto kHost2 = "127.0.0.2";
 
 TEST(SentinelQuery, SingleOkReply) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -67,7 +67,7 @@ TEST(SentinelQuery, SingleOkReply) {
 }
 
 TEST(SentinelQuery, SingleSDownReply) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -87,7 +87,7 @@ TEST(SentinelQuery, SingleSDownReply) {
 }
 
 TEST(SentinelQuery, MultipleOkOkOk) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -113,7 +113,7 @@ TEST(SentinelQuery, MultipleOkOkOk) {
 }
 
 TEST(SentinelQuery, MultipleOkOkMastererr) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -139,7 +139,7 @@ TEST(SentinelQuery, MultipleOkOkMastererr) {
 }
 
 TEST(SentinelQuery, MultipleOkMastererrMastererr) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -165,7 +165,7 @@ TEST(SentinelQuery, MultipleOkMastererrMastererr) {
 }
 
 TEST(SentinelQuery, MultipleOkOkSDown) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -191,7 +191,7 @@ TEST(SentinelQuery, MultipleOkOkSDown) {
 }
 
 TEST(SentinelQuery, MultipleOkSDownSDown) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -217,7 +217,7 @@ TEST(SentinelQuery, MultipleOkSDownSDown) {
 }
 
 TEST(SentinelQuery, MultipleOkOkODown) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
     int size = 0;
@@ -243,7 +243,7 @@ TEST(SentinelQuery, MultipleOkOkODown) {
 }
 
 TEST(SentinelQuery, DifferentAnswers1) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
 
@@ -265,7 +265,7 @@ TEST(SentinelQuery, DifferentAnswers1) {
 }
 
 TEST(SentinelQuery, DifferentAnswers2) {
-    storages::redis::impl::SentinelInstanceResponse resp;
+    const storages::redis::impl::SentinelInstanceResponse resp;
 
     int called = 0;
 

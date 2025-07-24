@@ -53,7 +53,7 @@ public:
     inline static yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    inline static std::unique_ptr<grpc::ClientContext> CreateClientContext(bool is_small_timeout);
+    inline ugrpc::client::CallOptions CreateCallOptions(bool is_small_timeout);
 
     ugrpc::client::ClientFactory& client_factory_;
     Client client_;
@@ -75,18 +75,22 @@ properties:
 )");
 }
 
-std::unique_ptr<grpc::ClientContext> GreeterClient::CreateClientContext(bool is_small_timeout) {
-    auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(std::chrono::seconds{is_small_timeout ? 1 : 20}));
-    context->set_wait_for_ready(true);
-    return context;
+ugrpc::client::CallOptions GreeterClient::CreateCallOptions(bool is_small_timeout) {
+    ugrpc::client::CallOptions call_options;
+    call_options.SetTimeout(std::chrono::seconds{is_small_timeout ? 1 : 20});
+    call_options.SetClientContextFactory([] {
+        auto client_context = std::make_unique<grpc::ClientContext>();
+        client_context->set_wait_for_ready(true);
+        return client_context;
+    });
+    return call_options;
 }
 
 std::string GreeterClient::SayHello(std::string name, bool is_small_timeout) {
     api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    api::GreetingResponse response = client_.SayHello(request, CreateClientContext(is_small_timeout));
+    api::GreetingResponse response = client_.SayHello(request, CreateCallOptions(is_small_timeout));
 
     return std::move(*response.mutable_greeting());
 }
@@ -96,7 +100,7 @@ std::string GreeterClient::SayHelloResponseStream(std::string name, bool is_smal
     api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    auto stream = client_.SayHelloResponseStream(request, CreateClientContext(is_small_timeout));
+    auto stream = client_.SayHelloResponseStream(request, CreateCallOptions(is_small_timeout));
     api::GreetingResponse response;
     while (stream.Read(response)) {
         result.append(response.greeting());
@@ -106,8 +110,8 @@ std::string GreeterClient::SayHelloResponseStream(std::string name, bool is_smal
 }
 
 std::string GreeterClient::SayHelloRequestStream(const std::vector<std::string>& names, bool is_small_timeout) {
-    std::string result{};
-    auto stream = client_.SayHelloRequestStream(CreateClientContext(is_small_timeout));
+    const std::string result{};
+    auto stream = client_.SayHelloRequestStream(CreateCallOptions(is_small_timeout));
     for (const auto& name : names) {
         api::GreetingRequest request;
         request.set_name(grpc::string(name));
@@ -121,7 +125,7 @@ std::string GreeterClient::SayHelloRequestStream(const std::vector<std::string>&
 
 std::string GreeterClient::SayHelloStreams(const std::vector<std::string>& names, bool is_small_timeout) {
     std::string result{};
-    auto stream = client_.SayHelloStreams(CreateClientContext(is_small_timeout));
+    auto stream = client_.SayHelloStreams(CreateCallOptions(is_small_timeout));
     for (const auto& name : names) {
         api::GreetingRequest request;
         request.set_name(grpc::string(name));
@@ -137,7 +141,7 @@ std::string GreeterClient::SayHelloStreams(const std::vector<std::string>& names
 
 std::string GreeterClient::SayHelloIndependentStreams(const std::vector<std::string>& names, bool is_small_timeout) {
     std::string result{};
-    auto stream = client_.SayHelloIndependentStreams(CreateClientContext(is_small_timeout));
+    auto stream = client_.SayHelloIndependentStreams(CreateCallOptions(is_small_timeout));
     auto write_task = engine::AsyncNoSpan([&stream, &names] {
         for (const auto& name : names) {
             api::GreetingRequest request;

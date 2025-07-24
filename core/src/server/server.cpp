@@ -54,7 +54,9 @@ void PortInfo::Init(
 ) {
     LOG_DEBUG() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
-    engine::TaskProcessor& task_processor = component_context.GetTaskProcessor(listener_config.task_processor);
+    engine::TaskProcessor& task_processor = listener_config.task_processor
+                                                ? component_context.GetTaskProcessor(*listener_config.task_processor)
+                                                : engine::current_task::GetTaskProcessor();
 
     request_handler_.emplace(
         component_context, config.logger_access, config.logger_access_tskv, is_monitor, config.server_name
@@ -195,7 +197,7 @@ void ServerImpl::StartPortInfos() {
 
 void ServerImpl::Stop() {
     {
-        std::unique_lock lock{on_stop_mutex_};
+        const std::lock_guard lock{on_stop_mutex_};
         if (is_stopping_) return;
         is_stopping_ = true;
     }
@@ -257,7 +259,7 @@ const http::HttpRequestHandler& ServerImpl::GetHttpRequestHandler(bool is_monito
 net::StatsAggregation ServerImpl::GetServerStats() const {
     net::StatsAggregation summary;
 
-    std::shared_lock lock{on_stop_mutex_};
+    const std::shared_lock lock{on_stop_mutex_};
     if (is_stopping_) return summary;
     for (const auto& listener : main_port_info_.listeners_) {
         summary += listener.GetStats();
@@ -282,7 +284,7 @@ void ServerImpl::WriteTotalHandlerStatistics(utils::statistics::Writer& writer) 
 
     {
         // Protect against main_port_info_.request_handler_.reset() in Stop()
-        std::shared_lock lock{on_stop_mutex_};
+        const std::shared_lock lock{on_stop_mutex_};
         if (is_stopping_) {
             return;
         }

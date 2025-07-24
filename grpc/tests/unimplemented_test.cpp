@@ -10,10 +10,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-std::unique_ptr<grpc::ClientContext> ContextWithDeadline() {
-    auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(std::chrono::system_clock::now() + utest::kMaxTestWaitTime);
-    return context;
+ugrpc::client::CallOptions CallOptionsWithTimeout() {
+    ugrpc::client::CallOptions call_options;
+    call_options.SetTimeout(utest::kMaxTestWaitTime);
+    return call_options;
 }
 
 }  // namespace
@@ -29,7 +29,7 @@ UTEST_F(GrpcServerAllUnimplementedTest, Unimplemented) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()), ugrpc::client::UnimplementedError);
+    UEXPECT_THROW(client.SayHello(out, CallOptionsWithTimeout()), ugrpc::client::UnimplementedError);
 }
 
 class ChatOnlyService final : public sample::ugrpc::UnitTestServiceBase {
@@ -43,7 +43,7 @@ using GrpcServerSomeUnimplementedDeathTest = GrpcServerSomeUnimplementedTest;
 
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto call = client.Chat(ContextWithDeadline());
+    auto call = client.Chat(CallOptionsWithTimeout());
     EXPECT_TRUE(call.WritesDone());
     sample::ugrpc::StreamGreetingResponse response;
     EXPECT_FALSE(call.Read(response));
@@ -54,9 +54,9 @@ UTEST_F_DEATH(GrpcServerSomeUnimplementedDeathTest, Unimplemented) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
 #ifdef NDEBUG
-    UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()), ugrpc::client::UnimplementedError);
+    UEXPECT_THROW(client.SayHello(out, CallOptionsWithTimeout()), ugrpc::client::UnimplementedError);
 #else
-    UEXPECT_DEATH(client.SayHello(out, ContextWithDeadline()), "Called not implemented");
+    UEXPECT_DEATH(client.SayHello(out, CallOptionsWithTimeout()), "Called not implemented");
 #endif
 }
 

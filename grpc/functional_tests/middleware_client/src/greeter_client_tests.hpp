@@ -1,6 +1,7 @@
 #pragma once
 
 #include <userver/components/component.hpp>
+#include <userver/server/request/task_inherited_request.hpp>
 #include <userver/testsuite/tasks.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 
@@ -22,8 +23,17 @@ public:
           client_(context.FindComponent<ClientComponent>("greeter-client").GetClient()) {
         auto& tasks = testsuite::GetTestsuiteTasks(context);
 
-        tasks.RegisterTask("call-say-hello", [&] {
-            [[maybe_unused]] const auto response = client_.SayHello(MakeGreetingRequest());
+        tasks.RegisterTask("call-say-hello", [this] { SayHello(); });
+
+        tasks.RegisterTask("call-say-hello-headers-propagator", [this] {
+            const server::request::HeadersToPropagate headers{
+                {"skipped-header", "v1"},
+                {"allowed-header", "v2"},
+                {"X-Upper-Case-Header", "v3"},
+            };
+            server::request::SetPropagatedHeaders(headers);
+
+            SayHello();
         });
     }
 
@@ -33,6 +43,8 @@ private:
         request.set_name("test");
         return request;
     }
+
+    void SayHello() { [[maybe_unused]] const auto response = client_.SayHello(MakeGreetingRequest()); }
 
     Client& client_;
 };

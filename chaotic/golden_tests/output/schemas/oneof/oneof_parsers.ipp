@@ -7,7 +7,6 @@
 #include <userver/chaotic/validators.hpp>
 #include <userver/chaotic/variant.hpp>
 #include <userver/chaotic/with_type.hpp>
-#include <userver/formats/json/serialize_variant.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 

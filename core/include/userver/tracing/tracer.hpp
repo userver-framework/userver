@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <userver/rcu/fwd.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer_fwd.hpp>
 
@@ -9,48 +10,50 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace logging::impl {
-class TagWriter;
-}  // namespace logging::impl
-
 /// Opentracing support
 namespace tracing {
 
 using NoLogSpans = ::dynamic_config::userver_no_log_spans::VariableType;
 
-class Tracer : public std::enable_shared_from_this<Tracer> {
+void SetNoLogSpans(NoLogSpans&& spans);
+bool IsNoLogSpan(const std::string& name);
+NoLogSpans CopyNoLogSpans();
+
+// For legacy opentracing support only.
+class Tracer final {
 public:
-    static void SetNoLogSpans(NoLogSpans&& spans);
-    static bool IsNoLogSpan(const std::string& name);
+    static void SetTracer(Tracer&& tracer);
 
-    static void SetTracer(TracerPtr tracer);
+    static rcu::ReadablePtr<Tracer, rcu::ExclusiveRcuTraits> ReadTracer();
 
-    static TracerPtr GetTracer();
+    static Tracer CopyCurrentTracer();
 
-    const std::string& GetServiceName() const;
-
-    Span CreateSpanWithoutParent(std::string name);
-
-    Span CreateSpan(std::string name, const Span& parent, ReferenceType reference_type);
-
-    // Log tag-private information like trace id, span id, etc.
-    virtual void LogSpanContextTo(const Span::Impl& span, logging::impl::TagWriter writer) const = 0;
-
-    logging::LoggerPtr GetOptionalLogger() const { return optional_logger_; }
-
-protected:
-    explicit Tracer(std::string_view service_name, logging::LoggerPtr optional_logger)
+    Tracer(std::string_view service_name, logging::LoggerPtr optional_logger)
         : service_name_(service_name), optional_logger_(std::move(optional_logger)) {}
 
-    virtual ~Tracer();
+    // Only works if legacy opentracing is set up.
+    const std::string& GetServiceName() const;
+
+    const logging::LoggerPtr& GetOptionalLogger() const { return optional_logger_; }
 
 private:
-    const std::string service_name_;
-    const logging::LoggerPtr optional_logger_;
+    std::string service_name_;
+    logging::LoggerPtr optional_logger_;
 };
 
-/// Make a tracer that could be set globally via tracing::Tracer::SetTracer
-TracerPtr MakeTracer(std::string_view service_name, logging::LoggerPtr logger, std::string_view tracer_type = "native");
+// For tests and benchmarks only!
+class TracerCleanupScope final {
+public:
+    TracerCleanupScope();
+
+    TracerCleanupScope(TracerCleanupScope&&) = delete;
+    TracerCleanupScope& operator=(TracerCleanupScope&&) = delete;
+    ~TracerCleanupScope();
+
+private:
+    Tracer old_tracer_;
+    NoLogSpans old_no_log_spans_;
+};
 
 }  // namespace tracing
 

@@ -24,7 +24,7 @@ std::vector<std::shared_ptr<http::HttpRequest>> RequestsView::GetAllRequests() {
     std::list<RequestWPtr> delete_list;
 
     {
-        std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
+        const std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
         result.reserve(requests_in_flight_.size());
 
         for (auto it = requests_in_flight_.begin(); it != requests_in_flight_.end();) {
@@ -54,7 +54,7 @@ void RequestsView::GarbageCollect() {
     // to avoid deletion under mutex.
     std::list<RequestWPtr> delete_list;
 
-    std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
+    const std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
     for (auto it = requests_in_flight_.begin(); it != requests_in_flight_.end();) {
         if (!it->expired()) {
             ++it;
@@ -67,7 +67,7 @@ void RequestsView::GarbageCollect() {
 }
 
 void RequestsView::HandleQueue() {
-    std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
+    const std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
     for (;;) {
         const auto count = queue_->try_dequeue_bulk(job_requests.begin(), job_requests.size());
         if (count == 0) break;

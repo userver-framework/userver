@@ -12,6 +12,7 @@
 
 #include <userver/storages/postgres/field.hpp>
 #include <userver/storages/postgres/io/supported_types.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <userver/logging/log.hpp>
 
@@ -84,7 +85,7 @@ public:
     /// @brief Field access field by name
     /// @throws FieldNameDoesntExist if the result set doesn't contain
     ///         such a field
-    reference operator[](const std::string& name) const;
+    reference operator[](USERVER_NAMESPACE::utils::zstring_view name) const;
     //@}
 
     //@{
@@ -158,9 +159,9 @@ public:
 
     /// Read fields into variables in order of their names in the first argument
     template <typename... T>
-    void To(const std::initializer_list<std::string>& names, T&&... val) const;
+    void To(const std::initializer_list<USERVER_NAMESPACE::utils::zstring_view>& names, T&&... val) const;
     template <typename... T>
-    std::tuple<T...> As(const std::initializer_list<std::string>& names) const;
+    std::tuple<T...> As(const std::initializer_list<USERVER_NAMESPACE::utils::zstring_view>& names) const;
 
     /// Read fields into variables in order of their indexes in the first
     /// argument
@@ -170,7 +171,7 @@ public:
     std::tuple<T...> As(const std::initializer_list<size_type>& indexes) const;
     //@}
 
-    size_type IndexOfName(const std::string&) const;
+    size_type IndexOfName(USERVER_NAMESPACE::utils::zstring_view) const;
 
     FieldView GetFieldView(size_type index) const;
 
@@ -277,10 +278,18 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
         (perform(std::get<Indexes>(val)), ...);
     }
 
-    static void ExtractValues(const Row& row, const std::initializer_list<std::string>& names, T&&... val) {
+    static void ExtractValues(
+        const Row& row,
+        const std::initializer_list<USERVER_NAMESPACE::utils::zstring_view>& names,
+        T&&... val
+    ) {
         (row[*(names.begin() + Indexes)].To(std::forward<T>(val)), ...);
     }
-    static void ExtractTuple(const Row& row, const std::initializer_list<std::string>& names, std::tuple<T...>& val) {
+    static void ExtractTuple(
+        const Row& row,
+        const std::initializer_list<USERVER_NAMESPACE::utils::zstring_view>& names,
+        std::tuple<T...>& val
+    ) {
         std::tuple<T...> tmp{row[*(names.begin() + Indexes)].template As<T>()...};
         tmp.swap(val);
     }
@@ -382,7 +391,7 @@ auto Row::As() const {
 }
 
 template <typename... T>
-void Row::To(const std::initializer_list<std::string>& names, T&&... val) const {
+void Row::To(const std::initializer_list<USERVER_NAMESPACE::utils::zstring_view>& names, T&&... val) const {
     detail::AssertSaneTypeToDeserialize<T...>();
     if (sizeof...(T) != names.size()) {
         throw FieldTupleMismatch(names.size(), sizeof...(T));
@@ -391,7 +400,7 @@ void Row::To(const std::initializer_list<std::string>& names, T&&... val) const 
 }
 
 template <typename... T>
-std::tuple<T...> Row::As(const std::initializer_list<std::string>& names) const {
+std::tuple<T...> Row::As(const std::initializer_list<USERVER_NAMESPACE::utils::zstring_view>& names) const {
     if (sizeof...(T) != names.size()) {
         throw FieldTupleMismatch(names.size(), sizeof...(T));
     }

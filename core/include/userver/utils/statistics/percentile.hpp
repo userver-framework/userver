@@ -125,7 +125,7 @@ public:
         if (count_ == 0) return 0;
 
         std::size_t sum = 0;
-        std::size_t want_sum = count_.load(std::memory_order_acquire) * percent;
+        const std::size_t want_sum = count_.load(std::memory_order_acquire) * percent;
         std::size_t max_value = 0;
         for (std::size_t i = 0; i < values_.size(); i++) {
             const auto value = values_[i].load(std::memory_order_relaxed);
@@ -199,7 +199,7 @@ void DumpMetric(
     const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>& perc,
     std::initializer_list<double> percents = {0, 50, 90, 95, 98, 99, 99.6, 99.9, 100}
 ) {
-    for (double percent : percents) {
+    for (const double percent : percents) {
         writer.ValueWithLabels(
             perc.GetPercentile(percent), {"percentile", statistics::GetPercentileFieldName(percent)}
         );

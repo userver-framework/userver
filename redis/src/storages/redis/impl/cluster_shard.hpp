@@ -9,6 +9,7 @@
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/fwd.hpp>
 #include <userver/storages/redis/wait_connected_mode.hpp>
+#include <userver/utils/rand.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis_connection_holder.hpp>
@@ -24,17 +25,16 @@ public:
     using RedisConnectionPtr = std::shared_ptr<const RedisConnectionHolder>;
     using ServersWeighted = std::unordered_map<ServerId, size_t, ServerIdHasher>;
 
-    ClusterShard() = default;
+    ClusterShard() : current_(utils::RandRange(std::numeric_limits<size_t>::max())) {}
     ClusterShard(size_t shard, RedisConnectionPtr master, std::vector<RedisConnectionPtr> replicas)
         : replicas_(std::move(replicas)), master_(std::move(master)), shard_(shard) {}
-    ClusterShard(const ClusterShard& other)
-        : replicas_(other.replicas_), master_(other.master_), current_(other.current_.load()), shard_(other.shard_) {}
+    ClusterShard(const ClusterShard& other) = delete;
     ClusterShard(ClusterShard&& other) noexcept
         : replicas_(std::move(other.replicas_)),
           master_(std::move(other.master_)),
           current_(other.current_.load()),
           shard_(other.shard_) {}
-    ClusterShard& operator=(const ClusterShard& other);
+    ClusterShard& operator=(const ClusterShard& other) = delete;
     ClusterShard& operator=(ClusterShard&& other) noexcept;
     bool IsReady(WaitConnectedMode mode) const;
     bool AsyncCommand(CommandPtr command) const;
@@ -57,6 +57,7 @@ private:
         size_t attempt,
         bool is_nearest_ping_server,
         size_t best_dc_count,
+        bool consider_ping,
         size_t* pinstance_idx
     );
     std::vector<RedisConnectionPtr> MakeReadonlyWithMasters() const;

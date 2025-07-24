@@ -36,7 +36,7 @@ ComponentInfo::ComponentInfo(std::string name) : name_(std::move(name)) {}
 void ComponentInfo::SetComponent(std::unique_ptr<RawComponentBase>&& component) {
     bool call_on_loading_cancelled = false;
     {
-        std::lock_guard lock{mutex_};
+        const std::lock_guard lock{mutex_};
         component_ = std::move(component);
         stage_ = ComponentLifetimeStage::kCreated;
         if (stage_switching_cancelled_) call_on_loading_cancelled = true;
@@ -57,7 +57,7 @@ void ComponentInfo::ClearComponent() {
 }
 
 RawComponentBase* ComponentInfo::GetComponent() const {
-    std::lock_guard lock{mutex_};
+    const std::lock_guard lock{mutex_};
     return component_.get();
 }
 
@@ -69,7 +69,7 @@ RawComponentBase* ComponentInfo::WaitAndGetComponent() const {
 }
 
 void ComponentInfo::AddItDependsOn(ComponentInfo& component) {
-    std::lock_guard lock{mutex_};
+    const std::lock_guard lock{mutex_};
     UASSERT_MSG(
         stage_ == ComponentLifetimeStage::kNull,
         "Do not use context.FindComponent() or context.FindComponentOptional() "
@@ -79,7 +79,7 @@ void ComponentInfo::AddItDependsOn(ComponentInfo& component) {
 }
 
 void ComponentInfo::AddDependsOnIt(ComponentInfo& component) {
-    std::lock_guard lock{mutex_};
+    const std::lock_guard lock{mutex_};
     UASSERT_MSG(
         stage_ == ComponentLifetimeStage::kNull || stage_ == ComponentLifetimeStage::kCreated,
         "Do not use context.FindComponent() or context.FindComponentOptional() "
@@ -108,7 +108,7 @@ bool ComponentInfo::CheckDependsOnIt(ComponentInfo& component) const {
 
 void ComponentInfo::SetStageSwitchingCancelled(bool cancelled) {
     {
-        std::lock_guard lock{mutex_};
+        const std::lock_guard lock{mutex_};
         stage_switching_cancelled_ = cancelled;
     }
     cv_.NotifyAll();
@@ -125,7 +125,7 @@ void ComponentInfo::OnAllComponentsLoaded() {
     try {
         component_->OnAllComponentsLoaded();
     } catch (const std::exception& ex) {
-        std::string message = "OnAllComponentsLoaded() failed for component " + name_ + ": " + ex.what();
+        const std::string message = "OnAllComponentsLoaded() failed for component " + name_ + ": " + ex.what();
         LOG_ERROR() << message;
         throw std::runtime_error(message);
     }
@@ -134,7 +134,7 @@ void ComponentInfo::OnAllComponentsLoaded() {
 void ComponentInfo::OnAllComponentsAreStopping() {
     if (!HasComponent()) return;
     try {
-        tracing::Span span(std::string{kOnAllComponentsAreStopping});
+        const tracing::Span span(std::string{kOnAllComponentsAreStopping});
         component_->OnAllComponentsAreStopping();
     } catch (const std::exception& ex) {
         LOG_ERROR() << "OnAllComponentsAreStopping() failed for component " << name_ << ": " << ex;
@@ -143,14 +143,14 @@ void ComponentInfo::OnAllComponentsAreStopping() {
 
 void ComponentInfo::SetStage(ComponentLifetimeStage stage) {
     {
-        std::lock_guard lock{mutex_};
+        const std::lock_guard lock{mutex_};
         stage_ = stage;
     }
     cv_.NotifyAll();
 }
 
 ComponentLifetimeStage ComponentInfo::GetStage() const {
-    std::lock_guard lock{mutex_};
+    const std::lock_guard lock{mutex_};
     return stage_;
 }
 
@@ -170,14 +170,14 @@ std::string ComponentInfo::GetDependencies() const {
 }
 
 bool ComponentInfo::HasComponent() const {
-    std::lock_guard lock{mutex_};
+    const std::lock_guard lock{mutex_};
     return !!component_;
 }
 
 std::unique_ptr<RawComponentBase> ComponentInfo::ExtractComponent() {
     std::unique_ptr<RawComponentBase> component;
     {
-        std::lock_guard lock{mutex_};
+        const std::lock_guard lock{mutex_};
         std::swap(component, component_);
     }
     return component;

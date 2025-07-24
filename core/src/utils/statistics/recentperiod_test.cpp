@@ -42,7 +42,7 @@ struct Result {
 
 TEST(RecentPeriod, TimerIsAtomic) {
     using Duration = typename utils::statistics::RecentPeriod<Atomic, Result>::Duration;
-    std::atomic<Duration> duration{Duration{}};
+    const std::atomic<Duration> duration{Duration{}};
     EXPECT_TRUE(duration.is_lock_free());
 }
 

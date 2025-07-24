@@ -111,6 +111,14 @@ public:
         std::optional<std::function<void(MessageBatchView)>> user_callback = {}
     );
 
+    /// @brief The same as previous, but working with consumer_scope passed to function.
+    std::vector<Message> ReceiveMessages(
+        ConsumerScope& consumer,
+        std::size_t expected_messages_count,
+        bool commit_after_receive = true,
+        std::optional<std::function<void(MessageBatchView)>> user_callback = {}
+    );
+
 private:
     impl::Secret AddBootstrapServers(impl::Secret secrets) const;
 

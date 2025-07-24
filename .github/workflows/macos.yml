@@ -25,6 +25,7 @@ jobs:
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
+                -DCMAKE_CXX_STANDARD=17
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
@@ -66,12 +67,15 @@ jobs:
                 brew link --force curl # keg-only
                 brew link --force cyrus-sasl # keg-only
                 brew link --force openldap # keg-only
+                brew link --force sqlite # keg-only
                 brew remove --ignore-dependencies abseil
 
           - name: Install test dependencies
             run: |
                 brew tap mongodb/brew
-                brew install clickhouse redis kafka mongodb-community rabbitmq
+                brew install clickhouse redis mongodb-community rabbitmq
+
+                ./scripts/kafka/install_kafka.sh
 
           - name: Setup ccache
             run: |
@@ -170,3 +174,7 @@ jobs:
                 cd build_debug/postgresql
                 ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
 
+          - name: Run tests (sqlite)
+            run: |
+                cd build_debug/sqlite
+                ctest -V -E "userver-sqlite-unittest" # unittests failed with fs access

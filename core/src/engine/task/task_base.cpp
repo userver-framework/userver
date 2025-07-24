@@ -88,7 +88,7 @@ void TaskBase::BlockingWait() const {
     });
     auto future = task.get_future();
 
-    engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task)).Detach();
+    engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task)));
     future.wait();
     future.get();
     UASSERT(context.IsFinished());
@@ -149,9 +149,17 @@ bool IsTaskProcessorThread() noexcept { return GetCurrentTaskContextUnchecked() 
 
 TaskProcessor& GetTaskProcessor() { return GetCurrentTaskContext().GetTaskProcessor(); }
 
+TaskProcessor& GetBlockingTaskProcessor() { return GetTaskProcessor().GetBlockingTaskProcessor(); }
+
 std::size_t GetStackSize() { return GetTaskProcessor().GetTaskProcessorPools()->GetCoroPool().GetStackSize(); }
 
 ev::ThreadControl& GetEventThread() { return GetTaskProcessor().EventThreadPool().NextThread(); }
+
+namespace impl {
+
+void* GetRawCurrentTaskContext() noexcept { return current_task::GetCurrentTaskContextUnchecked(); }
+
+}  // namespace impl
 
 }  // namespace current_task
 

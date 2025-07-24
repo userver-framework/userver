@@ -233,6 +233,40 @@ public:
     /// separately, or use storages::postgres::ParameterScope.
     ResultSet Execute(OptionalCommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store);
 
+    /// Execute statement that uses an array of arguments transforming that array
+    /// into N arrays of corresponding fields and executing the statement
+    /// with these arrays values.
+    /// Basically, a column-wise Execute.
+    ///
+    /// Useful for statements that unnest their arguments to avoid the need to
+    /// increase timeouts due to data amount growth, but providing an explicit
+    /// mapping from `Container::value_type` to PG type is infeasible for some
+    /// reason (otherwise, use Execute).
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
+    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeTrx
+    template <typename Container>
+    ResultSet ExecuteDecompose(const Query& query, const Container& args);
+
+    /// Execute statement that uses an array of arguments transforming that array
+    /// into N arrays of corresponding fields and executing the statement
+    /// with these arrays values.
+    /// Basically, a column-wise Execute.
+    ///
+    /// Useful for statements that unnest their arguments to avoid the need to
+    /// increase timeouts due to data amount growth, but providing an explicit
+    /// mapping from `Container::value_type` to PG type is infeasible for some
+    /// reason (otherwise, use Execute).
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
+    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeTrx
+    template <typename Container>
+    ResultSet ExecuteDecompose(OptionalCommandControl statement_cmd_ctl, const Query& query, const Container& args);
+
     /// Execute statement that uses an array of arguments splitting that array in
     /// chunks and executing the statement with a chunk of arguments.
     ///
@@ -373,6 +407,21 @@ private:
     std::string name_;
     detail::ConnectionPtr conn_;
 };
+
+template <typename Container>
+ResultSet Transaction::ExecuteDecompose(const Query& query, const Container& args) {
+    return io::DecomposeContainerByColumns(args).Perform([&query, this](const auto&... args) {
+        return this->Execute(query, args...);
+    });
+}
+
+template <typename Container>
+ResultSet
+Transaction::ExecuteDecompose(OptionalCommandControl statement_cmd_ctl, const Query& query, const Container& args) {
+    return io::DecomposeContainerByColumns(args).Perform([&query, &statement_cmd_ctl, this](const auto&... args) {
+        return this->Execute(statement_cmd_ctl, query, args...);
+    });
+}
 
 template <typename Container>
 void Transaction::ExecuteBulk(const Query& query, const Container& args, std::size_t chunk_rows) {

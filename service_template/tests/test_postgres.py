@@ -1,9 +1,9 @@
-# postgres template on
+# postgresql template on
 # Start the tests via `make test-debug` or `make test-release`
 
 import pytest
 
-from testsuite.databases import pgsql
+from testsuite.databases import pgsql  # noqa: F401
 
 
 async def test_basic(service_client):
@@ -36,4 +36,4 @@ async def test_db_initial_data(service_client):
     assert response.text == 'Hi again, user-from-initial_data.sql!\n'
 
 
-# postgres template on
+# postgresql template on

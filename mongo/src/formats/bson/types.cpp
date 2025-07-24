@@ -5,6 +5,7 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <userver/formats/bson/exception.hpp>
+#include <userver/logging/log_helper.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/text.hpp>
 
@@ -76,6 +77,8 @@ bool Oid::operator>(const Oid& rhs) const { return bson_oid_compare(&oid_, &rhs.
 
 bool Oid::operator<=(const Oid& rhs) const { return !(*this > rhs); }
 bool Oid::operator>=(const Oid& rhs) const { return !(*this < rhs); }
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const Oid& value) { return lh << value.ToString(); }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Decimal128::Decimal128(const std::string& value) {

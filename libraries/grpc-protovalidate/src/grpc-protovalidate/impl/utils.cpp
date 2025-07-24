@@ -49,12 +49,12 @@ std::string GetFieldName(const buf::validate::Violation& violation) {
     return fmt::to_string(name);
 }
 
-std::string_view GetConstraintId(const buf::validate::Violation& violation) {
-    if (violation.constraint_id().empty()) {
+std::string_view GetRuleId(const buf::validate::Violation& violation) {
+    if (violation.rule_id().empty()) {
         return "null";
     }
 
-    return violation.constraint_id();
+    return violation.rule_id();
 }
 
 std::string_view GetDescription(const buf::validate::Violation& violation) {
@@ -72,9 +72,9 @@ namespace buf::validate {
 USERVER_NAMESPACE::logging::LogHelper&
 operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const Violation& violation) {
     lh << fmt::format(
-        "field={}, constraint={}, description='{}'{}",
+        "field={}, rule={}, description='{}'{}",
         GetFieldName(violation),
-        GetConstraintId(violation),
+        GetRuleId(violation),
         GetDescription(violation),
         violation.for_key() ? " (key error)" : ""
     );

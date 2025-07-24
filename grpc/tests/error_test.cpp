@@ -131,12 +131,25 @@ using GrpcClientWithDetailedErrorTest = ugrpc::tests::ServiceFixture<UnitTestSer
 
 UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) {
     constexpr std::string_view kExpectedMessage =
-        R"(code: 8 message: "message" details { )"
-        R"([type.googleapis.com/google.rpc.Help] { links { description: "test_url" )"
-        R"(url: "http://help.url/auth/fts-documentation/tvm" } } } details { )"
-        R"([type.googleapis.com/google.rpc.QuotaFailure] { violations )"
-        R"({ subject: "123-pipepline000" description: )"
-        R"("fts quota [fts-receive] exhausted" } } })";
+        R"(code: 8
+message: "message"
+details {
+  [type.googleapis.com/google.rpc.Help] {
+    links {
+      description: "test_url"
+      url: "http://help.url/auth/fts-documentation/tvm"
+    }
+  }
+}
+details {
+  [type.googleapis.com/google.rpc.QuotaFailure] {
+    violations {
+      subject: "123-pipepline000"
+      description: "fts quota [fts-receive] exhausted"
+    }
+  }
+}
+)";
 
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
@@ -176,7 +189,7 @@ UTEST_F(GrpcThrowCustomFinish, InputStream) {
 
     sample::ugrpc::StreamGreetingResponse in;
     try {
-        [[maybe_unused]] bool result1 = is.Read(in);
+        [[maybe_unused]] const bool result1 = is.Read(in);
         FAIL();
     } catch (const ugrpc::client::UnauthenticatedError& e) {
         EXPECT_EQ(e.GetStatus().error_code(), grpc::StatusCode::UNAUTHENTICATED);

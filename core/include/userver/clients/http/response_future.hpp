@@ -34,12 +34,19 @@ public:
     ResponseFuture& operator=(const ResponseFuture&) = delete;
     ~ResponseFuture();
 
+    /// @brief Cancel the request in flight
     void Cancel();
 
+    /// @brief Keep executing the request but do not care any more about the result. It is fine to destroy this future
+    /// after Detach(), the request will continue execution.
     void Detach();
 
+    /// @brief Stops the current task execution until the request finishes
+    /// @throws clients::http::CancelException if the current task is being cancelled
+    /// @returns std::future_status::ready or std::future_status::timeout
     std::future_status Wait();
 
+    /// @brief Wait for the response and return it
     std::shared_ptr<Response> Get();
 
     void SetCancellationPolicy(CancellationPolicy cp);

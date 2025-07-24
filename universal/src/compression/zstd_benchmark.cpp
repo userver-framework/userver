@@ -16,7 +16,7 @@ std::string GenerateRandomData(std::size_t size) {
 
     std::string output;
     for (std::size_t ind = 0; ind < size; ++ind) {
-        char rand_char = 'a' + static_cast<char>(dist(random_device));
+        const char rand_char = 'a' + static_cast<char>(dist(random_device));
         output.push_back(rand_char);
     }
     return output;

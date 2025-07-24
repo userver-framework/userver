@@ -7,6 +7,7 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+#include <userver/storages/clickhouse/io/floating_point_types.hpp>
 #include <userver/storages/clickhouse/io/type_traits.hpp>
 #include <userver/storages/clickhouse/io/typedefs.hpp>
 
@@ -22,6 +23,13 @@ std::string Escape(int8_t);
 std::string Escape(int16_t);
 std::string Escape(int32_t);
 std::string Escape(int64_t);
+
+template <typename FloatingT, uint32_t Precision>
+std::string Escape(FloatingWithPrecision<FloatingT, Precision> number) {
+    return number.ToString();
+}
+std::string Escape(double number);
+std::string Escape(float number);
 
 std::string Escape(const char* source);
 std::string Escape(const std::string& source);

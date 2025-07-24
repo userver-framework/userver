@@ -95,10 +95,10 @@ def test_empty_mapping(clean):
     cpp_types = gen.generate_types(resolved_schemas)
     cpp_types = clean(cpp_types)
 
-    foo = cpp_types['::oneof'].fields['foo'].schema
+    foo_schema = cpp_types['::oneof'].fields['foo'].schema
 
-    assert foo.mapping_type == MappingType.STR
-    assert list(foo.variants.keys()) == ['A', 'B']
+    assert foo_schema.mapping_type == MappingType.STR
+    assert list(foo_schema.variants.keys()) == ['A', 'B']
 
 
 def test_str_mapping(clean):
@@ -161,13 +161,13 @@ def test_str_mapping(clean):
     cpp_types = gen.generate_types(resolved_schemas)
     cpp_types = clean(cpp_types)
 
-    foo = cpp_types['::oneof'].fields['foo'].schema
+    foo_schema = cpp_types['::oneof'].fields['foo'].schema
 
-    assert foo.mapping_type == MappingType.STR
-    assert list(foo.variants.keys()) == ['aaa', 'bbb']
+    assert foo_schema.mapping_type == MappingType.STR
+    assert list(foo_schema.variants.keys()) == ['aaa', 'bbb']
 
-    assert foo.variants['aaa'].cpp_name == '::A'
-    assert foo.variants['bbb'].cpp_name == '::B'
+    assert foo_schema.variants['aaa'].cpp_name == '::A'
+    assert foo_schema.variants['bbb'].cpp_name == '::B'
 
 
 def test_int_mapping(clean):
@@ -230,11 +230,11 @@ def test_int_mapping(clean):
     cpp_types = gen.generate_types(resolved_schemas)
     cpp_types = clean(cpp_types)
 
-    foo = cpp_types['::oneof'].fields['foo'].schema
+    foo_schema = cpp_types['::oneof'].fields['foo'].schema
 
-    assert foo.mapping_type == MappingType.INT
-    assert list(foo.variants.keys()) == [0, 1, 2]
+    assert foo_schema.mapping_type == MappingType.INT
+    assert list(foo_schema.variants.keys()) == [0, 1, 2]
 
-    assert foo.variants[0].cpp_name == '::A'
-    assert foo.variants[1].cpp_name == '::A'
-    assert foo.variants[2].cpp_name == '::B'
+    assert foo_schema.variants[0].cpp_name == '::A'
+    assert foo_schema.variants[1].cpp_name == '::A'
+    assert foo_schema.variants[2].cpp_name == '::B'

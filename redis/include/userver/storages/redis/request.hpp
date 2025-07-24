@@ -217,6 +217,7 @@ using RequestScard = Request<size_t>;
 using RequestSet = Request<StatusOk, void>;
 using RequestSetIfExist = Request<std::optional<StatusOk>, bool>;
 using RequestSetIfNotExist = Request<std::optional<StatusOk>, bool>;
+using RequestSetIfNotExistOrGet = Request<std::optional<std::string>>;
 using RequestSetOptions = Request<SetReply>;
 using RequestSetex = Request<StatusOk, void>;
 using RequestSismember = Request<size_t>;

@@ -61,7 +61,7 @@ TEST(StringIterator, ResetsCurrentValue) {
     std::string first_string(100, 'a');
     std::string second_string(100, 'b');
 
-    columns::StringColumn column{
+    const columns::StringColumn column{
         std::make_shared<clickhouse_cpp::ColumnString>(std::vector{first_string, second_string})};
     ASSERT_EQ(column.Size(), 2);
 

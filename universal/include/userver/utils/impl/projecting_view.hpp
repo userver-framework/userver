@@ -92,6 +92,9 @@ public:
     auto begin() const { return cbegin(); }
     auto end() const { return cend(); }
 
+    auto size() const { return container_.size(); }
+    auto empty() const { return container_.empty(); }
+
 private:
     Container& container_;
 };

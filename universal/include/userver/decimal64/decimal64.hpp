@@ -742,8 +742,8 @@ public:
             ));
 
         // divide the value into two parts (each no more than kLossLimit)
-        std::int64_t p1 = value_ / (kDecimalFactor * kCoef) * kCoef;
-        std::int64_t p2 = value_ % (kDecimalFactor * kCoef);
+        const std::int64_t p1 = value_ / (kDecimalFactor * kCoef) * kCoef;
+        const std::int64_t p2 = value_ % (kDecimalFactor * kCoef);
 
         // combine without loss of accuracy
         return p1 + static_cast<double>(p2) / kDecimalFactor;

@@ -17,6 +17,7 @@ Cluster::Cluster(
     const error_injection::Settings& ei_settings,
     testsuite::TestsuiteTasks& testsuite_tasks,
     dynamic_config::Source config_source,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics,
     int shard_number
 ) {
     pimpl_ = std::make_unique<detail::ClusterImpl>(
@@ -29,6 +30,7 @@ Cluster::Cluster(
         ei_settings,
         testsuite_tasks,
         std::move(config_source),
+        std::move(metrics),
         shard_number
     );
 }
@@ -102,7 +104,7 @@ detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags, OptionalComman
     return pimpl_->Start(flags, cmd_ctl);
 }
 
-OptionalCommandControl Cluster::GetQueryCmdCtl(const std::string& query_name) const {
+OptionalCommandControl Cluster::GetQueryCmdCtl(std::string_view query_name) const {
     return pimpl_->GetQueryCmdCtl(query_name);
 }
 
@@ -120,12 +122,12 @@ ResultSet Cluster::Execute(
     const Query& query,
     const ParameterStore& store
 ) {
-    if (!statement_cmd_ctl && query.GetName()) {
-        statement_cmd_ctl = GetQueryCmdCtl(query.GetName()->GetUnderlying());
+    if (!statement_cmd_ctl && query.GetOptionalNameView()) {
+        statement_cmd_ctl = GetQueryCmdCtl(*query.GetOptionalNameView());
     }
     statement_cmd_ctl = GetHandlersCmdCtl(statement_cmd_ctl);
     auto ntrx = Start(flags, statement_cmd_ctl);
-    return ntrx.Execute(statement_cmd_ctl, query.Statement(), store);
+    return ntrx.Execute(statement_cmd_ctl, query.GetStatementView(), store);
 }
 
 }  // namespace storages::postgres

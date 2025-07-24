@@ -23,7 +23,7 @@ UTEST(WaitAny, VectorTasks) {
     std::atomic<size_t> finished_counter{0};
     for (size_t i = 0; i < kTaskCount; i++) {
         tasks.push_back(engine::AsyncNoSpan([&finished_counter, i] {
-            size_t order = (i + kTaskCount - kTaskOrderShift) % kTaskCount;
+            const size_t order = (i + kTaskCount - kTaskOrderShift) % kTaskCount;
             while (finished_counter < order) engine::Yield();
             return i;
         }));

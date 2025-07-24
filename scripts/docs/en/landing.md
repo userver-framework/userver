@@ -99,8 +99,8 @@ void Ins(storages::postgres::Transaction& tr,
             <span class="values__icon thumbnail thumbnail_asynchronous"></span>
             <p class="values__cardinfo">
               Efficient asynchronous drivers for databases (MongoDB, PostgreSQL,
-              MySQL/MariaDB, Valkey, Redis, ClickHouse, YDB, ...) and data
-              transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1,
+              MySQL/MariaDB, Valkey, Redis, ClickHouse, YDB, SQLite ...) and
+              data transfer protocols (HTTP, WebSockets, gRPC, TCP, AMQP-0.9.1,
               Apache Kafka, ...), tasks construction and cancellation.
             </p>
           </div>

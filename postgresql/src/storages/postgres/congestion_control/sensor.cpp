@@ -23,7 +23,7 @@ Sensor::Data Sensor::GetCurrent() {
     LOG_DEBUG() << "timeout rate = " << timeout_rate;
 
     auto current_limit = stats.connection.maximum;
-    return {diff_total, diff_timeouts, current_limit};
+    return {{{Sensor::SingleObjectData::kCommonObjectName, {diff_total, diff_timeouts}}}, current_limit};
 }
 
 }  // namespace storages::postgres::cc

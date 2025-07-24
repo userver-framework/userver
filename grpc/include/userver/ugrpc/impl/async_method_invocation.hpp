@@ -3,28 +3,19 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_use_event.hpp>
 
+#include <userver/ugrpc/impl/event_base.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-class EventBase {
-public:
-    /// @brief For use from the blocking call queue
-    /// @param `bool ok` returned by `grpc::CompletionQueue::Next`
-    virtual void Notify(bool ok) noexcept = 0;
-
-protected:
-    // One should not call destructor by pointer to interface.
-    ~EventBase();
-};
-
 class AsyncMethodInvocation : public EventBase {
 public:
-    virtual ~AsyncMethodInvocation();
+    ~AsyncMethodInvocation() override;
 
     /// @brief For use from coroutines
     /// @return This object's `void* tag` for `grpc::CompletionQueue::Next`
-    void* GetTag() noexcept;
+    void* GetCompletionTag() noexcept;
 
     /// @see EventBase::Notify
     void Notify(bool ok) noexcept override;

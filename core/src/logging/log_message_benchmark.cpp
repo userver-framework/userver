@@ -7,7 +7,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -96,7 +96,7 @@ struct StreamedStruct {
 };
 
 std::ostream& operator<<(std::ostream& os, const StreamedStruct& value) {
-    std::ostream::sentry s(os);
+    const std::ostream::sentry s(os);
     if (s) {
         os << value.intVal << " " << value.stringVal;
     }

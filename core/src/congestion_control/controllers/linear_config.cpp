@@ -14,6 +14,7 @@ Config Parse(const formats::json::Value& value, formats::parse::To<Config>) {
     result.min_timings = std::chrono::milliseconds(value["min-timings-ms"].As<std::size_t>(20));
     result.min_limit = value["min-limit"].As<std::size_t>(10);
     result.min_qps = value["min-qps"].As<std::size_t>(10);
+    result.use_separate_stats = value["use-separate-stats"].As<bool>(false);
     return result;
 }
 

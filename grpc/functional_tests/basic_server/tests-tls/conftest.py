@@ -3,26 +3,29 @@ import pathlib
 import grpc
 import pytest
 
-import samples.greeter_pb2_grpc as greeter_services  # noqa: E402, E501
+import samples.greeter_pb2_grpc as greeter_services
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
+# /// [Prepare service config]
 USERVER_CONFIG_HOOKS = ['prepare_service_config']
 
 TESTDIR = pathlib.Path(__file__).parent
 
 
 @pytest.fixture(scope='session')
-def prepare_service_config(tcp_service_port):
+def prepare_service_config():
     def _do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        components['grpc-server']['port'] = tcp_service_port
         components['grpc-server']['tls'] = {
             'key': str(TESTDIR / 'private_key.key'),
             'cert': str(TESTDIR / 'cert.crt'),
         }
 
     return _do_patch
+
+
+# /// [Prepare service config]
 
 
 @pytest.fixture

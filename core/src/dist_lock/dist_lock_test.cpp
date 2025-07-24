@@ -115,7 +115,7 @@ public:
 
 private:
     void SetLocked(bool locked) {
-        std::unique_lock<engine::Mutex> lock(mutex_);
+        const std::lock_guard<engine::Mutex> lock(mutex_);
         is_locked_ = locked;
         cv_.NotifyAll();
     }
@@ -132,7 +132,7 @@ private:
 }  // namespace
 
 UTEST(LockedWorker, Noop) {
-    dist_lock::DistLockedWorker locked_worker(
+    const dist_lock::DistLockedWorker locked_worker(
         kWorkerName, [] {}, MakeMockStrategy(), MakeSettings()
     );
 }
@@ -247,7 +247,7 @@ UTEST_MT(LockedWorker, LockedByOther, 3) {
 UTEST_MT(LockedTask, Smoke, 3) {
     auto strategy = MakeMockStrategy();
     DistLockWorkload work;
-    dist_lock::DistLockedTask locked_task(
+    const dist_lock::DistLockedTask locked_task(
         kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
     );
 
@@ -264,7 +264,7 @@ UTEST_MT(LockedTask, Smoke, 3) {
 
 UTEST_MT(LockedTask, SingleAttempt, 3) {
     auto strategy = MakeMockStrategy();
-    DistLockWorkload work;
+    const DistLockWorkload work;
     std::atomic<size_t> counter{0};
     dist_lock::DistLockedTask locked_task(
         kWorkerName,
@@ -300,7 +300,7 @@ UTEST_MT(LockedTask, Fail, 3) {
 
     auto strategy = MakeMockStrategy();
     DistLockWorkload work(true);
-    dist_lock::DistLockedTask locked_task(
+    const dist_lock::DistLockedTask locked_task(
         kWorkerName, [&] { work.Work(); }, strategy, settings
     );
 
@@ -325,7 +325,7 @@ UTEST_MT(LockedTask, NoWait, 3) {
     strategy->SetLockedBy("me");
 
     DistLockWorkload work(true);
-    dist_lock::DistLockedTask locked_task(
+    const dist_lock::DistLockedTask locked_task(
         kWorkerName, [&] { work.Work(); }, strategy, settings, dist_lock::DistLockWaitingMode::kNoWait
     );
 
@@ -346,7 +346,7 @@ UTEST_MT(LockedTask, NoWaitAcquire, 3) {
     EXPECT_EQ(0U, work.GetFinishedWorkCount());
     strategy->Allow(true);
 
-    dist_lock::DistLockedTask locked_task(
+    const dist_lock::DistLockedTask locked_task(
         kWorkerName, [&] { work.Work(); }, strategy, MakeSettings(), dist_lock::DistLockWaitingMode::kNoWait
     );
 
@@ -367,14 +367,14 @@ UTEST(LockedTask, MultipleWorkers) {
     EXPECT_EQ(0, work.GetFinishedWorkCount());
     strategy->Allow(true);
 
-    dist_lock::DistLockedTask first(
+    const dist_lock::DistLockedTask first(
         kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
     );
 
     EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
     EXPECT_EQ(1, work.GetStartedWorkCount());
 
-    dist_lock::DistLockedTask second(
+    const dist_lock::DistLockedTask second(
         kWorkerName, [&] { work.Work(); }, strategy, MakeSettings(), dist_lock::DistLockWaitingMode::kNoWait
     );
 

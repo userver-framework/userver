@@ -24,15 +24,177 @@ Changelog news also go to the
 * ✔️ Secdist simplification and functionality improvement.
 * ✔️ Improved MacOS build support.
 * ✔️ Improved Conan support.
+* ✔️ SQLite driver
+* ✔️ Web interface for the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
+* ✔️ Retry budget plugin for HTTP clients clients::http::plugins::retry_budget::Component.
 * 👨‍💻 gRPC simplification and functionality improvement.
-* 👨‍💻 Add retry budget or retry circuit breaker for clients.
 * 👨‍💻 Generate full-blown accessories for OpenAPI:
   * clients
   * handlers
-* Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 
 
 ## Changelog
+
+### Release v2.11
+
+* Added support for TLS in RedisCluster mode. Many thanks to [Danilkormilin](https://github.com/Danilkormilin) for the PR!
+* Added ascetic web interface for the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf).
+* @ref server::handlers::HttpHandlerStatic now can serve static files from non-root URL paths. Many thanks to
+  [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+* Added retry budget plugin for HTTP clients @ref clients::http::plugins::retry_budget::Component.
+* @ref server::handlers::HttpHandlerStatic now has `directory-file` static config option that returns file in directory
+  requests. It is set to "index.html" by default, so that `http://localhost/` requests return the `index.html`. Option
+  `not-found-file` allows customizing 404 pages.
+* Added @ref utils::move_only_function.
+* Added seek functionality to @ref kafka::ConsumerScope. Many thanks to
+  [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
+* Add a static config option `message_key_log_format` to @ref kafka::ConsumerComponent to log message key in hex.
+  Many thanks to [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
+* @ref utils::statistics::HistogramView now provides total sum to comply with Prometheus format. Many thanks to
+  [DmitriyH](https://github.com/DmitriyH) for the PR!
+* Added @ref UTEST_P_DEATH and @ref UEXPECT_DEBUG_DEATH macro to `userver::utest`.
+* Renamed `utils::NullTerminatedView` to @ref utils::zstring_view to match C++29 targeted proposal P3655R1.
+* Added Get/Set batch size for @ref storages::mongo::Cursor. Many thanks to
+  [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+* Added @ref engine::GetQueueSize(). Many thanks to [Emil Rakhimov](https://github.com/RakhimovEmil) for the PR!
+* Fixed `std::int64_t` narrowing to `std::int32_t` in Kafka. Many thanks to
+  [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
+* Chaotic now validates array type before parsing to `chaotic::Array`. Many thanks to
+  [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+* Allow dynamic selection of response streaming. Many thanks to [Sergei Fedorov](https://github.com/zmij)
+  for the PR!
+* Added support for @ref mongo::options::Hint for @ref storages::mongo::operations::Delete,
+  @ref storages::mongo::bulk_ops::Update and @ref  storages::mongo::bulk_ops::Delete.
+* @ref storages::Query now used in ClickHouse, MySQL and SQLite drivers, making it possible to directly use result of
+  generation @ref scripts/docs/en/userver/sql_files.md "external SQL/YQL files". storages::Query::Statement() and
+  storages::Query::GetName() are now deprecated and will be removed soon.
+
+* gRPC:
+  * gRPC clients now have @ref ugrpc::client::Reader, @ref ugrpc::client::Writer and @ref ugrpc::client::ReaderWriter
+    names to match `ugrpc::server` names.
+  * Fixed data race in bidirectional stream client.
+  * Optimized clients and server for cases when logging for handler or client is disabled.
+  * Multiple optimizations for the gRPC logging. Up to 150 times faster logging in edge cases.
+
+* Other Optimizations:
+  * @ref utils::zstring_view is now used throughout the userver to avoid temporary `std::string` constructions. Affected
+    components include PostgreSQL driver, HTTP clients, Chaotic, universal and Kafka.
+  * URL utils for schema, query and fragment extraction now have overloads that return `std::string_view` and avoid
+    dynamic memory allocations.
+  * Properly make date header for @ref scripts/docs/en/userver/libraries/s3api.md. This avoids rare cases of
+    CPU-intensive thread blocking. Many thanks to [Daniil Shvalov](https://github.com/danilshvalov) for the PR.
+  * Size of @ref storages::redis::ReplyData dropped down to 32 bytes from 64 bytes, leading to less memory usage for
+    responses with long arrays.
+  * Optimized hex logging in Kafka. Many thanks to [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
+
+* Documentation and Diagnostics:
+  * [RealMedium sample](https://github.com/userver-framework/realmedium_sample) was modernized and cleaned up. Now it
+    can be used as a sample. Many thanks to [Liiizak](https://github.com/Liiizak) for multiple PRs!
+  * Updated build instructions. Many thanks to [h1laryz](https://github.com/h1laryz) for the PR!
+  * Clarified @ref http::ContentType parsing errors.
+  * More clarifications on @ref engine::Task interruptions for @ref userver_concurrency "concurrency primitives".
+  * `tools/*` became samples and were moved into `samples/`. Tests were added.
+  * "task_processor" and "fs_task_processor" static options now have proper defaults.
+    See @ref scripts/docs/en/userver/task_processors_guide.md
+  * Documented log sinks and formats more thoroughly. See @ref scripts/docs/en/userver/logging.md.
+  * Simplified @ref storages::redis::Client `*scan` commands usage, added samples and more descriptions.
+  * More docs and samples (and functions) for the userver/http/url.hpp.
+  * ODBC driver foundation gained an improved error handling and connection pool. Many thanks to
+    [Alexey](https://github.com/Olex1313) for the PR!
+  * Added @ref scripts/docs/en/userver/grpc/server_middleware_implementation.md,
+    @ref scripts/docs/en/userver/grpc/client_middleware_implementation.md and
+    @ref scripts/docs/en/userver/tutorial/static_content.md documentation pages.
+  * Updated @ref scripts/docs/en/userver/dynamic_config.md with info on how to use kill switches in
+    @ref scripts/docs/en/userver/functional_testing.md.
+
+* Build:
+  * `CMAKE_CXX_STANDARD` was set to to `20` by default. C++17 still supported.
+  * Added preliminary CMake configure support on Windows. Many thanks to [Alex](https://github.com/leha-bot) for
+    the PR.
+  * Added cmake-format config and formatted the CMake files. Many thanks to [Dzmitry Ivaniuk](https://github.com/idzm)
+    for the PR!
+  * Added `with_redis_tls` flag for support Redis TLS in Conan. Many thanks to
+    [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
+  * `userver_testsuite_add` CMake function now works is used in subdirectory of a project. Many thanks to
+    [DmitriyH](https://github.com/DmitriyH) for the PR!
+
+
+### Release v2.10
+
+* Initial implementation of @ref scripts/docs/en/userver/sqlite/sqlite_driver.md. Many thanks to
+  [Turulin Zakhar](https://github.com/zahartd) for the implementation, tests and for the documentation.
+* GDB pretty printers now can list all the tasks via `utask list` and can apply commands to all or selected
+  tasks. For example `utask apply all bt` prints the backtraces of all the tasks, `utask apply some_task_name bt`
+  prints the backtrace of the task with name `some_task_name`. See
+  @ref scripts/docs/en/userver/gdb_debugging.md for more info. Many thanks to
+  [Maxim Belov](https://github.com/UNEXPECTEDsemicolon) for the brilliant implementation.
+* Merged a foundation for the ODBC driver. Many thanks to [Alexey](https://github.com/Olex1313) for the PR!
+* Redis driver now can ignore ping times to different instances to do a fair round-robin. See `consider_ping` field
+  in storages::redis::CommandControl.
+* Dropped gRPC `[(userver.field).secret = true];`. Use `[debug_redact = true];` instead.
+* Statically assert that a destructor of an object in utils::FastPimpl is `noexcept`. Many thanks to
+  [Шаблов Анатолий Владимирович](https://github.com/AnatoliiShablov) for the PR!
+
+* Optimizations:
+  * Reduced memory allocations while generating strings for ID in tracing::Span. About a 150ns speedup on average on
+    tracing::Span construction.
+  * Removed unused code and class members in Redis internals, reducing runtime memory usage and binary code size.
+  * Replaced `std::unique_lock` with `std::lock_guard` where possible to simplify optimization work for the compiler.
+
+
+### Release v2.9
+
+* Logging now supports `fmt` formatting in macro `LOG_INFO("User {} logged in from {}", user_id, ip_address);` and
+  lambda formatting. See @ref scripts/docs/en/userver/logging.md for more info.
+* PostgreSQL driver now can disable all the statements logging via static config option `statement-log-mode`
+* ClickHouse driver now supports doubles in the queries.
+* YDB now can be used with GCC compiler, not only Clang. YDB still requires C++20 support
+* components::Redis in sentinel mode now supports selection of database index via `database_index` in secdist config.
+  Many thanks to [Tikhon Sergienko](https://github.com/tysion) for the PR!
+* PostgreSQL cache (shadow replicas) traits now support `kOrderBy`. With `DISTINCT ON` expression in `kQuery` it allows
+  to store only slices of data. Many thanks to [Dmitry Kopturov](https://github.com/IsThisLoss) for the PR!
+* Added a `userver-create-service` script for @ref quick_start_for_beginners "creation of a new service". Github
+  service templates are now deprecated.
+* Notify on state change when it actually happens in Redis Standalone. Many thanks to
+  [Nikolay Pervushin](https://github.com/Greenvi4) for the PR!
+* Modernized testsuite code, including removal of `event_loop` usages and usage of asyncio-socket.
+* Hidden `thread_id` and `task_id` for `INFO`+ logger levels to make the logs shorter.
+* Stack usage monitor now could be disabled in test via `USERVER_GTEST_ENABLE_STACK_USAGE_MONITOR=0`
+  environment variable.
+
+* gRPC
+  * Added support for `debug_redact` and added a recommendation to use `[debug_redact = true];` instead
+    of `[(userver.field).secret = true];`
+  * Significant speed up logging of large requests and response messages. Note that request/response logs are by
+    default enabled with global `DEBUG` logging level; the behavior could be overridden by middlewares static configs
+    of ugrpc::client::middlewares::log::Component and ugrpc::server::middlewares::log::Component.
+  * Server and client logging tags are now consistent.
+  * More improvements, docs and samples for middlewares. See @ref scripts/docs/en/userver/grpc/grpc.md for more info.
+
+* Build:
+  * Fixed floating point escaping compilation in ClickHouse driver. Many thanks to
+    [Ksenia-C](https://github.com/Ksenia-C) for the PR!
+  * Fix compilation errors for curl 8.13. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * Fix compilation errors for fmt 11. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * Added `USERVER_ENABLE_DEBUG_INFO_COMPRESSION` build option, that was later changed to
+    `USERVER_DEBUG_INFO_COMPRESSION`. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PRs!
+    Compression detection algorithm was improved to check the linker compression support.
+  * Added Debian-12 dependencies and build instructions.
+  * Export only files that are not ignored by git for Conan sources. Many thanks to
+    [c0rt](https://github.com/c0rt) for the PR!
+
+* Documentation and Diagnostics:
+  * Added @ref scripts/docs/en/userver/codegen_overview.md, @ref scripts/docs/en/userver/sql_files.md,
+    @ref scripts/docs/en/userver/stack.md documentation.
+  * Fixed a typo in MacOS build dependencies. Thanks to [Alexey](https://github.com/Olex1313) for the PR!
+  * Fixed formatting of CancellableSemaphore::GetCapacity(). Thanks to
+    [Sergey Prikhodko](https://github.com/mhth-fn) for the PR!
+  * Fixed uncountable amount of issues with doxygen markup.
+  * Structures and parsers for userver dynamic configs are now generated by chaotic from schemas.
+  * More docs for utest::HttpServerMock.
+  * Reworked Kafka metrics and added @ref scripts/docs/en/userver/kafka.md "docs about them".
+  * Added docs and samples for Eval* functions of Redis driver.
+
 
 ### Release v2.8
 
@@ -52,7 +214,7 @@ Changelog news also go to the
 * utils::regex now always uses a faster and safer Re2 instead of boost::regex.
 * Dynamic config `USERVER_HANDLER_STREAM_API_ENABLED` is not used any more.
 * server::handlers::HttpHandlerStatic now has a `expires` static config option.
-* kafka::ProducerComponent and kafka::ConsumerComponent now supprt 'SASL_PLAINTEXT'
+* kafka::ProducerComponent and kafka::ConsumerComponent now support 'SASL_PLAINTEXT'
   security protocol. Many thanks to [Mikhail Romaneev](https://github.com/melonaerial) for the PR!
 * Implemented OneOf discriminator mapping to integer and generation of fmt::formatters for enums in chaotic.
 * Load `kRoundRobin` load distribution in PostgreSQL is now uniform
@@ -99,7 +261,7 @@ Changelog news also go to the
 * Mongo connection state checking algorithms was adjusted to work well on small RPS.
 * Conan packages now support all the userver features. Conan package build now reuses the CMake install targets and
   CMake config files.
-* Full feature support for MacOS, including testing and Conan package build and usage on that platform. 
+* Full feature support for MacOS, including testing and Conan package build and usage on that platform.
 * Added support for TLS certificate chains. See `tls.cert` static option at components::Server. Many thanks to
   [aklyuchev](https://github.com/aklyuchev) for the PR!
 * Chaotic exceptions now do not depend on JSON. Thanks to [Artyom](https://github.com/Lookingforcommit) for the PR!
@@ -201,7 +363,7 @@ Changelog news also go to the
 * Documentation and diagnostics:
   * More information on Mongo heartbeat in logs.
   * Added docs about tag name of tracing::ScopeTime.
-  * Improved PostgreSQL diagnostic messages for server response parsing errors due to C++ and DB types mismatch. 
+  * Improved PostgreSQL diagnostic messages for server response parsing errors due to C++ and DB types mismatch.
   * Better samples and docs for utils::statistics::Writer.
   * Added direct database access to testsuite samples.
   * Updated the @ref concurrent_queues "Concurrent Queues" docs.
@@ -271,7 +433,7 @@ Changelog news also go to the
   tracing. Thanks to [TertiumOrganum1](https://github.com/TertiumOrganum1) for
   the PR!
 * The framework now accepts OTLP headers for tracing by default and puts those
-  headers for new requests. 
+  headers for new requests.
 * PostgreSQL span names are now a little bit more informative. Thanks to
   [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
 * Kafka now has a `client.id` static option. Many thanks to
@@ -335,7 +497,7 @@ Changelog news also go to the
   enable.
 * Logger for OpenTelemetry protocol was implemented. Could be enabled via
   `USERVER_FEATURE_OTLP` CMake option. See @ref opentelemetry "the docs" for
-  more info.  
+  more info.
 * Client address in handler now could be retrieved via
   server::http::HttpRequest::GetRemoteAddress(). Many thanks to
   [Daniil Shvalov](https://github.com/danilshvalov) for the PR.
@@ -375,7 +537,7 @@ Changelog news also go to the
     consumption for each start+stop operation. As a result ev threads of HTTP
     client and Redis driver now use less CPU.
   * Timer events with reachable deadlines now are deferred if that does not
-    affect latencies. This gives ~5% RPS improvement for `service_template`. 
+    affect latencies. This gives ~5% RPS improvement for `service_template`.
 * Build
   * `Find*.cmake` files are not generated any more, leading to simpler code base
     and faster configure times.
@@ -471,7 +633,7 @@ Changelog news also go to the
   * Reduced build times by avoiding inclusion of heavy headers.
   * Added an example on PostgreSQL `bytea` usage. Thanks to
   [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
-  * Multiple improvements for docs, build and CI scripts.  
+  * Multiple improvements for docs, build and CI scripts.
 
 ### Release v2.0
 
@@ -831,7 +993,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
     not applied).
   * `discard-all-on-connect` - to force running `DISCARD ALL` on new
     connections, which could be useful for some PostgreSQLs smart-proxies
-    that reuse the same connections. 
+    that reuse the same connections.
 * Boost.PFR 2.2.0 is now in use. The door for compile time reflection pull
   requests is now open!
 * More metrics and fallbacks for logging errors.
@@ -864,7 +1026,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
     statistics.
   * fs::RewriteFileContents() now does not `fsync` directories, dumping caches
     now also do not `fsync` directories leading to better performance while
-    still properly restoring after server power-off. 
+    still properly restoring after server power-off.
   * PostgreSQL typed parsing was optimized to not copy std::shared_ptrs.
   * TESTPOINT() and TESTPOINT_CALLBACK() now produce less instructions and
     guaranteed to not throw it the testpoints are disabled.
@@ -988,7 +1150,7 @@ Detailed descriptions could be found below.
   for the PR!
 
 * Projects from [Yandex Schools](https://academy.yandex.ru/schools) were updated
-  by the original authors. Thanks to 
+  by the original authors. Thanks to
   [bshirokov](https://github.com/bshirokov),
   [Almaz Shagiev](https://github.com/bashkirian),
   [Konstantin Antoniadi](https://github.com/KonstantinAntoniadi),
@@ -1034,7 +1196,7 @@ Detailed descriptions could be found below.
     [Niyaz](https://github.com/mnink275) for multiple PRs!
   * std::bitset<N>, std::array<bool, N>, userver::utils::Flags<Enum> and integral
     values are now mapped to PostgreSQL bit and bit varying types. Thanks to
-    [dsaa27](https://github.com/dsaa27) and 
+    [dsaa27](https://github.com/dsaa27) and
     [bshirokov](https://github.com/bshirokov) for the PRs!
   * Initial `Realmedium` sample was implemented and moved into a separate
     repository at [userver-framework/realmedium_sample](https://github.com/userver-framework/realmedium_sample).
@@ -1122,7 +1284,7 @@ Detailed descriptions could be found below.
 ### Beta (June 2023)
 
 * Static configs of the service now can retrieve environment variables via the
-  `#env` syntax. See yaml_config::YamlConfig for more examples. 
+  `#env` syntax. See yaml_config::YamlConfig for more examples.
 * New testsuite plugins userver_config_http_client and
   userver_config_testsuite_support turned on by default to increase timeouts
   in tests and make the functional tests more reliable.
@@ -1152,7 +1314,7 @@ Detailed descriptions could be found below.
     `const struct iovec* list, std::size_t list_size` for implementing
     low-level vector sends. Mongo driver now uses the new function, resulting in
     smaller CPU and memory consumption.
-  * clients::http::Form::AddContent now instead of `const std::string&` 
+  * clients::http::Form::AddContent now instead of `const std::string&`
     parameters accepts `std::string_view` parameters that allow to copy less
     data.
 
@@ -1185,7 +1347,7 @@ Detailed descriptions could be found below.
   could be shared by different handlers.
 * Invalid implementations of CacheUpdateTrait::Update are now detected and
   logged.
-  
+
 * Optimizations:
   * Significant improvements in HTTP handling due to
     new http::headers::HeaderMap usage instead of std::unordered_map.
@@ -1290,10 +1452,10 @@ Detailed descriptions could be found below.
   * Mongo driver switched to a faster utils::statistics::Writer.
   * utils::Async functions now make 1 dynamic allocation less, thanks to
     [Ivan Trofimov](https://github.com/itrofimow) for the PR.
-  * Getting the default logger now takes only a single atomic read. LOG_* 
+  * Getting the default logger now takes only a single atomic read. LOG_*
     macro now do two RMW atomic operations less and do not use RCU, that could
     lead to a dynamic memory allocation in rare cases.
-  * PostgreSQL driver now does much less atomic operations due to wider usage 
+  * PostgreSQL driver now does much less atomic operations due to wider usage
     of std::move on the internal std::shared_ptr.
   * Added storages::postgres::Transaction::ExecuteDecomposeBulk function for
     fast insertion of C++ array of structures as arrays of values.
@@ -1311,7 +1473,7 @@ Detailed descriptions could be found below.
     more info.
   * Scripts for generating CMakeLists were simplified and cleared from internal
     stuff.
-  * Added missing dependencies to @ref scripts/docs/en/deps/ubuntu-20.04.md and sorted all
+  * Added missing dependencies to Ubuntu-20.04 and sorted all
     the dependencies, thanks to [Anatoly Shirokov](https://github.com/anatoly-spb)
     for the PR.
 * Statistics and metrics now do additional lifetime checks in debug builds to
@@ -1494,7 +1656,7 @@ Detailed descriptions could be found below.
 * Fixed building in virtual environment on Windows, thanks to
   [sabudilovskiy](https://github.com/sabudilovskiy) for the bug report.
 * Fixed building with `-std=gnu++20`, thanks to
-  [Георгий Попов](https://github.com/JorgenPo) for the PR. 
+  [Георгий Попов](https://github.com/JorgenPo) for the PR.
 * Improved package version detection in CMake via `pkg-config`.
 * Added a `USERVER_FEATURE_UTEST` flag for disabling utest and ubench target
   builds, thanks to [Anton](https://github.com/Jihadist) for the PR.
@@ -1601,7 +1763,7 @@ Detailed descriptions could be found below.
 * HTTP headers hashing not vulnerable to HashDOS any more, thanks to Ivan
   Trofimov for the report.
 * engine::WaitAny now can wait for engine::Future, including futures that are
-  signaled by engine::Promise from non-coroutine environment. 
+  signaled by engine::Promise from non-coroutine environment.
 * Optimized the PostgreSql driver, thanks to Dmitry Sokolov for the idea.
 * Arch Linux is now properly supported, thanks to
   [Denis Sheremet](https://github.com/lesf0) and

@@ -38,7 +38,7 @@ private:
 };
 
 TEST(BufferedReader, Ctor) {
-    BufferedReader reader(std::make_shared<ReadableMock>());
+    const BufferedReader reader(std::make_shared<ReadableMock>());
     EXPECT_TRUE(reader.IsValid());
 }
 

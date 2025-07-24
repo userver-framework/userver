@@ -26,3 +26,10 @@ def test_string_format_uuid(simple_parse):
     assert parsed.schemas == {
         'vfull#/definitions/type': String(format=StringFormat.UUID),
     }
+
+
+def test_string_format_byte(simple_parse):
+    parsed = simple_parse({'type': 'string', 'format': 'byte'})
+    assert parsed.schemas == {
+        'vfull#/definitions/type': String(format=StringFormat.BYTE),
+    }

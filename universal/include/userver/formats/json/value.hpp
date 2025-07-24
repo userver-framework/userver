@@ -149,6 +149,9 @@ public:
     /// @brief Returns true if *this holds an int64_t.
     bool IsInt64() const noexcept;
 
+    /// @brief Returns true if *this holds an uint.
+    bool IsUInt() const noexcept;
+
     /// @brief Returns true if *this holds an uint64_t.
     bool IsUInt64() const noexcept;
 
@@ -446,7 +449,7 @@ void PrintTo(const Value&, std::ostream*);
 /// 'using namespace ABC' may contradict code style of your company.
 namespace formats::literals {
 
-json::Value operator"" _json(const char* str, std::size_t len);
+json::Value operator""_json(const char* str, std::size_t len);
 
 }  // namespace formats::literals
 

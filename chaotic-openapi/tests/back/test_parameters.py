@@ -31,6 +31,7 @@ def test_parameters(translate_single_schema):
     assert translate_single_schema(schema) == types.ClientSpec(
         client_name='test',
         cpp_namespace='test_namespace',
+        dynamic_config='',
         operations=[
             types.Operation(
                 method='GET',
@@ -48,7 +49,7 @@ def test_parameters(translate_single_schema):
                                 type='integer',
                             ),
                             validators=cpp_types.CppPrimitiveValidator(
-                                prefix='Parameter0', namespace='::test_namespace::_get'
+                                prefix='Parameter0', namespace='::test_namespace::root_::get'
                             ),
                         ),
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
@@ -94,6 +95,7 @@ def test_parameters_ref(translate_single_schema):
     assert translate_single_schema(schema) == types.ClientSpec(
         client_name='test',
         cpp_namespace='test_namespace',
+        dynamic_config='',
         operations=[
             types.Operation(
                 method='GET',
@@ -157,6 +159,7 @@ def test_parameters_schemas_ref(translate_single_schema):
     assert translate_single_schema(schema) == types.ClientSpec(
         client_name='test',
         cpp_namespace='test_namespace',
+        dynamic_config='',
         operations=[
             types.Operation(
                 method='GET',
@@ -167,7 +170,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                         raw_name='param',
                         cpp_name='param',
                         cpp_type=cpp_types.CppRef(
-                            raw_cpp_type=type_name.TypeName(''),
+                            raw_cpp_type=type_name.TypeName('::test_namespace::root_::get::Parameter0'),
                             user_cpp_type=None,
                             nullable=True,
                             json_schema=chaotic_types.Ref(
@@ -201,6 +204,60 @@ def test_parameters_schemas_ref(translate_single_schema):
                 responses=[],
             )
         ],
+        internal_schemas={
+            '::test_namespace::root_::get::Parameter0': cpp_types.CppRef(
+                raw_cpp_type=type_name.TypeName('::test_namespace::root_::get::Parameter0'),
+                json_schema=chaotic_types.Ref(
+                    ref='<inline>#/components/schemas/Parameter',
+                    indirect=False,
+                    self_ref=False,
+                    schema=chaotic_types.Integer(
+                        type='integer',
+                        default=None,
+                        nullable=False,
+                        minimum=None,
+                        maximum=None,
+                        exclusiveMinimum=None,
+                        exclusiveMaximum=None,
+                        enum=None,
+                        format=None,
+                    ),
+                ),
+                nullable=True,
+                user_cpp_type=None,
+                orig_cpp_type=cpp_types.CppPrimitiveType(
+                    raw_cpp_type=type_name.TypeName('int'),
+                    json_schema=chaotic_types.Integer(
+                        type='integer',
+                        default=None,
+                        nullable=False,
+                        minimum=None,
+                        maximum=None,
+                        exclusiveMinimum=None,
+                        exclusiveMaximum=None,
+                        enum=None,
+                        format=None,
+                    ),
+                    nullable=False,
+                    user_cpp_type=None,
+                    default=None,
+                    validators=cpp_types.CppPrimitiveValidator(
+                        min=None,
+                        max=None,
+                        exclusiveMin=None,
+                        exclusiveMax=None,
+                        minLength=None,
+                        maxLength=None,
+                        pattern=None,
+                        namespace='::test_namespace',
+                        prefix='Parameter',
+                    ),
+                ),
+                indirect=False,
+                self_ref=False,
+                cpp_name=None,
+            )
+        },
         schemas={
             '::test_namespace::Parameter': cpp_types.CppPrimitiveType(
                 raw_cpp_type=type_name.TypeName('int'),

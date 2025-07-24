@@ -1,0 +1,10 @@
+{% import "utils.inc.jinja" as utils %}
+{{- utils.do_not_edit() }}
+
+#pragma once
+
+{% for dep in dependency %}
+#include <{{ dep }}.structs.usrv.pb.hpp>
+{% endfor %}
+
+// I AM HPP

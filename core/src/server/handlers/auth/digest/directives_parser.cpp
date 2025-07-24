@@ -78,7 +78,7 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
         fmt::format("Result is: '{}'", auth_header_value.substr(0, kDigestWord.size()))
     );
     auto directives_str = auth_header_value.substr(kDigestWord.size() + 1);
-    for (char delimiter : directives_str) {
+    for (const char delimiter : directives_str) {
         switch (state) {
             case State::kStateSpace:
                 if (std::isalnum(delimiter) || delimiter == '_' || delimiter == '-') {

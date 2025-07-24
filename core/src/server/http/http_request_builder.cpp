@@ -143,7 +143,7 @@ std::shared_ptr<HttpRequest> HttpRequestBuilder::Build() {
 void HttpRequestBuilder::ParseCookies() {
     const std::string& cookie = request_->GetHeader(USERVER_NAMESPACE::http::headers::kCookie);
     const char* data = cookie.data();
-    size_t size = cookie.size();
+    const size_t size = cookie.size();
     const char* end = data + size;
     const char* key_begin = data;
     const char* key_end = data;

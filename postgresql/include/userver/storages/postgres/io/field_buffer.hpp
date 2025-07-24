@@ -101,7 +101,7 @@ void WriteRawBinary(
         } else {
             io::WriteBuffer(types, buffer, value);
         }
-        Integer bytes = buffer.size() - size_before;
+        const Integer bytes = buffer.size() - size_before;
         BufferWriter(bytes)(buffer.begin() + len_start);
     }
 }

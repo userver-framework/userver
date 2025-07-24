@@ -47,10 +47,6 @@ public:
 
     void CheckShardIdx(size_t shard_idx) const;
 
-    virtual const std::string& GetAnyKeyForShard(size_t shard_idx) const = 0;
-
-    virtual std::shared_ptr<Client> GetClientForShard(size_t shard_idx) = 0;
-
     virtual void WaitConnectedOnce(RedisWaitConnected wait_connected) = 0;
 
     // redis commands:
@@ -221,6 +217,10 @@ public:
         const CommandControl& command_control
     ) = 0;
 
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Hscan usage
     virtual RequestHscan Hscan(std::string key, HscanOptions options, const CommandControl& command_control) = 0;
 
     virtual RequestHset
@@ -292,11 +292,20 @@ public:
 
     virtual RequestRpushx Rpushx(std::string key, std::string element, const CommandControl& command_control) = 0;
 
+    /// @brief Add member to a set of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Sadd and Sscan usage
     virtual RequestSadd Sadd(std::string key, std::string member, const CommandControl& command_control) = 0;
 
+    /// @overload
     virtual RequestSadd
     Sadd(std::string key, std::vector<std::string> members, const CommandControl& command_control) = 0;
 
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Scan usage
     virtual RequestScan Scan(size_t shard, ScanOptions options, const CommandControl& command_control) = 0;
 
     virtual RequestScard Scard(std::string key, const CommandControl& command_control) = 0;
@@ -325,6 +334,16 @@ public:
         const CommandControl& command_control
     ) = 0;
 
+    virtual RequestSetIfNotExistOrGet
+    SetIfNotExistOrGet(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
     virtual RequestSetex
     Setex(std::string key, std::chrono::seconds seconds, std::string value, const CommandControl& command_control) = 0;
 
@@ -342,6 +361,10 @@ public:
     virtual RequestSrem
     Srem(std::string key, std::vector<std::string> members, const CommandControl& command_control) = 0;
 
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Sadd and Sscan usage
     virtual RequestSscan Sscan(std::string key, SscanOptions options, const CommandControl& command_control) = 0;
 
     virtual RequestStrlen Strlen(std::string key, const CommandControl& command_control) = 0;
@@ -454,6 +477,10 @@ public:
     virtual RequestZremrangebyscore
     Zremrangebyscore(std::string key, std::string min, std::string max, const CommandControl& command_control) = 0;
 
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Zscan usage
     virtual RequestZscan Zscan(std::string key, ZscanOptions options, const CommandControl& command_control) = 0;
 
     virtual RequestZscore Zscore(std::string key, std::string member, const CommandControl& command_control) = 0;

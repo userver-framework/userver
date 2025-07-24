@@ -4,6 +4,7 @@
 #include <utility>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/utils/async.hpp>
@@ -143,6 +144,54 @@ UTEST(TaskLocalVariable, DestructionOrder) {
         // different sets of variables
         EXPECT_EQ(destruction_order, "yx");
     }
+}
+
+namespace {
+
+class WaitingInDestructorVariable final {
+public:
+    explicit WaitingInDestructorVariable(engine::SingleUseEvent& event) : event_(event) {}
+
+    ~WaitingInDestructorVariable() { event_.WaitNonCancellable(); }
+
+private:
+    engine::SingleUseEvent& event_;
+};
+
+engine::TaskLocalVariable<std::optional<WaitingInDestructorVariable>> kWaitingInDestructorVariable;
+
+}  // namespace
+
+UTEST(TaskLocalVariable, WaitInDestructor) {
+    engine::SingleUseEvent event;
+    auto task = engine::AsyncNoSpan([&] { kWaitingInDestructorVariable->emplace(event); });
+
+    engine::SleepFor(std::chrono::milliseconds{100});
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_EQ(task.GetState(), engine::TaskBase::State::kSuspended);
+
+    event.Send();
+    task.Wait();
+    EXPECT_EQ(task.GetState(), engine::TaskBase::State::kCompleted);
+    UEXPECT_NO_THROW(task.Get());
+}
+
+UTEST(TaskLocalVariable, WaitInDestructorCancelled) {
+    engine::SingleUseEvent event;
+    auto task = engine::AsyncNoSpan([&] {
+        kWaitingInDestructorVariable->emplace(event);
+        engine::current_task::RequestCancel();
+        engine::current_task::CancellationPoint();
+    });
+
+    engine::SleepFor(std::chrono::milliseconds{100});
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_EQ(task.GetState(), engine::TaskBase::State::kSuspended);
+
+    event.Send();
+    task.Wait();
+    EXPECT_EQ(task.GetState(), engine::TaskBase::State::kCancelled);
+    UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
 }
 
 USERVER_NAMESPACE_END

@@ -65,18 +65,17 @@ Sentinel::Sentinel(
     const std::string& client_name,
     const Password& password,
     ConnectionSecurity connection_security,
-    ReadyChangeCallback ready_callback,
     dynamic_config::Source dynamic_config_source,
     KeyShardFactory key_shard_factory,
     CommandControl command_control,
     const testsuite::RedisControl& testsuite_redis_control,
-    ConnectionMode mode,
     std::size_t database_index
 )
     : shard_group_name_(shard_group_name),
       thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
-      testsuite_redis_control_(testsuite_redis_control) {
+      testsuite_redis_control_(testsuite_redis_control),
+      is_in_cluster_mode_(key_shard_factory.IsClusterStrategy()) {
     config_default_command_control_.Set(std::make_shared<CommandControl>(secdist_default_command_control_));
 
     if (!thread_pools_) {
@@ -90,7 +89,7 @@ Sentinel::Sentinel(
         "Database index other than 0 now supported in cluster and standalone modes"
     );
     sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-        if (key_shard_factory.IsClusterStrategy()) {
+        if (IsInClusterMode()) {
             impl_ = std::make_unique<ClusterSentinelImpl>(
                 *sentinel_thread_control_,
                 thread_pools_->GetRedisThreadPool(),
@@ -101,10 +100,8 @@ Sentinel::Sentinel(
                 client_name,
                 password,
                 connection_security,
-                std::move(ready_callback),
                 key_shard_factory(shards.size()),
-                dynamic_config_source,
-                mode
+                dynamic_config_source
             );
         } else {
             impl_ = std::make_unique<SentinelImpl>(
@@ -117,7 +114,6 @@ Sentinel::Sentinel(
                 client_name,
                 password,
                 connection_security,
-                std::move(ready_callback),
                 key_shard_factory(shards.size()),
                 dynamic_config_source,
                 database_index
@@ -126,10 +122,7 @@ Sentinel::Sentinel(
     });
 }
 
-Sentinel::~Sentinel() {
-    impl_.reset();
-    UASSERT(!impl_);
-}
+Sentinel::~Sentinel() { Stop(); }
 
 void Sentinel::Start() {
     sentinel_thread_control_->RunInEvLoopBlocking([this] { impl_->Start(); });
@@ -149,35 +142,6 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name,
-    KeyShardFactory key_shard_factory,
-    const CommandControl& command_control,
-    const testsuite::RedisControl& testsuite_redis_control
-) {
-    auto ready_callback = [](size_t shard, const std::string& shard_name, bool ready) {
-        LOG_INFO() << "redis: ready_callback:"
-                   << "  shard = " << shard << "  shard_name = " << shard_name
-                   << "  ready = " << (ready ? "true" : "false");
-    };
-    return CreateSentinel(
-        thread_pools,
-        settings,
-        std::move(shard_group_name),
-        dynamic_config_source,
-        client_name,
-        std::move(ready_callback),
-        std::move(key_shard_factory),
-        command_control,
-        testsuite_redis_control
-    );
-}
-
-std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
-    const std::shared_ptr<ThreadPools>& thread_pools,
-    const secdist::RedisSettings& settings,
-    std::string shard_group_name,
-    dynamic_config::Source dynamic_config_source,
-    const std::string& client_name,
-    Sentinel::ReadyChangeCallback ready_callback,
     KeyShardFactory key_shard_factory,
     const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control
@@ -216,12 +180,10 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
             client_name,
             password,
             settings.secure_connection,
-            std::move(ready_callback),
             dynamic_config_source,
             std::move(key_shard_factory),
             command_control,
             testsuite_redis_control,
-            ConnectionMode::kCommands,
             settings.database_index
         );
         client->Start();
@@ -230,12 +192,9 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     return client;
 }
 
-void Sentinel::Restart() {
-    sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-        impl_->Stop();
-        impl_->Init();
-        impl_->Start();
-    });
+void Sentinel::Stop() noexcept {
+    impl_.reset();
+    UASSERT(!impl_);
 }
 
 std::unordered_map<ServerId, size_t, ServerIdHasher>
@@ -251,9 +210,9 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
         master = true;
     }
     if (command->control.force_shard_idx) {
-        if (impl_->IsInClusterMode())
-            throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
+        if (IsInClusterMode()) throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
         if (shard != *command->control.force_shard_idx)
+
             throw InvalidArgumentException(
                 "shard index in argument differs from force_shard_idx in "
                 "command_control (" +
@@ -279,8 +238,7 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key, bool mas
     }
     size_t shard = 0;
     if (command->control.force_shard_idx) {
-        if (impl_->IsInClusterMode())
-            throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
+        if (IsInClusterMode()) throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
         shard = *command->control.force_shard_idx;
     } else {
         shard = impl_->ShardByKey(key);
@@ -291,16 +249,6 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key, bool mas
         impl_->AsyncCommand(
             {command, master, shard, std::chrono::steady_clock::now()}, SentinelImplBase::kDefaultPrevInstanceIdx
         );
-    } catch (const std::exception& ex) {
-        LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
-    }
-}
-
-void Sentinel::AsyncCommandToSentinel(CommandPtr command) {
-    if (!impl_) return;
-    ThrowIfCancelled();
-    try {
-        impl_->AsyncCommandToSentinel(std::move(command));
     } catch (const std::exception& ex) {
         LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
     }
@@ -326,8 +274,6 @@ size_t Sentinel::ShardByKey(const std::string& key) const { return impl_->ShardB
 
 size_t Sentinel::ShardsCount() const { return impl_->ShardsCount(); }
 
-bool Sentinel::IsInClusterMode() const { return impl_->IsInClusterMode(); }
-
 void Sentinel::CheckShardIdx(size_t shard_idx) const { CheckShardIdx(shard_idx, ShardsCount()); }
 
 void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
@@ -337,8 +283,6 @@ void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
         );
     }
 }
-
-const std::string& Sentinel::GetAnyKeyForShard(size_t shard_idx) const { return impl_->GetAnyKeyForShard(shard_idx); }
 
 SentinelStatistics Sentinel::GetStatistics(const MetricsSettings& settings) const {
     return impl_->GetStatistics(settings);
@@ -354,17 +298,6 @@ void Sentinel::SetReplicationMonitoringSettings(const ReplicationMonitoringSetti
 
 void Sentinel::SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
     impl_->SetRetryBudgetSettings(settings);
-}
-
-std::vector<Request>
-Sentinel::MakeRequests(CmdArgs&& args, bool master, const CommandControl& command_control, size_t replies_to_skip) {
-    std::vector<Request> rslt;
-
-    for (size_t shard = 0; shard < impl_->ShardsCount(); ++shard) {
-        rslt.push_back(MakeRequest(args.Clone(), shard, master, command_control, replies_to_skip));
-    }
-
-    return rslt;
 }
 
 void Sentinel::OnSsubscribeReply(
@@ -434,13 +367,6 @@ void Sentinel::SetConnectionInfo(std::vector<ConnectionInfo> info_array) {
     for (const auto& ci : info_array) cii.emplace_back(ci);
 
     impl_->SetConnectionInfo(cii);
-}
-
-std::vector<std::shared_ptr<const Shard>> Sentinel::GetMasterShards() const { return impl_->GetMasterShards(); }
-
-void Sentinel::CheckRenameParams(const std::string& key, const std::string& newkey) const {
-    if (ShardByKey(key) != ShardByKey(newkey))
-        throw InvalidArgumentException("key and newkey must have the same shard key");
 }
 
 }  // namespace storages::redis::impl

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp
+/// @brief @copybrief ugrpc::server::middlewares::deadline_propagation::Middleware
+
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/middlewares/congestion_control/component.hpp>
 

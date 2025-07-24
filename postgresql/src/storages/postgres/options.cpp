@@ -69,10 +69,10 @@ OptionalCommandControl GetHandlerOptionalCommandControl(
 }
 
 OptionalCommandControl
-GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, const std::string& query_name) {
-    auto it = map.find(query_name);
-    if (it == map.end()) return std::nullopt;
-    return it->second;
+GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, std::string_view query_name) {
+    const auto* value = utils::impl::FindTransparentOrNullptr(map, query_name);
+    if (!value) return std::nullopt;
+    return *value;
 }
 
 }  // namespace storages::postgres

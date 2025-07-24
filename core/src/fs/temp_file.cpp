@@ -30,7 +30,7 @@ TempFile::Create(std::string_view parent_path, std::string_view name_prefix, eng
 TempFile::~TempFile() { std::move(*this).Remove(); }
 
 TempFile TempFile::Adopt(std::string path, engine::TaskProcessor& fs_task_processor) {
-    return {fs_task_processor, blocking::TempFile::Adopt(path)};
+    return {fs_task_processor, blocking::TempFile::Adopt(std::move(path))};
 }
 
 const std::string& TempFile::GetPath() const { return temp_file_.GetPath(); }

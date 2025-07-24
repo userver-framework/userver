@@ -5,73 +5,35 @@
 
 1\. @ref ways_to_get_userver "Get userver".
 
-2\. Create new service with the following command (if you installed userver system-wide):
+2\. Create a new service project with the following command:
 
 ```shell
-userver-create-service myservice
+userver-create-service [--grpc] [--mongo] [--postgresql] myservice
 ```
 
-If you installed userver via CPM or as a git repository, call script from userver directory:
-```shell
-userver/scripts/userver-create-service myservice
-```
+This will create `myservice` dir, relative to the current working directory.
 
-If you want to enable gRPC, postgresql, or mongo in your service, use the following flags:
+If the command above is not found, see @ref service_templates.
 
-```shell
-userver-create-service --grpc --mongo --postgresql myservice
-```
+To use additional userver libraries later, see @ref service_templates_libraries.
 
-3\. Build and test your service. Run in the service repo root:
+3\. Build and test your service. Run in the service project root:
 
 ```shell
-make build-release && \
-make test-release
+make build-debug && \
+make test-debug
 ```
+If the tests fail and you see messages like "No XXX installation found. Install it...", then the database server is not
+installed in the environment you are running tests. Do not hesitate to install the missing database servers, like
+PostgreSQL, MongoDB and others.
 
-Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
-
-
-## Quick start for beginners (old way)
-
-1\. Press the "Use this template" button at the top right of the
-[GitHub template page](https://github.com/userver-framework/service_template).
-
-@warning [service_template](https://github.com/userver-framework/service_template) has no databases and uses HTTP.
-If you need gRPC or a database, please use other @ref service_templates "templates".
-
-2\. Clone the service:
+4\. To get a feel for how the service runs without needing to set up full production environment, run:
 
 ```shell
-git clone https://github.com/your-username/your-service.git && cd your-service
+myservice$ make start-debug
 ```
 
-3\. @ref ways_to_get_userver "Get userver".
-
-4\. Build and start your service. Run in the service repo root:
-
-```shell
-make build-release && \
-make start-release
-```
-
-During the build, you can make a coffee break until approximately the following output appears:
-
-```shell
-====================================================================================================
-Started service at http://localhost:8080/, configured monitor URL is http://localhost:-1/
-====================================================================================================
-
-PASSED
-[service-runner] Service started, use C-c to terminate
-INFO     <userver> Server is started
-...
-DEBUG    <userver> Accepted connection #2/32768
-DEBUG    <userver> Incoming connection from ::ffff:127.0.0.1, fd 43
-
-```
-
-5\. Try to send a request.
+Wait until the service starts, then try to send a request.
 
 ```shell
 curl http://127.0.0.1:8080/hello?name=userver
@@ -84,12 +46,26 @@ The answer should be something like this:
 Hello, userver!
 ```
 
+5\. (Optional) Add the service project to Git:
+
+```shell
+myservice$ git init && git add . && git commit -m "Initial commit"
+```
+
+Push it to GitHub
+(see [its documentation](https://docs.github.com/en/migrations/importing-source-code/using-the-command-line-to-import-source-code/adding-locally-hosted-code-to-github#adding-a-local-repository-to-github-using-git)).
+
+There are preconfigured GitHub CI checks that run ctest tests.
+
 Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
 
-@anchor service_templates
-## Service templates for userver based services
+## Quick start for beginners (old way, pre userver 2.8)
 
-There are ready to use service templates at GitHub:
+@warning Service template repositories are deprecated, because possible sets of userver libraries to include cause
+an exponential growth in the number of wanted repositories. For userver 2.9 and later, use
+the @ref quick_start_for_beginners "service project generator script" instead.
+
+1\. Press the "Use this template" button at the top right of the appropriate service template repo page:
 
 | Link                                                             | Contains               |
 |------------------------------------------------------------------|------------------------|
@@ -98,12 +74,46 @@ There are ready to use service templates at GitHub:
 | https://github.com/userver-framework/pg_grpc_service_template    | HTTP, PostgreSQL, gRPC |
 | https://github.com/userver-framework/mongo_grpc_service_template | HTTP, MongoDB, gRPC    |
 
-To create a service:
+2\. Clone the service:
 
-1. Press the "Use this template" button at the top right of the GitHub template page
-2. Clone the service `git clone your-service-repo && cd your-service-repo`
-3. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name.
-4. Feel free to tweak, adjust or fully rewrite the source code of your service.
+```shell
+git clone https://github.com/your-username/your-service.git && cd your-service
+```
+
+3\. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name:
+
+```shell
+find . -not -path "./third_party/*" -not -path ".git/*" -not -path './build-*' -type f | xargs sed -i 's/service_template/YOUR_SERVICE_NAME/g'
+```
+
+4\. @ref ways_to_get_userver "Get userver".
+
+5\. Build and test the service, see steps 3-4 from the @ref quick_start_for_beginners "updated instruction above".
+
+@anchor service_templates
+## Service templates for userver based services
+
+To create a new service project, run:
+
+```shell
+userver-create-service [--grpc] [--mongo] [--postgresql] myservice
+```
+
+* Project directory will be `myservice`, relative to the current working directory;
+* service name will be the last segment of the path;
+* without feature flags, the service only has some stubs for HTTP handlers.
+
+If you use @ref devcontainers "Dev Containers", or if you use CPM to download userver,
+run this script to get `userver-create-service` command:
+
+@ref service-template/userver-create-service.sh
+
+If instead of installing userver you are planning to build userver as a subdirectory,
+call the script from userver directory:
+
+```shell
+path/to/userver/scripts/userver-create-service [--grpc] [--mongo] [--postgresql] myservice
+```
 
 You'll need to @ref ways_to_get_userver "get userver" before proceeding with local development.
 
@@ -155,7 +165,7 @@ then it should be added to `CMakePresets.json`:
 }
 ```
 
-If an option only configures local build (should NOT be commited to VCS and applied in CI),
+If an option only configures local build (should NOT be committed to VCS and applied in CI),
 then it should instead be added to `CMakeUserPresets.json`:
 
 * @ref service-template/CMakeUserPresets.json.example
@@ -204,24 +214,26 @@ Dev Containers is the easiest and least problematic way to get prebuilt userver 
    * [VSCode](https://code.visualstudio.com/docs/devcontainers/containers): `ms-vscode-remote.remote-containers`
    * [CLion](https://www.jetbrains.com/help/clion/connect-to-devcontainer.html): "Dev Containers" (**note:** beta)
 
-3. Open the service project. If CMake asks to configure, deny
+3. Open the service project
 
+   * See @ref service_templates on how to create a new service from template
+   * If CMake asks to configure, deny
    * For CLion, please use JetBrains Gateway to open the project, otherwise CLion gets confused
 
 4. Agree to reopen the project in a Dev Container
 
 5. The Docker container for development will automatically be downloaded (~6GB, may take a while), unpacked and run
-   using the config from
-   [.devcontainer](https://github.com/userver-framework/service_template/tree/develop/.devcontainer)
-   directory
+   using the config from `.devcontainer` directory
 
-6. When prompted, select `Debug` cmake preset
+6. On the CMake panel, `Configure > Select Preset > Debug > Do Configure`
 
-7. (Optional)
+7. Open any C++ file in the project, IntelliSense will think for a few seconds, then should start to work properly
+
+8. (Optional)
    [Share Git credentials](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials)
    with the container to perform VCS operations from the IDE
 
-8. You can configure, build, debug and run tests using either the IDE itself or `Makefile` (see the service's README.md)
+9. You can configure, build, debug and run tests using either the IDE itself or `Makefile` (see the service's README.md)
    using the IDE's integrated terminal
 
 ## Downloading packages using CPM
@@ -246,9 +258,7 @@ Some advice:
 ### Downloading userver using CPM
 
 userver itself can be downloaded and built using CPM.
-In fact, this is what
-[download_userver()](https://github.com/userver-framework/service_template/blob/develop/cmake/DownloadUserver.cmake)
-function does in @ref service_templates "service templates" by default.
+In fact, this is what `download_userver()` function does in @ref service_templates "service templates" by default.
 
 `download_userver()` just calls `CPMAddPackage` with some defaults, so you can pin userver `VERSION` or `GIT_TAG`
 for reproducible builds.
@@ -257,6 +267,10 @@ When acquiring userver via CPM, you first need to install build dependencies. Th
 
 * install @ref scripts/docs/en/userver/build/dependencies.md "build dependencies"
 * or use base image of @ref docker_with_ubuntu_22_04
+
+To use a @ref service_templates "service template" with CPM, run this script to get `userver-create-service` command:
+
+@ref service-template/userver-create-service.sh
 
 Make sure to @ref service_templates_presets "enable" the CMake options to build userver libraries you need,
 then link to those libraries.
@@ -272,9 +286,10 @@ You can install userver globally and then use it from anywhere with `find_packag
 Make sure to use the same build mode as for your service, otherwise subtle linkage issues will arise.
 
 @anchor userver_install_debian_package
-### Build and install Debian package
+### Building Debian package using Docker
 
-To build `libuserver-all-dev.deb` package run the following shell command:
+For Ubuntu 22.04 or Ubuntu 24.04, to build `libuserver-all-dev.deb` package using Docker,
+run the following shell command from directory where userver is located. For example, if userver is located in `~/userver` directory you need to run the script below in `~/` directory:
 
 ```shell
 docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
@@ -282,23 +297,47 @@ docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver 
    BUILD_OPTIONS="-DUSERVER_FEATURE_POSTGRESQL=1" ./scripts/build_and_install.sh
 ```
 
-Pass the @ref cmake_options "cmake options" inside `BUILD_OPTIONS`.
-Make sure to at least:
+Make sure to:
 
-1. enable the desired @ref userver_libraries "userver libraries";
-2. pass the required options for @ref scripts/docs/en/userver/build/dependencies.md "build dependencies", if any.
+1. replace the Docker image if appropriate;
+2. pass the @ref cmake_options "cmake options" inside `BUILD_OPTIONS`, in particular...
+3. enable the desired @ref userver_libraries "userver libraries";
+4. pass the required options for @ref scripts/docs/en/userver/build/dependencies.md "build dependencies", if any.
 
-And install the package with the following:
+Install the package with the following:
 
 ```shell
 sudo dpkg -i ./libuserver-all-dev*.deb
 ```
 
+### Building Debian package locally
+
+This way suits all Debian-based systems.
+To build `libuserver-all-dev.deb` package locally without Docker, first install build dependencies:
+
+@see @ref scripts/docs/en/userver/build/dependencies.md
+
+Then run the following shell command from userver directory:
+
+```shell
+BUILD_OPTIONS="-DUSERVER_FEATURE_POSTGRESQL=1" ./scripts/build_and_install.sh
+```
+
+Pass the @ref cmake_options "cmake options" inside `BUILD_OPTIONS`. Make sure to at least:
+
+1. enable the desired @ref userver_libraries "userver libraries";
+2. pass the required options for @ref scripts/docs/en/userver/build/dependencies.md "build dependencies", if any.
+
+Install the package with the following:
+
+```shell
+sudo dpkg -i ./libuserver-all-dev*.deb
+```
 
 ### Install with cmake --install
 
-@warning installing userver with cmake --install is NOT recommended due to update and uninstall issues.
-Please, @ref userver_install_debian_package "build and install Debian package" instead.
+@warning Installing userver with cmake --install is NOT recommended due to update and uninstall issues.
+For Debian-based systems, please @ref userver_install_debian_package "build and install Debian package" instead.
 
 To install userver build it with `USERVER_INSTALL=ON` flags in `Debug` and `Release` modes:
 
@@ -319,6 +358,9 @@ cmake --install build_release/
 ```
 
 @see @ref cmake_options
+
+@warning You should **never** delete the build directories when installing locally this way,
+otherwise it will be difficult to update or uninstall userver.
 
 
 ### Use userver in your projects
@@ -355,7 +397,7 @@ target_link_libraries(${PROJECT_NAME}-mysql_objs PUBLIC userver::mysql mariadbcl
 @anchor docker_with_ubuntu_22_04
 ## Docker with Ubuntu 22.04
 
-The Docker images provide a container with all the build dependencies preinstalled and 
+The Docker images provide a container with all the build dependencies preinstalled and
 with a proper setup of PPAs with databases, compilers and tools:
 
 | Image reference                                              | Contains                               |
@@ -421,7 +463,7 @@ userver/2.*
 ```
 
 Run `conan install .` to actually install the required package. For more information see
-[the official Conan documentation](https://docs.conan.io/2/tutorial/consuming_packages/build_simple_cmake_project.html). 
+[the official Conan documentation](https://docs.conan.io/2/tutorial/consuming_packages/build_simple_cmake_project.html).
 
 Link with userver in your `CMakeLists.txt` as usual:
 ```cmake
@@ -480,3 +522,4 @@ The resulting binary should be 2-15% faster than without PGO, depending on the c
 @htmlonly </div> @endhtmlonly
 
 @example service-template/CMakeUserPresets.json.example
+@example service-template/userver-create-service.sh

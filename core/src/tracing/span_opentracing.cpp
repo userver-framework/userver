@@ -7,6 +7,7 @@
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log_extra.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/trivial_map.hpp>
 
@@ -71,31 +72,29 @@ constexpr std::string_view kTags = "tags";
 }  // namespace
 
 void Span::Impl::LogOpenTracing() const {
-    if (!tracer_) {
+    auto tracer = Tracer::ReadTracer();
+
+    const auto& opentracing_logger = tracer->GetOptionalLogger();
+    if (!opentracing_logger) {
         return;
     }
 
-    auto logger = tracer_->GetOptionalLogger();
-    if (logger) {
-        const impl::DetachLocalSpansScope ignore_local_span;
-        logging::LogHelper lh(*logger, log_level_, logging::LogClass::kTrace);
-        DoLogOpenTracing(lh.GetTagWriter());
-    }
+    const impl::DetachLocalSpansScope ignore_local_span;
+    logging::LogHelper lh(*opentracing_logger, log_level_, logging::LogClass::kTrace);
+    DoLogOpenTracing(*tracer, lh.GetTagWriter());
 }
 
-void Span::Impl::DoLogOpenTracing(logging::impl::TagWriter writer) const {
+void Span::Impl::DoLogOpenTracing(const Tracer& tracer, logging::impl::TagWriter writer) const {
     const auto steady_now = std::chrono::steady_clock::now();
     const auto duration = steady_now - start_steady_time_;
     const auto duration_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
     auto start_time =
         std::chrono::duration_cast<std::chrono::microseconds>(start_system_time_.time_since_epoch()).count();
 
-    if (tracer_) {
-        writer.PutTag(jaeger::kServiceName, tracer_->GetServiceName());
-    }
-    writer.PutTag(jaeger::kTraceId, trace_id_);
-    writer.PutTag(jaeger::kParentId, parent_id_);
-    writer.PutTag(jaeger::kSpanId, span_id_);
+    writer.PutTag(jaeger::kServiceName, tracer.GetServiceName());
+    writer.PutTag(jaeger::kTraceId, std::string{GetTraceId()});
+    writer.PutTag(jaeger::kParentId, std::string{GetParentId()});
+    writer.PutTag(jaeger::kSpanId, std::string{GetSpanId()});
     writer.PutTag(jaeger::kStartTime, start_time);
     writer.PutTag(jaeger::kStartTimeMillis, start_time / 1000);
     writer.PutTag(jaeger::kDuration, duration_microseconds);

@@ -50,7 +50,7 @@ StatementResultSet Transaction::DoExecute(const Query& query, impl::io::ParamsBi
     return StatementResultSet{
         (*connection_)
             ->ExecuteStatement(
-                query.GetStatement(),
+                query.GetStatementView(),
                 params,
                 /* TODO : deadline? */ deadline_,
                 std::nullopt

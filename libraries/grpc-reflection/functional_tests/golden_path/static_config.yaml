@@ -21,8 +21,7 @@ components_manager:
 
         # Common configuration for gRPC server
         grpc-server:
-            # The single listening unix socket for incoming RPCs
-            unix-socket-path: '/tmp/my_socket'
+            port: 8080
             completion-queue-count: 3
             service-defaults:
                 task-processor: main-task-processor

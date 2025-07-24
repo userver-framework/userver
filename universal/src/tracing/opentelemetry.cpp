@@ -3,6 +3,8 @@
 #include <vector>
 
 #include <fmt/format.h>
+
+#include <userver/utils/algo.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/text_light.hpp>
 
@@ -14,8 +16,6 @@ namespace {
 
 constexpr std::size_t kTraceParentSize = 55;
 constexpr std::size_t kVersionSize = 2;
-constexpr std::size_t kTraceIdSize = 32;
-constexpr std::size_t kSpanIdSize = 16;
 constexpr std::size_t kTraceFlagsSize = 2;
 
 constexpr char kDefaultVersion[] = "00";
@@ -51,8 +51,8 @@ utils::expected<TraceParentData, std::string> ExtractTraceParentData(std::string
 
     return TraceParentData{
         std::string{version},
-        std::string{trace_id},
-        std::string{span_id},
+        utils::SmallString<kTraceIdSize>{trace_id},
+        utils::SmallString<kSpanIdSize>{span_id},
         std::string{trace_flags},
     };
 }
@@ -80,7 +80,7 @@ BuildTraceParentHeader(std::string_view trace_id, std::string_view span_id, std:
         return utils::unexpected(fmt::format("Invalid trace_flags value: '{}' is not a hex", trace_flags));
     }
 
-    return fmt::format("{}-{}-{}-{}", kDefaultVersion, trace_id, span_id, trace_flags);
+    return utils::StrCat(kDefaultVersion, "-", trace_id, "-", span_id, "-", trace_flags);
 }
 
 }  // namespace tracing::opentelemetry

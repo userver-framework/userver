@@ -59,7 +59,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentC
       disable_pool_stats_(component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
           GetClientSettings(component_config, context),
-          context.GetTaskProcessor(component_config["fs-task-processor"].As<std::string>()),
+          GetFsTaskProcessor(component_config, context),
           FindPlugins(component_config["plugins"].As<std::vector<std::string>>(std::vector<std::string>()), context)
       ) {
     ValidateCurlVersion();
@@ -162,6 +162,7 @@ properties:
     fs-task-processor:
         type: string
         description: task processor to run blocking HTTP related calls, like DNS resolving or hosts reading
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
     destination-metrics-auto-max-size:
         type: integer
         description: set max number of automatically created destination metrics

@@ -34,7 +34,7 @@ void Middleware::PostRecvMessage(
     if (!result.ok()) {
         // Usually that means some CEL expression in a proto file can not be
         // parsed or evaluated.
-        LOG_ERROR() << "Validator internal error (check response constraints in the proto file)";
+        LOG_ERROR() << "Validator internal error (check response constraints in the proto file): " << result.status();
         throw ValidatorError(context.GetCallName());
     } else if (result.value().violations_size() > 0) {
         for (const auto& violation : result.value().violations()) {

@@ -2,12 +2,13 @@
 #pragma once
 
 #include <userver/components/component_base.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include <client/test/client_impl.hpp>
 
 namespace clients::test {
 
-class Component final : public USERVER_NAMESPACE::components::ComponentBase {
+class Component final : public USERVER_NAMESPACE::components::LoggableComponentBase {
 public:
     static constexpr std::string_view kName = "test-client";
 
@@ -17,6 +18,10 @@ public:
     );
 
     Client& GetClient();
+
+    static USERVER_NAMESPACE::yaml_config::Schema GetStaticConfigSchema() {
+        return ClientImpl::GetStaticConfigSchema();
+    }
 
 private:
     ClientImpl client_;

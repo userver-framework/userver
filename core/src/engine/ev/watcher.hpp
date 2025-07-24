@@ -201,7 +201,7 @@ auto Watcher<EvType>::EvLoopOpsCountingGuard() noexcept {
 
 template <typename EvType>
 void Watcher<EvType>::DoPerformAndRelease() noexcept {
-    utils::FastScopeGuard release_guard([this]() noexcept {
+    const utils::FastScopeGuard release_guard([this]() noexcept {
         // As long as pending_op_count_ != 0, Watcher owner will not destroy it
         // immediately, instead it will launch a synchronous Stop operation that
         // will be scheduled after the current one.

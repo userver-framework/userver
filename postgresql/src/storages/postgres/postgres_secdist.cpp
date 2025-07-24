@@ -26,7 +26,7 @@ DsnList DsnListFromJson(const formats::json::Value& elem) {
         if (!host_it->IsString()) {
             storages::secdist::ThrowInvalidSecdistType(*host_it, "a string");
         }
-        Dsn dsn{host_it->As<std::string>()};
+        const Dsn dsn{host_it->As<std::string>()};
         auto multihost = storages::postgres::SplitByHost(dsn);
         if (multihost.empty()) {
             throw storages::secdist::SecdistError(DsnMaskPassword(dsn) + " doesn't seem as a valid PostgreSQL Dsn");

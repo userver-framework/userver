@@ -29,11 +29,11 @@ components_manager:
             # See userver "dynamic config" docs for what configs exist.
             defaults:
                 HTTP_CLIENT_CONNECTION_POOL_SIZE: 1000
-                # postgres template on
+                # postgresql template on
                 POSTGRES_DEFAULT_COMMAND_CONTROL:
                     network_timeout_ms: 750
                     statement_timeout_ms: 500
-                # postgres template off
+                # postgresql template off
 
         testsuite-support: {}
 
@@ -63,7 +63,7 @@ components_manager:
             path: /hello                  # Registering handler by URL '/hello'.
             method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
-        # postgres template on
+        # postgresql template on
 
         handler-hello-postgres:          # Our postgres handler.
             path: /hello-postgres         # Registering handler by URL '/hello-postgres'.
@@ -77,7 +77,7 @@ components_manager:
             dns_resolver: async
             sync-start: true
             connlimit_mode: manual
-        # postgres template off
+        # postgresql template off
         # mongo template on
 
         handler-hello-mongo:             # Our mongo handler.

@@ -24,7 +24,10 @@ class ConfigHelper:
 
     def get_updated_since(self, config, timestamp):
         updates = self.changelog.get_updated_since(
-            config.get_values_unsafe(),
+            dynamic_config._create_config_dict(
+                config.get_values_unsafe(),
+                config.get_kill_switches_disabled_unsafe(),
+            ),
             timestamp,
         )
         return updates.timestamp, updates
@@ -135,3 +138,36 @@ def test_set_twice(config_helper):
         timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {'FOO': 1}
         assert updates.removed == []
+
+
+def test_switching_to_static_default(config_helper):
+    helper = config_helper(defaults={'FOO': 1})
+
+    timestamp = ''
+
+    with helper.new_config() as config:
+        config.switch_to_static_default('FOO')
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 1}
+        assert updates.kill_switches_disabled == ['FOO']
+
+        config.switch_to_dynamic_value('FOO')
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 1}
+        assert updates.kill_switches_disabled == []
+
+    with helper.new_config() as config:
+        config.set(FOO=2)
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 2}
+        assert updates.kill_switches_disabled == []
+
+        config.switch_to_static_default('FOO')
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 2}
+        assert updates.kill_switches_disabled == ['FOO']
+
+        config.set(FOO=3)
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 3}
+        assert updates.kill_switches_disabled == []

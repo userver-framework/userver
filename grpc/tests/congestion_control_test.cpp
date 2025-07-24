@@ -25,9 +25,33 @@ public:
 class CongestionControlTest : public ugrpc::tests::ServiceFixtureBase {
 protected:
     CongestionControlTest() {
+        std::shared_ptr<utils::TokenBucket> rate_limit =
+            std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
+        rate_limit->SetMaxSize(0);
         auto congestion_control_middleware =
-            std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>();
-        congestion_control_middleware->SetLimit(0);
+            std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
+                ugrpc::server::middlewares::congestion_control::Settings{}, rate_limit
+            );
+        SetServerMiddlewares({congestion_control_middleware});
+
+        RegisterService(service_);
+        StartServer();
+    }
+
+private:
+    UnitTestService service_;
+};
+
+class CongestionControlCustomCodeTest : public ugrpc::tests::ServiceFixtureBase {
+protected:
+    CongestionControlCustomCodeTest() {
+        std::shared_ptr<utils::TokenBucket> rate_limit =
+            std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
+        rate_limit->SetMaxSize(0);
+        auto congestion_control_middleware =
+            std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
+                ugrpc::server::middlewares::congestion_control::Settings{grpc::StatusCode::INTERNAL}, rate_limit
+            );
         SetServerMiddlewares({congestion_control_middleware});
 
         RegisterService(service_);
@@ -49,7 +73,23 @@ UTEST_F(CongestionControlTest, Basic) {
 
     UEXPECT_THROW(future.Get(), ugrpc::client::ResourceExhaustedError);
 
-    const auto& metadata = future.GetCall().GetContext().GetServerInitialMetadata();
+    const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+    ASSERT_EQ(
+        ugrpc::impl::kCongestionControlRatelimitReason,
+        utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)
+    );
+}
+
+UTEST_F(CongestionControlCustomCodeTest, CustomCode) {
+    const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+    auto future = client.AsyncSayHello(out);
+
+    UEXPECT_THROW(future.Get(), ugrpc::client::InternalError);
+
+    const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
     ASSERT_EQ(
         ugrpc::impl::kCongestionControlRatelimitReason,
         utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)

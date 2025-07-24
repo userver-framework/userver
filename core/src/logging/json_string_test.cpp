@@ -21,23 +21,23 @@ TEST(JsonString, ConstructFromJson) {
       }
     })"_json;
 
-    logging::JsonString json_string(json);
+    const logging::JsonString json_string(json);
 
     EXPECT_EQ(json_string.GetView(), R"({"a":"foo","b":{"c":"d","e":[1,2]}})");
 }
 
 TEST(JsonString, ConstructFromString) {
-    std::string json = R"({"a":"foo",
+    const std::string json = R"({"a":"foo",
 "b":{"c":"d","e":
 [1,2]}})";
 
-    logging::JsonString json_string(json);
+    const logging::JsonString json_string(json);
 
     EXPECT_EQ(json_string.GetView(), R"({"a":"foo","b":{"c":"d","e":[1,2]}})");
 }
 
 TEST(JsonString, ConstructNull) {
-    logging::JsonString json_string;
+    const logging::JsonString json_string;
 
     EXPECT_EQ(json_string.GetView(), R"(null)");
 }

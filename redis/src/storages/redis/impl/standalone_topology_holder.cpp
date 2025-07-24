@@ -28,6 +28,8 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
 
+StandaloneTopologyHolder::~StandaloneTopologyHolder() { Stop(); }
+
 void StandaloneTopologyHolder::Init() {}
 
 void StandaloneTopologyHolder::Start() {
@@ -36,6 +38,12 @@ void StandaloneTopologyHolder::Start() {
 }
 
 void StandaloneTopologyHolder::Stop() {
+    // prevent concurrent CreateNode() calls
+    create_node_watch_.Stop();
+
+    signal_node_state_change_.disconnect_all_slots();
+    signal_topology_changed_.disconnect_all_slots();
+
     node_.Cleanup();
     topology_.Cleanup();
 }
@@ -122,7 +130,7 @@ void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInf
     LOG_DEBUG() << "Update connection info to " << new_conn.Fulltext();
 
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         conn_to_create_ = new_conn;
         is_nodes_received_.store(false);
     }
@@ -174,15 +182,10 @@ void StandaloneTopologyHolder::CreateNode() {
 
         auto& host_port = conn_to_create_.Fulltext();
         auto redis_connection = CreateRedisInstance(conn_to_create_);
-        redis_connection->signal_state_change.connect([host_port,
-                                                       topology_holder_wp = weak_from_this()](redis::RedisState state) {
-            auto topology_holder = topology_holder_wp.lock();
-            if (!topology_holder) {
-                return;
-            }
-            topology_holder->GetSignalNodeStateChanged()(host_port, state);
-            { std::lock_guard lock{topology_holder->mutex_}; }
-            topology_holder->cv_.NotifyAll();
+        redis_connection->signal_state_change.connect([host_port, this](redis::RedisState state) {
+            GetSignalNodeStateChanged()(host_port, state);
+            { const std::lock_guard lock{mutex_}; }
+            cv_.NotifyAll();
         });
 
         NodesStorage nodes;
@@ -213,7 +216,7 @@ Password StandaloneTopologyHolder::GetPassword() {
 }
 
 std::string StandaloneTopologyHolder::GetReadinessInfo() const {
-    return fmt::format("Nodes received: {}.", is_nodes_received_.load());
+    return fmt::format("Nodes config parsed: {}.", is_nodes_received_.load());
 }
 
 }  // namespace storages::redis::impl

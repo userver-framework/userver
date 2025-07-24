@@ -83,7 +83,7 @@ struct AddressNetworkBuffer : IpBufferFormatterBase<T> {
     void operator()(const UserTypes& types, Buffer& buffer) {
         using Address = typename T::BytesType;
         constexpr bool is_address_v4 = std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4>;
-        typename BaseType::template IpFormatterInfo<Address> info{
+        const typename BaseType::template IpFormatterInfo<Address> info{
             /* .address = */ this->value.GetBytes(),
             /* .address_family = */ is_address_v4 ? kPgsqlAfInet : kPgsqlAfInet6,
             /* .prefix_length = */
@@ -108,7 +108,7 @@ struct NetworkBufferFormatter : IpBufferFormatterBase<T> {
                 "method to conversation."
             );
         }
-        typename BaseType::template IpFormatterInfo<Address> info{
+        const typename BaseType::template IpFormatterInfo<Address> info{
             /* .address = */ canonical_network.GetAddress().GetBytes(),
             /* .address_family = */
             std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV4> ? kPgsqlAfInet : kPgsqlAfInet6,
@@ -272,7 +272,7 @@ struct BufferFormatter<InetNetwork> : detail::IpBufferFormatterBase<InetNetwork>
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) {
         using Address = std::vector<unsigned char>;
-        typename BaseType::template IpFormatterInfo<Address> info{
+        const typename BaseType::template IpFormatterInfo<Address> info{
             /* .address = */ this->value.GetBytes(),
             /* .address_family = */
             (this->value.GetAddressFamily() == InetNetwork::AddressFamily::IPv4) ? detail::kPgsqlAfInet

@@ -26,7 +26,7 @@ void GetRedisKey(const std::string& key, size_t* key_start, size_t* key_len) {
     // see https://redis.io/topics/cluster-spec
 
     const char* str = key.data();
-    size_t len = key.size();
+    const size_t len = key.size();
     size_t start = 0;  // start-end indexes
     size_t end = 0;    // of '{' and '}'
 
@@ -87,7 +87,7 @@ size_t KeyShardTaximeterCrc32::ShardByKey(const std::string& key) const {
 size_t KeyShardGpsStorageDriver::ShardByKey(const std::string& key) const {
     const auto path = Parse(key);
     const auto& driver_id = path.value_or(key);
-    boost::crc_32_type crc{};
+    const boost::crc_32_type crc{};
     return boost::for_each(driver_id, crc)() % shard_count_;
 }
 

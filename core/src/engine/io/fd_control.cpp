@@ -20,7 +20,7 @@ namespace engine::io::impl {
 namespace {
 
 int SetNonblock(int fd) {
-    int oldflags =
+    const int oldflags =
         utils::CheckSyscallCustomException<IoSystemError>(::fcntl(fd, F_GETFL), "getting file status flags, fd={}", fd);
     if (!(oldflags & O_NONBLOCK)) {
         utils::CheckSyscallCustomException<IoSystemError>(
@@ -31,7 +31,7 @@ int SetNonblock(int fd) {
 }
 
 int SetCloexec(int fd) {
-    int oldflags =
+    const int oldflags =
         utils::CheckSyscallCustomException<IoSystemError>(::fcntl(fd, F_GETFD), "getting file status flags, fd={}", fd);
     if (!(oldflags & FD_CLOEXEC)) {
         utils::CheckSyscallCustomException<IoSystemError>(
@@ -90,7 +90,7 @@ void FdControl::Close() {
     const auto fd = Fd();
     if (::close(fd) == -1) {
         const auto error_code = errno;
-        std::error_code ec(error_code, std::system_category());
+        const std::error_code ec(error_code, std::system_category());
         UASSERT_MSG(!error_code, "Failed to close fd=" + std::to_string(fd));
         LOG_ERROR() << "Cannot close fd " << fd << ": " << ec.message();
     }

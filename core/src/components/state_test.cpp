@@ -171,6 +171,7 @@ components_manager:
   event_thread_pool:
     threads: 1
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   task_processors:
     main-task-processor:
       worker_threads: 1

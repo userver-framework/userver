@@ -6,9 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace middlewares::impl {
 
-MiddlewarePipelineConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<MiddlewarePipelineConfig>) {
-    MiddlewarePipelineConfig config;
-    config.middlewares = value["middlewares"].As<std::unordered_map<std::string, BaseMiddlewareConfig>>({});
+MiddlewaresConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<MiddlewaresConfig>) {
+    MiddlewaresConfig config;
+    config.middlewares = value["middlewares"].As<decltype(config.middlewares)>({});
     return config;
 }
 

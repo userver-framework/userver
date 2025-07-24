@@ -182,7 +182,7 @@ public:
 // Tests
 UTEST(Stuff, DefaultConfig) {
     MyHelper(dynamic_config::GetDefaultSnapshot());
-    MyClient client{dynamic_config::GetDefaultSource()};
+    const MyClient client{dynamic_config::GetDefaultSource()};
 }
 
 UTEST(Stuff, CustomConfig) {
@@ -191,7 +191,7 @@ UTEST(Stuff, CustomConfig) {
         {kIntConfig, 5},
     });
     MyHelper(config_storage.GetSnapshot());
-    MyClient client{config_storage.GetSource()};
+    const MyClient client{config_storage.GetSource()};
 }
 /// [Sample StorageMock defaults]
 

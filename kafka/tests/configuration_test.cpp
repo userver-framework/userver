@@ -223,7 +223,7 @@ UTEST_F(ConfigurationTest, ConsumerResolveGroupId) {
     consumer_configuration.group_id = "test-group-{pod_name}";
     consumer_configuration.env_pod_name = "ENVIRONMENT_VARIABLE_NAME";
 
-    engine::subprocess::EnvironmentVariablesScope scope{};
+    const engine::subprocess::EnvironmentVariablesScope scope{};
     engine::subprocess::SetEnvironmentVariable(
         "ENVIRONMENT_VARIABLE_NAME", "pod-example-com", engine::subprocess::Overwrite::kAllowed
     );

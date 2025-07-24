@@ -32,7 +32,7 @@ void InterruptibleSleepUntil(Deadline deadline) {
 }
 
 void SleepUntil(Deadline deadline) {
-    TaskCancellationBlocker block_cancel;
+    const TaskCancellationBlocker block_cancel;
     InterruptibleSleepUntil(deadline);
 }
 

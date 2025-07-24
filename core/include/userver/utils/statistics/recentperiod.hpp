@@ -65,23 +65,23 @@ public:
         }
 
         Result result{};
-        Duration now = Timer::now().time_since_epoch();
-        Duration current_epoch = GetEpochForDuration(now);
-        Duration start_epoch = current_epoch - duration;
-        Duration first_epoch_duration = now - current_epoch;
+        const Duration now = Timer::now().time_since_epoch();
+        const Duration current_epoch = GetEpochForDuration(now);
+        const Duration start_epoch = current_epoch - duration;
+        const Duration first_epoch_duration = now - current_epoch;
         std::size_t index = epoch_index_.load();
 
         for (std::size_t i = 0; i < items_.size(); i++, index = (index + items_.size() - 1) % items_.size()) {
-            Duration epoch = items_[index].epoch;
+            const Duration epoch = items_[index].epoch;
 
             if (epoch > current_epoch) continue;
             if (epoch == current_epoch && !with_current_epoch) continue;
             if (epoch < start_epoch) break;
 
             if constexpr (kUseAddFunction) {
-                Duration this_epoch_duration = (i == 0) ? first_epoch_duration : epoch_duration_;
+                const Duration this_epoch_duration = (i == 0) ? first_epoch_duration : epoch_duration_;
 
-                Duration before_this_epoch_duration = epoch - start_epoch;
+                const Duration before_this_epoch_duration = epoch - start_epoch;
                 result.Add(items_[index].counter, this_epoch_duration, before_this_epoch_duration);
             } else {
                 result += items_[index].counter;
@@ -106,13 +106,13 @@ public:
 private:
     size_t GetCurrentIndex() const {
         while (true) {
-            Duration now = Timer::now().time_since_epoch();
-            Duration epoch = GetEpochForDuration(now);
+            const Duration now = Timer::now().time_since_epoch();
+            const Duration epoch = GetEpochForDuration(now);
             std::size_t index = epoch_index_.load();
-            Duration bucket_epoch = items_[index].epoch.load();
+            const Duration bucket_epoch = items_[index].epoch.load();
 
             if (epoch != bucket_epoch) {
-                std::size_t new_index = (index + 1) % items_.size();
+                const std::size_t new_index = (index + 1) % items_.size();
 
                 if (epoch_index_.compare_exchange_weak(index, new_index)) {
                     items_[new_index].epoch = epoch;

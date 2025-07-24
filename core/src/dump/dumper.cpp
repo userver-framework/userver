@@ -302,7 +302,7 @@ void Dumper::Impl::PeriodicWriteTask() {
         }
 
         auto dump_data = dump_data_.Lock();
-        tracing::Span span(write_span_name_);
+        const tracing::Span span(write_span_name_);
 
         data_updated_signal_.Reset();
 
@@ -381,7 +381,7 @@ rcu::ReadablePtr<DynamicConfig> Dumper::Impl::ReadConfigForPeriodicTask() {
 void Dumper::Impl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     auto optional_patch = utils::FindOptional(config[::dynamic_config::USERVER_DUMPS].extra, Name());
     auto patch = std::move(optional_patch).value_or(ConfigPatch{});
-    DynamicConfig new_config{static_config_, std::move(patch)};
+    const DynamicConfig new_config{static_config_, std::move(patch)};
     const auto old_config = dynamic_config_.Read();
 
     dynamic_config_.Assign(new_config);
@@ -498,7 +498,8 @@ Dumper::Dumper(const Config& initial_config, const components::ComponentContext&
     : impl_(
           initial_config,
           CreateOperationsFactory(initial_config, context),
-          context.GetTaskProcessor(initial_config.fs_task_processor),
+          initial_config.fs_task_processor ? context.GetTaskProcessor(*initial_config.fs_task_processor)
+                                           : engine::current_task::GetBlockingTaskProcessor(),
           context.FindComponent<components::DynamicConfig>().GetSource(),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::TestsuiteSupport>().GetDumpControl(),

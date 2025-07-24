@@ -90,7 +90,7 @@ std::string ImplicitOptions::ExtractAllowedMethods(const std::string& path) cons
 const http::HandlerInfoIndex& ImplicitOptions::GetHandlerInfoIndex() const {
     if (handler_info_index_) return *handler_info_index_;
 
-    std::lock_guard lock(handler_info_index_mutex_);
+    const std::lock_guard lock(handler_info_index_mutex_);
 
     handler_info_index_ = &server_.GetHttpRequestHandler(IsMonitor()).GetHandlerInfoIndex();
     return *handler_info_index_;

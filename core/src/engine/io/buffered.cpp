@@ -82,7 +82,7 @@ std::string BufferedReader::ReadUntil(utils::function_ref<bool(int) const> pred,
 }
 
 int BufferedReader::Getc(Deadline deadline) {
-    int result = Peek(deadline);
+    const int result = Peek(deadline);
     if (result != EOF) buffer_->ReportRead(1);
     return result;
 }

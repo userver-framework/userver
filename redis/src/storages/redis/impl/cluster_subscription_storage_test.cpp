@@ -77,7 +77,8 @@ public:
             storages::redis::ReplyData reply_data(storages::redis::ReplyData::Array{
                 storages::redis::ReplyData(command), storages::redis::ReplyData(channel), storages::redis::ReplyData(1)}
             );
-            storages::redis::ReplyPtr reply = std::make_shared<storages::redis::Reply>(command, std::move(reply_data));
+            const storages::redis::ReplyPtr reply =
+                std::make_shared<storages::redis::Reply>(command, std::move(reply_data));
             reply->server_id = server_ids[0];
             cmd->callback({}, reply);
         }

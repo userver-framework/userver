@@ -12,7 +12,7 @@ namespace components {
 SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       with_nginx_(config["with-nginx"].As<bool>(false)),
-      fs_task_processor_(context.GetTaskProcessor(config["fs-task-processor"].As<std::string>())),
+      fs_task_processor_(GetFsTaskProcessor(config, context)),
       periodic_("system_statistics_collector", {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}}, [this] {
           ProcessTimer();
       }) {

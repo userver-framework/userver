@@ -49,7 +49,7 @@ std::ptrdiff_t Field::Distance(const Field& rhs) const {
 Field& Field::Advance(std::ptrdiff_t distance) {
     if (IsValid()) {
         // movement is defined only for valid iterator
-        std::ptrdiff_t target = distance + field_index_;
+        const std::ptrdiff_t target = distance + field_index_;
         if (target < 0 || target > static_cast<std::ptrdiff_t>(res_->FieldCount())) {
             // Invalidate the iterator
             field_index_ = ResultSet::npos;

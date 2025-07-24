@@ -8,8 +8,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-EventBase::~EventBase() = default;
-
 AsyncMethodInvocation::~AsyncMethodInvocation() { WaitWhileBusy(); }
 
 void AsyncMethodInvocation::Notify(bool ok) noexcept {
@@ -19,7 +17,7 @@ void AsyncMethodInvocation::Notify(bool ok) noexcept {
 
 bool AsyncMethodInvocation::IsBusy() const noexcept { return busy_; }
 
-void* AsyncMethodInvocation::GetTag() noexcept {
+void* AsyncMethodInvocation::GetCompletionTag() noexcept {
     UASSERT(!busy_);
     busy_ = true;
     return static_cast<EventBase*>(this);
@@ -58,8 +56,7 @@ bool AsyncMethodInvocation::IsReady() const noexcept { return event_.IsReady(); 
 
 void AsyncMethodInvocation::WaitWhileBusy() noexcept {
     if (busy_) {
-        engine::TaskCancellationBlocker blocker;
-        event_.Wait();
+        event_.WaitNonCancellable();
     }
     busy_ = false;
 }

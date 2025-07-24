@@ -57,7 +57,7 @@ void WaitList::Append(Lock& lock, boost::intrusive_ptr<impl::TaskContext> contex
 void WaitList::WakeupOne(Lock& lock) {
     UASSERT(lock);
     if (!waiting_contexts_->empty()) {
-        boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(), kAdopt);
+        const boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(), kAdopt);
         context->wait_list_hook.unlink();
 
         context->Wakeup(impl::TaskContext::WakeupSource::kWaitList, impl::TaskContext::NoEpoch{});
@@ -67,7 +67,7 @@ void WaitList::WakeupOne(Lock& lock) {
 void WaitList::WakeupAll(Lock& lock) {
     UASSERT(lock);
     while (!waiting_contexts_->empty()) {
-        boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(), kAdopt);
+        const boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(), kAdopt);
         context->wait_list_hook.unlink();
 
         context->Wakeup(impl::TaskContext::WakeupSource::kWaitList, impl::TaskContext::NoEpoch{});
@@ -78,7 +78,7 @@ void WaitList::Remove(Lock& lock, impl::TaskContext& context) noexcept {
     UASSERT(lock);
     if (!context.wait_list_hook.is_linked()) return;
 
-    boost::intrusive_ptr<impl::TaskContext> ctx(&context, kAdopt);
+    const boost::intrusive_ptr<impl::TaskContext> ctx(&context, kAdopt);
     UASSERT_MSG(IsInIntrusiveContainer(*waiting_contexts_, context), "context belongs to other list");
 
     context.wait_list_hook.unlink();

@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-static void test_gdb_printers() {
+__attribute__((noinline)) static void TestGdbPrinters() {
     using formats::json::MakeArray, formats::json::MakeObject;
 
     auto new_value = [](auto&& val) {
@@ -15,6 +15,7 @@ static void test_gdb_printers() {
 
     formats::json::Value value{};
     TEST_INIT(value);
+    DoNotOptimize(value);
 
     TEST_EXPR('value', 'null');
 
@@ -96,9 +97,10 @@ static void test_gdb_printers() {
         '{["a"] = {1, {}, []}, ["b"] = {true, false}, ["c"] = {["internal"] = {["subkey"] = 2}}, ["i"] = -1, ["u"] = 1, ["i64"] = -1.8446744073709552e+19, ["u64"] = 18446744073709551614, ["d"] = 0.40000000000000002}'
     );
 
+    DoNotOptimize(value);
     TEST_DEINIT(value);
 }
 
 USERVER_NAMESPACE_END
 
-int main() { USERVER_NAMESPACE::test_gdb_printers(); }
+int main() { USERVER_NAMESPACE::TestGdbPrinters(); }

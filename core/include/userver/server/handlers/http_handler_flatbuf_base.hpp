@@ -133,7 +133,7 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::GetRequestBodyForLogg
     request::RequestContext&,
     const std::string& request_body
 ) const {
-    size_t limit = GetConfig().request_body_size_log_limit;
+    const size_t limit = GetConfig().request_body_size_log_limit;
     return utils::log::ToLimitedHex(request_body, limit);
 }
 
@@ -143,7 +143,7 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::GetResponseDataForLog
     request::RequestContext&,
     const std::string& response_data
 ) const {
-    size_t limit = GetConfig().response_data_size_log_limit;
+    const size_t limit = GetConfig().response_data_size_log_limit;
     return utils::log::ToLimitedHex(response_data, limit);
 }
 

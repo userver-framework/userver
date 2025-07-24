@@ -107,13 +107,31 @@ public:
     GetMetadataTimeoutException(std::string_view topic);
 };
 
-/// @brief Exception throw when parsing consumed messages headers.
-/// @see Message::GetHeaders
+/// @brief Exception thrown when parsing consumed messages headers.
+/// @ref Message::GetHeaders
 class ParseHeadersException final : std::runtime_error {
     static constexpr const char* kWhat = "Failed to parse headers";
 
 public:
     ParseHeadersException(std::string_view error);
+};
+
+/// @brief Exception thrown when Seek* process failed.
+/// @ref ConsumeScope::Seek
+/// @ref ConsumeScope::SeekToBeginning
+/// @ref ConsumeScope::SeekToEnd
+class SeekException final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+/// @brief Exception thrown when Seek* arguments are invalid.
+/// @ref ConsumeScope::Seek
+/// @ref ConsumeScope::SeekToBeginning
+/// @ref ConsumeScope::SeekToEnd
+class SeekInvalidArgumentException final : public std::invalid_argument {
+public:
+    using std::invalid_argument::invalid_argument;
 };
 
 }  // namespace kafka

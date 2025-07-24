@@ -34,7 +34,7 @@ private:
 
 }  // namespace
 
-PlainQuery::PlainQuery(Connection& connection, const std::string& query) : connection_{&connection}, query_{query} {}
+PlainQuery::PlainQuery(Connection& connection, std::string_view query) : connection_{&connection}, query_{query} {}
 
 PlainQuery::~PlainQuery() = default;
 

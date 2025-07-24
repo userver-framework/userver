@@ -26,9 +26,9 @@ struct Portal::Impl {
         : conn_{conn}, cmd_ctl_{std::move(cmd_ctl)}, name_{name} {
         if (conn_) {
             if (!cmd_ctl_) {
-                cmd_ctl_ = conn_->GetQueryCmdCtl(query.GetName());
+                cmd_ctl_ = conn_->GetQueryCmdCtl(query.GetOptionalNameView());
             }
-            Bind(query.Statement(), params);
+            Bind(query.GetStatementView(), params);
         }
     }
 
@@ -48,7 +48,7 @@ struct Portal::Impl {
         swap(done_, rhs.done_);
     }
 
-    void Bind(const std::string& statement, const detail::QueryParameters& params) {
+    void Bind(USERVER_NAMESPACE::utils::zstring_view statement, const detail::QueryParameters& params) {
         statement_id_ = conn_->PortalBind(statement, name_.GetUnderlying(), params, cmd_ctl_);
     }
 

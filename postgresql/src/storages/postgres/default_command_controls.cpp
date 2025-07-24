@@ -52,7 +52,7 @@ OptionalCommandControl DefaultCommandControls::GetHandlerCmdCtl(std::string_view
     return GetHandlerOptionalCommandControl(*reader, path, method);
 }
 
-OptionalCommandControl DefaultCommandControls::GetQueryCmdCtl(const std::string& query_name) const {
+OptionalCommandControl DefaultCommandControls::GetQueryCmdCtl(std::string_view query_name) const {
     UASSERT(data_);
     auto reader = data_->queries_command_control.Read();
     return GetQueryOptionalCommandControl(*reader, query_name);

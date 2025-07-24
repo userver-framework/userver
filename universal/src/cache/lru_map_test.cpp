@@ -212,4 +212,23 @@ TEST(Lru, NotMovable) {
     EXPECT_EQ(cache.GetLeastUsed()->value, 4);
 }
 
+TEST(Lru, TransparentComparison) {
+    cache::LruMap<std::string, NotMovable> cache{2};
+
+    cache.Emplace("hello", 1);
+    cache.Emplace("42", 42);
+
+    EXPECT_EQ(cache.GetTransparent("hello")->value, 1);
+    EXPECT_EQ(cache.GetTransparent(std::string_view{"hello"})->value, 1);
+    EXPECT_EQ(cache.GetTransparent(std::string{"hello"})->value, 1);
+
+    EXPECT_EQ(cache.GetTransparent("42")->value, 42);
+    EXPECT_EQ(cache.GetTransparent(std::string_view{"42"})->value, 42);
+    EXPECT_EQ(cache.GetTransparent(std::string{"42"})->value, 42);
+
+    EXPECT_FALSE(cache.GetTransparent("not in there"));
+    EXPECT_FALSE(cache.GetTransparent(std::string_view{"not in there"}));
+    EXPECT_FALSE(cache.GetTransparent(std::string{"not in there"}));
+}
+
 USERVER_NAMESPACE_END

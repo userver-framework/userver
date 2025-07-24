@@ -16,7 +16,7 @@ namespace ugrpc::client {
 namespace impl {
 
 /// @brief The interface for a `ClientFactoryComponent` component. So, `ClientFactoryComponent` runs with middlewares.
-using MiddlewareRunner = USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ClientInfo>;
+using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ClientInfo>;
 
 }  // namespace impl
 
@@ -57,13 +57,13 @@ using MiddlewareRunner = USERVER_NAMESPACE::middlewares::RunnerComponentBase<Mid
 /// channel-count | Number of underlying grpc::Channel objects | 1
 /// middlewares | middlewares names to use | -
 /// disable-user-pipeline-middlewares | a flag to disable groups::User middlewares from pipeline | false
-/// disable-all-pipeline-middlewares | a flag to disable all middlewares from the pipline | false
+/// disable-all-pipeline-middlewares | a flag to disable all middlewares from the pipeline | false
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 
 // clang-format on
 
-class ClientFactoryComponent final : public impl::MiddlewareRunner {
+class ClientFactoryComponent final : public impl::MiddlewareRunnerComponentBase {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of ugrpc::client::middlewares::log::Component

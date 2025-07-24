@@ -41,3 +41,15 @@ USERVER_NAMESPACE_END
          utest_impl_death_test_scope.ShouldKeepIterating();                          \
          utest_impl_death_test_scope.StopIterating())                                \
     EXPECT_DEATH(statement, regex_or_matcher)
+
+/// @ingroup userver_utest
+///
+/// @brief An optimized equivalent of EXPECT_DEBUG_DEATH.
+///
+/// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UEXPECT_DEBUG_DEATH(statement, regex_or_matcher)                             \
+    for (USERVER_NAMESPACE::utest::impl::DeathTestScope utest_impl_death_test_scope; \
+         utest_impl_death_test_scope.ShouldKeepIterating();                          \
+         utest_impl_death_test_scope.StopIterating())                                \
+    EXPECT_DEBUG_DEATH(statement, regex_or_matcher)
