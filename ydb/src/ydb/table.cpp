@@ -179,13 +179,13 @@ ScanQueryResults TableClient::ExecuteScanQuery(
 
     auto future = impl::RetryOperation(
         context,
-        [query = query.Statement(),
+        [query,
          params = std::move(builder).Build(),
          scan_settings = std::move(scan_settings),
          settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TTableClient& table_client) mutable {
             impl::ApplyToRequestSettings(scan_settings, settings, deadline);
-            return table_client.StreamExecuteScanQuery(impl::ToString(query), params, scan_settings);
+            return table_client.StreamExecuteScanQuery(impl::ToString(query.GetStatementView()), params, scan_settings);
         }
     );
 
@@ -355,7 +355,7 @@ ExecuteResponse TableClient::ExecuteDataQuery(
 
     auto future = impl::RetryOperation(
         context,
-        [query = query.Statement(),
+        [query,
          params = std::move(builder).Build(),
          exec_settings = ToExecQuerySettings(query_settings),
          settings = context.settings,
@@ -363,7 +363,7 @@ ExecuteResponse TableClient::ExecuteDataQuery(
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
             const auto tx_settings = PrepareTxSettings(settings);
             const auto tx = NYdb::NTable::TTxControl::BeginTx(tx_settings).CommitTx();
-            return session.ExecuteDataQuery(impl::ToString(query), tx, params, exec_settings);
+            return session.ExecuteDataQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
     );
 
@@ -392,7 +392,7 @@ ExecuteResponse TableClient::ExecuteQuery(
 
     auto future = impl::RetryQuery(
         context,
-        [query = query.Statement(),
+        [query,
          params = std::move(builder).Build(),
          exec_settings = std::move(exec_settings),
          settings = context.settings,
@@ -400,7 +400,7 @@ ExecuteResponse TableClient::ExecuteQuery(
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
             const auto tx_settings = PrepareQueryTxSettings(settings);
             const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();
-            return session.ExecuteQuery(impl::ToString(query), tx, params, exec_settings);
+            return session.ExecuteQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
     );
 

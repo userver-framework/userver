@@ -149,7 +149,7 @@ ExecuteResponse Transaction::Execute(
     auto error_guard = ErrorGuard();
 
     auto execute_fut = ydb_tx_.GetSession().ExecuteDataQuery(
-        impl::ToString(query.Statement()),
+        impl::ToString(query.GetStatementView()),
         NYdb::NTable::TTxControl::Tx(ydb_tx_),
         std::move(internal_params),
         exec_settings

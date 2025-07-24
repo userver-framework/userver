@@ -80,9 +80,6 @@ public:
     /// @returns zero terminated view to the statement that is alive as long as *this is alive
     utils::zstring_view GetStatementView() const noexcept;
 
-    /// @deprecated Use GetStatementView()
-    const std::string& Statement() const { return dynamic_.statement_; }
-
     /// @returns logging mode
     LogMode GetLogMode() const noexcept { return log_mode_; }
 
