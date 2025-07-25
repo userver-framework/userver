@@ -550,7 +550,7 @@ storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
         const storages::postgres::Query query = PolicyCheckerType::GetQuery();
         return storages::postgres::Query{
             fmt::format("{} {} {}", query.GetStatementView(), GetDeltaWhereClause(), GetOrderByClause()),
-            query.GetName(),
+            query.GetOptionalName(),
         };
     } else {
         return GetAllQuery();
