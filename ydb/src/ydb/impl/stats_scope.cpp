@@ -11,14 +11,13 @@ namespace ydb::impl {
 namespace {
 
 StatsCounters& GetCountersForQuery(Stats& stats, const Query& query) {
-    const auto& query_name = query.GetName();
-
+    auto query_name = query.GetOptionalName();
     if (!query_name) {
         return stats.unnamed_queries;
     }
 
     const auto insertion_result =
-        stats.by_query.TryEmplace(std::string{query_name.value()}, stats.by_database_histogram_bounds);
+        stats.by_query.TryEmplace(std::string{std::move(*query_name)}, stats.by_database_histogram_bounds);
     // No need to retain a shared_ptr. References to items are stable.
     // Items are never removed from the map.
     return *insertion_result.value;

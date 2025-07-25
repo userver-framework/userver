@@ -74,9 +74,6 @@ public:
     /// @returns optional queury name suitable for construction of a new Query
     std::optional<Name> GetOptionalName() const { return std::optional<Name>{GetOptionalNameView()}; }
 
-    /// @deprecated Use GetOptionalName() or GetOptionalNameView()
-    const std::optional<Name>& GetName() const { return dynamic_.name_; }
-
     /// @returns zero terminated view to the statement that is alive as long as *this is alive
     utils::zstring_view GetStatementView() const noexcept;
 
