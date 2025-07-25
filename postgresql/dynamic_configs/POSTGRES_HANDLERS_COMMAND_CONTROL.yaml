@@ -19,3 +19,5 @@ schema:
                 statement_timeout_ms:
                     type: integer
                     minimum: 1
+                prepared_statements_enabled:
+                    type: boolean

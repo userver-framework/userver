@@ -518,6 +518,80 @@ UTEST_P(PostgrePool, DefaultCmdCtl) {
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 }
 
+UTEST_P(PostgrePool, PreparedStatementsDisabledOverrideCommandControl) {
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {1, 1, 10},
+        kCachePreparedStatements,
+        {},
+        storages::postgres::DefaultCommandControls(
+            pg::CommandControl{
+                std::chrono::milliseconds{100},
+                std::chrono::milliseconds{10},
+                pg::CommandControl::PreparedStatementsOptionOverride::kDisabled},
+            {},
+            {}
+        ),
+        testsuite::PostgresControl{},
+        error_injection::Settings{},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+    {
+        pg::detail::ConnectionPtr conn(nullptr);
+
+        UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()));
+
+        const auto old_stats = conn->GetStatsAndReset();
+        UEXPECT_NO_THROW(conn->Execute("select 1"));
+
+        const auto stats = conn->GetStatsAndReset();
+        EXPECT_EQ(stats.prepared_statements_current, old_stats.prepared_statements_current);
+    }
+}
+
+UTEST_P(PostgrePool, PreparedStatementsEnabledOverrideCommandControl) {
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {1, 1, 10},
+        kNoPreparedStatements,
+        {},
+        storages::postgres::DefaultCommandControls(
+            pg::CommandControl{
+                std::chrono::milliseconds{100},
+                std::chrono::milliseconds{10},
+                pg::CommandControl::PreparedStatementsOptionOverride::kEnabled},
+            {},
+            {}
+        ),
+        testsuite::PostgresControl{},
+        error_injection::Settings{},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+    {
+        pg::detail::ConnectionPtr conn(nullptr);
+
+        UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()));
+
+        const auto old_stats = conn->GetStatsAndReset();
+        UEXPECT_NO_THROW(conn->Execute("select 1"));
+
+        const auto stats = conn->GetStatsAndReset();
+        EXPECT_GT(stats.prepared_statements_current, old_stats.prepared_statements_current);
+    }
+}
+
 UTEST_P(PostgrePool, CheckUserTypes) {
     std::shared_ptr<pg::detail::ConnectionPool> pool;
     auto conn_settings = kCachePreparedStatements;

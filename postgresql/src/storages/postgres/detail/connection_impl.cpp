@@ -383,8 +383,11 @@ ResultSet ConnectionImpl::ExecuteCommand(
     }
 
     auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(NetworkTimeout(statement_cmd_ctl));
-    SetStatementTimeout(std::move(statement_cmd_ctl));
-    return ExecuteCommand(query, params, deadline);
+    SetStatementTimeout(statement_cmd_ctl);
+
+    return PreparedStatementsEnabled(statement_cmd_ctl)
+               ? ExecuteCommand(query, params, deadline, logging::Level::kInfo, true)
+               : ExecuteCommandNoPrepare(query, params, deadline);
 }
 
 void ConnectionImpl::Begin(
@@ -700,6 +703,19 @@ TimeoutDuration ConnectionImpl::CurrentNetworkTimeout() const {
     return GetDefaultCommandControl().network_timeout_ms;
 }
 
+bool ConnectionImpl::PreparedStatementsEnabled(OptionalCommandControl cmd_ctl) const {
+    if (!!cmd_ctl &&
+        cmd_ctl->prepared_statements_enabled != CommandControl::PreparedStatementsOptionOverride::kNoOverride) {
+        return cmd_ctl->prepared_statements_enabled == CommandControl::PreparedStatementsOptionOverride::kEnabled;
+    }
+    if (GetDefaultCommandControl().prepared_statements_enabled !=
+        CommandControl::PreparedStatementsOptionOverride::kNoOverride) {
+        return GetDefaultCommandControl().prepared_statements_enabled ==
+               CommandControl::PreparedStatementsOptionOverride::kEnabled;
+    }
+    return ArePreparedStatementsEnabled();
+}
+
 void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
     if (IsPipelineActive() && settings_.deadline_propagation_enabled) {
@@ -861,9 +877,11 @@ ResultSet ConnectionImpl::ExecuteCommand(
     const Query& query,
     const QueryParameters& params,
     engine::Deadline deadline,
-    logging::Level span_log_level
+    logging::Level span_log_level,
+    bool ignore_prepared_statements_setting
 ) {
-    if (settings_.prepared_statements == ConnectionSettings::kNoPreparedStatements) {
+    if (!ignore_prepared_statements_setting &&
+        settings_.prepared_statements == ConnectionSettings::kNoPreparedStatements) {
         return ExecuteCommandNoPrepare(query, params, deadline);
     }
 

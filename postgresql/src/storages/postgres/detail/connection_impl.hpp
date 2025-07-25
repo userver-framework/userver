@@ -151,6 +151,8 @@ private:
     TimeoutDuration NetworkTimeout(OptionalCommandControl) const;
     TimeoutDuration CurrentNetworkTimeout() const;
 
+    bool PreparedStatementsEnabled(OptionalCommandControl cmd_ctl) const;
+
     void SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
 
     void SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
@@ -173,7 +175,8 @@ private:
         const Query& query,
         const detail::QueryParameters& params,
         engine::Deadline deadline,
-        logging::Level span_log_level = logging::Level::kInfo
+        logging::Level span_log_level = logging::Level::kInfo,
+        bool ignore_prepared_statements_setting = false
     );
 
     ResultSet ExecuteCommandNoPrepare(const Query& query, engine::Deadline deadline);

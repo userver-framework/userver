@@ -15,8 +15,8 @@ namespace storages::postgres {
 CommandControl Parse(const formats::json::Value& elem, formats::parse::To<CommandControl>) {
     CommandControl result{components::Postgres::kDefaultCommandControl};
     for (const auto& [name, val] : formats::common::Items(elem)) {
-        const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
         if (name == "network_timeout_ms") {
+            const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
             result.network_timeout_ms = ms;
             if (result.network_timeout_ms.count() <= 0) {
                 throw InvalidConfig{
@@ -25,6 +25,7 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
                     "greater than 0."};
             }
         } else if (name == "statement_timeout_ms") {
+            const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
             result.statement_timeout_ms = ms;
             if (result.statement_timeout_ms.count() <= 0) {
                 throw InvalidConfig{
@@ -32,6 +33,10 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
                     "` in postgres CommandControl. The timeout must be "
                     "greater than 0."};
             }
+        } else if (name == "prepared_statements_enabled") {
+            result.prepared_statements_enabled = val.As<bool>()
+                                                     ? CommandControl::PreparedStatementsOptionOverride::kEnabled
+                                                     : CommandControl::PreparedStatementsOptionOverride::kDisabled;
         } else {
             LOG_WARNING() << "Unknown parameter " << name << " in PostgreSQL config";
         }

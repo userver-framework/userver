@@ -112,15 +112,26 @@ struct CommandControl {
     /// PostgreSQL server-side timeout
     TimeoutDuration statement_timeout_ms{};
 
-    constexpr CommandControl(TimeoutDuration network_timeout_ms, TimeoutDuration statement_timeout_ms)
-        : network_timeout_ms(network_timeout_ms), statement_timeout_ms(statement_timeout_ms) {}
+    enum class PreparedStatementsOptionOverride { kNoOverride, kEnabled, kDisabled };
+
+    PreparedStatementsOptionOverride prepared_statements_enabled{PreparedStatementsOptionOverride::kNoOverride};
+
+    constexpr CommandControl(
+        TimeoutDuration network_timeout_ms,
+        TimeoutDuration statement_timeout_ms,
+        PreparedStatementsOptionOverride prepared_statements_enabled = PreparedStatementsOptionOverride::kNoOverride
+    )
+        : network_timeout_ms(network_timeout_ms),
+          statement_timeout_ms(statement_timeout_ms),
+          prepared_statements_enabled(prepared_statements_enabled) {}
 
     constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const noexcept { return {n, statement_timeout_ms}; }
 
     constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const noexcept { return {network_timeout_ms, s}; }
 
     bool operator==(const CommandControl& rhs) const {
-        return network_timeout_ms == rhs.network_timeout_ms && statement_timeout_ms == rhs.statement_timeout_ms;
+        return network_timeout_ms == rhs.network_timeout_ms && statement_timeout_ms == rhs.statement_timeout_ms &&
+               prepared_statements_enabled == rhs.prepared_statements_enabled;
     }
 
     bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }

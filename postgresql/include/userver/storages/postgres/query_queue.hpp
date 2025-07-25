@@ -99,7 +99,7 @@ private:
     detail::ConnectionPtr conn_;
 
     struct QueriesStorage;
-    USERVER_NAMESPACE::utils::FastPimpl<QueriesStorage, 48, 8> queries_storage_;
+    USERVER_NAMESPACE::utils::FastPimpl<QueriesStorage, 56, 8> queries_storage_;
 };
 
 template <typename... Args>

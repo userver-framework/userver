@@ -51,7 +51,7 @@ public:
 
 private:
     struct Impl;
-    USERVER_NAMESPACE::utils::FastPimpl<Impl, 80, 8> pimpl_;
+    USERVER_NAMESPACE::utils::FastPimpl<Impl, 88, 8> pimpl_;
 };
 
 }  // namespace storages::postgres

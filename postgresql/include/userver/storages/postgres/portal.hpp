@@ -57,7 +57,7 @@ public:
     static bool IsSupportedByDriver() noexcept;
 
 private:
-    static constexpr std::size_t kImplSize = 88;
+    static constexpr std::size_t kImplSize = 96;
     static constexpr std::size_t kImplAlign = 8;
 
     struct Impl;
