@@ -169,7 +169,12 @@ private:
 
     ResultSet ExecuteCommand(const Query& query, engine::Deadline deadline);
 
-    ResultSet ExecuteCommand(const Query& query, const detail::QueryParameters& params, engine::Deadline deadline);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        const detail::QueryParameters& params,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo
+    );
 
     ResultSet ExecuteCommandNoPrepare(const Query& query, engine::Deadline deadline);
 
@@ -177,7 +182,12 @@ private:
 
     void SendCommandNoPrepare(const Query& query, engine::Deadline deadline);
 
-    void SendCommandNoPrepare(const Query& query, const QueryParameters& params, engine::Deadline deadline);
+    void SendCommandNoPrepare(
+        const Query& query,
+        const QueryParameters& params,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo
+    );
 
     void SetParameter(
         std::string_view name,
