@@ -1,18 +1,18 @@
 import contextlib
 
 import pytest
-from pytest_userver.plugins import dynamic_config
+from pytest_userver import dynconf
 
 
 class ConfigHelper:
     def __init__(self, *, cache_invalidation_state, defaults):
         self.cache_invalidation_state = cache_invalidation_state
         self.defaults = defaults
-        self.changelog = dynamic_config._Changelog()
+        self.changelog = dynconf._Changelog()
 
     @contextlib.contextmanager
     def new_config(self):
-        config = dynamic_config.DynamicConfig(
+        config = dynconf.DynamicConfig(
             initial_values=self.defaults,
             defaults=None,
             config_cache_components=[],
@@ -24,7 +24,7 @@ class ConfigHelper:
 
     def get_updated_since(self, config, timestamp):
         updates = self.changelog.get_updated_since(
-            dynamic_config._create_config_dict(
+            dynconf._create_config_dict(
                 config.get_values_unsafe(),
                 config.get_kill_switches_disabled_unsafe(),
             ),

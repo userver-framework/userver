@@ -1,12 +1,12 @@
 import pytest
 
 # /// [kill switch disabling using a pytest marker]
-from pytest_userver.plugins import dynamic_config as dynamic_config_lib
+from pytest_userver import dynconf
 
 
 @pytest.mark.config(
-    USERVER_LOG_REQUEST=dynamic_config_lib.USE_STATIC_DEFAULT,
-    USERVER_LOG_REQUEST_HEADERS=dynamic_config_lib.USE_STATIC_DEFAULT,
+    USERVER_LOG_REQUEST=dynconf.USE_STATIC_DEFAULT,
+    USERVER_LOG_REQUEST_HEADERS=dynconf.USE_STATIC_DEFAULT,
 )
 async def test_something(service_client):
     # Test implementation
