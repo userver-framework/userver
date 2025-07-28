@@ -73,7 +73,8 @@ jobs:
           - name: Install test dependencies
             run: |
                 brew tap mongodb/brew
-                brew install clickhouse redis kafka mongodb-community rabbitmq
+                brew install clickhouse redis mongodb-community rabbitmq
+                sudo ./scripts/kafka/macos_install_kafka.sh
 
           - name: Setup ccache
             run: |
