@@ -13,8 +13,8 @@
 
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/call_kind.hpp>
+#include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>
-#include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
@@ -56,7 +56,7 @@ public:
 
     const RpcConfigValues& GetConfigValues() const noexcept;
 
-    const Middlewares& GetMiddlewares() const noexcept;
+    const MiddlewarePipeline& GetMiddlewarePipeline() const noexcept;
 
     CallKind GetCallKind() const noexcept;
 
@@ -88,7 +88,7 @@ private:
 
     RpcConfigValues config_values_;
 
-    const Middlewares& middlewares_;
+    MiddlewarePipeline middleware_pipeline_;
 
     CallKind call_kind_{};
 
@@ -193,6 +193,8 @@ bool IsWriteAvailable(const StreamingCallState&) noexcept;
 bool IsWriteAndCheckAvailable(const StreamingCallState&) noexcept;
 
 void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept;
+
+void RunMiddlewarePipeline(CallState& state, const MiddlewareHooks& hooks);
 
 }  // namespace ugrpc::client::impl
 

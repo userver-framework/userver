@@ -8,6 +8,7 @@
 #include <userver/utils/impl/source_location.hpp>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 
 #include <ugrpc/client/impl/call_options_accessor.hpp>
@@ -57,7 +58,7 @@ CallState::CallState(CallParams&& params, CallKind call_kind)
       stats_scope_(params.statistics),
       queue_(params.queue),
       config_values_(params.config),
-      middlewares_(params.middlewares),
+      middleware_pipeline_(params.middlewares),
       call_kind_(call_kind) {
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
@@ -77,7 +78,7 @@ grpc::CompletionQueue& CallState::GetQueue() const noexcept { return queue_; }
 
 const RpcConfigValues& CallState::GetConfigValues() const noexcept { return config_values_; }
 
-const Middlewares& CallState::GetMiddlewares() const noexcept { return middlewares_; }
+const MiddlewarePipeline& CallState::GetMiddlewarePipeline() const noexcept { return middleware_pipeline_; }
 
 std::string_view CallState::GetCallName() const noexcept { return call_name_.Get(); }
 
@@ -202,6 +203,11 @@ void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept
         stats.OnCancelledByDeadlinePropagation();
     }
     stats.Flush();
+}
+
+void RunMiddlewarePipeline(CallState& state, const MiddlewareHooks& hooks) {
+    MiddlewareCallContext middleware_call_context{state};
+    state.GetMiddlewarePipeline().Run(hooks, middleware_call_context);
 }
 
 }  // namespace ugrpc::client::impl

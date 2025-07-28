@@ -105,7 +105,7 @@ bool StreamReadFuture<RawStream>::Get() {
         impl::Finish(*stream_, *state, /*final_response=*/nullptr, /*throw_on_error=*/true);
     } else {
         if (recv_message_) {
-            impl::MiddlewarePipeline::PostRecvMessage(*state, *recv_message_);
+            RunMiddlewarePipeline(*state, impl::RecvMessageHooks(*recv_message_));
         }
     }
     return result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk;

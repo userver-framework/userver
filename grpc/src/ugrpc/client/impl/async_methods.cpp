@@ -46,11 +46,7 @@ void ProcessFinish(CallState& state, const google::protobuf::Message* final_resp
 
     HandleCallStatistics(state, status);
 
-    if (final_response && status.ok()) {
-        MiddlewarePipeline::PostRecvMessage(state, *final_response);
-    }
-
-    MiddlewarePipeline::PostFinish(state);
+    RunMiddlewarePipeline(state, FinishHooks(status, final_response));
 
     SetStatusAndResetSpan(state, status);
 }

@@ -20,7 +20,6 @@
 #include <userver/ugrpc/client/impl/call_state.hpp>
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 #include <userver/ugrpc/client/impl/prepare_call.hpp>
-#include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/stream_read_future.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
@@ -335,11 +334,9 @@ UnaryCall<Response>::UnaryCall(
     const Request& request
 )
     : state_{std::move(params)}, context_{utils::impl::InternalTag{}, state_} {
-    MiddlewarePipeline::PreStartCall(state_);
-    if constexpr (std::is_base_of_v<google::protobuf::Message, Request>) {
-        MiddlewarePipeline::PreSendMessage(state_, request);
-    }
+    RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request)));
 
+    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     reader_ = prepare_unary_call(state_.GetStub(), &state_.GetClientContext(), request, &state_.GetQueue());
     reader_->StartCall();
 
@@ -382,8 +379,7 @@ InputStream<Response>::InputStream(
     const Request& request
 )
     : state_{std::move(params), CallKind::kInputStream}, context_{utils::impl::InternalTag{}, state_} {
-    MiddlewarePipeline::PreStartCall(state_);
-    MiddlewarePipeline::PreSendMessage(state_, request);
+    RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request)));
 
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     stream_ = impl::PrepareCall(
@@ -408,7 +404,7 @@ bool InputStream<Response>::Read(Response& response) {
     }
 
     if (impl::Read(*stream_, response, state_)) {
-        MiddlewarePipeline::PostRecvMessage(state_, response);
+        RunMiddlewarePipeline(state_, RecvMessageHooks(response));
         return true;
     } else {
         // Finish can only be called once all the data is read, otherwise the
@@ -425,7 +421,7 @@ OutputStream<Request, Response>::OutputStream(
     PrepareClientStreamingCall<Stub, Request, Response> prepare_async_method
 )
     : state_{std::move(params), CallKind::kOutputStream}, context_{utils::impl::InternalTag{}, state_} {
-    MiddlewarePipeline::PreStartCall(state_);
+    RunMiddlewarePipeline(state_, StartCallHooks());
 
     // 'response_' will be filled upon successful 'Finish' async call
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
@@ -448,7 +444,7 @@ bool OutputStream<Request, Response>::Write(const Request& request) {
         return false;
     }
 
-    MiddlewarePipeline::PreSendMessage(state_, request);
+    RunMiddlewarePipeline(state_, SendMessageHooks(request));
 
     // Don't buffer writes, otherwise in an event subscription scenario, events
     // may never actually be delivered
@@ -464,7 +460,7 @@ void OutputStream<Request, Response>::WriteAndCheck(const Request& request) {
         throw RpcError(state_.GetCallName(), "'WriteAndCheck' called on a finished or closed stream");
     }
 
-    MiddlewarePipeline::PreSendMessage(state_, request);
+    RunMiddlewarePipeline(state_, SendMessageHooks(request));
 
     // Don't buffer writes, otherwise in an event subscription scenario, events
     // may never actually be delivered
@@ -495,7 +491,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
     PrepareBidiStreamingCall<Stub, Request, Response> prepare_async_method
 )
     : state_{std::move(params), CallKind::kBidirectionalStream}, context_{utils::impl::InternalTag{}, state_} {
-    MiddlewarePipeline::PreStartCall(state_);
+    RunMiddlewarePipeline(state_, StartCallHooks());
 
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     stream_ = impl::PrepareCall(prepare_async_method, state_.GetStub(), &state_.GetClientContext(), &state_.GetQueue());
@@ -541,7 +537,7 @@ bool BidirectionalStream<Request, Response>::Write(const Request& request) {
 
     {
         const auto lock = state_.TakeMutexIfBidirectional();
-        MiddlewarePipeline::PreSendMessage(state_, request);
+        RunMiddlewarePipeline(state_, SendMessageHooks(request));
     }
 
     // Don't buffer writes, optimize for ping-pong-style interaction
@@ -559,7 +555,7 @@ void BidirectionalStream<Request, Response>::WriteAndCheck(const Request& reques
 
     {
         const auto lock = state_.TakeMutexIfBidirectional();
-        MiddlewarePipeline::PreSendMessage(state_, request);
+        RunMiddlewarePipeline(state_, SendMessageHooks(request));
     }
 
     // Don't buffer writes, optimize for ping-pong-style interaction

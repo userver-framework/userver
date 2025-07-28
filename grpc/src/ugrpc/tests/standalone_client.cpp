@@ -5,8 +5,6 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task_base.hpp>
 
-#include <userver/ugrpc/client/middlewares/base.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::tests {
