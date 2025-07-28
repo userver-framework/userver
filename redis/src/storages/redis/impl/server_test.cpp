@@ -7,7 +7,14 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/secdist_redis.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/impl/thread_pools.hpp>
+#include <storages/redis/subscribe_client_impl.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/storages/redis/subscribe_client.hpp>
+#include <userver/storages/redis/subscription_token.hpp>
+
+#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,6 +50,52 @@ void PeriodicWait(Predicate predicate) {
 bool IsConnected(const storages::redis::impl::Redis& redis) {
     return redis.GetState() == storages::redis::RedisState::kConnected;
 }
+
+struct MockSentinelServers {
+    static constexpr size_t kRedisThreadCount = 1;
+    static constexpr std::string_view kRedisName = "redis_name";
+
+    void RegisterSentinelMastersSlaves() {
+        std::vector<MockRedisServer::SlaveInfo> slave_infos;
+        std::string redis_name{kRedisName};
+        for (const auto& slave : slaves) {
+            slave_infos.emplace_back(redis_name, kLocalhost, slave.GetPort());
+        }
+
+        for (auto& sentinel : sentinels) {
+            sentinel.RegisterSentinelMastersHandler({{redis_name, kLocalhost, masters[0].GetPort()}});
+            sentinel.RegisterSentinelSlavesHandler(redis_name, slave_infos);
+        }
+    }
+
+    template <class Function>
+    void ForEachServer(const Function& visitor) {
+        for (auto& server : masters) {
+            visitor(server);
+        }
+        for (auto& server : slaves) {
+            visitor(server);
+        }
+        for (auto& server : sentinels) {
+            visitor(server);
+        }
+    }
+
+    MockRedisServer masters[1] = {
+        MockRedisServer{"master0"},
+    };
+    MockRedisServer slaves[2] = {
+        MockRedisServer{"slave0"},
+        MockRedisServer{"slave1"},
+    };
+    MockRedisServer sentinels[3] = {
+        MockRedisServer{"sentinel0"},
+        MockRedisServer{"sentinel1"},
+        MockRedisServer{"sentinel2"},
+    };
+    std::shared_ptr<storages::redis::impl::ThreadPools> thread_pool =
+        std::make_shared<storages::redis::impl::ThreadPools>(1, kRedisThreadCount);
+};
 
 }  // namespace
 
@@ -99,6 +152,124 @@ TEST(Redis, AuthTimeout) {
 
     EXPECT_TRUE(auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
     PeriodicCheck([&] { return !IsConnected(*redis); });
+}
+
+UTEST(Redis, SentinelAuth) {
+    MockSentinelServers mock;
+    mock.RegisterSentinelMastersSlaves();
+    mock.ForEachServer([](auto& server) { server.RegisterPingHandler(); });
+    auto& [masters, slaves, sentinels, thread_pool] = mock;
+
+    secdist::RedisSettings settings;
+    settings.shards = {std::string{MockSentinelServers::kRedisName}};
+    settings.sentinel_password = storages::redis::Password("pass");
+    settings.sentinels.reserve(std::size(sentinels));
+    for (const auto& sentinel : sentinels) {
+        settings.sentinels.emplace_back(kLocalhost, sentinel.GetPort());
+    }
+
+    std::vector<MockRedisServer::HandlerPtr> auth_handlers;
+    auth_handlers.reserve(std::size(sentinels));
+    for (auto& sentinel : sentinels) {
+        auth_handlers.push_back(sentinel.RegisterStatusReplyHandler("AUTH", "OK"));
+    }
+    std::vector<MockRedisServer::HandlerPtr> no_auth_handlers;
+    no_auth_handlers.reserve(std::size(masters) + std::size(slaves));
+    for (auto& server : masters) {
+        no_auth_handlers.push_back(server.RegisterStatusReplyHandler("AUTH", "FAIL"));
+    }
+    for (auto& server : slaves) {
+        no_auth_handlers.push_back(server.RegisterStatusReplyHandler("AUTH", "FAIL"));
+    }
+
+    auto sentinel_client = storages::redis::impl::Sentinel::CreateSentinel(
+        thread_pool, settings, "test_shard_group_name", dynamic_config::GetDefaultSource(), "test_client_name", {""}
+    );
+    sentinel_client->WaitConnectedDebug(std::empty(slaves));
+
+    for (auto& handler : auth_handlers) {
+        EXPECT_TRUE(handler->WaitForFirstReply(kSmallPeriod));
+    }
+
+    for (auto& handler : no_auth_handlers) {
+        EXPECT_FALSE(handler->WaitForFirstReply(kWaitPeriod));
+    }
+
+    for (const auto& sentinel : sentinels) {
+        EXPECT_TRUE(sentinel.WaitForFirstPingReply(kSmallPeriod));
+    }
+}
+
+// TODO: TAXICOMMON-10834. Looks like AUTH to sentinel is not sent in case of SUBSCRIBE
+UTEST(Redis, DISABLED_SentinelAuthSubscribe) {
+    MockSentinelServers mock;
+    mock.RegisterSentinelMastersSlaves();
+    mock.ForEachServer([](auto& server) { server.RegisterPingHandler(); });
+    auto& [masters, slaves, sentinels, thread_pool] = mock;
+    // Sentinels do NOT receive SUBSCRIBE
+    std::vector<MockRedisServer::HandlerPtr> subscribe_handlers;
+    for (auto& server : masters) {
+        subscribe_handlers.push_back(server.RegisterHandlerWithConstReply("SUBSCRIBE", 1));
+    }
+    for (auto& server : slaves) {
+        subscribe_handlers.push_back(server.RegisterHandlerWithConstReply("SUBSCRIBE", 1));
+    }
+
+    secdist::RedisSettings settings;
+    settings.shards = {std::string{MockSentinelServers::kRedisName}};
+    settings.sentinel_password = storages::redis::Password("pass");
+    settings.sentinels.reserve(std::size(sentinels));
+    for (const auto& sentinel : sentinels) {
+        settings.sentinels.emplace_back(kLocalhost, sentinel.GetPort());
+    }
+
+    std::vector<MockRedisServer::HandlerPtr> auth_handlers;
+    auth_handlers.reserve(std::size(sentinels));
+    for (auto& sentinel : sentinels) {
+        auth_handlers.push_back(sentinel.RegisterStatusReplyHandler("AUTH", "OK"));
+    }
+    std::vector<MockRedisServer::HandlerPtr> no_auth_handlers;
+    no_auth_handlers.reserve(std::size(masters) + std::size(slaves));
+    for (auto& server : masters) {
+        no_auth_handlers.push_back(server.RegisterStatusReplyHandler("AUTH", "FAIL"));
+    }
+    for (auto& server : slaves) {
+        no_auth_handlers.push_back(server.RegisterStatusReplyHandler("AUTH", "FAIL"));
+    }
+
+    storages::redis::CommandControl cc{};
+    testsuite::RedisControl redis_control{};
+    auto subscribe_sentinel = storages::redis::impl::SubscribeSentinel::Create(
+        thread_pool,
+        settings,
+        "test_shard_group_name",
+        dynamic_config::GetDefaultSource(),
+        "test_client_name",
+        {""},
+        cc,
+        redis_control
+    );
+    subscribe_sentinel->WaitConnectedDebug(std::empty(slaves));
+    std::shared_ptr<storages::redis::SubscribeClient> client =
+        std::make_shared<storages::redis::SubscribeClientImpl>(std::move(subscribe_sentinel));
+
+    storages::redis::SubscriptionToken::OnMessageCb callback = [](const std::string& channel,
+                                                                  const std::string& message) {
+        EXPECT_TRUE(false) << "Should not be called. Channel = " << channel << ", message = " << message;
+    };
+    auto subscription = client->Subscribe("channel_name", std::move(callback));
+
+    for (auto& handler : subscribe_handlers) {
+        EXPECT_TRUE(handler->WaitForFirstReply(utest::kMaxTestWaitTime));
+    }
+
+    for (auto& handler : auth_handlers) {
+        EXPECT_TRUE(handler->WaitForFirstReply(kSmallPeriod));
+    }
+
+    for (auto& handler : no_auth_handlers) {
+        EXPECT_FALSE(handler->WaitForFirstReply(kWaitPeriod));
+    }
 }
 
 TEST(Redis, Select) {

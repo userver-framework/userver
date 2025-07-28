@@ -35,6 +35,8 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
 
         USERVER_NAMESPACE::secdist::RedisSettings settings;
         settings.password = storages::redis::Password(GetString(client_settings, "password"));
+        settings.sentinel_password =
+            storages::redis::Password(client_settings["sentinel_password"].As<std::string>(""));
         settings.secure_connection = GetValue<bool>(client_settings, "secure_connection", false)
                                          ? USERVER_NAMESPACE::storages::redis::ConnectionSecurity::kTLS
                                          : USERVER_NAMESPACE::storages::redis::ConnectionSecurity::kNone;

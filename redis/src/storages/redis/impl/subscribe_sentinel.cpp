@@ -84,6 +84,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const testsuite::RedisControl& testsuite_redis_control
 ) {
     const auto& password = settings.password;
+    const auto& sentinel_password = settings.password;
 
     const std::vector<std::string>& shards = settings.shards;
     LOG_DEBUG() << "shards.size() = " << shards.size();
@@ -96,11 +97,14 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
     for (const auto& sentinel : settings.sentinels) {
         LOG_DEBUG() << "sentinel:  host = " << sentinel.host << "  port = " << sentinel.port;
-        // SENTINEL MASTERS/SLAVES works without auth, sentinel has no AUTH command.
         // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
         // sentinels in cluster mode.
         conns.emplace_back(
-            sentinel.host, sentinel.port, (is_cluster_mode ? password : Password("")), false, settings.secure_connection
+            sentinel.host,
+            sentinel.port,
+            (is_cluster_mode ? password : sentinel_password),
+            false,
+            settings.secure_connection
         );
     }
     LOG_DEBUG() << "redis command_control: " << command_control.ToString();
