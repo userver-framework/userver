@@ -192,6 +192,8 @@ bool IsWriteAvailable(const StreamingCallState&) noexcept;
 
 bool IsWriteAndCheckAvailable(const StreamingCallState&) noexcept;
 
+void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept;
+
 }  // namespace ugrpc::client::impl
 
 USERVER_NAMESPACE_END

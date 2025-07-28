@@ -12,16 +12,6 @@ namespace ugrpc::client::impl {
 
 namespace {
 
-void ProcessCallStatistics(CallState& state) noexcept {
-    const auto& status = state.GetStatus();
-    auto& stats = state.GetStatsScope();
-    stats.OnExplicitFinish(status.error_code());
-    if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED && state.IsDeadlinePropagated()) {
-        stats.OnCancelledByDeadlinePropagation();
-    }
-    stats.Flush();
-}
-
 void SetStatusAndResetSpan(CallState& state, const grpc::Status& status) noexcept {
     SetStatusForSpan(state.GetSpan(), status);
     state.ResetSpan();
@@ -52,9 +42,9 @@ WaitAndTryCancelIfNeeded(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::C
 }
 
 void ProcessFinish(CallState& state, const google::protobuf::Message* final_response) {
-    ProcessCallStatistics(state);
-
     const auto& status = state.GetStatus();
+
+    HandleCallStatistics(state, status);
 
     if (final_response && status.ok()) {
         MiddlewarePipeline::PostRecvMessage(state, *final_response);

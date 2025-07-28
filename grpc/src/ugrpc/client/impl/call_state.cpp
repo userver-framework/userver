@@ -2,16 +2,50 @@
 
 #include <dynamic_config/variables/USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION.hpp>
 
+#include <userver/tracing/opentelemetry.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/source_location.hpp>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 
 #include <ugrpc/client/impl/call_options_accessor.hpp>
 #include <ugrpc/client/impl/tracing.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
+
+namespace {
+
+void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder, std::string_view call_name) {
+    UASSERT(!span_holder);
+    span_holder.emplace(utils::StrCat("external_grpc/", call_name), utils::impl::SourceLocation::Current());
+    auto& span = span_holder->Get();
+    span.DetachFromCoroStack();
+}
+
+void AddTracingMetadata(grpc::ClientContext& client_context, const tracing::Span& span) {
+    if (const auto span_id = span.GetSpanIdForChildLogs()) {
+        client_context.AddMetadata(ugrpc::impl::kXYaTraceId, ugrpc::impl::ToGrpcString(span.GetTraceId()));
+        client_context.AddMetadata(ugrpc::impl::kXYaSpanId, ugrpc::impl::ToGrpcString(*span_id));
+        client_context.AddMetadata(ugrpc::impl::kXYaRequestId, ugrpc::impl::ToGrpcString(span.GetLink()));
+
+        constexpr std::string_view kDefaultOtelTraceFlags = "01";
+        auto traceparent =
+            tracing::opentelemetry::BuildTraceParentHeader(span.GetTraceId(), *span_id, kDefaultOtelTraceFlags);
+
+        if (!traceparent.has_value()) {
+            LOG_LIMITED_DEBUG("Cannot build opentelemetry traceparent header ({})", traceparent.error());
+            return;
+        }
+        client_context.AddMetadata(ugrpc::impl::kTraceParent, ugrpc::impl::ToGrpcString(traceparent.value()));
+    }
+}
+
+}  // namespace
 
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
     : enforce_task_deadline(config[::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION]) {}
@@ -26,6 +60,7 @@ CallState::CallState(CallParams&& params, CallKind call_kind)
       middlewares_(params.middlewares),
       call_kind_(call_kind) {
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
+
     SetupSpan(span_, call_name_.Get());
 
     client_context_ = CallOptionsAccessor::CreateClientContext(params.call_options);
@@ -158,6 +193,15 @@ bool IsWriteAvailable(const StreamingCallState& state) noexcept { return !state.
 
 bool IsWriteAndCheckAvailable(const StreamingCallState& state) noexcept {
     return !state.AreWritesFinished() && !state.IsFinished();
+}
+
+void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept {
+    auto& stats = state.GetStatsScope();
+    stats.OnExplicitFinish(status.error_code());
+    if (grpc::StatusCode::DEADLINE_EXCEEDED == status.error_code() && state.IsDeadlinePropagated()) {
+        stats.OnCancelledByDeadlinePropagation();
+    }
+    stats.Flush();
 }
 
 }  // namespace ugrpc::client::impl
