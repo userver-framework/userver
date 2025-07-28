@@ -74,7 +74,7 @@ jobs:
             run: |
                 brew tap mongodb/brew
                 brew install clickhouse redis mongodb-community rabbitmq
-                ./scripts/kafka/macos_install_kafka.sh
+                sudo ./scripts/kafka/macos_install_kafka.sh
 
           - name: Setup ccache
             run: |
