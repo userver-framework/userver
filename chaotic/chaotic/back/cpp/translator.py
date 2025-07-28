@@ -443,7 +443,11 @@ class Generator:
                 )
             user_cpp_type = f'userver::utils::StrongTypedef<{typedef_tag}, std::string>'
 
-        if schema.format and schema.format != types.StringFormat.BINARY:
+        if schema.format == types.StringFormat.URI:
+            assert not validators.pattern, '"format: uri" and "pattern" are not yet implemented'
+            validators.pattern = '^[a-z][-a-z0-9+.]*:.*'
+
+        if schema.format and schema.format not in {types.StringFormat.BINARY, types.StringFormat.URI}:
             if schema.format == types.StringFormat.BYTE:
                 format_cpp_type = 'crypto::base64::String64'
             elif schema.format == types.StringFormat.UUID:

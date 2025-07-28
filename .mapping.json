@@ -292,6 +292,7 @@
   "chaotic/integration_tests/schemas/pattern.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/pattern.yaml",
   "chaotic/integration_tests/schemas/recursion.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/recursion.yaml",
   "chaotic/integration_tests/schemas/string64.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/string64.yaml",
+  "chaotic/integration_tests/schemas/uri.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/uri.yaml",
   "chaotic/integration_tests/schemas/uuid.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/uuid.yaml",
   "chaotic/integration_tests/tests/lib/array.cpp":"taxi/uservices/userver/chaotic/integration_tests/tests/lib/array.cpp",
   "chaotic/integration_tests/tests/lib/multiple_ints.cpp":"taxi/uservices/userver/chaotic/integration_tests/tests/lib/multiple_ints.cpp",
