@@ -5,6 +5,8 @@
 #include <string_view>
 #include <vector>
 
+#include <boost/uuid/uuid.hpp>
+
 #include <userver/utils/strong_typedef.hpp>
 
 #include <userver/storages/clickhouse/io/floating_point_types.hpp>
@@ -34,6 +36,8 @@ std::string Escape(float number);
 std::string Escape(const char* source);
 std::string Escape(const std::string& source);
 std::string Escape(std::string_view source);
+
+std::string Escape(const boost::uuids::uuid& uuid);
 
 std::string Escape(std::chrono::system_clock::time_point source);
 std::string Escape(DateTime64Milli source);

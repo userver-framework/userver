@@ -23,6 +23,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse {
 
 class ExecutionResult;
+class ParameterStore;
 
 namespace impl {
 struct ClickhouseSettings;
@@ -66,6 +67,12 @@ public:
     /// for more info.
     template <typename... Args>
     ExecutionResult Execute(OptionalCommandControl, const Query& query, const Args&... args) const;
+
+    /// @overload
+    ExecutionResult Execute(const Query& query, const ParameterStore& params) const;
+
+    /// @overload
+    ExecutionResult Execute(OptionalCommandControl, const Query& query, const ParameterStore& params) const;
 
     /// @brief Insert data at some host of the cluster;
     /// `T` is expected to be a struct of vectors of same length.

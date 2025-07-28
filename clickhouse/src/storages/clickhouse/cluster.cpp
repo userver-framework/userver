@@ -4,6 +4,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/formats/common/merge.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/storages/clickhouse/parameter_store.hpp>
 #include <userver/utils/async.hpp>
 
 #include <storages/clickhouse/impl/settings.hpp>
@@ -49,6 +50,15 @@ Cluster::Cluster(
 }
 
 Cluster::~Cluster() = default;
+
+ExecutionResult Cluster::Execute(const Query& query, const ParameterStore& params) const {
+    return DoExecute(OptionalCommandControl{}, params.MakeQueryWithArgs(query));
+}
+
+ExecutionResult Cluster::Execute(OptionalCommandControl optional_cc, const Query& query, const ParameterStore& params)
+    const {
+    return DoExecute(optional_cc, params.MakeQueryWithArgs(query));
+}
 
 ExecutionResult Cluster::DoExecute(OptionalCommandControl optional_cc, const Query& query) const {
     return GetPool().Execute(optional_cc, query);
