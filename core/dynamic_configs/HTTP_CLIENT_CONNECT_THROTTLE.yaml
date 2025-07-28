@@ -1,7 +1,13 @@
 default:
     max-size: 100
     token-update-interval-ms: 0
-description: ''
+description: |
+    Token bucket throttling options for new connections (socket(3)).
+    * `*-limit` - token bucket size, set to `0` to disable the limit
+    * `*-per-second` - token bucket size refill speed
+    0 as any value disables the throttling.
+    First, the http-*/https-* limit is processed, after that per-host-* limit is processed.
+    All three token buckets work independently on all cluster hosts.
 schema:
     type: object
     properties:

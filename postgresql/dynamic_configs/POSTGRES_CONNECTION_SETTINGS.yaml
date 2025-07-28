@@ -1,7 +1,26 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls settings for newly created connections of
+    PostgreSQL driver.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    PostgreSQL component of the service.
+
+    Take note that it overrides the static configuration values of the service!
 schema:
     type: object
+    example: |
+        {
+            "__default__": {
+                "persistent-prepared-statements": true,
+                "user-types-enabled": true,
+                "check-user-types": false,
+                "max-prepared-cache-size": 5000,
+                "ignore-unused-query-params": false,
+                "recent-errors-threshold": 2
+            }
+        }
     properties:
         __default__:
             $ref: "#/definitions/ConnectionSettings"

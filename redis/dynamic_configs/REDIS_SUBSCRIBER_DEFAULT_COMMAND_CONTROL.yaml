@@ -1,5 +1,6 @@
 default: {}
-description: ''
+description: |
+    The same as REDIS_DEFAULT_COMMAND_CONTROL but for subscription clients.
 schema:
     type: object
     additionalProperties: false

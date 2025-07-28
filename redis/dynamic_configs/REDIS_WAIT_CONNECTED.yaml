@@ -2,7 +2,9 @@ default:
     mode: master_or_slave
     throw_on_fail: false
     timeout-ms: 11000
-description: ''
+description: |
+    Dynamic config that controls if services will wait for connections with redis
+    instances.
 schema:
     type: object
     additionalProperties: false

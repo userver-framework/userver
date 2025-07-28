@@ -1,4 +1,5 @@
 default: false
-description: ''
+description: Controls whether the http request task should be cancelled when the deadline
+    received from the client is reached.
 schema:
     type: boolean

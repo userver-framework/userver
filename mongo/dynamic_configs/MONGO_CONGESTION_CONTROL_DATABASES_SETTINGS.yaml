@@ -2,6 +2,10 @@ default: {}
 description: |
     Whether Congestion Control is enabled for specified MongoDB databases.
     Overrides settings from MONGO_CONGESTION_CONTROL_ENABLED.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    Mongo component of the service.
 schema:
     type: object
     example: |

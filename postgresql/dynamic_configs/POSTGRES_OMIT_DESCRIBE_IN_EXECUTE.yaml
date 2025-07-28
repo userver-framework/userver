@@ -1,5 +1,7 @@
 default: 0
-description: ''
+description: |
+    Dynamic config that turns on omit-describe-in-execute experiment for pg queries. The value
+    specifies the current version of the experiment. Specify 0 to disable.
 schema:
     type: integer
     minimum: 0

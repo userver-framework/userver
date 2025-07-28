@@ -3,6 +3,10 @@ description: |
     Options for MongoDB connections pool (uservices) for service.
     This options replace static config.
     When using MultiMongo all pools are updated.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    Mongo component of the service.
 schema:
     type: object
     example: |

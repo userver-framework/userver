@@ -1,5 +1,6 @@
 default: 1000
-description: ''
+description: Open connections pool size for curl (CURLMOPT_MAXCONNECTS). `-1` means
+    "detect by multiplying easy handles count on 4".
 schema:
     x-usrv-cpp-type: std::size_t
     type: integer
