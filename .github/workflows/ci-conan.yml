@@ -55,6 +55,9 @@ jobs:
                 brew update
                 brew tap mongodb/brew
                 brew install clang-format postgresql redis kafka rabbitmq mongodb-community
+
+                sudo ./scripts/kafka/macos_install_kafka.sh
+
                 brew install python@3.11
 
           - name: Install common packages
