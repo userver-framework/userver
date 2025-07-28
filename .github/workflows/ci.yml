@@ -253,6 +253,7 @@ jobs:
 
           - name: Run tests (kafka)
             run: |
+                export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
                 cd build_debug
                 mkdir kafka || :
                 cd kafka
