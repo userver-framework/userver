@@ -3,7 +3,8 @@
 if [ "$(uname)" = "Darwin" ]; then
   brew install openjdk@17
 else
-  sudo apt install -y openjdk-17-jdk
+  apt install -y openjdk-17-jdk
+  sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
 fi
 
 if [ -z ${KAFKA_PATH+x} ]; then
