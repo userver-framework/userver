@@ -1799,6 +1799,7 @@
   "core/src/server/websocket/server.cpp":"taxi/uservices/userver/core/src/server/websocket/server.cpp",
   "core/src/server/websocket/websocket_handler.cpp":"taxi/uservices/userver/core/src/server/websocket/websocket_handler.cpp",
   "core/src/storages/query.cpp":"taxi/uservices/userver/core/src/storages/query.cpp",
+  "core/src/storages/query_test.cpp":"taxi/uservices/userver/core/src/storages/query_test.cpp",
   "core/src/storages/secdist/component.cpp":"taxi/uservices/userver/core/src/storages/secdist/component.cpp",
   "core/src/storages/secdist/helpers.cpp":"taxi/uservices/userver/core/src/storages/secdist/helpers.cpp",
   "core/src/storages/secdist/provider_component.cpp":"taxi/uservices/userver/core/src/storages/secdist/provider_component.cpp",
