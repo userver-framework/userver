@@ -149,7 +149,7 @@ git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF  -DUSE_RTTI=ON .. && make -j $(nproc) && make install)
 
 # Installing Kafka
-DEBIAN_FRONTEND=noninteractive apt install -y default-jre
+DEBIAN_FRONTEND=noninteractive apt install -y openjdk-17-jdk
 
 curl https://dlcdn.apache.org/kafka/4.0.0/kafka_2.13-4.0.0.tgz -o kafka.tgz
 mkdir -p /etc/kafka
