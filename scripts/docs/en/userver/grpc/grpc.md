@@ -63,9 +63,10 @@ Read the documentation on gRPC streams:
 
 On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside the entire stream interaction. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+@anchor grpc_ssl_authentication
 ### TLS / SSL
 
-May be enabled for gRPC client via:
+May be enabled for gRPC client via @ref ugrpc::client::ClientFactoryComponent static config option:
 
 ```
 # yaml
@@ -73,15 +74,25 @@ components_manager:
     components:
         grpc-client-factory:
             auth-type: ssl
+            ssl-credentials-options:
+                pem-root-certs:  /path/to/server/cert
+                pem-private-key: /path/to/private/key
+                pem-cert-chain:  /path/to/cert/chain
 ```
 
-Available values are:
+Available `auth-type` values are:
 
 - `insecure` (default)
 - `ssl`
 
-SSL has to be disabled in tests, because it
-requires the server to have a public domain name, which it does not in tests.
+Default (system) authentication keys are used by default. To change that provide the `ssl-credentials-options` static
+config options with the following options:
+
+* `pem-root-certs` - a path to file containing the PEM encoding of the server root certificates
+* `pem-private-key` - a path to file containing the PEM encoding of the client's private key
+* `pem-cert-chain` - The path to file containing the PEM encoding of the client's certificate chain
+
+SSL has to be disabled in tests, because it requires the server to have a public domain name, which it does not in tests.
 In testsuite, SSL in gRPC clients is disabled automatically.
 
 
@@ -89,13 +100,13 @@ In testsuite, SSL in gRPC clients is disabled automatically.
 
 Main page: @ref scripts/docs/en/userver/grpc/client_middlewares.md.
 
-Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code. 
+Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code.
 Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
 
 #### List of standard client middlewares:
 
   1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
-  2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
+  2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates
   @ref scripts/docs/en/userver/deadline_propagation.md.
   3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
   3. `grpc-client-headers-propagator` with component ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
@@ -175,7 +186,7 @@ Use ugrpc::server::MiddlewareBase to implement new middlewares.
 #### List of standard server middlewares:
 
   1. `grpc-server-logging` with component ugrpc::server::middlewares::log::Component - logs requests.
-  2. `grpc-server-deadline-propagation` with component ugrpc::server::middlewares::deadline_propagation::Component - activates 
+  2. `grpc-server-deadline-propagation` with component ugrpc::server::middlewares::deadline_propagation::Component - activates
   @ref scripts/docs/en/userver/deadline_propagation.md.
   3. `grpc-server-congestion-control` with component ugrpc::server::middlewares::congestion_control::Component - limits requests.
   See Congestion Control section of @ref scripts/docs/en/userver/tutorial/production_service.md.
@@ -193,7 +204,7 @@ See native [docs about compression](https://github.com/grpc/grpc/blob/master/doc
 ### Key notes from the native gRPC documentation
 
   1. When a compression level is not specified for either the channel or the message, the default channel level none is considered: data MUST NOT be compressed.
-  2. You can set a compression **algorithm** and a compression **level** on the server side. 
+  2. You can set a compression **algorithm** and a compression **level** on the server side.
   3. On client side, one can set a compression **algorithm**.
   4. `GRPC_COMPRESS_LEVEL_LOW` mapping to "gzip -3" and `GRPC_COMPRESS_LEVEL_HIGH` mapping to "gzip -9".
 
@@ -213,7 +224,7 @@ Config example:
 
 ## gRPC Logs
 
-Each gRPC call generates a span ( `tracing::Span` ) containing tags which are inherited by all child logs. 
+Each gRPC call generates a span ( `tracing::Span` ) containing tags which are inherited by all child logs.
 
 Additionally, if logging is activated, a separate log is generated for every gRPC request-response in `grpc-server-logging` and `grpc-client-logging` middlewares.
 
@@ -224,7 +235,7 @@ gRPC logs are listed below.
 Middleware component name          | Key                    | Value
 ---------------------------------- |----------------------- | ------------------------
 builtin                            | `error`                | error flag, `true`
-builtin                            | `grpc_code`            | error code  `grpc::StatusCode`, [list](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) 
+builtin                            | `grpc_code`            | error code  `grpc::StatusCode`, [list](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)
 builtin                            | `error_msg`            | error message
 `grpc-client-logging`              | `meta_type`            | call name
 `grpc-client-logging`              | `grpc_type`            | `request` or `response`
@@ -270,7 +281,7 @@ message Creds {
 
 grpc-core is a lower level library, its logs are forwarded to the userver default logger. In this process only error
 level logs get through from grpc-core to the userver default logger if the default settings are used. However, the
-default settings can be overridden and more verbose logging can be achieved. 
+default settings can be overridden and more verbose logging can be achieved.
 
 To do this you need to change the value of `native-log-level` in the static config file in the components `grpc-client-common` and `grpc-server`:
 
