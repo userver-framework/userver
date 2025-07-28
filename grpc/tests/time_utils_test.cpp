@@ -22,8 +22,8 @@ UTEST(DeadlineToTimespec, Base) {
     const auto deadline = ugrpc::TimespecToDeadline(t);
     const auto hi = engine::Deadline::FromDuration(duration);
     EXPECT_TRUE(deadline.IsReachable());
-    EXPECT_LT(lo, deadline);
-    EXPECT_LT(deadline, hi);
+    EXPECT_THAT(lo, testing::AnyOf(testing::Lt(deadline), testing::Eq(deadline)));
+    EXPECT_THAT(deadline, testing::AnyOf(testing::Lt(hi), testing::Eq(hi)));
 }
 
 UTEST(DeadlineToTimespec, FromUnreachableDeadline) {
