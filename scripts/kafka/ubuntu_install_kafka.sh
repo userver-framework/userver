@@ -1,9 +1,8 @@
 #!/bin/sh
 
 sudo apt install -y openjdk-17-jdk
-java -version
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-export PATH=$PATH:$JAVA_HOME/bin
+sudo update-alternatives --display java
+sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
 
 
 curl https://dlcdn.apache.org/kafka/4.0.0/kafka_2.13-4.0.0.tgz -o kafka.tgz
