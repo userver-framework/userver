@@ -315,6 +315,16 @@ if(USERVER_FEATURE_UTEST)
         include(SetupGBench)
         set(_benchmark_target benchmark::benchmark)
     endif()
+
+    try_compile(
+        HAVE_MAYBE_REENTER_WITHOUT_ASLR ${CMAKE_CURRENT_BINARY_DIR}/benchmarks/main_check_aslr_disable
+        SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main_check_aslr_disable.cpp
+        LINK_LIBRARIES benchmark::benchmark
+    )
+    if(NOT HAVE_MAYBE_REENTER_WITHOUT_ASLR)
+        target_compile_definitions(${PROJECT_NAME}-internal-ubench INTERFACE USERVER_IMPL_NO_MAYBE_REENTER_WITHOUT_ASLR_EXISTS)
+    endif()
+
     target_link_libraries(${PROJECT_NAME}-internal-ubench INTERFACE ${_benchmark_target} ${PROJECT_NAME})
 endif()
 
