@@ -48,6 +48,11 @@ CMAKE_VERSION=$("$CMAKE_COMMAND" --version | grep -oP '\d+\.\d+')
 echo "Building target userver-codegen."
 "$CMAKE_COMMAND" --build "$BUILD_DIR" --target userver-codegen
 
+echo "Building target userver-gen-dynamic-configs-docs."
+"$CMAKE_COMMAND" --build "$BUILD_DIR" --target userver-gen-dynamic-configs-docs
+rm -f scripts/docs/en/dynamic_configs
+ln -s ../../../$BUILD_DIR/docs-dynamic-configs scripts/docs/en/dynamic_configs
+
 # Run doxygen.
 rm -rf "$BUILD_DIR/docs" || :
 

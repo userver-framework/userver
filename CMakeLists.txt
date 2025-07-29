@@ -188,6 +188,7 @@ include(FindPackageRequired)
 include(IncludeWhatYouUse)
 include(UserverTestsuite)
 include(UserverCodegenTarget)
+include(UserverGenerateDynamicConfigsDocs)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
 
@@ -362,5 +363,7 @@ if(USERVER_BUILD_TESTS)
         )
     endif()
 endif()
+
+_userver_add_target_gen_dynamic_configs_docs()
 
 _userver_print_features_list()
