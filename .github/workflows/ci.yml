@@ -301,6 +301,8 @@ jobs:
           - name: Run tests (gRPC)
             if: matrix.os != 'ubuntu-24.04'
             run: |
+                export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+                sudo apt install -y openjdk-17-jdk
                 cd build_debug
                 mkdir grpc || :
                 cd grpc
