@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 #include <librdkafka/rdkafka.h>
+#include <librdkafka/rdkafka_mock.h>
 
 #include <userver/utils/assert.hpp>
 
@@ -47,6 +48,8 @@ template class HolderBase<rd_kafka_queue_t, &rd_kafka_queue_destroy>;
 template class HolderBase<rd_kafka_topic_partition_list_t, &rd_kafka_topic_partition_list_destroy>;
 template class HolderBase<const rd_kafka_metadata_t, &rd_kafka_metadata_destroy>;
 template class HolderBase<rd_kafka_topic_t, &rd_kafka_topic_destroy>;
+template class HolderBase<rd_kafka_mock_cluster_t, &rd_kafka_mock_cluster_destroy>;
+template class HolderBase<rd_kafka_t, &rd_kafka_destroy>;
 
 struct ConfHolder::Impl {
     explicit Impl(rd_kafka_conf_t* conf) : conf(conf) {}

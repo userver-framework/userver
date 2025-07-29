@@ -11,8 +11,8 @@
 #include <userver/kafka/impl/consumer.hpp>
 #include <userver/kafka/producer.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/box.hpp>
 #include <userver/utils/span.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::utest {
@@ -66,9 +66,9 @@ public:
 
     KafkaCluster();
 
-    ~KafkaCluster() override = default;
+    ~KafkaCluster() override;
 
-    std::string GenerateTopic();
+    std::string GenerateTopic(std::uint32_t partition_cnt = 1);
 
     std::vector<std::string> GenerateTopics(std::size_t count);
 
@@ -121,13 +121,14 @@ public:
 
 private:
     impl::Secret AddBootstrapServers(impl::Secret secrets) const;
+    std::string InitBootstrapServers();
 
 private:
     static std::atomic<std::size_t> kTopicsCount;
-
+    class MockCluster;
+    utils::Box<MockCluster> mock_;
     const std::string bootstrap_servers_;
 };
-
 }  // namespace kafka::utest
 
 USERVER_NAMESPACE_END
