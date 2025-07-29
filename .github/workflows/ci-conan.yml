@@ -72,6 +72,8 @@ jobs:
 
           - name: Test userver conan package
             run: |
+                sudo apt install -y openjdk-17-jdk
+                export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
                 mv libraries/easy/samples/3_json samples/
                 mv scripts/tests/conanfile.py samples/
                 rm -rf userver/cmake/
