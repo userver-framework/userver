@@ -99,7 +99,6 @@ namespace components {
 ///   "redis_settings": {
 ///     "some_name_of_your_database": {
 ///       "password": "the_password_of_your_database",
-///       "sentinel_password": "the_password_for_sentinels_if_any",
 ///       "sentinels": [
 ///         {"host": "the_host1_of_your_database", "port": 11564}
 ///       ],
