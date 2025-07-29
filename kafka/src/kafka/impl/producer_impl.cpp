@@ -128,7 +128,7 @@ ProducerImpl::ProducerImpl(
 const Stats& ProducerImpl::GetStats() const { return stats_; }
 
 DeliveryResult ProducerImpl::Send(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
@@ -144,7 +144,7 @@ DeliveryResult ProducerImpl::Send(
 }
 
 engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,

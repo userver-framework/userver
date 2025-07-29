@@ -99,13 +99,13 @@ Producer::~Producer() {
 }
 
 void Producer::Send(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
     HeaderViews headers
 ) const {
-    utils::Async(producer_task_processor_, "producer_send", [this, &topic_name, key, message, partition, &headers] {
+    utils::Async(producer_task_processor_, "producer_send", [this, topic_name, key, message, partition, &headers] {
         SendImpl(topic_name, key, message, partition, impl::HeadersHolder{headers});
     }).Get();
 }
@@ -136,7 +136,7 @@ void Producer::DumpMetric(utils::statistics::Writer& writer) const {
 }
 
 void Producer::SendImpl(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
