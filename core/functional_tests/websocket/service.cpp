@@ -4,6 +4,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/concurrent/queue.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/server/websocket/websocket_handler.hpp>
 #include <userver/utils/async.hpp>
@@ -109,11 +110,34 @@ public:
     }
 };
 
+class WebsocketsPingPongHandler final : public server::websocket::WebsocketHandlerBase {
+public:
+    static constexpr std::string_view kName = "websocket-ping-pong-handler";
+
+    using WebsocketHandlerBase::WebsocketHandlerBase;
+
+    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+        std::chrono::milliseconds time_without_sends{0};
+        while (!engine::current_task::ShouldCancel()) {
+            if (chat.NotAnsweredSequentialPingsCount() > 3) {
+                LOG_WARNING() << "Ping not answered, closing connection";
+                chat.Close(server::websocket::CloseStatus::kGoingAway);
+                break;
+            }
+
+            chat.SendPing();
+            time_without_sends += std::chrono::milliseconds(200);
+            engine::InterruptibleSleepFor(std::chrono::milliseconds(200));
+        }
+    }
+};
+
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<WebsocketsHandler>()
                                     .Append<WebsocketsHandlerAlt>()
                                     .Append<WebsocketsFullDuplexHandler>()
+                                    .Append<WebsocketsPingPongHandler>()
                                     .Append<clients::dns::Component>()
                                     .Append<components::HttpClient>()
                                     .Append<components::TestsuiteSupport>()

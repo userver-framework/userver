@@ -1,5 +1,7 @@
 #include <userver/server/websocket/server.hpp>
 
+#include <atomic>
+
 #include <userver/components/component.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
@@ -58,6 +60,8 @@ private:
     impl::FrameParserState frame_;
 
     Config config;
+
+    std::atomic<std::size_t> ping_pending_count_{0};
 
 public:
     WebSocketConnectionImpl(
@@ -118,6 +122,15 @@ public:
         SendExtended(mext);
     }
 
+    void SendPing() override {
+        MessageExtended ping_msg{{}, impl::WSOpcodes::kPing, {}};
+        SendExtended(ping_msg);
+        LOG_TRACE() << "Sent keep-alive ping";
+        ping_pending_count_.fetch_add(1);
+    }
+
+    std::size_t NotAnsweredSequentialPingsCount() override { return ping_pending_count_.load(); }
+
     void DoSendBinary(utils::span<const std::byte> message) override {
         MessageExtended mext{message, impl::WSOpcodes::kBinary, {}};
         SendExtended(mext);
@@ -173,6 +186,7 @@ public:
             }
             if (frame_.pong_received) {
                 frame_.pong_received = false;
+                ping_pending_count_ = 0;
                 continue;
             }
             if (frame_.waiting_continuation) continue;

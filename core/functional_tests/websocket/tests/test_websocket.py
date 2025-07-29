@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import pytest
@@ -120,3 +121,24 @@ async def test_two_but_handler_alt(websocket_client):
             for _ in range(10):
                 msg = await chat1.recv()
                 assert msg == 'A'
+
+
+async def test_ping_pong(websocket_client):
+    async with websocket_client.get('ping-pong'):
+        await asyncio.sleep(1)
+
+
+async def test_ping_pong_close(websocket_client):
+    async with websocket_client.get('ping-pong') as chat:
+        websocket_client.ping_interval = None
+        websocket_client.ping_timeout = None
+
+        for _ in range(20):
+            try:
+                await chat.recv()
+                await asyncio.sleep(1)
+            except websockets.exceptions.ConnectionClosed:
+                connection_closed_by_ping = True
+                break
+
+        assert connection_closed_by_ping
