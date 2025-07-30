@@ -257,6 +257,7 @@ class StringFormat(enum.Enum):
     DATE_TIME_ISO_BASIC = enum.auto()
     DATE_TIME_FRACTION = enum.auto()
     UUID = enum.auto()
+    URI = enum.auto()
 
     @classmethod
     def from_string(cls, data: str) -> 'StringFormat':
@@ -274,6 +275,7 @@ STRING_FORMAT_TO_FORMAT = {
     'date-time-iso-basic': StringFormat.DATE_TIME_ISO_BASIC,
     'date-time-fraction': StringFormat.DATE_TIME_FRACTION,
     'uuid': StringFormat.UUID,
+    'uri': StringFormat.URI,
 }
 
 

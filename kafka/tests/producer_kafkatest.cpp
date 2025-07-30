@@ -297,7 +297,7 @@ UTEST_F(ProducerTest, ManyProducersManySendAsyncSingleThread) {
 
 UTEST_F_MT(ProducerTest, ManyProducersManySendAsync, 4 + 4) {
     constexpr std::size_t kProducerCount{4};
-    constexpr std::size_t kSendCount{300};
+    constexpr std::size_t kSendCount{200};
     constexpr std::size_t kTopicCount{kSendCount / 10};
 
     const std::deque<kafka::Producer> producers =

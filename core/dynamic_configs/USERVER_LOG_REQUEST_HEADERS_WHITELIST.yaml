@@ -1,5 +1,10 @@
 default: []
-description: ''
+description: |
+    If the @ref USERVER_LOG_REQUEST_HEADERS option is enabled,
+    you can control which HTTP headers are logged, including their values.
+    Header is suitable if it exactly matches one of the values in the whitelist.
+    Any headers that are not on the whitelist will have their values replaced with *** in the logs.
+    E.g. ["User-Agent", "Accept-Encoding"].
 schema:
     type: array
     x-taxi-cpp-type: std::unordered_set

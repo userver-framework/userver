@@ -1,22 +1,20 @@
 #pragma once
 
-#include <google/protobuf/message.h>
-#include <grpcpp/support/status.h>
-
-#include <userver/ugrpc/client/impl/call_state.hpp>
+#include <userver/ugrpc/client/impl/middleware_hooks.hpp>
+#include <userver/ugrpc/client/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-struct MiddlewarePipeline {
-    static void PreStartCall(CallState& state);
+class MiddlewarePipeline {
+public:
+    explicit MiddlewarePipeline(const Middlewares& middlewares) : middlewares_{middlewares} {}
 
-    static void PreSendMessage(CallState& state, const google::protobuf::Message& message);
+    void Run(const MiddlewareHooks& hooks, MiddlewareCallContext& context) const;
 
-    static void PostRecvMessage(CallState& state, const google::protobuf::Message& message);
-
-    static void PostFinish(CallState& state);
+private:
+    const Middlewares& middlewares_;
 };
 
 }  // namespace ugrpc::client::impl

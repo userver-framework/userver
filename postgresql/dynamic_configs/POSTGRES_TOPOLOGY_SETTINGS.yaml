@@ -1,7 +1,27 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls topology settings of service's PostgreSQL
+    components.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    PostgreSQL component of the service.
+
+    Take note that it overrides the static configuration values of the service!
 schema:
     type: object
+    example: |
+        {
+            // settings for a specific component
+            "postgresql-orders": {
+                "max_replication_lag_ms": 0,
+                "disabled_replicas": ["sas-01.db.yandex.net", "vla-02.db.yandex.net"]
+            },
+            // settings for all other components
+            "__default__": {
+                "max_replication_lag_ms": 60000
+            }
+        }
     additionalProperties:
         $ref: "#/definitions/TopologySettings"
     definitions:

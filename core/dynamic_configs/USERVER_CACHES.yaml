@@ -1,5 +1,5 @@
 default: {}
-description: ''
+description: Cache update dynamic parameters
 schema:
     type: object
     additionalProperties:

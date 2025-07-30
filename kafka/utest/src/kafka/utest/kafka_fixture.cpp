@@ -4,48 +4,24 @@
 #include <tuple>
 
 #include <fmt/format.h>
+#include <librdkafka/rdkafka.h>
+#include <librdkafka/rdkafka_mock.h>
 
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/engine/wait_all_checked.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
+#include <userver/utils/numeric_cast.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::utest {
 
 namespace {
-
-constexpr const char* kTestsuiteKafkaServerHost{"TESTSUITE_KAFKA_SERVER_HOST"};
-constexpr const char* kDefaultKafkaServerHost{"localhost"};
-constexpr const char* kTestsuiteKafkaServerPort{"TESTSUITE_KAFKA_SERVER_PORT"};
-constexpr const char* kDefaultKafkaServerPort{"9099"};
-constexpr const char* kRecipeKafkaBrokersList{"KAFKA_RECIPE_BROKER_LIST"};
-
-std::string FetchBrokerList() {
-    const auto env = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
-
-    if (const auto* brokers_list = env->GetValueOptional(kRecipeKafkaBrokersList)) {
-        return *brokers_list;
-    }
-
-    std::string server_host{kDefaultKafkaServerHost};
-    std::string server_port{kDefaultKafkaServerPort};
-    const auto* host = env->GetValueOptional(kTestsuiteKafkaServerHost);
-    if (host) {
-        server_host = *host;
-    }
-    const auto* port = env->GetValueOptional(kTestsuiteKafkaServerPort);
-    if (port) {
-        server_port = *port;
-    }
-    return fmt::format("{}:{}", server_host, server_port);
-}
-
 impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
     impl::Secret secrets{};
     secrets.brokers = bootstrap_servers;
-
     return secrets;
 }
 
@@ -58,19 +34,64 @@ impl::ProducerConfiguration PatchDeliveryTimeout(impl::ProducerConfiguration con
 
     return configuration;
 }
-
 }  // namespace
+
+class KafkaCluster::MockCluster {
+    using ProducerHolder = impl::HolderBase<rd_kafka_t, &rd_kafka_destroy>;
+    using MockClusterHolder = impl::HolderBase<rd_kafka_mock_cluster_t, &rd_kafka_mock_cluster_destroy>;
+
+public:
+    MockCluster()
+        : conf_(CreateConfiguredConf()),
+          handle_(rd_kafka_new(RD_KAFKA_PRODUCER, conf_.GetHandle(), nullptr, sizeof(nullptr))),
+          mock_cluster_(rd_kafka_mock_cluster_new(handle_.GetHandle(), /*broker_cnt=*/1)) {
+        UINVARIANT(handle_.GetHandle(), "Failed to create fake producer");
+        UINVARIANT(mock_cluster_.GetHandle(), "Failed to get mock cluster handle");
+        conf_.ForgetUnderlyingConf();
+    }
+
+    ~MockCluster() = default;
+
+    static impl::ConfHolder CreateConfiguredConf() {
+        rd_kafka_conf_t* conf = rd_kafka_conf_new();
+        UINVARIANT(conf, "Failed to create Kafka config");
+        rd_kafka_conf_set(conf, "log_level", "2", nullptr, sizeof(nullptr));
+
+        return impl::ConfHolder(conf);
+    }
+
+    rd_kafka_mock_cluster_t* GetMockCluster() const { return mock_cluster_.GetHandle(); }
+
+private:
+    impl::ConfHolder conf_;
+    ProducerHolder handle_;
+    MockClusterHolder mock_cluster_;
+};
 
 bool operator==(const Message& lhs, const Message& rhs) {
     return std::tie(lhs.topic, lhs.key, lhs.payload, lhs.partition) ==
            std::tie(rhs.topic, rhs.key, rhs.payload, rhs.partition);
 }
 
-KafkaCluster::KafkaCluster() : bootstrap_servers_(FetchBrokerList()) {}
+KafkaCluster::KafkaCluster() : bootstrap_servers_{rd_kafka_mock_cluster_bootstraps(mock_->GetMockCluster())} {
+    UINVARIANT(!bootstrap_servers_.empty(), "Empty bootstrap_servers");
+}
 
 std::atomic<std::size_t> KafkaCluster::kTopicsCount{0};
 
-std::string KafkaCluster::GenerateTopic() { return fmt::format("tt-{}", kTopicsCount.fetch_add(1)); }
+KafkaCluster::~KafkaCluster() = default;
+
+std::string KafkaCluster::GenerateTopic(std::uint32_t partition_cnt) {
+    std::string topic = fmt::format("tt-{}", kTopicsCount.fetch_add(1));
+    const auto err = rd_kafka_mock_topic_create(
+        mock_->GetMockCluster(), topic.c_str(), utils::numeric_cast<int>(partition_cnt), /*replication_factor=*/1
+    );
+    UINVARIANT(
+        err == RD_KAFKA_RESP_ERR_NO_ERROR, fmt::format("Failed to create topic '{}': {}", topic, rd_kafka_err2str(err))
+    );
+
+    return topic;
+}
 
 std::vector<std::string> KafkaCluster::GenerateTopics(std::size_t count) {
     std::vector<std::string> topics{count};

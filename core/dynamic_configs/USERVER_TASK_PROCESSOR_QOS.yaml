@@ -5,7 +5,7 @@ default:
                 action: ignore
                 length_limit: 5000
                 time_limit_us: 3000
-description: ''
+description: Controls engine::TaskProcessor quality of service dynamic config.
 schema:
     type: object
     required:

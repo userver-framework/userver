@@ -36,9 +36,11 @@ ClientFactoryComponent::ClientFactoryComponent(
     const auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
 
     auto& testsuite_grpc = context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
-
     auto factory_config = config.As<impl::ClientFactoryConfig>();
-
+    if (!testsuite_grpc.IsTlsEnabled() && factory_config.auth_type == impl::AuthType::kSsl) {
+        LOG_INFO() << "Disabling TLS/SSL dues to testsuite config for gRPC";
+        factory_config.auth_type = impl::AuthType::kInsecure;
+    }
     const auto* secdist = GetSecdist(context);
 
     factory_.emplace(
@@ -75,6 +77,24 @@ properties:
         enum:
           - insecure
           - ssl
+    ssl-credentials-options:
+        type: object
+        description: SSL options for cases when `auth-type` is `ssl`
+        defaultDescription: '{}'
+        additionalProperties: false
+        properties:
+            pem-root-certs:
+                type: string
+                description: The path to file containing the PEM encoding of the server root certificates
+                defaultDescription: absent
+            pem-private-key:
+                type: string
+                description: The path to file containing the PEM encoding of the client's private key
+                defaultDescription: absent
+            pem-cert-chain:
+                type: string
+                description: The path to file containing the PEM encoding of the client's certificate chain
+                defaultDescription: absent
     auth-token:
         type: string
         description: auth token name from secdist

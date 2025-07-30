@@ -6,7 +6,6 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/impl/grpc_native_logging.hpp>
-#include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
 USERVER_NAMESPACE_BEGIN

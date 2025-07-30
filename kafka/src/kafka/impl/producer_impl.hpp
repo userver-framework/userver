@@ -33,7 +33,7 @@ public:
     /// @brief Send the message and waits for its delivery.
     /// While waiting handles other messages delivery reports, errors and logs.
     [[nodiscard]] DeliveryResult Send(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition,
@@ -54,7 +54,7 @@ private:
     /// @brief Schedules the message delivery.
     /// @returns the future for delivery result, which must be awaited.
     [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition,

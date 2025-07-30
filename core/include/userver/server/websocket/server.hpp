@@ -95,6 +95,16 @@ public:
     virtual void Send(const Message& message) = 0;
     virtual void SendText(std::string_view message) = 0;
 
+    /// @brief Send a ping message to websocket.
+    /// @throws engine::io::IoException in case of socket errors
+    virtual void SendPing() = 0;
+
+    /// @brief Get the number of not answered sequential pings;
+    /// calls to SendPing() increment this value, Recv and TryRecv
+    /// reset this value if some 'pong' is received.
+    /// @returns the number of not answered sequential pings
+    virtual std::size_t NotAnsweredSequentialPingsCount() = 0;
+
     template <typename ContiguousContainer>
     void SendBinary(const ContiguousContainer& message) {
         static_assert(

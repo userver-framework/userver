@@ -1,5 +1,10 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls the metric settings for specific service.
+
+    Dictionary keys can be either the **database name** (not the component name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    Redis database/sentinel of the service.
 schema:
     type: object
     additionalProperties: false

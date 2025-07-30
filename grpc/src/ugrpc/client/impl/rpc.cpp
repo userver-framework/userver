@@ -3,7 +3,6 @@
 #include <userver/engine/task/cancel.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

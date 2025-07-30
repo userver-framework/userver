@@ -1,6 +1,17 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that overrides the default timeouts, number of retries and
+    server selection strategy for redis commands.
 schema:
+    example: |
+        {
+          "best_dc_count": 0,
+          "max_ping_latency_ms": 0,
+          "max_retries": 4,
+          "strategy": "default",
+          "timeout_all_ms": 2000,
+          "timeout_single_ms": 500
+        }
     additionalProperties: false
     properties:
         best_dc_count:

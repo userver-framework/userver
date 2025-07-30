@@ -18,6 +18,8 @@ enum class AuthType {
 struct ClientFactoryConfig final {
     AuthType auth_type{AuthType::kInsecure};
 
+    grpc::SslCredentialsOptions ssl_credentials_options{};
+
     /// Optional grpc-core channel args
     /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
     grpc::ChannelArguments channel_args{};

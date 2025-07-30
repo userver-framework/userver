@@ -1,5 +1,10 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls per-handle statement and network timeouts.
+    Overrides POSTGRES_DEFAULT_COMMAND_CONTROL and
+    built-in timeouts from components::Postgres::kDefaultCommandControl,
+    but may be overridden by POSTGRES_QUERIES_COMMAND_CONTROL and
+    storages::postgres::CommandControl.
 schema:
     type: object
     additionalProperties:
@@ -19,5 +24,3 @@ schema:
                 statement_timeout_ms:
                     type: integer
                     minimum: 1
-                prepared_statements_enabled:
-                    type: boolean

@@ -39,6 +39,12 @@ components_manager:
             task_processor: main-task-processor  # Run it on CPU bound task processor
             max-remote-payload: 100000
             fragment-size: 10
+        websocket-ping-pong-handler:
+            path: /ping-pong
+            method: GET
+            task_processor: main-task-processor
+            max-remote-payload: 100000
+            fragment-size: 10
 
         testsuite-support:
 

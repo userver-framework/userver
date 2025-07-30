@@ -1,7 +1,22 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls statement metrics settings for specific service.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    PostgreSQL component of the service.
+
+    The value of `max_statement_metrics` controls the maximum size of LRU-cache
+    for named statement metrics. When set to 0 (default) no metrics are being
+    exported.
 schema:
     type: object
+    example: |
+        {
+            "postgresql-grocery_orders": {
+                "max_statement_metrics": 50
+            }
+        }
     additionalProperties:
         $ref: "#/definitions/StatementMetricsSettings"
     definitions:

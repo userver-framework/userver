@@ -1,7 +1,31 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls connection pool settings of PostgreSQL driver.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    PostgreSQL component of the service.
+
+    Take note that it overrides the static configuration values of the service!
 schema:
     type: object
+    example: |
+        {
+            // Settings for a specific component.
+            "postgresql-orders": {
+                "min_pool_size": 8,
+                "max_pool_size": 50,
+                "max_queue_size": 200,
+                "connecting_limit": 10
+            },
+            // All other components.
+            "__default__": {
+                "min_pool_size": 4,
+                "max_pool_size": 15,
+                "max_queue_size": 200,
+                "connecting_limit": 8
+            }
+        }
     properties:
         __default__:
             $ref: "#/definitions/PoolSettings"

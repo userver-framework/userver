@@ -1,5 +1,7 @@
 default: 30
-description: ''
+description: |
+    Dynamic config that controls the minimal interval between redis subscription
+    clients rebalancing.
 schema:
     minimum: 0
     type: integer

@@ -1,5 +1,5 @@
 default: {}
-description: ''
+description: Congestion Control settings for MongoDB
 schema:
     type: object
     additionalProperties: false

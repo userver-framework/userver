@@ -1,5 +1,7 @@
 default: {}
-description: ''
+description: |
+    Dynamic dump configuration. If the options are set for some dump then those
+    options override the static configuration.
 schema:
     type: object
     additionalProperties:

@@ -23,6 +23,7 @@
 #include <schemas/one_of.hpp>
 #include <schemas/oneofdiscriminator.hpp>
 #include <schemas/string64.hpp>
+#include <schemas/uri.hpp>
 #include <schemas/uuid.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -380,6 +381,17 @@ TEST(Simple, Uuid) {
 
     auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["uuid"].As<std::string>();
     EXPECT_EQ(str, uuid);
+}
+
+TEST(Simple, Uri) {
+    auto uri = "http://example.com";
+    auto json = formats::json::MakeObject("uri", uri);
+    auto obj = json.As<ns::ObjectUri>();
+
+    EXPECT_EQ(obj.uri, uri);
+
+    auto str = Serialize(obj, formats::serialize::To<formats::json::Value>())["uri"].As<std::string>();
+    EXPECT_EQ(str, uri);
 }
 
 TEST(SIMPLE, String64) {

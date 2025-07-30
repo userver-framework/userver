@@ -1,7 +1,11 @@
 default:
     prefixes: []
     names: []
-description: ''
+description: |
+    Prefixes or full names of tracing::Span instances to not log.
+
+    In order for `USERVER_NO_LOG_SPANS` to work, you should `Append` components::LoggingConfigurator
+    component or use components::CommonComponentList.
 schema:
     type: object
     additionalProperties: false

@@ -103,7 +103,7 @@ public:
     /// a sense to retry the message sending.
     /// @snippet kafka/tests/producer_kafkatest.cpp Producer retryable error
     void Send(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition = kUnassignedPartition,
@@ -134,7 +134,7 @@ public:
 
 private:
     void SendImpl(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition,

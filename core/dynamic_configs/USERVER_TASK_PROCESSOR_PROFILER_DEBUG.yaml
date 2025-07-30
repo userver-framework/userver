@@ -7,7 +7,9 @@ default:
         enabled: false
         # 1sec
         execution-slice-threshold-us: 1000000
-description: ''
+description: |
+    Dynamic config for profiling the coroutine based engine of userver.
+    Dictionary key names are the names of engine::TaskProcessor.
 schema:
     type: object
     properties: {}
