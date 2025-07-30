@@ -9,7 +9,6 @@ name: Conan
           - feature/**
 
 env:
-    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     UBSAN_OPTIONS: print_stacktrace=1
 
 jobs:
@@ -22,8 +21,10 @@ jobs:
                 include:
                   - os: ubuntu-22.04
                     conanflags: ''
+                    tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
                   - os: macos-latest
                     conanflags: '-o python_path=python3.11'
+                    tests-env: ''
 
         steps:
           - name: Checkout
@@ -33,7 +34,6 @@ jobs:
             if: matrix.os == 'ubuntu-22.04'
             run: |
                 sudo apt update
-                sudo apt install -y openjdk-17-jdk
                 sudo apt install -y \
                    gcc g++ cmake wget git clang-format \
                    python3 python3-pip python3-venv
@@ -47,6 +47,7 @@ jobs:
 
                 sudo apt update
                 sudo apt install -y postgresql redis mongodb-org mongodb-mongosh
+                sudo apt install -y openjdk-17-jdk # for Kafka
                 sudo ./scripts/kafka/ubuntu_install_kafka.sh
 
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
@@ -94,6 +95,6 @@ jobs:
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/
-                    conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
+                    ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
                     mv $SAMPLE/conanfile.py ./
                 done
