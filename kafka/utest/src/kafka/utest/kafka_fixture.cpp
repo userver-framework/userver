@@ -17,26 +17,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::utest {
-constexpr const char* kTestsuiteKafkaServerHost{"TESTSUITE_KAFKA_SERVER_HOST"};
-constexpr const char* kDefaultKafkaServerHost{"localhost"};
-constexpr const char* kTestsuiteKafkaServerPort{"TESTSUITE_KAFKA_SERVER_PORT"};
-constexpr const char* kDefaultKafkaServerPort{"9099"};
-
-std::string FetchBrokerList() {
-    const auto env = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
-
-    std::string server_host{kDefaultKafkaServerHost};
-    std::string server_port{kDefaultKafkaServerPort};
-    const auto* host = env->GetValueOptional(kTestsuiteKafkaServerHost);
-    if (host) {
-        server_host = *host;
-    }
-    const auto* port = env->GetValueOptional(kTestsuiteKafkaServerPort);
-    if (port) {
-        server_port = *port;
-    }
-    return fmt::format("{}:{}", server_host, server_port);
-}
 
 namespace {
 impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
@@ -54,16 +34,6 @@ impl::ProducerConfiguration PatchDeliveryTimeout(impl::ProducerConfiguration con
 
     return configuration;
 }
-bool IsKafkaClusterConfigured() {
-    static std::optional<bool> is_cluster_configured;
-
-    if (!is_cluster_configured.has_value()) {
-        const auto env = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
-        is_cluster_configured =
-            env->GetValueOptional(kTestsuiteKafkaServerHost) || env->GetValueOptional(kTestsuiteKafkaServerPort);
-    }
-    return *is_cluster_configured;
-}
 }  // namespace
 
 class KafkaCluster::MockCluster {
@@ -79,13 +49,17 @@ public:
         UINVARIANT(mock_cluster_.GetHandle(), "Failed to get mock cluster handle");
         conf_.ForgetUnderlyingConf();
     }
+
+    ~MockCluster() = default;
+
     static impl::ConfHolder CreateConfiguredConf() {
         rd_kafka_conf_t* conf = rd_kafka_conf_new();
         UINVARIANT(conf, "Failed to create Kafka config");
         rd_kafka_conf_set(conf, "log_level", "2", nullptr, sizeof(nullptr));
+
         return impl::ConfHolder(conf);
     }
-    ~MockCluster() = default;
+
     rd_kafka_mock_cluster_t* GetMockCluster() const { return mock_cluster_.GetHandle(); }
 
 private:
@@ -99,17 +73,7 @@ bool operator==(const Message& lhs, const Message& rhs) {
            std::tie(rhs.topic, rhs.key, rhs.payload, rhs.partition);
 }
 
-std::string KafkaCluster::InitBootstrapServers() {
-    if (IsKafkaClusterConfigured()) {
-        LOG_DEBUG("Using real Kafka");
-        return FetchBrokerList();
-    }
-    LOG_DEBUG("Using mock Kafka");
-    mock_ = utils::Box<MockCluster>();
-    return rd_kafka_mock_cluster_bootstraps(mock_->GetMockCluster());
-}
-
-KafkaCluster::KafkaCluster() : bootstrap_servers_(InitBootstrapServers()) {
+KafkaCluster::KafkaCluster() : bootstrap_servers_{rd_kafka_mock_cluster_bootstraps(mock_->GetMockCluster())} {
     UINVARIANT(!bootstrap_servers_.empty(), "Empty bootstrap_servers");
 }
 
@@ -118,17 +82,14 @@ std::atomic<std::size_t> KafkaCluster::kTopicsCount{0};
 KafkaCluster::~KafkaCluster() = default;
 
 std::string KafkaCluster::GenerateTopic(std::uint32_t partition_cnt) {
-    const std::string topic = fmt::format("tt-{}", kTopicsCount.fetch_add(1));
-    if (!IsKafkaClusterConfigured()) {
-        const auto err = rd_kafka_mock_topic_create(
-            mock_->GetMockCluster(), topic.c_str(), utils::numeric_cast<int>(partition_cnt), /*replication_factor=*/1
-        );
-        if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-            LOG_ERROR("Failed to create topic {}: {}", topic, rd_kafka_err2str(err));
-        } else {
-            LOG_INFO("Successful  topic creation {}", topic);
-        }
-    }
+    std::string topic = fmt::format("tt-{}", kTopicsCount.fetch_add(1));
+    const auto err = rd_kafka_mock_topic_create(
+        mock_->GetMockCluster(), topic.c_str(), utils::numeric_cast<int>(partition_cnt), /*replication_factor=*/1
+    );
+    UINVARIANT(
+        err == RD_KAFKA_RESP_ERR_NO_ERROR, fmt::format("Failed to create topic '{}': {}", topic, rd_kafka_err2str(err))
+    );
+
     return topic;
 }
 
