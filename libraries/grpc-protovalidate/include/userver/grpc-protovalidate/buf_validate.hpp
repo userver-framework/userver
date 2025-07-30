@@ -10,4 +10,4 @@
 #pragma clang system_header
 #endif
 
-#include <buf/validate/validator.h>
+#include <buf/validate/validator.h>  // IWYU pragma: export

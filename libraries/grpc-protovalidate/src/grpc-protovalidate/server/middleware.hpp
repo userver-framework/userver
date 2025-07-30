@@ -1,17 +1,9 @@
 #pragma once
 
-#include <map>
-#include <memory>
 #include <string>
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
-
-namespace buf::validate {
-
-class ValidatorFactory;
-
-}  // namespace buf::validate
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,7 +31,6 @@ public:
 
 private:
     Settings settings_;
-    std::unique_ptr<buf::validate::ValidatorFactory> validator_factory_;
 };
 
 }  // namespace grpc_protovalidate::server

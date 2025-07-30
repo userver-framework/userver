@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/ugrpc/impl/protobuf_collector.hpp>
 #include <userver/utils/assert.hpp>
 
 namespace {
@@ -91,7 +92,11 @@ namespace grpc_protovalidate::impl {
 std::unique_ptr<buf::validate::ValidatorFactory> CreateProtoValidatorFactory() {
     auto result = buf::validate::ValidatorFactory::New();
     UINVARIANT(result.ok(), "Failed to create validator factory");
-    return std::move(result).value();
+    std::unique_ptr<buf::validate::ValidatorFactory> factory = std::move(result).value();
+    for (const google::protobuf::Descriptor* descriptor : ugrpc::impl::GetGeneratedMessages()) {
+        factory->Add(descriptor);
+    }
+    return factory;
 }
 
 }  // namespace grpc_protovalidate::impl
