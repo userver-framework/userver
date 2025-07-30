@@ -774,7 +774,9 @@ void SubscriptionStorage::Unsubscribe(SubscriptionId subscription_id) { storage_
 
 void SubscriptionStorage::Stop() {
     storage_impl_.ClearCallbackMaps();
-    rebalance_schedulers_.clear();
+
+    // rebalance_schedulers_ are accessed concurrently, do not clear() them here.
+    for (auto& scheduler : rebalance_schedulers_) scheduler->Stop();
 }
 
 void SubscriptionStorage::SetCommandControl(const CommandControl& control) { storage_impl_.SetCommandControl(control); }
