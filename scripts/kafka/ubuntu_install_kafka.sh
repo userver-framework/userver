@@ -1,7 +1,6 @@
 #!/bin/sh
 
 sudo apt install -y openjdk-17-jdk
-sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
 
 curl https://dlcdn.apache.org/kafka/4.0.0/kafka_2.13-4.0.0.tgz -o kafka.tgz
 mkdir -p /etc/kafka

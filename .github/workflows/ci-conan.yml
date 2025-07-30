@@ -53,14 +53,16 @@ jobs:
             if: matrix.os == 'macos-latest'
             run: |
                 brew update
-                brew install openjdk@17
-                export JAVA_HOME=$(/usr/libexec/java_home -v 17)
                 brew tap mongodb/brew
                 brew install clang-format postgresql redis kafka rabbitmq mongodb-community
                 brew install python@3.11
 
           - name: Install common packages
             run: |
+                if [ "$(uname)" != "Darwin" ]; then
+                  sudo apt install -y openjdk-17-jdk && \
+                  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+                fi
                 pip install "conan==2.8.0"
                 pip install numpy
                 conan profile detect
@@ -72,10 +74,6 @@ jobs:
 
           - name: Test userver conan package
             run: |
-                if [ "$(uname)" != "Darwin" ]; then
-                  sudo apt install -y openjdk-17-jdk && \
-                  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-                fi
                 mv libraries/easy/samples/3_json samples/
                 mv scripts/tests/conanfile.py samples/
                 rm -rf userver/cmake/

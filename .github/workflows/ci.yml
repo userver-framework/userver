@@ -185,6 +185,7 @@ jobs:
           - name: Install Kafka
             run: |
                 sudo ./scripts/kafka/ubuntu_install_kafka.sh
+                export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
           - name: Install RabbitMQ packages
             run: |
@@ -253,7 +254,6 @@ jobs:
 
           - name: Run tests (kafka)
             run: |
-                export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
                 cd build_debug
                 mkdir kafka || :
                 cd kafka
@@ -301,8 +301,6 @@ jobs:
           - name: Run tests (gRPC)
             if: matrix.os != 'ubuntu-24.04'
             run: |
-                sudo apt install -y openjdk-17-jdk
-                export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
                 cd build_debug
                 mkdir grpc || :
                 cd grpc
