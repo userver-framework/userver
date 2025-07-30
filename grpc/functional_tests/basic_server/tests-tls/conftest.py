@@ -1,6 +1,7 @@
 import pathlib
 
 import grpc
+import platform
 import pytest
 
 import samples.greeter_pb2_grpc as greeter_services
@@ -14,9 +15,14 @@ TESTDIR = pathlib.Path(__file__).parent
 
 
 @pytest.fixture(scope='session')
-def prepare_service_config():
+def prepare_service_config(get_free_port):
     def _do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
+        grpc_server = components['grpc-server']
+        # MacOS does not support unix-socket + TLS
+        if platform.system() == 'Darwin':
+            components['grpc-server'].pop('unix-socket-path')
+            components['grpc-server']['port'] = get_free_port()
         components['grpc-server']['tls'] = {
             'key': str(TESTDIR / 'private_key.key'),
             'cert': str(TESTDIR / 'cert.crt'),
