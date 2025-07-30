@@ -9,6 +9,7 @@ name: Conan
           - feature/**
 
 env:
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     UBSAN_OPTIONS: print_stacktrace=1
 
 jobs:
@@ -32,6 +33,7 @@ jobs:
             if: matrix.os == 'ubuntu-22.04'
             run: |
                 sudo apt update
+                sudo apt install -y openjdk-17-jdk && \
                 sudo apt install -y \
                    gcc g++ cmake wget git clang-format \
                    python3 python3-pip python3-venv
@@ -59,10 +61,6 @@ jobs:
 
           - name: Install common packages
             run: |
-                if [ "$(uname)" != "Darwin" ]; then
-                  sudo apt install -y openjdk-17-jdk && \
-                  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-                fi
                 pip install "conan==2.8.0"
                 pip install numpy
                 conan profile detect
