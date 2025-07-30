@@ -33,7 +33,7 @@ jobs:
             if: matrix.os == 'ubuntu-22.04'
             run: |
                 sudo apt update
-                sudo apt install -y openjdk-17-jdk && \
+                sudo apt install -y openjdk-17-jdk
                 sudo apt install -y \
                    gcc g++ cmake wget git clang-format \
                    python3 python3-pip python3-venv
