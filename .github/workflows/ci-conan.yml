@@ -47,7 +47,6 @@ jobs:
 
                 sudo apt update
                 sudo apt install -y postgresql redis mongodb-org mongodb-mongosh
-                sudo apt install -y openjdk-17-jdk # for Kafka
                 sudo ./scripts/kafka/ubuntu_install_kafka.sh
 
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
