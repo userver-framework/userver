@@ -1,4 +1,5 @@
 import pathlib
+import platform
 
 import grpc
 import pytest
@@ -14,13 +15,20 @@ TESTDIR = pathlib.Path(__file__).parent
 
 
 @pytest.fixture(scope='session')
-def prepare_service_config():
+def prepare_service_config(get_free_port):
     def _do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        components['grpc-server']['tls'] = {
+        grpc_server = components['grpc-server']
+        grpc_server['tls'] = {
             'key': str(TESTDIR / 'private_key.key'),
             'cert': str(TESTDIR / 'cert.crt'),
         }
+
+        # MacOS does not support unix-socket + TLS
+        if platform.system() == 'Darwin':
+            grpc_server.pop('unix-socket-path', None)
+            if 'port' not in grpc_server:
+                grpc_server['port'] = get_free_port()
 
     return _do_patch
 
