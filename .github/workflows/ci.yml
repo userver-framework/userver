@@ -9,6 +9,7 @@ name: Ubuntu
           - feature/**
 
 env:
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
     CCACHE_DIR: /home/runner/.cache/ccache
@@ -184,7 +185,7 @@ jobs:
 
           - name: Install Kafka
             run: |
-                sudo ./scripts/kafka/install_kafka.sh
+                sudo ./scripts/kafka/ubuntu_install_kafka.sh
 
           - name: Install RabbitMQ packages
             run: |
