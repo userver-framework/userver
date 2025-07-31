@@ -8,11 +8,11 @@
 #include <userver/utils/impl/source_location.hpp>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
+#include <userver/ugrpc/client/impl/tracing.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 
 #include <ugrpc/client/impl/call_options_accessor.hpp>
-#include <ugrpc/client/impl/tracing.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
