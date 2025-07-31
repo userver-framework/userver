@@ -1,7 +1,10 @@
+# Engine related errors/alerts
 alerts.cache_update_error:	GAUGE	0
 alerts.config_parse_error:	GAUGE	0
 alerts.dynamic_debug_invalid_location:	GAUGE	0
 alerts.log_reopening_error:	GAUGE	0
+
+# Info on cahces
 cache.any.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
 cache.any.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
 cache.any.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
@@ -94,6 +97,7 @@ cache.misses.v2: cache_name=sample-lru-cache	RATE	0
 cache.misses: cache_name=sample-lru-cache	GAUGE	0
 cache.stale.v2: cache_name=sample-lru-cache	RATE	0
 cache.stale: cache_name=sample-lru-cache	GAUGE	0
+
 congestion-control.rps.is-custom-status-activated:	GAUGE	0
 cpu_time_sec:	GAUGE	0
 dns-client.replies: dns_reply_source=cached	RATE	0
@@ -183,7 +187,11 @@ engine.task-processors.tasks.running: task_processor=monitor-task-processor	GAUG
 engine.task-processors.worker-threads: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.worker-threads: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.worker-threads: task_processor=monitor-task-processor	GAUGE	0
+
+# How long the engine is running. It does not account components state (i.e. `components::State::IsAnyComponentInFatalState()`),
+# the engine could be fine, the components could be in components::ComponentHealth::kFatal state.
 engine.uptime-seconds:	GAUGE	0
+
 http.by-fallback.implicit-http-options.handler.cancelled-by-deadline: http_handler=handler-implicit-http-options, version=2	RATE	0
 http.by-fallback.implicit-http-options.handler.deadline-received: http_handler=handler-implicit-http-options, version=2	RATE	0
 http.by-fallback.implicit-http-options.handler.in-flight: http_handler=handler-implicit-http-options, version=2	GAUGE	0
@@ -367,6 +375,8 @@ http.handler.too-many-requests-in-flight: http_handler=handler-on-log-rotate, ht
 http.handler.too-many-requests-in-flight: http_handler=handler-ping, http_path=/ping, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=handler-server-monitor, http_path=/service/monitor, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=tests-control, http_path=/tests/_action_, version=2	RATE	0
+
+# HTTP server metrics aggregated by all the handlers
 http.handler.total.cancelled-by-deadline: version=2	RATE	0
 http.handler.total.deadline-received: version=2	RATE	0
 http.handler.total.in-flight: version=2	GAUGE	0
@@ -386,6 +396,7 @@ http.handler.total.timings: percentile=p99, version=2	GAUGE	0
 http.handler.total.timings: percentile=p99_6, version=2	GAUGE	0
 http.handler.total.timings: percentile=p99_9, version=2	GAUGE	0
 http.handler.total.too-many-requests-in-flight: version=2	RATE	0
+
 httpclient.cancelled-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
 httpclient.cancelled-by-deadline: version=2	RATE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=cancelled, version=2	RATE	0
@@ -478,6 +489,8 @@ logger.total: logger=default	RATE	0
 major_pagefaults:	GAUGE	0
 open_files:	GAUGE	0
 rss_kb:	GAUGE	0
+
+# HTTP server related metrics (no gRPC metrics!)
 server.connections.active:	GAUGE	0
 server.connections.closed.v2:	RATE	0
 server.connections.closed:	GAUGE	0

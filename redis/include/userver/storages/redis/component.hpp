@@ -115,6 +115,9 @@ namespace components {
 ///
 /// @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
 ///
+/// Note that if the components::Secdist component has `update-period` other
+/// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
+///
 /// ## Cluster Valkey or Cluster Redis setup
 ///
 /// Valkey/Redis cluster is the new recommended way of setting up key-value datastores with improved stability.
