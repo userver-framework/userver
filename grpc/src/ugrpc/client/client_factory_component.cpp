@@ -62,14 +62,6 @@ type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false
 properties:
-    channel-args:
-        type: object
-        description: a map of channel arguments, see gRPC Core docs
-        defaultDescription: '{}'
-        additionalProperties:
-            type: string
-            description: value of channel argument, must be string or integer
-        properties: {}
     auth-type:
         type: string
         description: an optional authentication method
@@ -95,6 +87,14 @@ properties:
                 type: string
                 description: The path to file containing the PEM encoding of the client's certificate chain
                 defaultDescription: absent
+    channel-args:
+        type: object
+        description: a map of channel arguments, see gRPC Core docs
+        defaultDescription: '{}'
+        additionalProperties:
+            type: string
+            description: value of channel argument, must be string or integer
+        properties: {}
     default-service-config:
         type: string
         description: |
