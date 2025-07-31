@@ -99,6 +99,7 @@ namespace components {
 ///   "redis_settings": {
 ///     "some_name_of_your_database": {
 ///       "password": "the_password_of_your_database",
+///       "sentinel_password": "the_password_for_sentinels_if_any",
 ///       "sentinels": [
 ///         {"host": "the_host1_of_your_database", "port": 11564}
 ///       ],
@@ -113,6 +114,9 @@ namespace components {
 /// For an example of Secdist setup for standalone, sentinel and cluster testsuite configurations see the snippet:
 ///
 /// @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
+///
+/// Note that if the components::Secdist component has `update-period` other
+/// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
 ///
 /// ## Cluster Valkey or Cluster Redis setup
 ///

@@ -77,6 +77,9 @@ namespace components {
 /// `dbconnection#env: THE_ENV_VARIABLE_WITH_CONNECTION_STRING` as described
 /// in yaml_config::YamlConfig.
 ///
+/// Note that if the `dbalias` option is provided and the components::Secdist component has `update-period` other
+/// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
+///
 /// ## Secdist format
 ///
 /// If a `dbalias` option is provided, for example
@@ -173,6 +176,9 @@ inline constexpr bool kHasValidate<Mongo> = true;
 /// ----- | -----------
 /// terse | Default value, report only cumulative stats and read/write totals
 /// full | Separate metrics for each operation, divided by read preference or write concern
+///
+/// Note that if the components::Secdist component has `update-period` other
+/// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
 
 // clang-format on
 

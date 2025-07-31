@@ -4079,7 +4079,7 @@
   "scripts/grpc/templates/service.usrv.hpp.jinja":"taxi/uservices/userver/scripts/grpc/templates/service.usrv.hpp.jinja",
   "scripts/grpc/templates/utils.inc.jinja":"taxi/uservices/userver/scripts/grpc/templates/utils.inc.jinja",
   "scripts/human_logs.py":"taxi/uservices/userver/scripts/human_logs.py",
-  "scripts/kafka/install_kafka.sh":"taxi/uservices/userver/scripts/kafka/install_kafka.sh",
+  "scripts/kafka/ubuntu_install_kafka.sh":"taxi/uservices/userver/scripts/kafka/ubuntu_install_kafka.sh",
   "scripts/migrate_from_legacy_redis_ns.sh":"taxi/uservices/userver/scripts/migrate_from_legacy_redis_ns.sh",
   "scripts/mongo/ubuntu-install-mongodb.sh":"taxi/uservices/userver/scripts/mongo/ubuntu-install-mongodb.sh",
   "scripts/perf-blocking-syscall":"taxi/uservices/userver/scripts/perf-blocking-syscall",

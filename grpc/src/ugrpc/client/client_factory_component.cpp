@@ -95,9 +95,6 @@ properties:
                 type: string
                 description: The path to file containing the PEM encoding of the client's certificate chain
                 defaultDescription: absent
-    auth-token:
-        type: string
-        description: auth token name from secdist
     default-service-config:
         type: string
         description: |

@@ -147,6 +147,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const testsuite::RedisControl& testsuite_redis_control
 ) {
     const auto& password = settings.password;
+    const auto& sentinel_password = settings.sentinel_password;
 
     const std::vector<std::string>& shards = settings.shards;
     LOG_DEBUG() << "shards.size() = " << shards.size();
@@ -157,13 +158,12 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
     for (const auto& sentinel : settings.sentinels) {
         LOG_DEBUG() << "sentinel:  host = " << sentinel.host << "  port = " << sentinel.port;
-        // SENTINEL MASTERS/SLAVES works without auth, sentinel has no AUTH command.
         // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
         // sentinels in cluster mode.
         conns.emplace_back(
             sentinel.host,
             sentinel.port,
-            (key_shard_factory.IsClusterStrategy() ? password : Password("")),
+            (key_shard_factory.IsClusterStrategy() ? password : sentinel_password),
             false,
             settings.secure_connection
         );
@@ -193,7 +193,12 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
 }
 
 void Sentinel::Stop() noexcept {
-    impl_.reset();
+    if (impl_) {
+        // ev watchers could be performing right now, so we have to call Stop() before impl_.reset() to make sure
+        // that watchers stop and do not get impl_ == nullptr during their run.
+        impl_->Stop();
+        impl_.reset();
+    }
     UASSERT(!impl_);
 }
 

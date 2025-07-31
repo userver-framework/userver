@@ -73,6 +73,9 @@ namespace components {
 /// is just a list of DSNs and the Postgres component takes care of discovering
 /// the cluster's topology itself.
 ///
+/// Note that if the components::Secdist component has `update-period` other
+/// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
+///
 /// ### Predefined roles
 ///
 /// In predefined roles format the component requires single-host connection
@@ -118,6 +121,7 @@ namespace components {
 /// Name                    | Description                                                                   | Default value
 /// ----------------------- | ----------------------------------------------------------------------------- | -------------
 /// dbalias                 | name of the database in secdist config (if available)                         | --
+/// name_alias              | name alias to use in dynamic configs                                          | name of the component
 /// dbconnection            | connection DSN string (used if no dbalias specified)                          | --
 /// blocking_task_processor | name of task processor for background blocking operations                     | engine::current_task::GetBlockingTaskProcessor()
 /// max_replication_lag     | replication lag limit for usable slaves                                       | 60s
