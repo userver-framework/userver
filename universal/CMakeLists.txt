@@ -316,13 +316,38 @@ if(USERVER_FEATURE_UTEST)
         set(_benchmark_target benchmark::benchmark)
     endif()
 
-    try_compile(
-        HAVE_MAYBE_REENTER_WITHOUT_ASLR ${CMAKE_CURRENT_BINARY_DIR}/benchmarks/main_check_aslr_disable
-        SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main_check_aslr_disable.cpp
-        LINK_LIBRARIES benchmark::benchmark
-    )
+    if(CMAKE_VERSION GREATER_EQUAL 3.29)
+        # alias targets are supported in try_compile from cmake 3.29
+        try_compile(
+            HAVE_MAYBE_REENTER_WITHOUT_ASLR ${CMAKE_CURRENT_BINARY_DIR}/benchmarks/main_check_aslr_disable
+            SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main_check_aslr_disable.cpp
+            LINK_LIBRARIES ${_benchmark_target}
+        )
+    else()
+        if(USERVER_CONAN)
+            set(_benchmark_original_target benchmark::benchmark_main)
+        else()
+            if(TARGET UserverGBench) # userver module
+                set(_benchmark_original_target UserverGBench)
+            elseif(TARGET benchmark) # CPM module
+                set(_benchmark_original_target benchmark)
+            else()
+                set(_benchmark_original_target) # to fail compilation
+            endif()
+        endif()
+
+        try_compile(
+            HAVE_MAYBE_REENTER_WITHOUT_ASLR ${CMAKE_CURRENT_BINARY_DIR}/benchmarks/main_check_aslr_disable
+            SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main_check_aslr_disable.cpp
+            LINK_LIBRARIES ${_benchmark_original_target}
+        )
+    endif()
+
     if(NOT HAVE_MAYBE_REENTER_WITHOUT_ASLR)
         target_compile_definitions(${PROJECT_NAME}-internal-ubench INTERFACE USERVER_IMPL_NO_MAYBE_REENTER_WITHOUT_ASLR_EXISTS)
+        message(STATUS "Benchmark ASLR turned off")
+    else()
+        message(STATUS "Benchmark ASLR turned on")
     endif()
 
     target_link_libraries(${PROJECT_NAME}-internal-ubench INTERFACE ${_benchmark_target} ${PROJECT_NAME})
