@@ -5,6 +5,7 @@
 #include <grpcpp/generic/generic_stub.h>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
+#include <userver/ugrpc/client/impl/perform_unary_call.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -46,7 +47,12 @@ grpc::ByteBuffer GenericClient::UnaryCall(
     CallOptions call_options,
     GenericOptions generic_options
 ) const {
-    return AsyncUnaryCall(call_name, request, std::move(call_options), std::move(generic_options)).Get();
+    auto method_name = utils::StrCat<grpc::string>("/", call_name);
+    return impl::PerformUnaryCall(
+        impl::CreateGenericCallParams(impl_, call_name, std::move(call_options), std::move(generic_options)),
+        impl::PrepareUnaryCallProxy(&grpc::GenericStub::PrepareUnaryCall, std::move(method_name)),
+        request
+    );
 }
 
 }  // namespace ugrpc::client

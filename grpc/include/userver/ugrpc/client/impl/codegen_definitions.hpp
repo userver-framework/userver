@@ -10,4 +10,5 @@
 #include <utility>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
+#include <userver/ugrpc/client/impl/perform_unary_call.hpp>
 #include <userver/ugrpc/impl/protobuf_collector.hpp>
