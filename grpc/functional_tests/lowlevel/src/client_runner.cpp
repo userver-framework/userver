@@ -1,9 +1,38 @@
 #include <client_runner.hpp>
 
+#include <grpcpp/grpcpp.h>
+
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/ugrpc/status_codes.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+formats::json::Value HandleGet() {
+    static const auto grpc_version = utils::text::Split(grpc::Version(), ".");
+
+    return formats::json::MakeObject(
+        "grpc-version", formats::json::MakeObject("major", grpc_version.at(0), "minor", grpc_version.at(1))
+    );
+}
+
+formats::json::Value HandlePost(const ::samples::api::GreeterServiceClient& client) {
+    std::optional<::grpc::Status> grpc_status;
+    try {
+        [[maybe_unused]] auto response = client.SayHello({});
+        grpc_status.emplace(::grpc::Status::OK);
+    } catch (const ugrpc::client::ErrorWithStatus& ex) {
+        grpc_status.emplace(ex.GetStatus());
+    } catch (const std::exception& ex) {
+        return {};
+    }
+
+    return formats::json::MakeObject("grpc-status", ugrpc::ToString(grpc_status->error_code()));
+}
+
+}  // namespace
 
 ClientRunner::ClientRunner(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase{config, context},
@@ -15,21 +44,18 @@ ClientRunner::ClientRunner(const components::ComponentConfig& config, const comp
                   )} {}
 
 auto ClientRunner::HandleRequestJsonThrow(
-    const HttpRequest& /*request*/,
+    const HttpRequest& request,
     const Value& /*request_json*/,
     RequestContext& /*context*/
 ) const -> Value {
-    std::optional<::grpc::Status> grpc_status;
-    try {
-        [[maybe_unused]] auto response = client_.SayHello({});
-        grpc_status.emplace(::grpc::Status::OK);
-    } catch (const ugrpc::client::ErrorWithStatus& ex) {
-        grpc_status.emplace(ex.GetStatus());
-    } catch (const std::exception& ex) {
-        return {};
+    switch (request.GetMethod()) {
+        case server::http::HttpMethod::kGet:
+            return HandleGet();
+        case server::http::HttpMethod::kPost:
+            return HandlePost(client_);
+        default:
+            return {};
     }
-
-    return formats::json::MakeObject("grpc-status", ugrpc::ToString(grpc_status->error_code()));
 }
 
 yaml_config::Schema ClientRunner::GetStaticConfigSchema() {
