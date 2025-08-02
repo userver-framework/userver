@@ -63,12 +63,27 @@ std::string CalculateHmac(std::string_view key, std::string_view data, crypto::h
 
     try {
         CryptoPP::HMAC<HashAlgorithm> hmac(reinterpret_cast<const byte*>(key.data()), key.size());
-        const CryptoPP::StringSource ss_key(
-            reinterpret_cast<const byte*>(data.data()),
-            data.size(),
-            true,
-            new CryptoPP::HashFilter(hmac, new CryptoPP::StringSink(mac))
-        );
+        hmac.Update(reinterpret_cast<const byte*>(data.data()), data.size());
+        mac.resize(HashAlgorithm::DIGESTSIZE);
+        hmac.Final(reinterpret_cast<byte*>(&mac[0]));
+    } catch (const CryptoPP::Exception& exc) {
+        throw crypto::CryptoException(exc.what());
+    }
+
+    return EncodeString(mac, encoding);
+}
+
+template <typename HashAlgorithm>
+std::string CalculateHmac(std::string_view key, std::initializer_list<std::string_view> data_list, crypto::hash::OutputEncoding encoding) {
+    std::string mac;
+
+    try {
+        CryptoPP::HMAC<HashAlgorithm> hmac(reinterpret_cast<const byte*>(key.data()), key.size());
+        for (const auto& data : data_list) {
+            hmac.Update(reinterpret_cast<const byte*>(data.data()), data.size());
+        }
+        mac.resize(HashAlgorithm::DIGESTSIZE);
+        hmac.Final(reinterpret_cast<byte*>(&mac[0]));
     } catch (const CryptoPP::Exception& exc) {
         throw crypto::CryptoException(exc.what());
     }
