@@ -1,163 +1,319 @@
-#include <userver/crypto/hash.hpp>
+#include <userver/crypto/verifiers.hpp>
 
-#include <array>
+#include <cryptopp/dsa.h>
 
-#include <cryptopp/base64.h>
-#ifndef USERVER_NO_CRYPTOPP_BLAKE2
-#include <cryptopp/blake2.h>
-#endif
-#include <cryptopp/filters.h>
-#include <cryptopp/hex.h>
-#include <cryptopp/hmac.h>
-#include <cryptopp/sha.h>
+#include <openssl/pem.h>
+// keep these two headers in this order
+#include <openssl/cms.h>
 
-#include <userver/crypto/exception.hpp>
+#include <openssl/crypto.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
 
-#include <cryptopp/md5.h>
+#include <userver/crypto/openssl.hpp>
+#include <userver/utils/assert.hpp>
 
-#ifdef CRYPTOPP_NO_GLOBAL_BYTE
-using CryptoPP::byte;
-#endif
+#include <crypto/helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+namespace crypto {
 namespace {
 
-#ifndef USERVER_NO_CRYPTOPP_BLAKE2
-// Custom class for specific default initialization for Blake2b
-class AlgoBlake2b128 final : public CryptoPP::BLAKE2b {
-public:
-    AlgoBlake2b128() : CryptoPP::BLAKE2b(false, 16) {}
-    static constexpr size_t DIGESTSIZE{16};
-};
-#endif
+// OpenSSL expects ECDSA signatures in ASN.1/DER format, however RFC7518
+// specifies signature as a concatenation of zero-padded big-endian `(R, S)`
+// values.
+std::vector<unsigned char> ConvertEcSignature(std::string_view raw_signature) {
+    // Must be strictly larger than max signature size in ASN.1/DER format
+    constexpr size_t kDerEcdsaSignatureBufferSize = 256;
 
-std::string EncodeArray(const byte* ptr, size_t length, crypto::hash::OutputEncoding encoding) {
-    std::string response;
-    switch (encoding) {
-        case crypto::hash::OutputEncoding::kBinary: {
-            response = std::string(reinterpret_cast<const char*>(ptr), length);
+    std::vector<unsigned char> der_signature(kDerEcdsaSignatureBufferSize, '\0');
+    const size_t siglen = CryptoPP::DSAConvertSignatureFormat(
+        der_signature.data(),
+        der_signature.size(),
+        CryptoPP::DSASignatureFormat::DSA_DER,
+        reinterpret_cast<const unsigned char*>(raw_signature.data()),
+        raw_signature.size(),
+        CryptoPP::DSASignatureFormat::DSA_P1363
+    );
+    // 6 is the minimum ASN.1 overhead for a sequence of two integers.
+    // Leading zeroes are omitted from the result.
+    if (siglen < 6 || siglen >= der_signature.size()) {
+        throw VerificationError("Failed to verify digest: signature format conversion failed");
+    }
+    der_signature.resize(siglen);
+    return der_signature;
+}
+
+int ToNativeCmsFlags(utils::Flags<CmsVerifier::Flags> flags) {
+    int native = 0;
+
+    using VerifyFlags = CmsVerifier::Flags;
+    if (flags & VerifyFlags::kNoSignerCertVerify) {
+        native |= CMS_NO_SIGNER_CERT_VERIFY;
+    }
+
+    return native;
+}
+
+std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)>
+ReadCmsContent(BIO& from, CmsVerifier::InForm in_form) {
+    using InForm = CmsVerifier::InForm;
+
+    std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)> cms{nullptr, CMS_ContentInfo_free};
+    switch (in_form) {
+        case InForm::kDer: {
+            cms.reset(d2i_CMS_bio(&from, nullptr));
+            if (!cms) {
+                throw VerificationError{FormatSslError("Failed to verify: d2i_CMS_bio")};
+            }
             break;
         }
-        case crypto::hash::OutputEncoding::kBase16: {
-            CryptoPP::HexEncoder encoder(new CryptoPP::StringSink(response), false);
-            encoder.PutMessageEnd(ptr, length);
+        case InForm::kPem: {
+            cms.reset(PEM_read_bio_CMS(&from, nullptr, nullptr, nullptr));
+            if (!cms) {
+                throw VerificationError{FormatSslError("Failed to verify: PEM_read_bio_CMS")};
+            }
             break;
         }
-        case crypto::hash::OutputEncoding::kBase64: {
-            CryptoPP::Base64Encoder encoder(new CryptoPP::StringSink(response), false);
-            encoder.PutMessageEnd(ptr, length);
+        case InForm::kSMime: {
+            cms.reset(SMIME_read_CMS(&from, nullptr));
+            if (!cms) {
+                throw VerificationError{FormatSslError("Failed to verify: SMIME_read_CMS")};
+            }
             break;
         }
     }
-    return response;
-}
 
-std::string EncodeString(std::string_view data, crypto::hash::OutputEncoding encoding) {
-    return EncodeArray(reinterpret_cast<const byte*>(data.data()), data.size(), encoding);
-}
-
-template <typename HashAlgorithm>
-std::string CalculateHmac(std::string_view key, std::string_view data, crypto::hash::OutputEncoding encoding) {
-    std::string mac;
-
-    try {
-        CryptoPP::HMAC<HashAlgorithm> hmac(reinterpret_cast<const byte*>(key.data()), key.size());
-        hmac.Update(reinterpret_cast<const byte*>(data.data()), data.size());
-        mac.resize(HashAlgorithm::DIGESTSIZE);
-        hmac.Final(reinterpret_cast<byte*>(&mac[0]));
-    } catch (const CryptoPP::Exception& exc) {
-        throw crypto::CryptoException(exc.what());
-    }
-
-    return EncodeString(mac, encoding);
-}
-
-template <typename HashAlgorithm>
-std::string CalculateHmac(std::string_view key, std::initializer_list<std::string_view> data_list, crypto::hash::OutputEncoding encoding) {
-    std::string mac;
-
-    try {
-        CryptoPP::HMAC<HashAlgorithm> hmac(reinterpret_cast<const byte*>(key.data()), key.size());
-        for (const auto& data : data_list) {
-            hmac.Update(reinterpret_cast<const byte*>(data.data()), data.size());
-        }
-        mac.resize(HashAlgorithm::DIGESTSIZE);
-        hmac.Final(reinterpret_cast<byte*>(&mac[0]));
-    } catch (const CryptoPP::Exception& exc) {
-        throw crypto::CryptoException(exc.what());
-    }
-
-    return EncodeString(mac, encoding);
-}
-
-template <typename HashAlgorithm>
-std::string CalculateHash(std::string_view data, crypto::hash::OutputEncoding encoding) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
-    std::array<byte, HashAlgorithm::DIGESTSIZE> digest;
-    try {
-        HashAlgorithm hash;
-        hash.CalculateDigest(digest.data(), reinterpret_cast<const byte*>(data.data()), data.size());
-    } catch (const CryptoPP::Exception& exc) {
-        throw crypto::CryptoException(exc.what());
-    }
-
-    return EncodeArray(digest.data(), digest.size(), encoding);
+    UASSERT(cms);
+    return cms;
 }
 
 }  // namespace
 
-namespace crypto::hash {
+Verifier::Verifier(const std::string& name) : NamedAlgo(name) {}
+Verifier::~Verifier() = default;
 
-#ifndef USERVER_NO_CRYPTOPP_BLAKE2
-std::string Blake2b128(std::string_view data, OutputEncoding encoding) {
-    return CalculateHash<AlgoBlake2b128>(data, encoding);
-}
-#endif
+///
+/// None
+///
 
-std::string Sha1(std::string_view data, OutputEncoding encoding) {
-    return CalculateHash<CryptoPP::SHA1>(data, encoding);
-}
-
-std::string Sha224(std::string_view data, OutputEncoding encoding) {
-    return CalculateHash<CryptoPP::SHA224>(data, encoding);
+VerifierNone::VerifierNone() : Verifier("none") {}
+void VerifierNone::Verify(std::initializer_list<std::string_view> /*data*/, std::string_view raw_signature) const {
+    if (!raw_signature.empty()) throw VerificationError("Signature is not empty");
 }
 
-std::string Sha256(std::string_view data, OutputEncoding encoding) {
-    return CalculateHash<CryptoPP::SHA256>(data, encoding);
+///
+/// HMAC-SHA
+///
+
+template <DigestSize bits>
+HmacShaVerifier<bits>::HmacShaVerifier(std::string secret)
+    : Verifier("HS" + EnumValueToString(bits)), secret_(std::move(secret)) {}
+
+template <DigestSize bits>
+HmacShaVerifier<bits>::~HmacShaVerifier() {
+    OPENSSL_cleanse(secret_.data(), secret_.size());
 }
 
-std::string Sha384(std::string_view data, OutputEncoding encoding) {
-    return CalculateHash<CryptoPP::SHA384>(data, encoding);
+template <DigestSize bits>
+void HmacShaVerifier<bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature) const {
+    // Use the new HMAC functions that accept initializer_list directly
+    // to avoid string concatenation
+    std::string signature;
+    switch (bits) {
+        case DigestSize::k160:
+            signature = crypto::hash::HmacSha1(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        case DigestSize::k256:
+            signature = crypto::hash::HmacSha256(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        case DigestSize::k384:
+            signature = crypto::hash::HmacSha384(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        case DigestSize::k512:
+            signature = crypto::hash::HmacSha512(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        default:
+            UINVARIANT(false, "Unexpected DigestSize");
+    }
+
+    if (raw_signature != signature) {
+        throw VerificationError("Invalid signature");
+    }
 }
 
-std::string Sha512(std::string_view data, OutputEncoding encoding) {
-    return CalculateHash<CryptoPP::SHA512>(data, encoding);
+template class HmacShaVerifier<DigestSize::k160>;
+template class HmacShaVerifier<DigestSize::k256>;
+template class HmacShaVerifier<DigestSize::k384>;
+template class HmacShaVerifier<DigestSize::k512>;
+
+///
+/// *SA
+///
+
+template <DsaType type, DigestSize bits>
+DsaVerifier<type, bits>::DsaVerifier(PublicKey pubkey)
+    : Verifier(EnumValueToString(type) + EnumValueToString(bits)), pkey_(std::move(pubkey)) {
+    Openssl::Init();
+
+    if constexpr (type == DsaType::kEc) {
+        if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_EC) {
+            throw VerificationError("Non-EC key supplied for " + Name() + " verifier");
+        }
+        if (!IsMatchingKeyCurve(pkey_.GetNative(), bits)) {
+            throw VerificationError("Key curve mismatch for " + Name() + " verifier");
+        }
+    } else {
+        if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_RSA) {
+            throw VerificationError("Non-RSA key supplied for " + Name() + " verifier");
+        }
+    }
 }
 
-std::string HmacSha512(std::string_view key, std::string_view message, OutputEncoding encoding) {
-    return CalculateHmac<CryptoPP::SHA512>(key, message, encoding);
+template <DsaType type, DigestSize bits>
+DsaVerifier<type, bits>::DsaVerifier(std::string_view key) : DsaVerifier{PublicKey::LoadFromString(key)} {}
+
+template <DsaType type, DigestSize bits>
+void DsaVerifier<type, bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature)
+    const {
+    EvpMdCtx ctx;
+    EVP_PKEY_CTX* pkey_ctx = nullptr;
+    if (1 != EVP_DigestVerifyInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(bits), nullptr, pkey_.GetNative())) {
+        throw VerificationError(FormatSslError("Failed to verify: EVP_DigestVerifyInit"));
+    }
+
+    if constexpr (type == DsaType::kRsaPss) {
+        SetupJwaRsaPssPadding(pkey_ctx, bits);
+    }
+
+    for (const auto& part : data) {
+        if (1 != EVP_DigestVerifyUpdate(ctx.Get(), part.data(), part.size())) {
+            throw VerificationError(FormatSslError("Failed to verify: EVP_DigestVerifyUpdate"));
+        }
+    }
+
+    int verification_result = -1;
+    if constexpr (type == DsaType::kEc) {
+        auto der_signature = ConvertEcSignature(raw_signature);
+        verification_result = EVP_DigestVerifyFinal(ctx.Get(), der_signature.data(), der_signature.size());
+    } else {
+        verification_result = EVP_DigestVerifyFinal(
+            ctx.Get(), reinterpret_cast<const unsigned char*>(raw_signature.data()), raw_signature.size()
+        );
+    }
+
+    if (1 != verification_result) {
+        throw VerificationError(FormatSslError("Failed to verify: EVP_DigestVerifyFinal"));
+    }
 }
 
-std::string HmacSha384(std::string_view key, std::string_view message, OutputEncoding encoding) {
-    return CalculateHmac<CryptoPP::SHA384>(key, message, encoding);
+template <DsaType type, DigestSize bits>
+void DsaVerifier<type, bits>::VerifyDigest(std::string_view digest, std::string_view raw_signature) const {
+    if constexpr (type == DsaType::kRsaPss) {
+        UASSERT_MSG(false, "VerifyDigest is not available with PSS padding");
+        throw CryptoException("VerifyDigest is not available with PSS padding");
+    }
+
+    if (digest.size() != GetDigestLength(bits)) {
+        throw VerificationError("Invalid digest size for " + Name() + " verifier");
+    }
+
+    const std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
+        EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free
+    );
+    if (!pkey_ctx) {
+        throw VerificationError(FormatSslError("Failed to verify digest: EVP_PKEY_CTX_new"));
+    }
+    if (1 != EVP_PKEY_verify_init(pkey_ctx.get())) {
+        throw VerificationError(FormatSslError("Failed to verify digest: EVP_PKEY_verify_init"));
+    }
+    if (EVP_PKEY_CTX_set_signature_md(pkey_ctx.get(), GetShaMdByEnum(bits)) <= 0) {
+        throw VerificationError(FormatSslError("Failed to sign digest: EVP_PKEY_CTX_set_signature_md"));
+    }
+
+    int verification_result = -1;
+    if constexpr (type == DsaType::kEc) {
+        auto der_signature = ConvertEcSignature(raw_signature);
+        verification_result = EVP_PKEY_verify(
+            pkey_ctx.get(),
+            der_signature.data(),
+            der_signature.size(),
+            reinterpret_cast<const unsigned char*>(digest.data()),
+            digest.size()
+        );
+    } else {
+        verification_result = EVP_PKEY_verify(
+            pkey_ctx.get(),
+            reinterpret_cast<const unsigned char*>(raw_signature.data()),
+            raw_signature.size(),
+            reinterpret_cast<const unsigned char*>(digest.data()),
+            digest.size()
+        );
+    }
+
+    if (1 != verification_result) {
+        throw VerificationError(FormatSslError("Failed to verify digest: EVP_DigestVerifyFinal"));
+    }
 }
 
-std::string HmacSha256(std::string_view key, std::string_view message, OutputEncoding encoding) {
-    return CalculateHmac<CryptoPP::SHA256>(key, message, encoding);
+template class DsaVerifier<DsaType::kRsa, DigestSize::k160>;
+template class DsaVerifier<DsaType::kRsa, DigestSize::k256>;
+template class DsaVerifier<DsaType::kRsa, DigestSize::k384>;
+template class DsaVerifier<DsaType::kRsa, DigestSize::k512>;
+
+template class DsaVerifier<DsaType::kEc, DigestSize::k256>;
+template class DsaVerifier<DsaType::kEc, DigestSize::k384>;
+template class DsaVerifier<DsaType::kEc, DigestSize::k512>;
+
+template class DsaVerifier<DsaType::kRsaPss, DigestSize::k160>;
+template class DsaVerifier<DsaType::kRsaPss, DigestSize::k256>;
+template class DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;
+template class DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;
+
+CmsVerifier::CmsVerifier(Certificate certificate) : NamedAlgo{"CMS"}, cert_{std::move(certificate)} {}
+
+CmsVerifier::~CmsVerifier() = default;
+
+void CmsVerifier::Verify(std::initializer_list<std::string_view> data, utils::Flags<Flags> flags, InForm in_form)
+    const {
+    const auto native_flags = ToNativeCmsFlags(flags);
+
+    const auto data_string = InitListToString(data);
+    const auto bio_data = MakeBioString(data_string);
+    if (!bio_data) {
+        throw VerificationError{FormatSslError("Failed to verify: MakeBioString")};
+    }
+
+    const auto cms_content = ReadCmsContent(*bio_data, in_form);
+
+    using CertStack = STACK_OF(X509);
+    // sk_X509_free is a macros in libssl 3.0+,
+    // thus decltype(&sk_X509_free) doesn't work, so this.
+    const auto stack_deleter = [](STACK_OF(X509) * sk) { sk_X509_free(sk); };
+    const std::unique_ptr<CertStack, decltype(stack_deleter)> certs{sk_X509_new_reserve(nullptr, 1), stack_deleter};
+    if (!certs) {
+        throw VerificationError{FormatSslError("Failed to verify: sk_X509_new_reserve")};
+    }
+
+    if (sk_X509_push(certs.get(), cert_.GetNative()) != 1) {
+        // openssl guarantees that this can't happen if new_reserve succeeds,
+        // but we're better off checking anyway.
+        throw VerificationError{FormatSslError("Failed to verify: sk_X509_push")};
+    }
+
+    if (1 != CMS_verify(
+                 cms_content.get(),
+                 certs.get(),                                    //
+                 nullptr /* store */,                            //
+                 nullptr /* dcont, detached content that is */,  //
+                 nullptr /* out */,                              //
+                 native_flags
+             )) {
+        throw VerificationError{FormatSslError("Failed to verify: CMS_verify")};
+    }
 }
 
-std::string HmacSha1(std::string_view key, std::string_view message, OutputEncoding encoding) {
-    return CalculateHmac<CryptoPP::SHA1>(key, message, encoding);
-}
-
-namespace weak {
-
-std::string Md5(std::string_view data, OutputEncoding encoding) {
-    return CalculateHash<CryptoPP::Weak::MD5>(data, encoding);
-}
-
-}  // namespace weak
-}  // namespace crypto::hash
+}  // namespace crypto
 
 USERVER_NAMESPACE_END
