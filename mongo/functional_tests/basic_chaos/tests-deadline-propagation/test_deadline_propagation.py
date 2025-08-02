@@ -14,7 +14,7 @@ async def _put_foo_value(service_client):
 
 
 async def test_works(service_client, put_foo_value, dynamic_config):
-    assert dynamic_config.get('MONGO_DEADLINE_PROPAGATION_ENABLED_V2')
+    assert dynamic_config.get('USERVER_DEADLINE_PROPAGATION_ENABLED')
 
     async with service_client.capture_logs() as capture:
         response = await service_client.get(
@@ -31,7 +31,7 @@ async def test_works(service_client, put_foo_value, dynamic_config):
     assert 'storages::mongo::CancelledException' in text, text
 
 
-@pytest.mark.config(MONGO_DEADLINE_PROPAGATION_ENABLED_V2=False)
+@pytest.mark.config(USERVER_DEADLINE_PROPAGATION_ENABLED=False)
 async def test_disabled(service_client, put_foo_value, dynamic_config):
     async with service_client.capture_logs() as capture:
         response = await service_client.get(
