@@ -1,0 +1,355 @@
+# Roo Rules (.Roorules)
+#
+# This file serves as a knowledge base and guide for AI agents working with this userver project. 
+# It captures important patterns, preferences, and project intelligence that help agents work more effectively.
+
+project_info:
+  description: "This file serves as a knowledge base and guide for AI agents working with this userver project."
+  purpose: "Captures important patterns, preferences, and project intelligence that help agents work more effectively."
+
+project_structure:
+  description: "Information about the overall project structure"
+  core_directories:
+    - "samples/ - Example services showing how to use various components"
+    - "service_template/ - Template for creating new services"
+    - "scripts/ - Development scripts and tools"
+    - "docs/ - Documentation files"
+    - "cmake/ - CMake build system files and configurations"
+  key_component_areas:
+    - "core/ - Core framework components (Component System, HTTP Server, Synchronization Primitives, Task System)"
+    - "chaotic/ - Code generation framework for data structures"
+    - "chaotic-openapi/ - OpenAPI-based code generation"
+    - "postgres/ - PostgreSQL database components"
+    - "mongo/ - MongoDB database components"
+    - "redis/ - Redis/Valkey database components"
+    - "grpc/ - gRPC communication components"
+    - "clickhouse/ - ClickHouse database components"
+    - "kafka/ - Kafka messaging components"
+    - "rabbitmq/ - RabbitMQ messaging components"
+    - "mysql/ - MySQL database components"
+    - "sqlite/ - SQLite database components"
+    - "ydb/ - YDB database components"
+
+key_components:
+  description: "Information about key components in the project"
+  core_framework:
+    - "Component System - Modular architecture for building services"
+    - "HTTP Server - Asynchronous HTTP server implementation"
+    - "Synchronization Primitives - Low-level synchronization mechanisms"
+    - "Task System - Coroutine-based task execution system"
+  database_components:
+    - "PostgreSQL - PostgreSQL database driver and components"
+    - "MongoDB - MongoDB database driver and components"
+    - "Redis/Valkey - Redis/Valkey database driver and components"
+    - "ClickHouse - ClickHouse database driver and components"
+    - "YDB - YDB database driver and components"
+  communication_components:
+    - "gRPC - gRPC communication framework"
+    - "Kafka - Kafka messaging system integration"
+    - "RabbitMQ - RabbitMQ messaging system integration"
+  code_generation:
+    - "Chaotic - Code generation framework for data structures"
+    - "Chaotic OpenAPI - OpenAPI-based client and server code generation"
+
+workflows:
+  description: "Information about project workflows"
+  service_creation:
+    - "Use service_template/ as a starting point for new services"
+    - "Customize CMakeLists.txt and configuration files"
+    - "Implement handlers in src/ directory"
+    - "Add tests in tests/ directory"
+  testing:
+    - "Unit Testing - Use GTest framework for unit tests"
+    - "Functional Testing - Use pytest with testsuite framework"
+    - "Benchmarking - Use Google Benchmark for performance tests"
+    - "Chaos Testing - Use built-in chaos testing framework"
+  build:
+    - "Dev Containers - Use .devcontainer configurations for consistent development environments"
+    - "CMake Presets - Use CMakePresets.json for build configurations"
+    - "Makefile - Use provided Makefile for common build operations"
+  code_generation:
+    - "Use chaotic/ and chaotic-openapi/ for generating code from schemas"
+    - "Run code generation when API specifications change"
+
+rules:
+  description: "Project-specific rules and guidelines"
+  coding_guidelines:
+    - "Coroutine Safety - All I/O operations must be asynchronous and non-blocking"
+    - "Cancellation Handling - Implement proper cancellation support for long-running operations"
+    - "Exception Safety - Use RAII and exception-safe coding practices"
+    - "Memory Management - Use smart pointers and avoid manual memory management"
+  framework_specific:
+    - "Component System - Follow component lifecycle guidelines for initialization and cleanup"
+    - "Configuration - Use dynamic_config for runtime configuration changes"
+    - "Synchronization - Use framework-provided synchronization primitives instead of OS primitives"
+    - "I/O Operations - Use framework-provided asynchronous I/O operations"
+  quality_tiers:
+    - "Platinum - Highest quality standards with comprehensive testing and documentation"
+    - "Golden - High quality standards with good testing and documentation"
+    - "Silver - Standard quality standards with basic testing"
+  performance_guidelines:
+    - "Minimize Context Switches - Use asynchronous operations to reduce context switches"
+    - "Efficient Resource Usage - Optimize memory and CPU usage"
+    - "Deadline Propagation - Implement proper deadline handling for requests"
+
+http_client_usage:
+  description: "Patterns and best practices for using HTTP clients in userver"
+  core_concepts:
+    - "Asynchronous Operations - All HTTP client operations are asynchronous and non-blocking"
+    - "Deadline Propagation - HTTP client requests inherit deadlines from incoming requests"
+    - "Retries and Timeouts - Configure appropriate retry policies and timeouts for external services"
+    - "Connection Pooling - Use connection pooling to reuse connections and reduce overhead"
+  implementation_guidelines:
+    - "Use http_client::Client for making HTTP requests to external services"
+    - "Configure timeouts based on service level objectives (SLOs)"
+    - "Implement circuit breaker patterns for handling flaky external dependencies"
+    - "Use structured logging for HTTP client requests and responses"
+    - "Handle different HTTP status codes appropriately (2xx success, 4xx client errors, 5xx server errors)"
+  performance_considerations:
+    - "Limit concurrent HTTP client requests to prevent resource exhaustion"
+    - "Use DNS caching to reduce DNS lookup overhead"
+    - "Enable HTTP/2 when supported by the target service for better performance"
+    - "Compress request/response bodies when appropriate"
+  error_handling:
+    - "Distinguish between network errors, timeouts, and HTTP error responses"
+    - "Implement appropriate fallback mechanisms for critical dependencies"
+    - "Use exponential backoff for retry strategies"
+    - "Log failed requests with sufficient context for debugging"
+
+
+caching_strategies:
+  description: "Caching strategies and implementation patterns in userver"
+  core_concepts:
+    - "Cache Types - Different cache types (in-memory, Redis, etc.) for different use cases"
+    - "Cache Invalidation - Strategies for cache invalidation (TTL, explicit invalidation)"
+    - "Cache-Aside Pattern - Load data on cache miss and store in cache for future requests"
+    - "Write-Through/Write-Behind - Update cache when updating data store"
+  implementation_guidelines:
+    - "Use cache::CacheContainer for managing cache instances"
+    - "Implement proper cache key design for efficient lookups"
+    - "Handle cache errors gracefully without affecting core functionality"
+    - "Monitor cache hit/miss ratios to optimize performance"
+  performance_considerations:
+    - "Set appropriate TTL values based on data volatility"
+    - "Use cache warming strategies for frequently accessed data"
+    - "Implement circuit breaker patterns for external cache dependencies"
+    - "Consider cache sharding for large datasets"
+  cache_components:
+    - "cache::LruCache - Least Recently Used cache implementation"
+    - "redis::Client - Redis client for distributed caching"
+    - "cache::CacheContainer - Container for managing cache instances"
+    - "cache::UpdateType - Cache update strategies (Full, Incremental)"
+
+
+middleware_development:
+  description: "Guidelines for developing middleware components in userver"
+  core_concepts:
+    - "Request/Response Interception - Middleware can intercept and modify requests and responses"
+    - "Chaining - Middleware components are chained together to form a processing pipeline"
+    - "Order Matters - Middleware execution order affects behavior and must be carefully considered"
+    - "Non-blocking - Middleware must be non-blocking and coroutine-safe"
+  implementation_guidelines:
+    - "Inherit from server::http::HandlerBase or appropriate base class"
+    - "Implement HandleRequest method for custom logic"
+    - "Call next middleware in chain using call_next parameter"
+    - "Handle exceptions gracefully and provide meaningful error responses"
+  common_patterns:
+    - "Authentication Middleware - Validate and extract user credentials"
+    - "Logging Middleware - Log request/response information for monitoring"
+    - "Rate Limiting Middleware - Control request rate to prevent abuse"
+    - "CORS Middleware - Handle Cross-Origin Resource Sharing headers"
+  performance_considerations:
+    - "Minimize overhead in middleware to avoid performance bottlenecks"
+    - "Use caching when appropriate to avoid redundant computations"
+    - "Avoid blocking operations in middleware implementation"
+    - "Consider async patterns for I/O operations in middleware"
+
+
+error_handling_logging:
+  description: "Error handling and logging patterns in userver"
+  core_concepts:
+    - "Exception Safety - Use RAII and exception-safe coding practices"
+    - "Structured Logging - Use structured logging with key-value pairs for better searchability"
+    - "Error Propagation - Propagate errors appropriately through the call stack"
+    - "Graceful Degradation - Implement fallback mechanisms for non-critical failures"
+  implementation_guidelines:
+    - "Use logging::LogExtra for adding contextual information to log messages"
+    - "Implement custom exception types for different error categories"
+    - "Log at appropriate levels (trace, debug, info, warning, error, critical)"
+    - "Include request IDs in log messages for request tracing"
+  logging_patterns:
+    - "Request Logging - Log incoming requests and outgoing responses"
+    - "Error Logging - Log errors with sufficient context for debugging"
+    - "Performance Logging - Log performance metrics and bottlenecks"
+    - "Security Logging - Log security-related events and anomalies"
+  error_handling_patterns:
+    - "Retry Strategies - Implement appropriate retry mechanisms for transient failures"
+    - "Circuit Breakers - Use circuit breakers to prevent cascading failures"
+    - "Fallback Responses - Provide fallback responses for non-critical failures"
+    - "Error Boundaries - Isolate errors to prevent system-wide failures"
+
+
+security_best_practices:
+  description: "Security best practices for userver applications"
+  authentication_authorization:
+    - "Use secure authentication mechanisms (OAuth2, JWT, API keys)"
+    - "Implement proper session management and token expiration"
+    - "Validate and sanitize all input to prevent injection attacks"
+    - "Implement role-based access control (RBAC) for authorization"
+  data_protection:
+    - "Encrypt sensitive data at rest and in transit"
+    - "Use secure key management practices"
+    - "Implement proper data retention and deletion policies"
+    - "Mask sensitive data in logs and error messages"
+  secure_coding:
+    - "Follow secure coding guidelines and practices"
+    - "Regularly update dependencies to address security vulnerabilities"
+    - "Implement input validation and output encoding"
+    - "Use secure random number generation for cryptographic operations"
+  network_security:
+    - "Use HTTPS/TLS for all external communications"
+    - "Implement proper firewall rules and network segmentation"
+    - "Use secure headers (Content-Security-Policy, X-Frame-Options, etc.)"
+    - "Implement rate limiting to prevent abuse and DDoS attacks"
+  monitoring_auditing:
+    - "Log security-relevant events for audit purposes"
+    - "Implement intrusion detection and prevention systems"
+    - "Regularly review and update security policies"
+    - "Conduct security assessments and penetration testing"
+
+
+debugging_profiling:
+  description: "Debugging and profiling workflows for userver applications"
+  debugging_tools:
+    - "Use GDB for debugging C++ applications"
+    - "Enable debug logging for detailed tracing"
+    - "Use core dumps for post-mortem analysis"
+    - "Implement custom debug endpoints for runtime inspection"
+  profiling_tools:
+    - "Use perf for CPU profiling"
+    - "Use Valgrind for memory profiling"
+    - "Use flame graphs for visualizing performance bottlenecks"
+    - "Monitor heap usage with heaptrack or similar tools"
+  debugging_techniques:
+    - "Use logging with correlation IDs to trace requests"
+    - "Implement health check endpoints for runtime diagnostics"
+    - "Use conditional breakpoints for selective debugging"
+    - "Capture and analyze network traffic with tcpdump/wireshark"
+  profiling_workflows:
+    - "Profile during load testing to identify bottlenecks"
+    - "Use sampling profilers for production performance analysis"
+    - "Monitor resource usage with system tools (top, htop, iostat)"
+    - "Use tracing frameworks for distributed system debugging"
+
+
+deployment_release:
+  description: "Deployment and release processes for userver applications"
+  build_process:
+    - "Use CMake for building userver applications"
+    - "Configure build types (Debug, Release, RelWithDebInfo) appropriately"
+    - "Use CI/CD pipelines for automated building and testing"
+    - "Implement proper versioning strategies for releases"
+  containerization:
+    - "Use Docker for containerizing userver applications"
+    - "Optimize container images for size and security"
+    - "Implement multi-stage builds for efficient images"
+    - "Use proper base images (e.g., Alpine for smaller footprint)"
+  deployment_strategies:
+    - "Use blue-green deployment for zero-downtime releases"
+    - "Implement canary deployments for risk reduction"
+    - "Use rolling updates for gradual deployment"
+    - "Implement proper rollback procedures for failed deployments"
+  configuration_management:
+    - "Use environment variables for configuration"
+    - "Implement dynamic configuration with dynamic_config component"
+    - "Use configuration files for complex settings"
+    - "Implement configuration validation mechanisms"
+  release_process:
+    - "Follow semantic versioning for release numbering"
+    - "Create release notes with detailed changes"
+    - "Perform smoke tests after deployment"
+    - "Monitor key metrics post-deployment"
+
+
+monitoring_observability:
+  description: "Monitoring and observability setup for userver applications"
+  metrics_collection:
+    - "Use Prometheus metrics for application monitoring"
+    - "Expose metrics endpoints for scraping by monitoring systems"
+    - "Define custom metrics for business-specific KPIs"
+    - "Use histograms and summaries for latency measurements"
+  tracing:
+    - "Implement distributed tracing with OpenTelemetry or Jaeger"
+    - "Propagate trace context through service boundaries"
+    - "Add span attributes for important business context"
+    - "Use sampling strategies to control tracing overhead"
+  logging:
+    - "Use structured logging with JSON format for easy parsing"
+    - "Include correlation IDs for request tracing"
+    - "Log at appropriate levels (info, warn, error)"
+    - "Aggregate logs to centralized logging systems (ELK, etc.)"
+  alerting:
+    - "Set up alerts for critical system metrics (CPU, memory, disk)"
+    - "Create business-level alerts for key performance indicators"
+    - "Implement alert deduplication and grouping"
+    - "Define escalation procedures for critical alerts"
+  dashboards:
+    - "Create dashboards for system health monitoring"
+    - "Visualize key business metrics and trends"
+    - "Set up drill-down capabilities for detailed analysis"
+    - "Share dashboards with relevant stakeholders"
+
+
+api_design_principles:
+  description: "API design principles for userver applications"
+  restful_design:
+    - "Use standard HTTP methods (GET, POST, PUT, DELETE) appropriately"
+    - "Design resource-based URLs that are intuitive and consistent"
+    - "Use appropriate HTTP status codes to indicate operation results"
+    - "Implement proper pagination for large collections"
+  versioning:
+    - "Use API versioning to maintain backward compatibility"
+    - "Include version information in URL path or headers"
+    - "Document breaking changes and deprecation policies"
+    - "Provide migration paths for API consumers"
+  data_consistency:
+    - "Use consistent naming conventions for fields and parameters"
+    - "Define clear data types and validation rules"
+    - "Implement proper error handling with meaningful messages"
+    - "Use standardized date/time formats (ISO 8601)"
+  performance_considerations:
+    - "Design APIs to minimize round trips"
+    - "Implement appropriate filtering, sorting, and field selection"
+    - "Use compression for large response payloads"
+    - "Implement caching headers for cacheable responses"
+  security_considerations:
+    - "Implement rate limiting to prevent API abuse"
+    - "Use authentication and authorization for protected endpoints"
+    - "Validate and sanitize all input parameters"
+    - "Implement proper CORS policies for web applications"
+
+
+code_review_standards:
+  description: "Code review standards and best practices for userver applications"
+  review_process:
+    - "All code changes must be reviewed before merging"
+    - "Use pull requests for code review workflow"
+    - "Assign appropriate reviewers based on component ownership"
+    - "Set appropriate review priority based on change impact"
+  review_checklist:
+    - "Verify code follows project coding guidelines"
+    - "Check for proper error handling and logging"
+    - "Ensure appropriate test coverage for new functionality"
+    - "Validate security implications of code changes"
+    - "Review performance considerations and resource usage"
+    - "Check for proper documentation and comments"
+  quality_guidelines:
+    - "Follow the project's quality tiers (Platinum, Golden, Silver)"
+    - "Ensure code is maintainable and readable"
+    - "Verify proper component lifecycle management"
+    - "Check for potential race conditions and concurrency issues"
+  feedback_guidelines:
+    - "Provide constructive feedback focused on code quality"
+    - "Use clear and specific comments with examples when possible"
+    - "Distinguish between mandatory changes and suggestions"
+    - "Acknowledge good practices and improvements in the code"

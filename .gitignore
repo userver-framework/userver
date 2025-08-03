@@ -22,3 +22,5 @@ static-analyzer-report
 .clangd
 .vscode
 scripts/docs/en/dynamic_configs
+ai-memory-bank/progress.md
+ai-memory-bank/active_context.md
