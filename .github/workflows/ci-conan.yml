@@ -35,6 +35,7 @@ jobs:
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
             run: |
+                apt update
                 apt install -y \
                    sudo \
                    gcc g++ cmake wget git clang-format \
