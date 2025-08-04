@@ -152,7 +152,7 @@ class UserverConan(ConanFile):
             )
             self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
-            self.requires('libpq/17.5')
+            self.requires('libpq/14.9')
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
