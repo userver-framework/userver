@@ -65,6 +65,9 @@ public:
     ///
     /// It is convinient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
     /// for more info.
+    ///
+    /// # Example usage:
+    /// @snippet clickhouse/src/storages/tests/escape_chtest.cpp  basic_usage
     template <typename... Args>
     ExecutionResult Execute(OptionalCommandControl, const Query& query, const Args&... args) const;
 

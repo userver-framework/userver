@@ -73,7 +73,7 @@ namespace components {
 /// is just a list of DSNs and the Postgres component takes care of discovering
 /// the cluster's topology itself.
 ///
-/// Note that if the components::Secdist component has `update-period` other
+/// Note that if the `dbalias` option is provided and components::Secdist component has `update-period` other
 /// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
 ///
 /// ### Predefined roles

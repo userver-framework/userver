@@ -26,10 +26,13 @@ const USERVER_NAMESPACE::storages::Query kSelectValue = {
     R"-(
     SELECT value FROM key_value_table WHERE key=$1
     )-",
-    USERVER_NAMESPACE::storages::Query::Name("select_value"),
+    USERVER_NAMESPACE::storages::Query::NameLiteral("select_value"),
     USERVER_NAMESPACE::storages::Query::LogMode::kFull,
 };
 @endcode
+
+Each variable is statically initialized (has no dynamic|runtime initializtion), giving a protection against static
+intialization order fiasco when those variables are used.
 
 You may use it as usual by passing to @ref storages::postgres::Cluster::Execute() or @ref storages::clickhouse::Cluster
 for SQL files or @ref ydb::TableClient::ExecuteDataQuery() for YQL files:
@@ -44,10 +47,14 @@ namespace samples_postgres_service {
 }
 @endcode
 
-While writing tests, you can check the coverage of your SQL/YQL queries using the `sql_coverage` plugin.
+@anchor sql_coverage_test_info
+## SQL coverage test
+
+While writing tests, you can check the coverage of your SQL/YQL queries using the
+@ref pytest_userver.plugins.sql_coverage "sql_coverage" plugin.
 
 To use it, you need to pass the target with generated queries to the `userver_testsuite_add_simple` (or `userver_testsuite_add`) function
-in your CMakeLists.txt:
+in your CMakeLists.txt as `SQL_LIBRARY` parameter:
 
 @snippet samples/postgres_service/CMakeLists.txt Postgres sql coverage - CMakeLists.txt
 

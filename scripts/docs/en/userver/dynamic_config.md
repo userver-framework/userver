@@ -465,8 +465,7 @@ then the periodic config update will fail, and alerts will fire:
    if ((1) != previous (1) || (2) == 0) show alert
    ```
 
-2. An alert will be registered in alerts::StorageComponent, which can be
-   accessed from outside using the optional alerts::Handler component
+2. An alert will be fired in via alerts::Source with metric name name `alerts.config_parse_error`.
 
 If the config service is not accessible at this point (down or overloaded),
 then the periodic config update will also obviously fail.

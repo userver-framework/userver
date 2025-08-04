@@ -1,4 +1,4 @@
-# Engine related errors/alerts
+# Alerts reporteed by instances of alerts::Source
 alerts.cache_update_error:	GAUGE	0
 alerts.config_parse_error:	GAUGE	0
 alerts.dynamic_debug_invalid_location:	GAUGE	0
