@@ -7,6 +7,9 @@
 #include <userver/ugrpc/client/impl/codegen_declarations.hpp>
 
 #include "{{ proto.source_file_without_ext }}.pb.h"
+{% if params.structs %}
+#include <{{ proto.source_file_without_ext }}.structs.usrv.pb.hpp>
+{% endif %}
 
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}
