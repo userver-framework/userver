@@ -58,6 +58,7 @@ jobs:
 
           - name: Run conan
             run: |
+                ls -la .
                 conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
 
           - name: Install test dependencies
