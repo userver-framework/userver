@@ -54,7 +54,7 @@ def main():
         compiler.parse_variable(
             file,
             name,
-            include_dirs=args.include_dir,
+            include_dirs=(args.include_dir or []),
             namespace='dynamic_config',
         )
         compiler.generate_variable(
