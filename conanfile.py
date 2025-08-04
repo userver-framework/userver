@@ -189,6 +189,8 @@ class UserverConan(ConanFile):
 
     def build_requirements(self):
         self.tool_requires('protobuf/5.27.0')
+        if self.options.with_postgresql:
+            self.requires('libpq/14.9')
 
     def validate(self):
         if self.settings.os == 'Windows':
