@@ -59,6 +59,7 @@ jobs:
           - name: Run conan
             run: |
                 ls -la .
+                git config --global --add safe.directory `pwd`
                 conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
 
           - name: Install test dependencies
