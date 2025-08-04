@@ -29,9 +29,6 @@ jobs:
                     tests-env: ''
 
         steps:
-          - name: Checkout
-            uses: actions/checkout@v4
-
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
             run: |
@@ -48,6 +45,9 @@ jobs:
                 brew tap mongodb/brew
                 brew install clang-format postgresql redis kafka rabbitmq mongodb-community
                 brew install python@3.11
+
+          - name: Checkout
+            uses: actions/checkout@v4
 
           - name: Install common packages
             run: |
