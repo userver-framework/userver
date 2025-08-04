@@ -59,6 +59,7 @@ struct CppToClickhouse<DataWithOptValue> {
 
 UTEST(ExecuteWithArgs, Basic) {
     ClusterWrapper cluster{};
+    /// [basic_usage]
     const storages::clickhouse::Query q{"SELECT {}, * FROM system.numbers limit {}"};
 
     const auto result = cluster->Execute(q, "we", 5).As<DataWithValues>();
@@ -66,6 +67,7 @@ UTEST(ExecuteWithArgs, Basic) {
 
     EXPECT_EQ(result.strings.size(), 5);
     EXPECT_EQ(result.strings.front(), "we");
+    /// [basic_usage]
 }
 
 UTEST(ExecuteWithArgs, DatesArgs) {

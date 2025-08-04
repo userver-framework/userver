@@ -279,7 +279,8 @@ properties:
         description: name of the database in secdist config (if available)
     name_alias:
         type: string
-        description: name alias to use in configs (by default - component name)
+        description: name alias to use in dynamic configs
+        defaultDescription: name of the component
     dbconnection:
         type: string
         description: connection DSN string (used if no dbalias specified)

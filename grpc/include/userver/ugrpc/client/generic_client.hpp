@@ -9,6 +9,7 @@
 #include <grpcpp/support/byte_buffer.h>
 
 #include <userver/ugrpc/client/call_options.hpp>
+#include <userver/ugrpc/client/generic_options.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/response_future.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
@@ -16,19 +17,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
-
-struct GenericOptions {
-    /// If non-`nullopt`, metrics are accounted for specified fake call name.
-    /// If `nullopt`, writes a set of metrics per real call name.
-    /// If the microservice serves as a proxy and has untrusted clients, it is
-    /// a good idea to have this option set to non-`nullopt` to avoid
-    /// the situations where an upstream client can spam various RPCs with
-    /// non-existent names, which leads to this microservice spamming RPCs
-    /// with non-existent names, which leads to creating storage for infinite
-    /// metrics and causes OOM.
-    /// The default is to specify `"Generic/Generic"` fake call name.
-    std::optional<std::string_view> metrics_call_name{"Generic/Generic"};
-};
 
 /// @ingroup userver_clients
 ///

@@ -77,7 +77,15 @@ inline const bool k{{service.name}}TypesRegistration =
     const {{ method.input_type | grpc_to_cpp_name }}& request,
     USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
 ) const {
-    return Async{{method.name}}(request, std::move(call_options)).Get();
+    return USERVER_NAMESPACE::ugrpc::client::impl::PerformUnaryCall(
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            impl_, {{method_id}}, std::move(call_options)
+        ),
+        USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
+            &{{service.name}}::Stub::PrepareAsync{{method.name}}
+        ),
+        request
+    );
 }
 
 {{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(

@@ -51,6 +51,7 @@ Then create testsuite target:
 * DUMP_CONFIG, set to `TRUE` to tell the testsuite that there is no static config file in the file system and force the
   testsuite to retrieve config from a service itself, by running it
   with `--dump-config` option first. See @ref scripts/docs/en/userver/libraries/easy.md for usage example.
+* SQL_LIBRARY, target to enable @ref sql_coverage_test_info "SQL coverage tests".
 
 Some of the most useful arguments for PYTEST_ARGS:
 

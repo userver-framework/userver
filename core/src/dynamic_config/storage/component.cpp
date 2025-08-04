@@ -37,7 +37,7 @@ namespace {
 
 constexpr std::chrono::seconds kWaitInterval(5);
 
-alerts::Source kConfigParseErrorAlert("config_parse_error");
+const alerts::Source kConfigParseErrorAlert("config_parse_error");
 
 struct DynamicConfigStatistics final {
     std::atomic<bool> was_last_parse_successful{true};

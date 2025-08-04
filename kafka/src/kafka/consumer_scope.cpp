@@ -12,6 +12,8 @@ ConsumerScope::~ConsumerScope() { Stop(); }
 
 void ConsumerScope::Start(Callback callback) { consumer_.StartMessageProcessing(std::move(callback)); }
 
+const std::vector<std::string>& ConsumerScope::GetTopics() const { return consumer_.topics_; }
+
 void ConsumerScope::Stop() noexcept { consumer_.Stop(); }
 
 void ConsumerScope::AsyncCommit() { consumer_.AsyncCommit(); }

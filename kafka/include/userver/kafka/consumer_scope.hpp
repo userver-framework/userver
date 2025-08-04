@@ -81,6 +81,9 @@ public:
     ConsumerScope(ConsumerScope&&) noexcept = delete;
     ConsumerScope& operator=(ConsumerScope&&) noexcept = delete;
 
+    /// @brief Topics list consumer configured to subscribe.
+    const std::vector<std::string>& GetTopics() const;
+
     /// @brief Subscribes for configured topics and starts the consumer polling
     /// process.
     /// @note If `callback` throws an exception, entire message batch (also

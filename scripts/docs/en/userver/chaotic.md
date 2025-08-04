@@ -362,6 +362,8 @@ in case of `x-usrv-cpp-type: X::Y`. The header must contain:
 
 2) `Convert` functions (see below). `Convert` function is used to transform user type into JSONSchema type and vice versa.
 
+You have to pass `LINK_TARGETS` parameter to `userver_target_generate_chaotic` to link with a target that provides the required header.
+
 @include chaotic/integration_tests/include/userver/chaotic/io/my/custom_string.hpp
 
 

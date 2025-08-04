@@ -39,7 +39,22 @@ void ReopenLoggerFile(const std::shared_ptr<logging::impl::TpLogger>& logger) {
     logger->Reopen(logging::impl::ReopenMode::kAppend);
 }
 
-alerts::Source kLogReopeningAlert("log_reopening_error");
+/// [alert_declaration]
+const alerts::Source kLogReopeningAlert{"log_reopening_error"};
+/// [alert_declaration]
+
+void ReportReopeningErrorAndThrow(
+    const std::vector<std::string_view>& failed_loggers,
+    const std::string& result_messages
+) {
+    std::cerr << fmt::format(
+        "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost now",
+        std::chrono::system_clock::now(),
+        fmt::join(failed_loggers, ", ")
+    );
+
+    throw std::runtime_error("ReopenAll errors: " + result_messages);
+}
 
 }  // namespace
 
@@ -223,19 +238,15 @@ void Logging::TryReopenFiles() {
     }
     LOG_INFO() << "Log rotated";
 
-    if (!result_messages.empty()) {
+    const bool error_happened = !result_messages.empty();
+    /// [alert_usage]
+    if (error_happened) {
         kLogReopeningAlert.FireAlert(*metrics_storage_);
-        const auto now = std::chrono::system_clock::now();
-        std::cerr << fmt::format(
-            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log "
-            "file: logs are getting lost now",
-            now,
-            fmt::join(failed_loggers, ", ")
-        );
-
-        throw std::runtime_error("ReopenAll errors: " + result_messages);
+        ReportReopeningErrorAndThrow(failed_loggers, result_messages);
+    } else {
+        kLogReopeningAlert.StopAlertNow(*metrics_storage_);
     }
-    kLogReopeningAlert.StopAlertNow(*metrics_storage_);
+    /// [alert_usage]
 }
 
 void Logging::WriteStatistics(utils::statistics::Writer& writer) const {

@@ -2,9 +2,9 @@
 
 #include <fmt/format.h>
 
-#include <ugrpc/client/impl/tracing.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
+#include <userver/ugrpc/client/impl/tracing.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

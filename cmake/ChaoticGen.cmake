@@ -57,10 +57,11 @@ _userver_prepare_chaotic()
 # RELATIVE_TO - --relative-to option to chaotic-gen - FORMAT - can be ON/OFF, enable to format generated files, defaults
 # to USERVER_CHAOTIC_FORMAT - SCHEMAS - JSONSchema source files - ARGS - extra args to chaotic-gen -
 # INSTALL_INCLUDES_COMPONENT - component to install generated includes
+# LINK_TARGETS - targets to link (used by x-usrv-cpp-type)
 function(userver_target_generate_chaotic TARGET)
     set(OPTIONS GENERATE_SERIALIZERS PARSE_EXTRA_FORMATS)
     set(ONE_VALUE_ARGS OUTPUT_DIR RELATIVE_TO FORMAT INSTALL_INCLUDES_COMPONENT OUTPUT_PREFIX ERASE_PATH_PREFIX)
-    set(MULTI_VALUE_ARGS SCHEMAS LAYOUT INCLUDE_DIRS)
+    set(MULTI_VALUE_ARGS SCHEMAS LAYOUT INCLUDE_DIRS LINK_TARGETS)
     cmake_parse_arguments(PARSE "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
 
     get_property(CHAOTIC_BIN GLOBAL PROPERTY userver_chaotic_bin)
@@ -133,6 +134,18 @@ function(userver_target_generate_chaotic TARGET)
     list(APPEND CHAOTIC_ARGS "--clang-format" "${CLANG_FORMAT}")
 
     _userver_initialize_codegen_flag()
+
+    add_library("${TARGET}" ${SCHEMAS})
+    target_link_libraries("${TARGET}" PUBLIC userver::chaotic ${PARSE_LINK_TARGETS})
+
+    get_target_property(TARGET_LIBRARIES "${TARGET}" LINK_LIBRARIES)
+    foreach(LIBRARY ${TARGET_LIBRARIES})
+	get_target_property(DIRS "${LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES)
+	foreach(DIRECTORY ${DIRS})
+	    set(CHAOTIC_ARGS ${CHAOTIC_ARGS} -I ${DIRECTORY})
+	endforeach()
+    endforeach()
+
     add_custom_command(
         OUTPUT ${SCHEMAS}
         COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_BIN}"
@@ -142,8 +155,6 @@ function(userver_target_generate_chaotic TARGET)
         VERBATIM ${CODEGEN}
     )
     _userver_codegen_register_files("${SCHEMAS}")
-    add_library("${TARGET}" ${SCHEMAS})
-    target_link_libraries("${TARGET}" userver::chaotic)
     target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>")
     target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${PARSE_OUTPUT_DIR}>")
 
@@ -257,7 +268,7 @@ function(userver_target_generate_chaotic_dynamic_configs TARGET SCHEMAS_REGEX)
         OUTPUT ${OUTPUT_FILENAMES}
         COMMAND
             env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_DYNAMIC_CONFIGS_BIN}" ${CHAOTIC_EXTRA_ARGS}
-            -I ${CMAKE_CURRENT_LIST_DIR}/../chaotic/include -o "${OUTPUT_DIR}" ${CHGEN_FILENAMES}
+            -o "${OUTPUT_DIR}" ${CHGEN_FILENAMES}
         COMMENT "Generating dynamic configs${CONFIG_NAMES}"
         DEPENDS ${CHGEN_FILENAMES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"

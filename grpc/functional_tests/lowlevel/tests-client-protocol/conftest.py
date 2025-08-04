@@ -7,24 +7,16 @@ from typing import AsyncGenerator
 from typing import Callable
 from typing import Dict
 
-import grpc
 import http2
 import pytest
 
 import testsuite.utils.net as net_utils
-
-import utils
 
 pytest_plugins = [
     'pytest_userver.plugins.core',
 ]
 
 USERVER_CONFIG_HOOKS = ['userver_config_http2_server_endpoint']
-
-
-@pytest.fixture(scope='session')
-def retryable_status_codes(_retry_policy) -> list[grpc.StatusCode]:
-    return [utils.status_from_str(status) for status in _retry_policy['retryableStatusCodes']]
 
 
 @pytest.fixture(scope='session')

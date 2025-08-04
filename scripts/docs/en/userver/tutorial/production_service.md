@@ -192,7 +192,7 @@ List of userver built-in metrics could be found at
 
 ### Alerts
 
-Alerts is a way to propagate critical errors from your service to a monitoring system.
+Alerts is a way to propagate critical errors from your service to a monitoring system via @ref alerts::Source.
 
 When the code identifies that something bad happened and a user should be notified about that,
 `alert_storage.FireAlert()` is called with the appropriate arguments. Then the alert subsystem

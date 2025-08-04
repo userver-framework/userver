@@ -21,8 +21,10 @@ jobs:
                 include:
                   - os: ubuntu-22.04
                     conanflags: ''
+                    tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
                   - os: macos-latest
                     conanflags: '-o python_path=python3.11'
+                    tests-env: ''
 
         steps:
           - name: Checkout
@@ -45,8 +47,7 @@ jobs:
 
                 sudo apt update
                 sudo apt install -y postgresql redis mongodb-org mongodb-mongosh
-
-                sudo ./scripts/kafka/install_kafka.sh
+                sudo ./scripts/kafka/ubuntu_install_kafka.sh
 
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
@@ -55,10 +56,7 @@ jobs:
             run: |
                 brew update
                 brew tap mongodb/brew
-                brew install clang-format postgresql redis rabbitmq mongodb-community
-
-                sudo ./scripts/kafka/install_kafka.sh
-
+                brew install clang-format postgresql redis kafka rabbitmq mongodb-community
                 brew install python@3.11
 
           - name: Install common packages
@@ -73,7 +71,7 @@ jobs:
                 conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
 
           - name: Test userver conan package
-            run: |
+            run: |-
                 mv libraries/easy/samples/3_json samples/
                 mv scripts/tests/conanfile.py samples/
                 rm -rf userver/cmake/
@@ -96,6 +94,6 @@ jobs:
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/
-                    conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
+                    ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
                     mv $SAMPLE/conanfile.py ./
                 done

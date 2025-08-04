@@ -36,6 +36,19 @@ UTEST_F(ConsumerTest, BrokenConfiguration) {
     UEXPECT_THROW(MakeConsumer("kafka-consumer", {}, consumer_configuration), std::runtime_error);
 }
 
+UTEST_F(ConsumerTest, GetTopics) {
+    {
+        auto consumer = MakeConsumer("kafka-consumer", {});
+        auto consumer_scope = consumer.MakeConsumerScope();
+        ASSERT_TRUE(consumer_scope.GetTopics().empty());
+    }
+    {
+        auto consumer = MakeConsumer("kafka-consumer", {"topic-1", "topic-2"});
+        auto consumer_scope = consumer.MakeConsumerScope();
+        EXPECT_THAT(consumer_scope.GetTopics(), ::testing::ElementsAre("topic-1", "topic-2"));
+    }
+}
+
 UTEST_F(ConsumerTest, OneConsumerSmallTopics) {
     const auto topic1 = GenerateTopic();
     const auto topic2 = GenerateTopic();

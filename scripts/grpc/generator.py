@@ -11,8 +11,10 @@ For each `path/X.proto` file that contains gRPC services, we generate
 `{client,handler}.usrv.pb.{hpp,cpp}.jinja` templates.
 """
 
+import dataclasses
 import enum
 import itertools
+import json
 import os
 import sys
 from typing import Any
@@ -48,6 +50,26 @@ class Mode(enum.Enum):
         return self == self.Both
 
 
+@dataclasses.dataclass(frozen=True)
+class Params:
+    structs: bool
+
+    @classmethod
+    def parse(cls, data: str) -> 'Params':
+        json_data: Dict[Any, Any] = {}
+        if data:
+            json_data.update(json.loads(data))
+
+        result = cls(
+            structs=json_data.pop('structs', False),
+        )
+
+        if json_data:
+            raise Exception(f'Unknown params keys {sorted(json_data)}')
+
+        return result
+
+
 def _grpc_to_cpp_name(in_str: str) -> str:
     return in_str.replace('.', '::')
 
@@ -59,12 +81,14 @@ def _to_package_prefix(package: str):
 class _CodeGenerator:
     def __init__(
         self,
+        params: Params,
         proto_file: descriptor.FileDescriptorProto,
         response: plugin.CodeGeneratorResponse,
         jinja_env: jinja2.Environment,
         mode: Mode,
         skip_files_wo_service: bool,
     ) -> None:
+        self.params = params
         self.proto_file = proto_file
         self.response = response
         self.jinja_env = jinja_env
@@ -95,7 +119,7 @@ class _CodeGenerator:
                 file_type=file_type,
                 file_ext=file_ext,
             )
-            file.content = template.render(proto=data)
+            file.content = template.render(params=self.params, proto=data)
 
     def _generate_code_empty(self) -> None:
         for file_type, file_ext in self._iter_src_files():
@@ -135,6 +159,8 @@ def generate(
     request = plugin.CodeGeneratorRequest()
     request.ParseFromString(data)
 
+    params = Params.parse(request.parameter)
+
     response = plugin.CodeGeneratorResponse()
     if hasattr(response, 'FEATURE_PROTO3_OPTIONAL'):
         setattr(
@@ -157,6 +183,7 @@ def generate(
     # pylint: disable=no-member
     for proto_file in request.proto_file:
         _CodeGenerator(
+            params=params,
             jinja_env=jinja_env,
             proto_file=proto_file,
             response=response,

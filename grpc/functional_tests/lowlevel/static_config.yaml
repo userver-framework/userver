@@ -40,7 +40,8 @@ components_manager:
                                 "UNAVAILABLE",
                                 "ABORTED",
                                 "CANCELLED",
-                                "DEADLINE_EXCEEDED"
+                                "DEADLINE_EXCEEDED",
+                                "INTERNAL"
                             ]
                         }
                    }]

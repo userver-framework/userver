@@ -8,7 +8,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 
 #include <userver/ugrpc/client/call_options.hpp>
-#include <userver/ugrpc/client/generic_client.hpp>
+#include <userver/ugrpc/client/generic_options.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>

@@ -51,9 +51,9 @@ using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComp
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// channel-args | a map of channel arguments, see gRPC Core docs | {}
 /// auth-type | authentication method, see @ref grpc_ssl_authentication "Authentication" | -
 /// ssl-credentials-options | TLS/SSL options, see @ref grpc_ssl_authentication "Authentication" | -
+/// channel-args | a map of channel arguments, see gRPC Core docs | {}
 /// default-service-config | default service config, see above | -
 /// channel-count | Number of underlying grpc::Channel objects | 1
 /// middlewares | middlewares names to use | -

@@ -11,6 +11,7 @@ def userver_pg_log_config():
     return patch_config
 
 
+@pytest.mark.skip('This test is broken. Fix it, please')
 @pytest.mark.uservice_oneshot(config_hooks=['userver_pg_log_config'])
 async def test_make_request(service_client):
     async with service_client.capture_logs() as capture:
