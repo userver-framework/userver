@@ -26,7 +26,7 @@ jobs:
                   - os: ubuntu-22.04
                     container: ubuntu:22.04
                     conanflags: ''
-                    tests-env: 'export TESTSUITE_ALLOW_ROOT=1; JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
+                    tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
                   - os: macos-latest
                     conanflags: '-o python_path=python3.11'
                     tests-env: ''
