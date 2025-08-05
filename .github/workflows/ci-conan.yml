@@ -82,6 +82,8 @@ jobs:
                 rm -rf userver/cmake/
                 cd samples/
 
+                conan install --requires libpq/14.9
+
                 USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
                 for SAMPLE in \
                     3_json \
