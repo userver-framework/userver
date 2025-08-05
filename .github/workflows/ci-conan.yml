@@ -37,6 +37,8 @@ jobs:
             run: |
                 apt update
                 apt install -y sudo
+                useradd -m -G sudo -s /bin/bash test-user
+                ${{ matrix.container && 'sudo -u test-user ' }} id -un
 
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
@@ -107,6 +109,6 @@ jobs:
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/
-                    ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
+                    ${{ matrix.container && 'sudo -u test-user ' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
                     mv $SAMPLE/conanfile.py ./
                 done
