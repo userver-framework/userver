@@ -154,8 +154,8 @@ class UserverConan(ConanFile):
         if self.options.with_postgresql:
             # `psycopg2` python package workarounds:
             # * `run=True` required to find pg_config binary;
-            # * `transitive_headers=True, transitive_libs=True` required to find `libpq-fe.h` in testsuite runs of users (after the userver build)
-            self.requires('libpq/14.9', run=True, transitive_headers=True, transitive_libs=True)
+            # * `transitive_headers=True, transitive_libs=True, visible=True` required to find `libpq-fe.h` in testsuite runs of users (after the userver build)
+            self.requires('libpq/14.9', run=True, transitive_headers=True, transitive_libs=True, visible=True)
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
