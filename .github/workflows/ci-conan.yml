@@ -58,7 +58,7 @@ jobs:
           - name: Run conan
             run: |
                 git config --global --add safe.directory `pwd`
-                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
+                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -c tools.system.package_manager:mode=install
 
           - name: Install test dependencies
             if: matrix.os == 'ubuntu-22.04'
@@ -81,8 +81,6 @@ jobs:
                 mv scripts/tests/conanfile.py samples/
                 rm -rf userver/cmake/
                 cd samples/
-
-                conan install --requires libpq/14.9
 
                 USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
                 for SAMPLE in \
