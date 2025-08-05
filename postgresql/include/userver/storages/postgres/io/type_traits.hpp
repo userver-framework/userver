@@ -58,13 +58,13 @@ template <typename T>
 using HasOutputOperator = decltype(std::declval<std::ostream&>() << std::declval<T&>());
 
 template <typename T>
-inline constexpr bool kHasOutputOperator = meta::kIsDetected<HasOutputOperator, T>;
+inline constexpr bool kHasOutputOperator = meta::IsDetected<HasOutputOperator, T>;
 
 template <typename T>
 using HasInputOperator = decltype(std::declval<std::istream&>() >> std::declval<T&>());
 
 template <typename T>
-inline constexpr bool kHasInputOperator = meta::kIsDetected<HasInputOperator, T>;
+inline constexpr bool kHasInputOperator = meta::IsDetected<HasInputOperator, T>;
 ///@}
 
 ///@{

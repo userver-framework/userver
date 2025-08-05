@@ -24,7 +24,7 @@ std::string GetPercentileFieldName(double perc);
 template <typename T>
 formats::json::ValueBuilder PercentileToJson(const T& perc, std::initializer_list<double> percents) {
     static_assert(
-        meta::kIsDetected<impl::HasGetPercentileResult, T>,
+        meta::IsDetected<impl::HasGetPercentileResult, T>,
         "T must specify T::GetPercentile(double) returning "
         "json-serializable value"
     );

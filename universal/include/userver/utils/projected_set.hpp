@@ -120,7 +120,7 @@ void ProjectedInsertOrAssign(Container& set, Value&& value) {
 /// @note Always returns const iterator, even for a non-const `set` parameter.
 template <typename Container, typename Key>
 auto ProjectedFind(Container& set, const Key& key) {
-    if constexpr (meta::kIsDetected<impl::projected_set::HasHasher, std::decay_t<Container>>) {
+    if constexpr (meta::IsDetected<impl::projected_set::HasHasher, std::decay_t<Container>>) {
         return utils::impl::FindTransparent(set, key);
     } else {
         return set.find(key);

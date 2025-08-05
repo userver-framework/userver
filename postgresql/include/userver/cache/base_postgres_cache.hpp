@@ -126,12 +126,12 @@ namespace pg_cache::detail {
 template <typename T>
 using ValueType = typename T::ValueType;
 template <typename T>
-inline constexpr bool kHasValueType = meta::kIsDetected<ValueType, T>;
+inline constexpr bool kHasValueType = meta::IsDetected<ValueType, T>;
 
 template <typename T>
 using RawValueTypeImpl = typename T::RawValueType;
 template <typename T>
-inline constexpr bool kHasRawValueType = meta::kIsDetected<RawValueTypeImpl, T>;
+inline constexpr bool kHasRawValueType = meta::IsDetected<RawValueTypeImpl, T>;
 template <typename T>
 using RawValueType = meta::DetectedOr<ValueType<T>, RawValueTypeImpl, T>;
 
@@ -148,48 +148,48 @@ auto ExtractValue(RawValueType<PostgreCachePolicy>&& raw) {
 template <typename T>
 using HasNameImpl = std::enable_if_t<!std::string_view{T::kName}.empty()>;
 template <typename T>
-inline constexpr bool kHasName = meta::kIsDetected<HasNameImpl, T>;
+inline constexpr bool kHasName = meta::IsDetected<HasNameImpl, T>;
 
 // Component query in policy
 template <typename T>
 using HasQueryImpl = decltype(T::kQuery);
 template <typename T>
-inline constexpr bool kHasQuery = meta::kIsDetected<HasQueryImpl, T>;
+inline constexpr bool kHasQuery = meta::IsDetected<HasQueryImpl, T>;
 
 // Component GetQuery in policy
 template <typename T>
 using HasGetQueryImpl = decltype(T::GetQuery());
 template <typename T>
-inline constexpr bool kHasGetQuery = meta::kIsDetected<HasGetQueryImpl, T>;
+inline constexpr bool kHasGetQuery = meta::IsDetected<HasGetQueryImpl, T>;
 
 // Component kWhere in policy
 template <typename T>
 using HasWhere = decltype(T::kWhere);
 template <typename T>
-inline constexpr bool kHasWhere = meta::kIsDetected<HasWhere, T>;
+inline constexpr bool kHasWhere = meta::IsDetected<HasWhere, T>;
 
 // Component kOrderBy in policy
 template <typename T>
 using HasOrderBy = decltype(T::kOrderBy);
 template <typename T>
-inline constexpr bool kHasOrderBy = meta::kIsDetected<HasOrderBy, T>;
+inline constexpr bool kHasOrderBy = meta::IsDetected<HasOrderBy, T>;
 
 // Update field
 template <typename T>
 using HasUpdatedField = decltype(T::kUpdatedField);
 template <typename T>
-inline constexpr bool kHasUpdatedField = meta::kIsDetected<HasUpdatedField, T>;
+inline constexpr bool kHasUpdatedField = meta::IsDetected<HasUpdatedField, T>;
 
 template <typename T>
 using WantIncrementalUpdates = std::enable_if_t<!std::string_view{T::kUpdatedField}.empty()>;
 template <typename T>
-inline constexpr bool kWantIncrementalUpdates = meta::kIsDetected<WantIncrementalUpdates, T>;
+inline constexpr bool kWantIncrementalUpdates = meta::IsDetected<WantIncrementalUpdates, T>;
 
 // Key member in policy
 template <typename T>
 using KeyMemberTypeImpl = std::decay_t<std::invoke_result_t<decltype(T::kKeyMember), ValueType<T>>>;
 template <typename T>
-inline constexpr bool kHasKeyMember = meta::kIsDetected<KeyMemberTypeImpl, T>;
+inline constexpr bool kHasKeyMember = meta::IsDetected<KeyMemberTypeImpl, T>;
 template <typename T>
 using KeyMemberType = meta::DetectedType<KeyMemberTypeImpl, T>;
 
@@ -252,7 +252,7 @@ using HasOnWritesDoneImpl = decltype(std::declval<T&>().OnWritesDone());
 
 template <typename T>
 void OnWritesDone(T& container) {
-    if constexpr (meta::kIsDetected<HasOnWritesDoneImpl, T>) {
+    if constexpr (meta::IsDetected<HasOnWritesDoneImpl, T>) {
         container.OnWritesDone();
     }
 }
@@ -261,12 +261,12 @@ template <typename T>
 using HasCustomUpdatedImpl = decltype(T::GetLastKnownUpdated(std::declval<DataCacheContainerType<T>>()));
 
 template <typename T>
-inline constexpr bool kHasCustomUpdated = meta::kIsDetected<HasCustomUpdatedImpl, T>;
+inline constexpr bool kHasCustomUpdated = meta::IsDetected<HasCustomUpdatedImpl, T>;
 
 template <typename T>
 using UpdatedFieldTypeImpl = typename T::UpdatedFieldType;
 template <typename T>
-inline constexpr bool kHasUpdatedFieldType = meta::kIsDetected<UpdatedFieldTypeImpl, T>;
+inline constexpr bool kHasUpdatedFieldType = meta::IsDetected<UpdatedFieldTypeImpl, T>;
 template <typename T>
 using UpdatedFieldType = meta::DetectedOr<storages::postgres::TimePointTz, UpdatedFieldTypeImpl, T>;
 
@@ -307,7 +307,7 @@ using HasClusterHostTypeImpl = decltype(T::kClusterHostType);
 
 template <typename T>
 constexpr storages::postgres::ClusterHostTypeFlags ClusterHostType() {
-    if constexpr (meta::kIsDetected<HasClusterHostTypeImpl, T>) {
+    if constexpr (meta::IsDetected<HasClusterHostTypeImpl, T>) {
         return T::kClusterHostType;
     } else {
         return storages::postgres::ClusterHostType::kSlave;
@@ -320,7 +320,7 @@ using HasMayReturnNull = decltype(T::kMayReturnNull);
 
 template <typename T>
 constexpr bool MayReturnNull() {
-    if constexpr (meta::kIsDetected<HasMayReturnNull, T>) {
+    if constexpr (meta::IsDetected<HasMayReturnNull, T>) {
         return T::kMayReturnNull;
     } else {
         return false;

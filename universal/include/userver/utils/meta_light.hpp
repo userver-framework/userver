@@ -36,7 +36,7 @@ struct IsInstantiationOf<Template, Template<Args...>> : std::true_type {};
 
 }  // namespace impl
 
-/// @see utils::meta::kIsDetected
+/// @see utils::meta::IsDetected
 struct NotDetected {};
 
 #if defined(__cpp_concepts) || defined(DOXYGEN)
@@ -53,31 +53,31 @@ struct NotDetected {};
 /// template <typename T>
 /// using HasValueType = typename T::ValueType;
 /// ...
-/// if constexpr (utils::meta::kIsDetected<HasValueType, T>) { ... }
+/// if constexpr (utils::meta::IsDetected<HasValueType, T>) { ... }
 /// @endcode
 template <template <typename...> typename Trait, typename... Args>
-concept kIsDetected = requires { typename Trait<Args...>; };
+concept IsDetected = requires { typename Trait<Args...>; };
 
 #else
 
 template <template <typename...> typename Trait, typename... Args>
-inline constexpr bool kIsDetected = impl::Detector<NotDetected, void, Trait, Args...>::value_t::value;
+inline constexpr bool IsDetected = impl::Detector<NotDetected, void, Trait, Args...>::value_t::value;
 
 #endif
 
 /// @brief Produces the result type of a trait, or utils::meta::NotDetected if
 /// it's incorrect for the given template args
-/// @see utils::meta::kIsDetected
+/// @see utils::meta::IsDetected
 template <template <typename...> typename Trait, typename... Args>
 using DetectedType = typename impl::Detector<NotDetected, void, Trait, Args...>::type;
 
 /// @brief Produces the result type of a trait, or @a Default if it's incorrect
 /// for the given template args
-/// @see utils::meta::kIsDetected
+/// @see utils::meta::IsDetected
 template <typename Default, template <typename...> typename Trait, typename... Args>
 using DetectedOr = typename impl::Detector<Default, void, Trait, Args...>::type;
 
-/// Helps in definitions of traits for utils::meta::kIsDetected
+/// Helps in definitions of traits for utils::meta::IsDetected
 template <typename T, typename U>
 using ExpectSame = std::enable_if_t<std::is_same_v<T, U>>;
 
