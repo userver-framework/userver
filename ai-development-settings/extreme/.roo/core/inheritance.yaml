@@ -1,0 +1,86 @@
+# Rule Inheritance Configuration
+# Defines how rules inherit from parent contexts and override mechanisms
+
+rule_inheritance:
+  description: "Hierarchical rule inheritance system for userver development"
+  version: "1.0.0"
+  
+  # Inheritance hierarchy (lower numbers = higher priority)
+  hierarchy:
+    00-global:
+      priority: 1000
+      description: "Global userver framework rules - highest priority"
+      inherits_from: []
+      can_be_overridden: false
+      scope: "framework-wide"
+    
+    10-modes:
+      priority: 800
+      description: "Development mode-specific rules"
+      inherits_from: ["00-global"]
+      can_be_overridden: true
+      scope: "mode-specific"
+      
+    20-themes:
+      priority: 600
+      description: "Technical domain-specific rules"
+      inherits_from: ["00-global", "10-modes"]
+      can_be_overridden: true
+      scope: "theme-specific"
+      
+    30-project:
+      priority: 400
+      description: "Project-specific overrides"
+      inherits_from: ["00-global", "10-modes", "20-themes"]
+      can_be_overridden: true
+      scope: "project-specific"
+
+  # Inheritance resolution rules
+  resolution_strategy:
+    conflict_resolution: "priority_based"  # Higher priority wins
+    merge_strategy: "deep_merge"           # Deep merge for complex objects
+    override_behavior: "explicit_only"     # Only explicitly marked rules can be overridden
+    
+  # Rule composition patterns
+  composition:
+    rule_combination:
+      - "Rules from higher priority levels are applied first"
+      - "Lower priority rules can extend but not override protected rules"
+      - "Cross-references are resolved after inheritance"
+      - "Templates are applied during rule instantiation"
+    
+    inheritance_markers:
+      extends: "Rule extends parent rule with additional content"
+      overrides: "Rule completely replaces parent rule (if allowed)"
+      supplements: "Rule adds to parent rule without replacement"
+      specializes: "Rule provides specialized version for specific context"
+
+  # Rule validation
+  validation:
+    required_fields:
+      - "rule_id"
+      - "priority"
+      - "scope"
+      - "description"
+    
+    inheritance_checks:
+      - "Verify parent rules exist"
+      - "Check override permissions"
+      - "Validate priority consistency"
+      - "Ensure no circular dependencies"
+
+  # Cross-reference integration
+  cross_reference_inheritance:
+    memory_bank_links:
+      inherit: true
+      merge_strategy: "union"
+      priority: "parent_first"
+    
+    related_patterns:
+      inherit: true
+      merge_strategy: "append"
+      deduplication: true
+    
+    implementation_links:
+      inherit: false  # Implementation links are context-specific
+      override_allowed: true

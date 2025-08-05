@@ -1,0 +1,401 @@
+# Cross-Reference Registry
+# Central registry of all cross-references in the rule system
+
+cross_reference_registry:
+  description: "Central registry mapping all cross-references between rules, memory bank, and patterns"
+  version: "1.0.0"
+  last_updated: "2025-01-05"
+
+  # Memory Bank Cross-References
+  memory_bank_references:
+    framework_core:
+      path: "memory-bank/main/framework-core.md"
+      referenced_by:
+        - rule_id: "global.framework.fundamentals"
+          rule_path: "rules/00-global/framework-fundamentals.md"
+          context: "Core framework concepts and patterns"
+        - rule_id: "mode.code.implementation_patterns"
+          rule_path: "rules/10-modes/code/implementation-patterns.md"
+          context: "Implementation guidance and best practices"
+      
+      provides_patterns:
+        - pattern_id: "component_lifecycle"
+          pattern_domain: "framework"
+          description: "Component initialization and cleanup patterns"
+        - pattern_id: "error_handling"
+          pattern_domain: "framework"
+          description: "Exception-based error handling patterns"
+    
+    component_system:
+      path: "memory-bank/main/component-system.md"
+      referenced_by:
+        - rule_id: "global.component.system"
+          rule_path: "rules/00-global/component-system.md"
+          context: "Component architecture and dependency injection"
+        - rule_id: "mode.architect.system_design"
+          rule_path: "rules/10-modes/architect/system-design.md"
+          context: "System architecture and component interaction design"
+      
+      provides_patterns:
+        - pattern_id: "dependency_injection"
+          pattern_domain: "architecture"
+          description: "Dependency injection and service locator patterns"
+        - pattern_id: "component_communication"
+          pattern_domain: "architecture"
+          description: "Inter-component communication patterns"
+    
+    async_programming:
+      path: "memory-bank/main/async-programming.md"
+      referenced_by:
+        - rule_id: "global.async.programming"
+          rule_path: "rules/00-global/async-programming.md"
+          context: "Coroutine safety and async patterns"
+        - rule_id: "theme.databases.postgresql_patterns"
+          rule_path: "rules/20-themes/databases/postgresql-patterns.md"
+          context: "Async database operations and transaction management"
+      
+      provides_patterns:
+        - pattern_id: "coroutine_safety"
+          pattern_domain: "concurrency"
+          description: "Safe coroutine usage and non-blocking operations"
+        - pattern_id: "task_management"
+          pattern_domain: "concurrency"
+          description: "Task creation, cancellation, and lifecycle management"
+    
+    service_patterns:
+      path: "memory-bank/main/service-patterns.md"
+      referenced_by:
+        - rule_id: "mode.code.implementation_patterns"
+          rule_path: "rules/10-modes/code/implementation-patterns.md"
+          context: "Service implementation and testing patterns"
+        - rule_id: "mode.architect.system_design"
+          rule_path: "rules/10-modes/architect/system-design.md"
+          context: "Service architecture and design patterns"
+      
+      provides_patterns:
+        - pattern_id: "http_handlers"
+          pattern_domain: "web"
+          description: "HTTP request handling and routing patterns"
+        - pattern_id: "database_integration"
+          pattern_domain: "data"
+          description: "Database connection and query patterns"
+    
+    troubleshooting_guide:
+      path: "memory-bank/main/troubleshooting-guide.md"
+      referenced_by:
+        - rule_id: "mode.debug.systematic_debugging"
+          rule_path: "rules/10-modes/debug/systematic-debugging.md"
+          context: "Debugging workflows and problem resolution"
+      
+      provides_patterns:
+        - pattern_id: "error_diagnosis"
+          pattern_domain: "debugging"
+          description: "Systematic error diagnosis and resolution"
+        - pattern_id: "performance_debugging"
+          pattern_domain: "debugging"
+          description: "Performance issue identification and resolution"
+
+  # Specialized Memory Bank References
+  specialized_memory_bank:
+    advanced_monitoring:
+      path: "memory-bank/specialized/advanced-monitoring/monitoring-patterns.md"
+      referenced_by:
+        - rule_id: "theme.performance.optimization"
+          rule_path: "rules/20-themes/performance/optimization-patterns.md"
+          context: "Performance monitoring and metrics collection"
+        - rule_id: "theme.databases.postgresql_patterns"
+          rule_path: "rules/20-themes/databases/postgresql-patterns.md"
+          context: "Database performance monitoring"
+      
+      provides_patterns:
+        - pattern_id: "metrics_collection"
+          pattern_domain: "monitoring"
+          description: "Application and system metrics collection"
+        - pattern_id: "distributed_tracing"
+          pattern_domain: "monitoring"
+          description: "Request tracing across service boundaries"
+    
+    chaos_testing:
+      path: "memory-bank/specialized/chaos-testing/chaos-patterns.md"
+      referenced_by:
+        - rule_id: "theme.databases.postgresql_patterns"
+          rule_path: "rules/20-themes/databases/postgresql-patterns.md"
+          context: "Database resilience and failure handling"
+      
+      provides_patterns:
+        - pattern_id: "database_resilience"
+          pattern_domain: "resilience"
+          description: "Database failure simulation and recovery patterns"
+        - pattern_id: "circuit_breaker"
+          pattern_domain: "resilience"
+          description: "Circuit breaker implementation for external services"
+    
+    tcp_udp_networking:
+      path: "memory-bank/specialized/tcp-udp-networking/networking-patterns.md"
+      referenced_by:
+        - rule_id: "theme.networking.protocols"
+          rule_path: "rules/20-themes/networking/protocol-patterns.md"
+          context: "Low-level networking and protocol implementation"
+      
+      provides_patterns:
+        - pattern_id: "tcp_server"
+          pattern_domain: "networking"
+          description: "TCP server implementation patterns"
+        - pattern_id: "udp_communication"
+          pattern_domain: "networking"
+          description: "UDP communication patterns"
+    
+    websocket_advanced:
+      path: "memory-bank/specialized/websocket-advanced/websocket-patterns.md"
+      referenced_by:
+        - rule_id: "theme.networking.realtime"
+          rule_path: "rules/20-themes/networking/realtime-patterns.md"
+          context: "Real-time communication and WebSocket patterns"
+      
+      provides_patterns:
+        - pattern_id: "websocket_server"
+          pattern_domain: "realtime"
+          description: "WebSocket server implementation and management"
+        - pattern_id: "realtime_messaging"
+          pattern_domain: "realtime"
+          description: "Real-time message broadcasting patterns"
+    
+    s3_integration:
+      path: "memory-bank/specialized/s3-integration/s3-patterns.md"
+      referenced_by:
+        - rule_id: "theme.integration.external_services"
+          rule_path: "rules/20-themes/integration/external-service-patterns.md"
+          context: "Cloud storage integration patterns"
+      
+      provides_patterns:
+        - pattern_id: "s3_operations"
+          pattern_domain: "storage"
+          description: "S3 upload, download, and management operations"
+        - pattern_id: "cloud_storage"
+          pattern_domain: "storage"
+          description: "Generic cloud storage abstraction patterns"
+
+  # Research Memory Bank References
+  research_memory_bank:
+    experimental_features:
+      path: "memory-bank/research/experimental-features.md"
+      referenced_by:
+        - rule_id: "mode.architect.future_planning"
+          rule_path: "rules/10-modes/architect/future-planning.md"
+          context: "Experimental features and future architecture planning"
+      
+      provides_patterns:
+        - pattern_id: "experimental_apis"
+          pattern_domain: "research"
+          description: "Experimental API usage and evaluation patterns"
+    
+    performance_research:
+      path: "memory-bank/research/performance-research.md"
+      referenced_by:
+        - rule_id: "theme.performance.optimization"
+          rule_path: "rules/20-themes/performance/optimization-patterns.md"
+          context: "Advanced performance optimization techniques"
+        - rule_id: "theme.databases.postgresql_patterns"
+          rule_path: "rules/20-themes/databases/postgresql-patterns.md"
+          context: "Database performance research and optimization"
+      
+      provides_patterns:
+        - pattern_id: "performance_profiling"
+          pattern_domain: "performance"
+          description: "Advanced profiling and performance analysis"
+        - pattern_id: "optimization_strategies"
+          pattern_domain: "performance"
+          description: "Systematic performance optimization approaches"
+    
+    new_patterns:
+      path: "memory-bank/research/new-patterns.md"
+      referenced_by:
+        - rule_id: "mode.code.implementation_patterns"
+          rule_path: "rules/10-modes/code/implementation-patterns.md"
+          context: "Emerging implementation patterns and techniques"
+      
+      provides_patterns:
+        - pattern_id: "emerging_patterns"
+          pattern_domain: "innovation"
+          description: "New and emerging development patterns"
+    
+    future_directions:
+      path: "memory-bank/research/future-directions.md"
+      referenced_by:
+        - rule_id: "mode.architect.system_design"
+          rule_path: "rules/10-modes/architect/system-design.md"
+          context: "Future architecture directions and evolution"
+      
+      provides_patterns:
+        - pattern_id: "architecture_evolution"
+          pattern_domain: "architecture"
+          description: "Future architecture patterns and trends"
+
+  # Rule Inheritance Relationships
+  rule_inheritance:
+    global_rules:
+      framework_fundamentals:
+        rule_id: "global.framework.fundamentals"
+        path: "rules/00-global/framework-fundamentals.md"
+        priority: 1000
+        can_be_overridden: false
+        extended_by:
+          - "global.component.system"
+          - "global.async.programming"
+          - "mode.architect.system_design"
+          - "mode.code.implementation_patterns"
+          - "theme.databases.postgresql_patterns"
+      
+      component_system:
+        rule_id: "global.component.system"
+        path: "rules/00-global/component-system.md"
+        priority: 1000
+        extends: "global.framework.fundamentals"
+        extended_by:
+          - "mode.architect.system_design"
+          - "mode.code.implementation_patterns"
+      
+      async_programming:
+        rule_id: "global.async.programming"
+        path: "rules/00-global/async-programming.md"
+        priority: 1000
+        extends: "global.framework.fundamentals"
+        extended_by:
+          - "mode.code.implementation_patterns"
+          - "theme.databases.postgresql_patterns"
+    
+    mode_rules:
+      architect_system_design:
+        rule_id: "mode.architect.system_design"
+        path: "rules/10-modes/architect/system-design.md"
+        priority: 800
+        extends:
+          - "global.framework.fundamentals"
+          - "global.component.system"
+        specializes: "system_architecture_planning"
+      
+      code_implementation_patterns:
+        rule_id: "mode.code.implementation_patterns"
+        path: "rules/10-modes/code/implementation-patterns.md"
+        priority: 800
+        extends:
+          - "global.framework.fundamentals"
+          - "global.component.system"
+          - "global.async.programming"
+        specializes: "concrete_implementation_guidance"
+    
+    theme_rules:
+      databases_postgresql:
+        rule_id: "theme.databases.postgresql_patterns"
+        path: "rules/20-themes/databases/postgresql-patterns.md"
+        priority: 600
+        extends:
+          - "global.framework.fundamentals"
+          - "global.async.programming"
+        specializes: "postgresql_database_operations"
+
+  # Pattern Cross-References
+  pattern_relationships:
+    component_lifecycle:
+      domain: "framework"
+      implemented_in:
+        - "global.component.system"
+        - "mode.architect.system_design"
+      related_patterns:
+        - "dependency_injection"
+        - "service_lifecycle"
+      alternatives:
+        - "singleton_pattern"
+        - "factory_pattern"
+    
+    async_operations:
+      domain: "concurrency"
+      implemented_in:
+        - "global.async.programming"
+        - "theme.databases.postgresql_patterns"
+      related_patterns:
+        - "coroutine_safety"
+        - "task_management"
+      alternatives:
+        - "thread_based_concurrency"
+        - "callback_based_async"
+    
+    database_transactions:
+      domain: "data"
+      implemented_in:
+        - "theme.databases.postgresql_patterns"
+      related_patterns:
+        - "connection_pooling"
+        - "query_optimization"
+      alternatives:
+        - "orm_patterns"
+        - "nosql_patterns"
+
+  # Conceptual Relationships
+  conceptual_links:
+    performance_optimization:
+      related_concepts:
+        - "caching_strategies"
+        - "connection_pooling"
+        - "query_optimization"
+        - "resource_management"
+      cross_cutting_concerns:
+        - "monitoring"
+        - "profiling"
+        - "benchmarking"
+    
+    error_handling:
+      related_concepts:
+        - "exception_safety"
+        - "graceful_degradation"
+        - "circuit_breaker"
+        - "retry_strategies"
+      cross_cutting_concerns:
+        - "logging"
+        - "monitoring"
+        - "alerting"
+    
+    system_architecture:
+      related_concepts:
+        - "component_design"
+        - "service_boundaries"
+        - "data_flow"
+        - "scalability"
+      cross_cutting_concerns:
+        - "security"
+        - "performance"
+        - "maintainability"
+
+  # Validation Rules
+  validation_rules:
+    link_integrity:
+      check_file_exists: true
+      validate_anchors: true
+      check_bidirectional_consistency: true
+    
+    inheritance_validation:
+      check_circular_dependencies: true
+      validate_priority_consistency: true
+      ensure_parent_exists: true
+    
+    pattern_validation:
+      check_pattern_registry: true
+      validate_domain_consistency: true
+      ensure_implementation_exists: true
+
+  # Maintenance Information
+  maintenance:
+    last_validation: "2025-01-05"
+    next_validation: "2025-02-05"
+    validation_frequency: "monthly"
+    
+    broken_links: []
+    
+    pending_updates:
+      - description: "Add cross-references for new debug mode rules"
+        priority: "high"
+        target_date: "2025-01-15"
+      
+      - description: "Validate all memory bank cross-references"
+        priority: "medium"
+        target_date: "2025-01-20"
