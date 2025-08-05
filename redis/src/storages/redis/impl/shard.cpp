@@ -10,6 +10,7 @@
 
 #include <storages/redis/impl/command.hpp>
 #include <userver/storages/redis/base.hpp>
+#include <userver/utils/assert.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -18,10 +19,11 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 ConnectionInfoInt::ConnectionInfoInt(ConnectionInfo conn_info)
-    : conn_info_(std::move(conn_info)),
-      fulltext_(fmt::format(FMT_COMPILE("{}:{}"), conn_info_.host, conn_info_.port)) {}
+    : conn_info_(std::move(conn_info)), fulltext_(fmt::format(FMT_COMPILE("{}:{}"), conn_info_.host, conn_info_.port)) {
+    UASSERT(!conn_info_.host.empty());
+}
 
-void ConnectionInfoInt::SetName(std::string name) { name_ = name; }
+void ConnectionInfoInt::SetName(std::string name) { name_ = std::move(name); }
 
 const std::string& ConnectionInfoInt::Name() const { return name_; }
 

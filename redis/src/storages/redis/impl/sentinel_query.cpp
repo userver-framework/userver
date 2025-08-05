@@ -223,12 +223,6 @@ std::string InstanceUpChecker::GetReason() const {
     UINVARIANT(false, "Unknown reason");
 }
 
-enum class ClusterSlotsResponseStatus {
-    kOk,
-    kFail,
-    kNonCluster,
-};
-
 std::optional<std::string> GetIpFromMeta(const ReplyData::Array& host_info_array) {
     if (host_info_array.size() < 4) return std::nullopt;
     const auto& meta = host_info_array[3];
@@ -251,34 +245,107 @@ std::string GetIpFromHostInfo(const ReplyData::Array& host_info_array) {
     return host_info_array[0].GetString();
 }
 
+}  // namespace
+
 ClusterSlotsResponseStatus ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res) {
     UASSERT(reply);
     LOG_TRACE() << "Got reply to CLUSTER SLOTS: " << reply->data.ToDebugString();
-    if (reply->IsUnknownCommandError()) return ClusterSlotsResponseStatus::kNonCluster;
-    if (reply->status != ReplyStatus::kOk || !reply->data.IsArray()) return ClusterSlotsResponseStatus::kFail;
+    if (reply->IsUnknownCommandError()) {
+        LOG_ERROR() << "Redis CLUSTER SLOTS reply contains unknown command error: " << reply->data.ToDebugString();
+        return ClusterSlotsResponseStatus::kNonCluster;
+    }
+    if (reply->status != ReplyStatus::kOk) {
+        LOG_ERROR() << "Redis CLUSTER SLOTS reply contains error: " << reply->data.ToDebugString();
+        return ClusterSlotsResponseStatus::kFail;
+    }
+    if (!reply->data.IsArray()) {
+        LOG_ERROR() << "Redis CLUSTER SLOTS reply is not an array: " << reply->data.ToDebugString();
+        return ClusterSlotsResponseStatus::kFail;
+    }
+
+    std::size_t array_index = 0;
     for (const auto& reply_interval : reply->data.GetArray()) {
-        if (!reply_interval.IsArray()) return ClusterSlotsResponseStatus::kFail;
+        if (!reply_interval.IsArray()) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index
+                        << "] is not an array: " << reply_interval.ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
         const auto& array = reply_interval.GetArray();
-        if (array.size() < 3) return ClusterSlotsResponseStatus::kFail;
-        if (!array[0].IsInt() || !array[1].IsInt()) return ClusterSlotsResponseStatus::kFail;
-        for (size_t i = 2; i < array.size(); i++) {
-            if (!array[i].IsArray()) return ClusterSlotsResponseStatus::kFail;
+        if (array.size() < 3) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index
+                        << "] is an array of size less than 3: " << reply_interval.ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
+        if (!array[0].IsInt()) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index
+                        << "][0] is not an int: " << array[0].ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
+        if (!array[1].IsInt()) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index
+                        << "][1] is not an int: " << array[1].ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
+        for (std::size_t i = 2; i < array.size(); i++) {
+            if (!array[i].IsArray()) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index << "][" << i
+                            << "] is not an array: " << array[i].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
             const auto& host_info_array = array[i].GetArray();
-            if (host_info_array.size() < 2) return ClusterSlotsResponseStatus::kFail;
-            if (!host_info_array[0].IsString() || !host_info_array[1].IsInt()) return ClusterSlotsResponseStatus::kFail;
+            if (host_info_array.size() < 2) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index << "][" << i
+                            << "] is an array of size less than 2: " << array[i].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
+            if (!host_info_array[0].IsString()) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index << "][" << i
+                            << "][0] is not a string: " << host_info_array[0].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
+            if (!host_info_array[1].IsInt()) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply elemet[" << array_index << "][" << i
+                            << "][1] is not an int: " << host_info_array[1].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
             ConnectionInfoInt conn_info{
                 {GetIpFromHostInfo(host_info_array), static_cast<int>(host_info_array[1].GetInt()), {}}};
             const SlotInterval slot_interval(array[0].GetInt(), array[1].GetInt());
-            if (i == 2)
+            if (i == 2) {
+                const bool is_master_overwritten =
+                    (!res[slot_interval].master.HostPort().first.empty() &&
+                     res[slot_interval].master.HostPort().first != "localhost" &&
+                     res[slot_interval].master.HostPort() != conn_info.HostPort());
+                if (is_master_overwritten) {
+                    const auto message = fmt::format(
+                        "Redis CLUSTER SLOTS reply elemet[{}][{}] overwrites master '{}' with '{}'",
+                        array_index,
+                        i,
+                        res[slot_interval].master.HostPort().first,
+                        conn_info.HostPort().first
+                    );
+                    LOG_ERROR() << message;
+                    UASSERT_MSG(false, message);
+                }
+
                 res[slot_interval].master = std::move(conn_info);
-            else
+            } else {
                 res[slot_interval].slaves.insert(std::move(conn_info));
+            }
         }
+
+        ++array_index;
     }
     return ClusterSlotsResponseStatus::kOk;
 }
-
-}  // namespace
 
 GetHostsContext::GetHostsContext(
     bool allow_empty,

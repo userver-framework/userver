@@ -162,6 +162,14 @@ private:
     std::map<ServerId, ClusterSlotsResponse> responses_by_id_;
 };
 
+enum class ClusterSlotsResponseStatus {
+    kOk,
+    kFail,
+    kNonCluster,
+};
+
+ClusterSlotsResponseStatus ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res);
+
 }  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END
