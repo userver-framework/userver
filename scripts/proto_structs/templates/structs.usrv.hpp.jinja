@@ -1,10 +1,12 @@
 {% import "utils.inc.jinja" as utils %}
-{{- utils.do_not_edit() }}
+{{ utils.do_not_edit(file_name_wo_ext) }}
 
 #pragma once
 
-{% for dep in dependency %}
-#include <{{ dep }}.structs.usrv.pb.hpp>
+{% for include in includes %}
+#include <{{ include }}>
 {% endfor %}
 
-// I AM HPP
+{% for node in gen_nodes %}
+{{ utils.render_gen_node(node) }}
+{%- endfor -%}

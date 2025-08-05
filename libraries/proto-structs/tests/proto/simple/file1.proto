@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package simple;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/tests/proto/simple;protosimple";
+
+// Структура с простыми полями.
+message SimpleStruct {
+    // Число.
+    int32 integer = 1;
+    // Текст.
+    string text = 2;
+    // Условие.
+    bool is_condition = 3;
+
+    // Один или два.
+    oneof Something {
+        // Один.
+        int64 one = 4;
+        // Два.
+        string two = 5;
+    };
+
+    // Массив.
+    repeated bytes some_bytes = 6;
+
+    // Вложенная структура.
+    message NestedStruct {
+        message NestedStruct2 {
+
+            // Вложенный енам.
+            enum InnerEnum1 {
+              FIRST_VAL = 0;
+              SECOND_VAL = 1;
+            }
+
+            string swag2 = 1;
+            InnerEnum1 swag3 = 2;
+        }
+        // Массив.
+        string swag = 1;
+    }
+
+    // Вложенный енам.
+    enum InnerEnum2 {
+      FIRST_VAL = 0;
+      SECOND_VAL = 1;
+    }
+
+    InnerEnum2 inner_enum = 7;
+}
+
+// Вторая структура.
+message SecondStruct {
+    string str = 1;
+}
+
+// Енам.
+enum GlobalEnum {
+  FIRST_VAL = 0;
+  SECOND_VAL = 1;
+}
