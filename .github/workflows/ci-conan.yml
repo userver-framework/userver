@@ -34,8 +34,7 @@ jobs:
             run: |
                 apt update
                 apt install -y \
-                   sudo \
-                   gcc g++ cmake wget git clang-format \
+                   gcc g++ cmake git clang-format \
                    python3 python3-pip python3-venv
 
           - name: Install MacOS packages
@@ -65,6 +64,8 @@ jobs:
           - name: Install test dependencies
             if: matrix.os == 'ubuntu-22.04'
             run: |
+            
+                DEBIAN_FRONTEND=noninteractive apt install -y sudo curl wget
                 wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
                 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
