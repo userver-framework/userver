@@ -62,10 +62,13 @@ public:
     /// @return Minor version of HTTP. For example, for HTTP 1.0 it returns 0
     int GetHttpMinor() const;
 
-    /// @return Request URL
+    /// @brief Get full HTTP request URL, including scheme, server, path and query string.
     const std::string& GetUrl() const;
 
-    /// @return Request path
+    /// @brief Get the path part of HTTP request URL.
+    ///
+    /// Unlike @ref server::handlers::HandlerConfig::path, path parameters are not replaced with placeholders, this is
+    /// the original highly cardinal path.
     const std::string& GetRequestPath() const;
 
     /// @cond
