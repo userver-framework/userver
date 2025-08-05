@@ -37,7 +37,7 @@ jobs:
                    gcc g++ cmake git clang-format \
                    python3 python3-pip python3-venv
 
-                adduser test-user sudo
+                useradd -m -G sudo -s /bin/bash test-user
                 su test-user
 
           - name: Install MacOS packages
