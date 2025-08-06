@@ -149,6 +149,9 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
     expected_value += 3;
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), expected_value);
 
+    // reset TaskInheritedDeadline, set once is too short for many requests
+    tests::InitTaskInheritedDeadline();
+
     // Requests without deadline
     // TaskInheritedData will be set as deadline
     EXPECT_TRUE(PerformRequest(false));
