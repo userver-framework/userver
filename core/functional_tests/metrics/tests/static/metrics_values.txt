@@ -188,6 +188,10 @@ engine.task-processors.worker-threads: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.worker-threads: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.worker-threads: task_processor=monitor-task-processor	GAUGE	0
 
+# How many times heavy operations (like http calls) were called with open DB transaction
+# See userver/utils/trx_tracker.hpp
+engine.heavy-operations-in-transactions:	RATE	0
+
 # How long the engine is running. It does not account components state (i.e. `components::State::IsAnyComponentInFatalState()`),
 # the engine could be fine, the components could be in components::ComponentHealth::kFatal state.
 engine.uptime-seconds:	GAUGE	0

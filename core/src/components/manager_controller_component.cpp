@@ -8,6 +8,7 @@
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.hpp>
 
@@ -117,6 +118,8 @@ void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writ
                                    .count();
     writer["load-ms"] =
         std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetLoadDuration()).count();
+
+    writer["heavy-operations-in-transactions"] = utils::trx_tracker::GetStatistics().triggers;
 }
 
 void ManagerControllerComponent::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
