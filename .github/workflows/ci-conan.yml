@@ -91,7 +91,7 @@ jobs:
                 rm -rf userver/cmake/
                 cd samples/
 
-                USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
+                USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user ' }} conan list -c -v quiet userver/* | tail -n 1)
                 for SAMPLE in \
                     3_json \
                     chaotic_service \
@@ -108,8 +108,6 @@ jobs:
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/
-                    echo "Run: ls -la $SAMPLE/"
-                    ${{ matrix.container && 'sudo -u test-user ' }} ls -la $SAMPLE/
                     echo "Run: ${{ matrix.container && 'sudo -u test-user ' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}"
                     ${{ matrix.container && 'sudo -u test-user ' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
                     mv $SAMPLE/conanfile.py ./
