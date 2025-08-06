@@ -4,6 +4,8 @@ package simple;
 
 option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/tests/proto/simple;protosimple";
 
+import "simple/subdirectory/subdirectory.proto";
+
 // Структура с простыми полями.
 message SimpleStruct {
     // Число.
@@ -53,6 +55,8 @@ message SimpleStruct {
 // Вторая структура.
 message SecondStruct {
     string str = 1;
+
+    simple.subdirectory.SubdirStruct subdir_struct = 2;
 }
 
 // Енам.

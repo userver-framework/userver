@@ -2546,6 +2546,7 @@
   "libraries/grpc-reflection/src/grpc-reflection/proto_server_reflection.hpp":"taxi/uservices/userver/libraries/grpc-reflection/src/grpc-reflection/proto_server_reflection.hpp",
   "libraries/grpc-reflection/src/grpc-reflection/reflection_service_component.cpp":"taxi/uservices/userver/libraries/grpc-reflection/src/grpc-reflection/reflection_service_component.cpp",
   "libraries/proto-structs/tests/proto/simple/file1.proto":"taxi/uservices/userver/libraries/proto-structs/tests/proto/simple/file1.proto",
+  "libraries/proto-structs/tests/proto/simple/subdirectory/subdirectory.proto":"taxi/uservices/userver/libraries/proto-structs/tests/proto/simple/subdirectory/subdirectory.proto",
   "libraries/proto-structs/tests/src/simple_test.cpp":"taxi/uservices/userver/libraries/proto-structs/tests/src/simple_test.cpp",
   "libraries/s3api/CMakeLists.txt":"taxi/uservices/userver/libraries/s3api/CMakeLists.txt",
   "libraries/s3api/include/userver/s3api/authenticators/access_key.hpp":"taxi/uservices/userver/libraries/s3api/include/userver/s3api/authenticators/access_key.hpp",
