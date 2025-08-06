@@ -92,21 +92,6 @@ EvpMdCtx::~EvpMdCtx() {
 
 EvpMdCtx::EvpMdCtx(EvpMdCtx&& other) noexcept : ctx_(std::exchange(other.ctx_, nullptr)) {}
 
-decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits) {
-    switch (bits) {
-        case DigestSize::k160:
-            return crypto::hash::HmacSha1;
-        case DigestSize::k256:
-            return crypto::hash::HmacSha256;
-        case DigestSize::k384:
-            return crypto::hash::HmacSha384;
-        case DigestSize::k512:
-            return crypto::hash::HmacSha512;
-    }
-
-    UINVARIANT(false, "Unexpected DigestSize");
-}
-
 const EVP_MD* GetShaMdByEnum(DigestSize bits) {
     switch (bits) {
         case DigestSize::k160:
@@ -122,7 +107,6 @@ const EVP_MD* GetShaMdByEnum(DigestSize bits) {
     UINVARIANT(false, "Unexpected DigestSize");
 }
 
-// TODO: remove after finishing the https://st.yandex-team.ru/TAXICOMMON-1754
 std::string InitListToString(std::initializer_list<std::string_view> data) {
     std::string combined_value;
 

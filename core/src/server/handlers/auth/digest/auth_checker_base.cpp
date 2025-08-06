@@ -44,8 +44,7 @@ public:
     const ServerDigestAuthSecret& GetSecretKey() const {
         if (!secret_key_.has_value()) {
             throw std::runtime_error(
-                "Secret key storage is missing. Field "
-                "'http_server_digest_auth_secret' was missing in json."
+                "Secret key storage is missing. Field 'http_server_digest_auth_secret' was missing in json."
             );
         }
 
@@ -61,31 +60,47 @@ private:
 UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp, std::int64_t nonce_count)
     : ha1(std::move(ha1)), nonce(std::move(nonce)), timestamp(timestamp), nonce_count(nonce_count) {}
 
-Hasher::Hasher(std::string_view algorithm, const SecdistConfig& secdist_config) : secdist_config_(secdist_config) {
-    switch (kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
-        case HashAlgTypes::kMD5:
-            hash_algorithm_ = &crypto::hash::weak::Md5;
-            break;
-        case HashAlgTypes::kSHA256:
-            hash_algorithm_ = &crypto::hash::Sha256;
-            break;
-        case HashAlgTypes::kSHA512:
-            hash_algorithm_ = &crypto::hash::Sha512;
-            break;
-        default:
-            throw std::runtime_error("Unknown hash algorithm");
+Hasher::Hasher(std::string_view algorithm, const SecdistConfig& secdist_config)
+    : hash_algorithm_{kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)},
+      secdist_config_(secdist_config) {
+    if (hash_algorithm_ == HashAlgTypes::kUnknown) {
+        throw std::runtime_error("Unknown hash algorithm");
     }
 }
 
 std::string Hasher::GenerateNonce(std::string_view etag) const {
-    auto timestamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
-    return GetHash(fmt::format(
-        "{}:{}:{}", timestamp, etag, secdist_config_.Get<ServerDigestSecretKey>().GetSecretKey().GetUnderlying()
-    ));
+    const auto timestamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    return GetHash(
+        {timestamp, ":", etag, ":", secdist_config_.Get<ServerDigestSecretKey>().GetSecretKey().GetUnderlying()}
+    );
 }
 
 std::string Hasher::GetHash(std::string_view data) const {
-    return hash_algorithm_(data, crypto::hash::OutputEncoding::kHex);
+    switch (hash_algorithm_) {
+        case HashAlgTypes::kMD5:
+            return crypto::hash::weak::Md5(data, crypto::hash::OutputEncoding::kHex);
+        case HashAlgTypes::kSHA256:
+            return crypto::hash::Sha256(data, crypto::hash::OutputEncoding::kHex);
+        case HashAlgTypes::kSHA512:
+            return crypto::hash::Sha512(data, crypto::hash::OutputEncoding::kHex);
+        case HashAlgTypes::kUnknown:
+            UASSERT_MSG(false, "Unknown hash algorithm");
+    }
+    UINVARIANT(false, "Unknown hash algorithm");
+}
+
+std::string Hasher::GetHash(std::initializer_list<std::string_view> data) const {
+    switch (hash_algorithm_) {
+        case HashAlgTypes::kMD5:
+            return crypto::hash::weak::Md5(data, crypto::hash::OutputEncoding::kHex);
+        case HashAlgTypes::kSHA256:
+            return crypto::hash::Sha256(data, crypto::hash::OutputEncoding::kHex);
+        case HashAlgTypes::kSHA512:
+            return crypto::hash::Sha512(data, crypto::hash::OutputEncoding::kHex);
+        case HashAlgTypes::kUnknown:
+            UASSERT_MSG(false, "Unknown hash algorithm");
+    }
+    UINVARIANT(false, "Unknown hash algorithm");
 }
 
 AuthCheckerBase::AuthCheckerBase(
@@ -275,19 +290,21 @@ std::string AuthCheckerBase::CalculateDigest(
         ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce, client_context.cnonce);
     }
 
-    auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
-    auto ha2 = digest_hasher_.GetHash(a2);
+    const auto ha2 = digest_hasher_.GetHash({ToString(request_method), ":", client_context.uri});
 
-    auto request_digest = fmt::format(
-        "{}:{}:{}:{}:{}:{}",
-        ha1,
-        client_context.nonce,
-        client_context.nc,
-        client_context.cnonce,
-        client_context.qop,
-        ha2
+    return digest_hasher_.GetHash(
+        {ha1,
+         ":",
+         client_context.nonce,
+         ":",
+         client_context.nc,
+         ":",
+         client_context.cnonce,
+         ":",
+         client_context.qop,
+         ":",
+         ha2}
     );
-    return digest_hasher_.GetHash(request_digest);
 }
 
 }  // namespace server::handlers::auth::digest

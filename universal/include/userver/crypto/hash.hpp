@@ -21,6 +21,9 @@ enum class Pad { kWith, kWithout };
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Blake2b128(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Blake2b128(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 #endif
 
 /// @brief Calculates SHA-1, output format depends on encoding param
@@ -29,11 +32,17 @@ std::string Blake2b128(std::string_view data, OutputEncoding encoding = OutputEn
 /// @throws CryptoException internal library exception
 std::string Sha1(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
+/// @overload
+std::string Sha1(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
+
 /// @brief Calculates SHA-224, output format depends on encoding param
 /// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Sha224(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Sha224(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 
 /// @brief Calculates SHA-256, output format depends on encoding param
 /// @param data binary data to calculate hash from
@@ -41,17 +50,26 @@ std::string Sha224(std::string_view data, OutputEncoding encoding = OutputEncodi
 /// @throws CryptoException internal library exception
 std::string Sha256(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
+/// @overload
+std::string Sha256(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
+
 /// @brief Calculates SHA-384, output format depends on encoding param
 /// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Sha384(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
+/// @overload
+std::string Sha384(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
+
 /// @brief Calculates SHA-512, output format depends on encoding param
 /// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Sha512(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Sha512(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 
 /// @brief Calculates HMAC (using SHA-1 hash), encodes result with `encoding`
 /// algorithm
@@ -61,6 +79,13 @@ std::string Sha512(std::string_view data, OutputEncoding encoding = OutputEncodi
 /// @throws CryptoException internal library exception
 std::string HmacSha1(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
 
+/// @overload
+std::string HmacSha1(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
+
 /// @brief Calculates HMAC (using SHA-256 hash), encodes result with `encoding`
 /// algorithm
 /// @param key HMAC key
@@ -68,6 +93,13 @@ std::string HmacSha1(std::string_view key, std::string_view message, OutputEncod
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string HmacSha256(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string HmacSha256(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
 
 /// @brief Calculates HMAC (using SHA-384 hash), encodes result with `encoding`
 /// algorithm
@@ -77,6 +109,13 @@ std::string HmacSha256(std::string_view key, std::string_view message, OutputEnc
 /// @throws CryptoException internal library exception
 std::string HmacSha384(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
 
+/// @overload
+std::string HmacSha384(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
+
 /// @brief Calculates HMAC (using SHA-512 hash), encodes result with `encoding`
 /// algorithm
 /// @param key HMAC key
@@ -84,6 +123,13 @@ std::string HmacSha384(std::string_view key, std::string_view message, OutputEnc
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string HmacSha512(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string HmacSha512(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
 
 /// Broken cryptographic hashes, must not be used except for compatibility
 namespace weak {
@@ -93,6 +139,9 @@ namespace weak {
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
 std::string Md5(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Md5(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 
 }  // namespace weak
 }  // namespace crypto::hash

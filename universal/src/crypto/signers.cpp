@@ -123,18 +123,18 @@ HmacShaSigner<bits>::~HmacShaSigner() {
 
 template <DigestSize bits>
 std::string HmacShaSigner<bits>::Sign(std::initializer_list<std::string_view> data) const {
-    const auto hmac = GetHmacFuncByEnum(bits);
-
-    if (data.size() <= 1) {
-        std::string_view single_value{};
-        if (data.size()) {
-            single_value = *data.begin();
-        }
-
-        return hmac(secret_, single_value, crypto::hash::OutputEncoding::kBinary);
+    switch (bits) {
+        case DigestSize::k160:
+            return crypto::hash::HmacSha1(secret_, data, crypto::hash::OutputEncoding::kBinary);
+        case DigestSize::k256:
+            return crypto::hash::HmacSha256(secret_, data, crypto::hash::OutputEncoding::kBinary);
+        case DigestSize::k384:
+            return crypto::hash::HmacSha384(secret_, data, crypto::hash::OutputEncoding::kBinary);
+        case DigestSize::k512:
+            return crypto::hash::HmacSha512(secret_, data, crypto::hash::OutputEncoding::kBinary);
+        default:
+            UINVARIANT(false, "Unexpected DigestSize");
     }
-
-    return hmac(secret_, InitListToString(data), crypto::hash::OutputEncoding::kBinary);
 }
 
 template class HmacShaSigner<DigestSize::k160>;

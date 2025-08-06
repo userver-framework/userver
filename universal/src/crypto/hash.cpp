@@ -58,17 +58,20 @@ std::string EncodeString(std::string_view data, crypto::hash::OutputEncoding enc
 }
 
 template <typename HashAlgorithm>
-std::string CalculateHmac(std::string_view key, std::string_view data, crypto::hash::OutputEncoding encoding) {
+std::string CalculateHmac(
+    std::string_view key,
+    std::initializer_list<std::string_view> data_list,
+    crypto::hash::OutputEncoding encoding
+) {
     std::string mac;
 
     try {
         CryptoPP::HMAC<HashAlgorithm> hmac(reinterpret_cast<const byte*>(key.data()), key.size());
-        const CryptoPP::StringSource ss_key(
-            reinterpret_cast<const byte*>(data.data()),
-            data.size(),
-            true,
-            new CryptoPP::HashFilter(hmac, new CryptoPP::StringSink(mac))
-        );
+        for (const auto& data : data_list) {
+            hmac.Update(reinterpret_cast<const byte*>(data.data()), data.size());
+        }
+        mac.resize(HashAlgorithm::DIGESTSIZE);
+        hmac.Final(reinterpret_cast<byte*>(&mac[0]));
     } catch (const CryptoPP::Exception& exc) {
         throw crypto::CryptoException(exc.what());
     }
@@ -77,12 +80,15 @@ std::string CalculateHmac(std::string_view key, std::string_view data, crypto::h
 }
 
 template <typename HashAlgorithm>
-std::string CalculateHash(std::string_view data, crypto::hash::OutputEncoding encoding) {
+std::string CalculateHash(std::initializer_list<std::string_view> data_list, crypto::hash::OutputEncoding encoding) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
     std::array<byte, HashAlgorithm::DIGESTSIZE> digest;
     try {
         HashAlgorithm hash;
-        hash.CalculateDigest(digest.data(), reinterpret_cast<const byte*>(data.data()), data.size());
+        for (const auto& data : data_list) {
+            hash.Update(reinterpret_cast<const byte*>(data.data()), data.size());
+        }
+        hash.Final(digest.data());
     } catch (const CryptoPP::Exception& exc) {
         throw crypto::CryptoException(exc.what());
     }
@@ -96,49 +102,93 @@ namespace crypto::hash {
 
 #ifndef USERVER_NO_CRYPTOPP_BLAKE2
 std::string Blake2b128(std::string_view data, OutputEncoding encoding) {
+    return CalculateHash<AlgoBlake2b128>({data}, encoding);
+}
+
+std::string Blake2b128(std::initializer_list<std::string_view> data, OutputEncoding encoding) {
     return CalculateHash<AlgoBlake2b128>(data, encoding);
 }
 #endif
 
 std::string Sha1(std::string_view data, OutputEncoding encoding) {
+    return CalculateHash<CryptoPP::SHA1>({data}, encoding);
+}
+
+std::string Sha1(std::initializer_list<std::string_view> data, OutputEncoding encoding) {
     return CalculateHash<CryptoPP::SHA1>(data, encoding);
 }
 
 std::string Sha224(std::string_view data, OutputEncoding encoding) {
+    return CalculateHash<CryptoPP::SHA224>({data}, encoding);
+}
+
+std::string Sha224(std::initializer_list<std::string_view> data, OutputEncoding encoding) {
     return CalculateHash<CryptoPP::SHA224>(data, encoding);
 }
 
 std::string Sha256(std::string_view data, OutputEncoding encoding) {
+    return CalculateHash<CryptoPP::SHA256>({data}, encoding);
+}
+
+std::string Sha256(std::initializer_list<std::string_view> data, OutputEncoding encoding) {
     return CalculateHash<CryptoPP::SHA256>(data, encoding);
 }
 
 std::string Sha384(std::string_view data, OutputEncoding encoding) {
+    return CalculateHash<CryptoPP::SHA384>({data}, encoding);
+}
+
+std::string Sha384(std::initializer_list<std::string_view> data, OutputEncoding encoding) {
     return CalculateHash<CryptoPP::SHA384>(data, encoding);
 }
 
 std::string Sha512(std::string_view data, OutputEncoding encoding) {
+    return CalculateHash<CryptoPP::SHA512>({data}, encoding);
+}
+
+std::string Sha512(std::initializer_list<std::string_view> data, OutputEncoding encoding) {
     return CalculateHash<CryptoPP::SHA512>(data, encoding);
 }
 
 std::string HmacSha512(std::string_view key, std::string_view message, OutputEncoding encoding) {
+    return CalculateHmac<CryptoPP::SHA512>(key, {message}, encoding);
+}
+
+std::string HmacSha512(std::string_view key, std::initializer_list<std::string_view> message, OutputEncoding encoding) {
     return CalculateHmac<CryptoPP::SHA512>(key, message, encoding);
 }
 
 std::string HmacSha384(std::string_view key, std::string_view message, OutputEncoding encoding) {
+    return CalculateHmac<CryptoPP::SHA384>(key, {message}, encoding);
+}
+
+std::string HmacSha384(std::string_view key, std::initializer_list<std::string_view> message, OutputEncoding encoding) {
     return CalculateHmac<CryptoPP::SHA384>(key, message, encoding);
 }
 
 std::string HmacSha256(std::string_view key, std::string_view message, OutputEncoding encoding) {
+    return CalculateHmac<CryptoPP::SHA256>(key, {message}, encoding);
+}
+
+std::string HmacSha256(std::string_view key, std::initializer_list<std::string_view> message, OutputEncoding encoding) {
     return CalculateHmac<CryptoPP::SHA256>(key, message, encoding);
 }
 
 std::string HmacSha1(std::string_view key, std::string_view message, OutputEncoding encoding) {
+    return CalculateHmac<CryptoPP::SHA1>(key, {message}, encoding);
+}
+
+std::string HmacSha1(std::string_view key, std::initializer_list<std::string_view> message, OutputEncoding encoding) {
     return CalculateHmac<CryptoPP::SHA1>(key, message, encoding);
 }
 
 namespace weak {
 
 std::string Md5(std::string_view data, OutputEncoding encoding) {
+    return CalculateHash<CryptoPP::Weak::MD5>({data}, encoding);
+}
+
+std::string Md5(std::initializer_list<std::string_view> data, OutputEncoding encoding) {
     return CalculateHash<CryptoPP::Weak::MD5>(data, encoding);
 }
 

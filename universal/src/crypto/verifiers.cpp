@@ -118,17 +118,22 @@ HmacShaVerifier<bits>::~HmacShaVerifier() {
 
 template <DigestSize bits>
 void HmacShaVerifier<bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature) const {
-    const auto hmac = GetHmacFuncByEnum(bits);
     std::string signature;
-    if (data.size() <= 1) {
-        std::string_view single_value{};
-        if (data.size() == 1) {
-            single_value = *data.begin();
-        }
-
-        signature = hmac(secret_, single_value, crypto::hash::OutputEncoding::kBinary);
-    } else {
-        signature = hmac(secret_, InitListToString(data), crypto::hash::OutputEncoding::kBinary);
+    switch (bits) {
+        case DigestSize::k160:
+            signature = crypto::hash::HmacSha1(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        case DigestSize::k256:
+            signature = crypto::hash::HmacSha256(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        case DigestSize::k384:
+            signature = crypto::hash::HmacSha384(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        case DigestSize::k512:
+            signature = crypto::hash::HmacSha512(secret_, data, crypto::hash::OutputEncoding::kBinary);
+            break;
+        default:
+            UINVARIANT(false, "Unexpected DigestSize");
     }
 
     if (raw_signature != signature) {
