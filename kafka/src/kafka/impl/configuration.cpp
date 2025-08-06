@@ -107,10 +107,12 @@ SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     static constexpr std::string_view kPlainTextProtocol{"PLAINTEXT"};
     static constexpr std::string_view kSaslPlainTextProtocol{"SASL_PLAINTEXT"};
     static constexpr std::string_view kSaslSSLProtocol{"SASL_SSL"};
+    static constexpr std::string_view kSSLProtocol{"SSL"};
     static constexpr std::array kSupportedSecurityProtocols{
         kPlainTextProtocol,
         kSaslSSLProtocol,
         kSaslPlainTextProtocol,
+        kSSLProtocol,
     };
     static constexpr std::array kSupportedSaslSecurityMechanisms{"PLAIN", "SCRAM-SHA-512"};
 
@@ -122,6 +124,13 @@ SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     }
     if (protocol == kPlainTextProtocol) {
         security.security_protocol.emplace<SecurityConfiguration::Plaintext>();
+        return security;
+    }
+
+    if (protocol == kSSLProtocol) {
+        security.security_protocol.emplace<SecurityConfiguration::Ssl>(SecurityConfiguration::Ssl{
+            /*ssl_ca_location=*/config["ssl_ca_location"].As<std::string>(),
+        });
         return security;
     }
 
@@ -260,6 +269,17 @@ void Configuration::SetSecurity(const SecurityConfiguration& security, const Sec
             SetOption("sasl.username", secrets.username);
             SetOption("sasl.password", secrets.password);
             SetOption("ssl.ca.location", sasl_ssl.ssl_ca_location);
+        },
+        [this, &secrets](const SecurityConfiguration::Ssl& ssl) {
+            LOG_INFO("Using SSL security protocol");
+
+            SetOption("security.protocol", "SSL");
+            SetOption("ssl.ca.location", ssl.ssl_ca_location);
+            SetOption("ssl.certificate.location", secrets.ssl_certificate_location);
+            SetOption("ssl.key.location", secrets.ssl_key_location);
+            if (!secrets.ssl_key_password.GetUnderlying().empty()) {
+                SetOption("ssl.key.password", secrets.ssl_key_password);
+            }
         }
     );
 }

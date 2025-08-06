@@ -234,4 +234,49 @@ UTEST_F(ConfigurationTest, ConsumerResolveGroupId) {
     EXPECT_EQ(configuration->GetOption("group.id"), "test-group-pod-example-com");
 }
 
+UTEST_F(ConfigurationTest, ProducerSSL) {
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
+        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+    };
+
+    kafka::impl::Secret secrets;
+    secrets.ssl_certificate_location = kafka::impl::Secret::SecretType{"/etc/ssl/client.crt"};
+    secrets.ssl_key_location = kafka::impl::Secret::SecretType{"/etc/ssl/client.key"};
+    secrets.ssl_key_password = kafka::impl::Secret::SecretType{"password123"};
+
+    std::optional<kafka::impl::Configuration> configuration;
+    UEXPECT_NO_THROW(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", producer_configuration, secrets))
+    );
+
+    EXPECT_EQ(configuration->GetOption("security.protocol"), "ssl");
+    EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "/etc/ssl/ca.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.certificate.location"), "/etc/ssl/client.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.key.location"), "/etc/ssl/client.key");
+    EXPECT_EQ(configuration->GetOption("ssl.key.password"), "password123");
+}
+
+UTEST_F(ConfigurationTest, ConsumerSSL) {
+    kafka::impl::ConsumerConfiguration consumer_configuration{};
+    consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
+        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+    };
+
+    kafka::impl::Secret secrets;
+    secrets.ssl_certificate_location = kafka::impl::Secret::SecretType{"/etc/ssl/client.crt"};
+    secrets.ssl_key_location = kafka::impl::Secret::SecretType{"/etc/ssl/client.key"};
+    secrets.ssl_key_password = kafka::impl::Secret::SecretType{""};  // No password
+
+    std::optional<kafka::impl::Configuration> configuration;
+    UEXPECT_NO_THROW(
+        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", consumer_configuration, secrets))
+    );
+
+    EXPECT_EQ(configuration->GetOption("security.protocol"), "ssl");
+    EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "/etc/ssl/ca.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.certificate.location"), "/etc/ssl/client.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.key.location"), "/etc/ssl/client.key");
+}
+
 USERVER_NAMESPACE_END

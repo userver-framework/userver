@@ -15,6 +15,9 @@ struct Secret final {
     std::string brokers;
     SecretType username;
     SecretType password;
+    SecretType ssl_certificate_location;
+    SecretType ssl_key_location;
+    SecretType ssl_key_password;
 };
 
 class BrokerSecrets final {

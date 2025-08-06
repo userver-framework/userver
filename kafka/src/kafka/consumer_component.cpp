@@ -146,6 +146,7 @@ properties:
           - PLAINTEXT
           - SASL_SSL
           - SASL_PLAINTEXT
+          - SSL
     sasl_mechanisms:
         type: string
         description: |
@@ -159,7 +160,7 @@ properties:
         type: string
         description: |
             file or directory path to CA certificate(s) for verifying the broker's key.
-            Must be set if `security_protocol` equals `SASL_SSL`.
+            Must be set if `security_protocol` equals `SASL_SSL` or `SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none
     topic_metadata_refresh_interval:

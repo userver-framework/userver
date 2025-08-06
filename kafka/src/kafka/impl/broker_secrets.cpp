@@ -11,7 +11,10 @@ Secret Parse(const formats::json::Value& doc, formats::parse::To<Secret>) {
     Secret secret{
         doc["brokers"].As<std::string>(),
         doc["username"].As<Secret::SecretType>(),
-        doc["password"].As<Secret::SecretType>()};
+        doc["password"].As<Secret::SecretType>(),
+        doc["ssl_certificate_location"].As<Secret::SecretType>(Secret::SecretType{""}),
+        doc["ssl_key_location"].As<Secret::SecretType>(Secret::SecretType{""}),
+        doc["ssl_key_password"].As<Secret::SecretType>(Secret::SecretType{""})};
 
     return secret;
 }
