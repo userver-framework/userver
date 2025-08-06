@@ -89,6 +89,7 @@ jobs:
                 mv libraries/easy/samples/3_json samples/
                 mv scripts/tests/conanfile.py samples/
                 rm -rf userver/cmake/
+                ${{ matrix.container && 'chown -R test-user samples/' }}
                 cd samples/
 
                 USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user ' }} conan list -c -v quiet userver/* | tail -n 1)
