@@ -38,7 +38,6 @@ jobs:
                 apt update
                 apt install -y sudo
                 useradd -m -G sudo -s /bin/bash test-user
-                ${{ matrix.container && 'sudo -u test-user ' }} id -un
 
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
@@ -63,13 +62,13 @@ jobs:
             run: |
                 pip install "conan==2.8.0"
                 pip install numpy
-                conan profile detect
-                conan profile show
+                ${{ matrix.container && 'sudo -u test-user ' }} conan profile detect
+                ${{ matrix.container && 'sudo -u test-user ' }} conan profile show
 
           - name: Run conan
             run: |
                 git config --global --add safe.directory `pwd`
-                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -c tools.system.package_manager:mode=install
+                ${{ matrix.container && 'sudo -u test-user ' }} conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -c tools.system.package_manager:mode=install
 
           - name: Install test dependencies
             if: matrix.os == 'ubuntu-22.04'
