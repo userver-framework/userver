@@ -56,13 +56,23 @@ union Mask32 {
 };
 
 void XorMaskInplace(uint8_t* dest, size_t len, Mask32 mask) {
-    auto* dest32 = reinterpret_cast<uint32_t*>(dest);
-    while (len >= sizeof(uint32_t)) {
-        *(dest32++) ^= mask.mask32;
-        len -= sizeof(uint32_t);
+    // Check if the pointer is aligned for uint32_t operations
+    const auto alignment = reinterpret_cast<std::uintptr_t>(dest) % sizeof(uint32_t);
+
+    if (alignment == 0 && len >= sizeof(uint32_t)) {
+        // Pointer is aligned, we can safely use uint32_t operations
+        auto* dest32 = reinterpret_cast<uint32_t*>(dest);
+        while (len >= sizeof(uint32_t)) {
+            *(dest32++) ^= mask.mask32;
+            len -= sizeof(uint32_t);
+        }
+        dest = reinterpret_cast<uint8_t*>(dest32);
     }
-    auto* dest8 = reinterpret_cast<uint8_t*>(dest32);
-    for (unsigned i = 0; i < len; ++i) *(dest8++) ^= mask.mask8[i];
+
+    // Process remaining bytes (or all bytes if unaligned) using byte operations
+    for (size_t i = 0; i < len; ++i) {
+        dest[i] ^= mask.mask8[i % 4];
+    }
 }
 
 template <class T, class V>
@@ -203,7 +213,9 @@ CloseStatus ReadWSFrameImpl(
         RecvExactly(io, MakeSpan(frame.payload->data() + newPayloadOffset, payload_len), {});
         if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
-        if (mask.mask32) XorMaskInplace(reinterpret_cast<uint8_t*>(frame.payload->data()), frame.payload->size(), mask);
+        // Apply masking only to the current frame's data, not to the entire buffer
+        if (mask.mask32)
+            XorMaskInplace(reinterpret_cast<uint8_t*>(frame.payload->data() + newPayloadOffset), payload_len, mask);
     }
     const char opcode = hdr.bits.opcode;
     const char fin = hdr.bits.fin;

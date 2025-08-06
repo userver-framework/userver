@@ -16,6 +16,19 @@ async def test_echo(websocket_client):
         assert response == 'hello'
 
 
+async def test_echo_with_continuation(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        # Send first fragment (not final, text frame)
+        await chat.write_frame(fin=False, opcode=0x1, data=b'First')
+        # Send intermediate fragment (not final, continuation frame)
+        await chat.write_frame(fin=False, opcode=0x0, data=b' second')
+        # Send last fragment (final, continuation frame)
+        await chat.write_frame(fin=True, opcode=0x0, data=b' third')
+
+        response = await chat.recv()
+        assert response == 'First second third'
+
+
 async def test_close_by_server(websocket_client):
     async with websocket_client.get('chat') as chat:
         await chat.send('close')
