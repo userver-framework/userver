@@ -36,7 +36,7 @@ jobs:
             if: matrix.container == 'ubuntu:22.04'
             run: |
                 apt update
-                apt install -y sudo
+                DEBIAN_FRONTEND=noninteractive apt install -y sudo libpq-dev
                 useradd -m -G sudo -s /bin/bash test-user
 
           - name: Install Ubuntu packages
@@ -68,7 +68,7 @@ jobs:
           - name: Run conan
             run: |
                 ${{ matrix.container && 'sudo -u test-user ' }} git config --global --add safe.directory `pwd`
-                ${{ matrix.container && 'sudo -u test-user ' }} conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -c tools.system.package_manager:mode=install
+                ${{ matrix.container && 'sudo -u test-user ' }} conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
 
           - name: Install test dependencies
             if: matrix.os == 'ubuntu-22.04'
