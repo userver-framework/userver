@@ -67,7 +67,7 @@ jobs:
 
           - name: Run conan
             run: |
-                git config --global --add safe.directory `pwd`
+                ${{ matrix.container && 'sudo -u test-user ' }} git config --global --add safe.directory `pwd`
                 ${{ matrix.container && 'sudo -u test-user ' }} conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} -c tools.system.package_manager:mode=install
 
           - name: Install test dependencies
