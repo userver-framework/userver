@@ -4,6 +4,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/ugrpc/client/client_factory_settings.hpp>
+#include <userver/ugrpc/client/retry_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,6 +20,9 @@ struct ClientFactoryConfig final {
     AuthType auth_type{AuthType::kInsecure};
 
     grpc::SslCredentialsOptions ssl_credentials_options{};
+
+    /// Retry configuration for outgoing RPCs
+    RetryConfig retry_config;
 
     /// Optional grpc-core channel args
     /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html

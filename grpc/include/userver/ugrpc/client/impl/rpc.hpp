@@ -3,15 +3,10 @@
 /// @file userver/ugrpc/client/impl/rpc.hpp
 /// @brief Classes representing an outgoing RPC
 
-#include <exception>
-#include <string_view>
 #include <utility>
 
 #include <grpcpp/impl/codegen/proto_utils.h>
 
-#include <userver/engine/deadline.hpp>
-#include <userver/engine/future_status.hpp>
-#include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 #include <userver/ugrpc/client/call_context.hpp>
@@ -26,81 +21,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
-
-// Contains the implementation of UnaryFinishFuture that is not dependent on template parameters.
-class UnaryFinishFuture {
-public:
-    UnaryFinishFuture(UnaryCallState& state, const google::protobuf::Message* response) noexcept;
-
-    ~UnaryFinishFuture();
-
-    UnaryFinishFuture(UnaryFinishFuture&&) = delete;
-    UnaryFinishFuture& operator=(UnaryFinishFuture&&) = delete;
-
-    [[nodiscard]] bool IsReady() const noexcept;
-
-    [[nodiscard]] engine::FutureStatus WaitUntil(engine::Deadline deadline) const noexcept;
-
-    void Get();
-
-    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
-
-private:
-    void Destroy() noexcept;
-
-    UnaryCallState& state_;
-    const google::protobuf::Message* response_;
-    mutable std::exception_ptr exception_;
-};
-
-/// @brief Controls a single request -> single response RPC
-///
-/// This class is not thread-safe, it cannot be used from multiple tasks at the same time.
-///
-/// The RPC is cancelled on destruction unless the RPC is already finished. In
-/// that case the connection is not closed (it will be reused for new RPCs), and
-/// the server receives `RpcInterruptedError` immediately.
-template <typename Response>
-class [[nodiscard]] UnaryCall final {
-    // Implementation note. For consistency with other RPC objects, UnaryCall should have been exposed to the user
-    // directly. However, in 90-99% use cases it's more intuitive to treat the RPC as a future (see ResponseFuture).
-    // If we decide to expose more controls, like lazy Finish or ReadInitialMetadata, then they should be added
-    // to UnaryCall, and UnaryCall should be exposed via ResponseFuture::GetCall.
-
-public:
-    template <typename Stub, typename Request>
-    UnaryCall(
-        CallParams&& params,
-        PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
-        const Request& request
-    );
-
-    ~UnaryCall() = default;
-
-    UnaryCall(UnaryCall&&) = delete;
-    UnaryCall& operator=(UnaryCall&&) = delete;
-
-    CallContext& GetContext() noexcept { return context_; }
-    const CallContext& GetContext() const noexcept { return context_; }
-
-    /// @brief Returns the future created earlier using @ref FinishAsync.
-    UnaryFinishFuture& GetFinishFuture();
-    const UnaryFinishFuture& GetFinishFuture() const;
-
-    Response Finish();
-
-private:
-    // Asynchronously finish the call.
-    // `FinishAsync` should not be called multiple times for the same RPC.
-    // Creates the future inside this `UnaryCall`. It can be retrieved using @ref GetFinishFuture.
-    void FinishAsync();
-
-    UnaryCallState state_;
-    CallContext context_;
-    Response response_;
-    RawResponseReader<Response> reader_;
-    std::optional<UnaryFinishFuture> finish_future_;
-};
 
 /// @brief Controls a single request -> response stream RPC
 ///
@@ -325,51 +245,6 @@ private:
     CallContext context_;
     RawReaderWriter<Request, Response> stream_;
 };
-
-template <typename Response>
-template <typename Stub, typename Request>
-UnaryCall<Response>::UnaryCall(
-    CallParams&& params,
-    PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
-    const Request& request
-)
-    : state_{std::move(params)}, context_{utils::impl::InternalTag{}, state_} {
-    RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request)));
-
-    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
-    reader_ = prepare_unary_call(state_.GetStub(), &state_.GetClientContext(), request, &state_.GetQueue());
-    reader_->StartCall();
-
-    FinishAsync();
-}
-
-template <typename Response>
-UnaryFinishFuture& UnaryCall<Response>::GetFinishFuture() {
-    UASSERT(finish_future_);
-    return *finish_future_;
-}
-
-template <typename Response>
-const UnaryFinishFuture& UnaryCall<Response>::GetFinishFuture() const {
-    UASSERT(finish_future_);
-    return *finish_future_;
-}
-
-template <typename Response>
-Response UnaryCall<Response>::Finish() {
-    GetFinishFuture().Get();
-    return std::move(response_);
-}
-
-template <typename Response>
-void UnaryCall<Response>::FinishAsync() {
-    state_.EmplaceFinishAsyncMethodInvocation();
-    auto& status = state_.GetStatus();
-    auto& finish = state_.GetFinishAsyncMethodInvocation();
-    UASSERT(reader_);
-    reader_->Finish(&response_, &status, finish.GetCompletionTag());
-    finish_future_.emplace(state_, ToBaseMessage(&response_));
-}
 
 template <typename Response>
 template <typename Stub, typename Request>

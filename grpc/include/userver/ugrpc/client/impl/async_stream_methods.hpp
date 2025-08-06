@@ -1,18 +1,47 @@
 #pragma once
 
-#include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <string_view>
+
+#include <grpcpp/support/async_stream.h>
 
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/ugrpc/client/impl/call_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
+/// @{
+/// @brief Helper type aliases for low-level asynchronous gRPC streams
+/// @see <grpcpp/impl/codegen/async_stream_impl.h>
+template <typename Response>
+using RawReader = std::unique_ptr<grpc::ClientAsyncReader<Response>>;
+
+template <typename Request>
+using RawWriter = std::unique_ptr<grpc::ClientAsyncWriter<Request>>;
+
+template <typename Request, typename Response>
+using RawReaderWriter = std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>>;
+/// @}
+
+ugrpc::impl::AsyncMethodInvocation::WaitStatus
+WaitAndTryCancelIfNeeded(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::ClientContext& context) noexcept;
+
 void CheckOk(StreamingCallState& state, ugrpc::impl::AsyncMethodInvocation::WaitStatus status, std::string_view stage);
+
+void CheckFinishStatus(CallState& state);
+
+void ProcessFinish(CallState& state, const google::protobuf::Message* final_response);
+
+void ProcessFinishAbandoned(CallState& state) noexcept;
+
+void ProcessCancelled(CallState& state, std::string_view stage) noexcept;
+
+void ProcessNetworkError(CallState& state, std::string_view stage) noexcept;
 
 template <typename GrpcStream>
 void StartCall(GrpcStream& stream, StreamingCallState& state) {

@@ -29,6 +29,7 @@ struct CallParams {
     StubHandle stub;
     const Middlewares& middlewares;
     ugrpc::impl::MethodStatistics& statistics;
+    const testsuite::GrpcControl& testsuite_grpc;
 };
 
 CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id, CallOptions&& call_options);

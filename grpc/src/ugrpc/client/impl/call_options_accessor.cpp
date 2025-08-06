@@ -10,13 +10,13 @@ std::unique_ptr<grpc::ClientContext> CallOptionsAccessor::CreateClientContext(co
     auto client_context = call_options.client_context_factory_ ? call_options.client_context_factory_()
                                                                : std::make_unique<grpc::ClientContext>();
 
-    for (const auto& [meta_key, meta_value] : call_options.metadata_) {
-        client_context->AddMetadata(meta_key, meta_value);
-    }
-
     const auto timeout = call_options.GetTimeout();
     if (std::chrono::milliseconds::max() != timeout) {
         client_context->set_deadline(ugrpc::DurationToTimespec(timeout));
+    }
+
+    for (const auto& [meta_key, meta_value] : call_options.metadata_) {
+        client_context->AddMetadata(meta_key, meta_value);
     }
 
     return client_context;

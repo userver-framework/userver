@@ -218,25 +218,32 @@ UTEST_F(ClientMiddlewaresHooksTest, HappyPathBidirectionalStreaming) {
 }
 
 UTEST_F(ClientMiddlewaresHooksTest, HappyPathDetailedUnary) {
-    SetHappyPathUnary();
-
     ::testing::MockFunction<void(std::string_view checkpoint_name)> checkpoint;
+
+    EXPECT_CALL(Service(), SayHello).WillOnce([&](CallContext&, Request&& request) {
+        checkpoint.Call("Handler");
+
+        Response response;
+        response.set_name("Hello " + request.name());
+        return response;
+    });
+
     {
         const ::testing::InSequence s;
 
-        // Pre* called after request created
+        // Pre* called before Handler
         EXPECT_CALL(Middleware(0), PreStartCall).Times(1);
         EXPECT_CALL(Middleware(0), PreSendMessage).Times(1);
         EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);
         EXPECT_CALL(Middleware(0), PostFinish).Times(0);
-        EXPECT_CALL(checkpoint, Call("AfterCallStart"));
 
-        // Post* called after Finish
+        EXPECT_CALL(checkpoint, Call("Handler"));
+
+        // Post* called after Handler
         EXPECT_CALL(Middleware(0), PreStartCall).Times(0);
         EXPECT_CALL(Middleware(0), PreSendMessage).Times(0);
         EXPECT_CALL(Middleware(0), PostRecvMessage).Times(1);
         EXPECT_CALL(Middleware(0), PostFinish).Times(1);
-        EXPECT_CALL(checkpoint, Call("AfterCallDone"));
     }
 
     Request request;
@@ -244,14 +251,12 @@ UTEST_F(ClientMiddlewaresHooksTest, HappyPathDetailedUnary) {
 
     // Pre* called after request created
     auto future = Client().AsyncSayHello(request);
-    checkpoint.Call("AfterCallStart");
 
     const auto status = future.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
     EXPECT_EQ(status, engine::FutureStatus::kReady);
 
     const auto response = future.Get();
     EXPECT_EQ(response.name(), "Hello userver");
-    checkpoint.Call("AfterCallDone");
 }
 
 UTEST_F(ClientMiddlewaresHooksTest, HappyPathDetailedClientStreaming) {
@@ -408,7 +413,7 @@ UTEST_F(ClientMiddlewaresHooksTest, MiddlewareExceptionUnaryPreStart) {
 
     Request request;
     request.set_name("userver");
-    UEXPECT_THROW(auto future = Client().AsyncSayHello(request), std::runtime_error);
+    UEXPECT_THROW(auto future = Client().SayHello(request), std::runtime_error);
 }
 
 UTEST_F(ClientMiddlewaresHooksTest, MiddlewareExceptionUnaryPreSend) {
@@ -426,7 +431,7 @@ UTEST_F(ClientMiddlewaresHooksTest, MiddlewareExceptionUnaryPreSend) {
 
     Request request;
     request.set_name("userver");
-    UEXPECT_THROW(auto future = Client().AsyncSayHello(request), std::runtime_error);
+    UEXPECT_THROW(auto future = Client().SayHello(request), std::runtime_error);
 }
 
 UTEST_F(ClientMiddlewaresHooksTest, MiddlewareExceptionUnaryPostRecv) {
@@ -519,22 +524,24 @@ UTEST_F(ClientMiddlewaresHooksTest, MiddlewareExceptionBidirectionalStreaming) {
 }
 
 UTEST_F(ClientMiddlewaresHooksTest, ExceptionWhenCancelledUnary) {
+    engine::SingleUseEvent event;
+    EXPECT_CALL(Service(), SayHello).WillOnce([&](CallContext&, Request&&) {
+        event.Send();
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+        return Response{};
+    });
+
     EXPECT_CALL(Middleware(0), PreStartCall).Times(1);
     EXPECT_CALL(Middleware(0), PreSendMessage).Times(1);
     EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);  // skipped, because no response message.
     EXPECT_CALL(Middleware(0), PostFinish).Times(0);
-
-    SetUnary([](CallContext&, Request&&) -> UnaryResult {
-        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-
-        return Response{};
-    });
 
     {
         Request request;
         request.set_name("userver");
         const auto future = Client().AsyncSayHello(request);
 
+        event.Wait();
         engine::current_task::GetCancellationToken().RequestCancel();
 
         // The destructor of `future` will cancel the RPC and await grpcpp cleanup (and don't run middlewares).
@@ -580,16 +587,45 @@ UTEST_F(ClientMiddlewaresHooksTest, BadStatusClientStreaming) {
     UEXPECT_THROW(auto response = stream.Finish(), ugrpc::client::InvalidArgumentError);
 }
 
-UTEST_F(ClientMiddlewaresHooksTest, Abandoned) {
+UTEST_F(ClientMiddlewaresHooksTest, AbandonedUnary) {
+    engine::SingleUseEvent event;
+    EXPECT_CALL(Service(), SayHello).WillOnce([&](CallContext&, Request&&) {
+        event.Send();
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+        return Response{};
+    });
+
+    EXPECT_CALL(Middleware(0), PreStartCall).Times(1);
+    EXPECT_CALL(Middleware(0), PreSendMessage).Times(1);
+    EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);
+    EXPECT_CALL(Middleware(0), PostFinish).Times(0);
+
+    EXPECT_FALSE(GetStatistics("grpc.client.total").SingleMetricOptional("abandoned-error"));
+    EXPECT_FALSE(GetStatistics("grpc.client.total", {{"grpc_code", "CANCELLED"}}).SingleMetricOptional("status"));
+
+    {
+        Request request;
+        auto response_future = Client().AsyncSayHello(request);
+        event.Wait();
+    }
+
+    EXPECT_EQ(GetMetric("abandoned-error"), 1);
+    EXPECT_FALSE(GetStatistics("grpc.client.total", {{"grpc_code", "CANCELLED"}}).SingleMetricOptional("status"));
+
+    EXPECT_EQ(GetMetric("cancelled"), 0);
+    EXPECT_EQ(GetMetric("status", {{"grpc_code", "OK"}}), 0);
+    EXPECT_EQ(GetMetric("status", {{"grpc_code", "UNKNOWN"}}), 0);
+}
+
+UTEST_F(ClientMiddlewaresHooksTest, AbandonedStreaming) {
     SetHappyPathBidirectionalStreaming();
     SetHappyPathClientStreaming();
     SetHappyPathServerStreaming();
-    SetHappyPathUnary();
 
-    // Five streams were created.
-    EXPECT_CALL(Middleware(0), PreStartCall).Times(5);
-    // WriteAndCheck + ReadMany + AsyncSayHello
-    EXPECT_CALL(Middleware(0), PreSendMessage).Times(3);
+    // Four streams were created.
+    EXPECT_CALL(Middleware(0), PreStartCall).Times(4);
+    // WriteAndCheck + ReadMany
+    EXPECT_CALL(Middleware(0), PreSendMessage).Times(2);
     // Skipped, because no response messages.
     EXPECT_CALL(Middleware(0), PostRecvMessage).Times(0);
     // We don't run middlewares in a destructors of RPC.
@@ -626,16 +662,11 @@ UTEST_F(ClientMiddlewaresHooksTest, Abandoned) {
     }
     check_metrics(3);
     {
-        Request request;
-        UEXPECT_NO_THROW(auto future = Client().AsyncSayHello(request));
-    }
-    check_metrics(4);
-    {
         auto stream = Client().Chat();
         StreamResponse response;
         UEXPECT_NO_THROW(const auto future = stream.ReadAsync(response));
     }
-    check_metrics(5);
+    check_metrics(4);
 }
 
 UTEST_F(ClientMiddlewaresHooksTest, BadStatusServerStreaming) {

@@ -25,6 +25,12 @@ class CallOptionsAccessor;
 class CallOptions {
 public:
     /// @{
+    /// Set and get retry attempts. Maximum number of retry attempts, including the original attempt.
+    void SetAttempts(int attempts);
+    int GetAttempts() const;
+    /// @}
+
+    /// @{
     /// Set and get operation timeout.
     ///
     /// In case of retries `timeout` applies to each attempt.
@@ -46,6 +52,8 @@ public:
 
 private:
     friend class impl::CallOptionsAccessor;
+
+    int attempts_{0};
 
     std::chrono::milliseconds timeout_{std::chrono::milliseconds::max()};
 

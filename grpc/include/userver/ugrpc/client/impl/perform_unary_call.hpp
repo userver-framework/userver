@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <userver/ugrpc/client/impl/rpc.hpp>
+#include <userver/ugrpc/client/impl/unary_call.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +15,8 @@ Response PerformUnaryCall(
     const Request& request
 ) {
     UnaryCall unary_call{std::move(params), std::move(prepare_unary_call), request};
-    return unary_call.Finish();
+    unary_call.Perform();
+    return unary_call.ExtractResponse();
 }
 
 }  // namespace ugrpc::client::impl

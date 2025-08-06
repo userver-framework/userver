@@ -11,6 +11,7 @@
 #include <userver/ugrpc/client/client_settings.hpp>
 #include <userver/ugrpc/client/impl/channel_factory.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
+#include <userver/ugrpc/client/retry_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,7 +34,8 @@ struct ClientInternals final {
     std::size_t channel_count{};
     DedicatedMethodsConfig dedicated_methods_config;
     ChannelFactory channel_factory;
-    const grpc::ChannelArguments& channel_args{};
+    const RetryConfig& retry_config;
+    const grpc::ChannelArguments& channel_args;
     const std::optional<std::string>& default_service_config;
 };
 

@@ -87,6 +87,17 @@ properties:
                 type: string
                 description: The path to file containing the PEM encoding of the client's certificate chain
                 defaultDescription: absent
+    retry-config:
+        type: object
+        description: Retry configuration for outgoing RPCs
+        defaultDescription: '{}'
+        additionalProperties: false
+        properties:
+            attempts:
+                type: integer
+                description: The maximum number of RPC attempts, including the original attempt
+                defaultDescription: 1
+                minimum: 1
     channel-args:
         type: object
         description: a map of channel arguments, see gRPC Core docs

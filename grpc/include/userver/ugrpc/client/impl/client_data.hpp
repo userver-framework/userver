@@ -13,7 +13,7 @@
 #include <userver/utils/fixed_array.hpp>
 
 #include <userver/ugrpc/client/client_qos.hpp>
-#include <userver/ugrpc/client/impl/channel_arguments_builder.hpp>
+#include <userver/ugrpc/client/impl/build_channel_arguments.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/impl/stub_any.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>
@@ -48,12 +48,6 @@ public:
         : internals_(std::move(internals)),
           metadata_(metadata),
           service_statistics_(&GetServiceStatistics()),
-          channel_arguments_builder_(
-              std::in_place,
-              internals_.channel_args,
-              internals_.default_service_config,
-              metadata
-          ),
           stub_state_(std::make_unique<rcu::Variable<StubState>>()) {
         if (internals_.qos) {
             SubscribeOnConfigUpdate<Service>(*internals_.qos);
@@ -108,6 +102,8 @@ public:
 
     const dynamic_config::Key<ClientQos>* GetClientQos() const;
 
+    const RetryConfig& GetRetryConfig() const { return internals_.retry_config; }
+
     rcu::ReadablePtr<StubState> GetStubState() const { return stub_state_->Read(); }
 
 private:
@@ -143,10 +139,7 @@ private:
 
     template <typename Service>
     void ConstructStubState(const ClientQos& client_qos = {}) {
-        const auto channel_args =
-            channel_arguments_builder_.has_value()
-                ? channel_arguments_builder_->Build(client_qos)
-                : BuildChannelArguments(internals_.channel_args, internals_.default_service_config);
+        const auto channel_args = BuildChannelArguments(internals_.channel_args, internals_.default_service_config);
 
         auto stubs = StubPool::Create<typename Service::Stub>(
             internals_.channel_count, internals_.channel_factory, channel_args
@@ -165,8 +158,6 @@ private:
     ClientInternals internals_;
     std::optional<ugrpc::impl::StaticServiceMetadata> metadata_{std::nullopt};
     ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
-
-    std::optional<ChannelArgumentsBuilder> channel_arguments_builder_;
 
     std::unique_ptr<rcu::Variable<StubState>> stub_state_;
 

@@ -1,7 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <grpc/grpc.h>  // for GRPC_ARG_EXPERIMENTAL_ENABLE_HEDGING
-
 #include <userver/engine/sleep.hpp>
 
 #include <userver/ugrpc/tests/service_fixtures.hpp>
@@ -14,14 +12,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-#ifdef GRPC_ARG_EXPERIMENTAL_ENABLE_HEDGING
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DISABLED_IN_OLD_GRPC_TEST_NAME(name) name
-#else
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DISABLED_IN_OLD_GRPC_TEST_NAME(name) DISABLED_##name
-#endif
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
@@ -49,7 +39,7 @@ using TimeoutTest = ugrpc::tests::ServiceFixture<UnitTestService>;
 
 }  // namespace
 
-UTEST_F(TimeoutTest, DISABLED_IN_OLD_GRPC_TEST_NAME(PerAttemptTimeout)) {
+UTEST_F(TimeoutTest, QosTimeout) {
     ugrpc::client::Qos qos;
     qos.attempts = 4;
     qos.timeout = tests::kLongTimeout;
@@ -69,6 +59,20 @@ UTEST_F(TimeoutTest, DISABLED_IN_OLD_GRPC_TEST_NAME(PerAttemptTimeout)) {
 
     sample::ugrpc::GreetingResponse response;
     UEXPECT_NO_THROW(response = client.SayHello(request));
+}
+
+UTEST_F(TimeoutTest, CallOptionsTimeout) {
+    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+    sample::ugrpc::GreetingRequest request;
+    request.set_name("testname");
+
+    ugrpc::client::CallOptions call_options;
+    call_options.SetAttempts(4);
+    call_options.SetTimeout(tests::kLongTimeout);
+
+    sample::ugrpc::GreetingResponse response;
+    UEXPECT_NO_THROW(response = client.SayHello(request, std::move(call_options)));
 }
 
 USERVER_NAMESPACE_END

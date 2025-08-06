@@ -30,27 +30,9 @@ components_manager:
             middlewares:
                 grpc-client-deadline-propagation:
                     enabled: false
+            retry-config:
+                attempts: 2
             channel-args: {}
-            default-service-config: >
-                {
-                    "methodConfig": [{
-                        "name": [{}],
-                        "retryPolicy": {
-                            "maxAttempts": 2,
-                            "initialBackoff": "0.01s",
-                            "maxBackoff": "0.3s",
-                            "backoffMultiplier": 2,
-                            "retryableStatusCodes": [
-                                "UNAVAILABLE",
-                                "ABORTED",
-                                "CANCELLED",
-                                "UNKNOWN",
-                                "INTERNAL",
-                                "DEADLINE_EXCEEDED"
-                            ]
-                        }
-                   }]
-                }
 
         greeter-client:
             endpoint: $greeter-client-endpoint

@@ -26,12 +26,24 @@ void CheckValidCallName(std::string_view call_name) {
 }
 
 void ApplyDynamicConfig(CallOptions& call_options, const Qos& qos, const testsuite::GrpcControl& testsuite_grpc) {
-    // dynamic config has lowest priority,
-    // so set timeout from dynamic config only if NOT set
+    // dynamic config has lower priority, than set manually by user in CallOptions
+    // so set only if NOT set
+
     if (std::chrono::milliseconds::max() == call_options.GetTimeout() && qos.timeout.has_value()) {
-        const auto total_timeout = GetTotalTimeout(qos);
-        UASSERT(total_timeout.has_value());
-        call_options.SetTimeout(testsuite_grpc.MakeTimeout(*total_timeout));
+        call_options.SetTimeout(testsuite_grpc.MakeTimeout(*qos.timeout));
+    }
+
+    if (0 == call_options.GetAttempts() && qos.attempts.has_value()) {
+        call_options.SetAttempts(*qos.attempts);
+    }
+}
+
+void ApplyStaticConfig(CallOptions& call_options, const RetryConfig& retry_config) {
+    // static config has lowest priority,
+    // so set only if NOT set
+
+    if (0 == call_options.GetAttempts()) {
+        call_options.SetAttempts(retry_config.attempts);
     }
 }
 
@@ -49,6 +61,7 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
 
     const auto qos = stub.GetClientQos().methods.GetOptional(call_name).value_or(Qos{});
     ApplyDynamicConfig(call_options, qos, client_data.GetTestsuiteControl());
+    ApplyStaticConfig(call_options, client_data.GetRetryConfig());
 
     return CallParams{
         client_data.GetClientName(),
@@ -59,6 +72,7 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         std::move(stub),
         client_data.GetMiddlewares(),
         client_data.GetStatistics(method_id),
+        client_data.GetTestsuiteControl(),
     };
 }
 
@@ -88,6 +102,7 @@ CallParams CreateGenericCallParams(
         client_data.NextStub(),
         client_data.GetMiddlewares(),
         client_data.GetGenericStatistics(generic_options.metrics_call_name.value_or(call_name)),
+        client_data.GetTestsuiteControl(),
     };
 }
 
