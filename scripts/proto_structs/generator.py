@@ -5,6 +5,7 @@
 
 import pathlib
 import sys
+import typing
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -16,6 +17,7 @@ import jinja2
 
 from proto_structs.descriptors import node_parsers
 from proto_structs.models import gen_node
+from proto_structs.models import includes
 
 
 def _strip_ext(path: str) -> str:
@@ -49,8 +51,8 @@ class _CodeGenerator:
             file.content = file_content  # pyright: ignore
 
     def _make_jinja_data(self, file_node: gen_node.File) -> Dict[str, Any]:
-        includes_list = file_node.sorted_includes(current_hpp=str(file_node.gen_path(ext='hpp')))
-        proto_file_name: str = self.file_descriptor.name  # pyright: ignore
+        includes_list = includes.sorted_includes(file_node, current_hpp=str(file_node.gen_path(ext='hpp')))
+        proto_file_name = typing.cast(str, self.file_descriptor.name)
 
         return {
             'file_name_wo_ext': _strip_ext(proto_file_name),
@@ -77,10 +79,8 @@ def generate(loader: jinja2.BaseLoader) -> None:
         loader=loader,
         trim_blocks=True,
         lstrip_blocks=True,
-        # We do not render HTML pages with Jinja. However the gRPC data could
-        # be shown on web. Assuming that the generation should not deal with
-        # HTML special characters, it is safer to turn on autoescaping.
-        autoescape=True,
+        # Do not escape C++ sources for HTML.
+        autoescape=False,
     )
 
     pool = descriptor_pool.DescriptorPool()

@@ -1,0 +1,48 @@
+{%- macro render_gen_node(node) %}
+{%- if node.kind == "namespace" %}
+{{ do_render_namespace(node) }}
+{%- elif node.kind == "struct" %}
+{{ do_render_struct(node) }}
+{%- elif node.kind == "enum" %}
+{{ do_render_enum(node) }}
+{%- else %}
+NOT_IMPLEMENTED_ERROR()
+{%- endif %}
+{% endmacro -%}
+
+{%- macro do_render_namespace(namespace) %}
+namespace {{ namespace.short_name }} {
+
+{% for child in namespace.children %}
+{{ render_gen_node(child) }}
+{% endfor %}
+};  // namespace {{ namespace.short_name }}
+{% endmacro -%}
+
+{%- macro do_render_struct(struct) %}
+struct {{ struct.name.short_name }} final {
+{% filter indent(width=4, first=True) %}
+{% for nested in struct.nested_types %}
+{{ render_gen_node(nested) }}
+{% endfor %}
+{% for field in struct.fields %}
+{{ do_render_field(struct, field) }}
+{% endfor %}
+{% endfilter %}
+};
+{% endmacro -%}
+
+{%- macro do_render_enum(enum) %}
+enum class {{ enum.name.short_name }} : std::int32_t {
+{% filter indent(width=4, first=True) %}
+{% for value in enum.values %}
+{{ value.short_name }} = {{ value.number }},
+{% endfor %}
+INTERNAL_DO_NOT_USE_ = std::numeric_limits<std::int32_t>::max(),  // Write default: instead.
+{% endfilter %}
+};
+{% endmacro -%}
+
+{%- macro do_render_field(struct, field) %}
+{{ field.field_type.contextual_cpp_name(context=struct) }} {{ field.short_name }}{};
+{%- endmacro -%}
