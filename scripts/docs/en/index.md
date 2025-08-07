@@ -120,7 +120,7 @@ and make sure that it builds and passes tests.
 
 ## Runtime service features
 * @ref scripts/docs/en/userver/dynamic_config.md
-* @ref scripts/docs/en/schemas/dynamic_configs.md
+    * @ref scripts/docs/en/dynamic_configs/dynamic_configs.md
 * @ref scripts/docs/en/userver/log_level_running_service.md
 * @ref scripts/docs/en/userver/requests_in_flight.md
 * @ref scripts/docs/en/userver/service_monitor.md

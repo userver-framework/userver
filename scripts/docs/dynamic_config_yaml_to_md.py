@@ -51,8 +51,30 @@ def handle_file(ifname, ofname):
 def main():
     args = parse_args()
     os.makedirs(args.o, exist_ok=True)
+    all_configs = list()
     for fname in args.yaml:
-        handle_file(fname, pathlib.Path(args.o) / (pathlib.Path(fname).stem + '.md'))
+        config_name = pathlib.Path(fname).stem
+        handle_file(fname, pathlib.Path(args.o) / (config_name + '.md'))
+        all_configs.append(config_name)
+
+        with open(pathlib.Path(args.o) / 'dynamic_configs.md', 'w') as ofile:
+            ofile.write(
+                """## Dynamic config schemas list
+
+Here you can find schemas of dynamic configs used by userver itself. For general
+information on dynamic configs, see @ref scripts/docs/en/userver/dynamic_config.md
+
+* @ref """
+                + '\n* @ref '.join(sorted(all_configs))
+                + """
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref scripts/docs/en/userver/dynamic_config.md | @ref scripts/docs/en/userver/log_level_running_service.md ⇨
+@htmlonly </div> @endhtmlonly
+"""
+            )
 
 
 if __name__ == '__main__':

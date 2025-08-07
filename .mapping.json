@@ -3887,7 +3887,6 @@
   "scripts/docs/en/deps/ubuntu-24.04.md":"taxi/uservices/userver/scripts/docs/en/deps/ubuntu-24.04.md",
   "scripts/docs/en/index.md":"taxi/uservices/userver/scripts/docs/en/index.md",
   "scripts/docs/en/landing.md":"taxi/uservices/userver/scripts/docs/en/landing.md",
-  "scripts/docs/en/schemas/dynamic_configs.md":"taxi/uservices/userver/scripts/docs/en/schemas/dynamic_configs.md",
   "scripts/docs/en/userver/404.md":"taxi/uservices/userver/scripts/docs/en/userver/404.md",
   "scripts/docs/en/userver/build/build.md":"taxi/uservices/userver/scripts/docs/en/userver/build/build.md",
   "scripts/docs/en/userver/build/dependencies.md":"taxi/uservices/userver/scripts/docs/en/userver/build/dependencies.md",
