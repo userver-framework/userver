@@ -790,4 +790,95 @@ UTEST(TlsWrapper, PeerDisconnect) {
     server_task.Get();
 }
 
+UTEST(TlsWrapper, RecvNoblock) {
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            try {
+                auto tls_server = io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::LoadCertificatesChainFromString(cert),
+                    crypto::PrivateKey::LoadFromString(key),
+                    test_deadline
+                );
+                EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
+
+                char c = 0;
+                std::optional<size_t> read_bytes;
+                while (true) {
+                    read_bytes = tls_server.RecvNoblock(&c, 1);
+                    if (read_bytes.has_value()) {
+                        EXPECT_EQ(1, read_bytes.value());
+                        EXPECT_EQ('2', c);
+                        return;
+                    }
+
+                    ASSERT_FALSE(test_deadline.IsReached());
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR() << e;
+                FAIL() << e.what();
+            }
+        },
+        std::move(server)
+    );
+
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+
+    char c = 0;
+    auto read_bytes = tls_client.RecvAll(&c, 1, test_deadline);
+    EXPECT_EQ(1, read_bytes);
+    EXPECT_EQ('1', c);
+
+    EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
+    server_task.Get();
+}
+
+UTEST(TlsWrapper, RecvNoblockNoData) {
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            try {
+                auto tls_server = io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::LoadCertificatesChainFromString(cert),
+                    crypto::PrivateKey::LoadFromString(key),
+                    test_deadline
+                );
+
+                char server_char = 0;
+
+                // Test that the call does not block if there is no data
+                const auto read_bytes = tls_server.RecvNoblock(&server_char, 1);
+                ASSERT_FALSE(read_bytes.has_value());
+                EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
+            } catch (const std::exception& e) {
+                LOG_ERROR() << e;
+                FAIL() << e.what();
+            }
+        },
+        std::move(server)
+    );
+
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+
+    char c = 0;
+    auto read_bytes = tls_client.RecvAll(&c, 1, test_deadline);
+    EXPECT_EQ(1, read_bytes);
+    EXPECT_EQ('1', c);
+
+    // Test that the call does not block if there is no data or remote closed the socket
+    ASSERT_EQ(tls_client.RecvNoblock(&c, 1).value_or(0), 0);
+
+    server_task.Get();
+}
+
 USERVER_NAMESPACE_END

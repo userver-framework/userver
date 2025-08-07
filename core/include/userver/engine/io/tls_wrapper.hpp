@@ -72,6 +72,14 @@ public:
     /// received any more, received bytes count otherwise.
     [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
 
+    /// @brief Receives up to len bytes from the socket
+    /// @returns
+    /// - nullopt on data absence
+    /// - optional{0} if socket is closed by peer.
+    /// - optional{data_bytes_available} otherwise,
+    ///    1 <= data_bytes_available <= len
+    [[nodiscard]] std::optional<size_t> RecvNoblock(void* buf, size_t len);
+
     /// @brief Receives exactly len bytes from the socket.
     /// @note Can return less than len if socket is closed by peer.
     [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
@@ -84,6 +92,14 @@ public:
     /// @warning Wrapper becomes invalid on entry and can only be used to retry
     ///   socket extraction if interrupted.
     [[nodiscard]] Socket StopTls(Deadline deadline);
+
+    /// @brief Receives up to len bytes from the stream
+    /// @returns
+    /// - nullopt on data absence
+    /// - optional{0} if socket is closed by peer.
+    /// - optional{data_bytes_available} otherwise,
+    ///    1 <= data_bytes_available <= len
+    [[nodiscard]] std::optional<size_t> ReadNoblock(void* buf, size_t len) override { return RecvNoblock(buf, len); }
 
     /// @brief Receives at least one byte from the socket.
     /// @returns 0 if connection is closed on one side and no data could be
