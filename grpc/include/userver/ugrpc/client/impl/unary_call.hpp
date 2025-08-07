@@ -144,7 +144,6 @@ private:
         done_ = true;
         impl::HandleCallStatistics(state_, status);
         impl::SetStatusForSpan(state_.GetSpan(), status);
-        state_.ResetSpan();
     }
 
     void OnCancelled() {
@@ -155,7 +154,6 @@ private:
             impl::SetErrorForSpan(state_.GetSpan(), "Call cancelled");
         }
         state_.GetStatsScope().Flush();
-        state_.ResetSpan();
     }
 
     CallOptions call_options_;
