@@ -58,8 +58,8 @@ jobs:
                 brew update
                 brew install $(cat scripts/docs/en/deps/macos.md)
                 brew install clang-format
-                brew install python@3.11
                 brew install lld
+                brew install python@3.12
 
                 brew link postgresql@16 # postgresql is keg-only
                 brew link --force zlib # keg-only + need for static linkage
@@ -83,11 +83,11 @@ jobs:
 
           - name: Run cmake
             run: |
-                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.11 $CMAKE_FLAGS
+                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.12 $CMAKE_FLAGS
 
           - name: Reconfigure cmake
             run: |
-                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.11 $CMAKE_FLAGS
+                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.12 $CMAKE_FLAGS
 
           - name: Compile
             run: |
