@@ -107,10 +107,12 @@ SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     static constexpr std::string_view kPlainTextProtocol{"PLAINTEXT"};
     static constexpr std::string_view kSaslPlainTextProtocol{"SASL_PLAINTEXT"};
     static constexpr std::string_view kSaslSSLProtocol{"SASL_SSL"};
+    static constexpr std::string_view kSSLProtocol{"SSL"};
     static constexpr std::array kSupportedSecurityProtocols{
         kPlainTextProtocol,
         kSaslSSLProtocol,
         kSaslPlainTextProtocol,
+        kSSLProtocol,
     };
     static constexpr std::array kSupportedSaslSecurityMechanisms{"PLAIN", "SCRAM-SHA-512"};
 
@@ -122,6 +124,13 @@ SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     }
     if (protocol == kPlainTextProtocol) {
         security.security_protocol.emplace<SecurityConfiguration::Plaintext>();
+        return security;
+    }
+
+    if (protocol == kSSLProtocol) {
+        security.security_protocol.emplace<SecurityConfiguration::Ssl>(SecurityConfiguration::Ssl{
+            /*ssl_ca_location=*/config["ssl_ca_location"].As<std::string>(),
+        });
         return security;
     }
 
@@ -244,22 +253,54 @@ void Configuration::SetSecurity(const SecurityConfiguration& security, const Sec
     utils::Visit(
         security.security_protocol,
         [](const SecurityConfiguration::Plaintext&) { LOG_INFO("Using PLAINTEXT security protocol"); },
-        [this, &secrets](const SecurityConfiguration::SaslPlaintext& sasl_ssl) {
+        [this, &secrets](const SecurityConfiguration::SaslPlaintext& sasl_plaintext) {
             LOG_INFO("Using SASL_PLAINTEXT security protocol");
 
+            UINVARIANT(
+                std::holds_alternative<Secret::SaslCredentials>(secrets.credentials),
+                "For 'SASL_PLAINTEXT' security protocol, 'username' and 'password' are required in secdist "
+                "'kafka_settings'"
+            );
+            const auto& credentials = std::get<Secret::SaslCredentials>(secrets.credentials);
+
             SetOption("security.protocol", "SASL_PLAINTEXT");
-            SetOption("sasl.mechanism", sasl_ssl.security_mechanism);
-            SetOption("sasl.username", secrets.username);
-            SetOption("sasl.password", secrets.password);
+            SetOption("sasl.mechanism", sasl_plaintext.security_mechanism);
+            SetOption("sasl.username", credentials.username);
+            SetOption("sasl.password", credentials.password);
         },
         [this, &secrets](const SecurityConfiguration::SaslSsl& sasl_ssl) {
             LOG_INFO("Using SASL_SSL security protocol");
 
+            UINVARIANT(
+                std::holds_alternative<Secret::SaslCredentials>(secrets.credentials),
+                "For 'SASL_SSL' security protocol, 'username' and 'password' are required in secdist "
+                "'kafka_settings'"
+            );
+            const auto& credentials = std::get<Secret::SaslCredentials>(secrets.credentials);
+
             SetOption("security.protocol", "SASL_SSL");
-            SetOption("sasl.mechanism", sasl_ssl.security_mechanism);
-            SetOption("sasl.username", secrets.username);
-            SetOption("sasl.password", secrets.password);
             SetOption("ssl.ca.location", sasl_ssl.ssl_ca_location);
+            SetOption("sasl.mechanism", sasl_ssl.security_mechanism);
+            SetOption("sasl.username", credentials.username);
+            SetOption("sasl.password", credentials.password);
+        },
+        [this, &secrets](const SecurityConfiguration::Ssl& ssl) {
+            LOG_INFO("Using SSL security protocol");
+
+            UINVARIANT(
+                std::holds_alternative<Secret::SslCredentials>(secrets.credentials),
+                "For 'SSL' security protocol, 'ssl_certificate_location', 'ssl_key_location' and optionally "
+                "'ssl_key_password' are required in secdist 'kafka_settings'"
+            );
+
+            const auto& credentials = std::get<Secret::SslCredentials>(secrets.credentials);
+            SetOption("security.protocol", "SSL");
+            SetOption("ssl.ca.location", ssl.ssl_ca_location);
+            SetOption("ssl.certificate.location", credentials.ssl_certificate_location);
+            SetOption("ssl.key.location", credentials.ssl_key_location);
+            if (credentials.ssl_key_password.has_value()) {
+                SetOption("ssl.key.password", *credentials.ssl_key_password);
+            }
         }
     );
 }

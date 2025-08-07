@@ -8,12 +8,25 @@ USERVER_NAMESPACE_BEGIN
 namespace kafka::impl {
 
 Secret Parse(const formats::json::Value& doc, formats::parse::To<Secret>) {
-    Secret secret{
-        doc["brokers"].As<std::string>(),
-        doc["username"].As<Secret::SecretType>(),
-        doc["password"].As<Secret::SecretType>()};
-
-    return secret;
+    auto brokers = doc["brokers"].As<std::string>();
+    if (doc.HasMember("username")) {
+        return Secret{
+            std::move(brokers),
+            Secret::SaslCredentials{
+                doc["username"].As<Secret::SecretType>(),
+                doc["password"].As<Secret::SecretType>(),
+            }};
+    } else if (doc.HasMember("ssl_certificate_location")) {
+        return Secret{
+            std::move(brokers),
+            Secret::SslCredentials{
+                doc["ssl_certificate_location"].As<Secret::SecretType>(),
+                doc["ssl_key_location"].As<Secret::SecretType>(),
+                doc["ssl_key_password"].As<std::optional<Secret::SecretType>>(),
+            }};
+    } else {
+        return Secret{std::move(brokers)};
+    }
 }
 
 BrokerSecrets::BrokerSecrets(const formats::json::Value& doc) {
@@ -29,7 +42,7 @@ const Secret& BrokerSecrets::GetSecretByComponentName(const std::string& compone
         return secret_it->second;
     }
 
-    throw std::runtime_error{fmt::format("No secrets for {} component", component_name)};
+    throw std::runtime_error{fmt::format("No secrets for '{}' component", component_name)};
 }
 
 }  // namespace kafka::impl

@@ -12,6 +12,8 @@ using namespace std::chrono_literals;
 
 class ConfigurationTest : public kafka::utest::KafkaCluster {};
 
+using ConfigurationDeathTest = ConfigurationTest;
+
 }  // namespace
 
 UTEST_F(ConfigurationTest, Producer) {
@@ -129,7 +131,7 @@ UTEST_F(ConfigurationTest, ConsumerNonDefault) {
     EXPECT_EQ(configuration->GetOption("socket.keepalive.enable"), "true");
 }
 
-UTEST_F(ConfigurationTest, ProducerSecure) {
+UTEST_F(ConfigurationTest, ProducerSaslSsl) {
     kafka::impl::ProducerConfiguration producer_configuration{};
     producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
         /*security_mechanism=*/"SCRAM-SHA-512",
@@ -137,8 +139,10 @@ UTEST_F(ConfigurationTest, ProducerSecure) {
     };
 
     kafka::impl::Secret secrets;
-    secrets.username = kafka::impl::Secret::SecretType{"username"};
-    secrets.password = kafka::impl::Secret::SecretType{"password"};
+    secrets.credentials = kafka::impl::Secret::SaslCredentials{
+        kafka::impl::Secret::SecretType{"username"},
+        kafka::impl::Secret::SecretType{"password"},
+    };
 
     std::optional<kafka::impl::Configuration> configuration;
     UEXPECT_NO_THROW(configuration.emplace(MakeProducerConfiguration("kafka-producer", producer_configuration, secrets))
@@ -151,15 +155,17 @@ UTEST_F(ConfigurationTest, ProducerSecure) {
     EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "probe");
 }
 
-UTEST_F(ConfigurationTest, ProducerSecurePlaintext) {
+UTEST_F(ConfigurationTest, ProducerSaslPlaintext) {
     kafka::impl::ProducerConfiguration producer_configuration{};
     producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
         /*security_mechanism=*/"SCRAM-SHA-512",
     };
 
     kafka::impl::Secret secrets;
-    secrets.username = kafka::impl::Secret::SecretType{"username"};
-    secrets.password = kafka::impl::Secret::SecretType{"password"};
+    secrets.credentials = kafka::impl::Secret::SaslCredentials{
+        kafka::impl::Secret::SecretType{"username"},
+        kafka::impl::Secret::SecretType{"password"},
+    };
 
     std::optional<kafka::impl::Configuration> configuration;
     UEXPECT_NO_THROW(configuration.emplace(MakeProducerConfiguration("kafka-producer", producer_configuration, secrets))
@@ -171,7 +177,7 @@ UTEST_F(ConfigurationTest, ProducerSecurePlaintext) {
     EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
 }
 
-UTEST_F(ConfigurationTest, ConsumerSecure) {
+UTEST_F(ConfigurationTest, ConsumerSaslSsl) {
     kafka::impl::ConsumerConfiguration consumer_configuration{};
     consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
         /*security_mechanism=*/"SCRAM-SHA-512",
@@ -179,8 +185,10 @@ UTEST_F(ConfigurationTest, ConsumerSecure) {
     };
 
     kafka::impl::Secret secrets;
-    secrets.username = kafka::impl::Secret::SecretType{"username"};
-    secrets.password = kafka::impl::Secret::SecretType{"password"};
+    secrets.credentials = kafka::impl::Secret::SaslCredentials{
+        kafka::impl::Secret::SecretType{"username"},
+        kafka::impl::Secret::SecretType{"password"},
+    };
 
     std::optional<kafka::impl::Configuration> configuration;
     UEXPECT_NO_THROW(configuration.emplace(MakeConsumerConfiguration("kafka-consumer", consumer_configuration, secrets))
@@ -193,15 +201,17 @@ UTEST_F(ConfigurationTest, ConsumerSecure) {
     EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "/etc/ssl/cert.ca");
 }
 
-UTEST_F(ConfigurationTest, ConsumerSecurePlaintext) {
+UTEST_F(ConfigurationTest, ConsumerSaslPlaintext) {
     kafka::impl::ConsumerConfiguration consumer_configuration{};
     consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
         /*security_mechanism=*/"SCRAM-SHA-512",
     };
 
     kafka::impl::Secret secrets;
-    secrets.username = kafka::impl::Secret::SecretType{"username"};
-    secrets.password = kafka::impl::Secret::SecretType{"password"};
+    secrets.credentials = kafka::impl::Secret::SaslCredentials{
+        kafka::impl::Secret::SecretType{"username"},
+        kafka::impl::Secret::SecretType{"password"},
+    };
 
     std::optional<kafka::impl::Configuration> configuration;
     UEXPECT_NO_THROW(configuration.emplace(MakeConsumerConfiguration("kafka-consumer", consumer_configuration, secrets))
@@ -211,6 +221,52 @@ UTEST_F(ConfigurationTest, ConsumerSecurePlaintext) {
     EXPECT_EQ(configuration->GetOption("sasl.mechanism"), "SCRAM-SHA-512");
     EXPECT_EQ(configuration->GetOption("sasl.username"), "username");
     EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
+}
+
+UTEST_F(ConfigurationTest, ProducerSsl) {
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
+        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+    };
+
+    kafka::impl::Secret secrets;
+    secrets.credentials = kafka::impl::Secret::SslCredentials{
+        kafka::impl::Secret::SecretType{"/etc/ssl/client.crt"},
+        kafka::impl::Secret::SecretType{"/etc/ssl/client.key"},
+        kafka::impl::Secret::SecretType{"password123"},
+    };
+
+    std::optional<kafka::impl::Configuration> configuration;
+    UEXPECT_NO_THROW(configuration.emplace(MakeProducerConfiguration("kafka-producer", producer_configuration, secrets))
+    );
+
+    EXPECT_EQ(configuration->GetOption("security.protocol"), "ssl");
+    EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "/etc/ssl/ca.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.certificate.location"), "/etc/ssl/client.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.key.location"), "/etc/ssl/client.key");
+    EXPECT_EQ(configuration->GetOption("ssl.key.password"), "password123");
+}
+
+UTEST_F(ConfigurationTest, ConsumerSSL) {
+    kafka::impl::ConsumerConfiguration consumer_configuration{};
+    consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
+        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+    };
+
+    kafka::impl::Secret secrets;
+    secrets.credentials = kafka::impl::Secret::SslCredentials{
+        kafka::impl::Secret::SecretType{"/etc/ssl/client.crt"},
+        kafka::impl::Secret::SecretType{"/etc/ssl/client.key"},
+    };
+
+    std::optional<kafka::impl::Configuration> configuration;
+    UEXPECT_NO_THROW(configuration.emplace(MakeConsumerConfiguration("kafka-consumer", consumer_configuration, secrets))
+    );
+
+    EXPECT_EQ(configuration->GetOption("security.protocol"), "ssl");
+    EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "/etc/ssl/ca.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.certificate.location"), "/etc/ssl/client.crt");
+    EXPECT_EQ(configuration->GetOption("ssl.key.location"), "/etc/ssl/client.key");
 }
 
 UTEST_F(ConfigurationTest, IncorrectComponentName) {
@@ -232,6 +288,180 @@ UTEST_F(ConfigurationTest, ConsumerResolveGroupId) {
     UEXPECT_NO_THROW(configuration.emplace(MakeConsumerConfiguration("kafka-consumer", consumer_configuration)));
 
     EXPECT_EQ(configuration->GetOption("group.id"), "test-group-pod-example-com");
+}
+
+UTEST_F_DEATH(ConfigurationDeathTest, ContradictorySecurityConfiguration) {
+    kafka::impl::ProducerConfiguration sasl_ssl{};
+    sasl_ssl.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
+        /*security_mechanism=*/"SCRAM-SHA-512",
+        /*ssl_ca_location=*/"probe",
+    };
+    kafka::impl::ProducerConfiguration sasl_plaintext{};
+    sasl_plaintext.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
+        /*security_mechanism=*/"SCRAM-SHA-512",
+    };
+    kafka::impl::ConsumerConfiguration ssl{};
+    ssl.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
+        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+    };
+
+    kafka::impl::Secret secrets_none;
+    kafka::impl::Secret secrets_sasl;
+    secrets_sasl.credentials = kafka::impl::Secret::SaslCredentials{
+        kafka::impl::Secret::SecretType{"username"},
+        kafka::impl::Secret::SecretType{"password"},
+    };
+    kafka::impl::Secret secrets_ssl;
+    secrets_ssl.credentials = kafka::impl::Secret::SslCredentials{
+        kafka::impl::Secret::SecretType{"/etc/ssl/client.crt"},
+        kafka::impl::Secret::SecretType{"/etc/ssl/client.key"},
+        kafka::impl::Secret::SecretType{"password123"},
+    };
+
+    std::optional<kafka::impl::Configuration> configuration;
+#ifdef NDEBUG
+    UEXPECT_THROW(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_none)), std::exception
+    );
+    UEXPECT_THROW(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_ssl)), std::exception
+    );
+    UEXPECT_THROW(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_none)), std::exception
+    );
+    UEXPECT_THROW(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_ssl)), std::exception
+    );
+    UEXPECT_THROW(
+        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_none)), std::exception
+    );
+    UEXPECT_THROW(
+        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_sasl)), std::exception
+    );
+#else
+    UEXPECT_DEATH(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_none)),
+        "For 'SASL_SSL' security protocol, 'username' and 'password' are required in secdist 'kafka_settings'"
+    );
+    UEXPECT_DEATH(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_ssl)),
+        "For 'SASL_SSL' security protocol, 'username' and 'password' are required in secdist 'kafka_settings'"
+    );
+    UEXPECT_DEATH(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_none)),
+        "For 'SASL_PLAINTEXT' security protocol, 'username' and 'password' are required in secdist 'kafka_settings'"
+    );
+    UEXPECT_DEATH(
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_ssl)),
+        "For 'SASL_PLAINTEXT' security protocol, 'username' and 'password' are required in secdist 'kafka_settings'"
+    );
+    UEXPECT_DEATH(
+        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_none)),
+        "For 'SSL' security protocol, 'ssl_certificate_location', 'ssl_key_location' and optionally 'ssl_key_password' "
+        "are required in secdist 'kafka_settings'"
+    );
+    UEXPECT_DEATH(
+        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_sasl)),
+        "For 'SSL' security protocol, 'ssl_certificate_location', 'ssl_key_location' and optionally 'ssl_key_password' "
+        "are required in secdist 'kafka_settings'"
+    );
+#endif
+}
+
+UTEST_F(ConfigurationTest, BrokerSecrets) {
+    const auto make_kafka_settings = [](formats::json::Value component_settings) {
+        return formats::json::MakeObject(
+            "kafka_settings", formats::json::MakeObject("kafka-client", std::move(component_settings))
+        );
+    };
+
+    const auto only_brokers = formats::json::MakeObject("brokers", "localhost:1111");
+    const auto sasl = formats::json::MakeObject(
+        "brokers",
+        "localhost:1111",
+        //
+        "username",
+        "user",
+        //
+        "password",
+        "pass"
+        //
+    );
+    const auto ssl = formats::json::MakeObject(
+        "brokers",
+        "localhost:1111",
+        //
+        "ssl_certificate_location",
+        "/etc/ssl/client.crt",
+        //
+        "ssl_key_location",
+        "/etc/ssl/client.key",
+        //
+        "ssl_key_password",
+        "pass"
+        //
+    );
+    const auto ssl_no_password = formats::json::MakeObject(
+        "brokers",
+        "localhost:1111",
+        //
+        "ssl_certificate_location",
+        "/etc/ssl/client.crt",
+        //
+        "ssl_key_location",
+        "/etc/ssl/client.key"
+        //
+    );
+
+    std::optional<kafka::impl::BrokerSecrets> broker_secrets;
+    std::optional<kafka::impl::Secret> secret;
+
+    {
+        UEXPECT_NO_THROW(broker_secrets.emplace(make_kafka_settings(only_brokers)));
+        UEXPECT_NO_THROW(secret.emplace(broker_secrets->GetSecretByComponentName("kafka-client")));
+        ASSERT_TRUE(std::holds_alternative<std::monostate>(secret->credentials));
+        EXPECT_EQ(secret->brokers, "localhost:1111");
+    }
+    {
+        UEXPECT_NO_THROW(broker_secrets.emplace(make_kafka_settings(sasl)));
+        UEXPECT_NO_THROW(secret.emplace(broker_secrets->GetSecretByComponentName("kafka-client")));
+        ASSERT_TRUE(std::holds_alternative<kafka::impl::Secret::SaslCredentials>(secret->credentials));
+        EXPECT_EQ(secret->brokers, "localhost:1111");
+        EXPECT_EQ(std::get<kafka::impl::Secret::SaslCredentials>(secret->credentials).username.GetUnderlying(), "user");
+        EXPECT_EQ(std::get<kafka::impl::Secret::SaslCredentials>(secret->credentials).password.GetUnderlying(), "pass");
+    }
+    {
+        UEXPECT_NO_THROW(broker_secrets.emplace(make_kafka_settings(ssl)));
+        UEXPECT_NO_THROW(secret.emplace(broker_secrets->GetSecretByComponentName("kafka-client")));
+        ASSERT_TRUE(std::holds_alternative<kafka::impl::Secret::SslCredentials>(secret->credentials));
+        EXPECT_EQ(secret->brokers, "localhost:1111");
+        EXPECT_EQ(
+            std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_certificate_location.GetUnderlying(),
+            "/etc/ssl/client.crt"
+        );
+        EXPECT_EQ(
+            std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_key_location.GetUnderlying(),
+            "/etc/ssl/client.key"
+        );
+        EXPECT_EQ(
+            std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_key_password->GetUnderlying(), "pass"
+        );
+    }
+    {
+        UEXPECT_NO_THROW(broker_secrets.emplace(make_kafka_settings(ssl_no_password)));
+        UEXPECT_NO_THROW(secret.emplace(broker_secrets->GetSecretByComponentName("kafka-client")));
+        ASSERT_TRUE(std::holds_alternative<kafka::impl::Secret::SslCredentials>(secret->credentials));
+        EXPECT_EQ(secret->brokers, "localhost:1111");
+        EXPECT_EQ(
+            std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_certificate_location.GetUnderlying(),
+            "/etc/ssl/client.crt"
+        );
+        EXPECT_EQ(
+            std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_key_location.GetUnderlying(),
+            "/etc/ssl/client.key"
+        );
+        EXPECT_FALSE(std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_key_password.has_value());
+    }
 }
 
 USERVER_NAMESPACE_END

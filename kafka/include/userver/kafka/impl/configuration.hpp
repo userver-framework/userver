@@ -33,8 +33,11 @@ struct SecurityConfiguration final {
         std::string security_mechanism;
         std::string ssl_ca_location;
     };
+    struct Ssl final {
+        std::string ssl_ca_location;
+    };
 
-    using SecurityProtocol = std::variant<Plaintext, SaslPlaintext, SaslSsl>;
+    using SecurityProtocol = std::variant<Plaintext, SaslPlaintext, SaslSsl, Ssl>;
     SecurityProtocol security_protocol{};
 };
 

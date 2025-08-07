@@ -48,7 +48,10 @@ properties:
         description: |
             Client identifier.
             May be an arbitrary string.
-            Optional, but you should set this property on each instance because it enables you to more easily correlate requests on the broker with the client instance which made it, which can be helpful in debugging and troubleshooting scenarios.
+            Optional, but you should set this property on each instance
+            because it enables you to more easily correlate requests on the broker
+            with the client instance which made it,
+            which can be helpful in debugging and troubleshooting scenarios.
         defaultDescription: userver
     delivery_timeout:
         type: string
@@ -108,6 +111,7 @@ properties:
           - PLAINTEXT
           - SASL_SSL
           - SASL_PLAINTEXT
+          - SSL
     sasl_mechanisms:
         type: string
         description: |
@@ -121,9 +125,10 @@ properties:
         type: string
         description: |
             file or directory path to CA certificate(s) for verifying the broker's key.
-            Must be set if `security_protocol` equals `SASL_SSL`.
+            Must be set if `security_protocol` equals `SASL_SSL` or `SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none
+
     rd_kafka_custom_options:
         type: object
         description: |
