@@ -153,9 +153,9 @@ class UserverConan(ConanFile):
             )
             self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
-            # We use system package, so the libpq requirement is obsolete.
-            # `run=True` required to find `pg_config` binary during `psycopg2` python module build withous system package
-            # self.requires('libpq/14.9', run=True)
+            # `run=True` required to find `pg_config` binary during `psycopg2` python module build
+            # without system package. We use system package.
+            self.requires('libpq/14.9')
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
