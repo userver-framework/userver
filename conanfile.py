@@ -153,8 +153,9 @@ class UserverConan(ConanFile):
             )
             self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
-            # `run=True` required to find `pg_config` binary during `psycopg2` python module build
-            self.requires('libpq/14.9', run=True)
+            # We use system package, so the libpq requirement is obsolete.
+            # `run=True` required to find `pg_config` binary during `psycopg2` python module build withous system package
+            # self.requires('libpq/14.9', run=True)
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
@@ -251,10 +252,11 @@ class UserverConan(ConanFile):
         CMakeDeps(self).generate()
 
     def build(self):
-        # pg_config is required to build psycopg2 from source.
-        libpq = self.dependencies["libpq"]
-        if libpq:
-            os.environ["PATH"] = os.environ["PATH"] + ":" + libpq.package_folder+ "/bin"
+        # pg_config is required to build psycopg2 from source without system package.
+        # However, this approach fails on later stage, when venv for tests is built.
+        # libpq = self.dependencies["libpq"]
+        # if libpq:
+        #     os.environ["PATH"] = os.environ["PATH"] + ":" + libpq.package_folder+ "/bin"
 
         cmake = CMake(self)
         cmake.configure()
@@ -271,7 +273,8 @@ class UserverConan(ConanFile):
 
     def system_requirements(self):
         if self.options.with_postgresql:
-            # pg_config is required to build psycopg2 from source.
+            # pg_config is required to build psycopg2 python module from source at
+            # testsuite venv creation during functional testing of user code.
             package_manager.Apt(self).install(["libpq-dev"])
             package_manager.Yum(self).install(["libpq-devel"])
             package_manager.PacMan(self).install(["libpq-dev"])
