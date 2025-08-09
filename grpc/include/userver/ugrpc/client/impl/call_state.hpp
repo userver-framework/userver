@@ -36,7 +36,7 @@ struct RpcConfigValues final {
 
 class CallState {
 public:
-    CallState(CallParams&&, CallKind, bool setup_client_context = true);
+    CallState(CallParams&&, CallKind);
 
     ~CallState() noexcept = default;
 
@@ -77,6 +77,10 @@ public:
 
     grpc::Status& GetStatus() noexcept;
 
+    void Commit() noexcept;
+
+    grpc::ClientContext& GetClientContextCommitted() noexcept;
+
 private:
     StubHandle stub_;
 
@@ -102,11 +106,13 @@ private:
     CallKind call_kind_{};
 
     grpc::Status status_;
+
+    std::atomic<bool> committed_{false};
 };
 
 class StreamingCallState final : public CallState {
 public:
-    StreamingCallState(CallParams&& params, CallKind call_kind) : CallState(std::move(params), call_kind) {}
+    StreamingCallState(CallParams&& params, CallKind call_kind);
 
     ~StreamingCallState() noexcept;
 

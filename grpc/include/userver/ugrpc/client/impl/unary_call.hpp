@@ -35,7 +35,7 @@ public:
 
     UnaryCall(CallParams&& params, PrepareUnaryCall&& prepare_unary_call, const Request& request)
         : call_options_{std::move(params.call_options)},
-          state_{std::move(params), CallKind::kUnaryCall, /*setup_client_context*/ false},
+          state_{std::move(params), CallKind::kUnaryCall},
           context_{utils::impl::InternalTag{}, state_},
           prepare_unary_call_{std::move(prepare_unary_call)},
           request_{request} {}
@@ -64,6 +64,8 @@ public:
 
 private:
     void CallWithRetries() {
+        const utils::FastScopeGuard commit_state_guard([this]() noexcept { state_.Commit(); });
+
         const auto task_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
         const int max_attempts = call_options_.GetAttempts();
         state_.GetSpan().AddTag(tracing::kMaxAttempts, max_attempts);

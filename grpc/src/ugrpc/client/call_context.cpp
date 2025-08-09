@@ -10,7 +10,7 @@ namespace ugrpc::client {
 
 CallContext::CallContext(utils::impl::InternalTag, impl::CallState& state) noexcept : state_(state) {}
 
-grpc::ClientContext& CallContext::GetClientContext() noexcept { return state_.GetClientContext(); }
+grpc::ClientContext& CallContext::GetClientContext() noexcept { return state_.GetClientContextCommitted(); }
 
 std::string_view CallContext::GetClientName() const noexcept { return state_.GetClientName(); }
 

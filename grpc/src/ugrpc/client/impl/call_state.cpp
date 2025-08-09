@@ -51,7 +51,7 @@ void AddTracingMetadata(grpc::ClientContext& client_context, const tracing::Span
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
     : enforce_task_deadline(config[::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION]) {}
 
-CallState::CallState(CallParams&& params, CallKind call_kind, bool setup_client_context)
+CallState::CallState(CallParams&& params, CallKind call_kind)
     : stub_(std::move(params.stub)),
       client_name_(params.client_name),
       call_name_(std::move(params.call_name)),
@@ -64,9 +64,6 @@ CallState::CallState(CallParams&& params, CallKind call_kind, bool setup_client_
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
     SetupSpan(span_, call_name_.Get());
-    if (setup_client_context) {
-        SetupClientContext(*this, params.call_options);
-    }
 }
 
 StubHandle& CallState::GetStub() noexcept { return stub_; }
@@ -119,6 +116,19 @@ void CallState::SetDeadlinePropagated() noexcept {
 bool CallState::IsDeadlinePropagated() const noexcept { return is_deadline_propagated_; }
 
 grpc::Status& CallState::GetStatus() noexcept { return status_; }
+
+void CallState::Commit() noexcept { committed_.store(true, std::memory_order_release); }
+
+grpc::ClientContext& CallState::GetClientContextCommitted() noexcept {
+    UINVARIANT(committed_, "Call state should be committed");
+    return GetClientContext();
+}
+
+StreamingCallState::StreamingCallState(CallParams&& params, CallKind call_kind)
+    : CallState(std::move(params), call_kind) {
+    SetupClientContext(*this, params.call_options);
+    Commit();
+}
 
 StreamingCallState::~StreamingCallState() noexcept {
     invocation_.reset();
