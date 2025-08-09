@@ -7,6 +7,7 @@
 
 #include <userver/tracing/span.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
+#include <userver/utils/move_only_function.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,7 +20,10 @@ class CallState;
 /// @brief gRPC call context
 class CallContext {
 public:
-    CallContext(utils::impl::InternalTag, impl::CallState& state);
+    /// @cond
+    // For internal use only
+    CallContext(utils::impl::InternalTag, impl::CallState& state) noexcept;
+    /// @endcond
 
     /// @returns the `ClientContext` used for this RPC
     grpc::ClientContext& GetClientContext() noexcept;
@@ -33,8 +37,30 @@ public:
     /// @returns RPC span
     tracing::Span& GetSpan() noexcept;
 
+    /// @cond
+    // For internal use only
+    impl::CallState& GetState(utils::impl::InternalTag) noexcept;
+    /// @endcond
+
 private:
     impl::CallState& state_;
+};
+
+class CancellableCallContext : public CallContext {
+public:
+    /// @cond
+    // For internal use only
+    using CancelFunction = utils::move_only_function<void()>;
+    CancellableCallContext(utils::impl::InternalTag, impl::CallState& state, CancelFunction cancel_func) noexcept;
+    /// @endcond
+
+    /// Cancel associated call
+    ///
+    /// Can be called multiple times, Call could be in any stage.
+    void Cancel();
+
+private:
+    CancelFunction cancel_func_;
 };
 
 }  // namespace ugrpc::client

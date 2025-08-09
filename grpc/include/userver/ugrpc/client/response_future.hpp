@@ -50,10 +50,10 @@ public:
     Response Get() { return impl_->Get(); }
 
     /// @brief Get call context, useful e.g. for accessing metadata.
-    CallContext& GetContext() { return impl_->GetContext(); }
+    CancellableCallContext& GetContext() { return impl_->GetContext(); }
 
     /// @overload
-    const CallContext& GetContext() const { return impl_->GetContext(); }
+    const CancellableCallContext& GetContext() const { return impl_->GetContext(); }
 
     /// @cond
     // For internal use only
