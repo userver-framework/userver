@@ -70,6 +70,12 @@ Components are the building blocks of userver services:
 - **Circuit Breakers**: Prevent cascading failures in distributed systems
 - **Retry Logic**: Automatic retry with exponential backoff for transient failures
 
+### 7. Messaging Patterns
+- **Asynchronous Messaging**: Non-blocking message production and consumption
+- **Event-Driven Architecture**: Components react to events and messages
+- **Message Queue Integration**: Integration with Kafka and RabbitMQ messaging systems
+- **Reliable Message Processing**: Guaranteed message delivery and processing
+
 ## Core Framework Components
 
 ### HTTP Server Components
@@ -81,6 +87,11 @@ Components are the building blocks of userver services:
 - `storages::postgres::Cluster`: PostgreSQL cluster management
 - `storages::redis::Client`: Redis client implementation
 - `storages::mongo::Pool`: MongoDB connection pool
+
+### Messaging Components
+- `kafka::ProducerComponent`: Kafka message producer component
+- `kafka::ConsumerComponent`: Kafka message consumer component
+- `components::RabbitMQ`: RabbitMQ client component
 
 ### Utility Components
 - `logging::Log`: Structured logging system
@@ -145,3 +156,9 @@ statistics_->GetHistogram("request-time")->Record(request_time);
 - HTTP client requests inherit deadlines from incoming requests
 - Configure appropriate timeouts based on service level objectives
 - Implement circuit breaker patterns for handling flaky external dependencies
+
+### 4. Messaging Performance
+- Use connection pooling for messaging systems
+- Implement proper batching for message production
+- Configure appropriate prefetch settings for message consumption
+- Monitor messaging system metrics and performance

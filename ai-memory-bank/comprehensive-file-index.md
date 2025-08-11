@@ -235,6 +235,16 @@ Kafka messaging system integration for event streaming
 ### RabbitMQ (rabbitmq/)
 RabbitMQ messaging system integration for message queuing
 
+## Messaging Theme Rules (ai-development-settings/extreme/.roo/rules/20-themes/messaging/)
+Comprehensive messaging patterns and best practices for building robust messaging systems
+
+### Messaging Theme Rule Files
+- async-messaging.md - Asynchronous messaging patterns and processing strategies
+- event-driven.md - Event-driven architecture and event sourcing patterns
+- kafka.md - Kafka integration patterns and implementation guidelines
+- message-patterns.md - General message queue patterns and best practices
+- rabbitmq.md - RabbitMQ patterns and message queue management
+
 ## Other Components
 
 ### ODBC (odbc/)

@@ -1468,3 +1468,8 @@ components_manager:
 - **Rules**: [`error-handling.md`](../10-development/error-handling.md) - Error handling patterns
 - **Rules**: [`testing.md`](../10-development/testing.md) - Testing strategies
 - **Rules**: [`monitoring.md`](../10-development/monitoring.md) - Monitoring and observability
+- **Rules**: [`../security/authentication.md`](../security/authentication.md) - Authentication patterns and implementation
+- **Rules**: [`../security/authorization.md`](../security/authorization.md) - Authorization patterns and implementation
+- **Rules**: [`../security/encryption.md`](../security/encryption.md) - Encryption patterns and implementation
+- **Rules**: [`../security/security-best-practices.md`](../security/security-best-practices.md) - Security best practices and guidelines
+- **Rules**: [`../security/vulnerability-prevention.md`](../security/vulnerability-prevention.md) - Vulnerability prevention and security testing
