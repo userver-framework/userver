@@ -124,7 +124,7 @@ In addition, all of the above functionality works for debugging both a live proc
 ## GDB complains: received signal ?, Unknown signal
 
 This is a side effect of stack usage monitor interfering with GDB. In unit tests you can set the environment variable
-`USERVER_GTEST_ENABLE_STACK_USAGE_MONITOR=0` to disable the monitor, in other binaries you can either disable it
+`USERVER_ENABLE_STACK_USAGE_MONITOR=0` to disable the monitor, in other binaries you can either disable it
 via static config option `coro_pool.stack_usage_monitor_enabled` in components::ManagerControllerComponent or by
 disabling it at all at build time of the framework via `USERVER_FEATURE_STACK_USAGE_MONITOR`
 (see @ref scripts/docs/en/userver/build/options.md).

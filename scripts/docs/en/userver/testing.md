@@ -156,7 +156,7 @@ Userver uses signals for internal matters to identify coroutine stack usage @ref
 If you see too much "caught signal X" in debugger, you may disable stack usage monitor via environment variable:
 
 ```
-USERVER_GTEST_ENABLE_STACK_USAGE_MONITOR=0
+USERVER_ENABLE_STACK_USAGE_MONITOR=0
 ```
 
 Now you should not be annoyed by extra "caught signal X" events.
