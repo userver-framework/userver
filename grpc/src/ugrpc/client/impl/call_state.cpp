@@ -119,9 +119,10 @@ grpc::Status& CallState::GetStatus() noexcept { return status_; }
 
 void CallState::Commit() noexcept { committed_.store(true, std::memory_order_release); }
 
-grpc::ClientContext& CallState::GetClientContextCommitted() noexcept {
+grpc::ClientContext& CallState::GetClientContextCommitted() {
     UINVARIANT(committed_, "Call state should be committed");
-    return GetClientContext();
+    UINVARIANT(client_context_, "GetClientContext should not be called on cancelled RPC");
+    return *client_context_;
 }
 
 StreamingCallState::StreamingCallState(CallParams&& params, CallKind call_kind)

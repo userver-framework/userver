@@ -79,7 +79,7 @@ public:
 
     void Commit() noexcept;
 
-    grpc::ClientContext& GetClientContextCommitted() noexcept;
+    grpc::ClientContext& GetClientContextCommitted();
 
 private:
     StubHandle stub_;
