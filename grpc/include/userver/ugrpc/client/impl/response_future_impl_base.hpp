@@ -7,7 +7,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
-class CancellableCallContext;
+class CallContext;
 }  // namespace ugrpc::client
 
 namespace ugrpc::client::impl {
@@ -23,8 +23,10 @@ public:
 
     virtual Response Get() = 0;
 
-    virtual CancellableCallContext& GetContext() noexcept = 0;
-    virtual const CancellableCallContext& GetContext() const noexcept = 0;
+    virtual void Cancel() = 0;
+
+    virtual CallContext& GetContext() noexcept = 0;
+    virtual const CallContext& GetContext() const noexcept = 0;
 
     virtual engine::impl::ContextAccessor* TryGetContextAccessor() noexcept = 0;
 };

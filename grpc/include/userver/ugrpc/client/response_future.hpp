@@ -49,11 +49,14 @@ public:
     /// @throws ugrpc::client::RpcCancelledError on task cancellation
     Response Get() { return impl_->Get(); }
 
+    /// @brief Cancel call
+    void Cancel() { return impl_->Cancel(); }
+
     /// @brief Get call context, useful e.g. for accessing metadata.
-    CancellableCallContext& GetContext() { return impl_->GetContext(); }
+    CallContext& GetContext() { return impl_->GetContext(); }
 
     /// @overload
-    const CancellableCallContext& GetContext() const { return impl_->GetContext(); }
+    const CallContext& GetContext() const { return impl_->GetContext(); }
 
     /// @cond
     // For internal use only
