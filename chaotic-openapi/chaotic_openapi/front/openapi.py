@@ -240,6 +240,10 @@ class Operation(base_model.BaseModel):
         default=None,
         alias='x-taxi-middlewares',
     )
+    x_taxi_handler_codegen: bool = pydantic.Field(
+        default=True,
+        alias='x-taxi-handler-codegen',
+    )
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#path-item-object
