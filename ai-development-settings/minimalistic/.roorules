@@ -5,10 +5,10 @@ service_development_rules:
   
   # Notes about available resources
   notes:
-    samples: "In ~/userver/samples there are many examples of userver services demonstrating various features and components"
-    framework_source: "In ~/userver there is the source code of the framework for reference"
-    memory_bank: "In ~/userver/ai-memory-bank there is memory about framework sources and patterns"
-  
+    framework_source: "In userver repo (https://github.com/userver-framework/userver) there is the source code of the framework for reference"
+    samples: "In userver/samples there are many examples of userver services demonstrating various features and components"
+    memory_bank: "In userver/ai-memory-bank there is memory about framework sources and patterns"
+
   # Service project structure based on service_template
   project_structure:
     description: "Standard directory structure for userver services"
@@ -184,3 +184,4 @@ service_development_rules:
       - "Circuit Breakers: Use circuit breaker patterns for external dependencies"
       - "Caching: Implement caching for frequently accessed data"
       - "Rate Limiting: Implement rate limiting to protect services"
+      - "Start from  template: start from template of service, which can be created using userver-create-service command: userver-create-service  service_name [--mongo] [--postgres] [--grpc]"

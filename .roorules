@@ -70,6 +70,11 @@ workflows:
   code_generation:
     - "Use chaotic/ and chaotic-openapi/ for generating code from schemas"
     - "Run code generation when API specifications change"
+  messaging_integration:
+    - "Use kafka/ components for event streaming and high-throughput messaging"
+    - "Use rabbitmq/ components for traditional message queuing and reliable delivery"
+    - "Follow messaging theme rules for implementation patterns and best practices"
+    - "Implement proper error handling and retry mechanisms for messaging components"
 
 rules:
   description: "Project-specific rules and guidelines"
