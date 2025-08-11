@@ -14,7 +14,8 @@ env:
 jobs:
     build:
         runs-on: ${{ matrix.os }}
-        name: ${{ matrix.os }}
+        container: ${{ matrix.container }}
+        name: "${{ matrix.os }} (container: ${{ matrix.container || 'GithubCI' }})"
         strategy:
             fail-fast: false
             matrix:
@@ -22,34 +23,29 @@ jobs:
                   - os: ubuntu-22.04
                     conanflags: ''
                     tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
+                  - os: ubuntu-22.04
+                    container: ubuntu:22.04
+                    conanflags: ''
+                    tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
                   - os: macos-latest
                     conanflags: '-o python_path=python3.11'
                     tests-env: ''
 
         steps:
-          - name: Checkout
-            uses: actions/checkout@v4
+          - name: Install sudo
+            if: matrix.container == 'ubuntu:22.04'
+            run: |
+                DEBIAN_FRONTEND=noninteractive apt update
+                DEBIAN_FRONTEND=noninteractive apt install -y sudo
 
           - name: Install Ubuntu packages
             if: matrix.os == 'ubuntu-22.04'
             run: |
-                sudo apt update
-                sudo apt install -y \
-                   gcc g++ cmake wget git clang-format \
+                sudo DEBIAN_FRONTEND=noninteractive apt update
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+                   libpq-dev \
+                   gcc g++ cmake git clang-format \
                    python3 python3-pip python3-venv
-
-          - name: Install test dependencies
-            if: matrix.os == 'ubuntu-22.04'
-            run: |
-                wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
-                echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
-                      | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
-
-                sudo apt update
-                sudo apt install -y postgresql redis mongodb-org mongodb-mongosh
-                sudo ./scripts/kafka/ubuntu_install_kafka.sh
-
-                ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
           - name: Install MacOS packages
             if: matrix.os == 'macos-latest'
@@ -59,16 +55,42 @@ jobs:
                 brew install clang-format postgresql redis kafka rabbitmq mongodb-community
                 brew install python@3.11
 
+          - name: Checkout
+            uses: actions/checkout@v4
+
+          - name: Change permissions
+            if: matrix.container == 'ubuntu:22.04'
+            run: |
+                useradd -m -G sudo -s /bin/bash test-user
+                chown -R test-user .
+
           - name: Install common packages
             run: |
                 pip install "conan==2.8.0"
                 pip install numpy
-                conan profile detect
-                conan profile show
+                ${{ matrix.container && 'sudo -u test-user' }} conan profile detect
+                ${{ matrix.container && 'sudo -u test-user' }} conan profile show
 
           - name: Run conan
             run: |
-                conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
+                ${{ matrix.container && 'sudo -u test-user' }} git config --global --add safe.directory `pwd`
+                ${{ matrix.container && 'sudo -u test-user' }} conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
+
+          - name: Install test dependencies
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y curl wget lsb-release
+
+                wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
+                echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+                      | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+                sudo DEBIAN_FRONTEND=noninteractive apt update
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y postgresql redis mongodb-org mongodb-mongosh locales
+                ${{ matrix.container && 'sudo locale-gen en_US.UTF-8' }}
+                ${{ matrix.container && 'update-locale LC_ALL="en_US.UTF-8" LANG="en_US.UTF-8" LANGUAGE="en_US.UTF-8"' }}
+                sudo ./scripts/kafka/ubuntu_install_kafka.sh
+                sudo ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
           - name: Test userver conan package
             run: |-
@@ -77,7 +99,7 @@ jobs:
                 rm -rf userver/cmake/
                 cd samples/
 
-                USERVER_VERSION=$(conan list -c -v quiet userver/* | tail -n 1)
+                USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user' }} conan list -c -v quiet userver/* | tail -n 1)
                 for SAMPLE in \
                     3_json \
                     chaotic_service \
@@ -88,12 +110,13 @@ jobs:
                     https_service \
                     postgres_service \
                     redis_service \
-                    kafka_service \
+                    ${{ matrix.container && ' ' || 'kafka_service' }} \
                     rabbitmq_service \
                     mongo_service \
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/
-                    ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
+                    echo "Run: ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}"
+                    ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}
                     mv $SAMPLE/conanfile.py ./
                 done

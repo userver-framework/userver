@@ -12,6 +12,7 @@ from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
 from conan.tools.files import load
 from conan.tools.scm import Git
+from conan.tools.system import package_manager
 
 required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
 
@@ -152,7 +153,9 @@ class UserverConan(ConanFile):
             )
             self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
-            self.requires('libpq/14.5')
+            # `run=True` required to find `pg_config` binary during `psycopg2` python module build
+            # without system package. We use system package.
+            self.requires('libpq/14.9')
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
@@ -249,6 +252,12 @@ class UserverConan(ConanFile):
         CMakeDeps(self).generate()
 
     def build(self):
+        # pg_config is required to build psycopg2 from source without system package.
+        # However, this approach fails on later stage, when venv for tests is built.
+        # libpq = self.dependencies["libpq"]
+        # if libpq:
+        #     os.environ["PATH"] = os.environ["PATH"] + ":" + libpq.package_folder+ "/bin"
+
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
@@ -261,3 +270,12 @@ class UserverConan(ConanFile):
         # https://docs.conan.io/2/examples/tools/cmake/cmake_toolchain/use_package_config_cmake.html
         self.cpp_info.set_property('cmake_find_mode', 'none')
         self.cpp_info.builddirs.append(os.path.join('lib', 'cmake', 'userver'))
+
+    def system_requirements(self):
+        if self.options.with_postgresql:
+            # pg_config is required to build psycopg2 python module from source at
+            # testsuite venv creation during functional testing of user code.
+            package_manager.Apt(self).install(['libpq-dev'])
+            package_manager.Yum(self).install(['libpq-devel'])
+            package_manager.PacMan(self).install(['libpq-dev'])
+            package_manager.Zypper(self).install(['libpq-devel'])
