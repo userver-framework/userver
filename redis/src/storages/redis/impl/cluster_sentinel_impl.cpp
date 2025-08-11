@@ -747,6 +747,12 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
                     /// Nothing new here so do nothing
                     return;
                 }
+
+                if (temp_read_ptr->GetShardInfos().size() != shard_infos.size()) {
+                    LOG_WARNING() << "Significant change of Redis cluster topology. From "
+                                  << temp_read_ptr->GetShardInfos().size() << " shareds count to "
+                                  << shard_infos.size();
+                }
             }
 
             auto topology = ClusterTopology(
@@ -756,6 +762,33 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
                 redis_thread_pool_,
                 nodes_
             );
+
+            LOG_INFO() << [&infos_list = topology.GetShardInfos()](auto& out) {
+                out << "New Redis cluster topology: ";
+                bool first_info_record = true;
+                for (const auto& info : infos_list) {
+                    if (!first_info_record) {
+                        out << "; ";
+                    }
+
+                    const auto& [host, port] = info.master.HostPort();
+                    out << "[" << host << "]:" << port << " master with replicas ";
+                    bool first_replica_record = true;
+                    for (const auto& replica_info : info.slaves) {
+                        const auto& [host, port] = replica_info.HostPort();
+                        if (!first_replica_record) {
+                            out << ", ";
+                        }
+
+                        out << "[" << host << "]:" << port;
+                        first_replica_record = false;
+                    }
+
+                    out << " for slots " << info.slot_intervals;
+                    first_info_record = false;
+                }
+            };
+
             /// Run in ev_thread because topology_.Assign can free some old
             /// topologies with their related redis connections, and these
             /// connections must be freed on "sentinel" thread.

@@ -98,6 +98,8 @@ struct SlotInterval {
     bool operator==(const SlotInterval& r) const { return slot_min == r.slot_min && slot_max == r.slot_max; }
 };
 
+logging::LogHelper& operator<<(logging::LogHelper& log, SlotInterval interval);
+
 struct ClusterShardHostInfo {
     ConnectionInfoInt master;
     std::vector<ConnectionInfoInt> slaves;

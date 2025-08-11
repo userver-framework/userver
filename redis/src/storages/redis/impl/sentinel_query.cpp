@@ -444,6 +444,11 @@ void ProcessGetHostsRequest(GetHostsRequest request, ProcessGetHostsRequestCb ca
     }
 }
 
+logging::LogHelper& operator<<(logging::LogHelper& log, SlotInterval interval) {
+    log << '[' << interval.slot_min << ',' << interval.slot_max << ']';
+    return log;
+}
+
 void ProcessGetClusterHostsRequest(
     std::shared_ptr<const std::vector<std::string>> shard_names,
     GetClusterHostsRequest request,
