@@ -16,31 +16,33 @@ from proto_structs.models import type_ref
 
 TypeDescriptor = Union[descriptor.Descriptor, descriptor.EnumDescriptor]
 
+_BUNDLE_HPP = includes.BUNDLE_STRUCTS_HPP
+
 BUILTIN_TYPES: Mapping[int, type_ref.TypeReference] = {
     descriptor.FieldDescriptor.TYPE_BOOL: type_ref.KeywordType(full_cpp_name='bool'),
     descriptor.FieldDescriptor.TYPE_FLOAT: type_ref.KeywordType(full_cpp_name='float'),
     descriptor.FieldDescriptor.TYPE_DOUBLE: type_ref.KeywordType(full_cpp_name='double'),
-    descriptor.FieldDescriptor.TYPE_STRING: type_ref.BuiltinType(full_cpp_name='std::string', include='string'),
-    descriptor.FieldDescriptor.TYPE_BYTES: type_ref.BuiltinType(full_cpp_name='std::string', include='string'),
-    descriptor.FieldDescriptor.TYPE_INT32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_INT64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_UINT32: type_ref.BuiltinType(full_cpp_name='std::uint32_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_UINT64: type_ref.BuiltinType(full_cpp_name='std::uint64_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_SINT32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_SINT64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_FIXED32: type_ref.BuiltinType(full_cpp_name='std::uint32_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_FIXED64: type_ref.BuiltinType(full_cpp_name='std::uint64_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_SFIXED32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include='cstdint'),
-    descriptor.FieldDescriptor.TYPE_SFIXED64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include='cstdint'),
+    descriptor.FieldDescriptor.TYPE_STRING: type_ref.BuiltinType(full_cpp_name='std::string', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_BYTES: type_ref.BuiltinType(full_cpp_name='std::string', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_INT32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_INT64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_UINT32: type_ref.BuiltinType(full_cpp_name='std::uint32_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_UINT64: type_ref.BuiltinType(full_cpp_name='std::uint64_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_SINT32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_SINT64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_FIXED32: type_ref.BuiltinType(full_cpp_name='std::uint32_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_FIXED64: type_ref.BuiltinType(full_cpp_name='std::uint64_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_SFIXED32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_SFIXED64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include=_BUNDLE_HPP),
 }
 
-_OPTIONAL_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::optional', include='optional')
-_VECTOR_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::vector', include='vector')
+_OPTIONAL_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::optional', include=_BUNDLE_HPP)
+_VECTOR_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::vector', include=_BUNDLE_HPP)
 
 
 def parse_enum_reference(field_type: descriptor.EnumDescriptor) -> type_ref.TypeReference:
     # TODO
-    return type_ref.BuiltinType(full_cpp_name='std::monostate', include='variant')
+    return type_ref.BuiltinType(full_cpp_name='std::monostate', include=_BUNDLE_HPP)
 
 
 def parse_struct_reference(field_type: descriptor.Descriptor) -> type_ref.TypeReference:
@@ -48,7 +50,7 @@ def parse_struct_reference(field_type: descriptor.Descriptor) -> type_ref.TypeRe
     # https://protobuf.com/docs/descriptors#map-fields
 
     # TODO
-    return type_ref.BuiltinType(full_cpp_name='std::monostate', include='variant')
+    return type_ref.BuiltinType(full_cpp_name='std::monostate', include=_BUNDLE_HPP)
 
 
 def handle_type_label(

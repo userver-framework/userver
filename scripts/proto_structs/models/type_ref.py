@@ -94,7 +94,7 @@ class BuiltinType(TypeReference, names.HasCppNameImpl):
 
     @override
     def collect_includes(self) -> Iterable[str]:
-        return (self._include,)
+        return [self._include]
 
 
 class UserverCodegenType(TypeReference, names.HasCppNameImpl):
@@ -116,4 +116,4 @@ class UserverCodegenType(TypeReference, names.HasCppNameImpl):
 
     @override
     def collect_includes(self) -> Iterable[str]:
-        return (self._include,)
+        return [self._include]

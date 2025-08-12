@@ -1,0 +1,1 @@
+// PLEASE REMOVE ME ONCE THERE IS AT LEAST ONE CPP IN proto-structs/src

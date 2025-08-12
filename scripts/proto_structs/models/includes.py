@@ -6,6 +6,9 @@ import pathlib
 from typing import List
 from typing import Optional
 
+BUNDLE_STRUCTS_HPP = 'userver/proto-structs/impl/bundles/structs_hpp.hpp'
+BUNDLE_STRUCTS_CPP = 'userver/proto-structs/impl/bundles/structs_cpp.hpp'
+
 
 class HasCppIncludes(abc.ABC):
     """A C++ entity or entity group that may require includes to define."""

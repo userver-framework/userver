@@ -193,7 +193,8 @@ class EnumNode(TypeNode):
 
     @override
     def own_includes(self) -> Iterable[str]:
-        return 'cstdint', 'limits'
+        # 'cstdint' and 'limits' are included in bundle_hpp.
+        return [includes.BUNDLE_STRUCTS_HPP]
 
 
 @dataclasses.dataclass(frozen=True)
