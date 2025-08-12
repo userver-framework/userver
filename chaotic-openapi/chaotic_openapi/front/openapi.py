@@ -217,10 +217,6 @@ class Components(base_model.BaseModel):
     securitySchemes: SecuritySchemes = pydantic.Field(default_factory=dict)
 
 
-class XTaxiMiddlewares(base_model.BaseModel):
-    tvm: bool = True
-
-
 # https://spec.openapis.org/oas/v3.0.0.html#operation-object
 class Operation(base_model.BaseModel):
     tags: List[str] = pydantic.Field(default_factory=list)
@@ -236,7 +232,7 @@ class Operation(base_model.BaseModel):
     security: Optional[Security] = None
     servers: List[Server] = pydantic.Field(default_factory=list)
 
-    x_taxi_middlewares: Optional[XTaxiMiddlewares] = pydantic.Field(
+    x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
         default=None,
         alias='x-taxi-middlewares',
     )
@@ -283,7 +279,7 @@ class OpenApi(base_model.BaseModel):
         default=None,
         alias='x-taxi-client-qos',
     )
-    x_taxi_middlewares: Optional[XTaxiMiddlewares] = pydantic.Field(
+    x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
         default=None,
         alias='x-taxi-middlewares',
     )

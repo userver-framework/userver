@@ -23,3 +23,7 @@ class BaseModel(pydantic.BaseModel):
             if field.startswith('x-'):
                 continue
             raise Exception(f'Unknown field "{field}"')
+
+
+class XTaxiMiddlewares(BaseModel):
+    tvm: bool = True

@@ -21,6 +21,14 @@ paths:
                 '404':
                     $ref: '#/responses/Response404'
 
+    /test1/no-tvm:
+        post:
+            x-taxi-middlewares:
+                tvm: false
+            responses:
+                '200':
+                    description: OK
+
 
 parameters:
     X-Header-456:

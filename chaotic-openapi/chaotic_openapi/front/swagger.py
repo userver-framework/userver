@@ -170,6 +170,11 @@ class Operation(base_model.BaseModel):
     deprecated: bool = False
     security: Optional[Security] = None
 
+    x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
+        default=None,
+        alias='x-taxi-middlewares',
+    )
+
 
 # https://spec.openapis.org/oas/v2.0.html#paths-object
 class Path(base_model.BaseModel):
