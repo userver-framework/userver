@@ -56,3 +56,12 @@ definitions:
         properties:
             version:
                 type: integer
+
+    OneOfToRefToRef:
+        oneOf:
+          - $ref: '#/definitions/RefToC'
+        discriminator:
+            propertyName: version
+
+    RefToC:
+        $ref: '#/definitions/C'

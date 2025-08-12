@@ -207,7 +207,7 @@ def test_wd_wrong_type(parse_after_refs):
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/oneOf/0'
-        assert exc.msg == 'oneOf $ref to non-object'
+        assert exc.msg == 'oneOf $ref to non-object (Integer)'
 
 
 def test_wd_ok(parse_after_refs):

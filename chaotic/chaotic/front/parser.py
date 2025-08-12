@@ -3,6 +3,7 @@ import contextlib
 import dataclasses
 import os
 import re
+from typing import Any
 from typing import Dict
 from typing import Generator
 from typing import List
@@ -129,7 +130,10 @@ class SchemaParser:
             self._raise('Not a $ref in oneOf with discriminator')
 
         assert self._state
-        dest_type = self._state.schemas.get(type_.ref)
+        dest_type: Any = type_
+        while isinstance(dest_type, types.Ref):
+            dest_type = self._state.schemas.get(dest_type.ref)
+
         # TODO: fix in TAXICOMMON-8910
         #
         # if not dest_type:
@@ -139,7 +143,7 @@ class SchemaParser:
         #     )
         if dest_type:
             if not isinstance(dest_type, types.SchemaObject):
-                self._raise('oneOf $ref to non-object')
+                self._raise(f'oneOf $ref to non-object ({type(dest_type).__name__})')
             if discriminator_property not in (dest_type.properties or {}):
                 self._raise(
                     f'No discriminator property "{discriminator_property}"',
