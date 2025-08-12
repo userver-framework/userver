@@ -43,7 +43,7 @@ def test_swagger_body_schema(simple_parser):
                 description='',
                 path='/',
                 method='get',
-                operationId='Get',
+                operationId=None,
                 parameters=[],
                 requestBody=[
                     model.RequestBody(
@@ -137,7 +137,7 @@ def test_swagger_responses(simple_parser):
                 description='',
                 path='/',
                 method='get',
-                operationId='Get',
+                operationId=None,
                 parameters=[],
                 requestBody=[],
                 responses={
@@ -274,7 +274,7 @@ def test_swagger_securuty(simple_parser):
                 description='',
                 path='/',
                 method='get',
-                operationId='Get',
+                operationId=None,
                 parameters=[],
                 responses={},
                 requestBody=[],
@@ -307,7 +307,7 @@ def test_swagger_securuty(simple_parser):
                 description='',
                 path='/',
                 method='post',
-                operationId='Post',
+                operationId=None,
                 parameters=[],
                 responses={},
                 requestBody=[],
@@ -340,7 +340,7 @@ def test_swagger_securuty(simple_parser):
                 description='',
                 path='/',
                 method='put',
-                operationId='Put',
+                operationId=None,
                 parameters=[],
                 responses={},
                 requestBody=[],
@@ -449,7 +449,7 @@ def test_swagger_parameters(simple_parser):
                 description='',
                 path='/',
                 method='get',
-                operationId='Get',
+                operationId=None,
                 responses={},
                 requestBody=[
                     model.RequestBody(content_type='text/plain; charset=utf-8', required=True, schema=types.Number()),

@@ -36,6 +36,7 @@ def test_parameters(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 parameters=[
                     types.Parameter(
                         description='parameter description',
@@ -100,6 +101,7 @@ def test_parameters_ref(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 parameters=[
                     types.Parameter(
                         description='parameter description',
@@ -164,6 +166,7 @@ def test_parameters_schemas_ref(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 parameters=[
                     types.Parameter(
                         description='parameter description',

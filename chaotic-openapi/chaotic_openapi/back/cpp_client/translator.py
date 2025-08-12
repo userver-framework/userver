@@ -63,6 +63,7 @@ class Translator:
             op = types.Operation(
                 method=operation.method.upper(),
                 path=operation.path,
+                operation_id=operation.operationId,
                 description=operation.description,
                 parameters=[self._translate_parameter(parameter) for parameter in operation.parameters],
                 request_bodies=request_bodies,

@@ -11,7 +11,6 @@ from typing import Union
 
 import pydantic
 
-from chaotic import cpp_names
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import types
 from . import errors
@@ -594,10 +593,6 @@ class Parser:
                 raise Exception(f'Operation {operation.method.upper()} {operation.path} is duplicated')
             seen.add(new)
 
-    @staticmethod
-    def _gen_operation_id(path: str, method: str) -> str:
-        return cpp_names.camel_case((path + '_' + method).replace('/', '_'))
-
     def _parse_schema(self, schema: Any, infile_path: str) -> Union[types.Schema, types.Ref]:
         parser = chaotic_parser.SchemaParser(
             config=chaotic_parser.ParserConfig(erase_prefix=''),
@@ -651,7 +646,7 @@ class Parser:
                 description=operation.description,
                 path=path,
                 method=method,
-                operationId=(operation.operationId or self._gen_operation_id(path, method)),
+                operationId=operation.operationId,
                 parameters=list(params.values()),
                 requestBody=requestBody,
                 responses={
@@ -685,7 +680,7 @@ class Parser:
                 description=operation.description,
                 path=path,
                 method=method,
-                operationId=(operation.operationId or self._gen_operation_id(path, method)),
+                operationId=operation.operationId,
                 parameters=params,
                 requestBody=body,
                 responses={

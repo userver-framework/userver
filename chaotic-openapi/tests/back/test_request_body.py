@@ -35,6 +35,7 @@ def test_request_body(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 request_bodies=[
                     types.Body(
                         content_type='application/json',
@@ -91,6 +92,7 @@ def test_request_body_ref(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 request_bodies=[
                     types.Body(
                         content_type='application/json',
@@ -140,6 +142,7 @@ def test_request_body_nonrequired(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 request_bodies=[
                     types.Body(
                         content_type='application/json',

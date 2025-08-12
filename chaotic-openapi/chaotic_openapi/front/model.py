@@ -132,7 +132,7 @@ class Operation:
     description: str
     path: str
     method: str
-    operationId: str
+    operationId: Union[str, None]
     parameters: List[Parameter]
     requestBody: Union[List[RequestBody], Ref]
     responses: Dict[int, Union[Response, Ref]]

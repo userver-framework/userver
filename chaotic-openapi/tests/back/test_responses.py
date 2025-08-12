@@ -36,6 +36,7 @@ def test_response(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 request_bodies=[],
                 responses=[
                     types.Response(
@@ -97,6 +98,7 @@ def test_response_ref(translate_single_schema):
             types.Operation(
                 method='GET',
                 path='/',
+                operation_id=None,
                 request_bodies=[],
                 responses=[
                     types.Response(

@@ -26,7 +26,6 @@ def validate_nonobject_body(service: model.Service) -> None:
             if not isinstance(
                 schema, (types.SchemaObject, types.OneOfWithDiscriminator, types.OneOfWithoutDiscriminator)
             ):
-                print(schema, file=sys.stderr)
                 report_error('non-object-body', schema.source_location(), 'Non-object type in body root is forbidden')
 
 
