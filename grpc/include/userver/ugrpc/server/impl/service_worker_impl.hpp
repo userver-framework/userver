@@ -233,13 +233,13 @@ private:
 template <typename GrpcppService, typename Service, typename... ServiceMethods>
 std::unique_ptr<ServiceWorker> MakeServiceWorker(
     ServiceInternals&& internals,
-    const std::array<std::string_view, sizeof...(ServiceMethods)>& method_full_names,
+    const std::array<ugrpc::impl::MethodDescriptor, sizeof...(ServiceMethods)>& methods,
     Service& service,
     ServiceMethods... service_methods
 ) {
     return std::make_unique<ServiceWorkerImpl<GrpcppService>>(
         std::move(internals),
-        ugrpc::impl::MakeStaticServiceMetadata<GrpcppService>(method_full_names),
+        ugrpc::impl::MakeStaticServiceMetadata<GrpcppService>(methods),
         service,
         service_methods...
     );

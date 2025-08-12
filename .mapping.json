@@ -2177,6 +2177,7 @@
   "grpc/include/userver/ugrpc/impl/maybe_owned_string.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/impl/maybe_owned_string.hpp",
   "grpc/include/userver/ugrpc/impl/protobuf_collector.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/impl/protobuf_collector.hpp",
   "grpc/include/userver/ugrpc/impl/queue_runner.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/impl/queue_runner.hpp",
+  "grpc/include/userver/ugrpc/impl/rpc_type.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/impl/rpc_type.hpp",
   "grpc/include/userver/ugrpc/impl/static_service_metadata.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/impl/static_service_metadata.hpp",
   "grpc/include/userver/ugrpc/impl/statistics.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/impl/statistics.hpp",
   "grpc/include/userver/ugrpc/impl/statistics_scope.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/impl/statistics_scope.hpp",

@@ -12,11 +12,14 @@ namespace ugrpc::server::impl {
 
 namespace {
 
-constexpr std::string_view kGenericMethodFullNamesFake[] = {
-    "Generic/Generic",
-};
-constexpr std::string_view kGenericServiceNameFake = "Generic";
-constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServiceNameFake, kGenericMethodFullNamesFake};
+constexpr std::string_view kGenericServiceFullNameFake = "Generic";
+
+constexpr std::array kGenericMethodsFake = {ugrpc::impl::MethodDescriptor{
+    /*method_full_name*/ "Generic/Generic",
+    /*method_type*/ ugrpc::impl::RpcType::kBidiStreaming,
+}};
+
+constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServiceFullNameFake, kGenericMethodsFake};
 
 }  // namespace
 

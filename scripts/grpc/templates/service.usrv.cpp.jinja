@@ -13,10 +13,21 @@
 {% for service in proto.services %}
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
-inline constexpr std::array<std::string_view, {{service.method | length}}> k{{service.name}}MethodNames{
-  {% for method in service.method %}
-  std::string_view{"{{proto.package_prefix}}{{service.name}}/{{method.name}}"},
-  {% endfor %}
+inline constexpr std::array<USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor, {{service.method | length}}> k{{service.name}}Methods = {
+{% for method in service.method %}
+    USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor{
+        "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+{% if method.client_streaming and method.server_streaming %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kBidiStreaming,
+{% elif method.client_streaming %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kClientStreaming,
+{% elif method.server_streaming %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kServerStreaming,
+{% else %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kUnary,
+{% endif %}
+    },
+{% endfor %}
 };
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
@@ -77,7 +88,7 @@ std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
 
   return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<
       {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
-      std::move(internals), k{{service.name}}MethodNames, *this{% if service.method %},{% endif %}
+      std::move(internals), k{{service.name}}Methods, *this{% if service.method %},{% endif %}
       {% for method in service.method %}
       &{{service.name}}Base::{{method.name}}{{ "," if not loop.last }}
       {% endfor %}
