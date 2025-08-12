@@ -67,9 +67,11 @@ public:
             "Type doesn't have mapping to Postgres type. "
             "Enums should be either streamed as their underlying value via the "
             "`template<> struct CanUseEnumAsStrongTypedef<T>: std::true_type {};` "
-            "specialization or as a PostgreSQL datatype via the "
+            "specialization, or as a PostgreSQL datatype via the "
             "`template<> struct CppToUserPg<T> : EnumMappingBase<R> { ... };` "
-            "specialization. "
+            "specialization, or for enums with Parse() and ToString() functions, use "
+            "`template<> struct CppToSystemPg<T> : PredefinedOid<PredefinedOids::kText> {};` "
+            "specialization for automatic mapping to PostgreSQL text type. "
             "See page `uPg: Supported data types` for more information."
         );
         WriteParamType(index, types, arg);
