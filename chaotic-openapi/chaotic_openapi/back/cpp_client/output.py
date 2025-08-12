@@ -129,10 +129,11 @@ def extract_includes(name: str, path: pathlib.Path) -> Optional[List[str]]:
             for v in data:
                 visit(v)
 
-    if 'definitions' in content or 'components' in content or 'paths' in content:
+    if content.get('definitions') or content.get('components', {}).get('schemas'):
         visit(content)
         return includes
     else:
+        # No schemas in file, it will generate no .hpp/.cpp
         return None
 
 

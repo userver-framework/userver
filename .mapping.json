@@ -105,6 +105,7 @@
   "chaotic-openapi/include/userver/chaotic/openapi/parameters_read.hpp":"taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/parameters_read.hpp",
   "chaotic-openapi/include/userver/chaotic/openapi/parameters_write.hpp":"taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/parameters_write.hpp",
   "chaotic-openapi/integration_tests/CMakeLists.txt":"taxi/uservices/userver/chaotic-openapi/integration_tests/CMakeLists.txt",
+  "chaotic-openapi/integration_tests/clients/empty-openapi/openapi.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/empty-openapi/openapi.yaml",
   "chaotic-openapi/integration_tests/clients/external-refs/one.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/external-refs/one.yaml",
   "chaotic-openapi/integration_tests/clients/external-refs/two.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/external-refs/two.yaml",
   "chaotic-openapi/integration_tests/clients/multiple-content-types/openapi.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/multiple-content-types/openapi.yaml",
