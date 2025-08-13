@@ -49,7 +49,7 @@ const tracing::TracingManagerBase* GetTracingManager(const ClientSettings& setti
 Client::Client(
     ClientSettings settings,
     engine::TaskProcessor& fs_task_processor,
-    impl::PluginPipeline&& plugin_pipeline
+    std::vector<utils::NotNull<clients::http::Plugin*>> plugins
 )
     : deadline_propagation_config_(settings.deadline_propagation),
       cancellation_policy_(settings.cancellation_policy),
@@ -59,7 +59,7 @@ Client::Client(
       user_agent_(utils::GetUserverIdentifier()),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
       tracing_manager_(GetTracingManager(settings)),
-      plugin_pipeline_(std::move(plugin_pipeline)) {
+      plugins_(std::move(plugins)) {
     const auto io_threads = settings.io_threads;
     const auto& thread_name_prefix = settings.thread_name_prefix;
 
@@ -125,7 +125,7 @@ Request Client::CreateRequest() {
                 statistics_[idx].CreateRequestStats(),
                 destination_statistics_,
                 resolver_,
-                plugin_pipeline_,
+                plugins_,
                 *tracing_manager_.GetBase()};
         } else {
             auto i = utils::RandRange(multis_.size());
@@ -140,7 +140,7 @@ Request Client::CreateRequest() {
                     statistics_[i].CreateRequestStats(),
                     destination_statistics_,
                     resolver_,
-                    plugin_pipeline_,
+                    plugins_,
                     *tracing_manager_.GetBase()};
             } catch (engine::WaitInterruptedException&) {
                 throw clients::http::CancelException("wait interrupted", {}, ErrorKind::kCancel);

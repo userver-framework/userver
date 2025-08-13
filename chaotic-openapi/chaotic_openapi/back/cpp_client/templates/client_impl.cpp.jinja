@@ -21,6 +21,9 @@ ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config
           const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control
       ) {
         auto r = http_client_.CreateRequest();
+        if (plugins_) {
+            r.SetPluginsList(*plugins_);
+        }
         ApplyConfig(r, command_control, config_);
         
         {% if not op.empty_request() -%}

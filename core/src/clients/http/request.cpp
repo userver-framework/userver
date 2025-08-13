@@ -207,17 +207,11 @@ Request::Request(
     RequestStats&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
     clients::dns::Resolver* resolver,
-    impl::PluginPipeline& plugin_pipeline,
+    const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
     const tracing::TracingManagerBase& tracing_manager
 )
-    : pimpl_(std::make_shared<RequestState>(
-          std::move(wrapper),
-          std::move(req_stats),
-          dest_stats,
-          resolver,
-          plugin_pipeline,
-          tracing_manager
-      )) {
+    : pimpl_(std::make_shared<
+             RequestState>(std::move(wrapper), std::move(req_stats), dest_stats, resolver, plugins, tracing_manager)) {
     LOG_TRACE() << "Request::Request()";
     // default behavior follow redirects and verify ssl
     pimpl_->follow_redirects(true);
@@ -529,6 +523,11 @@ Request& Request::delete_method(std::string url, std::string data) & {
 }
 Request Request::delete_method(std::string url, std::string data) && {
     return std::move(this->delete_method(std::move(url), std::move(data)));
+}
+
+Request& Request::SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) & {
+    pimpl_->SetPluginsList(plugins);
+    return *this;
 }
 
 Request& Request::SetLoggedUrl(std::string url) & {

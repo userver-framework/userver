@@ -2,6 +2,8 @@
 
 #include <userver/chaotic/openapi/client/config.hpp>
 #include <userver/chaotic/openapi/client/middleware_factory.hpp>
+#include <userver/clients/http/plugin.hpp>
+#include <userver/clients/http/plugin_component.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -31,6 +33,18 @@ Component::Component(const USERVER_NAMESPACE::components::ComponentConfig& confi
             auto middleware = factory.Create(config);
             client_.RegisterMiddleware(middleware);
         }
+
+        const auto& names = config["plugins"].As<std::optional<std::vector<std::string>>>(std::nullopt);
+        std::optional<std::vector<utils::NotNull<clients::http::Plugin*>>> plugins;
+        if (names) {
+            plugins.emplace();
+            for (const auto& name : *names) {
+                auto& component =
+                    context.FindComponent<clients::http::plugin::ComponentBase>(std::string{"http-client-plugin-"} + name);
+                plugins->emplace_back(&component.GetPlugin());
+            }
+        }
+        client_.SetPlugins(std::move(plugins));
     }
 }
 

@@ -215,7 +215,7 @@ RequestState::RequestState(
     RequestStats&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
     clients::dns::Resolver* resolver,
-    impl::PluginPipeline& plugin_pipeline,
+    const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
     const tracing::TracingManagerBase& tracing_manager
 )
     : easy_(std::move(wrapper)),
@@ -227,7 +227,7 @@ RequestState::RequestState(
       is_cancelled_(false),
       errorbuffer_(),
       resolver_{resolver},
-      plugin_pipeline_{plugin_pipeline} {
+      plugin_pipeline_(plugins) {
     // Libcurl calls sigaction(2)  way too frequently unless this option is used.
     easy().set_no_signal(true);
     easy().set_error_buffer(errorbuffer_.data());
@@ -642,6 +642,10 @@ void RequestState::parse_header(char* ptr, size_t size) try {
     response_->headers().emplace(std::move(key), std::move(value));
 } catch (const std::exception& e) {
     LOG_ERROR() << "Failed to parse header: " << e.what();
+}
+
+void RequestState::SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) {
+    plugin_pipeline_ = impl::PluginPipeline(plugins);
 }
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }

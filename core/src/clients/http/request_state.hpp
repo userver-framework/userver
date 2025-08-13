@@ -47,7 +47,7 @@ public:
         RequestStats&& req_stats,
         const std::shared_ptr<DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
-        impl::PluginPipeline& plugin_pipeline,
+        const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
         const tracing::TracingManagerBase& tracing_manager
     );
     ~RequestState();
@@ -134,6 +134,7 @@ public:
     std::shared_ptr<Response> response() const { return response_; }
     std::shared_ptr<Response> response_move() { return std::move(response_); }
 
+    void SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins);
     void SetLoggedUrl(std::string url);
     void SetEasyTimeout(std::chrono::milliseconds timeout);
 
@@ -237,7 +238,7 @@ private:
 
     clients::dns::Resolver* resolver_{nullptr};
     std::string proxy_url_;
-    impl::PluginPipeline& plugin_pipeline_;
+    impl::PluginPipeline plugin_pipeline_;
 
     struct StreamData {
         StreamData(Queue::Producer&& queue_producer) : queue_producer(std::move(queue_producer)) {}

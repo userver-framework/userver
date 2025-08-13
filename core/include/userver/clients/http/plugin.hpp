@@ -91,7 +91,7 @@ namespace impl {
 
 class PluginPipeline final {
 public:
-    PluginPipeline(const std::vector<utils::NotNull<Plugin*>>& plugins);
+    explicit PluginPipeline(const std::vector<utils::NotNull<Plugin*>>& plugins);
 
     void HookPerformRequest(RequestState& request);
 
@@ -104,7 +104,7 @@ public:
     bool HookOnRetry(RequestState& request);
 
 private:
-    const std::vector<utils::NotNull<Plugin*>> plugins_;
+    utils::NotNull<const std::vector<utils::NotNull<Plugin*>>*> plugins_;
 };
 
 }  // namespace impl

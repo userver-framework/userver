@@ -89,7 +89,7 @@ public:
         RequestStats&& req_stats,
         const std::shared_ptr<DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
-        impl::PluginPipeline& plugin_pipeline,
+        const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
         const tracing::TracingManagerBase& tracing_manager
     );
     /// @endcond
@@ -249,6 +249,9 @@ public:
         static_assert(!sizeof(T), "ConnectTo argument must not be temporary, it must outlive Request");
         return *this;
     }
+
+    /// Override list of plugins from @ref components::HttpClient for specific request
+    Request& SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) &;
 
     /// Override log URL. Useful for "there's a secret in the query".
     /// @warning The query might be logged by other intermediate HTTP agents

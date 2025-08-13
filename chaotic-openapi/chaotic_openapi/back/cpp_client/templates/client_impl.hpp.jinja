@@ -47,11 +47,16 @@ public:
     middleware_manager_.RegisterMiddleware(middleware);
   }
 
+  void SetPlugins(std::optional<std::vector<utils::NotNull<clients::http::Plugin*>>> plugins) {
+    plugins_ = std::move(plugins);
+  }
+
 private:
   USERVER_NAMESPACE::chaotic::openapi::client::Config config_;
   USERVER_NAMESPACE::clients::http::Client& http_client_;
   USERVER_NAMESPACE::chaotic::openapi::MiddlewareManager middleware_manager_;
   std::unordered_map<std::string, std::shared_ptr<USERVER_NAMESPACE::chaotic::openapi::client::Middleware>> middlewares_;
+  std::optional<std::vector<utils::NotNull<clients::http::Plugin*>>> plugins_;
 };
 
 }
