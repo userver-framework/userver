@@ -107,6 +107,10 @@ class Parameter(base_model.BaseModel):
         default=None,
         alias='x-taxi-handler-tag',
     )
+    x_cpp_name: Optional[str] = pydantic.Field(
+        default=None,
+        alias='x-taxi-cpp-name',
+    )
 
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)

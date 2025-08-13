@@ -309,6 +309,7 @@ def test_openapi_parameters(simple_parser):
                 examples={},
                 deprecated=False,
                 allowEmptyValue=False,
+                x_cpp_name=None,
             )
         },
         operations=[
@@ -331,6 +332,7 @@ def test_openapi_parameters(simple_parser):
                         examples={},
                         deprecated=False,
                         allowEmptyValue=False,
+                        x_cpp_name=None,
                     ),
                     model.Parameter(
                         name='pamparam2',
@@ -342,6 +344,7 @@ def test_openapi_parameters(simple_parser):
                         examples={},
                         deprecated=False,
                         allowEmptyValue=False,
+                        x_cpp_name=None,
                     ),
                     model.Parameter(
                         name='pamparam2',
@@ -353,6 +356,7 @@ def test_openapi_parameters(simple_parser):
                         examples={},
                         deprecated=False,
                         allowEmptyValue=False,
+                        x_cpp_name=None,
                     ),
                 ],
             )

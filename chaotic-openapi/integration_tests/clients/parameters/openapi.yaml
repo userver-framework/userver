@@ -15,6 +15,12 @@ paths:
                       - one
                       - two
                       - three
+              - name: class
+                x-taxi-cpp-name: myclass
+                in: query
+                required: false
+                schema:
+                    type: string
             requestBody:
                 content:
                     application/json:

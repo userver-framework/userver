@@ -50,6 +50,11 @@ class Parameter(base_model.BaseModel):
 
     # TODO: validators
 
+    x_cpp_name: Optional[str] = pydantic.Field(
+        default=None,
+        alias='x-taxi-cpp-name',
+    )
+
     def model_post_init(self, context: Any, /) -> None:
         if self.in_ == In.body:
             if not self.schema_:

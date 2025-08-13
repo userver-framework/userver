@@ -283,7 +283,9 @@ class Translator:
     def _translate_parameter(self, parameter: model.Parameter) -> types.Parameter:
         in_ = parameter.in_
         in_str = in_[0].title() + in_[1:]
-        cpp_name = cpp_names.cpp_identifier(parameter.name)
+        cpp_name = cpp_names.cpp_identifier(
+            parameter.x_cpp_name or parameter.name,
+        )
 
         if isinstance(parameter.schema, chaotic_types.Array):
             delimiter = {

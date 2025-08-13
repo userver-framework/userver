@@ -41,6 +41,8 @@ class Parameter:
     style: Style
     schema: types.Schema
 
+    x_cpp_name: Optional[str]
+
 
 @dataclasses.dataclass
 class MediaType:

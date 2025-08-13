@@ -85,6 +85,7 @@ class Parser:
             allowEmptyValue=False,
             style=model.Style.simple,
             schema=self._parse_schema(header_dict, infile_path + '/schema'),
+            x_cpp_name=None,
         )
 
     def _convert_media_type(
@@ -125,6 +126,7 @@ class Parser:
             allowEmptyValue=parameter.allowEmptyValue,
             style=model.Style(parameter.style),
             schema=self._parse_schema(parameter.schema_, infile_path + '/schema'),
+            x_cpp_name=parameter.x_cpp_name,
         )
         return p
 
@@ -211,6 +213,7 @@ class Parser:
             allowEmptyValue=parameter.allowEmptyValue,
             style=style,
             schema=schema,
+            x_cpp_name=parameter.x_cpp_name,
         )
 
         return p
