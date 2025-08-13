@@ -65,6 +65,17 @@ class Parameter:
     def __post_init__(self) -> None:
         self._validate_schema(self.cpp_type, is_array_allowed=True)
 
+    # TODO: for handler only
+    def span_value(self) -> str:
+        if self.required:
+            arg = self.cpp_name
+        else:
+            arg = '*' + self.cpp_name
+        if self.cpp_type.cpp_user_name() == 'std::string':
+            return arg
+        else:
+            return f'::fmt::format("{{}}", {arg})'
+
 
 @dataclasses.dataclass
 class Body:

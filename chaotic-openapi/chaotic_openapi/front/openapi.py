@@ -103,6 +103,11 @@ class Parameter(base_model.BaseModel):
 
     # content: Dict[str, MediaType] = {}
 
+    x_handler_tag: Optional[str] = pydantic.Field(
+        default=None,
+        alias='x-taxi-handler-tag',
+    )
+
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
         if self.style:

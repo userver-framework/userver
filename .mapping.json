@@ -108,6 +108,7 @@
   "chaotic-openapi/integration_tests/clients/empty-openapi/openapi.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/empty-openapi/openapi.yaml",
   "chaotic-openapi/integration_tests/clients/external-refs/one.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/external-refs/one.yaml",
   "chaotic-openapi/integration_tests/clients/external-refs/two.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/external-refs/two.yaml",
+  "chaotic-openapi/integration_tests/clients/handler-tag/openapi.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/handler-tag/openapi.yaml",
   "chaotic-openapi/integration_tests/clients/multiple-content-types/openapi.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/multiple-content-types/openapi.yaml",
   "chaotic-openapi/integration_tests/clients/operation/openapi.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/operation/openapi.yaml",
   "chaotic-openapi/integration_tests/clients/parameters/openapi.yaml":"taxi/uservices/userver/chaotic-openapi/integration_tests/clients/parameters/openapi.yaml",
