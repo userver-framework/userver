@@ -123,7 +123,7 @@ class CppType:
         assert self.json_schema
 
         kwargs = self.json_schema.x_properties
-        description = kwargs.get('description')
+        description = (kwargs.get('title', '') + '\n' + kwargs.get('description', '')).strip()
         if description:
             return '// ' + description.replace('\n', '\n//')
         else:

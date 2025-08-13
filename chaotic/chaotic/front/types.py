@@ -22,7 +22,7 @@ class FieldError(Exception):
 def is_ignored_prefix(arg: str) -> bool:
     if arg.startswith('x-'):
         return True
-    if arg in ('description', 'example'):
+    if arg in ('description', 'example', 'title'):
         return True
     return False
 

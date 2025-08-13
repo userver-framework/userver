@@ -72,6 +72,10 @@ def test_schema_type_string(simple_parse):
     simple_parse({'type': 'string'})
 
 
+def test_title(simple_parse):
+    simple_parse({'type': 'string', 'title': 'something'})
+
+
 def test_ref(simple_parse):
     try:
         config = ParserConfig(erase_prefix='')
