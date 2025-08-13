@@ -11,19 +11,14 @@ _userver_module_begin(
     python
 )
 
+# minimum version is bound by testsuite
 _userver_module_find_include(
     NAMES
     Python.h
     PATHS
     /usr/include/python3m
-    /usr/include/python3.6m
-    /usr/include/python3.7m
-    /usr/include/python3.8m
     /usr/include/python3.9m
     /usr/include/python3
-    /usr/include/python3.6
-    /usr/include/python3.7
-    /usr/include/python3.8
     /usr/include/python3.9
     /usr/include/python3.10
     /usr/include/python3.11
