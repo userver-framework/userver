@@ -14,7 +14,7 @@ class BaseModel(pydantic.BaseModel):
         if not self.__pydantic_extra__:
             return
         for field in self.__pydantic_extra__:
-            if field.startswith('x-taxi-py3-'):
+            if field.startswith('x-taxi-py3'):
                 continue
             if field.startswith('x-taxi-') or field.startswith('x-usrv-'):
                 assert field in self._model_userver_tags, f'Field {field} is not allowed in this context'
