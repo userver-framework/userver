@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 
 import yaml
@@ -32,7 +33,7 @@ def do_main():
     # parse
     parser = front_parser.Parser(args.name)
     for file, content in sorted_contents:
-        parser.parse_schema(content, file)
+        parser.parse_schema(content, file, os.path.basename(file))
 
     # translate
     spec = translator.Translator(

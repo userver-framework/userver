@@ -113,7 +113,7 @@ def render(spec: types.ClientSpec, context: Context) -> List[CppOutput]:
         filepath = cpp_type.json_schema.source_location().filepath
         vfilepath_map[filepath] = 'clients/{}/{}'.format(
             spec.client_name,
-            filepath.split('/')[-1],
+            filepath,
         )
 
     # C++ types files

@@ -231,7 +231,7 @@ class ClientSpec:
             includes.append(
                 'clients/{}/{}.hpp'.format(
                     self.client_name,
-                    filepath.split('/')[-1].split('.')[0],
+                    filepath.rsplit('.', 1)[0],
                 ),
             )
         return includes

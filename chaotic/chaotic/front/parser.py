@@ -337,11 +337,14 @@ class SchemaParser:
 
     @staticmethod
     def _normalize_ref(ref: str) -> str:
+        ref = '/' + ref  # for regex simplicity
+
         while SchemaParser.REF_SHRINK_RE.search(ref):
             ref = re.sub(SchemaParser.REF_SHRINK_RE, '/', ref)
         while SchemaParser.REF_SHRINK_DOT_RE.search(ref):
             ref = re.sub(SchemaParser.REF_SHRINK_DOT_RE, '/', ref)
-        return ref
+
+        return ref[1:]
 
     def _make_abs_ref(self, ref: str) -> str:
         assert self._state

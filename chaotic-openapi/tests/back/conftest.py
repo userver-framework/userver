@@ -7,7 +7,7 @@ import pytest
 def translate_single_schema():
     def func(schema):
         parser = front_parser.Parser('test')
-        parser.parse_schema(schema, '<inline>')
+        parser.parse_schema(schema, '<inline>', '<inline>')
         service = parser.service()
 
         tr = translator.Translator(

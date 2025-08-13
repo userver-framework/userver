@@ -6,7 +6,7 @@ import pytest
 def simple_parser():
     def _simple_parser(schema):
         parser = front_parser.Parser('test')
-        parser.parse_schema(schema, '<inline>')
+        parser.parse_schema(schema, '<inline>', '<inline>')
         return parser.service()
 
     return _simple_parser

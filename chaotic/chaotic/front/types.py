@@ -170,7 +170,7 @@ class Ref(Schema):
     schema: Schema = _NOT_IMPL
 
     def __post_init__(self):
-        assert self.ref.find('/../') == -1
+        assert self.ref.find('/../') == -1, self.ref
 
     __hash__ = Schema.__hash__
 

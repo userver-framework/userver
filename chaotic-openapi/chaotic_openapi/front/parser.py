@@ -23,7 +23,10 @@ from . import swagger
 @dataclasses.dataclass
 class ParserState:
     service: model.Service
+    # Full filepath in filesystem as-is
     full_filepath: str = ''
+    # Virtual filepath for .cpp/.hpp file generation (e.g. relative paths)
+    full_vfilepath: str = ''
 
 
 class Parser:
@@ -33,8 +36,9 @@ class Parser:
     ) -> None:
         self._state = ParserState(service=model.Service(name=name))
 
-    def parse_schema(self, schema: dict, full_filepath: str) -> None:
+    def parse_schema(self, schema: dict, full_filepath: str, full_vfilepath: str) -> None:
         self._state.full_filepath = full_filepath
+        self._state.full_vfilepath = full_vfilepath
         parser = self._guess_parser(schema)
         try:
             parsed = parser(**schema)
@@ -576,7 +580,7 @@ class Parser:
         parser = chaotic_parser.SchemaParser(
             config=chaotic_parser.ParserConfig(erase_prefix=''),
             full_filepath=self._state.full_filepath,
-            full_vfilepath=self._state.full_filepath,
+            full_vfilepath=self._state.full_vfilepath,
         )
         for name, schema in components_schemas.items():
             infile_path = components_schemas_path + '/' + name
@@ -597,7 +601,7 @@ class Parser:
         parser = chaotic_parser.SchemaParser(
             config=chaotic_parser.ParserConfig(erase_prefix=''),
             full_filepath=self._state.full_filepath,
-            full_vfilepath=self._state.full_filepath,
+            full_vfilepath=self._state.full_vfilepath,
         )
         parser.parse_schema(infile_path, schema)
         parsed_schemas = parser.parsed_schemas()

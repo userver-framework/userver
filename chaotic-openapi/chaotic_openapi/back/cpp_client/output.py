@@ -1,5 +1,6 @@
 import collections
 import dataclasses
+import os
 import pathlib
 from typing import Dict
 from typing import List
@@ -7,6 +8,7 @@ from typing import Optional
 
 import yaml
 
+from chaotic.front import parser as chaotic_parser
 from . import renderer
 
 TYPES_INCLUDES = [
@@ -15,6 +17,10 @@ TYPES_INCLUDES = [
     'optional',
     'string',
 ]
+
+
+def filepath_with_stem(fpath: str) -> str:
+    return fpath.rsplit('.', 1)[0]
 
 
 def _get_template_includes(name: str, client_name: str, graph: Dict[str, List[str]]) -> List[str]:
@@ -78,7 +84,6 @@ def _get_template_includes(name: str, client_name: str, graph: Dict[str, List[st
             'string',
             'variant',
             *[f'clients/{client_name}/{dep}' for dep in graph],
-            # TODO
         ],
         'responses.cpp': [
             f'clients/{client_name}/responses.hpp',
@@ -93,7 +98,6 @@ def _get_template_includes(name: str, client_name: str, graph: Dict[str, List[st
             f'clients/{client_name}/exceptions.hpp',
             'userver/chaotic/openapi/client/exceptions.hpp',
             *[f'clients/{client_name}/{dep}' for dep in graph],
-            # TODO
         ],
     }
     return includes[name]
@@ -105,11 +109,13 @@ def trim_suffix(string: str, suffix: str) -> Optional[str]:
     return None
 
 
-def extract_includes(name: str, path: pathlib.Path) -> Optional[List[str]]:
+def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -> Optional[List[str]]:
     with open(path) as ifile:
         content = yaml.safe_load(ifile)
 
     includes: List[str] = []
+
+    relpath = os.path.relpath(os.path.dirname(path), schemas_dir)
 
     def visit(data) -> None:
         if isinstance(data, dict):
@@ -118,9 +124,9 @@ def extract_includes(name: str, path: pathlib.Path) -> Optional[List[str]]:
             if '$ref' in data:
                 ref = data['$ref']
                 ref = ref.split('#')[0]
-                ref_fname = ref.rsplit('/', 1)[-1]
-                if ref_fname:
-                    stem = ref_fname.rsplit('.', 1)[0]
+                if ref:
+                    stem = os.path.join(relpath, filepath_with_stem(ref))
+                    stem = chaotic_parser.SchemaParser._normalize_ref(stem)
                     includes.append(f'clients/{name}/{stem}.hpp')
             if 'x-taxi-cpp-type' in data:
                 pass
@@ -145,7 +151,9 @@ def include_graph(name: str, schemas_dir: pathlib.Path) -> Dict[str, List[str]]:
             filepath = pathlib.Path(root) / filename
             if filepath == schemas_dir / 'client.yaml' or filename == 'a.yaml':
                 continue
-            result[filepath.stem + '.hpp'] = extract_includes(name, filepath)
+
+            stem = filepath_with_stem(os.path.relpath(filepath, schemas_dir))
+            result[stem + '.hpp'] = extract_includes(name, filepath, schemas_dir)
 
     return {key: result[key] for key in result if result[key] is not None}  # type: ignore
 
@@ -162,7 +170,7 @@ def get_includes(client_name: str, schemas_dir: str) -> Dict[str, List[str]]:
         output[rel_path] = _get_template_includes(name, client_name, graph)
 
     for file in graph:
-        stem = pathlib.Path(file).stem
+        stem = filepath_with_stem(file)
         output[f'include/clients/{client_name}/{stem}_fwd.hpp'] = []
         output[f'include/clients/{client_name}/{stem}.hpp'] = [
             f'clients/{client_name}/{stem}_fwd.hpp',
