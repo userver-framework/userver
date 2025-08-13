@@ -29,6 +29,22 @@ paths:
                 '200':
                     description: OK
 
+    /test1/body:
+        get:
+            consumes:
+              - application/json
+            produces:
+              - application/json
+            parameters:
+              - in: body
+                name: body
+                required: true
+                schema:
+                    type: string
+            responses:
+                '200':
+                    description: OK
+
 
 parameters:
     X-Header-456:
