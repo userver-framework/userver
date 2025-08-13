@@ -235,6 +235,8 @@
   "chaotic/include/userver/chaotic/io/std/chrono/minutes.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/chrono/minutes.hpp",
   "chaotic/include/userver/chaotic/io/std/chrono/seconds.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/chrono/seconds.hpp",
   "chaotic/include/userver/chaotic/io/std/chrono/years.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/chrono/years.hpp",
+  "chaotic/include/userver/chaotic/io/std/int32_t.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/int32_t.hpp",
+  "chaotic/include/userver/chaotic/io/std/int64_t.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/int64_t.hpp",
   "chaotic/include/userver/chaotic/io/std/map.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/map.hpp",
   "chaotic/include/userver/chaotic/io/std/set.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/set.hpp",
   "chaotic/include/userver/chaotic/io/std/size_t.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/size_t.hpp",
