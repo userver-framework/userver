@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package simple.subdirectory;
-
-option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/tests/proto/simple/subdirectory;simplesubdirectory";
-
-message SubdirStruct {
-    string name = 1;
-}
