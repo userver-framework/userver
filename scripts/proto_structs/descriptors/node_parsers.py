@@ -4,9 +4,11 @@
 # https://googleapis.dev/python/protobuf/latest/google/protobuf/descriptor.html
 
 import pathlib
+import re
 import typing
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Union
 
 import google.protobuf.descriptor as descriptor
@@ -40,7 +42,7 @@ def parse_enum(enum: descriptor.EnumDescriptor) -> gen_node.EnumNode:
     values: List[gen_node.EnumValue] = []
     for value in typing.cast(List[descriptor.EnumValueDescriptor], enum.values):
         values.append(parse_enum_value(value))
-    return gen_node.EnumNode(name=type_mapping.parse_type_name(enum), values=values)
+    return gen_node.EnumNode(name=names.make_structs_type_name(type_mapping.parse_type_name(enum)), values=values)
 
 
 def parse_enum_value(value: descriptor.EnumValueDescriptor) -> gen_node.EnumValue:
@@ -52,6 +54,8 @@ def parse_enum_value(value: descriptor.EnumValueDescriptor) -> gen_node.EnumValu
 
 
 def parse_message(message: descriptor.Descriptor) -> gen_node.StructNode:
+    struct_name = names.make_structs_type_name(type_mapping.parse_type_name(message))
+
     nested_types: List[gen_node.TypeNode] = []
     for nested_enum in typing.cast(List[descriptor.EnumDescriptor], message.enum_types):
         nested_types.append(parse_enum(nested_enum))
@@ -59,25 +63,82 @@ def parse_message(message: descriptor.Descriptor) -> gen_node.StructNode:
         nested_types.append(parse_message(nested_message))
 
     fields: List[gen_node.StructField] = []
+
     for field in typing.cast(List[descriptor.FieldDescriptor], message.fields):
+        if oneof := typing.cast(Optional[descriptor.OneofDescriptor], field.containing_oneof):
+            if not _is_synthetic_oneof(oneof):
+                oneof_fields = typing.cast(List[descriptor.FieldDescriptor], oneof.fields)
+                assert len(oneof_fields) >= 1
+                if oneof_fields[0] is field:
+                    fields.append(parse_oneof(oneof, nested_types_to_generate=nested_types))
+                continue
         fields.append(parse_field(field, nested_types_to_generate=nested_types))
 
-    # TODO account for oneof
+    return gen_node.StructNode(name=struct_name, nested_types=nested_types, fields=fields)
 
-    return gen_node.StructNode(name=type_mapping.parse_type_name(message), nested_types=nested_types, fields=fields)
+
+_SYNTHETIC_ONEOF_NAME_REGEX = re.compile(r'X*_\w*')
+
+
+def _is_synthetic_oneof(oneof: descriptor.OneofDescriptor) -> bool:
+    # https://protobuf.com/docs/descriptors#synthetic-oneofs
+    oneof_fields = typing.cast(List[descriptor.FieldDescriptor], oneof.fields)
+    if len(oneof_fields) != 1:
+        return False
+
+    oneof_name = typing.cast(str, oneof.name)
+
+    return _SYNTHETIC_ONEOF_NAME_REGEX.fullmatch(oneof_name) is not None
 
 
 def parse_field(
     field: descriptor.FieldDescriptor,
     nested_types_to_generate: List[gen_node.TypeNode],
+    *,
+    ignore_label: bool = False,
 ) -> gen_node.StructField:
     parsed_type = _parse_type_reference(field, nested_types_to_generate)
-    type_with_label = type_mapping.handle_type_label(field, parsed_type)
+
+    if not ignore_label:
+        parsed_type = type_mapping.handle_type_label(field, parsed_type)
 
     return gen_node.StructField(
         short_name=names.escape_id(typing.cast(str, field.name)),
-        field_type=type_with_label,
+        field_type=parsed_type,
         number=typing.cast(int, field.number),
+        oneof_fields=None,
+    )
+
+
+def parse_oneof(
+    oneof: descriptor.OneofDescriptor, nested_types_to_generate: List[gen_node.TypeNode]
+) -> gen_node.StructField:
+    fields: List[gen_node.StructField] = []
+
+    for field in typing.cast(List[descriptor.FieldDescriptor], oneof.fields):
+        assert typing.cast(int, field.label) == descriptor.FieldDescriptor.LABEL_OPTIONAL
+        fields.append(parse_field(field, nested_types_to_generate, ignore_label=True))
+
+    oneof_field_short_name = names.escape_id(typing.cast(str, oneof.name))
+    oneof_type_short_name = f'{names.to_pascal_case(oneof_field_short_name)}Type'
+
+    containing_type_descriptor = typing.cast(descriptor.Descriptor, oneof.containing_type)
+    containing_type_name = names.make_structs_type_name(type_mapping.parse_type_name(containing_type_descriptor))
+    oneof_type_name = names.make_nested_type_name(containing_type_name, oneof_type_short_name)
+
+    oneof_node = gen_node.OneofNode(name=oneof_type_name, fields=fields)
+    nested_types_to_generate.append(oneof_node)
+
+    type_reference = type_ref.UserverCodegenType(
+        name=oneof_type_name,
+        include=type_mapping.parse_include(containing_type_descriptor),
+    )
+
+    return gen_node.StructField(
+        short_name=oneof_field_short_name,
+        field_type=type_reference,
+        number=None,
+        oneof_fields=fields,
     )
 
 
@@ -99,7 +160,7 @@ def _parse_type_reference(
 
     if type_kind == descriptor.FieldDescriptor.TYPE_GROUP:
         # Details on groups:
-        # https://protobuf.com/docs/descriptors#synthetic-oneofs
+        # https://protobuf.com/docs/descriptors#groups
         message_type = typing.cast(descriptor.Descriptor, field_type.message_type)
         nested_types_to_generate.append(parse_message(message_type))
         return type_mapping.parse_struct_reference(message_type)

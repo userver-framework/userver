@@ -9,6 +9,7 @@ import dataclasses
 import pathlib
 from typing import Final
 from typing import final
+from typing import Optional
 
 from typing_extensions import override
 
@@ -126,12 +127,7 @@ class TypeNode(CodegenNode, abc.ABC):
 
     @override
     def full_cpp_name_segments(self) -> Sequence[str]:
-        return (
-            *names.proto_namespace_to_segments(self.name.proto_namespace),
-            'structs',
-            *self.name.outer_type_names,
-            self.name.short_name,
-        )
+        return self.name.name_segments()
 
 
 class StructNode(TypeNode):
@@ -174,8 +170,10 @@ class StructField:
     short_name: str
     #: Type of the field.
     field_type: type_ref.TypeReference
-    #: Integer value of the enum case.
-    number: int
+    #: Low-level numeric ID of the field for serialization. Absent for oneof fields.
+    number: Optional[int]
+    #: If this struct field maps to oneof, lists the fields of the oneof type.
+    oneof_fields: Optional[Sequence[StructField]]
 
 
 class EnumNode(TypeNode):
@@ -205,3 +203,28 @@ class EnumValue:
     short_name: str
     #: Integer value of the enum case.
     number: int
+
+
+class OneofNode(TypeNode):
+    """A C++ oneof class definition scheduled for generation."""
+
+    def __init__(
+        self,
+        *,
+        name: names.TypeName,
+        fields: Sequence[StructField],
+    ) -> None:
+        super().__init__(name=name)
+        #: Struct fields included in the oneof.
+        self.fields: Final[Sequence[StructField]] = fields
+
+    @property
+    @override
+    def kind(self) -> str:
+        return 'oneof'
+
+    @override
+    def own_includes(self) -> Iterable[str]:
+        yield 'userver/proto-structs/impl/experimental_oneof.hpp'
+        for field in self.fields:
+            yield from field.field_type.collect_includes()

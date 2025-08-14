@@ -130,20 +130,43 @@ def proto_namespace_to_segments(namespace: str) -> Sequence[str]:
 
 @dataclasses.dataclass(frozen=True)
 class TypeName:
-    """Represents the name of a vanilla C++ Protobuf type."""
+    """The qualified name of a C++ type."""
 
     #: Namespace obtained from the Protobuf package.
-    proto_namespace: str
+    namespace_segments: Sequence[str]
     #: Containing types, if any, outer-to-inner, e.g. for `foo::Bar::Baz::Qux` it is `[Bar, Baz]`.
     outer_type_names: Sequence[str]
     #: Name of the type itself without outer types or namespaces.
     short_name: str
 
+    def name_segments(self) -> Sequence[str]:
+        """Returns all segments of the qualified name."""
+        return *self.namespace_segments, *self.outer_type_names, self.short_name
+
 
 def make_escaped_type_name(*, package: str, outer_type_names: Sequence[str], short_name: str) -> TypeName:
     """Escapes a Protobuf full type name into a C++ `TypeName`."""
     return TypeName(
-        proto_namespace=package_to_namespace(package),
+        namespace_segments=proto_namespace_to_segments(package_to_namespace(package)),
         outer_type_names=[escape_id(type_name) for type_name in outer_type_names],
         short_name=escape_id(short_name),
     )
+
+
+def make_structs_type_name(vanilla_type_name: TypeName) -> TypeName:
+    """Makes a name for a proto-structs type from a vanilla type name."""
+    return dataclasses.replace(vanilla_type_name, namespace_segments=(*vanilla_type_name.namespace_segments, 'structs'))
+
+
+def make_nested_type_name(containing_type_name: TypeName, short_name: str) -> TypeName:
+    """Makes a `TypeName` for a nested type."""
+    return TypeName(
+        namespace_segments=containing_type_name.namespace_segments,
+        outer_type_names=(*containing_type_name.outer_type_names, containing_type_name.short_name),
+        short_name=short_name,
+    )
+
+
+def to_pascal_case(name: str) -> str:
+    """Converts a `snake_case` or `camelCase` identifier to `PascalCase`."""
+    return ''.join(part.capitalize() for part in name.split('_'))

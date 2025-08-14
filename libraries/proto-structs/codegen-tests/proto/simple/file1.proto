@@ -9,18 +9,18 @@ import "simple/subdirectory/subdirectory.proto";
 // Структура с простыми полями.
 message SimpleStruct {
     // Число.
-    int32 integer = 1;
+    int32 some_integer = 1;
     // Текст.
-    string text = 2;
+    optional string some_text = 2;
     // Условие.
     bool is_condition = 3;
 
     // Один или два.
     oneof Something {
         // Один.
-        int64 one = 4;
+        int64 foo = 4;
         // Два.
-        string two = 5;
+        string bar = 5;
     };
 
     // Массив.
@@ -32,8 +32,8 @@ message SimpleStruct {
 
             // Вложенный енам.
             enum InnerEnum1 {
-              FIRST_VAL = 0;
-              SECOND_VAL = 1;
+              FOO_VAL = 0;
+              BAR_VAL = 1;
             }
 
             string swag2 = 1;
@@ -45,8 +45,8 @@ message SimpleStruct {
 
     // Вложенный енам.
     enum InnerEnum2 {
-      FIRST_VAL = 0;
-      SECOND_VAL = 1;
+      FOO_VAL = 0;
+      BAR_VAL = 1;
     }
 
     InnerEnum2 inner_enum = 7;
@@ -61,6 +61,6 @@ message SecondStruct {
 
 // Енам.
 enum GlobalEnum {
-  FIRST_VAL = 0;
-  SECOND_VAL = 1;
+  FOO_VAL = 0;
+  BAR_VAL = 1;
 }

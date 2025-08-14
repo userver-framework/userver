@@ -2568,6 +2568,7 @@
   "libraries/proto-structs/include/userver/proto-structs/exceptions.hpp":"taxi/uservices/userver/libraries/proto-structs/include/userver/proto-structs/exceptions.hpp",
   "libraries/proto-structs/include/userver/proto-structs/impl/bundles/structs_cpp.hpp":"taxi/uservices/userver/libraries/proto-structs/include/userver/proto-structs/impl/bundles/structs_cpp.hpp",
   "libraries/proto-structs/include/userver/proto-structs/impl/bundles/structs_hpp.hpp":"taxi/uservices/userver/libraries/proto-structs/include/userver/proto-structs/impl/bundles/structs_hpp.hpp",
+  "libraries/proto-structs/include/userver/proto-structs/impl/experimental_oneof.hpp":"taxi/uservices/userver/libraries/proto-structs/include/userver/proto-structs/impl/experimental_oneof.hpp",
   "libraries/proto-structs/src/proto-structs/exceptions.cpp":"taxi/uservices/userver/libraries/proto-structs/src/proto-structs/exceptions.cpp",
   "libraries/proto-structs/tests/exceptions_test.cpp":"taxi/uservices/userver/libraries/proto-structs/tests/exceptions_test.cpp",
   "libraries/s3api/CMakeLists.txt":"taxi/uservices/userver/libraries/s3api/CMakeLists.txt",

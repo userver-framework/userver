@@ -107,12 +107,7 @@ class UserverCodegenType(TypeReference, names.HasCppNameImpl):
 
     @override
     def full_cpp_name_segments(self) -> Sequence[str]:
-        return (
-            *names.proto_namespace_to_segments(self._name.proto_namespace),
-            'structs',
-            *self._name.outer_type_names,
-            self._name.short_name,
-        )
+        return self._name.name_segments()
 
     @override
     def collect_includes(self) -> Iterable[str]:

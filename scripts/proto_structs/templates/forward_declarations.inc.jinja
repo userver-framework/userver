@@ -15,7 +15,7 @@ namespace {{ namespace.short_name }} {
 {% for child in namespace.children %}
 {{ render_gen_node(child) }}
 {%- endfor %}
-};  // namespace {{ namespace.short_name }}
+}  // namespace {{ namespace.short_name }}
 {% endmacro -%}
 
 {%- macro do_render_struct(struct) %}
