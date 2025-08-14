@@ -7,6 +7,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
+#include <utils/trx_tracker_internal.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -19,6 +21,7 @@ using TrxTrackerFixture = utest::LogCaptureFixture<>;
 
 UTEST_F(TrxTrackerFixture, AssertInTransaction) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     /// [Sample TransactionTracker usage]
     utils::trx_tracker::StartTransaction();
@@ -32,6 +35,7 @@ UTEST_F(TrxTrackerFixture, AssertInTransaction) {
 
 UTEST(TrxTracker, AssertTwoInTransaction) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     utils::trx_tracker::StartTransaction();
     utils::trx_tracker::CheckNoTransactions();
@@ -43,6 +47,7 @@ UTEST(TrxTracker, AssertTwoInTransaction) {
 
 UTEST(TrxTracker, AssertOutOfTransaction) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     utils::trx_tracker::StartTransaction();
     utils::trx_tracker::EndTransaction();
@@ -53,6 +58,7 @@ UTEST(TrxTracker, AssertOutOfTransaction) {
 
 UTEST(TrxTracker, AssertNestedTransactions) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     utils::trx_tracker::StartTransaction();
     utils::trx_tracker::StartTransaction();
@@ -65,9 +71,10 @@ UTEST(TrxTracker, AssertNestedTransactions) {
 
 UTEST(TrxTracker, AssertWithDisabler) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     utils::trx_tracker::StartTransaction();
-    auto disabler = utils::trx_tracker::CheckDisabler();
+    const utils::trx_tracker::CheckDisabler disabler;
     utils::trx_tracker::CheckNoTransactions();
     utils::trx_tracker::EndTransaction();
 
@@ -76,9 +83,10 @@ UTEST(TrxTracker, AssertWithDisabler) {
 
 UTEST(TrxTracker, AssertDisablerReenabled) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     utils::trx_tracker::StartTransaction();
-    auto disabler = utils::trx_tracker::CheckDisabler();
+    utils::trx_tracker::CheckDisabler disabler;
     utils::trx_tracker::CheckNoTransactions();
     disabler.Reenable();
     utils::trx_tracker::CheckNoTransactions(utils::impl::SourceLocation::Current());
@@ -89,10 +97,11 @@ UTEST(TrxTracker, AssertDisablerReenabled) {
 
 UTEST(TrxTracker, AssertDisablerDestroyed) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     utils::trx_tracker::StartTransaction();
     {
-        auto disabler = utils::trx_tracker::CheckDisabler();
+        const utils::trx_tracker::CheckDisabler disabler;
         utils::trx_tracker::CheckNoTransactions();
     }
     utils::trx_tracker::CheckNoTransactions();
@@ -103,17 +112,39 @@ UTEST(TrxTracker, AssertDisablerDestroyed) {
 
 UTEST(TrxTracker, AssertMultipleDisablers) {
     utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler;
 
     utils::trx_tracker::StartTransaction();
-    auto disabler = utils::trx_tracker::CheckDisabler();
+    const utils::trx_tracker::CheckDisabler disabler;
     {
-        auto disabler = utils::trx_tracker::CheckDisabler();
+        const utils::trx_tracker::CheckDisabler disabler;
         utils::trx_tracker::CheckNoTransactions();
     }
     utils::trx_tracker::CheckNoTransactions();
     utils::trx_tracker::EndTransaction();
 
     EXPECT_EQ(GetTriggers(), 0);
+}
+
+UTEST(TrxTracker, NoGlobalEnabler) {
+    utils::trx_tracker::ResetStatistics();
+
+    utils::trx_tracker::StartTransaction();
+    utils::trx_tracker::CheckNoTransactions();
+    utils::trx_tracker::EndTransaction();
+
+    EXPECT_EQ(utils::trx_tracker::GetStatistics().triggers, 0);
+}
+
+UTEST(TrxTracker, GlobalEnablerFalse) {
+    utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::GlobalEnabler enabler(false);
+
+    utils::trx_tracker::StartTransaction();
+    utils::trx_tracker::CheckNoTransactions();
+    utils::trx_tracker::EndTransaction();
+
+    EXPECT_EQ(utils::trx_tracker::GetStatistics().triggers, 0);
 }
 
 USERVER_NAMESPACE_END

@@ -1966,6 +1966,8 @@
   "core/src/utils/text.cpp":"taxi/uservices/userver/core/src/utils/text.cpp",
   "core/src/utils/text_test.cpp":"taxi/uservices/userver/core/src/utils/text_test.cpp",
   "core/src/utils/trx_tracker.cpp":"taxi/uservices/userver/core/src/utils/trx_tracker.cpp",
+  "core/src/utils/trx_tracker_internal.cpp":"taxi/uservices/userver/core/src/utils/trx_tracker_internal.cpp",
+  "core/src/utils/trx_tracker_internal.hpp":"taxi/uservices/userver/core/src/utils/trx_tracker_internal.hpp",
   "core/src/utils/trx_tracker_test.cpp":"taxi/uservices/userver/core/src/utils/trx_tracker_test.cpp",
   "core/src/utils/userver_info.cpp":"taxi/uservices/userver/core/src/utils/userver_info.cpp",
   "core/static_configs/dns_client.yaml":"taxi/uservices/userver/core/static_configs/dns_client.yaml",

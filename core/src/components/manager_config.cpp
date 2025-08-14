@@ -237,6 +237,12 @@ properties:
             the balancer a chance to redirect new requests to other hosts and
             to give the service a chance to finish handling old requests.
         defaultDescription: 0s
+    enable_trx_tracker:
+        type: boolean
+        description: |
+            Enable checking of heavy operations (like http calls) while having
+            active database transactions.
+        defaultDescription: true
 )");
 }
 
@@ -270,6 +276,7 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     );
     config.graceful_shutdown_interval =
         value["graceful_shutdown_interval"].As<std::chrono::milliseconds>(config.graceful_shutdown_interval);
+    config.enable_trx_tracker = value["enable_trx_tracker"].As<bool>(config.enable_trx_tracker);
 
     return config;
 }

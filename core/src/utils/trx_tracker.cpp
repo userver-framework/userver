@@ -1,5 +1,7 @@
 #include <userver/utils/trx_tracker.hpp>
 
+#include "trx_tracker_internal.hpp"
+
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/logging/log.hpp>
@@ -27,14 +29,24 @@ TransactionTrackerStatisticsInternal transaction_tracker_statistics{};
 
 }  // namespace
 
-void StartTransaction() { ++transaction_tracker->trx_count; }
+void StartTransaction() {
+    if (IsEnabled()) {
+        ++transaction_tracker->trx_count;
+    }
+}
 
 void EndTransaction() noexcept {
-    UASSERT(transaction_tracker.GetOptional() != nullptr);
-    --transaction_tracker->trx_count;
+    if (IsEnabled()) {
+        UASSERT(transaction_tracker.GetOptional() != nullptr);
+        --transaction_tracker->trx_count;
+    }
 }
 
 void CheckNoTransactions(utils::impl::SourceLocation location) {
+    if (!IsEnabled()) {
+        return;
+    }
+
     auto* tracker = transaction_tracker.GetOptional();
     if (tracker && !tracker->disabler_count && tracker->trx_count) {
         logging::LogExtra log_extra;

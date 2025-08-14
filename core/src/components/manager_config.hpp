@@ -30,6 +30,7 @@ struct ManagerConfig {
     bool mlock_debug_info{true};
     bool disable_phdr_cache{false};
     bool preheat_stacktrace_collector{true};
+    bool enable_trx_tracker{true};
 
     static ManagerConfig FromString(
         const std::string&,
