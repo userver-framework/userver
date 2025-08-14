@@ -1,7 +1,5 @@
 import enum
 from typing import Any
-from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -44,7 +42,7 @@ class Parameter(base_model.BaseModel):
     type: Optional[str] = None
     format: Optional[str] = None
     allowEmptyValue: bool = False
-    items: Optional[Dict] = None
+    items: Optional[dict] = None
     collectionFormat: Optional[str] = None
     default: Any = None
 
@@ -72,7 +70,7 @@ class Header(base_model.BaseModel):
     description: Optional[str] = None
     type: str
     format: Optional[str] = None
-    items: Optional[Dict] = None
+    items: Optional[dict] = None
     collectionFormat: Optional[str] = None
     default: Any = None
 
@@ -93,11 +91,11 @@ Schema = Any
 class Response(base_model.BaseModel):
     description: str
     schema_: Schema = pydantic.Field(alias='schema', default=None)
-    headers: Dict[str, Header] = pydantic.Field(default_factory=dict)
-    examples: Dict[str, Any] = pydantic.Field(default_factory=dict)
+    headers: dict[str, Header] = pydantic.Field(default_factory=dict)
+    examples: dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
-Responses = Dict[Union[str, int], Union[Response, Ref]]
+Responses = dict[Union[str, int], Union[Response, Ref]]
 
 
 class SecurityType(str, enum.Enum):
@@ -127,7 +125,7 @@ class SecurityDef(base_model.BaseModel):
     flow: Optional[OAuthFlow] = None
     authorizationUrl: Optional[str] = None
     tokenUrl: Optional[str] = None
-    scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
 
     def model_post_init(self, context: Any, /) -> None:
         if self.type == SecurityType.apiKey:
@@ -155,23 +153,23 @@ class SecurityDef(base_model.BaseModel):
 
 
 # https://spec.openapis.org/oas/v2.0.html#security-requirement-object
-Security = Dict[str, List[str]]
+Security = dict[str, list[str]]
 
-Parameters = List[Union[Parameter, Ref]]
+Parameters = list[Union[Parameter, Ref]]
 
 
 # https://spec.openapis.org/oas/v2.0.html#operation-object
 class Operation(base_model.BaseModel):
-    tags: Optional[List[str]] = None
+    tags: Optional[list[str]] = None
     summary: Optional[str] = None
     description: str = ''
-    externalDocs: Optional[Dict] = None
+    externalDocs: Optional[dict] = None
     operationId: Optional[str] = None
-    consumes: List[str] = pydantic.Field(default_factory=list)
-    produces: List[str] = pydantic.Field(default_factory=list)
+    consumes: list[str] = pydantic.Field(default_factory=list)
+    produces: list[str] = pydantic.Field(default_factory=list)
     parameters: Parameters = pydantic.Field(default_factory=list)
     responses: Responses
-    schemes: List[str] = pydantic.Field(default_factory=list)
+    schemes: list[str] = pydantic.Field(default_factory=list)
     deprecated: bool = False
     security: Optional[Security] = None
 
@@ -193,7 +191,7 @@ class Path(base_model.BaseModel):
     parameters: Parameters = pydantic.Field(default_factory=list)
 
 
-Paths = Dict[str, Path]
+Paths = dict[str, Path]
 
 
 # https://spec.openapis.org/oas/v2.0.html#schema
@@ -202,14 +200,14 @@ class Swagger(base_model.BaseModel):
     info: Optional[Info] = None
     host: Optional[str] = None
     basePath: str = ''
-    schemes: List[str] = pydantic.Field(default_factory=list)
-    consumes: List[str] = pydantic.Field(default_factory=list)
-    produces: List[str] = pydantic.Field(default_factory=list)
+    schemes: list[str] = pydantic.Field(default_factory=list)
+    consumes: list[str] = pydantic.Field(default_factory=list)
+    produces: list[str] = pydantic.Field(default_factory=list)
     paths: Paths = pydantic.Field(default_factory=dict)
-    definitions: Dict[str, Schema] = pydantic.Field(default_factory=dict)
-    parameters: Dict[str, Parameter] = pydantic.Field(default_factory=dict)
-    responses: Dict[str, Response] = pydantic.Field(default_factory=dict)
-    securityDefinitions: Dict[str, SecurityDef] = pydantic.Field(default_factory=dict)
+    definitions: dict[str, Schema] = pydantic.Field(default_factory=dict)
+    parameters: dict[str, Parameter] = pydantic.Field(default_factory=dict)
+    responses: dict[str, Response] = pydantic.Field(default_factory=dict)
+    securityDefinitions: dict[str, SecurityDef] = pydantic.Field(default_factory=dict)
     security: Security = pydantic.Field(default_factory=dict)
 
     def validate_security(self, security: Optional[Security]) -> None:

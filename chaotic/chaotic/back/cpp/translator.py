@@ -4,11 +4,8 @@ import os
 import pathlib
 import re
 from typing import Callable
-from typing import Dict
-from typing import List
 from typing import NoReturn
 from typing import Optional
-from typing import Set
 
 from chaotic import cpp_names
 from chaotic import error
@@ -20,11 +17,11 @@ from chaotic.front import types
 @dataclasses.dataclass
 class GeneratorConfig:
     # vfull -> namespace
-    namespaces: Dict[str, str]
+    namespaces: dict[str, str]
     # infile_path -> cpp type
     infile_to_name_func: Callable
     # type: ignore
-    include_dirs: Optional[List[str]] = dataclasses.field(
+    include_dirs: Optional[list[str]] = dataclasses.field(
         # type: ignore
         default_factory=list,
     )
@@ -34,11 +31,11 @@ class GeneratorConfig:
 
 @dataclasses.dataclass
 class GeneratorState:
-    types: Dict[str, cpp_types.CppType]
-    refs: Dict[types.Schema, str]  # type: ignore
-    ref_objects: List[cpp_types.CppRef]
-    external_types: Dict[types.Schema, cpp_types.CppType]  # type: ignore
-    seen_includes: Set[str]
+    types: dict[str, cpp_types.CppType]
+    refs: dict[types.Schema, str]  # type: ignore
+    ref_objects: list[cpp_types.CppRef]
+    external_types: dict[types.Schema, cpp_types.CppType]  # type: ignore
+    seen_includes: set[str]
 
 
 NON_NAME_SYMBOL_RE = re.compile('[^_0-9a-zA-Z]')
@@ -47,11 +44,11 @@ SPLIT_WORDS_RE = re.compile(r'[A-Z]+(?=[A-Z][a-z0-9])|[A-Z][a-z0-9]+|[a-z0-9]+|[
 
 
 class FormatChooser:
-    def __init__(self, types: List[cpp_types.CppType]) -> None:
+    def __init__(self, types: list[cpp_types.CppType]) -> None:
         self.types = types
-        self.parent: Dict[
+        self.parent: dict[
             cpp_types.CppType,
-            List[Optional[cpp_types.CppType]],
+            list[Optional[cpp_types.CppType]],
         ] = collections.defaultdict(list)
 
     def check_for_json_onlyness(self) -> None:
@@ -117,8 +114,8 @@ class Generator:
     def generate_types(
         self,
         schemas: types.ResolvedSchemas,
-        external_schemas: Dict[str, cpp_types.CppType] = {},
-    ) -> Dict[str, cpp_types.CppType]:
+        external_schemas: dict[str, cpp_types.CppType] = {},
+    ) -> dict[str, cpp_types.CppType]:
         self._state.seen_includes = set()
 
         for cpp_type in external_schemas.values():
@@ -140,7 +137,7 @@ class Generator:
         return self._state.types
 
     @property
-    def seen_includes(self) -> Set[str]:
+    def seen_includes(self) -> set[str]:
         return self._state.seen_includes
 
     def _validate_type(self, type_: cpp_types.CppType) -> None:
@@ -285,7 +282,7 @@ class Generator:
             if 'x-enum-varnames' in schema.x_properties:
                 enum_names = schema.x_properties['x-enum-varnames']
 
-            emum_items: List[cpp_types.CppIntEnumItem] = []
+            emum_items: list[cpp_types.CppIntEnumItem] = []
 
             def to_camel_case(text: str) -> str:
                 words = SPLIT_RE.findall(text)

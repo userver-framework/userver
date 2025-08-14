@@ -4,9 +4,7 @@ import dataclasses
 import os
 import re
 from typing import Any
-from typing import Dict
 from typing import Generator
-from typing import List
 from typing import NoReturn
 from typing import Optional
 from typing import Union
@@ -25,7 +23,7 @@ class ParserState:
     # Current location in file
     infile_path: str
 
-    schemas: Dict[str, types.Schema]
+    schemas: dict[str, types.Schema]
     schema_type: str = 'jsonschema'
 
 
@@ -90,7 +88,7 @@ class SchemaParser:
     def _parse_allof(self, variants: list, input__: dict) -> types.AllOf:
         raw = types.AllOfRaw(**input__)
 
-        variables: List[types.Schema] = []
+        variables: list[types.Schema] = []
         with self._path_enter('allOf') as _:
             for i, variant in enumerate(variants):
                 with self._path_enter(str(i)) as _:
@@ -154,7 +152,7 @@ class SchemaParser:
     def _parse_oneof_disc_mapping(
         self,
         user_mapping: dict,
-        variables: List[types.Ref],
+        variables: list[types.Ref],
     ) -> types.DiscMapping:
         with self._path_enter('discriminator/mapping') as _:
             idx_mapping = collections.defaultdict(list)
@@ -199,7 +197,7 @@ class SchemaParser:
 
         discriminator_property = input_['discriminator']['propertyName']
 
-        variables: List[types.Ref] = []
+        variables: list[types.Ref] = []
         with self._path_enter('oneOf') as _:
             for i, variant in enumerate(variants):
                 with self._path_enter(str(i)) as _:

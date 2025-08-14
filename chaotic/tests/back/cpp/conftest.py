@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from typing import Dict
 
 import pytest
 
@@ -33,7 +32,7 @@ def simple_gen(simple_parse, clean, cpp_name_func):
 
 @pytest.fixture(name='clean')
 def _clean():
-    def func(ordered_dict: OrderedDict) -> Dict[str, CppType]:
+    def func(ordered_dict: OrderedDict) -> dict[str, CppType]:
         res = {}
         for key, val in ordered_dict.items():
             res[key] = val.without_json_schema()

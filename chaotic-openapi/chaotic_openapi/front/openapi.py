@@ -1,7 +1,5 @@
 import enum
 from typing import Any
-from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -25,7 +23,7 @@ class Info(base_model.BaseModel):
 class Server(base_model.BaseModel):
     url: str
     description: Optional[str] = None
-    variables: Dict[str, Any] = pydantic.Field(default_factory=dict)
+    variables: dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
 Schema = Any
@@ -54,15 +52,15 @@ class Header(base_model.BaseModel):
     allowReserved: bool = False
     schema_: Schema = pydantic.Field(alias='schema')
     example: Any = None
-    examples: Dict[str, Any] = pydantic.Field(default_factory=dict)
+    examples: dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#media-type-object
 class MediaType(base_model.BaseModel):
     schema_: Schema = pydantic.Field(alias='schema', default=None)
     example: Any = None
-    examples: Dict[str, Any] = pydantic.Field(default_factory=dict)
-    # encoding: Dict[str, Encoding] = {}
+    examples: dict[str, Any] = pydantic.Field(default_factory=dict)
+    # encoding: dict[str, Encoding] = {}
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#reference-object
@@ -73,8 +71,8 @@ class Ref(base_model.BaseModel):
 # https://spec.openapis.org/oas/v3.0.0.html#responses-object
 class Response(base_model.BaseModel):
     description: str
-    headers: Dict[str, Union[Header, Ref]] = pydantic.Field(default_factory=dict)
-    content: Dict[str, MediaType] = pydantic.Field(default_factory=dict)
+    headers: dict[str, Union[Header, Ref]] = pydantic.Field(default_factory=dict)
+    content: dict[str, MediaType] = pydantic.Field(default_factory=dict)
     # TODO: links
 
 
@@ -99,9 +97,9 @@ class Parameter(base_model.BaseModel):
     allowReserved: bool = False
     schema_: Schema = pydantic.Field(alias='schema')
     example: Any = None
-    examples: Dict[str, Any] = pydantic.Field(default_factory=dict)
+    examples: dict[str, Any] = pydantic.Field(default_factory=dict)
 
-    # content: Dict[str, MediaType] = {}
+    # content: dict[str, MediaType] = {}
 
     x_handler_tag: Optional[str] = pydantic.Field(
         default=None,
@@ -128,7 +126,7 @@ class Parameter(base_model.BaseModel):
 # https://spec.openapis.org/oas/v3.0.0.html#request-body-object
 class RequestBody(base_model.BaseModel):
     description: Optional[str] = None
-    content: Dict[str, MediaType]
+    content: dict[str, MediaType]
     required: bool = False
 
 
@@ -147,25 +145,25 @@ class SecurityIn(str, enum.Enum):
 
 class ImplicitFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
-    scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     authorizationUrl: str
 
 
 class PasswordFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
-    scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     tokenUrl: str
 
 
 class ClientCredFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
-    scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     tokenUrl: str
 
 
 class AuthCodeFlow(base_model.BaseModel):
     refreshUrl: Optional[str] = None
-    scopes: Dict[str, str] = pydantic.Field(default_factory=dict)
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     authorizationUrl: str
     tokenUrl: str
 
@@ -208,38 +206,38 @@ class SecurityScheme(base_model.BaseModel):
                 raise ValueError(errors.missing_field_msg('openIdConnectUrl'))
 
 
-SecuritySchemes = Dict[str, Union[SecurityScheme, Ref]]
+SecuritySchemes = dict[str, Union[SecurityScheme, Ref]]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#security-requirement-object
-Security = Dict[str, List[str]]
+Security = dict[str, list[str]]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#components-object
 class Components(base_model.BaseModel):
-    schemas: Dict[str, Schema] = pydantic.Field(default_factory=dict)
-    requests: Dict[str, Any] = pydantic.Field(default_factory=dict)  # TODO
-    responses: Dict[str, Response] = pydantic.Field(default_factory=dict)
-    parameters: Dict[str, Parameter] = pydantic.Field(default_factory=dict)
-    headers: Dict[str, Header] = pydantic.Field(default_factory=dict)
-    requestBodies: Dict[str, RequestBody] = pydantic.Field(default_factory=dict)
+    schemas: dict[str, Schema] = pydantic.Field(default_factory=dict)
+    requests: dict[str, Any] = pydantic.Field(default_factory=dict)  # TODO
+    responses: dict[str, Response] = pydantic.Field(default_factory=dict)
+    parameters: dict[str, Parameter] = pydantic.Field(default_factory=dict)
+    headers: dict[str, Header] = pydantic.Field(default_factory=dict)
+    requestBodies: dict[str, RequestBody] = pydantic.Field(default_factory=dict)
     securitySchemes: SecuritySchemes = pydantic.Field(default_factory=dict)
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#operation-object
 class Operation(base_model.BaseModel):
-    tags: List[str] = pydantic.Field(default_factory=list)
+    tags: list[str] = pydantic.Field(default_factory=list)
     summary: Optional[str] = None
     description: str = ''
     externalDocs: Any = None
 
     operationId: Optional[str] = None
-    parameters: List[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
+    parameters: list[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
     requestBody: Optional[Union[RequestBody, Ref]] = None
-    responses: Dict[Union[str, int], Union[Response, Ref]]
+    responses: dict[Union[str, int], Union[Response, Ref]]
     deprecated: bool = False
     security: Optional[Security] = None
-    servers: List[Server] = pydantic.Field(default_factory=list)
+    servers: list[Server] = pydantic.Field(default_factory=list)
 
     x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
         default=None,
@@ -265,8 +263,8 @@ class Path(base_model.BaseModel):
     patch: Optional[Operation] = None
     trace: Optional[Operation] = None
 
-    servers: List[Server] = pydantic.Field(default_factory=list)
-    parameters: List[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
+    servers: list[Server] = pydantic.Field(default_factory=list)
+    parameters: list[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
 
 
 class XTaxiClientQos(base_model.BaseModel):
@@ -277,11 +275,11 @@ class XTaxiClientQos(base_model.BaseModel):
 class OpenApi(base_model.BaseModel):
     openapi: str = '3.0.0'
     info: Optional[Info] = None
-    servers: List[Server] = pydantic.Field(default_factory=list)
-    paths: Dict[str, Path] = pydantic.Field(default_factory=dict)
+    servers: list[Server] = pydantic.Field(default_factory=list)
+    paths: dict[str, Path] = pydantic.Field(default_factory=dict)
     components: Components = Components()
     security: Security = pydantic.Field(default_factory=dict)
-    tags: List[Any] = pydantic.Field(default_factory=list)
+    tags: list[Any] = pydantic.Field(default_factory=list)
     externalDocs: Any = None
 
     x_taxi_client_qos: Optional[XTaxiClientQos] = pydantic.Field(

@@ -1,6 +1,5 @@
 import re
 import typing
-from typing import List
 from typing import Union
 
 from chaotic import cpp_names
@@ -20,7 +19,7 @@ class Translator:
         *,
         cpp_namespace: str,
         dynamic_config: str,
-        include_dirs: List[str],
+        include_dirs: list[str],
     ) -> None:
         self._spec = types.ClientSpec(
             client_name=service.name,
@@ -45,7 +44,7 @@ class Translator:
     def translate(
         self,
         service: model.Service,
-        include_dirs: List[str],
+        include_dirs: list[str],
     ) -> None:
         # components/schemas
         parsed_schemas = chaotic_types.ParsedSchemas(

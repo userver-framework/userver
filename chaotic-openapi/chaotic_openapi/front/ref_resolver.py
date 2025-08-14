@@ -1,8 +1,5 @@
 import collections
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Tuple
 
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref_resolver
@@ -22,7 +19,7 @@ def normalize_ref(filepath: str, ref: str) -> str:
 
 # Extracts list of external (non-'#ref') $refs in global form
 # (e.g. 'other.yaml#ref' becomes '/path/to/other.yaml#ref')
-def _extract_refs(filepath: str, content: Any) -> List[str]:
+def _extract_refs(filepath: str, content: Any) -> list[str]:
     refs = []
 
     def visit(value: Any) -> None:
@@ -41,7 +38,7 @@ def _extract_refs(filepath: str, content: Any) -> List[str]:
     return refs
 
 
-def sort_openapis(contents: Dict[str, Any]) -> List[Tuple[str, Any]]:
+def sort_openapis(contents: dict[str, Any]) -> list[tuple[str, Any]]:
     nodes = set()
 
     edges = collections.defaultdict(list)

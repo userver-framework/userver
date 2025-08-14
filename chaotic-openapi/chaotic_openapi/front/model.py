@@ -1,8 +1,6 @@
 import dataclasses
 import enum
 from typing import Any
-from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -32,7 +30,7 @@ class Parameter:
     name: str
     in_: In
     description: str
-    examples: Dict[str, Any]
+    examples: dict[str, Any]
 
     deprecated: bool
     required: bool
@@ -47,14 +45,14 @@ class Parameter:
 @dataclasses.dataclass
 class MediaType:
     schema: Union[types.Schema, types.Ref]
-    examples: Dict[str, Any]
+    examples: dict[str, Any]
 
 
 @dataclasses.dataclass
 class Response:
     description: str
-    headers: Dict[str, Parameter]
-    content: Dict[str, MediaType]
+    headers: dict[str, Parameter]
+    content: dict[str, MediaType]
 
 
 @dataclasses.dataclass
@@ -89,7 +87,7 @@ class ApiKeySecurity(Security):
 @dataclasses.dataclass
 class Flow:
     refreshUrl: str
-    scopes: Dict[str, str]
+    scopes: dict[str, str]
 
 
 @dataclasses.dataclass
@@ -115,7 +113,7 @@ class AuthCodeFlow(Flow):
 
 @dataclasses.dataclass
 class OAuthSecurity(Security):
-    flows: List[Flow]
+    flows: list[Flow]
 
 
 @dataclasses.dataclass
@@ -135,21 +133,21 @@ class Operation:
     path: str
     method: str
     operationId: Union[str, None]
-    parameters: List[Parameter]
-    requestBody: Union[List[RequestBody], Ref]
-    responses: Dict[int, Union[Response, Ref]]
-    security: List[Security]
+    parameters: list[Parameter]
+    requestBody: Union[list[RequestBody], Ref]
+    responses: dict[int, Union[Response, Ref]]
+    security: list[Security]
 
 
 @dataclasses.dataclass
 class Service:
     name: str
     description: str = ''
-    operations: List[Operation] = dataclasses.field(default_factory=list)
+    operations: list[Operation] = dataclasses.field(default_factory=list)
 
-    schemas: Dict[str, types.Schema] = dataclasses.field(default_factory=dict)
-    responses: Dict[str, Response] = dataclasses.field(default_factory=dict)
-    parameters: Dict[str, Parameter] = dataclasses.field(default_factory=dict)
-    headers: Dict[str, Parameter] = dataclasses.field(default_factory=dict)
-    requestBodies: Dict[str, List[RequestBody]] = dataclasses.field(default_factory=dict)
-    security: Dict[str, Security] = dataclasses.field(default_factory=dict)
+    schemas: dict[str, types.Schema] = dataclasses.field(default_factory=dict)
+    responses: dict[str, Response] = dataclasses.field(default_factory=dict)
+    parameters: dict[str, Parameter] = dataclasses.field(default_factory=dict)
+    headers: dict[str, Parameter] = dataclasses.field(default_factory=dict)
+    requestBodies: dict[str, list[RequestBody]] = dataclasses.field(default_factory=dict)
+    security: dict[str, Security] = dataclasses.field(default_factory=dict)

@@ -1,9 +1,6 @@
 import collections
 from typing import Any
-from typing import Dict
-from typing import List
 from typing import Optional
-from typing import Set
 
 from chaotic import error
 from chaotic.front import types
@@ -13,9 +10,9 @@ class ResolverError(Exception):
     pass
 
 
-def sort_dfs(nodes: Set[str], edges: Dict[str, List[str]]) -> List[str]:
+def sort_dfs(nodes: set[str], edges: dict[str, list[str]]) -> list[str]:
     visited = set()
-    visiting: List[str] = []
+    visiting: list[str] = []
     sorted_nodes = []
 
     def do_node(node: str):
@@ -152,9 +149,9 @@ class RefResolver:
 
     def sort_json_types(
         self,
-        types: Dict[str, Any],
+        types: dict[str, Any],
         erase_path_prefix: str = '',
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Sorts not-yet-parsed schemas. Required for correct allOf/oneOf parsing.
         """

@@ -2,8 +2,6 @@ import collections
 import dataclasses
 import os
 import pathlib
-from typing import Dict
-from typing import List
 from typing import Optional
 
 import yaml
@@ -23,7 +21,7 @@ def filepath_with_stem(fpath: str) -> str:
     return fpath.rsplit('.', 1)[0]
 
 
-def _get_template_includes(name: str, client_name: str, graph: Dict[str, List[str]]) -> List[str]:
+def _get_template_includes(name: str, client_name: str, graph: dict[str, list[str]]) -> list[str]:
     includes = {
         'client.cpp': [
             f'clients/{client_name}/client.hpp',
@@ -103,11 +101,11 @@ def _get_template_includes(name: str, client_name: str, graph: Dict[str, List[st
     return includes[name]
 
 
-def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -> Optional[List[str]]:
+def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -> Optional[list[str]]:
     with open(path) as ifile:
         content = yaml.safe_load(ifile)
 
-    includes: List[str] = []
+    includes: list[str] = []
 
     relpath = os.path.relpath(os.path.dirname(path), schemas_dir)
 
@@ -138,7 +136,7 @@ def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -
         return None
 
 
-def include_graph(name: str, schemas_dir: pathlib.Path) -> Dict[str, List[str]]:
+def include_graph(name: str, schemas_dir: pathlib.Path) -> dict[str, list[str]]:
     result = {}
     for root, _, filenames in schemas_dir.walk():
         for filename in filenames:
@@ -152,7 +150,7 @@ def include_graph(name: str, schemas_dir: pathlib.Path) -> Dict[str, List[str]]:
     return {key: result[key] for key in result if result[key] is not None}  # type: ignore
 
 
-def get_includes(client_name: str, schemas_dir: str) -> Dict[str, List[str]]:
+def get_includes(client_name: str, schemas_dir: str) -> dict[str, list[str]]:
     graph = include_graph(client_name, pathlib.Path(schemas_dir))
 
     output = collections.defaultdict(list)
@@ -188,8 +186,8 @@ def get_includes(client_name: str, schemas_dir: str) -> Dict[str, List[str]]:
 
 @dataclasses.dataclass
 class External:
-    libraries: List[str]
-    userver_modules: List[str]
+    libraries: list[str]
+    userver_modules: list[str]
 
 
 def external_libraries(schemas_dir: str) -> External:

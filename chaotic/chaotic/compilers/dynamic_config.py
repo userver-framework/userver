@@ -3,10 +3,6 @@ import os
 import pathlib
 import subprocess
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
 
 import jinja2
 import yaml
@@ -80,20 +76,20 @@ def enrich_jinja_env(env: jinja2.Environment) -> None:
 
 class CompilerBase:
     def __init__(self) -> None:
-        self._variables_types: Dict[str, Dict[str, types.CppType]] = {}
-        self._definitions: Dict[
+        self._variables_types: dict[str, dict[str, types.CppType]] = {}
+        self._definitions: dict[
             str,
-            Tuple[ResolvedSchemas, Dict[str, types.CppType]],
+            tuple[ResolvedSchemas, dict[str, types.CppType]],
         ] = {}
-        self._defaults: Dict[str, Any] = {}
-        self.seen_includes: Dict[str, Set[str]] = {}
+        self._defaults: dict[str, Any] = {}
+        self.seen_includes: dict[str, set[str]] = {}
 
-    def extract_definition_names(self, filepath: str) -> List[str]:
+    def extract_definition_names(self, filepath: str) -> list[str]:
         with open(filepath, 'r') as ifile:
             content = yaml.load(ifile, Loader=yaml.CLoader)
         return list(set(self._extract_definition_names(content)) - set(['']))
 
-    def _extract_definition_names(self, content: Any) -> List[str]:
+    def _extract_definition_names(self, content: Any) -> list[str]:
         if isinstance(content, dict):
             refs = []
             ref = content.get('$ref')
@@ -130,7 +126,7 @@ class CompilerBase:
         self,
         filepath: str,
         name: str,
-        include_dirs: List[str] = [],
+        include_dirs: list[str] = [],
     ) -> None:
         name_lower = self.format_ns_name(name)
         name_map = [NameMapItem('/([^/]+)/={0}')]
@@ -148,16 +144,16 @@ class CompilerBase:
         self._definitions[name] = (schemas, types)
         self.seen_includes[filepath] = seen_includes
 
-    def definitions_includes_hpp(self) -> List[str]:
+    def definitions_includes_hpp(self) -> list[str]:
         types = self._collect_types()
-        includes: List[str] = []
+        includes: list[str] = []
         for type_ in types.values():
             includes += type_.declaration_includes()
         return sorted(set(includes))
 
-    def definitions_includes_cpp(self) -> List[str]:
+    def definitions_includes_cpp(self) -> list[str]:
         types = self._collect_types()
-        includes: List[str] = []
+        includes: list[str] = []
         for type_ in types.values():
             includes += type_.definition_includes()
         return sorted(set(includes))
@@ -167,7 +163,7 @@ class CompilerBase:
         filepath: str,
         name: str,
         namespace: str,
-        include_dirs: List[str] = [],
+        include_dirs: list[str] = [],
     ) -> None:
         name_lower = self.format_ns_name(name)
         name_map = [
@@ -193,13 +189,13 @@ class CompilerBase:
         self._defaults[name] = self._read_default(filepath)
         self.seen_includes[filepath] = seen_includes
 
-    def _collect_schemas(self) -> List[ResolvedSchemas]:
+    def _collect_schemas(self) -> list[ResolvedSchemas]:
         schemas = []
         for def_schemas, _definitions in self._definitions.values():
             schemas.append(def_schemas)
         return schemas
 
-    def _collect_types(self) -> Dict[str, types.CppType]:
+    def _collect_types(self) -> dict[str, types.CppType]:
         types = {}
         for _def_schemas, definitions in self._definitions.values():
             types.update(definitions)
@@ -212,8 +208,8 @@ class CompilerBase:
         erase_prefix: str,
         name_map,
         fname: str,
-        include_dirs: List[str],
-    ) -> Tuple[ResolvedSchemas, Dict[str, types.CppType], Set[str]]:
+        include_dirs: list[str],
+    ) -> tuple[ResolvedSchemas, dict[str, types.CppType], set[str]]:
         schemas = read_schemas(
             erase_path_prefix=erase_prefix,
             filepaths=[filepath],
@@ -240,22 +236,22 @@ class CompilerBase:
         )
         return schemas, types, gen.seen_includes
 
-    def variables_includes_hpp(self, name: str) -> List[str]:
+    def variables_includes_hpp(self, name: str) -> list[str]:
         types = self._variables_types[name]
-        includes: List[str] = []
+        includes: list[str] = []
         for type_ in types.values():
             includes += type_.declaration_includes()
 
         return sorted(set(includes))
 
-    def variables_includes_cpp(self, name: str) -> List[str]:
+    def variables_includes_cpp(self, name: str) -> list[str]:
         types = self._variables_types[name]
-        includes: List[str] = []
+        includes: list[str] = []
         for type_ in types.values():
             includes += type_.definition_includes()
         return sorted(set(includes))
 
-    def variables_external_includes_hpp(self, name: str) -> List[str]:
+    def variables_external_includes_hpp(self, name: str) -> list[str]:
         types = self._variables_types[name]
         return self.renderer_for_variable(
             name,
@@ -273,8 +269,8 @@ class CompilerBase:
 
     def create_aliases(
         self,
-        types: Dict[str, types.CppType],
-    ) -> List[Tuple[str, str]]:
+        types: dict[str, types.CppType],
+    ) -> list[tuple[str, str]]:
         return []
 
     def renderer_for_variable(

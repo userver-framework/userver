@@ -1,12 +1,11 @@
 from typing import Any
-from typing import List
 
 import pydantic
 
 
 class BaseModel(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra='allow')
-    _model_userver_tags: List[str] = []
+    _model_userver_tags: list[str] = []
 
     def model_post_init(self, context: Any) -> None:
         super().model_post_init(context)
