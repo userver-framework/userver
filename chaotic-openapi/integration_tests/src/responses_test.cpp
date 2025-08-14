@@ -190,6 +190,8 @@ UTEST(ResponsesMultipleContentType, HeaderParse) {
         r.body = R"({})";
         r.headers[std::string{"Content-Type"}] = "application/json";
         r.headers[std::string{"X-Header"}] = "string";
+        r.headers[std::string{"X-Integer"}] = "42";
+        r.headers[std::string{"X-Seconds"}] = "100";
         return r;
     });
     auto http_client = utest::CreateHttpClient();
@@ -198,6 +200,8 @@ UTEST(ResponsesMultipleContentType, HeaderParse) {
     namespace client = ::clients::response_headers::test1::post;
     auto response = client::ParseResponse(*http_response);
     EXPECT_EQ(response.X_Header, "string");
+    EXPECT_EQ(response.X_Integer, 42);
+    EXPECT_EQ(response.X_Seconds, 100);
 }
 
 }  // namespace

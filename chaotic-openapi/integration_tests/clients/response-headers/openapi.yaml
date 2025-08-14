@@ -19,4 +19,11 @@ paths:
                         X-Header:
                             schema:
                                 type: string
+                        X-Integer:
+                            schema:
+                                type: integer
+                        X-Seconds:
+                            schema:
+                                type: integer
+                                x-taxi-cpp-type: std::chrono::seconds
 components: {}

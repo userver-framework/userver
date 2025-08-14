@@ -29,8 +29,10 @@ class Translator:
             operations=[],
             schemas={},
         )
+        self._include_dirs = include_dirs
+
         try:
-            self.translate(service, include_dirs)
+            self.translate(service)
         except chaotic_error.BaseError:
             raise
         except BaseException as exc:
@@ -44,7 +46,6 @@ class Translator:
     def translate(
         self,
         service: model.Service,
-        include_dirs: list[str],
     ) -> None:
         # components/schemas
         parsed_schemas = chaotic_types.ParsedSchemas(
@@ -55,7 +56,7 @@ class Translator:
             chaotic_translator.GeneratorConfig(
                 namespaces={schema.source_location().filepath: '' for schema in service.schemas.values()},
                 infile_to_name_func=self.map_infile_path_to_cpp_type,
-                include_dirs=include_dirs,
+                include_dirs=self._include_dirs,
             )
         )
         self._spec.schemas = gen.generate_types(resolved_schemas)
@@ -229,6 +230,7 @@ class Translator:
             chaotic_translator.GeneratorConfig(
                 namespaces={schema.source_location().filepath: ''},
                 infile_to_name_func=self.map_infile_path_to_cpp_type,
+                include_dirs=self._include_dirs,
             )
         )
         gen_types = gen.generate_types(
