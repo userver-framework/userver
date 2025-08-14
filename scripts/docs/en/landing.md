@@ -170,6 +170,7 @@ int main(int argc, char* argv[]) {
           <span class="logo logo_delivery" title="Delivery club"></span>
           <span class="logo logo_matchmaker" title="Matchmaker"></span>
           <span class="logo logo_yago" title="Yandex Go"></span>
+          <span class="logo logo_slugkit" title="SlugKit"></span>
         </div>
       </section>
       <section class="section feedback">

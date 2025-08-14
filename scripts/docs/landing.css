@@ -780,6 +780,12 @@ html.dark-mode .values__card {
   width: 63px;
 }
 
+.logo_slugkit {
+  mask-image: url("slugkit.svg");
+  -webkit-mask-image: url("slugkit.svg");
+  width: 63px;
+}
+
 @media (max-width: 767px) {
   .companies__logos {
     justify-content: space-around;

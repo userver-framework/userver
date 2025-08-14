@@ -25,6 +25,9 @@ def format_md(name, content, content_raw):
 ```
 
 {example}
+
+
+For a full list of dynamic configs see @ref scripts/docs/en/dynamic_configs/dynamic_configs.md
 """
     # TODO: used by component XX
     return text

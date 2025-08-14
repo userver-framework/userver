@@ -50,8 +50,9 @@ echo "Building target userver-codegen."
 
 echo "Building target userver-gen-dynamic-configs-docs."
 "$CMAKE_COMMAND" --build "$BUILD_DIR" --target userver-gen-dynamic-configs-docs
-rm -f scripts/docs/en/dynamic_configs
-ln -s $BUILD_DIR/docs-dynamic-configs scripts/docs/en/dynamic_configs
+rm -rf scripts/docs/en/dynamic_configs
+mkdir scripts/docs/en/dynamic_configs
+cp $BUILD_DIR/docs-dynamic-configs/* scripts/docs/en/dynamic_configs/
 
 # Run doxygen.
 rm -rf "$BUILD_DIR/docs" || :
@@ -71,3 +72,6 @@ if [ -z "$NO_DEFAULT_HTML_CLEANUP" ]; then
     cp "$BUILD_DIR/docs/html/d8/dee/md_en_2userver_2404.html" "$BUILD_DIR/docs/html/404.html" || :
     sed -i 's|\.\./\.\./|/|g' "$BUILD_DIR/docs/html/404.html"
 fi
+
+# Cleanup
+rm -rf scripts/docs/en/dynamic_configs || :
