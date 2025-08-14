@@ -30,7 +30,23 @@ class Translator:
             operations=[],
             schemas={},
         )
+        try:
+            self.translate(service, include_dirs)
+        except chaotic_error.BaseError:
+            raise
+        except BaseException as exc:
+            raise chaotic_error.BaseError(
+                full_filepath=f'<{service.name}>',
+                infile_path='',
+                schema_type='openapi/swagger',
+                msg=str(exc),
+            )
 
+    def translate(
+        self,
+        service: model.Service,
+        include_dirs: List[str],
+    ) -> None:
         # components/schemas
         parsed_schemas = chaotic_types.ParsedSchemas(
             schemas={str(schema.source_location()): schema for schema in service.schemas.values()},
