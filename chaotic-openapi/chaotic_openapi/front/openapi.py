@@ -103,11 +103,11 @@ class Parameter(base_model.BaseModel):
 
     x_handler_tag: Optional[str] = pydantic.Field(
         default=None,
-        alias='x-taxi-handler-tag',
+        validation_alias=pydantic.AliasChoices('x-taxi-handler-tag', 'x-usrv-handler-tag'),
     )
     x_cpp_name: Optional[str] = pydantic.Field(
         default=None,
-        alias='x-taxi-cpp-name',
+        validation_alias=pydantic.AliasChoices('x-taxi-cpp-name', 'x-usrv-cpp-name'),
     )
 
     def model_post_init(self, context: Any, /) -> None:
@@ -241,11 +241,11 @@ class Operation(base_model.BaseModel):
 
     x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
         default=None,
-        alias='x-taxi-middlewares',
+        validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
     x_taxi_handler_codegen: bool = pydantic.Field(
         default=True,
-        alias='x-taxi-handler-codegen',
+        validation_alias=pydantic.AliasChoices('x-taxi-handler-codegen', 'x-usrv-handler-codegen'),
     )
 
 
@@ -284,11 +284,11 @@ class OpenApi(base_model.BaseModel):
 
     x_taxi_client_qos: Optional[XTaxiClientQos] = pydantic.Field(
         default=None,
-        alias='x-taxi-client-qos',
+        validation_alias=pydantic.AliasChoices('x-taxi-client-qos', 'x-usrv-client-qos'),
     )
     x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
         default=None,
-        alias='x-taxi-middlewares',
+        validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
 
     def validate_security(self, security: Optional[Security]) -> None:

@@ -50,7 +50,7 @@ class Parameter(base_model.BaseModel):
 
     x_cpp_name: Optional[str] = pydantic.Field(
         default=None,
-        alias='x-taxi-cpp-name',
+        validation_alias=pydantic.AliasChoices('x-taxi-cpp-name', 'x-usrv-cpp-name'),
     )
 
     def model_post_init(self, context: Any, /) -> None:
@@ -175,7 +175,7 @@ class Operation(base_model.BaseModel):
 
     x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
         default=None,
-        alias='x-taxi-middlewares',
+        validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
 
 

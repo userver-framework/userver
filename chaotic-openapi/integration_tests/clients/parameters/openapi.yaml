@@ -16,7 +16,7 @@ paths:
                       - two
                       - three
               - name: class
-                x-taxi-cpp-name: myclass
+                x-usrv-cpp-name: myclass
                 in: query
                 required: false
                 schema:

@@ -23,7 +23,7 @@ paths:
 
     /test1/no-tvm:
         post:
-            x-taxi-middlewares:
+            x-usrv-middlewares:
                 tvm: false
             responses:
                 '200':
