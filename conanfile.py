@@ -9,7 +9,7 @@ from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
-from conan.tools.files import copy
+from conan.tools.files import copy, export_conandata_patches
 from conan.tools.files import load
 from conan.tools.scm import Git
 from conan.tools.system import package_manager
@@ -21,7 +21,7 @@ class UserverConan(ConanFile):
     name = 'userver'
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
-    url = 'https://github.com/userver-framework/userver'
+    url = 'https://github.com/conan-io/conan-center-index'
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
     package_type = 'static-library'
@@ -92,15 +92,21 @@ class UserverConan(ConanFile):
         're2/*:with_icu': True,
     }
 
+    def source(self):
+        known_version = self.conan_data["sources"].get(self.version)
+        if known_version:
+            get(self, **known_version, strip_root=True)
+        else:
+            pass  # Running from userver-framework/userver
+
     def export_sources(self):
-        git = Git(self)
-        tracked_sources = git.included_files()
-        # To speed up copying, we take only the root folders
-        tracked_sources = set(f.split('/')[0] for f in tracked_sources)
-        for i in tracked_sources:
-            copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
+        export_conandata_patches(self)
 
     def set_version(self):
+        if self.version:
+            return
+
+        # Building from userver-framework/userver
         content = load(
             self,
             os.path.join(
@@ -279,3 +285,4 @@ class UserverConan(ConanFile):
             package_manager.Yum(self).install(['libpq-devel'])
             package_manager.PacMan(self).install(['libpq-dev'])
             package_manager.Zypper(self).install(['libpq-devel'])
+
