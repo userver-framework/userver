@@ -103,12 +103,6 @@ def _get_template_includes(name: str, client_name: str, graph: Dict[str, List[st
     return includes[name]
 
 
-def trim_suffix(string: str, suffix: str) -> Optional[str]:
-    if string.endswith(suffix):
-        return string[: -len(suffix)]
-    return None
-
-
 def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -> Optional[List[str]]:
     with open(path) as ifile:
         content = yaml.safe_load(ifile)

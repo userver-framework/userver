@@ -1,5 +1,4 @@
 import collections
-import re
 from typing import Any
 from typing import Dict
 from typing import List
@@ -7,8 +6,6 @@ from typing import Tuple
 
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref_resolver
-
-REF_SHRINK_RE = re.compile('/[^/]+/../')
 
 
 def normalize_ref(filepath: str, ref: str) -> str:
