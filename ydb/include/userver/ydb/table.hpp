@@ -48,6 +48,13 @@ using DescribeTableSettings = NYdb::NTable::TDescribeTableSettings;
 using DropTableSettings = NYdb::NTable::TDropTableSettings;
 using ScanQuerySettings = NYdb::NTable::TStreamExecScanQuerySettings;
 
+/// @brief A dynamic transaction name for @see TableClient::Begin.
+///
+/// @warning Make sure that transaction name has low cardinality.
+/// If transaction name is unique for every call, per-transaction metrics will overflow metrics quota,
+/// and metrics will become unusable.
+using DynamicTransactionName = utils::StrongTypedef<struct DynamicTransactionNameTag, std::string>;
+
 class TableClient final {
 public:
     /// @cond
@@ -116,9 +123,14 @@ public:
     /// @see ydb::Transaction
     ///
     /// @{
-    Transaction Begin(std::string transaction_name, OperationSettings settings = {});
+    Transaction Begin(utils::StringLiteral transaction_name, OperationSettings settings = {});
 
-    Transaction Begin(std::string transaction_name, TransactionMode tx_mode);
+    /// @warning Make sure that `transaction_name` has low cardinality.
+    /// If `transaction_name` is unique for every call, per-transaction metrics will overflow metrics quota,
+    /// and metrics will become unusable.
+    Transaction Begin(DynamicTransactionName transaction_name, OperationSettings settings = {});
+
+    Transaction Begin(utils::StringLiteral transaction_name, TransactionMode tx_mode);
     /// @}
 
     /// Builder for storing dynamic query params.

@@ -298,13 +298,17 @@ void TableClient::DropTable(std::string_view path, DropTableSettings query_setti
     );
 }
 
-Transaction TableClient::Begin(std::string transaction_name, TransactionMode tx_mode) {
+Transaction TableClient::Begin(utils::StringLiteral transaction_name, TransactionMode tx_mode) {
     OperationSettings settings{};
     settings.tx_mode = tx_mode;
-    return Begin(std::move(transaction_name), std::move(settings));
+    return Begin(transaction_name, std::move(settings));
 }
 
-Transaction TableClient::Begin(std::string transaction_name, OperationSettings settings) {
+Transaction TableClient::Begin(utils::StringLiteral transaction_name, OperationSettings settings) {
+    return Begin(DynamicTransactionName{transaction_name.data()}, std::move(settings));
+}
+
+Transaction TableClient::Begin(DynamicTransactionName transaction_name, OperationSettings settings) {
     const Query query{"", Query::Name{"Begin"}};
     impl::RequestContext context{*this, query, std::move(settings)};
     auto tx_settings = PrepareTxSettings(context.settings);
@@ -320,7 +324,7 @@ Transaction TableClient::Begin(std::string transaction_name, OperationSettings s
     );
 
     auto status = impl::GetFutureValueChecked(std::move(future), "BeginTransaction", context);
-    return Transaction(*this, status.GetTransaction(), std::move(transaction_name), std::move(settings));
+    return Transaction(*this, status.GetTransaction(), transaction_name.GetUnderlying(), std::move(settings));
 }
 
 void TableClient::ExecuteSchemeQuery(const std::string& query) {
