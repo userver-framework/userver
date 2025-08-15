@@ -2,25 +2,13 @@ const TRUNK_VERSION = "trunk/develop";
 const NONE_VERSION = "none"
 
 function loadVersions() {
-
-    // Try get global versions list
-    return import('../../versions.js').then(
-        (imported_versions_module) => {
-            versions = imported_versions_module.versions
-            versions_loaded = true
-            return versions
-        }).catch(
-            () => {
-                // Try get local versions list
-                import('./versions.js').then((imported_versions_module) => {
-                    versions = imported_versions_module.versions
-                    versions_loaded = true
-                    return versions
-                }
-                ).catch(() => {
-                    console.log("Versions loading failed")
-                });
-            })
+    return import('/versions.js').then((imported_versions_module) => {
+        versions = imported_versions_module.versions
+        return versions
+    }
+    ).catch(() => {
+        console.log("Versions loading failed")
+    });
 }
 
 
@@ -94,7 +82,7 @@ const old_docs_version = () => {
         const brief = document.getElementById('projectbrief').getElementsByTagName('a')[0];
         brief.textContent += " " + version;
     }
-    const base_page_url = "index.html"
+    const base_page_url = "/"
 
     var warning = document.createElement("div");
     warning.style.width = '100%';
@@ -119,32 +107,48 @@ const get_current_version = () => {
         return pathname.split("/", urlSplitLimiter)[versionTokenPosition]
     }
 
-    if (pathname.startsWith("/versions.html")) {
+    if (pathname.startsWith("/d4/de0/versions.html")) {
         return NONE_VERSION
     }
 
     return TRUNK_VERSION;
 }
 
+const get_latest_major_verision = (versions) => {
+    latest_version = versions[versions.length - 1]
+    latest_version_prefix = latest_version.substring(0, latest_version.indexOf("."))
+    penultimate_element_position = versions.length - 2
+
+    for (let i = penultimate_element_position; i >= 0; i--) {
+        if (!versions[i].startsWith(latest_version_prefix)) {
+            return versions[i + 1]
+        }
+    }
+}
+
+const get_latest_previous_major_version = (versions) => {
+    latest_version = versions[versions.length - 1]
+    latest_version_prefix = latest_version.substring(0, latest_version.indexOf("."))
+    penultimate_element_position = versions.length - 2
+
+    for (let i = penultimate_element_position; i >= 0; i--) {
+        if (!versions[i].startsWith(latest_version_prefix)) {
+            return versions[i]
+        }
+    }
+}
+
 const add_docs_versioning = () => {
 
     loadVersions().then((versions) => {
-        const get_latest_major_version_or_previous_latest = () => {
-            latest_version_prefix = latest_version.substring(0, latest_version.indexOf("."))
-            for (let i = versions.length - 2; i >= 0; i--) {
-                if (!versions[i].startsWith(latest_version_prefix)) {
-                    if (i != versions.length - 2) {
-                        return versions[i + 1]
-                    }
-
-                    return versions[i]
-                }
-            }
-        }
 
         const latest_version = versions[versions.length - 1]
         const current_version = get_current_version()
-        const latest_major_version_or_previous_latest = get_latest_major_version_or_previous_latest()
+        let latest_major_version = get_latest_major_verision(versions)
+
+        if (latest_version == latest_major_version) {
+            latest_major_version = get_latest_previous_major_version(versions)
+        }
 
         if (current_version != latest_version &&
             current_version != TRUNK_VERSION &&
@@ -172,17 +176,13 @@ const add_docs_versioning = () => {
             footer_infix += `<span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">${latest_version}</span>, `
         }
 
-        if (current_version != latest_major_version_or_previous_latest) {
-            footer_infix += `<a href="/docs/${latest_major_version_or_previous_latest}/index.html">${latest_major_version_or_previous_latest}</a>, `
+        if (current_version != latest_major_version) {
+            footer_infix += `<a href="/docs/${latest_major_version}/index.html">${latest_major_version}</a>, `
         } else {
-            footer_infix += `<span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">${latest_major_version_or_previous_latest}</span>, `
+            footer_infix += `<span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">${latest_major_version}</span>, `
         }
 
-        if (current_version != TRUNK_VERSION) {
-            footer_infix += `<a href="../../versions.html">others</a>`
-        } else {
-            footer_infix += `<a href="versions.html">others</a>`
-        }
+        footer_infix += `<a href="/d4/de0/versions.html">others</a>`
 
         footer.innerHTML = footer_prefix + footer_infix
             + footer.innerHTML;
