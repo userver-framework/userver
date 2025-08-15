@@ -18,7 +18,7 @@ public:
 };
 
 /// @brief Conversion error
-/// Exception is thrown if protobuf message field can be converted to/from struct field.
+/// Exception is thrown if protobuf message field can't be converted to/from struct field.
 class ConversionError : public Error {
 public:
     /// @brief Creates error signalling that conversion failed for field @a field_name of message @a message_name
@@ -34,7 +34,7 @@ public:
 };
 
 /// @brief Failed to pack struct's compatible message to @ref proto_structs::Any underlying storage.
-/// @note This exception can be thrown *after* struct to protobuf message conversion is performed.
+/// @note This exception is thrown *after* struct to protobuf message conversion.
 class AnyPackError : public Error {
 public:
     /// @brief Creates error when trying to pack protobuf message @a message_name
@@ -42,7 +42,7 @@ public:
 };
 
 /// @brief Failed to unpack struct's compatible message from @ref proto_structs::Any underlying storage
-/// @note This exception can be thrown *before* protobuf message to struct conversion is performed.
+/// @note This exception is thrown *before* protobuf message to struct conversion.
 class AnyUnpackError : public Error {
 public:
     /// @brief Creates error when trying to unpack protobuf message @a message_name

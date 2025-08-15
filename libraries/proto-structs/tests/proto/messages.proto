@@ -1,0 +1,23 @@
+syntax = "proto3";
+package test_messages;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/tests/proto;testmessages";
+
+enum TestEnum {
+  TEST_ENUM_USPECIFIED = 0;
+  TEST_ENUM_VALUE1 = 1;
+  TEST_ENUM_VALUE2 = 2;
+}
+
+message Scalars {
+  bool f1 = 1;
+  int32 f2 = 2;
+  uint32 f3 = 3;
+  int64 f4 = 4;
+  uint64 field5 = 5;
+  float field6 = 6;
+  double field7 = 7;
+  string field8 = 8;
+  bytes field9 = 9;
+  TestEnum field10 = 10;
+}

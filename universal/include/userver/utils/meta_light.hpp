@@ -81,9 +81,13 @@ using DetectedOr = typename impl::Detector<Default, void, Trait, Args...>::type;
 template <typename T, typename U>
 using ExpectSame = std::enable_if_t<std::is_same_v<T, U>>;
 
-/// Returns `true` if the type if an instantiation of the specified template.
+/// Returns `true` if the type is an instantiation of the specified template.
 template <template <typename...> typename Template, typename T>
 inline constexpr bool kIsInstantiationOf = impl::IsInstantiationOf<Template, T>::value;
+
+/// Returns `true` if the type (with remove cv-qualifiers) is an instantiation of the specified template.
+template <template <typename...> typename Template, typename T>
+inline constexpr bool kIsCvInstantiationOf = kIsInstantiationOf<Template, std::remove_cv_t<T>>;
 
 /// Returns `true` if the type is a fundamental character type.
 /// `signed char` and `unsigned char` are not character types.
