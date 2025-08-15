@@ -5,9 +5,12 @@
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/numeric_cast.hpp>
 
 #include <userver/ugrpc/client/impl/client_data.hpp>
 
+#include <ugrpc/client/impl/compat/retry_policy.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,26 +28,56 @@ void CheckValidCallName(std::string_view call_name) {
     );
 }
 
-void ApplyDynamicConfig(CallOptions& call_options, const Qos& qos, const testsuite::GrpcControl& testsuite_grpc) {
-    // dynamic config has lower priority, than set manually by user in CallOptions
-    // so set only if NOT set
-
-    if (std::chrono::milliseconds::max() == call_options.GetTimeout() && qos.timeout.has_value()) {
-        call_options.SetTimeout(testsuite_grpc.MakeTimeout(*qos.timeout));
-    }
-
-    if (0 == call_options.GetAttempts() && qos.attempts.has_value()) {
-        call_options.SetAttempts(*qos.attempts);
+void SetAttempts(CallOptions& call_options, const Qos& qos, const RetryConfig& retry_config) {
+    if (0 == call_options.GetAttempts()) {
+        call_options.SetAttempts(qos.attempts.value_or(retry_config.attempts));
     }
 }
 
-void ApplyStaticConfig(CallOptions& call_options, const RetryConfig& retry_config) {
-    // static config has lowest priority,
-    // so set only if NOT set
-
-    if (0 == call_options.GetAttempts()) {
-        call_options.SetAttempts(retry_config.attempts);
+void SetTimeout(CallOptions& call_options, const Qos& qos, const testsuite::GrpcControl& testsuite_grpc) {
+    if (std::chrono::milliseconds::max() == call_options.GetTimeout() && qos.timeout.has_value()) {
+        call_options.SetTimeout(testsuite_grpc.MakeTimeout(*qos.timeout));
     }
+}
+
+void SetTimeoutStreaming(
+    CallOptions& call_options,
+    const Qos& qos,
+    const RetryConfig& retry_config,
+    const testsuite::GrpcControl& testsuite_grpc
+) {
+    SetTimeout(call_options, qos, testsuite_grpc);
+
+    // if timeout is set, reset it to TotalTimeout, because of grpc-core retries
+    const auto timeout = call_options.GetTimeout();
+    if (std::chrono::milliseconds::max() != timeout) {
+        const auto attempts = qos.attempts.value_or(retry_config.attempts);
+        UINVARIANT(0 < attempts, "Qos/RetryConfig attempts value must be greater than 0");
+        const auto total_timeout = compat::CalculateTotalTimeout(timeout, utils::numeric_cast<std::uint32_t>(attempts));
+        call_options.SetTimeout(total_timeout);
+    }
+}
+
+void ApplyRetryConfiguration(
+    CallOptions& call_options,
+    const Qos& qos,
+    const RetryConfig& retry_config,
+    const testsuite::GrpcControl& testsuite_grpc
+) {
+    SetAttempts(call_options, qos, retry_config);
+    SetTimeout(call_options, qos, testsuite_grpc);
+}
+
+void ApplyRetryConfigurationStreaming(
+    CallOptions& call_options,
+    const Qos& qos,
+    const RetryConfig& retry_config,
+    const testsuite::GrpcControl& testsuite_grpc
+) {
+    // we use grpc-core retries for streaming-methods,
+    // so CallOption attempts do not work, no need to set them
+
+    SetTimeoutStreaming(call_options, qos, retry_config, testsuite_grpc);
 }
 
 }  // namespace
@@ -60,8 +93,14 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
     auto stub = client_data.NextStubFromMethodId(method_id);
 
     const auto qos = stub.GetClientQos().methods.GetOptional(call_name).value_or(Qos{});
-    ApplyDynamicConfig(call_options, qos, client_data.GetTestsuiteControl());
-    ApplyStaticConfig(call_options, client_data.GetRetryConfig());
+    ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
+    if (ugrpc::impl::RpcType::kUnary == GetMethodType(metadata, method_id)) {
+        ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
+    } else {
+        ApplyRetryConfigurationStreaming(
+            call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl()
+        );
+    }
 
     return CallParams{
         client_data.GetClientName(),

@@ -1,4 +1,4 @@
-#include <userver/ugrpc/client/impl/build_channel_arguments.hpp>
+#include <userver/ugrpc/client/impl/channel_argument_utils.hpp>
 
 #include <userver/logging/log.hpp>
 
