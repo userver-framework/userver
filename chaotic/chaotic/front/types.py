@@ -470,6 +470,7 @@ class OneOfDiscriminatorRaw:
 class OneOfRaw:
     oneOf: list  # type:ignore
     discriminator: Optional[dict] = None
+    nullable: bool = False
 
     def __post_init__(self) -> None:
         if not self.oneOf:

@@ -113,7 +113,10 @@ class SchemaParser:
                     with self._path_enter(str(i)) as _:
                         type_ = self._parse_schema(variant)
                         variables.append(type_)
-                obj = types.OneOfWithoutDiscriminator(oneOf=variables)
+                obj = types.OneOfWithoutDiscriminator(
+                    oneOf=variables,
+                    nullable=raw.nullable,
+                )
                 obj.x_properties = raw.x_properties  # type:ignore
                 return obj
 
@@ -217,6 +220,7 @@ class SchemaParser:
             oneOf=variables,
             discriminator_property=discriminator_property,
             mapping=mapping,
+            nullable=input_.get('nullable', False),
         )
 
         del input_['discriminator']

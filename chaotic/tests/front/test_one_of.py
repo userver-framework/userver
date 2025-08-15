@@ -145,6 +145,18 @@ def test_wo_discriminator_2(simple_parse):
     }
 
 
+def test_wo_discriminator_nullable(simple_parse):
+    parsed = simple_parse({'oneOf': [{'type': 'integer'}], 'nullable': True})
+    assert parsed.schemas['vfull#/definitions/type'].nullable
+
+
+def test_wo_discriminator_nullable_wrong_type(simple_parse):
+    with pytest.raises(ParserError) as exc:
+        simple_parse({'oneOf': [{'type': 'integer'}], 'nullable': 1})
+    assert exc.value.infile_path == '/definitions/type/oneOf/nullable'
+    assert exc.value.msg == 'field "nullable" has wrong type'
+
+
 def test_wd_no_ref_or_object(simple_parse):
     try:
         simple_parse({
@@ -404,3 +416,15 @@ def test_wd_extra_field(simple_parse):
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/discriminator/foo'
         assert exc.msg == ('Unknown field: "foo", known fields: ["mapping", "propertyName"]')
+
+
+def test_wd_nullable(parse_after_refs):
+    schema = parse_after_refs({
+        'oneOf': [
+            {'$ref': '#/definitions/type1'},
+            {'$ref': '#/definitions/type2'},
+        ],
+        'discriminator': {'propertyName': 'foo'},
+        'nullable': True,
+    })
+    assert schema['vfull#/definitions/type'].nullable
