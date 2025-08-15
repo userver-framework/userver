@@ -26,5 +26,9 @@ class BaseModel(pydantic.BaseModel):
             raise Exception(f'Unknown field "{field}"')
 
 
-class XTaxiMiddlewares(BaseModel):
+class XMiddlewares(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(extra='allow')
+
     tvm: bool = True
+
+    # TODO: validate field set

@@ -54,6 +54,8 @@ public:
 
     void Flush();
 
+    const clients::http::Headers& GetHeaders() const;
+
 private:
     std::string url_pattern_;
     clients::http::Request& request_;

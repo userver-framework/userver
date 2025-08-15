@@ -46,6 +46,7 @@ namespace {{ namespace }} {
           {% endfor %}
         >;
       {% endif %}
+
         struct Request {
           {% for parameter in op.parameters %}
               {% if parameter.cpp_type.nullable %}
@@ -55,6 +56,11 @@ namespace {{ namespace }} {
               {% endif -%}
               {{ parameter.cpp_name }};
           {% endfor %}
+
+          {% for mw in op.middlewares %}
+              {{ mw.request_member_cpp_type }} {{ mw.request_member_name }};
+          {% endfor %}
+
           {% if op.request_bodies %}
               Body body;
           {% endif %}

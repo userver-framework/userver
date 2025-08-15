@@ -1,3 +1,4 @@
+from chaotic_openapi.front import base_model
 from chaotic_openapi.front import model
 
 from chaotic.front import types
@@ -54,6 +55,7 @@ def test_swagger_body_schema(simple_parser):
                 ],
                 responses={},
                 security=[],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             )
         ],
     )
@@ -184,6 +186,7 @@ def test_swagger_responses(simple_parser):
                     500: model.Ref('<inline>#/responses/500'),
                 },
                 security=[],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             )
         ],
     )
@@ -305,6 +308,7 @@ def test_swagger_securuty(simple_parser):
                         ],
                     ),
                 ],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             ),
             model.Operation(
                 description='',
@@ -338,6 +342,7 @@ def test_swagger_securuty(simple_parser):
                         ],
                     ),
                 ],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             ),
             model.Operation(
                 description='',
@@ -371,6 +376,7 @@ def test_swagger_securuty(simple_parser):
                         ],
                     ),
                 ],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             ),
         ],
     )
@@ -459,6 +465,7 @@ def test_swagger_parameters(simple_parser):
                     model.RequestBody(content_type='application/json', required=True, schema=types.Number()),
                 ],
                 security=[],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
                 parameters=[
                     model.Parameter(
                         name='pamparam2',

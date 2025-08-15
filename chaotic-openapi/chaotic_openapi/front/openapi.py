@@ -239,7 +239,7 @@ class Operation(base_model.BaseModel):
     security: Optional[Security] = None
     servers: list[Server] = pydantic.Field(default_factory=list)
 
-    x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
+    x_taxi_middlewares: Optional[base_model.XMiddlewares] = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
@@ -286,7 +286,7 @@ class OpenApi(base_model.BaseModel):
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-client-qos', 'x-usrv-client-qos'),
     )
-    x_taxi_middlewares: Optional[base_model.XTaxiMiddlewares] = pydantic.Field(
+    x_taxi_middlewares: Optional[base_model.XMiddlewares] = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )

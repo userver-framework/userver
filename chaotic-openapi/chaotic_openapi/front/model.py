@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from chaotic.front import types
+from . import base_model
 
 
 class In(str, enum.Enum):
@@ -137,6 +138,8 @@ class Operation:
     requestBody: Union[list[RequestBody], Ref]
     responses: dict[int, Union[Response, Ref]]
     security: list[Security]
+
+    x_middlewares: base_model.XMiddlewares
 
 
 @dataclasses.dataclass

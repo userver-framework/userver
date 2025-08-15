@@ -15,6 +15,7 @@ def translate_single_schema():
             dynamic_config='',
             cpp_namespace='test_namespace',
             include_dirs=[],
+            middleware_plugins=[],
         )
         return tr.spec()
 

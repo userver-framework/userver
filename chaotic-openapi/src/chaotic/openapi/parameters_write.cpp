@@ -39,6 +39,8 @@ void ParameterSinkHttpClient::Flush() {
     request_.cookies(std::move(cookies_));
 }
 
+const clients::http::Headers& ParameterSinkHttpClient::GetHeaders() const { return headers_; }
+
 std::string ToStrParameter(bool value) noexcept { return value ? "true" : "false"; }
 
 std::string ToStrParameter(double value) noexcept { return fmt::to_string(value); }

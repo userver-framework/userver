@@ -8,7 +8,9 @@ from chaotic.back.cpp import translator as chaotic_translator
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import ref_resolver
 from chaotic.front import types as chaotic_types
+from chaotic_openapi.back.cpp_client import middleware
 from chaotic_openapi.back.cpp_client import types
+from chaotic_openapi.front import base_model
 from chaotic_openapi.front import model
 
 
@@ -20,6 +22,7 @@ class Translator:
         cpp_namespace: str,
         dynamic_config: str,
         include_dirs: list[str],
+        middleware_plugins: list[middleware.MiddlewarePlugin],
     ) -> None:
         self._spec = types.ClientSpec(
             client_name=service.name,
@@ -30,6 +33,7 @@ class Translator:
             schemas={},
         )
         self._include_dirs = include_dirs
+        self._middleware_plugins = middleware_plugins
 
         try:
             self.translate(service)
@@ -84,6 +88,7 @@ class Translator:
                 parameters=[self._translate_parameter(parameter) for parameter in operation.parameters],
                 request_bodies=request_bodies,
                 responses=[self._translate_response(r, status) for status, r in operation.responses.items()],
+                middlewares=self._translate_middlewares(operation.x_middlewares),
             )
             self._spec.operations.append(op)
 
@@ -338,6 +343,24 @@ class Translator:
             parser=parser,
             required=parameter.required,
         )
+
+    def _translate_middlewares(self, middlewares: base_model.XMiddlewares) -> list[middleware.Middleware]:
+        extra_members = middlewares.__pydantic_extra__ or {}
+
+        result = []
+        for plugin in self._middleware_plugins:
+            field = plugin.field
+            if field not in extra_members:
+                continue
+
+            mw = plugin.create({field: extra_members[field]})
+            result.append(mw)
+            del extra_members[field]
+
+        if extra_members:
+            raise Exception(f'Unknown member(s) in x-taxi-middlewares: {extra_members}')
+
+        return result
 
     def spec(self) -> types.ClientSpec:
         return self._spec

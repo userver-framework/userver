@@ -41,6 +41,7 @@ def do_main():
         dynamic_config=args.dynamic_config,
         cpp_namespace=(args.namespace or f'clients::{args.name}'),
         include_dirs=args.include_dirs or [],
+        middleware_plugins=[],
     ).spec()
 
     # render

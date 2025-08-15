@@ -10,6 +10,7 @@ import pydantic
 
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import types
+from . import base_model
 from . import errors
 from . import model
 from . import openapi
@@ -658,6 +659,7 @@ class Parser:
                     for status, response in operation.responses.items()
                 },
                 security=security_converter(operation.security),
+                x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
             )
         )
 
@@ -694,6 +696,7 @@ class Parser:
                     for status, response in operation.responses.items()
                 },
                 security=security_converter(operation.security),
+                x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
             )
         )
 

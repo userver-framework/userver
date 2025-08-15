@@ -36,6 +36,7 @@
   "chaotic-openapi/chaotic_openapi/__init__.py":"taxi/uservices/userver/chaotic-openapi/chaotic_openapi/__init__.py",
   "chaotic-openapi/chaotic_openapi/back/__init__.py":"taxi/uservices/userver/chaotic-openapi/chaotic_openapi/back/__init__.py",
   "chaotic-openapi/chaotic_openapi/back/cpp_client/__init__.py":"taxi/uservices/userver/chaotic-openapi/chaotic_openapi/back/cpp_client/__init__.py",
+  "chaotic-openapi/chaotic_openapi/back/cpp_client/middleware.py":"taxi/uservices/userver/chaotic-openapi/chaotic_openapi/back/cpp_client/middleware.py",
   "chaotic-openapi/chaotic_openapi/back/cpp_client/output.py":"taxi/uservices/userver/chaotic-openapi/chaotic_openapi/back/cpp_client/output.py",
   "chaotic-openapi/chaotic_openapi/back/cpp_client/renderer.py":"taxi/uservices/userver/chaotic-openapi/chaotic_openapi/back/cpp_client/renderer.py",
   "chaotic-openapi/chaotic_openapi/back/cpp_client/templates/client.cpp.jinja":"taxi/uservices/userver/chaotic-openapi/chaotic_openapi/back/cpp_client/templates/client.cpp.jinja",

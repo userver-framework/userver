@@ -190,8 +190,12 @@ class External:
     userver_modules: list[str]
 
 
+# For Yandex uservices only, not for OSS
 def external_libraries(schemas_dir: str) -> External:
     types = set()
+
+    libraries = []
+    userver_modules = []
 
     def visit(data) -> None:
         if isinstance(data, dict):
@@ -201,6 +205,10 @@ def external_libraries(schemas_dir: str) -> External:
                 types.add(data['x-taxi-cpp-type'])
             if 'x-usrv-cpp-type' in data:
                 types.add(data['x-usrv-cpp-type'])
+
+            if data.get('x-taxi-middlewares', {}).get('eats') == 'v1':
+                libraries.append('eats-authproxy-backend')
+
         elif isinstance(data, list):
             for v in data:
                 visit(v)
@@ -210,8 +218,6 @@ def external_libraries(schemas_dir: str) -> External:
             content = yaml.safe_load(ifile)
             visit(content)
 
-    libraries = []
-    userver_modules = []
     for type_ in types:
         library = type_.split('::')[0].replace('_', '-')
         # special namespaces (and unsigned) which are defined in userver/, not in libraries/

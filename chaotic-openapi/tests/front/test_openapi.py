@@ -1,3 +1,4 @@
+from chaotic_openapi.front import base_model
 from chaotic_openapi.front import model
 import pytest
 
@@ -53,6 +54,7 @@ def test_openapi_body_schema(simple_parser):
                 ],
                 responses={},
                 security=[],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             )
         ],
     )
@@ -163,6 +165,7 @@ def test_openapi_security(simple_parser):
                         ],
                     ),
                 ],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             ),
             model.Operation(
                 description='',
@@ -191,6 +194,7 @@ def test_openapi_security(simple_parser):
                         ],
                     ),
                 ],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             ),
             model.Operation(
                 description='',
@@ -219,6 +223,7 @@ def test_openapi_security(simple_parser):
                         ],
                     ),
                 ],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
             ),
         ],
     )
@@ -321,6 +326,7 @@ def test_openapi_parameters(simple_parser):
                 responses={},
                 requestBody=[],
                 security=[],
+                x_middlewares=base_model.XMiddlewares(tvm=True),
                 parameters=[
                     model.Parameter(
                         name='pamparam1',

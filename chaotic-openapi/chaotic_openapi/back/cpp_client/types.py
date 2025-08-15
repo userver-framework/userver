@@ -6,6 +6,7 @@ from typing import Union
 from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import types as cpp_types
+from . import middleware
 
 
 @dataclasses.dataclass
@@ -126,6 +127,8 @@ class Operation:
 
     client_generate: bool = True
 
+    middlewares: list[middleware.Middleware] = dataclasses.field(default_factory=list)
+
     def cpp_namespace(self) -> str:
         if self.operation_id:
             return cpp_names.namespace(self.operation_id)
@@ -193,6 +196,9 @@ class ClientSpec:
                     includes.update(body.schema.declaration_includes())
             for param in op.parameters:
                 includes.update(param.declaration_includes())
+
+            for mw in op.middlewares:
+                includes.update(mw.requests_hpp_includes)
 
         return sorted(includes)
 

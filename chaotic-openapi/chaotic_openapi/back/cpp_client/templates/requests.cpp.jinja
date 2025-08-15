@@ -71,6 +71,12 @@ void SerializeRequest(const Request& request, const std::string& base_url, USERV
   {% endif %}
 
   sink.Flush();
+
+  {# middlewares #}
+  {% for mw in op.middlewares %}
+      {{ mw.write_member_command('request', 'sink', 'http_request') }}
+  {% endfor %}
+
 }
 
 } // namespace
