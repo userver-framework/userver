@@ -258,8 +258,6 @@ ServiceConfigBuilder::ServiceConfigBuilder(
     const std::optional<std::string>& static_service_config
 )
     : metadata_{metadata}, retry_config_{retry_config} {
-    LOG_INFO() << "ServiceConfigBuilder, RetryConfig: attempts=" << retry_config_.attempts;
-
     if (static_service_config.has_value()) {
         static_service_config_ = formats::json::FromString(*static_service_config);
         prepared_method_configs_ = PrepareMethodConfigs(static_service_config_, metadata_);
