@@ -9,7 +9,7 @@ from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
-from conan.tools.files import copy, export_conandata_patches
+from conan.tools.files import get, copy, export_conandata_patches
 from conan.tools.files import load
 from conan.tools.scm import Git
 from conan.tools.system import package_manager
@@ -93,14 +93,14 @@ class UserverConan(ConanFile):
     }
 
     def source(self):
-        known_version = self.conan_data["sources"].get(self.version)
+        known_version = self.conan_data.get("sources", {}).get(self.version)
         if known_version:
             get(self, **known_version, strip_root=True)
         else:
             pass  # Running from userver-framework/userver
 
     def export_sources(self):
-        known_version = self.conan_data["sources"].get(self.version)
+        known_version = self.conan_data.get("sources", {}).get(self.version)
         if known_version:
                 export_conandata_patches(self)
         else:
