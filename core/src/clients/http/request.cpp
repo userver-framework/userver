@@ -236,7 +236,7 @@ StreamedResponse Request::async_perform_stream_body(
 }
 
 std::shared_ptr<Response> Request::perform(utils::impl::SourceLocation location) {
-    return async_perform(location).Get();
+    return async_perform(location).Get(location);
 }
 
 Request& Request::url(std::string url) & {
