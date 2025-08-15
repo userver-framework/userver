@@ -10,6 +10,7 @@ from typing import Optional
 from typing import Union
 
 from chaotic import error
+from chaotic.front import ref
 from chaotic.front import types
 
 
@@ -173,11 +174,11 @@ class SchemaParser:
 
                     idx_mapping[abs_ref].append(key)
 
-            for ref in variables:
-                assert isinstance(ref, types.Ref)
-                map_value = idx_mapping.pop(ref.ref, None)
+            for ref_ in variables:
+                assert isinstance(ref_, types.Ref)
+                map_value = idx_mapping.pop(ref_.ref, None)
                 if map_value is None:
-                    self._raise(f'Missing $ref in mapping: {ref.ref}')
+                    self._raise(f'Missing $ref in mapping: {ref_.ref}')
 
                 mapping.append(map_value)
 
@@ -211,7 +212,7 @@ class SchemaParser:
         if user_mapping is not None:
             mapping = self._parse_oneof_disc_mapping(user_mapping, variables)
         else:
-            mapping = types.DiscMapping(str_values=[[ref.ref.split('/')[-1]] for ref in variables], int_values=None)
+            mapping = types.DiscMapping(str_values=[[ref_.ref.split('/')[-1]] for ref_ in variables], int_values=None)
         obj = types.OneOfWithDiscriminator(
             oneOf=variables,
             discriminator_property=discriminator_property,
@@ -231,7 +232,6 @@ class SchemaParser:
         if self._state.infile_path:
             self._state.infile_path += '/'
         self._state.infile_path += path_component
-        # print(f'enter => {self._state.infile_path}')
 
         try:
             yield
@@ -242,7 +242,7 @@ class SchemaParser:
         except ParserError:
             raise
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            self._raise(exc.__repr__())
+            self._raise(str(exc))
         else:
             self._state.infile_path = old
 
@@ -334,29 +334,29 @@ class SchemaParser:
     REF_SHRINK_DOT_RE = re.compile('/\\./')
 
     @staticmethod
-    def _normalize_ref(ref: str) -> str:
-        ref = '/' + ref  # for regex simplicity
+    def _normalize_ref(ref_: str) -> str:
+        ref_ = '/' + ref_  # for regex simplicity
 
-        while SchemaParser.REF_SHRINK_RE.search(ref):
-            ref = re.sub(SchemaParser.REF_SHRINK_RE, '/', ref)
-        while SchemaParser.REF_SHRINK_DOT_RE.search(ref):
-            ref = re.sub(SchemaParser.REF_SHRINK_DOT_RE, '/', ref)
+        while SchemaParser.REF_SHRINK_RE.search(ref_):
+            ref_ = re.sub(SchemaParser.REF_SHRINK_RE, '/', ref_)
+        while SchemaParser.REF_SHRINK_DOT_RE.search(ref_):
+            ref_ = re.sub(SchemaParser.REF_SHRINK_DOT_RE, '/', ref_)
 
-        return ref[1:]
+        return ref_[1:]
 
-    def _make_abs_ref(self, ref: str) -> str:
+    def _make_abs_ref(self, ref_: str) -> str:
         assert self._state
 
-        if ref.startswith('#'):
+        if not ref.Ref(ref_).file:
             # Local $ref
-            return self.full_vfilepath + ref
+            return self.full_vfilepath + ref_
         else:
             my_ref = '/'.join(self.full_vfilepath.split('/')[:-1])
-            file, infile = ref.split('#')
-            out_file = self._normalize_ref(os.path.join(my_ref, file))
-            return out_file + '#' + infile
+            reference = ref.Ref(ref_)
+            out_file = self._normalize_ref(os.path.join(my_ref, reference.file))
+            return out_file + '#' + reference.fragment
 
-    def _parse_ref(self, ref: str, input_: dict) -> types.Ref:
+    def _parse_ref(self, ref_: str, input_: dict) -> types.Ref:
         assert self._state
 
         fields = set(input_.keys())
@@ -381,7 +381,7 @@ class SchemaParser:
             self._raise(f'Unknown field(s) {list(fields)}')
 
         with self._path_enter('$ref') as _:
-            abs_ref = self._make_abs_ref(ref)
+            abs_ref = self._make_abs_ref(ref_)
             ref_value = types.Ref(
                 ref=abs_ref,
                 indirect=indirect,

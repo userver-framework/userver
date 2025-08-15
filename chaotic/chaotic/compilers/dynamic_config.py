@@ -12,6 +12,7 @@ from chaotic import cpp_names
 from chaotic.back.cpp import renderer
 from chaotic.back.cpp import translator
 from chaotic.back.cpp import types
+from chaotic.front import ref
 from chaotic.front.types import ResolvedSchemas
 from chaotic.main import generate_cpp_name_func
 from chaotic.main import NameMapItem
@@ -92,9 +93,9 @@ class CompilerBase:
     def _extract_definition_names(self, content: Any) -> list[str]:
         if isinstance(content, dict):
             refs = []
-            ref = content.get('$ref')
-            if isinstance(ref, str):
-                filename = ref.split('#')[0]
+            ref_ = content.get('$ref')
+            if isinstance(ref_, str):
+                filename = ref.Ref(ref_).file
                 refs.append(filename)
 
             for value in content.values():

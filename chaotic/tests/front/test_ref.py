@@ -1,5 +1,7 @@
 import collections
 
+import pytest
+
 from chaotic.front import ref_resolver
 from chaotic.front import types
 from chaotic.front.parser import ParserConfig
@@ -201,3 +203,15 @@ def test_cycle():
         assert str(exc) == '$ref cycle: vfull#/definitions/type1, vfull#/definitions/type2'
     else:
         assert False
+
+
+def test_no_fragment():
+    config = ParserConfig(erase_prefix='')
+    parser = SchemaParser(
+        config=config,
+        full_filepath='full',
+        full_vfilepath='vfull',
+    )
+    with pytest.raises(ParserError) as exc_info:
+        parser.parse_schema('/definitions/type1', {'$ref': '/definitions/type2'})
+    assert exc_info.value.msg == 'Error in $ref (/definitions/type2): there should be exactly one "#" inside'

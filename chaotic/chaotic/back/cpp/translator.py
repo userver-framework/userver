@@ -11,6 +11,7 @@ from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
+from chaotic.front import ref
 from chaotic.front import types
 
 
@@ -214,19 +215,19 @@ class Generator:
         return container
 
     def fixup_refs(self) -> None:
-        for ref in self._state.ref_objects:
-            assert isinstance(ref.json_schema, types.Ref)
-            schema = ref.json_schema.schema
+        for ref_ in self._state.ref_objects:
+            assert isinstance(ref_.json_schema, types.Ref)
+            schema = ref_.json_schema.schema
             name = self._state.refs.get(schema)
             if name:
                 orig_cpp_type = self._state.types[name]
             else:
                 orig_cpp_type = self._state.external_types[schema]
 
-            ref.orig_cpp_type = orig_cpp_type
-            ref.indirect = ref.json_schema.indirect
-            ref.self_ref = ref.json_schema.self_ref
-            ref.cpp_name = name
+            ref_.orig_cpp_type = orig_cpp_type
+            ref_.indirect = ref_.json_schema.indirect
+            ref_.self_ref = ref_.json_schema.self_ref
+            ref_.cpp_name = name
 
     def fixup_formats(self) -> None:
         chooser = FormatChooser(list(self._state.types.values()))
@@ -244,9 +245,9 @@ class Generator:
         return cpp_type
 
     def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
-        vfile, infile = jsonschema_name.split('#')
-        name = self._config.infile_to_name_func(infile, pathlib.Path(vfile).stem)
-        namespace = self._config.namespaces[vfile]
+        reference = ref.Ref(jsonschema_name)
+        name = self._config.infile_to_name_func(reference.fragment, pathlib.Path(reference.file).stem)
+        namespace = self._config.namespaces[reference.file]
         if namespace:
             return '::' + namespace + '::' + name
         else:
@@ -604,8 +605,8 @@ class Generator:
             mapping_values = schema.mapping.as_ints()
 
         for field_value, refs in zip(schema.oneOf, mapping_values):
-            for ref in refs:
-                variants[ref] = self._gen_ref(
+            for ref_ in refs:
+                variants[ref_] = self._gen_ref(
                     type_name.TypeName(''),
                     field_value,
                 )
@@ -695,7 +696,7 @@ class Generator:
         name: type_name.TypeName,
         schema: types.Ref,
     ) -> cpp_types.CppType:
-        ref = cpp_types.CppRef(
+        ref_ = cpp_types.CppRef(
             json_schema=schema,
             nullable=False,
             # stub
@@ -710,8 +711,8 @@ class Generator:
             indirect=False,
             self_ref=False,
         )
-        self._state.ref_objects.append(ref)
-        return ref
+        self._state.ref_objects.append(ref_)
+        return ref_
 
 
 # pylint: disable=protected-access

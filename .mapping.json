@@ -186,6 +186,7 @@
   "chaotic/chaotic/error.py":"taxi/uservices/userver/chaotic/chaotic/error.py",
   "chaotic/chaotic/front/__init__.py":"taxi/uservices/userver/chaotic/chaotic/front/__init__.py",
   "chaotic/chaotic/front/parser.py":"taxi/uservices/userver/chaotic/chaotic/front/parser.py",
+  "chaotic/chaotic/front/ref.py":"taxi/uservices/userver/chaotic/chaotic/front/ref.py",
   "chaotic/chaotic/front/ref_resolver.py":"taxi/uservices/userver/chaotic/chaotic/front/ref_resolver.py",
   "chaotic/chaotic/front/types.py":"taxi/uservices/userver/chaotic/chaotic/front/types.py",
   "chaotic/chaotic/jinja_env.py":"taxi/uservices/userver/chaotic/chaotic/jinja_env.py",

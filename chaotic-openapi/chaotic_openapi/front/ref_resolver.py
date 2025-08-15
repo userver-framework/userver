@@ -2,17 +2,18 @@ import collections
 from typing import Any
 
 from chaotic.front import parser as chaotic_parser
+from chaotic.front import ref
 from chaotic.front import ref_resolver
 
 
-def normalize_ref(filepath: str, ref: str) -> str:
-    if ref.startswith('#'):
-        return filepath + ref
+def normalize_ref(filepath: str, ref_: str) -> str:
+    if not ref.Ref(ref_).file:
+        return filepath + ref_
 
     return chaotic_parser.SchemaParser._normalize_ref(
         '{}/{}'.format(
             filepath.rsplit('/', 1)[0],
-            ref,
+            ref_,
         )
     )
 
@@ -30,9 +31,10 @@ def _extract_refs(filepath: str, content: Any) -> list[str]:
             for item in value.values():
                 visit(item)
             if '$ref' in value:
-                ref = value['$ref']
-                if not ref.startswith('#'):
-                    refs.append(normalize_ref(filepath, ref).split('#')[0])
+                ref_ = value['$ref']
+                reference = ref.Ref(ref_)
+                if reference.file:
+                    refs.append(ref.Ref(normalize_ref(filepath, ref_)).file)
 
     visit(content)
     return refs
@@ -46,8 +48,8 @@ def sort_openapis(contents: dict[str, Any]) -> list[tuple[str, Any]]:
         nodes.add(filepath)
 
         refs = _extract_refs(filepath, content)
-        for ref in refs:
-            edges[filepath].append(ref)
+        for ref_ in refs:
+            edges[filepath].append(ref_)
 
     sorted_nodes = ref_resolver.sort_dfs(nodes, edges)
     return [(filepath, contents[filepath]) for filepath in sorted_nodes]

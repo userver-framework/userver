@@ -9,6 +9,7 @@ from typing import Union
 import pydantic
 
 from chaotic.front import parser as chaotic_parser
+from chaotic.front import ref
 from chaotic.front import types
 from . import base_model
 from . import errors
@@ -101,11 +102,11 @@ class Parser:
 
     RIGHT_SLASH_RE = re.compile('/[^/]*$')
 
-    def _locate_ref(self, ref: str) -> str:
-        if ref.startswith('#'):
-            return self._state.full_filepath + ref
+    def _locate_ref(self, ref_: str) -> str:
+        if not ref.Ref(ref_).file:
+            return self._state.full_filepath + ref_
         cur = re.sub(self.RIGHT_SLASH_RE, '/', self._state.full_filepath)
-        return chaotic_parser.SchemaParser._normalize_ref(cur + ref)
+        return chaotic_parser.SchemaParser._normalize_ref(cur + ref_)
 
     def _convert_openapi_parameter(
         self,
@@ -145,11 +146,11 @@ class Parser:
         consumes: list[str] = [],
     ) -> Union[list[model.RequestBody], model.Ref]:
         if isinstance(request_body, swagger.Ref):
-            ref = ref_resolver.normalize_ref(
+            ref_ = ref_resolver.normalize_ref(
                 self._state.full_filepath,
                 request_body.ref,
             )
-            return model.Ref(ref)
+            return model.Ref(ref_)
 
         if request_body.in_ == swagger.In.body:
             return [
@@ -224,12 +225,15 @@ class Parser:
         assert infile_path.count('#') <= 1
 
         if isinstance(response, openapi.Ref):
-            ref = ref_resolver.normalize_ref(
+            ref_ = ref_resolver.normalize_ref(
                 self._state.full_filepath,
                 response.ref,
             )
-            assert ref.count('#') == 1, ref
-            return model.Ref(ref)
+
+            # validate
+            ref.Ref(ref_)
+
+            return model.Ref(ref_)
 
         content = {}
         for content_type, openapi_content in response.content.items():
@@ -252,12 +256,15 @@ class Parser:
         assert infile_path.count('#') <= 1
 
         if isinstance(response, swagger.Ref):
-            ref = ref_resolver.normalize_ref(
+            ref_ = ref_resolver.normalize_ref(
                 self._state.full_filepath,
                 response.ref,
             )
-            assert ref.count('#') == 1, ref
-            return model.Ref(ref)
+
+            # validate
+            ref.Ref(ref_)
+
+            return model.Ref(ref_)
 
         if response.schema_:
             schema = self._parse_schema(response.schema_, infile_path + '/schema')
@@ -281,11 +288,11 @@ class Parser:
         infile_path: str,
     ) -> Union[list[model.RequestBody], model.Ref]:
         if isinstance(request_body, openapi.Ref):
-            ref = ref_resolver.normalize_ref(
+            ref_ = ref_resolver.normalize_ref(
                 self._state.full_filepath,
                 request_body.ref,
             )
-            return model.Ref(ref)
+            return model.Ref(ref_)
 
         requestBody = []
         for content_type, media_type in request_body.content.items():
@@ -610,13 +617,13 @@ class Parser:
         schema_ref = list(parsed_schemas.schemas.values())[0]
 
         if isinstance(schema_ref, types.Ref):
-            ref = types.Ref(
+            ref_ = types.Ref(
                 chaotic_parser.SchemaParser._normalize_ref(schema_ref.ref),
                 indirect=schema_ref.indirect,
                 self_ref=schema_ref.self_ref,
             )
-            ref._source_location = schema_ref._source_location  # type: ignore
-            return ref
+            ref_._source_location = schema_ref._source_location  # type: ignore
+            return ref_
         else:
             return schema_ref
 

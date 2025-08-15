@@ -7,6 +7,7 @@ from typing import Optional
 import yaml
 
 from chaotic.front import parser as chaotic_parser
+from chaotic.front import ref
 from . import renderer
 
 TYPES_INCLUDES = [
@@ -114,10 +115,10 @@ def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -
             for v in data.values():
                 visit(v)
             if '$ref' in data:
-                ref = data['$ref']
-                ref = ref.split('#')[0]
-                if ref:
-                    stem = os.path.join(relpath, filepath_with_stem(ref))
+                ref_ = data['$ref']
+                filename = ref.Ref(ref_).file
+                if filename:
+                    stem = os.path.join(relpath, filepath_with_stem(filename))
                     stem = chaotic_parser.SchemaParser._normalize_ref(stem)
                     includes.append(f'clients/{name}/{stem}.hpp')
             if 'x-taxi-cpp-type' in data:
