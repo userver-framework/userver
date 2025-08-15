@@ -15,7 +15,7 @@ class TypedResultSet;
 
 namespace detail {
 
-template <typename T, typename ExtractionTag, IteratorDirection direction = IteratorDirection::kForward>
+template <typename T, typename ExtractionTag, IteratorDirection Direction = IteratorDirection::kForward>
 class ConstTypedRowIterator : private Row {
 public:
     //@{
@@ -71,11 +71,11 @@ public:
     }
 
     difference_type operator-(const ConstTypedRowIterator& rhs) const {
-        return this->Distance(rhs) * static_cast<int>(direction);
+        return this->Distance(rhs) * static_cast<int>(Direction);
     }
 
     ConstTypedRowIterator operator[](difference_type index) const {
-        return *this + index * static_cast<int>(direction);
+        return *this + index * static_cast<int>(Direction);
     }
 
     ConstTypedRowIterator& operator+=(difference_type distance) { return DoAdvance(distance); }
@@ -98,7 +98,7 @@ private:
 
     ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row) : Row{std::move(res), row} {}
     ConstTypedRowIterator& DoAdvance(difference_type distance) {
-        this->Advance(distance * static_cast<int>(direction));
+        this->Advance(distance * static_cast<int>(Direction));
         return *this;
     }
 };

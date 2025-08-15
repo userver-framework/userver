@@ -22,19 +22,19 @@ namespace impl {
 
 void Wait(impl::Request& request);
 
-template <ScanTag scan_tag>
-storages::redis::Request<ScanReplyTmpl<scan_tag>> MakeScanRequest(
+template <ScanTag TScanTag>
+storages::redis::Request<ScanReplyTmpl<TScanTag>> MakeScanRequest(
     ClientImpl& client,
     std::string key,
     size_t shard,
-    typename ScanReplyTmpl<scan_tag>::Cursor cursor,
+    typename ScanReplyTmpl<TScanTag>::Cursor cursor,
     ScanOptionsGeneric options,
     const CommandControl& command_control
 ) {
-    if constexpr (scan_tag == ScanTag::kScan) {
+    if constexpr (TScanTag == ScanTag::kScan) {
         return client.MakeScanRequestNoKey(shard, cursor, std::move(options), command_control);
     } else {
-        return client.MakeScanRequestWithKey<scan_tag>(
+        return client.MakeScanRequestWithKey<TScanTag>(
             std::move(key), shard, cursor, std::move(options), command_control
         );
     }
@@ -124,31 +124,31 @@ private:
     ReplyPtr reply_;
 };
 
-template <ScanTag scan_tag>
-class RequestScanData final : public RequestScanDataBase<scan_tag> {
+template <ScanTag TScanTag>
+class RequestScanData final : public RequestScanDataBase<TScanTag> {
 public:
-    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
-    template <ScanTag scan_tag_param = scan_tag>
+    template <ScanTag ScanTagParam = TScanTag>
     RequestScanData(
         std::shared_ptr<ClientImpl> client,
         size_t shard,
         ScanOptionsGeneric options,
         const CommandControl& command_control,
-        std::enable_if_t<scan_tag_param == ScanTag::kScan>* = nullptr
+        std::enable_if_t<ScanTagParam == ScanTag::kScan>* = nullptr
     )
-        : RequestScanData(std::move(client), {}, shard, std::move(options), command_control, scan_tag) {}
+        : RequestScanData(std::move(client), {}, shard, std::move(options), command_control, TScanTag) {}
 
-    template <ScanTag scan_tag_param = scan_tag>
+    template <ScanTag ScanTagParam = TScanTag>
     RequestScanData(
         std::shared_ptr<ClientImpl> client,
         std::string key,
         size_t shard,
         ScanOptionsGeneric options,
         const CommandControl& command_control,
-        std::enable_if_t<scan_tag_param != ScanTag::kScan>* = nullptr
+        std::enable_if_t<ScanTagParam != ScanTag::kScan>* = nullptr
     )
-        : RequestScanData(std::move(client), std::move(key), shard, std::move(options), command_control, scan_tag) {}
+        : RequestScanData(std::move(client), std::move(key), shard, std::move(options), command_control, TScanTag) {}
 
     ReplyElem Get() override;
 
@@ -174,7 +174,7 @@ private:
     ScanOptionsGeneric options_;
     CommandControl command_control_;
 
-    using ScanReply = ScanReplyTmpl<scan_tag>;
+    using ScanReply = ScanReplyTmpl<TScanTag>;
 
     std::unique_ptr<Request<ScanReply>> request_;
     std::unique_ptr<ScanReply> reply_;
@@ -182,8 +182,8 @@ private:
     bool eof_{false};
 };
 
-template <ScanTag scan_tag>
-RequestScanData<scan_tag>::RequestScanData(
+template <ScanTag TScanTag>
+RequestScanData<TScanTag>::RequestScanData(
     std::shared_ptr<ClientImpl> client,
     std::string key,
     size_t shard,
@@ -197,33 +197,33 @@ RequestScanData<scan_tag>::RequestScanData(
       options_(std::move(options)),
       command_control_(command_control),
       request_(std::make_unique<Request<ScanReply>>(
-          impl::MakeScanRequest<scan_tag>(*client_, key_, shard_, {}, options_, command_control_)
+          impl::MakeScanRequest<TScanTag>(*client_, key_, shard_, {}, options_, command_control_)
       )) {}
 
-template <ScanTag scan_tag>
-typename RequestScanData<scan_tag>::ReplyElem RequestScanData<scan_tag>::Get() {
+template <ScanTag TScanTag>
+typename RequestScanData<TScanTag>::ReplyElem RequestScanData<TScanTag>::Get() {
     if (Eof()) throw RequestScan::GetAfterEofException("Trying to Get() after eof");
     UASSERT(reply_);
     UASSERT(reply_keys_index_ < reply_->GetKeys().size());
     return std::move(reply_->GetKeys()[reply_keys_index_++]);
 }
 
-template <ScanTag scan_tag>
-typename RequestScanData<scan_tag>::ReplyElem& RequestScanData<scan_tag>::Current() {
+template <ScanTag TScanTag>
+typename RequestScanData<TScanTag>::ReplyElem& RequestScanData<TScanTag>::Current() {
     if (Eof()) throw RequestScan::GetAfterEofException("Trying to call Current() after eof");
     UASSERT(reply_);
     UASSERT(reply_keys_index_ < reply_->GetKeys().size());
     return reply_->GetKeys()[reply_keys_index_];
 }
 
-template <ScanTag scan_tag>
-bool RequestScanData<scan_tag>::Eof() {
+template <ScanTag TScanTag>
+bool RequestScanData<TScanTag>::Eof() {
     CheckReply();
     return eof_;
 }
 
-template <ScanTag scan_tag>
-void RequestScanData<scan_tag>::CheckReply() {
+template <ScanTag TScanTag>
+void RequestScanData<TScanTag>::CheckReply() {
     while (!eof_ && (!reply_ || reply_keys_index_ == reply_->GetKeys().size())) {
         if (request_) {
             auto scan_reply_raw = request_->GetRaw();
@@ -240,7 +240,7 @@ void RequestScanData<scan_tag>::CheckReply() {
         reply_keys_index_ = 0;
 
         if (!eof_ && reply_->GetCursor().GetValue())
-            *request_ = impl::MakeScanRequest<scan_tag>(
+            *request_ = impl::MakeScanRequest<TScanTag>(
                 *client_, key_, shard_, reply_->GetCursor(), options_, command_control_
             );
         else

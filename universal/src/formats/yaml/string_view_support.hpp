@@ -53,7 +53,7 @@ using StringViewOrSomeFake =
 
 USERVER_NAMESPACE_END
 
-namespace YAML {
+namespace YAML {  // NOLINT(readability-identifier-naming)
 
 // Makes YAML work with std::string_view as keys
 template <>

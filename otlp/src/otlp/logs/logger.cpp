@@ -227,10 +227,10 @@ void Logger::Stop() noexcept {
 const logging::impl::LogStatistics& Logger::GetStatistics() const { return stats_; }
 
 void Logger::PrependCommonTags(logging::impl::TagWriter writer) const {
-    logging::impl::default_::PrependCommonTags(writer, GetLevel());
+    logging::impl::default_ns::PrependCommonTags(writer, GetLevel());
 }
 
-bool Logger::DoShouldLog(logging::Level level) const noexcept { return logging::impl::default_::DoShouldLog(level); }
+bool Logger::DoShouldLog(logging::Level level) const noexcept { return logging::impl::default_ns::DoShouldLog(level); }
 
 void Logger::Log(logging::Level level, logging::impl::formatters::LoggerItemRef item) {
     UASSERT(dynamic_cast<Item*>(&item));

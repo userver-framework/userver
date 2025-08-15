@@ -107,19 +107,19 @@ void VerifierNone::Verify(std::initializer_list<std::string_view> /*data*/, std:
 /// HMAC-SHA
 ///
 
-template <DigestSize bits>
-HmacShaVerifier<bits>::HmacShaVerifier(std::string secret)
-    : Verifier("HS" + EnumValueToString(bits)), secret_(std::move(secret)) {}
+template <DigestSize Bits>
+HmacShaVerifier<Bits>::HmacShaVerifier(std::string secret)
+    : Verifier("HS" + EnumValueToString(Bits)), secret_(std::move(secret)) {}
 
-template <DigestSize bits>
-HmacShaVerifier<bits>::~HmacShaVerifier() {
+template <DigestSize Bits>
+HmacShaVerifier<Bits>::~HmacShaVerifier() {
     OPENSSL_cleanse(secret_.data(), secret_.size());
 }
 
-template <DigestSize bits>
-void HmacShaVerifier<bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature) const {
+template <DigestSize Bits>
+void HmacShaVerifier<Bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature) const {
     std::string signature;
-    switch (bits) {
+    switch (Bits) {
         case DigestSize::k160:
             signature = crypto::hash::HmacSha1(secret_, data, crypto::hash::OutputEncoding::kBinary);
             break;
@@ -150,16 +150,16 @@ template class HmacShaVerifier<DigestSize::k512>;
 /// *SA
 ///
 
-template <DsaType type, DigestSize bits>
-DsaVerifier<type, bits>::DsaVerifier(PublicKey pubkey)
-    : Verifier(EnumValueToString(type) + EnumValueToString(bits)), pkey_(std::move(pubkey)) {
+template <DsaType Type, DigestSize Bits>
+DsaVerifier<Type, Bits>::DsaVerifier(PublicKey pubkey)
+    : Verifier(EnumValueToString(Type) + EnumValueToString(Bits)), pkey_(std::move(pubkey)) {
     Openssl::Init();
 
-    if constexpr (type == DsaType::kEc) {
+    if constexpr (Type == DsaType::kEc) {
         if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_EC) {
             throw VerificationError("Non-EC key supplied for " + Name() + " verifier");
         }
-        if (!IsMatchingKeyCurve(pkey_.GetNative(), bits)) {
+        if (!IsMatchingKeyCurve(pkey_.GetNative(), Bits)) {
             throw VerificationError("Key curve mismatch for " + Name() + " verifier");
         }
     } else {
@@ -169,20 +169,20 @@ DsaVerifier<type, bits>::DsaVerifier(PublicKey pubkey)
     }
 }
 
-template <DsaType type, DigestSize bits>
-DsaVerifier<type, bits>::DsaVerifier(std::string_view key) : DsaVerifier{PublicKey::LoadFromString(key)} {}
+template <DsaType Type, DigestSize Bits>
+DsaVerifier<Type, Bits>::DsaVerifier(std::string_view key) : DsaVerifier{PublicKey::LoadFromString(key)} {}
 
-template <DsaType type, DigestSize bits>
-void DsaVerifier<type, bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature)
+template <DsaType Type, DigestSize Bits>
+void DsaVerifier<Type, Bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature)
     const {
     EvpMdCtx ctx;
     EVP_PKEY_CTX* pkey_ctx = nullptr;
-    if (1 != EVP_DigestVerifyInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(bits), nullptr, pkey_.GetNative())) {
+    if (1 != EVP_DigestVerifyInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(Bits), nullptr, pkey_.GetNative())) {
         throw VerificationError(FormatSslError("Failed to verify: EVP_DigestVerifyInit"));
     }
 
-    if constexpr (type == DsaType::kRsaPss) {
-        SetupJwaRsaPssPadding(pkey_ctx, bits);
+    if constexpr (Type == DsaType::kRsaPss) {
+        SetupJwaRsaPssPadding(pkey_ctx, Bits);
     }
 
     for (const auto& part : data) {
@@ -192,7 +192,7 @@ void DsaVerifier<type, bits>::Verify(std::initializer_list<std::string_view> dat
     }
 
     int verification_result = -1;
-    if constexpr (type == DsaType::kEc) {
+    if constexpr (Type == DsaType::kEc) {
         auto der_signature = ConvertEcSignature(raw_signature);
         verification_result = EVP_DigestVerifyFinal(ctx.Get(), der_signature.data(), der_signature.size());
     } else {
@@ -206,14 +206,14 @@ void DsaVerifier<type, bits>::Verify(std::initializer_list<std::string_view> dat
     }
 }
 
-template <DsaType type, DigestSize bits>
-void DsaVerifier<type, bits>::VerifyDigest(std::string_view digest, std::string_view raw_signature) const {
-    if constexpr (type == DsaType::kRsaPss) {
+template <DsaType Type, DigestSize Bits>
+void DsaVerifier<Type, Bits>::VerifyDigest(std::string_view digest, std::string_view raw_signature) const {
+    if constexpr (Type == DsaType::kRsaPss) {
         UASSERT_MSG(false, "VerifyDigest is not available with PSS padding");
         throw CryptoException("VerifyDigest is not available with PSS padding");
     }
 
-    if (digest.size() != GetDigestLength(bits)) {
+    if (digest.size() != GetDigestLength(Bits)) {
         throw VerificationError("Invalid digest size for " + Name() + " verifier");
     }
 
@@ -226,12 +226,12 @@ void DsaVerifier<type, bits>::VerifyDigest(std::string_view digest, std::string_
     if (1 != EVP_PKEY_verify_init(pkey_ctx.get())) {
         throw VerificationError(FormatSslError("Failed to verify digest: EVP_PKEY_verify_init"));
     }
-    if (EVP_PKEY_CTX_set_signature_md(pkey_ctx.get(), GetShaMdByEnum(bits)) <= 0) {
+    if (EVP_PKEY_CTX_set_signature_md(pkey_ctx.get(), GetShaMdByEnum(Bits)) <= 0) {
         throw VerificationError(FormatSslError("Failed to sign digest: EVP_PKEY_CTX_set_signature_md"));
     }
 
     int verification_result = -1;
-    if constexpr (type == DsaType::kEc) {
+    if constexpr (Type == DsaType::kEc) {
         auto der_signature = ConvertEcSignature(raw_signature);
         verification_result = EVP_PKEY_verify(
             pkey_ctx.get(),

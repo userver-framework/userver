@@ -75,7 +75,7 @@ enum class ClientType : std::uint8_t { kConsumer, kProducer };
 
 /// @brief Kafka client wrapper (consumer or producer).
 /// Holds the client and its events queue.
-template <ClientType client_type>
+template <ClientType TClientType>
 class KafkaClientHolder final {
 public:
     explicit KafkaClientHolder(ConfHolder conf);

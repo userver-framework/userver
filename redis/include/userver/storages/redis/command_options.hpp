@@ -174,7 +174,7 @@ private:
     std::optional<Count> count_;
 };
 
-template <ScanTag scan_tag>
+template <ScanTag TScanTag>
 using ScanOptionsTmpl [[deprecated("Just use ScanOptionsGeneric")]] = ScanOptionsGeneric;
 
 using ScanOptions = ScanOptionsGeneric;

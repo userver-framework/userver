@@ -205,8 +205,8 @@ private:
         return std::inserter(value, value.end());
     }
 
-    template <typename T, std::size_t n>
-    auto GetInserter(std::array<T, n>& array) {
+    template <typename T, std::size_t N>
+    auto GetInserter(std::array<T, N>& array) {
         return array.begin();
     }
 

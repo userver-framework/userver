@@ -84,10 +84,10 @@ public:
     }
 };
 
-template <ScanTag scan_tag>
-class MockRequestScanData : public RequestScanDataBase<scan_tag> {
+template <ScanTag TScanTag>
+class MockRequestScanData : public RequestScanDataBase<TScanTag> {
 public:
-    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
     template <typename Data>
     explicit MockRequestScanData(const Data& data) : MockRequestScanData(data.begin(), data.end()) {}
@@ -141,9 +141,9 @@ Request CreateMockRequestTimeout() {
     return Request(std::make_unique<impl::MockRequestDataTimeout<typename Request::Result, typename Request::Reply>>());
 }
 
-template <ScanTag scan_tag>
-ScanRequest<scan_tag> CreateMockRequestScan(const std::vector<typename ScanReplyElem<scan_tag>::type>& reply_data) {
-    return ScanRequest<scan_tag>(std::make_unique<impl::MockRequestScanData<scan_tag>>(reply_data));
+template <ScanTag TScanTag>
+ScanRequest<TScanTag> CreateMockRequestScan(const std::vector<typename ScanReplyElem<TScanTag>::type>& reply_data) {
+    return ScanRequest<TScanTag>(std::make_unique<impl::MockRequestScanData<TScanTag>>(reply_data));
 }
 
 }  // namespace storages::redis

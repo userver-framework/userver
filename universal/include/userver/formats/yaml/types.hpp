@@ -10,7 +10,7 @@
 #include <userver/formats/common/type.hpp>
 
 // Forward declarations
-namespace YAML {
+namespace YAML {  // NOLINT(readability-identifier-naming)
 class Node;
 namespace detail {
 struct iterator_value;

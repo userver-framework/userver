@@ -112,3 +112,60 @@ CheckOptions:
     value: '1'
   - key: modernize-loop-convert.UseCxx20ReverseRanges
     value: 'false'
+
+  # - key: readability-identifier-naming.ClassCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.StructCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.EnumCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.UnionCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.MemberCase
+  #   value: lower_case
+  # - key: readability-identifier-naming.PrivateMemberSuffix
+  #   value: '_'
+  # - key: readability-identifier-naming.MethodCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.PublicMethodIgnoredRegexp
+  #   value: "(begin|end|empty|size|ysize|front|back|parse|format)"
+  # - key: readability-identifier-naming.FunctionCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.ParameterCase
+  #   value: lower_case
+  # - key: readability-identifier-naming.ParameterPackCase
+  #   value: lower_case
+  # - key: readability-identifier-naming.VariableCase
+  #   value: lower_case
+  # - key: readability-identifier-naming.ConstexprVariableCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.ConstexprVariablePrefix
+  #   value: k
+  # - key: readability-identifier-naming.GlobalVariableCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.GlobalVariablePrefix
+  #   value: k
+  # - key: readability-identifier-naming.StaticVariableCase
+  #   value: CamelCase
+  # - key: readability-identifier-naming.StaticVariablePrefix
+  #   value: k
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.NamespaceIgnoredRegexp
+    value: ^N([A-Z][a-z]+)+$
+  - key: readability-identifier-naming.ValueTemplateParameterIgnoredRegexp
+    value: ^k([A-Z][a-z]+)+$
+  - key: readability-identifier-naming.ConceptCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.ValueTemplateParameterCase
+    value: CamelCase

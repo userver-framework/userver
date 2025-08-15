@@ -21,7 +21,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-template <ScanTag scan_tag>
+template <ScanTag TScanTag>
 class RequestScanData;
 
 /// @brief Valkey or Redis future for a non-scan and non-eval responses.
@@ -56,7 +56,7 @@ public:
     template <typename T1, typename T2>
     friend class RequestEvalSha;
 
-    template <ScanTag scan_tag>
+    template <ScanTag TScanTag>
     friend class RequestScanData;
 
 private:
@@ -69,12 +69,12 @@ private:
 ///
 /// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send SCAN-like request
 /// to the Redis return this type or storages::redis::ScanRequest.
-template <ScanTag scan_tag>
+template <ScanTag TScanTag>
 class ScanRequest final {
 public:
-    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
-    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<scan_tag>>&& impl) : impl_(std::move(impl)) {}
+    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<TScanTag>>&& impl) : impl_(std::move(impl)) {}
 
     template <typename T = std::vector<ReplyElem>>
     T GetAll(std::string request_description) {
@@ -154,7 +154,7 @@ private:
 
     friend class Iterator;
 
-    std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
+    std::unique_ptr<RequestScanDataBase<TScanTag>> impl_;
 };
 
 /// @name Valkey/Redis futures aliases

@@ -8,10 +8,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-template <ScanTag scan_tag>
+template <ScanTag TScanTag>
 class ScanReplyTmpl final {
 public:
-    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
     static ScanReplyTmpl Parse(ReplyData&& reply_data, const std::string& request_description);
 
@@ -42,8 +42,8 @@ private:
     std::vector<ReplyElem> keys_;
 };
 
-template <ScanTag scan_tag>
-ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(ReplyData&& reply_data, const std::string& request_description) {
+template <ScanTag TScanTag>
+ScanReplyTmpl<TScanTag> ScanReplyTmpl<TScanTag>::Parse(ReplyData&& reply_data, const std::string& request_description) {
     reply_data.ExpectArray(request_description);
 
     auto& top_array = reply_data.GetArray();

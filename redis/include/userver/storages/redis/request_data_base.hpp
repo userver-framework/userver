@@ -32,10 +32,10 @@ public:
     virtual engine::impl::ContextAccessor* TryGetContextAccessor() noexcept = 0;
 };
 
-template <ScanTag scan_tag>
+template <ScanTag TScanTag>
 class RequestScanDataBase {
 public:
-    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
     virtual ~RequestScanDataBase() = default;
 

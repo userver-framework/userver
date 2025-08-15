@@ -433,14 +433,14 @@ public:
 /// }
 /// return ToString(sum);
 /// @endcode
-template <int Prec, typename RoundPolicy_ = DefRoundPolicy>
+template <int Prec, typename TRoundPolicy = DefRoundPolicy>
 class Decimal {
 public:
     /// The number of fractional digits
     static constexpr int kDecimalPoints = Prec;
 
     /// Specifies how to round in lossy operations
-    using RoundPolicy = RoundPolicy_;
+    using RoundPolicy = TRoundPolicy;
 
     /// The denominator of the decimal fraction
     static constexpr int64_t kDecimalFactor = kPow10<Prec>;

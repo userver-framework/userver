@@ -27,19 +27,19 @@ std::string_view RemoveInternalSuffix(std::string_view key) noexcept {
 
 }  // namespace
 
-template <typename iter_traits>
-Iterator<iter_traits>::Iterator(const Iterator<iter_traits>& other) : container_(other.container_), it_(other.it_) {
+template <typename IterTraits>
+Iterator<IterTraits>::Iterator(const Iterator<IterTraits>& other) : container_(other.container_), it_(other.it_) {
     current_.reset();
 }
 
-template <typename iter_traits>
-Iterator<iter_traits>::Iterator(Iterator<iter_traits>&& other) noexcept
+template <typename IterTraits>
+Iterator<IterTraits>::Iterator(Iterator<IterTraits>&& other) noexcept
     : container_(std::exchange(other.container_, nullptr)), it_(std::move(other.it_)) {
     current_.reset();
 }
 
-template <typename iter_traits>
-Iterator<iter_traits>& Iterator<iter_traits>::operator=(const Iterator<iter_traits>& other) {
+template <typename IterTraits>
+Iterator<IterTraits>& Iterator<IterTraits>::operator=(const Iterator<IterTraits>& other) {
     if (this == &other) return *this;
 
     it_ = other.it_;
@@ -49,8 +49,8 @@ Iterator<iter_traits>& Iterator<iter_traits>::operator=(const Iterator<iter_trai
     return *this;
 }
 
-template <typename iter_traits>
-Iterator<iter_traits>& Iterator<iter_traits>::operator=(Iterator<iter_traits>&& other) noexcept {
+template <typename IterTraits>
+Iterator<IterTraits>& Iterator<IterTraits>::operator=(Iterator<IterTraits>&& other) noexcept {
     it_ = std::move(other.it_);
     container_ = std::exchange(other.container_, nullptr);
     current_.reset();
@@ -58,26 +58,26 @@ Iterator<iter_traits>& Iterator<iter_traits>::operator=(Iterator<iter_traits>&& 
     return *this;
 }
 
-template <typename iter_traits>
-Iterator<iter_traits> Iterator<iter_traits>::operator++(int) {
+template <typename IterTraits>
+Iterator<IterTraits> Iterator<IterTraits>::operator++(int) {
     auto it_copy = it_;
     IncrementInternalIterator();
     return Iterator{*container_, std::move(it_copy)};
 }
 
-template <typename iter_traits>
-Iterator<iter_traits>& Iterator<iter_traits>::operator++() {
+template <typename IterTraits>
+Iterator<IterTraits>& Iterator<IterTraits>::operator++() {
     IncrementInternalIterator();
     return *this;
 }
 
-template <typename iter_traits>
-std::string Iterator<iter_traits>::GetName() const {
+template <typename IterTraits>
+std::string Iterator<IterTraits>::GetName() const {
     return std::string{yaml_config::RemoveInternalSuffix(it_.GetName())};
 }
 
-template <typename iter_traits>
-void Iterator<iter_traits>::UpdateValue() const {
+template <typename IterTraits>
+void Iterator<IterTraits>::UpdateValue() const {
     UASSERT(container_ != nullptr);
     if (current_) return;
 
@@ -89,8 +89,8 @@ void Iterator<iter_traits>::UpdateValue() const {
     }
 }
 
-template <typename iter_traits>
-void Iterator<iter_traits>::IncrementInternalIterator() {
+template <typename IterTraits>
+void Iterator<IterTraits>::IncrementInternalIterator() {
     current_.reset();
 
     if (it_.GetIteratorType() != formats::common::Type::kObject) {

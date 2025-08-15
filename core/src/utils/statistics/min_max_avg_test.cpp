@@ -18,10 +18,10 @@ constexpr auto kStressTestDuration = std::chrono::milliseconds{500};
 
 static_assert(utils::statistics::kHasWriterSupport<utils::statistics::MinMaxAvg<int>>);
 
-template <int... values>
+template <int... Values>
 auto GetFilledMma() {
     utils::statistics::MinMaxAvg<int> mma;
-    (mma.Account(values), ...);
+    (mma.Account(Values), ...);
     return mma;
 }
 

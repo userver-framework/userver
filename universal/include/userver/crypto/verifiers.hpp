@@ -39,7 +39,7 @@ public:
 };
 
 /// HMAC-SHA verifier
-template <DigestSize bits>
+template <DigestSize Bits>
 class HmacShaVerifier final : public Verifier {
 public:
     /// Constructor from a shared secret
@@ -62,7 +62,7 @@ using VerifierHs512 = HmacShaVerifier<DigestSize::k512>;
 /// @}
 
 /// Generic verifier for asymmetric cryptography
-template <DsaType type, DigestSize bits>
+template <DsaType Type, DigestSize Bits>
 class DsaVerifier final : public Verifier {
 public:
     /// Constructor from public key

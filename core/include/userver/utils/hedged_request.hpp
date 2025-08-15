@@ -297,8 +297,8 @@ struct HedgedRequestBulkFuture {
     engine::impl::ContextAccessor* TryGetContextAccessor() { return task_.TryGetContextAccessor(); }
 
 private:
-    template <typename RequestStrategy_>
-    friend auto HedgeRequestsBulkAsync(std::vector<RequestStrategy_> inputs, HedgingSettings settings);
+    template <typename TRequestStrategy>
+    friend auto HedgeRequestsBulkAsync(std::vector<TRequestStrategy> inputs, HedgingSettings settings);
     using Task = engine::TaskWithResult<std::vector<std::optional<ReplyType>>>;
     HedgedRequestBulkFuture(Task&& task) : task_(std::move(task)) {}
     Task task_;
@@ -324,8 +324,8 @@ struct HedgedRequestFuture {
     engine::impl::ContextAccessor* TryGetContextAccessor() { return task_.TryGetContextAccessor(); }
 
 private:
-    template <typename RequestStrategy_>
-    friend auto HedgeRequestAsync(RequestStrategy_ input, HedgingSettings settings);
+    template <typename TRequestStrategy>
+    friend auto HedgeRequestAsync(TRequestStrategy input, HedgingSettings settings);
     using Task = engine::TaskWithResult<std::optional<ReplyType>>;
     HedgedRequestFuture(Task&& task) : task_(std::move(task)) {}
     Task task_;

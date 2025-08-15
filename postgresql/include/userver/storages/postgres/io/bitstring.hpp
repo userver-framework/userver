@@ -296,17 +296,17 @@ struct BufferFormatter<std::bitset<N>> : detail::BufferFormatterBase<std::bitset
     }
 };
 
-template <typename BitContainer, postgres::detail::BitContainerInterface kContainerInterface>
+template <typename BitContainer, postgres::detail::BitContainerInterface ContainerInterface>
 struct CppToSystemPg<
-    postgres::detail::BitStringRefWrapper<BitContainer, kContainerInterface, postgres::BitStringType::kBitVarying>>
+    postgres::detail::BitStringRefWrapper<BitContainer, ContainerInterface, postgres::BitStringType::kBitVarying>>
     : PredefinedOid<PredefinedOids::kVarbit> {};
 template <typename BitContainer>
 struct CppToSystemPg<postgres::BitStringWrapper<BitContainer, postgres::BitStringType::kBitVarying>>
     : PredefinedOid<PredefinedOids::kVarbit> {};
 
-template <typename BitContainer, postgres::detail::BitContainerInterface kContainerInterface>
+template <typename BitContainer, postgres::detail::BitContainerInterface ContainerInterface>
 struct CppToSystemPg<
-    postgres::detail::BitStringRefWrapper<BitContainer, kContainerInterface, postgres::BitStringType::kBit>>
+    postgres::detail::BitStringRefWrapper<BitContainer, ContainerInterface, postgres::BitStringType::kBit>>
     : PredefinedOid<PredefinedOids::kBit> {};
 template <typename BitContainer>
 struct CppToSystemPg<postgres::BitStringWrapper<BitContainer, postgres::BitStringType::kBit>>

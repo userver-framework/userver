@@ -28,7 +28,7 @@ namespace concurrent::impl {
 /// `HookExtractor::GetHook` static function should get the hook subobject, given `T` node.
 /// The hook's type must be `SinglyLinkedHook<T>`.
 /// Additionally, `kHookOffset` must be `offsetof` the hook subobject within `T`.
-template <typename T, typename HookExtractor, std::ptrdiff_t kHookOffset>
+template <typename T, typename HookExtractor, std::ptrdiff_t HookOffset>
 class StripedIntrusivePool final {
 public:
     StripedIntrusivePool() = default;
@@ -51,7 +51,7 @@ public:
             const auto newval = reinterpret_cast<std::intptr_t>(&node);
             UASSERT_MSG(
                 // Unfortunately, there is no legal way to check this at compile-time.
-                reinterpret_cast<std::byte*>(&GetNext(node)) - reinterpret_cast<std::byte*>(&node) == kHookOffset,
+                reinterpret_cast<std::byte*>(&GetNext(node)) - reinterpret_cast<std::byte*>(&node) == HookOffset,
                 "kHookOffset is invalid"
             );
             GetNext(node).store(reinterpret_cast<T*>(expect), std::memory_order_relaxed);
@@ -83,7 +83,7 @@ public:
             const auto expectnot = reinterpret_cast<std::intptr_t>(static_cast<T*>(nullptr));
 
             const int ret = rseq_load_cbeq_store_add_load_store__ptr(
-                RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID, &slot, expectnot, kHookOffset, &head, cpu
+                RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID, &slot, expectnot, HookOffset, &head, cpu
             );
 
             if (rseq_likely(!ret)) {

@@ -68,17 +68,17 @@ TsBuffer StartTsToString(std::chrono::system_clock::time_point start) {
 // Maintain coro-local span stack to identify "current span" in O(1).
 engine::TaskLocalVariable<SpanStack> task_local_spans;
 
-template <std::size_t kSboSize, std::size_t kIdSize>
-utils::SmallString<kSboSize> GenerateId() {
+template <std::size_t SboSize, std::size_t IdSize>
+utils::SmallString<SboSize> GenerateId() {
     using Chunk = utils::RandomBase::result_type;
     static constexpr std::size_t kHexChunkSize = utils::encoding::LengthInHexForm(sizeof(Chunk));
-    static_assert(kIdSize % kHexChunkSize == 0);
+    static_assert(IdSize % kHexChunkSize == 0);
     static_assert(utils::RandomBase::min() == std::numeric_limits<Chunk>::min());
     static_assert(utils::RandomBase::max() == std::numeric_limits<Chunk>::max());
 
-    utils::SmallString<kSboSize> result;
+    utils::SmallString<SboSize> result;
 
-    result.resize_and_overwrite(kIdSize, [](char* data, std::size_t size) {
+    result.resize_and_overwrite(IdSize, [](char* data, std::size_t size) {
         utils::WithDefaultRandom([&](auto& rnd) {
             for (std::size_t pos = 0; pos < size; pos += kHexChunkSize) {
                 const auto random_value = rnd();

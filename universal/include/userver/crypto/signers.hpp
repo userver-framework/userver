@@ -40,7 +40,7 @@ public:
 };
 
 /// HMAC-SHA signer
-template <DigestSize bits>
+template <DigestSize Bits>
 class HmacShaSigner final : public Signer {
 public:
     /// Constructor from a shared secret
@@ -63,7 +63,7 @@ using SignerHs512 = HmacShaSigner<DigestSize::k512>;
 /// @}
 
 /// Generic signer for asymmetric cryptography
-template <DsaType type, DigestSize bits>
+template <DsaType Type, DigestSize Bits>
 class DsaSigner final : public Signer {
 public:
     /// Constructor from a PEM-encoded private key and an optional passphrase

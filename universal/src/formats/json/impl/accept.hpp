@@ -16,7 +16,7 @@ namespace formats::json {
 
 enum class ObjectProcessing { kNone, kInplaceSorting };
 
-template <ObjectProcessing kProcessing>
+template <ObjectProcessing Processing>
 struct ValueTypes {};
 
 template <>
@@ -45,14 +45,14 @@ struct SubRange {
     Iter end;
 };
 
-template <ObjectProcessing kProcessing>
+template <ObjectProcessing Processing>
 class StackCell final {
 public:
-    using Member = typename ValueTypes<kProcessing>::Member;
-    using MemberIterator = typename ValueTypes<kProcessing>::MemberIterator;
+    using Member = typename ValueTypes<Processing>::Member;
+    using MemberIterator = typename ValueTypes<Processing>::MemberIterator;
 
-    using Value = typename ValueTypes<kProcessing>::Value;
-    using ArrayIterator = typename ValueTypes<kProcessing>::ArrayIterator;
+    using Value = typename ValueTypes<Processing>::Value;
+    using ArrayIterator = typename ValueTypes<Processing>::ArrayIterator;
 
     StackCell(MemberIterator cur_it, MemberIterator end)
         : sub_range_(SubRange<MemberIterator>{cur_it, end}),
@@ -89,8 +89,8 @@ private:
     std::size_t size_;
 };
 
-template <ObjectProcessing kProcessing>
-using Stack = boost::container::small_vector<StackCell<kProcessing>, 20>;
+template <ObjectProcessing Processing>
+using Stack = boost::container::small_vector<StackCell<Processing>, 20>;
 
 template <typename Handler, typename Cell>
 bool WriteEnd(Handler& handler, const Cell& cell) {
@@ -109,24 +109,24 @@ bool WriteEnd(Handler& handler, const Cell& cell) {
 
 void InplaceSortObjectChildren(impl::Value& value);
 
-template <ObjectProcessing kProcessing>
-void EmplaceObject(Stack<kProcessing>& stack, typename ValueTypes<kProcessing>::Value& value) {
-    if constexpr (kProcessing == ObjectProcessing::kInplaceSorting) {
+template <ObjectProcessing Processing>
+void EmplaceObject(Stack<Processing>& stack, typename ValueTypes<Processing>::Value& value) {
+    if constexpr (Processing == ObjectProcessing::kInplaceSorting) {
         InplaceSortObjectChildren(value);
     }
     stack.emplace_back(value.MemberBegin(), value.MemberEnd());
 }
 
-template <ObjectProcessing kProcessing>
-void EmplaceArray(Stack<kProcessing>& stack, typename ValueTypes<kProcessing>::Value& value) {
+template <ObjectProcessing Processing>
+void EmplaceArray(Stack<Processing>& stack, typename ValueTypes<Processing>::Value& value) {
     stack.emplace_back(value.Begin(), value.End());
 }
 
-template <ObjectProcessing kProcessing, typename Handler>
-bool WriteStartAndEnterValue(Stack<kProcessing>& stack, Handler& handler) {
-    using Value = typename ValueTypes<kProcessing>::Value;
-    using MemberIterator = typename ValueTypes<kProcessing>::MemberIterator;
-    using ArrayIterator = typename ValueTypes<kProcessing>::ArrayIterator;
+template <ObjectProcessing Processing, typename Handler>
+bool WriteStartAndEnterValue(Stack<Processing>& stack, Handler& handler) {
+    using Value = typename ValueTypes<Processing>::Value;
+    using MemberIterator = typename ValueTypes<Processing>::MemberIterator;
+    using ArrayIterator = typename ValueTypes<Processing>::ArrayIterator;
 
     bool was_written = true;
     Value& value = stack.back().Visit(
@@ -160,11 +160,11 @@ bool WriteStartAndEnterValue(Stack<kProcessing>& stack, Handler& handler) {
 
 }  // namespace impl
 
-template <ObjectProcessing kProcessing, typename Handler>
-bool AcceptNoRecursion(typename ValueTypes<kProcessing>::Value& process_value, Handler& handler) {
-    using ArrayIterator = typename ValueTypes<kProcessing>::ArrayIterator;
+template <ObjectProcessing Processing, typename Handler>
+bool AcceptNoRecursion(typename ValueTypes<Processing>::Value& process_value, Handler& handler) {
+    using ArrayIterator = typename ValueTypes<Processing>::ArrayIterator;
 
-    impl::Stack<kProcessing> stack;
+    impl::Stack<Processing> stack;
 
     stack.emplace_back(static_cast<ArrayIterator>(&process_value), static_cast<ArrayIterator>(&process_value + 1));
 

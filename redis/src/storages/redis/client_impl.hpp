@@ -45,11 +45,11 @@ public:
         const CommandControl& command_control
     );
 
-    template <ScanTag scan_tag>
-    Request<ScanReplyTmpl<scan_tag>> MakeScanRequestWithKey(
+    template <ScanTag TScanTag>
+    Request<ScanReplyTmpl<TScanTag>> MakeScanRequestWithKey(
         std::string key,
         size_t shard,
-        typename ScanReplyTmpl<scan_tag>::Cursor cursor,
+        typename ScanReplyTmpl<TScanTag>::Cursor cursor,
         ScanOptionsGeneric options,
         const CommandControl& command_control
     );
@@ -255,8 +255,8 @@ public:
 
     ScanRequest<ScanTag::kScan> Scan(size_t shard, ScanOptions options, const CommandControl& command_control) override;
 
-    template <ScanTag scan_tag>
-    ScanRequest<scan_tag> ScanTmpl(std::string key, ScanOptionsGeneric options, const CommandControl& command_control);
+    template <ScanTag TScanTag>
+    ScanRequest<TScanTag> ScanTmpl(std::string key, ScanOptionsGeneric options, const CommandControl& command_control);
 
     RequestScard Scard(std::string key, const CommandControl& command_control) override;
 

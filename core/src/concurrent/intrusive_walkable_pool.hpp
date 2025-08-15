@@ -20,7 +20,7 @@ namespace concurrent::impl {
 /// - The element type `T` must include `IntrusiveWalkablePoolHook<T>` with `offsetof == kHookOffset`
 /// - The nodes are only destroyed on the pool destruction, so the node count is
 ///   monotonically non-decreasing
-template <typename T, typename HookExtractor, std::ptrdiff_t kHookOffset>
+template <typename T, typename HookExtractor, std::ptrdiff_t HookOffset>
 class IntrusiveWalkablePool final {
 public:
     IntrusiveWalkablePool() = default;
@@ -76,7 +76,7 @@ private:
     using FreeListHookExtractor =
         CombinedHook<HookExtractor, MemberHook<&IntrusiveWalkablePoolHook<T>::free_list_hook>>;
     static constexpr std::ptrdiff_t kFreeListHookOffset =
-        kHookOffset + offsetof(IntrusiveWalkablePoolHook<T>, free_list_hook);
+        HookOffset + offsetof(IntrusiveWalkablePoolHook<T>, free_list_hook);
 
     IntrusiveStack<T, PermanentListHookExtractor> permanent_list_;
     StripedIntrusivePool<T, FreeListHookExtractor, kFreeListHookOffset> free_list_{};

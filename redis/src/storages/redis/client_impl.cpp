@@ -63,17 +63,17 @@ Request<ScanReplyTmpl<ScanTag::kScan>> ClientImpl::MakeScanRequestNoKey(
     );
 }
 
-template <ScanTag scan_tag>
-Request<ScanReplyTmpl<scan_tag>> ClientImpl::MakeScanRequestWithKey(
+template <ScanTag TScanTag>
+Request<ScanReplyTmpl<TScanTag>> ClientImpl::MakeScanRequestWithKey(
     std::string key,
     size_t shard,
-    typename ScanReplyTmpl<scan_tag>::Cursor cursor,
+    typename ScanReplyTmpl<TScanTag>::Cursor cursor,
     ScanOptionsGeneric options,
     const CommandControl& command_control
 ) {
     CmdArgs cmd_args{
-        kScanCommandName<scan_tag>, std::move(key), cursor.GetValue(), options.ExtractMatch(), options.ExtractCount()};
-    return CreateRequest<Request<ScanReplyTmpl<scan_tag>>>(
+        kScanCommandName<TScanTag>, std::move(key), cursor.GetValue(), options.ExtractMatch(), options.ExtractCount()};
+    return CreateRequest<Request<ScanReplyTmpl<TScanTag>>>(
         MakeRequest(std::move(cmd_args), shard, false, GetCommandControl(command_control))
     );
 }
@@ -702,11 +702,11 @@ ScanRequest<ScanTag::kScan> ClientImpl::Scan(size_t shard, ScanOptions options, 
     ));
 }
 
-template <ScanTag scan_tag>
-ScanRequest<scan_tag>
+template <ScanTag TScanTag>
+ScanRequest<TScanTag>
 ClientImpl::ScanTmpl(std::string key, ScanOptionsGeneric options, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
-    return ScanRequest<scan_tag>(std::make_unique<RequestScanData<scan_tag>>(
+    return ScanRequest<TScanTag>(std::make_unique<RequestScanData<TScanTag>>(
         shared_from_this(), std::move(key), shard, std::move(options), command_control
     ));
 }

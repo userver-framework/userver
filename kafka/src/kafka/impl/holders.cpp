@@ -70,14 +70,14 @@ rd_kafka_conf_t* ConfHolder::GetHandle() const noexcept { return impl_->conf.Get
 
 void ConfHolder::ForgetUnderlyingConf() noexcept { [[maybe_unused]] auto _ = impl_->conf.ptr_.release(); }
 
-template <ClientType client_type>
-struct KafkaClientHolder<client_type>::Impl {
+template <ClientType TClientType>
+struct KafkaClientHolder<TClientType>::Impl {
     explicit Impl(ConfHolder conf)
         : handle([conf = std::move(conf)]() mutable {
               ErrorBuffer err_buf;
 
               const auto rd_kafka_client_type =
-                  client_type == ClientType::kConsumer ? RD_KAFKA_CONSUMER : RD_KAFKA_PRODUCER;
+                  TClientType == ClientType::kConsumer ? RD_KAFKA_CONSUMER : RD_KAFKA_PRODUCER;
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -92,7 +92,7 @@ struct KafkaClientHolder<client_type>::Impl {
                   /// `rd_kafka_new` succeeds
 
                   const auto type_str = [] {
-                      switch (client_type) {
+                      switch (TClientType) {
                           case ClientType::kConsumer:
                               return "consumer";
                           case ClientType::kProducer:
@@ -106,7 +106,7 @@ struct KafkaClientHolder<client_type>::Impl {
 
               conf.ForgetUnderlyingConf();
 
-              if (client_type == ClientType::kConsumer) {
+              if (TClientType == ClientType::kConsumer) {
                   /// Redirects main queue to consumer's queue.
                   rd_kafka_poll_set_consumer(holder.GetHandle());
               }
@@ -114,7 +114,7 @@ struct KafkaClientHolder<client_type>::Impl {
               return holder;
           }()),
           queue([this] {
-              switch (client_type) {
+              switch (TClientType) {
                   case ClientType::kConsumer:
                       return rd_kafka_queue_get_consumer(handle.GetHandle());
                   case ClientType::kProducer:
@@ -128,24 +128,24 @@ struct KafkaClientHolder<client_type>::Impl {
     HolderBase<rd_kafka_queue_t, &rd_kafka_queue_destroy> queue;
 };
 
-template <ClientType client_type>
-KafkaClientHolder<client_type>::KafkaClientHolder(ConfHolder conf) : impl_(std::move(conf)) {}
+template <ClientType TClientType>
+KafkaClientHolder<TClientType>::KafkaClientHolder(ConfHolder conf) : impl_(std::move(conf)) {}
 
-template <ClientType client_type>
-KafkaClientHolder<client_type>::~KafkaClientHolder() = default;
+template <ClientType TClientType>
+KafkaClientHolder<TClientType>::~KafkaClientHolder() = default;
 
-template <ClientType client_type>
-rd_kafka_t* KafkaClientHolder<client_type>::GetHandle() const noexcept {
+template <ClientType TClientType>
+rd_kafka_t* KafkaClientHolder<TClientType>::GetHandle() const noexcept {
     return impl_->handle.GetHandle();
 }
 
-template <ClientType client_type>
-rd_kafka_queue_t* KafkaClientHolder<client_type>::GetQueue() const noexcept {
+template <ClientType TClientType>
+rd_kafka_queue_t* KafkaClientHolder<TClientType>::GetQueue() const noexcept {
     return impl_->queue.GetHandle();
 }
 
-template <ClientType client_type>
-void KafkaClientHolder<client_type>::reset() noexcept {
+template <ClientType TClientType>
+void KafkaClientHolder<TClientType>::reset() noexcept {
     impl_->queue.reset();
     impl_->handle.reset();
 }
