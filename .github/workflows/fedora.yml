@@ -21,12 +21,16 @@ jobs:
     fedora:
         strategy:
             fail-fast: false
+            matrix:
+                include:
+                  - version: 36
+                  - version: 42
 
-        name: fedora-latest
+        name: fedora-${{matrix.version}}
         runs-on: ubuntu-latest
 
         container:
-            image: fedora:36
+            image: fedora:${{matrix.version}}
 
         env:
             CMAKE_FLAGS: >-
@@ -73,7 +77,7 @@ jobs:
             run: |
                 dnf update -y
                 dnf install -y git lld which
-                dnf install -y $(cat scripts/docs/en/deps/fedora-36.md)
+                dnf install -y $(cat scripts/docs/en/deps/fedora-${{matrix.version}}.md)
 
           - name: Install test dependencies
             run: |
