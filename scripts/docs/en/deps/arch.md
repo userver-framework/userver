@@ -3,7 +3,6 @@ boost
 boost-stacktrace-backtrace
 c-ares
 ccache
-clang-format-git
 cmake
 crypto++
 curl
@@ -18,6 +17,7 @@ krb5
 libev
 libnghttp2
 makepkg|cctz
+makepkg|clang-format-static-git
 makepkg|libbacktrace-git
 mongo-c-driver
 ninja
@@ -33,6 +33,6 @@ python-voluptuous
 python-yaml
 re2
 rocksdb
-unixodbc-dev
+unixodbc
 yaml-cpp
 zlib
