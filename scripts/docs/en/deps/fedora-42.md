@@ -18,14 +18,15 @@ jemalloc-devel
 libasan
 libatomic
 libev-devel
+libnghttp2-devel
 libpq-devel
 libubsan
 mongo-c-driver-devel
-libnghttp2-devel
 ninja
 openldap-devel
 openssl-devel
 postgresql-server
+protobuf-c-compiler
 pugixml
 python3-devel
 python3-jinja2
