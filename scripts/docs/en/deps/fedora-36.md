@@ -18,11 +18,11 @@ jemalloc-devel
 libasan
 libatomic
 libev-devel
+libnghttp2-devel
 libpq-devel
 libubsan
 mongo-c-driver-devel
-nghttp2-devel
-ninja
+ninja-build
 openldap-devel
 openssl-devel
 postgresql-server
