@@ -1,6 +1,6 @@
 benchmark
 boost
-boost-stacktrace-backtrace
+makepkg|boost-stacktrace-backtrace
 c-ares
 ccache
 cmake
