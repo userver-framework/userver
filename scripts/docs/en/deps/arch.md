@@ -1,6 +1,5 @@
 benchmark
 boost
-makepkg|boost-stacktrace-backtrace
 c-ares
 ccache
 cmake
@@ -14,8 +13,10 @@ gtest
 hiredis
 jemalloc
 krb5
+libbacktrace-git
 libev
 libnghttp2
+makepkg|boost-stacktrace-backtrace
 makepkg|cctz
 makepkg|clang-format-static-git
 makepkg|libbacktrace-git
