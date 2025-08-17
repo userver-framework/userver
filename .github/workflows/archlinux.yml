@@ -41,7 +41,6 @@ jobs:
 
         container:
             image: archlinux:latest
-            options: --privileged
 
         steps:
           - uses: actions/checkout@v4
@@ -81,13 +80,21 @@ jobs:
 
           - name: Install development dependencies
             run: |
+                useradd build
+
                 pacman -S --needed --noconfirm $(cat scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' )
                 cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read REPLY; \
                 do \
                   DIR=$(mktemp -d) ;\
                   git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
                   pushd $DIR ;\
-                  yes|makepkg -si ;\
+
+                  chmod a+x .
+                  chmod a+rw -R .
+
+                  yes | su -s /usr/bin/makepkg - build ;\
+                  packman -U *.zst
+
                   popd ;\
                   rm -rf $DIR ;\
                 done
