@@ -36,6 +36,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
     if(USERVER_DOWNLOAD_PACKAGE_PROTOBUF)
         find_package(Protobuf QUIET)
     else()
+        set(Protobuf_DEBUG ON)
         find_package(Protobuf)
         if(NOT Protobuf_FOUND)
             message(
