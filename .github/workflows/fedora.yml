@@ -76,7 +76,7 @@ jobs:
           - name: Install dependencies
             run: |
                 dnf update -y
-                dnf install -y git lld which
+                dnf install -y git lld which clang
                 dnf install -y $(cat scripts/docs/en/deps/fedora-${{matrix.version}}.md)
 
           - name: Install test dependencies
