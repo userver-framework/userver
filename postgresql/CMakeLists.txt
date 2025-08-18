@@ -48,6 +48,7 @@ userver_module(
     UBENCH_LINK_LIBRARIES userver-libpq
     UBENCH_DATABASES postgresql
     UBENCH_ENV POSTGRES_DSN_BENCH=postgresql://testsuite@localhost:15433/postgres
+    DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
 )
 

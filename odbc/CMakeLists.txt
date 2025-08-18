@@ -8,6 +8,7 @@ userver_module(
     UTEST_LINK_LIBRARIES odbc
     DBTEST_DATABASES postgresql
     DBTEST_ENV POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
+    DEPENDS core
 )
 
 _userver_directory_install(

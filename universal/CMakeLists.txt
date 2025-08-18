@@ -432,4 +432,6 @@ _userver_directory_install(
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
+_userver_install_component(MODULE universal)
+
 include(UserverEmbedFile)

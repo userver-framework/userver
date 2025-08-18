@@ -23,6 +23,7 @@ function(userver_module MODULE)
         UBENCH_LINK_LIBRARIES
         UBENCH_DATABASES
         UBENCH_ENV
+        DEPENDS
     )
     cmake_parse_arguments(ARG "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
     if(ARG_UNPARSED_ARGUMENTS)
@@ -89,6 +90,8 @@ function(userver_module MODULE)
                 DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
             )
         endif()
+
+        _userver_install_component(MODULE ${MODULE} DEPENDS ${ARG_DEPENDS})
     endif()
 
     # 1. userver-${MODULE}-unittest

@@ -74,6 +74,7 @@ function(_userver_directory_install)
     if(NOT USERVER_INSTALL)
         return()
     endif()
+    set(option)
     set(oneValueArgs COMPONENT DESTINATION PATTERN)
     set(multiValueArgs FILES DIRECTORY PROGRAMS)
     cmake_parse_arguments(ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
@@ -144,4 +145,26 @@ function(_userver_make_install_config)
         FILES "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
     )
+endfunction()
+
+function(_userver_install_component)
+    if(NOT USERVER_INSTALL)
+        return()
+    endif()
+
+    set(oneValueArgs MODULE)
+    set(multiValueArgs DEPENDS)
+    cmake_parse_arguments(ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+
+    string(TOUPPER "${ARG_MODULE}" MODULE_UPPER)
+    if(CPACK_COMPONENTS_GROUPING STREQUAL ONE_PER_GROUP)
+        if(NOT CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_DEPENDS)
+	    message(FATAL_ERROR "File with per-component dependencies is missing (component ${ARG_MODULE}). Either use CPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE to build a single all-in-one package, or create dependency file ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_MODULE}.")
+        endif()
+    endif()
+
+    cpack_add_component_group(${ARG_MODULE} EXPANDED)
+    cpack_add_component(${ARG_MODULE} GROUP ${ARG_MODULE} INSTALL_TYPES Full)
+    # Not working yet
+    set(CPACK_COMPONENT_${MODULE_UPPER}_DEPENDS ${DEPENDS})
 endfunction()

@@ -16,6 +16,7 @@ userver_module(
         # HACK: common source between unittest and dbtest targets.
         "${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_test.cpp"
     DBTEST_DATABASES clickhouse
+    DEPENDS core
 )
 
 target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-error=pedantic")

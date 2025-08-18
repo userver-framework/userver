@@ -7,6 +7,7 @@ userver_module(
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     LINK_LIBRARIES userver::universal
+    DEPENDS universal
     NO_CORE_LINK
 )
 

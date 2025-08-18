@@ -12,6 +12,7 @@ userver_module(
     LINK_LIBRARIES_PRIVATE amqpcpp
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_rmqtest.cpp"
     DBTEST_DATABASES rabbitmq
+    DEPENDS core
 )
 
 _userver_directory_install(

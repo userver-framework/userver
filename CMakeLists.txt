@@ -175,6 +175,12 @@ include(UserverSetupEnvironment)
 userver_setup_environment()
 
 include(PrepareInstall)
+
+include(GetUserverVersion)
+if(USERVER_INSTALL)
+    include(cmake/UserverPack.cmake)
+endif()
+
 include(UserverModule)
 
 if(USERVER_INSTALL)
@@ -182,7 +188,6 @@ if(USERVER_INSTALL)
 endif()
 
 include(ModuleHelpers)
-include(GetUserverVersion)
 include(AddGoogleTests)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
@@ -322,10 +327,6 @@ _userver_make_install_config()
 
 if(USERVER_BUILD_SAMPLES AND USERVER_FEATURE_CORE)
     add_subdirectory(samples)
-endif()
-
-if(USERVER_INSTALL)
-    include(cmake/UserverPack.cmake)
 endif()
 
 if(USERVER_FEATURE_CORE)

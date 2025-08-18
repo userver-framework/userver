@@ -1,0 +1,14 @@
+libboost-context1.83-dev
+libboost-coroutine1.83-dev
+libboost-filesystem1.83-dev
+libboost-iostreams1.83-dev
+libboost-locale1.83-dev
+libboost-program-options1.83-dev
+libboost-stacktrace1.83-dev
+zlib1g-dev
+libssl-dev
+libnghttp2-dev
+libev-dev
+libc-ares-dev
+libcurl4-openssl-dev
+libcrypto++-dev

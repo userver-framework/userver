@@ -12,6 +12,7 @@ userver_module(
     LINK_LIBRARIES_PRIVATE RdKafka::rdkafka
     DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     DBTEST_LINK_LIBRARIES userver::kafka-utest
+    DEPENDS core
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")

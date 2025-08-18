@@ -174,6 +174,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_PIP_USE_SYSTEM_PACKAGES`       | Use system python packages inside venv. Useful for Docker, CI and other controlled environments             | `OFF`                                                       |
 | `USERVER_PIP_OPTIONS`                   | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                  | (no options)                                                |
 | `USERVER_INSTALL`                       | Build userver for further installation                                                                      | `OFF`                                                       |
+| `USERVER_INSTALL_MULTIPACKAGE`          | Whether create per-component packages                                                       | `OFF`                                                       |
 | `USERVER_CONAN`                         | Build userver using Conan packages                                                                          | `ON` if build is launched from Conan, `OFF` otherwise       |
 | `USERVER_CHAOTIC_FORMAT`                | Whether to format generated code if FORMAT option is missing                                                | `ON`                                                        |
 

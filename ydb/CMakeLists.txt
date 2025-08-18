@@ -23,6 +23,7 @@ userver_module(
     INCLUDE_DIRS ${ydb-cpp-sdk_INCLUDE_DIRS}
     UTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     GENERATE_DYNAMIC_CONFIGS
+    DEPENDS core
 )
 
 # Enforce that userver-ydb requires C++20

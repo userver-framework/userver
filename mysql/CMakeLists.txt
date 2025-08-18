@@ -14,6 +14,7 @@ userver_module(
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks"
     UBENCH_LINK_LIBRARIES libmariadb
     UBENCH_DATABASES mysql
+    DEPENDS core
 )
 
 if(USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB)

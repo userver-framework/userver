@@ -8,6 +8,7 @@ userver_module(
     LINK_LIBRARIES userver-core userver-chaotic
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     UTEST_LINK_LIBRARIES userver-core userver-chaotic
+    DEPENDS core
 )
 
 if(USERVER_BUILD_TESTS)

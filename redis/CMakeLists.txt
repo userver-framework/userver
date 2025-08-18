@@ -12,6 +12,7 @@ userver_module(
     DBTEST_DATABASES redis redis-cluster
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmark"
     UBENCH_DATABASES redis
+    DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
 )
 

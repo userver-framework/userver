@@ -197,3 +197,5 @@ _userver_directory_install(
     FILES "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGrpc.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
+
+_userver_install_component(MODULE grpc DEPENDS core)
