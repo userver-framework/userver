@@ -23,7 +23,7 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                  - version: 36
+                  # - version: 36 EOL
                   - version: 42
 
         name: fedora-${{matrix.version}}

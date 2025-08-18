@@ -22,6 +22,7 @@ libnghttp2-devel
 libpq-devel
 libubsan
 lz4-devel
+mariadb-connector-c-devel
 mongo-c-driver-devel
 ninja
 openldap-devel
