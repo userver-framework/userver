@@ -27,7 +27,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 set(Boost_DEBUG ON)
 find_package(
-    Boost REQUIRED CONFIG
+    Boost REQUIRED
     COMPONENTS program_options filesystem regex stacktrace_basic
     OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
 )
