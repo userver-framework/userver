@@ -19,7 +19,7 @@
 
 using ACCEPT_TYPE_ARG3 = socklen_t;
 
-struct pg_sockaddr_storage {
+struct PgSockaddrStorage {
     union {
         struct sockaddr sa; /* get the system-dependent fields */
         int64_t ss_align;   /* ensures struct is properly aligned */
@@ -29,7 +29,7 @@ struct pg_sockaddr_storage {
 
 // NOLINTNEXTLINE(modernize-use-using)
 typedef struct {
-    struct pg_sockaddr_storage addr;
+    struct PgSockaddrStorage addr;
     ACCEPT_TYPE_ARG3 salen;
 } SockAddr;
 

@@ -113,14 +113,17 @@ CheckOptions:
   - key: modernize-loop-convert.UseCxx20ReverseRanges
     value: 'false'
 
-  # - key: readability-identifier-naming.ClassCase
-  #   value: CamelCase
-  # - key: readability-identifier-naming.StructCase
-  #   value: CamelCase
-  # - key: readability-identifier-naming.EnumCase
-  #   value: CamelCase
-  # - key: readability-identifier-naming.UnionCase
-  #   value: CamelCase
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+    # Allow DISABLED_CamelCase to skip gtest tests.
+  - key: readability-identifier-naming.ClassIgnoredRegexp
+    value: '^DISABLED_([A-Z][a-z]+)+$'
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.UnionCase
+    value: CamelCase
   # - key: readability-identifier-naming.MemberCase
   #   value: lower_case
   # - key: readability-identifier-naming.PrivateMemberSuffix
@@ -153,8 +156,10 @@ CheckOptions:
     value: UPPER_CASE
   - key: readability-identifier-naming.NamespaceCase
     value: lower_case
+  # Allow NCamelCase for NMonitoring.
   - key: readability-identifier-naming.NamespaceIgnoredRegexp
     value: ^N([A-Z][a-z]+)+$
+  # Allow kCamelCase.
   - key: readability-identifier-naming.ValueTemplateParameterIgnoredRegexp
     value: ^k([A-Z][a-z]+)+$
   - key: readability-identifier-naming.ConceptCase

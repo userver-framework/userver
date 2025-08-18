@@ -16,7 +16,7 @@ namespace curl {
 
 class easy;
 
-struct socket_info {
+struct socket_info {  // NOLINT(readability-identifier-naming)
     explicit socket_info(engine::ev::ThreadControl& thread_control) : watcher(thread_control) {}
 
     ~socket_info() { UASSERT(!handle); }

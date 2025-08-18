@@ -18,7 +18,7 @@ using void_t = std::void_t<T...>;
 #else
 
 template <typename... T>
-struct make_void_t {
+struct make_void_t {  // NOLINT(readability-identifier-naming)
     using type = void;
 };
 template <typename... T>

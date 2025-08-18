@@ -6,6 +6,8 @@
         C++ wrapper for libcurl's easy interface
 */
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 #pragma once
 
 #include <cstdio>
@@ -748,3 +750,5 @@ private:
 #undef IMPLEMENT_CURL_OPTION_GET_LIST
 
 USERVER_NAMESPACE_END
+
+// NOLINTEND(readability-identifier-naming)

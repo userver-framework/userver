@@ -16,7 +16,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace curl {
-class share final : public std::enable_shared_from_this<share> {
+class share final : public std::enable_shared_from_this<share> {  // NOLINT(readability-identifier-naming)
 public:
     share();
     share(const share&) = delete;

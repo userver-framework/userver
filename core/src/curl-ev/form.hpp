@@ -20,7 +20,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
-class form {
+class form {  // NOLINT(readability-identifier-naming)
 public:
     form();
     form(const form&) = delete;

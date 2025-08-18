@@ -20,7 +20,7 @@ namespace utils {
 /// @ingroup userver_containers
 ///
 /// @brief Non-empty string view type that guarantees null-termination and has a `c_str()` member function.
-class zstring_view : public std::string_view {
+class zstring_view : public std::string_view {  // NOLINT(readability-identifier-naming)
 public:
     zstring_view() = delete;
     zstring_view(const zstring_view& str) = default;

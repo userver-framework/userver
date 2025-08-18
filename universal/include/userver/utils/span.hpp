@@ -27,7 +27,7 @@ using TypeIdentity = typename TypeIdentityImpl<T>::type;
 
 /// A polyfill for std::span from C++20
 template <typename T>
-class span final {
+class span final {  // NOLINT(readability-identifier-naming)
 public:
     using iterator = T*;
     using value_type = std::remove_cv_t<T>;

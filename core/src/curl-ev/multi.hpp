@@ -32,7 +32,7 @@ namespace curl {
 class easy;
 struct socket_info;
 
-class multi final {
+class multi final {  // NOLINT(readability-identifier-naming)
 public:
     using Callback = std::function<void()>;
     multi(engine::ev::ThreadControl& thread_control, const std::shared_ptr<ConnectRateLimiter>& connect_rate_limiter);

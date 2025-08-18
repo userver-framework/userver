@@ -13,6 +13,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 class match_results;
 struct Re2Replacement;
 
@@ -188,6 +190,8 @@ struct Re2Replacement final {
 /// @overload
 /// @see utils::Re2Replacement
 std::string regex_replace(std::string_view str, const regex& pattern, Re2Replacement repl);
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace utils
 
