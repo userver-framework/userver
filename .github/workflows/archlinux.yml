@@ -89,7 +89,7 @@ jobs:
                   chmod a+rw -R .
 
                   yes | su -s /usr/bin/makepkg - build ;\
-                  pacman -U *.zst
+                  pacman -U --noconfirm *.zst
 
                   popd ;\
                   rm -rf $DIR ;\
