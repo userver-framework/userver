@@ -131,7 +131,6 @@ function(userver_target_generate_chaotic TARGET)
 
     list(APPEND CHAOTIC_ARGS "-o" "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}")
     list(APPEND CHAOTIC_ARGS "--relative-to" "${PARSE_RELATIVE_TO}")
-    list(APPEND CHAOTIC_ARGS "--clang-format" "${CLANG_FORMAT}")
 
     _userver_initialize_codegen_flag()
 
@@ -150,6 +149,7 @@ function(userver_target_generate_chaotic TARGET)
         OUTPUT ${SCHEMAS}
         COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_BIN}"
                 ${CHAOTIC_EXTRA_ARGS} ${CHAOTIC_ARGS} ${PARSE_SCHEMAS}
+                --clang-format "${CLANG_FORMAT}"
         DEPENDS ${PARSE_SCHEMAS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         VERBATIM ${CODEGEN}
