@@ -14,6 +14,7 @@ hiredis
 jemalloc
 krb5
 libev
+libunwind
 libnghttp2
 makepkg|libbacktrace-git
 makepkg|boost-stacktrace-backtrace
