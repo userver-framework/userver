@@ -79,6 +79,7 @@ jobs:
                 useradd build
 
                 pacman -S --needed --noconfirm $(cat scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' )
+                set -x ; \
                 cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read REPLY; \
                 do \
                   DIR=$(mktemp -d) ;\
