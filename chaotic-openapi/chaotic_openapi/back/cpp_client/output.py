@@ -209,6 +209,8 @@ def external_libraries(schemas_dir: str) -> External:
 
             if data.get('x-taxi-middlewares', {}).get('eats') == 'v1':
                 libraries.append('eats-authproxy-backend')
+            if data.get('x-taxi-middlewares', {}).get('bank-authproxy') is True:
+                libraries.append('bank-authproxy-backend')
 
         elif isinstance(data, list):
             for v in data:
