@@ -6,7 +6,6 @@ from chaotic.back.cpp.types import CppPrimitiveType
 from chaotic.back.cpp.types import CppPrimitiveValidator
 from chaotic.back.cpp.types import CppStruct
 from chaotic.back.cpp.types import CppStructField
-from chaotic.back.cpp.types import CppStructPrimitiveField
 
 
 def test_empty(simple_gen):
@@ -26,7 +25,7 @@ def test_empty(simple_gen):
     }
 
 
-def test_additional_properties_simple(simple_gen):
+def test_additional_properties_simple(simple_gen, cpp_primitive_type):
     schemas = simple_gen({
         'type': 'object',
         'properties': {},
@@ -39,22 +38,19 @@ def test_additional_properties_simple(simple_gen):
             nullable=False,
             user_cpp_type=None,
             fields={},
-            extra_type=CppPrimitiveType(
-                raw_cpp_type=type_name.TypeName('int'),
-                json_schema=None,
-                nullable=False,
-                user_cpp_type=None,
+            extra_type=cpp_primitive_type(
                 validators=CppPrimitiveValidator(
                     namespace='::type',
                     prefix='Extra',
                 ),
+                raw_cpp_type_str='int',
             ),
         ),
     }
 
 
 @pytest.mark.skip(reason='see comment in translator.py: _gen_field()')
-def test_field_external(simple_gen):
+def test_field_external(simple_gen, cpp_primitive_type):
     schemas = simple_gen({
         'type': 'object',
         'properties': {'field': {'type': 'integer'}},
@@ -71,8 +67,12 @@ def test_field_external(simple_gen):
                 'field': CppStructField(
                     name='field',
                     required=False,
-                    external_schema=CppStructPrimitiveField(
-                        raw_cpp_type=type_name.TypeName('int'),
+                    schema=cpp_primitive_type(
+                        validators=CppPrimitiveValidator(
+                            namespace='::type',
+                            prefix='Field',
+                        ),
+                        raw_cpp_type_str='int',
                     ),
                 ),
             },
@@ -80,7 +80,7 @@ def test_field_external(simple_gen):
     }
 
 
-def test_field_with_default(simple_gen):
+def test_field_with_default(simple_gen, cpp_primitive_type):
     schemas = simple_gen({
         'type': 'object',
         'properties': {'field': {'type': 'integer', 'default': 1}},
@@ -97,16 +97,13 @@ def test_field_with_default(simple_gen):
                 'field': CppStructField(
                     name='field',
                     required=False,
-                    schema=CppPrimitiveType(
-                        raw_cpp_type=type_name.TypeName('int'),
-                        json_schema=None,
-                        default=1,
-                        nullable=False,
-                        user_cpp_type=None,
+                    schema=cpp_primitive_type(
                         validators=CppPrimitiveValidator(
                             namespace='::type',
                             prefix='Field',
                         ),
+                        raw_cpp_type_str='int',
+                        default=1,
                     ),
                 ),
             },
@@ -114,7 +111,7 @@ def test_field_with_default(simple_gen):
     }
 
 
-def test_field_inplace(simple_gen):
+def test_field_inplace(simple_gen, cpp_primitive_type):
     schemas = simple_gen({
         'type': 'object',
         'properties': {'field': {'type': 'integer', 'minimum': 1}},
@@ -131,16 +128,13 @@ def test_field_inplace(simple_gen):
                 'field': CppStructField(
                     name='field',
                     required=False,
-                    schema=CppPrimitiveType(
-                        raw_cpp_type=type_name.TypeName('int'),
-                        json_schema=None,
-                        nullable=False,
-                        user_cpp_type=None,
+                    schema=cpp_primitive_type(
                         validators=CppPrimitiveValidator(
                             min=1,
                             namespace='::type',
                             prefix='Field',
                         ),
+                        raw_cpp_type_str='int',
                     ),
                 ),
             },

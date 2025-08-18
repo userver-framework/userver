@@ -4,18 +4,11 @@ from chaotic.back.cpp.translator import GeneratorConfig
 from chaotic.back.cpp.types import CppRef
 from chaotic.back.cpp.types import CppStruct
 from chaotic.front import ref_resolver
-from chaotic.front.parser import ParserConfig
-from chaotic.front.parser import SchemaParser
 from chaotic.front.types import SchemaObject
 
 
-def test_simple_ref(clean, cpp_name_func):
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_simple_ref(clean, cpp_name_func, schema_parser):
+    parser = schema_parser
 
     parser.parse_schema(
         '/definitions/Type',

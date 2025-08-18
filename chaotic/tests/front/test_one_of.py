@@ -1,8 +1,6 @@
 import pytest
 
-from chaotic.front.parser import ParserConfig
 from chaotic.front.parser import ParserError
-from chaotic.front.parser import SchemaParser
 from chaotic.front.types import Boolean
 from chaotic.front.types import DiscMapping
 from chaotic.front.types import Integer
@@ -15,14 +13,9 @@ from chaotic.front.types import String
 
 
 @pytest.fixture(name='parse_after_refs')
-def _parse_after_refs():
+def _parse_after_refs(schema_parser):
     def func(input_: dict):
-        config = ParserConfig(erase_prefix='')
-        parser = SchemaParser(
-            config=config,
-            full_filepath='full',
-            full_vfilepath='vfull',
-        )
+        parser = schema_parser
         parser.parse_schema(
             '/definitions/type1',
             {
@@ -108,12 +101,10 @@ REFS = {
 
 
 def test_of_none(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({'oneOf': []})
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/oneOf'
-        assert exc.msg == 'Empty oneOf'
+    assert exc.value.infile_path == '/definitions/type/oneOf'
+    assert exc.value.msg == 'Empty oneOf'
 
 
 # stupid, but valid
@@ -158,7 +149,7 @@ def test_wo_discriminator_nullable_wrong_type(simple_parse):
 
 
 def test_wd_no_ref_or_object(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({
             'oneOf': [
                 {'type': 'integer'},
@@ -170,14 +161,12 @@ def test_wd_no_ref_or_object(simple_parse):
             ],
             'discriminator': {'propertyName': 'foo'},
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/oneOf/0'
-        assert exc.msg == 'Not a $ref in oneOf with discriminator'
+    assert exc.value.infile_path == '/definitions/type/oneOf/0'
+    assert exc.value.msg == 'Not a $ref in oneOf with discriminator'
 
 
 def test_wd_wrong_property(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({
             'oneOf': [
                 {
@@ -188,14 +177,12 @@ def test_wd_wrong_property(simple_parse):
             ],
             'discriminator': {'propertyName': 'foo'},
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/oneOf/0'
-        assert exc.msg == 'Not a $ref in oneOf with discriminator'
+    assert exc.value.infile_path == '/definitions/type/oneOf/0'
+    assert exc.value.msg == 'Not a $ref in oneOf with discriminator'
 
 
 def test_wd_wrong_property2(parse_after_refs):
-    try:
+    with pytest.raises(ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -204,22 +191,18 @@ def test_wd_wrong_property2(parse_after_refs):
             ],
             'discriminator': {'propertyName': 'foo'},
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/oneOf/2'
-        assert exc.msg == 'No discriminator property "foo"'
+    assert exc.value.infile_path == '/definitions/type/oneOf/2'
+    assert exc.value.msg == 'No discriminator property "foo"'
 
 
 def test_wd_wrong_type(parse_after_refs):
-    try:
+    with pytest.raises(ParserError) as exc:
         parse_after_refs({
             'oneOf': [{'$ref': '#/definitions/type_int'}],
             'discriminator': {'propertyName': 'foo'},
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/oneOf/0'
-        assert exc.msg == 'oneOf $ref to non-object (Integer)'
+    assert exc.value.infile_path == '/definitions/type/oneOf/0'
+    assert exc.value.msg == 'oneOf $ref to non-object (Integer)'
 
 
 def test_wd_ok(parse_after_refs):
@@ -323,7 +306,7 @@ def test_wd_ok_with_int_mapping(parse_after_refs):
 
 
 def test_wd_non_uniform_mapping(parse_after_refs):
-    try:
+    with pytest.raises(ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type3'},
@@ -337,13 +320,12 @@ def test_wd_non_uniform_mapping(parse_after_refs):
                 },
             },
         })
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/discriminator/mapping'
-        assert exc.msg.startswith('Not uniform mapping')
+    assert exc.value.infile_path == '/definitions/type/discriminator/mapping'
+    assert exc.value.msg.startswith('Not uniform mapping')
 
 
 def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
-    try:
+    with pytest.raises(ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -354,14 +336,12 @@ def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
                 'mapping': {'t2': '#/definitions/type2'},
             },
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/discriminator/mapping'
-        assert exc.msg == 'Missing $ref in mapping: vfull#/definitions/type1'
+    assert exc.value.infile_path == '/definitions/type/discriminator/mapping'
+    assert exc.value.msg == 'Missing $ref in mapping: vfull#/definitions/type1'
 
 
 def test_wd_ok_with_mapping_invalid_ref(parse_after_refs):
-    try:
+    with pytest.raises(ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -376,14 +356,12 @@ def test_wd_ok_with_mapping_invalid_ref(parse_after_refs):
                 },
             },
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/discriminator/mapping'
-        assert exc.msg == ("$ref(s) outside of oneOf: ['vfull#/definitions/wrong']")
+    assert exc.value.infile_path == '/definitions/type/discriminator/mapping'
+    assert exc.value.msg == ("$ref(s) outside of oneOf: ['vfull#/definitions/wrong']")
 
 
 def test_wd_invalidtype_mapping_value(parse_after_refs):
-    try:
+    with pytest.raises(ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -394,14 +372,12 @@ def test_wd_invalidtype_mapping_value(parse_after_refs):
                 'mapping': {'t1': 1, 't2': '#/definitions/type2'},
             },
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/discriminator/mapping/t1'
-        assert exc.msg == 'Not a string in mapping'
+    assert exc.value.infile_path == '/definitions/type/discriminator/mapping/t1'
+    assert exc.value.msg == 'Not a string in mapping'
 
 
 def test_wd_extra_field(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({
             'oneOf': [
                 {
@@ -412,10 +388,8 @@ def test_wd_extra_field(simple_parse):
             ],
             'discriminator': {'foo': 1, 'propertyName': 'foo'},
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/discriminator/foo'
-        assert exc.msg == ('Unknown field: "foo", known fields: ["mapping", "propertyName"]')
+    assert exc.value.infile_path == '/definitions/type/discriminator/foo'
+    assert exc.value.msg == ('Unknown field: "foo", known fields: ["mapping", "propertyName"]')
 
 
 def test_wd_nullable(parse_after_refs):

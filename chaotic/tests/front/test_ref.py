@@ -12,13 +12,8 @@ from chaotic.front.types import Integer
 from chaotic.front.types import Ref
 
 
-def test_ref_ok():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_ref_ok(schema_parser):
+    parser = schema_parser
 
     parser.parse_schema('/definitions/type1', {'type': 'integer'})
     parser.parse_schema('/definitions/type2', {'$ref': '#/definitions/type1'})
@@ -34,13 +29,8 @@ def test_ref_ok():
     }
 
 
-def test_ref_from_items_ok():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_ref_from_items_ok(schema_parser):
+    parser = schema_parser
 
     parser.parse_schema('/definitions/type1', {'type': 'integer'})
     parser.parse_schema(
@@ -61,13 +51,8 @@ def test_ref_from_items_ok():
     }
 
 
-def test_ref_invalid():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_ref_invalid(schema_parser):
+    parser = schema_parser
 
     try:
         parser.parse_schema('/definitions/type1', {'type': 'integer'})
@@ -87,22 +72,16 @@ def test_ref_invalid():
 
 
 def test_extra_fields(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({'$ref': '123', 'field': 1})
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type'
-        assert exc.msg == "Unknown field(s) ['field']"
+    assert exc.value.infile_path == '/definitions/type'
+    assert exc.value.msg == "Unknown field(s) ['field']"
 
 
-def test_sibling_file():
+def test_sibling_file(schema_parser):
     config = ParserConfig(erase_prefix='')
     schemas = []
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+    parser = schema_parser
     parser.parse_schema('/definitions/type1', {'type': 'integer'})
     schemas.append(parser.parsed_schemas())
 
@@ -139,13 +118,8 @@ def test_sibling_file():
     }
 
 
-def test_forward_reference():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_forward_reference(schema_parser):
+    parser = schema_parser
     parser.parse_schema('/definitions/type1', {'$ref': '#/definitions/type2'})
     parser.parse_schema('/definitions/type2', {'type': 'integer'})
     parser.parse_schema('/definitions/type3', {'$ref': '#/definitions/type4'})
@@ -186,13 +160,8 @@ def test_forward_reference():
     })
 
 
-def test_cycle():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_cycle(schema_parser):
+    parser = schema_parser
     parser.parse_schema('/definitions/type1', {'$ref': '#/definitions/type2'})
     parser.parse_schema('/definitions/type2', {'$ref': '#/definitions/type1'})
 

@@ -2,17 +2,14 @@ from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
 
 
-def test_simple(simple_gen):
+def test_simple(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'string'})
     assert types == {
-        '::type': cpp_types.CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('std::string'),
-            user_cpp_type=None,
-            json_schema=None,
-            nullable=False,
+        '::type': cpp_primitive_type(
             validators=cpp_types.CppPrimitiveValidator(
                 prefix='type',
             ),
+            raw_cpp_type_str='std::string',
         ),
     }
 

@@ -32,16 +32,14 @@ def parse(path, input_, external_schemas, external_types, cpp_name_func):
     return resolved_schemas, types
 
 
-def test_import(cpp_name_func):
+def test_import(cpp_name_func, cpp_primitive_type):
     ext_schemas, ext_types = parse('/type1', {'type': 'string'}, types.ResolvedSchemas(schemas={}), {}, cpp_name_func)
     assert ext_schemas.schemas == {'vfull#/type1': types.String(type='string')}
     assert ext_types == {
-        '::type1': cpp_types.CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('std::string'),
-            nullable=False,
-            user_cpp_type=None,
-            json_schema=types.String(type='string'),
+        '::type1': cpp_primitive_type(
             validators=cpp_types.CppPrimitiveValidator(prefix='type1'),
+            raw_cpp_type_str='std::string',
+            json_schema=types.String(type='string'),
         ),
     }
 

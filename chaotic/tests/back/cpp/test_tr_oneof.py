@@ -2,8 +2,6 @@ from chaotic.back.cpp import type_name
 from chaotic.back.cpp.translator import Generator
 from chaotic.back.cpp.translator import GeneratorConfig
 from chaotic.front import ref_resolver
-from chaotic.front.parser import ParserConfig
-from chaotic.front.parser import SchemaParser
 from chaotic.front.types import MappingType
 from chaotic.main import generate_cpp_name_func
 from chaotic.main import NameMapItem
@@ -36,13 +34,8 @@ def test_simple(simple_gen):
     assert foo_schema.variants[2].raw_cpp_type == type_name.TypeName('double')
 
 
-def test_empty_mapping(clean):
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_empty_mapping(clean, schema_parser):
+    parser = schema_parser
 
     parser.parse_schema(
         '/definitions/A',
@@ -101,13 +94,8 @@ def test_empty_mapping(clean):
     assert list(foo_schema.variants.keys()) == ['A', 'B']
 
 
-def test_str_mapping(clean):
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_str_mapping(clean, schema_parser):
+    parser = schema_parser
 
     parser.parse_schema(
         '/definitions/A',
@@ -170,13 +158,8 @@ def test_str_mapping(clean):
     assert foo_schema.variants['bbb'].cpp_name == '::B'
 
 
-def test_int_mapping(clean):
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_int_mapping(clean, schema_parser):
+    parser = schema_parser
 
     parser.parse_schema(
         '/definitions/A',
