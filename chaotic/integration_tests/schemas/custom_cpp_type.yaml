@@ -115,3 +115,10 @@ definitions:
             type: string
             x-usrv-cpp-type: my::CustomString
         x-usrv-cpp-type: userver::utils::DefaultDict<my::CustomString>
+    StrongTypedefObject:
+        type: object
+        additionalProperties: false
+        properties:
+            strong_typedef:
+                type: string
+                x-usrv-cpp-type: userver::utils::StrongTypedef<my::CustomString, std::string>

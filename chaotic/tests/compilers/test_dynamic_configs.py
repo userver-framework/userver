@@ -89,7 +89,10 @@ def test_strong_typedef_dependencies():
         })
         assert False
     except error.BaseError as exc:
-        assert 'Include file "userver/chaotic/io/xxx.hpp" not found' in exc.msg
+        assert (
+            'Include file "userver/utils/strong_typedef.hpp" not found' in exc.msg
+            or 'Include file "userver/chaotic/io/xxx.hpp" not found' in exc.msg
+        )
 
 
 def test_default_isomorphic():

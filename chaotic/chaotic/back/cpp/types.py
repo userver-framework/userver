@@ -128,19 +128,20 @@ class CppType:
             return ''
 
     @classmethod
-    def cpp_type_to_user_include_path(cls, cpp_type: str) -> str:
+    def get_includes_by_cpp_type(cls, cpp_type: str) -> list[str]:
+        includes = []
+
         parts = cpp_type.split('<', 1)
         cpp_type = parts[0]
         if cpp_type == 'userver::utils::StrongTypedef' and parts[1][-1] == '>':
             cpp_type = parts[1].split(', ', 1)[0]
+            includes.append('userver/utils/strong_typedef.hpp')
 
         if cpp_type.startswith('::'):
             cpp_type = cpp_type[2:]
-        return 'userver/chaotic/io/' + camel_to_snake_case(cpp_type.replace('::', '/')) + '.hpp'
+        includes.append('userver/chaotic/io/' + camel_to_snake_case(cpp_type.replace('::', '/')) + '.hpp')
 
-    @classmethod
-    def get_include_by_cpp_type(cls, cpp_type: str) -> list[str]:
-        return [cls.cpp_type_to_user_include_path(cpp_type)]
+        return includes
 
     def _primitive_parser_type(self) -> str:
         raw_cpp_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}>'
@@ -248,7 +249,7 @@ class CppPrimitiveType(CppType):
     def declaration_includes(self) -> list[str]:
         includes = []
         if self.user_cpp_type:
-            includes += self.get_include_by_cpp_type(self.user_cpp_type)
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
 
         assert self.json_schema
         type_ = self.json_schema.type  # type: ignore
@@ -345,8 +346,8 @@ class CppStringWithFormat(CppType):
     def declaration_includes(self) -> list[str]:
         includes = []
         if self.user_cpp_type:
-            includes += self.get_include_by_cpp_type(self.user_cpp_type)
-        includes += self.get_include_by_cpp_type(self.format_cpp_type)
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+        includes += self.get_includes_by_cpp_type(self.format_cpp_type)
 
         includes.append('string')
         return includes
@@ -680,7 +681,7 @@ class CppStruct(CppType):
     def declaration_includes(self) -> list[str]:
         includes = ['optional']
         if self.user_cpp_type:
-            includes += self.get_include_by_cpp_type(self.user_cpp_type)
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
         for field in self.fields.values():
             includes.extend(field.schema.declaration_includes())
 
@@ -688,7 +689,7 @@ class CppStruct(CppType):
             includes.append('string')
             if isinstance(self.extra_type, CppType):
                 extra_container = self.extra_container()
-                includes += self.get_include_by_cpp_type(extra_container)
+                includes += self.get_includes_by_cpp_type(extra_container)
                 includes.extend(self.extra_type.declaration_includes())
             else:
                 includes.append('userver/formats/json/value.hpp')
@@ -716,7 +717,7 @@ class CppStruct(CppType):
         if isinstance(self.extra_type, CppType):
             includes.extend(self.extra_type.definition_includes())
         if self._is_default_dict():
-            includes += self.get_include_by_cpp_type(
+            includes += self.get_includes_by_cpp_type(
                 'userver::utils::DefaultDict<>',
             )
         return includes
@@ -786,9 +787,9 @@ class CppArray(CppType):
         return parser_type
 
     def declaration_includes(self) -> list[str]:
-        includes = self.get_include_by_cpp_type(self.container) + self.items.declaration_includes()
+        includes = self.get_includes_by_cpp_type(self.container) + self.items.declaration_includes()
         if self.user_cpp_type:
-            includes += self.get_include_by_cpp_type(self.user_cpp_type)
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
         return includes
 
     def definition_includes(self) -> list[str]:
@@ -819,7 +820,7 @@ class CppStructAllOf(CppType):
     def declaration_includes(self) -> list[str]:
         includes = []
         if self.user_cpp_type:
-            includes += self.get_include_by_cpp_type(self.user_cpp_type)
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
         includes += flatten([item.declaration_includes() for item in self.parents])
         return includes
 
@@ -856,7 +857,7 @@ class CppVariant(CppType):
     def declaration_includes(self) -> list[str]:
         includes = []
         if self.user_cpp_type:
-            includes += self.get_include_by_cpp_type(self.user_cpp_type)
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
         return (
             includes
             + [
@@ -904,7 +905,7 @@ class CppVariantWithDiscriminator(CppType):
         includes = ['variant', 'userver/chaotic/oneof_with_discriminator.hpp']
 
         if self.user_cpp_type:
-            includes += self.get_include_by_cpp_type(self.user_cpp_type)
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
         return includes + flatten([item.declaration_includes() for item in self.variants.values()])
 
     def definition_includes(self) -> list[str]:

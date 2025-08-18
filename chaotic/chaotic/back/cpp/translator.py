@@ -147,11 +147,15 @@ class Generator:
         if type_.has_generated_user_cpp_type():
             return
 
+        user_includes = type_.get_includes_by_cpp_type(type_.user_cpp_type)
+        for user_include in user_includes:
+            self._validate_user_include_exists(type_, user_include)
+
+    def _validate_user_include_exists(self, type_: cpp_types.CppType, user_include: str) -> None:
         if self._config.include_dirs is None:
             # no check at all
             return
 
-        user_include = type_.cpp_type_to_user_include_path(type_.user_cpp_type)
         for include_dir in self._config.include_dirs:
             path = os.path.join(include_dir, user_include)
             if os.path.exists(path):

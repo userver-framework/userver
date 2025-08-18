@@ -18,7 +18,10 @@ from chaotic.main import generate_cpp_name_func
 from chaotic.main import NameMapItem
 from chaotic.main import read_schemas
 
-INCLUDE_DIR = str(pathlib.Path(__file__).parent.parent.parent / 'include')
+INCLUDE_DIRS = [
+    str(pathlib.Path(__file__).parent.parent.parent / 'include'),
+    str(pathlib.Path(__file__).parent.parent.parent.parent / 'universal' / 'include'),
+]
 TEMPLATE_DIR = str(pathlib.Path(__file__).parent / 'dynamic_config' / 'templates')
 
 CLANG_FORMAT_BIN = None
@@ -224,7 +227,7 @@ class CompilerBase:
         )
         gen = translator.Generator(
             config=translator.GeneratorConfig(
-                include_dirs=include_dirs + [INCLUDE_DIR],
+                include_dirs=include_dirs + INCLUDE_DIRS,
                 namespaces={fname: namespace},
                 infile_to_name_func=cpp_name_func,
                 autodiscover_default_dict=True,
