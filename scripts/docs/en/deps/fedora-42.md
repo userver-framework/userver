@@ -21,6 +21,7 @@ libev-devel
 libnghttp2-devel
 libpq-devel
 libubsan
+lz4-devel
 mongo-c-driver-devel
 ninja
 openldap-devel
