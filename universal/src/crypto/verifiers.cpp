@@ -10,6 +10,7 @@
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 
+#include <userver/crypto/algorithm.hpp>
 #include <userver/crypto/openssl.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -136,7 +137,7 @@ void HmacShaVerifier<Bits>::Verify(std::initializer_list<std::string_view> data,
             UINVARIANT(false, "Unexpected DigestSize");
     }
 
-    if (raw_signature != signature) {
+    if (!algorithm::AreStringsEqualConstTime(raw_signature, signature)) {
         throw VerificationError("Invalid signature");
     }
 }
