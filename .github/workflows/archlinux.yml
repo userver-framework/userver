@@ -35,6 +35,7 @@ jobs:
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_GRPC=0
+                -DUSERVER_FEATURE_OTLP=0
 
         container:
             image: archlinux:latest
