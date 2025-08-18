@@ -13,7 +13,6 @@ gtest
 hiredis
 jemalloc
 krb5
-libbacktrace-git
 libev
 libnghttp2
 makepkg|boost-stacktrace-backtrace

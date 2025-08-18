@@ -34,10 +34,6 @@ jobs:
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
-                -DUSERVER_FEATURE_JEMALLOC=OFF
-                -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
-                -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1
-                -DUSERVER_FORCE_DOWNLOAD_GRPC=1
 
         container:
             image: archlinux:latest
