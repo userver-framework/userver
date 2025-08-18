@@ -15,10 +15,10 @@ jemalloc
 krb5
 libev
 libnghttp2
+makepkg|libbacktrace-git
 makepkg|boost-stacktrace-backtrace
 makepkg|cctz
 makepkg|clang-format-static-git
-makepkg|libbacktrace-git
 mongo-c-driver
 ninja
 openssl
