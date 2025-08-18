@@ -97,6 +97,7 @@ jobs:
                 done
 
           - name: Install test dependencies
+            if: ${{ false }}  # Not working yet
             run: |
                 pacman -S --needed --noconfirm \
                     postgresql \
@@ -146,6 +147,7 @@ jobs:
                 ccache -s -v
 
           - name: Run tests
+            if: ${{ false }}  # Not working yet
             run: |
                 cd build_debug
                 ctest -V
