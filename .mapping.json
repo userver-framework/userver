@@ -282,6 +282,7 @@
   "chaotic/integration_tests/schemas/all_of.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/all_of.yaml",
   "chaotic/integration_tests/schemas/array.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/array.yaml",
   "chaotic/integration_tests/schemas/array_of_xcpptype.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/array_of_xcpptype.yaml",
+  "chaotic/integration_tests/schemas/container_format.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/container_format.yaml",
   "chaotic/integration_tests/schemas/custom_cpp_type.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/custom_cpp_type.yaml",
   "chaotic/integration_tests/schemas/date.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/date.yaml",
   "chaotic/integration_tests/schemas/external_ref.yaml":"taxi/uservices/userver/chaotic/integration_tests/schemas/external_ref.yaml",
