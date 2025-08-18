@@ -154,9 +154,9 @@ void TpLogger::Log(Level level, impl::formatters::LoggerItemRef item) {
     }
 }
 
-void TpLogger::PrependCommonTags(TagWriter writer) const { impl::default_ns::PrependCommonTags(writer, GetLevel()); }
+void TpLogger::PrependCommonTags(TagWriter writer) const { impl::PrependCommonTags(writer, GetLevel()); }
 
-bool TpLogger::DoShouldLog(Level level) const noexcept { return impl::default_ns::DoShouldLog(level); }
+bool TpLogger::DoShouldLog(Level level) const noexcept { return impl::DoShouldLog(level); }
 
 void TpLogger::AddSink(impl::SinkPtr&& sink) {
     UASSERT(sink);

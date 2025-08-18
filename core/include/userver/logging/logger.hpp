@@ -44,13 +44,13 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format, Level level =
 /// @see components::Logging
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path, Format format, Level level = Level::kInfo);
 
-namespace impl::default_ns {
+namespace impl {
 
 bool DoShouldLog(Level) noexcept;
 
 void PrependCommonTags(TagWriter writer, Level logger_level);
 
-}  // namespace impl::default_ns
+}  // namespace impl
 
 }  // namespace logging
 
