@@ -45,7 +45,10 @@ jobs:
                 -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
                 -DUSERVER_USE_STATIC_LIBS=OFF
                 -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES
-                -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=ON
+                -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
+                -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1
+                -DUSERVER_FORCE_DOWNLOAD_GRPC=1
+                -DUSERVER_FORCE_DOWNLOAD_RE2=1
 
         steps:
           - uses: actions/checkout@v4
