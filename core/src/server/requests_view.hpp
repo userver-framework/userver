@@ -5,6 +5,7 @@
 
 #include <moodycamel/concurrentqueue.h>
 #include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/utils/periodic_task.hpp>
 

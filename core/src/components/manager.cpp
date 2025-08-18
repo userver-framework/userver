@@ -23,6 +23,7 @@
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/os_signals/component.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/distances.hpp>

@@ -3,6 +3,7 @@
 /// @file userver/storages/postgres/notify.hpp
 /// @brief Asynchronous notifications
 
+#include <userver/engine/deadline.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 

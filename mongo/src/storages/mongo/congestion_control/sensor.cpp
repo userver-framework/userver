@@ -2,6 +2,8 @@
 
 #include <algorithm>  // for std::max
 
+#include <userver/logging/log.hpp>
+
 #include <storages/mongo/pool_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN

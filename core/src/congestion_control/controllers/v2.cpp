@@ -1,4 +1,6 @@
 #include <userver/congestion_control/controllers/v2.hpp>
+
+#include <userver/logging/log.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <fmt/format.h>

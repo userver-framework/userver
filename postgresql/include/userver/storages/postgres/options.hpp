@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>

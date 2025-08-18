@@ -4,6 +4,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/scope_guard.hpp>
 

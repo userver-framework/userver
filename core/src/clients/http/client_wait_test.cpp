@@ -2,6 +2,7 @@
 
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/wait_any.hpp>
+#include <userver/logging/log.hpp>
 
 #include <userver/http/http_version.hpp>
 #include <userver/utest/http_client.hpp>

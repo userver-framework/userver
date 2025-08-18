@@ -1,5 +1,6 @@
 #include <userver/congestion_control/controllers/linear.hpp>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN

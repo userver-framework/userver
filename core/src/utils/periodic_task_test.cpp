@@ -7,6 +7,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 using namespace std::chrono_literals;

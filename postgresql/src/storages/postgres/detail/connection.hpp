@@ -10,6 +10,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/testsuite/postgres_control.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 #include <userver/utils/strong_typedef.hpp>
 

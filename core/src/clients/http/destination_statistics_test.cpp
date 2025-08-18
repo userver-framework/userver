@@ -1,7 +1,9 @@
 #include <clients/http/destination_statistics.hpp>
 
 #include <unordered_set>
+
 #include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
 
 #include <userver/clients/http/client.hpp>
 #include <userver/utest/http_client.hpp>
