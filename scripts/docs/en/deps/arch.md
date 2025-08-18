@@ -19,7 +19,7 @@ libnghttp2
 makepkg|libbacktrace-git
 makepkg|boost-stacktrace-backtrace
 makepkg|cctz
-makepkg|clang-format-static-git
+makepkg|clang-format-static-bin
 mongo-c-driver
 ninja
 openssl
