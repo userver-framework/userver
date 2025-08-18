@@ -60,6 +60,7 @@ def test_headers(translate_single_schema):
                                 ),
                                 parser='openapi::TrivialParameter<openapi::In::kHeader, kHeader, int, int>',
                                 required=False,
+                                query_log_mode_hide=False,
                             )
                         ],
                         body={},
@@ -131,6 +132,7 @@ def test_header_ref(translate_single_schema):
                                 ),
                                 parser='openapi::TrivialParameter<openapi::In::kHeader, kXHeader, bool, bool>',
                                 required=False,
+                                query_log_mode_hide=False,
                             ),
                         ],
                     )

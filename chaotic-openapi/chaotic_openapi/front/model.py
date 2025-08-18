@@ -41,6 +41,7 @@ class Parameter:
     schema: types.Schema
 
     x_cpp_name: Optional[str]
+    x_query_log_mode_hide: bool
 
 
 @dataclasses.dataclass

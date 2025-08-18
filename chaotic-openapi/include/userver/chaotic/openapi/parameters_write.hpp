@@ -56,11 +56,16 @@ public:
 
     const clients::http::Headers& GetHeaders() const;
 
+    using HiddenQueryArgNamesFunc = bool (*)(std::string_view);
+
+    void SetHiddenQueryArgNamesFunc(HiddenQueryArgNamesFunc func);
+
 private:
     std::string url_pattern_;
     clients::http::Request& request_;
     clients::http::Headers headers_;
     http::MultiArgs query_args_;
+    HiddenQueryArgNamesFunc hidden_query_arg_names_func_{};
     std::unordered_map<std::string, std::string> cookies_;
     fmt::dynamic_format_arg_store<fmt::format_context> path_vars_;
 };

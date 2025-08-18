@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/str_icase.hpp>
@@ -120,6 +121,13 @@ std::string MakeUrl(std::string_view path, const Args& query_args, MultiArgs que
 /// @endcode
 std::string
 MakeUrl(std::string_view path, std::initializer_list<std::pair<std::string_view, std::string_view>> query_args);
+
+/// @brief Make an URL with query arguments
+/// @param path Base URL path
+/// @param query_args vector of query parameters as key-value pairs
+/// @returns Complete URL with query string
+std::string
+MakeUrl(std::string_view path, const std::vector<std::pair<std::string_view, std::string_view>>& query_args);
 
 /// @brief Make a path from a template and arguments
 /// @param path Template string with placeholders in format {name}

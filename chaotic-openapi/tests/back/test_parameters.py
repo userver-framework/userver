@@ -55,6 +55,7 @@ def test_parameters(translate_single_schema):
                         ),
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
                         required=False,
+                        query_log_mode_hide=False,
                     )
                 ],
                 request_bodies=[],
@@ -120,6 +121,7 @@ def test_parameters_ref(translate_single_schema):
                         ),
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
                         required=False,
+                        query_log_mode_hide=False,
                     )
                 ],
                 request_bodies=[],
@@ -201,6 +203,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                         ),
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
                         required=False,
+                        query_log_mode_hide=False,
                     )
                 ],
                 request_bodies=[],

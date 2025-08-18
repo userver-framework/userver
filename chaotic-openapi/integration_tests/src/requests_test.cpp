@@ -5,8 +5,11 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
+#include <userver/utils/text_light.hpp>
 
 #include <clients/multiple_content_types/requests.hpp>
+#include <clients/parameters/requests.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -96,6 +99,43 @@ UTEST(RequestsMultipleContentTypes, OctetStream) {
     auto response = request.perform();
     EXPECT_EQ(response->status_code(), 200);
 }
+
+class RequestsQueryLogMode : public utest::LogCaptureFixture<> {};
+
+UTEST_F(RequestsQueryLogMode, HideOperation) {
+    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest&) {
+        return utest::HttpServerMock::HttpResponse{200};
+    });
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto request = http_client_ptr->CreateRequest();
+
+    namespace client = ::clients::parameters::test1_query_log_mode::get;
+    client::SerializeRequest({client::Request{"foo", "bar"}}, http_server.GetBaseUrl(), request);
+    auto response = request.perform();
+
+    EXPECT_EQ(response->status_code(), 200);
+
+    auto text = GetLogCapture().GetAll().back().GetTag("http_url");
+    EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode?password=***&secret=***"));
+}
+
+UTEST_F(RequestsQueryLogMode, HideParameter) {
+    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest&) {
+        return utest::HttpServerMock::HttpResponse{200};
+    });
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto request = http_client_ptr->CreateRequest();
+
+    namespace client = ::clients::parameters::test1_query_log_mode_parameter::get;
+    client::SerializeRequest({client::Request{"foo", "bar"}}, http_server.GetBaseUrl(), request);
+    auto response = request.perform();
+
+    EXPECT_EQ(response->status_code(), 200);
+
+    auto text = GetLogCapture().GetAll().back().GetTag("http_url");
+    EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode/parameter?password=***&secret=bar")) << text;
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

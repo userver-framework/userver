@@ -18,6 +18,8 @@ class Parameter:
     parser: str
     required: bool
 
+    query_log_mode_hide: bool
+
     def declaration_includes(self) -> list[str]:
         # TODO
         if not self.required:
@@ -164,6 +166,12 @@ class Operation:
         for response in self.responses:
             if response.is_error():
                 yield response
+
+    def has_any_hidden_query_parameters(self) -> bool:
+        for parameter in self.parameters:
+            if parameter.query_log_mode_hide:
+                return True
+        return False
 
 
 @dataclasses.dataclass

@@ -8,6 +8,7 @@
 #include <userver/chaotic/openapi/parameters_write.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/http/url.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/chaotic/openapi/form.hpp>
@@ -25,6 +26,22 @@ namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
     static constexpr openapi::Name k{{ parameter.cpp_name }} = "{{ parameter.raw_name }}";
 {% endfor %}
 
+{% if op.has_any_hidden_query_parameters() %}
+    constexpr utils::TrivialSet kHiddenQueries = [](auto selector) {
+        return selector()
+            {% for parameter in op.parameters %}
+                {% if parameter.query_log_mode_hide %}
+                    .Case(k{{ parameter.cpp_name }})
+                {% endif %}
+            {% endfor %}
+        ;
+    };
+
+    bool IsHiddenQueryArg(std::string_view str) {
+        return kHiddenQueries.Contains(str);
+    }
+{% endif %}
+
 void SerializeRequest(const Request& request, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request)
 {
   {# parameters #}
@@ -32,6 +49,11 @@ void SerializeRequest(const Request& request, const std::string& base_url, USERV
     http_request,
     base_url + "{{ op.path }}"
   );
+
+  {% if op.has_any_hidden_query_parameters() %}
+    sink.SetHiddenQueryArgNamesFunc(&IsHiddenQueryArg);
+  {% endif %}
+
   {% for parameter in op.parameters %}
     {% if parameter.required %}
       openapi::WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);

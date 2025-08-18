@@ -85,6 +85,7 @@ class Parser:
             style=model.Style.simple,
             schema=self._parse_schema(header_dict, infile_path + '/schema'),
             x_cpp_name=None,
+            x_query_log_mode_hide=False,
         )
 
     def _convert_media_type(
@@ -126,6 +127,7 @@ class Parser:
             style=model.Style(parameter.style),
             schema=self._parse_schema(parameter.schema_, infile_path + '/schema'),
             x_cpp_name=parameter.x_cpp_name,
+            x_query_log_mode_hide=(parameter.x_query_log_mode == openapi.QueryLogMode.hide),
         )
         return p
 
@@ -213,6 +215,7 @@ class Parser:
             style=style,
             schema=schema,
             x_cpp_name=parameter.x_cpp_name,
+            x_query_log_mode_hide=False,
         )
 
         return p

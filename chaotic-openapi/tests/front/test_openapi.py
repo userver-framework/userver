@@ -315,6 +315,7 @@ def test_openapi_parameters(simple_parser):
                 deprecated=False,
                 allowEmptyValue=False,
                 x_cpp_name=None,
+                x_query_log_mode_hide=False,
             )
         },
         operations=[
@@ -339,6 +340,7 @@ def test_openapi_parameters(simple_parser):
                         deprecated=False,
                         allowEmptyValue=False,
                         x_cpp_name=None,
+                        x_query_log_mode_hide=False,
                     ),
                     model.Parameter(
                         name='pamparam2',
@@ -351,6 +353,7 @@ def test_openapi_parameters(simple_parser):
                         deprecated=False,
                         allowEmptyValue=False,
                         x_cpp_name=None,
+                        x_query_log_mode_hide=False,
                     ),
                     model.Parameter(
                         name='pamparam2',
@@ -363,6 +366,7 @@ def test_openapi_parameters(simple_parser):
                         deprecated=False,
                         allowEmptyValue=False,
                         x_cpp_name=None,
+                        x_query_log_mode_hide=False,
                     ),
                 ],
             )

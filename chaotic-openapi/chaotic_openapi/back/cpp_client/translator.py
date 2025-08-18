@@ -342,6 +342,7 @@ class Translator:
             cpp_type=cpp_type,
             parser=parser,
             required=parameter.required,
+            query_log_mode_hide=parameter.x_query_log_mode_hide,
         )
 
     def _translate_middlewares(self, middlewares: base_model.XMiddlewares) -> list[middleware.Middleware]:

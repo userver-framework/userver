@@ -121,6 +121,7 @@ def test_swagger_responses(simple_parser):
                         style=model.Style.simple,
                         schema=types.String(),
                         x_cpp_name=None,
+                        x_query_log_mode_hide=False,
                     )
                 },
                 content={
@@ -158,6 +159,7 @@ def test_swagger_responses(simple_parser):
                                 style=model.Style.simple,
                                 schema=types.String(),
                                 x_cpp_name=None,
+                                x_query_log_mode_hide=False,
                             ),
                             'X-Header-Name-2': model.Parameter(
                                 name='X-Header-Name-2',
@@ -170,6 +172,7 @@ def test_swagger_responses(simple_parser):
                                 style=model.Style.simple,
                                 schema=types.Array(items=types.Integer()),
                                 x_cpp_name=None,
+                                x_query_log_mode_hide=False,
                             ),
                         },
                         content={
@@ -478,6 +481,7 @@ def test_swagger_parameters(simple_parser):
                         deprecated=False,
                         allowEmptyValue=False,
                         x_cpp_name=None,
+                        x_query_log_mode_hide=False,
                     ),
                     model.Parameter(
                         name='pamparam2',
@@ -490,6 +494,7 @@ def test_swagger_parameters(simple_parser):
                         deprecated=False,
                         allowEmptyValue=False,
                         x_cpp_name=None,
+                        x_query_log_mode_hide=False,
                     ),
                 ],
             )

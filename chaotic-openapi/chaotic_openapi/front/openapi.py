@@ -83,6 +83,11 @@ class In(str, enum.Enum):
     cookie = 'cookie'
 
 
+class QueryLogMode(str, enum.Enum):
+    show = 'show'
+    hide = 'hide'
+
+
 # https://spec.openapis.org/oas/v3.0.0.html#parameter-object
 class Parameter(base_model.BaseModel):
     name: str
@@ -108,6 +113,10 @@ class Parameter(base_model.BaseModel):
     x_cpp_name: Optional[str] = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-cpp-name', 'x-usrv-cpp-name'),
+    )
+    x_query_log_mode: QueryLogMode = pydantic.Field(
+        default=QueryLogMode.show,
+        validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
     )
 
     def model_post_init(self, context: Any, /) -> None:
@@ -247,6 +256,20 @@ class Operation(base_model.BaseModel):
         default=True,
         validation_alias=pydantic.AliasChoices('x-taxi-handler-codegen', 'x-usrv-handler-codegen'),
     )
+    x_query_log_mode: QueryLogMode = pydantic.Field(
+        default=QueryLogMode.show,
+        validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+    )
+
+    def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+
+        if self.x_query_log_mode == QueryLogMode.hide:
+            for parameter in self.parameters:
+                if not isinstance(parameter, Parameter):
+                    continue
+                if parameter.in_ == In.query:
+                    parameter.x_query_log_mode = QueryLogMode.hide
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#path-item-object
