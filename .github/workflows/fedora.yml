@@ -45,6 +45,7 @@ jobs:
                 -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
                 -DUSERVER_USE_STATIC_LIBS=OFF
                 -DUSERVER_FEATURE_GRPC=OFF
+                -DUSERVER_FEATURE_OTLP=OFF
 
         steps:
           - uses: actions/checkout@v4
