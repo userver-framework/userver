@@ -8,6 +8,7 @@ import re
 import typing
 from typing import Dict
 from typing import List
+from typing import MutableSet
 from typing import Optional
 from typing import Union
 
@@ -56,6 +57,8 @@ def parse_enum_value(value: descriptor.EnumValueDescriptor) -> gen_node.EnumValu
 def parse_message(message: descriptor.Descriptor) -> gen_node.StructNode:
     struct_name = names.make_structs_type_name(type_mapping.parse_type_name(message))
 
+    taken_member_names = _collect_taken_member_names(message)
+
     nested_types: List[gen_node.TypeNode] = []
     for nested_enum in typing.cast(List[descriptor.EnumDescriptor], message.enum_types):
         nested_types.append(parse_enum(nested_enum))
@@ -70,9 +73,11 @@ def parse_message(message: descriptor.Descriptor) -> gen_node.StructNode:
                 oneof_fields = typing.cast(List[descriptor.FieldDescriptor], oneof.fields)
                 assert len(oneof_fields) >= 1
                 if oneof_fields[0] is field:
-                    fields.append(parse_oneof(oneof, nested_types_to_generate=nested_types))
+                    fields.append(
+                        parse_oneof(oneof, taken_member_names=taken_member_names, nested_types_to_generate=nested_types)
+                    )
                 continue
-        fields.append(parse_field(field, nested_types_to_generate=nested_types))
+        fields.append(parse_field(field))
 
     return gen_node.StructNode(name=struct_name, nested_types=nested_types, fields=fields)
 
@@ -93,11 +98,10 @@ def _is_synthetic_oneof(oneof: descriptor.OneofDescriptor) -> bool:
 
 def parse_field(
     field: descriptor.FieldDescriptor,
-    nested_types_to_generate: List[gen_node.TypeNode],
     *,
     ignore_label: bool = False,
 ) -> gen_node.StructField:
-    parsed_type = _parse_type_reference(field, nested_types_to_generate)
+    parsed_type = _parse_type_reference(field)
 
     if not ignore_label:
         parsed_type = type_mapping.handle_type_label(field, parsed_type)
@@ -111,19 +115,26 @@ def parse_field(
 
 
 def parse_oneof(
-    oneof: descriptor.OneofDescriptor, nested_types_to_generate: List[gen_node.TypeNode]
+    oneof: descriptor.OneofDescriptor,
+    taken_member_names: MutableSet[str],
+    nested_types_to_generate: List[gen_node.TypeNode],
 ) -> gen_node.StructField:
     fields: List[gen_node.StructField] = []
 
     for field in typing.cast(List[descriptor.FieldDescriptor], oneof.fields):
         assert typing.cast(int, field.label) == descriptor.FieldDescriptor.LABEL_OPTIONAL
-        fields.append(parse_field(field, nested_types_to_generate, ignore_label=True))
-
-    oneof_field_short_name = names.escape_id(typing.cast(str, oneof.name))
-    oneof_type_short_name = f'{names.to_pascal_case(oneof_field_short_name)}Type'
+        fields.append(parse_field(field, ignore_label=True))
 
     containing_type_descriptor = typing.cast(descriptor.Descriptor, oneof.containing_type)
     containing_type_name = names.make_structs_type_name(type_mapping.parse_type_name(containing_type_descriptor))
+
+    oneof_field_short_name = names.escape_id(typing.cast(str, oneof.name))
+    if oneof_field_short_name[0].isupper():
+        oneof_type_short_name = f'T{names.to_pascal_case(oneof_field_short_name)}'
+    else:
+        oneof_type_short_name = names.to_pascal_case(oneof_field_short_name)
+    oneof_type_short_name = _make_unique_member_name(oneof_type_short_name, taken_member_names)
+
     oneof_type_name = names.make_nested_type_name(containing_type_name, oneof_type_short_name)
 
     oneof_node = gen_node.OneofNode(name=oneof_type_name, fields=fields)
@@ -142,10 +153,28 @@ def parse_oneof(
     )
 
 
-def _parse_type_reference(
-    field_type: descriptor.FieldDescriptor,
-    nested_types_to_generate: List[gen_node.TypeNode],
-) -> type_ref.TypeReference:
+def _collect_taken_member_names(message: descriptor.Descriptor) -> MutableSet[str]:
+    result: MutableSet[str] = set()
+    result.add(typing.cast(str, message.name))
+    for nested_type in typing.cast(List[descriptor.Descriptor], message.nested_types):
+        result.add(typing.cast(str, nested_type.name))
+    for enum_type in typing.cast(List[descriptor.Descriptor], message.enum_types):
+        result.add(typing.cast(str, enum_type.name))
+    for neighbour_field in typing.cast(List[descriptor.FieldDescriptor], message.fields):
+        result.add(typing.cast(str, neighbour_field.name))
+    for oneof in typing.cast(List[descriptor.OneofDescriptor], message.oneofs):
+        result.add(typing.cast(str, oneof.name))
+    return result
+
+
+def _make_unique_member_name(base_name: str, taken_member_names: MutableSet[str]) -> str:
+    while base_name in taken_member_names:
+        base_name = f'X{base_name}'
+    taken_member_names.add(base_name)
+    return base_name
+
+
+def _parse_type_reference(field_type: descriptor.FieldDescriptor) -> type_ref.TypeReference:
     type_kind = typing.cast(int, field_type.type)
     if builtin_type := type_mapping.BUILTIN_TYPES.get(type_kind):
         return builtin_type
@@ -154,15 +183,10 @@ def _parse_type_reference(
         enum_type = typing.cast(descriptor.EnumDescriptor, field_type.enum_type)
         return type_mapping.parse_enum_reference(enum_type)
 
-    if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE:
-        message_type = typing.cast(descriptor.Descriptor, field_type.message_type)
-        return type_mapping.parse_struct_reference(message_type)
-
-    if type_kind == descriptor.FieldDescriptor.TYPE_GROUP:
+    if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or type_kind == descriptor.FieldDescriptor.TYPE_GROUP:
         # Details on groups:
         # https://protobuf.com/docs/descriptors#groups
         message_type = typing.cast(descriptor.Descriptor, field_type.message_type)
-        nested_types_to_generate.append(parse_message(message_type))
         return type_mapping.parse_struct_reference(message_type)
 
     raise RuntimeError(f'Invalid field type kind: {type_kind}')

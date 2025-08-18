@@ -42,7 +42,7 @@ class HasCppNameImpl(HasCppName, abc.ABC):
 
     def full_cpp_name(self) -> str:
         segments = self.full_cpp_name_segments()
-        assert all(segments), 'Empty name segments are not allowed'
+        assert all(segments), f'Empty name segments are not allowed for {self}'
         return '::'.join(segments)
 
     def contextual_cpp_name(self, *, context: HasCppName) -> str:
@@ -52,7 +52,7 @@ class HasCppNameImpl(HasCppName, abc.ABC):
 def _get_contextual_cpp_name(entity: HasCppName, *, context: HasCppName) -> str:
     node_names = entity.full_cpp_name_segments()
     assert node_names, f'Cannot render a reference to an instance of {entity.__class__} by an empty name'
-    assert all(node_names), 'Empty name segments are not allowed'
+    assert all(node_names), f'Empty name segments are not allowed for {entity=}'
 
     if node_names[0] in reserved_identifiers.CPP_KEYWORDS:
         assert len(node_names) == 1
@@ -63,7 +63,7 @@ def _get_contextual_cpp_name(entity: HasCppName, *, context: HasCppName) -> str:
         return '::'.join(node_names)
 
     context_names = context.full_cpp_name_segments()
-    assert all(context_names), 'Empty name segments are not allowed'
+    assert all(context_names), f'Empty name segments are not allowed for {context=}'
 
     if not context_names:
         # If no context then all we can do is returning a full cpp name.

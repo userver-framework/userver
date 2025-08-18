@@ -46,7 +46,7 @@ TEST(SingleFile, GlobalEnum) {
 }
 
 TEST(Oneof, Empty) {
-    const ss::SimpleStruct::SomethingType none;
+    const ss::SimpleStruct::Something none;
     EXPECT_FALSE(none);
     EXPECT_FALSE(none.has_foo());
     EXPECT_FALSE(none.has_bar());
@@ -55,7 +55,7 @@ TEST(Oneof, Empty) {
 }
 
 TEST(Oneof, MakeFoo) {
-    ss::SimpleStruct::SomethingType foo;
+    ss::SimpleStruct::Something foo;
     foo.set_foo(42);
     EXPECT_TRUE(foo);
     EXPECT_TRUE(foo.has_foo());
@@ -65,7 +65,7 @@ TEST(Oneof, MakeFoo) {
 }
 
 TEST(Oneof, MakeBar) {
-    ss::SimpleStruct::SomethingType bar;
+    ss::SimpleStruct::Something bar;
     bar.set_bar("bar");
     EXPECT_TRUE(bar);
     EXPECT_FALSE(bar.has_foo());
@@ -76,6 +76,6 @@ TEST(Oneof, MakeBar) {
 
 TEST(Oneof, OneofInStruct) {
     [[maybe_unused]] ss::SimpleStruct message;
-    message.Something.set_bar("bar");
-    EXPECT_EQ(message.Something.bar(), "bar");
+    message.something.set_bar("bar");
+    EXPECT_EQ(message.something.bar(), "bar");
 }
