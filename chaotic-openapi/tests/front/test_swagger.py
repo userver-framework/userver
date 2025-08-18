@@ -1,6 +1,8 @@
 from chaotic_openapi.front import base_model
 from chaotic_openapi.front import model
+import pytest
 
+from chaotic import error
 from chaotic.front import types
 
 
@@ -499,4 +501,67 @@ def test_swagger_parameters(simple_parser):
                 ],
             )
         ],
+    )
+
+
+@pytest.mark.parametrize(
+    'consumes',
+    [
+        'multipart/form-data',
+        'application/x-www-form-urlencoded',
+    ],
+)
+def test_swagger_file_in_body_ok(simple_parser, consumes):
+    simple_parser(
+        {
+            'swagger': '2.0',
+            'info': {},
+            'paths': {
+                '/': {
+                    'get': {
+                        'consumes': [consumes],
+                        'parameters': [
+                            {
+                                'name': 'pamparam',
+                                'in': 'formData',
+                                'required': True,
+                                'type': 'file',
+                            },
+                        ],
+                        'responses': {},
+                    },
+                },
+            },
+        },
+    )
+
+
+def test_swagger_file_in_body_wrong_consumes(simple_parser):
+    with pytest.raises(error.BaseError) as exc_info:
+        simple_parser(
+            {
+                'swagger': '2.0',
+                'info': {},
+                'paths': {
+                    '/': {
+                        'get': {
+                            'consumes': ['application/json'],
+                            'parameters': [
+                                {
+                                    'name': 'pamparam',
+                                    'in': 'formData',
+                                    'required': True,
+                                    'type': 'file',
+                                },
+                            ],
+                            'responses': {},
+                        },
+                    },
+                },
+            },
+        )
+
+    assert (
+        exc_info.value.msg
+        == '"consumes" must be either "multipart/form-data" or "application/x-www-form-urlencoded" for "type: file"'
     )

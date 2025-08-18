@@ -17,6 +17,8 @@ from chaotic.front import types
 @dataclasses.dataclass(frozen=True)
 class ParserConfig:
     erase_prefix: str
+    # Allow type: file
+    allow_file: bool = False
 
 
 @dataclasses.dataclass
@@ -334,6 +336,13 @@ class SchemaParser:
             fmt = None
         return types.String(**input_, format=fmt)
 
+    def _parse_file(self, input_: dict) -> types.String:
+        if not self._config.allow_file:
+            with self._path_enter('type') as _:
+                self._raise('"file" type is not allowed')
+
+        return self._parse_string(input_)
+
     REF_SHRINK_RE = re.compile('/[^/]+/\\.\\./')
     REF_SHRINK_DOT_RE = re.compile('/\\./')
 
@@ -408,6 +417,7 @@ TYPE_PARSERS = {
     'integer': SchemaParser._parse_int,
     'number': SchemaParser._parse_number,
     'string': SchemaParser._parse_string,
+    'file': SchemaParser._parse_file,
     'array': SchemaParser._parse_array,
     'object': SchemaParser._parse_object,
 }

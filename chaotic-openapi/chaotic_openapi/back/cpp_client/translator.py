@@ -108,7 +108,7 @@ class Translator:
                 name.split('/')[-1],
             )
 
-        match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/requestBody/schema', name)
+        match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/requestBody(/schema)?', name)
         if match:
             return '{}::{}::{}::Body'.format(
                 self._spec.cpp_namespace,

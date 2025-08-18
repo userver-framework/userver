@@ -45,6 +45,18 @@ paths:
                 '200':
                     description: OK
 
+    /test1/file:
+        post:
+            consumes:
+              - multipart/form-data
+            parameters:
+              - in: formData
+                name: file
+                required: true
+                type: file
+            responses:
+                '200':
+                    description: OK
 
 parameters:
     X-Header-456:

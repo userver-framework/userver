@@ -257,7 +257,7 @@ class CppPrimitiveType(CppType):
             includes.append('cstdint')
         elif type_ in ('number', 'boolean'):
             pass
-        elif type_ == 'string':
+        elif type_ in ('string', 'file'):
             includes.append('string')
         else:
             raise NotImplementedError(type_)

@@ -8,6 +8,7 @@ from typing import Union
 
 import pydantic
 
+from chaotic import error as chaotic_error
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref
 from chaotic.front import types
@@ -166,6 +167,15 @@ class Parser:
 
         assert request_body.in_ == swagger.In.formData
 
+        if request_body.type == 'file':
+            if 'multipart/form-data' not in consumes and 'application/x-www-form-urlencoded' not in consumes:
+                raise chaotic_error.BaseError(
+                    full_filepath=self._state.full_filepath,
+                    infile_path=infile_path,
+                    schema_type='swagger',
+                    msg='"consumes" must be either "multipart/form-data" or "application/x-www-form-urlencoded" for "type: file"',
+                )
+
         schema = self._parse_schema(
             request_body.model_dump(
                 by_alias=True,
@@ -173,6 +183,7 @@ class Parser:
                 exclude_unset=True,
             ),
             infile_path,
+            allow_file=True,
         )
         return [
             model.RequestBody(
@@ -196,6 +207,7 @@ class Parser:
                 exclude_unset=True,
             ),
             infile_path,
+            allow_file=True,
         )
 
         style: model.Style
@@ -608,9 +620,12 @@ class Parser:
                 raise Exception(f'Operation {operation.method.upper()} {operation.path} is duplicated')
             seen.add(new)
 
-    def _parse_schema(self, schema: Any, infile_path: str) -> Union[types.Schema, types.Ref]:
+    def _parse_schema(self, schema: Any, infile_path: str, allow_file=False) -> Union[types.Schema, types.Ref]:
         parser = chaotic_parser.SchemaParser(
-            config=chaotic_parser.ParserConfig(erase_prefix=''),
+            config=chaotic_parser.ParserConfig(
+                erase_prefix='',
+                allow_file=allow_file,
+            ),
             full_filepath=self._state.full_filepath,
             full_vfilepath=self._state.full_vfilepath,
         )
