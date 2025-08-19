@@ -92,7 +92,11 @@ function(userver_venv_setup)
     endif()
 
     set(venv_dir "${parent_directory}/${venv_name}")
-    set(venv_bin_dir "${venv_dir}/bin")
+    if(WIN32)
+        set(venv_bin_dir "${venv_dir}/Scripts")
+    else()
+        set(venv_bin_dir "${venv_dir}/bin")
+    endif()
     set("${python_output_var}"
         "${venv_bin_dir}/python"
         PARENT_SCOPE
@@ -146,15 +150,20 @@ function(userver_venv_setup)
             message(STATUS "  ${requirement}")
         endforeach()
         list(TRANSFORM ARG_REQUIREMENTS PREPEND "--requirement=" OUTPUT_VARIABLE pip_requirements)
+        if(WIN32)
+            set(venv_python python)
+        else()
+            set(venv_python python3)
+        endif()
 
         # psycopg2 implicitly requires 'wheel' to be already installed
-        execute_process(COMMAND "${venv_bin_dir}/python3" -m pip install -U wheel RESULT_VARIABLE status)
+        execute_process(COMMAND "${venv_bin_dir}/${venv_python}" -m pip install -U wheel RESULT_VARIABLE status)
         if(status)
             message(FATAL_ERROR "Failed to install venv requirements")
         endif()
 
         execute_process(
-            COMMAND "${venv_bin_dir}/python3" -m pip install --disable-pip-version-check -U ${pip_requirements}
+            COMMAND "${venv_bin_dir}/${venv_python}" -m pip install --disable-pip-version-check -U ${pip_requirements}
                     ${ARG_PIP_ARGS} RESULT_VARIABLE status
         )
         if(status)
