@@ -69,7 +69,7 @@ jobs:
                     base-devel \
                     git \
                     cmake \
-                    ninja \
+                    make \
                     clang \
                     lld \
                     ccache \
@@ -123,10 +123,6 @@ jobs:
                 ccache -s -v
 
           - name: Run cmake
-            run: |
-                cmake -S . -B build_debug $CMAKE_FLAGS
-
-          - name: Reconfigure cmake
             run: |
                 cmake -S . -B build_debug $CMAKE_FLAGS
 
