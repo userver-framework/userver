@@ -54,21 +54,21 @@ def test_ref_from_items_ok(schema_parser):
 def test_ref_invalid(schema_parser):
     parser = schema_parser
 
-    try:
-        parser.parse_schema('/definitions/type1', {'type': 'integer'})
-        parser.parse_schema(
-            '/definitions/type2',
-            {'$ref': '#/definitions/other_type'},
-        )
-        rr = ref_resolver.RefResolver()
+    parser.parse_schema('/definitions/type1', {'type': 'integer'})
+    parser.parse_schema(
+        '/definitions/type2',
+        {'$ref': '#/definitions/other_type'},
+    )
+    rr = ref_resolver.RefResolver()
+
+    with pytest.raises(Exception) as exc:
         rr.sort_schemas(parser.parsed_schemas())
-        assert False
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        assert str(exc) == (
-            '$ref to unknown type "vfull#/definitions/other_type", '
-            'known refs:\n- vfull#/definitions/type1\n'
-            '- vfull#/definitions/type2'
-        )
+
+    assert str(exc.value) == (
+        '$ref to unknown type "vfull#/definitions/other_type", '
+        'known refs:\n- vfull#/definitions/type1\n'
+        '- vfull#/definitions/type2'
+    )
 
 
 def test_extra_fields(simple_parse):
@@ -166,12 +166,23 @@ def test_cycle(schema_parser):
     parser.parse_schema('/definitions/type2', {'$ref': '#/definitions/type1'})
 
     rr = ref_resolver.RefResolver()
-    try:
+
+    with pytest.raises(ref_resolver.ResolverError) as exc:
         rr.sort_schemas(parser.parsed_schemas())
-    except ref_resolver.ResolverError as exc:
-        assert str(exc) == '$ref cycle: vfull#/definitions/type1, vfull#/definitions/type2'
-    else:
-        assert False
+
+    assert str(exc.value) == '$ref cycle: vfull#/definitions/type1, vfull#/definitions/type2'
+
+
+def test_self_ref(schema_parser):
+    parser = schema_parser
+    parser.parse_schema('/definitions/type1', {'$ref': '#/definitions/type1'})
+
+    rr = ref_resolver.RefResolver()
+
+    with pytest.raises(ref_resolver.ResolverError) as exc:
+        rr.sort_schemas(parser.parsed_schemas())
+
+    assert str(exc.value) == '$ref cycle: vfull#/definitions/type1'
 
 
 def test_no_fragment():
