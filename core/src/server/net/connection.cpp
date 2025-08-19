@@ -148,6 +148,8 @@ void Connection::ListenForRequests() noexcept {
 }
 
 bool Connection::WaitOnSocket(engine::Deadline deadline) {
+    if (!peer_socket_) return false;
+
     bool is_readable = true;
     if (pending_data_size_ != pending_data_.size()) {
         if (is_http2_parser_) {
@@ -213,7 +215,10 @@ void Connection::ProcessRequest(std::shared_ptr<http::HttpRequest>&& request_ptr
     auto task = HandleQueueItem(request_ptr);
     SendResponse(*request_ptr);
 
-    if (request_ptr->IsUpgradeWebsocket()) request_ptr->DoUpgrade(std::move(peer_socket_), std::move(remote_address_));
+    if (request_ptr->IsUpgradeWebsocket()) {
+        request_ptr->DoUpgrade(std::move(peer_socket_), std::move(remote_address_));
+        is_accepting_requests_ = false;
+    }
 }
 
 bool Connection::ReadSome() {
