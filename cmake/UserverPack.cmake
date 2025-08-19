@@ -33,41 +33,7 @@ set(CPACK_INSTALL_DEFAULT_DIRECTORY_PERMISSIONS
     WORLD_EXECUTE
 )
 
-# DEB dependencies:
-execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE OS_CODENAME)
-if(OS_CODENAME MATCHES "^bookworm")
-    set(DEPENDENCIES_FILESTEM "debian-12")
-elseif(OS_CODENAME MATCHES "^bullseye")
-    set(DEPENDENCIES_FILESTEM "debian-11")
-elseif(OS_CODENAME MATCHES "^noble")
-    set(DEPENDENCIES_FILESTEM "ubuntu-24.04")
-elseif(OS_CODENAME MATCHES "^jammy")
-    set(DEPENDENCIES_FILESTEM "ubuntu-22.04")
-elseif(OS_CODENAME MATCHES "^impish")
-    set(DEPENDENCIES_FILESTEM "ubuntu-21.04")
-elseif(OS_CODENAME MATCHES "^focal")
-    set(DEPENDENCIES_FILESTEM "ubuntu-20.04")
-elseif(OS_CODENAME MATCHES "^bionic")
-    set(DEPENDENCIES_FILESTEM "ubuntu-18.04")
-endif()
-
 if(DEPENDENCIES_FILESTEM)
-    file(GLOB DEPENDENCIES_FILES
-         RELATIVE "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}"
-         "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/*"
-    )
-    foreach(MODULE ${DEPENDENCIES_FILES})
-        string(TOUPPER "${MODULE}" MODULE_UPPER)
-        execute_process(
-            COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${MODULE}"
-            COMMAND tr "\n" " "
-            COMMAND sed "s/ \\(.\\)/, \\1/g"
-            OUTPUT_VARIABLE CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_DEPENDS
-        )
-	set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_NAME libuserver-${MODULE}-dev)
-	set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_CONFLICTS libuserver-all-dev)
-    endforeach()
-
     execute_process(
         COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}.md"
         COMMAND tr "\n" " "
@@ -83,5 +49,11 @@ if(CPACK_COMPONENTS_GROUPING STREQUAL ONE_PER_GROUP)
     set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
 endif()
 
+# Must go just before CPack
+include("${CMAKE_BINARY_DIR}/cpack.variables.inc")
+
 # CPack setup is ready. Including it:
 include(CPack)
+
+# Must go after all modules
+include("${CMAKE_BINARY_DIR}/cpack.inc")

@@ -177,9 +177,6 @@ userver_setup_environment()
 include(PrepareInstall)
 
 include(GetUserverVersion)
-if(USERVER_INSTALL)
-    include(cmake/UserverPack.cmake)
-endif()
 
 include(UserverModule)
 
@@ -368,3 +365,7 @@ endif()
 _userver_add_target_gen_dynamic_configs_docs()
 
 _userver_print_features_list()
+
+if(USERVER_INSTALL)
+    include(cmake/UserverPack.cmake)
+endif()

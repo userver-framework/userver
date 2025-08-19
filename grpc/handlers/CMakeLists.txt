@@ -6,6 +6,7 @@ userver_module(
     INSTALL_COMPONENT grpc
     LINK_LIBRARIES userver-grpc-internal
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+    DEPENDS grpc
 )
 
 userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS health/v1/health.proto)

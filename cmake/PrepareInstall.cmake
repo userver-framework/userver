@@ -163,8 +163,47 @@ function(_userver_install_component)
         endif()
     endif()
 
-    cpack_add_component_group(${ARG_MODULE} EXPANDED)
-    cpack_add_component(${ARG_MODULE} GROUP ${ARG_MODULE} INSTALL_TYPES Full)
-    # Not working yet
-    set(CPACK_COMPONENT_${MODULE_UPPER}_DEPENDS ${DEPENDS})
+    execute_process(
+        COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_MODULE}"
+        COMMAND tr "\n" " "
+        COMMAND sed "s/ \\(.\\)/, \\1/g"
+        OUTPUT_VARIABLE MODULE_DEPENDS
+    )
+    file(APPEND "${CMAKE_BINARY_DIR}/cpack.variables.inc" "
+        set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_NAME libuserver-${ARG_MODULE}-dev)
+        set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_CONFLICTS libuserver-all-dev)
+        set(CPACK_COMPONENT_${MODULE_UPPER}_DEPENDS ${ARG_DEPENDS})
+        set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_DEPENDS \"${MODULE_DEPENDS}\")
+    ")
+
+    file(APPEND "${CMAKE_BINARY_DIR}/cpack.inc" "
+        cpack_add_component_group(${ARG_MODULE} EXPANDED)
+        cpack_add_component(${ARG_MODULE} GROUP ${ARG_MODULE} INSTALL_TYPES Full)
+    ")
 endfunction()
+
+function(_userver_prepare_components)
+    file(REMOVE "${CMAKE_BINARY_DIR}/cpack.inc")
+    file(REMOVE "${CMAKE_BINARY_DIR}/cpack.variables.inc")
+
+    # DEB dependencies:
+    execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE OS_CODENAME)
+    if(OS_CODENAME MATCHES "^bookworm")
+        set(DEPENDENCIES_FILESTEM "debian-12")
+    elseif(OS_CODENAME MATCHES "^bullseye")
+        set(DEPENDENCIES_FILESTEM "debian-11")
+    elseif(OS_CODENAME MATCHES "^noble")
+        set(DEPENDENCIES_FILESTEM "ubuntu-24.04")
+    elseif(OS_CODENAME MATCHES "^jammy")
+        set(DEPENDENCIES_FILESTEM "ubuntu-22.04")
+    elseif(OS_CODENAME MATCHES "^impish")
+        set(DEPENDENCIES_FILESTEM "ubuntu-21.04")
+    elseif(OS_CODENAME MATCHES "^focal")
+        set(DEPENDENCIES_FILESTEM "ubuntu-20.04")
+    elseif(OS_CODENAME MATCHES "^bionic")
+        set(DEPENDENCIES_FILESTEM "ubuntu-18.04")
+    endif()
+    set(DEPENDENCIES_FILESTEM ${DEPENDENCIES_FILESTEM} CACHE INTERNAL "")
+endfunction()
+
+_userver_prepare_components()
