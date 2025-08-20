@@ -1,0 +1,52 @@
+syntax = "proto2";
+
+package oneof;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/oneof;oneof";
+
+message Proto2 {
+    optional string field_before = 1;
+
+    message Message {
+        required string field = 1;
+    }
+
+    enum Enum {
+        ENUM2_UNSPECIFIED = 0;
+        ENUM2_FOO = 1;
+    }
+
+    oneof oneof {
+        int64 integer = 3;
+        string string = 2;
+        Message message = 5;
+        Enum enum = 7;
+
+        // https://protobuf.dev/programming-guides/proto2/#groups
+        group Group = 8 {
+            message MessageInGroup {
+                required string foo = 1;
+            }
+
+            enum EnumInGroup {
+                ENUM_IN_GROUP_UNSPECIFIED = 0;
+                ENUM_IN_GROUP_FOO = 1;
+            }
+
+            required int64 x = 1;
+            optional string y = 2;
+
+            oneof group_oneof {
+                Message z = 3;
+                Enum w = 4;
+            }
+        }
+    }
+
+    oneof single_field_oneof {
+        string single = 9;
+    }
+
+    optional Group.MessageInGroup message_from_group = 10;
+    repeated Group.EnumInGroup enum_from_group = 11;
+}
