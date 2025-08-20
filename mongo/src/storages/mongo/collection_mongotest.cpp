@@ -599,4 +599,248 @@ UTEST_F(Collection, ExecuteOps) {
     EXPECT_EQ(GetWinners(mongo_coll), "some_name_3 <anonymous> some_name_1 ");
 }
 
+std::vector<formats::bson::Value> SortBsonValues(std::vector<formats::bson::Value> values) {
+    std::sort(values.begin(), values.end(), [](const auto& a, const auto& b) {
+        if (a.IsString() && b.IsString()) {
+            return a.template As<std::string>() < b.template As<std::string>();
+        }
+        if (a.IsInt32() && b.IsInt32()) {
+            return a.template As<int32_t>() < b.template As<int32_t>();
+        }
+        if (a.IsInt64() && b.IsInt64()) {
+            return a.template As<int64_t>() < b.template As<int64_t>();
+        }
+        if (a.IsDouble() && b.IsDouble()) {
+            return a.template As<double>() < b.template As<double>();
+        }
+
+        return a.template ConvertTo<std::string>() < b.template ConvertTo<std::string>();
+    });
+
+    return values;
+}
+
+UTEST_F(Collection, Distinct) {
+    {
+        auto coll = GetDefaultPool().GetCollection("distinct");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "category", "A", "value", 10),
+             bson::MakeDoc("_id", 2, "category", "B", "value", 20),
+             bson::MakeDoc("_id", 3, "category", "A", "value", 30),
+             bson::MakeDoc("_id", 4, "category", "C", "value", 40),
+             bson::MakeDoc("_id", 5, "category", "B", "value", 50),
+             bson::MakeDoc("_id", 6, "category", "A", "value", 60)}
+        );
+
+        {
+            const auto sorted_result = SortBsonValues(coll.Distinct("category"));
+            ASSERT_EQ(3, sorted_result.size());
+            EXPECT_EQ("A", sorted_result[0].As<std::string>());
+            EXPECT_EQ("B", sorted_result[1].As<std::string>());
+            EXPECT_EQ("C", sorted_result[2].As<std::string>());
+        }
+
+        {
+            const auto sorted_result = SortBsonValues(coll.Distinct("value"));
+            ASSERT_EQ(6, sorted_result.size());
+            EXPECT_EQ(10, sorted_result[0].As<int32_t>());
+            EXPECT_EQ(20, sorted_result[1].As<int32_t>());
+            EXPECT_EQ(30, sorted_result[2].As<int32_t>());
+            EXPECT_EQ(40, sorted_result[3].As<int32_t>());
+            EXPECT_EQ(50, sorted_result[4].As<int32_t>());
+            EXPECT_EQ(60, sorted_result[5].As<int32_t>());
+        }
+
+        {
+            const auto result = coll.Distinct("nonexistent");
+            EXPECT_TRUE(result.empty());
+        }
+    }
+
+    {
+        auto coll = GetDefaultPool().GetCollection("distinct_filter");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "category", "A", "status", "active", "score", 85),
+             bson::MakeDoc("_id", 2, "category", "B", "status", "inactive", "score", 70),
+             bson::MakeDoc("_id", 3, "category", "A", "status", "active", "score", 90),
+             bson::MakeDoc("_id", 4, "category", "C", "status", "active", "score", 60),
+             bson::MakeDoc("_id", 5, "category", "B", "status", "active", "score", 95),
+             bson::MakeDoc("_id", 6, "category", "A", "status", "inactive", "score", 75)}
+        );
+
+        {
+            const auto sorted_result = SortBsonValues(coll.Distinct("category", bson::MakeDoc("status", "active")));
+            ASSERT_EQ(3, sorted_result.size());
+            EXPECT_EQ("A", sorted_result[0].As<std::string>());
+            EXPECT_EQ("B", sorted_result[1].As<std::string>());
+            EXPECT_EQ("C", sorted_result[2].As<std::string>());
+        }
+
+        {
+            const auto sorted_result =
+                SortBsonValues(coll.Distinct("category", bson::MakeDoc("score", bson::MakeDoc("$gte", 80))));
+
+            ASSERT_EQ(2, sorted_result.size());
+            EXPECT_EQ("A", sorted_result[0].As<std::string>());
+            EXPECT_EQ("B", sorted_result[1].As<std::string>());
+        }
+
+        {
+            const auto sorted_result = SortBsonValues(coll.Distinct(
+                "category",
+                bson::MakeDoc(
+                    "$and",
+                    bson::MakeArray(bson::MakeDoc("status", "active"), bson::MakeDoc("score", bson::MakeDoc("$gt", 80)))
+                )
+            ));
+            ASSERT_EQ(2, sorted_result.size());
+            EXPECT_EQ("A", sorted_result[0].As<std::string>());
+            EXPECT_EQ("B", sorted_result[1].As<std::string>());
+        }
+
+        {
+            const auto result = coll.Distinct("category", bson::MakeDoc("status", "unknown"));
+            EXPECT_TRUE(result.empty());
+        }
+    }
+
+    {
+        auto coll = GetDefaultPool().GetCollection("distinct_mixed");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "mixed_field", "string_value"),
+             bson::MakeDoc("_id", 2, "mixed_field", 42),
+             bson::MakeDoc("_id", 3, "mixed_field", 3.14),
+             bson::MakeDoc("_id", 4, "mixed_field", true),
+             bson::MakeDoc("_id", 5, "mixed_field", "string_value"),
+             bson::MakeDoc("_id", 6, "mixed_field", 42),
+             bson::MakeDoc("_id", 7),
+             bson::MakeDoc("_id", 8, "mixed_field", nullptr)}
+        );
+
+        const auto result = coll.Distinct("mixed_field");
+
+        EXPECT_GE(result.size(), 4);
+
+        bool has_string = false, has_int = false, has_double = false, has_bool = false;
+        for (const auto& value : result) {
+            if (value.IsString())
+                has_string = true;
+            else if (value.IsInt32())
+                has_int = true;
+            else if (value.IsDouble())
+                has_double = true;
+            else if (value.IsBool())
+                has_bool = true;
+        }
+
+        EXPECT_TRUE(has_string);
+        EXPECT_TRUE(has_int);
+        EXPECT_TRUE(has_double);
+        EXPECT_TRUE(has_bool);
+    }
+
+    {
+        auto coll = GetDefaultPool().GetCollection("distinct_arrays");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "tags", bson::MakeArray("red", "blue")),
+             bson::MakeDoc("_id", 2, "tags", bson::MakeArray("green", "blue")),
+             bson::MakeDoc("_id", 3, "tags", bson::MakeArray("red", "yellow")),
+             bson::MakeDoc("_id", 4, "tags", bson::MakeArray("blue", "purple")),
+             bson::MakeDoc("_id", 5, "single_tag", "orange")}
+        );
+
+        const auto sorted_result = SortBsonValues(coll.Distinct("tags"));
+
+        ASSERT_EQ(5, sorted_result.size());
+        EXPECT_EQ("blue", sorted_result[0].As<std::string>());
+        EXPECT_EQ("green", sorted_result[1].As<std::string>());
+        EXPECT_EQ("purple", sorted_result[2].As<std::string>());
+        EXPECT_EQ("red", sorted_result[3].As<std::string>());
+        EXPECT_EQ("yellow", sorted_result[4].As<std::string>());
+
+        coll = GetDefaultPool().GetCollection("distinct_collation");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "name", "apple"),
+             bson::MakeDoc("_id", 2, "name", "Apple"),
+             bson::MakeDoc("_id", 3, "name", "APPLE"),
+             bson::MakeDoc("_id", 4, "name", "banana"),
+             bson::MakeDoc("_id", 5, "name", "Banana")}
+        );
+        {
+            const auto result = coll.Distinct("name");
+            EXPECT_EQ(5, result.size());
+        }
+
+        {
+            mongo::options::Collation collation("en");
+            collation.SetStrength(mongo::options::Collation::Strength::kPrimary);
+
+            const auto result = coll.Distinct("name", collation);
+            EXPECT_EQ(2, result.size());
+        }
+
+        {
+            mongo::options::Collation collation("en");
+            collation.SetStrength(mongo::options::Collation::Strength::kSecondary);
+
+            const auto result = coll.Distinct("name", collation);
+            EXPECT_GE(result.size(), 2);
+        }
+    }
+
+    {
+        auto coll = GetDefaultPool().GetCollection("distinct_comment");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "type", "A"),
+             bson::MakeDoc("_id", 2, "type", "B"),
+             bson::MakeDoc("_id", 3, "type", "A")}
+        );
+
+        UEXPECT_NO_THROW({
+            const auto result = coll.Distinct("type", mongo::options::Comment("test distinct operation"));
+            EXPECT_EQ(2, result.size());
+        });
+    }
+
+    {
+        auto coll = GetDefaultPool().GetCollection("distinct_timeout");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "category", "X"),
+             bson::MakeDoc("_id", 2, "category", "Y"),
+             bson::MakeDoc("_id", 3, "category", "X")}
+        );
+
+        UEXPECT_NO_THROW({
+            const auto result =
+                coll.Distinct("category", mongo::options::MaxServerTime(std::chrono::milliseconds(5000)));
+            EXPECT_EQ(2, result.size());
+        });
+    }
+
+    {
+        auto coll = GetDefaultPool().GetCollection("distinct_nested");
+
+        coll.InsertMany(
+            {bson::MakeDoc("_id", 1, "user", bson::MakeDoc("profile", bson::MakeDoc("role", "admin"))),
+             bson::MakeDoc("_id", 2, "user", bson::MakeDoc("profile", bson::MakeDoc("role", "user"))),
+             bson::MakeDoc("_id", 3, "user", bson::MakeDoc("profile", bson::MakeDoc("role", "admin"))),
+             bson::MakeDoc("_id", 4, "user", bson::MakeDoc("profile", bson::MakeDoc("role", "guest")))}
+        );
+
+        const auto sorted_result = SortBsonValues(coll.Distinct("user.profile.role"));
+
+        ASSERT_EQ(3, sorted_result.size());
+        EXPECT_EQ("admin", sorted_result[0].As<std::string>());
+        EXPECT_EQ("guest", sorted_result[1].As<std::string>());
+        EXPECT_EQ("user", sorted_result[2].As<std::string>());
+    }
+}
+
 USERVER_NAMESPACE_END

@@ -116,6 +116,8 @@ std::string_view ToString(OpType type) {
             return "count-approx";
         case Type::kFind:
             return "find";
+        case Type::kDistinct:
+            return "distinct";
         case Type::kInsertOne:
             return "insert-one";
         case Type::kInsertMany:

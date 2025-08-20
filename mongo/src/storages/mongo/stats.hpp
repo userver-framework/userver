@@ -72,6 +72,7 @@ enum class OpType {
     kCount = kReadMin,
     kCountApprox,
     kFind,
+    kDistinct,
     kAggregate,
 
     kWriteMin,

@@ -339,6 +339,35 @@ private:
     utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
+/// Retrieves distinct values for a specified field
+class Distinct final {
+public:
+    explicit Distinct(std::string field);
+    Distinct(std::string field, formats::bson::Document filter);
+    ~Distinct();
+
+    Distinct(const Distinct&);
+    Distinct(Distinct&&) noexcept;
+    Distinct& operator=(const Distinct&);
+    Distinct& operator=(Distinct&&) noexcept;
+
+    void SetOption(const options::ReadPreference&);
+    void SetOption(options::ReadPreference::Mode);
+    void SetOption(options::ReadConcern);
+    void SetOption(const options::Collation&);
+    void SetOption(const options::Comment&);
+    void SetOption(const options::MaxServerTime&);
+
+private:
+    friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+
+    class Impl;
+    static constexpr size_t kSize = 104;
+    static constexpr size_t kAlignment = 8;
+    // MAC_COMPAT: std::string size differs
+    utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
+};
+
 class Drop {
 public:
     Drop();

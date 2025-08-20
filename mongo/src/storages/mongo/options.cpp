@@ -144,6 +144,95 @@ Comment::Comment(std::string value) : value_(std::move(value)) {
 
 const std::string& Comment::Value() const { return value_; }
 
+Collation::Collation(std::string locale) { collation_builder_.Append("locale", std::move(locale)); }
+
+Collation& Collation::SetStrength(Strength strength) {
+    collation_builder_.Append("strength", static_cast<int>(strength));
+    return *this;
+}
+
+Collation& Collation::SetCaseLevel(bool case_level) {
+    collation_builder_.Append("caseLevel", case_level);
+    return *this;
+}
+
+Collation& Collation::SetCaseFirst(CaseFirst case_first) {
+    std::string case_first_str;
+
+    switch (case_first) {
+        case CaseFirst::kOff:
+            case_first_str = "off";
+            break;
+        case CaseFirst::kUpper:
+            case_first_str = "upper";
+            break;
+        case CaseFirst::kLower:
+            case_first_str = "lower";
+            break;
+        default:
+            throw InvalidQueryArgumentException(fmt::format("Invalid CaseFirst value {}", static_cast<int>(case_first))
+            );
+    }
+
+    collation_builder_.Append("caseFirst", case_first_str);
+    return *this;
+}
+
+Collation& Collation::SetNumericOrdering(bool numeric_ordering) {
+    collation_builder_.Append("numericOrdering", numeric_ordering);
+    return *this;
+}
+
+Collation& Collation::SetAlternate(Alternate alternate) {
+    std::string alternate_str;
+
+    switch (alternate) {
+        case Alternate::kNonIgnorable:
+            alternate_str = "non-ignorable";
+            break;
+        case Alternate::kShifted:
+            alternate_str = "shifted";
+            break;
+        default:
+            throw InvalidQueryArgumentException(fmt::format("Invalid Alternate value {}", static_cast<int>(alternate)));
+    }
+
+    collation_builder_.Append("alternate", alternate_str);
+    return *this;
+}
+
+Collation& Collation::SetMaxVariable(MaxVariable max_variable) {
+    std::string max_variable_str;
+
+    switch (max_variable) {
+        case MaxVariable::kPunct:
+            max_variable_str = "punct";
+            break;
+        case MaxVariable::kSpace:
+            max_variable_str = "space";
+            break;
+        default:
+            throw InvalidQueryArgumentException(
+                fmt::format("Invalid MaxVariable value {}", static_cast<int>(max_variable))
+            );
+    }
+
+    collation_builder_.Append("maxVariable", max_variable_str);
+    return *this;
+}
+
+Collation& Collation::SetBackwards(bool backwards) {
+    collation_builder_.Append("backwards", backwards);
+    return *this;
+}
+
+Collation& Collation::SetNormalization(bool normalization) {
+    collation_builder_.Append("normalization", normalization);
+    return *this;
+}
+
+const bson_t* Collation::GetCollationBson() const { return collation_builder_.Get(); }
+
 }  // namespace storages::mongo::options
 
 USERVER_NAMESPACE_END

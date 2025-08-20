@@ -568,6 +568,46 @@ void Drop::SetOption(const options::WriteConcern& write_concern) {
     AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
+void AppendCollation(formats::bson::impl::BsonBuilder& builder, const options::Collation& collation) {
+    const bson_t* collation_bson = collation.GetCollationBson();
+    if (bson_empty0(collation_bson)) return;
+
+    static constexpr utils::StringLiteral kOptionName = "collation";
+    builder.Append(kOptionName, collation_bson);
+}
+
+Distinct::Distinct(std::string field) : impl_(std::move(field)) {}
+
+Distinct::Distinct(std::string field, formats::bson::Document filter) : impl_(std::move(field), std::move(filter)) {}
+
+Distinct::~Distinct() = default;
+
+Distinct::Distinct(const Distinct& other) = default;
+Distinct::Distinct(Distinct&&) noexcept = default;
+Distinct& Distinct::operator=(const Distinct& rhs) = default;
+Distinct& Distinct::operator=(Distinct&&) noexcept = default;
+
+void Distinct::SetOption(const options::ReadPreference& read_prefs) {
+    impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
+}
+
+void Distinct::SetOption(options::ReadPreference::Mode mode) { impl_->read_prefs = MakeCDriverReadPrefs(mode); }
+
+void Distinct::SetOption(options::ReadConcern level) { AppendReadConcern(impl::EnsureBuilder(impl_->options), level); }
+
+void Distinct::SetOption(const options::Collation& collation) {
+    AppendCollation(impl::EnsureBuilder(impl_->options), collation);
+}
+
+void Distinct::SetOption(const options::Comment& comment) {
+    AppendComment(impl::EnsureBuilder(impl_->options), impl_->has_comment_option, comment);
+}
+
+void Distinct::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
+
 }  // namespace storages::mongo::operations
 
 USERVER_NAMESPACE_END

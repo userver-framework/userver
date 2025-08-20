@@ -246,6 +246,59 @@ Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
     ));
 }
 
+std::vector<formats::bson::Value> CDriverCollectionImpl::Execute(const operations::Distinct& operation) const {
+    auto context = MakeRequestContext("mongo_distinct", operation);
+
+    auto options = operation.impl_->options;
+    SetMaxServerTime(options, operation.impl_->max_server_time, context);
+    bool has_comment_option = operation.impl_->has_comment_option;
+    if (!has_comment_option) SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
+
+    MongoError error;
+    stats::OperationStopwatch stopwatch(std::move(context.stats));
+
+    formats::bson::impl::BsonBuilder command_builder;
+    command_builder.Append("distinct", GetCollectionName());
+    command_builder.Append("key", operation.impl_->field);
+
+    if (operation.impl_->filter.has_value()) {
+        command_builder.Append("query", operation.impl_->filter.value());
+    }
+
+    auto command_bson = command_builder.Extract();
+    const bson_t* native_command_bson_ptr = command_bson.get();
+
+    formats::bson::impl::UninitializedBson result_bson;
+    if (!mongoc_collection_read_command_with_opts(
+            context.collection.get(),
+            native_command_bson_ptr,
+            operation.impl_->read_prefs.Get(),
+            impl::GetNative(options),
+            result_bson.Get(),
+            error.GetNative()
+        )) {
+        stopwatch.AccountError(error.GetKind());
+        error.Throw("Error executing distinct operation");
+    }
+
+    stopwatch.AccountSuccess();
+
+    auto result_doc = formats::bson::Document(result_bson.Extract());
+    auto values_field = result_doc["values"];
+    if (!values_field.IsArray()) {
+        throw MongoException("Distinct operation result is not an array");
+    }
+
+    std::vector<formats::bson::Value> distinct_values;
+    distinct_values.reserve(values_field.GetSize());
+
+    for (auto& value : values_field) {
+        distinct_values.push_back(std::move(value));
+    }
+
+    return distinct_values;
+}
+
 WriteResult CDriverCollectionImpl::Execute(const operations::InsertOne& operation) {
     auto context = MakeRequestContext("mongo_insert_one", operation);
 

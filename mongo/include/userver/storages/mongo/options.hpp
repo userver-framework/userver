@@ -311,6 +311,91 @@ private:
     std::chrono::milliseconds value_;
 };
 
+/// @brief Specifies collation options for text comparison
+/// @see https://docs.mongodb.com/manual/reference/collation/
+/// @see https://unicode-org.github.io/icu/userguide/collation/concepts.html
+class Collation final {
+public:
+    enum class Strength {
+        /// Primary level of comparison (base characters only)
+        kPrimary = 1,
+        /// Secondary level (base characters + diacritics)
+        kSecondary = 2,
+        /// Tertiary level (base + diacritics + case), default
+        kTertiary = 3,
+        /// Quaternary level
+        kQuaternary = 4,
+        /// Identical level (tie breaker)
+        kIdentical = 5
+    };
+
+    enum class CaseFirst {
+        /// Default value, similar to lower with slight differences
+        kOff,
+        /// Uppercase sorts before lowercase
+        kUpper,
+        /// Lowercase sorts before uppercase
+        kLower
+    };
+
+    enum class Alternate {
+        /// Whitespace and punctuation are considered base characters (default)
+        kNonIgnorable,
+        /// Whitespace and punctuation not considered base characters
+        kShifted
+    };
+
+    enum class MaxVariable {
+        /// Both whitespace and punctuation are ignorable
+        kPunct,
+        /// Only whitespace is ignorable
+        kSpace
+    };
+
+    /// Creates a collation with mandatory locale
+    explicit Collation(std::string locale);
+
+    /// @brief Sets the ICU collation level
+    /// Default is kTertiary
+    Collation& SetStrength(Strength strength);
+
+    /// @brief Sets whether to include case comparison at strength level 1 or 2
+    /// Default is false
+    Collation& SetCaseLevel(bool case_level);
+
+    /// @brief Sets sort order of case differences during tertiary level comparisons
+    /// Default is kOff
+    Collation& SetCaseFirst(CaseFirst case_first);
+
+    /// @brief Sets whether to compare numeric strings as numbers or as strings
+    /// Default is false (compare as strings)
+    Collation& SetNumericOrdering(bool numeric_ordering);
+
+    /// @brief Sets whether collation should consider whitespace and punctuation as base characters
+    /// Default is kNonIgnorable
+    Collation& SetAlternate(Alternate alternate);
+
+    /// @brief Sets up to which characters are considered ignorable when alternate is kShifted
+    /// Has no effect if alternate is kNonIgnorable
+    Collation& SetMaxVariable(MaxVariable max_variable);
+
+    /// @brief Sets whether strings with diacritics sort from back of the string
+    /// Default is false (compare from front to back)
+    Collation& SetBackwards(bool backwards);
+
+    /// @brief Sets whether to check if text require normalization and perform normalization
+    /// Default is false
+    Collation& SetNormalization(bool normalization);
+
+    /// @cond
+    /// Collation specification BSON access for internal use
+    const bson_t* GetCollationBson() const;
+    /// @endcond
+
+private:
+    formats::bson::impl::BsonBuilder collation_builder_;
+};
+
 }  // namespace storages::mongo::options
 
 USERVER_NAMESPACE_END

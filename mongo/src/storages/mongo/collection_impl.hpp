@@ -23,6 +23,7 @@ public:
     virtual size_t Execute(const operations::Count&) const = 0;
     virtual size_t Execute(const operations::CountApprox&) const = 0;
     virtual Cursor Execute(const operations::Find&) const = 0;
+    virtual std::vector<formats::bson::Value> Execute(const operations::Distinct&) const = 0;
     virtual WriteResult Execute(const operations::InsertOne&) = 0;
     virtual WriteResult Execute(const operations::InsertMany&) = 0;
     virtual WriteResult Execute(const operations::ReplaceOne&) = 0;

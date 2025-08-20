@@ -117,6 +117,20 @@ public:
     template <typename... Options>
     Cursor Aggregate(formats::bson::Value pipeline, Options&&... options);
 
+    /// @brief Retrieves distinct values for a specified field
+    /// @param field name of the field for which to return distinct values
+    /// @param options see @ref storages::mongo::options
+    template <typename... Options>
+    std::vector<formats::bson::Value> Distinct(std::string field, Options&&... options) const;
+
+    /// @brief Retrieves distinct values for a specified field with a query filter
+    /// @param field name of the field for which to return distinct values
+    /// @param filter query that specifies the documents from which to retrieve distinct values
+    /// @param options see @ref storages::mongo::options
+    template <typename... Options>
+    std::vector<formats::bson::Value> Distinct(std::string field, formats::bson::Document filter, Options&&... options)
+        const;
+
     /// Get collection name
     const std::string& GetCollectionName() const;
 
@@ -125,6 +139,7 @@ public:
     size_t Execute(const operations::Count&) const;
     size_t Execute(const operations::CountApprox&) const;
     Cursor Execute(const operations::Find&) const;
+    std::vector<formats::bson::Value> Execute(const operations::Distinct&) const;
     WriteResult Execute(const operations::InsertOne&);
     WriteResult Execute(const operations::InsertMany&);
     WriteResult Execute(const operations::ReplaceOne&);
@@ -274,6 +289,21 @@ Cursor Collection::Aggregate(formats::bson::Value pipeline, Options&&... options
     operations::Aggregate aggregate(std::move(pipeline));
     (aggregate.SetOption(std::forward<Options>(options)), ...);
     return Execute(aggregate);
+}
+
+template <typename... Options>
+std::vector<formats::bson::Value> Collection::Distinct(std::string field, Options&&... options) const {
+    operations::Distinct distinct_op(std::move(field));
+    (distinct_op.SetOption(std::forward<Options>(options)), ...);
+    return Execute(distinct_op);
+}
+
+template <typename... Options>
+std::vector<formats::bson::Value>
+Collection::Distinct(std::string field, formats::bson::Document filter, Options&&... options) const {
+    operations::Distinct distinct_op(std::move(field), std::move(filter));
+    (distinct_op.SetOption(std::forward<Options>(options)), ...);
+    return Execute(distinct_op);
 }
 
 }  // namespace storages::mongo

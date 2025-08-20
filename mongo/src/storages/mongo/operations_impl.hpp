@@ -157,6 +157,21 @@ public:
     std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
+class Distinct::Impl {
+public:
+    explicit Impl(std::string field_) : field(std::move(field_)) {}
+
+    Impl(std::string field_, formats::bson::Document filter_) : field(std::move(field_)), filter(std::move(filter_)) {}
+
+    std::string field;
+    std::optional<formats::bson::Document> filter;
+    stats::OperationKey op_key{stats::OpType::kDistinct};
+    impl::cdriver::ReadPrefsPtr read_prefs;
+    std::optional<formats::bson::impl::BsonBuilder> options;
+    bool has_comment_option{false};
+    std::chrono::milliseconds max_server_time{kNoMaxServerTime};
+};
+
 class Drop::Impl {
 public:
     Impl() = default;
