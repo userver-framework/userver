@@ -3,7 +3,6 @@
 /// @file userver/proto-structs/any.hpp
 /// @brief Class to access `google.protobuf.Any` stored message as a struct
 
-#include <optional>
 #include <type_traits>
 #include <utility>
 
@@ -22,15 +21,15 @@ public:
     /// @brief Creates empty `Any`.
     Any() noexcept = default;
 
-    /// @brief Creates wrapper initializing it's underlying storage with @a proto_any
+    /// @brief Creates wrapper initializing its underlying storage with @a proto_any
     Any(google::protobuf::Any proto_any) : storage_(std::move(proto_any)) {}
 
     /// @brief Creates `Any` holding @a obj
     /// @tparam TStruct struct with defined compatability
-    /// @throws ConversionError if @a obj can't be converted to it's compatible protobuf message
+    /// @throws ConversionError if @a obj can't be converted to its compatible protobuf message
     /// @throws AnyPackError if compatible protobuf message can not be packed to `google.protobuf.Any`
     /// @note This overload only works for structs for which compatability is defined using
-    ///       @ref proto_structs::compatible_message
+    ///       @ref proto_structs::CompatibleMessageTrait
     template <typename TStruct>
     requires traits::CompatibleStruct<std::remove_cvref_t<TStruct>>
     Any(TStruct&& obj) {
@@ -39,10 +38,10 @@ public:
 
     /// @brief Packs @a obj in `Any`
     /// @tparam TStruct struct with defined compatability
-    /// @throws ConversionError if @a obj can't be converted to it's compatible protobuf message
+    /// @throws ConversionError if @a obj can't be converted to its compatible protobuf message
     /// @throws AnyPackError if compatible protobuf message can not be packed to `google.protobuf.Any`
     /// @note This overload only works for structs for which compatability is defined using
-    ///       @ref proto_structs::compatible_message
+    ///       @ref proto_structs::CompatibleMessageTrait
     /// @note Method caches @a obj and later calls to @ref Get will not trigger unpacking
     template <typename TStruct>
     requires traits::CompatibleStruct<std::remove_cvref_t<TStruct>>
@@ -54,7 +53,7 @@ public:
     /// @brief Returns `true` if `Any` contains `TStruct`
     /// @tparam TStruct struct with defined compatability
     /// @note This method only works for structs for which compatability is defined using
-    ///       @ref proto_structs::compatible_message
+    ///       @ref proto_structs::CompatibleMessageTrait
     template <traits::CompatibleStruct TStruct>
     bool Is() const noexcept {
         using Message = traits::CompatibleMessageType<TStruct>;
@@ -71,9 +70,9 @@ public:
     /// @brief Unpacks `Any` to `TStruct` struct
     /// @tparam TStruct struct with defined compatability
     /// @throws AnyUnpackError if underlying `google.protobuf.Any` does not contain message compatible to `TStruct`
-    /// @throws ConversionError if struct can be converted from it's compatible message
+    /// @throws ConversionError if struct can be converted from its compatible message
     /// @note This method only works for structs for which compatability is defined using
-    ///       @ref proto_structs::compatible_message
+    ///       @ref proto_structs::CompatibleMessageTrait
     template <traits::CompatibleStruct TStruct>
     TStruct Unpack() {
         using Message = traits::CompatibleMessageType<TStruct>;
@@ -96,10 +95,10 @@ public:
 
     /// @brief Packs @a obj to `Any`
     /// @tparam TStruct struct with defined compatability
-    /// @throws ConversionError if @a obj can't be converted to it's compatible protobuf message
+    /// @throws ConversionError if @a obj can't be converted to its compatible protobuf message
     /// @throws AnyPackError if packing of compatible protobuf message to `google.protobuf.Any` had failed
     /// @note This method only works for structs for which compatability is defined using
-    ///       @ref proto_structs::compatible_message
+    ///       @ref proto_structs::CompatibleMessageTrait
     /// @note Method caches @a obj and later calls to @ref Get will not trigger unpacking
     template <typename TStruct>
     requires traits::CompatibleStruct<std::remove_cvref_t<TStruct>>

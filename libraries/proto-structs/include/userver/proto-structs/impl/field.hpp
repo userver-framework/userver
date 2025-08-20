@@ -156,13 +156,13 @@ auto CreateFieldSetter(
 namespace traits {
 
 template <typename T>
-concept FieldGetter = kInheritsFromInstantiation<FieldGetter, T>;
+concept FieldGetter = InheritsFromInstantiation<FieldGetter, T>;
 
 template <typename T>
-concept FieldGetterWithPresence = kInheritsFromInstantiation<FieldGetterWithPresence, T>;
+concept FieldGetterWithPresence = InheritsFromInstantiation<FieldGetterWithPresence, T>;
 
 template <typename T>
-concept FieldSetter = kInheritsFromInstantiation<FieldSetter, T>;
+concept FieldSetter = InheritsFromInstantiation<FieldSetter, T>;
 
 }  // namespace traits
 
