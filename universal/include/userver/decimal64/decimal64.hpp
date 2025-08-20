@@ -857,6 +857,64 @@ constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before, int64_t after,
     }
 }
 
+template <int Prec, typename RoundPolicy>
+constexpr Decimal<Prec, RoundPolicy> FromUnpackedWithExponent(
+    int64_t before,
+    int64_t after,
+    int original_precision,
+    int exponent,
+    bool is_negative_exponent,
+    int leading_zeros
+) {
+    UASSERT(((before >= 0) && (after >= 0)) || ((before <= 0) && (after <= 0)));
+    UASSERT(after > -Pow10(original_precision) && after < Pow10(original_precision));
+
+    if (before == 0 && after == 0) {
+        return Decimal<Prec, RoundPolicy>::FromUnbiased(0);
+    }
+
+    const int effective_exponent = is_negative_exponent ? -exponent : exponent;
+
+    if (effective_exponent + Prec < -kMaxDecimalDigits) {
+        return Decimal<Prec, RoundPolicy>::FromUnbiased(0);
+    }
+
+    int total_scale = effective_exponent + Prec - original_precision;
+
+    if (before == 0 && after != 0) {
+        if (!is_negative_exponent) {
+            if (exponent >= leading_zeros) {
+                exponent -= leading_zeros;
+                original_precision -= leading_zeros;
+            } else {
+                original_precision -= exponent;
+                exponent = 0;
+            }
+        }
+    }
+
+    int64_t value = before;
+
+    if (__builtin_mul_overflow(value, Pow10(original_precision), &value) ||
+        __builtin_add_overflow(value, after, &value)) {
+        throw OutOfBoundsError();
+    }
+
+    if (total_scale > 0) {
+        if (total_scale > kMaxDecimalDigits) {
+            throw OutOfBoundsError();
+        }
+        if (__builtin_mul_overflow(value, Pow10(total_scale), &value)) {
+            throw OutOfBoundsError();
+        }
+    } else if (total_scale < 0) {
+        const int64_t divisor = Pow10(-total_scale);
+        value = Div<RoundPolicy>(value, divisor);
+    }
+
+    return Decimal<Prec, RoundPolicy>::FromUnbiased(value);
+}
+
 struct UnpackedDecimal {
     int64_t before;
     int64_t after;
@@ -954,7 +1012,11 @@ enum class ParseOptions {
 
     /// Allow decimal digits beyond Prec, round according to RoundPolicy
     /// "0.123456" -> "0.1234" or "0.1235"
-    kAllowRounding = 1 << 3
+    kAllowRounding = 1 << 3,
+
+    /// Allow using exponential format (e or E)
+    /// 1e2 -> 100 or 1E2 -> 100
+    kAllowExponent = 1 << 4
 };
 
 enum class ParseErrorCode : uint8_t {
@@ -979,6 +1041,13 @@ enum class ParseErrorCode : uint8_t {
     /// When there are more decimal digits than in any Decimal and rounding is
     /// disallowed by options
     kRounding,
+
+    /// On inputs like "1e2" or "1E2" if exponent is not allowed by options
+    kExponentNotAllowed,
+
+    /// When there are no numbers after the exponent character (or after exponent sign if it exist)
+    /// On inputs like "1e" or "1E+" or "1e-"
+    kNoExponentDigits
 };
 
 struct ParseUnpackedResult {
@@ -986,8 +1055,11 @@ struct ParseUnpackedResult {
     int64_t after{0};
     uint8_t decimal_digits{0};
     bool is_negative{false};
+    uint8_t exponent{0};
+    bool is_negative_exponent{false};
     std::optional<ParseErrorCode> error;
     uint32_t error_position{-1U};
+    int zeros_after_dec{0};
 };
 
 enum class ParseState {
@@ -1006,12 +1078,32 @@ enum class ParseState {
     /// Reading fractional digits
     kAfterDec,
 
+    /// Only zeros (at least one) have been met after dot
+    kZerosAfterDec,
+
     /// Reading and rounding extra fractional digits
     kIgnoringAfterDec,
+
+    /// Exponent sign
+    kExpSign,
+
+    // First digit after sign
+    kExpFirstDigit,
+
+    /// Exponent digits
+    kExpDigits,
 
     /// A character unrelated to the Decimal has been met
     kEnd
 };
+
+constexpr inline void
+StateToExpSign(std::optional<ParseErrorCode>& error, ParseState& state, utils::Flags<ParseOptions>& options) {
+    if (!error && !(options & ParseOptions::kAllowExponent)) {
+        error = ParseErrorCode::kExponentNotAllowed;
+    }
+    state = ParseState::kExpSign;
+}
 
 /// Extract values from a CharSequence ready to be packed to Decimal
 template <typename CharSequence>
@@ -1027,6 +1119,9 @@ template <typename CharSequence>
     std::optional<ParseErrorCode> error;
     int before_digit_count = 0;
     uint8_t after_digit_count = 0;
+    bool is_negative_exp = false;
+    uint8_t exponent = 0;
+    int zeros_after_dec = 0;
 
     while (state != ParseState::kEnd) {
         const auto c = input.Get();
@@ -1051,7 +1146,7 @@ template <typename CharSequence>
                     if (!(options & ParseOptions::kAllowBoundaryDot) && !error) {
                         error = ParseErrorCode::kBoundaryDot;  // keep reading digits
                     }
-                    state = ParseState::kAfterDec;
+                    state = ParseState::kZerosAfterDec;
                 } else if (IsSpace(c)) {
                     if (!(options & ParseOptions::kAllowSpaces)) {
                         state = ParseState::kEnd;
@@ -1087,7 +1182,9 @@ template <typename CharSequence>
                     state = ParseState::kBeforeDec;
                     before = static_cast<int>(c - '0');
                 } else if (c == dec_point) {
-                    state = ParseState::kAfterDec;
+                    state = ParseState::kZerosAfterDec;
+                } else if (c == 'e' || c == 'E') {
+                    StateToExpSign(/*error*/ error, /*state*/ state, /*options*/ options);
                 } else {
                     state = ParseState::kEnd;
                 }
@@ -1101,12 +1198,24 @@ template <typename CharSequence>
                         error = ParseErrorCode::kOverflow;  // keep reading digits
                     }
                 } else if (c == dec_point) {
-                    state = ParseState::kAfterDec;
+                    state = ParseState::kZerosAfterDec;
+                } else if (c == 'e' || c == 'E') {
+                    StateToExpSign(/*error*/ error, /*state*/ state, /*options*/ options);
                 } else {
                     state = ParseState::kEnd;
                 }
                 break;
+
+            case ParseState::kZerosAfterDec:
+                if (c == '0') {
+                    zeros_after_dec++;
+                    after_digit_count++;
+                    break;
+                }
+                [[fallthrough]];
+
             case ParseState::kAfterDec:
+                state = ParseState::kAfterDec;
                 if ((c >= '0') && (c <= '9')) {
                     if (after_digit_count < kMaxDecimalDigits) {
                         after = 10 * after + static_cast<int>(c - '0');
@@ -1121,6 +1230,9 @@ template <typename CharSequence>
                             after++;
                         }
                     }
+
+                } else if (c == 'e' || c == 'E') {
+                    StateToExpSign(/*error*/ error, /*state*/ state, /*options*/ options);
                 } else {
                     if (!(options & ParseOptions::kAllowBoundaryDot) && after_digit_count == 0 && !error) {
                         error = ParseErrorCode::kBoundaryDot;
@@ -1128,13 +1240,61 @@ template <typename CharSequence>
                     state = ParseState::kEnd;
                 }
                 break;
+
             case ParseState::kIgnoringAfterDec:
                 if ((c >= '0') && (c <= '9')) {
                     // skip
+                } else if (c == 'e' || c == 'E') {
+                    StateToExpSign(/*error*/ error, /*state*/ state, /*options*/ options);
                 } else {
                     state = ParseState::kEnd;
                 }
                 break;
+
+            case ParseState::kExpSign:
+                if (c == '+') {
+                    is_negative_exp = false;
+                    state = ParseState::kExpFirstDigit;
+                } else if (c == '-') {
+                    is_negative_exp = true;
+                    state = ParseState::kExpFirstDigit;
+                } else if (c >= '0' && c <= '9') {
+                    exponent = static_cast<int>(c - '0');
+                    state = ParseState::kExpDigits;
+                } else {
+                    if (!error) {
+                        error = ParseErrorCode::kWrongChar;
+                    }
+                    state = ParseState::kEnd;
+                }
+                break;
+
+            case ParseState::kExpFirstDigit:
+                if (c >= '0' && c <= '9') {
+                    exponent = static_cast<int>(c - '0');
+                    state = ParseState::kExpDigits;
+                } else {
+                    state = ParseState::kEnd;
+                    if (!error) error = ParseErrorCode::kWrongChar;
+                }
+                break;
+
+            case ParseState::kExpDigits:
+                if (c >= '0' && c <= '9') {
+                    if ((__builtin_mul_overflow(10, exponent, &exponent) ||
+                         __builtin_add_overflow(static_cast<int>(c - '0'), exponent, &exponent))) {
+                        if (is_negative_exp && !(options & ParseOptions::kAllowRounding) && !error) {
+                            error = ParseErrorCode::kRounding;  // keep reading digits
+                        }
+                        if (!is_negative_exp && !error) {
+                            error = ParseErrorCode::kOverflow;  // keep reading digits
+                        }
+                    }
+                } else {
+                    state = ParseState::kEnd;
+                }
+                break;
+
             case ParseState::kEnd:
                 UASSERT(false);
                 break;
@@ -1167,12 +1327,33 @@ template <typename CharSequence>
         error = ParseErrorCode::kNoDigits;
     }
 
-    if (!error && state == ParseState::kAfterDec && !(options & ParseOptions::kAllowBoundaryDot) &&
+    if (!error && state == ParseState::kZerosAfterDec && !(options & ParseOptions::kAllowBoundaryDot) &&
         after_digit_count == 0) {
         error = ParseErrorCode::kBoundaryDot;
     }
 
-    return {before, after, after_digit_count, is_negative, error, static_cast<uint32_t>(position)};
+    if ((!error && state == ParseState::kExpSign) || (!error && state == ParseState::kExpFirstDigit)) {
+        error = ParseErrorCode::kNoExponentDigits;
+    }
+
+    if (zeros_after_dec >= kMaxDecimalDigits) {
+        after_digit_count = 0;
+        after = 0;
+        zeros_after_dec = 0;
+    }
+
+    return {
+        before,
+        after,
+        after_digit_count,
+        is_negative,
+        exponent,
+        is_negative_exp,
+        error,
+        static_cast<uint32_t>(position),
+        zeros_after_dec,
+
+    };
 }
 
 template <int Prec, typename RoundPolicy>
@@ -1191,17 +1372,38 @@ template <int Prec, typename RoundPolicy, typename CharSequence>
         return {{}, parsed.error, parsed.error_position};
     }
 
+    if (!(options & ParseOptions::kAllowRounding) && parsed.decimal_digits > Prec) {
+        return {{}, ParseErrorCode::kRounding, 0};
+    }
+
     if (parsed.before >= kMaxInt64 / kPow10<Prec>) {
         return {{}, ParseErrorCode::kOverflow, 0};
     }
 
-    if (!(options & ParseOptions::kAllowRounding) && parsed.decimal_digits > Prec) {
-        return {{}, ParseErrorCode::kRounding, 0};
+    if (parsed.after == 0 && parsed.decimal_digits > 0) {
+        parsed.after = 0;
+        parsed.decimal_digits = 0;
+        parsed.zeros_after_dec = 0;
     }
 
     if (parsed.is_negative) {
         parsed.before = -parsed.before;
         parsed.after = -parsed.after;
+    }
+
+    if (parsed.exponent != 0) {
+        return {
+            FromUnpackedWithExponent<Prec, RoundPolicy>(
+                parsed.before,
+                parsed.after,
+                parsed.decimal_digits,
+                parsed.exponent,
+                parsed.is_negative_exponent,
+                parsed.zeros_after_dec
+            ),
+            {},
+            0,
+        };
     }
 
     return {FromUnpacked<Prec, RoundPolicy>(parsed.before, parsed.after, parsed.decimal_digits), {}, 0};
@@ -1231,7 +1433,10 @@ template <int Prec, typename RoundPolicy>
 constexpr Decimal<Prec, RoundPolicy> Decimal<Prec, RoundPolicy>::FromStringPermissive(std::string_view input) {
     const auto result = impl::Parse<Prec, RoundPolicy>(
         impl::StringCharSequence(input),
-        {impl::ParseOptions::kAllowSpaces, impl::ParseOptions::kAllowBoundaryDot, impl::ParseOptions::kAllowRounding}
+        {impl::ParseOptions::kAllowSpaces,
+         impl::ParseOptions::kAllowBoundaryDot,
+         impl::ParseOptions::kAllowRounding,
+         impl::ParseOptions::kAllowExponent}
     );
 
     if (result.error) {
@@ -1319,8 +1524,9 @@ std::basic_istream<CharT, Traits>& operator>>(std::basic_istream<CharT, Traits>&
     if (is.flags() & std::ios_base::skipws) {
         std::ws(is);
     }
-    const auto result =
-        impl::Parse<Prec, RoundPolicy>(impl::StreamCharSequence(is), {impl::ParseOptions::kAllowTrailingJunk});
+    const auto result = impl::Parse<Prec, RoundPolicy>(
+        impl::StreamCharSequence(is), {impl::ParseOptions::kAllowTrailingJunk, impl::ParseOptions::kAllowExponent}
+    );
 
     if (result.error) {
         is.setstate(std::ios_base::failbit);

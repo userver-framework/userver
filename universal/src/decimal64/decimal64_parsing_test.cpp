@@ -242,4 +242,155 @@ TEST(Decimal64, RoundPolicies) {
     EXPECT_EQ(Down::FromStringPermissive("-0.000099999999999999"), Down{0});
 }
 
+TEST(Decimal64, BannedRounding) {
+    EXPECT_EQ(Dec4{"1.0000"}, Dec4{1});
+    EXPECT_THROW(Dec4{"1.00000"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"11.20000"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"1.123546"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"-1.00000"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"-1.123546"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"-1.20000"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"0.00000"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"0.20000"}, decimal64::ParseError);
+    EXPECT_THROW(Dec4{"0.123546"}, decimal64::ParseError);
+}
+
+TEST(Decimal64Exponent, Stream) {
+    TestFromStream("33e1.123", true, Dec4{"330"}, ".123");
+    TestFromStream("0.1233e1#.342", true, Dec4{"1.233"}, "#.342");
+    TestFromStream("33e1", true, Dec4{"330"}, "");
+    TestFromStream("3.3e2", true, Dec4{"330"}, "");
+    TestFromStream("0.03e3", true, Dec4{"30"}, "");
+    TestFromStream("0.3e-2", true, Dec4{"0.003"}, "");
+    TestFromStream("-33e1", true, Dec4{"-330"}, "");
+    TestFromStream("-3.3e2", true, Dec4{"-330"}, "");
+    TestFromStream("-0.03e3", true, Dec4{"-30"}, "");
+    TestFromStream("-0.3e-2", true, Dec4{"-0.003"}, "");
+}
+
+TEST(Decimal64Exponent, Simple) {
+    EXPECT_EQ(Dec4::FromStringPermissive("1e2"), Dec4{"100"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1e+2"), Dec4{"100"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1.234e2"), Dec4{"123.4"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1.234e+2"), Dec4{"123.4"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1234e0"), Dec4{"1234"});
+    EXPECT_EQ(Dec4::FromStringPermissive("0e5"), Dec4{0});
+}
+
+TEST(Decimal64Exponent, Negative) {
+    EXPECT_EQ(Dec4::FromStringPermissive("1234e-1"), Dec4{"123.4"});
+    EXPECT_EQ(Dec4::FromStringPermissive("123e-4"), Dec4{"0.0123"});
+    EXPECT_EQ(Dec4::FromStringPermissive("-1.234e2"), Dec4{"-123.4"});
+    EXPECT_EQ(Dec4::FromStringPermissive("-1234e-2"), Dec4{"-12.34"});
+}
+
+TEST(Decimal64Exponent, RoundDefault) {
+    EXPECT_EQ(Dec4::FromStringPermissive("1.23456e1"), Dec4{"12.3456"});
+    EXPECT_EQ(Dec4::FromStringPermissive("-1.2345678e1"), Dec4{"-12.3457"});
+    EXPECT_EQ(Dec4::FromStringPermissive("0.2345678e1"), Dec4{"2.3457"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1.34e-3"), Dec4{"0.0013"});
+    EXPECT_EQ(Dec4::FromStringPermissive("12e-5"), Dec4{"0.0001"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1e-1000"), Dec4{0});
+    EXPECT_EQ(Dec4::FromStringPermissive("0.00001e1"), Dec4{"0.0001"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1.00000000000000000000000000000000e2"), Dec4{"100"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1.00000000000000000000000000000000e-2"), Dec4{"0.01"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1.00000000000000000000000000000001e2"), Dec4{"100"});
+    EXPECT_EQ(Dec4::FromStringPermissive("0.0123456789123456789123456789e1"), Dec4{"0.1235"});
+    EXPECT_EQ(Dec4::FromStringPermissive("0.0123456789123456789123456789e-1"), Dec4{"0.0012"});
+}
+
+TEST(Decimal64Exponent, RoundUp) {
+    using Up = decimal64::Decimal<4, decimal64::RoundUpRoundPolicy>;
+    EXPECT_EQ(Up::FromStringPermissive("0.00000000000000002e1"), Up{"0.0001"});
+    EXPECT_EQ(Up::FromStringPermissive("0.0000000000000000002e17"), Up{"0"});
+    EXPECT_EQ(Up::FromStringPermissive("0.00000000000000002e17"), Up{"2"});
+    EXPECT_EQ(Up::FromStringPermissive("3.999999e2"), Up{"399.9999"});
+    EXPECT_EQ(Up::FromStringPermissive("3.9999999e2"), Up{"400"});
+    EXPECT_EQ(Up::FromStringPermissive("3.9999999e-2"), Up{"0.04"});
+}
+
+TEST(Decimal64Exponent, Zero) {
+    // kSign->kLeadingZeros->kExpSign->kExpDigits->kEnd
+    EXPECT_EQ(Dec4::FromStringPermissive("0e1"), Dec4(0));
+
+    // kSign->kLeadingZeros->kExpSign->kExpFirstDigit->kExpDigits->kEnd
+    EXPECT_EQ(Dec4::FromStringPermissive("0e+1"), Dec4(0));
+
+    // kSign->kLeadingZeros->kExpSign->kExpDigits->kExpDigits->kEnd
+    EXPECT_EQ(Dec4::FromStringPermissive("0e12"), Dec4(0));
+
+    // kSign->kLeadingZeros->kExpSign->kExpFirstDigit->kExpDigits->kEnd
+    EXPECT_EQ(Dec4::FromStringPermissive("0e-3"), Dec4(0));
+}
+
+namespace {
+std::optional<decimal64::impl::ParseErrorCode>
+ParseError(std::string input, std::initializer_list<decimal64::impl::ParseOptions> options) {
+    return decimal64::impl::Parse<4, decimal64::DefRoundPolicy>(
+               decimal64::impl::StringCharSequence(std::string_view{input}), options
+    )
+        .error;
+};
+
+const std::initializer_list<decimal64::impl::ParseOptions> OPTIONS = {
+    decimal64::impl::ParseOptions::kAllowSpaces,
+    decimal64::impl::ParseOptions::kAllowBoundaryDot,
+    decimal64::impl::ParseOptions::kAllowExponent,
+    decimal64::impl::ParseOptions::kAllowRounding,
+};
+}  // namespace
+
+TEST(Decimal64Exponent, Errors) {
+    EXPECT_EQ(ParseError("1e1000", OPTIONS), decimal64::impl::ParseErrorCode::kOverflow);
+    // kSign->kLeadingZeros->kExpSign
+    EXPECT_EQ(ParseError("0e", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    // kSign->kBeforeDec->kExpSign
+    EXPECT_EQ(ParseError("1e", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    // kSign->kLeadingZeros->kAfterDec->kExpSign
+    EXPECT_EQ(ParseError("0.1e", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    // kSign->kLeadingZeros->kExpSign->kExpFirstDigit
+    EXPECT_EQ(ParseError("0e+", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    // kSign->kLeadingZeros->kExpSign->kExpFirstDigit
+    EXPECT_EQ(ParseError("0e-", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+
+    EXPECT_EQ(
+        ParseError(
+            "1e-10000",
+            {decimal64::impl::ParseOptions::kAllowSpaces,
+             decimal64::impl::ParseOptions::kAllowBoundaryDot,
+             decimal64::impl::ParseOptions::kAllowExponent}
+        ),
+        decimal64::impl::ParseErrorCode::kRounding
+    );
+
+    EXPECT_EQ(
+        ParseError(
+            "123e4",
+            {
+                decimal64::impl::ParseOptions::kAllowSpaces,
+                decimal64::impl::ParseOptions::kAllowBoundaryDot,
+            }
+        ),
+        decimal64::impl::ParseErrorCode::kExponentNotAllowed
+    );
+    EXPECT_THROW(Dec4::FromStringPermissive("1.2e3e4"), decimal64::ParseError);
+}
+
+TEST(Decimal64Exponent, DotCases) {
+    EXPECT_THROW(Dec4::FromStringPermissive(".e-2"), decimal64::ParseError);
+    EXPECT_EQ(Dec4::FromStringPermissive(".2e1"), Dec4{"2"});
+    EXPECT_EQ(Dec4::FromStringPermissive("1.e-2"), Dec4{"0.01"});
+}
+
+TEST(Decimal64Exponent, MaxSize) {
+    EXPECT_EQ(Dec4::FromStringPermissive("0.00000000000000002e20"), Dec4{"2000"});
+    EXPECT_EQ(Dec4::FromStringPermissive("0.0000000000000000002e17"), Dec4{0});
+    EXPECT_EQ(
+        ParseError("10000000000000000e-19", OPTIONS), decimal64::impl::ParseErrorCode::kOverflow
+    );  // limitation of the current implementation. Truth result is 0.001
+    EXPECT_EQ(
+        ParseError("-10000000000000000e-19", OPTIONS), decimal64::impl::ParseErrorCode::kOverflow
+    );  // limitation of the current implementation. Truth result is -0.001
+}
+
 USERVER_NAMESPACE_END
