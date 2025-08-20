@@ -31,4 +31,4 @@ versions_md_content = (
 )
 versions_md_path.write_text(versions_md_content, encoding="utf-8")
 
-print("✅ versions.js и versions.md generated")
+print("✅ versions.js and versions.md generated")

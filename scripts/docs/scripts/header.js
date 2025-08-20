@@ -82,14 +82,13 @@ const old_docs_version = () => {
         const brief = document.getElementById('projectbrief').getElementsByTagName('a')[0];
         brief.textContent += " " + version;
     }
-    const base_page_url = "/"
 
     var warning = document.createElement("div");
     warning.style.width = '100%';
     warning.style.display = 'flex';
     warning.style.flexDirection = 'column';
     warning.innerHTML = `
-      <a style="padding: 16px; margin-bottom: 20px; text-align: center; border: 1px solid var(--warning-color-dark); border-radius: var(--border-radius-large);" href="${base_page_url}">
+      <a style="padding: 16px; margin-bottom: 20px; text-align: center; border: 1px solid var(--warning-color-dark); border-radius: var(--border-radius-large);" href="/">
         ⚠️ This is the documentation for an old userver version. Click here to switch to the latest version.
       </a>
     `;
@@ -103,7 +102,7 @@ const get_current_version = () => {
     const urlSplitLimiter = 3;
     const versionTokenPosition = 2;
 
-    if (pathname.startsWith("/docs")) {
+    if (pathname.startsWith("/docs/")) {
         return pathname.split("/", urlSplitLimiter)[versionTokenPosition]
     }
 
@@ -114,41 +113,56 @@ const get_current_version = () => {
     return TRUNK_VERSION;
 }
 
-const get_latest_major_verision = (versions) => {
-    latest_version = versions[versions.length - 1]
-    latest_version_prefix = latest_version.substring(0, latest_version.indexOf("."))
-    penultimate_element_position = versions.length - 2
+const getPreviousVersion = (versions, current_version) => {
+    let index = -1;
 
-    for (let i = penultimate_element_position; i >= 0; i--) {
-        if (!versions[i].startsWith(latest_version_prefix)) {
-            return versions[i + 1]
-        }
+    if (typeof current_version.index === "number") {
+        index = current_version.index;
+    } else if ("value" in current_version) {
+        index = versions.indexOf(current_version.value);
     }
+
+    if (index <= 0 || index >= versions.length) {
+        return undefined;
+    }
+
+    return {
+        index: index - 1,
+        value: versions[index - 1]
+    };
 }
 
-const get_latest_previous_major_version = (versions) => {
-    latest_version = versions[versions.length - 1]
-    latest_version_prefix = latest_version.substring(0, latest_version.indexOf("."))
-    penultimate_element_position = versions.length - 2
+const getVersionMajorPart = (version) => {
+    const major = version.split(".")[0].replace("v", "");
 
-    for (let i = penultimate_element_position; i >= 0; i--) {
-        if (!versions[i].startsWith(latest_version_prefix)) {
-            return versions[i]
-        }
+    const major_as_number = parseInt(major, 10);
+
+    return major_as_number;
+};
+
+
+const floor_to_major_version = (versions, target_version) => {
+    let target_major_version = getVersionMajorPart(target_version)
+    let version_iterator = { value: target_version, index: versions.length - 1 }
+
+    while (getVersionMajorPart(getPreviousVersion(versions, version_iterator).value) == target_major_version) {
+        version_iterator = getPreviousVersion(versions, version_iterator)
     }
+
+    return version_iterator.value
 }
 
 const add_docs_versioning = () => {
 
     loadVersions().then((versions) => {
-
         const latest_version = versions[versions.length - 1]
-        const current_version = get_current_version()
-        let latest_major_version = get_latest_major_verision(versions)
+        let second_likely_popular_version = floor_to_major_version(versions, latest_version)
 
-        if (latest_version == latest_major_version) {
-            latest_major_version = get_latest_previous_major_version(versions)
+        if (second_likely_popular_version == latest_version) {
+            second_likely_popular_version = getPreviousVersion(versions, { value: latest_version }).value
         }
+
+        const current_version = get_current_version()
 
         if (current_version != latest_version &&
             current_version != TRUNK_VERSION &&
@@ -170,16 +184,14 @@ const add_docs_versioning = () => {
             footer_infix += `<a href="/index.html">${TRUNK_VERSION}</a>, `
         }
 
-        if (current_version != latest_version) {
-            footer_infix += `<a href="/docs/${latest_version}/index.html">${latest_version}</a>, `
-        } else {
-            footer_infix += `<span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">${latest_version}</span>, `
-        }
+        not_trunk_versions = [latest_version, second_likely_popular_version]
 
-        if (current_version != latest_major_version) {
-            footer_infix += `<a href="/docs/${latest_major_version}/index.html">${latest_major_version}</a>, `
-        } else {
-            footer_infix += `<span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">${latest_major_version}</span>, `
+        for (let version of not_trunk_versions) {
+            if (current_version != version) {
+                footer_infix += `<a href="/docs/${version}/index.html">${version}</a>, `
+            } else {
+                footer_infix += `<span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">${version}</span>, `
+            }
         }
 
         footer_infix += `<a href="/d4/de0/versions.html">others</a>`
