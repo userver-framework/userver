@@ -4,7 +4,6 @@
 
 #include <csignal>
 #include <cstring>
-#include <iostream>
 #include <variant>
 
 #include <fmt/format.h>
@@ -187,6 +186,8 @@ void DoRun(
     const ComponentList& component_list,
     RunMode run_mode
 ) {
+    const auto start_time = std::chrono::steady_clock::now();
+
     utils::impl::FinishStaticRegistration();
 
     utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1, SIGUSR2};
@@ -212,7 +213,7 @@ void DoRun(
             PreheatStacktraceCollector();
         }
 
-        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), component_list);
+        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), start_time, component_list);
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Loading failed: " << ex;
         throw;

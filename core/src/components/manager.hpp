@@ -38,7 +38,11 @@ using TaskProcessorsMap = utils::impl::TransparentMap<std::string, std::unique_p
 // to the outside world.
 class Manager final {
 public:
-    Manager(std::unique_ptr<ManagerConfig>&& config, const ComponentList& component_list);
+    Manager(
+        std::unique_ptr<ManagerConfig>&& config,
+        std::chrono::steady_clock::time_point start_time,
+        const ComponentList& component_list
+    );
     ~Manager();
 
     const ManagerConfig& GetConfig() const;
@@ -49,6 +53,8 @@ public:
     void OnSignal(int signum);
 
     std::chrono::steady_clock::time_point GetStartTime() const;
+
+    std::chrono::milliseconds GetPreLoadDuration() const;
 
     std::chrono::milliseconds GetLoadDuration() const;
 
@@ -96,6 +102,7 @@ private:
 
     engine::TaskProcessor* default_task_processor_{nullptr};
     const std::chrono::steady_clock::time_point start_time_;
+    const std::chrono::milliseconds pre_load_duration_{0};
     std::chrono::milliseconds load_duration_{0};
 
     os_signals::ProcessorComponent* signal_processor_{nullptr};

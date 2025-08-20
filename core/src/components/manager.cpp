@@ -1,11 +1,9 @@
 #include <components/manager.hpp>
 
 #include <chrono>
-#include <future>
 #include <set>
 #include <stdexcept>
 #include <thread>
-#include <type_traits>
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
@@ -144,12 +142,19 @@ void Manager::TaskProcessorsStorage::WaitForAllTasksBlocking() const noexcept {
     }
 }
 
-Manager::Manager(std::unique_ptr<ManagerConfig>&& config, const ComponentList& component_list)
+Manager::Manager(
+    std::unique_ptr<ManagerConfig>&& config,
+    std::chrono::steady_clock::time_point start_time,
+    const ComponentList& component_list
+)
     : config_(std::move(config)),
       task_processors_storage_(
           std::make_shared<engine::impl::TaskProcessorPools>(config_->coro_pool, config_->event_thread_pool)
       ),
-      start_time_(std::chrono::steady_clock::now()) {
+      start_time_(start_time),
+      pre_load_duration_(
+          std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_)
+      ) {
     LOG_INFO() << "Starting components manager";
 
     for (auto processor_config : config_->task_processors) {
@@ -260,6 +265,8 @@ void Manager::OnSignal(int signum) {
 std::chrono::steady_clock::time_point Manager::GetStartTime() const { return start_time_; }
 
 std::chrono::milliseconds Manager::GetLoadDuration() const { return load_duration_; }
+
+std::chrono::milliseconds Manager::GetPreLoadDuration() const { return pre_load_duration_; }
 
 void Manager::CreateComponentContext(const ComponentList& component_list) {
     std::set<std::string> loading_component_names;

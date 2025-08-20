@@ -119,6 +119,9 @@ void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writ
     writer["load-ms"] =
         std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetLoadDuration()).count();
 
+    writer["pre-load-ms"] =
+        std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetPreLoadDuration()).count();
+
     writer["heavy-operations-in-transactions"] = utils::trx_tracker::GetStatistics().triggers;
 }
 
