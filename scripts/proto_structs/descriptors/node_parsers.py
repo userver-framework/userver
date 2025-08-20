@@ -47,14 +47,26 @@ def parse_enum(enum: descriptor.EnumDescriptor) -> gen_node.EnumNode:
 
 
 def parse_enum_value(value: descriptor.EnumValueDescriptor) -> gen_node.EnumValue:
-    # TODO cut enum value name if it begins with the enum name, e.g. FooEnum.FOO_ENUM_BAR -> FooEnum::BAR
+    enum_value_name = typing.cast(str, value.name)
+    enum_descriptor = typing.cast(descriptor.EnumDescriptor, value.type)
+    enum_name = typing.cast(str, enum_descriptor.name)
+
     return gen_node.EnumValue(
-        short_name=names.escape_id(typing.cast(str, value.name)),
+        short_name=names.escape_id(_cut_enum_value_name(enum_value_name, enum_name=enum_name)),
         number=typing.cast(int, value.number),
     )
 
 
-def parse_message(message: descriptor.Descriptor) -> gen_node.StructNode:
+def _cut_enum_value_name(value_name: str, *, enum_name: str) -> str:
+    if value_name.startswith(upper_enum_name := names.to_upper_case(enum_name)):
+        # ENUM_NAME_VALUE_NAME -> VALUE_NAME
+        cut_name = value_name[len(upper_enum_name) :].removeprefix('_')
+        if names.is_valid_id(cut_name):
+            return cut_name
+    return value_name
+
+
+def parse_message(message: descriptor.Descriptor) -> gen_node.TypeNode:
     struct_name = names.make_structs_type_name(type_mapping.parse_type_name(message))
 
     taken_member_names = _collect_taken_member_names(message)
@@ -79,7 +91,10 @@ def parse_message(message: descriptor.Descriptor) -> gen_node.StructNode:
                 continue
         fields.append(parse_field(field))
 
-    return gen_node.StructNode(name=struct_name, nested_types=nested_types, fields=fields)
+    result = gen_node.StructNode(name=struct_name, nested_types=nested_types, fields=fields)
+    if result_enum := _try_transform_enum_wrapper(result):
+        return result_enum
+    return result
 
 
 _SYNTHETIC_ONEOF_NAME_REGEX = re.compile(r'X*_\w*')
@@ -94,6 +109,23 @@ def _is_synthetic_oneof(oneof: descriptor.OneofDescriptor) -> bool:
     oneof_name = typing.cast(str, oneof.name)
 
     return _SYNTHETIC_ONEOF_NAME_REGEX.fullmatch(oneof_name) is not None
+
+
+def _try_transform_enum_wrapper(struct: gen_node.StructNode) -> Optional[gen_node.EnumNode]:
+    # FooBarEnum { enum FooBar { ... } } -> FooBarEnum
+    if len(struct.fields) != 0:
+        return None
+
+    if len(struct.nested_types) != 1:
+        return None
+    nested_type = struct.nested_types[0]
+
+    if not isinstance(nested_type, gen_node.EnumNode):
+        return None
+
+    if struct.name.short_name != f'{nested_type.name.short_name}Enum':
+        return None
+    return gen_node.EnumNode(name=struct.name, values=nested_type.values)
 
 
 def parse_field(

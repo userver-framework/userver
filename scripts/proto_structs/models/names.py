@@ -5,6 +5,7 @@ from __future__ import annotations
 import abc
 from collections.abc import Sequence
 import dataclasses
+import re
 
 from proto_structs.models import reserved_identifiers
 
@@ -104,6 +105,13 @@ def _get_contextual_cpp_name(entity: HasCppName, *, context: HasCppName) -> str:
     return '::'.join(node_names[index:])
 
 
+_ID_REGEX = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*')
+
+
+def is_valid_id(identifier: str) -> bool:
+    return _ID_REGEX.fullmatch(identifier) is not None
+
+
 def escape_id(identifier: str) -> str:
     """
     Escapes a Protobuf identifier for use in C++.
@@ -170,3 +178,15 @@ def make_nested_type_name(containing_type_name: TypeName, short_name: str) -> Ty
 def to_pascal_case(name: str) -> str:
     """Converts a `snake_case` or `camelCase` identifier to `PascalCase`."""
     return ''.join(part.capitalize() for part in name.split('_'))
+
+
+def to_upper_case(name: str) -> str:
+    """Converts a `snake_case`, `camelCase`, `PascalCase` or `UPPER_CASE` identifier to `UPPER_CASE`."""
+    if name.isupper():
+        return name
+    result = ''
+    for i, char in enumerate(name):
+        if char.isupper() and i > 0:
+            result += '_'
+        result += char
+    return result.upper()

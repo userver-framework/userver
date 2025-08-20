@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/enums;enums";
+
+package enums;
+
+// Should be left as-is. Note: unscoped, unprefixed enum values are not recommended.
+enum Unprefixed {
+    UNSPECIFIED = 0;
+    FOO_VAR = 1;
+    BAR_VAR = 2;
+}
+
+// Prefix should be cut when converted to a C++ enum class.
+enum AllowedCuts {
+    ALLOWED_CUTS_UNSPECIFIED = 0;
+    ALLOWED_CUTS_FOO_VAR = 1;
+    ALLOWED_CUTS_DIGITS1 = 2;
+}
+
+enum DisallowedCuts {
+    // Camel-case prefix is not cut away. The proper name should be `DISALLOWED_CUTS_UNSPECIFIED`.
+    DisallowedCuts_UNKNOWN = 0;
+    // Same value name as the enum name.
+    DISALLOWED_CUTS = 1;
+    // `1` is not a valid identifier.
+    DISALLOWED_CUTS1 = 2;
+    // `1` is not a valid identifier.
+    DISALLOWED_CUTS_2 = 3;
+    // Camel-case prefix is not cut away. The naming conventions recommend prefixing with an uppercase enum name.
+    DisallowedCutsCamel = 4;
+}
+
+// This is a common trick that allows to achieve desired scoping for various languages.
+// The message contains nothing except the nested enum. Outer message name should be `<EnumName>Enum`.
+// When converting to a C++ enum class, remove the nested enum.
+message NestedTrickEnum {
+    enum NestedTrick {
+        UNSPECIFIED = 0;
+        FOO_VAR = 1;
+        BAR_VAR = 2;
+    }
+}
