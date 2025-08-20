@@ -63,6 +63,50 @@ Read the documentation on gRPC streams:
 
 On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside the entire stream interaction. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+### Working with metadata
+
+gRPC metadata allows you to send additional information along with requests and responses. Metadata consists of key-value pairs that are transmitted as HTTP/2 headers.
+
+#### Client-side metadata handling
+
+##### Sending request metadata
+
+To send metadata with a request, use @ref ugrpc::client::CallOptions and its @ref ugrpc::client::CallOptions::AddMetadata method:
+
+@snippet grpc/tests/metadata_test.cpp client_write_metadata
+
+##### Receiving response metadata
+
+Response metadata can be accessed through the @ref ugrpc::client::CallContext obtained from @ref ugrpc::client::ResponseFuture or stream objects:
+
+* **Reading initial metadata** - metadata sent by the server at the beginning of the response
+
+@snippet grpc/tests/metadata_test.cpp client_read_initial_metadata
+
+* **Reading trailing metadata** - metadata sent by the server at the end of the response
+
+@snippet grpc/tests/metadata_test.cpp client_read_trailing_metadata
+
+#### Server-side metadata handling
+
+##### Reading client metadata
+
+The server can read metadata sent by the client:
+
+@snippet grpc/tests/metadata_test.cpp server_read_client_metadata
+
+##### Sending response metadata
+
+The server can send two types of metadata back to the client:
+
+* **Initial metadata** - sent at the beginning of the response
+
+@snippet grpc/tests/metadata_test.cpp server_write_initial_metadata
+
+* **Trailing metadata** - sent at the end of the response
+
+@snippet grpc/tests/metadata_test.cpp server_write_trailing_metadata
+
 @anchor grpc_ssl_authentication
 ### TLS / SSL
 

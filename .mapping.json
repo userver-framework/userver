@@ -2391,6 +2391,7 @@
   "grpc/tests/generic_client_test.cpp":"taxi/uservices/userver/grpc/tests/generic_client_test.cpp",
   "grpc/tests/generic_server_test.cpp":"taxi/uservices/userver/grpc/tests/generic_server_test.cpp",
   "grpc/tests/logging_test.cpp":"taxi/uservices/userver/grpc/tests/logging_test.cpp",
+  "grpc/tests/metadata_test.cpp":"taxi/uservices/userver/grpc/tests/metadata_test.cpp",
   "grpc/tests/proto_json.cpp":"taxi/uservices/userver/grpc/tests/proto_json.cpp",
   "grpc/tests/protobuf_collector_test.cpp":"taxi/uservices/userver/grpc/tests/protobuf_collector_test.cpp",
   "grpc/tests/protobuf_utils_test.cpp":"taxi/uservices/userver/grpc/tests/protobuf_utils_test.cpp",
