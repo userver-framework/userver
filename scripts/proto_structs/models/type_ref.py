@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from collections.abc import Sequence
 import dataclasses
 import itertools
+from typing import Optional
 
 from typing_extensions import override
 
@@ -91,6 +92,37 @@ class BuiltinType(TypeReference, names.HasCppNameImpl):
     def full_cpp_name_segments(self) -> Sequence[str]:
         # Return a single segment so that `contextual_cpp_name(context) == full_cpp_name`.
         return (self._full_cpp_name,)
+
+    @override
+    def collect_includes(self) -> Iterable[str]:
+        return [self._include]
+
+
+_hardcoded_userver_namespace: Optional[str] = None
+
+
+def set_hardcoded_userver_namespace(namespace: Optional[str]) -> None:
+    global _hardcoded_userver_namespace
+    _hardcoded_userver_namespace = namespace
+
+
+class UserverLibraryType(TypeReference, names.HasCppNameImpl):
+    """A usage of a non-code-generated type from userver."""
+
+    def __init__(self, *, full_cpp_name_wo_userver: str, include: str) -> None:
+        super().__init__()
+        self._full_cpp_name_wo_userver = full_cpp_name_wo_userver
+        self._include = include
+
+    @override
+    def full_cpp_name_segments(self) -> Sequence[str]:
+        if _hardcoded_userver_namespace is not None:
+            userver_namespace = _hardcoded_userver_namespace
+        else:
+            userver_namespace = 'USERVER_NAMESPACE'
+
+        # Return a single segment so that `contextual_cpp_name(context) == full_cpp_name`.
+        return (f'{userver_namespace}::{self._full_cpp_name_wo_userver}',)
 
     @override
     def collect_includes(self) -> Iterable[str]:

@@ -4,6 +4,8 @@
 
 #include <enums/names.structs.usrv.pb.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(EnumNames, Unprefixed) {
     using Enum = enums::structs::Unprefixed;
     static_assert(std::is_enum_v<Enum>);
@@ -33,3 +35,5 @@ TEST(EnumNames, NestedTrick) {
     static_assert(std::is_enum_v<Enum>);
     static_assert(std::is_same_v<decltype(Enum::FOO_VAR), Enum>);
 }
+
+USERVER_NAMESPACE_END

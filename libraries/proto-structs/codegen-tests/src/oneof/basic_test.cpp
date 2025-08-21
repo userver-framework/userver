@@ -4,6 +4,8 @@
 
 #include <oneof/basic.structs.usrv.pb.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(OneofBasic, LowercaseEmpty) {
     oneof::structs::Parent message;
     static_assert(std::is_same_v<decltype(message.lowercase), oneof::structs::Parent::Lowercase>);
@@ -85,3 +87,5 @@ TEST(OneofBasic, SyntheticOneofIsIgnored) {
     [[maybe_unused]] oneof::structs::Parent message;
     static_assert(std::is_same_v<decltype(message.field_before), std::optional<std::string>>);
 }
+
+USERVER_NAMESPACE_END

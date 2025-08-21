@@ -46,9 +46,6 @@ def parse_enum_reference(field_type: descriptor.EnumDescriptor) -> type_ref.Type
 
 
 def parse_struct_reference(field_type: descriptor.Descriptor) -> type_ref.TypeReference:
-    # TODO transform map fields by looking at `map_entry` message option
-    # https://protobuf.com/docs/descriptors#map-fields
-
     # TODO
     return type_ref.BuiltinType(full_cpp_name='std::monostate', include=_BUNDLE_HPP)
 

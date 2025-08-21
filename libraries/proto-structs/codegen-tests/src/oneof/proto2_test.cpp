@@ -4,6 +4,8 @@
 
 #include <oneof/proto2.structs.usrv.pb.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(OneofProto2, OneofEmpty) {
     oneof::structs::Proto2 message;
     static_assert(std::is_same_v<decltype(message.oneof), oneof::structs::Proto2::Oneof>);
@@ -115,3 +117,5 @@ TEST(OneofProto2, OptionalFieldBefore) {
     EXPECT_TRUE(message.field_before.has_value());
     EXPECT_EQ(*message.field_before, "field_before_value");
 }
+
+USERVER_NAMESPACE_END

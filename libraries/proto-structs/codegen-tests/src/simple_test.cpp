@@ -6,6 +6,8 @@
 
 namespace ss = simple::structs;
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(SingleFile, SimpleStruct) {
     static_assert(std::is_aggregate_v<ss::SimpleStruct>);
     [[maybe_unused]] ss::SimpleStruct message;
@@ -79,3 +81,5 @@ TEST(Oneof, OneofInStruct) {
     message.something.set_bar("bar");
     EXPECT_EQ(message.something.bar(), "bar");
 }
+
+USERVER_NAMESPACE_END

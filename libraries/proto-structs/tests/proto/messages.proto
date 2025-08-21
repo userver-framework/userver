@@ -4,7 +4,7 @@ package test_messages;
 option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/tests/proto;testmessages";
 
 enum TestEnum {
-  TEST_ENUM_USPECIFIED = 0;
+  TEST_ENUM_UNSPECIFIED = 0;
   TEST_ENUM_VALUE1 = 1;
   TEST_ENUM_VALUE2 = 2;
 }

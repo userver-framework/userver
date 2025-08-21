@@ -50,6 +50,13 @@ class HasCppNameImpl(HasCppName, abc.ABC):
         return _get_contextual_cpp_name(self, context=context)
 
 
+_GLOBAL_PREFIXES: Sequence[str] = (
+    '::',
+    'std::',
+    'USERVER_NAMESPACE::',
+)
+
+
 def _get_contextual_cpp_name(entity: HasCppName, *, context: HasCppName) -> str:
     node_names = entity.full_cpp_name_segments()
     assert node_names, f'Cannot render a reference to an instance of {entity.__class__} by an empty name'
@@ -59,8 +66,9 @@ def _get_contextual_cpp_name(entity: HasCppName, *, context: HasCppName) -> str:
         assert len(node_names) == 1
         return node_names[0]
 
-    if node_names[0] == 'std' or node_names[0].startswith('std::'):
+    if node_names[0] == 'std' or any(node_names[0].startswith(prefix) for prefix in _GLOBAL_PREFIXES):
         # Always mention std:: entities by full name, global namespace prefixing is not required.
+        # Do not prefix USERVER_NAMESPACE:: names with global namespace as well (it results in a syntax error).
         return '::'.join(node_names)
 
     context_names = context.full_cpp_name_segments()

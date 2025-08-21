@@ -6,8 +6,10 @@
 import pathlib
 import re
 import typing
+from typing import Any
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import MutableSet
 from typing import Optional
 from typing import Union
@@ -27,7 +29,8 @@ def parse_file(file: descriptor.FileDescriptor) -> gen_node.File:
     for enum in typing.cast(Dict[str, descriptor.EnumDescriptor], file.enum_types_by_name).values():
         namespace_members.append(parse_enum(enum))
     for message in typing.cast(Dict[str, descriptor.Descriptor], file.message_types_by_name).values():
-        namespace_members.append(parse_message(message))
+        if message_type := parse_message(message):
+            namespace_members.append(message_type)
     # TODO perform a topological sort of namespace_members
     structs_namespace = gen_node.NamespaceNode.make_for_structs(
         typing.cast(str, file.package),
@@ -66,7 +69,10 @@ def _cut_enum_value_name(value_name: str, *, enum_name: str) -> str:
     return value_name
 
 
-def parse_message(message: descriptor.Descriptor) -> gen_node.TypeNode:
+def parse_message(message: descriptor.Descriptor) -> Optional[gen_node.TypeNode]:
+    if _is_map_entry(message):
+        return None
+
     struct_name = names.make_structs_type_name(type_mapping.parse_type_name(message))
 
     taken_member_names = _collect_taken_member_names(message)
@@ -75,7 +81,8 @@ def parse_message(message: descriptor.Descriptor) -> gen_node.TypeNode:
     for nested_enum in typing.cast(List[descriptor.EnumDescriptor], message.enum_types):
         nested_types.append(parse_enum(nested_enum))
     for nested_message in typing.cast(List[descriptor.Descriptor], message.nested_types):
-        nested_types.append(parse_message(nested_message))
+        if message_type := parse_message(nested_message):
+            nested_types.append(message_type)
 
     fields: List[gen_node.StructField] = []
 
@@ -128,15 +135,24 @@ def _try_transform_enum_wrapper(struct: gen_node.StructNode) -> Optional[gen_nod
     return gen_node.EnumNode(name=struct.name, values=nested_type.values)
 
 
+def _is_map_entry(message: descriptor.Descriptor) -> bool:
+    # https://protobuf.com/docs/descriptors#map-fields
+    options: Any = message.GetOptions()
+    is_map_entry: bool = getattr(options, 'map_entry', False)
+    return is_map_entry
+
+
 def parse_field(
     field: descriptor.FieldDescriptor,
     *,
     ignore_label: bool = False,
 ) -> gen_node.StructField:
-    parsed_type = _parse_type_reference(field)
-
-    if not ignore_label:
-        parsed_type = type_mapping.handle_type_label(field, parsed_type)
+    if map_field_type := _try_parse_map_field_type(field):
+        parsed_type = map_field_type
+    else:
+        parsed_type = _parse_type_reference(field)
+        if not ignore_label:
+            parsed_type = type_mapping.handle_type_label(field, parsed_type)
 
     return gen_node.StructField(
         short_name=names.escape_id(typing.cast(str, field.name)),
@@ -144,6 +160,26 @@ def parse_field(
         number=typing.cast(int, field.number),
         oneof_fields=None,
     )
+
+
+_HASH_MAP_TEMPLATE = type_ref.UserverLibraryType(
+    full_cpp_name_wo_userver='proto_structs::HashMap', include='userver/proto-structs/hash_map.hpp'
+)
+
+
+def _try_parse_map_field_type(field: descriptor.FieldDescriptor) -> Optional[type_ref.TypeReference]:
+    # https://protobuf.com/docs/descriptors#map-fields
+    if typing.cast(int, field.type) != descriptor.FieldDescriptor.TYPE_MESSAGE:
+        return None
+    message_type = typing.cast(descriptor.Descriptor, field.message_type)
+    if not _is_map_entry(message_type):
+        return None
+
+    fields_by_name = typing.cast(Mapping[str, descriptor.FieldDescriptor], message_type.fields_by_name)
+    key_type = _parse_type_reference(fields_by_name['key'])
+    value_type = _parse_type_reference(fields_by_name['value'])
+
+    return type_ref.TemplateType(template=_HASH_MAP_TEMPLATE, template_args=[key_type, value_type])
 
 
 def parse_oneof(
