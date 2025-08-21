@@ -26,8 +26,8 @@ namespace {
 
 auto TieSettings(const PeriodicTask::Settings& settings) {
     // Can't use Boost.Pfr, because Settings has custom constructors.
-    const auto& [f1, f2, f3, f4, f5, f6] = settings;
-    return std::tie(f1, f2, f3, f4, f5, f6);
+    const auto& [f1, f2, f3, f4, f5, f6, f7] = settings;
+    return std::tie(f1, f2, f3, f4, f5, f6, f7);
 }
 
 }  // namespace
@@ -135,6 +135,7 @@ void PeriodicTask::Stop() noexcept {
 }
 
 void PeriodicTask::SetSettings(Settings settings) {
+
     bool should_notify_task{};
     {
         auto writer = impl_->settings_.StartWrite();
@@ -143,7 +144,7 @@ void PeriodicTask::SetSettings(Settings settings) {
             return;
         }
         settings.flags = writer->flags;
-        should_notify_task = settings.period != writer->period || settings.exception_period != writer->exception_period;
+        should_notify_task = settings.period != writer->period || settings.exception_period != writer->exception_period || settings.enabled != writer->enabled;
         *writer = std::move(settings);
         writer.Commit();
     }
@@ -171,8 +172,10 @@ bool PeriodicTask::IsRunning() const { return impl_->task_.IsValid(); }
 
 void PeriodicTask::Impl::Run() {
     bool skip_step = false;
+    bool task_enabled = true;
     {
         auto settings = settings_.Read();
+        task_enabled = settings->enabled;
         if (!(settings->flags & Flags::kNow)) {
             skip_step = true;
         }
@@ -182,11 +185,12 @@ void PeriodicTask::Impl::Run() {
         const auto before = std::chrono::steady_clock::now();
         bool no_exception = true;
 
-        if (!std::exchange(skip_step, false)) {
+        if (!std::exchange(skip_step, false) && task_enabled) {
             no_exception = Step();
         }
 
-        const auto settings = settings_.Read();
+        auto settings = settings_.Read();
+        task_enabled = settings->enabled;
         auto period = settings->period;
         const auto exception_period = settings->exception_period.value_or(period);
 
@@ -199,12 +203,19 @@ void PeriodicTask::Impl::Run() {
             start = std::chrono::steady_clock::now();
         }
 
-        while (changed_event_.WaitForEventUntil(start + MutatePeriod(period))) {
+        engine::Deadline deadline;
+        while (deadline = task_enabled ? engine::Deadline::FromTimePoint(start + MutatePeriod(period)) : engine::Deadline{}, changed_event_.WaitForEventUntil(deadline)) {
             if (should_force_step_.exchange(false)) {
-                break;
+              break;
             }
             // The config variable value has been changed, reload
             const auto settings = settings_.Read();
+            if(task_enabled != settings->enabled)
+            {
+                task_enabled = settings->enabled;
+                break;
+            }
+
             period = settings->period;
             const auto exception_period = settings->exception_period.value_or(period);
             if (!no_exception) period = exception_period;

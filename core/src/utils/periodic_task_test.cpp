@@ -419,4 +419,39 @@ UTEST_F(PeriodicTaskLog, ErrorLog) {
     task.Stop();
 }
 
+UTEST(PeriodicTask, EnableDisable) {
+    SimpleTaskData simple;
+
+    constexpr auto period = 3ms;
+    utils::PeriodicTask::Settings settings(period);
+
+    constexpr Count n = 10;
+
+    const auto start = std::chrono::steady_clock::now();
+    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple]() { return simple.GetCount() > 5; }));
+    auto countBeforeStop = simple.GetCount();
+    settings.enabled = false;
+    task.SetSettings(settings);
+    EXPECT_FALSE(simple.WaitFor(period * n * kSlowRatio, [&simple]() { return simple.GetCount() > 10; }));
+    EXPECT_TRUE(countBeforeStop == simple.GetCount());
+    EXPECT_TRUE(task.IsRunning());
+    settings.enabled = true;
+    task.SetSettings(settings);
+    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple,countBeforeStop]() { return simple.GetCount() > 10; }));
+    EXPECT_TRUE(task.IsRunning());
+    auto countBeforeStop2 = simple.GetCount();
+    settings.enabled = false;
+    task.SetSettings(settings);
+    EXPECT_FALSE(simple.WaitFor(period * n * kSlowRatio, [&simple]() { return simple.GetCount() > 20; }));
+    EXPECT_TRUE(countBeforeStop2 == simple.GetCount());
+    EXPECT_TRUE(task.IsRunning());
+
+    task.ForceStepAsync();
+    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple]() { return simple.GetCount() > 30; }));
+
+    task.Stop();
+    EXPECT_TRUE(!task.IsRunning());
+}
+
 USERVER_NAMESPACE_END
