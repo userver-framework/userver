@@ -17,9 +17,10 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 
 ## Source codes and service templates at github
 
-Ready-to-use services templates and the source codes of the framework itself
-are available at the
+Samples and the source codes of the framework itself are available at the
 [userver-framework at github](https://github.com/userver-framework/).
+
+Mirror is available at [the SourceCraft](https://sourcecraft.dev/userver/repos).
 
 
 ## Introduction
