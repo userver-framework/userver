@@ -206,5 +206,5 @@ storages::postgres::TimePointTz.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/roadmap_and_changelog.md | @ref scripts/docs/en/userver/build/build.md ⇨
+⇦ @ref scripts/docs/en/userver/distro_maintainers.md | @ref scripts/docs/en/userver/build/build.md ⇨
 @htmlonly </div> @endhtmlonly

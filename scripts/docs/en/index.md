@@ -32,6 +32,7 @@ Mirror is available at [the SourceCraft](https://sourcecraft.dev/userver/repos).
 * @ref scripts/docs/en/userver/deploy_env.md
 * @ref scripts/docs/en/userver/development/releases.md
 * @ref scripts/docs/en/userver/roadmap_and_changelog.md
+* @ref scripts/docs/en/userver/distro_maintainers.md
 * @ref scripts/docs/en/userver/faq.md
 
 

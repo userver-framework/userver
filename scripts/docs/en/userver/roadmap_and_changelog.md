@@ -1781,6 +1781,6 @@ Detailed descriptions could be found below.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/development/releases.md | @ref scripts/docs/en/userver/faq.md ⇨
+⇦ @ref scripts/docs/en/userver/development/releases.md | @ref scripts/docs/en/userver/distro_maintainers.md ⇨
 @htmlonly </div> @endhtmlonly
 

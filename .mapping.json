@@ -3970,6 +3970,7 @@
   "scripts/docs/en/userver/deploy_env.md":"taxi/uservices/userver/scripts/docs/en/userver/deploy_env.md",
   "scripts/docs/en/userver/development/releases.md":"taxi/uservices/userver/scripts/docs/en/userver/development/releases.md",
   "scripts/docs/en/userver/development/stability.md":"taxi/uservices/userver/scripts/docs/en/userver/development/stability.md",
+  "scripts/docs/en/userver/distro_maintainers.md":"taxi/uservices/userver/scripts/docs/en/userver/distro_maintainers.md",
   "scripts/docs/en/userver/dns_control.md":"taxi/uservices/userver/scripts/docs/en/userver/dns_control.md",
   "scripts/docs/en/userver/driver_guide.md":"taxi/uservices/userver/scripts/docs/en/userver/driver_guide.md",
   "scripts/docs/en/userver/dynamic_config.md":"taxi/uservices/userver/scripts/docs/en/userver/dynamic_config.md",
