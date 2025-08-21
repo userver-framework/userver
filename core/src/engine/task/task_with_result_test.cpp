@@ -57,6 +57,19 @@ UTEST(TaskWithResult, LifetimeIfTaskCancelledBeforeStart) {
     EXPECT_TRUE(is_func_destroyed);
 }
 
+UTEST(TaskWithResult, InvalidationOfCancelledTask) {
+    auto task = utils::Async("some_task", [value = std::move("some_value")] {
+        engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
+        return value;
+    });
+
+    task.RequestCancel();
+    task.Wait();
+    EXPECT_EQ(task.GetState(), engine::Task::State::kCancelled);
+    UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
+    EXPECT_FALSE(task.IsValid());
+}
+
 static_assert(std::is_move_constructible_v<engine::TaskWithResult<void>>);
 static_assert(std::is_move_assignable_v<engine::TaskWithResult<void>>);
 

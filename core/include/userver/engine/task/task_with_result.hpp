@@ -54,11 +54,11 @@ public:
         EnsureValid();
 
         Wait();
+        const utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
         if (GetState() == State::kCancelled) {
             throw TaskCancelledException(CancellationReason());
         }
 
-        const utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
         return utils::impl::CastWrappedCall<T>(GetPayload()).Retrieve();
     }
 

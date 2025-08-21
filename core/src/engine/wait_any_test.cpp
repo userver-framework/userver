@@ -69,6 +69,17 @@ UTEST(WaitAny, Cancelled) {
     task.SyncCancel();
 }
 
+UTEST(WaitAny, VectorWithCancelledTask) {
+    std::vector<engine::TaskWithResult<std::string>> tasks;
+    tasks.push_back(engine::AsyncNoSpan([] { return std::string{"some_value"}; }));
+    tasks[0].RequestCancel();
+
+    auto task_idx_opt = engine::WaitAny(tasks);
+    EXPECT_TRUE(!!task_idx_opt);
+    UEXPECT_THROW(tasks[*task_idx_opt].Get(), engine::TaskCancelledException);
+    EXPECT_EQ(engine::WaitAny(tasks), std::nullopt);
+}
+
 UTEST(WaitAny, WaitAnyFor) {
     engine::TaskWithResult<void> tasks[] = {
         engine::AsyncNoSpan([] {
