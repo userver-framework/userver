@@ -15,11 +15,11 @@ namespace ugrpc::client {
 ///
 /// This class is not thread-safe except for `GetContext`.
 ///
-/// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false`). In that case the connection is not closed (it will be
-/// reused for new RPCs), and the server receives `RpcInterruptedError`
-/// immediately. gRPC provides no way to early-close a server-streaming RPC
-/// gracefully.
+/// The RPC should be completed by reading until @ref ugrpc::client::Reader::Read returns `false`.
+/// If destroyed early, the RPC is cancelled. The server gets @ref ugrpc::client::RpcInterruptedError
+/// and the `abandoned-error` metric is incremented. The connection stays open for reuse.
+/// gRPC provides no way to early-close a server-streaming RPC gracefully.
+/// See @ref ugrpc::client::ReadRemainingAndFinish for graceful completion.
 template <class Response>
 class [[nodiscard]] Reader final {
 public:
@@ -62,9 +62,9 @@ private:
 ///
 /// This class is not thread-safe except for `GetContext`.
 ///
-/// The RPC is cancelled on destruction unless `Finish` has been called. In that
-/// case the connection is not closed (it will be reused for new RPCs), and the
-/// server receives `RpcInterruptedError` immediately.
+/// The RPC should be completed by calling @ref ugrpc::client::Writer::Finish.
+/// If destroyed early, the RPC is cancelled. The server gets @ref ugrpc::client::RpcInterruptedError
+/// and the `abandoned-error` metric is incremented. When properly finished, the connection stays open for reuse.
 template <typename Request, typename Response>
 class [[nodiscard]] Writer final {
 public:
@@ -141,11 +141,11 @@ private:
 ///
 /// `WriteAndCheck` is NOT thread-safe.
 ///
-/// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false`). In that case the connection is not closed (it will be
-/// reused for new RPCs), and the server receives `RpcInterruptedError`
-/// immediately. gRPC provides no way to early-close a server-streaming RPC
-/// gracefully.
+/// The RPC should be completed by reading until @ref ugrpc::client::Reader::Read returns `false`.
+/// If destroyed early, the RPC is cancelled. The server gets @ref ugrpc::client::RpcInterruptedError
+/// and the `abandoned-error` metric is incremented. The connection stays open for reuse.
+/// gRPC provides no way to early-close a server-streaming RPC gracefully.
+// See @ref ugrpc::client::ReadRemainingAndFinish and @ref ugrpc::client::PingPongFinish for graceful completion.
 ///
 /// `Read` and `AsyncRead` can throw if error status is received from server.
 /// User MUST NOT call `Read` or `AsyncRead` again after failure of any of these
