@@ -1,4 +1,5 @@
 ccache
+libgflags-dev
 clang-format
 cmake
 gdb
