@@ -1,9 +1,7 @@
 boost-devel
-librdkafka-devel
 bzip2-devel
 c-ares-devel
 ccache
-rocksdb-devel
 cctz-devel
 clang-tools-extra
 cmake
@@ -24,6 +22,7 @@ libatomic
 libbson-devel
 libev-devel
 libnghttp2-devel
+librdkafka-devel
 libubsan
 lz4-devel
 mariadb-connector-c-devel
@@ -44,6 +43,7 @@ python3-protobuf
 python3-voluptuous
 re2
 redis
+rocksdb-devel
 snappy-devel
 sqlite-devel
 unixODBC-devel
