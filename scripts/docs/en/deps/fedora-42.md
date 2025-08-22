@@ -1,4 +1,5 @@
 boost-devel
+librdkafka-devel
 bzip2-devel
 c-ares-devel
 ccache
