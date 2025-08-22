@@ -11,8 +11,8 @@ name: Debian
 env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
-    CXX: clang++-16
-    CC: clang-16
+    CXX: clang++-11
+    CC: clang-11
     CCACHE_DIR: /home/runner/.cache/ccache
     CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /home/runner/.cache/CPM
