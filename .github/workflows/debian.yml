@@ -109,7 +109,7 @@ jobs:
 
           - name: Compile
             run: |
-                cmake --build build_debug -j$(nproc)
+                cmake --build build_debug --parallel $(nproc)
 
           - name: Save cached directories
             uses: actions/cache/save@v4
