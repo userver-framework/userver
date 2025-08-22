@@ -4062,6 +4062,7 @@
   "scripts/docs/fontello/font/fontello.woff":"taxi/uservices/userver/scripts/docs/fontello/font/fontello.woff",
   "scripts/docs/fontello/font/fontello.woff2":"taxi/uservices/userver/scripts/docs/fontello/font/fontello.woff2",
   "scripts/docs/footer.html":"taxi/uservices/userver/scripts/docs/footer.html",
+  "scripts/docs/generate_versions.py":"taxi/uservices/userver/scripts/docs/generate_versions.py",
   "scripts/docs/header.html":"taxi/uservices/userver/scripts/docs/header.html",
   "scripts/docs/highlight.js/LICENSE":"taxi/uservices/userver/scripts/docs/highlight.js/LICENSE",
   "scripts/docs/highlight.js/README.md":"taxi/uservices/userver/scripts/docs/highlight.js/README.md",

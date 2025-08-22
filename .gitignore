@@ -22,3 +22,5 @@ static-analyzer-report
 .clangd
 .vscode
 scripts/docs/en/dynamic_configs
+scripts/docs/en/versions.md
+scripts/docs/scripts/versions.js

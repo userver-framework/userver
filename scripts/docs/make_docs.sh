@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Exit on any error and treat unset variables as errors, print all commands
+set -euox pipefail
+
 cd "$(dirname "$0")/../.."
 
 if [ -z "$BUILD_DIR" ]; then
@@ -56,6 +59,9 @@ cp $BUILD_DIR/docs-dynamic-configs/* scripts/docs/en/dynamic_configs/
 
 # Run doxygen.
 rm -rf "$BUILD_DIR/docs" || :
+
+# Generate versions for docs
+python3 scripts/docs/generate_versions.py
 
 DOXYFILE_OVERRIDES="${DOXYFILE_OVERRIDES:-}"
 
