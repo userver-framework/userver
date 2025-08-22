@@ -232,7 +232,7 @@ std::optional<std::string_view> Span::Impl::GetSpanIdForChildLogs() const {
 }
 
 void Span::OptionalDeleter::operator()(Span::Impl* impl) const noexcept {
-    if (do_delete) {
+    if (do_delete_) {
         std::default_delete<Impl>{}(impl);
     }
 }

@@ -59,7 +59,7 @@ class CountExecute {
 public:
     CountExecute(Connection::Statistics& stats) : stats_(stats) {
         ++stats_.execute_total;
-        exec_begin_time = SteadyClock::now();
+        exec_begin_time_ = SteadyClock::now();
     }
 
     ~CountExecute() {
@@ -67,7 +67,7 @@ public:
         if (!completed_) {
             ++stats_.error_execute_total;
         }
-        stats_.sum_query_duration += now - exec_begin_time;
+        stats_.sum_query_duration += now - exec_begin_time_;
         stats_.last_execute_finish = now;
     }
 
@@ -79,7 +79,7 @@ public:
 private:
     Connection::Statistics& stats_;
     bool completed_{false};
-    SteadyClock::time_point exec_begin_time;
+    SteadyClock::time_point exec_begin_time_;
 };
 
 class CountPortalBind {
@@ -909,7 +909,7 @@ ResultSet ConnectionImpl::ExecuteCommand(
     PGresult* description_ptr_to_send = nullptr;
     if (IsOmitDescribeInExecuteEnabled()) {
         description_ptr_to_read = &prepared_info.description;
-        description_ptr_to_send = description_ptr_to_read->pimpl_->handle_.get();
+        description_ptr_to_send = description_ptr_to_read->pimpl_->handle.get();
     }
 
     scope.Reset(scopes::kExec);
@@ -950,7 +950,7 @@ void ConnectionImpl::AddIntoPipeline(
 
     SetStatementTimeout(cc);
 
-    PGresult* description_to_send = IsOmitDescribeInExecuteEnabled() ? description.pimpl_->handle_.get() : nullptr;
+    PGresult* description_to_send = IsOmitDescribeInExecuteEnabled() ? description.pimpl_->handle.get() : nullptr;
     conn_wrapper_.SendPreparedQuery(prepared_statement_name, params, scope, description_to_send);
 
     conn_wrapper_.PutPipelineSync();
@@ -964,7 +964,7 @@ ConnectionImpl::GatherPipeline(TimeoutDuration timeout, const std::vector<Result
     std::vector<const PGresult*> native_descriptions(descriptions.size(), nullptr);
     if (IsOmitDescribeInExecuteEnabled()) {
         for (std::size_t i = 0; i < descriptions.size(); ++i) {
-            native_descriptions[i] = descriptions[i].pimpl_->handle_.get();
+            native_descriptions[i] = descriptions[i].pimpl_->handle.get();
         }
     }
 
@@ -1102,7 +1102,7 @@ ResultSet ConnectionImpl::WaitResult(
     tracing::ScopeTime& scope,
     const ResultSet* description_ptr
 ) {
-    const PGresult* description = description_ptr ? description_ptr->pimpl_->handle_.get() : nullptr;
+    const PGresult* description = description_ptr ? description_ptr->pimpl_->handle.get() : nullptr;
 
     const ScopeGuard guard([this]() { in_transaction_ = IsInTransaction(); });
 

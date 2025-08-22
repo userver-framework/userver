@@ -36,22 +36,22 @@ class PeriodicTask::Impl final {
 public:
     enum class SuspendState { kRunning, kSuspended };
 
-    std::string name_;
-    std::atomic<bool> is_name_set_{false};
-    PeriodicTask::Callback callback_;
-    engine::TaskWithResult<void> task_;
-    rcu::Variable<PeriodicTask::Settings> settings_;
-    engine::SingleConsumerEvent changed_event_;
-    std::atomic<bool> should_force_step_{false};
-    std::optional<std::minstd_rand> mutate_period_random_;
+    std::string name;
+    std::atomic<bool> is_name_set{false};
+    PeriodicTask::Callback callback;
+    engine::TaskWithResult<void> task;
+    rcu::Variable<PeriodicTask::Settings> settings;
+    engine::SingleConsumerEvent changed_event;
+    std::atomic<bool> should_force_step{false};
+    std::optional<std::minstd_rand> mutate_period_random;
 
     // For kNow only
-    engine::Mutex step_mutex_;
-    std::atomic<SuspendState> suspend_state_;
+    engine::Mutex step_mutex;
+    std::atomic<SuspendState> suspend_state;
 
-    std::optional<USERVER_NAMESPACE::testsuite::PeriodicTaskRegistrationHolder> registration_holder_;
+    std::optional<USERVER_NAMESPACE::testsuite::PeriodicTaskRegistrationHolder> registration_holder;
 
-    Impl() : settings_(std::chrono::seconds(1)), suspend_state_(SuspendState::kRunning) {}
+    Impl() : settings(std::chrono::seconds(1)), suspend_state(SuspendState::kRunning) {}
 
     void DoStart();
     void Run();
@@ -75,45 +75,45 @@ bool PeriodicTask::Settings::operator!=(const Settings& other) const noexcept {
 PeriodicTask::PeriodicTask() : impl_() {}
 
 PeriodicTask::PeriodicTask(std::string name, Settings settings, Callback callback) : impl_() {
-    impl_->name_ = std::move(name);
-    impl_->is_name_set_ = true;
-    impl_->callback_ = std::move(callback);
-    impl_->settings_.Assign(std::move(settings));
-    impl_->suspend_state_ = Impl::SuspendState::kRunning;
+    impl_->name = std::move(name);
+    impl_->is_name_set = true;
+    impl_->callback = std::move(callback);
+    impl_->settings.Assign(std::move(settings));
+    impl_->suspend_state = Impl::SuspendState::kRunning;
     impl_->DoStart();
 }
 
 PeriodicTask::~PeriodicTask() {
-    impl_->registration_holder_ = std::nullopt;
+    impl_->registration_holder = std::nullopt;
     Stop();
 }
 
 void PeriodicTask::Start(std::string name, Settings settings, Callback callback) {
     UASSERT_MSG(!name.empty(), "Periodic task must have a name");
-    auto settings_ptr = impl_->settings_.StartWriteEmplace(std::move(settings));
+    auto settings_ptr = impl_->settings.StartWriteEmplace(std::move(settings));
     // Set name_ under the 'settings_' mutex.
-    if (!impl_->is_name_set_) {
-        impl_->name_ = std::move(name);
-        impl_->is_name_set_ = true;
+    if (!impl_->is_name_set) {
+        impl_->name = std::move(name);
+        impl_->is_name_set = true;
     } else {
         UINVARIANT(
-            impl_->name_ == name,
-            fmt::format("PeriodicTask name must not be changed on the fly, old={}, new={}", impl_->name_, name)
+            impl_->name == name,
+            fmt::format("PeriodicTask name must not be changed on the fly, old={}, new={}", impl_->name, name)
         );
     }
     // Stop here so that if the invariant above fails, the task is not affected.
     Stop();
-    impl_->callback_ = std::move(callback);
+    impl_->callback = std::move(callback);
     settings_ptr.Commit();
     impl_->DoStart();
 }
 
 void PeriodicTask::Impl::DoStart() {
     LOG_DEBUG() << "Starting PeriodicTask with name=" << GetName();
-    auto settings_ptr = settings_.Read();
+    auto settings_ptr = settings.Read();
     auto& task_processor =
         settings_ptr->task_processor ? *settings_ptr->task_processor : engine::current_task::GetTaskProcessor();
-    task_ = engine::CriticalAsyncNoSpan(task_processor, &PeriodicTask::Impl::Run, this);
+    task = engine::CriticalAsyncNoSpan(task_processor, &PeriodicTask::Impl::Run, this);
 }
 
 void PeriodicTask::Stop() noexcept {
@@ -121,10 +121,10 @@ void PeriodicTask::Stop() noexcept {
     try {
         if (IsRunning()) {
             LOG_INFO() << "Stopping PeriodicTask with name=" << name;
-            impl_->task_.SyncCancel();
-            impl_->changed_event_.Reset();
-            impl_->should_force_step_ = false;
-            impl_->task_ = engine::TaskWithResult<void>();
+            impl_->task.SyncCancel();
+            impl_->changed_event.Reset();
+            impl_->should_force_step = false;
+            impl_->task = engine::TaskWithResult<void>();
             LOG_INFO() << "Stopped PeriodicTask with name=" << name;
         }
     } catch (std::exception& e) {
@@ -137,7 +137,7 @@ void PeriodicTask::Stop() noexcept {
 void PeriodicTask::SetSettings(Settings settings) {
     bool should_notify_task{};
     {
-        auto writer = impl_->settings_.StartWrite();
+        auto writer = impl_->settings.StartWrite();
         if (settings == *writer) {
             // Updating an RCU is slow, better to avoid it when possible.
             return;
@@ -150,13 +150,13 @@ void PeriodicTask::SetSettings(Settings settings) {
 
     if (should_notify_task) {
         LOG_DEBUG() << "periodic task settings have changed, signalling name=" << impl_->GetName();
-        impl_->changed_event_.Send();
+        impl_->changed_event.Send();
     }
 }
 
 void PeriodicTask::ForceStepAsync() {
-    impl_->should_force_step_ = true;
-    impl_->changed_event_.Send();
+    impl_->should_force_step = true;
+    impl_->changed_event.Send();
 }
 
 bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
@@ -167,13 +167,13 @@ bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
     return impl_->StepDebug(preserve_span);
 }
 
-bool PeriodicTask::IsRunning() const { return impl_->task_.IsValid(); }
+bool PeriodicTask::IsRunning() const { return impl_->task.IsValid(); }
 
 void PeriodicTask::Impl::Run() {
     bool skip_step = false;
     {
-        auto settings = settings_.Read();
-        if (!(settings->flags & Flags::kNow)) {
+        auto l_settings = settings.Read();
+        if (!(l_settings->flags & Flags::kNow)) {
             skip_step = true;
         }
     }
@@ -186,40 +186,40 @@ void PeriodicTask::Impl::Run() {
             no_exception = Step();
         }
 
-        const auto settings = settings_.Read();
-        auto period = settings->period;
-        const auto exception_period = settings->exception_period.value_or(period);
+        const auto l_settings = settings.Read();
+        auto period = l_settings->period;
+        const auto exception_period = l_settings->exception_period.value_or(period);
 
         if (!no_exception) period = exception_period;
 
         std::chrono::steady_clock::time_point start;
-        if (settings->flags & Flags::kStrong) {
+        if (l_settings->flags & Flags::kStrong) {
             start = before;
         } else {
             start = std::chrono::steady_clock::now();
         }
 
-        while (changed_event_.WaitForEventUntil(start + MutatePeriod(period))) {
-            if (should_force_step_.exchange(false)) {
+        while (changed_event.WaitForEventUntil(start + MutatePeriod(period))) {
+            if (should_force_step.exchange(false)) {
                 break;
             }
             // The config variable value has been changed, reload
-            const auto settings = settings_.Read();
-            period = settings->period;
-            const auto exception_period = settings->exception_period.value_or(period);
+            const auto l_settings = settings.Read();
+            period = l_settings->period;
+            const auto exception_period = l_settings->exception_period.value_or(period);
             if (!no_exception) period = exception_period;
         }
     }
 }
 
 bool PeriodicTask::Impl::DoStep() {
-    auto settings_ptr = settings_.Read();
+    auto settings_ptr = settings.Read();
     const auto span_log_level = settings_ptr->span_level;
     const auto name = GetName();
     tracing::Span span(std::string{name});
     span.SetLogLevel(span_log_level);
     try {
-        callback_();
+        callback();
         return true;
     } catch (const std::exception& e) {
         LOG_ERROR() << "Exception in PeriodicTask with name=" << name << ": " << e;
@@ -228,9 +228,9 @@ bool PeriodicTask::Impl::DoStep() {
 }
 
 bool PeriodicTask::Impl::Step() {
-    const std::lock_guard lock_step(step_mutex_);
+    const std::lock_guard lock_step(step_mutex);
 
-    if (suspend_state_.load() == SuspendState::kSuspended) {
+    if (suspend_state.load() == SuspendState::kSuspended) {
         LOG_INFO() << "Skipping suspended PeriodicTask with name=" << GetName();
         return true;
     }
@@ -239,7 +239,7 @@ bool PeriodicTask::Impl::Step() {
 }
 
 bool PeriodicTask::Impl::StepDebug(bool preserve_span) {
-    const std::lock_guard lock_step(step_mutex_);
+    const std::lock_guard lock_step(step_mutex);
 
     std::optional<tracing::Span> testsuite_oneshot_span;
     if (preserve_span) {
@@ -251,23 +251,23 @@ bool PeriodicTask::Impl::StepDebug(bool preserve_span) {
 }
 
 std::chrono::milliseconds PeriodicTask::Impl::MutatePeriod(std::chrono::milliseconds period) {
-    auto settings_ptr = settings_.Read();
+    auto settings_ptr = settings.Read();
     if (!(settings_ptr->flags & Flags::kChaotic)) return period;
 
-    if (!mutate_period_random_) {
-        mutate_period_random_.emplace(
+    if (!mutate_period_random) {
+        mutate_period_random.emplace(
             utils::WithDefaultRandom(std::uniform_int_distribution<std::minstd_rand::result_type>{})
         );
     }
 
     const auto jitter = settings_ptr->distribution;
     std::uniform_int_distribution distribution{(period - jitter).count(), (period + jitter).count()};
-    const auto ms = distribution(*mutate_period_random_);
+    const auto ms = distribution(*mutate_period_random);
     return std::chrono::milliseconds(ms);
 }
 
 std::string_view PeriodicTask::Impl::GetName() const noexcept {
-    return is_name_set_ ? std::string_view{name_} : "<name not set>";
+    return is_name_set ? std::string_view{name} : "<name not set>";
 }
 
 void PeriodicTask::SuspendDebug() { impl_->SuspendDebug(); }
@@ -276,27 +276,27 @@ void PeriodicTask::ResumeDebug() { impl_->ResumeDebug(); }
 
 void PeriodicTask::Impl::SuspendDebug() {
     // step_mutex_ waits, for a potentially long time, for Step() call completion
-    const std::lock_guard lock_step(step_mutex_);
-    auto prior_state = suspend_state_.exchange(SuspendState::kSuspended);
+    const std::lock_guard lock_step(step_mutex);
+    auto prior_state = suspend_state.exchange(SuspendState::kSuspended);
     if (prior_state != SuspendState::kSuspended) {
         LOG_DEBUG() << "Periodic task " << GetName() << " suspended";
     }
 }
 
 void PeriodicTask::Impl::ResumeDebug() {
-    auto prior_state = suspend_state_.exchange(SuspendState::kRunning);
+    auto prior_state = suspend_state.exchange(SuspendState::kRunning);
     if (prior_state != SuspendState::kRunning) {
         LOG_DEBUG() << "Periodic task " << GetName() << " resumed";
     }
 }
 
 void PeriodicTask::RegisterInTestsuite(testsuite::PeriodicTaskControl& periodic_task_control) {
-    UINVARIANT(impl_->is_name_set_, "PeriodicTask::RegisterInTestsuite should be called after Start");
-    impl_->registration_holder_.emplace(periodic_task_control, std::string{impl_->GetName()}, *this);
+    UINVARIANT(impl_->is_name_set, "PeriodicTask::RegisterInTestsuite should be called after Start");
+    impl_->registration_holder.emplace(periodic_task_control, std::string{impl_->GetName()}, *this);
 }
 
 PeriodicTask::Settings PeriodicTask::GetCurrentSettings() const {
-    auto settings_ptr = impl_->settings_.Read();
+    auto settings_ptr = impl_->settings.Read();
     return *settings_ptr;
 }
 

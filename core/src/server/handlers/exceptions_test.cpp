@@ -17,13 +17,13 @@ public:
         formats::json::ValueBuilder error;
         error["code"] = std::move(status);
         error["message"] = std::move(msg);
-        json_error_body = formats::json::ToString(error.ExtractValue());
+        json_error_body_ = formats::json::ToString(error.ExtractValue());
     }
 
-    std::string GetExternalBody() const { return json_error_body; }
+    std::string GetExternalBody() const { return json_error_body_; }
 
 private:
-    std::string json_error_body;
+    std::string json_error_body_;
 };
 
 TEST(CustomHandlerException, BuilderSample) {

@@ -39,7 +39,7 @@ struct RequestContext final {
     dynamic_config::Snapshot config_snapshot;
     tracing::Span span;
     engine::Deadline deadline;
-    bool is_error_{false};
+    bool is_error{false};
 };
 
 }  // namespace ydb::impl

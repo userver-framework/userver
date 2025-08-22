@@ -11,7 +11,7 @@ namespace storages::odbc::detail {
 
 ClusterImpl::ClusterImpl(const settings::ODBCClusterSettings& settings) {
     for (const auto& host : settings.pools) {
-        pools_.push_back(std::make_shared<Pool>(host.dsn, host.pool.minSize, host.pool.maxSize));
+        pools_.push_back(std::make_shared<Pool>(host.dsn, host.pool.min_size, host.pool.max_size));
     }
 }
 

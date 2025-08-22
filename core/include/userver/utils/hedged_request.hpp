@@ -96,12 +96,12 @@ public:
     PlanEntry(TimePoint timepoint, std::size_t request_index, std::size_t attempt_id, Action action)
         : timepoint(timepoint), request_index(request_index), attempt_id(attempt_id), action(action) {}
 
-    bool operator<(const PlanEntry& other) const noexcept { return tie() < other.tie(); }
-    bool operator>(const PlanEntry& other) const noexcept { return tie() > other.tie(); }
-    bool operator==(const PlanEntry& other) const noexcept { return tie() == other.tie(); }
-    bool operator<=(const PlanEntry& other) const noexcept { return tie() <= other.tie(); }
-    bool operator>=(const PlanEntry& other) const noexcept { return tie() >= other.tie(); }
-    bool operator!=(const PlanEntry& other) const noexcept { return tie() != other.tie(); }
+    bool operator<(const PlanEntry& other) const noexcept { return Tie() < other.Tie(); }
+    bool operator>(const PlanEntry& other) const noexcept { return Tie() > other.Tie(); }
+    bool operator==(const PlanEntry& other) const noexcept { return Tie() == other.Tie(); }
+    bool operator<=(const PlanEntry& other) const noexcept { return Tie() <= other.Tie(); }
+    bool operator>=(const PlanEntry& other) const noexcept { return Tie() >= other.Tie(); }
+    bool operator!=(const PlanEntry& other) const noexcept { return Tie() != other.Tie(); }
 
     TimePoint timepoint;
     std::size_t request_index{0};
@@ -109,7 +109,7 @@ public:
     Action action;
 
 private:
-    std::tuple<const TimePoint&, const size_t&, const size_t&, const Action&> tie() const noexcept {
+    std::tuple<const TimePoint&, const size_t&, const size_t&, const Action&> Tie() const noexcept {
         return std::tie(timepoint, request_index, attempt_id, action);
     }
 };
@@ -144,7 +144,7 @@ struct Context {
     using ReplyType = typename RequestTraits<RequestStrategy>::ReplyType;
 
     Context(std::vector<RequestStrategy> inputs, HedgingSettings settings)
-        : inputs_(std::move(inputs)), settings(std::move(settings)) {
+        : inputs_(std::move(inputs)), settings_(std::move(settings)) {
         const std::size_t size = this->inputs_.size();
         request_states_.resize(size);
     }
@@ -155,8 +155,8 @@ struct Context {
         for (std::size_t request_id = 0; request_id < request_count; ++request_id) {
             plan_.emplace(start_time, request_id, 0, Action::StartTry);
         }
-        plan_.emplace(start_time + settings.timeout_all, 0, 0, Action::Stop);
-        subrequests_.reserve(settings.max_attempts * request_count);
+        plan_.emplace(start_time + settings_.timeout_all, 0, 0, Action::Stop);
+        subrequests_.reserve(settings_.max_attempts * request_count);
     }
 
     std::optional<TimePoint> NextEventTime() const {
@@ -185,7 +185,7 @@ struct Context {
         }
     }
 
-    const HedgingSettings& GetSettings() const { return settings; }
+    const HedgingSettings& GetSettings() const { return settings_; }
 
     size_t GetRequestsCount() const { return inputs_.size(); }
 
@@ -232,7 +232,7 @@ struct Context {
             return;
         }
 
-        if (attempts_made >= settings.max_attempts) {
+        if (attempts_made >= settings_.max_attempts) {
             return;
         }
         auto& strategy = inputs_[request_index];
@@ -248,14 +248,14 @@ struct Context {
         request_state.subrequest_indices.push_back(idx);
         input_by_subrequests_[idx] = request_index;
         attempts_made++;
-        plan_.emplace(now + settings.hedging_delay, request_index, attempts_made, Action::StartTry);
+        plan_.emplace(now + settings_.hedging_delay, request_index, attempts_made, Action::StartTry);
     }
 
     /// Called on getting error in request with @param request_idx
     void OnRetriableReply(std::size_t request_idx, std::chrono::milliseconds retry_delay, TimePoint now) {
         const auto& request_state = request_states_[request_idx];
         if (request_state.finished) return;
-        if (request_state.attempts_made >= settings.max_attempts) return;
+        if (request_state.attempts_made >= settings_.max_attempts) return;
 
         plan_.emplace(now + retry_delay, request_idx, request_state.attempts_made, Action::StartTry);
     }
@@ -266,7 +266,7 @@ struct Context {
 private:
     /// user provided request strategies bulk
     std::vector<RequestStrategy> inputs_;
-    HedgingSettings settings;
+    HedgingSettings settings_;
 
     /// Our plan of what we will do at what time
     std::priority_queue<PlanEntry, std::vector<PlanEntry>, std::greater<>> plan_{};

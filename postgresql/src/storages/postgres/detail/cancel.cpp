@@ -42,9 +42,9 @@ struct pg_cancel {
 // NOLINTNEXTLINE(modernize-use-using)
 typedef struct CancelRequestPacket {
     /* Note that each field is stored in network byte order! */
-    uint32_t cancelRequestCode; /* code to identify a cancel request */
-    uint32_t backendPID;        /* PID of client's backend */
-    uint32_t cancelAuthCode;    /* secret key to authorize cancel */
+    uint32_t cancel_request_code; /* code to identify a cancel request */
+    uint32_t backend_pid;         /* PID of client's backend */
+    uint32_t cancel_auth_code;    /* secret key to authorize cancel */
 } CancelRequestPacket;
 
 struct CancelPacket {
@@ -68,9 +68,9 @@ void Cancel(PGcancel* cn, engine::Deadline deadline) {
 
     CancelPacket cp{};
     cp.packetlen = sizeof(cp);
-    cp.cp.cancelRequestCode = static_cast<uint32_t>(htonl(CANCEL_REQUEST_CODE));
-    cp.cp.backendPID = htonl(cn->be_pid);
-    cp.cp.cancelAuthCode = htonl(cn->be_key);
+    cp.cp.cancel_request_code = static_cast<uint32_t>(htonl(CANCEL_REQUEST_CODE));
+    cp.cp.backend_pid = htonl(cn->be_pid);
+    cp.cp.cancel_auth_code = htonl(cn->be_key);
 
     auto ret = tmp_sock.SendAll(&cp, sizeof(cp), deadline);
     if (ret != sizeof(cp)) throw CommandError("SendAll()");

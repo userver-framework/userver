@@ -296,9 +296,9 @@ private:
         static OptionalDeleter DoNotDelete() noexcept;
 
     private:
-        explicit OptionalDeleter(bool do_delete) : do_delete(do_delete) {}
+        explicit OptionalDeleter(bool do_delete) : do_delete_(do_delete) {}
 
-        const bool do_delete;
+        const bool do_delete_;
     };
 
     friend class SpanBuilder;

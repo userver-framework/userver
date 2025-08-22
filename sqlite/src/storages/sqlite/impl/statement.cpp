@@ -16,7 +16,7 @@ namespace storages::sqlite::impl {
 
 Statement::Statement(const NativeHandler& db_handler, std::string_view statement)
     : db_handler_{db_handler},
-      prepare_statement_(prepareStatement(statement)),
+      prepare_statement_(PrepareStatement(statement)),
       column_count_(sqlite3_column_count(prepare_statement_.get())) {}
 
 Statement::~Statement() = default;
@@ -54,7 +54,7 @@ OperationType Statement::GetOperationType() const noexcept {
     return sqlite3_stmt_readonly(prepare_statement_.get()) ? OperationType::kReadOnly : OperationType::kReadWrite;
 }
 
-Statement::NativeStatementPtr Statement::prepareStatement(std::string_view statement_str) {
+Statement::NativeStatementPtr Statement::PrepareStatement(std::string_view statement_str) {
     sqlite3_stmt* statement = nullptr;
     // TODO: It can indirectly triggers I/O?
     const int ret_code = sqlite3_prepare_v2(

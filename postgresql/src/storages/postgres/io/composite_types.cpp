@@ -10,7 +10,7 @@ namespace {
 
 struct Record {
     // must be non-empty to be a composite type
-    int dummy_;
+    int dummy;
 };
 
 }  // namespace

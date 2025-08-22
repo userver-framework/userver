@@ -267,7 +267,7 @@ public:
 
     engine::impl::ContextAccessor& GetSocketContextAccessor() const noexcept;
 
-    TlsWrapper::Impl& impl_;
+    TlsWrapper::Impl& impl;
 };
 
 class TlsWrapper::Impl {
@@ -457,16 +457,16 @@ private:
     }
 };
 
-TlsWrapper::ReadContextAccessor::ReadContextAccessor(TlsWrapper::Impl& impl) : impl_(impl) {}
+TlsWrapper::ReadContextAccessor::ReadContextAccessor(TlsWrapper::Impl& impl) : impl(impl) {}
 
 bool TlsWrapper::ReadContextAccessor::IsReady() const noexcept {
-    auto* ssl = impl_.ssl.get();
+    auto* ssl = impl.ssl.get();
     if (!ssl || SSL_has_pending(ssl)) return true;
     return GetSocketContextAccessor().IsReady();
 }
 
 engine::impl::EarlyWakeup TlsWrapper::ReadContextAccessor::TryAppendWaiter(engine::impl::TaskContext& waiter) {
-    auto* ssl = impl_.ssl.get();
+    auto* ssl = impl.ssl.get();
     if (!ssl || SSL_has_pending(ssl)) return engine::impl::EarlyWakeup{true};
 
     return GetSocketContextAccessor().TryAppendWaiter(waiter);
@@ -481,7 +481,7 @@ void TlsWrapper::ReadContextAccessor::AfterWait() noexcept { GetSocketContextAcc
 void TlsWrapper::ReadContextAccessor::RethrowErrorResult() const { GetSocketContextAccessor().RethrowErrorResult(); }
 
 engine::impl::ContextAccessor& TlsWrapper::ReadContextAccessor::GetSocketContextAccessor() const noexcept {
-    auto* ca = impl_.bio_data.socket.GetReadableBase().TryGetContextAccessor();
+    auto* ca = impl.bio_data.socket.GetReadableBase().TryGetContextAccessor();
     UASSERT(ca);
     return *ca;
 }

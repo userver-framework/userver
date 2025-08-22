@@ -35,7 +35,7 @@ public:
             : epoch_(epoch), client_(client) {
             UASSERT(client_);
             UASSERT(apm_stats);
-            stats_.apm_stats_ = apm_stats;
+            stats_.apm_stats = apm_stats;
         }
 
         Connection(Connection&& other) = delete;
@@ -74,7 +74,7 @@ public:
 
         stats::EventStats GetEventStatsSnapshot() {
             UASSERT(ptr_);
-            return ptr_->GetStatsPtr()->event_stats_;
+            return ptr_->GetStatsPtr()->event_stats;
         }
 
         void reset() {

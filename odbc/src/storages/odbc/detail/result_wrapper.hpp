@@ -42,7 +42,7 @@ public:
 
     bool IsFieldNull(std::size_t row, std::size_t col) const;
 
-    ResultHandle handle_;
+    ResultHandle handle;
 };
 
 ResultWrapper::ResultHandle MakeResultHandle(SQLHDBC);

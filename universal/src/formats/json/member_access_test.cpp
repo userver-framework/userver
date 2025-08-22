@@ -38,8 +38,8 @@ struct MemberAccess<formats::json::Value> : public ::testing::Test {
         "Value iterators are not assignable"
     );
 
-    MemberAccess() : doc_(kDoc) {}
-    formats::json::Value doc_;
+    MemberAccess() : doc(kDoc) {}
+    formats::json::Value doc;
 
     using ValueBuilder = formats::json::ValueBuilder;
     using Value = formats::json::Value;
@@ -59,19 +59,19 @@ TEST_F(FormatsJsonSpecificMemberAccess, CheckPrimitiveTypes) {
     using TypeMismatchException = formats::json::TypeMismatchException;
 
     // Differs from YAML:
-    EXPECT_FALSE(doc_["key3"]["sub"].IsUInt64());
-    EXPECT_THROW(doc_["key1"].As<std::string>(), TypeMismatchException);
-    EXPECT_THROW(doc_["key5"].As<std::string>(), TypeMismatchException);
-    EXPECT_THROW(doc_["key6"].As<std::string>(), TypeMismatchException);
+    EXPECT_FALSE(doc["key3"]["sub"].IsUInt64());
+    EXPECT_THROW(doc["key1"].As<std::string>(), TypeMismatchException);
+    EXPECT_THROW(doc["key5"].As<std::string>(), TypeMismatchException);
+    EXPECT_THROW(doc["key6"].As<std::string>(), TypeMismatchException);
 }
 
 TEST_F(FormatsJsonSpecificMemberAccess, Items) {
-    for ([[maybe_unused]] const auto& [key, value] : Items(doc_)) {
+    for ([[maybe_unused]] const auto& [key, value] : Items(doc)) {
     }
 }
 
 TEST_F(FormatsJsonSpecificMemberAccess, IterateAndCheckValues) {
-    const auto arr = doc_["key4"];
+    const auto arr = doc["key4"];
 
     int i = 2;
     int val = 3;
@@ -82,26 +82,26 @@ TEST_F(FormatsJsonSpecificMemberAccess, IterateAndCheckValues) {
 }
 
 TEST_F(FormatsJsonSpecificMemberAccess, CheckPrimitiveTypeExceptions) {
-    EXPECT_THROW(doc_["key1"].rbegin(), TypeMismatchException);
-    EXPECT_THROW(doc_["key1"].rend(), TypeMismatchException);
+    EXPECT_THROW(doc["key1"].rbegin(), TypeMismatchException);
+    EXPECT_THROW(doc["key1"].rend(), TypeMismatchException);
 
-    EXPECT_THROW(doc_["key2"].rbegin(), TypeMismatchException);
-    EXPECT_THROW(doc_["key2"].rend(), TypeMismatchException);
+    EXPECT_THROW(doc["key2"].rbegin(), TypeMismatchException);
+    EXPECT_THROW(doc["key2"].rend(), TypeMismatchException);
 
-    EXPECT_THROW(doc_["key3"].rbegin(), TypeMismatchException);
-    EXPECT_THROW(doc_["key3"].rend(), TypeMismatchException);
+    EXPECT_THROW(doc["key3"].rbegin(), TypeMismatchException);
+    EXPECT_THROW(doc["key3"].rend(), TypeMismatchException);
 
-    EXPECT_THROW(doc_["key5"].rbegin(), TypeMismatchException);
-    EXPECT_THROW(doc_["key5"].rend(), TypeMismatchException);
+    EXPECT_THROW(doc["key5"].rbegin(), TypeMismatchException);
+    EXPECT_THROW(doc["key5"].rend(), TypeMismatchException);
 
-    EXPECT_THROW(doc_["key6"].rbegin(), TypeMismatchException);
-    EXPECT_THROW(doc_["key6"].rend(), TypeMismatchException);
+    EXPECT_THROW(doc["key6"].rbegin(), TypeMismatchException);
+    EXPECT_THROW(doc["key6"].rend(), TypeMismatchException);
 }
 
 TEST_F(FormatsJsonSpecificMemberAccess, TypeMismatchExceptionAccessToAttributes) {
-    EXPECT_THROW(doc_["key1"].As<std::string>(), TypeMismatchException);
+    EXPECT_THROW(doc["key1"].As<std::string>(), TypeMismatchException);
     try {
-        doc_["key1"].As<std::string>();
+        doc["key1"].As<std::string>();
     } catch (const TypeMismatchException& e) {
         EXPECT_EQ(e.GetActual(), "intValue");
         EXPECT_EQ(e.GetExpected(), "stringValue");
@@ -110,7 +110,7 @@ TEST_F(FormatsJsonSpecificMemberAccess, TypeMismatchExceptionAccessToAttributes)
 }
 
 TEST_F(FormatsJsonSpecificMemberAccess, OutOfBoundsExceptionAccessToAttributes) {
-    const auto arr = doc_["key4"];
+    const auto arr = doc["key4"];
     EXPECT_THROW(arr[4], OutOfBoundsException);
     try {
         arr[4];

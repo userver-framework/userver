@@ -74,7 +74,7 @@ private:
 
     using NativeStatementPtr = std::unique_ptr<sqlite3_stmt, SQLiteStatementDeleter>;
 
-    NativeStatementPtr prepareStatement(std::string_view statement_str);
+    NativeStatementPtr PrepareStatement(std::string_view statement_str);
 
     const NativeHandler& db_handler_;
     NativeStatementPtr prepare_statement_;

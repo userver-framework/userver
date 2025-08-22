@@ -151,7 +151,7 @@ concurrent::BackgroundTaskStorageCore& PostgreSQLBase::GetTaskStorage() {
     return bts;
 }
 
-PostgreConnection::PostgreConnection() : conn(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam())) {}
+PostgreConnection::PostgreConnection() : conn_(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam())) {}
 
 PostgreConnection::~PostgreConnection() {
     // force connection cleanup to avoid leaving detached tasks behind

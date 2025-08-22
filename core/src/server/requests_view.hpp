@@ -38,7 +38,7 @@ private:
 
     std::shared_ptr<Queue> queue_;
     engine::TaskWithResult<void> job_task_;
-    std::vector<RequestWPtr> job_requests;
+    std::vector<RequestWPtr> job_requests_;
 
     engine::Mutex requests_in_flight_mutex_;
     std::list<RequestWPtr> requests_in_flight_;

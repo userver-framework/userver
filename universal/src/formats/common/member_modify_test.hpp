@@ -13,27 +13,27 @@ TYPED_TEST_P(MemberModify, BuildNewValueEveryTime) {
 }
 
 TYPED_TEST_P(MemberModify, CheckPrimitiveTypesChange) {
-    this->builder_["key1"] = -100;
+    this->builder["key1"] = -100;
     EXPECT_EQ(this->GetBuiltValue()["key1"].template As<int>(), -100);
 
-    this->builder_["key1"] = "100";
+    this->builder["key1"] = "100";
     EXPECT_EQ(this->GetBuiltValue()["key1"].template As<std::string>(), "100");
-    this->builder_["key1"] = true;
+    this->builder["key1"] = true;
     EXPECT_TRUE(this->GetBuiltValue()["key1"].template As<bool>());
 }
 
 TYPED_TEST_P(MemberModify, CheckNestedTypesChange) {
-    this->builder_["key3"]["sub"] = false;
+    this->builder["key3"]["sub"] = false;
     EXPECT_FALSE(this->GetBuiltValue()["key3"]["sub"].template As<bool>());
-    this->builder_["key3"] = -100;
+    this->builder["key3"] = -100;
     EXPECT_EQ(this->GetBuiltValue()["key3"].template As<int>(), -100);
-    this->builder_["key3"] = this->FromString("{\"sub\":-1}");
+    this->builder["key3"] = this->FromString("{\"sub\":-1}");
     EXPECT_EQ(this->GetBuiltValue()["key3"]["sub"].template As<int>(), -1);
 }
 
 TYPED_TEST_P(MemberModify, CheckNestedArrayChange) {
-    this->builder_["key4"][1] = 10;
-    this->builder_["key4"][2] = 100;
+    this->builder["key4"][1] = 10;
+    this->builder["key4"][2] = 100;
     EXPECT_EQ(this->GetBuiltValue()["key4"][0].template As<int>(), 1);
     EXPECT_EQ(this->GetBuiltValue()["key4"][1].template As<int>(), 10);
     EXPECT_EQ(this->GetBuiltValue()["key4"][2].template As<int>(), 100);
@@ -42,16 +42,16 @@ TYPED_TEST_P(MemberModify, CheckNestedArrayChange) {
 TYPED_TEST_P(MemberModify, ArrayResize) {
     using OutOfBoundsException = typename TestFixture::OutOfBoundsException;
 
-    this->builder_["key4"].Resize(4);
+    this->builder["key4"].Resize(4);
     EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
     EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
 
-    this->builder_["key4"][3] = 4;
+    this->builder["key4"][3] = 4;
     for (size_t i = 0; i < 4; ++i) {
         EXPECT_EQ(this->GetBuiltValue()["key4"][i].template As<int>(), i + 1);
     }
 
-    this->builder_["key4"].Resize(1);
+    this->builder["key4"].Resize(1);
 
     EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
     EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 1);
@@ -65,15 +65,15 @@ TYPED_TEST_P(MemberModify, ArrayFromNull) {
     using OutOfBoundsException = typename TestFixture::OutOfBoundsException;
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    this->builder_ = ValueBuilder();
+    this->builder = ValueBuilder();
     EXPECT_TRUE(this->GetBuiltValue().IsEmpty());
     EXPECT_EQ(this->GetBuiltValue().GetSize(), 0);
 
-    this->builder_.Resize(1);
+    this->builder.Resize(1);
     EXPECT_FALSE(this->GetBuiltValue().IsEmpty());
     EXPECT_EQ(this->GetBuiltValue().GetSize(), 1);
 
-    this->builder_[0] = 0;
+    this->builder[0] = 0;
     EXPECT_EQ(this->GetBuiltValue()[0].template As<int>(), 0);
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
@@ -84,11 +84,11 @@ TYPED_TEST_P(MemberModify, ArrayPushBack) {
     using Type = typename TestFixture::Type;
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    this->builder_ = ValueBuilder(Type::kArray);
+    this->builder = ValueBuilder(Type::kArray);
 
     const auto size = 5;
     for (auto i = 0; i < size; ++i) {
-        this->builder_.PushBack(i);
+        this->builder.PushBack(i);
     }
     EXPECT_EQ(this->GetBuiltValue().IsEmpty(), !size);
     EXPECT_EQ(this->GetBuiltValue().GetSize(), size);
@@ -99,7 +99,7 @@ TYPED_TEST_P(MemberModify, ArrayPushBack) {
 }
 
 TYPED_TEST_P(MemberModify, PushBackFromExisting) {
-    this->builder_["key4"].PushBack(this->builder_["key1"]);
+    this->builder["key4"].PushBack(this->builder["key1"]);
     EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
     EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
     EXPECT_EQ(this->GetBuiltValue()["key4"][3].template As<int>(), 1);
@@ -107,7 +107,7 @@ TYPED_TEST_P(MemberModify, PushBackFromExisting) {
 }
 
 TYPED_TEST_P(MemberModify, PushBackFromBefore) {
-    this->builder_["key4"].PushBack(this->builder_["key4"][0]);
+    this->builder["key4"].PushBack(this->builder["key4"][0]);
     EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
     EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
     EXPECT_EQ(this->GetBuiltValue()["key4"][0].template As<int>(), 1);
@@ -115,7 +115,7 @@ TYPED_TEST_P(MemberModify, PushBackFromBefore) {
 }
 
 TYPED_TEST_P(MemberModify, PushBackFromIterator) {
-    this->builder_["key4"].PushBack(typename TestFixture::ValueBuilder{*this->builder_["key4"].begin()});
+    this->builder["key4"].PushBack(typename TestFixture::ValueBuilder{*this->builder["key4"].begin()});
     EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
     EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
     EXPECT_EQ(this->GetBuiltValue()["key4"][0].template As<int>(), 1);
@@ -123,8 +123,8 @@ TYPED_TEST_P(MemberModify, PushBackFromIterator) {
 }
 
 TYPED_TEST_P(MemberModify, CopyExistingMember) {
-    const auto key1 = this->builder_["key1"];
-    this->builder_["key1_copy"] = key1;
+    const auto key1 = this->builder["key1"];
+    this->builder["key1_copy"] = key1;
     EXPECT_TRUE(this->GetBuiltValue().HasMember("key1"));
     EXPECT_TRUE(this->GetBuiltValue().HasMember("key1_copy"));
     EXPECT_EQ(this->GetBuiltValue()["key1"].template As<int>(), 1);
@@ -132,11 +132,11 @@ TYPED_TEST_P(MemberModify, CopyExistingMember) {
 }
 
 TYPED_TEST_P(MemberModify, CopyExistingMemberByIt) {
-    auto it = this->builder_.begin();
-    while (it != this->builder_.end() && it.GetName() != "key1") ++it;
-    ASSERT_NE(this->builder_.end(), it);
+    auto it = this->builder.begin();
+    while (it != this->builder.end() && it.GetName() != "key1") ++it;
+    ASSERT_NE(this->builder.end(), it);
 
-    this->builder_["key1_copy"] = *it;
+    this->builder["key1_copy"] = *it;
     EXPECT_TRUE(this->GetBuiltValue().HasMember("key1"));
     EXPECT_TRUE(this->GetBuiltValue().HasMember("key1_copy"));
     EXPECT_EQ(this->GetBuiltValue()["key1"].template As<int>(), 1);
@@ -154,18 +154,18 @@ TYPED_TEST_P(MemberModify, CopyExistingMemberByIt) {
 // }
 
 TYPED_TEST_P(MemberModify, ContainerTypeChangeToScalar) {
-    auto builder = this->builder_["key4"];  // NB: not a copy
+    auto builder = this->builder["key4"];  // NB: not a copy
     EXPECT_NO_THROW(builder.PushBack(0));
-    this->builder_["key4"] = 0;
+    this->builder["key4"] = 0;
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(builder.PushBack(0), typename TestFixture::TypeMismatchException);
 }
 
 TYPED_TEST_P(MemberModify, ContainerTypeChangeArrToObj) {
-    auto builder = this->builder_["key4"];  // NB: not a copy
+    auto builder = this->builder["key4"];  // NB: not a copy
     EXPECT_NO_THROW(builder.PushBack(0));
-    this->builder_["key4"] = typename TestFixture::ValueBuilder{formats::common::Type::kObject};
+    this->builder["key4"] = typename TestFixture::ValueBuilder{formats::common::Type::kObject};
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(builder.PushBack(0), typename TestFixture::TypeMismatchException);
@@ -173,9 +173,9 @@ TYPED_TEST_P(MemberModify, ContainerTypeChangeArrToObj) {
 }
 
 TYPED_TEST_P(MemberModify, ContainerTypeChangeObjToArr) {
-    auto builder = this->builder_["key3"];  // NB: not a copy
+    auto builder = this->builder["key3"];  // NB: not a copy
     EXPECT_NO_THROW(builder["test"] = 0);
-    this->builder_["key3"] = typename TestFixture::ValueBuilder{formats::common::Type::kArray};
+    this->builder["key3"] = typename TestFixture::ValueBuilder{formats::common::Type::kArray};
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(builder["test"] = 0, typename TestFixture::TypeMismatchException);
@@ -187,13 +187,13 @@ TYPED_TEST_P(MemberModify, PushBackWrongTypeThrows) {
 
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->builder_["key1"].PushBack(1), TypeMismatchException);
+    EXPECT_THROW(this->builder["key1"].PushBack(1), TypeMismatchException);
 }
 
 TYPED_TEST_P(MemberModify, ExtractFromSubBuilderThrows) {
     using Exception = typename TestFixture::Exception;
 
-    auto bld = this->builder_["key1"];
+    auto bld = this->builder["key1"];
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(bld.ExtractValue(), Exception);
@@ -204,8 +204,8 @@ TYPED_TEST_P(MemberModify, ObjectIteratorModify) {
     std::size_t sum = 0;
     {
         std::size_t size = 0;
-        auto it = this->builder_.begin();
-        for (; it != this->builder_.end(); ++it, ++size) {
+        auto it = this->builder.begin();
+        for (; it != this->builder.end(); ++it, ++size) {
             *it = offset + size;
             sum += offset + size;
         }
@@ -220,9 +220,9 @@ TYPED_TEST_P(MemberModify, ObjectIteratorModify) {
     }
 }
 
-TYPED_TEST_P(MemberModify, MemberEmpty) { EXPECT_FALSE(this->builder_.IsEmpty()); }
+TYPED_TEST_P(MemberModify, MemberEmpty) { EXPECT_FALSE(this->builder.IsEmpty()); }
 
-TYPED_TEST_P(MemberModify, MemberCount) { EXPECT_EQ(this->builder_.GetSize(), 5); }
+TYPED_TEST_P(MemberModify, MemberCount) { EXPECT_EQ(this->builder.GetSize(), 5); }
 
 TYPED_TEST_P(MemberModify, NonArrayThrowIsEmpty) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
@@ -247,39 +247,39 @@ TYPED_TEST_P(MemberModify, NonArrayThrowGetSize) {
 TYPED_TEST_P(MemberModify, ArrayIteratorRead) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    this->builder_ = ValueBuilder();
+    this->builder = ValueBuilder();
     const auto size = 10;
-    this->builder_.Resize(size);
+    this->builder.Resize(size);
 
     for (auto i = 0; i < size; ++i) {
-        this->builder_[i] = i;
+        this->builder[i] = i;
     }
 
     auto it = this->GetBuiltValue().begin();
     for (auto i = 0; i < size; ++i, ++it) {
         EXPECT_EQ(it->template As<int>(), i) << "Failed at index " << i;
     }
-    EXPECT_EQ(this->builder_.IsEmpty(), !size);
-    EXPECT_EQ(this->builder_.GetSize(), size);
+    EXPECT_EQ(this->builder.IsEmpty(), !size);
+    EXPECT_EQ(this->builder.GetSize(), size);
 }
 
 TYPED_TEST_P(MemberModify, ArrayIteratorModify) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    this->builder_ = ValueBuilder();
+    this->builder = ValueBuilder();
     const auto size = 10;
-    this->builder_.Resize(size);
+    this->builder.Resize(size);
 
     const size_t offset = 3;
     {
         // Cannot initialize values of array
         // with iterators (need to first set values with operator[])
         for (auto i = 0; i < size; ++i) {
-            this->builder_[i] = 0;
+            this->builder[i] = 0;
         }
 
-        auto it = this->builder_.begin();
-        for (auto i = offset; it != this->builder_.end(); ++it, ++i) {
+        auto it = this->builder.begin();
+        for (auto i = offset; it != this->builder.end(); ++it, ++i) {
             *it = i;
         }
     }
@@ -290,8 +290,8 @@ TYPED_TEST_P(MemberModify, ArrayIteratorModify) {
             EXPECT_EQ(it->template As<int>(), i + offset) << "Failed at index " << i;
         }
     }
-    EXPECT_EQ(this->builder_.IsEmpty(), !size);
-    EXPECT_EQ(this->builder_.GetSize(), size);
+    EXPECT_EQ(this->builder.IsEmpty(), !size);
+    EXPECT_EQ(this->builder.GetSize(), size);
 }
 
 TYPED_TEST_P(MemberModify, CreateSpecificType) {
@@ -331,7 +331,7 @@ TYPED_TEST_P(MemberModify, SubdocOutlivesRoot) {
 TYPED_TEST_P(MemberModify, MoveValueBuilder) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    ValueBuilder v = std::move(this->builder_);
+    ValueBuilder v = std::move(this->builder);
     EXPECT_FALSE(this->GetValue(v).IsNull());
     EXPECT_TRUE(this->GetBuiltValue().IsNull());
 }
@@ -340,7 +340,7 @@ TYPED_TEST_P(MemberModify, CheckSubobjectChange) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
     ValueBuilder v = this->GetBuiltValue();
-    this->builder_["key4"] = v["key3"];
+    this->builder["key4"] = v["key3"];
     EXPECT_TRUE(this->GetBuiltValue()["key4"].HasMember("sub"));
     EXPECT_EQ(this->GetBuiltValue()["key4"]["sub"].template As<int>(), -1);
     EXPECT_TRUE(this->GetValue(v)["key3"].HasMember("sub"));

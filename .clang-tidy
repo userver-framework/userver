@@ -124,14 +124,16 @@ CheckOptions:
     value: CamelCase
   - key: readability-identifier-naming.UnionCase
     value: CamelCase
-  # - key: readability-identifier-naming.MemberCase
-  #   value: lower_case
-  # - key: readability-identifier-naming.PrivateMemberSuffix
-  #   value: '_'
-  # - key: readability-identifier-naming.MethodCase
-  #   value: CamelCase
-  # - key: readability-identifier-naming.PublicMethodIgnoredRegexp
-  #   value: "(begin|end|empty|size|ysize|front|back|parse|format)"
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: '_'
+  - key: readability-identifier-naming.ProtectedMemberSuffix
+    value: '_'
+  - key: readability-identifier-naming.MethodCase
+    value: CamelCase
+  - key: readability-identifier-naming.PublicMethodIgnoredRegexp
+    value: "(begin|end|empty|size|ysize|front|back|parse|format)"
   # - key: readability-identifier-naming.FunctionCase
   #   value: CamelCase
   # - key: readability-identifier-naming.ParameterCase

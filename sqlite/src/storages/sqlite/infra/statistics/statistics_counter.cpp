@@ -10,13 +10,13 @@ QueryStatCounter::~QueryStatCounter() = default;
 
 void QueryStatCounter::AccountQueryExecute() noexcept {
     ++queries_stats_.total;
-    exec_begin_time = utils::datetime::SteadyClock::now();
+    exec_begin_time_ = utils::datetime::SteadyClock::now();
 }
 
 void QueryStatCounter::AccountQueryCompleted() noexcept {
     auto now = utils::datetime::SteadyClock::now();
     ++queries_stats_.executed;
-    queries_stats_.timings.Account(std::chrono::duration_cast<std::chrono::milliseconds>(now - exec_begin_time).count()
+    queries_stats_.timings.Account(std::chrono::duration_cast<std::chrono::milliseconds>(now - exec_begin_time_).count()
     );
 }
 
@@ -28,14 +28,14 @@ TransactionStatCounter::~TransactionStatCounter() = default;
 
 void TransactionStatCounter::AccountTransactionStart() noexcept {
     ++transactions_stats_.total;
-    exec_begin_time = utils::datetime::SteadyClock::now();
+    exec_begin_time_ = utils::datetime::SteadyClock::now();
 }
 
 void TransactionStatCounter::AccountTransactionCommit() noexcept {
     auto now = utils::datetime::SteadyClock::now();
     ++transactions_stats_.commit;
     transactions_stats_.timings.Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - exec_begin_time).count()
+        std::chrono::duration_cast<std::chrono::milliseconds>(now - exec_begin_time_).count()
     );
 }
 

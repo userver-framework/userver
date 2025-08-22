@@ -45,7 +45,7 @@ private:
     storages::redis::SubscribeClientPtr subscribe_client_;
     storages::redis::SubscriptionToken subscription_token_;
     storages::redis::CommandControl redis_cc_{};
-    std::atomic_int values_posted{0};
+    std::atomic_int values_posted_{0};
 };
 
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
@@ -57,7 +57,7 @@ KeyValue::KeyValue(const components::ComponentConfig& config, const components::
     subscription_token_ =
         subscribe_client_->Subscribe(kPostChannel, [&](const std::string& channel, const std::string& message) {
             LOG_INFO() << channel << ": " << message;
-            ++values_posted;
+            ++values_posted_;
         });
 }
 

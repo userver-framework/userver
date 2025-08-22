@@ -583,7 +583,7 @@ std::optional<Message> ConsumerImpl::TakeEventMessage(EventHolder&& event_holder
     UASSERT(IsMessageEvent(event_holder));
     UASSERT(rd_kafka_event_message_count(event_holder.GetHandle()) == 1);
 
-    MessageHolder message{event_holder.release()};
+    MessageHolder message{event_holder.Release()};
     if (message->err != RD_KAFKA_RESP_ERR_NO_ERROR) {
         LOG_WARNING("Polled messages contains an error: {}", rd_kafka_err2str(message->err));
 

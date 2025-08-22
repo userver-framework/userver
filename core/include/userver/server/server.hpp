@@ -68,7 +68,7 @@ public:
     std::uint64_t GetTotalRequests() const override;
 
 private:
-    std::unique_ptr<ServerImpl> pimpl;
+    std::unique_ptr<ServerImpl> pimpl_;
 };
 
 }  // namespace server

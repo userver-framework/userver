@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::odbc::settings {
 
 struct PoolSettings final {
-    std::size_t minSize{5};
-    std::size_t maxSize{10};
+    std::size_t min_size{5};
+    std::size_t max_size{10};
 };
 
 struct HostSettings final {

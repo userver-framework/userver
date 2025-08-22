@@ -71,11 +71,11 @@ public:
     logging::LogExtra GetMessageLogExtra() const;
     //@}
 
-    ResultHandle handle_;
-    io::TypeBufferCategory buffer_categories_;
+    ResultHandle handle;
+    io::TypeBufferCategory buffer_categories;
 
     struct CachedFieldBufferCategories;
-    USERVER_NAMESPACE::utils::FastPimpl<CachedFieldBufferCategories, 88, 8> cached_buffer_categories_;
+    USERVER_NAMESPACE::utils::FastPimpl<CachedFieldBufferCategories, 88, 8> cached_buffer_categories;
 };
 
 inline ResultWrapper::ResultHandle MakeResultHandle(PGresult* pg_res) { return {pg_res, &PQclear}; }

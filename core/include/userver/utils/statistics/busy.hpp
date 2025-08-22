@@ -41,7 +41,7 @@ private:
     Duration GetNotCommittedLoad() const noexcept;
 
     struct Impl;
-    std::unique_ptr<Impl> pimpl;
+    std::unique_ptr<Impl> pimpl_;
 };
 
 /// @brief A RAII-style guard to account code block execution time in

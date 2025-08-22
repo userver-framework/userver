@@ -233,7 +233,7 @@ RequestState::RequestState(
     easy().set_error_buffer(errorbuffer_.data());
 
     // define header function
-    easy().set_header_function(&RequestState::on_header);
+    easy().set_header_function(&RequestState::OnHeader);
     easy().set_header_data(this);
 
     // set autodecoding
@@ -278,7 +278,7 @@ void RequestState::ca(crypto::Certificate cert) {
     } else {
         // Legacy non-portable way, broken since 7.87.0
         ca_ = std::move(cert);
-        easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+        easy().set_ssl_ctx_function(&RequestState::OnCertificateRequest);
         easy().set_ssl_ctx_data(this);
     }
 }
@@ -326,7 +326,7 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate 
         cert_id.resize(kCertIdLength, '=');
         easy().set_egd_socket(cert_id);
 
-        easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+        easy().set_ssl_ctx_function(&RequestState::OnCertificateRequest);
         easy().set_ssl_ctx_data(this);
     }
 }
@@ -401,14 +401,14 @@ void RequestState::SetDeadlinePropagationConfig(const DeadlinePropagationConfig&
     deadline_propagation_config_ = deadline_propagation_config;
 }
 
-size_t RequestState::on_header(void* ptr, size_t size, size_t nmemb, void* userdata) {
+size_t RequestState::OnHeader(void* ptr, size_t size, size_t nmemb, void* userdata) {
     auto* self = static_cast<RequestState*>(userdata);
     const std::size_t data_size = size * nmemb;
-    if (self) self->parse_header(static_cast<char*>(ptr), data_size);
+    if (self) self->ParseHeader(static_cast<char*>(ptr), data_size);
     return data_size;
 }
 
-curl::native::CURLcode RequestState::on_certificate_request(void* /*curl*/, void* sslctx, void* userdata) noexcept {
+curl::native::CURLcode RequestState::OnCertificateRequest(void* /*curl*/, void* sslctx, void* userdata) noexcept {
     auto* ssl = static_cast<SSL_CTX*>(sslctx);
     auto* self = static_cast<RequestState*>(userdata);
 
@@ -441,7 +441,7 @@ curl::native::CURLcode RequestState::on_certificate_request(void* /*curl*/, void
     return curl::native::CURLcode::CURLE_OK;
 }
 
-void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_code err) {
     UASSERT(holder);
     UASSERT(holder->span_storage_);
     auto& span = holder->span_storage_->Get();
@@ -493,7 +493,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
         const utils::Overloaded visitor{
             [&holder, &err](FullBufferedData& buffered_data) {
                 { [[maybe_unused]] const auto cleanup = holder->response_move(); }
-                auto promise = std::move(buffered_data.promise_);
+                auto promise = std::move(buffered_data.promise);
                 // The task will wake up and may reuse RequestState.
                 promise.set_exception(holder->PrepareException(err));
             },
@@ -516,7 +516,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
 
         const utils::Overloaded visitor{
             [&holder](FullBufferedData& buffered_data) {
-                auto promise = std::move(buffered_data.promise_);
+                auto promise = std::move(buffered_data.promise);
                 // The task will wake up and may reuse RequestState.
                 promise.set_value(holder->response_move());
             },
@@ -530,7 +530,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
     // it is unsafe to touch any content of holder after this point!
 }
 
-void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::OnRetry(std::shared_ptr<RequestState> holder, std::error_code err) {
     UASSERT(holder);
     UASSERT(holder->span_storage_);
     LOG_TRACE() << "RequestImpl::on_retry" << tracing::impl::LogSpanAsLastNoCurrent{holder->span_storage_->Get()};
@@ -550,7 +550,7 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
 
     if (not_need_retry) {
         // finish if no need to retry
-        RequestState::on_completed(std::move(holder), err);
+        RequestState::OnCompleted(std::move(holder), err);
     } else {
         // calculate backoff before retry
         const auto eb_power = std::clamp(holder->retry_.current - 1, 0, kEBMaxPower);
@@ -559,7 +559,7 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
         holder->UpdateTimeoutFromDeadline(backoff);
         if (holder->remote_timeout_ <= std::chrono::milliseconds::zero()) {
             holder->deadline_expired_ = true;
-            RequestState::on_completed(std::move(holder), err);
+            RequestState::OnCompleted(std::move(holder), err);
             return;
         }
 
@@ -574,19 +574,19 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
         // call on_retry_timer on timer
         auto& holder_ref = *holder;
         holder_ref.retry_.timer->SingleshotAsync(backoff, [holder = std::move(holder)](std::error_code err) {
-            holder->on_retry_timer(err);
+            holder->OnRetryTimer(err);
         });
     }
 }
 
-void RequestState::on_retry_timer(std::error_code err) {
+void RequestState::OnRetryTimer(std::error_code err) {
     // if there is no error with timer call perform, otherwise finish
     if (!err)
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_retry(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnRetry(std::move(holder), err);
         });
     else
-        on_completed(shared_from_this(), err);
+        OnCompleted(shared_from_this(), err);
 }
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
@@ -598,7 +598,7 @@ void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
     }
 }
 
-void RequestState::parse_header(char* ptr, size_t size) try {
+void RequestState::ParseHeader(char* ptr, size_t size) try {
     /* It is a fast path in curl's thread (io thread).  Creation of tmp
      * std::string, boost::trim_right_if(), etc. is too expensive. */
 
@@ -673,11 +673,11 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform(utils::imp
     // set place for response body
     easy().set_sink(&response_->sink_string());
 
-    auto future = std::get_if<FullBufferedData>(&data_)->promise_.get_future();
+    auto future = std::get_if<FullBufferedData>(&data_)->promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_retry(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnRetry(std::move(holder), err);
         });
     }
 
@@ -702,15 +702,15 @@ RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue, utils::i
     auto future = std::get_if<StreamData>(&data_)->headers_promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_completed(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnCompleted(std::move(holder), err);
         });
     }
 
     return future;
 }
 
-void RequestState::perform_request(curl::easy::handler_type handler) {
+void RequestState::PerformRequest(curl::easy::handler_type handler) {
     UASSERT_MSG(!cert_ || pkey_, "Setting certificate is useless without setting private key");
 
     UASSERT(response_);
@@ -731,12 +731,12 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
                     // TODO: should retry - TAXICOMMON-4932
                     auto* buffered_data = std::get_if<FullBufferedData>(&data_);
                     if (buffered_data) {
-                        buffered_data->promise_.set_exception(std::current_exception());
+                        buffered_data->promise.set_exception(std::current_exception());
                     }
                 } catch (const BaseException& ex) {
                     auto* buffered_data = std::get_if<FullBufferedData>(&data_);
                     if (buffered_data) {
-                        buffered_data->promise_.set_exception(std::current_exception());
+                        buffered_data->promise.set_exception(std::current_exception());
                     }
                 }
             })
@@ -808,7 +808,7 @@ void RequestState::HandleDeadlineAlreadyPassed() {
 
     const utils::Overloaded visitor{
         [&exc](FullBufferedData& buffered_data) {
-            auto promise = std::move(buffered_data.promise_);
+            auto promise = std::move(buffered_data.promise);
             // The task will wake up and may reuse RequestState.
             promise.set_exception(std::move(exc));
         },

@@ -168,25 +168,25 @@ class Map;
 class PredefinedHeader final {
 public:
     explicit constexpr PredefinedHeader(utils::StringLiteral name)
-        : name{name}, hash{impl::UnsafeConstexprHasher{}(name)}, header_index{impl::GetHeaderIndexForLookup(name)} {}
+        : name_{name}, hash_{impl::UnsafeConstexprHasher{}(name)}, header_index_{impl::GetHeaderIndexForLookup(name)} {}
 
-    constexpr operator utils::StringLiteral() const { return name; }
+    constexpr operator utils::StringLiteral() const { return name_; }
 
-    constexpr operator utils::zstring_view() const { return name; }
+    constexpr operator utils::zstring_view() const { return name_; }
 
-    constexpr operator std::string_view() const { return name; }
+    constexpr operator std::string_view() const { return name_; }
 
-    explicit operator std::string() const { return std::string{name}; }
+    explicit operator std::string() const { return std::string{name_}; }
 
 private:
     friend class header_map::Danger;
     friend class header_map::Map;
 
     // Header name.
-    const utils::StringLiteral name;
+    const utils::StringLiteral name_;
 
     // Unsafe constexpr hash (unsafe in a hash-flood sense).
-    const std::size_t hash;
+    const std::size_t hash_;
 
     // We assign a different 'index' value to every known header,
     // which allows us to do not perform case-insensitive names compare if indexes
@@ -194,7 +194,7 @@ private:
     // With this trick a successful lookup for PredefinedHeader in HeaderMap
     // is basically "access an array by index and compare both hash and index".
     // You can think of this field as an enum discriminant.
-    const std::int8_t header_index;
+    const std::int8_t header_index_;
 };
 
 }  // namespace http::headers

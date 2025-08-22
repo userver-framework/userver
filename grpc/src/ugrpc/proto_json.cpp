@@ -82,74 +82,74 @@ public:
         : ResultStackFrame(ParseType(iter), iter->GetSize(), GetName(iter, previous_type)) {}
 
     void SetStructField(std::string_view field_name, google::protobuf::Value&& field) {
-        UINVARIANT(type == Type::kStruct, "invalid type");
+        UINVARIANT(type_ == Type::kStruct, "invalid type");
 #if GOOGLE_PROTOBUF_VERSION >= 4022000
-        (*value.mutable_struct_value()->mutable_fields())[field_name] = std::move(field);
+        (*value_.mutable_struct_value()->mutable_fields())[field_name] = std::move(field);
 #else
         // No transparent comparisons till
         // https://github.com/protocolbuffers/protobuf/commit/38d6de1eef8163342084fe
-        (*value.mutable_struct_value()->mutable_fields())[std::string{field_name}] = std::move(field);
+        (*value_.mutable_struct_value()->mutable_fields())[std::string{field_name}] = std::move(field);
 #endif
 
-        --elements_await;
+        --elements_await_;
     }
 
     void AddListElement(google::protobuf::Value&& field) {
-        UINVARIANT(type == Type::kArray, "invalid type");
-        *(value.mutable_list_value()->mutable_values()->Add()) = std::move(field);
-        --elements_await;
+        UINVARIANT(type_ == Type::kArray, "invalid type");
+        *(value_.mutable_list_value()->mutable_values()->Add()) = std::move(field);
+        --elements_await_;
     }
 
-    bool IsStruct() const { return type == Type::kStruct; }
+    bool IsStruct() const { return type_ == Type::kStruct; }
 
-    bool IsArray() const { return type == Type::kArray; }
+    bool IsArray() const { return type_ == Type::kArray; }
 
-    Type GetType() const { return type; }
+    Type GetType() const { return type_; }
 
-    bool AwaitElements() const { return elements_await != 0; }
+    bool AwaitElements() const { return elements_await_ != 0; }
 
-    std::string_view GetOuterFieldName() const { return outer_field_name; }
+    std::string_view GetOuterFieldName() const { return outer_field_name_; }
 
-    google::protobuf::Value GetValue() { return google::protobuf::Value(std::move(value)); }
+    google::protobuf::Value GetValue() { return google::protobuf::Value(std::move(value_)); }
 
 private:
     ResultStackFrame(const Type type, std::size_t elements_await, std::string&& outer_field_name)
-        : type(type), elements_await(elements_await), outer_field_name(outer_field_name) {
+        : type_(type), elements_await_(elements_await), outer_field_name_(outer_field_name) {
         if (type == Type::kStruct) {
-            value.mutable_struct_value();
+            value_.mutable_struct_value();
         } else {
-            value.mutable_list_value();
+            value_.mutable_list_value();
         }
     }
 
 private:
-    Type type;
-    std::size_t elements_await;
-    std::string outer_field_name;
-    google::protobuf::Value value{};
+    Type type_;
+    std::size_t elements_await_;
+    std::string outer_field_name_;
+    google::protobuf::Value value_{};
 };
 
 class StackFrame {
 public:
     using Iterator = formats::json::Value::const_iterator;
 
-    StackFrame(Iterator begin, Iterator end) : cur(begin), end(end) {}
+    StackFrame(Iterator begin, Iterator end) : cur_(begin), end_(end) {}
 
-    bool IsTrivial() const { return !(cur->IsObject() || cur->IsArray()); }
+    bool IsTrivial() const { return !(cur_->IsObject() || cur_->IsArray()); }
 
-    std::size_t GetSize() const { return cur->GetSize(); }
+    std::size_t GetSize() const { return cur_->GetSize(); }
 
-    Iterator GetIter() const { return cur; }
+    Iterator GetIter() const { return cur_; }
 
-    std::string GetName() const { return cur.GetName(); }
+    std::string GetName() const { return cur_.GetName(); }
 
-    void Advance() { ++cur; }
+    void Advance() { ++cur_; }
 
-    bool IsValid() const { return cur != end; }
+    bool IsValid() const { return cur_ != end_; }
 
 private:
-    Iterator cur;
-    Iterator end;
+    Iterator cur_;
+    Iterator end_;
 };
 
 static constexpr std::size_t kInitialStackDepth = 32;

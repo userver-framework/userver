@@ -6,6 +6,8 @@
         Integration of libcurl's multi interface with Boost.Asio
 */
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 #pragma once
 
 #include <functional>
@@ -102,3 +104,5 @@ private:
 }  // namespace curl
 
 USERVER_NAMESPACE_END
+
+// NOLINTEND(readability-identifier-naming)

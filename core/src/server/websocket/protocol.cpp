@@ -99,12 +99,12 @@ DataFrameHeader(utils::span<const std::byte> data, bool is_text, Continuation is
     if (is_continuation == Continuation::kYes) hdr->bits.opcode = kContinuation;
 
     if (data.size() <= 125) {
-        hdr->bits.payloadLen = data.size();
+        hdr->bits.payload_len = data.size();
     } else if (data.size() <= INT16_MAX) {
-        hdr->bits.payloadLen = 126;
+        hdr->bits.payload_len = 126;
         PushRaw(boost::endian::native_to_big(static_cast<std::int16_t>(data.size())), frame);
     } else {
-        hdr->bits.payloadLen = 127;
+        hdr->bits.payload_len = 127;
         PushRaw(boost::endian::native_to_big(data.size()), frame);
     }
     return frame;
@@ -116,7 +116,7 @@ std::string CloseFrame(CloseStatusInt status_code) {
     auto* hdr = reinterpret_cast<WSHeader*>(frame.data());
     hdr->bits.fin = 1;
     hdr->bits.opcode = kClose;
-    hdr->bits.payloadLen = sizeof(status_code);
+    hdr->bits.payload_len = sizeof(status_code);
 
     auto* payload = reinterpret_cast<CloseStatusInt*>(&frame[sizeof(WSHeader)]);
     *payload = boost::endian::native_to_big(status_code);
@@ -131,7 +131,7 @@ std::array<char, sizeof(WSHeader)> MakeControlFrame(WSOpcodes opcode, utils::spa
     hdr->bits.fin = 1;
     hdr->bits.opcode = opcode;
 
-    hdr->bits.payloadLen = data.size();
+    hdr->bits.payload_len = data.size();
     return frame;
 }
 
@@ -175,9 +175,9 @@ CloseStatus ReadWSFrameImpl(
     if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
     const bool isDataFrame = (hdr.bits.opcode & (kText | kBinary)) || hdr.bits.opcode == kContinuation;
-    if (hdr.bits.payloadLen <= 125) {
-        payload_len = hdr.bits.payloadLen;
-    } else if (hdr.bits.payloadLen == 126) {
+    if (hdr.bits.payload_len <= 125) {
+        payload_len = hdr.bits.payload_len;
+    } else if (hdr.bits.payload_len == 126) {
         uint16_t payloadLen16 = 0;
         RecvExactly(io, AsWritableBytes(MakeSpan(&payloadLen16, 1)), {});
         payload_len = boost::endian::big_to_native(payloadLen16);
@@ -189,7 +189,7 @@ CloseStatus ReadWSFrameImpl(
     }
     if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
-    if (!isDataFrame && hdr.bits.payloadLen > 125) {
+    if (!isDataFrame && hdr.bits.payload_len > 125) {
         // control frame should not have extended payload
         return CloseStatus::kProtocolError;
     }

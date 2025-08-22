@@ -85,12 +85,12 @@ public:
 
 private:
     struct DynamicStrings {
-        std::string statement_;
-        std::optional<Name> name_;
+        std::string statement;
+        std::optional<Name> name;
     };
     struct StaticStrings {
-        utils::StringLiteral statement_;
-        std::optional<NameLiteral> name_;
+        utils::StringLiteral statement;
+        std::optional<NameLiteral> name;
     };
     struct NameViewVisitor;
 

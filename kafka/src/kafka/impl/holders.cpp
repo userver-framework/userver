@@ -38,7 +38,7 @@ void HolderBase<T, Deleter>::reset() noexcept {
 }
 
 template <class T, DeleterType<T> Deleter>
-T* HolderBase<T, Deleter>::release() noexcept {
+T* HolderBase<T, Deleter>::Release() noexcept {
     return ptr_.release();
 }
 
@@ -190,7 +190,7 @@ HeadersHolder::HeadersHolder(HeaderViews headers) : impl_{headers} {}
 
 rd_kafka_headers_t* HeadersHolder::GetHandle() const noexcept { return impl_->holder.GetHandle(); }
 
-rd_kafka_headers_t* HeadersHolder::release() noexcept { return impl_->holder.release(); }
+rd_kafka_headers_t* HeadersHolder::release() noexcept { return impl_->holder.Release(); }
 
 HeadersHolder::HeadersHolder(HeadersHolder&& other) noexcept = default;
 

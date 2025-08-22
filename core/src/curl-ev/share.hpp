@@ -6,6 +6,8 @@
         C++ wrapper for libcurl's share interface
 */
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 #pragma once
 
 #include <memory>
@@ -46,3 +48,5 @@ private:
 }  // namespace curl
 
 USERVER_NAMESPACE_END
+
+// NOLINTEND(readability-identifier-naming)

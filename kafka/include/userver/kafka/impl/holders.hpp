@@ -43,7 +43,7 @@ private:
     friend class ConsumerImpl;
     friend class HeadersHolder;
 
-    [[nodiscard]] T* release() noexcept;
+    [[nodiscard]] T* Release() noexcept;
 
     std::unique_ptr<T, DeleterType<T>> ptr_;
 };

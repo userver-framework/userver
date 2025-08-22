@@ -164,26 +164,26 @@ stats::ConnStats& GetStats(void* stats_ptr) {
 
 void CommandSucceeded(const mongoc_apm_command_succeeded_t* event) {
     auto& stats = GetStats(mongoc_apm_command_succeeded_get_context(event));
-    stats.event_stats_.success += utils::statistics::Rate{1};
+    stats.event_stats.success += utils::statistics::Rate{1};
 }
 
 void CommandFailed(const mongoc_apm_command_failed_t* event) {
     auto& stats = GetStats(mongoc_apm_command_failed_get_context(event));
-    stats.event_stats_.failed += utils::statistics::Rate{1};
+    stats.event_stats.failed += utils::statistics::Rate{1};
 }
 
 void HeartbeatStarted(const mongoc_apm_server_heartbeat_started_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_started_get_context(event));
-    ++stats.apm_stats_->heartbeats.start;
+    ++stats.apm_stats->heartbeats.start;
     LOG_LIMITED_DEBUG() << mongoc_apm_server_heartbeat_started_get_host(event)->host_and_port << " heartbeat started";
-    stats.apm_stats_->heartbeats.hb_started = std::chrono::steady_clock::now();
+    stats.apm_stats->heartbeats.hb_started = std::chrono::steady_clock::now();
 }
 
 void HeartbeatFinished(stats::ConnStats& stats) {
     auto* span = tracing::Span::CurrentSpanUnchecked();
     if (span) {
         auto diff = std::chrono::duration_cast<RealMilliseconds>(
-            std::chrono::steady_clock::now() - stats.apm_stats_->heartbeats.hb_started
+            std::chrono::steady_clock::now() - stats.apm_stats->heartbeats.hb_started
         );
         span->AddTag("heartbeat_time", diff.count());
     }
@@ -191,7 +191,7 @@ void HeartbeatFinished(stats::ConnStats& stats) {
 
 void HeartbeatSuccess(const mongoc_apm_server_heartbeat_succeeded_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_succeeded_get_context(event));
-    ++stats.apm_stats_->heartbeats.success;
+    ++stats.apm_stats->heartbeats.success;
     LOG_LIMITED_DEBUG() << mongoc_apm_server_heartbeat_succeeded_get_host(event)->host_and_port
                         << " heartbeat succeeded";
     HeartbeatFinished(stats);
@@ -199,7 +199,7 @@ void HeartbeatSuccess(const mongoc_apm_server_heartbeat_succeeded_t* event) {
 
 void HeartbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_failed_get_context(event));
-    ++stats.apm_stats_->heartbeats.failed;
+    ++stats.apm_stats->heartbeats.failed;
 
     MongoError error;
     mongoc_apm_server_heartbeat_failed_get_error(event, error.GetNative());
@@ -279,7 +279,7 @@ std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* eve
 
 void TopologyChanged(const mongoc_apm_topology_changed_t* event) {
     auto& stats = GetStats(mongoc_apm_topology_changed_get_context(event));
-    ++stats.apm_stats_->topology.changed;
+    ++stats.apm_stats->topology.changed;
 
     LOG_INFO() << CreateTopologyChangeMessage(event);
 }

@@ -98,10 +98,10 @@ protected:
     PostgreConnection();
     ~PostgreConnection() override;
 
-    storages::postgres::detail::ConnectionPtr& GetConn() { return conn; }
+    storages::postgres::detail::ConnectionPtr& GetConn() { return conn_; }
 
 private:
-    storages::postgres::detail::ConnectionPtr conn;
+    storages::postgres::detail::ConnectionPtr conn_;
 };
 
 USERVER_NAMESPACE_END

@@ -12,45 +12,45 @@ TYPED_TEST_SUITE_P(MemberAccess);
 TYPED_TEST_P(MemberAccess, ChildBySquareBrackets) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    EXPECT_FALSE(this->doc_["key1"].IsMissing());
-    EXPECT_EQ(this->doc_["key1"], ValueBuilder(1).ExtractValue());
+    EXPECT_FALSE(this->doc["key1"].IsMissing());
+    EXPECT_EQ(this->doc["key1"], ValueBuilder(1).ExtractValue());
 }
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBracketsTwice) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    EXPECT_FALSE(this->doc_["key3"]["sub"].IsMissing());
-    EXPECT_EQ(this->doc_["key3"]["sub"], ValueBuilder(-1).ExtractValue());
+    EXPECT_FALSE(this->doc["key3"]["sub"].IsMissing());
+    EXPECT_EQ(this->doc["key3"]["sub"], ValueBuilder(-1).ExtractValue());
 }
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBracketsMissing) {
     using MemberMissingException = typename TestFixture::MemberMissingException;
 
-    EXPECT_NO_THROW(this->doc_["key_missing"]);
-    EXPECT_EQ(this->doc_["key_missing"].GetPath(), "key_missing");
-    EXPECT_TRUE(this->doc_["key_missing"].IsMissing());
-    EXPECT_FALSE(this->doc_["key_missing"].IsNull());
+    EXPECT_NO_THROW(this->doc["key_missing"]);
+    EXPECT_EQ(this->doc["key_missing"].GetPath(), "key_missing");
+    EXPECT_TRUE(this->doc["key_missing"].IsMissing());
+    EXPECT_FALSE(this->doc["key_missing"].IsNull());
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key_missing"].template As<bool>(), MemberMissingException);
+    EXPECT_THROW(this->doc["key_missing"].template As<bool>(), MemberMissingException);
 }
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBracketsMissingTwice) {
     using MemberMissingException = typename TestFixture::MemberMissingException;
 
-    EXPECT_NO_THROW(this->doc_["key_missing"]["sub"]);
-    EXPECT_EQ(this->doc_["key_missing"]["sub"].GetPath(), "key_missing.sub");
-    EXPECT_TRUE(this->doc_["key_missing"]["sub"].IsMissing());
-    EXPECT_FALSE(this->doc_["key_missing"]["sub"].IsNull());
+    EXPECT_NO_THROW(this->doc["key_missing"]["sub"]);
+    EXPECT_EQ(this->doc["key_missing"]["sub"].GetPath(), "key_missing.sub");
+    EXPECT_TRUE(this->doc["key_missing"]["sub"].IsMissing());
+    EXPECT_FALSE(this->doc["key_missing"]["sub"].IsNull());
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key_missing"]["sub"].template As<bool>(), MemberMissingException);
+    EXPECT_THROW(this->doc["key_missing"]["sub"].template As<bool>(), MemberMissingException);
 }
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBracketsArray) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    EXPECT_EQ(this->doc_["key4"][1], ValueBuilder(2).ExtractValue());
+    EXPECT_EQ(this->doc["key4"][1], ValueBuilder(2).ExtractValue());
 }
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBracketsBounds) {
@@ -58,18 +58,18 @@ TYPED_TEST_P(MemberAccess, ChildBySquareBracketsBounds) {
 
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key4"][9], OutOfBoundsException);
+    EXPECT_THROW(this->doc["key4"][9], OutOfBoundsException);
 }
 
 TYPED_TEST_P(MemberAccess, IterateMemberNames) {
     using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-    EXPECT_TRUE(this->doc_.IsObject());
+    EXPECT_TRUE(this->doc.IsObject());
     size_t ind = 1;
     std::unordered_set<std::string> all_keys;
-    for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it, ++ind) {
+    for (auto it = this->doc.begin(); it != this->doc.end(); ++it, ++ind) {
         const auto key = it.GetName();
-        EXPECT_EQ(this->doc_[key], *it) << "Failed for key " << key;
+        EXPECT_EQ(this->doc[key], *it) << "Failed for key " << key;
         EXPECT_TRUE(all_keys.insert(key).second) << "Already met key " << key;
         // possible false positive because of conditional in catch?
         // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
@@ -81,8 +81,8 @@ TYPED_TEST_P(MemberAccess, Items) {
     using formats::common::Items;
     size_t ind = 1;
     std::unordered_set<std::string> all_keys;
-    for (const auto& [key, value] : Items(this->doc_)) {
-        EXPECT_EQ(this->doc_[key], value) << "Failed for key " << key;
+    for (const auto& [key, value] : Items(this->doc)) {
+        EXPECT_EQ(this->doc[key], value) << "Failed for key " << key;
         EXPECT_TRUE(all_keys.insert(key).second) << "Already met key " << key;
         ++ind;
     }
@@ -93,7 +93,7 @@ TYPED_TEST_P(MemberAccess, Items) {
 TYPED_TEST_P(MemberAccess, IterateAndCheckValues) {
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
+    for (auto it = this->doc.begin(); it != this->doc.end(); ++it) {
         if (it.GetName() == "key1") {
             EXPECT_EQ(*it, ValueBuilder(1).ExtractValue());
         } else if (it.GetName() == "key2") {
@@ -110,7 +110,7 @@ TYPED_TEST_P(MemberAccess, IterateAndCheckValues) {
 TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4) {
     using OutOfBoundsException = typename TestFixture::OutOfBoundsException;
 
-    for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
+    for (auto it = this->doc.begin(); it != this->doc.end(); ++it) {
         if (it.GetName() == "key4") {
             // possible false positive because of conditional in catch?
             // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
@@ -122,7 +122,7 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4) {
 TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
     using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-    for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
+    for (auto it = this->doc.begin(); it != this->doc.end(); ++it) {
         if (it.GetName() == "key4") {
             EXPECT_TRUE(it->IsArray());
 
@@ -146,7 +146,7 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
 TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
     using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-    for (auto it = this->doc_.begin(); it != this->doc_.end(); it++) {
+    for (auto it = this->doc.begin(); it != this->doc.end(); it++) {
         if (it.GetName() == "key4") {
             EXPECT_TRUE(it->IsArray());
 
@@ -168,17 +168,17 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
 }
 
 TYPED_TEST_P(MemberAccess, Algorithms) {
-    auto it = std::find_if(this->doc_.begin(), this->doc_.end(), [](const auto& v) {
+    auto it = std::find_if(this->doc.begin(), this->doc.end(), [](const auto& v) {
         return v.IsString() && v.template As<std::string>() == "val";
     });
-    ASSERT_NE(it, this->doc_.end()) << "failed to find array";
+    ASSERT_NE(it, this->doc.end()) << "failed to find array";
     EXPECT_EQ(it->template As<std::string>(), "val");
     EXPECT_EQ(it.GetName(), "key2");
 
     auto it_new = it;
     ++it_new;
     EXPECT_NE(it_new, it);
-    if (this->doc_.end() != it_new) {
+    if (this->doc.end() != it_new) {
         EXPECT_NE(it_new.GetName(), it.GetName());
     }
 
@@ -186,28 +186,28 @@ TYPED_TEST_P(MemberAccess, Algorithms) {
 
     ++it;
     EXPECT_EQ(it_new, it);
-    if (this->doc_.end() != it_new) {
+    if (this->doc.end() != it_new) {
         EXPECT_EQ(it_new.GetName(), it.GetName());
     }
 }
 
 TYPED_TEST_P(MemberAccess, CheckPrimitiveTypes) {
-    EXPECT_TRUE(this->doc_["key1"].IsUInt64());
-    EXPECT_EQ(this->doc_["key1"].template As<uint64_t>(), 1);
+    EXPECT_TRUE(this->doc["key1"].IsUInt64());
+    EXPECT_EQ(this->doc["key1"].template As<uint64_t>(), 1);
 
-    EXPECT_TRUE(this->doc_["key2"].IsString());
-    EXPECT_EQ(this->doc_["key2"].template As<std::string>(), "val");
+    EXPECT_TRUE(this->doc["key2"].IsString());
+    EXPECT_EQ(this->doc["key2"].template As<std::string>(), "val");
 
-    EXPECT_TRUE(this->doc_["key3"].IsObject());
-    EXPECT_TRUE(this->doc_["key3"]["sub"].IsInt64());
-    EXPECT_EQ(this->doc_["key3"]["sub"].template As<int>(), -1);
+    EXPECT_TRUE(this->doc["key3"].IsObject());
+    EXPECT_TRUE(this->doc["key3"]["sub"].IsInt64());
+    EXPECT_EQ(this->doc["key3"]["sub"].template As<int>(), -1);
 
-    EXPECT_TRUE(this->doc_["key4"].IsArray());
-    EXPECT_TRUE(this->doc_["key4"][0].IsUInt64());
-    EXPECT_EQ(this->doc_["key4"][0].template As<uint64_t>(), 1);
+    EXPECT_TRUE(this->doc["key4"].IsArray());
+    EXPECT_TRUE(this->doc["key4"][0].IsUInt64());
+    EXPECT_EQ(this->doc["key4"][0].template As<uint64_t>(), 1);
 
-    EXPECT_TRUE(this->doc_["key5"].IsDouble());
-    EXPECT_DOUBLE_EQ(this->doc_["key5"].template As<double>(), 10.5);
+    EXPECT_TRUE(this->doc["key5"].IsDouble());
+    EXPECT_DOUBLE_EQ(this->doc["key5"].template As<double>(), 10.5);
 }
 
 TYPED_TEST_P(MemberAccess, CheckPrimitiveTypeExceptions) {
@@ -215,43 +215,43 @@ TYPED_TEST_P(MemberAccess, CheckPrimitiveTypeExceptions) {
 
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key1"].template As<bool>(), TypeMismatchException);
-    EXPECT_NO_THROW(this->doc_["key1"].template As<double>());
+    EXPECT_THROW(this->doc["key1"].template As<bool>(), TypeMismatchException);
+    EXPECT_NO_THROW(this->doc["key1"].template As<double>());
 
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key2"].template As<bool>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key2"].template As<bool>(), TypeMismatchException);
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key2"].template As<double>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key2"].template As<double>(), TypeMismatchException);
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key2"].template As<uint64_t>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key2"].template As<uint64_t>(), TypeMismatchException);
 
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key5"].template As<bool>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key5"].template As<bool>(), TypeMismatchException);
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key5"].template As<uint64_t>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key5"].template As<uint64_t>(), TypeMismatchException);
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key5"].template As<int>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key5"].template As<int>(), TypeMismatchException);
 
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key6"].template As<double>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key6"].template As<double>(), TypeMismatchException);
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key6"].template As<uint64_t>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key6"].template As<uint64_t>(), TypeMismatchException);
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->doc_["key6"].template As<int>(), TypeMismatchException);
+    EXPECT_THROW(this->doc["key6"].template As<int>(), TypeMismatchException);
 }
 
 TYPED_TEST_P(MemberAccess, MemberPaths) {
     using Value = typename TestFixture::Value;
 
     // copy/move constructor behaves as if it copied references not values
-    const Value js_copy = this->doc_;
+    const Value js_copy = this->doc;
     // check pointer equality of native objects
-    EXPECT_TRUE(js_copy.DebugIsReferencingSameMemory(this->doc_));
+    EXPECT_TRUE(js_copy.DebugIsReferencingSameMemory(this->doc));
 
-    EXPECT_EQ(this->doc_.GetPath(), "/");
-    EXPECT_EQ(this->doc_["key1"].GetPath(), "key1");
-    EXPECT_EQ(this->doc_["key3"]["sub"].GetPath(), "key3.sub");
-    EXPECT_EQ(this->doc_["key4"][2].GetPath(), "key4[2]");
+    EXPECT_EQ(this->doc.GetPath(), "/");
+    EXPECT_EQ(this->doc["key1"].GetPath(), "key1");
+    EXPECT_EQ(this->doc["key3"]["sub"].GetPath(), "key3.sub");
+    EXPECT_EQ(this->doc["key4"][2].GetPath(), "key4[2]");
 
     EXPECT_EQ(js_copy.GetPath(), "/");
     EXPECT_EQ(js_copy["key1"].GetPath(), "key1");
@@ -260,37 +260,37 @@ TYPED_TEST_P(MemberAccess, MemberPaths) {
 }
 
 TYPED_TEST_P(MemberAccess, MemberPathsByIterator) {
-    EXPECT_EQ(this->doc_["key3"].begin()->GetPath(), "key3.sub");
+    EXPECT_EQ(this->doc["key3"].begin()->GetPath(), "key3.sub");
 
-    auto arr_it = this->doc_["key4"].begin();
+    auto arr_it = this->doc["key4"].begin();
     EXPECT_EQ((arr_it++)->GetPath(), "key4[0]");
     EXPECT_EQ((++arr_it)->GetPath(), "key4[2]");
 }
 
 TYPED_TEST_P(MemberAccess, MemberEmpty) {
-    EXPECT_FALSE(this->doc_.IsEmpty()) << "Map is not empty when it should be";
-    EXPECT_FALSE(this->doc_["key4"].IsEmpty()) << "Array is not empty when it should be";
+    EXPECT_FALSE(this->doc.IsEmpty()) << "Map is not empty when it should be";
+    EXPECT_FALSE(this->doc["key4"].IsEmpty()) << "Array is not empty when it should be";
 }
 
 TYPED_TEST_P(MemberAccess, MemberCount) {
-    EXPECT_EQ(this->doc_.GetSize(), 6) << "Incorrect size of a map";
-    EXPECT_EQ(this->doc_["key4"].GetSize(), 3) << "Incorrect size of an array";
+    EXPECT_EQ(this->doc.GetSize(), 6) << "Incorrect size of a map";
+    EXPECT_EQ(this->doc["key4"].GetSize(), 3) << "Incorrect size of an array";
 }
 
 TYPED_TEST_P(MemberAccess, HasMember) {
-    EXPECT_TRUE(this->doc_.HasMember("key1"));
-    EXPECT_FALSE(this->doc_.HasMember("keyX"));
-    EXPECT_FALSE(this->doc_["keyX"].HasMember("key1"));
+    EXPECT_TRUE(this->doc.HasMember("key1"));
+    EXPECT_FALSE(this->doc.HasMember("keyX"));
+    EXPECT_FALSE(this->doc["keyX"].HasMember("key1"));
 }
 
 TYPED_TEST_P(MemberAccess, CopyMoveSubobject) {
     using Value = typename TestFixture::Value;
 
     // copy/move constructor behaves as if it copied references from subobjects
-    const Value v(this->doc_["key3"]);
+    const Value v(this->doc["key3"]);
 
-    EXPECT_EQ(v, this->doc_["key3"]);
-    EXPECT_TRUE(v.DebugIsReferencingSameMemory(this->doc_["key3"]));
+    EXPECT_EQ(v, this->doc["key3"]);
+    EXPECT_TRUE(v.DebugIsReferencingSameMemory(this->doc["key3"]));
 }
 
 TYPED_TEST_P(MemberAccess, IteratorOnNull) {
@@ -314,12 +314,12 @@ TYPED_TEST_P(MemberAccess, CloneValues) {
     using Value = typename TestFixture::Value;
     using ValueBuilder = typename TestFixture::ValueBuilder;
 
-    const Value v = this->doc_.Clone();
-    EXPECT_EQ(v, this->doc_);
+    const Value v = this->doc.Clone();
+    EXPECT_EQ(v, this->doc);
 
-    this->doc_ = ValueBuilder(-1).ExtractValue();
+    this->doc = ValueBuilder(-1).ExtractValue();
 
-    EXPECT_FALSE(v.DebugIsReferencingSameMemory(this->doc_));
+    EXPECT_FALSE(v.DebugIsReferencingSameMemory(this->doc));
 }
 
 TYPED_TEST_P(MemberAccess, CreateEmptyAndAccess) {
@@ -343,35 +343,35 @@ TYPED_TEST_P(MemberAccess, Subfield) {
 
     ValueBuilder body_builder(Type::kObject);
 
-    const Value old = this->doc_["key1"].Clone();
-    EXPECT_EQ(old, this->doc_["key1"]);
+    const Value old = this->doc["key1"].Clone();
+    EXPECT_EQ(old, this->doc["key1"]);
 
-    body_builder["key1"] = this->doc_["key1"];
+    body_builder["key1"] = this->doc["key1"];
 
-    EXPECT_EQ(old, this->doc_["key1"]);
+    EXPECT_EQ(old, this->doc["key1"]);
 }
 
 TYPED_TEST_P(MemberAccess, ValueAssignment) {
     using Value = typename TestFixture::Value;
 
     Value v;
-    v = this->doc_["key4"];
+    v = this->doc["key4"];
     EXPECT_TRUE(v.IsArray());
 
-    v = this->doc_["key1"];
+    v = this->doc["key1"];
     EXPECT_FALSE(v.IsArray());
-    EXPECT_TRUE(this->doc_["key4"].IsArray());
+    EXPECT_TRUE(this->doc["key4"].IsArray());
 
     Value v2;
     v2 = v;
-    v = this->doc_["key4"];
+    v = this->doc["key4"];
     EXPECT_TRUE(v.IsArray());
     EXPECT_FALSE(v2.IsArray());
 
     Value v3;
-    v = this->doc_["key1"];
+    v = this->doc["key1"];
     v3 = std::move(v);
-    v = this->doc_["key4"];
+    v = this->doc["key4"];
     EXPECT_TRUE(v.IsArray());
     EXPECT_FALSE(v3.IsArray());
 }
@@ -411,21 +411,21 @@ TYPED_TEST_P(MemberAccess, AsWithDefault) {
     using Value = typename TestFixture::Value;
 
     EXPECT_EQ(Value()["missing"].template As<int>(42), 42);
-    EXPECT_EQ(this->doc_["key4"][1].template As<int>(42), 2);
+    EXPECT_EQ(this->doc["key4"][1].template As<int>(42), 2);
 }
 
 TYPED_TEST_P(MemberAccess, RootAndPathOfCloned) {
-    EXPECT_TRUE(this->doc_.Clone().IsRoot());
-    EXPECT_TRUE(this->doc_.IsRoot());
+    EXPECT_TRUE(this->doc.Clone().IsRoot());
+    EXPECT_TRUE(this->doc.IsRoot());
 
-    EXPECT_TRUE(this->doc_["key4"].Clone().IsRoot());
-    EXPECT_FALSE(this->doc_["key4"].IsRoot());
+    EXPECT_TRUE(this->doc["key4"].Clone().IsRoot());
+    EXPECT_FALSE(this->doc["key4"].IsRoot());
 
-    EXPECT_EQ(this->doc_.Clone().GetPath(), this->doc_.GetPath());
-    EXPECT_EQ(this->doc_.Clone().GetPath(), "/");
+    EXPECT_EQ(this->doc.Clone().GetPath(), this->doc.GetPath());
+    EXPECT_EQ(this->doc.Clone().GetPath(), "/");
 
-    EXPECT_EQ(this->doc_["key4"].Clone().GetPath(), "/");
-    EXPECT_EQ(this->doc_["key4"].GetPath(), "key4");
+    EXPECT_EQ(this->doc["key4"].Clone().GetPath(), "/");
+    EXPECT_EQ(this->doc["key4"].GetPath(), "key4");
 }
 
 REGISTER_TYPED_TEST_SUITE_P(

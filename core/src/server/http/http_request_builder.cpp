@@ -25,22 +25,22 @@ HttpRequestBuilder::HttpRequestBuilder(request::ResponseDataAccounter& data_acco
 HttpRequestBuilder::HttpRequestBuilder() : HttpRequestBuilder(default_data_accounter) {}
 
 HttpRequestBuilder& HttpRequestBuilder::SetRemoteAddress(engine::io::Sockaddr remote_address) {
-    request_->pimpl_->remote_address_ = std::move(remote_address);
+    request_->pimpl_->remote_address = std::move(remote_address);
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetMethod(HttpMethod method) {
-    request_->pimpl_->method_ = method;
+    request_->pimpl_->method = method;
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetHttpMajor(int http_major) {
-    request_->pimpl_->http_major_ = http_major;
+    request_->pimpl_->http_major = http_major;
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetHttpMinor(int http_minor) {
-    request_->pimpl_->http_minor_ = http_minor;
+    request_->pimpl_->http_minor = http_minor;
     return *this;
 }
 
@@ -50,12 +50,12 @@ HttpRequestBuilder& HttpRequestBuilder::SetBody(std::string&& body) {
 }
 
 HttpRequestBuilder& HttpRequestBuilder::AddHeader(std::string&& header, std::string&& value) {
-    request_->pimpl_->headers_.InsertOrAppend(std::move(header), std::move(value));
+    request_->pimpl_->headers.InsertOrAppend(std::move(header), std::move(value));
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::AddRequestArg(std::string&& key, std::string&& value) {
-    request_->pimpl_->request_args_[std::move(key)].push_back(std::move(value));
+    request_->pimpl_->request_args[std::move(key)].push_back(std::move(value));
     return *this;
 }
 
@@ -65,24 +65,24 @@ HttpRequestBuilder& HttpRequestBuilder::SetPathArgs(std::vector<std::pair<std::s
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetUrl(std::string&& url) {
-    request_->pimpl_->url_ = std::move(url);
+    request_->pimpl_->url = std::move(url);
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetRequestPath(std::string&& path) {
-    request_->pimpl_->request_path_ = std::move(path);
+    request_->pimpl_->request_path = std::move(path);
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetIsFinal(bool is_final) {
-    request_->pimpl_->is_final_ = is_final;
+    request_->pimpl_->is_final = is_final;
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetFormDataArgs(
     utils::impl::TransparentMap<std::string, std::vector<FormDataArg>, utils::StrCaseHash>&& form_data_args
 ) {
-    request_->pimpl_->form_data_args_ = std::move(form_data_args);
+    request_->pimpl_->form_data_args = std::move(form_data_args);
     return *this;
 }
 
@@ -127,15 +127,15 @@ std::shared_ptr<HttpRequest> HttpRequestBuilder::Build() {
     ParseCookies();
 
     UASSERT(std::all_of(
-        request_->pimpl_->request_args_.begin(),
-        request_->pimpl_->request_args_.end(),
+        request_->pimpl_->request_args.begin(),
+        request_->pimpl_->request_args.end(),
         [](const auto& arg) { return !arg.second.empty(); }
     ));
 
     LOG_TRACE() << "method=" << request_->GetMethodStr();
-    LOG_TRACE() << "request_args:" << request_->pimpl_->request_args_;
-    LOG_TRACE() << "headers:" << request_->pimpl_->headers_;
-    LOG_TRACE() << "cookies:" << request_->pimpl_->cookies_;
+    LOG_TRACE() << "request_args:" << request_->pimpl_->request_args;
+    LOG_TRACE() << "headers:" << request_->pimpl_->headers;
+    LOG_TRACE() << "cookies:" << request_->pimpl_->cookies;
 
     return request_;
 }
@@ -166,7 +166,7 @@ void HttpRequestBuilder::ParseCookies() {
             }
             Strip(key_begin, key_end);
             if (key_begin < key_end) {
-                request_->pimpl_->cookies_.emplace(
+                request_->pimpl_->cookies.emplace(
                     std::piecewise_construct, std::tie(key_begin, key_end), std::tie(value_begin, value_end)
                 );
             }

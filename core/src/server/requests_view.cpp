@@ -12,7 +12,7 @@ const auto kDequeuePollPeriod = std::chrono::milliseconds(100);
 
 namespace server {
 
-RequestsView::RequestsView() : queue_(std::make_shared<Queue>()), job_requests(kDequeueBulkSize) {}
+RequestsView::RequestsView() : queue_(std::make_shared<Queue>()), job_requests_(kDequeueBulkSize) {}
 
 RequestsView::~RequestsView() { StopBackgroundWorker(); }
 
@@ -69,10 +69,10 @@ void RequestsView::GarbageCollect() {
 void RequestsView::HandleQueue() {
     const std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
     for (;;) {
-        const auto count = queue_->try_dequeue_bulk(job_requests.begin(), job_requests.size());
+        const auto count = queue_->try_dequeue_bulk(job_requests_.begin(), job_requests_.size());
         if (count == 0) break;
 
-        for (size_t i = 0; i < count; ++i) requests_in_flight_.push_back(std::move(job_requests[i]));
+        for (size_t i = 0; i < count; ++i) requests_in_flight_.push_back(std::move(job_requests_[i]));
     }
 }
 

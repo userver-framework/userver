@@ -176,7 +176,7 @@ void RequestContext::HandleError(const NYdb::TStatus& status) {
     UASSERT(!status.IsSuccess());
     // To protect against double handling of error in the 'HandleError` and in the
     // destructor we have to set the flag
-    is_error_ = true;
+    is_error = true;
     span.AddTag(tracing::kErrorFlag, true);
     if (status.IsTransportError()) {
         stats_scope.OnTransportError();
@@ -186,7 +186,7 @@ void RequestContext::HandleError(const NYdb::TStatus& status) {
 }
 
 RequestContext::~RequestContext() {
-    if (engine::current_task::ShouldCancel() && !is_error_) {
+    if (engine::current_task::ShouldCancel() && !is_error) {
         stats_scope.OnCancelled();
         span.AddTag("cancelled", true);
     }

@@ -50,7 +50,7 @@ public:
     Range() = default;
 
     /// Unbounded range
-    Range(UnboundedType, UnboundedType) noexcept : data{RangeData{}} {}
+    Range(UnboundedType, UnboundedType) noexcept : data_{RangeData{}} {}
 
     /// Bounded range
     template <typename U, typename = std::enable_if_t<std::is_convertible_v<std::decay_t<U>, T>>>
@@ -76,32 +76,32 @@ public:
 
     bool operator!=(const Range& rhs) const { return !(*this == rhs); }
 
-    bool Empty() const { return !data; }
+    bool Empty() const { return !data_; }
 
     /// Make the range empty
-    void Clear() { data.reset(); }
+    void Clear() { data_.reset(); }
 
-    bool HasLowerBound() const { return !!data && data->HasBound(RangeBound::kLower); }
-    bool HasUpperBound() const { return !!data && data->HasBound(RangeBound::kUpper); }
+    bool HasLowerBound() const { return !!data_ && data_->HasBound(RangeBound::kLower); }
+    bool HasUpperBound() const { return !!data_ && data_->HasBound(RangeBound::kUpper); }
 
     /// Get the lower bound.
     const OptionalValue& GetLowerBound() const {
-        if (!!data) {
-            return data->GetOptionalValue(RangeBound::kLower);
+        if (!!data_) {
+            return data_->GetOptionalValue(RangeBound::kLower);
         }
         return kNoValue;
     }
 
     /// Get the upper bound.
     const OptionalValue& GetUpperBound() const {
-        if (!!data) {
-            return data->GetOptionalValue(RangeBound::kUpper);
+        if (!!data_) {
+            return data_->GetOptionalValue(RangeBound::kUpper);
         }
         return kNoValue;
     }
 
-    bool IsLowerBoundIncluded() const { return !!data && data->IsBoundIncluded(RangeBound::kLower); }
-    bool IsUpperBoundIncluded() const { return !!data && data->IsBoundIncluded(RangeBound::kUpper); }
+    bool IsLowerBoundIncluded() const { return !!data_ && data_->IsBoundIncluded(RangeBound::kLower); }
+    bool IsUpperBoundIncluded() const { return !!data_ && data_->IsBoundIncluded(RangeBound::kUpper); }
 
 private:
     template <typename U>
@@ -168,11 +168,11 @@ private:
 
     template <typename U>
     static std::optional<RangeData> ConvertData(const Range<U>& rhs) {
-        if (!rhs.data) return {};
-        return RangeData{ConvertBound(rhs.data->lower), ConvertBound(rhs.data->upper), rhs.data->bounds};
+        if (!rhs.data_) return {};
+        return RangeData{ConvertBound(rhs.data_->lower), ConvertBound(rhs.data_->upper), rhs.data_->bounds};
     }
 
-    std::optional<RangeData> data;
+    std::optional<RangeData> data_;
 
     static const inline OptionalValue kNoValue{};
 };
@@ -418,34 +418,34 @@ namespace storages::postgres {
 template <typename T>
 template <typename U, typename>
 Range<T>::Range(U&& lower, U&& upper, RangeBounds bounds)
-    : data{RangeData{std::forward<U>(lower), std::forward<U>(upper), bounds}} {
+    : data_{RangeData{std::forward<U>(lower), std::forward<U>(upper), bounds}} {
     if (lower == upper && bounds != RangeBound::kBoth) {
         // this will make an empty range
-        data.reset();
+        data_.reset();
     }
 }
 
 template <typename T>
 template <typename U, typename>
 Range<T>::Range(U&& lower, UnboundedType ub, RangeBounds bounds) noexcept(kNothrowValueCopy)
-    : data{RangeData{std::forward<U>(lower), ub, bounds}} {}
+    : data_{RangeData{std::forward<U>(lower), ub, bounds}} {}
 
 template <typename T>
 template <typename U, typename>
 Range<T>::Range(UnboundedType ub, U&& upper, RangeBounds bounds) noexcept(kNothrowValueCopy)
-    : data{RangeData{ub, std::forward<U>(upper), bounds}} {}
+    : data_{RangeData{ub, std::forward<U>(upper), bounds}} {}
 
 template <typename T>
 Range<T>::Range(const OptionalValue& lower, const OptionalValue& upper, RangeBounds bounds)
-    : data{RangeData{lower, upper, bounds}} {}
+    : data_{RangeData{lower, upper, bounds}} {}
 
 template <typename T>
 template <typename U, typename>
-Range<T>::Range(const Range<U>& rhs) : data{ConvertData(rhs)} {}
+Range<T>::Range(const Range<U>& rhs) : data_{ConvertData(rhs)} {}
 
 template <typename T>
 bool Range<T>::operator==(const Range& rhs) const {
-    return (Empty() && rhs.Empty()) || (data == rhs.data);
+    return (Empty() && rhs.Empty()) || (data_ == rhs.data_);
 }
 
 template <typename T>

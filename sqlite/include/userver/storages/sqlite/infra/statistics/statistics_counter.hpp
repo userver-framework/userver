@@ -24,7 +24,7 @@ public:
 
 private:
     PoolQueriesStatistics& queries_stats_;
-    utils::datetime::SteadyClock::time_point exec_begin_time;
+    utils::datetime::SteadyClock::time_point exec_begin_time_;
 };
 
 class TransactionStatCounter {
@@ -42,7 +42,7 @@ public:
 
 private:
     PoolTransactionsStatistics& transactions_stats_;
-    utils::datetime::SteadyClock::time_point exec_begin_time;
+    utils::datetime::SteadyClock::time_point exec_begin_time_;
 };
 
 }  // namespace storages::sqlite::infra::statistics

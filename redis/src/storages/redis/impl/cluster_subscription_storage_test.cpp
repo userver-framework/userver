@@ -25,7 +25,7 @@ public:
     static void TearDownTestSuite() {}
 
     void SetUp() override {
-        storage_ = std::make_shared<storages::redis::impl::ClusterSubscriptionStorage>(kShardsCount);
+        storage_ = std::make_shared<storages::redis::impl::ClusterSubscriptionStorage>(kShardsCount_);
         auto sharded_subscribe_callback = [&](const std::string& /*channel*/, storages::redis::impl::CommandPtr cmd) {
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
@@ -79,19 +79,19 @@ public:
             );
             const storages::redis::ReplyPtr reply =
                 std::make_shared<storages::redis::Reply>(command, std::move(reply_data));
-            reply->server_id = server_ids[0];
+            reply->server_id = server_ids_[0];
             cmd->callback({}, reply);
         }
         cmds_.clear();
     }
 
-    void Rebalance(size_t shard) { storage_->DoRebalance(shard, weights); }
+    void Rebalance(size_t shard) { storage_->DoRebalance(shard, weights_); }
 
     const auto& GetSubscriptionsByHost() const { return subscriptions_by_host_; }
     const auto& GetShardedSubscriptionsByHost() const { return ssubscriptions_by_host_; }
 
 private:
-    const std::vector<storages::redis::ServerId> server_ids = std::vector{
+    const std::vector<storages::redis::ServerId> server_ids_ = std::vector{
         MakeServerId("host0"),
         MakeServerId("host1"),
         MakeServerId("host2"),
@@ -101,17 +101,17 @@ private:
     };
 
     /// Which hosts do we have
-    const storages::redis::impl::ClusterSubscriptionStorage::ServerWeights weights = {
-        {server_ids[0], 1},
-        {server_ids[1], 1},
-        {server_ids[2], 1},
-        {server_ids[3], 1},
-        {server_ids[4], 1},
-        {server_ids[5], 1},
+    const storages::redis::impl::ClusterSubscriptionStorage::ServerWeights weights_ = {
+        {server_ids_[0], 1},
+        {server_ids_[1], 1},
+        {server_ids_[2], 1},
+        {server_ids_[3], 1},
+        {server_ids_[4], 1},
+        {server_ids_[5], 1},
 
     };
 
-    const size_t kShardsCount = 3;
+    const size_t kShardsCount_ = 3;
     std::shared_ptr<storages::redis::impl::ClusterSubscriptionStorage> storage_;
     std::unordered_map<std::string, size_t> subscriptions_by_host_;
     std::unordered_map<std::string, size_t> ssubscriptions_by_host_;

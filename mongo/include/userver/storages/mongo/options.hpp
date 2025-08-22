@@ -139,6 +139,7 @@ public:
 
     size_t Value() const { return value_; }
 
+private:
     size_t value_;
 };
 

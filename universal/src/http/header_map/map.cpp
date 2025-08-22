@@ -355,13 +355,13 @@ Map::Iterator Map::Find(std::string_view key) noexcept {
 }
 
 Map::ConstIterator Map::Find(const PredefinedHeader& header) const noexcept {
-    const auto pos = DoFind(header.name, HashKey(header), header.header_index);
+    const auto pos = DoFind(header.name_, HashKey(header), header.header_index_);
 
     return pos.IsSome() ? ToReverseIterator(entries_.cbegin() + pos.entries_index) : End();
 }
 
 Map::Iterator Map::Find(const PredefinedHeader& header) noexcept {
-    const auto pos = DoFind(header.name, HashKey(header), header.header_index);
+    const auto pos = DoFind(header.name_, HashKey(header), header.header_index_);
 
     return pos.IsSome() ? ToReverseIterator(entries_.begin() + pos.entries_index) : End();
 }
@@ -516,7 +516,7 @@ Map::Iterator Map::DoInsertOrModify(
 
 Map::Iterator Map::Erase(std::string_view key) { return DoErase(key, HashKey(key)); }
 
-Map::Iterator Map::Erase(const PredefinedHeader& header) { return DoErase(header.name, HashKey(header)); }
+Map::Iterator Map::Erase(const PredefinedHeader& header) { return DoErase(header.name_, HashKey(header)); }
 
 Map::Iterator Map::DoErase(std::string_view key, Traits::HashValue hash) {
     const auto pos = DoFind(key, hash, 0);

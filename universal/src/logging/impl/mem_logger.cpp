@@ -18,15 +18,15 @@ constexpr auto kMaxLogItems = 10000;
 }  // namespace
 
 struct MemLogger::Impl {
-    std::mutex mutex_;
-    std::vector<formatters::LogItem> data_;
-    LoggerBase* forward_logger_{nullptr};
+    std::mutex mutex;
+    std::vector<formatters::LogItem> data;
+    LoggerBase* forward_logger{nullptr};
 };
 
 MemLogger::MemLogger() noexcept { SetLevel(Level::kDebug); }
 
 MemLogger::~MemLogger() {
-    for (const auto& data : pimpl_->data_) {
+    for (const auto& data : pimpl_->data) {
         std::fputs(data.text.c_str(), stderr);
     }
 }
@@ -37,13 +37,13 @@ MemLogger& MemLogger::GetMemLogger() noexcept {
 }
 
 void MemLogger::DropLogs() {
-    const std::lock_guard lock(pimpl_->mutex_);
-    pimpl_->data_.clear();
+    const std::lock_guard lock(pimpl_->mutex);
+    pimpl_->data.clear();
 }
 
 size_t MemLogger::GetPendingLogsCount() {
-    const std::lock_guard lock(pimpl_->mutex_);
-    return pimpl_->data_.size();
+    const std::lock_guard lock(pimpl_->mutex);
+    return pimpl_->data.size();
 }
 
 void MemLogger::Log(Level level, formatters::LoggerItemRef msg) {
@@ -51,19 +51,19 @@ void MemLogger::Log(Level level, formatters::LoggerItemRef msg) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto& item = static_cast<formatters::LogItem&>(msg);
 
-    const std::lock_guard lock(pimpl_->mutex_);
-    if (pimpl_->forward_logger_) {
-        auto formatter = pimpl_->forward_logger_->MakeFormatter(level, item.log_class, item.location);
+    const std::lock_guard lock(pimpl_->mutex);
+    if (pimpl_->forward_logger) {
+        auto formatter = pimpl_->forward_logger->MakeFormatter(level, item.log_class, item.location);
         DispatchItem(item, *formatter);
 
         auto& li = formatter->ExtractLoggerItem();
-        pimpl_->forward_logger_->Log(level, li);
+        pimpl_->forward_logger->Log(level, li);
         return;
     }
 
-    if (pimpl_->data_.size() > kMaxLogItems) return;
+    if (pimpl_->data.size() > kMaxLogItems) return;
 
-    pimpl_->data_.push_back(std::move(item));
+    pimpl_->data.push_back(std::move(item));
 }
 
 formatters::BasePtr
@@ -72,18 +72,18 @@ MemLogger::MakeFormatter(Level level, LogClass log_class, const utils::impl::Sou
 }
 
 void MemLogger::ForwardTo(LoggerBase* logger_to) {
-    const std::lock_guard lock(pimpl_->mutex_);
+    const std::lock_guard lock(pimpl_->mutex);
     if (logger_to) {
-        for (auto& log : pimpl_->data_) {
+        for (auto& log : pimpl_->data) {
             auto formatter = logger_to->MakeFormatter(log.level, log.log_class, log.location);
             DispatchItem(log, *formatter);
 
             auto& li = formatter->ExtractLoggerItem();
             logger_to->Log(log.level, li);
         }
-        pimpl_->data_.clear();
+        pimpl_->data.clear();
     }
-    pimpl_->forward_logger_ = logger_to;
+    pimpl_->forward_logger = logger_to;
 }
 
 void MemLogger::DispatchItem(formatters::LogItem& msg, formatters::Base& formatter) {
