@@ -38,7 +38,6 @@ libsasl2-dev
 libssl-dev
 libyaml-cpp-dev
 netbase
-ninja
 postgresql-13
 postgresql-server-dev-13
 protobuf-compiler-grpc
