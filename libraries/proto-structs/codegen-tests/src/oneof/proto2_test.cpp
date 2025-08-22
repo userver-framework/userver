@@ -11,7 +11,7 @@ TEST(OneofProto2, OneofEmpty) {
     static_assert(std::is_same_v<decltype(message.oneof), oneof::structs::Proto2::Oneof>);
 
     EXPECT_FALSE(message.oneof.has_integer());
-    EXPECT_THROW(message.oneof.integer(), std::bad_optional_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found = message.oneof.integer(), proto_structs::OneofAccessError);
 }
 
 TEST(OneofProto2, OneofFundamentalTypes) {
@@ -21,13 +21,13 @@ TEST(OneofProto2, OneofFundamentalTypes) {
     EXPECT_TRUE(message.oneof.has_integer());
     EXPECT_EQ(message.oneof.integer(), 42);
     EXPECT_FALSE(message.oneof.has_string());
-    EXPECT_THROW(message.oneof.string(), std::bad_variant_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found1 = message.oneof.string(), proto_structs::OneofAccessError);
 
     message.oneof.set_string("proto2_text");
     EXPECT_TRUE(message.oneof.has_string());
     EXPECT_EQ(message.oneof.string(), "proto2_text");
     EXPECT_FALSE(message.oneof.has_integer());
-    EXPECT_THROW(message.oneof.integer(), std::bad_variant_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found2 = message.oneof.integer(), proto_structs::OneofAccessError);
 }
 
 // TODO enable once fields of message and enum types are implemented.

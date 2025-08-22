@@ -46,7 +46,7 @@ INTERNAL_DO_NOT_USE_ = std::numeric_limits<std::int32_t>::max(),  // Write defau
 {% endmacro -%}
 
 {%- macro do_render_oneof(oneof) %}
-struct {{ oneof.name.short_name }} final : USERVER_NAMESPACE::proto_structs::impl::OneofBase<
+struct {{ oneof.name.short_name }} final : {{ oneof.base_class_template.contextual_cpp_name(context=oneof) }}<
 {% filter indent(width=4, first=True) %}
 {% for field in oneof.fields %}
 {{ field.field_type.contextual_cpp_name(context=oneof) }}
@@ -60,8 +60,9 @@ struct {{ oneof.name.short_name }} final : USERVER_NAMESPACE::proto_structs::imp
 {% filter indent(width=4, first=True) %}
 UPROTO_ONEOF_HEADER({{ oneof.name.short_name }})
 
+// For each field {name}, there are methods: has_{name}, {name} (const& and &&), set_{name}, mutable_{name}.
 {% for field in oneof.fields %}
-UPROTO_ONEOF_FIELD({{ field.field_type.contextual_cpp_name(context=oneof) }}, {{ field.short_name }})
+UPROTO_ONEOF_FIELD({{ oneof.name.short_name }}, {{ field.field_type.contextual_cpp_name(context=oneof) }}, {{ field.short_name }})
 {% endfor %} {#- for field #}
 {% endfilter %} {#- filter indent (struct contents) #}
 };

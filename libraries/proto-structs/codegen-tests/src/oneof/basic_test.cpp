@@ -11,7 +11,7 @@ TEST(OneofBasic, LowercaseEmpty) {
     static_assert(std::is_same_v<decltype(message.lowercase), oneof::structs::Parent::Lowercase>);
 
     EXPECT_FALSE(message.lowercase.has_integer());
-    EXPECT_THROW(message.lowercase.integer(), std::bad_optional_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found = message.lowercase.integer(), proto_structs::OneofAccessError);
 }
 
 TEST(OneofBasic, LowercaseFundamentalTypes) {
@@ -21,13 +21,15 @@ TEST(OneofBasic, LowercaseFundamentalTypes) {
     EXPECT_TRUE(message.lowercase.has_integer());
     EXPECT_EQ(message.lowercase.integer(), 10);
     EXPECT_FALSE(message.lowercase.has_string());
-    EXPECT_THROW(message.lowercase.string(), std::bad_variant_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found1 = message.lowercase.string(), proto_structs::OneofAccessError);
 
     message.lowercase.set_string("text");
     EXPECT_TRUE(message.lowercase.has_string());
     EXPECT_EQ(message.lowercase.string(), "text");
     EXPECT_FALSE(message.lowercase.has_integer());
-    EXPECT_THROW(message.lowercase.integer(), std::bad_variant_access);
+    EXPECT_THROW(
+        [[maybe_unused]] const auto& not_found2 = message.lowercase.integer(), proto_structs::OneofAccessError
+    );
 }
 
 // TODO enable once fields of message and enum types are implemented.

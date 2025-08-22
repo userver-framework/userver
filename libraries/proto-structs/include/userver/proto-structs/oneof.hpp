@@ -68,8 +68,11 @@ inline constexpr std::size_t kOneofNpos = -1;
 template <traits::OneofField... TFields>
 class Oneof {
 public:
+    /// @brief Type of this `Oneof` base class specialization
+    using Base = Oneof;
+
     /// @brief Number of fields in the oneof
-    static constexpr inline std::size_t kSize = sizeof...(TFields);
+    static constexpr std::size_t kSize = sizeof...(TFields);
 
     static_assert(kSize > 0, "Oneof should contain at least one field");
 
@@ -96,7 +99,7 @@ public:
     /// @brief Returns `Index` field
     /// @throws OneofAccessError if `Index` field is not set
     template <std::size_t Index>
-    [[nodiscard]] constexpr const OneofAlternativeType<Index, Oneof<TFields...>>& Get() const& {
+    [[nodiscard]] constexpr const OneofAlternativeType<Index, Oneof>& Get() const& {
         if (!Contains(Index)) {
             throw OneofAccessError(Index);
         }
@@ -107,7 +110,7 @@ public:
     /// @brief Returns `Index` field
     /// @throws OneofAccessError if `Index` field is not set
     template <std::size_t Index>
-    [[nodiscard]] constexpr OneofAlternativeType<Index, Oneof<TFields...>>& Get() & {
+    [[nodiscard]] constexpr OneofAlternativeType<Index, Oneof>& Get() & {
         if (!Contains(Index)) {
             throw OneofAccessError(Index);
         }
@@ -118,7 +121,7 @@ public:
     /// @brief Returns `Index` field
     /// @throws OneofAccessError if `Index` field is not set
     template <std::size_t Index>
-    [[nodiscard]] constexpr OneofAlternativeType<Index, Oneof<TFields...>>&& Get() && {
+    [[nodiscard]] constexpr OneofAlternativeType<Index, Oneof>&& Get() && {
         if (!Contains(Index)) {
             throw OneofAccessError(Index);
         }
@@ -129,23 +132,29 @@ public:
     /// @brief Initializes `Index` field in-place and returns it
     /// @tparam TArgs arguments to pass to `Index` field constructor
     template <std::size_t Index, typename... TArgs>
-    constexpr OneofAlternativeType<Index, Oneof<TFields...>>& Emplace(TArgs&&... args) {
-        if (!storage_) {
-            storage_ = std::variant<TFields...>(std::in_place_index<Index>, std::forward<TArgs>(args)...);
-            return std::get<Index>(*storage_);
-        } else {
-            return storage_->template emplace<Index>(std::forward<TArgs>(args)...);
-        }
+    constexpr OneofAlternativeType<Index, Oneof>& Emplace(TArgs&&... args) {
+        storage_.emplace(std::in_place_index<Index>, std::forward<TArgs>(args)...);
+        return std::get<Index>(*storage_);
     }
 
     template <std::size_t Index>
-    constexpr void Set(const OneofAlternativeType<Index, Oneof<TFields...>>& value) {
+    constexpr void Set(const OneofAlternativeType<Index, Oneof>& value) {
         Emplace<Index>(value);
     }
 
     template <std::size_t Index>
-    constexpr void Set(OneofAlternativeType<Index, Oneof<TFields...>>&& value) {
+    constexpr void Set(OneofAlternativeType<Index, Oneof>&& value) {
         Emplace<Index>(std::move(value));
+    }
+
+    /// @brief If field at `Index` is not set, sets it. Returns a mutable reference to the field.
+    template <std::size_t Index>
+    constexpr OneofAlternativeType<Index, Oneof>& GetMutable() {
+        if (!Contains(Index)) {
+            Emplace<Index>();
+        }
+
+        return std::get<Index>(*storage_);
     }
 
     /// @brief Clear field `Index` if it is set
@@ -159,7 +168,7 @@ public:
     void ClearOneof() noexcept { storage_.reset(); }
 
     /// @brief Returns `true` if oneof contains some field
-    explicit constexpr operator bool() const noexcept { return ContainsAny(); }
+    constexpr explicit operator bool() const noexcept { return ContainsAny(); }
 
 private:
     std::optional<std::variant<TFields...>> storage_;

@@ -52,8 +52,8 @@ TEST(Oneof, Empty) {
     EXPECT_FALSE(none);
     EXPECT_FALSE(none.has_foo());
     EXPECT_FALSE(none.has_bar());
-    EXPECT_THROW(none.foo(), std::bad_optional_access);
-    EXPECT_THROW(none.bar(), std::bad_optional_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found1 = none.foo(), proto_structs::OneofAccessError);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found2 = none.bar(), proto_structs::OneofAccessError);
 }
 
 TEST(Oneof, MakeFoo) {
@@ -63,7 +63,7 @@ TEST(Oneof, MakeFoo) {
     EXPECT_TRUE(foo.has_foo());
     EXPECT_NO_THROW(EXPECT_EQ(foo.foo(), 42));
     EXPECT_FALSE(foo.has_bar());
-    EXPECT_THROW(foo.bar(), std::bad_variant_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found = foo.bar(), proto_structs::OneofAccessError);
 }
 
 TEST(Oneof, MakeBar) {
@@ -71,7 +71,7 @@ TEST(Oneof, MakeBar) {
     bar.set_bar("bar");
     EXPECT_TRUE(bar);
     EXPECT_FALSE(bar.has_foo());
-    EXPECT_THROW(bar.foo(), std::bad_variant_access);
+    EXPECT_THROW([[maybe_unused]] const auto& not_found = bar.foo(), proto_structs::OneofAccessError);
     EXPECT_TRUE(bar.has_bar());
     EXPECT_NO_THROW(EXPECT_EQ(bar.bar(), "bar"));
 }

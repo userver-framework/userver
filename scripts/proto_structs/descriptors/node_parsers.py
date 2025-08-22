@@ -43,10 +43,14 @@ def parse_file(file: descriptor.FileDescriptor) -> gen_node.File:
 
 
 def parse_enum(enum: descriptor.EnumDescriptor) -> gen_node.EnumNode:
+    proto_file_descriptor: descriptor.FileDescriptor = enum.file
+    proto_file_name: str = proto_file_descriptor.name
     values: List[gen_node.EnumValue] = []
     for value in typing.cast(List[descriptor.EnumValueDescriptor], enum.values):
         values.append(parse_enum_value(value))
-    return gen_node.EnumNode(name=names.make_structs_type_name(type_mapping.parse_type_name(enum)), values=values)
+    return gen_node.EnumNode(
+        vanilla_name=type_mapping.parse_type_name(enum), proto_file=pathlib.Path(proto_file_name), values=values
+    )
 
 
 def parse_enum_value(value: descriptor.EnumValueDescriptor) -> gen_node.EnumValue:
@@ -73,7 +77,9 @@ def parse_message(message: descriptor.Descriptor) -> Optional[gen_node.TypeNode]
     if _is_map_entry(message):
         return None
 
-    struct_name = names.make_structs_type_name(type_mapping.parse_type_name(message))
+    vanilla_type_name = type_mapping.parse_type_name(message)
+    proto_file_descriptor: descriptor.FileDescriptor = message.file
+    proto_file_name: str = proto_file_descriptor.name
 
     taken_member_names = _collect_taken_member_names(message)
 
@@ -98,7 +104,12 @@ def parse_message(message: descriptor.Descriptor) -> Optional[gen_node.TypeNode]
                 continue
         fields.append(parse_field(field))
 
-    result = gen_node.StructNode(name=struct_name, nested_types=nested_types, fields=fields)
+    result = gen_node.StructNode(
+        vanilla_name=vanilla_type_name,
+        proto_file=pathlib.Path(proto_file_name),
+        nested_types=nested_types,
+        fields=fields,
+    )
     if result_enum := _try_transform_enum_wrapper(result):
         return result_enum
     return result
@@ -132,7 +143,7 @@ def _try_transform_enum_wrapper(struct: gen_node.StructNode) -> Optional[gen_nod
 
     if struct.name.short_name != f'{nested_type.name.short_name}Enum':
         return None
-    return gen_node.EnumNode(name=struct.name, values=nested_type.values)
+    return gen_node.EnumNode(vanilla_name=struct.vanilla_name, proto_file=struct.proto_file, values=nested_type.values)
 
 
 def _is_map_entry(message: descriptor.Descriptor) -> bool:
