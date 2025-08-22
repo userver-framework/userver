@@ -99,7 +99,7 @@ jobs:
                 done
 
                 ccache -M 2.0GB
-                ccache -s -v
+                ccache -s
 
           - name: Run cmake
             run: |
