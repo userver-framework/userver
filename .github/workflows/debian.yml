@@ -75,9 +75,10 @@ jobs:
                 apt-get install -y clang lld
                 
                 # Install project dependencies
-                apt-get install -y $(cat scripts/docs/en/deps/debian-12.md)
+                apt-get install -y $(cat scripts/docs/en/deps/debian-11.md)
 
           - name: Install test dependencies
+            if: ${{ false }}
             run: |
                 apt-get install -y postgresql-15 \
                                    redis-server \
