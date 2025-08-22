@@ -45,11 +45,11 @@ jobs:
                 -DUSERVER_FEATURE_GRPC=OFF
                 -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
                 -DUSERVER_FEATURE_OTLP=OFF
-                -DUSERVER_FEATURE_ROCKS=OFF
+                -DUSERVER_FEATURE_CLICKHOUSE=OFF
+                -DUSERVER_FEATURE_RABBITMQ=OFF
                 -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
                 -DUSERVER_DOWNLOAD_PACKAGES=OFF
                 -DUSERVER_FEATURE_STACKTRACE=OFF
-                -DUSERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP=ON
 
         steps:
           - uses: actions/checkout@v4
