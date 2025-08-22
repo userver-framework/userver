@@ -9,6 +9,7 @@ userver_module(
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES ${PROJECT_NAME}-proto userver::grpc
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+    DEPENDS grpc
 )
 
 if(USERVER_BUILD_TESTS)

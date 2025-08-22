@@ -35,12 +35,12 @@ Component::Component(const USERVER_NAMESPACE::components::ComponentConfig& confi
         }
 
         const auto& names = config["plugins"].As<std::optional<std::vector<std::string>>>(std::nullopt);
-        std::optional<std::vector<utils::NotNull<clients::http::Plugin*>>> plugins;
+        std::optional<std::vector<USERVER_NAMESPACE::utils::NotNull<USERVER_NAMESPACE::clients::http::Plugin*>>> plugins;
         if (names) {
             plugins.emplace();
             for (const auto& name : *names) {
                 auto& component =
-                    context.FindComponent<clients::http::plugin::ComponentBase>(std::string{"http-client-plugin-"} + name);
+                    context.FindComponent<USERVER_NAMESPACE::clients::http::plugin::ComponentBase>(std::string{"http-client-plugin-"} + name);
                 plugins->emplace_back(&component.GetPlugin());
             }
         }

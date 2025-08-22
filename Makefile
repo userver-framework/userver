@@ -75,4 +75,11 @@ docker-kill:
 # clean build folders
 .PHONY: dist-clean
 dist-clean:
-	rm -rf build_*
+	rm -rf build_*/
+	rm -rf debian/
+	find -name .mypy_cache | xargs rm -rf
+	find -name __pycache__ | xargs rm -rf
+
+.PHONY: gen-debian-directory
+gen-debian-directory:
+	scripts/generate-debian-directory.sh

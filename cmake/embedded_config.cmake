@@ -35,6 +35,7 @@ APPLE_PREFIX \"@NAME@_end:\\n\"
 \".byte 0\\n\"
 APPLE_PREFIX \"@NAME@_size:\\n\"
 \".int \" APPLE_PREFIX \"@NAME@_end - \" APPLE_PREFIX \"@NAME@_begin\\n\"
+\".previous\\n\"
 );
 
 extern \"C\" const char @NAME@_begin[];

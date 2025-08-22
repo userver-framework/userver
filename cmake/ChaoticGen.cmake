@@ -198,23 +198,23 @@ function(userver_target_generate_openapi_client TARGET)
     endif()
 
     set(SCHEMAS
-        "${PARSE_OUTPUT_DIR}/include/client/${PARSE_NAME}/client.hpp"
-        "${PARSE_OUTPUT_DIR}/include/client/${PARSE_NAME}/client_impl.hpp"
-        "${PARSE_OUTPUT_DIR}/include/client/${PARSE_NAME}/component.hpp"
-        "${PARSE_OUTPUT_DIR}/include/client/${PARSE_NAME}/requests.hpp"
-        "${PARSE_OUTPUT_DIR}/include/client/${PARSE_NAME}/responses.hpp"
-        "${PARSE_OUTPUT_DIR}/include/client/${PARSE_NAME}/exceptions.hpp"
-        "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/client.cpp"
-        "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/client_impl.cpp"
-        "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/component.cpp"
-        "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/requests.cpp"
-        "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/responses.cpp"
-        "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/exceptions.cpp"
+        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/client.hpp"
+        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/client_impl.hpp"
+        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/component.hpp"
+        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/requests.hpp"
+        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/responses.hpp"
+        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/exceptions.hpp"
+        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/client.cpp"
+        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/client_impl.cpp"
+        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/component.cpp"
+        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/requests.cpp"
+        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/responses.cpp"
+        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/exceptions.cpp"
     )
     foreach(SCHEMA ${PARSE_SCHEMAS})
         string(REGEX REPLACE "^.*/([^/]*)\\.([^.]*)\$" "\\1" SCHEMA "${SCHEMA}")
-        set(SCHEMAS ${SCHEMAS} "${PARSE_OUTPUT_DIR}/include/client/${PARSE_NAME}/${SCHEMA}.hpp"
-                    "${PARSE_OUTPUT_DIR}/src/client/${PARSE_NAME}/${SCHEMA}.cpp"
+        set(SCHEMAS ${SCHEMAS} "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}.hpp"
+                    "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/${SCHEMA}.cpp"
         )
     endforeach()
 

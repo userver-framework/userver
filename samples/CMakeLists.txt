@@ -147,5 +147,14 @@ if(USERVER_FEATURE_S3API)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-s3api)
 endif()
 
+_userver_directory_install(
+    COMPONENT examples
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DESTINATION share/userver
+)
+_userver_install_component(MODULE examples DEPENDS "")
+# libuserver-samples, not libuserver-samples-dev
+set(CPACK_DEBIAN_SAMPLES_PACKAGE_NAME libuserver-examples)
+
 # Clean up fake userver installation above to avoid messing with find_package(userver) in the parent project.
 file(REMOVE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")

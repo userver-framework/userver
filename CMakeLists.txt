@@ -56,8 +56,8 @@ if(USERVER_BUILD_TESTS AND NOT USERVER_FEATURE_UTEST)
     message(FATAL_ERROR "Running unit tests for userver requires utest, disabling it is meaningless")
 endif()
 
-if(USERVER_INSTALL AND (USERVER_BUILD_TESTS OR USERVER_BUILD_SAMPLES))
-    message(FATAL_ERROR "For USERVER_INSTALL, please turn off USERVER_BUILD_TESTS and USERVER_BUILD_SAMPLES "
+if(USERVER_INSTALL AND USERVER_BUILD_TESTS)
+    message(FATAL_ERROR "For USERVER_INSTALL, please turn off USERVER_BUILD_TESTS "
                         "to avoid accidentally installing them"
     )
 endif()

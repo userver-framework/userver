@@ -10,29 +10,27 @@
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
 
-// Note: this is for the purposes of tests/samples only
-#include <userver/utest/using_namespace_userver.hpp>
-
 #include <clients/test/component.hpp>
 #include <clients/test/qos.hpp>
 
 #include <hello_handler.hpp>
 
 int main(int argc, char* argv[]) {
-    auto component_list = components::MinimalServerComponentList()
-                              .Append<samples::hello::HelloHandler>()
-                              .Append<components::DynamicConfigClient>()
-                              .Append<components::TestsuiteSupport>()
-                              .Append<server::handlers::TestsControl>()
-                              .Append<components::DynamicConfigClientUpdater>()
-                              .Append<components::HttpClient>()
-                              .Append<clients::dns::Component>()
-                              .Append<chaotic::openapi::QosMiddlewareFactory<clients::test::kQosConfig>>(
-                                  "chaotic-client-middleware-qos-test"
-                              )
-                              .Append<clients::test::Component>();
+    auto component_list =
+        USERVER_NAMESPACE::components::MinimalServerComponentList()
+            .Append<samples::hello::HelloHandler>()
+            .Append<USERVER_NAMESPACE::components::DynamicConfigClient>()
+            .Append<USERVER_NAMESPACE::components::TestsuiteSupport>()
+            .Append<USERVER_NAMESPACE::server::handlers::TestsControl>()
+            .Append<USERVER_NAMESPACE::components::DynamicConfigClientUpdater>()
+            .Append<USERVER_NAMESPACE::components::HttpClient>()
+            .Append<USERVER_NAMESPACE::clients::dns::Component>()
+            .Append<USERVER_NAMESPACE::chaotic::openapi::QosMiddlewareFactory<::clients::test::kQosConfig>>(
+                "chaotic-client-middleware-qos-test"
+            )
+            .Append<::clients::test::Component>();
 
-    chaotic::openapi::middlewares::AppendDefaultMiddlewares(component_list);
+    USERVER_NAMESPACE::chaotic::openapi::middlewares::AppendDefaultMiddlewares(component_list);
 
-    return utils::DaemonMain(argc, argv, component_list);
+    return USERVER_NAMESPACE::utils::DaemonMain(argc, argv, component_list);
 }

@@ -60,6 +60,7 @@ function(_userver_export_targets)
         CONFIGURATIONS RELEASE
         NAMESPACE userver::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
+        COMPONENT universal
     )
     install(
         EXPORT userver-targets_d
@@ -67,6 +68,7 @@ function(_userver_export_targets)
         CONFIGURATIONS DEBUG
         NAMESPACE userver::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/debug
+        COMPONENT universal
     )
 endfunction()
 

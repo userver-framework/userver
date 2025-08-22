@@ -18,7 +18,7 @@ target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_objs)
 userver_target_generate_openapi_client(
     ${PROJECT_NAME}-client-test_objs
     NAME test
-    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/client/test"
+    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/clients/test"
     SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/clients/test.yaml
 )
 target_link_libraries(${PROJECT_NAME}_objs ${PROJECT_NAME}-client-test_objs)
