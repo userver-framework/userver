@@ -23,7 +23,8 @@ jobs:
             fail-fast: false
 
         name: debian-11
-        runs-on: debian:11
+        runs-on: ubuntu-latest
+        container: debian:11
 
         env:
             CMAKE_FLAGS: >-
