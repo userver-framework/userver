@@ -1,9 +1,9 @@
 boost-devel
 librdkafka-devel
-amqp-devel
 bzip2-devel
 c-ares-devel
 ccache
+rocksdb-devel
 cctz-devel
 clang-tools-extra
 cmake
@@ -32,6 +32,7 @@ mongo-c-driver-devel
 ninja
 openldap-devel
 openssl-devel
+openssl-devel-engine
 postgresql-server-devel
 postgresql-static
 protobuf-c-compiler
