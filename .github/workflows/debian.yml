@@ -41,7 +41,7 @@ jobs:
                 -DUSERVER_FEATURE_STACKTRACE=OFF
                 -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
                 -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES
-                -DUSERVER_CHAOTIC_FORMAT=OFF
+                -DUSERVER_CHAOTIC_GOLDEN_TESTS=OFF
 
         steps:
           - uses: actions/checkout@v4

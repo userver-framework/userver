@@ -26,7 +26,9 @@ if(USERVER_BUILD_TESTS)
     )
 
     add_subdirectory(integration_tests)
-    add_subdirectory(golden_tests)
+    if (USERVER_CHAOTIC_GOLDEN_TESTS)
+        add_subdirectory(golden_tests)
+    endif()
 endif()
 
 _userver_directory_install(
