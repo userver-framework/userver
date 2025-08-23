@@ -1,4 +1,5 @@
 ccache
+libabsl-dev
 clang-format
 cmake
 gdb
