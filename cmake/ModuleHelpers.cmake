@@ -12,9 +12,9 @@ macro(_userver_module_begin)
     set(multiValueArgs
         DEBIAN_NAMES FORMULA_NAMES RPM_NAMES PACMAN_NAMES PKG_NAMES
         # For version detection of manually installed packages and unknown package managers.
-        PKG_CONFIG_NAMES
+	PKG_CONFIG_NAMES
 	# For CPM options
-        CPM_NAME
+	CPM_NAME
         CPM_VERSION
         CPM_GITHUB_REPOSITORY
         CPM_OPTIONS

@@ -19,10 +19,10 @@ _userver_module_begin(
     CPM_VERSION 1.34.5
     CPM_OPTIONS
         "CARES_STATIC ON"
-	"CARES_SHARED OFF"
-	"CARES_INSTALL OFF"
-	"CARES_BUILD_TOOLS OFF"
-	"CARES_STATIC_PIC ON"
+        "CARES_SHARED OFF"
+        "CARES_INSTALL OFF"
+        "CARES_BUILD_TOOLS OFF"
+        "CARES_STATIC_PIC ON"
 )
 
 _userver_module_find_include(NAMES ares.h)
