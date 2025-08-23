@@ -9,6 +9,8 @@ _userver_module_begin(
     libev-devel
     PACMAN_NAMES
     libev
+
+    # TODO: CPM
 )
 
 _userver_module_find_include(NAMES ev.h libev/ev.h)

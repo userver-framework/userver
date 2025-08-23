@@ -7,6 +7,10 @@ _userver_module_begin(
     yaml-cpp
     PACMAN_NAMES
     yaml-cpp
+
+    CPM_NAME yaml-cpp
+    CPM_GITHUB_REPOSITORY jbeder/yaml-cpp
+    CPM_GIT_TAG yaml-cpp-0.7.0
 )
 
 _userver_module_find_include(NAMES yaml-cpp/yaml.h yaml-cpp/node.h PATH_SUFFIXES include)

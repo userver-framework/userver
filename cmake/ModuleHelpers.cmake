@@ -1,5 +1,7 @@
 include_guard(GLOBAL)
 
+include(DownloadUsingCPM)
+
 cmake_policy(SET CMP0054 NEW)
 
 macro(_userver_module_begin)
@@ -11,6 +13,13 @@ macro(_userver_module_begin)
         DEBIAN_NAMES FORMULA_NAMES RPM_NAMES PACMAN_NAMES PKG_NAMES
         # For version detection of manually installed packages and unknown package managers.
         PKG_CONFIG_NAMES
+	# For CPM options
+        CPM_NAME
+        CPM_VERSION
+        CPM_GITHUB_REPOSITORY
+        CPM_OPTIONS
+        CPM_SOURCE_SUBDIR
+        CPM_GIT_TAG
     )
 
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
@@ -261,12 +270,26 @@ macro(_userver_module_end)
         list(APPEND required_vars "${programs_variable}")
     endif()
     if(required_vars)
-        find_package_handle_standard_args(
-            "${current_package_name}"
-            REQUIRED_VARS ${required_vars}
-            FAIL_MESSAGE "${FULL_ERROR_MESSAGE}"
-        )
-        mark_as_advanced(${required_vars})
+        foreach(_CURRENT_VAR ${required_vars})
+            if(NOT ${_CURRENT_VAR})
+                set(NEED_CPM TRUE)
+                if(NOT ("${ARG_CPM_NAME}" STREQUAL ""))
+                    set(${_CURRENT_VAR})
+                endif()
+            endif()
+        endforeach()
+
+        if("${NEED_CPM}" AND NOT ("${ARG_CPM_NAME}" STREQUAL ""))
+            _userver_cpm_addpackage("${current_package_name}")
+            return()
+        else()
+            find_package_handle_standard_args(
+                "${current_package_name}"
+                REQUIRED_VARS ${required_vars}
+                FAIL_MESSAGE "${FULL_ERROR_MESSAGE}"
+            )
+            mark_as_advanced(${required_vars})
+        endif()
     else()
         # Forward to another CMake module, add nice error messages if missing.
         set(wrapped_package_name "${current_package_name}")
@@ -321,6 +344,18 @@ macro(_userver_module_end)
             )
         endif()
     endif()
+endmacro()
+
+macro(_userver_cpm_addpackage name)
+    cpmaddpackage(
+        NAME ${name}
+        VERSION ${ARG_CPM_VERSION}
+        GITHUB_REPOSITORY ${ARG_CPM_GITHUB_REPOSITORY}
+        OPTIONS ${ARG_CPM_OPTIONS}
+        SOURCE_SUBDIR ${ARG_CPM_SOURCE_SUBDIR}
+        GIT_TAG ${ARG_CPM_GIT_TAG}
+    )
+    set(${name}_FOUND 1)
 endmacro()
 
 function(_userver_macos_set_default_dir variable command_args)

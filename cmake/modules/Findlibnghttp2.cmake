@@ -7,6 +7,8 @@ _userver_module_begin(
     nghttp2
     PACMAN_NAMES
     libnghttp2
+
+    # TODO: CPM
 )
 
 _userver_module_find_include(NAMES nghttp2/nghttp2.h)
