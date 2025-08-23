@@ -28,7 +28,6 @@ jobs:
             -DUSERVER_SANITIZE="ub addr"
             -DUSERVER_BUILD_SAMPLES=1
             -DUSERVER_BUILD_TESTS=1
-            -DUSERVER_FEATURE_JEMALLOC=OFF
 
         name: ubuntu (minimal installation)
         runs-on: ubuntu-latest
@@ -67,7 +66,7 @@ jobs:
           - name: Install common deps
             run: |
                 sudo apt update
-                sudo apt install build-essential clang cmake ccache
+                sudo apt install build-essential clang cmake ccache libjemalloc-dev
                 sudo apt install \
                   libnghttp2-dev \
                   libev-dev \
@@ -87,7 +86,7 @@ jobs:
 
           - name: Run cmake
             run: |
-                cmake -S . -B build_debug ${{matrix.cmake-flags}}
+                cmake -S . -B build_debug
 
           - name: Compile
             run: |
