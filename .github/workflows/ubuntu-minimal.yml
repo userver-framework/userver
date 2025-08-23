@@ -77,7 +77,8 @@ jobs:
                   libboost-iostreams1.83-dev \
                   libboost-locale1.83-dev \
                   libboost-program-options1.83-dev \
-                  libboost-stacktrace1.83-dev
+                  libboost-stacktrace1.83-dev \
+                  libbenchmark-dev
 
           - name: Setup ccache
             run: |
