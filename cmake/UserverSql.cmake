@@ -33,7 +33,7 @@ function(userver_add_sql_library TARGET)
 
     set(SQL_FILES)
     foreach(WILDCARD ${ARG_SQL_FILES})
-        file(GLOB FILES ${WILDCARD})
+        file(GLOB_RECURSE FILES ${WILDCARD})
         list(APPEND SQL_FILES ${FILES})
     endforeach()
 
