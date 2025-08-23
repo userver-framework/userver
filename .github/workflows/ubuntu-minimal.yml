@@ -66,7 +66,7 @@ jobs:
           - name: Install common deps
             run: |
                 sudo apt update
-                sudo apt install build-essential clang cmake
+                sudo apt install build-essential clang cmake ccache
                 sudo apt install \
                   libnghttp2-dev \
                   libev-dev \
