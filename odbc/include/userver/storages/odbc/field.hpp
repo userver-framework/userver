@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <userver/storages/odbc/odbc_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
