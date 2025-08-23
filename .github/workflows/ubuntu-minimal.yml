@@ -28,6 +28,7 @@ jobs:
             -DUSERVER_SANITIZE="ub addr"
             -DUSERVER_BUILD_SAMPLES=1
             -DUSERVER_BUILD_TESTS=1
+            -DUSERVER_FEATURE_JEMALLOC=OFF
 
         name: ubuntu (minimal installation)
         runs-on: ubuntu-latest
