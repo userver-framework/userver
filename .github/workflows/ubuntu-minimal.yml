@@ -23,12 +23,9 @@ jobs:
             fail-fast: false
         env:
           CMAKE_FLAGS: >-
-            -DCMAKE_CXX_COMPILER=clang++-18
-            -DCMAKE_C_COMPILER=clang-18
             -DCMAKE_BUILD_TYPE=Debug
             -DCMAKE_CXX_STANDARD=17
             -DUSERVER_SANITIZE="ub addr"
-            -DUSERVER_NO_WERROR=0
             -DUSERVER_BUILD_SAMPLES=1
             -DUSERVER_BUILD_TESTS=1
 
