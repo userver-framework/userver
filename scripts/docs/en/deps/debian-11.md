@@ -1,4 +1,5 @@
 ccache
+libbz2-dev
 libgflags-dev
 clang-format
 cmake
