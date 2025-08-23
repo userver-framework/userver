@@ -1,6 +1,4 @@
 ccache
-libbz2-dev
-libgflags-dev
 clang-format
 cmake
 gdb
@@ -13,12 +11,14 @@ libboost-locale1.74-dev
 libboost-program-options1.74-dev
 libboost-stacktrace1.74-dev
 libbson-dev
+libbz2-dev
 libc-ares-dev
 libcctz-dev
 libcrypto++-dev
 libcurl4-openssl-dev
 libev-dev
 libfmt-dev
+libgflags-dev
 libgmock-dev
 libgrpc++1
 libgrpc++-dev
@@ -38,6 +38,7 @@ librdkafka-dev
 libre2-dev
 librocksdb-dev
 libsasl2-dev
+libsqlite3-dev
 libssl-dev
 libyaml-cpp-dev
 netbase
