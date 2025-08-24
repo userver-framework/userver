@@ -36,6 +36,7 @@ jobs:
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_GRPC=0
                 -DUSERVER_FEATURE_OTLP=0
+                -DUSERVER_USE_STATIC_LIBS=OFF
 
         container:
             image: archlinux:latest
