@@ -7,6 +7,7 @@ crypto++
 curl
 fmt
 gdb
+gflags
 git
 grpc
 gtest
