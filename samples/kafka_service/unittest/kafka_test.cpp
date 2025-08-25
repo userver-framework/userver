@@ -48,7 +48,8 @@ UTEST_F(KafkaServiceTest, Consume) {
 
     auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{kTestTopic1, kTestTopic2});
     auto user_callback = [](kafka::MessageBatchView messages) { kafka_sample::Consume(messages); };
-    const auto received_messages = ReceiveMessages(consumer, kTestMessages.size(), std::move(user_callback));
+    const auto received_messages =
+        ReceiveMessages(consumer, kTestMessages.size(), /* commit_after_receive */ true, std::move(user_callback));
     ASSERT_EQ(received_messages.size(), kTestMessages.size());
     EXPECT_THAT(received_messages, ::testing::UnorderedElementsAreArray(kTestMessages));
 }
