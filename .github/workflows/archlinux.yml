@@ -89,7 +89,7 @@ jobs:
                 cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read REPLY; \
                 do \
                   DIR=$(mktemp -d) ;\
-                  git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
+                  git clone --branch $REPLY --single-branch https://github.com/archlinux/aur.git $DIR ;\
                   pushd $DIR ;\
 
                   chmod a+x .
