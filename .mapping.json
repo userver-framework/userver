@@ -3376,6 +3376,7 @@
   "redis/include/userver/storages/redis/request_data_base.hpp":"taxi/uservices/userver/redis/include/userver/storages/redis/request_data_base.hpp",
   "redis/include/userver/storages/redis/request_eval.hpp":"taxi/uservices/userver/redis/include/userver/storages/redis/request_eval.hpp",
   "redis/include/userver/storages/redis/request_evalsha.hpp":"taxi/uservices/userver/redis/include/userver/storages/redis/request_evalsha.hpp",
+  "redis/include/userver/storages/redis/request_generic.hpp":"taxi/uservices/userver/redis/include/userver/storages/redis/request_generic.hpp",
   "redis/include/userver/storages/redis/scan_tag.hpp":"taxi/uservices/userver/redis/include/userver/storages/redis/scan_tag.hpp",
   "redis/include/userver/storages/redis/subscribe_client.hpp":"taxi/uservices/userver/redis/include/userver/storages/redis/subscribe_client.hpp",
   "redis/include/userver/storages/redis/subscription_token.hpp":"taxi/uservices/userver/redis/include/userver/storages/redis/subscription_token.hpp",

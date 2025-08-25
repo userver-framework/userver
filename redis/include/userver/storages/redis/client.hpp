@@ -16,6 +16,7 @@
 #include <userver/storages/redis/request.hpp>
 #include <userver/storages/redis/request_eval.hpp>
 #include <userver/storages/redis/request_evalsha.hpp>
+#include <userver/storages/redis/request_generic.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -105,6 +106,22 @@ public:
     ) {
         return RequestEvalSha<ScriptResult, ReplyType>{
             EvalShaCommon(std::move(script_hash), std::move(keys), std::move(args), command_control)};
+    }
+
+    /// @brief Execute a custom Redis command.
+    /// @param key_index Index of the key in the args vector used to determine the shard
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample generic command usage
+    template <typename ReplyType>
+    RequestGeneric<ReplyType> GenericCommand(
+        std::string command,
+        std::vector<std::string> args,
+        size_t key_index,
+        const CommandControl& command_control
+    ) {
+        return RequestGeneric<ReplyType>{
+            GenericCommon(std::move(command), std::move(args), key_index, command_control)};
     }
 
     /// @brief Load the script to the server for further execution via EvalSha() member function.
@@ -515,6 +532,12 @@ protected:
         std::string script_hash,
         std::vector<std::string> keys,
         std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestGenericCommon GenericCommon(
+        std::string command,
+        std::vector<std::string> args,
+        size_t key_index,
         const CommandControl& command_control
     ) = 0;
 };
