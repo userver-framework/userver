@@ -439,4 +439,33 @@ UTEST(SemaphoreLock, SampleSemaphore) {
     /// [Sample engine::Semaphore usage]
 }
 
+UTEST(Semaphore, LockZeroUnitsWithRemaining) {
+    engine::Semaphore sem{1};
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 1);
+    EXPECT_EQ(sem.UsedApprox(), 0);
+
+    sem.lock_shared_count(0);
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 1);
+    EXPECT_EQ(sem.UsedApprox(), 0);
+    sem.unlock_shared_count(0);
+}
+
+UTEST(Semaphore, LockZeroUnitsWithoutRemaining) {
+    engine::Semaphore sem{1};
+    sem.lock_shared_count(1);
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 0);
+    EXPECT_EQ(sem.UsedApprox(), 1);
+
+    sem.lock_shared_count(0);
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 0);
+    EXPECT_EQ(sem.UsedApprox(), 1);
+    sem.unlock_shared_count(0);
+
+    sem.unlock_shared_count(1);
+}
+
 USERVER_NAMESPACE_END
