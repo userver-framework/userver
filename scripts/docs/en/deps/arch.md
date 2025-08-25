@@ -17,7 +17,6 @@ krb5
 libev
 libunwind
 libnghttp2
-makepkg|amqp-cpp
 makepkg|libbacktrace-git
 makepkg|boost-stacktrace-backtrace
 makepkg|cctz
