@@ -12,6 +12,7 @@ option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installe
 
 set(BOOST_VERSION 1.89.0)
 set(BOOST_INCLUDE_LIBRARIES
+    atomic
     program_options
     filesystem
     regex
@@ -48,12 +49,13 @@ cpmaddpackage(
     URL_HASH SHA256=67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74
     OPTIONS
         "BOOST_ENABLE_CMAKE ON"
-        "BOOST_INCLUDE_LIBRARIES program_options\\\;filesystem\\\;regex\\\;locale\\\;iostreams\\\;context\\\;coroutine\\\;stacktrace\\\;uuid\\\;coroutine2\\\;endian\\\;lockfree\\\;atomic"
+        "BOOST_INCLUDE_LIBRARIES atomic\\\;program_options\\\;filesystem\\\;regex\\\;locale\\\;iostreams\\\;context\\\;coroutine\\\;stacktrace\\\;uuid\\\;coroutine2\\\;endian\\\;lockfree"
     EXCLUDE_FROM_ALL
 )
 
 find_package(
     Boost REQUIRED
     COMPONENTS ${BOOST_INCLUDE_LIBRARIES}
+    GLOBAL
 )
 set(Boost_VERSION_STRING ${BOOST_VERSION})
