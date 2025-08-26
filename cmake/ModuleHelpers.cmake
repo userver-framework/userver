@@ -26,6 +26,19 @@ macro(_userver_module_begin)
 
     set(name "${ARG_NAME}")
 
+    if(ARG_CPM_NAME)
+        option(
+            USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME}
+            "Download and setup ${ARG_CPM_NAME} if no library of matching version was found"
+            ${USERVER_DOWNLOAD_PACKAGES}
+        )
+        option(
+            USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}
+            "Download ${ARG_CPM_NAME} even if there is an installed system package"
+            ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+        )
+    endif()
+
     if(ARG_VERSION)
         if(NOT ${name}_FIND_VERSION OR "${${name}_FIND_VERSION}" VERSION_LESS "${ARG_VERSION}")
             set("${name}_FIND_VERSION" "${ARG_VERSION}")
@@ -86,6 +99,11 @@ endmacro()
 
 macro(_userver_module_find_part)
     # Also uses ARGs left over from _userver_find_module_begin
+
+    if(USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME})
+        message(STATUS "Skipping ${ARG_CPM_NAME} system package search due to USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}=TRUE")
+        return()
+    endif()
 
     set(options)
     set(oneValueArgs PART_TYPE)
@@ -273,13 +291,13 @@ macro(_userver_module_end)
         foreach(_CURRENT_VAR ${required_vars})
             if(NOT ${_CURRENT_VAR})
                 set(NEED_CPM TRUE)
-                if(NOT ("${ARG_CPM_NAME}" STREQUAL ""))
+                if(USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME})
                     set(${_CURRENT_VAR})
                 endif()
             endif()
         endforeach()
 
-        if("${NEED_CPM}" AND NOT ("${ARG_CPM_NAME}" STREQUAL ""))
+        if(NEED_CPM AND USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME})
             _userver_cpm_addpackage("${current_package_name}")
             return()
         else()
