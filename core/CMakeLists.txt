@@ -37,8 +37,6 @@ file(GLOB_RECURSE INTERNAL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
 
 list(REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
 
-include(SetupBoost)
-# find_package(Boost REQUIRED CONFIG COMPONENTS program_options filesystem locale regex iostreams)
 find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
