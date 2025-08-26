@@ -43,7 +43,8 @@ find_package_required(ZLIB "zlib1g-dev")
 find_package(Iconv REQUIRED)
 
 _userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
-find_package_required(OpenSSL "libssl-dev")
+# find_package_required(OpenSSL "libssl-dev")
+include(SetupOpenssl)
 
 find_package(libnghttp2 REQUIRED)
 find_package(libev REQUIRED)

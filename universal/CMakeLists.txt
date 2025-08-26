@@ -45,7 +45,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 endif()
 
-find_package_required(OpenSSL "libssl-dev")
+# find_package_required(OpenSSL "libssl-dev")
+include(SetupOpenssl)
 
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
