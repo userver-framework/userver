@@ -93,7 +93,3 @@ if(UBOOST_CORO_USE_UCONTEXT)
         target_compile_definitions(${PROJECT_NAME} PUBLIC "_DARWIN_C_SOURCE")
     endif()
 endif()
-
-# find_package(Boost REQUIRED CONFIG)
-# target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost userver-internal-compile-options)
-# _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
