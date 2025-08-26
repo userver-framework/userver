@@ -94,6 +94,7 @@ function(userver_target_require_dwcas target visibility)
         "${USERVER_ROOT_DIR}/cmake/UserverRequireDWCAS.cpp"
         CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${Boost_INCLUDE_DIRS}"
         COMPILE_DEFINITIONS ${TEST_DEFINITIONS} LINK_LIBRARIES ${TEST_LIBRARIES}
+        LINK_LIBRARIES Boost::atomic
         COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT
     )
 

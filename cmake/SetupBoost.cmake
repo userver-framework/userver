@@ -21,34 +21,34 @@ set(BOOST_INCLUDE_LIBRARIES
     coroutine
 )
 
-if(NOT USERVER_FORCE_DOWNLOAD_BOOST)
-    if(USERVER_DOWNLOAD_PACKAGE_BOOST)
-        find_package(
-            Boost 
-            COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-            OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-        )
-    else()
-        find_package(
-            Boost REQUIRED
-            COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-            OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-        )
-    endif()
-
-    if(Boost_FOUND)
-        return()
-    endif()
-endif()
+# if(NOT USERVER_FORCE_DOWNLOAD_BOOST)
+#     if(USERVER_DOWNLOAD_PACKAGE_BOOST)
+#         find_package(
+#             Boost 
+#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+#         )
+#     else()
+#         find_package(
+#             Boost REQUIRED
+#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+#         )
+#     endif()
+# 
+#     if(Boost_FOUND)
+#         return()
+#     endif()
+# endif()
 
 cpmaddpackage(
     NAME Boost
     VERSION ${BOOST_VERSION}
     URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}-cmake.tar.xz
-    URL_HASH SHA256=2c5ec5edcdff47ff55e27ed9560b0a0b94b07bd07ed9928b476150e16b0efc57
+    URL_HASH SHA256=67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74
     OPTIONS
         "BOOST_ENABLE_CMAKE ON"
-        "BOOST_INCLUDE_LIBRARIES program_options\\\;filesystem\\\;regex\\\;locale\\\;iostreams\\\;context\\\;coroutine\\\;stacktrace\\\;uuid\\\;coroutine2"
+        "BOOST_INCLUDE_LIBRARIES program_options\\\;filesystem\\\;regex\\\;locale\\\;iostreams\\\;context\\\;coroutine\\\;stacktrace\\\;uuid\\\;coroutine2\\\;endian\\\;lockfree\\\;atomic"
     EXCLUDE_FROM_ALL
 )
 
@@ -56,3 +56,4 @@ find_package(
     Boost REQUIRED
     COMPONENTS ${BOOST_INCLUDE_LIBRARIES}
 )
+set(Boost_VERSION_STRING ${BOOST_VERSION})
