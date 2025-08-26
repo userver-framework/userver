@@ -240,7 +240,7 @@ endif()
 
 target_link_libraries(
     ${PROJECT_NAME}
-    PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
+    PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options Boost::algorithm Boost::uuid Boost::random Boost::container
     PRIVATE Boost::filesystem Boost::program_options OpenSSL::Crypto OpenSSL::SSL
 )
 
