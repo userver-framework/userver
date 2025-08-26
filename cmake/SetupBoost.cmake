@@ -3,12 +3,11 @@ include_guard(GLOBAL)
 include(DownloadUsingCPM)
 
 option(USERVER_DOWNLOAD_PACKAGE_BOOST "Download and setup Boost if no library of matching version was found"
-       ${USERVER_DOWNLOAD_PACKAGES}
+    ${USERVER_DOWNLOAD_PACKAGES}
 )
 option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installed system package"
-       ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+    ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )
-
 
 set(BOOST_VERSION 1.89.0)
 set(BOOST_INCLUDE_LIBRARIES
@@ -20,27 +19,33 @@ set(BOOST_INCLUDE_LIBRARIES
     iostreams
     context
     coroutine
+    stacktrace
+    uuid
+    coroutine2
+    endian
+    lockfree
 )
+string(REGEX REPLACE ";" "\\\\\\\\;" BOOST_INCLUDE_LIBRARIES_LIST "${BOOST_INCLUDE_LIBRARIES}")
 
-# if(NOT USERVER_FORCE_DOWNLOAD_BOOST)
-#     if(USERVER_DOWNLOAD_PACKAGE_BOOST)
-#         find_package(
-#             Boost 
-#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-#         )
-#     else()
-#         find_package(
-#             Boost REQUIRED
-#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-#         )
-#     endif()
-# 
-#     if(Boost_FOUND)
-#         return()
-#     endif()
-# endif()
+if(NOT USERVER_FORCE_DOWNLOAD_BOOST)
+    if(USERVER_DOWNLOAD_PACKAGE_BOOST)
+        find_package(
+            Boost
+            COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+            OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+        )
+    else()
+        find_package(
+            Boost REQUIRED
+            COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+            OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+        )
+    endif()
+
+    if(Boost_FOUND)
+        return()
+    endif()
+endif()
 
 cpmaddpackage(
     NAME Boost
@@ -48,8 +53,8 @@ cpmaddpackage(
     URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}-cmake.tar.xz
     URL_HASH SHA256=67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74
     OPTIONS
-        "BOOST_ENABLE_CMAKE ON"
-        "BOOST_INCLUDE_LIBRARIES atomic\\\;program_options\\\;filesystem\\\;regex\\\;locale\\\;iostreams\\\;context\\\;coroutine\\\;stacktrace\\\;uuid\\\;coroutine2\\\;endian\\\;lockfree"
+    "BOOST_ENABLE_CMAKE ON"
+    "BOOST_INCLUDE_LIBRARIES ${BOOST_INCLUDE_LIBRARIES_LIST}"
     EXCLUDE_FROM_ALL
 )
 
@@ -58,4 +63,6 @@ find_package(
     COMPONENTS ${BOOST_INCLUDE_LIBRARIES}
     GLOBAL
 )
-set(Boost_VERSION_STRING ${BOOST_VERSION})
+
+# TODO:
+# set(Boost_VERSION_STRING ${BOOST_VERSION})
