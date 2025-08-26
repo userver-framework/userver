@@ -37,7 +37,8 @@ file(GLOB_RECURSE INTERNAL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
 
 list(REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
 
-find_package(Boost REQUIRED CONFIG COMPONENTS program_options filesystem locale regex iostreams)
+include(SetupBoost)
+# find_package(Boost REQUIRED CONFIG COMPONENTS program_options filesystem locale regex iostreams)
 find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
@@ -139,7 +140,8 @@ if(USERVER_FEATURE_UBOOST_CORO)
     target_link_libraries(${PROJECT_NAME} PRIVATE userver-uboost-coro)
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include)
 else()
-    find_package(Boost REQUIRED CONFIG COMPONENTS context coroutine)
+    # find_package(Boost REQUIRED CONFIG COMPONENTS context coroutine)
+    include(SetupBoost)
     target_link_libraries(${PROJECT_NAME} PRIVATE Boost::context)
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sys_coro/include)
 endif()
