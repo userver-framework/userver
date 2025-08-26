@@ -103,6 +103,9 @@ target_link_libraries(
     PRIVATE Boost::filesystem
             Boost::program_options
             Boost::iostreams
+            Boost::coroutine2
+            Boost::lockfree
+            Boost::endian
             Iconv::Iconv
             OpenSSL::Crypto
             OpenSSL::SSL
