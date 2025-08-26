@@ -5,7 +5,7 @@ option(USERVER_FORCE_DOWNLOAD_PROTOBUF "Download Protobuf even if there is an in
 
 function(_userver_set_protobuf_version_category)
     if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0
-       AND Protobuf_VERSION VERSION_LESS 6.0.0
+       AND Protobuf_VERSION VERSION_LESS 7.0.0
        OR Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0
     )
         set_property(GLOBAL PROPERTY userver_protobuf_version_category 5)
