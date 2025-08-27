@@ -53,8 +53,9 @@ cpmaddpackage(
     URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}-cmake.tar.xz
     URL_HASH SHA256=67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74
     OPTIONS
-    "BOOST_ENABLE_CMAKE ON"
-    "BOOST_INCLUDE_LIBRARIES ${BOOST_INCLUDE_LIBRARIES_LIST}"
+        "BOOST_ENABLE_CMAKE ON"
+        "BOOST_INCLUDE_LIBRARIES ${BOOST_INCLUDE_LIBRARIES_LIST}"
+        "BOOST_SKIP_INSTALL_RULES ON"
     EXCLUDE_FROM_ALL
 )
 
@@ -64,5 +65,6 @@ find_package(
     GLOBAL
 )
 
-# TODO:
+# TODO: UserverRequireDWCAS doesn't work with boost
+#       because it requires compiled Boost::atomic at the configure time
 # set(Boost_VERSION_STRING ${BOOST_VERSION})
