@@ -1,10 +1,22 @@
 include_guard(GLOBAL)
 
-if(NOT OpenSSL_CPM)
-  find_package(OpenSSL)
-  if(OpenSSL_FOUND)
-      return()
-  endif()
+option(USERVER_DOWNLOAD_PACKAGE_OPENSSL "Download and setup OpenSSL if no library of matching version was found"
+       ${USERVER_DOWNLOAD_PACKAGES}
+)
+option(USERVER_FORCE_DOWNLOAD_OPENSSL "Download OpenSSL even if there is an installed system package"
+       ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+)
+
+if(NOT USERVER_FORCE_DOWNLOAD_OPENSSL AND NOT OpenSSL_CPM)
+    if(USERVER_DOWNLOAD_PACKAGE_OPENSSL)
+        find_package(OpenSSL)
+    else()
+        find_package(OpenSSL REQUIRED)
+    endif()
+
+    if(OpenSSL_FOUND)
+        return()
+    endif()
 endif()
 set(OpenSSL_CPM TRUE CACHE BOOL "")
  
