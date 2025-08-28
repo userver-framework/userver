@@ -6,29 +6,28 @@ if(OpenSSL_FOUND)
 endif()
  
 include(DownloadUsingCPM)
-include(ExternalProject)
 
 set(OPENSSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/openssl)
 execute_process(COMMAND mkdir -p ${OPENSSL_INSTALL_DIR}/usr/local/include)
 
+# Flags are copied from Ubuntu's debian/rules
+set(CONFIGURE_FLAGS "no-idea no-mdc2 no-rc5 no-zlib no-ssl3 enable-unit-test no-ssl3-method enable-rfc3779 enable-cms no-capieng")
+set(OPENSSL_VERSION 3.5.2)
+
 cpmaddpackage(
      NAME OpenSSL
-     URL https://github.com/openssl/openssl/releases/download/openssl-3.5.2/openssl-3.5.2.tar.gz
-     URL_HASH SHA512=123
+     URL https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz
+     URL_HASH SHA512=db2c7a88bea432f96d867a98af15f850f371d4136c657338de93cb88a39a3578c025b5df7310e195a02fc715ad5a2422a319a44f0247c6a7e2ba8b36aad77651
 )
 
 
 add_custom_target(
     OpenSSL
-        # Flags are copied from Ubuntu's debian/rules
-        test -e ${OPENSSL_INSTALL_DIR}/.installed || 
-        ./config no-idea no-mdc2 no-rc5 no-zlib no-ssl3 enable-unit-test no-ssl3-method enable-rfc3779 enable-cms no-capieng
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || ./config ${CONFIGURE_FLAGS}
     COMMAND
-        test -e ${OPENSSL_INSTALL_DIR}/.installed || 
-	make -j8
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || make -j8
     COMMAND
-        test -e ${OPENSSL_INSTALL_DIR}/.installed || 
-        make DESTDIR=${OPENSSL_INSTALL_DIR} install_sw
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || make DESTDIR=${OPENSSL_INSTALL_DIR} install_sw
     COMMAND
         touch ${OPENSSL_INSTALL_DIR}/.installed
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/_deps/openssl-src/
