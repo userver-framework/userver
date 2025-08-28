@@ -27,32 +27,34 @@ cpmaddpackage(
 # for *external* libcurl from CPM
 add_custom_target(
     OpenSSL
-        test -e ${OPENSSL_INSTALL_DIR}/.installed || ./config ${CONFIGURE_FLAGS}
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || ./config --libdir=/usr/local/lib ${CONFIGURE_FLAGS}
     COMMAND
         test -e ${OPENSSL_INSTALL_DIR}/.installed || make -j8
     COMMAND
         test -e ${OPENSSL_INSTALL_DIR}/.installed || make DESTDIR=${OPENSSL_INSTALL_DIR} install_sw
     COMMAND
         touch ${OPENSSL_INSTALL_DIR}/.installed
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/_deps/openssl-src/
+    WORKING_DIRECTORY ${OpenSSL_SOURCE_DIR}
     COMMENT "Compiling OpenSSL library"
 )
 
 
 add_library(Crypto STATIC IMPORTED GLOBAL)
 add_dependencies(Crypto OpenSSL)
-set_property(TARGET Crypto PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/_deps/openssl-build/libcrypto.a)
-target_include_directories(Crypto INTERFACE ${CMAKE_BINARY_DIR}/openssl/usr/local/include)
+set_property(TARGET Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/usr/local/lib/libcrypto.a)
+target_include_directories(Crypto INTERFACE ${OPENSSL_INSTALL_DIR}/usr/local/include)
 
 
 add_library(SSL STATIC IMPORTED GLOBAL)
 add_dependencies(SSL OpenSSL)
-set_property(TARGET SSL PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/_deps/openssl-build/libssl.a)
-target_include_directories(SSL INTERFACE ${CMAKE_BINARY_DIR}/openssl/usr/local/include)
+set_property(TARGET SSL PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/usr/local/lib/libssl.a)
+target_include_directories(SSL INTERFACE ${OPENSSL_INSTALL_DIR}/usr/local/include)
 
 add_library(OpenSSL::Crypto ALIAS Crypto)
 add_library(OpenSSL::SSL ALIAS SSL)
 
-# Light emulation of find_package(OpenSSL)
+# Light emulation of find_package(OpenSSL) for libcurl
 set(OpenSSL_FOUND TRUE CACHE BOOL "" FORCE)
 set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
+set(OPENSSL_CRYPTO_LIBRARY OpenSSL::Crypto CACHE STRING "" FORCE)
+set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/usr/local/include CACHE FILEPATH "" FORCE)
