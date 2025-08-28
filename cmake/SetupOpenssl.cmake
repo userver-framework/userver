@@ -39,7 +39,7 @@ cpmaddpackage(
 # for *external* libcurl from CPM
 add_custom_target(
     OpenSSL
-        test -e ${OPENSSL_INSTALL_DIR}/.installed || ./config --libdir=/usr/local/lib ${CONFIGURE_FLAGS}
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || CFLAGS=${CMAKE_C_FLAGS} ./config --libdir=/usr/local/lib ${CONFIGURE_FLAGS}
     COMMAND
         test -e ${OPENSSL_INSTALL_DIR}/.installed || make -j8
     COMMAND
