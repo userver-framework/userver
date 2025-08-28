@@ -5,7 +5,7 @@ include_guard(GLOBAL)
 #     return()
 # endif()
  
-# include(DownloadUsingCPM)
+include(DownloadUsingCPM)
 include(ExternalProject)
 
 # cpmaddpackage(
@@ -17,6 +17,7 @@ include(ExternalProject)
 #     # EXCLUDE_FROM_ALL
 # )
 set(OPENSSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/openssl)
+if(FALSE)
 externalproject_add(OpenSSL
 	# URL https://github.com/openssl/openssl/releases/download/openssl-3.5.2/openssl-3.5.2.tar.gz
 	# URL_HASH MD5=890fc59f86fc21b5e4d1c031a698dbde
@@ -43,19 +44,67 @@ ExternalProject_Add_Step(
 	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/openssl-src
 )
 ExternalProject_Add_StepTargets(OpenSSL build_static)
+endif()
 
-add_library(Crypto STATIC IMPORTED)
-# set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/usr/local/lib/libcrypto.a)
-set_property(TARGET Crypto PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/openssl-src/libcrypto.a)
-target_include_directories(Crypto INTERFACE ${CMAKE_BINARY_DIR}/openssl-src/include)
-add_dependencies(Crypto OpenSSL-build_static)
+cpmaddpackage(
+     NAME OpenSSL
+     URL https://github.com/openssl/openssl/releases/download/openssl-3.5.2/openssl-3.5.2.tar.gz
+)
+if(FALSE)
+add_custom_command(
+    OUTPUT
+        ${CMAKE_BINARY_DIR}/_deps/openssl-build/libssl.a
+        ${CMAKE_BINARY_DIR}/_deps/openssl-build/libcrypto.a
+        ${CMAKE_BINARY_DIR}/openssl/usr/local/include/openssl/cms.h
+    COMMAND
+        ./config no-idea no-mdc2 no-rc5 no-zlib no-ssl3 enable-unit-test no-ssl3-method enable-rfc3779 enable-cms no-capieng
+    COMMAND
+	make -j8
+    COMMAND
+        make DESTDIR=${OPENSSL_INSTALL_DIR} install_sw
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/_deps/openssl-src/
+)
+endif()
+
+execute_process(COMMAND mkdir -p ${CMAKE_BINARY_DIR}/openssl/usr/local/include)
+
+if(TRUE)
+add_custom_target(
+    OpenSSL
+        # Flags are copied from Ubuntu's debian/rules
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || 
+        ./config no-idea no-mdc2 no-rc5 no-zlib no-ssl3 enable-unit-test no-ssl3-method enable-rfc3779 enable-cms no-capieng
+    COMMAND
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || 
+	make -j8
+    COMMAND
+        test -e ${OPENSSL_INSTALL_DIR}/.installed || 
+        make DESTDIR=${OPENSSL_INSTALL_DIR} install_sw
+    COMMAND
+        touch ${OPENSSL_INSTALL_DIR}/.installed
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/_deps/openssl-src/
+    COMMENT "Compiling OpenSSL library"
+)
+endif()
+
+
+add_library(Crypto STATIC IMPORTED GLOBAL)
+add_dependencies(Crypto OpenSSL)
+add_dependencies(Crypto ${CMAKE_BINARY_DIR}/openssl/usr/local/include/openssl/cms.h)
+set_property(TARGET Crypto PROPERTY IMPORTED_LOCATION
+        ${CMAKE_BINARY_DIR}/_deps/openssl-build/libcrypto.a
+    )
+target_include_directories(Crypto INTERFACE ${CMAKE_BINARY_DIR}/openssl/usr/local/include)
+
 
 add_library(OpenSSL::Crypto ALIAS Crypto)
 
-add_library(SSL STATIC IMPORTED)
-# set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/usr/local/lib/libssl.a)
-set_property(TARGET SSL PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/openssl-src/libssl.a)
-add_dependencies(SSL OpenSSL-build_static)
-target_include_directories(SSL INTERFACE ${CMAKE_BINARY_DIR}/openssl-src/include)
+add_library(SSL STATIC IMPORTED GLOBAL)
+add_dependencies(SSL OpenSSL)
+add_dependencies(SSL ${CMAKE_BINARY_DIR}/openssl/usr/local/include/openssl/cms.h)
+set_property(TARGET SSL PROPERTY IMPORTED_LOCATION
+        ${CMAKE_BINARY_DIR}/_deps/openssl-build/libssl.a
+    )
+target_include_directories(SSL INTERFACE ${CMAKE_BINARY_DIR}/openssl/usr/local/include)
 
 add_library(OpenSSL::SSL ALIAS SSL)
