@@ -26,6 +26,9 @@ macro(_userver_module_begin)
 
     set(name "${ARG_NAME}")
 
+    string(TOUPPER "${ARG_CPM_NAME}" ARG_CPM_NAME)
+    string(REPLACE "-" "_" ARG_CPM_NAME "${ARG_CPM_NAME}")
+
     if(ARG_CPM_NAME)
         option(
             USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME}
@@ -299,7 +302,6 @@ macro(_userver_module_end)
 
         if(NEED_CPM AND USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME})
             _userver_cpm_addpackage("${current_package_name}")
-            mark_targets_as_system("${current_package_name}")
             return()
         else()
             find_package_handle_standard_args(
@@ -374,6 +376,7 @@ macro(_userver_cpm_addpackage name)
         SOURCE_SUBDIR ${ARG_CPM_SOURCE_SUBDIR}
         GIT_TAG ${ARG_CPM_GIT_TAG}
     )
+    mark_targets_as_system("${${name}_SOURCE_DIR}")
     set(${name}_FOUND 1)
 endmacro()
 
