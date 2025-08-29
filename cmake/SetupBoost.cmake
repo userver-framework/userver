@@ -21,6 +21,10 @@ set(BOOST_INCLUDE_LIBRARIES
     coroutine
     stacktrace
     coroutine2
+
+    uuid
+    lockfree
+    endian
 )
 string(REGEX REPLACE ";" "\\\\\\\\;" BOOST_INCLUDE_LIBRARIES_LIST "${BOOST_INCLUDE_LIBRARIES}")
 
@@ -56,16 +60,5 @@ cpmaddpackage(
     EXCLUDE_FROM_ALL
 )
 
-message(STATUS "Boost_BINARY_DIR: ${Boost_BINARY_DIR}")
-message(STATUS "Boost_SOURCE_DIR: ${Boost_SOURCE_DIR}")
-# add_subdirectory(${Boost_SOURCE_DIR} ${Boost_BINARY_DIR})
-
-# find_package(
-#     Boost REQUIRED
-#     COMPONENTS ${BOOST_INCLUDE_LIBRARIES}
-#     GLOBAL
-# )
-
-# TODO: UserverRequireDWCAS doesn't work with boost
-#       because it requires compiled Boost::atomic at the configure time
-# set(Boost_VERSION_STRING ${BOOST_VERSION})
+# We have fresh version of boost, DWCAS should work
+set(USERVER_IMPL_DWCAS_CHECKED TRUE CACHE INTERNAL "TRUE iff checked that DWCAS works")
