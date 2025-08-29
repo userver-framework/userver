@@ -12,6 +12,12 @@ option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installe
 set(BOOST_VERSION 1.89.0)
 set(BOOST_INCLUDE_LIBRARIES
     atomic
+    algorithm
+    uuid
+    container
+    config
+    predef
+    assert
     program_options
     filesystem
     regex
@@ -27,25 +33,26 @@ set(BOOST_INCLUDE_LIBRARIES
 )
 string(REGEX REPLACE ";" "\\\\\\\\;" BOOST_INCLUDE_LIBRARIES_LIST "${BOOST_INCLUDE_LIBRARIES}")
 
-if(NOT USERVER_FORCE_DOWNLOAD_BOOST)
-    if(USERVER_DOWNLOAD_PACKAGE_BOOST)
-        find_package(
-            Boost
-            COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-            OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-        )
-    else()
-        find_package(
-            Boost REQUIRED
-            COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-            OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-        )
-    endif()
-
-    if(Boost_FOUND)
-        return()
-    endif()
-endif()
+# if(NOT USERVER_FORCE_DOWNLOAD_BOOST AND NOT BOOST_CPM)
+#     if(USERVER_DOWNLOAD_PACKAGE_BOOST)
+#         find_package(
+#             Boost
+#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+#         )
+#     else()
+#         find_package(
+#             Boost REQUIRED
+#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+#         )
+#     endif()
+# 
+#     if(Boost_FOUND)
+#         return()
+#     endif()
+# endif()
+set(BOOST_CPM TRUE CACHE BOOL "")
 
 cpmaddpackage(
     NAME Boost
@@ -56,14 +63,20 @@ cpmaddpackage(
         "BOOST_ENABLE_CMAKE ON"
         "BOOST_INCLUDE_LIBRARIES ${BOOST_INCLUDE_LIBRARIES_LIST}"
         "BOOST_SKIP_INSTALL_RULES ON"
+	"BUILD_SHARED_LIBS OFF"
+	"BOOST_RUNTIME_LINK static"
     EXCLUDE_FROM_ALL
 )
 
-find_package(
-    Boost REQUIRED
-    COMPONENTS ${BOOST_INCLUDE_LIBRARIES}
-    GLOBAL
-)
+message(STATUS "Boost_BINARY_DIR: ${Boost_BINARY_DIR}")
+message(STATUS "Boost_SOURCE_DIR: ${Boost_SOURCE_DIR}")
+# add_subdirectory(${Boost_SOURCE_DIR} ${Boost_BINARY_DIR})
+
+# find_package(
+#     Boost REQUIRED
+#     COMPONENTS ${BOOST_INCLUDE_LIBRARIES}
+#     GLOBAL
+# )
 
 # TODO: UserverRequireDWCAS doesn't work with boost
 #       because it requires compiled Boost::atomic at the configure time
