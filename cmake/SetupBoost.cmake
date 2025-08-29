@@ -12,12 +12,6 @@ option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installe
 set(BOOST_VERSION 1.89.0)
 set(BOOST_INCLUDE_LIBRARIES
     atomic
-    algorithm
-    uuid
-    container
-    config
-    predef
-    assert
     program_options
     filesystem
     regex
@@ -26,32 +20,26 @@ set(BOOST_INCLUDE_LIBRARIES
     context
     coroutine
     stacktrace
-    uuid
     coroutine2
-    endian
-    lockfree
 )
 string(REGEX REPLACE ";" "\\\\\\\\;" BOOST_INCLUDE_LIBRARIES_LIST "${BOOST_INCLUDE_LIBRARIES}")
 
-# if(NOT USERVER_FORCE_DOWNLOAD_BOOST AND NOT BOOST_CPM)
-#     if(USERVER_DOWNLOAD_PACKAGE_BOOST)
-#         find_package(
-#             Boost
-#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-#         )
-#     else()
-#         find_package(
-#             Boost REQUIRED
-#             COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
-#             OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-#         )
-#     endif()
-# 
-#     if(Boost_FOUND)
-#         return()
-#     endif()
-# endif()
+if(NOT USERVER_FORCE_DOWNLOAD_BOOST AND NOT BOOST_CPM)
+    if(USERVER_DOWNLOAD_PACKAGE_BOOST)
+        set(MAYBE_REQUIRED)
+    else()
+        set(MAYBE_REQUIRED REQUIRED)
+    endif()
+    find_package(
+        Boost CONFIG ${MAYBE_REQUIRED}
+        COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+        OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+    )
+
+    if(Boost_FOUND)
+        return()
+    endif()
+endif()
 set(BOOST_CPM TRUE CACHE BOOL "")
 
 cpmaddpackage(
