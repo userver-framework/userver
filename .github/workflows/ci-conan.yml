@@ -10,6 +10,7 @@ name: Conan
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
+    MACOSX_DEPLOYMENT_TARGET: 15.4
 
 jobs:
     build:
