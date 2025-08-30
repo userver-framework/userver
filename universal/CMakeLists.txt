@@ -25,7 +25,6 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCE
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-include(SetupBoost)
 include(UserverRequireDWCAS) # Should be called after `find_package(Boost)`
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
@@ -235,9 +234,15 @@ endif()
 
 target_link_libraries(
     ${PROJECT_NAME}
-    PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options Boost::algorithm Boost::uuid Boost::random Boost::container
+    PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
     PRIVATE Boost::filesystem Boost::program_options OpenSSL::Crypto OpenSSL::SSL
 )
+if(TARGET Boost::algorithm)
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PUBLIC Boost::algorithm Boost::uuid Boost::random Boost::container
+    )
+endif()
 
 if(USERVER_CONAN)
     target_link_libraries(

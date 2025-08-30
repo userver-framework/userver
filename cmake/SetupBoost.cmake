@@ -10,7 +10,7 @@ option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installe
 )
 
 set(BOOST_VERSION 1.89.0)
-set(BOOST_INCLUDE_LIBRARIES
+set(BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE
     atomic
     program_options
     filesystem
@@ -19,12 +19,16 @@ set(BOOST_INCLUDE_LIBRARIES
     iostreams
     context
     coroutine
-    stacktrace
+)
+set(BOOST_INCLUDE_LIBRARIES
+    ${BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE}
     coroutine2
-
+    stacktrace
     uuid
     lockfree
     endian
+    assert
+    predef
 )
 string(REGEX REPLACE ";" "\\\\\\\\;" BOOST_INCLUDE_LIBRARIES_LIST "${BOOST_INCLUDE_LIBRARIES}")
 
@@ -35,8 +39,8 @@ if(NOT USERVER_FORCE_DOWNLOAD_BOOST AND NOT BOOST_CPM)
         set(MAYBE_REQUIRED REQUIRED)
     endif()
     find_package(
-        Boost CONFIG ${MAYBE_REQUIRED}
-        COMPONENTS program_options filesystem regex stacktrace_basic context coroutine locale iostreams
+        Boost ${MAYBE_REQUIRED} CONFIG
+	COMPONENTS ${BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE}
         OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
     )
 
