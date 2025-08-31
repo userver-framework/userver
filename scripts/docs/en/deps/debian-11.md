@@ -1,9 +1,9 @@
 ccache
-libabsl-dev
 clang-format
 cmake
 gdb
 git
+libabsl-dev
 libbenchmark-dev
 libboost1.74-dev
 libboost-filesystem1.74-dev
@@ -20,6 +20,7 @@ libcurl4-openssl-dev
 libev-dev
 libfmt-dev
 libgflags-dev
+libgmock-dev
 libgmock-dev
 libgrpc++1
 libgrpc++-dev
