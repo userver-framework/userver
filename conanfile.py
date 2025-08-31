@@ -100,9 +100,12 @@ class UserverConan(ConanFile):
             pass  # Running from userver-framework/userver
 
     def export_sources(self):
+        if not self.conan_data:
+            return
+
         known_version = self.conan_data.get("sources", {}).get(self.version)
         if known_version:
-                export_conandata_patches(self)
+            export_conandata_patches(self)
         else:
             pass  # Running from userver-framework/userver
 
