@@ -77,7 +77,6 @@ function(_userver_schedule_make_main_target_once)
         userver_codegen_make_main_target
         scheduled
     )
-    message(STATUS "already scheduled: ${scheduled}")
     if(NOT scheduled)
         # On first codegen invocation, schedule userver-codegen target creation.
         cmake_language(
