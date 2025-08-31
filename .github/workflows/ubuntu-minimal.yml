@@ -68,8 +68,6 @@ jobs:
                 sudo apt update
                 sudo apt install build-essential clang cmake ccache libjemalloc-dev
                 sudo apt install \
-                  libnghttp2-dev \
-                  libev-dev \
                   libssl-dev \
                   libboost-context1.83-dev \
                   libboost-coroutine1.83-dev \
