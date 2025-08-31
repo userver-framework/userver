@@ -37,6 +37,7 @@ librdkafka-dev
 libre2-dev
 librocksdb-dev
 libsasl2-dev
+libsqlite3-dev
 libssl-dev
 libyaml-cpp-dev
 netbase
