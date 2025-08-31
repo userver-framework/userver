@@ -117,11 +117,7 @@ jobs:
 
           - name: Run cmake
             run: |
-                cmake -S . -B build_debug $CMAKE_FLAGS
-
-          - name: Reconfigure cmake
-            run: |
-                cmake -S . -B build_debug $CMAKE_FLAGS
+                cmake -S . -B build_debug $CMAKE_FLAGS ${{ matrix.cmake-flags }}
 
           - name: Compile
             run: |
