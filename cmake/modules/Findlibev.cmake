@@ -10,7 +10,6 @@ _userver_module_begin(
     PACMAN_NAMES
     libev
 
-    # TODO: CPM
     CPM_NAME libev
     CPM_URL http://dist.schmorp.de/libev/libev-4.33.tar.gz
     CPM_DOWNLOAD_ONLY
