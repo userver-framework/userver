@@ -10,7 +10,7 @@ name: Conan
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
-    MACOSX_DEPLOYMENT_TARGET: 15.4
+    #MACOSX_DEPLOYMENT_TARGET: 15.4
 
 jobs:
     build:
@@ -67,7 +67,7 @@ jobs:
 
           - name: Install common packages
             run: |
-                pip install "conan==2.8.0"
+                pip install conan
                 pip install numpy
                 ${{ matrix.container && 'sudo -u test-user' }} conan profile detect
                 ${{ matrix.container && 'sudo -u test-user' }} conan profile show
