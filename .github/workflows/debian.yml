@@ -11,8 +11,6 @@ name: Debian
 env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
-    CXX: c++
-    CC: cc
     CCACHE_DIR: /home/runner/.cache/ccache
     CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /home/runner/.cache/CPM
@@ -25,11 +23,15 @@ jobs:
                 include:
                   - cmake-flags: >-
                       -DUSERVER_FORCE_DOWNLOAD_GTEST=ON
+                      -DCMAKE_CC_COMPILER=clang-11
+                      -DCMAKE_CXX_COMPILER=clang++-11
                     image: debian:11
                     info: Debian 11
                     deps-file: debian-11.md
 
                   - cmake-flags: >-
+                      -DCMAKE_CC_COMPILER=clang-14
+                      -DCMAKE_CXX_COMPILER=clang++-14
                     image: debian:12
                     info: Debian 12
                     deps-file: debian-12.md
