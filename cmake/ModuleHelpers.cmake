@@ -106,10 +106,11 @@ endmacro()
 macro(_userver_module_find_part)
     # Also uses ARGs left over from _userver_find_module_begin
 
-    if(USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME})
-        message(STATUS "Skipping ${ARG_CPM_NAME} system package search due to USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}=TRUE")
-        return()
-    endif()
+    # TODO: return() doesn't work inside of macro
+    # if(USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME})
+    #     message(STATUS "Skipping ${ARG_CPM_NAME} system package search due to USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}=TRUE")
+    #     return()
+    # endif()
 
     set(options)
     set(oneValueArgs PART_TYPE)
