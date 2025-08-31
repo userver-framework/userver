@@ -27,6 +27,7 @@ libhiredis-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
+liblzma-dev
 libmariadbd-dev
 libmongoc-dev
 libnghttp2-dev
