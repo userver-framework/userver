@@ -10,7 +10,6 @@ name: Conan
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
-    #MACOSX_DEPLOYMENT_TARGET: 15.4
 
 jobs:
     build:
@@ -75,6 +74,7 @@ jobs:
           - name: Run conan
             run: |
                 ${{ matrix.container && 'sudo -u test-user' }} git config --global --add safe.directory `pwd`
+                export MACOSX_DEPLOYMENT_TARGET="15.4"  # https://justatheory.com/2025/04/fix-postgres-strchrnul/
                 ${{ matrix.container && 'sudo -u test-user' }} conan create . --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
 
           - name: Install test dependencies
