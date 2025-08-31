@@ -68,6 +68,30 @@ function(_userver_codegen_make_directory_target)
     set_property(GLOBAL APPEND PROPERTY userver_codegen_targets "userver-codegen-impl-${index}")
 endfunction()
 
+function(_userver_schedule_make_main_target_once)
+    cmake_language(
+        DEFER
+        DIRECTORY
+        "${CMAKE_SOURCE_DIR}"
+        GET_CALL
+        userver_codegen_make_main_target
+        scheduled
+    )
+    message(STATUS "already scheduled: ${scheduled}")
+    if(NOT scheduled)
+        # On first codegen invocation, schedule userver-codegen target creation.
+        cmake_language(
+            DEFER
+            DIRECTORY
+            "${CMAKE_SOURCE_DIR}"
+            ID
+            userver_codegen_make_main_target
+            CALL
+            _userver_codegen_make_main_target
+        )
+    endif()
+endfunction()
+
 function(_userver_codegen_register_files FILES_LIST)
     if(CMAKE_VERSION VERSION_LESS "3.19" OR NOT FILES_LIST)
         return()
@@ -83,23 +107,7 @@ function(_userver_codegen_register_files FILES_LIST)
         # On first codegen files in the current directory, schedule indexed codegen target creation.
         cmake_language(DEFER DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" CALL _userver_codegen_make_directory_target)
 
-        get_property(
-            has_userver_codegen_targets GLOBAL
-            PROPERTY userver_codegen_targets
-            SET
-        )
-        if(NOT has_userver_codegen_targets)
-            # On first codegen invocation, schedule userver-codegen target creation.
-            cmake_language(
-                DEFER
-                DIRECTORY
-                "${CMAKE_SOURCE_DIR}"
-                ID
-                userver_codegen_make_main_target
-                CALL
-                _userver_codegen_make_main_target
-            )
-        endif()
+        _userver_schedule_make_main_target_once()
     endif()
 
     set_property(
