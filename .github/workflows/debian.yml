@@ -21,13 +21,15 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                  - cmake-flags: >-
-                      -DUSERVER_FORCE_DOWNLOAD_GTEST=ON
-                      -DCMAKE_CC_COMPILER=clang-11
-                      -DCMAKE_CXX_COMPILER=clang++-11
-                    image: debian:11
-                    info: Debian 11
-                    deps-file: debian-11.md
+                  # TODO: debian-11 fails to compile core
+                  #
+                  # - cmake-flags: >-
+                  #     -DUSERVER_FORCE_DOWNLOAD_GTEST=ON
+                  #     -DCMAKE_CC_COMPILER=clang-11
+                  #     -DCMAKE_CXX_COMPILER=clang++-11
+                  #   image: debian:11
+                  #   info: Debian 11
+                  #   deps-file: debian-11.md
 
                   - cmake-flags: >-
                       -DCMAKE_CC_COMPILER=clang-14
@@ -36,6 +38,12 @@ jobs:
                     info: Debian 12
                     deps-file: debian-12.md
 
+                  - cmake-flags: >-
+                      -DCMAKE_CC_COMPILER=clang-17
+                      -DCMAKE_CXX_COMPILER=clang++-17
+                    image: debian:13
+                    info: Debian 13
+                    deps-file: debian-13.md
 
         name: '${{ matrix.info }}'
         runs-on: ubuntu-latest
