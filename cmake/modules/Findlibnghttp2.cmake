@@ -15,7 +15,9 @@ _userver_module_begin(
     CPM_OPTIONS
         "BUILD_STATIC_LIBS ON"
 	"BUILD_SHARED_LIBS OFF"
-)
+	"ENABLE_APP OFF"
+	"ENABLE_EXAMPLES OFF"
+    )
 
 _userver_module_find_include(NAMES nghttp2/nghttp2.h)
 
