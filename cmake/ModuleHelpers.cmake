@@ -302,7 +302,6 @@ macro(_userver_module_end)
 
         if(NEED_CPM AND USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME})
             _userver_cpm_addpackage("${current_package_name}")
-            return()
         else()
             find_package_handle_standard_args(
                 "${current_package_name}"
