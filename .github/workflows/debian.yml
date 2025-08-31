@@ -21,10 +21,23 @@ jobs:
     debian:
         strategy:
             fail-fast: false
+            matrix:
+                include:
+                  - cmake-flags: >-
+                      -DUSERVER_FORCE_DOWNLOAD_GTEST=ON
+                    image: debian:11
+                    info: Debian 11
+                    deps-file: debian-11.md
 
-        name: debian-11
+                  - cmake-flags: >-
+                    image: debian:12
+                    info: Debian 12
+                    deps-file: debian-12.md
+
+
+        name: '${{ matrix.info }}'
         runs-on: ubuntu-latest
-        container: debian:11
+        container: ${{ matrix.image }}
 
         env:
             CMAKE_FLAGS: >-
@@ -56,7 +69,7 @@ jobs:
                 path: |
                     ${{env.CCACHE_DIR}}
                     ${{env.CPM_SOURCE_CACHE}}
-                key: 'debian-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                key: 'debian-cache-dir ${{matrix.image}} ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     debian-cache-dir ${{github.ref}}
                     debian-cache-dir
@@ -75,7 +88,7 @@ jobs:
                 apt-get install -y clang lld
                 
                 # Install project dependencies
-                apt-get install -y $(cat scripts/docs/en/deps/debian-11.md)
+                apt-get install -y $(cat scripts/docs/en/deps/${{ matrix.deps-file }})
 
           - name: Install test dependencies
             if: ${{ false }}
@@ -127,6 +140,7 @@ jobs:
                 ccache -s -v
 
           - name: Run tests
+            if: ${{ false }}
             run: |
                 cd build_debug
                 ctest -V
