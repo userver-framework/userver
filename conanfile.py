@@ -93,6 +93,9 @@ class UserverConan(ConanFile):
     }
 
     def source(self):
+        if not self.conan_data:
+            return
+
         known_version = self.conan_data.get("sources", {}).get(self.version)
         if known_version:
             get(self, **known_version, strip_root=True)
