@@ -5,7 +5,9 @@ include(DownloadUsingCPM)
 cmake_policy(SET CMP0054 NEW)
 
 macro(_userver_module_begin)
-    set(options)
+    set(options
+        CPM_DOWNLOAD_ONLY
+    )
     set(oneValueArgs # Target name, also used for package name by default
         NAME VERSION
     )
@@ -17,6 +19,7 @@ macro(_userver_module_begin)
 	CPM_NAME
         CPM_VERSION
         CPM_GITHUB_REPOSITORY
+        CPM_URL
         CPM_OPTIONS
         CPM_SOURCE_SUBDIR
         CPM_GIT_TAG
@@ -367,15 +370,23 @@ macro(_userver_module_end)
 endmacro()
 
 macro(_userver_cpm_addpackage name)
+    set(EXTRA_ARGS)
+    if(ARG_CPM_DOWNLOAD_ONLY)
+        set(EXTRA_ARGS ${EXTRA_ARGS} DOWNLOAD_ONLY)
+    endif()
     cpmaddpackage(
         NAME ${name}
         VERSION ${ARG_CPM_VERSION}
         GITHUB_REPOSITORY ${ARG_CPM_GITHUB_REPOSITORY}
+        URL ${ARG_CPM_URL}
         OPTIONS ${ARG_CPM_OPTIONS}
         SOURCE_SUBDIR ${ARG_CPM_SOURCE_SUBDIR}
         GIT_TAG ${ARG_CPM_GIT_TAG}
+        ${EXTRA_ARGS}
     )
-    mark_targets_as_system("${${name}_SOURCE_DIR}")
+    if(NOT ARG_CPM_DOWNLOAD_ONLY)
+        mark_targets_as_system("${${name}_SOURCE_DIR}")
+    endif()
     set(${name}_FOUND 1)
 endmacro()
 
