@@ -96,7 +96,6 @@ class UserverConan(ConanFile):
         if known_version:
             get(self, **known_version, strip_root=True)
         else:
-            self.info('Using develop branch from git')
             Git(self).clone('git@github.com:userver-framework/userver.git', target='.')
 
     def export_sources(self):
