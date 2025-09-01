@@ -39,8 +39,8 @@ jobs:
                     deps-file: debian-12.md
 
                   - cmake-flags: >-
-                      -DCMAKE_CC_COMPILER=clang-17
-                      -DCMAKE_CXX_COMPILER=clang++-17
+                      -DCMAKE_CC_COMPILER=clang-19
+                      -DCMAKE_CXX_COMPILER=clang++-19
                     image: debian:13
                     info: Debian 13
                     deps-file: debian-13.md
