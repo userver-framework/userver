@@ -92,21 +92,15 @@ class UserverConan(ConanFile):
         're2/*:with_icu': True,
     }
 
-    def source(self):
-        if not self.conan_data:
-            return
-
-        known_version = self.conan_data.get("sources", {}).get(self.version)
+    def source(self)
+        known_version = (self.conan_data or {}).get("sources", {}).get(self.version)
         if known_version:
             get(self, **known_version, strip_root=True)
         else:
             pass  # Running from userver-framework/userver
 
     def export_sources(self):
-        if not self.conan_data:
-            return
-
-        known_version = self.conan_data.get("sources", {}).get(self.version)
+        known_version = (self.conan_data or {}).get("sources", {}).get(self.version)
         if known_version:
             export_conandata_patches(self)
         else:
