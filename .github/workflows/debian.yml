@@ -92,7 +92,7 @@ jobs:
           - name: Install dependencies
             run: |
                 apt-get update
-                apt-get install -y lsb-release wget software-properties-common gnupg
+                apt-get install -y lsb-release wget gnupg
                 
                 # Install clang and lld
                 apt-get install -y clang lld
