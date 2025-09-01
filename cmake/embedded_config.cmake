@@ -44,7 +44,7 @@ extern \"C\" const int @NAME@_size;
 
 
 __attribute__((constructor)) void @NAME@_call() {
-  utils::RegisterResource(\"@NAME@\", std::string_view{@NAME@_begin, static_cast<size_t>(@NAME@_size)});
+  ${NAMESPACE}::utils::RegisterResource(\"@NAME@\", std::string_view{@NAME@_begin, static_cast<size_t>(@NAME@_size)});
 }
 "
 )
