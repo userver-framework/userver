@@ -43,6 +43,7 @@ jobs:
                       -DCMAKE_CXX_COMPILER=clang++-19
                       -DUSERVER_FEATURE_GRPC=OFF
                       -DUSERVER_FEATURE_OTLP=OFF
+                      -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
                     image: debian:13
                     info: Debian 13
                     deps-file: debian-13.md
