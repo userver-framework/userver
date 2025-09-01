@@ -96,7 +96,7 @@ class UserverConan(ConanFile):
         if known_version:
             get(self, **known_version, strip_root=True)
         else:
-            Git(self).clone('git@github.com:userver-framework/userver.git', target='.')
+            Git(self).clone('https://github.com/userver-framework/userver.git', target='.')
 
     def export_sources(self):
         known_version = (self.conan_data or {}).get("sources", {}).get(self.version)
@@ -109,7 +109,6 @@ class UserverConan(ConanFile):
         if self.version:
             return
 
-        # Building from userver-framework/userver
         content = load(
             self,
             os.path.join(
