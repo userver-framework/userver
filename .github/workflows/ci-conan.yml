@@ -27,7 +27,7 @@ jobs:
                     container: ubuntu:22.04
                     conanflags: ''
                     tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
-                  - os: macos-latest
+                  - os: macos-14
                     conanflags: '-o python_path=python3.11'
                     tests-env: ''
 
