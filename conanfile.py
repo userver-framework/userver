@@ -91,7 +91,7 @@ class UserverConan(ConanFile):
         're2/*:with_icu': True,
     }
 
-    def source(self)
+    def source(self):
         known_version = (self.conan_data or {}).get("sources", {}).get(self.version)
         if known_version:
             get(self, **known_version, strip_root=True)
