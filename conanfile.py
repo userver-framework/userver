@@ -96,14 +96,15 @@ class UserverConan(ConanFile):
         if known_version:
             get(self, **known_version, strip_root=True)
         else:
-            pass  # Running from userver-framework/userver
+            self.info('Using develop branch from git')
+            Git(self).clone('git@github.com:userver-framework/userver.git', target='.')
 
     def export_sources(self):
         known_version = (self.conan_data or {}).get("sources", {}).get(self.version)
         if known_version:
             export_conandata_patches(self)
         else:
-            pass  # Running from userver-framework/userver
+            pass  # Running from develop branch, no patches
 
     def set_version(self):
         if self.version:
