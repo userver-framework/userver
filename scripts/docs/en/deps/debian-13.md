@@ -43,8 +43,8 @@ libssl-dev
 libyaml-cpp-dev
 netbase
 ninja-build
-postgresql-15
-postgresql-server-dev-15
+postgresql-17
+postgresql-server-dev-17
 protobuf-compiler-grpc
 python3-dev
 python3-jinja2
