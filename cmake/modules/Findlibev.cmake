@@ -27,20 +27,25 @@ if(NOT TARGET libev::libev)
     elseif(libev_ADDED)
         # nghttp2 doesn't use find_package(), but calls find_path() and find_library()
         # so we have to provide libev.a at the _configure_ time, not at build time, =(
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${libev_SOURCE_DIR} ${libev_BINARY_DIR}
-        )
-        execute_process(
-            COMMAND ./configure
-            WORKING_DIRECTORY ${libev_BINARY_DIR}
-        )
-        execute_process(
-            COMMAND make
-            WORKING_DIRECTORY ${libev_BINARY_DIR}
-        )
-        execute_process(
-            COMMAND rm -rf ${libev_BINARY_DIR}/.libs/libev.so
-        )
+        if(NOT EXISTS ${libev_BINARY_DIR}/.built)
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} -E copy_directory ${libev_SOURCE_DIR} ${libev_BINARY_DIR}
+            )
+            execute_process(
+                COMMAND ./configure
+                WORKING_DIRECTORY ${libev_BINARY_DIR}
+            )
+            execute_process(
+                COMMAND make
+                WORKING_DIRECTORY ${libev_BINARY_DIR}
+            )
+            execute_process(
+                COMMAND rm -rf ${libev_BINARY_DIR}/.libs/libev.so
+            )
+            execute_process(
+                COMMAND touch ${libev_BINARY_DIR}/.built
+            )
+        endif()
 
         add_library(libev STATIC IMPORTED)
         target_include_directories(libev INTERFACE ${libev_BINARY_DIR})
