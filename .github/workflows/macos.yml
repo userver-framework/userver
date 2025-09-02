@@ -18,7 +18,7 @@ jobs:
         strategy:
             fail-fast: false
 
-        name: macos-latest
+        name: macos-latest (brew)
         runs-on: macos-latest
 
         env:
