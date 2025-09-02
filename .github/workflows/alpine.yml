@@ -22,7 +22,7 @@ jobs:
         strategy:
             fail-fast: false
 
-        name: ubuntu-24.04 (build-only)
+        name: alpine (build-only)
         runs-on: ubuntu-24.04
 
         env:
