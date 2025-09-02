@@ -38,6 +38,7 @@ function(userver_target_require_dwcas target visibility)
     # boost::atomic::value() since Boost 1.74.0.
     if("${Boost_VERSION_STRING}" VERSION_GREATER_EQUAL "${BOOST_DWCAS_MIN_VERSION}")
         message(STATUS "DWCAS: Using boost::atomic")
+        list(APPEND TEST_LIBRARIES "Boost::atomic")
     else()
         message(WARNING "DWCAS: Using std::atomic")
         target_compile_definitions(${target} ${visibility} USERVER_USE_STD_DWCAS=1)
@@ -92,8 +93,8 @@ function(userver_target_require_dwcas target visibility)
     try_run(
         RUN_RESULT COMPILE_RESULT "${CMAKE_CURRENT_BINARY_DIR}/require_dwcas"
         "${USERVER_ROOT_DIR}/cmake/UserverRequireDWCAS.cpp"
-        CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${Boost_INCLUDE_DIRS}"
-        COMPILE_DEFINITIONS ${TEST_DEFINITIONS} LINK_LIBRARIES ${TEST_LIBRARIES}
+        COMPILE_DEFINITIONS ${TEST_DEFINITIONS}
+        LINK_LIBRARIES ${TEST_LIBRARIES}
         COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT
     )
 

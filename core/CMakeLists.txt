@@ -37,7 +37,6 @@ file(GLOB_RECURSE INTERNAL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
 
 list(REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
 
-find_package(Boost REQUIRED CONFIG COMPONENTS program_options filesystem locale regex iostreams)
 find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
@@ -107,6 +106,13 @@ target_link_libraries(
             OpenSSL::SSL
             ZLIB::ZLIB
 )
+if(TARGET Boost::endian)
+    # Boost from CPM
+    target_link_libraries(
+	${PROJECT_NAME}
+	PUBLIC userver-universal Boost::endian Boost::lockfree
+    )
+endif()
 
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)
 
@@ -130,17 +136,21 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64"
     endif()
 endif()
 
-option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one"
-       "${USERVER_UBOOST_CORO_DEFAULT}"
-)
+if("${Boost_VERSION_STRING}" VERSION_LESS "1.88.0")
+    option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one"
+           "${USERVER_UBOOST_CORO_DEFAULT}"
+    )
+else()
+    message(STATUS "Found a modern Boost version (${Boost_VERSION_STRING}), not using vendored Boost::context and Boost::coroutine2")
+    set(USERVER_FEATURE_UBOOST_CORO OFF)
+endif()
 
 if(USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
     target_link_libraries(${PROJECT_NAME} PRIVATE userver-uboost-coro)
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include)
 else()
-    find_package(Boost REQUIRED CONFIG COMPONENTS context coroutine)
-    target_link_libraries(${PROJECT_NAME} PRIVATE Boost::context)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Boost::context Boost::coroutine2)
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sys_coro/include)
 endif()
 
