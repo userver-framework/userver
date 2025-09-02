@@ -62,7 +62,9 @@ public:
     /// @return Minor version of HTTP. For example, for HTTP 1.0 it returns 0
     int GetHttpMinor() const;
 
-    /// @brief Get full HTTP request URL, including scheme, server, path and query string.
+    /// @brief Get HTTP request target as provided by the client (see
+    /// https://www.rfc-editor.org/rfc/rfc7230#section-5.3). May contain the whole URL, but usually it consists of path
+    /// and query string.
     const std::string& GetUrl() const;
 
     /// @brief Get the path part of HTTP request URL.

@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include <boost/container/flat_map.hpp>
+
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/opentelemetry.hpp>
@@ -20,20 +22,21 @@ namespace ugrpc::server::impl {
 
 namespace {
 
-void ReportFinishSuccess(
-    const grpc::Status& status,
-    tracing::Span& span,
-    ugrpc::impl::RpcStatisticsScope& statistics_scope
-) noexcept {
+void ReportFinishSuccess(const grpc::Status& status, CallState& state) noexcept {
     try {
         const auto status_code = status.error_code();
-        statistics_scope.OnExplicitFinish(status_code);
+        state.statistics_scope.OnExplicitFinish(status_code);
 
+        auto& span = state.GetSpan();
         span.AddNonInheritableTag("grpc_code", ugrpc::ToString(status_code));
         if (!status.ok()) {
             span.AddNonInheritableTag(tracing::kErrorFlag, true);
             span.AddNonInheritableTag(tracing::kErrorMessage, status.error_message());
-            span.SetLogLevel(IsServerError(status_code) ? logging::Level::kError : logging::Level::kWarning);
+            const auto default_error_log_level =
+                IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
+            const auto error_log_level =
+                utils::FindOrDefault(state.status_codes_log_level, status.error_code(), default_error_log_level);
+            span.SetLogLevel(error_log_level);
         }
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error in ReportFinishSuccess: " << ex;
@@ -143,7 +146,7 @@ ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerExcept
 
 void CheckFinishStatus(bool finish_op_succeeded, const grpc::Status& status, CallState& state) noexcept {
     if (finish_op_succeeded) {
-        ReportFinishSuccess(status, state.GetSpan(), state.statistics_scope);
+        ReportFinishSuccess(status, state);
     } else {
         ReportRpcInterruptedError(state);
     }

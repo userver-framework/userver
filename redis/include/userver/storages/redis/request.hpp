@@ -59,6 +59,9 @@ public:
     template <ScanTag TScanTag>
     friend class RequestScanData;
 
+    template <typename T1>
+    friend class RequestGeneric;
+
 private:
     ReplyPtr GetRaw() { return impl_->GetRaw(); }
 
@@ -165,6 +168,7 @@ using RequestDbsize = Request<size_t>;
 using RequestDecr = Request<int64_t>;
 using RequestDel = Request<size_t>;
 using RequestUnlink = Request<size_t>;
+using RequestGenericCommon = Request<ReplyData>;
 using RequestEvalCommon = Request<ReplyData>;
 using RequestEvalShaCommon = Request<ReplyData>;
 using RequestScriptLoad = Request<std::string>;

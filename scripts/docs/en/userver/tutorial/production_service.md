@@ -146,7 +146,7 @@ file (if it exists).
 @note Dynamic configs is an essential part of a reliable service with high
       availability. Those could be used as an emergency switch for new
       functionality, selector for experiments, limits/timeouts/log-level setup,
-      proxy setup. See @ref scripts/docs/en/schemas/dynamic_configs.md for
+      proxy setup. See @ref scripts/docs/en/dynamic_configs/dynamic_configs.md for
       more info and @ref scripts/docs/en/userver/tutorial/config_service.md for
       insights on how to implement such service.
 

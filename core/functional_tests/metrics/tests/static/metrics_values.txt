@@ -4,7 +4,7 @@ alerts.config_parse_error:	GAUGE	0
 alerts.dynamic_debug_invalid_location:	GAUGE	0
 alerts.log_reopening_error:	GAUGE	0
 
-# Info on cahces
+# Info on caches
 cache.any.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
 cache.any.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
 cache.any.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0

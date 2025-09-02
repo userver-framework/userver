@@ -25,7 +25,7 @@ if not hasattr(gdb.unwinder, 'FrameId'):
 arch_name: str = re.search(
     'boost.*context.*/asm/jump_([a-z_0-9]+)', gdb.execute('info sources boost.*context.*/asm/jump_', to_string=True)
 ).group(1)
-registers_offets = {
+registers_offsets = {
     'x86_64_sysv_elf_gas': {
         'r12': 0x10,
         'r13': 0x18,
@@ -164,7 +164,7 @@ class BoostFContext:
 
     def read_registers(self):
         result: dict[str, gdb.Value] = {}
-        for reg_name, reg_offset in registers_offets.items():
+        for reg_name, reg_offset in registers_offsets.items():
             reg_value = self.ctx + reg_offset
             if reg_name != 'sp':
                 reg_value = reg_value.cast(void_pp_t).dereference()
@@ -467,13 +467,13 @@ class UtaskApplyCmd(gdb.Command):
                 if task_cnt == 0:
                     print('No tasks found')
             else:
-                fast_cheched_tasks: list[TaskContext] = []
+                fast_chached_tasks: list[TaskContext] = []
                 for task in get_all_tasks():
                     # fast filtering
                     if which_task == task.task_id:
                         return self.invoke_per_task(task, cmd, from_tty)
-                    fast_cheched_tasks.append(task)
-                for task in fast_cheched_tasks:
+                    fast_chached_tasks.append(task)
+                for task in fast_chached_tasks:
                     # getting attached_span is a bit longer
                     if (span := task.attached_span) and which_task == span.name:
                         return self.invoke_per_task(task, cmd, from_tty)

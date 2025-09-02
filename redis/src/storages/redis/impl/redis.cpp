@@ -1048,7 +1048,7 @@ void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r, void* privdat
             // Translate to something sensible.
             impl->OnRedisReplyImpl(nullptr, privdata, REDIS_ERR_EOF, "Disconnecting");
         } else if (redis_reply && redis_reply->type == REDIS_REPLY_ERROR && c->err == REDIS_OK) {
-            // redis_reply contains error that missmatch Reply status OK.
+            // redis_reply contains error that mismatch Reply status OK.
             // Fix the status here to pass the Reply UASSERT checks.
             UASSERT_MSG(
                 !c->errstr || c->errstr[0] == '\0', fmt::format("For OK status there's an error string: {}", c->errstr)

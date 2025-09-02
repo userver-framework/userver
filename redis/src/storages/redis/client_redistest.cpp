@@ -238,6 +238,23 @@ UTEST_F(RedisClientTest, EvalSha) {
     EXPECT_EQ(result_array[0], "key1");
 }
 
+UTEST_F(RedisClientTest, Generic) {
+    auto client = GetClient();
+    const storages::redis::CommandControl kCommandControl{};
+    constexpr size_t kKeyIndex = 0;
+    UEXPECT_NO_THROW(client->GenericCommand<void>("set", {"key0", "foo"}, kKeyIndex, kCommandControl).Wait());
+    EXPECT_EQ(client->GenericCommand<std::string>("get", {"key0"}, kKeyIndex, kCommandControl).Get(), "foo");
+    EXPECT_EQ(
+        client->GenericCommand<int64_t>("LPUSH", {"list", "1", "2", "3", "4"}, kKeyIndex, kCommandControl).Get(), 4
+    );
+    const std::vector<std::string> kExpected{"4", "3", "2", "1"};
+    EXPECT_EQ(
+        client->GenericCommand<std::vector<std::string>>("LRANGE", {"list", "0", "-1"}, kKeyIndex, kCommandControl)
+            .Get(),
+        kExpected
+    );
+}
+
 UTEST_F(RedisClientTest, Exists) {
     auto client = GetClient();
     client->Set("key1", "Hello", {}).Get();

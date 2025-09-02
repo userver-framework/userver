@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Exit on any error
+set -e
+
 if [ -z "$BUILD_DIR" ]; then
     echo "!!! Set BUILD_DIR environment variable to cmake build directory with docs already built."
     echo "!!! See userver/scripts/docs/README.md"

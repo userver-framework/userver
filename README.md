@@ -1,6 +1,7 @@
 # userver [<img src="./scripts/docs/img/logo.svg" align='right' width="10%">](https://userver.tech/)
 
 [![Ubuntu](https://github.com/userver-framework/userver/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/ci.yml)
+[![Fedora](https://github.com/userver-framework/userver/actions/workflows/fedora.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/fedora.yml)
 [![MacOS](https://github.com/userver-framework/userver/actions/workflows/macos.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/macos.yml)
 [![Alpine](https://github.com/userver-framework/userver/actions/workflows/alpine.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/alpine.yml)
 [![Docker CI](https://github.com/userver-framework/userver/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/docker.yaml)

@@ -25,6 +25,9 @@ components_manager:
 # /// [otlp logger]
         otlp-logger:
             endpoint: '0.0.0.0:4317'
+            # You can use separate endpoints for traces and logs
+            # logs-endpoint: '0.0.0.0:4317'
+            # traces-endpoint: '0.0.0.0:4318'
             client-factory-name: grpc-otlp-factory
             service-name: otlp-example
             log-level: debug

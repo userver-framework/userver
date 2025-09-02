@@ -1,7 +1,7 @@
 ## Dynamic config
 
 For schemas of dynamic configs used by userver itself:
-@see @ref scripts/docs/en/schemas/dynamic_configs.md
+@see @ref scripts/docs/en/dynamic_configs/dynamic_configs.md
 
 For information on how to write a service that distributes dynamic configs:
 @see @ref scripts/docs/en/userver/tutorial/config_service.md
@@ -317,7 +317,7 @@ then you may skip this section entirely and use defaults only for testing.
 
 On the other hand, if you prefer to run without a configs service, then you
 may want to override some of the
-@ref scripts/docs/en/schemas/dynamic_configs.md "built-in userver configs".
+@ref scripts/docs/en/dynamic_configs/dynamic_configs.md "built-in userver configs".
 
 Defaults can be overridden in the config of the `dynamic-config` component:
 
@@ -678,5 +678,5 @@ going from the lowest to the highest priority:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref rabbitmq_driver | @ref scripts/docs/en/schemas/dynamic_configs.md ⇨
+⇦ @ref rabbitmq_driver | @ref scripts/docs/en/dynamic_configs/dynamic_configs.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -30,7 +30,7 @@ struct TopicPartitionView final {
 using TopicPartitionBatchView = utils::span<const TopicPartitionView>;
 
 /// @brief Callback invoked when a rebalance event occurs.
-/// @warning The rebalance callback must be set before calling ConsumeScope::Start or after calling ConsumeScope::Stop .
+/// @warning The rebalance callback should be set before calling ConsumerScope::Start or after ConsumerScope::Stop.
 /// The callback must not throw exceptions; any thrown exceptions will be caught and logged by the consumer
 /// implementation.
 /// @note The callback is invoked after the assign or revoke event has been successfully processed.

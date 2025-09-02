@@ -3,6 +3,8 @@
 {{ do_render_namespace(node) }}
 {%- elif node.kind == "struct" %}
 {{ do_render_struct(node) }}
+{%- elif node.kind == "oneof" %}
+{{ do_render_oneof(node) }}
 {%- elif node.kind == "enum" %}
 {{ do_render_enum(node) }}
 {%- else %}
@@ -19,6 +21,10 @@ namespace {{ namespace.short_name }} {
 {% endmacro -%}
 
 {%- macro do_render_struct(struct) %}
+struct {{ struct.name.short_name }};
+{% endmacro -%}
+
+{%- macro do_render_oneof(struct) %}
 struct {{ struct.name.short_name }};
 {% endmacro -%}
 

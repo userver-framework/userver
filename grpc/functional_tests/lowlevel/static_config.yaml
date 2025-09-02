@@ -15,6 +15,8 @@ components_manager:
             # The TaskProcessor for blocking connection initiation
             blocking-task-processor: grpc-blocking-task-processor
 
+        # /// [retry configuration]
+        # yaml
         # Creates gRPC clients
         grpc-client-factory:
             disable-all-pipeline-middlewares: true
@@ -27,6 +29,7 @@ components_manager:
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
             channel-args: {}
 
+            # Transparent retries configuration
             default-service-config: >
                 {
                     "methodConfig": [{
@@ -46,6 +49,7 @@ components_manager:
                         }
                    }]
                 }
+        # /// [retry configuration]
 
         grpc-client-middlewares-pipeline: {}
 

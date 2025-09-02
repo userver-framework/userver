@@ -179,6 +179,7 @@ class Boolean(Schema):
     type: str = 'boolean'
     default: Optional[bool] = None
     nullable: bool = False
+    deprecated: bool = False
 
     __hash__ = Schema.__hash__
 
@@ -217,6 +218,7 @@ class Integer(Schema):
     # TODO: multipleOf
     enum: Optional[list[int]] = None
     format: Optional[IntegerFormat] = None
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -242,6 +244,7 @@ class Number(Schema):
     exclusiveMinimum: Optional[Union[float, int]] = None
     exclusiveMaximum: Optional[Union[float, int]] = None
     format: Optional[str] = None
+    deprecated: bool = False
     # TODO: multipleOf
 
     __hash__ = Schema.__hash__
@@ -288,6 +291,7 @@ class String(Schema):
     format: Optional[StringFormat] = None
     minLength: Optional[int] = None
     maxLength: Optional[int] = None
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -311,6 +315,7 @@ class Array(Schema):
     nullable: bool = False
     minItems: Optional[int] = None
     maxItems: Optional[int] = None
+    deprecated: bool = False
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
         cb(self.items, self)
@@ -327,6 +332,7 @@ class SchemaObjectRaw:
     properties: Optional[dict] = None
     required: Optional[list[str]] = None
     nullable: bool = False
+    deprecated: bool = False
 
 
 @smart_fields
@@ -378,6 +384,7 @@ class AllOf(Schema):
 class AllOfRaw:
     allOf: list  # type:ignore
     nullable: bool = False
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         if not self.allOf:
@@ -471,6 +478,7 @@ class OneOfRaw:
     oneOf: list  # type:ignore
     discriminator: Optional[dict] = None
     nullable: bool = False
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         if not self.oneOf:

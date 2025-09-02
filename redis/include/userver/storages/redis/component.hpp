@@ -100,6 +100,7 @@ namespace components {
 ///     "some_name_of_your_database": {
 ///       "password": "the_password_of_your_database",
 ///       "sentinel_password": "the_password_for_sentinels_if_any",
+///       "secure_connection": false,
 ///       "sentinels": [
 ///         {"host": "the_host1_of_your_database", "port": 11564}
 ///       ],

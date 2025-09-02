@@ -26,6 +26,8 @@ components_manager:
         grpc-client-headers-propagator:
             skip-headers:
                 skipped-header: true
+        # /// [grpc client factory]
+        # yaml
         grpc-client-factory:
             middlewares:
                 grpc-client-deadline-propagation:
@@ -33,6 +35,7 @@ components_manager:
             retry-config:
                 attempts: 2
             channel-args: {}
+        # /// [grpc client factory]
 
         greeter-client:
             endpoint: $greeter-client-endpoint

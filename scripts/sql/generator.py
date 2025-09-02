@@ -35,10 +35,16 @@ def parse_args():
         help='C++ namespace to use',
     )
     parser.add_argument(
+        '--source-dir',
+        type=str,
+        required=True,
+        help='path to the directory with .sql files',
+    )
+    parser.add_argument(
         '--output-dir',
         type=str,
         required=True,
-        help='full path to output .hpp file',
+        help='path to the directory with .hpp-.cpp files to generate',
     )
     parser.add_argument(
         '--query-log-mode',
@@ -53,7 +59,7 @@ def parse_args():
         required=True,
         help='full path to generated tests',
     )
-    parser.add_argument('files', nargs='*', help='input .sql files to process')
+    parser.add_argument('files', nargs='*', help='input .sql files to process (relative to the cwd, not source-dir)')
     return parser.parse_args()
 
 
@@ -97,7 +103,7 @@ def read_items(args) -> List[SqlQuery]:
         name = pathlib.Path(filename).stem  # TODO: CamelCase
         items.append(
             SqlQuery(
-                source=filename,
+                source=os.path.relpath(filename, args.source_dir),
                 contents=content,
                 name=name,
                 variable=('k' + camel_case(name)),

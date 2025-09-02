@@ -18,7 +18,7 @@ from proto_structs.models import names
 from proto_structs.models import type_ref
 
 
-class CodegenNode(names.HasCppNameImpl, includes.HasCppIncludes, abc.ABC):
+class CodegenNode(names.HasCppNameImpl, includes.HasCppIncludes, type_ref.HasTypeDependencies, abc.ABC):
     """A C++ entity definition that should be generated. Introduces the concept of child nodes."""
 
     @property
@@ -50,6 +50,11 @@ class CodegenNode(names.HasCppNameImpl, includes.HasCppIncludes, abc.ABC):
         Empty by default, intended to be overridden.
         """
         return ()
+
+    @override
+    def type_dependencies(self) -> Iterable[type_ref.TypeDependency]:
+        for child in self.children:
+            yield from child.type_dependencies()
 
 
 class File(includes.HasCppIncludes):
@@ -172,19 +177,26 @@ class StructNode(TypeNode):
             name=self.vanilla_name, include=str(includes.proto_path_to_vanilla_pb_h(self.proto_file))
         )
 
+    @override
+    def type_dependencies(self) -> Iterable[type_ref.TypeDependency]:
+        for field in self.fields:
+            yield from field.field_type.type_dependencies()
+        for nested in self.nested_types:
+            yield from nested.type_dependencies()
 
-@dataclasses.dataclass(frozen=True)
+
+@dataclasses.dataclass
 class StructField:
     """A field of a C++ proto struct."""
 
     #: Name of the field.
-    short_name: str
+    short_name: Final[str]
     #: Type of the field.
     field_type: type_ref.TypeReference
     #: Low-level numeric ID of the field for serialization. Absent for oneof fields.
-    number: Optional[int]
+    number: Final[Optional[int]]
     #: If this struct field maps to oneof, lists the fields of the oneof type.
-    oneof_fields: Optional[Sequence[StructField]]
+    oneof_fields: Final[Optional[Sequence[StructField]]]
 
 
 class EnumNode(TypeNode):
@@ -262,3 +274,9 @@ class OneofNode(TypeNode):
         yield from self.base_class_template.collect_includes()
         for field in self.fields:
             yield from field.field_type.collect_includes()
+
+    @override
+    def type_dependencies(self) -> Iterable[type_ref.TypeDependency]:
+        yield from super().type_dependencies()
+        for field in self.fields:
+            yield from field.field_type.type_dependencies()

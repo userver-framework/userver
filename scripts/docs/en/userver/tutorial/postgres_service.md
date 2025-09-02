@@ -55,9 +55,9 @@ KeyValue component only uses the thread safe DB client. In more complex cases
 We can generate the necessary `storages::Query` objects from external SQL/YQL files.
 
 In our case, we have the following files:
-* @ref samples/postgres_service/select_value.sql
-* @ref samples/postgres_service/insert_value.sql
-* @ref samples/postgres_service/delete_value.sql
+* @ref samples/postgres_service/queries/read/select_value.sql
+* @ref samples/postgres_service/queries/write/insert_value.sql
+* @ref samples/postgres_service/queries/write/delete_value.sql
 
 From which we will get:
 @code{.hpp}
@@ -116,7 +116,7 @@ Note the `dynamic-config.defaults` usage. In
 @ref scripts/docs/en/userver/tutorial/production_service.md "production ready service"
 those values are usually retrieved from remote server, so that they could be
 changed at runtime without any need to restart the service. See
-@ref scripts/docs/en/schemas/dynamic_configs.md for more info.
+@ref scripts/docs/en/dynamic_configs/dynamic_configs.md for more info.
 
 
 ### int main()
@@ -225,6 +225,6 @@ See the full example:
 @example samples/postgres_service/CMakeLists.txt
 @example samples/postgres_service/tests/conftest.py
 @example samples/postgres_service/tests/test_postgres.py
-@example samples/postgres_service/select_value.sql
-@example samples/postgres_service/insert_value.sql
-@example samples/postgres_service/delete_value.sql
+@example samples/postgres_service/queries/read/select_value.sql
+@example samples/postgres_service/queries/write/insert_value.sql
+@example samples/postgres_service/queries/write/delete_value.sql

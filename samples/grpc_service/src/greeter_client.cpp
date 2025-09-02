@@ -12,6 +12,17 @@
 
 namespace samples {
 
+const dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos{
+    "GREETER_CLIENT_QOS",
+    dynamic_config::DefaultAsJsonString{R"({
+      "methods": {
+        "__default__": {
+          "timeout-ms": 10000
+        }
+      }
+    })"},
+};
+
 // A user-defined wrapper around api::GreeterServiceClient that provides
 // a simplified interface.
 GreeterClient::GreeterClient(api::GreeterServiceClient&& raw_client) : raw_client_(std::move(raw_client)) {}

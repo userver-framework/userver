@@ -181,6 +181,18 @@ RequestEvalShaCommon ClientImpl::EvalShaCommon(
     ));
 }
 
+RequestGenericCommon ClientImpl::GenericCommon(
+    std::string command,
+    std::vector<std::string> args,
+    size_t key_index,
+    const CommandControl& command_control
+) {
+    size_t shard = ShardByKey(args.at(key_index), command_control);
+    return CreateRequest<RequestGenericCommon>(
+        MakeRequest(CmdArgs{command, std::move(args)}, shard, true, GetCommandControl(command_control))
+    );
+}
+
 RequestScriptLoad ClientImpl::ScriptLoad(std::string script, size_t shard, const CommandControl& command_control) {
     return CreateRequest<RequestScriptLoad>(
         MakeRequest(CmdArgs{"script", "load", std::move(script)}, shard, true, GetCommandControl(command_control))

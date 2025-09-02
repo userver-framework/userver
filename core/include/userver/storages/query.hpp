@@ -51,7 +51,7 @@ public:
 
     enum class LogMode : unsigned char {
         kFull,      ///< Output name and optionally statement
-        kNameOnly,  ///< Ouput only name
+        kNameOnly,  ///< Output only name
     };
 
     Query() = default;

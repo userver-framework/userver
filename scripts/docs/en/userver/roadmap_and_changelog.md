@@ -35,6 +35,86 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.12
+
+* Added infrastructure to detect IO-bound operations in transactions. See `enable_trx_tracker` static config option into
+  @ref components::ManagerControllerComponent and @ref userver/utils/trx_tracker.hpp. The detection is turned on by
+  default and is used in HTTP clients and gRPC for PostgreSQL transactions.
+* Added support for separate logs and traces endpoints into OpenTelemetry. See `logs-endpoint` and `tracing-endpoint`
+  static config options of the @ref otlp::LoggerComponent.
+* Implemented non blocking receive for engine::io::TlsWrapper. Many thanks to
+  [Denis Razinkin](https://github.com/DenisRazinkin) for the PR!
+* Added @ref server::websocket::WebSocketConnection now has `SendPing()` and `NotAnsweredSequentialPingsCount()`
+  functions for initiating pings on server side.
+* Created [userver mirror repo at SourceCraft](https://sourcecraft.dev/userver/repos).
+
+* Kafka now supports SSL authentication. Many thanks to [Timur Yalymov](https://github.com/tyalymov) for the PR!
+* Fixed UB in WebSockets. Many thanks to [Denis Razinkin](https://github.com/DenisRazinkin) for the PR!
+* Chaotic now handles `x-usrv-cpp-container: std::unordered_set` with `format: uuid`;
+  `x-usrv-cpp-type: userver::utils::StrongTypedef<my::CustomString, std::string>`; `std::intXX_t`
+* Crypto part of the `userver::universal` now supports work with multiple `std::string_views`. Thanks to
+  [Dmitry Sorokin](https://github.com/sorydima) for vibe-coding the initial version of PR.
+* Google Benchmark ASLR-disabling feature enabled if supported. Many thanks to
+  [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+* Simplified third-party types usage in chaotic. `userver_target_generate_chaotic` CMake function now has
+  a `LINK_TARGETS` parameter to provide targets with paths to chaotic serializers. For example with
+  `LINK_TARGETS userver::postgresql` chaotic would find the
+  userver/postgresql/include/userver/chaotic/io/userver/storages/postgres/time_point_tz.hpp header with
+  @ref storages::postgres::TimePointTz converters.
+
+* gRPC and Protobuf
+  * Implemented retries. See @ref scripts/docs/en/userver/grpc/grpc_retries.md for more info.
+  * @ref ugrpc::client::ClientFactoryComponent now can be customized via `ssl-credentials-options`. Many thanks to
+    [aklyuchev86](https://github.com/aklyuchev86) for the PR!
+  * @ref decimal64::Decimal::FromStringPermissive() now understands format with exponent, which makes it compatible
+    with Protobuf well-known Decimal types.
+
+* Database drivers
+  * Implemented @ref storages::redis::Client::GenericCommand() for execution of custom commands.
+  * Redis now supports `sentinel_password` @ref storages::secdist::Secdist option for authorization on sentinels with
+    password along with `password` authorization on shards. Many thanks to [Tikhon Sergienko](https://github.com/tysion)
+    for the PR!
+  * Implemented @ref storages::mongo::Collection::Distinct() command.
+  * Implemented @ref storages::clickhouse::ParameterStore. Many thanks to [Alexey Medvedev](https://github.com/Reavolt)
+    for the PR!
+  * `update-period` for @ref components::Secdist is now set to `10s`. As a result all the databases now automatically
+    recreate connections on connection data change in SecDist.
+  * Implemented parsing of C++ `enum` into PostgreSQL text for `enums` with `Parse()` and `ToString()` functions. See
+    @ref scripts/docs/en/userver/pg_user_types.md for more info.
+
+* Optimizations
+  * @ref concurrent::BackgroundTaskStorage was optimized with striped counters. Detaching a task now takes ~6% of
+    the whole CPU usage of the detaching benchmark (before the optimizations it was ~46%).
+  * @ref storages::Query now avoids dynamic initialization when constructed from @ref storages::Query::NameLiteral.
+    As a result variables generated with CMake `userver_add_sql_library` function are now not affected by initialization
+    order fiasco issues and can be safely used in any static or global variable. Dynamic memory allocations are
+    now avoided for the above cases.
+  * @ref utils::zstring_view now used for Kafka topic names avoiding temporary string constructions.
+
+* Build
+  * The oldest supported Python is now Python 3.9.
+  * Protobuf 6.x.y is now supported. Thanks to [halfdarkangel](https://github.com/halfdarkangel) for the PR!
+  * Supported by-component installation in CPack. See `USERVER_INSTALL_MULTIPACKAGE` CMake option for a way to enable
+    the feature.
+  * Optimized compilation time for the @ref userver/utils/periodic_task.hpp header by removing inclusion of 7
+    heavy headers.
+  * Improved build times by disabling modules scan. Many thanks to [Konstantin Goncharik](https://github.com/botanegg)
+    for the PR!
+  * Builds are now tested on Fedora.
+  * Bumped Kafka version to 4.0 in CI checks. Many thanks to [MichaelKab](https://github.com/MichaelKab) for PR!
+
+* Documentation and Diagnostics:
+  * Version change widget was rewritten to avoid versions hard-code. Many thanks to
+    [Lone-Marshal](https://github.com/Lone-Marshal) for the PR!
+  * Added docs on @ref scripts/docs/en/userver/distro_maintainers.md roles.
+  * Added more information on metadata usage into @ref scripts/docs/en/userver/grpc/grpc.md
+  * `USERVER_GTEST_ENABLE_STACK_USAGE_MONITOR` environment variable name was changed
+    to `USERVER_ENABLE_STACK_USAGE_MONITOR`. `USERVER_ENABLE_STACK_USAGE_MONITOR` is now usable not only in unit-tests,
+    but in all the userver based applications and services.
+  * Redis driver now does much more logging on cluster topology change to ease the cluster issues debugging.
+  * Dynamic config pages with description are now generated from schemes.
+
+
 ### Release v2.11
 
 * Added support for TLS in RedisCluster mode. Many thanks to [Danilkormilin](https://github.com/Danilkormilin) for the PR!
@@ -63,7 +143,7 @@ Changelog news also go to the
   [Konstantin Goncharik](https://github.com/botanegg) for the PR!
 * Allow dynamic selection of response streaming. Many thanks to [Sergei Fedorov](https://github.com/zmij)
   for the PR!
-* Added support for @ref mongo::options::Hint for @ref storages::mongo::operations::Delete,
+* Added support for @ref storages::mongo::options::Hint for @ref storages::mongo::operations::Delete,
   @ref storages::mongo::bulk_ops::Update and @ref  storages::mongo::bulk_ops::Delete.
 * @ref storages::Query now used in ClickHouse, MySQL and SQLite drivers, making it possible to directly use result of
   generation @ref scripts/docs/en/userver/sql_files.md "external SQL/YQL files". storages::Query::Statement() and

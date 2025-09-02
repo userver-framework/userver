@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-from packaging.version import Version
 import requests
 
 url = 'https://api.github.com/repos/userver-framework/docs/contents/'
@@ -12,7 +11,7 @@ data = response.json()
 
 versions = [item['name'] for item in data if item['type'] == 'dir' and item['name'].lower().startswith('v')]
 
-versions.sort(key=lambda v: Version(v.lstrip('vV')))
+versions.sort(key=lambda v: [int(x) for x in v.lstrip('vV').split('.')])
 
 versions_js_path = Path('scripts/docs/scripts/versions.js')
 versions_js_path.parent.mkdir(parents=True, exist_ok=True)

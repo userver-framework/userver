@@ -4,6 +4,7 @@
 
 #include <userver/tracing/span.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <userver/storages/mysql/cluster_host_type.hpp>
 #include <userver/storages/mysql/command_result_set.hpp>
@@ -103,6 +104,7 @@ private:
     utils::FastPimpl<infra::ConnectionPtr, 24, 8> connection_;
     engine::Deadline deadline_;
     tracing::Span span_;
+    utils::trx_tracker::TransactionLock trx_lock_;
 };
 
 template <typename... Args>

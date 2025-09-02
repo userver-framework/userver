@@ -19,23 +19,30 @@ import google.protobuf.descriptor as descriptor
 from proto_structs.descriptors import type_mapping
 from proto_structs.models import gen_node
 from proto_structs.models import names
+from proto_structs.models import options
+from proto_structs.models import sort_dependencies
 from proto_structs.models import type_ref
 
 TypeDescriptor = Union[descriptor.Descriptor, descriptor.EnumDescriptor]
 
 
 def parse_file(file: descriptor.FileDescriptor) -> gen_node.File:
-    namespace_members: List[gen_node.CodegenNode] = []
+    fields_options: options.PluginOptions = options.load_fields_options()
+
+    types: List[gen_node.TypeNode] = []
     for enum in typing.cast(Dict[str, descriptor.EnumDescriptor], file.enum_types_by_name).values():
-        namespace_members.append(parse_enum(enum))
+        types.append(parse_enum(enum))
     for message in typing.cast(Dict[str, descriptor.Descriptor], file.message_types_by_name).values():
-        if message_type := parse_message(message):
-            namespace_members.append(message_type)
-    # TODO perform a topological sort of namespace_members
+        if message_type := parse_message(message, fields_options):
+            types.append(message_type)
+
+    namespace_members: List[gen_node.TypeNode] = sort_dependencies.sort_types(types)
+
     structs_namespace = gen_node.NamespaceNode.make_for_structs(
         typing.cast(str, file.package),
         children=namespace_members,
     )
+
     return gen_node.File(
         proto_relative_path=pathlib.Path(typing.cast(str, file.name)),
         children=(structs_namespace,),
@@ -73,7 +80,7 @@ def _cut_enum_value_name(value_name: str, *, enum_name: str) -> str:
     return value_name
 
 
-def parse_message(message: descriptor.Descriptor) -> Optional[gen_node.TypeNode]:
+def parse_message(message: descriptor.Descriptor, plugin_options: options.PluginOptions) -> Optional[gen_node.TypeNode]:
     if _is_map_entry(message):
         return None
 
@@ -87,8 +94,10 @@ def parse_message(message: descriptor.Descriptor) -> Optional[gen_node.TypeNode]
     for nested_enum in typing.cast(List[descriptor.EnumDescriptor], message.enum_types):
         nested_types.append(parse_enum(nested_enum))
     for nested_message in typing.cast(List[descriptor.Descriptor], message.nested_types):
-        if message_type := parse_message(nested_message):
+        if message_type := parse_message(nested_message, plugin_options):
             nested_types.append(message_type)
+
+    nested_types = sort_dependencies.sort_types(nested_types)
 
     fields: List[gen_node.StructField] = []
 
@@ -99,10 +108,17 @@ def parse_message(message: descriptor.Descriptor) -> Optional[gen_node.TypeNode]
                 assert len(oneof_fields) >= 1
                 if oneof_fields[0] is field:
                     fields.append(
-                        parse_oneof(oneof, taken_member_names=taken_member_names, nested_types_to_generate=nested_types)
+                        parse_oneof(
+                            oneof,
+                            taken_member_names=taken_member_names,
+                            nested_types_to_generate=nested_types,
+                            plugin_options=plugin_options,
+                        )
                     )
                 continue
-        fields.append(parse_field(field))
+        fields.append(parse_field(field, plugin_options=plugin_options))
+
+    nested_types = sort_dependencies.sort_types(nested_types)
 
     result = gen_node.StructNode(
         vanilla_name=vanilla_type_name,
@@ -112,10 +128,29 @@ def parse_message(message: descriptor.Descriptor) -> Optional[gen_node.TypeNode]
     )
     if result_enum := _try_transform_enum_wrapper(result):
         return result_enum
+
     return result
 
 
 _SYNTHETIC_ONEOF_NAME_REGEX = re.compile(r'X*_\w*')
+
+
+def _apply_options_to_field(
+    field: descriptor.FieldDescriptor, plugin_options: options.PluginOptions, struct_field: gen_node.StructField
+) -> gen_node.StructField:
+    full_name: Any = field.full_name
+    if options := plugin_options.field_options.get(str(full_name)):
+        if options.should_box:
+            template_args = (struct_field.field_type,)
+            if isinstance(struct_field.field_type, type_ref.TemplateType):
+                if struct_field.field_type.template.full_cpp_name() == 'std::optional':
+                    template_args = struct_field.field_type.template_args
+            struct_field.field_type = type_ref.TemplateType(
+                template=type_ref.BOX_TEMPLATE,
+                template_args=template_args,
+                works_with_forward_references=True,
+            )
+    return struct_field
 
 
 def _is_synthetic_oneof(oneof: descriptor.OneofDescriptor) -> bool:
@@ -156,6 +191,7 @@ def _is_map_entry(message: descriptor.Descriptor) -> bool:
 def parse_field(
     field: descriptor.FieldDescriptor,
     *,
+    plugin_options: options.PluginOptions,
     ignore_label: bool = False,
 ) -> gen_node.StructField:
     if map_field_type := _try_parse_map_field_type(field):
@@ -165,12 +201,13 @@ def parse_field(
         if not ignore_label:
             parsed_type = type_mapping.handle_type_label(field, parsed_type)
 
-    return gen_node.StructField(
+    result_field = gen_node.StructField(
         short_name=names.escape_id(typing.cast(str, field.name)),
         field_type=parsed_type,
         number=typing.cast(int, field.number),
         oneof_fields=None,
     )
+    return _apply_options_to_field(field, plugin_options, result_field)
 
 
 _HASH_MAP_TEMPLATE = type_ref.UserverLibraryType(
@@ -197,12 +234,13 @@ def parse_oneof(
     oneof: descriptor.OneofDescriptor,
     taken_member_names: MutableSet[str],
     nested_types_to_generate: List[gen_node.TypeNode],
+    plugin_options: options.PluginOptions,
 ) -> gen_node.StructField:
     fields: List[gen_node.StructField] = []
 
     for field in typing.cast(List[descriptor.FieldDescriptor], oneof.fields):
         assert typing.cast(int, field.label) == descriptor.FieldDescriptor.LABEL_OPTIONAL
-        fields.append(parse_field(field, ignore_label=True))
+        fields.append(parse_field(field, plugin_options=plugin_options, ignore_label=True))
 
     containing_type_descriptor = typing.cast(descriptor.Descriptor, oneof.containing_type)
     containing_type_name = names.make_structs_type_name(type_mapping.parse_type_name(containing_type_descriptor))

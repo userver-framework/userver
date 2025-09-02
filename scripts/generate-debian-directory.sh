@@ -3,14 +3,11 @@
 # Exit on any error and treat unset variables as errors, print all commands
 set -euox pipefail
 
-# DISTRO=ubuntu-24.04
-DISTRO=ubuntu-22.04
-
+DISTRO=${DISTRO:-ubuntu-24.04}
 ALL_MODULES=$(ls scripts/docs/en/deps/$DISTRO)
 ALL_PACKAGES=$(echo $ALL_MODULES | xargs -n1 | sed 's/.*/libuserver-\0-dev/')
-
-# TODO: select distro version
 BUILD_DEPENDENCIES=$(cat scripts/docs/en/deps/$DISTRO.md | sed 's/$/,/' | xargs | sed 's/,$//')
+
 
 # Cleanup
 rm -rf debian/
@@ -44,11 +41,22 @@ Vcs-Browser: https://github.com/userver-framework/userver
 Package: libuserver-all-dev
 Architecture: any
 Depends: $(echo $ALL_PACKAGES | sed 's/ /, /g' | xargs), libuserver-examples
-Description: .
+Description:
+ userver is the modern open source asynchronous framework with a rich set
+ of abstractions for fast and comfortable creation of C++ microservices,
+ services and utilities.
+ .
+ This metapackage provides the complete userver development environment,
+ including all modules, libraries and examples.
 
 Package: libuserver-examples
 Architecture: any
-Description: .
+Description:
+ userver is the modern open source asynchronous framework with a rich set
+ of abstractions for fast and comfortable creation of C++ microservices,
+ services and utilities.
+ .
+ This package contains userver example services.
 
 EOF
 
@@ -59,7 +67,12 @@ for MODULE in $ALL_MODULES; do
 Package: libuserver-$MODULE-dev
 Architecture: any
 Depends: \${cpack:Depends}, \${misc:Depends}
-Description: Modern C++ asynchronous framework ($MODULE)
+Description:
+ userver is the modern open source asynchronous framework with a rich set
+ of abstractions for fast and comfortable creation of C++ microservices,
+ services and utilities.
+ .
+ This package provides $MODULE module/library support.
 
 EOF
 done

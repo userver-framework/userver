@@ -59,6 +59,7 @@ _GLOBAL_PREFIXES: Sequence[str] = (
 
 def _get_contextual_cpp_name(entity: HasCppName, *, context: HasCppName) -> str:
     node_names = entity.full_cpp_name_segments()
+
     assert node_names, f'Cannot render a reference to an instance of {entity.__class__} by an empty name'
     assert all(node_names), f'Empty name segments are not allowed for {entity=}'
 

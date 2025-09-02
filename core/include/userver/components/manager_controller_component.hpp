@@ -49,6 +49,7 @@ class Manager;
 /// preheat_stacktrace_collector | whether to collect a dummy stacktrace at server start up (usable to avoid loading debug info at random point at runtime) | true
 /// userver_experiments.*NAME* | whether to enable certain userver experiments; these are gradually enabled by userver team, for internal use only | false
 /// graceful_shutdown_interval | at shutdown, first hang for this duration with /ping 5xx to give the balancer a chance to redirect new requests to other hosts | 0s
+/// enable_trx_tracker | Enable checking of heavy operations (like http calls) while having active database transactions. | true
 ///
 /// ## Static task_processor options:
 /// Name | Description | Default value

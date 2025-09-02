@@ -41,13 +41,17 @@ _VECTOR_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::vector', include=_BU
 
 
 def parse_enum_reference(field_type: descriptor.EnumDescriptor) -> type_ref.TypeReference:
-    # TODO
-    return type_ref.BuiltinType(full_cpp_name='std::monostate', include=_BUNDLE_HPP)
+    return type_ref.UserverCodegenType(
+        name=names.make_structs_type_name(vanilla_type_name=parse_type_name(field_type)),
+        include=parse_include(field_type),
+    )
 
 
 def parse_struct_reference(field_type: descriptor.Descriptor) -> type_ref.TypeReference:
-    # TODO
-    return type_ref.BuiltinType(full_cpp_name='std::monostate', include=_BUNDLE_HPP)
+    return type_ref.UserverCodegenType(
+        name=names.make_structs_type_name(vanilla_type_name=parse_type_name(field_type)),
+        include=parse_include(field_type),
+    )
 
 
 def handle_type_label(
@@ -63,7 +67,9 @@ def handle_type_label(
     if label == descriptor.FieldDescriptor.LABEL_REQUIRED:
         return parsed_type
     if label == descriptor.FieldDescriptor.LABEL_REPEATED:
-        return type_ref.TemplateType(template=_VECTOR_TEMPLATE, template_args=(parsed_type,))
+        return type_ref.TemplateType(
+            template=_VECTOR_TEMPLATE, template_args=(parsed_type,), works_with_forward_references=True
+        )
     raise RuntimeError(f'Unknown type label {label}')
 
 
