@@ -117,18 +117,18 @@ public:
 };
 
 /// @brief Exception thrown when Seek* process failed.
-/// @ref ConsumeScope::Seek
-/// @ref ConsumeScope::SeekToBeginning
-/// @ref ConsumeScope::SeekToEnd
+/// @ref ConsumerScope::Seek
+/// @ref ConsumerScope::SeekToBeginning
+/// @ref ConsumerScope::SeekToEnd
 class SeekException final : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
 };
 
 /// @brief Exception thrown when Seek* arguments are invalid.
-/// @ref ConsumeScope::Seek
-/// @ref ConsumeScope::SeekToBeginning
-/// @ref ConsumeScope::SeekToEnd
+/// @ref ConsumerScope::Seek
+/// @ref ConsumerScope::SeekToBeginning
+/// @ref ConsumerScope::SeekToEnd
 class SeekInvalidArgumentException final : public std::invalid_argument {
 public:
     using std::invalid_argument::invalid_argument;

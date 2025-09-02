@@ -4,6 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
+/// [retryable]
 bool IsRetryable(grpc::StatusCode status_code) noexcept {
     switch (status_code) {
         case grpc::StatusCode::CANCELLED:
@@ -18,6 +19,7 @@ bool IsRetryable(grpc::StatusCode status_code) noexcept {
             return false;
     }
 }
+/// [retryable]
 
 }  // namespace ugrpc::client::impl
 

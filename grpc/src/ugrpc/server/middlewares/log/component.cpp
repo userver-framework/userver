@@ -1,12 +1,14 @@
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 
 #include <userver/components/component_config.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/middlewares/groups.hpp>
 #include <userver/ugrpc/server/middlewares/access_log/component.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,6 +20,8 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
     settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
     settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
     settings.local_log_level = config["local-log-level"].As<logging::Level>(settings.local_log_level);
+    settings.status_codes_log_level =
+        config["status-codes-log-level"].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({});
     return settings;
 }
 
@@ -57,6 +61,21 @@ properties:
     local-log-level:
         type: string
         description: local log level of the span for user-provided handler
+    status-codes-log-level:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: string
+            description: log level
+        description: |
+            gRPC status code string -> log level map.
+            Allows overriding the log level for the response for individual statuses.
+            See grpcpp StatusCode documentation for the list of possible values:
+            https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
+
+            Example:
+              -  FAILED_PRECONDITION: info
+
 )");
 }
 

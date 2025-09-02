@@ -26,7 +26,9 @@ class Logger;
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// endpoint | URI of otel collector (e.g. 127.0.0.1:4317) | -
+/// endpoint | URI of otel collector (e.g. 127.0.0.1:4317). This endpoint is used both for logs and traces. If you want separate endpoints, then use below options. | -
+/// logs-endpoint | URI of otel collector (gRPC). This endpoint is used only for logs. | -
+/// tracing-endpoint | URI of otel collector (gRPC). This endpoint is used only for traces. | -
 /// client-factory-name | Name of the grpc client factory | -
 /// max-queue-size | Maximum async queue size | 65535
 /// max-batch-delay | Maximum batch delay | 100ms
@@ -44,6 +46,8 @@ class Logger;
 // clang-format on
 class LoggerComponent final : public components::RawComponentBase {
 public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of otlp::LoggerComponent
     static constexpr std::string_view kName = "otlp-logger";
 
     LoggerComponent(const components::ComponentConfig&, const components::ComponentContext&);

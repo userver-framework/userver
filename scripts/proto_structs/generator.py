@@ -8,6 +8,7 @@ import sys
 import typing
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
 
 from google.protobuf import descriptor
@@ -36,19 +37,22 @@ class _CodeGenerator:
         self.response = response  # pyright: ignore
 
     def run(self) -> None:
-        file_node = node_parsers.parse_file(self.file_descriptor)
-        data = self._make_jinja_data(file_node)
+        try:
+            file_node = node_parsers.parse_file(self.file_descriptor)
+            data = self._make_jinja_data(file_node)
 
-        for file_ext in ['cpp', 'hpp']:
-            template_name = f'structs.usrv.{file_ext}.jinja'
-            template = self.jinja_env.get_template(template_name)
+            for file_ext in ['cpp', 'hpp']:
+                template_name = f'structs.usrv.{file_ext}.jinja'
+                template = self.jinja_env.get_template(template_name)
 
-            file_name = str(file_node.gen_path(ext=file_ext))
-            file_content = template.render(**data)
+                file_name = str(file_node.gen_path(ext=file_ext))
+                file_content = template.render(**data)
 
-            file = self.response.file.add()  # pyright: ignore
-            file.name = file_name  # pyright: ignore
-            file.content = file_content  # pyright: ignore
+                file = self.response.file.add()  # pyright: ignore
+                file.name = file_name  # pyright: ignore
+                file.content = file_content  # pyright: ignore
+        except Exception as exc:
+            raise Exception(f'File: {self.file_descriptor.name}.\n{exc}')
 
     def _make_jinja_data(self, file_node: gen_node.File) -> Dict[str, Any]:
         includes_list = includes.sorted_includes(file_node, current_hpp=str(file_node.gen_path(ext='hpp')))
@@ -85,9 +89,12 @@ def generate(loader: jinja2.BaseLoader) -> None:
 
     pool = descriptor_pool.DescriptorPool()
 
+    files: List[str] = []
     # pylint: disable=no-member
     for proto_file in request.proto_file:  # pyright: ignore
         pool.Add(proto_file)  # pyright: ignore
+        name: str = typing.cast(str, proto_file.name)
+        files.append(name)
 
     # pylint: disable=no-member
     for file_to_generate in request.file_to_generate:  # pyright: ignore

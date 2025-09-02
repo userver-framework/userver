@@ -77,5 +77,5 @@ How to implement your own middleware with a static config: @ref scripts/docs/en/
 
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/grpc/grpc.md | @ref scripts/docs/en/userver/grpc/server_middleware_implementation.md ⇨
+⇦ @ref scripts/docs/en/userver/grpc/timeouts_retries.md | @ref scripts/docs/en/userver/grpc/server_middleware_implementation.md ⇨
 @htmlonly </div> @endhtmlonly

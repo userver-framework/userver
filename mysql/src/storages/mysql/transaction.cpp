@@ -12,6 +12,7 @@ namespace storages::mysql {
 Transaction::Transaction(infra::ConnectionPtr&& connection, engine::Deadline deadline)
     : connection_{std::move(connection)}, deadline_{deadline}, span_{impl::tracing::kTransactionSpan} {
     (*connection_)->ExecuteQuery("BEGIN", deadline);
+    trx_lock_.Lock();
 }
 
 Transaction::Transaction(Transaction&& other) noexcept = default;
@@ -32,6 +33,7 @@ void Transaction::Commit() {
         auto connection = std::move(connection_);
         (*connection)->Commit(deadline_);
     }
+    trx_lock_.Unlock();
 }
 
 void Transaction::Rollback() {
@@ -40,6 +42,7 @@ void Transaction::Rollback() {
         auto connection = std::move(connection_);
         (*connection)->Rollback(deadline_);
     }
+    trx_lock_.Unlock();
 }
 
 StatementResultSet Transaction::DoExecute(const Query& query, impl::io::ParamsBinderBase& params) const {

@@ -49,6 +49,8 @@ private:
 using Client = GreeterClient;
 
 /// [component]
+extern const dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos;
+
 class GreeterClientComponent final : public ugrpc::client::SimpleClientComponent<Client> {
 public:
     static constexpr std::string_view kName = "greeter-client";
@@ -56,7 +58,7 @@ public:
     using Base = ugrpc::client::SimpleClientComponent<Client>;
 
     GreeterClientComponent(const ::components::ComponentConfig& config, const ::components::ComponentContext& context)
-        : Base(config, context) {}
+        : Base(config, context, kGreeterClientQos) {}
 
     using Base::GetClient;
 };

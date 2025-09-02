@@ -87,6 +87,12 @@ public:
         std::vector<std::string> args,
         const CommandControl& command_control
     ) override;
+    RequestGenericCommon GenericCommon(
+        std::string command,
+        std::vector<std::string> args,
+        size_t key_index,
+        const CommandControl& command_control
+    ) override;
 
     RequestScriptLoad ScriptLoad(std::string script, size_t shard, const CommandControl& command_control) override;
 

@@ -255,6 +255,6 @@ This configuration disables:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/schemas/dynamic_configs.md | @ref scripts/docs/en/userver/requests_in_flight.md ⇨
+⇦ @ref scripts/docs/en/dynamic_configs/dynamic_configs.md | @ref scripts/docs/en/userver/requests_in_flight.md ⇨
 @htmlonly </div> @endhtmlonly
 

@@ -20,7 +20,7 @@ _userver_prepare_sql()
 
 function(userver_add_sql_library TARGET)
     set(OPTIONS)
-    set(ONE_VALUE_ARGS OUTPUT_DIR NAMESPACE QUERY_LOG_MODE)
+    set(ONE_VALUE_ARGS SOURCE_DIR OUTPUT_DIR NAMESPACE QUERY_LOG_MODE)
     set(MULTI_VALUE_ARGS SQL_FILES)
     cmake_parse_arguments(ARG "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
     if(NOT ARG_NAMESPACE)
@@ -30,12 +30,19 @@ function(userver_add_sql_library TARGET)
         set(ARG_QUERY_LOG_MODE "full")
     endif()
     set(FILENAME "sql_queries")
+    if(NOT ARG_SOURCE_DIR)
+        set(ARG_SOURCE_DIR ".")
+    endif()
+    if(NOT IS_ABSOLUTE "${ARG_SOURCE_DIR}")
+        set(ARG_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${ARG_SOURCE_DIR}")
+    endif()
 
     set(SQL_FILES)
     foreach(WILDCARD ${ARG_SQL_FILES})
-        file(GLOB FILES ${WILDCARD})
+        file(GLOB_RECURSE FILES RELATIVE ${ARG_SOURCE_DIR} "${ARG_SOURCE_DIR}/${WILDCARD}")
         list(APPEND SQL_FILES ${FILES})
     endforeach()
+    list(TRANSFORM SQL_FILES PREPEND "${ARG_SOURCE_DIR}/")
 
     get_property(USERVER_SQL_PYTHON_BINARY GLOBAL PROPERTY userver_sql_python_binary)
     get_property(USERVER_SQL_SCRIPTS_PATH GLOBAL PROPERTY userver_scripts_sql)
@@ -50,7 +57,8 @@ function(userver_add_sql_library TARGET)
         OUTPUT ${output_files}
         COMMAND
             ${USERVER_SQL_PYTHON_BINARY} ${USERVER_SQL_SCRIPTS_PATH}/generator.py --namespace ${ARG_NAMESPACE}
-            --output-dir ${ARG_OUTPUT_DIR} --query-log-mode ${ARG_QUERY_LOG_MODE} --testsuite-output-dir
+            --source-dir ${ARG_SOURCE_DIR} --output-dir ${ARG_OUTPUT_DIR}
+            --query-log-mode ${ARG_QUERY_LOG_MODE} --testsuite-output-dir
             ${TESTSUITE_OUTPUT_DIR} ${SQL_FILES} ${CODEGEN}
         DEPENDS ${SQL_FILES}
     )

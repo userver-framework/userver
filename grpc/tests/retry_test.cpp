@@ -58,12 +58,13 @@ UTEST_F(RetryTest, CallOptionsAttempts) {
 
     sample::ugrpc::GreetingRequest request;
     request.set_name("testname");
-
+    /// [SetAttempts]
     ugrpc::client::CallOptions call_options;
     call_options.SetAttempts(4);
 
     sample::ugrpc::GreetingResponse response;
     UEXPECT_NO_THROW(response = client.SayHello(request, std::move(call_options)));
+    /// [SetAttempts]
 }
 
 USERVER_NAMESPACE_END

@@ -101,7 +101,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_CRYPTOPP_BLAKE2`      | Provide wrappers for blake2 algorithms of crypto++                                                                | `ON`                                        |
 | `USERVER_FEATURE_PATCH_LIBPQ`          | Apply patches to the libpq (add portals support), requires `libpq.a`                                              | `ON`                                        |
 | `USERVER_FEATURE_CRYPTOPP_BASE64_URL`  | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                      | `ON`                                        |
-| `USERVER_FEATURE_REDIS_TLS`            | SSL/TLS support for Redis driver                                                                                  | `OFF`                                       |
+| `USERVER_FEATURE_REDIS_TLS`            | SSL/TLS support for Redis driver. Use with `"secure_connection": true` secdist option for @ref components::Redis  | `OFF`                                       |
 | `USERVER_FEATURE_STACKTRACE`           | Allow capturing stacktraces using `boost::stacktrace`                                                             | `ON` except for macOS, `*BSD` and old Boost |
 | `USERVER_FEATURE_JEMALLOC`             | Use jemalloc memory allocator                                                                                     | `ON`                                        |
 | `USERVER_FEATURE_DWCAS`                | Require double-width compare-and-swap                                                                             | `ON`                                        |

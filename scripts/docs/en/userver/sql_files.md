@@ -1,6 +1,6 @@
-# External SQL/YQL files
+# Embedding SQL/YQL files via userver_add_sql_library
 
-You may generate SQL queries or YQL queries (for YDB) from external .sql/.yql files.
+You may generate SQL queries or YQL queries (for YDB) from `.sql` / `.yql` files.
 To do this, call the following cmake function in your CMakeLists.txt:
 
 @snippet samples/postgres_service/CMakeLists.txt Postgres service sample - CMakeLists.txt
@@ -31,8 +31,8 @@ const USERVER_NAMESPACE::storages::Query kSelectValue = {
 };
 @endcode
 
-Each variable is statically initialized (has no dynamic|runtime initializtion), giving a protection against static
-intialization order fiasco when those variables are used.
+Each variable is statically initialized (has no dynamic|runtime initialization), giving a protection against static
+initialization order fiasco when those variables are used.
 
 You may use it as usual by passing to @ref storages::postgres::Cluster::Execute() or @ref storages::clickhouse::Cluster
 for SQL files or @ref ydb::TableClient::ExecuteDataQuery() for YQL files:

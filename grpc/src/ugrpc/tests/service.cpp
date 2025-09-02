@@ -30,10 +30,7 @@ void ServiceBase::RegisterService(server::GenericServiceBase& service) {
 
 server::ServiceConfig ServiceBase::MakeServiceConfig() {
     middlewares_change_allowed_ = false;
-    return server::ServiceConfig{
-        engine::current_task::GetTaskProcessor(),
-        server_middlewares_,
-    };
+    return server::ServiceConfig{engine::current_task::GetTaskProcessor(), server_middlewares_, {}};
 }
 
 void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_settings) {

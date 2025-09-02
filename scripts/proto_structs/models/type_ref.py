@@ -6,6 +6,7 @@ import abc
 from collections.abc import Iterable
 from collections.abc import Sequence
 import dataclasses
+import enum
 import itertools
 from typing import Optional
 
@@ -15,8 +16,41 @@ from proto_structs.models import includes
 from proto_structs.models import names
 
 
-class TypeReference(names.HasCppName, includes.HasCppIncludes, abc.ABC):
+class TypeDependencyKind(enum.Enum):
+    """The kind in which a C++ entity depends on another."""
+
+    #: A C++ type **definition** is required.
+    STRONG = enum.auto()
+    #: A C++ type **declaration** is required.
+    WEAK = enum.auto()
+
+
+@dataclasses.dataclass
+class TypeDependency:
+    """A dependency that a C++ entity has on a C++ type."""
+
+    #: The C++ type that is required.
+    type_reference: TypeReference
+    #: What is required from the type.
+    kind: TypeDependencyKind
+
+
+class HasTypeDependencies(abc.ABC):
+    """A C++ entity that requires type declarations or definitions."""
+
+    @abc.abstractmethod
+    def type_dependencies(self) -> Iterable[TypeDependency]:
+        """Returns types which this C++ entity requires."""
+        raise NotImplementedError()
+
+
+class TypeReference(names.HasCppName, includes.HasCppIncludes, HasTypeDependencies, abc.ABC):
     """A usage of C++ type (not its definition)."""
+
+    @override
+    def type_dependencies(self) -> Iterable[TypeDependency]:
+        # Usage of a C++ type requires its definition by default.
+        return [TypeDependency(type_reference=self, kind=TypeDependencyKind.STRONG)]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -27,6 +61,8 @@ class TemplateType(TypeReference):
     template: TypeReference
     #: Entities passed as template parameter values. May be empty, `Foo<>` can be a valid 0-arg template instantiation.
     template_args: Sequence[TypeReference]
+    #: Template can be defined without template args definitions.
+    works_with_forward_references: bool = False
 
     @override
     def full_cpp_name(self) -> str:
@@ -54,6 +90,16 @@ class TemplateType(TypeReference):
         yield from self.template.collect_includes()
         for arg in self.template_args:
             yield from arg.collect_includes()
+
+    @override
+    def type_dependencies(self) -> Iterable[TypeDependency]:
+        yield from self.template.type_dependencies()
+        for arg in self.template_args:
+            if self.works_with_forward_references:
+                for sub_arg in arg.type_dependencies():
+                    yield TypeDependency(sub_arg.type_reference, TypeDependencyKind.WEAK)
+            else:
+                yield from arg.type_dependencies()
 
 
 class KeywordType(TypeReference, names.HasCppName):
@@ -127,6 +173,9 @@ class UserverLibraryType(TypeReference, names.HasCppNameImpl):
     @override
     def collect_includes(self) -> Iterable[str]:
         return [self._include]
+
+
+BOX_TEMPLATE = UserverLibraryType(full_cpp_name_wo_userver='utils::Box', include='userver/utils/box.hpp')
 
 
 class UserverCodegenType(TypeReference, names.HasCppNameImpl):

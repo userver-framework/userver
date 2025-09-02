@@ -96,7 +96,7 @@ UTEST_F(Collection, Read) {
     }
     {
         auto cursor = coll.Find({});
-        EXPECT_EQ(cursor.GetBatchSize(), 0) << "Deafault value should be 0 (use server side size)";
+        EXPECT_EQ(cursor.GetBatchSize(), 0) << "Default value should be 0 (use server side size)";
         EXPECT_NO_THROW(cursor.SetBatchSize(0)) << "Setting to 0 should be fine";
         EXPECT_TRUE(cursor);
         EXPECT_TRUE(cursor.HasMore());

@@ -213,6 +213,11 @@ void HttpRequestConstructor::FinalizeImpl() {
             builder_.SetFormDataArgs(std::move(form_data_args));
         }
     }
+
+    const auto& host = request.GetHeader(USERVER_NAMESPACE::http::headers::kHost);
+    if (host.empty()) {
+        LOG_LIMITED_WARNING() << "\"Host\" header in request is empty or absent";
+    }
 }
 
 void HttpRequestConstructor::ParseArgs(const HttpParserUrl& url) {

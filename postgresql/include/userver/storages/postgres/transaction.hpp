@@ -15,6 +15,7 @@
 #include <userver/storages/postgres/postgres_fwd.hpp>
 #include <userver/storages/postgres/query.hpp>
 #include <userver/storages/postgres/result_set.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -406,6 +407,7 @@ private:
 
     std::string name_;
     detail::ConnectionPtr conn_;
+    USERVER_NAMESPACE::utils::trx_tracker::TransactionLock trx_lock_;
 };
 
 template <typename Container>

@@ -22,6 +22,7 @@ Transaction::Transaction(
     : conn_{std::move(conn)} {
     if (conn_) {
         conn_->Begin(options, trx_start_time, trx_cmd_ctl);
+        trx_lock_.Lock();
     }
 }
 
@@ -132,6 +133,7 @@ void Transaction::Commit() {
         // in case of exception inside commit let it fly and don't release the
         // connection holder to allow for rolling back later
         conn_ = detail::ConnectionPtr{nullptr};
+        trx_lock_.Unlock();
     } else {
         LOG_LIMITED_ERROR() << "Commit after transaction finished" << logging::LogExtra::Stacktrace();
         throw NotInTransaction("Transaction handle is not valid");
@@ -142,6 +144,7 @@ void Transaction::Rollback() {
     auto conn = std::move(conn_);
     if (conn) {
         conn->Rollback();
+        trx_lock_.Unlock();
     } else {
         LOG_LIMITED_WARNING() << "Rollback after transaction finished" << logging::LogExtra::Stacktrace();
     }

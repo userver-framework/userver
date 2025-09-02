@@ -11,6 +11,7 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -340,6 +341,60 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
         auto trx = cluster.Begin(kTestTransactionName, pg::Transaction::RW);
         UEXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
         UEXPECT_THROW(trx.Commit(), pg::RuntimeError);
+    }
+}
+
+utils::statistics::Rate GetTriggers() { return utils::trx_tracker::GetStatistics().triggers; }
+
+UTEST_F(PostgreCluster, TransactionTracker) {
+    testsuite::TestsuiteTasks testsuite_tasks{true};
+    auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
+
+    const utils::trx_tracker::impl::GlobalEnabler enabler;
+
+    {
+        // Commit
+        utils::trx_tracker::ResetStatistics();
+        auto trx = cluster.Begin(pg::Transaction::RW);
+        utils::trx_tracker::CheckNoTransactions();
+        trx.Commit();
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
+    }
+    {
+        // Rollback
+        utils::trx_tracker::ResetStatistics();
+        auto trx = cluster.Begin(pg::Transaction::RW);
+        utils::trx_tracker::CheckNoTransactions();
+        trx.Rollback();
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
+    }
+    {
+        // Rollback on destruction
+        utils::trx_tracker::ResetStatistics();
+        {
+            auto trx = cluster.Begin(pg::Transaction::RW);
+            utils::trx_tracker::CheckNoTransactions();
+        }
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
+    }
+    {
+        // Trx with empty ConnectionPtr
+        utils::trx_tracker::ResetStatistics();
+
+        {
+            auto empty_trx = storages::postgres::Transaction(storages::postgres::detail::ConnectionPtr(nullptr));
+            utils::trx_tracker::CheckNoTransactions();
+        }
+
+        utils::trx_tracker::ResetStatistics();
+        auto trx = cluster.Begin(pg::Transaction::RW);
+        utils::trx_tracker::CheckNoTransactions();
+        trx.Commit();
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
     }
 }
 

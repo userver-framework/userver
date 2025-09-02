@@ -19,7 +19,7 @@ See also:
 * Creating asynchronous gRPC clients and services;
 * Forwarding gRPC Core logs to userver logs;
 * Caching and reusing connections;
-* Timeouts;
+* @ref scripts/docs/en/userver/grpc/grpc_retries.md;
 * Collection of metrics on driver usage;
 * Cancellation support;
 * Automatic authentication using middlewares;
@@ -31,19 +31,32 @@ Generate and link a library from `.proto` schemas and link to it in your `CMakeL
 
 @snippet samples/grpc_service/CMakeLists.txt  add_grpc_library
 
-`userver_add_grpc_library` will link `userver-grpc` transitively and will generate the usual `.pb.h + .pb.cc` files. For service definitions, it will additionally generate asynchronous interfaces `foo_client.usrv.pb.hpp` and `foo_service.usrv.pb.hpp`.
+`userver_add_grpc_library` will link `userver::grpc` transitively and will generate the usual `.pb.h + .pb.cc` files.
+For service definitions, it will additionally generate asynchronous interfaces `foo_client.usrv.pb.hpp` and
+`foo_service.usrv.pb.hpp`.
 
-To create gRPC clients in your microservice, register the provided ugrpc::client::ClientFactoryComponent and add the corresponding component section to the static config.
+To create gRPC clients in your microservice, register the provided @ref ugrpc::client::ClientFactoryComponent and add
+the corresponding component section to the static config.
 
-To create gRPC services in your microservice, register the provided ugrpc::server::ServerComponent and add the corresponding component section to the static config.
+To create gRPC services in your microservice, register the provided @ref ugrpc::server::ServerComponent and add the
+corresponding component section to the static config.
+
+See @ref scripts/docs/en/userver/tutorial/grpc_service.md for a tutorial.
+
 
 ## gRPC clients
 
 ### Client creation
 
-In a component constructor, find ugrpc::client::ClientFactoryComponent and store a reference to its ugrpc::client::ClientFactory. Using it, you can create gRPC clients of code-generated `YourServiceClient` types.
+In a component constructor, find @ref ugrpc::client::ClientFactoryComponent and store a reference to its
+@ref ugrpc::client::ClientFactory. Using it, you can create gRPC clients of code-generated `YourServiceClient` types.
 
-Client creation in an expensive operation! Either create them once at the server boot time or cache them.
+Client creation in an expensive operation! Either create them once at the server boot time or cache them. An automated
+solution for client creation and caching is the @ref ugrpc::client::SimpleClientComponent. It also allows to
+specify dynamic config for @ref ugrpc::client::ClientQos:
+
+@snippet samples/grpc_service/src/greeter_client.hpp  component
+
 
 ### Client usage
 
@@ -53,31 +66,37 @@ Typical steps include:
     * Fill the authentication metadata as necessary
 * Stream creation by calling a client method
 * Operations on the stream
-* Depending on the RPC kind, it is necessary to call `Finish` or `Read` until it returns `false` (otherwise the connection will close abruptly)
+* Depending on the RPC kind, it is necessary to call `Finish` or `Read` until it returns `false`
+  (otherwise the connection will close abruptly)
 
 Read the documentation on gRPC streams:
-* Single request, single response ugrpc::client::UnaryCall
-* Single request, response stream ugrpc::client::InputStream
-* Request stream, single response ugrpc::client::OutputStream
-* Request stream, response stream ugrpc::client::BidirectionalStream
+* Single request, single response @ref ugrpc::client::ResponseFuture
+* Single request, response stream @ref ugrpc::client::Reader
+* Request stream, single response @ref ugrpc::client::Writer
+* Request stream, response stream @ref ugrpc::client::ReaderWriter
 
-On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside the entire stream interaction. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
+On errors, exceptions from @ref userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside
+the entire stream interaction. You can catch exceptions for
+[specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
 ### Working with metadata
 
-gRPC metadata allows you to send additional information along with requests and responses. Metadata consists of key-value pairs that are transmitted as HTTP/2 headers.
+gRPC metadata allows you to send additional information along with requests and responses. Metadata consists of
+key-value pairs that are transmitted as HTTP/2 headers.
 
 #### Client-side metadata handling
 
 ##### Sending request metadata
 
-To send metadata with a request, use @ref ugrpc::client::CallOptions and its @ref ugrpc::client::CallOptions::AddMetadata method:
+To send metadata with a request, use @ref ugrpc::client::CallOptions and its
+@ref ugrpc::client::CallOptions::AddMetadata method:
 
 @snippet grpc/tests/metadata_test.cpp client_write_metadata
 
 ##### Receiving response metadata
 
-Response metadata can be accessed through the @ref ugrpc::client::CallContext obtained from @ref ugrpc::client::ResponseFuture or stream objects:
+Response metadata can be accessed through the @ref ugrpc::client::CallContext obtained from
+@ref ugrpc::client::ResponseFuture or stream objects:
 
 * **Reading initial metadata** - metadata sent by the server at the beginning of the response
 
@@ -149,23 +168,26 @@ Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
 
 #### List of standard client middlewares:
 
-  1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
-  2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates
-  @ref scripts/docs/en/userver/deadline_propagation.md.
-  3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
-  3. `grpc-client-headers-propagator` with component ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
-  4. `grpc-client-middleware-testsuite` with component ugrpc::client::middlewares::testsuite::Component - supports testsuite errors thrown from the mockserver.
+1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
+2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates
+   @ref scripts/docs/en/userver/deadline_propagation.md.
+3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+4. `grpc-client-headers-propagator` with component ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
+5. `grpc-client-middleware-testsuite` with component ugrpc::client::middlewares::testsuite::Component - supports testsuite errors thrown from the mockserver.
+
 
 ## gRPC services
 
 ### Service creation
 
-A service implementation is a class derived from a code-generated `YourServiceBase` interface class. Each service method from the schema corresponds to a method of the interface class. If you don't override some of the methods, `UNIMPLEMENTED` error code will be reported for those.
+A service implementation is a class derived from a code-generated `YourServiceBase` interface class. Each service
+method from the schema corresponds to a method of the interface class. If you don't override some of the methods,
+`UNIMPLEMENTED` error code will be reported for those.
 
 To register your service:
-* Create a component that derives from ugrpc::server::ServiceComponentBase
+* Create a component that derives from @ref ugrpc::server::ServiceComponentBase
 * Store your service implementation instance inside the component
-* Call ugrpc::server::ServiceComponentBase::RegisterService in the component's constructor
+* Call @ref ugrpc::server::ServiceComponentBase::RegisterService in the component's constructor
 * Don't forget to register your service component.
 
 ### Service method handling
@@ -178,12 +200,14 @@ Each method receives:
 When using a server stream, always call `Finish` or `FinishWithError`. Otherwise the client will receive `UNKNOWN` error, which signifies an internal server error.
 
 Read the documentation on gRPC streams:
-* Single request, single response ugrpc::server::UnaryCall
-* Request stream, single response ugrpc::server::InputStream
-* Single request, response stream ugrpc::server::OutputStream
-* Request stream, response stream ugrpc::server::BidirectionalStream
+* Single request, single response @ref ugrpc::server::Response
+* Request stream, single response @ref ugrpc::server::Reader + @ref ugrpc::server::Result
+* Single request, response stream @ref ugrpc::server::Writer + @ref ugrpc::server::StreamingResult
+* Request stream, response stream @ref ugrpc::server::ReaderWriter + @ref ugrpc::server::StreamingResult
 
-On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch them, leading to RPC interruption. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
+On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch
+them, leading to RPC interruption. You can catch exceptions for
+[specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
 ### TLS / SSL
 
@@ -442,7 +466,7 @@ These are the metrics provided for each gRPC method:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/gdb_debugging.md | @ref scripts/docs/en/userver/grpc/server_middlewares.md ⇨
+⇦ @ref scripts/docs/en/userver/gdb_debugging.md | @ref scripts/docs/en/userver/grpc/timeouts_retries.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example grpc-generic-proxy/src/proxy_service.hpp

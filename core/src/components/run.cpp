@@ -27,6 +27,7 @@
 #include <userver/utils/strerror.hpp>
 #include <userver/utils/string_literal.hpp>
 #include <userver/utils/traceful_exception.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <components/manager.hpp>
 #include <components/manager_config.hpp>
@@ -36,7 +37,6 @@
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
-#include <utils/trx_tracker_internal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -203,7 +203,7 @@ void DoRun(
     utils::impl::UserverExperimentsScope experiments_scope;
     std::optional<impl::Manager> manager;
 
-    const utils::trx_tracker::GlobalEnabler enabler{manager_config.enable_trx_tracker};
+    const utils::trx_tracker::impl::GlobalEnabler enabler{manager_config.enable_trx_tracker};
 
     try {
         experiments_scope.EnableOnly(manager_config.enabled_experiments);

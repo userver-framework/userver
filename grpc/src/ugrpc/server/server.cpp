@@ -198,6 +198,7 @@ impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config
         statistics_storage_,
         std::move(config.middlewares),
         config_source_,
+        std::move(config.status_codes_log_level),
     };
 }
 

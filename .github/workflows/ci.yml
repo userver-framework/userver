@@ -104,7 +104,7 @@ jobs:
         runs-on: ${{matrix.os}}
 
         steps:
-          - uses: actions/checkout@v4
+          - uses: actions/checkout@v5
 
           - name: Restore cached directories
             id: restore-cache
@@ -155,11 +155,11 @@ jobs:
                 sudo apt update
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/
                 sudo apt install -y apt-transport-https ca-certificates dirmngr
-                sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
-                echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
+                curl -fsSL 'https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key' | sudo gpg --dearmor -o /usr/share/keyrings/clickhouse-keyring.gpg
+                echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=amd64] https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
                 # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
-                curl -fsSL http://mirror.mariadb.org/PublicKey_v2 | sudo gpg --dearmor -o "/usr/share/keyrings/mariadb.gpg"
+                curl -fsSL https://mariadb.org/mariadb_release_signing_key.pgp | sudo gpg --dearmor -o "/usr/share/keyrings/mariadb.gpg"
                 sudo chmod a+r "/usr/share/keyrings/mariadb.gpg"
                 # Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
                 #echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \

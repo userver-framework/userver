@@ -101,6 +101,10 @@ namespace components {
 ///
 /// In case one provides a custom CacheContainer within Policy, it is notified
 /// of Update completion via its public member function OnWritesDone, if any.
+/// Custom CacheContainer must provide size method and insert_or_assign method
+/// similar to std::unordered_map's one or CacheInsertOrAssign function similar
+/// to one defined in namespace utils::impl::projected_set (i.e. used for
+/// utils::ProjectedUnorderedSet).
 /// See the following code snippet for an example of usage:
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Container With Write Notification Example
@@ -193,6 +197,33 @@ inline constexpr bool kHasKeyMember = meta::IsDetected<KeyMemberTypeImpl, T>;
 template <typename T>
 using KeyMemberType = meta::DetectedType<KeyMemberTypeImpl, T>;
 
+// size method in custom container in policy
+template <typename T>
+using SizeMethodInvokeResultImpl = decltype(std::declval<T>().size());
+template <typename T>
+inline constexpr bool kHasSizeMethod = meta::IsDetected<SizeMethodInvokeResultImpl, T> &&
+                                       std::is_convertible_v<SizeMethodInvokeResultImpl<T>, std::size_t>;
+
+// insert_or_assign method in custom container in policy
+template <typename T>
+using InsertOrAssignMethodInvokeResultImpl = decltype(std::declval<typename T::CacheContainer>().insert_or_assign(
+    std::declval<KeyMemberTypeImpl<T>>(),
+    std::declval<ValueType<T>>()
+));
+template <typename T>
+inline constexpr bool kHasInsertOrAssignMethod = meta::IsDetected<InsertOrAssignMethodInvokeResultImpl, T>;
+
+// CacheInsertOrAssign function for custom container in policy
+template <typename T>
+using CacheInsertOrAssignFunctionInvokeResultImpl = decltype(CacheInsertOrAssign(
+    std::declval<typename T::CacheContainer&>(),
+    std::declval<ValueType<T>>(),
+    std::declval<KeyMemberTypeImpl<T>>()
+));
+template <typename T>
+inline constexpr bool kHasCacheInsertOrAssignFunction =
+    meta::IsDetected<CacheInsertOrAssignFunctionInvokeResultImpl, T>;
+
 // Data container for cache
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct DataCacheContainer {
@@ -206,6 +237,13 @@ struct DataCacheContainer {
 
 template <typename T>
 struct DataCacheContainer<T, USERVER_NAMESPACE::utils::void_t<typename T::CacheContainer>> {
+    static_assert(kHasSizeMethod<typename T::CacheContainer>, "Custom CacheContainer must provide `size` method");
+    static_assert(
+        kHasInsertOrAssignMethod<T> || kHasCacheInsertOrAssignFunction<T>,
+        "Custom CacheContainer must provide `insert_or_assign`  method similar to std::unordered_map's "
+        "one or CacheInsertOrAssign function"
+    );
+
     using type = typename T::CacheContainer;
 };
 

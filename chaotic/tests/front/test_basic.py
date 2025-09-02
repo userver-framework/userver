@@ -17,7 +17,7 @@ def test_unknown_field(simple_parse):
     assert exc.value.infile_path == '/definitions/type/unknown_field'
     assert exc.value.msg == (
         'Unknown field: "unknown_field", known fields: '
-        '["default", "enum", "exclusiveMaximum", "exclusiveMinimum", '
+        '["default", "deprecated", "enum", "exclusiveMaximum", "exclusiveMinimum", '
         '"format", "maximum", "minimum", "nullable", "type"]'
     )
 

@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package simple;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/simple;simple";
+
+message MyMap {
+    map<string, string> self = 1;
+}
+
+message Self {
+    Self self = 1;
+}
+
+message First {
+    Second c = 1;
+}
+
+message Second {
+    Third c = 1;
+}
+
+message Third {
+    First c = 1;
+}
+
+message CycleEnd {
+    CycleStart cycle = 1;
+}
+
+message CycleStart {
+    CycleEnd cycle = 1;
+    repeated CycleEnd not_boxed = 2;
+}
+
+message Main1 {
+    message Inner {
+        ImBelowMain1 cycle = 1;
+    }
+    Main1.Inner inner = 1;
+}
+
+message ImBelowMain1 {
+    Main1 cycle = 1;
+}
+
+message IamAboveMain2 {
+    Main2 cycle = 1;
+}
+
+message Main2 {
+    message Outer {
+        Main2.Inner inner = 1;
+    }
+    message Inner {
+        IamAboveMain2 cycle = 1;
+    }
+    Inner inner = 1;
+}
+
+message NewCycle {
+    message Inner1 {
+        message InnerInner {
+            NewCycle.Inner2Below inner = 1;
+        }
+        InnerInner inner = 1;
+    }
+    message Inner2Below {
+        message InnerInner {
+            NewCycle.Inner1 inner = 1;
+        }
+        InnerInner i = 1;
+    }
+    Inner1 inner = 1;
+}
+
+message NewCycle2 {
+    message Inner2Above {
+        message InnerInner {
+            NewCycle2.Inner1 inner = 1;
+        }
+        NewCycle2.Inner2Above.InnerInner i = 1;
+    }
+    message Inner1 {
+        message InnerInner {
+            NewCycle2.Inner2Above inner = 1;
+        }
+        NewCycle2.Inner1.InnerInner inner = 1;
+    }
+    NewCycle2.Inner1 inner = 1;
+}
