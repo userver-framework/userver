@@ -2,9 +2,12 @@
 
 #include <cstddef>
 
+#include <boost/container/flat_map.hpp>
+
 #include <userver/logging/level.hpp>
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,6 +38,10 @@ struct Settings final {
     /// It applies to logs in user-provided handler
     /// @ref tracing::Span::SetLocalLogLevel
     logging::Level local_log_level{logging::Level::kDebug};
+
+    /// map of "status_code": log_level items to override span log level for specific status codes
+    /// see @ref ugrpc::kStatusCodesMap for available statuses
+    boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level;
 };
 
 class Middleware final : public MiddlewareBase {

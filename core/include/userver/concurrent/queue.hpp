@@ -278,14 +278,12 @@ private:
     template <typename Token>
     [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline) {
         const std::size_t value_size = QueuePolicy::GetElementSize(value);
-        UASSERT(value_size > 0);
         return producer_side_.Push(token, std::move(value), deadline, value_size);
     }
 
     template <typename Token>
     [[nodiscard]] bool PushNoblock(Token& token, T&& value) {
         const std::size_t value_size = QueuePolicy::GetElementSize(value);
-        UASSERT(value_size > 0);
         return producer_side_.PushNoblock(token, std::move(value), value_size);
     }
 

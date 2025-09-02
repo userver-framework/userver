@@ -77,7 +77,8 @@ public:
         : SimpleClientComponentAny(config, context),
           client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, nullptr))) {}
 
-    /// To use a ClientQos config,
+    /// To use a ClientQos config, derive from SimpleClientComponent and provide the parameter at construction:
+    /// @snippet samples/grpc_service/src/greeter_client.hpp  component
     SimpleClientComponent(
         const components::ComponentConfig& config,
         const components::ComponentContext& context,
@@ -86,7 +87,7 @@ public:
         : SimpleClientComponentAny(config, context),
           client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, &client_qos))) {}
 
-    /// @@brief Get gRPC service client
+    /// @brief Get gRPC service client
     Client& GetClient() { return client_; }
 
 private:

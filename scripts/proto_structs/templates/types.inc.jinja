@@ -1,3 +1,5 @@
+{% import "forward_declarations.inc.jinja" as forward_declarations %}
+
 {%- macro render_gen_node(node) %}
 {%- if node.kind == "namespace" %}
 {{ do_render_namespace(node) }}
@@ -24,6 +26,12 @@ namespace {{ namespace.short_name }} {
 {%- macro do_render_struct(struct) %}
 struct {{ struct.name.short_name }} final {
 {% filter indent(width=4, first=True) %}
+{%- for child in struct.children %}
+{{ forward_declarations.render_gen_node(child) }}
+{%- endfor %}
+{% if struct.children | length > 0 %}
+
+{% endif %}
 {% for nested in struct.nested_types %}
 {{ render_gen_node(nested) }}
 {% endfor %}

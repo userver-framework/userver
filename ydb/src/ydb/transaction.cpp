@@ -32,6 +32,7 @@ Transaction::Transaction(
       rollback_settings_(std::move(rollback_settings)) {
     span_.DetachFromCoroStack();
     span_.AddTag("transaction_name", name_);
+    trx_lock_.Lock();
 }
 
 Transaction::~Transaction() {
@@ -95,6 +96,7 @@ void Transaction::Commit(OperationSettings settings) {
 
     error_guard.Release();
     is_active_ = false;
+    trx_lock_.Unlock();
 }
 
 void Transaction::Rollback() {
@@ -112,6 +114,8 @@ void Transaction::Rollback() {
     impl::GetFutureValueChecked(
         ydb_tx_.Rollback(rollback_settings), "Rollback", table_client_.driver_->GetRetryBudget(), context
     );
+
+    trx_lock_.Unlock();
 
     // Successful rollback is still a transaction error for logs and stats.
 }

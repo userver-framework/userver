@@ -144,7 +144,7 @@ UTEST_F(Watchdog, AllPermutations) {
     static_assert(
         (&pg::ConnlimitWatchdog::StepV1) && (&pg::ConnlimitWatchdog::StepV2),
         "Do not remove old versions of StepV*, because there may be users that still use it and they may update "
-        "userver one day. So we need to make sure that the update (and a rollback) will be successfull."
+        "userver one day. So we need to make sure that the update (and a rollback) will be successful."
     );
     // Fill the table by two rows.
     EXPECT_EQ(kTestsuiteConnlimit, DoStepV1());

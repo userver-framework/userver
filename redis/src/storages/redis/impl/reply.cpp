@@ -250,7 +250,7 @@ Reply::Reply(std::string command, ReplyData&& reply_data, ReplyStatus reply_stat
     UASSERT_MSG(
         !IsOk() || !data.IsError(),
         fmt::format(
-            "For command '{}' the ReplyData contains error='{}' that missmatch Reply status kOk", cmd, data.GetError()
+            "For command '{}' the ReplyData contains error='{}' that mismatch Reply status kOk", cmd, data.GetError()
         )
     );
 }

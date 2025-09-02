@@ -3,6 +3,7 @@
 /// @file userver/storages/sqlite/transaction.hpp
 
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <userver/storages/sqlite/cursor_result_set.hpp>
 #include <userver/storages/sqlite/impl/binder_help.hpp>
@@ -105,6 +106,7 @@ private:
     void AccountQueryFailed() const noexcept;
 
     std::shared_ptr<infra::ConnectionPtr> connection_;
+    utils::trx_tracker::TransactionLock trx_lock_;
 };
 
 template <typename... Args>

@@ -17,6 +17,7 @@
 #include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/storage_context.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,6 +38,7 @@ struct CallParams {
     std::optional<tracing::InPlaceSpan>& span_storage;
     const Middlewares& middlewares;
     const dynamic_config::Source& config_source;
+    const boost::container::flat_map<grpc::StatusCode, logging::Level>& status_codes_log_level;
 };
 
 // Non-templated state of CallProcessor. Can be non-movable.

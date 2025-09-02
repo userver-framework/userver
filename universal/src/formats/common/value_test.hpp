@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
@@ -39,6 +40,13 @@ template <class Value>
 inline TestType Parse(const Value& val, formats::parse::To<TestType>) {
     return TestType{val.template As<int>()};
 }
+
+struct KeyType {
+    std::string name;
+};
+
+inline bool operator==(const KeyType& lhs, const KeyType& rhs) { return lhs.name == rhs.name; }
+inline bool operator<(const KeyType& lhs, const KeyType& rhs) { return lhs.name < rhs.name; }
 }  // namespace testing_namespace
 
 namespace testing_namespace2 {
@@ -51,6 +59,10 @@ namespace formats::parse {
 template <class Value>
 testing_namespace2::TestType Parse(const Value& val, To<testing_namespace2::TestType>) {
     return testing_namespace2::TestType{val.template As<int>()};
+}
+
+inline testing_namespace::KeyType Parse(std::string_view value, To<testing_namespace::KeyType>) {
+    return {std::string(value)};
 }
 }  // namespace formats::parse
 
@@ -98,6 +110,12 @@ TYPED_TEST_P(Parsing, VectorVectorIntNull) {
     auto value = this->FromString(R"({"null": null})")["null"];
     auto v = value.template As<std::vector<std::vector<int>>>();
     EXPECT_EQ(std::vector<std::vector<int>>{}, v);
+}
+
+TYPED_TEST_P(Parsing, MapWithCustomKey) {
+    auto value = this->FromString(R"({"foo": "bar"})");
+    auto v = value.template As<std::map<testing_namespace::KeyType, std::string>>();
+    EXPECT_THAT(v, testing::ElementsAre(testing::Pair(testing_namespace::KeyType{"foo"}, "bar")));
 }
 
 TYPED_TEST_P(Parsing, BoostContainerFlatSet) {
@@ -336,6 +354,8 @@ REGISTER_TYPED_TEST_SUITE_P(
     VectorIntErrorObj,
     VectorVectorInt,
     VectorVectorIntNull,
+
+    MapWithCustomKey,
 
     BoostContainerFlatSet,
     BoostContainerFlatMap,

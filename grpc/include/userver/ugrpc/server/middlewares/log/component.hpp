@@ -29,6 +29,7 @@ namespace ugrpc::server::middlewares::log {
 /// msg-log-level | logging level to use for request and response messages themselves | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
 /// local-log-level | local log level of the span for user-provided handler | debug
+/// status-codes-log-level | gRPC status code string -> response log level map | {}
 ///
 /// ## Static configuration example:
 ///

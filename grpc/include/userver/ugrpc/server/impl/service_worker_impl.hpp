@@ -170,6 +170,7 @@ private:
                 span_storage_,
                 method_data_.service_data.internals.middlewares,
                 method_data_.service_data.internals.config_source,
+                method_data_.service_data.internals.status_codes_log_level,
             },
             raw_responder_,
             initial_request_,

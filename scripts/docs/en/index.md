@@ -102,6 +102,7 @@ and make sure that it builds and passes tests.
 
 ## Protocols
 * @ref scripts/docs/en/userver/grpc/grpc.md
+    * @ref scripts/docs/en/userver/grpc/timeouts_retries.md
     * Middlewares
         * @ref scripts/docs/en/userver/grpc/server_middlewares.md
             * @ref scripts/docs/en/userver/grpc/server_middleware_implementation.md

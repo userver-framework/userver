@@ -13,6 +13,7 @@ Transaction::Transaction(std::shared_ptr<infra::ConnectionPtr> connection, const
     : connection_{std::move(connection)} {
     if (connection_ && connection_->IsValid()) {
         (*connection_)->Begin(options);
+        trx_lock_.Lock();
     }
 }
 
@@ -46,6 +47,7 @@ void Transaction::Commit() {
     {
         auto connection = std::move(connection_);
         (*connection)->Commit();
+        trx_lock_.Unlock();
     }
 }
 
@@ -54,6 +56,7 @@ void Transaction::Rollback() {
     {
         auto connection = std::move(connection_);
         (*connection)->Rollback();
+        trx_lock_.Unlock();
     }
 }
 

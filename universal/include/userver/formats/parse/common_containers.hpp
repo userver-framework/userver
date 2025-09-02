@@ -38,7 +38,7 @@ inline T ConvertToExtractor(const Value& value) {
 }
 
 template <typename ArrayType, class Value, typename ExtractFunc>
-ArrayType ParseArray(const Value& value, ExtractFunc&& extract_func) {
+ArrayType ParseArray(const Value& value, ExtractFunc extract_func) {
     value.CheckArrayOrNull();
     ArrayType response;
     auto inserter = std::inserter(response, response.end());
@@ -52,12 +52,18 @@ ArrayType ParseArray(const Value& value, ExtractFunc&& extract_func) {
 }
 
 template <typename ObjectType, class Value, typename ExtractFunc>
-ObjectType ParseObject(const Value& value, ExtractFunc&& extract_func) {
+ObjectType ParseObject(const Value& value, ExtractFunc extract_func) {
+    using KeyType = typename ObjectType::key_type;
+
     value.CheckObjectOrNull();
     ObjectType result;
 
     for (auto it = value.begin(); it != value.end(); ++it) {
-        result.emplace(it.GetName(), extract_func(*it));
+        if constexpr (std::is_constructible_v<KeyType, std::string>) {
+            result.emplace(it.GetName(), extract_func(*it));
+        } else {
+            result.emplace(Parse(std::string_view(it.GetName()), To<KeyType>{}), extract_func(*it));
+        }
     }
 
     return result;

@@ -2,8 +2,7 @@
 
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
-
-#include <userver/ugrpc/status_codes.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 
@@ -100,8 +99,10 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status
             {ugrpc::impl::kTypeTag, "error_status"},
             {ugrpc::impl::kBodyTag, std::move(error_details)},
         };
-        const auto error_log_level =
+        const auto default_error_log_level =
             IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
+        const auto error_log_level =
+            utils::FindOrDefault(settings_.status_codes_log_level, status.error_code(), default_error_log_level);
         logger.Log(error_log_level, "gRPC error", std::move(extra));
     }
 }

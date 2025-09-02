@@ -5,6 +5,7 @@ package simple;
 option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/simple;simple";
 
 import "simple/subdirectory/subdirectory.proto";
+import "simple/subdirectory/separate_enum.proto";
 
 message SimpleStruct {
     int32 some_integer = 1;
@@ -45,6 +46,8 @@ message SecondStruct {
     string str = 1;
 
     simple.subdirectory.SubdirStruct subdir_struct = 2;
+    simple.subdirectory.MyEnum subdir_enum = 3;
+    simple.subdirectory.SeparateEnum separate_enum = 4;
 }
 
 enum GlobalEnum {
