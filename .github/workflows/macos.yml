@@ -33,6 +33,7 @@ jobs:
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                 -DUSERVER_USE_LD=lld
                 -DUSERVER_FORCE_DOWNLOAD_RE2=1
+                -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
                 -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1
                 -DUSERVER_FORCE_DOWNLOAD_GRPC=1
 
