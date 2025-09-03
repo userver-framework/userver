@@ -1,0 +1,30 @@
+commit e55f69cedd0ef7344e0bcb64b5ec9205e6aa4f04
+Author: Amy Huang <akhuang@google.com>
+Date:   Wed Jun 5 09:41:28 2024 -0700
+
+    [Fix] new clang -Wmissing-template-arg-list-after-template-kw warning (#36805)
+    
+    Clang now requires a template argument list after the use of the template keyword. Edit this
+    instance to remove the template keyword since there are no template arguments.
+    
+    See https://github.com/llvm/llvm-project/pull/80801.
+    
+    Closes #36805
+    
+    COPYBARA_INTEGRATE_REVIEW=https://github.com/grpc/grpc/pull/36805 from amykhuang:master 6f385be2a0f014d1a27fb32e427938c4ced57f83
+    PiperOrigin-RevId: 640554705
+
+diff --git a/src/core/lib/promise/detail/basic_seq.h b/src/core/lib/promise/detail/basic_seq.h
+index 663609d41..5f4199e5d 100644
+--- a/src/core/lib/promise/detail/basic_seq.h
++++ b/src/core/lib/promise/detail/basic_seq.h
+@@ -99,8 +99,7 @@ class BasicSeqIter {
+           }
+           cur_ = next;
+           state_.~State();
+-          Construct(&state_,
+-                    Traits::template CallSeqFactory(f_, *cur_, std::move(arg)));
++          Construct(&state_, Traits::CallSeqFactory(f_, *cur_, std::move(arg)));
+           return PollNonEmpty();
+         });
+   }
