@@ -1,6 +1,8 @@
 include_guard(GLOBAL)
 
+if(NOT USERVER_CONAN)
 include(DownloadUsingCPM)
+endif()
 
 cmake_policy(SET CMP0054 NEW)
 
