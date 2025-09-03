@@ -156,7 +156,10 @@ ServerImpl::ServerImpl(
     : config_(std::move(config)) {
     LOG_DEBUG() << "Creating server";
 
-    for (auto& port : config_.listener.ports) port.ReadTlsSettings(secdist);
+    for (auto& port : config_.listener.ports) {
+        port.ReadTlsSettings(secdist);
+        port.InitSslCtx();
+    }
 
     main_port_info_.Init(config_, config_.listener, component_context, false);
     if (config_.max_response_size_in_flight) {

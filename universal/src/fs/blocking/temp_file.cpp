@@ -47,7 +47,7 @@ TempFile::~TempFile() {
     try {
         fs::blocking::RemoveSingleFile(path_);
     } catch (const std::exception& ex) {
-        LOG_ERROR() << ex;
+        LOG_ERROR() << "fs::blocking::~TempFile failed with exception: " << ex;
     }
 }
 

@@ -5,9 +5,11 @@
 #include <fmt/format.h>
 
 #include <userver/compiler/thread_local.hpp>
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
+#include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -66,12 +68,13 @@ std::string_view GetCurrentTimeString(std::chrono::system_clock::time_point star
 
 }  // namespace
 
-std::string FormatLogMessage(
+logging::impl::LogExtraTskvFormatter FormatLogMessage(
     const std::multimap<grpc::string_ref, grpc::string_ref>& metadata,
     std::string_view peer,
     std::chrono::system_clock::time_point start_time,
     std::string_view call_name,
-    grpc::StatusCode code
+    grpc::StatusCode code,
+    const logging::LogExtra& log_extra
 ) {
     static const auto timezone = utils::datetime::LocalTimezoneTimestring(start_time, "%z");
 
@@ -88,9 +91,10 @@ std::string FormatLogMessage(
     const auto request_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(request_time);
     const auto request_time_milliseconds = request_time - request_time_seconds;
 
-    // FMT_COMPILE makes it slower
-    return fmt::format(
-        "tskv"
+    logging::impl::LogExtraTskvFormatter formatter(logging::Format::kRaw);
+
+    fmt::format_to(
+        std::back_inserter(formatter.GetTextLogItem().log_line),
         "\ttimestamp={}"
         "\ttimezone={}"
         "\tuser_agent={}"
@@ -100,16 +104,13 @@ std::string FormatLogMessage(
         "\trequest_time={}.{:0>3}"
         "\tupstream_response_time={}.{:0>3}"
         "\tgrpc_status={}"
-        "\tgrpc_status_code={}\n",
+        "\tgrpc_status_code={}",
         GetCurrentTimeString(start_time),
         timezone,
         EscapeForAccessTskvLog(user_agent),
         ip,
         ip,
         EscapeForAccessTskvLog(call_name),
-        // request_time should represent the time from the first byte received to the last byte sent.
-        // We are currently being inexact here by not including the time for initial request deserialization
-        // and the time for the final response serialization.
         request_time_seconds.count(),
         request_time_milliseconds.count(),
         // TODO remove, this is for safe migration from old access log parsers.
@@ -118,6 +119,10 @@ std::string FormatLogMessage(
         static_cast<int>(code),
         ToString(code)
     );
+
+    formatter.Append(log_extra);
+
+    return formatter;
 }
 
 }  // namespace ugrpc::server::impl

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package unused.api;
+
+service GreeterService {
+  rpc SayHello(GreetingRequest) returns(GreetingResponse) {}
+  rpc CallEchoNobody(GreetingRequest) returns(GreetingResponse) {}
+}
+
+message GreetingRequest {
+  string name = 1;
+}
+
+message GreetingResponse {
+  string greeting = 1;
+}

@@ -8,6 +8,7 @@
 
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/crypto/ssl_ctx.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -40,13 +41,7 @@ public:
     );
 
     /// Starts a TLS server on an opened socket
-    static TlsWrapper StartTlsServer(
-        Socket&& socket,
-        const crypto::CertificatesChain& cert_chain,
-        const crypto::PrivateKey& key,
-        Deadline deadline,
-        const std::vector<crypto::Certificate>& extra_cert_authorities = {}
-    );
+    static TlsWrapper StartTlsServer(Socket&& socket, const crypto::SslCtx& ctx, Deadline deadline);
 
     ~TlsWrapper() override;
 

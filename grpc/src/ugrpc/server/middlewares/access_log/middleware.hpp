@@ -2,6 +2,7 @@
 
 #include <userver/logging/fwd.hpp>
 
+#include <userver/ugrpc/server/middlewares/access_log/component.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,6 +16,8 @@ struct Settings final {
 class Middleware final : public MiddlewareBase {
 public:
     explicit Middleware(Settings&& settings);
+
+    void OnCallStart(MiddlewareCallContext& context) const override;
 
     void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
 

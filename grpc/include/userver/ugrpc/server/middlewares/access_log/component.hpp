@@ -14,6 +14,10 @@ USERVER_NAMESPACE_BEGIN
 /// @see @ref ugrpc::server::middlewares::access_log::Component
 namespace ugrpc::server::middlewares::access_log {
 
+/// @brief Storage to handle additional fields in access_log
+/// @snippet grpc/tests/logging_test.cpp
+inline const utils::AnyStorageDataTag<ugrpc::server::StorageContext, logging::LogExtra> kLogExtraTag;
+
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief gRPC server access log middleware component. Writes one TSKV log line per handled RPC in a static format.
