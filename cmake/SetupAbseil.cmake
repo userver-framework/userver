@@ -31,6 +31,8 @@ cpmaddpackage(
     GITHUB_REPOSITORY
     abseil/abseil-cpp
     SYSTEM
+    PATCHES
+    abseil_pr_1707.patch
     OPTIONS
     "ABSL_PROPAGATE_CXX_STD ON"
     "ABSL_ENABLE_INSTALL ON"
