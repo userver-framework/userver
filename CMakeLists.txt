@@ -193,6 +193,7 @@ include(UserverCodegenTarget)
 include(UserverGenerateDynamicConfigsDocs)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
+include(DownloadUsingCPM)
 
 set(USERVER_THIRD_PARTY_DIRS
     ${USERVER_ROOT_DIR}/third_party
@@ -365,6 +366,7 @@ endif()
 _userver_add_target_gen_dynamic_configs_docs()
 
 _userver_print_features_list()
+_userver_print_cpm_packages()
 
 if(USERVER_INSTALL)
     include(cmake/UserverPack.cmake)
