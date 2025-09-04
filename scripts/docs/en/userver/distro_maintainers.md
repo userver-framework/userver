@@ -11,10 +11,10 @@ That's why there are userver distro package maintainers! That's the community ro
 userver buildable and working in a specific environment.
 
 A maintainer should (where possible):
-1) keep build dependencies list in @ref scripts/docs/en/deps/ for the distro up-to-date
-2) watch for new distro version releases and create new dependency files in @ref scripts/docs/en/deps soon after release
-3) cleanup EOL (end of life) distro versions dependency files
-4) maintain CI setup in @ref .github/workflows in "green" state
+* keep build dependencies list in @ref scripts/docs/en/deps/ for the distro up-to-date
+* watch for new distro version releases and create new dependency files in @ref scripts/docs/en/deps soon after release
+* cleanup EOL (end of life) distro versions dependency files
+* maintain CI setup in @ref .github/workflows in "green" state
 
 The maintainer is a community role which is not paid, but is a honorable one. You will get a "distro maintainer" label
 in official userver telegram channels.
@@ -24,13 +24,13 @@ in official userver telegram channels.
 
 Currently we're looking for maintainers for the following OSes/distros:
 
-1) MacOS
-2) Fedora
-3) Debian
-4) ArchLinux
-5) Gentoo
-6) FreeBSD
-7) Conan package
+* MacOS
+* Fedora
+* Debian
+* ArchLinux
+* Gentoo
+* FreeBSD
+* Conan package
 
 The list is not complete, you may suggest your own distro to maintain.
 
