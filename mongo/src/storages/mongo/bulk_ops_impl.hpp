@@ -44,6 +44,7 @@ public:
 
     Mode mode;
     formats::bson::Document selector;
+    std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 }  // namespace storages::mongo::bulk_ops

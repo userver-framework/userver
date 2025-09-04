@@ -25,6 +25,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -46,7 +47,7 @@ public:
         RequestStats&& req_stats,
         const std::shared_ptr<DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
-        impl::PluginPipeline& plugin_pipeline,
+        const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
         const tracing::TracingManagerBase& tracing_manager
     );
     ~RequestState();
@@ -69,11 +70,11 @@ public:
     /// set verify flags
     void verify(bool verify);
     /// set file holding one or more certificates to verify the peer with
-    void ca_info(const std::string& file_path);
+    void ca_info(utils::zstring_view file_path);
     /// set certificate to verify the peer with
     void ca(crypto::Certificate cert);
     /// set CRL-file
-    void crl_file(const std::string& file_path);
+    void crl_file(utils::zstring_view file_path);
     /// set private key and certificate from memory
     void client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert);
     /// Set HTTP version
@@ -83,15 +84,20 @@ public:
     /// set number of retries
     void retry(short retries, bool on_fails);
     /// set unix socket as transport instead of TCP
-    void unix_socket_path(const std::string& path);
+    void unix_socket_path(utils::zstring_view path);
     /// set connect_to option
     void connect_to(const ConnectTo& connect_to);
     /// sets proxy to use
-    void proxy(const std::string& value);
+    void proxy(utils::zstring_view value);
     /// sets proxy auth type to use
     void proxy_auth_type(curl::easy::proxyauth_t value);
     /// sets proxy auth type and credentials to use
-    void http_auth_type(curl::easy::httpauth_t value, bool auth_only, std::string_view user, std::string_view password);
+    void http_auth_type(
+        curl::easy::httpauth_t value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    );
 
     /// get timeout value in milliseconds
     long timeout() const { return original_timeout_.count(); }
@@ -128,6 +134,7 @@ public:
     std::shared_ptr<Response> response() const { return response_; }
     std::shared_ptr<Response> response_move() { return std::move(response_); }
 
+    void SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins);
     void SetLoggedUrl(std::string url);
     void SetEasyTimeout(std::chrono::milliseconds timeout);
 
@@ -137,22 +144,22 @@ public:
 
 private:
     /// final callback that calls user callback and set value in promise
-    static void on_completed(std::shared_ptr<RequestState>, std::error_code err);
+    static void OnCompleted(std::shared_ptr<RequestState>, std::error_code err);
     /// retry callback
-    static void on_retry(std::shared_ptr<RequestState>, std::error_code err);
+    static void OnRetry(std::shared_ptr<RequestState>, std::error_code err);
     /// header function curl callback
-    static size_t on_header(void* ptr, size_t size, size_t nmemb, void* userdata);
+    static size_t OnHeader(void* ptr, size_t size, size_t nmemb, void* userdata);
 
     /// certificate function curl callback
-    static curl::native::CURLcode on_certificate_request(void* curl, void* sslctx, void* userdata) noexcept;
+    static curl::native::CURLcode OnCertificateRequest(void* curl, void* sslctx, void* userdata) noexcept;
 
     /// parse one header
-    void parse_header(char* ptr, size_t size);
+    void ParseHeader(char* ptr, size_t size);
     void ParseSingleCookie(const char* ptr, size_t size);
     /// simply run perform_request if there is now errors from timer
-    void on_retry_timer(std::error_code err);
+    void OnRetryTimer(std::error_code err);
     /// run curl async_request, called once per attempt
-    void perform_request(curl::easy::handler_type handler);
+    void PerformRequest(curl::easy::handler_type handler);
 
     void UpdateTimeoutFromDeadline(std::chrono::milliseconds backoff);
     [[nodiscard]] bool UpdateTimeoutFromDeadlineAndCheck(std::chrono::milliseconds backoff = {});
@@ -231,7 +238,7 @@ private:
 
     clients::dns::Resolver* resolver_{nullptr};
     std::string proxy_url_;
-    impl::PluginPipeline& plugin_pipeline_;
+    impl::PluginPipeline plugin_pipeline_;
 
     struct StreamData {
         StreamData(Queue::Producer&& queue_producer) : queue_producer(std::move(queue_producer)) {}
@@ -242,7 +249,7 @@ private:
     };
 
     struct FullBufferedData {
-        engine::Promise<std::shared_ptr<Response>> promise_;
+        engine::Promise<std::shared_ptr<Response>> promise;
     };
 
     std::variant<FullBufferedData, StreamData> data_;

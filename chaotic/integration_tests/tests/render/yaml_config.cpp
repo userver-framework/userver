@@ -23,7 +23,7 @@ TEST(YamlConfig, Parse) {
 type: some string
 field1: 123
 )--");
-    yaml_config::YamlConfig config{value, {}};
+    const yaml_config::YamlConfig config{value, {}};
     EXPECT_EQ(config.As<ns::CustomStruct1>(), (ns::CustomStruct1{"some string", 123}));
 }
 

@@ -62,7 +62,7 @@ Http2Session::Http2Session(
     nghttp2_session_callbacks* callbacks{nullptr};
     UINVARIANT(nghttp2_session_callbacks_new(&callbacks) == 0, "Failed to init callbacks for HTTP/2.0");
 
-    utils::FastScopeGuard delete_guard{[&callbacks]() noexcept { nghttp2_session_callbacks_del(callbacks); }};
+    const utils::FastScopeGuard delete_guard{[&callbacks]() noexcept { nghttp2_session_callbacks_del(callbacks); }};
 
     nghttp2_session_callbacks_set_send_callback(callbacks, OnSend);
     nghttp2_session_callbacks_set_send_data_callback(callbacks, OnDataFrameSend);

@@ -25,6 +25,8 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 
+#include <dynamic_config/variables/MONGO_DEADLINE_PROPAGATION_ENABLED_V2.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
@@ -162,26 +164,26 @@ stats::ConnStats& GetStats(void* stats_ptr) {
 
 void CommandSucceeded(const mongoc_apm_command_succeeded_t* event) {
     auto& stats = GetStats(mongoc_apm_command_succeeded_get_context(event));
-    stats.event_stats_.success += utils::statistics::Rate{1};
+    stats.event_stats.success += utils::statistics::Rate{1};
 }
 
 void CommandFailed(const mongoc_apm_command_failed_t* event) {
     auto& stats = GetStats(mongoc_apm_command_failed_get_context(event));
-    stats.event_stats_.failed += utils::statistics::Rate{1};
+    stats.event_stats.failed += utils::statistics::Rate{1};
 }
 
 void HeartbeatStarted(const mongoc_apm_server_heartbeat_started_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_started_get_context(event));
-    ++stats.apm_stats_->heartbeats.start;
+    ++stats.apm_stats->heartbeats.start;
     LOG_LIMITED_DEBUG() << mongoc_apm_server_heartbeat_started_get_host(event)->host_and_port << " heartbeat started";
-    stats.apm_stats_->heartbeats.hb_started = std::chrono::steady_clock::now();
+    stats.apm_stats->heartbeats.hb_started = std::chrono::steady_clock::now();
 }
 
 void HeartbeatFinished(stats::ConnStats& stats) {
     auto* span = tracing::Span::CurrentSpanUnchecked();
     if (span) {
         auto diff = std::chrono::duration_cast<RealMilliseconds>(
-            std::chrono::steady_clock::now() - stats.apm_stats_->heartbeats.hb_started
+            std::chrono::steady_clock::now() - stats.apm_stats->heartbeats.hb_started
         );
         span->AddTag("heartbeat_time", diff.count());
     }
@@ -189,7 +191,7 @@ void HeartbeatFinished(stats::ConnStats& stats) {
 
 void HeartbeatSuccess(const mongoc_apm_server_heartbeat_succeeded_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_succeeded_get_context(event));
-    ++stats.apm_stats_->heartbeats.success;
+    ++stats.apm_stats->heartbeats.success;
     LOG_LIMITED_DEBUG() << mongoc_apm_server_heartbeat_succeeded_get_host(event)->host_and_port
                         << " heartbeat succeeded";
     HeartbeatFinished(stats);
@@ -197,7 +199,7 @@ void HeartbeatSuccess(const mongoc_apm_server_heartbeat_succeeded_t* event) {
 
 void HeartbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_failed_get_context(event));
-    ++stats.apm_stats_->heartbeats.failed;
+    ++stats.apm_stats->heartbeats.failed;
 
     MongoError error;
     mongoc_apm_server_heartbeat_failed_get_error(event, error.GetNative());
@@ -277,7 +279,7 @@ std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* eve
 
 void TopologyChanged(const mongoc_apm_topology_changed_t* event) {
     auto& stats = GetStats(mongoc_apm_topology_changed_get_context(event));
-    ++stats.apm_stats_->topology.changed;
+    ++stats.apm_stats->topology.changed;
 
     LOG_INFO() << CreateTopologyChangeMessage(event);
 }
@@ -288,6 +290,18 @@ void TopologyOpening(const mongoc_apm_topology_opening_t*) {
 
 void TopologyClosed(const mongoc_apm_topology_closed_t*) {
     LOG_DEBUG() << "The driver stops monitoring a server topology and destroys it";
+}
+
+void CreateGlobalInitializer() {
+    // Initialize static variable, and wait not on std::mutex, but on engine::Mutex.
+    // Otherwise, CPU will burn.
+    static engine::Mutex mutex;
+    const std::lock_guard lock(mutex);
+
+    static std::optional<GlobalInitializer> kInitMongoc;
+    engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [] {
+        if (!kInitMongoc) kInitMongoc.emplace();
+    }).Get();
 }
 
 }  // namespace
@@ -312,7 +326,7 @@ CDriverPoolImpl::CDriverPoolImpl(
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.pool_settings.max_size) {
-    static const GlobalInitializer kInitMongoc;
+    CreateGlobalInitializer();
     GlobalInitializer::LogInitWarningsOnce();
 
     SetConnectionString(uri_string);
@@ -327,7 +341,7 @@ CDriverPoolImpl::CDriverPoolImpl(
 
     std::size_t i = 0;
     try {
-        tracing::Span span("mongo_prepopulate");
+        const tracing::Span span("mongo_prepopulate");
         LOG_INFO() << "Creating " << config.pool_settings.initial_size << " mongo connections";
         for (; i < config.pool_settings.initial_size; ++i) {
             engine::SemaphoreLock lock(in_use_semaphore_);
@@ -356,7 +370,7 @@ CDriverPoolImpl::CDriverPoolImpl(
 CDriverPoolImpl::~CDriverPoolImpl() {
     Stop();  // Must be the first line in the destructor
 
-    tracing::Span span("mongo_destroy");
+    const tracing::Span span("mongo_destroy");
     maintenance_task_.Stop();
 }
 
@@ -440,7 +454,7 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Pop() {
     std::optional<engine::Deadline::Duration> inherited_timeout{};
 
     const auto dynamic_config = GetConfig();
-    if (dynamic_config[kDeadlinePropagationEnabled]) {
+    if (dynamic_config[::dynamic_config::MONGO_DEADLINE_PROPAGATION_ENABLED_V2]) {
         HandleCancellations(queue_deadline, inherited_timeout);
     }
 

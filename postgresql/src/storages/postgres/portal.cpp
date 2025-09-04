@@ -9,12 +9,12 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 struct Portal::Impl {
-    detail::Connection* conn_{nullptr};
-    OptionalCommandControl cmd_ctl_;
-    detail::Connection::StatementId statement_id_;
-    PortalName name_;
-    std::size_t fetched_so_far_{0};
-    bool done_{false};
+    detail::Connection* conn{nullptr};
+    OptionalCommandControl cmd_ctl;
+    detail::Connection::StatementId statement_id;
+    PortalName name;
+    std::size_t fetched_so_far{0};
+    bool done{false};
 
     Impl(
         detail::Connection* conn,
@@ -23,12 +23,12 @@ struct Portal::Impl {
         const detail::QueryParameters& params,
         OptionalCommandControl cmd_ctl
     )
-        : conn_{conn}, cmd_ctl_{std::move(cmd_ctl)}, name_{name} {
-        if (conn_) {
-            if (!cmd_ctl_) {
-                cmd_ctl_ = conn_->GetQueryCmdCtl(query.GetName());
+        : conn{conn}, cmd_ctl{std::move(cmd_ctl)}, name{name} {
+        if (conn) {
+            if (!cmd_ctl) {
+                cmd_ctl = conn->GetQueryCmdCtl(query.GetOptionalNameView());
             }
-            Bind(query.Statement(), params);
+            Bind(query.GetStatementView(), params);
         }
     }
 
@@ -40,28 +40,28 @@ struct Portal::Impl {
 
     void Swap(Impl& rhs) noexcept {
         using std::swap;
-        swap(conn_, rhs.conn_);
-        swap(cmd_ctl_, rhs.cmd_ctl_);
-        swap(statement_id_, rhs.statement_id_);
-        swap(name_, rhs.name_);
-        swap(fetched_so_far_, rhs.fetched_so_far_);
-        swap(done_, rhs.done_);
+        swap(conn, rhs.conn);
+        swap(cmd_ctl, rhs.cmd_ctl);
+        swap(statement_id, rhs.statement_id);
+        swap(name, rhs.name);
+        swap(fetched_so_far, rhs.fetched_so_far);
+        swap(done, rhs.done);
     }
 
-    void Bind(const std::string& statement, const detail::QueryParameters& params) {
-        statement_id_ = conn_->PortalBind(statement, name_.GetUnderlying(), params, cmd_ctl_);
+    void Bind(USERVER_NAMESPACE::utils::zstring_view statement, const detail::QueryParameters& params) {
+        statement_id = conn->PortalBind(statement, name.GetUnderlying(), params, cmd_ctl);
     }
 
     ResultSet Fetch(std::uint32_t n_rows) {
-        if (!done_) {
-            UASSERT(conn_);
-            auto res = conn_->PortalExecute(statement_id_, name_.GetUnderlying(), n_rows, cmd_ctl_);
+        if (!done) {
+            UASSERT(conn);
+            auto res = conn->PortalExecute(statement_id, name.GetUnderlying(), n_rows, cmd_ctl);
             auto fetched = res.Size();
             // TODO: check command completion in result TAXICOMMON-4505
             if (!n_rows || fetched != n_rows) {
-                done_ = true;
+                done = true;
             }
-            fetched_so_far_ += fetched;
+            fetched_so_far += fetched;
             return res;
         } else {
             // TODO Specific exception
@@ -94,8 +94,8 @@ Portal& Portal::operator=(Portal&&) noexcept = default;
 
 ResultSet Portal::Fetch(std::uint32_t n_rows) { return pimpl_->Fetch(n_rows); }
 
-bool Portal::Done() const { return pimpl_->done_; }
-std::size_t Portal::FetchedSoFar() const { return pimpl_->fetched_so_far_; }
+bool Portal::Done() const { return pimpl_->done; }
+std::size_t Portal::FetchedSoFar() const { return pimpl_->fetched_so_far; }
 
 bool Portal::IsSupportedByDriver() noexcept {
 #ifndef USERVER_NO_LIBPQ_PATCHES

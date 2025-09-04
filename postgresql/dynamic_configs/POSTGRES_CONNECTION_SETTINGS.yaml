@@ -1,7 +1,29 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls settings for newly created connections of
+    PostgreSQL driver.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    PostgreSQL component of the service.
+
+    Take note that it overrides the static configuration values of the service!
 schema:
     type: object
+    example: |
+        {
+            "__default__": {
+                "persistent-prepared-statements": true,
+                "user-types-enabled": true,
+                "check-user-types": false,
+                "max-prepared-cache-size": 5000,
+                "ignore-unused-query-params": false,
+                "recent-errors-threshold": 2
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/ConnectionSettings"
     additionalProperties:
         $ref: "#/definitions/ConnectionSettings"
     definitions:
@@ -25,6 +47,7 @@ schema:
                     type: integer
                     minimum: 1
                     default: 5000
+                    x-usrv-cpp-type: std::size_t
                     description: Prepared statements cache size limit.
                 recent-errors-threshold:
                     type: integer
@@ -37,6 +60,7 @@ schema:
                 max-ttl-sec:
                     type: integer
                     minimum: 1
+                    x-usrv-cpp-type: std::chrono::seconds
                     description: The maximum lifetime of the connection (in seconds)
                         after which it will be closed. The actual lifetime will be
                         chosen randomly within range [max-ttl/2, max-ttl]. By default,

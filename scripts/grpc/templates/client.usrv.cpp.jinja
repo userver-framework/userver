@@ -13,9 +13,20 @@
 {% for service in proto.services %}
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
-inline constexpr std::string_view k{{service.name}}MethodNames[] = {
+inline constexpr std::array<USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor, {{service.method | length}}> k{{service.name}}Methods = {
 {% for method in service.method %}
-    "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+    USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor{
+        "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+{% if method.client_streaming and method.server_streaming %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kBidiStreaming,
+{% elif method.client_streaming %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kClientStreaming,
+{% elif method.server_streaming %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kServerStreaming,
+{% else %}
+        USERVER_NAMESPACE::ugrpc::impl::RpcType::kUnary,
+{% endif %}
+    },
 {% endfor %}
 };
 
@@ -37,51 +48,69 @@ inline const bool k{{service.name}}TypesRegistration =
 {% for method in service.method %}
 {% set method_id = loop.index0 %}
 
-{% if not method.client_streaming and not method.server_streaming %}
+{% if method.client_streaming and method.server_streaming %}
+{{service.name}}Client::{{method.name}}ReaderWriter {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            impl_, {{method_id}}, std::move(call_options)
+        ),
+        &{{service.name}}::Stub::PrepareAsync{{method.name}},
+    };
+}
+{% elif method.client_streaming %}
+{{service.name}}Client::{{method.name}}Writer {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            impl_, {{method_id}}, std::move(call_options)
+        ),
+        &{{service.name}}::Stub::PrepareAsync{{method.name}},
+    };
+}
+{% elif method.server_streaming %}
+{{service.name}}Client::{{method.name}}Reader {{service.name}}Client::{{method.name}}(
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            impl_, {{method_id}}, std::move(call_options)
+        ),
+        &{{service.name}}::Stub::PrepareAsync{{method.name}},
+        request,
+    };
+}
+{% else %}
 {{ method.output_type | grpc_to_cpp_name }} {{service.name}}Client::{{method.name}}(
     const {{ method.input_type | grpc_to_cpp_name }}& request,
-    std::unique_ptr<::grpc::ClientContext> context,
-    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
 ) const {
-    return Async{{method.name}}(request, std::move(context), qos).Get();
+    return USERVER_NAMESPACE::ugrpc::client::impl::PerformUnaryCall(
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            impl_, {{method_id}}, std::move(call_options)
+        ),
+        USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
+            &{{service.name}}::Stub::PrepareAsync{{method.name}}
+        ),
+        request
+    );
 }
 
 {{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(
     const {{ method.input_type | grpc_to_cpp_name }}& request,
-    std::unique_ptr<::grpc::ClientContext> context,
-    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
 ) const {
     return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(context), qos
+            impl_, {{method_id}}, std::move(call_options)
         ),
-        [](auto& stub, auto&&... args) {
-            return stub.template Get<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}::Stub>().PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...);
-        },
-        request,
-    };
-}
-{% endif %}
-{% if method.client_streaming or method.server_streaming %}
-
-{{service.name}}Client::{{method.name}}Call
-{{service.name}}Client::{{method.name}}(
-    {% if not method.client_streaming %}
-    const {{ method.input_type | grpc_to_cpp_name }}& request,
-    {% endif %}
-    std::unique_ptr<::grpc::ClientContext> context,
-    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
-) const {
-    return {
-        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(context), qos
+        USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
+            &{{service.name}}::Stub::PrepareAsync{{method.name}}
         ),
-        [](auto& stub, auto&&... args) {
-            return stub.template Get<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}::Stub>().PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...);
-        },
-{% if not method.client_streaming %}
         request,
-{% endif %}
     };
 }
 {% endif %}
@@ -93,7 +122,7 @@ USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
 
   return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<
       {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
-          k{{service.name}}MethodNames);
+          k{{service.name}}Methods);
 }
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

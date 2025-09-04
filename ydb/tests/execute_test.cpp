@@ -268,7 +268,7 @@ TYPED_UTEST(YdbExecuteTpl, InsertRowWrite) {
         ydb::InsertColumn{"value_str", std::string{"value1"}},
         ydb::InsertColumn{"value_int", int32_t{1}},
     };
-    std::vector<ydb::InsertRow> rows{row};
+    const std::vector<ydb::InsertRow> rows{row};
 
     auto response = this->Execute(ydb::OperationSettings{}, query, "$items", rows);
     ASSERT_EQ(response.GetCursorCount(), 0);
@@ -441,7 +441,7 @@ TYPED_UTEST(YdbExecuteTpl, IsQueryFromCache) {
 }
 
 UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
-    utils::statistics::Storage storage;
+    const utils::statistics::Storage storage;
 
     CreateTable("test_table", true);
     auto transaction = GetTableClient().Begin("test_transaction");

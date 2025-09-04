@@ -2,8 +2,6 @@ import collections
 import dataclasses
 import os
 import pathlib
-from typing import Dict
-from typing import List
 from typing import Optional
 
 import jinja2
@@ -26,7 +24,7 @@ class CppOutputFile:
 @dataclasses.dataclass
 class CppOutput:
     filepath_wo_ext: str
-    files: List[CppOutputFile]
+    files: list[CppOutputFile]
 
 
 current_namespace = ''  # pylint: disable=invalid-name
@@ -76,14 +74,14 @@ def cpp_type(name: str) -> str:
     return name_part
 
 
-def declaration_includes(types: List[cpp_types.CppType]) -> List[str]:
+def declaration_includes(types: list[cpp_types.CppType]) -> list[str]:
     includes = set()
     for type_ in types:
         includes.update(set(type_.declaration_includes()))
     return sorted(includes)
 
 
-def definition_includes(types: List[cpp_types.CppType]) -> List[str]:
+def definition_includes(types: list[cpp_types.CppType]) -> list[str]:
     includes = set()
     for type_ in types:
         includes.update(set(type_.definition_includes()))
@@ -144,7 +142,7 @@ class OneToOneFileRenderer:
         self,
         *,
         relative_to: str,
-        vfilepath_to_relfilepath: Dict[str, str],
+        vfilepath_to_relfilepath: dict[str, str],
         clang_format_bin: str,
         parse_extra_formats: bool = False,
         generate_serializer: bool = False,
@@ -165,9 +163,9 @@ class OneToOneFileRenderer:
 
     def extract_external_includes(
         self,
-        types_cpp: Dict[str, cpp_types.CppType],
+        types_cpp: dict[str, cpp_types.CppType],
         ignore_filepath_wo_ext: str,
-    ) -> List[str]:
+    ) -> list[str]:
         result = set()
 
         def visitor(
@@ -200,11 +198,11 @@ class OneToOneFileRenderer:
 
     def render(
         self,
-        types: Dict[str, cpp_types.CppType],
+        types: dict[str, cpp_types.CppType],
         local_pair_header=True,
         pair_header: Optional[str] = None,
-    ) -> List[CppOutput]:
-        files: Dict[str, Dict[str, cpp_types.CppType]] = collections.defaultdict(dict)
+    ) -> list[CppOutput]:
+        files: dict[str, dict[str, cpp_types.CppType]] = collections.defaultdict(dict)
 
         for name, type_ in types.items():
             assert type_.json_schema
@@ -295,3 +293,12 @@ class OneToOneFileRenderer:
             )
 
         return output
+
+    @staticmethod
+    def get_output_files(stem: str, path: str) -> list[str]:
+        return [
+            f'include/{path}/{stem}_fwd.hpp',
+            f'include/{path}/{stem}_parsers.ipp',
+            f'include/{path}/{stem}.hpp',
+            f'src/{path}/{stem}.cpp',
+        ]

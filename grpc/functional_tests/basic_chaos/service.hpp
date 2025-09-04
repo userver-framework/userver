@@ -58,7 +58,7 @@ GreeterServiceComponent::SayHello(CallContext& /*context*/, api::GreetingRequest
     if (request.name() == "test_payload_cancellation") {
         engine::InterruptibleSleepFor(std::chrono::seconds(20));
         if (engine::current_task::IsCancelRequested()) {
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             TESTPOINT("testpoint_cancel", {});
         }
     }
@@ -130,7 +130,7 @@ GreeterServiceComponent::SayHelloIndependentStreamsResult GreeterServiceComponen
 
     auto write_task = engine::AsyncNoSpan([&stream, prefix = prefix_, &kTimeIntervalWrite] {
         api::GreetingResponse response;
-        std::array kNames = {
+        const std::array kNames = {
             "Python", "C++", "linux", "userver", "grpc", "kernel", "developer", "core", "anonymous", "user"};
         for (const auto& name : kNames) {
             response.set_greeting(fmt::format("{}, {}", prefix, name));

@@ -46,8 +46,8 @@ async def _gate(gate_settings, clickhouse_conn_info):
 
 @pytest.fixture(name='gate')
 async def _gate_ready(service_client, _gate):
-    _gate.to_client_pass()
-    _gate.to_server_pass()
+    await _gate.to_client_pass()
+    await _gate.to_server_pass()
     _gate.start_accepting()
 
     await _gate.wait_for_connections(timeout=5.0)

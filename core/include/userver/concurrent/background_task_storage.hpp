@@ -57,6 +57,10 @@ private:
 /// limited lifetime. You must guarantee that the resources are available while
 /// the BackgroundTaskStorage is alive.
 ///
+/// @note The implementation is optimized for spawning tasks. Waiting for remaining tasks may be slow CPU-wise.
+/// As a guideline, do not create `BackgroundTaskStorage` instances for each request, use `std::vector<Task>`
+/// for storing per-request child tasks instead.
+///
 /// ## Usage synopsis
 ///
 /// @snippet concurrent/background_task_storage_test.cpp  Sample

@@ -73,7 +73,7 @@ void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) con
     DeliveryResult delivery_result{message->err, message_status};
     const auto message_latency_ms = GetMessageLatency(message);
 
-    LOG_DEBUG() << fmt::format(
+    LOG(debug_info_log_level_) << fmt::format(
         "Message delivery report: err: {}, status: {}, latency: {}ms",
         rd_kafka_err2str(message->err),
         kMessageStatus.TryFind(message_status).value_or(utils::StringLiteral{"<bad status>"}),
@@ -85,7 +85,7 @@ void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) con
     if (delivery_result.IsSuccess()) {
         ++topic_stats->messages_counts.messages_success;
 
-        LOG_INFO() << fmt::format(
+        LOG(operation_log_level_) << fmt::format(
             "Message to topic '{}' delivered successfully to "
             "partition "
             "{} by offset {} in {}ms",
@@ -97,16 +97,21 @@ void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) con
     } else {
         ++topic_stats->messages_counts.messages_error;
 
-        LOG_WARNING(
-        ) << fmt::format("Failed to delivery message to topic '{}': {}", topic_name, rd_kafka_err2str(message->err));
+        LOG_WARNING("Failed to delivery message to topic '{}': {}", topic_name, rd_kafka_err2str(message->err));
     }
 
     complete_handle->SetDeliveryResult(std::move(delivery_result));
     delete complete_handle;
 }
 
-ProducerImpl::ProducerImpl(Configuration&& configuration)
+ProducerImpl::ProducerImpl(
+    Configuration&& configuration,
+    const logging::Level debug_info_log_level,
+    const logging::Level operation_log_level
+)
     : delivery_timeout_(std::stoull(configuration.GetOption("delivery.timeout.ms"))),
+      debug_info_log_level_(debug_info_log_level),
+      operation_log_level_(operation_log_level),
       producer_(std::move(configuration).Release()) {
     /// Sets the callback which is called when delivery reports queue transfers
     /// from empty state to non-empty.
@@ -114,7 +119,7 @@ ProducerImpl::ProducerImpl(Configuration&& configuration)
     /// one.
     rd_kafka_queue_cb_event_enable(producer_.GetQueue(), &EventCallbackProxy, this);
 
-    utils::PeriodicTask::Settings settings{std::chrono::seconds{1}};
+    const utils::PeriodicTask::Settings settings{std::chrono::seconds{1}};
     log_events_handler_.Start("kafka_producer_log_events_handler", settings, [this] {
         HandleEvents("log events handler");
     });
@@ -123,13 +128,13 @@ ProducerImpl::ProducerImpl(Configuration&& configuration)
 const Stats& ProducerImpl::GetStats() const { return stats_; }
 
 DeliveryResult ProducerImpl::Send(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
     HeadersHolder headers_holder
 ) const {
-    LOG_INFO() << fmt::format("Message to topic '{}' is requested to send", topic_name);
+    LOG(operation_log_level_) << fmt::format("Message to topic '{}' is requested to send", topic_name);
     auto delivery_result_future =
         ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder));
 
@@ -139,7 +144,7 @@ DeliveryResult ProducerImpl::Send(
 }
 
 engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
@@ -199,8 +204,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
         [[maybe_unused]] const auto _headers_holder = headers_holder.release();
         [[maybe_unused]] const auto _waiter = waiter.release();
     } else {
-        LOG_WARNING(
-        ) << fmt::format("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
+        LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
         waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
     }
 
@@ -228,7 +232,7 @@ void ProducerImpl::DispatchEvent(const EventHolder& event_holder) const {
         case RD_KAFKA_EVENT_DR: {
             const std::size_t message_count = rd_kafka_event_message_count(event);
             UASSERT_MSG(message_count > 0, "No messages in RD_KAFKA_EVENT_DR");
-            LOG_DEBUG() << fmt::format("Delivery report event with {} messages", message_count);
+            LOG(debug_info_log_level_) << fmt::format("Delivery report event with {} messages", message_count);
 
             while (const auto* message = rd_kafka_event_message_next(event)) {
                 DeliveryReportCallback(message);
@@ -259,7 +263,7 @@ std::size_t ProducerImpl::HandleEvents(std::string_view context) const {
         ++handled;
     }
 
-    LOG_DEBUG() << fmt::format("Handled {} events ({})", handled, context);
+    LOG(debug_info_log_level_) << fmt::format("Handled {} events ({})", handled, context);
 
     return handled;
 }
@@ -309,14 +313,14 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
         if (HandleEvents("after waiter created, before sleep")) {
             waiters_.PopWaiter(waiter);
             if (waiter.event.IsReady()) {  // (N)
-                LOG_DEBUG() << "Waiter were signaled before sleeping!";
+                LOG_DEBUG("Waiter were signaled before sleeping!");
                 HandleEvents("after waiter popped, before sleep");
             }
             continue;
         }
 
         auto waked_up_by = engine::WaitAny(waiter.event, delivery_result);
-        LOG_DEBUG() << fmt::format(
+        LOG(debug_info_log_level_) << fmt::format(
             "Wake up reason: {}",
             waked_up_by.has_value() ? (waked_up_by == 0 ? "EventCallback" : "DeliveryResult") : "Cancel"
         );
@@ -346,9 +350,11 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
             /// waitAny is canceled, but delivery reports are handled in another tasks
             /// or/and in producer's dctor.
 
-            LOG_WARNING() << "Delivery waiting loop is canceled before the message "
-                             "is delivered. Ensure to call a producer destructor to "
-                             "guarantee that all messages are delivered";
+            LOG_WARNING(
+                "Delivery waiting loop is canceled before the message "
+                "is delivered. Ensure to call a producer destructor to "
+                "guarantee that all messages are delivered"
+            );
             break;
         }
     }
@@ -359,7 +365,7 @@ void ProducerImpl::EventCallback() {
     /// coroutine environment, therefore not all synchronization
     /// primitives can be used in the callback body.
 
-    LOG_INFO() << "Producer events queue became non-empty. Waking up event waiter";
+    LOG(debug_info_log_level_) << "Producer events queue became non-empty. Waking up event waiter";
     waiters_.PopAndWakeupOne();
 }
 
@@ -376,7 +382,7 @@ void ProducerImpl::WaitUntilAllMessagesDelivered() && {
         /// `rd_kafka_flush` returns true if no messages are waiting for the
         /// delivery
         if (rd_kafka_flush(producer_.GetHandle(), /*timeout_ms=*/0) == RD_KAFKA_RESP_ERR_NO_ERROR) {
-            LOG_INFO() << "All messages are successfully delivered";
+            LOG(operation_log_level_) << "All messages are successfully delivered";
             break;
         }
         engine::SleepFor(flush_step_duration);
@@ -384,13 +390,13 @@ void ProducerImpl::WaitUntilAllMessagesDelivered() && {
         HandleEvents("waiting until all messages delivered");
 
         if (step < kFlushSteps) {
-            LOG_WARNING() << fmt::format(
+            LOG_WARNING(
                 "[retry {}] Producer flushing timeouted on producer destroy. Waiting "
                 "more..",
                 step
             );
         } else {
-            LOG_ERROR() << fmt::format("Some producer messages are probably not delivered :(");
+            LOG_ERROR("Some producer messages are probably not delivered :(");
         }
     }
 }

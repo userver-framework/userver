@@ -32,7 +32,7 @@ UTEST(HttpResponse, Smoke) {
     std::vector<char> buffer(4096, '\0');
     const auto reply_size = client.RecvAll(buffer.data(), buffer.size(), test_deadline);
 
-    std::string_view reply{buffer.data(), reply_size};
+    const std::string_view reply{buffer.data(), reply_size};
     constexpr std::string_view expected_header = "HTTP/1.1 200 OK\r\n";
     ASSERT_EQ(reply.substr(0, expected_header.size()), expected_header);
     const auto expected_content_length = fmt::format("\r\n{}: {}\r\n", http::headers::kContentLength, kBody.size());
@@ -95,8 +95,8 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
     std::vector<char> buffer(4096, '\0');
     const auto reply_size = client.RecvAll(buffer.data(), buffer.size(), test_deadline);
 
-    std::string_view reply{buffer.data(), reply_size};
-    std::string expected_header = "HTTP/1.1 " + std::to_string(GetParam()) + " ";
+    const std::string_view reply{buffer.data(), reply_size};
+    const std::string expected_header = "HTTP/1.1 " + std::to_string(GetParam()) + " ";
     ASSERT_EQ(reply.substr(0, expected_header.size()), expected_header);
     EXPECT_TRUE(reply.find(http::headers::kContentLength) == std::string_view::npos);
     EXPECT_EQ(reply.substr(reply.size() - 4), "\r\n\r\n");

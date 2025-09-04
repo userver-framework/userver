@@ -4,6 +4,7 @@
 #include <logging/logging_test.hpp>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN

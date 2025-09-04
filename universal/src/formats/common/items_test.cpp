@@ -91,7 +91,7 @@ TEST(FormatsItems, Iterations) {
 
     ASSERT_NE(it, items.end());
     auto value_x = *it;
-    std::string key_x = value_x.key;
+    const std::string key_x = value_x.key;
     auto v_x = value_x.value;
 
     it++;

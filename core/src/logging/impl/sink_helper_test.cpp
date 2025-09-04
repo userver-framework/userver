@@ -18,8 +18,8 @@ std::vector<std::string> NormalizeLogs(const std::string& data) {
     std::vector<std::string> result;
     result.reserve(logs.size());
 
-    boost::locale::generator gen;
-    std::locale loc = gen("");
+    const boost::locale::generator gen;
+    const std::locale loc = gen("");
     for (const auto& log : logs) {
         auto replace_datetime = utils::regex_replace(log, regexp_pattern, result_pattern);
         if (!replace_datetime.empty()) {

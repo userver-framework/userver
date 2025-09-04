@@ -112,7 +112,7 @@ void Echo::ProcessSocket(engine::io::Socket&& sock) {
     tracing::Span span{fmt::format("sock_{}", sock_num)};
     span.AddTag("fd", std::to_string(sock.Fd()));
 
-    utils::FastScopeGuard guard{[this]() noexcept {
+    const utils::FastScopeGuard guard{[this]() noexcept {
         LOG_INFO() << "Closing socket";
         ++stats_.closed_sockets;
     }};

@@ -35,15 +35,7 @@ const std::string& DoAt(HeaderMap::ConstIterator it, HeaderMap::ConstIterator en
 
 HeaderMap::HeaderMap() = default;
 
-HeaderMap::HeaderMap(std::initializer_list<std::pair<std::string, std::string>> headers) {
-    reserve(headers.size());
-
-    for (const auto& [name, value] : headers) {
-        emplace(name, value);
-    }
-}
-
-HeaderMap::HeaderMap(std::initializer_list<std::pair<PredefinedHeader, std::string>> headers) {
+HeaderMap::HeaderMap(std::initializer_list<std::pair<std::string_view, std::string_view>> headers) {
     reserve(headers.size());
 
     for (const auto& [name, value] : headers) {

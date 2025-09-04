@@ -422,9 +422,9 @@ struct ResolverWrapper {
               }(),
               engine::current_task::GetTaskProcessor().GetTaskProcessorPools()},
           resolver{fs_task_processor, [&] {
-                       clients::dns::ResolverConfig config;
-                       config.file_path = hosts_file.GetPath();
-                       config.file_update_interval = utest::kMaxTestWaitTime;
+                       ::userver::static_config::DnsClient config;
+                       config.hosts_file_path = hosts_file.GetPath();
+                       config.hosts_file_update_interval = utest::kMaxTestWaitTime;
                        config.network_timeout = utest::kMaxTestWaitTime;
                        config.network_attempts = 1;
                        config.cache_max_reply_ttl = std::chrono::seconds{1};
@@ -551,7 +551,7 @@ std::string DifferentUrlsRetry(
 }  // namespace
 
 UTEST(HttpClient, PostEcho) {
-    EchoCallback cb;
+    const EchoCallback cb;
     const utest::SimpleServer http_server{cb};
     auto http_client_ptr = utest::CreateHttpClient();
 
@@ -1129,7 +1129,7 @@ UTEST(HttpClient, BasicUsage) {
 
     const auto url = http_server_final.GetBaseUrl();
     auto& http_client = *http_client_ptr;
-    std::string data{};
+    const std::string data{};
 
     /// [Sample HTTP Client usage]
     const auto response = http_client.CreateRequest().post(url, data).timeout(std::chrono::seconds(1)).perform();
@@ -1190,7 +1190,7 @@ UTEST(HttpClient, RedirectHeaders) {
     const utest::SimpleServer http_server_redirect{Response301WithHeader{http_server_final.GetBaseUrl(), "xxx: bad"}};
     const auto url = http_server_redirect.GetBaseUrl();
     auto& http_client = *http_client_ptr;
-    std::string data{};
+    const std::string data{};
 
     const auto response = http_client.CreateRequest().post(url, data).timeout(std::chrono::seconds(1)).perform();
 
@@ -1294,7 +1294,7 @@ UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
 }
 
 UTEST(HttpClient, RequestReuseBasic) {
-    EchoCallback shared_echo_callback;
+    const EchoCallback shared_echo_callback;
     const utest::SimpleServer http_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
 
     std::string data = "Some long long request";
@@ -1323,7 +1323,7 @@ UTEST(HttpClient, RequestReuseBasic) {
 }
 
 UTEST(HttpClient, RequestReuseSample) {
-    EchoCallback shared_echo_callback{};
+    const EchoCallback shared_echo_callback{};
     const utest::SimpleServer http_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
     const utest::SimpleServer http_sleep_server{sleep_callback_1s};
 
@@ -1366,7 +1366,7 @@ UTEST(HttpClient, RequestReuseSample) {
 }
 
 UTEST(HttpClient, DISABLED_RequestReuseSampleStream) {
-    EchoCallback shared_echo_callback{};
+    const EchoCallback shared_echo_callback{};
     const utest::SimpleServer http_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
     const utest::SimpleServer http_sleep_server{sleep_callback_1s};
 
@@ -1392,7 +1392,7 @@ UTEST(HttpClient, DISABLED_RequestReuseSampleStream) {
 }
 
 UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
-    EchoCallback shared_echo_callback;
+    const EchoCallback shared_echo_callback;
     const utest::SimpleServer http_echo_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
     const utest::SimpleServer http_sleep_server{sleep_callback_1s};
 
@@ -1449,11 +1449,11 @@ UTEST_DEATH(HttpClientDeathTest, TestsuiteAllowedUrls) {
 }
 
 UTEST(HttpClient, TestConnectTo) {
-    EchoCallback cb;
+    const EchoCallback cb;
     const utest::SimpleServer http_server{cb};
     auto http_client_ptr = utest::CreateHttpClient();
 
-    clients::http::ConnectTo connect_to("0.0.0.0:42:127.0.0.1:" + std::to_string(http_server.GetPort()));
+    const clients::http::ConnectTo connect_to("0.0.0.0:42:127.0.0.1:" + std::to_string(http_server.GetPort()));
     auto request = http_client_ptr->CreateRequest()
                        .connect_to(connect_to)
                        .post("http://0.0.0.0:42", kTestData)
@@ -1468,7 +1468,7 @@ UTEST(HttpClient, TestConnectTo) {
 }
 
 UTEST(HttpClient, TestUseIPv4v6) {
-    EchoCallback cb;
+    const EchoCallback cb;
     const utest::SimpleServer http_server{cb, utest::SimpleServer::kTcpIpV4};
 
     auto http_client_ptr = utest::CreateHttpClient();
@@ -1541,7 +1541,7 @@ UTEST(HttpRequest, GracefulExceptionOnInvalidUrl) {
 }
 
 UTEST(HttpClient, DigestAuth) {
-    AuthCallback auth_callback;
+    const AuthCallback auth_callback;
     const utest::SimpleServer http_server{auth_callback};
     auto http_client = utest::CreateHttpClient();
     // Good case

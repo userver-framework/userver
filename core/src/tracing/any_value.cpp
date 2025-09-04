@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/serialize/write_to_stream.hpp>
 #include <userver/utils/assert.hpp>
@@ -36,11 +37,11 @@ utils::StringLiteral ToString(ValueIndex index) {
     UINVARIANT(false, fmt::format("Unexpected index: {}", static_cast<std::uint8_t>(index)));
 }
 
-template <ValueIndex expected>
+template <ValueIndex Expected>
 void CheckIndex(std::uint8_t actual) {
     UASSERT_MSG(
-        actual == expected,
-        fmt::format("Expected: '{}', Actual: '{}'", ToString(expected), ToString(static_cast<ValueIndex>(actual)))
+        actual == Expected,
+        fmt::format("Expected: '{}', Actual: '{}'", ToString(Expected), ToString(static_cast<ValueIndex>(actual)))
     );
 }
 

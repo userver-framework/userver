@@ -1,4 +1,6 @@
 default: false
-description: ''
+description: |
+    Controls whether the logging of HTTP headers in handlers is performed.
+    To ensure safety, all header values will be output as `***` unless specified in @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST.
 schema:
     type: boolean

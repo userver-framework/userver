@@ -11,7 +11,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(LogExtra, Types) {
-    logging::LogExtra le{
+    const logging::LogExtra le{
         {"unsigned int", 1U},          //
         {"int", 1},                    //
         {"long", 1L},                  //

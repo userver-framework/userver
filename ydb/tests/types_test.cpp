@@ -5,6 +5,9 @@
 
 #include <string>
 
+#include <userver/utils/boost_uuid4.hpp>
+
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <userver/ydb/io/structs.hpp>
@@ -12,6 +15,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+const auto uuid_val = utils::BoostUuidFromString("177511FB-F5F7-4E20-9746-6536B6C0D0BA");
 
 class TTypesYdbTestCase : public ydb::ClientFixtureBase {
 protected:
@@ -32,6 +37,7 @@ private:
                 .AddNullableColumn("value_str", NYdb::EPrimitiveType::String)
                 .AddNullableColumn("value_utf8", NYdb::EPrimitiveType::Utf8)
                 .AddNullableColumn("value_ts", NYdb::EPrimitiveType::Timestamp)
+                .AddNullableColumn("value_uuid", NYdb::EPrimitiveType::Uuid)
                 .AddNullableColumn("value_json", NYdb::EPrimitiveType::Json)
                 .AddNullableColumn("value_json_doc", NYdb::EPrimitiveType::JsonDocument)
                 .SetPrimaryKeyColumn("key")
@@ -46,6 +52,7 @@ private:
               value_int32, value_uint32, value_int64, value_uint64,
               value_double, value_str, value_utf8,
               value_ts,
+              value_uuid,
               value_json,
               value_json_doc
           ) VALUES (
@@ -53,12 +60,14 @@ private:
               -32, 32, -64, 64,
               1.23, "str", "utf8",
               CAST(123 AS Timestamp),
+              CAST("177511FB-F5F7-4E20-9746-6536B6C0D0BA" AS Uuid),
               CAST('{"qwe": "asd", "zxc": 123}' AS Json),
               CAST('{"qwe": 123, "zxc": "asd"}' AS JsonDocument)
           ), (
               "key_null", null,
               null, null, null, null,
               null, null, null,
+              null,
               null,
               null,
               null
@@ -127,6 +136,7 @@ UTEST_F(TTypesYdbTestCase, ResponseValueType) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         FROM different_types_test
@@ -150,6 +160,7 @@ UTEST_F(TTypesYdbTestCase, ResponseValueType) {
         AssertNullableColumn(row, "value_str", std::string{"str"});
         AssertNullableColumn(row, "value_utf8", ydb::Utf8{"utf8"});
         AssertNullableColumn(row, "value_ts", std::chrono::system_clock::time_point(std::chrono::microseconds{123}));
+        AssertNullableColumn(row, "value_uuid", uuid_val);
         AssertNullableColumn(row, "value_json", formats::json::FromString(R"({"qwe": "asd", "zxc": 123})"));
         AssertNullableColumn(
             row, "value_json_doc", ydb::JsonDocument(formats::json::FromString(R"({"qwe":123,"zxc":"asd"})"))
@@ -172,6 +183,7 @@ UTEST_F(TTypesYdbTestCase, ResponseNullValueType) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         FROM different_types_test
@@ -195,6 +207,7 @@ UTEST_F(TTypesYdbTestCase, ResponseNullValueType) {
         AssertNullColumn<std::string>(row, "value_str");
         AssertNullColumn<ydb::Utf8>(row, "value_utf8");
         AssertNullColumn<std::chrono::system_clock::time_point>(row, "value_ts");
+        AssertNullColumn<boost::uuids::uuid>(row, "value_uuid");
         AssertNullColumn<formats::json::Value>(row, "value_json");
         AssertNullColumn<ydb::JsonDocument>(row, "value_json_doc");
     }
@@ -212,6 +225,7 @@ UTEST_F(TTypesYdbTestCase, PreparedRequestType) {
     DoTestPreparedRequestType(
         GetTableClient(), "Timestamp", "value_ts", std::chrono::system_clock::time_point{std::chrono::microseconds{123}}
     );
+    DoTestPreparedRequestType(GetTableClient(), "Uuid", "value_uuid", uuid_val);
 }
 
 UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
@@ -227,6 +241,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
         DECLARE $data_str AS String;
         DECLARE $data_utf8 AS Utf8;
         DECLARE $data_ts AS Timestamp;
+        DECLARE $data_uuid AS Uuid;
         DECLARE $data_json AS String;
         DECLARE $data_json_doc AS String;
 
@@ -241,6 +256,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         ) VALUES (
@@ -254,6 +270,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
             $data_str,
             $data_utf8,
             $data_ts,
+            $data_uuid,
             CAST($data_json AS Json),
             CAST($data_json_doc AS JsonDocument)
         );
@@ -271,6 +288,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
     UASSERT_NO_THROW(builder.Add("$data_str", std::string{"string"}));
     UASSERT_NO_THROW(builder.Add("$data_utf8", ydb::Utf8{"utf8"}));
     UASSERT_NO_THROW(builder.Add("$data_ts", std::chrono::system_clock::time_point{std::chrono::microseconds{12345}}));
+    UASSERT_NO_THROW(builder.Add("$data_uuid", uuid_val));
     UASSERT_NO_THROW(builder.Add("$data_json", std::string{R"({"qwe":123})"}));
     UASSERT_NO_THROW(builder.Add("$data_json_doc", std::string{R"({"qwe":456})"}));
 
@@ -288,6 +306,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         FROM different_types_test
@@ -307,6 +326,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
         AssertNullableColumn(row, "value_str", std::string{"string"});
         AssertNullableColumn(row, "value_utf8", ydb::Utf8{"utf8"});
         AssertNullableColumn(row, "value_ts", std::chrono::system_clock::time_point(std::chrono::microseconds{12345}));
+        AssertNullableColumn(row, "value_uuid", uuid_val);
         AssertNullableColumn(row, "value_json", formats::json::FromString(R"({"qwe": 123})"));
         AssertNullableColumn(row, "value_json_doc", ydb::JsonDocument(formats::json::FromString(R"({"qwe":456})")));
     }
@@ -315,7 +335,20 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
 UTEST_F(TTypesYdbTestCase, PreparedStructUpsertTypes) {
     const ydb::Query query{R"(
         --!syntax_v1
-        DECLARE $items AS List<Struct<'key': String, 'value_bool': Bool, 'value_int32': Int32,'value_uint32': UInt32, 'value_int64': Int64, 'value_uint64': UInt64, 'value_double': Double, 'value_str': String, 'value_utf8': Utf8, 'value_ts': Timestamp>>;
+        DECLARE $items AS List<
+            Struct<
+                'key': String,
+                'value_bool': Bool,
+                'value_int32': Int32,
+                'value_uint32': UInt32,
+                'value_int64': Int64,
+                'value_uint64': UInt64,
+                'value_double': Double,
+                'value_str': String,
+                'value_utf8': Utf8,
+                'value_ts': Timestamp
+            >
+        >;
 
         UPSERT INTO different_types_test
         SELECT * FROM AS_TABLE($items);
@@ -385,6 +418,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
         DECLARE $data_str AS String?;
         DECLARE $data_utf8 AS Utf8?;
         DECLARE $data_ts AS Timestamp?;
+        DECLARE $data_uuid AS Uuid?;
         DECLARE $data_json AS String?;
         DECLARE $data_json_doc AS String?;
 
@@ -399,6 +433,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         ) VALUES (
@@ -412,6 +447,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
             $data_str,
             $data_utf8,
             $data_ts,
+            $data_uuid,
             CAST($data_json AS Json),
             CAST($data_json_doc AS JsonDocument)
         );
@@ -431,6 +467,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
     UASSERT_NO_THROW(
         builder.Add("$data_ts", std::optional{std::chrono::system_clock::time_point{std::chrono::microseconds{12345}}})
     );
+    UASSERT_NO_THROW(builder.Add("$data_uuid", std::optional{uuid_val}));
     UASSERT_NO_THROW(builder.Add("$data_json", std::optional{std::string{R"({"qwe":123})"}}));
     UASSERT_NO_THROW(builder.Add("$data_json_doc", std::optional{std::string{R"({"qwe":456})"}}));
 
@@ -448,6 +485,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         FROM different_types_test
@@ -467,6 +505,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
         AssertNullableColumn(row, "value_str", std::string{"\0byte_string", 12});
         AssertNullableColumn(row, "value_utf8", ydb::Utf8{"utf8"});
         AssertNullableColumn(row, "value_ts", std::chrono::system_clock::time_point(std::chrono::microseconds{12345}));
+        AssertNullableColumn(row, "value_uuid", uuid_val);
         AssertNullableColumn(row, "value_json", formats::json::FromString(R"({"qwe": 123})"));
         AssertNullableColumn(row, "value_json_doc", ydb::JsonDocument(formats::json::FromString(R"({"qwe":456})")));
     }
@@ -475,7 +514,20 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
 UTEST_F(TTypesYdbTestCase, PreparedStructUpsertNullableTypes) {
     const ydb::Query query{R"(
         --!syntax_v1
-        DECLARE $items AS List<Struct<'key': String, 'value_bool': Bool?, 'value_int32': Int32?, 'value_uint32': UInt32?, 'value_int64': Int64?, 'value_uint64': UInt64?, 'value_double': Double?, 'value_str': String?, 'value_utf8': Utf8?, 'value_ts': Timestamp?>>;
+        DECLARE $items AS List<
+            Struct<
+                'key': String,
+                'value_bool': Bool?,
+                'value_int32': Int32?,
+                'value_uint32': UInt32?,
+                'value_int64': Int64?,
+                'value_uint64': UInt64?,
+                'value_double': Double?,
+                'value_str': String?,
+                'value_utf8': Utf8?,
+                'value_ts': Timestamp?
+            >
+        >;
 
         UPSERT INTO different_types_test
         SELECT * FROM AS_TABLE($items);
@@ -547,6 +599,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
         DECLARE $data_str AS String?;
         DECLARE $data_utf8 AS Utf8?;
         DECLARE $data_ts AS Timestamp?;
+        DECLARE $data_uuid AS Uuid?;
         DECLARE $data_json AS String?;
         DECLARE $data_json_doc AS String?;
 
@@ -561,6 +614,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         ) VALUES (
@@ -574,6 +628,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
             $data_str,
             $data_utf8,
             $data_ts,
+            $data_uuid,
             CAST($data_json AS Json),
             CAST($data_json_doc AS JsonDocument)
         );
@@ -592,6 +647,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
     UASSERT_NO_THROW(builder.Add("$data_str", std::optional<std::string>{}));
     UASSERT_NO_THROW(builder.Add("$data_utf8", std::optional<ydb::Utf8>{}));
     UASSERT_NO_THROW(builder.Add("$data_ts", std::optional<std::chrono::system_clock::time_point>{}));
+    UASSERT_NO_THROW(builder.Add("$data_uuid", std::optional<boost::uuids::uuid>{}));
     UASSERT_NO_THROW(builder.Add("$data_json", std::optional<std::string>{}));
     UASSERT_NO_THROW(builder.Add("$data_json_doc", std::optional<std::string>{}));
 
@@ -609,6 +665,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
             value_str,
             value_utf8,
             value_ts,
+            value_uuid,
             value_json,
             value_json_doc
         FROM different_types_test
@@ -628,6 +685,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
         AssertNullColumn<std::string>(row, "value_str");
         AssertNullColumn<ydb::Utf8>(row, "value_utf8");
         AssertNullColumn<std::chrono::system_clock::time_point>(row, "value_ts");
+        AssertNullColumn<boost::uuids::uuid>(row, "value_uuid");
         AssertNullColumn<formats::json::Value>(row, "value_json");
         AssertNullColumn<ydb::JsonDocument>(row, "value_json_doc");
     }
@@ -636,7 +694,20 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
 UTEST_F(TTypesYdbTestCase, PreparedUpsertNullStructTypes) {
     const ydb::Query query{R"(
         --!syntax_v1
-        DECLARE $items AS List<Struct<'key': String, 'value_bool': Bool?, 'value_int32': Int32?, 'value_uint32': UInt32?, 'value_int64': Int64?, 'value_uint64': UInt64?, 'value_double': Double?, 'value_str': String?, 'value_utf8': Utf8?, 'value_ts': Timestamp?>>;
+        DECLARE $items AS List<
+            Struct<
+                'key': String,
+                'value_bool': Bool?,
+                'value_int32': Int32?,
+                'value_uint32': UInt32?,
+                'value_int64': Int64?,
+                'value_uint64': UInt64?,
+                'value_double': Double?,
+                'value_str': String?,
+                'value_utf8': Utf8?,
+                'value_ts': Timestamp?
+            >
+        >;
 
         UPSERT INTO different_types_test
         SELECT * FROM AS_TABLE($items);

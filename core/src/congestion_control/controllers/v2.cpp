@@ -1,4 +1,6 @@
 #include <userver/congestion_control/controllers/v2.hpp>
+
+#include <userver/logging/log.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <fmt/format.h>
@@ -43,7 +45,8 @@ std::string_view Controller::LogFakeMode() const {
 
 void Controller::Step() {
     auto current = sensor_.GetCurrent();
-    auto limit = Update(current);
+    auto limit_with_details = Update(current);
+    auto& limit = limit_with_details.limit;
     if (!config_.fake_mode) {
         if (enabled_) {
             limiter_.SetLimit(limit);
@@ -56,12 +59,16 @@ void Controller::Step() {
         LOG_ERROR() << fmt::format(
                            "Congestion Control {} is active, sensor ({}), limiter ({})",
                            name_,
-                           current.ToLogString(),
-                           limit.ToLogString()
+                           limit_with_details.sensor_details.value_or("none"),
+                           limit_with_details.limit.ToLogString()
                        )
                     << LogFakeMode();
     } else {
-        LOG_TRACE() << fmt::format("Congestion Control {} is not active, sensor ({})", name_, current.ToLogString())
+        LOG_TRACE() << fmt::format(
+                           "Congestion Control {} is not active, sensor ({})",
+                           name_,
+                           limit_with_details.sensor_details.value_or("none")
+                       )
                     << LogFakeMode();
     }
 

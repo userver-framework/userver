@@ -78,7 +78,7 @@ Connection::Connection(
     : client_{NativeClientFactory::Create(resolver, endpoint, auth, connection_settings)} {}
 
 ExecutionResult Connection::Execute(OptionalCommandControl optional_cc, const Query& query) {
-    clickhouse_cpp::Query native_query{query.QueryText()};
+    clickhouse_cpp::Query native_query{query.GetStatementView().c_str()};
     native_query.OnDataCancelable([]([[maybe_unused]] const auto& block) {
         // we must return 'true' if we don't want to cancel query
         return !engine::current_task::ShouldCancel();

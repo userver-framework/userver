@@ -1,28 +1,28 @@
-# /// [Functional test]
-async def test_hello_base(service_client):
-    response = await service_client.get('/hello')
-    assert response.status == 200
-    assert 'text/plain' in response.headers['Content-Type']
-    assert response.text == 'Hello, unknown user!\n'
-    assert 'X-RequestId' not in response.headers.keys(), 'Unexpected header'
+async def call(service_client):
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get('/hello', params={'name': 'john'})
+        assert response.status == 200
+        assert response.text == 'tost'
 
-    response = await service_client.get('/hello', params={'name': 'userver'})
-    assert response.status == 200
-    assert 'text/plain' in response.headers['Content-Type']
-    assert response.text == 'Hello, userver!\n'
-    # /// [Functional test]
+    return capture.select(
+        stopwatch_name='external/localhost',
+    )[0]
 
 
-async def test_hello_head(service_client):
-    response = await service_client.request('HEAD', '/hello')
-    assert response.status == 200
-    assert 'text/plain' in response.headers['Content-Type']
-    assert response.text == ''
-    assert 'X-RequestId' not in response.headers.keys(), 'Unexpected header'
+async def test_hello_base(service_client, mockserver, dynamic_config):
+    @mockserver.handler('test/test')
+    def test(request):
+        assert request.query['name'] == 'john'
+        return mockserver.make_response('"tost"')
 
+    p = await call(service_client)
+    assert p['max_attempts'] == '1'
+    # Note: timeout-ms is not changed in testsuite
 
-async def test_wrong_method(service_client):
-    response = await service_client.request('KEK', '/hello')
-    assert response.status == 400
-    assert response.text == 'bad request'
-    assert 'X-YaRequestId' not in response.headers.keys(), 'Unexpected header'
+    dynamic_config.set_values({'TEST_CLIENT_QOS': {'__default__': {'attempts': 2, 'timeout-ms': 9999}}})
+    p = await call(service_client)
+    assert p['max_attempts'] == '2'
+
+    dynamic_config.set_values({'TEST_CLIENT_QOS': {'/test/test': {'attempts': 3, 'timeout-ms': 9998}}})
+    p = await call(service_client)
+    assert p['max_attempts'] == '3'

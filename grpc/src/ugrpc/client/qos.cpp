@@ -10,10 +10,6 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
-#include <userver/utils/assert.hpp>
-#include <userver/utils/numeric_cast.hpp>
-
-#include <ugrpc/client/impl/retry_policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,25 +46,6 @@ formats::json::Value Serialize(const Qos& qos, formats::serialize::To<formats::j
     result["timeout-ms"] = qos.timeout;
 
     return result.ExtractValue();
-}
-
-std::optional<std::uint32_t> GetAttempts(const Qos& qos) {
-    if (qos.attempts.has_value()) {
-        UINVARIANT(0 < *qos.attempts, "Qos attempts value must be greater than 0");
-        return utils::numeric_cast<std::uint32_t>(*qos.attempts);
-    }
-    return std::nullopt;
-}
-
-std::optional<std::chrono::milliseconds> GetTotalTimeout(const Qos& qos) {
-    if (qos.timeout.has_value()) {
-        const auto attempts = GetAttempts(qos);
-        if (attempts.has_value()) {
-            return impl::CalculateTotalTimeout(*qos.timeout, *attempts);
-        }
-        return *qos.timeout;
-    }
-    return std::nullopt;
 }
 
 }  // namespace ugrpc::client

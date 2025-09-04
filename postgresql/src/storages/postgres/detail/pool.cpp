@@ -1,7 +1,6 @@
 #include <storages/postgres/detail/pool.hpp>
 
 #include <storages/postgres/deadline.hpp>
-#include <storages/postgres/detail/cc_config.hpp>
 #include <storages/postgres/detail/statement_stats_storage.hpp>
 
 #include <userver/dynamic_config/value.hpp>
@@ -15,6 +14,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
+
+#include <dynamic_config/variables/POSTGRES_CONGESTION_CONTROL_SETTINGS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -83,7 +84,8 @@ ConnectionPool::ConnectionPool(
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings,
     const congestion_control::v2::LinearController::StaticConfig& cc_config,
-    dynamic_config::Source config_source
+    dynamic_config::Source config_source,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 )
     : dsn_{std::move(dsn)},
       resolver_{resolver},
@@ -103,6 +105,7 @@ ConnectionPool::ConnectionPool(
       cancel_limit_{std::max(std::size_t{1}, settings.max_size / kCancelRatio), {1, kCancelPeriod}},
       sts_{statement_metrics_settings},
       config_source_(config_source),
+      metrics_(std::move(metrics)),
       cc_sensor_(*this),
       cc_limiter_(*this),
       cc_controller_(
@@ -112,7 +115,10 @@ ConnectionPool::ConnectionPool(
           stats_.congestion_control,
           cc_config,
           config_source,
-          [](const dynamic_config::Snapshot& config) { return config[kCcConfig]; }
+          [](const dynamic_config::Snapshot& config) {
+              const auto& cfg = config[::dynamic_config::POSTGRES_CONGESTION_CONTROL_SETTINGS];
+              return congestion_control::v2::ConvertConfig(cfg);
+          }
       ) {
     if (USERVER_NAMESPACE::utils::impl::kPgCcExperiment.IsEnabled()) {
         cc_controller_.Start();
@@ -138,7 +144,8 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings,
     const congestion_control::v2::LinearController::StaticConfig& cc_config,
-    dynamic_config::Source config_source
+    dynamic_config::Source config_source,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 ) {
     // FP?: pointer magic in boost.lockfree
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
@@ -155,7 +162,8 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
         testsuite_pg_ctl,
         std::move(ei_settings),
         cc_config,
-        config_source
+        config_source,
+        std::move(metrics)
     );
     // Init() uses shared_from_this for connections and cannot be called from
     // ctor
@@ -375,6 +383,7 @@ void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
         const auto old_settings = *writer;
         const auto old_version = old_settings.version;
         *writer = settings;
+        writer->statement_log_mode = old_settings.statement_log_mode;
         if (old_settings.RequiresConnectionReset(settings)) {
             writer->version = old_version + 1;
         }
@@ -404,14 +413,14 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(engine::SemaphoreLock lock,
 bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock, ConnectionSettings&& conn_settings) {
     if (!size_lock) return false;
     LOG_TRACE() << "Creating PostgreSQL connection, current pool size: " << size_semaphore_.UsedApprox();
-    engine::SemaphoreLock connecting_lock{connecting_semaphore_, kConnectingTimeout};
+    const engine::SemaphoreLock connecting_lock{connecting_semaphore_, kConnectingTimeout};
     if (!connecting_lock) {
         LOG_WARNING() << "Pool has too many establishing connections";
         return false;
     }
     const uint32_t conn_id = ++stats_.connection.open_total;
     std::unique_ptr<Connection> connection;
-    Stopwatch st{stats_.connection_percentile};
+    const Stopwatch st{stats_.connection_percentile};
     try {
         connection = Connection::Connect(
             dsn_,
@@ -423,7 +432,8 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock, ConnectionSettin
             default_cmd_ctls_,
             testsuite_pg_ctl_,
             ei_settings_,
-            std::move(size_lock)
+            std::move(size_lock),
+            metrics_
         );
     } catch (const ConnectionTimeoutError&) {
         // No problem if it's connection error
@@ -513,7 +523,7 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
         ++stats_.connection.error_timeout;
         throw PoolError("Deadline reached before trying to get a connection");
     }
-    Stopwatch st{stats_.acquire_percentile};
+    const Stopwatch st{stats_.acquire_percentile};
     Connection* connection = nullptr;
     auto conn_settings = conn_settings_.Read();
     while (conn_consumer_.PopNoblock(connection)) {
@@ -529,7 +539,7 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
     }
 
     auto settings = settings_.Read();
-    SizeGuard wg(wait_count_);
+    const SizeGuard wg(wait_count_);
     if (wg.GetValue() > settings->max_queue_size) {
         ++stats_.queue_size_errors;
         throw PoolError("Wait queue size exceeded");

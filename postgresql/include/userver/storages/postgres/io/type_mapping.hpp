@@ -17,7 +17,7 @@ namespace storages::postgres::io {
 template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct CppToPg;
 
-template <PredefinedOids oid, typename T>
+template <PredefinedOids Oid, typename T>
 struct PgToCpp;
 
 /// Find out if a parser for a predefined Postgres type was registered.

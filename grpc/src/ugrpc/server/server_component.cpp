@@ -15,7 +15,7 @@ namespace ugrpc::server {
 ServerComponent::ServerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase(config, context),
       server_(
-          impl::ParseServerConfig(config, context),
+          impl::ParseServerConfig(config),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::DynamicConfig>().GetSource()
       ),
@@ -64,9 +64,6 @@ properties:
             type: string
             description: value of channel argument, must be string or integer
         properties: {}
-    access-tskv-logger:
-        type: string
-        description: name of 'access-tskv.log' logger
     native-log-level:
         type: string
         description: min log level for the native gRPC library

@@ -37,14 +37,14 @@ UTEST(OpenapiParametersRead, SourceHttpRequest) {
 UTEST(OpenapiParametersRead, TypeBoolean) {
     auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "true").Build();
 
-    bool foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, bool>>(*request)};
+    const bool foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, bool>>(*request)};
     EXPECT_EQ(foo, true);
 }
 
 UTEST(OpenapiParametersRead, TypeDouble) {
     auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "12.2").Build();
 
-    double foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, double>>(*request)};
+    const double foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, double>>(*request)};
     EXPECT_EQ(foo, 12.2);
 }
 
@@ -52,21 +52,21 @@ UTEST(OpenapiParametersRead, UserType) {
     auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "12.2").Build();
 
     using Decimal = decimal64::Decimal<10>;
-    Decimal foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, std::string, Decimal>>(*request)};
+    const Decimal foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, std::string, Decimal>>(*request)};
     EXPECT_EQ(foo, Decimal{"12.2"});
 }
 
 UTEST(OpenapiParametersRead, TypeInt) {
     auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "12").Build();
 
-    int foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, int>>(*request)};
+    const int foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, int>>(*request)};
     EXPECT_EQ(foo, 12);
 }
 
 UTEST(OpenapiParametersRead, TypeArrayOfString) {
     auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "bar,baz").Build();
 
-    std::vector<std::string> foo{
+    const std::vector<std::string> foo{
         co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string>>(*request)};
     EXPECT_EQ(foo, (std::vector<std::string>{"bar", "baz"}));
 }
@@ -75,7 +75,7 @@ UTEST(OpenapiParametersRead, TypeArrayOfUser) {
     auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "1.2,3.4").Build();
 
     using Decimal = decimal64::Decimal<10>;
-    std::vector<Decimal> foo{
+    const std::vector<Decimal> foo{
         co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string, Decimal>>(*request)};
     EXPECT_EQ(foo, (std::vector<Decimal>{Decimal{"1.2"}, Decimal{"3.4"}}));
 }
@@ -87,7 +87,7 @@ UTEST(OpenapiParametersRead, TypeStringExplode) {
                        .AddRequestArg("foo", "3")
                        .Build();
 
-    std::vector<int> foo{co::ReadParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', int>>(*request)};
+    const std::vector<int> foo{co::ReadParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', int>>(*request)};
     EXPECT_EQ(foo, (std::vector{1, 2, 3}));
 }
 

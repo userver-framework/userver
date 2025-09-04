@@ -2,17 +2,14 @@ from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
 
 
-def test_simple(simple_gen):
+def test_simple(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'string'})
     assert types == {
-        '::/definitions/type': cpp_types.CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('std::string'),
-            user_cpp_type=None,
-            json_schema=None,
-            nullable=False,
+        '::type': cpp_primitive_type(
             validators=cpp_types.CppPrimitiveValidator(
-                prefix='/definitions/type',
+                prefix='type',
             ),
+            raw_cpp_type_str='std::string',
         ),
     }
 
@@ -20,12 +17,12 @@ def test_simple(simple_gen):
 def test_enum(simple_gen):
     types = simple_gen({'type': 'string', 'enum': ['foo', 'bar']})
     assert types == {
-        '::/definitions/type': cpp_types.CppStringEnum(
-            raw_cpp_type=type_name.TypeName('::/definitions/type'),
+        '::type': cpp_types.CppStringEnum(
+            raw_cpp_type=type_name.TypeName('::type'),
             user_cpp_type=None,
             json_schema=None,
             nullable=False,
-            name='::/definitions/type',
+            name='::type',
             default=None,
             enums=[
                 cpp_types.CppStringEnumItem(raw_name='foo', cpp_name='kFoo'),
@@ -38,9 +35,23 @@ def test_enum(simple_gen):
 def test_datetime(simple_gen):
     types = simple_gen({'type': 'string', 'format': 'date-time'})
     assert types == {
-        '::/definitions/type': cpp_types.CppStringWithFormat(
+        '::type': cpp_types.CppStringWithFormat(
             raw_cpp_type=type_name.TypeName('std::string'),
             format_cpp_type='userver::utils::datetime::TimePointTz',
+            user_cpp_type=None,
+            json_schema=None,
+            nullable=False,
+            default=None,
+        ),
+    }
+
+
+def test_byte(simple_gen):
+    types = simple_gen({'type': 'string', 'format': 'byte'})
+    assert types == {
+        '::type': cpp_types.CppStringWithFormat(
+            raw_cpp_type=type_name.TypeName('std::string'),
+            format_cpp_type='crypto::base64::String64',
             user_cpp_type=None,
             json_schema=None,
             nullable=False,
@@ -52,7 +63,7 @@ def test_datetime(simple_gen):
 def test_datetime_isobasic(simple_gen):
     types = simple_gen({'type': 'string', 'format': 'date-time-iso-basic'})
     assert types == {
-        '::/definitions/type': cpp_types.CppStringWithFormat(
+        '::type': cpp_types.CppStringWithFormat(
             raw_cpp_type=type_name.TypeName('std::string'),
             format_cpp_type='userver::utils::datetime::TimePointTzIsoBasic',
             user_cpp_type=None,

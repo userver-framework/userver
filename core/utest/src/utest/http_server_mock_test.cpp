@@ -16,7 +16,7 @@ const std::string kResponseBody = "returned body";
 UTEST(HttpServerMock, Sample) {
     /// [Sample HttpServerMock usage]
     constexpr http::headers::PredefinedHeader kHeader{"HeaderName"};
-    utest::HttpServerMock mock([&kHeader](const utest::HttpServerMock::HttpRequest& request) {
+    const utest::HttpServerMock mock([&kHeader](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);
         EXPECT_EQ("/path", request.path);
         EXPECT_EQ("value1", request.headers.at(std::string_view{"header_a"}));
@@ -47,7 +47,7 @@ UTEST(HttpServerMock, Sample) {
 }
 
 UTEST(HttpServerMock, Ctr) {
-    utest::HttpServerMock mock([](const utest::HttpServerMock::HttpRequest& request) {
+    const utest::HttpServerMock mock([](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);
         EXPECT_EQ("/", request.path);
         EXPECT_EQ("value1", request.headers.at(std::string_view{"a"}));
@@ -57,13 +57,13 @@ UTEST(HttpServerMock, Ctr) {
         EXPECT_EQ(kRequestBody, request.body);
         return utest::HttpServerMock::HttpResponse{
             287,
-            {std::make_pair(std::string{"x"}, std::string{"y"})},
+            clients::http::Headers{std::make_pair(std::string{"x"}, std::string{"y"})},
             kResponseBody,
         };
     });
 
     auto http_client_ptr = utest::CreateHttpClient();
-    clients::http::Headers headers{
+    const clients::http::Headers headers{
         std::make_pair(std::string{"a"}, std::string{"value1"}),
         std::make_pair(std::string{"header"}, std::string{"value2"}),
     };

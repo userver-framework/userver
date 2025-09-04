@@ -50,7 +50,7 @@ BENCHMARK(JsonParseArrayDom)->RangeMultiplier(4)->Range(1, 1024);
 void JsonParseArraySax(benchmark::State& state) {
     const auto input = BuildArray(state.range(0));
     for ([[maybe_unused]] auto _ : state) {
-        std::vector<std::vector<int64_t>> result{};
+        const std::vector<std::vector<int64_t>> result{};
         using Int64Parser = formats::json::parser::Int64Parser;
         Int64Parser int_parser;
         using ArrayParser = formats::json::parser::ArrayParser<int64_t, Int64Parser>;

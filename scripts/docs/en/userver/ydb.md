@@ -26,5 +26,5 @@ You may store YQL queries in @ref scripts/docs/en/userver/sql_files.md.
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/kafka.md |
-@ref scripts/docs/en/userver/mongodb.md ⇨
+@ref scripts/docs/en/userver/sqlite/sqlite_driver.md ⇨
 @htmlonly </div> @endhtmlonly

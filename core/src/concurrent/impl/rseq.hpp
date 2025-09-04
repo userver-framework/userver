@@ -10,7 +10,17 @@
 #include <cstdint>
 #include <thread>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc99-extensions"
+#pragma clang diagnostic ignored "-Wdeprecated-volatile"
+#endif
+
 #include <rseq/rseq.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include <userver/compiler/impl/constexpr.hpp>
 #include <userver/utils/assert.hpp>

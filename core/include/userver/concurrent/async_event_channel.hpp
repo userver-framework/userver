@@ -86,7 +86,7 @@ public:
     /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
     ///
     /// The constructor with a callback that is called on listener removal. The
-    /// callback takes a reference to `Function' as input. This is useful for
+    /// callback takes a reference to `Function` as input. This is useful for
     /// checking the lifetime of data captured by the listener update function.
     ///
     /// @note Works only in debug mode.
@@ -109,11 +109,16 @@ public:
     /// Atomically calls `updater`, which should invoke `func` with the previously
     /// sent event, and subscribes to new events as if using AddListener.
     ///
+    /// @param id the subscriber class instance, see also a simpler `DoUpdateAndListen` overload below
+    /// @param name the name of the subscriber
+    /// @param func the callback that is called on each update
+    /// @param updater the initial `() -> void` callback that should call `func` with the current value
+    ///
     /// @see AsyncEventSource::AddListener
     template <typename UpdaterFunc>
     AsyncEventSubscriberScope
     DoUpdateAndListen(FunctionId id, std::string_view name, Function&& func, UpdaterFunc&& updater) {
-        std::lock_guard lock(event_mutex_);
+        const std::lock_guard lock(event_mutex_);
         std::forward<UpdaterFunc>(updater)();
         return DoAddListener(id, name, std::move(func));
     }
@@ -136,7 +141,7 @@ public:
     /// processed a new event may be delivered for the subscribers, same
     /// listener/subscriber is never called concurrently.
     void SendEvent(Args... args) const {
-        std::lock_guard lock(event_mutex_);
+        const std::lock_guard lock(event_mutex_);
         auto data = data_.Lock();
         auto& listeners = data->listeners;
 
@@ -170,7 +175,7 @@ private:
     };
 
     void RemoveListener(FunctionId id, UnsubscribingKind kind) noexcept final {
-        engine::TaskCancellationBlocker blocker;
+        const engine::TaskCancellationBlocker blocker;
         auto data = data_.Lock();
         auto& listeners = data->listeners;
         const auto iter = listeners.find(id);
@@ -202,7 +207,7 @@ private:
         const auto [iterator, success] =
             listeners.emplace(id, Listener{std::string{name}, std::move(func), std::move(task_name)});
         if (!success) impl::ReportAlreadySubscribed(Name(), name);
-        return AsyncEventSubscriberScope(*this, id);
+        return AsyncEventSubscriberScope(utils::impl::InternalTag{}, *this, id);
     }
 
     const std::string name_;

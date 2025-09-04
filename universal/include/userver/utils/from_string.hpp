@@ -17,6 +17,7 @@
 #include <typeinfo>
 
 #include <userver/utils/meta_light.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -76,7 +77,12 @@ std::enable_if_t<std::is_floating_point_v<T>, T> FromString(const char* str) {
 
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>, T> FromString(const std::string& str) {
-    return FromString<T>(str.data());
+    return impl::FromString<T>(str.c_str());
+}
+
+template <typename T>
+std::enable_if_t<std::is_floating_point_v<T>, T> FromString(utils::zstring_view str) {
+    return impl::FromString<T>(str.c_str());
 }
 
 template <typename T>
@@ -84,14 +90,14 @@ std::enable_if_t<std::is_floating_point_v<T>, T> FromString(std::string_view str
     static constexpr std::size_t kSmallBufferSize = 32;
 
     if (str.size() >= kSmallBufferSize) {
-        return FromString<T>(std::string{str});
+        return impl::FromString<T>(std::string{str});
     }
 
     char buffer[kSmallBufferSize];
     std::copy(str.data(), str.data() + str.size(), buffer);
     buffer[str.size()] = '\0';
 
-    return FromString<T>(buffer);
+    return impl::FromString<T>(buffer);
 }
 
 template <typename T>
@@ -166,7 +172,7 @@ T FromString(const StringType& str) {
     return impl::FromString<T>(str);
 }
 
-std::int64_t FromHexString(const std::string& str);
+std::int64_t FromHexString(std::string_view str);
 
 }  // namespace utils
 

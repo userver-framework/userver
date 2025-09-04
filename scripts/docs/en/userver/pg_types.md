@@ -1,7 +1,8 @@
 # uPg: Supported data types
 
 PostgreSQL provides data type support with a system of buffer parsers and
-formatters. Please refer to @ref pg_io for more information about the system.
+formatters. Please refer to @ref scripts/docs/en/userver/pg_user_types.md and
+@ref pg_user_row_types for more information about the system.
 
 @see @ref userver_postgres_parse_and_format
 

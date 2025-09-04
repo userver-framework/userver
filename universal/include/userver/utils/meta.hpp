@@ -32,7 +32,7 @@ using IsRange =
     ExpectSame<std::decay_t<decltype(begin(std::declval<T&>()))>, std::decay_t<decltype(end(std::declval<T&>()))>>;
 
 template <typename T>
-using IteratorType = std::enable_if_t<kIsDetected<IsRange, T>, decltype(begin(std::declval<T&>()))>;
+using IteratorType = std::enable_if_t<IsDetected<IsRange, T>, decltype(begin(std::declval<T&>()))>;
 
 template <typename T, typename = void>
 struct IsIterator : std::false_type {};
@@ -77,7 +77,7 @@ struct IsFixedSizeContainer<Array<T, Size>> : std::bool_constant<sizeof(Array<T,
 template <typename... Args>
 constexpr bool IsSingleRange() {
     if constexpr (sizeof...(Args) == 1) {
-        return kIsDetected<IsRange, Args...>;
+        return IsDetected<IsRange, Args...>;
     } else {
         return false;
     }
@@ -89,16 +89,16 @@ template <typename T>
 inline constexpr bool kIsVector = kIsInstantiationOf<std::vector, T>;
 
 template <typename T>
-inline constexpr bool kIsRange = kIsDetected<impl::IsRange, T>;
+inline constexpr bool kIsRange = IsDetected<impl::IsRange, T>;
 
 /// Returns true if T is an ordered or unordered map or multimap
 template <typename T>
 inline constexpr bool kIsMap =
-    kIsDetected<impl::IsRange, T> && kIsDetected<impl::KeyType, T> && kIsDetected<impl::MappedType, T>;
+    IsDetected<impl::IsRange, T> && IsDetected<impl::KeyType, T> && IsDetected<impl::MappedType, T>;
 
 /// Returns true if T is a map (but not a multimap!)
 template <typename T>
-inline constexpr bool kIsUniqueMap = kIsMap<T> && kIsDetected<
+inline constexpr bool kIsUniqueMap = kIsMap<T> && IsDetected<
                                                       impl::SubscriptOperatorResult,
                                                       T>;  // no operator[] in multimaps
 
@@ -132,15 +132,15 @@ inline constexpr bool kIsStdHashable =
 
 /// @brief  Check if std::size is applicable to container
 template <typename T>
-inline constexpr bool kIsSizable = kIsDetected<impl::IsSizable, T>;
+inline constexpr bool kIsSizable = IsDetected<impl::IsSizable, T>;
 
 /// @brief Check if a container has `reserve`
 template <typename T>
-inline constexpr bool kIsReservable = kIsDetected<impl::ReserveResult, T>;
+inline constexpr bool kIsReservable = IsDetected<impl::ReserveResult, T>;
 
 /// @brief Check if a container has 'push_back'
 template <typename T>
-inline constexpr bool kIsPushBackable = kIsDetected<impl::PushBackResult, T>;
+inline constexpr bool kIsPushBackable = IsDetected<impl::PushBackResult, T>;
 
 /// @brief Check if a container has fixed size (e.g. std::array)
 template <typename T>

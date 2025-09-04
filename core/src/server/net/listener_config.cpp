@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <userver/engine/io.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/fs/blocking/read.hpp>
 
@@ -72,7 +73,7 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Li
     config.handler_defaults = value["handler-defaults"].As<request::HttpRequestConfig>();
     config.max_connections = value["max_connections"].As<size_t>(config.max_connections);
     config.shards = value["shards"].As<std::optional<size_t>>(config.shards);
-    config.task_processor = value["task_processor"].As<std::string>();
+    config.task_processor = value["task_processor"].As<std::optional<std::string>>();
     config.backlog = value["backlog"].As<int>(config.backlog);
 
     config.ports = value["ports"].As<std::vector<PortConfig>>({});
@@ -99,6 +100,12 @@ void PortConfig::ReadTlsSettings(const storages::secdist::SecdistConfig& secdist
             auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(tls_private_key_passphrase_name);
             tls_private_key = crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
         }
+    }
+}
+
+void PortConfig::InitSslCtx() {
+    if (tls) {
+        ssl_ctx = crypto::SslCtx::CreateServerTlsContext(tls_cert_chain, tls_private_key, tls_certificate_authorities);
     }
 }
 

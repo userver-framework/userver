@@ -23,7 +23,7 @@ Supported features:
 
 ## CMake integration
 
-### CMake integration via `userver_testsuite_add()`
+### CMake integration via userver_testsuite_add()
 
 With `userver_testsuite_add()` function you can easily add testsuite support to your project.
 Its main purpose is:
@@ -37,7 +37,7 @@ Its main purpose is:
 Then create testsuite target:
 @snippet samples/testsuite-support/CMakeLists.txt testsuite - cmake
 
-### `userver_testsuite_add()` arguments
+### userver_testsuite_add() arguments
 
 * SERVICE_TARGET, required CMake name of the target service to test. Used as
   suffix for `testsuite-` and `start-` CMake target names.
@@ -51,6 +51,7 @@ Then create testsuite target:
 * DUMP_CONFIG, set to `TRUE` to tell the testsuite that there is no static config file in the file system and force the
   testsuite to retrieve config from a service itself, by running it
   with `--dump-config` option first. See @ref scripts/docs/en/userver/libraries/easy.md for usage example.
+* SQL_LIBRARY, target to enable @ref sql_coverage_test_info "SQL coverage tests".
 
 Some of the most useful arguments for PYTEST_ARGS:
 
@@ -66,7 +67,7 @@ Some of the most useful arguments for PYTEST_ARGS:
 | `--service-wait`                | With this argument the testsuite will wait for the service start by user. For example under gdb. Testsuite outputs a hint on starting the service |
 | `-rf`                           | Show a summary of failed tests          |
 
-### CMake integration via `userver_testsuite_add_simple()`
+### CMake integration via userver_testsuite_add_simple()
 
 `userver_testsuite_add_simple()` is a version of `userver_testsuite_add()`
 that makes some assumptions of the project structure.
@@ -364,6 +365,10 @@ Accessing testpoint userver is not aware of will raise an exception:
 * C++ code: @ref samples/testsuite-support/src/testpoint.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_testpoint.py
 
+#### Dynamic config mock
+
+@see @ref dynamic_config_testsuite
+
 @anchor testsuite_logs_capture
 #### Logs capture
 
@@ -441,7 +446,7 @@ For metrics with labels, they could be retrieved in the following way:
 The @ref pytest_userver.metrics.Metric "Metric" python type is hashable and
 comparable:
 
-@snippet testsuite/tests/test_metrics.py  values set
+@snippet testsuite/tests/metrics/test_metrics.py  values set
 
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
@@ -496,7 +501,7 @@ def test_service(service_client):
 
 Testsuite allows to create tests that start a new service instance for the test and stop it on test finish:
 
-@snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample 
+@snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample
 
 Such functionality slows down the tests run, but it may be required
 * to test service state right after the service start,
@@ -513,7 +518,6 @@ For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_ma
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake
-@example samples/http_caching/tests/conftest.py
 @example samples/testsuite-support/src/logcapture.cpp
 @example samples/testsuite-support/src/metrics.cpp
 @example samples/testsuite-support/src/metrics.hpp
@@ -525,4 +529,3 @@ For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_ma
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py
-@example samples/production_service/tests/test_production.py

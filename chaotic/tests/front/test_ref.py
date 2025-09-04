@@ -1,5 +1,7 @@
 import collections
 
+import pytest
+
 from chaotic.front import ref_resolver
 from chaotic.front import types
 from chaotic.front.parser import ParserConfig
@@ -10,13 +12,8 @@ from chaotic.front.types import Integer
 from chaotic.front.types import Ref
 
 
-def test_ref_ok():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_ref_ok(schema_parser):
+    parser = schema_parser
 
     parser.parse_schema('/definitions/type1', {'type': 'integer'})
     parser.parse_schema('/definitions/type2', {'$ref': '#/definitions/type1'})
@@ -32,13 +29,8 @@ def test_ref_ok():
     }
 
 
-def test_ref_from_items_ok():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_ref_from_items_ok(schema_parser):
+    parser = schema_parser
 
     parser.parse_schema('/definitions/type1', {'type': 'integer'})
     parser.parse_schema(
@@ -59,48 +51,37 @@ def test_ref_from_items_ok():
     }
 
 
-def test_ref_invalid():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_ref_invalid(schema_parser):
+    parser = schema_parser
 
-    try:
-        parser.parse_schema('/definitions/type1', {'type': 'integer'})
-        parser.parse_schema(
-            '/definitions/type2',
-            {'$ref': '#/definitions/other_type'},
-        )
-        rr = ref_resolver.RefResolver()
+    parser.parse_schema('/definitions/type1', {'type': 'integer'})
+    parser.parse_schema(
+        '/definitions/type2',
+        {'$ref': '#/definitions/other_type'},
+    )
+    rr = ref_resolver.RefResolver()
+
+    with pytest.raises(Exception) as exc:
         rr.sort_schemas(parser.parsed_schemas())
-        assert False
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        assert str(exc) == (
-            '$ref to unknown type "vfull#/definitions/other_type", '
-            'known refs:\n- vfull#/definitions/type1\n'
-            '- vfull#/definitions/type2'
-        )
+
+    assert str(exc.value) == (
+        '$ref to unknown type "vfull#/definitions/other_type", '
+        'known refs:\n- vfull#/definitions/type1\n'
+        '- vfull#/definitions/type2'
+    )
 
 
 def test_extra_fields(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({'$ref': '123', 'field': 1})
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type'
-        assert exc.msg == "Unknown field(s) ['field']"
+    assert exc.value.infile_path == '/definitions/type'
+    assert exc.value.msg == "Unknown field(s) ['field']"
 
 
-def test_sibling_file():
+def test_sibling_file(schema_parser):
     config = ParserConfig(erase_prefix='')
     schemas = []
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+    parser = schema_parser
     parser.parse_schema('/definitions/type1', {'type': 'integer'})
     schemas.append(parser.parsed_schemas())
 
@@ -137,13 +118,8 @@ def test_sibling_file():
     }
 
 
-def test_forward_reference():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config,
-        full_filepath='full',
-        full_vfilepath='vfull',
-    )
+def test_forward_reference(schema_parser):
+    parser = schema_parser
     parser.parse_schema('/definitions/type1', {'$ref': '#/definitions/type2'})
     parser.parse_schema('/definitions/type2', {'type': 'integer'})
     parser.parse_schema('/definitions/type3', {'$ref': '#/definitions/type4'})
@@ -184,20 +160,38 @@ def test_forward_reference():
     })
 
 
-def test_cycle():
+def test_cycle(schema_parser):
+    parser = schema_parser
+    parser.parse_schema('/definitions/type1', {'$ref': '#/definitions/type2'})
+    parser.parse_schema('/definitions/type2', {'$ref': '#/definitions/type1'})
+
+    rr = ref_resolver.RefResolver()
+
+    with pytest.raises(ref_resolver.ResolverError) as exc:
+        rr.sort_schemas(parser.parsed_schemas())
+
+    assert str(exc.value) == '$ref cycle: vfull#/definitions/type1, vfull#/definitions/type2'
+
+
+def test_self_ref(schema_parser):
+    parser = schema_parser
+    parser.parse_schema('/definitions/type1', {'$ref': '#/definitions/type1'})
+
+    rr = ref_resolver.RefResolver()
+
+    with pytest.raises(ref_resolver.ResolverError) as exc:
+        rr.sort_schemas(parser.parsed_schemas())
+
+    assert str(exc.value) == '$ref cycle: vfull#/definitions/type1'
+
+
+def test_no_fragment():
     config = ParserConfig(erase_prefix='')
     parser = SchemaParser(
         config=config,
         full_filepath='full',
         full_vfilepath='vfull',
     )
-    parser.parse_schema('/definitions/type1', {'$ref': '#/definitions/type2'})
-    parser.parse_schema('/definitions/type2', {'$ref': '#/definitions/type1'})
-
-    rr = ref_resolver.RefResolver()
-    try:
-        rr.sort_schemas(parser.parsed_schemas())
-    except ref_resolver.ResolverError as exc:
-        assert str(exc) == '$ref cycle: vfull#/definitions/type1, vfull#/definitions/type2'
-    else:
-        assert False
+    with pytest.raises(ParserError) as exc_info:
+        parser.parse_schema('/definitions/type1', {'$ref': '/definitions/type2'})
+    assert exc_info.value.msg == 'Error in $ref (/definitions/type2): there should be exactly one "#" inside'

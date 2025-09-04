@@ -6,23 +6,24 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 namespace {
 
 void ParseTokenBucketSettings(
-    const formats::json::Value& settings,
     size_t& limit,
     std::chrono::microseconds& rate,
-    std::string_view limit_key,
-    std::string_view per_second_key
+    std::optional<int> limit_value,
+    std::optional<int> per_second_value
 ) {
-    limit = settings[limit_key].As<size_t>(impl::ThrottleConfig::kNoLimit);
+    limit = limit_value.value_or(impl::ThrottleConfig::kNoLimit);
     if (limit == 0) limit = impl::ThrottleConfig::kNoLimit;
 
     if (limit != impl::ThrottleConfig::kNoLimit) {
-        const auto per_second = settings[per_second_key].As<size_t>(0);
+        const auto per_second = per_second_value.value_or(0);
         if (per_second) {
             rate = std::chrono::seconds{1};
             rate /= per_second;
@@ -59,25 +60,17 @@ ClientSettings Parse(const yaml_config::YamlConfig& value, formats::parse::To<Cl
 
 namespace clients::http::impl {
 
-ThrottleConfig Parse(const formats::json::Value& value, formats::parse::To<ThrottleConfig>) {
+ThrottleConfig Parse(const ::dynamic_config::http_client_connect_throttle::VariableType& value) {
     ThrottleConfig result;
     ParseTokenBucketSettings(
-        value, result.http_connect_limit, result.http_connect_rate, "http-limit", "http-per-second"
+        result.http_connect_limit, result.http_connect_rate, value.http_limit, value.http_per_second
     );
     ParseTokenBucketSettings(
-        value, result.https_connect_limit, result.https_connect_rate, "https-limit", "https-per-second"
+        result.https_connect_limit, result.https_connect_rate, value.https_limit, value.https_per_second
     );
     ParseTokenBucketSettings(
-        value, result.per_host_connect_limit, result.per_host_connect_rate, "per-host-limit", "per-host-per-second"
+        result.per_host_connect_limit, result.per_host_connect_rate, value.per_host_limit, value.per_host_per_second
     );
-    return result;
-}
-
-Config ParseConfig(const dynamic_config::DocsMap& docs_map) {
-    Config result;
-    result.connection_pool_size = docs_map.Get("HTTP_CLIENT_CONNECTION_POOL_SIZE").As<std::size_t>();
-    result.proxy = docs_map.Get("USERVER_HTTP_PROXY").As<std::string>();
-    result.throttle = docs_map.Get("HTTP_CLIENT_CONNECT_THROTTLE").As<ThrottleConfig>();
     return result;
 }
 

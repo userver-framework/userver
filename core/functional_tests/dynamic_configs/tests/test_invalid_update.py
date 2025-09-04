@@ -1,5 +1,3 @@
-import re
-
 import pytest
 
 from testsuite.utils import http
@@ -10,21 +8,7 @@ async def test_ok(service_client, monitor_client):
     # `fired_alerts` does not call `update_server_state` by default.
     await service_client.update_server_state()
 
-    assert await monitor_client.fired_alerts() == []
-
-
-CONFIG_PATTERN = (
-    'Failed to parse dynamic config. '
-    '[a-zA-Z0-9_:]*formats::json::TypeMismatchException while parsing dynamic config '
-    "with custom DocsMap parser. Error at path 'HTTP_CLIENT_CONNECTION_POOL_SIZE': "
-    'Wrong type. Expected: uintValue, actual: stringValue'
-)
-
-
-def validate_alerts(alerts):
-    assert len(alerts) == 1
-    assert alerts[0]['id'] == 'config_parse_error'
-    assert re.match(CONFIG_PATTERN, alerts[0]['message'])
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 0
 
 
 @pytest.fixture(name='break_config')
@@ -55,14 +39,13 @@ async def test_invalid_config_alerts(
     # Discard possible effects of the previous tests.
     # `fired_alerts` does not call `update_server_state` by default.
     await service_client.update_server_state()
-    assert await monitor_client.fired_alerts() == []
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 0
 
     await break_config()
-    alerts = await monitor_client.fired_alerts()
-    validate_alerts(alerts)
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 1
 
     await fix_config()
-    assert await monitor_client.fired_alerts() == []
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 0
 
 
 @pytest.mark.now('2019-01-01T12:00:00+0000')
@@ -76,20 +59,18 @@ async def test_alert_active_after_1_year(
     # Discard possible effects of the previous tests.
     # `fired_alerts` does not call `update_server_state` by default.
     await service_client.update_server_state()
-    assert await monitor_client.fired_alerts() == []
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 0
 
     await break_config()
 
-    alerts = await monitor_client.fired_alerts()
-    validate_alerts(alerts)
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 1
 
     mocked_time.sleep(60 * 60 * 24 * 365)  # 1 year
     await service_client.tests_control(invalidate_caches=False)
-    alerts = await monitor_client.fired_alerts()
-    validate_alerts(alerts)
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 1
 
     await fix_config()
-    assert await monitor_client.fired_alerts() == []
+    assert (await monitor_client.single_metric('alerts.config_parse_error')).value == 0
 
 
 SUCCESS_GAUGE_METRIC = 'dynamic-config.was-last-parse-successful'

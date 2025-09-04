@@ -13,6 +13,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::coro {
 
+namespace {
+bool IsStackUsageMonitorEnabled() {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    auto* enable = std::getenv("USERVER_ENABLE_STACK_USAGE_MONITOR");
+    if (!enable) return true;
+    if (std::string_view(enable) == "0") return false;
+    return true;
+}
+}  // namespace
+
 Pool::Pool(PoolConfig config, Executor executor)
     : config_(FixupConfig(std::move(config))),
       executor_(executor),
@@ -24,14 +34,16 @@ Pool::Pool(PoolConfig config, Executor executor)
       idle_coroutines_num_(config_.initial_size),
       total_coroutines_num_(0) {
     UASSERT(local_coroutine_move_size_ <= config_.local_cache_size);
-    moodycamel::ProducerToken token(initial_coroutines_);
+    const moodycamel::ProducerToken token(initial_coroutines_);
 
-    if (config_.is_stack_usage_monitor_enabled) {
+    if (!IsStackUsageMonitorEnabled()) {
+        LOG_WARNING() << "Stack usage monitor is explicitly disabled via USERVER_ENABLE_STACK_USAGE_MONITOR env var";
+    } else if (config_.is_stack_usage_monitor_enabled) {
         stack_usage_monitor_.Start();
     }
 
     for (std::size_t i = 0; i < config_.initial_size; ++i) {
-        bool ok = initial_coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
+        const bool ok = initial_coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
         UINVARIANT(ok, "Failed to allocate the initial coro pool");
     }
 }
@@ -127,7 +139,9 @@ Pool::Coroutine Pool::CreateCoroutine(bool quiet) {
             LOG_DEBUG() << "Created a coroutine #" << new_total << '/' << config_.max_size;
         }
 
-        stack_usage_monitor_.Register(coroutine);
+        if (new_total <= kStackUsageMonitorLimit) {
+            stack_usage_monitor_.Register(coroutine);
+        }
 
         return coroutine;
     } catch (const std::bad_alloc&) {

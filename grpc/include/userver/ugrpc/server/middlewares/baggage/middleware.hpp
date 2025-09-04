@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/server/middlewares/baggage/middleware.hpp
+/// @brief @copybrief ugrpc::server::middlewares::baggage::Middleware
+
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,10 +16,9 @@ public:
     static constexpr std::string_view kName = "grpc-server-baggage";
 
     /// @brief dependency of this middleware
-    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
-                                               .InGroup<USERVER_NAMESPACE::middlewares::groups::User>();
+    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder();
 
-    void Handle(MiddlewareCallContext& context) const override;
+    void OnCallStart(MiddlewareCallContext& context) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::baggage

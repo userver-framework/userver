@@ -5,7 +5,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 /// The engine-facing side of an asynchronous task payload. The engine will
-/// call `Perform` or `Reset` at most once.
+/// call one of `Perform` or the destructor exactly once.
 class WrappedCallBase {
 public:
     WrappedCallBase(WrappedCallBase&&) = delete;

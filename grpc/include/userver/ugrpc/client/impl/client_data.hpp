@@ -13,9 +13,11 @@
 #include <userver/utils/fixed_array.hpp>
 
 #include <userver/ugrpc/client/client_qos.hpp>
-#include <userver/ugrpc/client/impl/channel_arguments_builder.hpp>
+#include <userver/ugrpc/client/impl/channel_argument_utils.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
+#include <userver/ugrpc/client/impl/compat/channel_arguments_builder.hpp>
 #include <userver/ugrpc/client/impl/stub_any.hpp>
+#include <userver/ugrpc/client/impl/stub_handle.hpp>
 #include <userver/ugrpc/client/impl/stub_pool.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
@@ -29,39 +31,17 @@ struct GenericClientTag final {
     explicit GenericClientTag() = default;
 };
 
+struct StubState {
+    ClientQos client_qos;
+
+    StubPool stubs;
+    // method_id -> stub_pool
+    utils::FixedArray<StubPool> dedicated_stubs;
+};
+
 /// The internal state of generated gRPC clients
 class ClientData final {
 public:
-    struct StubState {
-        ClientQos client_qos;
-
-        StubPool stubs;
-        // method_id -> stub_pool
-        utils::FixedArray<StubPool> dedicated_stubs;
-    };
-
-    class StubHandle {
-    public:
-        StubHandle(rcu::ReadablePtr<StubState>&& state, StubAny& stub) : state_{std::move(state)}, stub_{stub} {}
-
-        StubHandle(StubHandle&&) noexcept = default;
-        StubHandle& operator=(StubHandle&&) = delete;
-
-        StubHandle(const StubHandle&) = delete;
-        StubHandle& operator=(const StubHandle&) = delete;
-
-        template <typename Stub>
-        Stub& Get() {
-            return StubCast<Stub>(stub_);
-        }
-
-        const ClientQos& GetClientQos() const { return state_->client_qos; }
-
-    private:
-        const rcu::ReadablePtr<StubState> state_;
-        StubAny& stub_;
-    };
-
     ClientData() = delete;
 
     template <typename Service>
@@ -73,6 +53,7 @@ public:
               std::in_place,
               internals_.channel_args,
               internals_.default_service_config,
+              internals_.retry_config,
               metadata
           ),
           stub_state_(std::make_unique<rcu::Variable<StubState>>()) {
@@ -121,13 +102,15 @@ public:
 
     std::string_view GetClientName() const { return internals_.client_name; }
 
-    const Middlewares& GetMiddlewares() const { return internals_.mws; }
+    const Middlewares& GetMiddlewares() const { return internals_.middlewares; }
 
     const ugrpc::impl::StaticServiceMetadata& GetMetadata() const;
 
     const testsuite::GrpcControl& GetTestsuiteControl() const { return internals_.testsuite_grpc; }
 
     const dynamic_config::Key<ClientQos>* GetClientQos() const;
+
+    const RetryConfig& GetRetryConfig() const { return internals_.retry_config; }
 
     rcu::ReadablePtr<StubState> GetStubState() const { return stub_state_->Read(); }
 
@@ -184,10 +167,10 @@ private:
     }
 
     ClientInternals internals_;
-    std::optional<ugrpc::impl::StaticServiceMetadata> metadata_{std::nullopt};
+    std::optional<ugrpc::impl::StaticServiceMetadata> metadata_;
     ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
 
-    std::optional<ChannelArgumentsBuilder> channel_arguments_builder_;
+    std::optional<compat::ChannelArgumentsBuilder> channel_arguments_builder_;
 
     std::unique_ptr<rcu::Variable<StubState>> stub_state_;
 

@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 TEST(FastPimpl, SampleWidget) {
-    sample::Widget widget;
+    const sample::Widget widget;
     auto widget_copy = widget;
     EXPECT_EQ(widget_copy.DoSomething(2), 42);
 }

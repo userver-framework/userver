@@ -7,14 +7,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
 
-struct first {
+struct First {
     template <class T>
     auto operator()(T& value) const noexcept -> decltype(value.first)& {
         return value.first;
     }
 };
 
-struct second {
+struct Second {
     template <class T>
     auto operator()(T& value) const noexcept -> decltype(value.second)& {
         return value.second;
@@ -92,20 +92,23 @@ public:
     auto begin() const { return cbegin(); }
     auto end() const { return cend(); }
 
+    auto size() const { return container_.size(); }
+    auto empty() const { return container_.empty(); }
+
 private:
     Container& container_;
 };
 
 // A backport of std::ranges::views::keys.
 template <class Container>
-ProjectingView<const Container, impl::first> MakeKeysView(const Container& c) {
-    return ProjectingView<const Container, impl::first>{c};
+ProjectingView<const Container, impl::First> MakeKeysView(const Container& c) {
+    return ProjectingView<const Container, impl::First>{c};
 }
 
 // A backport of std::ranges::views::values.
 template <class Container>
-ProjectingView<Container, impl::second> MakeValuesView(Container& c) {
-    return ProjectingView<Container, impl::second>{c};
+ProjectingView<Container, impl::Second> MakeValuesView(Container& c) {
+    return ProjectingView<Container, impl::Second>{c};
 }
 
 }  // namespace utils::impl

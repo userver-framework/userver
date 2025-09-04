@@ -32,11 +32,11 @@ using RetryTest = ugrpc::tests::ServiceFixture<UnitTestService>;
 
 }  // namespace
 
-UTEST_F(RetryTest, Attempts) {
+UTEST_F(RetryTest, QosAttempts) {
     ugrpc::client::Qos qos;
     qos.attempts = 4;
     ugrpc::client::ClientQos client_qos;
-    client_qos.SetDefault(qos);
+    client_qos.methods.SetDefault(qos);
     const auto config = std::vector<dynamic_config::KeyValue>{{tests::kUnitTestClientQos, client_qos}};
     ExtendDynamicConfig(config);
 
@@ -51,6 +51,20 @@ UTEST_F(RetryTest, Attempts) {
 
     sample::ugrpc::GreetingResponse response;
     UEXPECT_NO_THROW(response = client.SayHello(request));
+}
+
+UTEST_F(RetryTest, CallOptionsAttempts) {
+    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+    sample::ugrpc::GreetingRequest request;
+    request.set_name("testname");
+    /// [SetAttempts]
+    ugrpc::client::CallOptions call_options;
+    call_options.SetAttempts(4);
+
+    sample::ugrpc::GreetingResponse response;
+    UEXPECT_NO_THROW(response = client.SayHello(request, std::move(call_options)));
+    /// [SetAttempts]
 }
 
 USERVER_NAMESPACE_END

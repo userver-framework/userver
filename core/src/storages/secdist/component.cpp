@@ -19,7 +19,7 @@ ParseSettings(const ComponentConfig& config, const ComponentContext& context) {
 
     const auto provider_name = config["provider"].As<std::string>("default-secdist-provider");
     settings.provider = &context.FindComponent<storages::secdist::SecdistProvider>(provider_name);
-    settings.update_period = utils::StringToDuration(config["update-period"].As<std::string>("0s"));
+    settings.update_period = utils::StringToDuration(config["update-period"].As<std::string>("10s"));
     return settings;
 }
 
@@ -43,7 +43,7 @@ properties:
     update-period:
         type: string
         description: period between data updates in utils::StringToDuration() suitable format ('0s' for no updates)
-        defaultDescription: 0s
+        defaultDescription: 10s
     provider:
         type: string
         description: optional secdist provider component name

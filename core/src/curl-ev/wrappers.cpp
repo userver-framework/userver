@@ -10,13 +10,13 @@ namespace curl::impl {
 
 CurlGlobal::CurlGlobal() {
     crypto::Openssl::Init();
-    std::error_code ec{static_cast<errc::EasyErrorCode>(native::curl_global_init(CURL_GLOBAL_DEFAULT))};
+    const std::error_code ec{static_cast<errc::EasyErrorCode>(native::curl_global_init(CURL_GLOBAL_DEFAULT))};
     throw_error(ec, "cURL global initialization failed");
 }
 
 CurlGlobal::~CurlGlobal() { native::curl_global_cleanup(); }
 
-void CurlGlobal::Init() { [[maybe_unused]] static CurlGlobal global; }
+void CurlGlobal::Init() { [[maybe_unused]] static const CurlGlobal global; }
 
 }  // namespace curl::impl
 

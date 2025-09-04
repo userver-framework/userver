@@ -9,7 +9,7 @@
 > processing.
 
 If your service has a server::handlers::LogLevel configured, then you can
-change the current logging level at runtime, without service restart. 
+change the current logging level at runtime, without service restart.
 
 ### Commands for the default logger
 
@@ -27,7 +27,7 @@ for more info on configuration and ideas on how to change the
 
 #### Examples:
 
-1. Get the current log-level 
+1. Get the current log-level
 Note that `/` is important at the end, without it you might get a response from a different handler.
 ```
 bash
@@ -67,7 +67,7 @@ for more info on configuration.
 1. Get the current log-level of the access logger
 ```
 bash
-$ curl 'http://127.0.0.1:1188/service/log-level/?logger=access' 
+$ curl 'http://127.0.0.1:1188/service/log-level/?logger=access'
 {"init-log-level":"info","current-log-level":"info"}
 ```
 
@@ -195,25 +195,30 @@ core/src/cache/cache_config.cpp:194	0
 ...
 ```
 
+@anchor USERVER_LOG_DYNAMIC_DEBUG_details
 ### with USERVER_LOG_DYNAMIC_DEBUG
 
-Logging locations can be modified with a dynamic config schema @ref USERVER_LOG_DYNAMIC_DEBUG. 
+Logs can be force-enabled or disabled using dynamic config variable @ref USERVER_LOG_DYNAMIC_DEBUG.
 
-It provides enabling and disabling logs by log level (see @ref scripts/docs/en/userver/dynamic_config.md). 
+For how to set dynamic config, see @ref scripts/docs/en/userver/dynamic_config.md.
 
-Variables `force-disabled-level` and `force-enabled-level` store lists of log locations to be disabled and enabled respectively. 
+Fields `force-disabled-level` and `force-enabled-level` store lists of log locations to be disabled and enabled respectively.
 
 Log locations are defined as path prefixes from the root directory.
 
-File location may be followed by :[line index] without [ ] brackets to specify 1 exact log in that file. If the :[line index] without [ ] brackets is not specified then all logs are enabled in the file.
+File location may be followed by `:[line index]` without `[ ]` brackets to specify 1 exact log in that file.
+If the `:[line index]` without `[ ]` brackets is not specified then all logs are enabled in the file.
 
-For example, the following configuration enables: 
+@note In order for `USERVER_LOG_DYNAMIC_DEBUG` to work, you should `Append` @ref components::LoggingConfigurator
+component or use @ref components::CommonComponentList.
 
-1) all logs with level WARNING or higher in the directory "core/include/userver/rcu",
+For example, the following configuration enables:
 
-2) all logs with level DEBUG or higher in the file "core/src/server/server.cpp"
+1) all logs with level `WARNING` or higher in the directory `core/include/userver/rcu`;
 
-3) one log (since exact line is specified) with level TRACE in the file "core/src/server/http/http_request_parser.cpp".
+2) all logs with level `DEBUG` or higher in the file `core/src/server/server.cpp`;
+
+3) one log (since exact line is specified) with level `TRACE` in the file `core/src/server/http/http_request_parser.cpp`.
 
 ```json
 {
@@ -250,6 +255,6 @@ This configuration disables:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/schemas/dynamic_configs.md | @ref scripts/docs/en/userver/requests_in_flight.md ⇨
+⇦ @ref scripts/docs/en/dynamic_configs/dynamic_configs.md | @ref scripts/docs/en/userver/requests_in_flight.md ⇨
 @htmlonly </div> @endhtmlonly
 

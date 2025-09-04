@@ -1,5 +1,5 @@
-### This conanfile.py can be placed into a sample directory to
-### use that sample as a test for userver package build with conan
+# This conanfile.py can be placed into a sample directory to
+# use that sample as a test for userver package build with conan
 
 from conan import ConanFile
 from conan.tools import build

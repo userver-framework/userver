@@ -88,24 +88,24 @@ struct FooBarWithOptionalFields {
 using FooBarOpt = std::optional<FooBar>;
 
 class FooClass {
-    int i{};
-    std::string s;
-    double d{};
-    std::vector<int> a;
-    std::vector<std::string> v;
+    int i_{};
+    std::string s_;
+    double d_{};
+    std::vector<int> a_;
+    std::vector<std::string> v_;
 
 public:
     FooClass() = default;
-    explicit FooClass(int x) : i(x), s(std::to_string(x)), d(x), a{i}, v{s} {}
+    explicit FooClass(int x) : i_(x), s_(std::to_string(x)), d_(x), a_{i_}, v_{s_} {}
 
     // Only non-const version of Introspect() is used by the uPostgres driver
-    auto Introspect() { return std::tie(i, s, d, a, v); }
+    auto Introspect() { return std::tie(i_, s_, d_, a_, v_); }
 
-    auto GetI() const { return i; }
-    auto GetS() const { return s; }
-    auto GetD() const { return d; }
-    auto GetA() const { return a; }
-    auto GetV() const { return v; }
+    auto GetI() const { return i_; }
+    auto GetS() const { return s_; }
+    auto GetD() const { return d_; }
+    auto GetA() const { return a_; }
+    auto GetV() const { return v_; }
 };
 
 using FooTuple = std::tuple<int, std::string, double, std::vector<int>, std::vector<std::string>>;

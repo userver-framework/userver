@@ -4,10 +4,6 @@ components_manager:
             path: /cache/state
             method: GET
             task_processor: main-task-processor
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: monitor-task-processor
         congestion-control:
             fake-mode: $testsuite-enabled
             load-enabled: true

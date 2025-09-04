@@ -15,7 +15,12 @@ def kafka_local(_patched_bootstrap_servers_internal):
 
 @pytest.fixture(scope='session')
 def kafka_components():
-    return ['kafka-consumer-first', 'kafka-consumer-second']
+    return [
+        'kafka-consumer-first',
+        'kafka-consumer-second',
+        'kafka-consumer-cooperative-first',
+        'kafka-consumer-cooperative-second',
+    ]
 
 
 @pytest.fixture(scope='session')

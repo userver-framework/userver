@@ -61,7 +61,7 @@ UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
         std::string str;
         io::detail::Interval expected;
     };
-    Interval intervals[]{
+    const Interval intervals[]{
         {"1 sec", {0, 0, 1000000}},
         {"1.01 sec", {0, 0, 1010000}},
         {"1 day", {0, 1, 0}},

@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <string>
 
+#include <userver/utils/span.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::encoding {
@@ -44,8 +46,14 @@ constexpr size_t FromHexUpperBound(size_t size) noexcept {
 /// @param out string to write data. out will be cleared
 void ToHex(std::string_view input, std::string& out) noexcept;
 
+/// @brief Converts input to hex and writes data to output @p out.
+/// @warning `out` must be pre-allocated to at least @ref LengthInHexForm bytes.
+/// @param input bytes to convert
+/// @param out buffer to write data
+void ToHexBuffer(std::string_view input, utils::span<char> out) noexcept;
+
 /// @brief Allocates std::string, converts input and writes into said string
-/// @param input range of input bytes
+/// @param data range of input bytes
 inline std::string ToHex(std::string_view data) noexcept {
     std::string result;
     ToHex(data, result);
@@ -53,7 +61,7 @@ inline std::string ToHex(std::string_view data) noexcept {
 }
 
 /// @brief Allocates std::string, converts input and writes into said string
-/// @param data start of continuous range in memory
+/// @param encoded start of continuous range in memory
 /// @param len size of that range
 inline std::string ToHex(const void* encoded, size_t len) noexcept {
     const auto* chars = reinterpret_cast<const char*>(encoded);
@@ -92,7 +100,7 @@ std::string_view GetHexPart(std::string_view encoded) noexcept;
 /// FromHex, it will be fully processed
 bool IsHexData(std::string_view encoded) noexcept;
 
-/// @brief iterprets uint64_t value as array of bytes and applies ToHex to it
+/// @brief Interprets uint64_t value as array of bytes and applies ToHex to it
 inline std::string ToHexString(uint64_t value) { return ToHex(&value, sizeof(value)); }
 
 }  // namespace utils::encoding

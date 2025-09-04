@@ -263,7 +263,7 @@ bool HttpRequestParser::CheckUrlComplete(llhttp_t* p) {
 }
 
 bool HttpRequestParser::FinalizeRequest() {
-    bool res = FinalizeRequestImpl();
+    const bool res = FinalizeRequestImpl();
     stats_.parsing_request_count.Subtract(1);
     request_constructor_.reset();
     return res;

@@ -78,6 +78,7 @@ const std::string_view kCommandTypes[] = {
     "scan",
     "scard",
     "script",
+    "select",
     "sentinel",
     "set",
     "setex",
@@ -153,9 +154,8 @@ void Statistics::AccountStateChanged(RedisState new_state) {
 }
 
 void Statistics::AccountCommandSent(const CommandPtr& cmd) {
-    for (const auto& args : cmd->args.args) {
-        size_t size = 0;
-        for (const auto& arg : args) size += arg.size();
+    for (const auto& args : cmd->args) {
+        const std::size_t size = args.GetCommandBytesLength();
         request_size_percentile.GetCurrentCounter().Account(size);
     }
 }
@@ -229,9 +229,9 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
             );
         }
 
-        long long session_time_ms = stats.state == impl::Redis::State::kConnected
-                                        ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
-                                        : 0;
+        const long long session_time_ms = stats.state == impl::Redis::State::kConnected
+                                              ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
+                                              : 0;
         writer["session-time-ms"] = session_time_ms;
     }
 }

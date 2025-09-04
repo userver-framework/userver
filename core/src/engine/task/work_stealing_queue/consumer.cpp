@@ -66,7 +66,7 @@ void Consumer::Push(impl::TaskContext* ctx) {
     }
     if (!local_queue_.TryPush(ctx)) {
         // local_queue_surplus_ must be empty
-        bool ok = local_queue_surplus_.TryPush(ctx);
+        const bool ok = local_queue_surplus_.TryPush(ctx);
         UASSERT(ok);
     }
 }
@@ -104,10 +104,10 @@ impl::TaskContext*
 Consumer::StealFromAnotherConsumerOrGlobalQueue(const std::size_t attempts, std::size_t to_steal_count) {
     std::size_t stealed_size = 0;
     for (std::size_t i = 0; i < attempts && to_steal_count > 0 && stealed_size == 0; ++i) {
-        std::size_t start_index = rnd_() % owner_.consumers_count_;
+        const std::size_t start_index = rnd_() % owner_.consumers_count_;
         for (std::size_t shift = 0; shift < owner_.consumers_count_ && to_steal_count > 0 && stealed_size == 0;
              ++shift) {
-            std::size_t index = (start_index + shift) % owner_.consumers_count_;
+            const std::size_t index = (start_index + shift) % owner_.consumers_count_;
             Consumer* victim = &owner_.consumers_[index];
             if (victim == this) {
                 continue;
@@ -207,7 +207,7 @@ impl::TaskContext* Consumer::TryPop() {
 
     if (consumers_manager_.AllowStealing()) {
         context = StealFromAnotherConsumerOrGlobalQueue(steal_attempts_count_, kDefaultStealSize);
-        bool last = consumers_manager_.StopStealing();
+        const bool last = consumers_manager_.StopStealing();
 
         // there are potentially other tasks that require a consumer
         if (last && context) {
@@ -313,7 +313,7 @@ void Consumer::WakeUp() {
     sleep_counter_.fetch_add(1);
     FutexWake(&sleep_counter_, 1);
 #else
-    std::unique_lock lk(mutex_);
+    const std::lock_guard lk(mutex_);
     sleep_counter_.fetch_add(1);
     cv_.notify_one();
 #endif

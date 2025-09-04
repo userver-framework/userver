@@ -1,10 +1,33 @@
 #include <userver/chaotic/openapi/parameters_write.hpp>
 
+#include <boost/range/adaptor/transformed.hpp>
+
 #include <fmt/format.h>
+
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::openapi {
+
+namespace {
+
+constexpr std::string_view kMask = "***";
+
+auto MaskQueryMultiArgs(const http::MultiArgs& args, ParameterSinkHttpClient::HiddenQueryArgNamesFunc func) {
+    using Pair = std::pair<std::string_view, std::string_view>;
+
+    auto masked = args | boost::adaptors::transformed([&func](const auto& pair) {
+                      const auto& [name, value] = pair;
+                      if (func(name))
+                          return Pair(name, kMask);
+                      else
+                          return Pair(name, value);
+                  });
+    return utils::AsContainer<std::vector<Pair>>(std::move(masked));
+}
+
+}  // namespace
 
 ParameterSinkHttpClient::ParameterSinkHttpClient(clients::http::Request& request, std::string&& url_pattern)
     : url_pattern_(std::move(url_pattern)), request_(request) {}
@@ -35,8 +58,19 @@ void ParameterSinkHttpClient::SetMultiQuery(std::string_view name, std::vector<s
 
 void ParameterSinkHttpClient::Flush() {
     request_.url(http::MakeUrl(fmt::vformat(url_pattern_, path_vars_), {}, query_args_));
+    if (hidden_query_arg_names_func_) {
+        auto logged_query_args = MaskQueryMultiArgs(query_args_, hidden_query_arg_names_func_);
+        auto url = http::MakeUrl(fmt::vformat(url_pattern_, path_vars_), logged_query_args);
+        request_.SetLoggedUrl(url);
+    }
     request_.headers(std::move(headers_));
     request_.cookies(std::move(cookies_));
+}
+
+const clients::http::Headers& ParameterSinkHttpClient::GetHeaders() const { return headers_; }
+
+void ParameterSinkHttpClient::SetHiddenQueryArgNamesFunc(HiddenQueryArgNamesFunc func) {
+    hidden_query_arg_names_func_ = func;
 }
 
 std::string ToStrParameter(bool value) noexcept { return value ? "true" : "false"; }

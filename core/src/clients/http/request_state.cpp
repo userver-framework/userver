@@ -10,12 +10,14 @@
 #include <fmt/ranges.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <curl-ev/error_code.hpp>
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/http/url.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
@@ -23,6 +25,7 @@
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/text_light.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,7 +53,7 @@ constexpr Status kLeastHttpCodeForDeadlineExpired{400};
 
 constexpr Status kFakeHttpErrorCode{599};
 
-constexpr std::string_view kTracingClientName = "external";
+const std::string kTracingClientName = "external/";
 
 constexpr utils::TrivialBiMap kTestsuiteActions = [](auto selector) {
     return selector()
@@ -78,7 +81,7 @@ std::error_code TestsuiteResponseHook(Status status_code, const Headers& headers
                 return std::error_code{*opt_value};
             }
 
-            utils::impl::AbortWithStacktrace(fmt::format(
+            utils::AbortWithStacktrace(fmt::format(
                 "Unsupported mockserver protocol X-Testsuite-Error header value: {}. "
                 "Try to update submodules and recompile project first. If it does "
                 "not help please contact testsuite support team.",
@@ -212,7 +215,7 @@ RequestState::RequestState(
     RequestStats&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
     clients::dns::Resolver* resolver,
-    impl::PluginPipeline& plugin_pipeline,
+    const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
     const tracing::TracingManagerBase& tracing_manager
 )
     : easy_(std::move(wrapper)),
@@ -224,13 +227,13 @@ RequestState::RequestState(
       is_cancelled_(false),
       errorbuffer_(),
       resolver_{resolver},
-      plugin_pipeline_{plugin_pipeline} {
+      plugin_pipeline_(plugins) {
     // Libcurl calls sigaction(2)  way too frequently unless this option is used.
     easy().set_no_signal(true);
     easy().set_error_buffer(errorbuffer_.data());
 
     // define header function
-    easy().set_header_function(&RequestState::on_header);
+    easy().set_header_function(&RequestState::OnHeader);
     easy().set_header_data(this);
 
     // set autodecoding
@@ -266,7 +269,7 @@ void RequestState::verify(bool verify) {
     easy().set_ssl_verify_peer(verify);
 }
 
-void RequestState::ca_info(const std::string& file_path) { easy().set_ca_info(file_path.c_str()); }
+void RequestState::ca_info(utils::zstring_view file_path) { easy().set_ca_info(file_path.c_str()); }
 
 void RequestState::ca(crypto::Certificate cert) {
     UINVARIANT(cert, "No certificate");
@@ -275,12 +278,12 @@ void RequestState::ca(crypto::Certificate cert) {
     } else {
         // Legacy non-portable way, broken since 7.87.0
         ca_ = std::move(cert);
-        easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+        easy().set_ssl_ctx_function(&RequestState::OnCertificateRequest);
         easy().set_ssl_ctx_data(this);
     }
 }
 
-void RequestState::crl_file(const std::string& file_path) { easy().set_crl_file(file_path.c_str()); }
+void RequestState::crl_file(utils::zstring_view file_path) { easy().set_crl_file(file_path.c_str()); }
 
 void RequestState::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) {
     UINVARIANT(pkey, "No private key");
@@ -323,7 +326,7 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate 
         cert_id.resize(kCertIdLength, '=');
         easy().set_egd_socket(cert_id);
 
-        easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+        easy().set_ssl_ctx_function(&RequestState::OnCertificateRequest);
         easy().set_ssl_ctx_data(this);
     }
 }
@@ -341,7 +344,7 @@ void RequestState::retry(short retries, bool on_fails) {
     retry_.on_fails = on_fails;
 }
 
-void RequestState::unix_socket_path(const std::string& path) { easy().set_unix_socket_path(path); }
+void RequestState::unix_socket_path(utils::zstring_view path) { easy().set_unix_socket_path(path); }
 
 void RequestState::connect_to(const ConnectTo& connect_to) {
     curl::native::curl_slist* ptr = connect_to.GetUnderlying();
@@ -350,7 +353,7 @@ void RequestState::connect_to(const ConnectTo& connect_to) {
     }
 }
 
-void RequestState::proxy(const std::string& value) {
+void RequestState::proxy(utils::zstring_view value) {
     proxy_url_ = value;
     easy().set_proxy(value);
 }
@@ -360,12 +363,12 @@ void RequestState::proxy_auth_type(curl::easy::proxyauth_t value) { easy().set_p
 void RequestState::http_auth_type(
     curl::easy::httpauth_t value,
     bool auth_only,
-    std::string_view user,
-    std::string_view password
+    utils::zstring_view user,
+    utils::zstring_view password
 ) {
     easy().set_http_auth(value, auth_only);
-    easy().set_user(std::string{user}.c_str());
-    easy().set_password(std::string{password}.c_str());
+    easy().set_user(user.c_str());
+    easy().set_password(password.c_str());
 }
 
 void RequestState::Cancel() {
@@ -398,14 +401,14 @@ void RequestState::SetDeadlinePropagationConfig(const DeadlinePropagationConfig&
     deadline_propagation_config_ = deadline_propagation_config;
 }
 
-size_t RequestState::on_header(void* ptr, size_t size, size_t nmemb, void* userdata) {
+size_t RequestState::OnHeader(void* ptr, size_t size, size_t nmemb, void* userdata) {
     auto* self = static_cast<RequestState*>(userdata);
     const std::size_t data_size = size * nmemb;
-    if (self) self->parse_header(static_cast<char*>(ptr), data_size);
+    if (self) self->ParseHeader(static_cast<char*>(ptr), data_size);
     return data_size;
 }
 
-curl::native::CURLcode RequestState::on_certificate_request(void* /*curl*/, void* sslctx, void* userdata) noexcept {
+curl::native::CURLcode RequestState::OnCertificateRequest(void* /*curl*/, void* sslctx, void* userdata) noexcept {
     auto* ssl = static_cast<SSL_CTX*>(sslctx);
     auto* self = static_cast<RequestState*>(userdata);
 
@@ -438,7 +441,7 @@ curl::native::CURLcode RequestState::on_certificate_request(void* /*curl*/, void
     return curl::native::CURLcode::CURLE_OK;
 }
 
-void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_code err) {
     UASSERT(holder);
     UASSERT(holder->span_storage_);
     auto& span = holder->span_storage_->Get();
@@ -475,6 +478,8 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
             err = easy.rate_limit_error();
         }
 
+        holder->plugin_pipeline_.HookOnError(*holder, err);
+
         span.AddTag(tracing::kErrorFlag, true);
         span.AddTag(tracing::kErrorMessage, err.message());
         span.AddTag(tracing::kHttpStatusCode, kFakeHttpErrorCode);
@@ -488,7 +493,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
         const utils::Overloaded visitor{
             [&holder, &err](FullBufferedData& buffered_data) {
                 { [[maybe_unused]] const auto cleanup = holder->response_move(); }
-                auto promise = std::move(buffered_data.promise_);
+                auto promise = std::move(buffered_data.promise);
                 // The task will wake up and may reuse RequestState.
                 promise.set_exception(holder->PrepareException(err));
             },
@@ -511,7 +516,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
 
         const utils::Overloaded visitor{
             [&holder](FullBufferedData& buffered_data) {
-                auto promise = std::move(buffered_data.promise_);
+                auto promise = std::move(buffered_data.promise);
                 // The task will wake up and may reuse RequestState.
                 promise.set_value(holder->response_move());
             },
@@ -525,7 +530,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
     // it is unsafe to touch any content of holder after this point!
 }
 
-void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::OnRetry(std::shared_ptr<RequestState> holder, std::error_code err) {
     UASSERT(holder);
     UASSERT(holder->span_storage_);
     LOG_TRACE() << "RequestImpl::on_retry" << tracing::impl::LogSpanAsLastNoCurrent{holder->span_storage_->Get()};
@@ -535,13 +540,17 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
     // - if we used all attempts
     // - if failed to reach server, and we should not retry on fails
     // - if this request was cancelled
-    const bool not_need_retry = (!err && !holder->ShouldRetryResponse()) ||
-                                (holder->retry_.current >= holder->retry_.retries) ||
-                                (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
+    bool not_need_retry = (!err && !holder->ShouldRetryResponse()) ||
+                          (holder->retry_.current >= holder->retry_.retries) || (err && !holder->retry_.on_fails) ||
+                          holder->is_cancelled_.load();
+
+    if (!not_need_retry) {
+        not_need_retry = !holder->plugin_pipeline_.HookOnRetry(*holder);
+    }
 
     if (not_need_retry) {
         // finish if no need to retry
-        RequestState::on_completed(std::move(holder), err);
+        RequestState::OnCompleted(std::move(holder), err);
     } else {
         // calculate backoff before retry
         const auto eb_power = std::clamp(holder->retry_.current - 1, 0, kEBMaxPower);
@@ -550,7 +559,7 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
         holder->UpdateTimeoutFromDeadline(backoff);
         if (holder->remote_timeout_ <= std::chrono::milliseconds::zero()) {
             holder->deadline_expired_ = true;
-            RequestState::on_completed(std::move(holder), err);
+            RequestState::OnCompleted(std::move(holder), err);
             return;
         }
 
@@ -565,19 +574,19 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
         // call on_retry_timer on timer
         auto& holder_ref = *holder;
         holder_ref.retry_.timer->SingleshotAsync(backoff, [holder = std::move(holder)](std::error_code err) {
-            holder->on_retry_timer(err);
+            holder->OnRetryTimer(err);
         });
     }
 }
 
-void RequestState::on_retry_timer(std::error_code err) {
+void RequestState::OnRetryTimer(std::error_code err) {
     // if there is no error with timer call perform, otherwise finish
     if (!err)
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_retry(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnRetry(std::move(holder), err);
         });
     else
-        on_completed(shared_from_this(), err);
+        OnCompleted(shared_from_this(), err);
 }
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
@@ -589,7 +598,7 @@ void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
     }
 }
 
-void RequestState::parse_header(char* ptr, size_t size) try {
+void RequestState::ParseHeader(char* ptr, size_t size) try {
     /* It is a fast path in curl's thread (io thread).  Creation of tmp
      * std::string, boost::trim_right_if(), etc. is too expensive. */
 
@@ -604,7 +613,9 @@ void RequestState::parse_header(char* ptr, size_t size) try {
     const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
     if (col_pos == nullptr) {
         if (IsHttpStatusLineStart(ptr, size)) {
-            for (auto& [k, v] : response_->headers()) LOG_INFO() << "drop header " << k << "=" << v;
+            if (!response()->headers().empty()) {
+                LOG_INFO() << "Drop headers: " << (response_->headers() | boost::adaptors::map_keys);
+            }
             // In case of redirect drop 1st response headers
             response_->headers().clear();
         }
@@ -633,6 +644,10 @@ void RequestState::parse_header(char* ptr, size_t size) try {
     LOG_ERROR() << "Failed to parse header: " << e.what();
 }
 
+void RequestState::SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) {
+    plugin_pipeline_ = impl::PluginPipeline(plugins);
+}
+
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
 const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
@@ -658,11 +673,11 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform(utils::imp
     // set place for response body
     easy().set_sink(&response_->sink_string());
 
-    auto future = std::get_if<FullBufferedData>(&data_)->promise_.get_future();
+    auto future = std::get_if<FullBufferedData>(&data_)->promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_retry(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnRetry(std::move(holder), err);
         });
     }
 
@@ -687,15 +702,15 @@ RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue, utils::i
     auto future = std::get_if<StreamData>(&data_)->headers_promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_completed(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnCompleted(std::move(holder), err);
         });
     }
 
     return future;
 }
 
-void RequestState::perform_request(curl::easy::handler_type handler) {
+void RequestState::PerformRequest(curl::easy::handler_type handler) {
     UASSERT_MSG(!cert_ || pkey_, "Setting certificate is useless without setting private key");
 
     UASSERT(response_);
@@ -707,23 +722,25 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
     plugin_pipeline_.HookPerformRequest(*this);
 
     if (resolver_ && retry_.current == 1) {
-        engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
-            try {
-                ResolveTargetAddress(*resolver_);
-                easy().async_perform(std::move(handler));
-            } catch (const clients::dns::ResolverException& ex) {
-                // TODO: should retry - TAXICOMMON-4932
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
+        engine::DetachUnscopedUnsafe(
+            engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
+                try {
+                    ResolveTargetAddress(*resolver_);
+                    easy().async_perform(std::move(handler));
+                } catch (const clients::dns::ResolverException& ex) {
+                    // TODO: should retry - TAXICOMMON-4932
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise.set_exception(std::current_exception());
+                    }
+                } catch (const BaseException& ex) {
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise.set_exception(std::current_exception());
+                    }
                 }
-            } catch (const BaseException& ex) {
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
-                }
-            }
-        }).Detach();
+            })
+        );
     } else {
         easy().async_perform(std::move(handler));
     }
@@ -791,7 +808,7 @@ void RequestState::HandleDeadlineAlreadyPassed() {
 
     const utils::Overloaded visitor{
         [&exc](FullBufferedData& buffered_data) {
-            auto promise = std::move(buffered_data.promise_);
+            auto promise = std::move(buffered_data.promise);
             // The task will wake up and may reuse RequestState.
             promise.set_exception(std::move(exc));
         },
@@ -952,7 +969,7 @@ void RequestState::ApplyTestsuiteConfig() {
     if (!prefixes.empty()) {
         auto url = easy().get_original_url();
         if (!IsPrefix(url, prefixes) && !IsPrefix(url, allowed_urls_extra_)) {
-            utils::impl::AbortWithStacktrace(fmt::format(
+            utils::AbortWithStacktrace(fmt::format(
                 "{} forbidden by testsuite config, allowed prefixes={}, "
                 "extra prefixes={}",
                 url,
@@ -973,7 +990,9 @@ void RequestState::ApplyTestsuiteConfig() {
 void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
     UINVARIANT(!span_storage_, "Attempt to reuse request while the previous one has not finished");
 
-    span_storage_.emplace(std::string{kTracingClientName}, location);
+    span_storage_.emplace(
+        kTracingClientName + std::string{USERVER_NAMESPACE::http::ExtractHostname(easy().get_original_url())}, location
+    );
     auto& span = span_storage_->Get();
 
     auto request_editable_instance = GetEditableRequestInstance();

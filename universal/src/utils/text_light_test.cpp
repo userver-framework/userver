@@ -90,22 +90,22 @@ TEST(Text, SplitSV) {
         EXPECT_EQ(tokens[2], "333");
     }
     {
-        std::string input;
-        std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",");
+        const std::string input;
+        const std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",");
         ASSERT_EQ(tokens.size(), 1);
     }
     {
-        std::string input = ",";
-        std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",");
+        const std::string input = ",";
+        const std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",");
         ASSERT_EQ(tokens.size(), 2);
     }
     {
-        std::string input = ",,";
-        std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",");
+        const std::string input = ",,";
+        const std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",");
         ASSERT_EQ(tokens.size(), 3);
     }
     {
-        std::string input = ",0,";
+        const std::string input = ",0,";
         std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",");
         ASSERT_EQ(tokens.size(), 3);
         EXPECT_EQ(tokens[0], "");
@@ -127,22 +127,22 @@ TEST(Text, SplitStringViewMultiple) {
         ASSERT_EQ(input.data(), tokens[0].data());
     }
     {
-        std::string input;
-        std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",#");
+        const std::string input;
+        const std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",#");
         ASSERT_EQ(tokens.size(), 1);
     }
     {
-        std::string input = ",";
-        std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, "#,");
+        const std::string input = ",";
+        const std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, "#,");
         ASSERT_EQ(tokens.size(), 2);
     }
     {
-        std::string input = ",#";
-        std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, "#,");
+        const std::string input = ",#";
+        const std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, "#,");
         ASSERT_EQ(tokens.size(), 3);
     }
     {
-        std::string input = "#0,";
+        const std::string input = "#0,";
         std::vector<std::string_view> tokens = utils::text::SplitIntoStringViewVector(input, ",#");
         ASSERT_EQ(tokens.size(), 3);
         EXPECT_EQ(tokens[0], "");
@@ -154,7 +154,7 @@ TEST(Text, SplitStringViewMultiple) {
 TEST(Text, SplitMultiple) {
     {
         /// [SplitMultiple]
-        std::string input = "1,22#333";
+        const std::string input = "1,22#333";
         auto tokens = utils::text::Split(input, "#,");
         ASSERT_EQ(tokens.size(), 3);
         EXPECT_EQ(tokens[0], "1");
@@ -163,22 +163,22 @@ TEST(Text, SplitMultiple) {
         /// [SplitMultiple]
     }
     {
-        std::string input;
+        const std::string input;
         auto tokens = utils::text::SplitIntoStringViewVector(input, ",#");
         ASSERT_EQ(tokens.size(), 1);
     }
     {
-        std::string input = ",";
+        const std::string input = ",";
         auto tokens = utils::text::SplitIntoStringViewVector(input, "#,");
         ASSERT_EQ(tokens.size(), 2);
     }
     {
-        std::string input = ",#";
+        const std::string input = ",#";
         auto tokens = utils::text::SplitIntoStringViewVector(input, "#,");
         ASSERT_EQ(tokens.size(), 3);
     }
     {
-        std::string input = "#0,";
+        const std::string input = "#0,";
         auto tokens = utils::text::SplitIntoStringViewVector(input, ",#");
         ASSERT_EQ(tokens.size(), 3);
         EXPECT_EQ(tokens[0], "");
@@ -186,7 +186,7 @@ TEST(Text, SplitMultiple) {
         EXPECT_EQ(tokens[2], "");
     }
     {
-        std::string input = "1;;2";
+        const std::string input = "1;;2";
         auto tokens = utils::text::Split(input, ";", utils::text::SplitFlags::kNone);
         ASSERT_EQ(tokens.size(), 3);
         EXPECT_EQ(tokens[0], "1");

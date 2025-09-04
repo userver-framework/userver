@@ -170,10 +170,6 @@ void Count::SetOption(options::Skip skip) { AppendSkip(impl::EnsureBuilder(impl_
 
 void Count::SetOption(options::Limit limit) { AppendLimit(impl::EnsureBuilder(impl_->options), limit); }
 
-void Count::SetOption(options::ForceCountImpl count_impl) {
-    impl_->use_new_count = (count_impl == options::ForceCountImpl::kAggregate);
-}
-
 void Count::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
@@ -392,6 +388,8 @@ void Delete::SetOption(const options::WriteConcern& write_concern) {
 
 void Delete::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
+void Delete::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 FindAndModify::FindAndModify(formats::bson::Document query, const formats::bson::Document& update)
     : impl_(std::move(query)) {
@@ -568,6 +566,46 @@ void Drop::SetOption(options::WriteConcern::Level level) {
 
 void Drop::SetOption(const options::WriteConcern& write_concern) {
     AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+}
+
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
+void AppendCollation(formats::bson::impl::BsonBuilder& builder, const options::Collation& collation) {
+    const bson_t* collation_bson = collation.GetCollationBson();
+    if (bson_empty0(collation_bson)) return;
+
+    static constexpr utils::StringLiteral kOptionName = "collation";
+    builder.Append(kOptionName, collation_bson);
+}
+
+Distinct::Distinct(std::string field) : impl_(std::move(field)) {}
+
+Distinct::Distinct(std::string field, formats::bson::Document filter) : impl_(std::move(field), std::move(filter)) {}
+
+Distinct::~Distinct() = default;
+
+Distinct::Distinct(const Distinct& other) = default;
+Distinct::Distinct(Distinct&&) noexcept = default;
+Distinct& Distinct::operator=(const Distinct& rhs) = default;
+Distinct& Distinct::operator=(Distinct&&) noexcept = default;
+
+void Distinct::SetOption(const options::ReadPreference& read_prefs) {
+    impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
+}
+
+void Distinct::SetOption(options::ReadPreference::Mode mode) { impl_->read_prefs = MakeCDriverReadPrefs(mode); }
+
+void Distinct::SetOption(options::ReadConcern level) { AppendReadConcern(impl::EnsureBuilder(impl_->options), level); }
+
+void Distinct::SetOption(const options::Collation& collation) {
+    AppendCollation(impl::EnsureBuilder(impl_->options), collation);
+}
+
+void Distinct::SetOption(const options::Comment& comment) {
+    AppendComment(impl::EnsureBuilder(impl_->options), impl_->has_comment_option, comment);
+}
+
+void Distinct::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
 }  // namespace storages::mongo::operations

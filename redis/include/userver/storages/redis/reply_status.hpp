@@ -1,10 +1,13 @@
 #pragma once
 
+/// @file
+/// @brief @copybrief storages::redis::ReplyStatus
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-/// Redis reply status
+/// @brief Valkey/Redis reply status
 enum class ReplyStatus {
     kOk = 0,
     kInputOutputError,

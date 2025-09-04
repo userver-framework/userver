@@ -59,6 +59,7 @@ struct CppToClickhouse<DataWithOptValue> {
 
 UTEST(ExecuteWithArgs, Basic) {
     ClusterWrapper cluster{};
+    /// [basic_usage]
     const storages::clickhouse::Query q{"SELECT {}, * FROM system.numbers limit {}"};
 
     const auto result = cluster->Execute(q, "we", 5).As<DataWithValues>();
@@ -66,6 +67,7 @@ UTEST(ExecuteWithArgs, Basic) {
 
     EXPECT_EQ(result.strings.size(), 5);
     EXPECT_EQ(result.strings.front(), "we");
+    /// [basic_usage]
 }
 
 UTEST(ExecuteWithArgs, DatesArgs) {
@@ -142,7 +144,7 @@ UTEST(ExecuteWithArgs, InsertSelectNull) {
         "('mango', NULL)"
     );
 
-    std::optional<uint64_t> null_price;
+    const std::optional<uint64_t> null_price;
     const storages::clickhouse::Query query{
         "SELECT fruit, price FROM fruits "
         "WHERE price is {0}"};
@@ -165,7 +167,7 @@ UTEST(ExecuteWithArgs, InsertSelectNotNull) {
         "('mango', NULL)"
     );
 
-    std::optional<uint64_t> price = 300;
+    const std::optional<uint64_t> price = 300;
     const storages::clickhouse::Query query{
         "SELECT fruit, price FROM fruits "
         "WHERE price = {0}"};

@@ -116,7 +116,7 @@ ItemMutex<Key, Equal>::ItemMutex(MutexDatum& md, HashAndKey&& key) : md_(md), ke
 
 template <typename Key, typename Equal>
 void ItemMutex<Key, Equal>::lock() {
-    engine::TaskCancellationBlocker blocker;
+    const engine::TaskCancellationBlocker blocker;
     std::unique_lock<engine::Mutex> lock(md_.mutex);
 
     [[maybe_unused]] auto is_locked = md_.cv.Wait(lock, [this] { return TryFinishLocking(); });
@@ -149,7 +149,7 @@ void ItemMutex<Key, Equal>::unlock() {
 
 template <typename Key, typename Equal>
 bool ItemMutex<Key, Equal>::try_lock() {
-    std::unique_lock<engine::Mutex> lock(md_.mutex);
+    const std::unique_lock<engine::Mutex> lock(md_.mutex);
     return TryFinishLocking();
 }
 

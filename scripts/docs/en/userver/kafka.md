@@ -1,6 +1,6 @@
  ## Apache Kafka
 
-**Quality:** @ref QUALITY_TIERS "Silver Tier".
+**Quality:** @ref QUALITY_TIERS "Golden Tier".
 
 🐙 **userver** provides access to Apache Kafka Brokers via
 two independent interfaces: kafka::ProducerComponent and
@@ -48,12 +48,12 @@ Producer and consumer yields same set of metrics (but with different prefixes):
 | kafka_producer.messages_total    | `component-name`, `topic` | Total number of sent messages                                          |
 | kafka_producer.messages_success  | `component-name`, `topic` | Number of messages successfully written to partition                   |
 | kafka_producer.messages_error    | `component-name`, `topic` | Number of messages failed to produce                                   |
-| kafka_producer.connections_error | `component-name`          | Number of broker connection errors occured                             |
+| kafka_producer.connections_error | `component-name`          | Number of broker connection errors occurred                            |
 | kafka_consumer.avg_ms_spent_time | `component-name`, `topic` | Average time between message written to partition and read by consumer |
 | kafka_consumer.messages_total    | `component-name`, `topic` | Total number of read messages                                          |
 | kafka_consumer.messages_success  | `component-name`, `topic` | Number of successfully processed messages                              |
 | kafka_consumer.messages_error    | `component-name`, `topic` | Number of messages user-callback failed                                |
-| kafka_consumer.connections_error | `component-name`          | Number of broker connection errors occured                             |
+| kafka_consumer.connections_error | `component-name`          | Number of broker connection errors occurred                            |
 
 See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the metrics.
 

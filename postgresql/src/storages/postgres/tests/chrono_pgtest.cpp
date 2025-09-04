@@ -161,7 +161,7 @@ UTEST_P(PostgreConnection, ChronoTzConversions) {
     RETURNING with_tz, without_tz
   )";
     // ERROR! Types mismatch and are implicitly converted:
-    // * TimePointWithoutTz is converted on the DB side and TZ substracted.
+    // * TimePointWithoutTz is converted on the DB side and TZ subtracted.
     // * TimePointTz is converted on the DB side and TZ added.
     const auto res = connection->Execute(kInsertQuery, pg::TimePointWithoutTz{now}, pg::TimePointTz{now});
 
@@ -223,7 +223,7 @@ private:
 };
 
 void CheckInTimezone(pg::detail::ConnectionPtr& conn, const std::string& tz_name = {}) {
-    TemporaryTZ tmp_tz{tz_name};
+    const TemporaryTZ tmp_tz{tz_name};
     auto tz = cctz::local_time_zone();
     if (!tz_name.empty()) {
         ASSERT_TRUE(cctz::load_time_zone(tz_name, &tz)) << "cctz load time zone " << tz_name;
@@ -231,7 +231,7 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn, const std::string& tz_name
             << "Set timezone for Postgres " << tmp_tz;
     }  // Else use local timezone
 
-    std::vector<pg::TimePoint> timepoints{
+    const std::vector<pg::TimePoint> timepoints{
         pg::ClockType::now(),
         ParseUTC("2018-01-01 10:00:00+00"),  // Some time in winter
         ParseUTC("2018-07-01 10:00:00+00")   // Some time in summer, for DST timezones
@@ -331,7 +331,7 @@ UTEST_P(PostgreConnection, TimestampTz) {
     CheckConnection(GetConn());
     // Make sure we use a time zone different from UTC and MSK
     const std::string tz_name = "Asia/Yekaterinburg";
-    TemporaryTZ tmp_tz{tz_name};
+    const TemporaryTZ tmp_tz{tz_name};
     UASSERT_NO_THROW(GetConn()->SetParameter("TimeZone", tz_name, pg::detail::Connection::ParameterScope::kSession));
 
     pg::TimePointTz now{std::chrono::system_clock::now()};

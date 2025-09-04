@@ -37,6 +37,15 @@ void LogConfiguration(std::string_view component_name, const std::vector<std::st
     LOG_INFO() << fmt::format("Middlewares configuration for {}: [{}]", component_name, fmt::join(names, ", "));
 }
 
+void LogValidateError(std::string_view middleware_name, const std::exception& e) {
+    LOG_ERROR()
+        << fmt::format(
+               "Error while creating the middleware '{}'. Probably, you make a typo in middleware options. Exception: ",
+               middleware_name
+           )
+        << e;
+}
+
 }  // namespace middlewares::impl
 
 USERVER_NAMESPACE_END

@@ -1,0 +1,87 @@
+openapi: 3.0.0
+info:
+    title: test-object client
+    version: '1.0'
+
+paths:
+    /test1:
+        post:
+            parameters:
+              - name: enum
+                in: query
+                schema:
+                    type: string
+                    enum:
+                      - one
+                      - two
+                      - three
+              - name: class
+                x-usrv-cpp-name: myclass
+                in: query
+                required: false
+                schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                foo:
+                                    type: string
+                            additionalProperties: false
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    bar:
+                                        type: string
+                                additionalProperties: false
+                '201':
+                    description: OK
+                '400':
+                    description: Some error
+                '500':
+                    description: Some error
+
+    /test1/query-log-mode:
+        get:
+            x-taxi-query-log-mode: hide
+            parameters:
+              - in: query
+                name: password
+                required: true
+                schema:
+                    type: string
+              - in: query
+                name: secret
+                required: false
+                schema:
+                    type: string
+            responses:
+                '200':
+                    description: OK
+
+    /test1/query-log-mode/parameter:
+        get:
+            parameters:
+              - in: query
+                name: password
+                required: true
+                x-taxi-query-log-mode: hide
+                schema:
+                    type: string
+              - in: query
+                name: secret
+                required: false
+                schema:
+                    type: string
+            responses:
+                '200':
+                    description: OK
+
+components: {}

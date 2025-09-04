@@ -128,7 +128,7 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t& host, int32_t timeout_m
     std::memcpy(sa->sun_path, host.host, host_len);
 
     try {
-        engine::TaskCancellationBlocker block_cancel;
+        const engine::TaskCancellationBlocker block_cancel;
         engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
         socket.Connect(addr, DeadlineFromTimeoutMs(timeout_ms));
         return socket;
@@ -167,9 +167,9 @@ clients::dns::AddrVector GetaddrInfo(const mongoc_host_list_t& host, bson_error_
     }
 
     clients::dns::AddrVector result;
-    AddrinfoPtr ai_result(ai_result_raw);
+    const AddrinfoPtr ai_result(ai_result_raw);
     for (auto* res = ai_result.get(); res; res = res->ai_next) {
-        engine::io::Sockaddr current_addr(res->ai_addr);
+        const engine::io::Sockaddr current_addr(res->ai_addr);
         result.push_back(current_addr);
     }
     return result;
@@ -186,7 +186,7 @@ engine::io::Socket DoConnectTcpByName(
         auto addrs = dns_resolver ? dns_resolver->Resolve(host.host, deadline) : GetaddrInfo(host, error);
         for (auto&& current_addr : addrs) {
             try {
-                engine::TaskCancellationBlocker block_cancel;
+                const engine::TaskCancellationBlocker block_cancel;
                 current_addr.SetPort(host.port);
                 engine::io::Socket socket{current_addr.Domain(), engine::io::SocketType::kStream};
                 socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
@@ -312,7 +312,7 @@ public:
     };
 
     Guard Get(uint64_t current_epoch) {
-        Guard guard{poller_, is_locked_};
+        const Guard guard{poller_, is_locked_};
 
         if (seen_epoch_ < current_epoch) {
             poller_.Reset();
@@ -446,6 +446,7 @@ size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes, engi
 }
 
 cdriver::StreamPtr AsyncStream::Create(engine::io::Socket socket) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     return cdriver::StreamPtr(new AsyncStream(std::move(socket)));
 }
 
@@ -552,7 +553,7 @@ ssize_t AsyncStream::Readv(
 
     size_t recvd_total = 0;
     try {
-        engine::TaskCancellationBlocker block_cancel;
+        const engine::TaskCancellationBlocker block_cancel;
         size_t curr_iov = 0;
         while (curr_iov < iovcnt && (min_bytes > recvd_total || !recvd_total)) {
             const auto recvd_now =

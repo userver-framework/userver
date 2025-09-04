@@ -237,7 +237,7 @@ implemented using the testsuite. To do that you have to:
   @snippet samples/http_caching/tests/conftest.py patch configs
 
   Alternatively, use `$mockserver`
-  @ref pytest_userver.plugins.config.service_config_substitutions "substitute var"
+  @ref pytest_userver.plugins.config.userver_config_substitutions "substitute var"
   in `config_vars.testsuite.yaml`:
 
   @code{.yaml}

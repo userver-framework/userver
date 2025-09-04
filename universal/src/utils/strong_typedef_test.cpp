@@ -68,7 +68,7 @@ TEST(StrongTypedef, StringTransparentComparison) {
 }
 
 TEST(StrongTypedef, String2TransparentComparison) {
-    MyString2 ms("Hello word");
+    const MyString2 ms("Hello word");
 
     EXPECT_EQ(MyString2("Hello word"), "Hello word");
 
@@ -79,7 +79,7 @@ TEST(StrongTypedef, String2TransparentComparison) {
 }
 
 TEST(StrongTypedef, StringStreamingAndLogging) {
-    MyString str{"word"};
+    const MyString str{"word"};
 
     std::ostringstream oss;
     oss << str;
@@ -140,7 +140,7 @@ TEST(StrongTypedef, IntThreeWayTransparentComparison) {
 #endif
 
 TEST(StrongTypedef, IntStreamingAndLogging) {
-    MySpecialInt i;
+    const MySpecialInt i;
     std::ostringstream oss;
     oss << i;
     LOG_DEBUG() << i << oss.str();
@@ -191,7 +191,7 @@ TEST(StrongTypedef, MyIntId) {
     using MyIntId = utils::StrongTypedef<class MyIntIdTag, int>;
 
     MyIntId id1{123};
-    MyIntId id2{456};
+    const MyIntId id2{456};
 
     EXPECT_NE(id1, id2);
     EXPECT_EQ(id1, MyIntId{id1});
@@ -202,8 +202,8 @@ TEST(StrongTypedef, MyStringId) {
         using StrongTypedef::StrongTypedef;
     };
 
-    MyStringId id1{"123"};
-    MyStringId id2{"456"};
+    const MyStringId id1{"123"};
+    const MyStringId id2{"456"};
 
     EXPECT_NE(id1, id2);
     EXPECT_EQ(id1, MyStringId{id1});

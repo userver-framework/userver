@@ -80,12 +80,12 @@ TEST_P(OverloadedTestFixture, UtilsVisit) {
 
 TEST(OverloadedTest, ReturnReference) {
     struct Real {
-        double Value;
+        double value;
     };
 
     struct Complex {
-        double Real;
-        double Imag;
+        double real;
+        double imag;
     };
 
     std::variant<Real, Complex> var_real = Real{1.0};
@@ -93,45 +93,45 @@ TEST(OverloadedTest, ReturnReference) {
 
     std::visit(
         utils::Overloaded{
-            [](Real& real) -> double& { return real.Value; },
-            [](Complex& complex) -> double& { return complex.Real; },
+            [](Real& real) -> double& { return real.value; },
+            [](Complex& complex) -> double& { return complex.real; },
         },
         var_real
     ) = 2.0;
-    EXPECT_EQ(std::get<Real>(var_real).Value, 2.0);
+    EXPECT_EQ(std::get<Real>(var_real).value, 2.0);
 
     utils::Visit(
         var_real,
-        [](Real& realvalue) -> double& { return realvalue.Value; },
-        [](Complex& complex) -> double& { return complex.Real; }
+        [](Real& realvalue) -> double& { return realvalue.value; },
+        [](Complex& complex) -> double& { return complex.real; }
     ) = 3.0;
-    EXPECT_EQ(std::get<Real>(var_real).Value, 3.0);
+    EXPECT_EQ(std::get<Real>(var_real).value, 3.0);
 
     std::visit(
         utils::Overloaded{
-            [](Real& real) -> double& { return real.Value; },
-            [](Complex& complex) -> double& { return complex.Real; },
+            [](Real& real) -> double& { return real.value; },
+            [](Complex& complex) -> double& { return complex.real; },
         },
         var_complex
     ) = 4.0;
-    EXPECT_EQ(std::get<Complex>(var_complex).Real, 4.0);
+    EXPECT_EQ(std::get<Complex>(var_complex).real, 4.0);
 
     utils::Visit(
         var_complex,
-        [](Real& real) -> double& { return real.Value; },
-        [](Complex& complex) -> double& { return complex.Real; }
+        [](Real& real) -> double& { return real.value; },
+        [](Complex& complex) -> double& { return complex.real; }
     ) = 5.0;
-    EXPECT_EQ(std::get<Complex>(var_complex).Real, 5.0);
+    EXPECT_EQ(std::get<Complex>(var_complex).real, 5.0);
 }
 
 TEST(OverloadedTest, NoCopying) {
     struct Complex {
-        double Real;
-        double Imag;
+        double real;
+        double imag;
 
-        Complex() : Real{}, Imag{} {}
+        Complex() : real{}, imag{} {}
 
-        Complex(double r, double i) : Real{r}, Imag{i} {}
+        Complex(double r, double i) : real{r}, imag{i} {}
 
         Complex(const Complex&) = delete;
         Complex& operator=(const Complex&) = delete;
@@ -141,8 +141,8 @@ TEST(OverloadedTest, NoCopying) {
     var_complex.emplace<Complex>(2.0, 3.0);
 
     utils::Visit(std::move(var_complex), [](Complex&& complex) {
-        EXPECT_EQ(complex.Real, 2.0);
-        EXPECT_EQ(complex.Imag, 3.0);
+        EXPECT_EQ(complex.real, 2.0);
+        EXPECT_EQ(complex.imag, 3.0);
     });
 }
 

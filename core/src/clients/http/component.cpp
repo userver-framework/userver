@@ -18,6 +18,10 @@
 #include <userver/tracing/manager_component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <dynamic_config/variables/HTTP_CLIENT_CONNECTION_POOL_SIZE.hpp>
+#include <dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.hpp>
+#include <dynamic_config/variables/USERVER_HTTP_PROXY.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -48,31 +52,6 @@ void ValidateCurlVersion() {
                                  "crash on HTTP/2 requests");
     }
 }
-
-/// [docs map config sample]
-constexpr dynamic_config::DefaultAsJsonString kThrottleDefaults{R"(
-{
-  "http-limit": 6000,
-  "http-per-second": 1500,
-  "https-limit": 100,
-  "https-per-second": 25,
-  "max-size": 100,
-  "per-host-limit": 3000,
-  "per-host-per-second": 500,
-  "token-update-interval-ms": 0
-}
-)"};
-
-const dynamic_config::Key kClientConfig{
-    clients::http::impl::ParseConfig,
-    {
-        {"HTTP_CLIENT_CONNECTION_POOL_SIZE", 1000},
-        {"USERVER_HTTP_PROXY", ""},
-        {"HTTP_CLIENT_CONNECT_THROTTLE", kThrottleDefaults},
-    },
-};
-/// [docs map config sample]
-
 }  // namespace
 
 HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentContext& context)
@@ -80,7 +59,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentC
       disable_pool_stats_(component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
           GetClientSettings(component_config, context),
-          context.GetTaskProcessor(component_config["fs-task-processor"].As<std::string>()),
+          GetFsTaskProcessor(component_config, context),
           FindPlugins(component_config["plugins"].As<std::vector<std::string>>(std::vector<std::string>()), context)
       ) {
     ValidateCurlVersion();
@@ -148,7 +127,11 @@ HttpClient::~HttpClient() {
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
 void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-    http_client_.SetConfig(config[kClientConfig]);
+    http_client_.SetConfig(clients::http::impl::Config{
+        config[::dynamic_config::HTTP_CLIENT_CONNECTION_POOL_SIZE],
+        config[::dynamic_config::USERVER_HTTP_PROXY],
+        clients::http::impl::Parse(config[::dynamic_config::HTTP_CLIENT_CONNECT_THROTTLE]),
+    });
 }
 
 void HttpClient::WriteStatistics(utils::statistics::Writer& writer) {
@@ -179,6 +162,7 @@ properties:
     fs-task-processor:
         type: string
         description: task processor to run blocking HTTP related calls, like DNS resolving or hosts reading
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
     destination-metrics-auto-max-size:
         type: integer
         description: set max number of automatically created destination metrics

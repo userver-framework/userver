@@ -12,7 +12,7 @@ UTEST(TestCaseMacros, UTESTEngine) {
     EXPECT_EQ(GetThreadCount(), 1);
 
     engine::Mutex mutex;
-    std::lock_guard lock(mutex);
+    const std::lock_guard lock(mutex);
 }
 
 namespace {
@@ -68,7 +68,7 @@ protected:
 
     static void CheckEngine() {
         UINVARIANT(is_test_suite_active_, "SetUpTestSuite is ignored");
-        std::lock_guard lock(mutex_);
+        const std::lock_guard lock(mutex_);
     }
 
 private:
@@ -102,7 +102,7 @@ protected:
     void TearDown() override { CheckEngineAndParam(); }
 
     void CheckEngineAndParam() {
-        std::lock_guard lock(mutex_);
+        const std::lock_guard lock(mutex_);
         EXPECT_TRUE(GetParam() == "foo" || GetParam() == "bar");
     }
 

@@ -1,13 +1,15 @@
-boost@1.87
+boost@1.89
 c-ares
 ccache
 cctz
+clang-format
+clickhouse-cpp
 cmake
 coreutils
-clickhouse-cpp
 cryptopp
 cyrus-sasl
 fmt
+gdb
 git
 google-benchmark
 googletest
@@ -18,7 +20,7 @@ krb5
 libev
 librdkafka
 mariadb
-mongo-c-driver
+mongo-c-driver@1
 nghttp2
 ninja
 openldap
@@ -26,5 +28,7 @@ openssl
 postgresql@16
 pugixml
 rocksdb
+unixodbc
 yaml-cpp
 zlib
+sqlite

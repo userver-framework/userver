@@ -124,7 +124,7 @@ IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::DoTryPop(PopMode mode) n
     return tail;
 }
 
-std::atomic<NodePtr>& IntrusiveMpscQueueImpl::GetNext(NodeRef node) noexcept { return node->singly_linked_hook.next_; }
+std::atomic<NodePtr>& IntrusiveMpscQueueImpl::GetNext(NodeRef node) noexcept { return node->singly_linked_hook.next; }
 
 }  // namespace concurrent::impl
 

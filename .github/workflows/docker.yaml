@@ -16,79 +16,79 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_STANDARD=17
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_FEATURE_CORE=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base
                     info: ubuntu + gcc + cxx17 + core
-                    id: ubuntu_clang_cxx17_core
+                    id: ubuntu_gcc_cxx17_core
                   - cmake-flags: >-
                         -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=17
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base-ci
-                    info: ubuntu + clang + cxx17
-                    id: ubuntu_clang_cxx17
+                    info: ubuntu + clang-16 + cxx17
+                    id: ubuntu_clang16_cxx17
                   - cmake-flags: >-
                         -DCMAKE_C_COMPILER=gcc-11
                         -DCMAKE_CXX_COMPILER=g++-11
                         -DCMAKE_CXX_STANDARD=17
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base-ci
-                    info: ubuntu + gcc + cxx17
-                    id: ubuntu_gcc_cxx17
+                    info: ubuntu + gcc-11 + cxx17
+                    id: ubuntu_gcc11_cxx17
                   - cmake-flags: >-
                         -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_CXX_COMPILER=clang++-16
                         -DCMAKE_CXX_STANDARD=20
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary
                     image: ubuntu-22.04-userver-base-ci
-                    info: ubuntu + clang + cxx20
-                    id: ubuntu_clang_cxx20
+                    info: ubuntu + clang-16 + cxx20
+                    id: ubuntu_clang16_cxx20
                   - cmake-flags: >-
-                        -DCMAKE_C_COMPILER=gcc-11
-                        -DCMAKE_CXX_COMPILER=g++-11
+                        -DCMAKE_C_COMPILER=gcc-13
+                        -DCMAKE_CXX_COMPILER=g++-13
                         -DCMAKE_CXX_STANDARD=20
-                        -DCPM_SOURCE_CACHE=~/.cache/CPM
+                        -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_USE_LD=gold
-                        -DUSERVER_NO_WERROR=0
+                        -DUSERVER_NO_WERROR=1
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: ''
+                    gtest-filter: '*'
                     image: ubuntu-22.04-userver-base-ci
-                    info: ubuntu + gcc + cxx20
-                    id: ubuntu_gcc_cxx20
+                    info: ubuntu + gcc-13 + cxx20
+                    id: ubuntu_gcc13_cxx20
 
         runs-on: ubuntu-latest
         name: '${{ matrix.info }}'
         steps:
-          - uses: actions/checkout@v4
+          - uses: actions/checkout@v5
 
           - name: Install packages
             run: |
@@ -100,7 +100,7 @@ jobs:
             with:
                 path: |
                     .ccache
-                    .cache/CPM
+                    .cpm
                 key: 'docker-cache-dir ${{matrix.id}} ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
                     docker-cache-dir ${{matrix.id}} ${{github.ref}}
@@ -123,6 +123,7 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image }} bash -c
                 'cd /userver && cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+                -DUSERVER_OPENTELEMETRY_PROTO=/app/opentelemetry-proto
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Reconfigure cmake
@@ -130,6 +131,7 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image }} bash -c
                 'cd /userver && cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+                -DUSERVER_OPENTELEMETRY_PROTO=/app/opentelemetry-proto
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Compile
@@ -143,15 +145,15 @@ jobs:
             with:
                 path: |
                     .ccache
-                    .cache/CPM
+                    .cpm
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
           - name: Run ydb
-            if: matrix.id == 'ubuntu_clang_cxx20'
+            if: matrix.id == 'ubuntu_clang16_cxx20' || matrix.id == 'ubuntu_gcc13_cxx20'
             run: docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
 
           - name: Watch ydb
-            if: matrix.id == 'ubuntu_clang_cxx20'
+            if: matrix.id == 'ubuntu_clang16_cxx20' || matrix.id == 'ubuntu_gcc13_cxx20'
             run: >-
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c

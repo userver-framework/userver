@@ -11,15 +11,20 @@ For each `path/X.proto` file that contains gRPC services, we generate
 `{client,handler}.usrv.pb.{hpp,cpp}.jinja` templates.
 """
 
+import dataclasses
 import enum
 import itertools
+import json
 import os
 import sys
+from typing import Any
+from typing import Dict
 from typing import Iterable
 from typing import Optional
 from typing import Tuple
 
 from google.protobuf.compiler import plugin_pb2 as plugin
+import google.protobuf.descriptor_pb2 as descriptor
 import jinja2
 
 _AUTOGEN_EMPTY_HEADER = '\n'.join([
@@ -45,23 +50,45 @@ class Mode(enum.Enum):
         return self == self.Both
 
 
-def _grpc_to_cpp_name(in_str):
+@dataclasses.dataclass(frozen=True)
+class Params:
+    structs: bool
+
+    @classmethod
+    def parse(cls, data: str) -> 'Params':
+        json_data: Dict[Any, Any] = {}
+        if data:
+            json_data.update(json.loads(data))
+
+        result = cls(
+            structs=json_data.pop('structs', False),
+        )
+
+        if json_data:
+            raise Exception(f'Unknown params keys {sorted(json_data)}')
+
+        return result
+
+
+def _grpc_to_cpp_name(in_str: str) -> str:
     return in_str.replace('.', '::')
 
 
-def _to_package_prefix(package):
+def _to_package_prefix(package: str):
     return f'{package}.' if package else ''
 
 
 class _CodeGenerator:
     def __init__(
         self,
-        proto_file,
+        params: Params,
+        proto_file: descriptor.FileDescriptorProto,
         response: plugin.CodeGeneratorResponse,
         jinja_env: jinja2.Environment,
         mode: Mode,
         skip_files_wo_service: bool,
     ) -> None:
+        self.params = params
         self.proto_file = proto_file
         self.response = response
         self.jinja_env = jinja_env
@@ -75,7 +102,7 @@ class _CodeGenerator:
             self._generate_code_empty()
 
     def _generate_code_with_service(self) -> None:
-        data = {
+        data: Dict[str, Any] = {
             'source_file': self.proto_file.name,
             'source_file_without_ext': self._proto_file_stem(),
             'package_prefix': _to_package_prefix(self.proto_file.package),
@@ -92,7 +119,7 @@ class _CodeGenerator:
                 file_type=file_type,
                 file_ext=file_ext,
             )
-            file.content = template.render(proto=data)
+            file.content = template.render(params=self.params, proto=data)
 
     def _generate_code_empty(self) -> None:
         for file_type, file_ext in self._iter_src_files():
@@ -132,6 +159,8 @@ def generate(
     request = plugin.CodeGeneratorRequest()
     request.ParseFromString(data)
 
+    params = Params.parse(request.parameter)
+
     response = plugin.CodeGeneratorResponse()
     if hasattr(response, 'FEATURE_PROTO3_OPTIONAL'):
         setattr(
@@ -149,11 +178,12 @@ def generate(
         # HTML special characters, it is safer to turn on autoescaping.
         autoescape=True,
     )
-    jinja_env.filters['grpc_to_cpp_name'] = _grpc_to_cpp_name
+    jinja_env.filters['grpc_to_cpp_name'] = _grpc_to_cpp_name  # type: ignore
 
     # pylint: disable=no-member
     for proto_file in request.proto_file:
         _CodeGenerator(
+            params=params,
             jinja_env=jinja_env,
             proto_file=proto_file,
             response=response,

@@ -140,7 +140,7 @@ TEST(AssertMacros, UserMessage) {
 }
 
 TEST(AssertMacros, TracefulException) {
-    logging::stacktrace_cache::StacktraceGuard guard(true);
+    const logging::stacktrace_cache::StacktraceGuard guard(true);
 
     EXPECT_NONFATAL_FAILURE(
         UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error), Trim("with message 'what' and trace:\n 0# ")

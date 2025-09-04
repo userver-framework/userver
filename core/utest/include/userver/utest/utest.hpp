@@ -125,6 +125,12 @@ USERVER_NAMESPACE_END
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_P(test_suite_name, test_name) IMPL_UTEST_TEST_P(test_suite_name, test_name, 1, false)
 
+/// @brief An equivalent of the gtest macro TEST_P for death tests that starts
+/// the test body as a coroutine task
+/// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST_P_DEATH(test_suite_name, test_name) IMPL_UTEST_TEST_P(test_suite_name, test_name, 1, true)
+
 /// @brief An equivalent of the gtest macro TEST_P that starts the test body as
 /// a coroutine task
 /// @hideinitializer

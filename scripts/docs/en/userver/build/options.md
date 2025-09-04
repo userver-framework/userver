@@ -14,8 +14,8 @@ userver is split into multiple CMake libraries.
 | `userver::utest`           | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST`  | `core`                | @ref scripts/docs/en/userver/testing.md                   |
 | `userver::ubench`          | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST`  | `core`                | @ref scripts/docs/en/userver/testing.md                   |
 | `userver::chaotic`         | `USERVER_FEATURE_CHAOTIC` (`ON` by default)       | `chaotic`             | @ref scripts/docs/en/userver/chaotic.md                   |
-| `userver::grpc`            | `USERVER_FEATURE_GRPC`                            | `grpc`                | @ref scripts/docs/en/userver/grpc.md                      |
-| `userver::grpc-utest`      | `USERVER_FEATURE_GRPC` + `USERVER_FEATURE_UTEST`  | `grpc`                | @ref scripts/docs/en/userver/grpc.md                      |
+| `userver::grpc`            | `USERVER_FEATURE_GRPC`                            | `grpc`                | @ref scripts/docs/en/userver/grpc/grpc.md                 |
+| `userver::grpc-utest`      | `USERVER_FEATURE_GRPC` + `USERVER_FEATURE_UTEST`  | `grpc`                | @ref scripts/docs/en/userver/grpc/grpc.md                 |
 | `userver::mongo`           | `USERVER_FEATURE_MONGODB`                         | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                   |
 | `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                      | `postgresql`          | @ref pg_driver                                            |
 | `userver::redis`           | `USERVER_FEATURE_REDIS`                           | `redis`               | @ref scripts/docs/en/userver/redis.md                     |
@@ -101,8 +101,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_CRYPTOPP_BLAKE2`      | Provide wrappers for blake2 algorithms of crypto++                                                                | `ON`                                        |
 | `USERVER_FEATURE_PATCH_LIBPQ`          | Apply patches to the libpq (add portals support), requires `libpq.a`                                              | `ON`                                        |
 | `USERVER_FEATURE_CRYPTOPP_BASE64_URL`  | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                      | `ON`                                        |
-| `USERVER_FEATURE_REDIS_HI_MALLOC`      | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround                                                | `OFF`                                       |
-| `USERVER_FEATURE_REDIS_TLS`            | SSL/TLS support for Redis driver                                                                                  | `OFF`                                       |
+| `USERVER_FEATURE_REDIS_TLS`            | SSL/TLS support for Redis driver. Use with `"secure_connection": true` secdist option for @ref components::Redis  | `OFF`                                       |
 | `USERVER_FEATURE_STACKTRACE`           | Allow capturing stacktraces using `boost::stacktrace`                                                             | `ON` except for macOS, `*BSD` and old Boost |
 | `USERVER_FEATURE_JEMALLOC`             | Use jemalloc memory allocator                                                                                     | `ON`                                        |
 | `USERVER_FEATURE_DWCAS`                | Require double-width compare-and-swap                                                                             | `ON`                                        |
@@ -113,7 +112,6 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_UBOOST_CORO`          | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                | `OFF` for arm64 macOS, `ON` otherwise       |
 | `USERVER_FEATURE_STACK_USAGE_MONITOR`  | Enable coroutine stack usage monitor if available                                                                 | `ON`                                        |
 
-[hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
 ### CMake options for downloading userver dependencies
 
@@ -138,6 +136,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FORCE_DOWNLOAD_CURL`            | Download Curl even if it exists in a system                                             | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_PROTOBUF`        | Download Protobuf even if there is an installed system package                          | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_GRPC`            | Download gRPC even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
+| `USERVER_FORCE_DOWNLOAD_FMT`            | Download Fmt even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 
 ### CMake options for paths to dependencies
 
@@ -150,6 +149,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_PG_LIBRARY_DIR`              | Path to the folder with @ref postgres_deps_versions "PostgreSQL libpq libraries", e.g. /usr/local/lib                   | autodetected                       |
 | `USERVER_GOOGLE_COMMON_PROTOS_TARGET` | Name of cmake target preparing google common proto library                                                              | Builds `userver-api-common-protos` |
 | `USERVER_GOOGLE_COMMON_PROTOS`        | Path to the folder with google common proto files                                                                       | Downloads automatically            |
+| `USERVER_OPENTELEMETRY_PROTO`         | Path to the folder with OpenTelemetry proto files                                                                       | Downloads automatically            |
 
 ### CMake options for various compilation modes
 
@@ -165,7 +165,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_LTO_CACHE`                     | Use LTO cache if present, disable for benchmarking build times                                              | `ON`                                                        |
 | `USERVER_LTO_CACHE_DIR`                 | LTO cache directory                                                                                         | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                     |
 | `USERVER_LTO_CACHE_SIZE_MB`             | LTO cache size limit in MB                                                                                  | `6000`                                                      |
-| `USERVER_ENABLE_DEBUG_INFO_COMPRESSION` | Enable linker and compiler debug info compression                                                           | `ON`                                                        |
+| `USERVER_DEBUG_INFO_COMPRESSION`        | Linker and compiler debug info compression algorithm (z, zstd, none, auto)                                  | `auto`                                                        |
 | `USERVER_PGO_GENERATE`                  | Generate PGO profile                                                                                        | `OFF`                                                       |
 | `USERVER_PGO_USE`                       | Path to PGO profile file                                                                                    | (no path)                                                   |
 | `USERVER_COMPILATION_TIME_TRACE`        | Generate Clang compilation time trace                                                                       | `OFF`                                                       |
@@ -174,6 +174,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_PIP_USE_SYSTEM_PACKAGES`       | Use system python packages inside venv. Useful for Docker, CI and other controlled environments             | `OFF`                                                       |
 | `USERVER_PIP_OPTIONS`                   | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                  | (no options)                                                |
 | `USERVER_INSTALL`                       | Build userver for further installation                                                                      | `OFF`                                                       |
+| `USERVER_INSTALL_MULTIPACKAGE`          | Whether create per-component packages                                                       | `OFF`                                                       |
 | `USERVER_CONAN`                         | Build userver using Conan packages                                                                          | `ON` if build is launched from Conan, `OFF` otherwise       |
 | `USERVER_CHAOTIC_FORMAT`                | Whether to format generated code if FORMAT option is missing                                                | `ON`                                                        |
 

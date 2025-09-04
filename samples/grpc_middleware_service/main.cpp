@@ -27,10 +27,10 @@ int main(int argc, char* argv[]) {
                                     .Append<samples::grpc::auth::GreeterServiceComponent>()
                                     .Append<samples::grpc::auth::GreeterHttpHandler>()
                                     /// [gRPC middleware sample - ugrpc registration]
-                                    .Append<sample::grpc::auth::client::AuthComponent>()
-                                    .Append<sample::grpc::auth::client::ChaosComponent>()
-                                    .Append<sample::grpc::auth::server::AuthComponent>()
-                                    .Append<sample::grpc::auth::server::MetaFilterComponent>();
+                                    .Append<samples::grpc::auth::server::AuthComponent>()
+                                    .Append<samples::grpc::auth::server::MetaFilterComponent>()
+                                    .Append<samples::grpc::auth::client::AuthComponent>()
+                                    .Append<samples::grpc::auth::client::ChaosComponent>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

@@ -29,7 +29,7 @@ public:
         } else if (type == "sleep") {
             engine::SleepFor(std::chrono::seconds{1});
         } else if (type == "json") {
-            formats::json::Value json = formats::json::FromString(req.RequestBody());
+            const formats::json::Value json = formats::json::FromString(req.RequestBody());
             return ToString(json);
         }
         return "";

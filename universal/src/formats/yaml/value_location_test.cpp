@@ -15,7 +15,7 @@ std::pair<int, int> LocationPair(const formats::yaml::Value& data) {
 }  // namespace
 
 TEST(FormatsYaml, NativeLocation) {
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
     my_value:
         field1: "one"
         field2: 1

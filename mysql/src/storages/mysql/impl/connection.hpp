@@ -43,10 +43,10 @@ public:
     );
     ~Connection();
 
-    QueryResult ExecuteQuery(const std::string& query, engine::Deadline deadline);
+    QueryResult ExecuteQuery(std::string_view query, engine::Deadline deadline);
 
     StatementFetcher ExecuteStatement(
-        const std::string& statement,
+        std::string_view statement,
         io::ParamsBinderBase& params,
         engine::Deadline deadline,
         std::optional<std::size_t> batch_size
@@ -93,7 +93,7 @@ private:
     void Close(engine::Deadline deadline) noexcept;
 
     Statement&
-    PrepareStatement(const std::string& statement, engine::Deadline deadline, std::optional<std::size_t> batch_size);
+    PrepareStatement(std::string_view statement, engine::Deadline deadline, std::optional<std::size_t> batch_size);
 
     std::atomic<bool> broken_{false};
 

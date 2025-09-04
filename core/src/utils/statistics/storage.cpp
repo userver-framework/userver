@@ -54,7 +54,7 @@ public:
     try {
         if (source.writer) {
             FakeFormatBuilder builder;
-            Request request;
+            const Request request;
             impl::WriterState state{builder, request, {}, {}};
             auto writer = Writer{&state}[fake_prefix];
             source.writer(writer);
@@ -104,7 +104,7 @@ formats::json::Value Storage::GetAsJson() const {
     formats::json::ValueBuilder result;
     result[kVersionField] = kVersion;
 
-    std::shared_lock lock(mutex_);
+    const std::shared_lock lock(mutex_);
 
     for (const auto& entry : metrics_sources_) {
         if (entry.writer) {
@@ -127,7 +127,7 @@ void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const
 
         boost::container::small_vector<LabelView, 16> labels_vector;
 
-        std::shared_lock lock(mutex_);
+        const std::shared_lock lock(mutex_);
         for (const auto& entry : metrics_sources_) {
             if (!entry.writer) {
                 continue;
@@ -177,7 +177,7 @@ Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {
         "constructors"
     );
 
-    std::lock_guard lock(mutex_);
+    const std::lock_guard lock(mutex_);
     const auto res = metrics_sources_.insert(metrics_sources_.end(), std::move(source));
     return Entry(Entry::Impl{this, res});
 }
@@ -186,7 +186,7 @@ void Storage::UnregisterExtender(
     impl::StorageIterator iterator,
     [[maybe_unused]] impl::UnregisteringKind kind
 ) noexcept {
-    std::lock_guard lock(mutex_);
+    const std::lock_guard lock(mutex_);
     if constexpr (impl::kCheckSubscriptionUB) {
         if (kind == impl::UnregisteringKind::kAutomatic) {
             // fake writer and extender call to check

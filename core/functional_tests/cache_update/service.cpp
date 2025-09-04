@@ -1,7 +1,5 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <userver/alerts/component.hpp>
-#include <userver/alerts/handler.hpp>
 #include <userver/cache/caching_component_base.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/common_server_component_list.hpp>
@@ -111,7 +109,6 @@ int main(int argc, const char* const argv[]) {
                                     .Append<functional_tests::CacheSample>()
                                     .Append<functional_tests::HandlerCacheState>()
                                     .Append<functional_tests::AlertCache>()
-                                    .Append<alerts::Handler>()
                                     .Append<server::handlers::Ping>();
     return utils::DaemonMain(argc, argv, component_list);
 }

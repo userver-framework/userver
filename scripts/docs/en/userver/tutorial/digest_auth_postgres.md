@@ -64,7 +64,7 @@ authorization configs:
 Each factory should be registered at the beginning of the `main()` function via
 `server::handlers::auth::RegisterAuthCheckerFactory` function call:
 
-@snippet samples/digest_auth_service/digest_auth_service.cpp  auth checker registration
+@snippet samples/digest_auth_service/main.cpp  auth checker registration
 
 ### Static config
 That factory is invoked on each HTTP handler with the matching authorization
@@ -88,7 +88,7 @@ Aside from calling `server::handlers::auth::RegisterAuthCheckerFactory` for
 authorization factory registration, the `main()` function should also
 construct the component list and start the daemon:
 
-@snippet samples/digest_auth_service/digest_auth_service.cpp  main
+@snippet samples/digest_auth_service/main.cpp  main
 
 
 ### Functional testing

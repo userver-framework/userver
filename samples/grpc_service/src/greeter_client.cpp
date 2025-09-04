@@ -12,6 +12,17 @@
 
 namespace samples {
 
+const dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos{
+    "GREETER_CLIENT_QOS",
+    dynamic_config::DefaultAsJsonString{R"({
+      "methods": {
+        "__default__": {
+          "timeout-ms": 10000
+        }
+      }
+    })"},
+};
+
 // A user-defined wrapper around api::GreeterServiceClient that provides
 // a simplified interface.
 GreeterClient::GreeterClient(api::GreeterServiceClient&& raw_client) : raw_client_(std::move(raw_client)) {}
@@ -22,18 +33,18 @@ std::string GreeterClient::SayHello(std::string name) const {
     request.set_name(std::move(name));
 
     // Perform RPC by sending the request and receiving the response.
-    api::GreetingResponse response = raw_client_.SayHello(request, MakeClientContext());
+    api::GreetingResponse response = raw_client_.SayHello(request, MakeCallOptions());
     return std::move(*response.mutable_greeting());
 }
 
-std::unique_ptr<grpc::ClientContext> GreeterClient::MakeClientContext() {
+ugrpc::client::CallOptions GreeterClient::MakeCallOptions() {
     // Deadline must be set manually for each RPC
     // Note that here in all tests the deadline equals 20 sec which works for an
     // example. However, generally speaking the deadline must be set manually for
     // each RPC
-    auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(std::chrono::seconds{20}));
-    return context;
+    ugrpc::client::CallOptions call_options;
+    call_options.SetTimeout(std::chrono::seconds{20});
+    return call_options;
 }
 /// [client]
 
@@ -41,20 +52,20 @@ std::unique_ptr<grpc::ClientContext> GreeterClient::MakeClientContext() {
 std::vector<std::string> GreeterClient::SayHelloResponseStream(std::string name) const {
     api::GreetingRequest request;
     request.set_name(std::move(name));
-    auto stream = raw_client_.SayHelloResponseStream(request, MakeClientContext());
+    auto stream = raw_client_.SayHelloResponseStream(request, MakeCallOptions());
 
     api::GreetingResponse response;
     std::vector<std::string> result;
     constexpr auto kCountSend = 5;
     for (int i = 0; i < kCountSend; i++) {
         if (!stream.Read(response)) {
-            throw ugrpc::client::RpcError(stream.GetCallName(), "Missing responses");
+            throw ugrpc::client::RpcError(stream.GetContext().GetCallName(), "Missing responses");
         }
         result.push_back(std::move(*response.mutable_greeting()));
     }
 
     if (stream.Read(response)) {
-        throw ugrpc::client::RpcError(stream.GetCallName(), "Extra responses");
+        throw ugrpc::client::RpcError(stream.GetContext().GetCallName(), "Extra responses");
     }
     return result;
 }
@@ -62,7 +73,7 @@ std::vector<std::string> GreeterClient::SayHelloResponseStream(std::string name)
 
 /// [client_request_stream]
 std::string GreeterClient::SayHelloRequestStream(const std::vector<std::string_view>& names) const {
-    auto stream = raw_client_.SayHelloRequestStream(MakeClientContext());
+    auto stream = raw_client_.SayHelloRequestStream(MakeCallOptions());
     for (const auto& name : names) {
         api::GreetingRequest request;
         request.set_name(grpc::string(name));
@@ -75,7 +86,7 @@ std::string GreeterClient::SayHelloRequestStream(const std::vector<std::string_v
 
 /// [client_streams]
 std::vector<std::string> GreeterClient::SayHelloStreams(const std::vector<std::string_view>& names) const {
-    auto stream = raw_client_.SayHelloStreams(MakeClientContext());
+    auto stream = raw_client_.SayHelloStreams(MakeCallOptions());
     std::vector<std::string> result;
     api::GreetingResponse response;
     for (const auto& name : names) {
@@ -84,14 +95,14 @@ std::vector<std::string> GreeterClient::SayHelloStreams(const std::vector<std::s
         stream.WriteAndCheck(request);
 
         if (!stream.Read(response)) {
-            throw ugrpc::client::RpcError(stream.GetCallName(), "Missing responses before WritesDone");
+            throw ugrpc::client::RpcError(stream.GetContext().GetCallName(), "Missing responses before WritesDone");
         }
         result.push_back(std::move(*response.mutable_greeting()));
     }
     const bool is_success = stream.WritesDone();
     LOG_DEBUG() << "Write task finish: " << is_success;
     if (stream.Read(response)) {
-        throw ugrpc::client::RpcError(stream.GetCallName(), "Extra responses after WritesDone");
+        throw ugrpc::client::RpcError(stream.GetContext().GetCallName(), "Extra responses after WritesDone");
     }
     return result;
 }

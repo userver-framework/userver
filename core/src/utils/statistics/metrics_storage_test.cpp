@@ -35,11 +35,11 @@ UTEST(MetricsStorage, Smoke) {
         utils::statistics::MetricsStorage metrics_storage;
         const auto statistic_holders = metrics_storage.RegisterIn(storage);
 
-        utils::statistics::Snapshot snap1{storage};
+        const utils::statistics::Snapshot snap1{storage};
         EXPECT_EQ(snap1.SingleMetric("foo-metric").AsInt(), 0);
 
         metrics_storage.GetMetric(kFooMetric).store(42);
-        utils::statistics::Snapshot snap2{storage};
+        const utils::statistics::Snapshot snap2{storage};
         EXPECT_EQ(snap2.SingleMetric("foo-metric").AsInt(), 42);
     }
 }
@@ -53,7 +53,7 @@ UTEST(MetricsStorage, SmokeWriter) {
         utils::statistics::MetricsStorage metrics_storage;
         const auto statistic_holders = metrics_storage.RegisterIn(storage);
 
-        utils::statistics::Snapshot snap1{storage};
+        const utils::statistics::Snapshot snap1{storage};
         EXPECT_EQ(snap1.SingleMetric("writer-metric.a").AsInt(), 1);
         EXPECT_EQ(snap1.SingleMetric("writer-metric.b").AsInt(), 2);
     }

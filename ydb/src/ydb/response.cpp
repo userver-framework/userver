@@ -83,7 +83,7 @@ size_t Cursor::RowsCount() const { return parse_state_->parser.RowsCount(); }
 bool Cursor::IsTruncated() const { return truncated_; }
 
 Row Cursor::GetFirstRow() {
-    CursorIterator b = begin();
+    const CursorIterator b = begin();
     if (b == end()) {
         throw EmptyResponseError{"Expected a non-empty cursor"};
     }

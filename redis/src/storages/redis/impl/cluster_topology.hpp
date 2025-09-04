@@ -33,9 +33,9 @@ public:
 
     ClusterTopology() = default;
     ClusterTopology(ClusterTopology&&) = default;
-    ClusterTopology(const ClusterTopology&) = default;
+    ClusterTopology(const ClusterTopology&) = delete;
     ClusterTopology& operator=(ClusterTopology&&) = default;
-    ClusterTopology& operator=(const ClusterTopology&) = default;
+    ClusterTopology& operator=(const ClusterTopology&) = delete;
 
     ClusterTopology(
         size_t version,

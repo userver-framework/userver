@@ -353,7 +353,7 @@ public:
             monitor_thread_.join();
         }
 
-        for (auto* thread_alt_stack : threads_alt_stacks) {
+        for (auto* thread_alt_stack : threads_alt_stacks_) {
             ::munmap(thread_alt_stack, kAltStackSize);
         }
 
@@ -459,7 +459,7 @@ public:
 
             const std::lock_guard lock{tid_to_pthread_initialization_mutex_};
             thread_id_to_pthread_id_.emplace_back(tid, thread_id);
-            threads_alt_stacks.push_back(alt_stack);
+            threads_alt_stacks_.push_back(alt_stack);
         }
     }
 
@@ -585,7 +585,7 @@ private:
     // change at runtime.
     std::mutex tid_to_pthread_initialization_mutex_;
     boost::container::small_vector<std::pair<int, pthread_t>, 32> thread_id_to_pthread_id_{};
-    boost::container::small_vector<void*, 32> threads_alt_stacks{};
+    boost::container::small_vector<void*, 32> threads_alt_stacks_{};
 
     std::size_t coro_stack_size_;
     std::thread monitor_thread_;

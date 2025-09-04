@@ -38,6 +38,12 @@ static_assert(kMaxBPlusBounds >= 50, "B+ tree should fit the largest recommended
 // For demonstration purposes only. Fix the constant if the assert fails.
 static_assert(kMaxBPlusBounds == 80);
 
+static_assert(
+    concurrent::impl::kDestructiveInterferenceSize >= sizeof(utils::statistics::impl::histogram::Bucket),
+    "Bucket overgrown the size of interference size. For efficiency reasons make sure that Bucket::sum and "
+    "Bucket::count reside in the same cache line."
+);
+
 namespace impl::histogram {
 
 struct alignas(sizeof(float) * kBlockSize) BoundsBlock final {
@@ -144,6 +150,7 @@ void Histogram::Account(double value, std::uint64_t count) noexcept {
     const auto bucket_index = pre_bucket_index + 1 > bucket_count_ ? 0 : pre_bucket_index + 1;
     auto& bucket = buckets_[bucket_index];
     bucket.counter.fetch_add(count, std::memory_order_relaxed);
+    impl::histogram::AddAtomic(bucket.sum, value * count);
 }
 
 void ResetMetric(Histogram& histogram) noexcept { impl::histogram::ResetMetric(histogram.buckets_.get()); }

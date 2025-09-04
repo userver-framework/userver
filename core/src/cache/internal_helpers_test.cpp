@@ -26,11 +26,11 @@ MakeDependencies(std::string_view name, const yaml_config::YamlConfig& config, M
         engine::current_task::GetTaskProcessor(),
         environment.config_storage.GetSource(),
         environment.statistics_storage,
-        environment.alerts_storage,
+        environment.metrics_storage,
         environment.cache_control,
         dump_config,
         dump_config ? dump::CreateDefaultOperationsFactory(*dump_config) : nullptr,
-        &engine::current_task::GetTaskProcessor(),
+        engine::current_task::GetTaskProcessor(),
         environment.dump_control,
     };
 }

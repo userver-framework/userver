@@ -66,7 +66,7 @@ void TestsuiteTasks::RunTask(const std::string& name) {
         throw TaskAlreadyRunning(fmt::format("Task '{}' is already running", name));
     }
 
-    FlagClearer clearer(entry->running_flag);
+    const FlagClearer clearer(entry->running_flag);
     entry->callback();
 }
 
@@ -81,7 +81,7 @@ std::string TestsuiteTasks::SpawnTask(const std::string& name) {
     auto spawned = std::make_shared<SpawnedTask>();
     spawned->name = name;
     spawned->task = utils::Async("testsuite-task/" + name, [entry] {
-        FlagClearer clearer(entry->running_flag);
+        const FlagClearer clearer(entry->running_flag);
         entry->callback();
     });
 
@@ -97,8 +97,8 @@ void TestsuiteTasks::StopSpawnedTask(const std::string& task_id) {
         throw TaskAlreadyRunning("Spawned testsuite task is locked");
     }
 
-    FlagClearer clearer(spawned->busy_flag);
-    bool is_finished = spawned->task.IsFinished();
+    const FlagClearer clearer(spawned->busy_flag);
+    const bool is_finished = spawned->task.IsFinished();
 
     if (is_finished) {
         LOG_INFO() << "Testsuite task " << task_id << " is already finished";
@@ -147,7 +147,7 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
         auto locked_tasks = tasks_.Lock();
         for (const auto& it : *locked_tasks) {
             if (it.second->running_flag) {
-                utils::impl::AbortWithStacktrace(fmt::format("Testsuite task '{}' is still running", it.first));
+                utils::AbortWithStacktrace(fmt::format("Testsuite task '{}' is still running", it.first));
             }
         }
     }
@@ -155,9 +155,7 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
     {
         auto locked = spawned_.Lock();
         for (const auto& it : *locked) {
-            utils::impl::AbortWithStacktrace(
-                fmt::format("Spawned testsuite task '{}' is still running", it.second->name)
-            );
+            utils::AbortWithStacktrace(fmt::format("Spawned testsuite task '{}' is still running", it.second->name));
         }
     }
 }

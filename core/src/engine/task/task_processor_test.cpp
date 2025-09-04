@@ -71,6 +71,11 @@ UTEST_MT(TaskProcessor, MetricsAliveAndRunning, 2) {
     ready = false;
     task.Get();
 
+    // Task decrements `RunningTasks` metric after setting its `IsFinished`.
+    while (task_counter.GetRunningTasks() == 2) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
     EXPECT_EQ(task_counter.GetRunningTasks(), 1);
 }
 

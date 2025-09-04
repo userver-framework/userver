@@ -1,0 +1,91 @@
+# yaml
+components_manager:
+    components:
+        # The required common components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        # Contains machinery common to all gRPC clients
+        grpc-client-common:
+            # The TaskProcessor for blocking connection initiation
+            blocking-task-processor: grpc-blocking-task-processor
+
+        # /// [retry configuration]
+        # yaml
+        # Creates gRPC clients
+        grpc-client-factory:
+            disable-all-pipeline-middlewares: true
+
+            middlewares:
+                grpc-client-logging:
+                    enabled: true
+
+            # Optional channel parameters for gRPC Core
+            # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+            channel-args: {}
+
+            # Transparent retries configuration
+            default-service-config: >
+                {
+                    "methodConfig": [{
+                        "name": [{}],
+                        "retryPolicy": {
+                            "maxAttempts": 3,
+                            "initialBackoff": "0.01s",
+                            "maxBackoff": "0.3s",
+                            "backoffMultiplier": 2,
+                            "retryableStatusCodes": [
+                                "UNAVAILABLE",
+                                "ABORTED",
+                                "CANCELLED",
+                                "DEADLINE_EXCEEDED",
+                                "INTERNAL"
+                            ]
+                        }
+                   }]
+                }
+        # /// [retry configuration]
+
+        grpc-client-middlewares-pipeline: {}
+
+        grpc-client-logging: {}
+
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+
+        # Testsuite components
+        testsuite-support: {}
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            throttling_enabled: false
+        http-client: # for testsuite
+            fs-task-processor: main-task-processor
+        dns-client: # for http-client
+            fs-task-processor: fs-task-processor
+
+        # User-defined component
+        client-runner:
+            path: /client
+            method: GET,POST
+
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            worker_threads: 2
+            thread_name: grpc-worker
+        main-task-processor:           # For non-blocking operations
+            worker_threads: 8
+        fs-task-processor:             # For blocking filesystem operations
+            worker_threads: 2

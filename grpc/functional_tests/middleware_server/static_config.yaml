@@ -28,25 +28,24 @@ components_manager:
         grpc-server-logging:
             msg-size-log-limit: 15
 
+        my-second-middleware-server:
+# /// [my-middleware-server config]
+        my-middleware-server:
+
         grpc-server-middlewares-pipeline:
             middlewares:
-                # We must register our middlewares in the pipeline:
+                # We must register middlewares in the pipeline:
                 my-middleware-server:
                     enabled: true
+# /// [my-middleware-server config]
                 my-second-middleware-server:
                     enabled: true
 
         greeter-service:
             task-processor: main-task-processor
-            disable-all-pipeline-middlewares: true
             middlewares:
                 grpc-server-logging:
                     msg-size-log-limit: 10  # you can override a config per service
-                    enabled: true
-                my-middleware-server:
-                    enabled: true
-                my-second-middleware-server:
-                    enabled: true
 # /// [middleware pipeline component config]
 
 
@@ -64,8 +63,6 @@ components_manager:
                 task_processor: main-task-processor
 
         testsuite-support: {}
-        my-middleware-server: {}
-        my-second-middleware-server: {}
 
     default_task_processor: main-task-processor
 

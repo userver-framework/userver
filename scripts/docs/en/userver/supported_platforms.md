@@ -27,17 +27,24 @@ organization page contains multiple repositories, including:
 
 * [userver](https://github.com/userver-framework/userver) - the C++
   Asynchronous Framework.
-* [service_template](https://github.com/userver-framework/service_template) -
-  template of a C++ service that uses userver framework with ready-to-user
-  build, test and CI scripts. 
-* [pg_service_template](https://github.com/userver-framework/pg_service_template) -
-  template of a C++ service that uses userver framework with ready-to-user PostgreSQL database,
-  build, test and CI scripts. 
-* [pg_grpc_service_template](https://github.com/userver-framework/pg_grpc_service_template) -
-  template of a C++ service that uses userver framework with ready-to-user PostgreSQL database, gRPC server,
-  build, test and CI scripts. 
 * [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf) -
   the service to control dynamic configs of the other userver-based services.
+
+Also, there are several legacy template services
+(use @ref quick_start_for_beginners "userver-create-service" script instead):
+
+* [service_template](https://github.com/userver-framework/service_template) -
+  template of a C++ service that uses userver framework with ready-to-use
+  build, test and CI scripts.
+* [pg_service_template](https://github.com/userver-framework/pg_service_template) -
+  template of a C++ service that uses userver framework with ready-to-use PostgreSQL database,
+  build, test and CI scripts.
+* [pg_grpc_service_template](https://github.com/userver-framework/pg_grpc_service_template) -
+  template of a C++ service that uses userver framework with ready-to-use PostgreSQL database, gRPC server,
+  build, test and CI scripts.
+* [mongo_grpc_service_template](https://github.com/userver-framework/mongo_grpc_service_template) -
+  template of a C++ service that uses userver framework with ready-to-use Mongo database, gRPC server,
+  build, test and CI scripts.
 
 All the repositories are part of the userver framework,
 thus they support the same set of architectures, compilers, operating systems

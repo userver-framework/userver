@@ -5,7 +5,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/rand.hpp>
 
-namespace sample::grpc::auth::client {
+namespace samples::grpc::auth::client {
 
 const ::grpc::string kExperinetFeature = "x-my-experiments-enabled";
 const ::grpc::string kEnable = "enable";
@@ -16,14 +16,14 @@ ChaosMiddleware::ChaosMiddleware(bool feature_enabled) : feature_enabled_(featur
 void ChaosMiddleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context) const {
     const auto rand = utils::Rand();
     const auto enabled = feature_enabled_ && rand % 10 == 0;
-    context.GetContext().AddMetadata(kExperinetFeature, enabled ? kEnable : kDisable);
+    context.GetClientContext().AddMetadata(kExperinetFeature, enabled ? kEnable : kDisable);
 }
 
 /// [gRPC middleware sample]
 ChaosComponent::ChaosComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ugrpc::client::MiddlewareFactoryComponentBase(config, context) {}
 
-std::shared_ptr<ugrpc::client::MiddlewareBase> ChaosComponent::CreateMiddleware(
+std::shared_ptr<const ugrpc::client::MiddlewareBase> ChaosComponent::CreateMiddleware(
     const ugrpc::client::ClientInfo&,
     const yaml_config::YamlConfig& middleware_config
 ) const {
@@ -45,4 +45,4 @@ properties:
 }
 /// [gRPC middleware sample]
 
-}  // namespace sample::grpc::auth::client
+}  // namespace samples::grpc::auth::client

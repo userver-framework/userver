@@ -13,7 +13,7 @@ UTEST_F(RedisClientTest, HedgedRequest) {
     const auto kValue = std::string("testvalue");
     client->Set(kKey, kValue, cc).Get();
 
-    utils::hedging::HedgingSettings settings;
+    const utils::hedging::HedgingSettings settings;
     auto response_opt = storages::redis::MakeHedgedRedisRequest<storages::redis::RequestGet>(
         client, &storages::redis::Client::Get, cc, settings, kKey
     );
@@ -28,7 +28,7 @@ UTEST_F(RedisClientTest, HedgedRequestAsync) {
     const auto kValue = std::string("testvalue");
     client->Set(kKey, kValue, cc).Get();
 
-    utils::hedging::HedgingSettings settings;
+    const utils::hedging::HedgingSettings settings;
     auto request = storages::redis::MakeHedgedRedisRequestAsync<storages::redis::RequestGet>(
         client, &storages::redis::Client::Get, cc, settings, kKey
     );
@@ -43,8 +43,8 @@ UTEST_F(RedisClientTest, HedgedRequestBulk) {
     const auto kKey = std::string("testkey");
     const auto kValue = std::string("testvalue");
     for (size_t i = 0; i < 10; ++i) {
-        std::string key = kKey + std::to_string(i);
-        std::string value = kValue + std::to_string(i);
+        const std::string key = kKey + std::to_string(i);
+        const std::string value = kValue + std::to_string(i);
         client->Set(key, value, cc).Get();
     }
 
@@ -53,7 +53,7 @@ UTEST_F(RedisClientTest, HedgedRequestBulk) {
         args.emplace_back(kKey + std::to_string(i));
     }
 
-    utils::hedging::HedgingSettings settings;
+    const utils::hedging::HedgingSettings settings;
     auto response = storages::redis::MakeBulkHedgedRedisRequest<storages::redis::RequestGet>(
         client, &storages::redis::Client::Get, cc, settings, args
     );
@@ -69,8 +69,8 @@ UTEST_F(RedisClientTest, HedgedRequestBulkAsync) {
     const auto kKey = std::string("testkey");
     const auto kValue = std::string("testvalue");
     for (size_t i = 0; i < 10; ++i) {
-        std::string key = kKey + std::to_string(i);
-        std::string value = kValue + std::to_string(i);
+        const std::string key = kKey + std::to_string(i);
+        const std::string value = kValue + std::to_string(i);
         client->Set(key, value, cc).Get();
     }
 
@@ -79,7 +79,7 @@ UTEST_F(RedisClientTest, HedgedRequestBulkAsync) {
         args.emplace_back(kKey + std::to_string(i));
     }
 
-    utils::hedging::HedgingSettings settings;
+    const utils::hedging::HedgingSettings settings;
     auto future = storages::redis::MakeBulkHedgedRedisRequestAsync<storages::redis::RequestGet>(
         client, &storages::redis::Client::Get, cc, settings, args
     );

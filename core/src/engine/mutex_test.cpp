@@ -35,7 +35,7 @@ TYPED_UTEST_P(Mutex, LockUnlockDouble) {
 TYPED_UTEST_P(Mutex, WaitAndCancel) {
     TypeParam mutex;
     std::unique_lock lock(mutex);
-    auto task = engine::AsyncNoSpan([&mutex]() { std::lock_guard lock(mutex); });
+    auto task = engine::AsyncNoSpan([&mutex]() { const std::lock_guard lock(mutex); });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -150,7 +150,7 @@ UTEST(Mutex, SampleMutex) {
     constexpr std::string_view kTestData = "Test Data";
 
     {
-        std::lock_guard<engine::Mutex> lock(mutex);
+        const std::lock_guard<engine::Mutex> lock(mutex);
         // accessing data under a mutex
         const auto x = kTestData;
         ASSERT_EQ(kTestData, x);

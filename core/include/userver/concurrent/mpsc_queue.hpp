@@ -140,6 +140,7 @@ private:
     std::atomic<size_t> size_{0};
 };
 
+/// @cond
 template <typename T>
 MpscQueue<T>::~MpscQueue() {
     UASSERT(consumer_is_created_and_dead_ || !consumer_is_created_);
@@ -149,6 +150,7 @@ MpscQueue<T>::~MpscQueue() {
         remaining_capacity_.unlock_shared();
     }
 }
+/// @endcond
 
 template <typename T>
 typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {

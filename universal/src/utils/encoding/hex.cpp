@@ -131,7 +131,12 @@ std::string_view GetHexPart(std::string_view encoded) noexcept {
 
 void ToHex(std::string_view input, std::string& out) noexcept {
     out.clear();
-    out.resize(input.size() * 2);
+    out.resize(LengthInHexForm(input.size()));
+    ToHexBuffer(input, out);
+}
+
+void ToHexBuffer(std::string_view input, utils::span<char> out) noexcept {
+    UASSERT(out.size() >= LengthInHexForm(input.size()));
     const auto* first = input.data();
     const auto* last = input.data() + input.size();
     auto* dst = out.data();

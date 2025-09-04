@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/alerts/source.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/dump_configurator.hpp>
 #include <userver/dynamic_config/source.hpp>
@@ -32,6 +33,8 @@ T CheckNotNull(T ptr) {
     UINVARIANT(ptr, "This pointer must not be null");
     return ptr;
 }
+
+alerts::Source kCacheUpdateErrorAlert("cache_update_error");
 
 }  // namespace
 
@@ -107,7 +110,7 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
       static_config_(dependencies.config),
       config_(static_config_),
       cache_control_(dependencies.cache_control),
-      alerts_storage_(dependencies.alerts_storage_),
+      metrics_storage_(dependencies.metrics_storage),
       name_(std::move(dependencies.name)),
       update_task_name_("update-task/" + name_),
       task_processor_(dependencies.task_processor),
@@ -118,7 +121,7 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
         dumper_.emplace(
             *dependencies.dump_config,
             CheckNotNull(std::move(dependencies.dump_rw_factory)),
-            *CheckNotNull(dependencies.fs_task_processor),
+            dependencies.fs_task_processor,
             *CheckNotNull(dependencies.config_source),
             dependencies.statistics_storage,
             dependencies.dump_control,
@@ -345,11 +348,8 @@ void CacheUpdateTrait::Impl::OnUpdateFailure(const Config& config) {
 
     if (config.alert_on_failing_to_update_times != 0 &&
         failed_updates_counter_ >= config.alert_on_failing_to_update_times) {
-        alerts_storage_.FireAlert(
-            "cache_update_error",
-            fmt::format("cache '{}' hasn't been updated for {} times", Name(), failed_updates_counter_),
-            alerts::kInfinity
-        );
+        kCacheUpdateErrorAlert.FireAlert(*metrics_storage_);
+        LOG_ERROR() << fmt::format("cache '{}' hasn't been updated for {} times", Name(), failed_updates_counter_);
     }
 }
 
@@ -400,8 +400,9 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type, const Config& conf
 
     const auto update_type_str = ToString(update_type);
     tracing::Span::CurrentSpan().AddTag("update_type", std::string{update_type_str});
+    tracing::Span::CurrentSpan().AddTag("cache_name", name_);
 
-    UpdateStatisticsScope stats(statistics_, update_type);
+    UpdateStatisticsScope stats(utils::impl::InternalTag{}, statistics_, update_type);
     LOG_INFO() << "Updating cache update_type=" << update_type_str << " name=" << name_;
 
     try {
@@ -422,7 +423,7 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type, const Config& conf
     failed_updates_counter_ = 0;
 
     last_update_ = now;
-    alerts_storage_.StopAlertNow("cache_update_error");
+    kCacheUpdateErrorAlert.StopAlertNow(*metrics_storage_);
     if (dumper_) {
         dumper_->OnUpdateCompleted(
             now, cache_modified_.exchange(false) ? dump::UpdateType::kModified : dump::UpdateType::kAlreadyUpToDate

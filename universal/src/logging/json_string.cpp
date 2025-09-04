@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>

@@ -96,7 +96,7 @@ bool ArrayColumn<T>::ArrayDataHolder::operator==(const ArrayDataHolder& other) c
 }
 
 template <typename T>
-ArrayColumn<T>::ArrayColumn(ColumnRef column) : ClickhouseColumn<ArrayColumn>{column} {}
+ArrayColumn<T>::ArrayColumn(ColumnRef column) : ClickhouseColumn<ArrayColumn>{std::move(column)} {}
 
 template <typename T>
 ColumnRef ArrayColumn<T>::Serialize(const container_type& from) {

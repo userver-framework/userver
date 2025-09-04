@@ -7,6 +7,9 @@
 #include <userver/ugrpc/client/impl/codegen_declarations.hpp>
 
 #include "{{ proto.source_file_without_ext }}.pb.h"
+{% if params.structs %}
+#include <{{ proto.source_file_without_ext }}.structs.usrv.pb.hpp>
+{% endif %}
 
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}
@@ -20,24 +23,35 @@ public:
 {% for method in service.method %}
 
 {% if method.client_streaming and method.server_streaming %}
-    using {{method.name}}Call =
-        USERVER_NAMESPACE::ugrpc::client::BidirectionalStream<
+    using {{method.name}}ReaderWriter =
+        USERVER_NAMESPACE::ugrpc::client::ReaderWriter<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
+
+    {{method.name}}ReaderWriter {{method.name}}(
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
 {% elif method.client_streaming %}
-    using {{method.name}}Call =
-        USERVER_NAMESPACE::ugrpc::client::OutputStream<
+    using {{method.name}}Writer =
+        USERVER_NAMESPACE::ugrpc::client::Writer<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
+    {{method.name}}Writer {{method.name}}(
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
 {% elif method.server_streaming %}
-    using {{method.name}}Call =
-        USERVER_NAMESPACE::ugrpc::client::InputStream<
+    using {{method.name}}Reader =
+        USERVER_NAMESPACE::ugrpc::client::Reader<
             {{ method.output_type | grpc_to_cpp_name }}>;
+
+    {{method.name}}Reader {{method.name}}(
+        const {{ method.input_type | grpc_to_cpp_name }}& request,
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
 {% else %}
     {{ method.output_type | grpc_to_cpp_name }} {{method.name}}(
         const {{ method.input_type | grpc_to_cpp_name }}& request,
-        std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
-        const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
     ) const;
 
     using {{method.name}}ResponseFuture =
@@ -46,18 +60,7 @@ public:
 
     {{method.name}}ResponseFuture Async{{method.name}}(
         const {{ method.input_type | grpc_to_cpp_name }}& request,
-        std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
-        const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
-    ) const;
-{% endif %}
-{% if method.client_streaming or method.server_streaming %}
-
-    {{method.name}}Call {{method.name}}(
-{% if not method.client_streaming %}
-        const {{ method.input_type | grpc_to_cpp_name }}& request,
-{% endif %}
-        std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
-        const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
     ) const;
 {% endif %}
 {% endfor %}

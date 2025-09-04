@@ -87,20 +87,20 @@ public:
     }
 
     std::optional<std::chrono::milliseconds> ProcessReply(RequestType&& request) {
-        reply_ = std::move(request).Get();
+        reply = std::move(request).Get();
         event_log.push_back({Event::ProcessReply, request.attempt});
         if (attempt_program.size() <= request.attempt) return std::nullopt;
         return attempt_program[request.attempt].process_reply_result;
     }
 
-    std::optional<ReplyType> ExtractReply() { return reply_; }
+    std::optional<ReplyType> ExtractReply() { return reply; }
 
     void Finish(RequestType&& request) {
         event_log.push_back({Event::Finish, request.attempt});
         if (request.task.IsValid()) request.task.SyncCancel();
     }
 
-    std::optional<ReplyType> reply_;
+    std::optional<ReplyType> reply;
     AttemptProgram attempt_program;
     EventLog& event_log;
 };

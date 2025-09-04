@@ -3,6 +3,9 @@
 /// @file userver/ugrpc/client/middlewares/testsuite/middleware.hpp
 /// @brief @copybrief ugrpc::client::middlewares::testsuite::Middleware
 
+#include <string>
+#include <string_view>
+
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -12,18 +15,14 @@ namespace ugrpc::client::middlewares::testsuite {
 /// @brief middleware for gRPC client testsuite
 class Middleware final : public MiddlewareBase {
 public:
-    /// @ingroup userver_component_names
-    /// @brief The default name of
-    /// ugrpc::client::middlewares::testsuite::Component.
-    static constexpr std::string_view kName = "grpc-client-middleware-testsuite";
+    explicit Middleware(std::string_view client_name);
 
-    /// @brief dependency of this middleware. PostCore group.
-    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
-                                               .InGroup<USERVER_NAMESPACE::middlewares::groups::PostCore>();
-
-    Middleware() = default;
+    void PreStartCall(MiddlewareCallContext&) const override;
 
     void PostFinish(MiddlewareCallContext&, const grpc::Status&) const override;
+
+private:
+    std::string client_name_;
 };
 
 }  // namespace ugrpc::client::middlewares::testsuite

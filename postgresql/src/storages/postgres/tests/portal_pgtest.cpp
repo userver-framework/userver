@@ -150,7 +150,7 @@ UTEST_P(PostgreConnection, PortalCreateFromTrxRecordArray) {
 
     pg::Portal portal{nullptr, "", {}};
     UEXPECT_NO_THROW(portal = trx.MakePortal(query));
-    std::size_t chunkSize = 2;
+    const std::size_t chunkSize = 2;
     auto from_portal_result = portal.Fetch(chunkSize);
     auto from_portal = from_portal_result.Front().As<std::vector<std::string>>();
     ASSERT_TRUE(portal.Done());

@@ -1,5 +1,11 @@
 default: {"__default__": {"max-tokens": 100, "token-ratio": 0.1, "enabled": true}}
-description: ''
+description: |
+    Dynamic config that controls the retry budget (throttling) settings for
+    components::Redis.
+
+    Dictionary keys can be either the **database name** (not the component name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    Redis database/sentinel of the service.
 schema:
     type: object
     description: retry budget settings for each database in service

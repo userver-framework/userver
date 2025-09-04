@@ -12,18 +12,23 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     const Password& password,
+    std::size_t database_index,
     ConnectionInfo conn
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       password_(std::move(password)),
+      database_index_(database_index),
       conn_to_create_(conn),
       create_node_watch_(ev_thread_, [this] {
           // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
           CreateNode();
+          create_node_watch_.Start();
       }) {
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
+
+StandaloneTopologyHolder::~StandaloneTopologyHolder() { Stop(); }
 
 void StandaloneTopologyHolder::Init() {}
 
@@ -33,6 +38,12 @@ void StandaloneTopologyHolder::Start() {
 }
 
 void StandaloneTopologyHolder::Stop() {
+    // prevent concurrent CreateNode() calls
+    create_node_watch_.Stop();
+
+    signal_node_state_change_.disconnect_all_slots();
+    signal_topology_changed_.disconnect_all_slots();
+
     node_.Cleanup();
     topology_.Cleanup();
 }
@@ -119,7 +130,7 @@ void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInf
     LOG_DEBUG() << "Update connection info to " << new_conn.Fulltext();
 
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         conn_to_create_ = new_conn;
         is_nodes_received_.store(false);
     }
@@ -146,6 +157,7 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
         info.HostPort().first,
         info.HostPort().second,
         GetPassword(),
+        database_index_,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr,
@@ -170,13 +182,10 @@ void StandaloneTopologyHolder::CreateNode() {
 
         auto& host_port = conn_to_create_.Fulltext();
         auto redis_connection = CreateRedisInstance(conn_to_create_);
-        redis_connection->signal_state_change.connect([host_port,
-                                                       topology_holder_wp = weak_from_this()](redis::RedisState state) {
-            auto topology_holder = topology_holder_wp.lock();
-            if (!topology_holder) {
-                return;
-            }
-            topology_holder->GetSignalNodeStateChanged()(host_port, state);
+        redis_connection->signal_state_change.connect([host_port, this](redis::RedisState state) {
+            GetSignalNodeStateChanged()(host_port, state);
+            { const std::lock_guard lock{mutex_}; }
+            cv_.NotifyAll();
         });
 
         NodesStorage nodes;
@@ -194,7 +203,6 @@ void StandaloneTopologyHolder::CreateNode() {
     }
 
     signal_topology_changed_(1);
-    cv_.NotifyAll();
 }
 
 void StandaloneTopologyHolder::UpdatePassword(const Password& password) {
@@ -208,7 +216,7 @@ Password StandaloneTopologyHolder::GetPassword() {
 }
 
 std::string StandaloneTopologyHolder::GetReadinessInfo() const {
-    return fmt::format("Nodes received: {}.", is_nodes_received_.load());
+    return fmt::format("Nodes config parsed: {}.", is_nodes_received_.load());
 }
 
 }  // namespace storages::redis::impl

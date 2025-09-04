@@ -54,9 +54,7 @@ inline std::string GreeterClient::SayHello(std::string name) {
     samples::api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    auto context = std::make_unique<grpc::ClientContext>();
-
-    samples::api::GreetingResponse response = client_.SayHello(request, std::move(context));
+    samples::api::GreetingResponse response = client_.SayHello(request);
 
     return std::move(*response.mutable_greeting());
 }

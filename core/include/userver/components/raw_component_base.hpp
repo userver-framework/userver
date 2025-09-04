@@ -64,6 +64,13 @@ public:
 template <typename Component>
 inline constexpr bool kHasValidate = false;
 
+/// Specialize it for typename Component to skip validation of static config against
+/// schema from Component::GetStaticConfigSchema
+///
+/// @see @ref static-configs-validation "Static configs validation"
+template <typename Component>
+inline constexpr bool kForceNoValidation = false;
+
 /// Specialize this to customize the loading of component settings
 ///
 /// @see @ref select-config-file-mode "Setup config file mode"

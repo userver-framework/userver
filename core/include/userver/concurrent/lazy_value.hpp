@@ -48,13 +48,13 @@ const T& LazyValue<T>::operator()() {
         try {
             result_.SetValue(f_());
 
-            std::lock_guard lock(m_finished_);
+            const std::lock_guard lock(m_finished_);
             finished_ = true;
             cv_finished_.NotifyAll();
         } catch (...) {
             result_.SetException(std::current_exception());
 
-            std::lock_guard lock(m_finished_);
+            const std::lock_guard lock(m_finished_);
             finished_ = true;
             cv_finished_.NotifyAll();
             throw;

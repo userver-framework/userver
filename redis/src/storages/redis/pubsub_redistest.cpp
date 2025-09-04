@@ -36,11 +36,10 @@ UTEST_P_MT(RedisPubsubTestBasic, SimpleSubscribe, 2) {
         }
     });
 
-    storages::redis::CommandControl cc{GetParam()};
+    const storages::redis::CommandControl cc{GetParam()};
     auto token = GetSubscribeClient()->Subscribe(test_channel, std::move(callback), cc);
 
-    std::chrono::seconds deadwait{15};
-    EXPECT_TRUE(success.WaitForEventFor(deadwait)) << "Couldn't receive message for " << deadwait.count() << " seconds";
+    EXPECT_TRUE(success.WaitForEventFor(utest::kMaxTestWaitTime));
 
     sender.RequestCancel();
     token.Unsubscribe();
@@ -70,20 +69,22 @@ UTEST_P_MT(RedisPubsubTestBasic, SimplePsubscribe, 2) {
         }
     });
 
-    storages::redis::CommandControl cc{GetParam()};
+    const storages::redis::CommandControl cc{GetParam()};
     auto token = GetSubscribeClient()->Psubscribe(test_pattern, std::move(callback), cc);
 
-    std::chrono::seconds deadwait{15};
-    EXPECT_TRUE(success.WaitForEventFor(deadwait)) << "Couldn't receive message for " << deadwait.count() << " seconds";
+    EXPECT_TRUE(success.WaitForEventFor(utest::kMaxTestWaitTime));
 
     sender.RequestCancel();
     token.Unsubscribe();
 }
 
-// Tests are disabled because no local redis cluster is running by default.
-// See https://st.yandex-team.ru/TAXICOMMON-2440#5ecf09f0ffc9d004c04c43b1 for
-// details.
-UTEST_P_MT(RedisClusterPubsubTestBasic, DISABLED_SimpleSsubscribe, 2) {
+UTEST_P_MT(RedisClusterPubsubTestBasic, SimpleSsubscribe, 2) {
+// hiredis does not properly support `ssubscribe` command.
+//
+// libvalkey supports from first release
+// https://github.com/valkey-io/libvalkey/commit/88b214d372005aa046adac8b1cafd10f76e89f58
+// but we do not use libvalkey yet.
+#ifdef ARCADIA_ROOT
     const std::string test_data = "something_else";
     const std::string test_channel = "interior";
 
@@ -106,14 +107,14 @@ UTEST_P_MT(RedisClusterPubsubTestBasic, DISABLED_SimpleSsubscribe, 2) {
         }
     });
 
-    storages::redis::CommandControl cc{GetParam()};
+    const storages::redis::CommandControl cc{GetParam()};
     auto token = GetSubscribeClient()->Ssubscribe(test_channel, std::move(callback), cc);
 
-    std::chrono::seconds deadwait{15};
-    EXPECT_TRUE(success.WaitForEventFor(deadwait)) << "Couldn't receive message for " << deadwait.count() << " seconds";
+    EXPECT_TRUE(success.WaitForEventFor(utest::kMaxTestWaitTime));
 
     sender.RequestCancel();
     token.Unsubscribe();
+#endif
 }
 
 namespace {
@@ -129,7 +130,7 @@ std::vector<storages::redis::CommandControl> BuildTestData() {
 
 const std::vector<storages::redis::CommandControl>& TestData() {
     // C++11 standard ensures that initialization will be thread-safe
-    static std::vector<storages::redis::CommandControl> test_data{BuildTestData()};
+    static const std::vector<storages::redis::CommandControl> test_data{BuildTestData()};
     return test_data;
 }
 

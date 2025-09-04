@@ -204,7 +204,7 @@ TEST(AnyMovable, InPlace) {
     utils::AnyMovable c{std::in_place_type<std::string>, kData, 4};
     EXPECT_EQ(AnyCast<std::string&>(c), "Some");
 
-    utils::AnyMovable d{std::in_place_type<std::unique_ptr<int>>, new int{42}};
+    utils::AnyMovable d{std::in_place_type<std::unique_ptr<int>>, std::make_unique<int>(42)};
     EXPECT_EQ(*AnyCast<std::unique_ptr<int>&>(d), 42);
 
     utils::AnyMovable e{std::in_place_type<NonMovable>, 1, 2, 3};

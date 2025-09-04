@@ -19,7 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
-class string_list {
+class string_list {  // NOLINT(readability-identifier-naming)
 public:
     string_list() = default;
     string_list(const string_list&) = delete;

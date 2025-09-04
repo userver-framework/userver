@@ -104,7 +104,7 @@ void Storage::InheritFrom(Storage& other) {
         impl_->data = std::make_unique<DataPtr[]>(variable_count);
     }
 
-    for (DataPtr& their_ptr : other.impl_->inherited_data_storage | boost::adaptors::reversed) {
+    for (const DataPtr& their_ptr : other.impl_->inherited_data_storage | boost::adaptors::reversed) {
         UASSERT(their_ptr.ptr);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         auto& node = static_cast<InheritedDataBase&>(*their_ptr.ptr);

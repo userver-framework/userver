@@ -10,8 +10,8 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(SharedTaskWithResult, Ctr) {
-    engine::SharedTaskWithResult<void> task;
-    engine::SharedTaskWithResult<int> task_int;
+    const engine::SharedTaskWithResult<void> task;
+    const engine::SharedTaskWithResult<int> task_int;
 
     static_assert(
         sizeof(task) == sizeof(engine::SharedTask),
@@ -27,31 +27,31 @@ TEST(SharedTaskWithResult, Ctr) {
 
 TEST(SharedTaskWithResult, MoveCtr) {
     engine::SharedTaskWithResult<void> t;
-    engine::SharedTaskWithResult<void> t2 = std::move(t);
+    const engine::SharedTaskWithResult<void> t2 = std::move(t);
 
     using IntSharedTask = engine::SharedTaskWithResult<int>;
     IntSharedTask t_int;
-    IntSharedTask t2_int = std::move(t_int);
+    const IntSharedTask t2_int = std::move(t_int);
 }
 
 UTEST(SharedTaskWithResult, MoveInvalidatesOther) {
     auto moved_from = utils::SharedAsync("we", []() {});
     EXPECT_TRUE(moved_from.IsValid());
 
-    engine::SharedTaskWithResult<void> moved_to{std::move(moved_from)};
+    const engine::SharedTaskWithResult<void> moved_to{std::move(moved_from)};
     EXPECT_TRUE(moved_to.IsValid());
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move,bugprone-use-after-move)
     EXPECT_FALSE(moved_from.IsValid());
 }
 
 TEST(SharedTaskWithResult, CopyCtr) {
-    engine::SharedTaskWithResult<void> t;
+    const engine::SharedTaskWithResult<void> t;
     // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    engine::SharedTaskWithResult<void> t2 = t;
+    const engine::SharedTaskWithResult<void> t2 = t;
 
-    engine::SharedTaskWithResult<int> t_int;
+    const engine::SharedTaskWithResult<int> t_int;
     // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    engine::SharedTaskWithResult<int> t2_int = t_int;
+    const engine::SharedTaskWithResult<int> t2_int = t_int;
 }
 
 UTEST(SharedTaskWithResult, CopyLeavesBothTasksValid) {

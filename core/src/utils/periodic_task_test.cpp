@@ -7,6 +7,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 using namespace std::chrono_literals;
@@ -65,7 +66,7 @@ struct SimpleTaskData final {
 
     void Run() {
         engine::SleepFor(sleep);
-        const std::unique_lock lock(mutex);
+        const std::lock_guard lock(mutex);
         ++count;
         LOG_DEBUG() << "SimpleTaskData::Run";
         cv.NotifyOne();

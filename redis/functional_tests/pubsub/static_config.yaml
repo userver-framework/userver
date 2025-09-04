@@ -25,6 +25,12 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,PUT
 
+        handler-many-subscriptions:
+            path: /many-subscriptions
+            task_processor: main-task-processor
+            method: GET,DELETE
+            db: redis-cluster
+
         key-value-database:
             groups: []
             subscribe_groups:

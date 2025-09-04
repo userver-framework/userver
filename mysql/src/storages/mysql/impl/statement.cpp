@@ -38,8 +38,8 @@ void Statement::NativeStatementDeleter::operator()(MYSQL_STMT* statement) const 
 
 void Statement::NativeStatementDeleter::SetDeadline(engine::Deadline deadline) { deadline_ = deadline; }
 
-Statement::Statement(Connection& connection, const std::string& statement, engine::Deadline deadline)
-    : statement_{statement}, connection_{&connection}, native_statement_{CreateStatement(deadline)} {}
+Statement::Statement(Connection& connection, std::string statement, engine::Deadline deadline)
+    : statement_{std::move(statement)}, connection_{&connection}, native_statement_{CreateStatement(deadline)} {}
 
 Statement::~Statement() = default;
 

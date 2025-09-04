@@ -12,6 +12,7 @@ PoolConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PoolCo
     config.local_cache_size = value["local_cache_size"].As<size_t>(config.local_cache_size);
     config.is_stack_usage_monitor_enabled =
         value["stack_usage_monitor_enabled"].As<bool>(config.is_stack_usage_monitor_enabled);
+
     return config;
 }
 

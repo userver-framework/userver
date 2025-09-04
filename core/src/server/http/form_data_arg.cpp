@@ -11,7 +11,7 @@ namespace server::http {
 std::string FormDataArg::Charset() const {
     static const std::string kDefaultCharset = "UTF-8";
     if (content_type) {
-        USERVER_NAMESPACE::http::ContentType parsed_content_type(*content_type);
+        const USERVER_NAMESPACE::http::ContentType parsed_content_type(*content_type);
         if (parsed_content_type.HasExplicitCharset()) return parsed_content_type.Charset();
     }
     if (default_charset)

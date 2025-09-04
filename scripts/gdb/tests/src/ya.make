@@ -1,1 +1,0 @@
-RECURSE_FOR_TESTS(formats)

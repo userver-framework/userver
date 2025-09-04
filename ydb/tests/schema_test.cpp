@@ -49,7 +49,7 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
     {
         const auto& column = columns[0];
         EXPECT_EQ(column.Name, "key");
-        NYdb::TTypeParser parser{column.Type};
+        const NYdb::TTypeParser parser{column.Type};
         ASSERT_EQ(parser.GetKind(), NYdb::TTypeParser::ETypeKind::Primitive);
         EXPECT_EQ(parser.GetPrimitive(), NYdb::EPrimitiveType::String);
     }

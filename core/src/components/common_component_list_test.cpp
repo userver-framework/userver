@@ -4,6 +4,7 @@
 
 #include <userver/components/run.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 
@@ -31,7 +32,7 @@ constexpr std::string_view kStaticConfig = R"(
 # yaml
 components_manager:
   coro_pool:
-    initial_size: 5000
+    initial_size: 50
     max_size: 50000
   default_task_processor: main-task-processor
   event_thread_pool:
@@ -142,6 +143,11 @@ components_manager:
     logging:
       fs-task-processor: fs-task-processor
       loggers:
+        default:
+          file_path: $default_log_path
+          level: $log_level
+          level#fallback: debug
+          overflow_behavior: discard
         access:
           file_path: $access_log_path
           overflow_behavior: discard
@@ -150,11 +156,6 @@ components_manager:
           file_path: $access_tskv_log_path
           overflow_behavior: discard
           format: raw
-        default:
-          file_path: $default_log_path
-          level: $log_level
-          level#fallback: debug
-          overflow_behavior: discard
         tracer:
           file_path: '@stdout'
           overflow_behavior: discard

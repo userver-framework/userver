@@ -1,0 +1,15 @@
+package types;
+
+import "types/constrained.proto";
+import "google/protobuf/empty.proto";
+
+service UnitTestService {
+  // Unary RPC with constrained request/response
+  rpc CheckConstraintsUnary(ConstrainedRequest) returns(ConstrainedResponse) {}
+  // Bidirectional RPC with constrained request/response
+  rpc CheckConstraintsStreaming(stream ConstrainedRequest) returns(stream ConstrainedResponse) {}
+  // Unary RPC with invalid protovalidate request constraints
+  rpc CheckInvalidRequestConstraints(InvalidConstraints) returns(google.protobuf.Empty) {}
+  // Unary RPC with invalid protovalidate response constraints
+  rpc CheckInvalidResponseConstraints(google.protobuf.Empty) returns(InvalidConstraints) {}
+}

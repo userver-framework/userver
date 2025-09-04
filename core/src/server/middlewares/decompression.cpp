@@ -1,5 +1,7 @@
 #include <server/middlewares/decompression.hpp>
 
+#include <fmt/format.h>
+
 #include <compression/gzip.hpp>
 #include <userver/compression/zstd.hpp>
 
@@ -75,7 +77,11 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
     }
 
     handler_.HandleCustomHandlerException(
-        request, handlers::ClientError{handlers::HandlerErrorCode::kUnsupportedMediaType}
+        request,
+        handlers::ClientError{
+            handlers::HandlerErrorCode::kUnsupportedMediaType,
+            handlers::InternalMessage{fmt::format("Unsupported Content-Encoding: '{}'", content_encoding)},
+        }
     );
     return false;
 }

@@ -1,0 +1,8 @@
+definitions:
+    ObjectUri:
+        type: object
+        additionalProperties: false
+        properties:
+            uri:
+                type: string
+                format: uri

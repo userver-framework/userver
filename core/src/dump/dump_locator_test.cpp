@@ -9,6 +9,7 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -174,7 +175,7 @@ max-age: null
     InsertAll(expected_files, UnrelatedFileNames());
 
     const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
-    dump::DumpLocator locator{config};
+    const dump::DumpLocator locator{config};
 
     auto dump_info = locator.GetLatestDump();
     EXPECT_TRUE(dump_info);

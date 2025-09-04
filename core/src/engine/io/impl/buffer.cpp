@@ -77,7 +77,7 @@ void Buffer::Rebase() {
     UASSERT(!data_.empty());
     UASSERT(read_ptr_ != data_.data());
 
-    size_t read_bytes = AvailableReadBytes();
+    const size_t read_bytes = AvailableReadBytes();
     if (read_bytes) {
         UASSERT(read_bytes <= data_.size());
         std::copy(read_ptr_, write_ptr_, data_.data());

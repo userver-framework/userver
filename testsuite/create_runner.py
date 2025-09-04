@@ -18,7 +18,7 @@ TESTSUITE_PYTEST_ARGS = {pytest_args}
 def testsuite_runner():
     args = [
         # Put path to test sources as the first argument to work around pytest issue #12802
-        TESTSUITE_TESTS_PATH,
+        *TESTSUITE_TESTS_PATH,
         *TESTSUITE_PYTEST_ARGS,
         *sys.argv[1:],
     ]
@@ -54,7 +54,7 @@ def main():
     )
     parser.add_argument(
         '--tests-path',
-        type=pathlib.Path,
+        type=cmake_list,
         required=True,
         help='Path to the directory with tests',
     )
@@ -82,7 +82,7 @@ def main():
 
     script = TEMPLATE.format(
         python=args.python,
-        tests_path=pprint.pformat(str(args.tests_path)),
+        tests_path=pprint.pformat(args.tests_path),
         working_dir=pprint.pformat(str(args.working_dir)),
         python_path=pprint.pformat(args.python_path),
         pytest_args=pprint.pformat(args.pytest_args),

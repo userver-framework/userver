@@ -34,7 +34,7 @@ ListenerImpl::ListenerImpl(
       stats_(std::make_shared<Stats>()),
       data_accounter_(data_accounter) {
     for (const auto& port : endpoint_info_->listener_config.ports) {
-        socket_listener_tasks.push_back(engine::CriticalAsyncNoSpan(
+        socket_listener_tasks_.push_back(engine::CriticalAsyncNoSpan(
             task_processor_,
             [this](engine::io::Socket&& request_socket) {
                 while (!engine::current_task::ShouldCancel()) {
@@ -58,7 +58,7 @@ ListenerImpl::ListenerImpl(
 
 ListenerImpl::~ListenerImpl() {
     LOG_TRACE() << "Stopping socket listener task";
-    for (auto& task : socket_listener_tasks) task.SyncCancel();
+    for (auto& task : socket_listener_tasks_) task.SyncCancel();
     LOG_TRACE() << "Stopped socket listener task";
 
     connections_.CancelAndWait();
@@ -104,13 +104,10 @@ void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket, const PortC
     std::unique_ptr<engine::io::RwBase> socket;
     auto remote_address = peer_socket.Getpeername();
     if (port_config.tls) {
-        socket = std::make_unique<engine::io::TlsWrapper>(engine::io::TlsWrapper::StartTlsServer(
-            std::move(peer_socket),
-            port_config.tls_cert_chain,
-            port_config.tls_private_key,
-            {},
-            port_config.tls_certificate_authorities
-        ));
+        UASSERT(port_config.ssl_ctx.has_value());
+        socket = std::make_unique<engine::io::TlsWrapper>(
+            engine::io::TlsWrapper::StartTlsServer(std::move(peer_socket), port_config.ssl_ctx.value(), {})
+        );
     } else {
         socket = std::make_unique<engine::io::Socket>(std::move(peer_socket));
     }

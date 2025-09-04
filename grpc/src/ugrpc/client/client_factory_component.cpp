@@ -9,6 +9,7 @@
 
 #include <ugrpc/client/impl/client_factory_config.hpp>
 #include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/client/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,15 +30,17 @@ ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : impl::MiddlewareRunner(config, context, MiddlewarePipelineComponent::kName) {
+    : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName) {
     auto& client_common_component = context.FindComponent<CommonComponent>();
 
     const auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
 
     auto& testsuite_grpc = context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
-
     auto factory_config = config.As<impl::ClientFactoryConfig>();
-
+    if (!testsuite_grpc.IsTlsEnabled() && factory_config.auth_type == impl::AuthType::kSsl) {
+        LOG_INFO() << "Disabling TLS/SSL dues to testsuite config for gRPC";
+        factory_config.auth_type = impl::AuthType::kInsecure;
+    }
     const auto* secdist = GetSecdist(context);
 
     factory_.emplace(
@@ -54,11 +57,47 @@ ClientFactoryComponent::ClientFactoryComponent(
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
 
 yaml_config::Schema ClientFactoryComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<impl::MiddlewareRunner>(R"(
+    return yaml_config::MergeSchemas<impl::MiddlewareRunnerComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false
 properties:
+    auth-type:
+        type: string
+        description: an optional authentication method
+        defaultDescription: insecure
+        enum:
+          - insecure
+          - ssl
+    ssl-credentials-options:
+        type: object
+        description: SSL options for cases when `auth-type` is `ssl`
+        defaultDescription: '{}'
+        additionalProperties: false
+        properties:
+            pem-root-certs:
+                type: string
+                description: The path to file containing the PEM encoding of the server root certificates
+                defaultDescription: absent
+            pem-private-key:
+                type: string
+                description: The path to file containing the PEM encoding of the client's private key
+                defaultDescription: absent
+            pem-cert-chain:
+                type: string
+                description: The path to file containing the PEM encoding of the client's certificate chain
+                defaultDescription: absent
+    retry-config:
+        type: object
+        description: Retry configuration for outgoing RPCs
+        defaultDescription: '{}'
+        additionalProperties: false
+        properties:
+            attempts:
+                type: integer
+                description: The maximum number of RPC attempts, including the original attempt
+                defaultDescription: 1
+                minimum: 1
     channel-args:
         type: object
         description: a map of channel arguments, see gRPC Core docs
@@ -67,16 +106,6 @@ properties:
             type: string
             description: value of channel argument, must be string or integer
         properties: {}
-    auth-type:
-        type: string
-        description: an optional authentication method
-        defaultDescription: insecure
-        enum:
-          - insecure
-          - ssl
-    auth-token:
-        type: string
-        description: auth token name from secdist
     default-service-config:
         type: string
         description: |

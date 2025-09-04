@@ -64,7 +64,7 @@ UTEST(Query, Works) {
     ClusterWrapper cluster{};
 
     const size_t expected_size = 10000;
-    storages::clickhouse::Query q{
+    const storages::clickhouse::Query q{
         "SELECT c.number, randomString(10), c.number as t, NOW64() "
         "FROM "
         "numbers(0, 10000) c "};
@@ -84,7 +84,7 @@ UTEST(Query, Works) {
 
 UTEST(Compression, Works) {
     ClusterWrapper cluster{true};
-    storages::clickhouse::Query q{
+    const storages::clickhouse::Query q{
         "SELECT c.number, randomString(10), c.number as t, NOW64() "
         "FROM "
         "numbers(0, 10000) c "};

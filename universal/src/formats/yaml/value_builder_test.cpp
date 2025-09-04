@@ -26,7 +26,7 @@ TEST(YamlValueBuilder, ExampleUsage) {
     sub_builder["key3"] = "val";
     builder["key2"] = sub_builder.ExtractValue();
 
-    formats::yaml::Value yaml = builder.ExtractValue();
+    const formats::yaml::Value yaml = builder.ExtractValue();
 
     ASSERT_EQ(yaml["key1"].As<int>(), 1);
     ASSERT_EQ(yaml["key2"]["key3"].As<std::string>(), "val");
@@ -51,7 +51,7 @@ formats::yaml::Value Serialize(const MyKeyValue& data, formats::serialize::To<fo
 }
 
 TEST(YamlValueBuilder, ExampleCustomization) {
-    MyKeyValue object = {"val", 1};
+    const MyKeyValue object = {"val", 1};
     formats::yaml::ValueBuilder builder;
     builder["example"] = object;
     auto yaml = builder.ExtractValue();

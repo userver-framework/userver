@@ -34,7 +34,7 @@ UTEST(LazySharedPtr, SimpleLazy) {
 
 UTEST(LazySharedPtr, SimpleNonLazy) {
     auto ptr = std::make_shared<std::vector<int>>(std::vector<int>{1, 2, 3});
-    utils::LazySharedPtr<std::vector<int>> lazy_cache(ptr);
+    const utils::LazySharedPtr<std::vector<int>> lazy_cache(ptr);
     ASSERT_EQ(&*lazy_cache, &*ptr);
     ASSERT_EQ(*lazy_cache, std::vector<int>({1, 2, 3}));
 }
@@ -60,11 +60,11 @@ UTEST(LazySharedPtr, Cast) {
 UTEST(LazySharedPtr, CopyMoveLazy) {
     Cache cache(std::vector<int>{1, 2, 3});
     auto lazy_cache_origin(utils::MakeLazyCachePtr(cache));
-    utils::LazySharedPtr<std::vector<int>> lazy_cache_copy(lazy_cache_origin);
+    const utils::LazySharedPtr<std::vector<int>> lazy_cache_copy(lazy_cache_origin);
 
     ASSERT_EQ(&*lazy_cache_copy, &*lazy_cache_origin);
     ASSERT_EQ(*lazy_cache_copy, std::vector<int>({1, 2, 3}));
-    utils::LazySharedPtr<std::vector<int>> lazy_cache_move(std::move(lazy_cache_origin));
+    const utils::LazySharedPtr<std::vector<int>> lazy_cache_move(std::move(lazy_cache_origin));
     auto ptr = cache.Get();
     ASSERT_EQ(&*lazy_cache_move, &*ptr);
     ASSERT_EQ(*lazy_cache_move, std::vector<int>({1, 2, 3}));
@@ -73,10 +73,10 @@ UTEST(LazySharedPtr, CopyMoveLazy) {
 UTEST(LazySharedPtr, CopyMoveNonLazy) {
     auto ptr = std::make_shared<std::vector<int>>(std::vector<int>{1, 2, 3});
     utils::LazySharedPtr<std::vector<int>> lazy_cache_origin(ptr);
-    utils::LazySharedPtr<std::vector<int>> lazy_cache_copy(lazy_cache_origin);
+    const utils::LazySharedPtr<std::vector<int>> lazy_cache_copy(lazy_cache_origin);
     ASSERT_EQ(&*lazy_cache_copy, &*lazy_cache_origin);
 
-    utils::LazySharedPtr<std::vector<int>> lazy_cache_move(std::move(lazy_cache_origin));
+    const utils::LazySharedPtr<std::vector<int>> lazy_cache_move(std::move(lazy_cache_origin));
     ASSERT_EQ(*lazy_cache_move, std::vector<int>({1, 2, 3}));
 }
 

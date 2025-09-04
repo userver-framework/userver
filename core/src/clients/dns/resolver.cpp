@@ -18,17 +18,18 @@
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::dns {
 namespace {
 
-std::optional<engine::io::Sockaddr> ParseIpV4Addr(const std::string& ip) {
+std::optional<engine::io::Sockaddr> ParseIpV4Addr(utils::zstring_view ip) {
     // inet_pton accepts formats other than ddd.ddd.ddd.ddd on some systems
     // so additional checks are necessary.
     size_t dots_count = 0;
-    for (char c : ip) {
+    for (const char c : ip) {
         if (c == '.') {
             ++dots_count;
         } else if (!std::isdigit(c)) {
@@ -41,35 +42,35 @@ std::optional<engine::io::Sockaddr> ParseIpV4Addr(const std::string& ip) {
     auto* sa = saddr.As<sockaddr_in>();
     sa->sin_family = AF_INET;
 
-    if (inet_pton(AF_INET, ip.data(), &sa->sin_addr) != 1) {
+    if (inet_pton(AF_INET, ip.c_str(), &sa->sin_addr) != 1) {
         return {};
     }
     LOG_TRACE() << "Parsed '" << ip << "' as a numeric IPv4 address";
     return saddr;
 }
 
-std::optional<engine::io::Sockaddr> ParseIpV6Addr(const std::string& ip) {
+std::optional<engine::io::Sockaddr> ParseIpV6Addr(utils::zstring_view ip) {
     engine::io::Sockaddr saddr;
     auto* sa = saddr.As<sockaddr_in6>();
     sa->sin6_family = AF_INET6;
 
-    if (inet_pton(AF_INET6, ip.data(), &sa->sin6_addr) != 1) {
+    if (inet_pton(AF_INET6, ip.c_str(), &sa->sin6_addr) != 1) {
         return {};
     }
     LOG_TRACE() << "Parsed '" << ip << "' as a numeric IPv6 address";
     return saddr;
 }
 
-std::optional<engine::io::Sockaddr> ParseNumericAddr(const std::string& name) {
+std::optional<engine::io::Sockaddr> ParseNumericAddr(utils::zstring_view name) {
     std::optional<engine::io::Sockaddr> result;
     if (name.size() < 2) return result;
 
     if (name.front() == '[' && name.back() == ']') {
         // Now the only format we're expecting is [<IPv6>].
         // So if parsing fails, we throw an exception.
-        result = ParseIpV6Addr(name.substr(1, name.size() - 2));
+        result = ParseIpV6Addr(std::string{name.substr(1, name.size() - 2)});
         if (!result) {
-            throw NotResolvedException{"Malformed IPv6 address: '" + name + "'"};
+            throw NotResolvedException{fmt::format("Malformed IPv6 address: '{}'", name)};
         }
     }
 
@@ -79,13 +80,13 @@ std::optional<engine::io::Sockaddr> ParseNumericAddr(const std::string& name) {
     return result;
 }
 
-void CheckValidDomainName(const std::string& name) {
+void CheckValidDomainName(std::string_view name) {
     // Not exhaustive, just quick character set check.
-    for (char c : name) {
+    for (const char c : name) {
         if (c != '.' && c != '-' && !std::isdigit(c) &&
             // not using isalpha/isalnum here as only ASCII is allowed
             !(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z')) {
-            throw NotResolvedException{"Invalid domain name: '" + name + "'"};
+            throw NotResolvedException{fmt::format("Invalid domain name: '{}'", name)};
         }
     }
 }
@@ -129,7 +130,7 @@ public:
         AddrVector addrs;
     };
 
-    Impl(engine::TaskProcessor& fs_task_processor, const ResolverConfig& config);
+    Impl(engine::TaskProcessor& fs_task_processor, const ::userver::static_config::DnsClient& config);
     ~Impl();
 
     const LookupSourceCounters& GetLookupSourceCounters() const;
@@ -187,9 +188,13 @@ private:
     utils::impl::WaitTokenStorage wait_token_storage_;
 };
 
-Resolver::Impl::Impl(engine::TaskProcessor& fs_task_processor, const ResolverConfig& config)
-    : file_resolver_{fs_task_processor, config.file_path, config.file_update_interval},
-      net_resolver_{fs_task_processor, config.network_timeout, config.network_attempts, config.network_custom_servers},
+Resolver::Impl::Impl(engine::TaskProcessor& fs_task_processor, const ::userver::static_config::DnsClient& config)
+    : file_resolver_{fs_task_processor, config.hosts_file_path, config.hosts_file_update_interval},
+      net_resolver_{
+          fs_task_processor,
+          config.network_timeout,
+          config.network_attempts,
+          config.network_custom_servers.value_or(std::vector<std::string>{})},
       net_cache_update_margin_{config.network_timeout},
       net_cache_max_reply_ttl_{config.cache_max_reply_ttl},
       net_cache_failure_ttl_{config.cache_failure_ttl},
@@ -298,15 +303,14 @@ void Resolver::Impl::MoveQueryToBackground(
 ) {
     UASSERT(lock);
     UASSERT(lock.mutex() == &mutex);
-    engine::CriticalAsyncNoSpan(
+    engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
         [token = wait_token_storage_.GetToken(), this, name, failure_mode](auto&& mutex, auto&& future) {
             std::unique_lock lock{mutex, std::adopt_lock};
             this->FinishNetUpdate(lock, std::forward<decltype(future)>(future), name, nullptr, failure_mode);
         },
         std::forward<Mutex>(mutex),
         std::move(future)
-    )
-        .Detach();
+    ));
     lock.release();
 }
 
@@ -351,7 +355,7 @@ void Resolver::Impl::FinishNetUpdate(
     ++source_counters_.network;
 }
 
-Resolver::Resolver(engine::TaskProcessor& fs_task_processor, const ResolverConfig& config)
+Resolver::Resolver(engine::TaskProcessor& fs_task_processor, const ::userver::static_config::DnsClient& config)
     : impl_(fs_task_processor, config) {}
 
 Resolver::~Resolver() = default;

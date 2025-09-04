@@ -5,6 +5,8 @@
 #include <components/component_list_test.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>           // for fs::blocking::RewriteFileContents
 #include <userver/internal/net/net_listener.hpp>
@@ -35,6 +37,7 @@ components_manager:
     initial_size: 50
     max_size: 500
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   event_thread_pool:
     threads: 4
   task_processors:
@@ -91,8 +94,6 @@ components_manager:
       testsuite-enabled: true
       testsuite-timeout: 5s
       testsuite-allowed-url-prefixes: ['http://localhost:8083/', 'http://localhost:8084/']
-    dns-client:
-      fs-task-processor: main-task-processor
     dynamic-config-client:
       get-configs-overrides-for-service: true
       service-name: common_component_list-service

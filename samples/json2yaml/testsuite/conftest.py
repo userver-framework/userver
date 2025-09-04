@@ -7,7 +7,7 @@ def pytest_addoption(parser) -> None:
     group.addoption('--test-binary', type=str, help='Path to build utility.')
 
 
-@pytest.fixture(scope='session')
-def path_to_json2yaml(pytestconfig):
+@pytest.fixture(name='service_binary', scope='session')
+def _service_binary(pytestconfig):
     return pytestconfig.option.test_binary
     # /// [pytest]

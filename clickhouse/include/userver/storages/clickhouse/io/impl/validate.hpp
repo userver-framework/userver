@@ -68,7 +68,7 @@ constexpr void CommonValidateMapping() {
     static_assert(traits::kIsMappedToClickhouse<T>, "not mapped to clickhouse");
     static_assert(kCppTypeColumnsCount<T> == kClickhouseTypeColumnsCount<T>);
 
-    [[maybe_unused]] TupleColumnsValidate<MappedType<T>> validator{};
+    [[maybe_unused]] const TupleColumnsValidate<MappedType<T>> validator{};
 }
 
 template <typename T>
@@ -86,7 +86,7 @@ constexpr size_t FieldTypeFindMismatch(std::index_sequence<I...>) {
     constexpr bool results[] = {std::is_same_v<CppType<I, Row>, ClickhouseType<I, Row>>...};
 
     size_t i = 0;
-    for (bool v : results) {
+    for (const bool v : results) {
         if (!v) return i;
         ++i;
     }

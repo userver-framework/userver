@@ -31,6 +31,15 @@ async def _check_write_all_shards(service_client, key_prefix, value):
     return all(res.status != 500 for res in await asyncio.gather(*post_reqs))
 
 
+async def _wait_for_replicas_and_masters_negotiation(service_client, key, value):
+    for _ in range(FAILOVER_DEADLINE_SEC):
+        write_ok = await _check_write_all_shards(service_client, key, value)
+        if write_ok:
+            break
+        await asyncio.sleep(1)
+    assert write_ok
+
+
 async def _check_read_all_shards(service_client, key_prefix, value):
     get_reqs = [
         service_client.get(
@@ -59,12 +68,7 @@ async def test_failover(service_client, redis_cluster_store):
     assert replica, 'No replica for node'
     assert redis_cluster_store.cluster_failover(target_node=replica)
 
-    for _ in range(FAILOVER_DEADLINE_SEC):
-        write_ok = await _check_write_all_shards(service_client, 'hf_key2', 'cde')
-        if write_ok:
-            break
-        await asyncio.sleep(1)
-    assert write_ok
+    await _wait_for_replicas_and_masters_negotiation(service_client, 'hf_key2', 'cde')
 
     # Now that one of the replicas has become the master,
     # check reading from the remaining replica
@@ -80,9 +84,14 @@ async def test_failover(service_client, redis_cluster_store):
 
     # Failover master back where it was and make sure it gets there
     assert redis_cluster_store.cluster_failover(target_node=primary)
+    await _wait_for_replicas_and_masters_negotiation(service_client, 'hf_key3', 'xyz')
     for _ in range(FAILOVER_DEADLINE_SEC):
         try:
-            redis_cluster_store.set('key', 'value')
-            break
+            redis_cluster_store.flushall(target_nodes=redis.cluster.RedisCluster.PRIMARIES)
+            redis_cluster_store.wait(1, 10, target_nodes=redis.cluster.RedisCluster.PRIMARIES)
+            return
         except redis.exceptions.ReadOnlyError:
+            redis_cluster_store.close()
+            redis_cluster_store.nodes_manager.reset()
+            redis_cluster_store.nodes_manager.initialize()
             await asyncio.sleep(1)

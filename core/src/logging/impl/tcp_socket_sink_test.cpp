@@ -30,13 +30,13 @@ UTEST(TcpSocketSink, SocketConnectErrorIpV4) {
 }
 
 UTEST(TcpSocketSink, SocketConnectV4) {
-    internal::net::TcpListener listener(internal::net::IpVersion::kV4);
+    const internal::net::TcpListener listener(internal::net::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
     EXPECT_NO_THROW(socket_sink.Log({"msg", logging::Level::kWarning}));
 }
 
 UTEST(TcpSocketSink, SocketConnectV6) {
-    internal::net::TcpListener listener(internal::net::IpVersion::kV6);
+    const internal::net::TcpListener listener(internal::net::IpVersion::kV6);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
     EXPECT_NO_THROW(socket_sink.Log({"msg", logging::Level::kWarning}));
 }
@@ -83,7 +83,7 @@ UTEST(TcpSocketSink, SinkReadMoreV4) {
 }
 
 UTEST_MT(TcpSocketSink, ConcurrentClose, 4) {
-    internal::net::TcpListener listener(internal::net::IpVersion::kV4);
+    const internal::net::TcpListener listener(internal::net::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
     auto log_task_1 = engine::AsyncNoSpan([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });

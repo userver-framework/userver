@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 
 #include <userver/utils/small_string_fwd.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -166,22 +167,26 @@ class Map;
 /// doesn't own its data, so don't do that until really needed.
 class PredefinedHeader final {
 public:
-    explicit constexpr PredefinedHeader(std::string_view name)
-        : name{name}, hash{impl::UnsafeConstexprHasher{}(name)}, header_index{impl::GetHeaderIndexForLookup(name)} {}
+    explicit constexpr PredefinedHeader(utils::StringLiteral name)
+        : name_{name}, hash_{impl::UnsafeConstexprHasher{}(name)}, header_index_{impl::GetHeaderIndexForLookup(name)} {}
 
-    constexpr operator std::string_view() const { return name; }
+    constexpr operator utils::StringLiteral() const { return name_; }
 
-    explicit operator std::string() const { return std::string{name}; }
+    constexpr operator utils::zstring_view() const { return name_; }
+
+    constexpr operator std::string_view() const { return name_; }
+
+    explicit operator std::string() const { return std::string{name_}; }
 
 private:
     friend class header_map::Danger;
     friend class header_map::Map;
 
     // Header name.
-    const std::string_view name;
+    const utils::StringLiteral name_;
 
     // Unsafe constexpr hash (unsafe in a hash-flood sense).
-    const std::size_t hash;
+    const std::size_t hash_;
 
     // We assign a different 'index' value to every known header,
     // which allows us to do not perform case-insensitive names compare if indexes
@@ -189,7 +194,7 @@ private:
     // With this trick a successful lookup for PredefinedHeader in HeaderMap
     // is basically "access an array by index and compare both hash and index".
     // You can think of this field as an enum discriminant.
-    const std::int8_t header_index;
+    const std::int8_t header_index_;
 };
 
 }  // namespace http::headers

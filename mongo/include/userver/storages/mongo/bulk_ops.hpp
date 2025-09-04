@@ -79,6 +79,10 @@ public:
     Update& operator=(Update&&) noexcept;
 
     void SetOption(options::Upsert);
+    void SetOption(const options::ArrayFilters&);
+
+    /// @note Available starting in MongoDB 4.2
+    void SetOption(const options::Hint&);
 
 private:
     friend class storages::mongo::operations::Bulk;
@@ -104,15 +108,16 @@ public:
     Delete& operator=(const Delete&);
     Delete& operator=(Delete&&) noexcept;
 
-    void SetOption() const {}
+    /// @note Available starting in MongoDB 4.2
+    void SetOption(const options::Hint&);
 
 private:
     friend class storages::mongo::operations::Bulk;
 
     class Impl;
     static constexpr std::size_t kSize = compiler::SelectSize()  //
-                                             .For64Bit(24)
-                                             .For32Bit(12);
+                                             .For64Bit(40)
+                                             .For32Bit(20);
     static constexpr size_t kAlignment = alignof(void*);
     utils::FastPimpl<Impl, kSize, kAlignment, utils::kStrictMatch> impl_;
 };

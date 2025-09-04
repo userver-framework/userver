@@ -24,18 +24,18 @@ namespace chaotic::openapi {
  *
  */
 
-template <In In_>
+template <In TIn>
 auto GetParameter(std::string_view name, const server::http::HttpRequest& source) {
-    if constexpr (In_ == In::kPath) {
+    if constexpr (TIn == In::kPath) {
         return source.GetPathArg(name);
-    } else if constexpr (In_ == In::kCookie) {
+    } else if constexpr (TIn == In::kCookie) {
         return source.GetCookie(std::string{name});
-    } else if constexpr (In_ == In::kHeader) {
+    } else if constexpr (TIn == In::kHeader) {
         return source.GetHeader(name);
-    } else if constexpr (In_ == In::kQuery) {
+    } else if constexpr (TIn == In::kQuery) {
         return source.GetArg(name);
     } else {
-        static_assert(In_ == In::kQueryExplode, "Unknown 'In'");
+        static_assert(TIn == In::kQueryExplode, "Unknown 'In'");
         return source.GetArgVector(name);
     }
 }
@@ -78,8 +78,8 @@ void SplitByDelimiter(std::string_view str, char delimiter, utils::function_ref<
 
 }
 
-template <In In_, char Delimiter, typename RawType, typename UserType>
-struct ParseParameter<ArrayParameterBase<In_, Delimiter, RawType, UserType>> {
+template <In TIn, char Delimiter, typename RawType, typename UserType>
+struct ParseParameter<ArrayParameterBase<TIn, Delimiter, RawType, UserType>> {
     static auto Parse(std::string&& str_value) {
         openapi::ParseParameter<TrivialParameterBase<RawType, UserType>> parser;
 

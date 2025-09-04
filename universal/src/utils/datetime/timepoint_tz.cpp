@@ -3,8 +3,8 @@
 #include <tuple>
 
 #include <userver/logging/log_helper.hpp>
-#include <userver/utils/datetime.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,6 +43,11 @@ bool operator>(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rhs
 bool operator<=(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rhs) { return lhs <= rhs.GetTimePoint(); }
 
 bool operator>=(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rhs) { return lhs >= rhs.GetTimePoint(); }
+
+TimePointTzFraction::TimePointTzFraction(const std::string& timestring)
+    : TimePointTzBase(FromStringSaturating(timestring, kFractionFormat)) {}
+
+logging::LogHelper& operator<<(logging::LogHelper& os, const TimePointTzFraction& v) { return os << v.GetTimePoint(); }
 
 TimePointTz::TimePointTz(const std::string& timestring) : TimePointTzBase(FromRfc3339StringSaturating(timestring)) {}
 

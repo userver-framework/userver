@@ -13,17 +13,17 @@ namespace storages::redis::impl {
 
 class RedisConnectionHolder;
 
-class StandaloneTopologyHolder final : public TopologyHolderBase,
-                                       public std::enable_shared_from_this<StandaloneTopologyHolder> {
+class StandaloneTopologyHolder final : public TopologyHolderBase {
 public:
     StandaloneTopologyHolder(
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
         const Password& password,
+        std::size_t database_index,
         ConnectionInfo conn
     );
 
-    ~StandaloneTopologyHolder() = default;
+    ~StandaloneTopologyHolder() override;
 
     void Init() override;
 
@@ -72,6 +72,7 @@ private:
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
     concurrent::Variable<Password, std::mutex> password_;
+    const std::size_t database_index_;
 
     ///{ Wait ready
     std::mutex mutex_;

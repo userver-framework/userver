@@ -1,4 +1,8 @@
 default: false
-description: ''
+description: |
+    Dynamic config that enables connlimit_mode: auto for PostgreSQL connections.
+    Auto mode ignores static and dynamic max_connections configs and verifies
+    that the cluster services use max_connections equals to PostgreSQL server's
+    max_connections divided by service instance count.
 schema:
     type: boolean

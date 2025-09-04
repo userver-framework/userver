@@ -19,7 +19,7 @@ void SharedMutex::lock() {
 }
 
 void SharedMutex::unlock() {
-    utils::ScopeGuard stop_wait([this] { DecWaitingWriters(); });
+    const utils::ScopeGuard stop_wait([this] { DecWaitingWriters(); });
 
     semaphore_.unlock_shared_count(kWriterLock);
 }
@@ -33,8 +33,8 @@ void SharedMutex::DecWaitingWriters() {
     auto writers_left = waiting_writers_count_.fetch_sub(1, std::memory_order_relaxed);
     UASSERT_MSG(writers_left > 0, "unlock without lock");
     if (writers_left == 1) {
-        engine::TaskCancellationBlocker blocker;
-        std::lock_guard<Mutex> lock(waiting_writers_count_mutex_);
+        const engine::TaskCancellationBlocker blocker;
+        const std::lock_guard<Mutex> lock(waiting_writers_count_mutex_);
         waiting_writers_count_cv_.NotifyAll();
     }
 }

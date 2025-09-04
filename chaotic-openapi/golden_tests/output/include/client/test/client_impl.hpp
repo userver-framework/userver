@@ -4,7 +4,10 @@
 #include <client/test/client.hpp>
 
 #include <userver/chaotic/openapi/client/config.hpp>
+#include <userver/chaotic/openapi/middlewares/manager.hpp>
 #include <userver/clients/http/client.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 namespace clients::test {
 
@@ -14,7 +17,7 @@ public:
 
     testme_post::Response TestmePost(
         const testme_post::Request& request,
-        const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control
+        const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control = {}
     ) override;
 
     // end of API
@@ -23,13 +26,22 @@ public:
     static constexpr std::string_view kDefaultBaseUrl = "http://example.com";
 
     ClientImpl(
-        const USERVER_NAMESPACE::chaotic::openapi::client::Config&,
+        const USERVER_NAMESPACE::chaotic::openapi::client::Config& config,
         USERVER_NAMESPACE::clients::http::Client& http_client
     );
+
+    static USERVER_NAMESPACE::yaml_config::Schema GetStaticConfigSchema();
+
+    void RegisterMiddleware(std::shared_ptr<USERVER_NAMESPACE::chaotic::openapi::client::Middleware> middleware) {
+        middleware_manager_.RegisterMiddleware(middleware);
+    }
 
 private:
     USERVER_NAMESPACE::chaotic::openapi::client::Config config_;
     USERVER_NAMESPACE::clients::http::Client& http_client_;
+    USERVER_NAMESPACE::chaotic::openapi::MiddlewareManager middleware_manager_;
+    std::unordered_map<std::string, std::shared_ptr<USERVER_NAMESPACE::chaotic::openapi::client::Middleware>>
+        middlewares_;
 };
 
 }  // namespace clients::test

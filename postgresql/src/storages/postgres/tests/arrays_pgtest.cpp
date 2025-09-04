@@ -482,7 +482,7 @@ TEST(PostgreIO, ArraysSet) {
         UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
         EXPECT_FALSE(buffer.empty());
         auto fb = pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
-        static_test::one_dim_set expected(src.begin(), src.end());
+        const static_test::one_dim_set expected(src.begin(), src.end());
         static_test::one_dim_set tgt;
         UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
         EXPECT_EQ(tgt, expected);
@@ -586,7 +586,7 @@ TEST(PostgreIO, ArraysUnorderedSet) {
         UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
         EXPECT_FALSE(buffer.empty());
         auto fb = pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
-        static_test::unordered_set expected(src.begin(), src.end());
+        const static_test::unordered_set expected(src.begin(), src.end());
         static_test::unordered_set tgt;
         UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
         EXPECT_EQ(tgt, expected);
@@ -702,7 +702,7 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
         test_array tgt;
         UEXPECT_NO_THROW(res[0][0].To(tgt));
         UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
-        std::set<std::string> expected(src.begin(), src.end());
+        const std::set<std::string> expected(src.begin(), src.end());
         EXPECT_EQ(tgt, expected);
     }
     {
@@ -779,7 +779,7 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
         test_array tgt;
         UEXPECT_NO_THROW(res[0][0].To(tgt));
         UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
-        std::unordered_set<std::string> expected(src.begin(), src.end());
+        const std::unordered_set<std::string> expected(src.begin(), src.end());
         EXPECT_EQ(tgt, expected);
     }
     {
@@ -839,7 +839,7 @@ UTEST_P(PostgreConnection, ArrayEmpty) {
 
 UTEST_P(PostgreConnection, ArrayOfVarchar) {
     CheckConnection(GetConn());
-    pg::ResultSet res{nullptr};
+    const pg::ResultSet res{nullptr};
     UEXPECT_NO_THROW(GetConn()->Execute("create temporary table vchar_array_test( v varchar[] )"));
     UEXPECT_NO_THROW(
         GetConn()->Execute("insert into vchar_array_test values ($1)", std::vector<std::string>{"foo", "bar"})
@@ -848,7 +848,7 @@ UTEST_P(PostgreConnection, ArrayOfVarchar) {
 
 UTEST_P(PostgreConnection, ArrayOfBool) {
     CheckConnection(GetConn());
-    std::vector<bool> src{true, false, true};
+    const std::vector<bool> src{true, false, true};
     pg::ResultSet res{nullptr};
     UEXPECT_NO_THROW(res = GetConn()->Execute("select $1::boolean[]", std::vector<bool>{true, false, true}));
     std::vector<bool> tgt;
@@ -890,7 +890,7 @@ UTEST_P(PostgreConnection, ChunkedContainer) {
     CheckConnection(GetConn());
 
     GetConn()->Execute("create temporary table chunked_array_test(v integer)");
-    std::vector<int> data(1001, 42);
+    const std::vector<int> data(1001, 42);
     auto split = io::SplitContainer(data, 100);
     for (auto chunk : split) {
         UEXPECT_NO_THROW(GetConn()->Execute("insert into chunked_array_test select * from unnest($1)", chunk));
@@ -931,6 +931,16 @@ void InsertDecomposedInChunks(pg::Transaction& trx, const std::vector<IdAndValue
 }
 /// [ExecuteDecomposeBulk]
 
+/// [ExecuteDecomposeTrx]
+auto InsertDecomposedArrayInTrx(pg::Transaction& trx, const std::vector<IdAndValue>& rows) {
+    return trx.ExecuteDecompose(
+        "INSERT INTO decomposed_array_test(id, value) "
+        "VALUES(UNNEST($1), UNNEST($2)) RETURNING *",
+        rows
+    );
+}
+/// [ExecuteDecomposeTrx]
+
 UTEST_P(PostgreConnection, TransactionDecomposedChunkedContainer) {
     CheckConnection(GetConn());
 
@@ -961,6 +971,37 @@ UTEST_P(PostgreConnection, TransactionDecomposedChunkedContainer) {
 
     trx.Commit();
 }
+
+UTEST_P(PostgreConnection, TransactionDecomposedContainer) {
+    CheckConnection(GetConn());
+
+    GetConn()->Execute(
+        "create temporary table decomposed_array_test("
+        "id integer, value text)"
+    );
+
+    std::vector<IdAndValue> rows_to_insert(1001);
+    int index = 0;
+    std::generate(rows_to_insert.begin(), rows_to_insert.end(), [&index] {
+        const auto x = index++;
+        return IdAndValue{x, std::to_string(x)};
+    });
+
+    pg::Transaction trx{std::move(GetConn())};
+    const auto inserted_rows =
+        InsertDecomposedArrayInTrx(trx, rows_to_insert).AsContainer<std::vector<IdAndValue>>(pg::kRowTag);
+
+    // we don't define operator== on IdAndValue to not bloat the sample (and that
+    // operator could confuse people, like why is it needed there), so this
+    ASSERT_EQ(rows_to_insert.size(), inserted_rows.size());
+    for (std::size_t i = 0; i < rows_to_insert.size(); ++i) {
+        const auto eq = [](const auto& lhs, const auto& rhs) { return lhs.id == rhs.id && lhs.value == rhs.value; };
+        ASSERT_TRUE(eq(rows_to_insert[i], inserted_rows[i]));
+    }
+
+    trx.Commit();
+}
+
 }  // namespace
 
 }  // namespace

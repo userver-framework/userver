@@ -24,3 +24,17 @@ std::size_t InsertInTransaction(storages::postgres::Transaction& transaction, st
     return res.RowsAffected();
 }
 /// [TransacExec]
+
+/// [ExecuteDecompose]
+struct IdAndValue final {
+    int id{};
+    std::string value;
+};
+
+std::size_t InsertDecomposed(storages::postgres::Cluster& pg, const std::vector<IdAndValue>& rows) {
+    auto res = pg.ExecuteDecompose(
+        storages::postgres::ClusterHostType::kMaster, "INSERT INTO keys VALUES (UNNEST($1), UNNEST($2))", rows
+    );
+    return res.RowsAffected();
+}
+/// [ExecuteDecompose]

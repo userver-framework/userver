@@ -20,10 +20,10 @@ NonTransaction& NonTransaction::operator=(NonTransaction&&) noexcept = default;
 
 ResultSet NonTransaction::Execute(
     OptionalCommandControl statement_cmd_ctl,
-    const std::string& statement,
+    USERVER_NAMESPACE::utils::zstring_view statement,
     const ParameterStore& store
 ) {
-    return DoExecute(statement, detail::QueryParameters{store.GetInternalData()}, statement_cmd_ctl);
+    return DoExecute(std::string{statement}, detail::QueryParameters{store.GetInternalData()}, statement_cmd_ctl);
 }
 
 ResultSet NonTransaction::DoExecute(
@@ -31,9 +31,9 @@ ResultSet NonTransaction::DoExecute(
     const detail::QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl
 ) {
-    if (query.GetName().has_value()) {
+    if (query.GetOptionalNameView().has_value()) {
         TESTPOINT_CALLBACK(
-            fmt::format("pg_ntrx_execute::{}", query.GetName().value()),
+            fmt::format("pg_ntrx_execute::{}", query.GetOptionalNameView().value()),
             formats::json::Value(),
             [](const formats::json::Value& data) {
                 if (data["inject_failure"].As<bool>()) {

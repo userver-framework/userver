@@ -60,13 +60,19 @@ engine::io::Socket CreateIpv6Socket(const std::string& address, uint16_t port, i
     return socket;
 }
 
-}  // namespace
-
-engine::io::Socket CreateSocket(const ListenerConfig& config, const PortConfig& port_config) {
+engine::io::Socket DoCreateSocket(const ListenerConfig& config, const PortConfig& port_config) {
     if (port_config.unix_socket_path.empty())
         return CreateIpv6Socket(port_config.address, port_config.port, config.backlog);
     else
         return CreateUnixSocket(port_config.unix_socket_path, config.backlog, port_config.unix_socket_perms);
+}
+
+}  // namespace
+
+engine::io::Socket CreateSocket(const ListenerConfig& config, const PortConfig& port_config) {
+    // Note: socket creation accesses filesystem
+    auto& tp = engine::current_task::GetBlockingTaskProcessor();
+    return engine::AsyncNoSpan(tp, &DoCreateSocket, std::ref(config), std::ref(port_config)).Get();
 }
 
 }  // namespace server::net

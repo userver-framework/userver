@@ -11,6 +11,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 class bad_expected_access : public std::exception {
 public:
     using std::exception::exception;
@@ -181,6 +183,8 @@ const E& expected<S, E>::error() const {
     }
     return result->error();
 }
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace utils
 

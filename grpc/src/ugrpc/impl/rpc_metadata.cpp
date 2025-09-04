@@ -24,6 +24,7 @@ const grpc::string kHostname = hostinfo::blocking::GetRealHostName();
 const grpc::string kCongestionControlRatelimitReason = "congestion-control";
 
 const grpc::string kXTestsuiteErrorCode = "x-testsuite-error-code";
+const grpc::string kXTestsuiteClientName = "x-testsuite-client-name";
 
 const grpc::string kTestsuiteNetworkCode = "network";
 const grpc::string kTestsuiteTimeoutCode = "timeout";

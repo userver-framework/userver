@@ -40,7 +40,7 @@ struct ConstantConfig final {
 };
 
 /// @brief A config key is a unique identifier for a config variable
-/// @snippet core/src/components/logging_configurator.cpp  key
+/// @snippet core/src/dynamic_config/config_test.cpp key bool
 template <typename Variable>
 class Key final {
 public:
@@ -64,7 +64,7 @@ public:
     /// `VariableType`.
     ///
     /// Usage example:
-    /// @snippet components/logging_configurator.cpp  struct config cpp
+    /// @snippet core/src/dynamic_config/config_test.cpp struct config cpp
     Key(std::string_view name, DefaultAsJsonString default_json);
 
     /// @brief The constructor that provides a special parser from JSON.
@@ -77,9 +77,6 @@ public:
     /// into a single C++ object.
     /// @warning Prefer to use a separate `Key` per JSON config item and use the
     /// constructors above whenever possible.
-    ///
-    /// Usage example:
-    /// @snippet clients/http/component.cpp  docs map config sample
     template <std::size_t N>
     Key(DocsMapParser parser, const ConfigDefault (&default_json_map)[N]);
 

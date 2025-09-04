@@ -21,17 +21,17 @@ public:
     ServerIdDescriptionMap() { SetDescription(ServerId::Invalid().GetId(), "invalid_server_id"); }
 
     void SetDescription(size_t server_id, std::string description) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         descriptions_.emplace(std::piecewise_construct, std::tie(server_id), std::tie(description));
     }
 
     void RemoveDescription(size_t server_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         descriptions_.erase(server_id);
     }
 
     std::string GetDescription(size_t server_id) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         auto it = descriptions_.find(server_id);
         if (it != descriptions_.end()) return it->second;
         return {};
@@ -98,6 +98,9 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     }
     if (b.best_dc_count.has_value()) {
         res.best_dc_count = b.best_dc_count;
+    }
+    if (b.consider_ping.has_value()) {
+        res.consider_ping = b.consider_ping;
     }
     if (b.force_request_to_master.has_value()) {
         res.force_request_to_master = b.force_request_to_master;

@@ -1,16 +1,8 @@
-import pathlib
-
 import pytest
 
 from testsuite.databases.pgsql import discover
 
 pytest_plugins = ['pytest_userver.plugins.postgresql']
-
-
-@pytest.fixture(name='service_source_dir', scope='session')
-def _service_source_dir():
-    """Path to root directory service."""
-    return pathlib.Path(__file__).parent.parent
 
 
 @pytest.fixture(scope='session')

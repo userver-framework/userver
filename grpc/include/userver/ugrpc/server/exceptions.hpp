@@ -7,6 +7,9 @@
 #include <string>
 #include <string_view>
 
+#include <grpcpp/support/status.h>
+#include <grpcpp/support/status_code_enum.h>
+
 USERVER_NAMESPACE_BEGIN
 
 /// Server-side utilities
@@ -35,6 +38,22 @@ public:
 class RpcInterruptedError : public RpcError {
 public:
     RpcInterruptedError(std::string_view call_name, std::string_view stage);
+};
+
+/// @brief Users can throw ErrorWithStatus in their
+/// RPC's implementation to return provided status code as a result.
+class ErrorWithStatus : public BaseError {
+public:
+    explicit ErrorWithStatus(grpc::Status status);
+
+    ErrorWithStatus(grpc::StatusCode status_code, std::string message);
+
+    const grpc::Status& GetStatus() const;
+
+    grpc::Status&& ExtractStatus();
+
+private:
+    grpc::Status status_;
 };
 
 }  // namespace ugrpc::server

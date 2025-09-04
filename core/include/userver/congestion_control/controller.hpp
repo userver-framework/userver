@@ -6,11 +6,12 @@
 #include <optional>
 #include <string>
 
-#include <userver/congestion_control/config.hpp>
 #include <userver/congestion_control/limiter.hpp>
 #include <userver/congestion_control/sensor.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/formats/json_fwd.hpp>
+
+#include <dynamic_config/variables/USERVER_RPS_CCONTROL.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,6 +40,8 @@ struct Stats final {
         std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()) -
         std::chrono::hours(1)};
 };
+
+using Policy = ::dynamic_config::userver_rps_ccontrol::VariableType;
 
 class Controller final {
 public:

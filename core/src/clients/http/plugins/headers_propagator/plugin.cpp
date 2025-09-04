@@ -23,6 +23,10 @@ void Plugin::HookCreateSpan(PluginRequest& request, tracing::Span&) {
 
 void Plugin::HookOnCompleted(PluginRequest&, Response&) {}
 
+void Plugin::HookOnError(PluginRequest&, std::error_code) {}
+
+bool Plugin::HookOnRetry(PluginRequest&) { return true; }
+
 }  // namespace clients::http::plugins::headers_propagator
 
 USERVER_NAMESPACE_END

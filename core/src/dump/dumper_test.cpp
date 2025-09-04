@@ -37,17 +37,17 @@ struct DummyEntity final : public dump::DumpableEntity {
     static constexpr std::string_view kName = "dummy";
 
     void GetAndWrite(dump::Writer& writer) const override {
-        std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
+        const std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
         ASSERT_TRUE(lock.owns_lock());
 
-        std::lock_guard write_lock(write_mutex);
+        const std::lock_guard write_lock(write_mutex);
 
         writer.Write(value);
         ++write_count;
     }
 
     void ReadAndSet(dump::Reader& reader) override {
-        std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
+        const std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
         ASSERT_TRUE(lock.owns_lock());
 
         value = reader.Read<int>();
@@ -105,7 +105,7 @@ private:
     dump::Config config_;
     testsuite::DumpControl control_;
     utils::statistics::Storage statistics_storage_;
-    dynamic_config::StorageMock config_storage_{{dump::kConfigSet, {}}};
+    dynamic_config::StorageMock config_storage_{{::dynamic_config::USERVER_DUMPS, {}}};
     DummyEntity dumpable_;
 };
 
@@ -190,7 +190,7 @@ UTEST_F(DumperFixture, OnUpdateCompletedIsAsync) {
     utils::datetime::MockNowSet({});
 
     {
-        std::lock_guard lock(GetDumpable().write_mutex);
+        const std::lock_guard lock(GetDumpable().write_mutex);
 
         // Async write operation will wait for 'write_mutex', but the method
         // should return instantly

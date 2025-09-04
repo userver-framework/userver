@@ -50,7 +50,7 @@ TEST(Busy, Sample) {
     EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
 
     {
-        utils::statistics::BusyMarker scope{storage};
+        const utils::statistics::BusyMarker scope{storage};
         if (some_heavy_task_that_takes_1s()) {
             some_heavy_task_that_takes_3s();
             // 4 seconds out of 5 were consumed -> 80%
@@ -65,12 +65,12 @@ TEST(Busy, Sample) {
     /// [busy sample]
 
     {
-        utils::statistics::BusyMarker scope0{storage};
+        const utils::statistics::BusyMarker scope0{storage};
         std::optional<utils::statistics::BusyMarker> scope1{storage};
-        utils::statistics::BusyMarker scope2{storage};
+        const utils::statistics::BusyMarker scope2{storage};
         std::optional<utils::statistics::BusyMarker> scope3{storage};
-        utils::statistics::BusyMarker scope4{storage};
-        utils::statistics::BusyMarker scope5{storage};
+        const utils::statistics::BusyMarker scope4{storage};
+        const utils::statistics::BusyMarker scope5{storage};
         some_heavy_task_that_takes_1s();
         scope3.reset();
         scope1.reset();

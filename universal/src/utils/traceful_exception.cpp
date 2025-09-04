@@ -22,10 +22,10 @@ boost::stacktrace::stacktrace CollectTrace(TracefulException::TraceMode trace_mo
 }  // namespace
 
 struct TracefulExceptionBase::Impl final {
-    explicit Impl(TraceMode trace_mode) : stacktrace_(CollectTrace(trace_mode)) {}
+    explicit Impl(TraceMode trace_mode) : stacktrace(CollectTrace(trace_mode)) {}
 
-    MemoryBuffer message_buffer_;
-    boost::stacktrace::stacktrace stacktrace_;
+    MemoryBuffer message_buffer;
+    boost::stacktrace::stacktrace stacktrace;
 };
 
 TracefulExceptionBase::TracefulExceptionBase(TracefulExceptionBase&& other) noexcept : impl_(std::move(other.impl_)) {
@@ -35,8 +35,8 @@ TracefulExceptionBase::TracefulExceptionBase(TracefulExceptionBase&& other) noex
 TracefulExceptionBase::~TracefulExceptionBase() = default;
 
 void TracefulExceptionBase::EnsureNullTerminated() {
-    impl_->message_buffer_.reserve(impl_->message_buffer_.size() + 1);
-    impl_->message_buffer_[impl_->message_buffer_.size()] = '\0';
+    impl_->message_buffer.reserve(impl_->message_buffer.size() + 1);
+    impl_->message_buffer[impl_->message_buffer.size()] = '\0';
 }
 
 const char* TracefulException::what() const noexcept {
@@ -44,21 +44,21 @@ const char* TracefulException::what() const noexcept {
 }
 
 const TracefulExceptionBase::MemoryBuffer& TracefulExceptionBase::MessageBuffer() const noexcept {
-    return impl_->message_buffer_;
+    return impl_->message_buffer;
 }
 
-const boost::stacktrace::stacktrace& TracefulExceptionBase::Trace() const noexcept { return impl_->stacktrace_; }
+const boost::stacktrace::stacktrace& TracefulExceptionBase::Trace() const noexcept { return impl_->stacktrace; }
 
 TracefulExceptionBase::TracefulExceptionBase() : TracefulExceptionBase(TraceMode::kAlways) {}
 
 TracefulExceptionBase::TracefulExceptionBase(std::string_view what) : TracefulExceptionBase(TraceMode::kAlways) {
-    fmt::format_to(std::back_inserter(impl_->message_buffer_), FMT_COMPILE("{}"), what);
+    fmt::format_to(std::back_inserter(impl_->message_buffer), FMT_COMPILE("{}"), what);
     EnsureNullTerminated();
 }
 
 TracefulExceptionBase::TracefulExceptionBase(TraceMode trace_mode) : impl_(trace_mode) {}
 
-TracefulExceptionBase::MemoryBuffer& TracefulExceptionBase::GetMessageBuffer() { return impl_->message_buffer_; }
+TracefulExceptionBase::MemoryBuffer& TracefulExceptionBase::GetMessageBuffer() { return impl_->message_buffer; }
 
 }  // namespace utils
 

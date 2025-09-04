@@ -34,7 +34,7 @@ const char* try_sigdescr_np(Args...) noexcept {
 }  // namespace
 
 std::string strerror(int return_code) {
-    std::error_code ec(return_code, std::system_category());
+    const std::error_code ec(return_code, std::system_category());
     return ec.message();
 }
 

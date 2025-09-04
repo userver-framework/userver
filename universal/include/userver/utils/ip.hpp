@@ -14,9 +14,11 @@
 
 #include <fmt/format.h>
 
+#include <userver/utils/zstring_view.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
-// IP address and utilities
+/// IP address and utilities
 namespace utils::ip {
 
 /// @ingroup userver_containers
@@ -61,14 +63,12 @@ using AddressV6 = AddressBase<16>;
 template <typename T>
 inline constexpr bool kIsAddressType = std::is_same_v<T, AddressV4> || std::is_same_v<T, AddressV6>;
 
-/// @brief Create an IPv4 address from an IP address string in dotted decimal
-/// form.
+/// @brief Create an IPv4 address from an IP address string in dotted decimal form.
 /// @throw AddressSystemError
-AddressV4 AddressV4FromString(const std::string& str);
+AddressV4 AddressV4FromString(utils::zstring_view str);
 
-/// @brief Create an IPv6 address from an IP address string in dotted decimal
-/// form.
-AddressV6 AddressV6FromString(const std::string& str);
+/// @brief Create an IPv6 address from an IP address string in dotted decimal form.
+AddressV6 AddressV6FromString(utils::zstring_view str);
 
 /// @brief Get the address as a string in dotted decimal format.
 std::string AddressV4ToString(const AddressV4& address);

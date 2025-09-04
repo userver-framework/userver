@@ -1,6 +1,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/components/state.hpp>
 #include <userver/testsuite/tasks.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>

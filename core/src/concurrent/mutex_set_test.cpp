@@ -7,22 +7,22 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(MutexSet, Ctr) {
-    concurrent::MutexSet ms;
-    concurrent::MutexSet<int> ms_int;
+    const concurrent::MutexSet ms;
+    const concurrent::MutexSet<int> ms_int;
 }
 
 UTEST(MutexSet, LockUnlock) {
     concurrent::MutexSet ms;
     auto mutex = ms.GetMutexForKey("123");
-    std::lock_guard lock(mutex);
+    const std::lock_guard lock(mutex);
 }
 
 UTEST(MutexSet, MultipleKeys) {
     concurrent::MutexSet ms;
     auto m1 = ms.GetMutexForKey("123");
     auto m2 = ms.GetMutexForKey("1234");
-    std::unique_lock lock1(m1);
-    std::unique_lock lock2(m2);
+    const std::lock_guard lock1(m1);
+    const std::lock_guard lock2(m2);
 }
 
 UTEST(MutexSet, TryLock) {
@@ -85,7 +85,7 @@ UTEST(MutexSet, Notify) {
 
     auto task = utils::Async("test", [&ms] {
         auto m2 = ms.GetMutexForKey("123");
-        std::unique_lock lock(m2);
+        const std::lock_guard lock(m2);
     });
 
     engine::Yield();
@@ -105,15 +105,15 @@ UTEST(MutexSet, Sample) {
     auto m1_again = ms.GetMutexForKey("1");
 
     {
-        std::unique_lock lock_first(m1);
-        std::unique_lock lock_second(m2);
+        const std::lock_guard lock_first(m1);
+        const std::lock_guard lock_second(m2);
 
         // Mutex for key "1" already locked
         EXPECT_FALSE(m1_again.try_lock());
     }
     // Mutex for key "1" is now unlocked
 
-    std::unique_lock lock(m1_again);
+    const std::lock_guard lock(m1_again);
     /// [Sample mutex set usage]
 }
 

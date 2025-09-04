@@ -12,6 +12,7 @@ from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
 from conan.tools.files import load
 from conan.tools.scm import Git
+from conan.tools.system import package_manager
 
 required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
 
@@ -34,15 +35,18 @@ class UserverConan(ConanFile):
         'with_postgresql': [True, False],
         'with_postgresql_extra': [True, False],
         'with_redis': [True, False],
+        'with_redis_tls': [True, False],
         'with_grpc': [True, False],
         'with_clickhouse': [True, False],
         'with_rabbitmq': [True, False],
         'with_utest': [True, False],
         'with_kafka': [True, False],
         'with_otlp': [True, False],
+        'with_sqlite': [True, False],
         'with_easy': [True, False],
         'with_s3api': [True, False],
         'with_grpc_reflection': [True, False],
+        'with_grpc_protovalidate': [True, False],
         'namespace': ['ANY'],
         'namespace_begin': ['ANY'],
         'namespace_end': ['ANY'],
@@ -57,15 +61,18 @@ class UserverConan(ConanFile):
         'with_postgresql': True,
         'with_postgresql_extra': False,
         'with_redis': True,
+        'with_redis_tls': True,
         'with_grpc': True,
         'with_clickhouse': True,
         'with_rabbitmq': True,
         'with_utest': True,
         'with_kafka': True,
         'with_otlp': True,
+        'with_sqlite': True,
         'with_easy': True,
         'with_s3api': True,
         'with_grpc_reflection': True,
+        'with_grpc_protovalidate': False,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
@@ -76,6 +83,7 @@ class UserverConan(ConanFile):
         'grpc/*:ruby_plugin': False,
         'grpc/*:csharp_plugin': False,
         'grpc/*:objective_c_plugin': False,
+        'hiredis/*:with_ssl': True,
         'librdkafka/*:ssl': True,
         'librdkafka/*:curl': True,
         'librdkafka/*:sasl': True,
@@ -114,7 +122,7 @@ class UserverConan(ConanFile):
         self.requires('cctz/2.4', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
         self.requires('cryptopp/8.9.0')
-        self.requires('fmt/8.1.1', transitive_headers=True)
+        self.requires('fmt/11.0.2', transitive_headers=True)
         self.requires('libiconv/1.17')
         self.requires('libnghttp2/1.61.0')
         self.requires('libcurl/7.86.0')
@@ -145,7 +153,9 @@ class UserverConan(ConanFile):
             )
             self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
-            self.requires('libpq/14.5')
+            # `run=True` required to find `pg_config` binary during `psycopg2` python module build
+            # without system package. We use system package.
+            self.requires('libpq/14.9')
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
@@ -173,6 +183,8 @@ class UserverConan(ConanFile):
             )
         if self.options.with_kafka:
             self.requires('librdkafka/2.6.0')
+        if self.options.with_sqlite:
+            self.requires('sqlite3/3.46.1')
         if self.options.with_s3api:
             self.requires('pugixml/1.14')
         if self.options.with_otlp:
@@ -211,6 +223,7 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
         tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
         tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
+        tool_ch.variables['USERVER_FEATURE_REDIS_TLS'] = self.options.with_redis_tls
         tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
         tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
         tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
@@ -218,9 +231,11 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
         tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
         tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.variables['USERVER_FEATURE_SQLITE'] = self.options.with_sqlite
         tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
         tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
         tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
+        tool_ch.variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
 
         if self.options.with_grpc:
             tool_ch.variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
@@ -237,6 +252,12 @@ class UserverConan(ConanFile):
         CMakeDeps(self).generate()
 
     def build(self):
+        # pg_config is required to build psycopg2 from source without system package.
+        # However, this approach fails on later stage, when venv for tests is built.
+        # libpq = self.dependencies["libpq"]
+        # if libpq:
+        #     os.environ["PATH"] = os.environ["PATH"] + ":" + libpq.package_folder+ "/bin"
+
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
@@ -249,3 +270,12 @@ class UserverConan(ConanFile):
         # https://docs.conan.io/2/examples/tools/cmake/cmake_toolchain/use_package_config_cmake.html
         self.cpp_info.set_property('cmake_find_mode', 'none')
         self.cpp_info.builddirs.append(os.path.join('lib', 'cmake', 'userver'))
+
+    def system_requirements(self):
+        if self.options.with_postgresql:
+            # pg_config is required to build psycopg2 python module from source at
+            # testsuite venv creation during functional testing of user code.
+            package_manager.Apt(self).install(['libpq-dev'])
+            package_manager.Yum(self).install(['libpq-devel'])
+            package_manager.PacMan(self).install(['libpq-dev'])
+            package_manager.Zypper(self).install(['libpq-devel'])

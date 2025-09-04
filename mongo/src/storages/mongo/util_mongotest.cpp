@@ -12,7 +12,6 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/text.hpp>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
 USERVER_NAMESPACE_BEGIN

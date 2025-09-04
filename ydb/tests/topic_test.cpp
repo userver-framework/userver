@@ -75,13 +75,105 @@ protected:
     }
 };
 
+template <class T>
+class YdbTopicReadSessionWithDataHandler : public YdbTopicFixture {
+protected:
+    T CreateReadSessionWithDataHandler(
+        std::string_view topic_path,
+        std::string_view consumer_name,
+        std::function<void()> data_handler = []() {},
+        bool commit_data_events = false
+    );
+};
+
+template <>
+ydb::TopicReadSession YdbTopicReadSessionWithDataHandler<ydb::TopicReadSession>::CreateReadSessionWithDataHandler(
+    std::string_view topic_path,
+    std::string_view consumer_name,
+    std::function<void()> data_handler,
+    bool commit_data_events
+) {
+    NYdb::NTopic::TReadSessionSettings read_session_settings;
+    read_session_settings.AppendTopics(ydb::impl::ToString(topic_path));
+    read_session_settings.ConsumerName(ydb::impl::ToString(consumer_name));
+    read_session_settings.EventHandlers_.SimpleDataHandlers(
+        [handler = std::move(data_handler)](const auto&) { handler(); }, commit_data_events
+    );
+    return GetTopicClient().CreateReadSession(read_session_settings);
+}
+
+template <>
+ydb::FederatedTopicReadSession
+YdbTopicReadSessionWithDataHandler<ydb::FederatedTopicReadSession>::CreateReadSessionWithDataHandler(
+    std::string_view topic_path,
+    std::string_view consumer_name,
+    std::function<void()> data_handler,
+    bool commit_data_events
+) {
+    NYdb::NFederatedTopic::TFederatedReadSessionSettings read_session_settings;
+    read_session_settings.AppendTopics(ydb::impl::ToString(topic_path));
+    read_session_settings.ConsumerName(ydb::impl::ToString(consumer_name));
+    read_session_settings.FederatedEventHandlers_.SimpleDataHandlers(
+        [handler = std::move(data_handler)](const auto&) { handler(); }, commit_data_events
+    );
+
+    return GetFederatedTopicClient().CreateReadSession(read_session_settings);
+}
+
 }  // namespace
 
-UTEST_F(YdbTopicFixture, TopicReadSessionCreateClose) {
-    AddConsumer(kTopicPath, kConsumerName);
-    auto session = CreateReadSession(kTopicPath, kConsumerName);
+using ReadSessionTypes = ::testing::Types<ydb::TopicReadSession, ydb::FederatedTopicReadSession>;
+TYPED_UTEST_SUITE(YdbTopicReadSessionWithDataHandler, ReadSessionTypes);
+
+TYPED_UTEST(YdbTopicReadSessionWithDataHandler, TopicReadSessionCreateClose) {
+    this->AddConsumer(kTopicPath, kConsumerName);
+    auto session = this->CreateReadSessionWithDataHandler(kTopicPath, kConsumerName);
     UASSERT_NO_THROW(session.Close(std::chrono::milliseconds{1000}));
-    DropConsumer(kTopicPath, kConsumerName);
+    this->DropConsumer(kTopicPath, kConsumerName);
+}
+
+TYPED_UTEST(YdbTopicReadSessionWithDataHandler, CommitDataEventsPersistence) {
+    this->AddConsumer(kTopicPath, kConsumerName);
+
+    this->GetTableClient().ExecuteDataQuery(fmt::format(
+        R"-(
+      INSERT INTO {} (key, value)
+      VALUES
+        (123, "qwe"),
+        (321, "xyz");
+    )-",
+        kTable
+    ));
+
+    auto ReadAll = [&](bool commit_data_event) {
+        std::atomic<size_t> data_events_count = 0;
+        TypeParam session = this->CreateReadSessionWithDataHandler(
+            kTopicPath, kConsumerName, [&data_events_count]() { data_events_count++; }, commit_data_event
+        );
+
+        auto task = engine::AsyncNoSpan([&session] {
+            UASSERT_NO_THROW(session.GetNativeTopicReadSession()->WaitEvent().Wait(std::chrono::milliseconds{1000}));
+        });
+        task.WaitFor(std::chrono::milliseconds{1000});
+        Y_ENSURE(task.IsFinished());
+
+        session.Close(std::chrono::milliseconds{1000});
+        return data_events_count.load();
+    };
+
+    // Read entire topic without commiting events, leaving consumer's offset unchanged
+    size_t count = ReadAll(false);
+    ASSERT_TRUE(count > 0u);
+
+    // Read entire topic once again and commit each event, changing consumer's offset
+    count = ReadAll(true);
+    ASSERT_TRUE(count > 0u);
+
+    // There should be no events left for us to read
+    count = ReadAll(true);
+    ASSERT_EQ(count, 0u);
+
+    this->DropConsumer(kTopicPath, kConsumerName);
 }
 
 UTEST_F(YdbTopicFixture, TopicReadSessionGetEvents) {

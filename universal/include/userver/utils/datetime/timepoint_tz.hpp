@@ -59,6 +59,15 @@ bool operator<=(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rh
 
 bool operator>=(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rhs);
 
+/// Timepoint with timezone parsed in kFractionFormat
+class TimePointTzFraction final : public TimePointTzBase {
+    using TimePointTzBase::TimePointTzBase;
+
+    explicit TimePointTzFraction(const std::string& timestring);
+};
+
+logging::LogHelper& operator<<(logging::LogHelper& os, const TimePointTzFraction& v);
+
 /// Timepoint with timezone parsed in kRfc3339Format
 class TimePointTz final : public TimePointTzBase {
     using TimePointTzBase::TimePointTzBase;

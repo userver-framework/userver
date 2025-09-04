@@ -134,8 +134,8 @@ def check_200_for(case):
 
 
 async def close_connection(gate, grpc_ch, service_client):
-    gate.to_server_pass()
-    gate.to_client_pass()
+    await gate.to_server_pass()
+    await gate.to_client_pass()
     await gate.sockets_close()
 
     for _ in range(_RETRIES):

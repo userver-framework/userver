@@ -6,35 +6,17 @@
 #include <optional>
 #include <string_view>
 
-#include <grpcpp/client_context.h>
 #include <grpcpp/support/byte_buffer.h>
 
+#include <userver/ugrpc/client/call_options.hpp>
+#include <userver/ugrpc/client/generic_options.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
-#include <userver/ugrpc/client/qos.hpp>
 #include <userver/ugrpc/client/response_future.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
-
-struct GenericOptions {
-    /// Client QOS for this call. Note that there is no QOS dynamic config by
-    /// default, so unless a timeout is specified here, only the deadline
-    /// propagation mechanism will affect the gRPC deadline.
-    Qos qos{};
-
-    /// If non-`nullopt`, metrics are accounted for specified fake call name.
-    /// If `nullopt`, writes a set of metrics per real call name.
-    /// If the microservice serves as a proxy and has untrusted clients, it is
-    /// a good idea to have this option set to non-`nullopt` to avoid
-    /// the situations where an upstream client can spam various RPCs with
-    /// non-existent names, which leads to this microservice spamming RPCs
-    /// with non-existent names, which leads to creating storage for infinite
-    /// metrics and causes OOM.
-    /// The default is to specify `"Generic/Generic"` fake call name.
-    std::optional<std::string_view> metrics_call_name{"Generic/Generic"};
-};
 
 /// @ingroup userver_clients
 ///
@@ -69,19 +51,19 @@ public:
     GenericClient& operator=(GenericClient&&) noexcept = delete;
 
     /// Initiate a `single request -> single response` RPC with the given name.
-    client::ResponseFuture<grpc::ByteBuffer> AsyncUnaryCall(
+    ResponseFuture<grpc::ByteBuffer> AsyncUnaryCall(
         std::string_view call_name,
         const grpc::ByteBuffer& request,
-        std::unique_ptr<grpc::ClientContext> context = std::make_unique<grpc::ClientContext>(),
-        const GenericOptions& options = {}
+        CallOptions call_options = {},
+        GenericOptions generic_options = {}
     ) const;
 
     /// Initiate a `single request -> single response` RPC with the given name.
     grpc::ByteBuffer UnaryCall(
         std::string_view call_name,
         const grpc::ByteBuffer& request,
-        std::unique_ptr<grpc::ClientContext> context = std::make_unique<grpc::ClientContext>(),
-        const GenericOptions& options = {}
+        CallOptions call_options = {},
+        GenericOptions generic_options = {}
     ) const;
 
     /// @cond

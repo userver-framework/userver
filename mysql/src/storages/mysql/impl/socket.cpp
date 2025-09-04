@@ -2,6 +2,7 @@
 
 #include <userver/engine/task/task_base.hpp>
 #include <userver/storages/mysql/exceptions.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <storages/mysql/impl/mariadb_include.hpp>
 

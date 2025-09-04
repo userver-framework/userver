@@ -3,6 +3,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/formats/json.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN

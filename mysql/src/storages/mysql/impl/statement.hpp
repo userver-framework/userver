@@ -51,7 +51,7 @@ private:
 
 class Statement final {
 public:
-    Statement(Connection& connection, const std::string& statement, engine::Deadline deadline);
+    Statement(Connection& connection, std::string statement, engine::Deadline deadline);
     ~Statement();
 
     Statement(const Statement& other) = delete;

@@ -1,4 +1,4 @@
-// postgres template on
+// postgresql template on
 #pragma once
 
 #include <userver/components/component.hpp>
@@ -22,4 +22,4 @@ private:
 };
 
 }  // namespace service_template
-// postgres template off
+// postgresql template off

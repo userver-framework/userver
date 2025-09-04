@@ -27,7 +27,7 @@ std::set<std::string> SentinelParseFlags(const std::string& flags) {
 
     do {
         r = flags.find(',', l);
-        std::string flag = flags.substr(l, r - l);
+        const std::string flag = flags.substr(l, r - l);
         if (!flag.empty()) res.insert(flag);
         l = r + 1;
     } while (r != std::string::npos);
@@ -96,8 +96,8 @@ void UpdateInstanceStatus(const SentinelInstanceResponse& properties, InstanceSt
     try {
         auto ok = true;
         auto flags = SentinelParseFlags(properties.at("flags"));
-        bool master = flags.find("master") != flags.end();
-        bool slave = flags.find("slave") != flags.end();
+        const bool master = flags.find("master") != flags.end();
+        const bool slave = flags.find("slave") != flags.end();
         if (master || slave) {
             if (flags.find("s_down") != flags.end()) {
                 status.s_down_count++;
@@ -223,19 +223,18 @@ std::string InstanceUpChecker::GetReason() const {
     UINVARIANT(false, "Unknown reason");
 }
 
-enum class ClusterSlotsResponseStatus {
-    kOk,
-    kFail,
-    kNonCluster,
-};
-
 std::optional<std::string> GetIpFromMeta(const ReplyData::Array& host_info_array) {
     if (host_info_array.size() < 4) return std::nullopt;
     const auto& meta = host_info_array[3];
-    if (!meta.IsArray() || meta.GetSize() < 2 || !meta[0].IsString() || !meta[1].IsString() ||
-        meta[0].GetString() != "ip")
+    if (!meta.IsArray() || meta.GetSize() < 2) {
         return std::nullopt;
-    return meta[1].GetString();
+    }
+
+    const auto& array = meta.GetArray();
+    if (!array[0].IsString() || !array[1].IsString() || array[0].GetString() != "ip") {
+        return std::nullopt;
+    }
+    return array[1].GetString();
 }
 
 std::string GetIpFromHostInfo(const ReplyData::Array& host_info_array) {
@@ -246,34 +245,107 @@ std::string GetIpFromHostInfo(const ReplyData::Array& host_info_array) {
     return host_info_array[0].GetString();
 }
 
+}  // namespace
+
 ClusterSlotsResponseStatus ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res) {
     UASSERT(reply);
     LOG_TRACE() << "Got reply to CLUSTER SLOTS: " << reply->data.ToDebugString();
-    if (reply->IsUnknownCommandError()) return ClusterSlotsResponseStatus::kNonCluster;
-    if (reply->status != ReplyStatus::kOk || !reply->data.IsArray()) return ClusterSlotsResponseStatus::kFail;
+    if (reply->IsUnknownCommandError()) {
+        LOG_ERROR() << "Redis CLUSTER SLOTS reply contains unknown command error: " << reply->data.ToDebugString();
+        return ClusterSlotsResponseStatus::kNonCluster;
+    }
+    if (reply->status != ReplyStatus::kOk) {
+        LOG_ERROR() << "Redis CLUSTER SLOTS reply contains error: " << reply->data.ToDebugString();
+        return ClusterSlotsResponseStatus::kFail;
+    }
+    if (!reply->data.IsArray()) {
+        LOG_ERROR() << "Redis CLUSTER SLOTS reply is not an array: " << reply->data.ToDebugString();
+        return ClusterSlotsResponseStatus::kFail;
+    }
+
+    std::size_t array_index = 0;
     for (const auto& reply_interval : reply->data.GetArray()) {
-        if (!reply_interval.IsArray()) return ClusterSlotsResponseStatus::kFail;
+        if (!reply_interval.IsArray()) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+                        << "] is not an array: " << reply_interval.ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
         const auto& array = reply_interval.GetArray();
-        if (array.size() < 3) return ClusterSlotsResponseStatus::kFail;
-        if (!array[0].IsInt() || !array[1].IsInt()) return ClusterSlotsResponseStatus::kFail;
-        for (size_t i = 2; i < array.size(); i++) {
-            if (!array[i].IsArray()) return ClusterSlotsResponseStatus::kFail;
+        if (array.size() < 3) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+                        << "] is an array of size less than 3: " << reply_interval.ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
+        if (!array[0].IsInt()) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+                        << "][0] is not an int: " << array[0].ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
+        if (!array[1].IsInt()) {
+            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+                        << "][1] is not an int: " << array[1].ToDebugString();
+            return ClusterSlotsResponseStatus::kFail;
+        }
+
+        for (std::size_t i = 2; i < array.size(); i++) {
+            if (!array[i].IsArray()) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                            << "] is not an array: " << array[i].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
             const auto& host_info_array = array[i].GetArray();
-            if (host_info_array.size() < 2) return ClusterSlotsResponseStatus::kFail;
-            if (!host_info_array[0].IsString() || !host_info_array[1].IsInt()) return ClusterSlotsResponseStatus::kFail;
+            if (host_info_array.size() < 2) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                            << "] is an array of size less than 2: " << array[i].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
+            if (!host_info_array[0].IsString()) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                            << "][0] is not a string: " << host_info_array[0].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
+            if (!host_info_array[1].IsInt()) {
+                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                            << "][1] is not an int: " << host_info_array[1].ToDebugString();
+                return ClusterSlotsResponseStatus::kFail;
+            }
+
             ConnectionInfoInt conn_info{
                 {GetIpFromHostInfo(host_info_array), static_cast<int>(host_info_array[1].GetInt()), {}}};
-            SlotInterval slot_interval(array[0].GetInt(), array[1].GetInt());
-            if (i == 2)
+            const SlotInterval slot_interval(array[0].GetInt(), array[1].GetInt());
+            if (i == 2) {
+                const bool is_master_overwritten =
+                    (!res[slot_interval].master.HostPort().first.empty() &&
+                     res[slot_interval].master.HostPort().first != "localhost" &&
+                     res[slot_interval].master.HostPort() != conn_info.HostPort());
+                if (is_master_overwritten) {
+                    const auto message = fmt::format(
+                        "Redis CLUSTER SLOTS reply element[{}][{}] overwrites master '{}' with '{}'",
+                        array_index,
+                        i,
+                        res[slot_interval].master.HostPort().first,
+                        conn_info.HostPort().first
+                    );
+                    LOG_ERROR() << message;
+                    UASSERT_MSG(false, message);
+                }
+
                 res[slot_interval].master = std::move(conn_info);
-            else
+            } else {
                 res[slot_interval].slaves.insert(std::move(conn_info));
+            }
         }
+
+        ++array_index;
     }
     return ClusterSlotsResponseStatus::kOk;
 }
-
-}  // namespace
 
 GetHostsContext::GetHostsContext(
     bool allow_empty,
@@ -295,7 +367,7 @@ std::function<void(const CommandPtr&, const ReplyPtr&)> GetHostsContext::Generat
 void GetHostsContext::OnResponse(const CommandPtr& command, const ReplyPtr& reply) {
     bool need_process_responses = false;
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         response_got_++;
 
         SentinelResponse response;
@@ -340,7 +412,7 @@ void GetHostsContext::ProcessResponsesOnce() {
                 ConnectionInfoInt info{{properties.at("ip"), std::stoi(properties.at("port")), password_}};
                 info.SetName(properties.at("name"));
 
-                InstanceUpChecker instance_up_checker(status, expected_responses_cnt_);
+                const InstanceUpChecker instance_up_checker(status, expected_responses_cnt_);
                 if (instance_up_checker.IsInstanceUp()) {
                     res.push_back(std::move(info));
                 } else {
@@ -372,6 +444,11 @@ void ProcessGetHostsRequest(GetHostsRequest request, ProcessGetHostsRequestCb ca
     }
 }
 
+logging::LogHelper& operator<<(logging::LogHelper& log, SlotInterval interval) {
+    log << '[' << interval.slot_min << ',' << interval.slot_max << ']';
+    return log;
+}
+
 void ProcessGetClusterHostsRequest(
     std::shared_ptr<const std::vector<std::string>> shard_names,
     GetClusterHostsRequest request,
@@ -383,7 +460,9 @@ void ProcessGetClusterHostsRequest(
     );
 
     for (const auto& id : ids) {
-        auto cmd = PrepareCommand(request.command.Clone(), context->GenerateCallback());
+        auto cmd = PrepareCommand(request.command.Clone(), [context](const CommandPtr& command, const ReplyPtr& reply) {
+            context->OnResponse(command, reply);
+        });
         cmd->control.force_server_id = id;
         if (!request.sentinel_shard.AsyncCommand(cmd)) {
             context->OnAsyncCommandFailed();
@@ -402,12 +481,6 @@ GetClusterHostsContext::GetClusterHostsContext(
       callback_(std::move(callback)),
       expected_responses_cnt_(expected_responses_cnt) {}
 
-std::function<void(const CommandPtr&, const ReplyPtr&)> GetClusterHostsContext::GenerateCallback() {
-    return [self = shared_from_this()](const CommandPtr& command, const ReplyPtr& reply) {
-        self->OnResponse(command, reply);
-    };
-}
-
 void GetClusterHostsContext::OnAsyncCommandFailed() {
     --expected_responses_cnt_;
 
@@ -419,7 +492,7 @@ void GetClusterHostsContext::OnResponse(const CommandPtr&, const ReplyPtr& reply
     switch (ParseClusterSlotsResponse(reply, response)) {
         case ClusterSlotsResponseStatus::kOk: {
             {
-                std::unique_lock<std::mutex> lock(mutex_);
+                const std::lock_guard<std::mutex> lock(mutex_);
                 responses_by_id_[reply->server_id] = std::move(response);
             }
             responses_parsed_++;
@@ -474,9 +547,9 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
         };
         std::map<std::set<ConnectionInfoInt>, ShardInfo> shard_infos;
 
-        for (size_t bound : slot_bounds) {
+        for (const size_t bound : slot_bounds) {
             if (bound) {
-                SlotInterval interval{prev, bound - 1};
+                const SlotInterval interval{prev, bound - 1};
                 std::map<std::set<ConnectionInfoInt>, size_t> shard_stats;
                 for (const auto& [_, response] : responses_by_id_) {
                     auto it = response.upper_bound(interval);
@@ -511,7 +584,7 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
             size_t max_count = 0;
             const ConnectionInfoInt* master = nullptr;
             for (const auto& host : shard_info.first) {
-                size_t current = master_count[host];
+                const size_t current = master_count[host];
                 if (current > max_count) {
                     max_count = current;
                     master = &host;

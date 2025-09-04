@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 struct DynamicConfigUpdatesSinkBase::UsedByInfo {
-    concurrent::Variable<std::string> component_name_;
+    concurrent::Variable<std::string> component_name;
 };
 
 DynamicConfigUpdatesSinkBase::DynamicConfigUpdatesSinkBase(
@@ -38,7 +38,7 @@ void RegisterUpdater(
     std::string_view sink_component_name,
     std::string_view updater_component_name
 ) {
-    auto locked_ptr = sink.used_by_->component_name_.Lock();
+    auto locked_ptr = sink.used_by_->component_name.Lock();
     auto& component_name = *locked_ptr;
 
     if (component_name.empty()) {

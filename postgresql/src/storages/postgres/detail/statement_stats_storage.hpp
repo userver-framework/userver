@@ -28,7 +28,8 @@ public:
     StatementStatsStorage(const StatementMetricsSettings& settings);
     ~StatementStatsStorage();
 
-    void Account(const std::string& statement_name, std::size_t duration_ms, ExecutionResult result) const;
+    void Account(USERVER_NAMESPACE::utils::zstring_view statement_name, std::size_t duration_ms, ExecutionResult result)
+        const;
 
     std::unordered_map<std::string, StatementStatistics> GetStatementsStats() const;
 

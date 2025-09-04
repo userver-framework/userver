@@ -71,10 +71,10 @@ public:
 };
 
 void CheckExactValues(int bits) {
-    int64_t start = (1L << bits);
+    const int64_t start = (1L << bits);
     for (int add = -20; add <= 0; ++add) {
-        int64_t value = start + add;
-        std::string json_str = R"({"value": )" + std::to_string(value) + ".0}";
+        const int64_t value = start + add;
+        const std::string json_str = R"({"value": )" + std::to_string(value) + ".0}";
         auto json = formats::json::FromString(json_str);
         auto dval = json["value"].As<double>();
         auto ival = static_cast<int64_t>(dval);
@@ -86,10 +86,10 @@ TEST(FormatsJson, LargeDoubleValueAsInt64) {
     const int kMaxCorrectBits = 53;
 
     for (int bits = kMaxCorrectBits; bits >= kMaxCorrectBits - 5; --bits) {
-        int64_t start = (1L << bits);
-        int max_add = bits == kMaxCorrectBits ? -1 : 20;
+        const int64_t start = (1L << bits);
+        const int max_add = bits == kMaxCorrectBits ? -1 : 20;
         for (int add = max_add; add >= -20; --add) {
-            int64_t value = start + add;
+            const int64_t value = start + add;
             std::string json_str = R"({"value": )" + std::to_string(value) + ".0}";
             TestLargeDoubleValueAsInt64(json_str, value, true);
             json_str = R"({"value": )" + std::to_string(-value) + ".0}";
@@ -133,7 +133,7 @@ TEST(FormatsJson, NullAsDefaulted) {
 
     EXPECT_EQ(json["nulled"].As<int>(42), 42);
 
-    std::vector<int> value{4, 2};
+    const std::vector<int> value{4, 2};
     EXPECT_EQ(json["nulled"].As<std::vector<int>>(value), value);
 }
 
@@ -141,7 +141,7 @@ TEST(FormatsJson, ExampleUsage) {
     /// [Sample formats::json::Value usage]
     // #include <userver/formats/json.hpp>
 
-    formats::json::Value json = formats::json::FromString(R"({
+    const formats::json::Value json = formats::json::FromString(R"({
     "key1": 1,
     "key2": {"key3":"val"}
   })");
@@ -170,7 +170,7 @@ MyKeyValue Parse(const formats::json::Value& json, formats::parse::To<MyKeyValue
 }
 
 TEST(FormatsJson, ExampleUsageMyStruct) {
-    formats::json::Value json = formats::json::FromString(R"({
+    const formats::json::Value json = formats::json::FromString(R"({
     "my_value": {
         "field1": "one",
         "field2": 1
@@ -222,7 +222,7 @@ TEST(FormatsJson, DropRootPath) {
 }
 
 TEST(FormatsJson, ExceptionMessages) {
-    formats::json::Value json = formats::json::FromString(R"({
+    const formats::json::Value json = formats::json::FromString(R"({
     "foo": {
       "bar": "baz"
     }
@@ -234,6 +234,43 @@ TEST(FormatsJson, ExceptionMessages) {
         EXPECT_EQ(ex.GetPath(), "foo.bar");
         EXPECT_EQ(ex.GetMessageWithoutPath(), "Wrong type. Expected: intValue, actual: stringValue");
     }
+}
+
+TEST(FormatsJson, IsUint) {
+    const auto json = formats::json::FromString(R"({
+      "uint": 42,
+      "negative": -1,
+      "string": "42",
+      "bool": true,
+      "uint64": 5294967295,
+      "null": null
+    })");
+
+    EXPECT_TRUE(json["uint"].IsUInt());
+
+    EXPECT_FALSE(json["negative"].IsUInt());
+    EXPECT_FALSE(json["string"].IsUInt());
+    EXPECT_FALSE(json["bool"].IsUInt());
+    EXPECT_FALSE(json["uint64"].IsUInt());
+    EXPECT_FALSE(json["null"].IsUInt());
+
+    const auto json_double = formats::json::FromString(R"({
+      "valid": 123.0,
+      "invalid": 123.45
+    })");
+    EXPECT_TRUE(json_double["valid"].IsUInt());
+    EXPECT_FALSE(json_double["invalid"].IsUInt());
+
+    const auto json_bounds = formats::json::FromString(R"({
+      "max": 4294967295,
+      "overflow": 4294967296,
+      "min": 0,
+      "below_min": -1
+    })");
+    EXPECT_TRUE(json_bounds["max"].IsUInt());
+    EXPECT_FALSE(json_bounds["overflow"].IsUInt());
+    EXPECT_TRUE(json_bounds["min"].IsUInt());
+    EXPECT_FALSE(json_bounds["below_min"].IsUInt());
 }
 
 USERVER_NAMESPACE_END

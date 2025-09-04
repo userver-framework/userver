@@ -1,10 +1,11 @@
 #include <userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 
-#include <ugrpc/impl/internal_tag.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
-#include <userver/ugrpc/client/impl/async_methods.hpp>
-#include <userver/ugrpc/deadline_timepoint.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
+
+#include <userver/ugrpc/client/impl/call_state.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,15 +19,17 @@ void AddTimeoutMsToSpan(tracing::Span& span, Duration d) {
     span.AddTag(tracing::kTimeoutMs, ms.count());
 }
 
-void UpdateDeadline(impl::RpcData& data) {
+void UpdateDeadline(MiddlewareCallContext& context) {
+    auto& state = context.GetState(utils::impl::InternalTag{});
+
     // Disable by config
-    if (!data.GetConfigValues().enforce_task_deadline) {
+    if (!state.GetConfigValues().enforce_task_deadline) {
         return;
     }
 
-    auto& context = data.GetContext();
+    auto& client_context = context.GetClientContext();
 
-    const auto context_time_left = ugrpc::impl::ExtractDeadlineDuration(context.raw_deadline());
+    const auto context_time_left = ugrpc::TimespecToDuration(client_context.raw_deadline());
     const engine::Deadline task_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
 
     const auto client_deadline_reachable = (context_time_left != engine::Deadline::Duration::max());
@@ -35,7 +38,7 @@ void UpdateDeadline(impl::RpcData& data) {
         return;
     }
 
-    auto& span = data.GetSpan();
+    auto& span = context.GetSpan();
     if (!task_deadline.IsReachable() && client_deadline_reachable) {
         AddTimeoutMsToSpan(span, context_time_left);
         return;
@@ -46,9 +49,9 @@ void UpdateDeadline(impl::RpcData& data) {
 
     if (!client_deadline_reachable || task_time_left < context_time_left) {
         span.AddTag("deadline_updated", true);
-        data.SetDeadlinePropagated();
+        state.SetDeadlinePropagated();
 
-        context.set_deadline(ugrpc::impl::ToGprTimePoint(task_time_left));
+        client_context.set_deadline(ugrpc::DurationToTimespec(task_time_left));
 
         AddTimeoutMsToSpan(span, task_time_left);
     } else {
@@ -58,9 +61,7 @@ void UpdateDeadline(impl::RpcData& data) {
 
 }  // namespace
 
-void Middleware::PreStartCall(MiddlewareCallContext& context) const {
-    UpdateDeadline(context.GetData(ugrpc::impl::InternalTag{}));
-}
+void Middleware::PreStartCall(MiddlewareCallContext& context) const { UpdateDeadline(context); }
 
 }  // namespace ugrpc::client::middlewares::deadline_propagation
 

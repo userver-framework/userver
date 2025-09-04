@@ -29,10 +29,10 @@ UTEST(IoWatcher, DevNull) {
     engine::ev::IoWatcher watcher(thread_control);
     watcher.SetFd(fd);
     watcher.ReadAsync([&counter, &mutex, &cv, &fd, &done](std::error_code) {
-        std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::mutex> lock(mutex);
 
         char c{};
-        int rc = read(fd, &c, 1);
+        const int rc = read(fd, &c, 1);
         if (rc == 0) done = true;
         if (rc > 0) counter += rc;
         EXPECT_EQ(rc, 0);

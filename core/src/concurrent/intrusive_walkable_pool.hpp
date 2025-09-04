@@ -2,7 +2,9 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 
+#include <concurrent/impl/striped_intrusive_pool.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/concurrent/impl/intrusive_stack.hpp>
 #include <userver/utils/assert.hpp>
@@ -11,19 +13,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
-/// @brief A walkable pool of nodes of type `T`
+/// @brief A walkable pool of objects of type `T`.
 ///
 /// - The IntrusiveWalkablePool does own the nodes. They are created and deleted
 ///   by standard `new` and `delete`
-/// - The element type `T` must contain IntrusiveWalkablePoolHook,
-///   extracted by `HookExtractor`
+/// - The element type `T` must include `IntrusiveWalkablePoolHook<T>` with `offsetof == kHookOffset`
 /// - The nodes are only destroyed on the pool destruction, so the node count is
 ///   monotonically non-decreasing
-template <typename T, typename HookExtractor>
+template <typename T, typename HookExtractor, std::ptrdiff_t HookOffset>
 class IntrusiveWalkablePool final {
-    static_assert(std::is_empty_v<HookExtractor>);
-    static_assert(std::is_invocable_r_v<IntrusiveWalkablePoolHook<T>&, HookExtractor, T&>);
-
 public:
     IntrusiveWalkablePool() = default;
 
@@ -77,9 +75,11 @@ private:
         CombinedHook<HookExtractor, MemberHook<&IntrusiveWalkablePoolHook<T>::permanent_list_hook>>;
     using FreeListHookExtractor =
         CombinedHook<HookExtractor, MemberHook<&IntrusiveWalkablePoolHook<T>::free_list_hook>>;
+    static constexpr std::ptrdiff_t kFreeListHookOffset =
+        HookOffset + offsetof(IntrusiveWalkablePoolHook<T>, free_list_hook);
 
     IntrusiveStack<T, PermanentListHookExtractor> permanent_list_;
-    IntrusiveStack<T, FreeListHookExtractor> free_list_;
+    StripedIntrusivePool<T, FreeListHookExtractor, kFreeListHookOffset> free_list_{};
 };
 
 }  // namespace concurrent::impl

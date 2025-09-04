@@ -1,5 +1,7 @@
 #include "utils_rmqtest.hpp"
 
+#include <userver/engine/task/current_task.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/uuid4.hpp>

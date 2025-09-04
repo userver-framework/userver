@@ -26,6 +26,8 @@ void TryValidateStaticConfig(
     const components::ComponentConfig& static_config,
     ValidationMode validation_condition
 ) {
+    if (components::kForceNoValidation<Component>) return;
+
     if (components::kHasValidate<Component> || validation_condition == ValidationMode::kAll) {
         yaml_config::Schema schema;
         try {

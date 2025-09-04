@@ -8,7 +8,7 @@
 #include <userver/logging/logger.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

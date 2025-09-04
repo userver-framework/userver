@@ -18,7 +18,7 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/null_logger.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -85,7 +85,7 @@ public:
         // disarm dtor, transfer ownership (noexcept)
         std::unique_ptr<Storage> raw(reinterpret_cast<Storage*>(obj.release()));
         // call dtor
-        reinterpret_cast<T*>(raw.get())->~T();
+        std::destroy_at(reinterpret_cast<T*>(raw.get()));
         // store into pool
         pool->PushBack(std::move(raw));
     }
@@ -386,12 +386,20 @@ void LogHelper::PutQuoted(std::string_view value) {
     Put('\"');
 }
 
+void LogHelper::VFormat(fmt::string_view fmt, fmt::format_args args) noexcept {
+    try {
+        fmt::vformat_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), fmt, args);
+    } catch (...) {
+        InternalLoggingError("Failed to extend log with fmt::format_args");
+    }
+}
+
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 void LogHelper::FlushStream() { pimpl_->Stream().flush(); }
 
 LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
-    lh << utils::datetime::Timestring(tp);
+    lh << utils::datetime::UtcTimestring(tp);
     return lh;
 }
 

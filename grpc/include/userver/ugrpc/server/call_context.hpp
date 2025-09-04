@@ -9,19 +9,25 @@
 #include <userver/utils/any_storage.hpp>
 
 #include <userver/ugrpc/server/storage_context.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-class CallAnyBase;
+namespace impl {
+struct CallState;
+}  // namespace impl
 
-/// @brief gRPC call context
-class CallContext {
+class CallContextBase {
 public:
     /// @cond
-    explicit CallContext(CallAnyBase& call);
+    // For internal use only.
+    CallContextBase(utils::impl::InternalTag, impl::CallState& state);
     /// @endcond
+
+    CallContextBase(CallContextBase&&) = delete;
+    CallContextBase& operator=(CallContextBase&&) = delete;
 
     /// @returns the `ServerContext` used for this RPC
     grpc::ServerContext& GetServerContext();
@@ -50,7 +56,7 @@ public:
     /// @code
     /// if (password_is_correct) {
     ///   // Username is authenticated, set it in per-call storage context
-    ///   ctx.GetCall().GetStorageContext().Emplace(kAuthUsername, username);
+    ///   context.GetStorageContext().Emplace(kAuthUsername, username);
     /// }
     /// @endcode
     ///
@@ -64,20 +70,33 @@ public:
 
 protected:
     /// @cond
-    const CallAnyBase& GetCall() const;
+    // For internal use only.
+    const impl::CallState& GetCallState(utils::impl::InternalTag) const { return state_; }
 
-    CallAnyBase& GetCall();
+    // For internal use only.
+    impl::CallState& GetCallState(utils::impl::InternalTag) { return state_; }
+
+    // Prevent destruction via pointer to base.
+    ~CallContextBase() = default;
     /// @endcond
 
 private:
-    CallAnyBase& call_;
+    impl::CallState& state_;
+};
+
+/// @brief gRPC call context
+class CallContext final : public CallContextBase {
+public:
+    /// @cond
+    using CallContextBase::CallContextBase;
+    /// @endcond
 };
 
 /// @brief generic gRPC call context
-class GenericCallContext : public CallContext {
+class GenericCallContext final : public CallContextBase {
 public:
     /// @cond
-    using CallContext::CallContext;
+    using CallContextBase::CallContextBase;
     /// @endcond
 
     /// @brief Set a custom call name for metric labels

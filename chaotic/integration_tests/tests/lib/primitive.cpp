@@ -15,7 +15,7 @@ const auto kJson = formats::json::MakeObject("foo", 1, "bar", 0, "zoo", 6);
 
 TEST(Primitive, NoValidator) {
     using Int = chaotic::Primitive<std::int32_t>;
-    int x = kJson["foo"].As<Int>();
+    const int x = kJson["foo"].As<Int>();
     EXPECT_EQ(x, 1);
 }
 
@@ -36,13 +36,13 @@ std::int32_t Convert(const MyInt& i, chaotic::convert::To<std::int32_t>) { retur
 
 TEST(Primitive, UserType) {
     using Int = chaotic::WithType<chaotic::Primitive<std::int32_t>, MyInt>;
-    MyInt x = kJson["foo"].As<Int>();
+    const MyInt x = kJson["foo"].As<Int>();
     EXPECT_EQ(x.value, 1);
 }
 
 TEST(Primitive, UserTypeSerializer) {
     using Int = chaotic::WithType<chaotic::Primitive<std::int32_t>, MyInt>;
-    MyInt x = kJson["foo"].As<Int>();
+    const MyInt x = kJson["foo"].As<Int>();
 
     EXPECT_EQ(formats::json::ValueBuilder{Int{x}}.ExtractValue(), kJson["foo"]);
 }
@@ -50,7 +50,7 @@ TEST(Primitive, UserTypeSerializer) {
 TEST(Primitive, WrongType) {
     using String = chaotic::Primitive<std::string>;
     try {
-        std::string x = kJson["foo"].As<String>();
+        const std::string x = kJson["foo"].As<String>();
     } catch (const std::exception& e) {
         EXPECT_EQ(
             std::string(e.what()),
@@ -66,7 +66,7 @@ constexpr auto kFive = 5;
 TEST(Primitive, IntMinMax) {
     using Int = chaotic::Primitive<std::int32_t, chaotic::Minimum<kOne>, chaotic::Maximum<kFive>>;
 
-    int x = kJson["foo"].As<Int>();
+    const int x = kJson["foo"].As<Int>();
     EXPECT_EQ(x, 1);
 
     UEXPECT_THROW_MSG(
@@ -85,7 +85,7 @@ TEST(Primitive, UserTypeMinMax) {
     using Int =
         chaotic::WithType<chaotic::Primitive<std::int32_t, chaotic::Minimum<kOne>, chaotic::Maximum<kFive>>, MyInt>;
 
-    MyInt x = kJson["foo"].As<Int>();
+    const MyInt x = kJson["foo"].As<Int>();
     EXPECT_EQ(x.value, 1);
 
     UEXPECT_THROW_MSG(
@@ -105,7 +105,7 @@ TEST(Primitive, StringMinMaxLength) {
 
     using Str = chaotic::Primitive<std::string, chaotic::MinLength<2>, chaotic::MaxLength<5>>;
 
-    std::string x = kLocalJson["2"].As<Str>();
+    const std::string x = kLocalJson["2"].As<Str>();
     EXPECT_EQ(x, "12");
 
     UEXPECT_THROW_MSG(
@@ -127,7 +127,7 @@ TEST(Primitive, StringPattern) {
 
     using Str = chaotic::Primitive<std::string, chaotic::Pattern<kPattern>>;
 
-    std::string x = kLocalJson["1"].As<Str>();
+    const std::string x = kLocalJson["1"].As<Str>();
     EXPECT_EQ(x, "foo");
 
     UEXPECT_THROW_MSG(kLocalJson["2"].As<Str>(), chaotic::Error<formats::json::Value>, "doesn't match regex");

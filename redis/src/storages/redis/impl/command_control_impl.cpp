@@ -10,6 +10,7 @@ CommandControlImpl::CommandControlImpl(const CommandControl& command_control) {
     if (command_control.max_retries.has_value()) max_retries = *command_control.max_retries;
     if (command_control.strategy.has_value()) strategy = *command_control.strategy;
     if (command_control.best_dc_count.has_value()) best_dc_count = *command_control.best_dc_count;
+    if (command_control.consider_ping.has_value()) consider_ping = *command_control.consider_ping;
     if (command_control.force_request_to_master.has_value())
         force_request_to_master = *command_control.force_request_to_master;
     if (command_control.max_ping_latency.has_value()) max_ping_latency = *command_control.max_ping_latency;

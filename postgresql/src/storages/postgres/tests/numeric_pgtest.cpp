@@ -67,7 +67,7 @@ TEST_P(PostgreNumericIO, ParseString) {
     auto str_rep = GetParam();
     auto str_buf = io::detail::StringToNumericBuffer(str_rep);
     EXPECT_FALSE(str_buf.empty());
-    Numeric num{str_rep.c_str()};
+    const Numeric num{str_rep.c_str()};
     auto fb = pg::test::MakeFieldBuffer(str_buf);
     Numeric tgt;
     UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
@@ -111,7 +111,7 @@ UTEST_P(PostgreConnection, NumericRoundtrip) {
 
     EXPECT_EQ(io::BufferCategory::kPlainBuffer, io::GetBufferCategory(io::PredefinedOids::kNumeric));
 
-    std::vector<Numeric> test_values{
+    const std::vector<Numeric> test_values{
         Numeric{"0"},
         Numeric{"0.0"},
         Numeric{"0.01"},
@@ -199,7 +199,7 @@ UTEST_P(PostgreConnection, DecimalRoundtrip) {
 
     EXPECT_EQ(io::BufferCategory::kPlainBuffer, io::GetBufferCategory(io::PredefinedOids::kNumeric));
 
-    std::vector<Decimal> test_values{
+    const std::vector<Decimal> test_values{
         Decimal{"0"},
         Decimal{"0.0"},
         Decimal{"-1.0"},

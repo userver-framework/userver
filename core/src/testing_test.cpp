@@ -24,7 +24,7 @@ SimpleServer::Response assert_received_ok(const SimpleServer::Request& r) {
 }  // namespace
 
 UTEST(SimpleServer, ExampleTcpIpV4) {
-    SimpleServer s(assert_received_ok);
+    const SimpleServer s(assert_received_ok);
 
     // ... invoke code that sends "OK" to localhost
     auto addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();
@@ -51,7 +51,7 @@ UTEST(SimpleServer, NothingReceived) {
 }
 
 UTEST(SimpleServer, ExampleTcpIpV6) {
-    SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
+    const SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
 
     // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
     auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
@@ -79,7 +79,7 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
         return SimpleServer::Response{kOkResponse, command};
     };
 
-    SimpleServer s(assert_received_twice);
+    const SimpleServer s(assert_received_twice);
 
     // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
     auto addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();

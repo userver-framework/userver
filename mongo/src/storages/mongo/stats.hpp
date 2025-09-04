@@ -72,6 +72,7 @@ enum class OpType {
     kCount = kReadMin,
     kCountApprox,
     kFind,
+    kDistinct,
     kAggregate,
 
     kWriteMin,
@@ -142,8 +143,8 @@ struct EventStats final {
 };
 
 struct ConnStats final {
-    EventStats event_stats_;  // per-connection
-    ApmStats* apm_stats_{nullptr};
+    EventStats event_stats;  // per-connection
+    ApmStats* apm_stats{nullptr};
 };
 
 struct PoolStatistics final {

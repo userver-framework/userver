@@ -210,18 +210,21 @@ UTEST(Async, WithDeadlineDetach) {
     std::atomic<bool> finished{false};
     auto task = engine::AsyncNoSpan([&started, &finished] {
         auto start = std::chrono::steady_clock::now();
-        engine::AsyncNoSpan(engine::Deadline::FromDuration(kDeadlineTestsTimeout), [start, &started, &finished] {
-            started = true;
-            EXPECT_FALSE(engine::current_task::IsCancelRequested());
-            engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-            EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        engine::DetachUnscopedUnsafe(engine::AsyncNoSpan(
+            engine::Deadline::FromDuration(kDeadlineTestsTimeout),
+            [start, &started, &finished] {
+                started = true;
+                EXPECT_FALSE(engine::current_task::IsCancelRequested());
+                engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+                EXPECT_TRUE(engine::current_task::IsCancelRequested());
 
-            auto finish = std::chrono::steady_clock::now();
-            auto duration = finish - start;
-            EXPECT_GE(duration, kDeadlineTestsTimeout);
-            EXPECT_LT(duration, kMaxTestDuration);
-            finished = true;
-        }).Detach();
+                auto finish = std::chrono::steady_clock::now();
+                auto duration = finish - start;
+                EXPECT_GE(duration, kDeadlineTestsTimeout);
+                EXPECT_LT(duration, kMaxTestDuration);
+                finished = true;
+            }
+        ));
     });
     UEXPECT_NO_THROW(task.Get());
     EXPECT_TRUE(started.load());

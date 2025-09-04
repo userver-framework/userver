@@ -1,8 +1,11 @@
 #include <storages/mongo/pool_impl.hpp>
 
-#include <storages/mongo/cc_config.hpp>
-#include <storages/mongo/dynamic_config.hpp>
 #include <userver/dynamic_config/value.hpp>
+
+#include <dynamic_config/variables/MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS.hpp>
+#include <dynamic_config/variables/MONGO_CONGESTION_CONTROL_ENABLED.hpp>
+#include <dynamic_config/variables/MONGO_CONGESTION_CONTROL_SETTINGS.hpp>
+#include <dynamic_config/variables/MONGO_CONNECTION_POOL_SETTINGS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +24,10 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_co
           statistics_.congestion_control,
           static_config.cc_config,
           config_source,
-          [](const dynamic_config::Snapshot& config) { return config[kCcConfig]; }
+          [](const dynamic_config::Snapshot& snapshot) {
+              const auto& cfg = snapshot[::dynamic_config::MONGO_CONGESTION_CONTROL_SETTINGS];
+              return congestion_control::v2::ConvertConfig(cfg);
+          }
       ) {}
 
 void PoolImpl::Start() {
@@ -35,14 +41,21 @@ void PoolImpl::Stop() noexcept {
 }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-    bool cc_enabled =
-        config[kCongestionControlDatabasesSettings].GetOptional(id_).value_or(config[kCongestionControlEnabled]);
+    const bool cc_enabled =
+        config[::dynamic_config::MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS].GetOptional(id_).value_or(
+            config[::dynamic_config::MONGO_CONGESTION_CONTROL_ENABLED]
+        );
     cc_controller_.SetEnabled(cc_enabled);
 
-    const auto new_pool_settings = config[kPoolSettings].GetOptional(id_);
+    const auto new_pool_settings = config[::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS].GetOptional(id_);
     if (new_pool_settings.has_value()) {
-        new_pool_settings->Validate(id_);
-        SetPoolSettings(new_pool_settings.value());
+        PoolSettings ps;
+        ps.max_size = new_pool_settings->max_size;
+        ps.idle_limit = new_pool_settings->idle_limit;
+        ps.initial_size = new_pool_settings->initial_size;
+        ps.connecting_limit = new_pool_settings->connecting_limit;
+        ps.Validate(id_);
+        SetPoolSettings(ps);
     }
 }
 

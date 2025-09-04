@@ -10,6 +10,7 @@
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/text.hpp>
@@ -20,6 +21,9 @@
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
+
+#include <dynamic_config/variables/MONGO_DEADLINE_PROPAGATION_ENABLED_V2.hpp>
+#include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -40,7 +44,7 @@ private:
     formats::bson::impl::UninitializedBson bson_;
 };
 
-std::optional<std::string> GetCurrentSpanLink() {
+std::optional<std::string_view> GetCurrentSpanLink() {
     auto* span = tracing::Span::CurrentSpanUnchecked();
     if (span) return span->GetLink();
     return std::nullopt;
@@ -48,7 +52,7 @@ std::optional<std::string> GetCurrentSpanLink() {
 
 void SetLinkComment(formats::bson::impl::BsonBuilder& builder, bool& has_comment_option) {
     auto link = GetCurrentSpanLink();
-    if (link) operations::AppendComment(builder, has_comment_option, options::Comment("link=" + *link));
+    if (link) operations::AppendComment(builder, has_comment_option, options::Comment(utils::StrCat("link=", *link)));
 }
 
 impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(const impl::cdriver::FindAndModifyOptsPtr& options) {
@@ -101,7 +105,7 @@ impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(const impl::cdriver
 }
 
 std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(const dynamic_config::Snapshot& config) {
-    if (!config[kDeadlinePropagationEnabled]) return std::nullopt;
+    if (!config[::dynamic_config::MONGO_DEADLINE_PROPAGATION_ENABLED_V2]) return std::nullopt;
 
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
     if (!inherited_deadline.IsReachable()) return std::nullopt;
@@ -122,7 +126,7 @@ ComputeAdjustedMaxServerTime(std::chrono::milliseconds user_max_server_time, con
     }
 
     if (max_server_time == operations::kNoMaxServerTime) {
-        max_server_time = context.dynamic_config[kDefaultMaxTime];
+        max_server_time = context.dynamic_config[::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS];
     }
 
     if (auto inherited_deadline = context.inherited_deadline) {
@@ -186,40 +190,14 @@ size_t CDriverCollectionImpl::Execute(const operations::Count& operation) const 
     MongoError error;
     stats::OperationStopwatch stopwatch(std::move(context.stats));
     const bson_t* native_filter_bson_ptr = operation.impl_->filter.GetBson().get();
-    int64_t count = -1;
-    if (operation.impl_->use_new_count) {
-        count = mongoc_collection_count_documents(
-            context.collection.get(),
-            native_filter_bson_ptr,
-            impl::GetNative(operation.impl_->options),
-            operation.impl_->read_prefs.Get(),
-            nullptr,
-            error.GetNative()
-        );
-    } else {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-        count = mongoc_collection_count_with_opts(
-            context.collection.get(),
-            MONGOC_QUERY_NONE,
-            native_filter_bson_ptr,  //
-            0,
-            0,  // skip and limit are set in options
-            impl::GetNative(operation.impl_->options),
-            operation.impl_->read_prefs.Get(),
-            error.GetNative()
-        );
-#ifdef __clang__
-#pragma clang diagnostic pop
-#else
-#pragma GCC diagnostic pop
-#endif
-    }
+    int64_t count = mongoc_collection_count_documents(
+        context.collection.get(),
+        native_filter_bson_ptr,
+        impl::GetNative(operation.impl_->options),
+        operation.impl_->read_prefs.Get(),
+        nullptr,
+        error.GetNative()
+    );
     if (count < 0) {
         stopwatch.AccountError(error.GetKind());
         error.Throw("Error counting documents");
@@ -266,6 +244,59 @@ Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
     return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
         std::move(context.client), std::move(cdriver_cursor), std::move(context.stats)
     ));
+}
+
+std::vector<formats::bson::Value> CDriverCollectionImpl::Execute(const operations::Distinct& operation) const {
+    auto context = MakeRequestContext("mongo_distinct", operation);
+
+    auto options = operation.impl_->options;
+    SetMaxServerTime(options, operation.impl_->max_server_time, context);
+    bool has_comment_option = operation.impl_->has_comment_option;
+    if (!has_comment_option) SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
+
+    MongoError error;
+    stats::OperationStopwatch stopwatch(std::move(context.stats));
+
+    formats::bson::impl::BsonBuilder command_builder;
+    command_builder.Append("distinct", GetCollectionName());
+    command_builder.Append("key", operation.impl_->field);
+
+    if (operation.impl_->filter.has_value()) {
+        command_builder.Append("query", operation.impl_->filter.value());
+    }
+
+    auto command_bson = command_builder.Extract();
+    const bson_t* native_command_bson_ptr = command_bson.get();
+
+    formats::bson::impl::UninitializedBson result_bson;
+    if (!mongoc_collection_read_command_with_opts(
+            context.collection.get(),
+            native_command_bson_ptr,
+            operation.impl_->read_prefs.Get(),
+            impl::GetNative(options),
+            result_bson.Get(),
+            error.GetNative()
+        )) {
+        stopwatch.AccountError(error.GetKind());
+        error.Throw("Error executing distinct operation");
+    }
+
+    stopwatch.AccountSuccess();
+
+    auto result_doc = formats::bson::Document(result_bson.Extract());
+    auto values_field = result_doc["values"];
+    if (!values_field.IsArray()) {
+        throw MongoException("Distinct operation result is not an array");
+    }
+
+    std::vector<formats::bson::Value> distinct_values;
+    distinct_values.reserve(values_field.GetSize());
+
+    for (auto& value : values_field) {
+        distinct_values.push_back(std::move(value));
+    }
+
+    return distinct_values;
 }
 
 WriteResult CDriverCollectionImpl::Execute(const operations::InsertOne& operation) {

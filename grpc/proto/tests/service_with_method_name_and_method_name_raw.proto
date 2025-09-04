@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package sample.ugrpc;
+
+import "tests/messages.proto";
+
+message GreetingRawRequest {
+}
+message GreetingRawResponse {
+}
+
+message StreamGreetingRawRequest {
+}
+message StreamGreetingRawResponse {
+}
+
+service ServiceWithMethodNameAndMethodNameRaw {
+  rpc SayHello(GreetingRequest) returns(GreetingResponse) {}
+  rpc SayHelloRaw(GreetingRawRequest) returns(GreetingRawResponse) {}
+
+  rpc ReadMany(StreamGreetingRequest) returns(stream StreamGreetingResponse) {}
+  rpc ReadManyRaw(StreamGreetingRawRequest) returns(stream StreamGreetingRawResponse) {}
+
+  rpc WriteMany(stream StreamGreetingRequest) returns(StreamGreetingResponse) {}
+  rpc WriteManyRaw(stream StreamGreetingRawRequest) returns(StreamGreetingRawResponse) {}
+}

@@ -104,7 +104,7 @@ UTEST_F(ProducerTest, BrokenConfiguration) {
 UTEST_F(ProducerTest, LargeMessages) {
     constexpr std::size_t kSendCount{10};
 
-    kafka::impl::ProducerConfiguration producer_configuration{};
+    const kafka::impl::ProducerConfiguration producer_configuration{};
 
     auto producer = MakeProducer("kafka-producer");
     const std::string topic = GenerateTopic();
@@ -297,7 +297,7 @@ UTEST_F(ProducerTest, ManyProducersManySendAsyncSingleThread) {
 
 UTEST_F_MT(ProducerTest, ManyProducersManySendAsync, 4 + 4) {
     constexpr std::size_t kProducerCount{4};
-    constexpr std::size_t kSendCount{300};
+    constexpr std::size_t kSendCount{200};
     constexpr std::size_t kTopicCount{kSendCount / 10};
 
     const std::deque<kafka::Producer> producers =

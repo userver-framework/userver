@@ -63,7 +63,7 @@ public:
 template <typename Metric>
 class MetricWrapper final : public MetricWrapperBase {
     static_assert(
-        meta::kIsDetected<HasDumpMetric, Metric> || kHasWriterSupport<Metric>,
+        meta::IsDetected<HasDumpMetric, Metric> || kHasWriterSupport<Metric>,
         "Provide a `void DumpMetric(utils::statistics::Writer&, const Metric&)`"
         "function in the namespace of `Metric`."
     );
@@ -94,7 +94,7 @@ public:
     bool HasWriterSupport() const noexcept override { return kHasWriterSupport<Metric>; }
 
     void Reset() override {
-        if constexpr (meta::kIsDetected<HasResetMetric, Metric>) {
+        if constexpr (meta::IsDetected<HasResetMetric, Metric>) {
             ResetMetric(data_);
         }
     }

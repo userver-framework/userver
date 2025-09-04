@@ -1,12 +1,11 @@
 #include <userver/ugrpc/server/component_list.hpp>
 
-#include <userver/ugrpc/server/middlewares/base.hpp>
-
 #include <userver/ugrpc/server/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/server/middlewares/congestion_control/component.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
+#include <userver/ugrpc/server/middlewares/pipeline.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
 USERVER_NAMESPACE_BEGIN

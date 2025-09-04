@@ -10,7 +10,6 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -67,7 +66,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
             UASSERT(pool_);
             writer = *pool_;
         },
-        {{"mongo_database", section_name}}
+        {{"mongo_database", std::move(section_name)}}
     );
 }
 

@@ -35,7 +35,7 @@ template <class Item, class Value>
 void AddAttribute(Item& item, std::string_view key, const Value& value) {
     auto* attribute = item.add_attributes();
 
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     attribute->set_key(key);
 #else
     attribute->set_key(std::string{key});
@@ -227,10 +227,10 @@ void Logger::Stop() noexcept {
 const logging::impl::LogStatistics& Logger::GetStatistics() const { return stats_; }
 
 void Logger::PrependCommonTags(logging::impl::TagWriter writer) const {
-    logging::impl::default_::PrependCommonTags(writer, GetLevel());
+    logging::impl::PrependCommonTags(writer, GetLevel());
 }
 
-bool Logger::DoShouldLog(logging::Level level) const noexcept { return logging::impl::default_::DoShouldLog(level); }
+bool Logger::DoShouldLog(logging::Level level) const noexcept { return logging::impl::DoShouldLog(level); }
 
 void Logger::Log(logging::Level level, logging::impl::formatters::LoggerItemRef item) {
     UASSERT(dynamic_cast<Item*>(&item));
@@ -238,7 +238,7 @@ void Logger::Log(logging::Level level, logging::impl::formatters::LoggerItemRef 
     auto& log = static_cast<Item&>(item);
 
     if (!log.otlp.valueless_by_exception()) {
-        bool ok = queue_producer_.PushNoblock(std::move(log.otlp));
+        const bool ok = queue_producer_.PushNoblock(std::move(log.otlp));
         if (!ok) {
             // Drop a log/trace if overflown
             ++stats_.dropped;
@@ -334,7 +334,11 @@ void Logger::DoLog(
     LogClient& client
 ) {
     try {
-        auto response = client.Export(request);
+        auto response_future = client.AsyncExport(request);
+        // this will disable tracing, but not logging. One must disable
+        // logging middleware in grpc client factory configuration
+        response_future.GetContext().GetSpan().SetLogLevel(logging::Level::kNone);
+        auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;
@@ -349,7 +353,11 @@ void Logger::DoTrace(
     TraceClient& trace_client
 ) {
     try {
-        auto response = trace_client.Export(request);
+        auto response_future = trace_client.AsyncExport(request);
+        // this will disable tracing, but not logging. One must disable
+        // logging middleware in grpc client factory configuration
+        response_future.GetContext().GetSpan().SetLogLevel(logging::Level::kNone);
+        auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
         std::cerr << "Stopping OTLP sender task\n";
         throw;

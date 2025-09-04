@@ -20,6 +20,7 @@
 
 #include <userver/ydb/exceptions.hpp>
 #include <userver/ydb/impl/cast.hpp>
+#include <userver/ydb/io/generic_optional.hpp>
 #include <userver/ydb/io/traits.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -85,7 +86,7 @@ StructMemberNames(CustomMemberName (&&)[N]) -> StructMemberNames<N>;
 /// For extra fields on C++ side, parsing throws ydb::ParseError.
 /// For extra fields on YDB side, parsing throws ydb::ParseError.
 template <typename T>
-constexpr auto kStructMemberNames = impl::DetectStructMemberNames<T>();
+inline constexpr auto kStructMemberNames = impl::DetectStructMemberNames<T>();
 
 namespace impl {
 
@@ -197,6 +198,12 @@ struct ValueTraits<T, std::enable_if_t<!std::is_same_v<decltype(kStructMemberNam
         return builder.Build();
     }
 };
+
+template <typename T>
+struct ValueTraits<
+    std::optional<T>,
+    std::enable_if_t<!std::is_same_v<decltype(kStructMemberNames<T>), const impl::NotStruct>>>
+    : impl::GenericOptionalValueTraits<T> {};
 
 namespace impl {
 

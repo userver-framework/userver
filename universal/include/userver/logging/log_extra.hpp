@@ -31,6 +31,7 @@ class LogHelper;
 
 namespace impl {
 class TagWriter;
+class LogExtraTskvFormatter;
 }  // namespace impl
 
 /// Extra tskv fields storage
@@ -120,6 +121,7 @@ public:
     void SetFrozen(const std::string& key);
 
     friend class LogHelper;
+    friend class impl::LogExtraTskvFormatter;
     friend class impl::TagWriter;
     friend class tracing::Span;
     friend class tracing::TagScope;

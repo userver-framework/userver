@@ -7,7 +7,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -91,14 +91,14 @@ BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
 BENCHMARK_REGISTER_F(LogHelperBenchmark, LogCheck);
 
 struct StreamedStruct {
-    int64_t intVal;
-    std::string stringVal;
+    int64_t int_val;
+    std::string string_val;
 };
 
 std::ostream& operator<<(std::ostream& os, const StreamedStruct& value) {
-    std::ostream::sentry s(os);
+    const std::ostream::sentry s(os);
     if (s) {
-        os << value.intVal << " " << value.stringVal;
+        os << value.int_val << " " << value.string_val;
     }
     return os;
 }

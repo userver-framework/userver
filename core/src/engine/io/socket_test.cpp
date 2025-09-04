@@ -88,7 +88,7 @@ UTEST(Socket, ListenConnect) {
         EXPECT_EQ("::1", third_client.Getpeername().PrimaryAddressString());
 
         {
-            std::lock_guard<engine::Mutex> lock(ports_mutex);
+            const std::lock_guard<engine::Mutex> lock(ports_mutex);
             first_client_port = first_client.Getpeername().Port();
             second_client_port = second_client.Getpeername().Port();
             third_client_port = third_client.Getpeername().Port();
@@ -337,7 +337,7 @@ UTEST(Socket, ErrorPeername) {
     } catch (const io::IoTimeout&) {
         FAIL() << "no exception on write to a closed socket";
     } catch (const io::IoSystemError& ex) {
-        std::errc error_value{ex.Code().value()};
+        const std::errc error_value{ex.Code().value()};
         EXPECT_TRUE(
             // MAC_COMPAT: can occur due to race with socket teardown in kernel.
             // We're only interested in message so no need to check further.

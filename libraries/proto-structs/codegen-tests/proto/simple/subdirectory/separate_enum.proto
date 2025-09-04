@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package simple.subdirectory;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/simple/subdirectory;simplesubdirectory";
+
+enum SeparateEnum {
+  ValZero = 0;
+  ValOne = 1;
+}

@@ -14,6 +14,7 @@ async def test_network_fail(service_client, grpc_mockserver):
     with pytest.raises(pytest_userver.client.TestsuiteTaskFailed) as ex_info:
         await service_client.run_task('call-say-hello')
     ex_info.match("'samples.api.GreeterService/SayHello' failed: interrupted at Testsuite network")
+    assert mock_say_hello.times_called == 1
     # /// [Mocked network failure]
 
 
@@ -26,4 +27,5 @@ async def test_timeout_fail(service_client, grpc_mockserver):
     with pytest.raises(pytest_userver.client.TestsuiteTaskFailed) as ex_info:
         await service_client.run_task('call-say-hello')
     ex_info.match("'samples.api.GreeterService/SayHello' failed: interrupted at Testsuite timeout")
+    assert mock_say_hello.times_called == 1
     # /// [Mocked timeout failure]

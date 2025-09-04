@@ -22,7 +22,7 @@ void ConcurrentEventWaiters::PopWaiter(EventWaiter& waiter) const {
 void ConcurrentEventWaiters::PopAndWakeupOne() const {
     auto locked_waiters = waiters_.Lock();
     if (locked_waiters->empty()) {
-        LOG_DEBUG() << "No waiters waked up";
+        LOG_DEBUG("No waiters waked up");
         return;
     }
     auto& waiter = locked_waiters->front();

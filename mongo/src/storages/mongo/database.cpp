@@ -35,7 +35,7 @@ void Database::DropDatabase() {
     }
 }
 
-bool Database::HasCollection(utils::NullTerminatedView collection_name) const {
+bool Database::HasCollection(utils::zstring_view collection_name) const {
     if (!utils::text::IsCString(collection_name)) {
         throw MongoException(utils::StrCat("Invalid collection name: '", collection_name, "\'"));
     }
@@ -67,7 +67,7 @@ std::vector<std::string> Database::ListCollectionNames() const {
     const cdriver::DatabasePtr database(mongoc_client_get_database(client.get(), database_name_.c_str()));
 
     MongoError error;
-    formats::bson::impl::RawPtr<char*> collection_names(
+    const formats::bson::impl::RawPtr<char*> collection_names(
         mongoc_database_get_collection_names_with_opts(database.get(), nullptr, error.GetNative())
     );
     if (error) {
@@ -79,7 +79,7 @@ std::vector<std::string> Database::ListCollectionNames() const {
 
     std::vector<std::string> collections;
     while (*raw_collection_names) {
-        formats::bson::impl::RawPtr<char> collection_name(*raw_collection_names);
+        const formats::bson::impl::RawPtr<char> collection_name(*raw_collection_names);
         collections.emplace_back(collection_name.get());
         ++raw_collection_names;
     }

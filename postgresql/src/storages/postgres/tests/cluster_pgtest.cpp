@@ -10,12 +10,21 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
 
 namespace {
+
+struct IdAndValue final {
+    int id{};
+    std::string value;
+
+    bool operator==(const IdAndValue& other) const { return std::tie(id, value) == std::tie(other.id, other.value); }
+};
 
 enum class CheckTxnType { kRw, kRo };
 
@@ -61,6 +70,7 @@ pg::Cluster CreateCluster(
         {},
         testsuite_tasks,
         source,
+        std::make_shared<utils::statistics::MetricsStorage>(),
         0
     );
 }
@@ -324,13 +334,67 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
     }
     {
         static const std::string kTestTransactionName = "test-transaction-name";
-        pg::CommandControlByQueryMap ccq_map{
+        const pg::CommandControlByQueryMap ccq_map{
             {kTestTransactionName, kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50})}};
         cluster.SetQueriesCommandControl(ccq_map);
         // Use timeout for custom transaction name
         auto trx = cluster.Begin(kTestTransactionName, pg::Transaction::RW);
         UEXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
         UEXPECT_THROW(trx.Commit(), pg::RuntimeError);
+    }
+}
+
+utils::statistics::Rate GetTriggers() { return utils::trx_tracker::GetStatistics().triggers; }
+
+UTEST_F(PostgreCluster, TransactionTracker) {
+    testsuite::TestsuiteTasks testsuite_tasks{true};
+    auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
+
+    const utils::trx_tracker::impl::GlobalEnabler enabler;
+
+    {
+        // Commit
+        utils::trx_tracker::ResetStatistics();
+        auto trx = cluster.Begin(pg::Transaction::RW);
+        utils::trx_tracker::CheckNoTransactions();
+        trx.Commit();
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
+    }
+    {
+        // Rollback
+        utils::trx_tracker::ResetStatistics();
+        auto trx = cluster.Begin(pg::Transaction::RW);
+        utils::trx_tracker::CheckNoTransactions();
+        trx.Rollback();
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
+    }
+    {
+        // Rollback on destruction
+        utils::trx_tracker::ResetStatistics();
+        {
+            auto trx = cluster.Begin(pg::Transaction::RW);
+            utils::trx_tracker::CheckNoTransactions();
+        }
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
+    }
+    {
+        // Trx with empty ConnectionPtr
+        utils::trx_tracker::ResetStatistics();
+
+        {
+            auto empty_trx = storages::postgres::Transaction(storages::postgres::detail::ConnectionPtr(nullptr));
+            utils::trx_tracker::CheckNoTransactions();
+        }
+
+        utils::trx_tracker::ResetStatistics();
+        auto trx = cluster.Begin(pg::Transaction::RW);
+        utils::trx_tracker::CheckNoTransactions();
+        trx.Commit();
+        utils::trx_tracker::CheckNoTransactions();
+        EXPECT_EQ(GetTriggers(), 1);
     }
 }
 
@@ -396,6 +460,20 @@ UTEST_F(PostgreCluster, ListenNotify) {
     UEXPECT_THROW(
         scope.WaitNotify(engine::Deadline::FromDuration(std::chrono::milliseconds{50})), pg::ConnectionTimeoutError
     );
+}
+
+UTEST_F(PostgreCluster, DecomposeSingleQuery) {
+    testsuite::TestsuiteTasks testsuite_tasks{true};
+    auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
+
+    const auto rows = std::vector<IdAndValue>{{1, "foo"}, {2, "bar"}};
+
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(
+        res = cluster.ExecuteDecompose(pg::ClusterHostType::kMaster, "select * from unnest($1, $2)", rows)
+    );
+
+    EXPECT_EQ(rows, res.AsContainer<std::vector<IdAndValue>>(pg::kRowTag));
 }
 
 USERVER_NAMESPACE_END

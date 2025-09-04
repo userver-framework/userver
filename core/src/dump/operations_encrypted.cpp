@@ -30,10 +30,10 @@ struct EncryptedWriter::Impl {
     std::string filename;
     Encryption encryption;
     std::unique_ptr<::CryptoPP::AuthenticatedEncryptionFilter> filter;
-    utils::StreamingCpuRelax cpu_relax_;
+    utils::StreamingCpuRelax cpu_relax;
 
     Impl(std::string&& filename, tracing::ScopeTime* scope)
-        : filename(std::move(filename)), cpu_relax_(kCheckTimeAfterBytes, scope) {}
+        : filename(std::move(filename)), cpu_relax(kCheckTimeAfterBytes, scope) {}
 
     std::string GetTempFilename() const { return filename + ".tmp"; }
 };
@@ -75,7 +75,7 @@ EncryptedWriter::~EncryptedWriter() = default;
 void EncryptedWriter::WriteRaw(std::string_view data) {
     // 2. Data
     impl_->filter->Put(reinterpret_cast<const unsigned char*>(data.data()), data.size());
-    impl_->cpu_relax_.Relax(data.size());
+    impl_->cpu_relax.Relax(data.size());
 }
 
 void EncryptedWriter::Finish() {

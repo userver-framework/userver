@@ -78,7 +78,7 @@ Cluster::ExecuteCommand(OptionalCommandControl command_control, ClusterHostType 
 
     auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-    return CommandResultSet{connection->ExecuteQuery(command.GetStatement(), deadline)};
+    return CommandResultSet{connection->ExecuteQuery(command.GetStatementView(), deadline)};
 }
 
 void Cluster::WriteStatistics(utils::statistics::Writer& writer) const { topology_->WriteStatistics(writer); }
@@ -98,7 +98,7 @@ StatementResultSet Cluster::DoExecute(
 
     auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-    auto fetcher = connection->ExecuteStatement(query.GetStatement(), params, deadline, batch_size);
+    auto fetcher = connection->ExecuteStatement(query.GetStatementView(), params, deadline, batch_size);
     return {std::move(connection), std::move(fetcher), std::move(span)};
 }
 

@@ -117,47 +117,51 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisClusterSettings() {
     return settings_map.GetSettings("cluster-test");
 }
 
-dynamic_config::StorageMock MakeClusterDynamicConfigStorage() {
+dynamic_config::StorageMock MakeRedisDynamicConfigStorage() {
     auto docs_map = dynamic_config::impl::GetDefaultDocsMap();
-    docs_map.Set("REDIS_REPLICA_MONITORING_SETTINGS", formats::json::FromString(R"(
-      {
-        "__default__": {
-          "enable-monitoring": true,
-          "forbid-requests-to-syncing-replicas": true
-        }
+    docs_map.Set("REDIS_REPLICA_MONITORING_SETTINGS", formats::json::FromString(R"({
+      "__default__": {
+        "enable-monitoring": true,
+        "forbid-requests-to-syncing-replicas": true
       }
-    )"));
+    })"));
+    docs_map.Set("REDIS_WAIT_CONNECTED", formats::json::FromString(R"({
+      "mode": "master_or_slave",
+      "throw_on_fail": true,
+      "timeout-ms": 20000
+    })"));
     return dynamic_config::StorageMock(docs_map, {});
 }
 
-dynamic_config::Source GetClusterDynamicConfigSource() {
-    static auto storage = MakeClusterDynamicConfigStorage();
+dynamic_config::Source GetRedisDynamicConfigSource() {
+    static auto storage = MakeRedisDynamicConfigStorage();
     return storage.GetSource();
 }
 
 }  // namespace
 
 RedisConnectionState::RedisConnectionState() {
+    auto configs_source = GetRedisDynamicConfigSource();
+
     thread_pools_ = std::make_shared<ThreadPools>(
         USERVER_NAMESPACE::storages::redis::impl::kDefaultSentinelThreadPoolSize,
         USERVER_NAMESPACE::storages::redis::impl::kDefaultRedisThreadPoolSize
     );
 
-    sentinel_ = Sentinel::CreateSentinel(
-        thread_pools_, GetRedisSettings(), "none", dynamic_config::GetDefaultSource(), "pub", KeyShardFactory{""}
-    );
+    sentinel_ =
+        Sentinel::CreateSentinel(thread_pools_, GetRedisSettings(), "none", configs_source, "pub", KeyShardFactory{""});
     sentinel_->WaitConnectedDebug();
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
     subscribe_sentinel_ = SubscribeSentinel::Create(
-        thread_pools_, GetRedisSettings(), "none", dynamic_config::GetDefaultSource(), "pub", "KeyShardZero", {}, {}
+        thread_pools_, GetRedisSettings(), "none", configs_source, "pub", "KeyShardZero", {}, {}
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<SubscribeClientImpl>(subscribe_sentinel_);
 }
 
 RedisConnectionState::RedisConnectionState(InClusterMode) {
-    auto configs_source = GetClusterDynamicConfigSource();
+    auto configs_source = GetRedisDynamicConfigSource();
 
     thread_pools_ = std::make_shared<ThreadPools>(
         USERVER_NAMESPACE::storages::redis::impl::kDefaultSentinelThreadPoolSize,

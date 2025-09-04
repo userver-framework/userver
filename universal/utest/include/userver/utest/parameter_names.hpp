@@ -22,7 +22,7 @@ using HasTestName = decltype(T::test_name);
 
 template <typename ParamType>
 std::string TestParamToString(const ParamType& param) {
-    if constexpr (meta::kIsDetected<HasTestName, ParamType>) {
+    if constexpr (meta::IsDetected<HasTestName, ParamType>) {
         static_assert(std::is_same_v<std::string, decltype(param.test_name)>, "Test name should be a string");
         return param.test_name;
     } else {
@@ -100,7 +100,7 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 struct PrintTestName final {
     template <typename ParamType>
     std::string operator()(const testing::TestParamInfo<ParamType>& info) const {
-        if constexpr (meta::kIsDetected<impl::HasTupleSize, ParamType>) {
+        if constexpr (meta::IsDetected<impl::HasTupleSize, ParamType>) {
             return impl::TestTupleParamToString(info.param);
         } else {
             return impl::TestParamToString(info.param);

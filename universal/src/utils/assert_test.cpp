@@ -11,7 +11,7 @@ TEST(AssertTest, Ok) {
 }
 
 TEST(AssertTest, StringView) {
-    std::string_view message = "Testing";
+    const std::string_view message = "Testing";
     EXPECT_NO_THROW(UASSERT_MSG(true, message));
     EXPECT_NO_THROW(UINVARIANT(true, message));
 }

@@ -7,6 +7,7 @@
 #include <librdkafka/rdkafka.h>
 
 #include <userver/kafka/impl/stats.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <kafka/impl/concurrent_event_waiter.hpp>
@@ -21,14 +22,18 @@ class Configuration;
 
 class ProducerImpl final {
 public:
-    explicit ProducerImpl(Configuration&& configuration);
+    explicit ProducerImpl(
+        Configuration&& configuration,
+        const logging::Level debug_info_log_level,
+        const logging::Level operation_log_level
+    );
 
     const Stats& GetStats() const;
 
     /// @brief Send the message and waits for its delivery.
     /// While waiting handles other messages delivery reports, errors and logs.
     [[nodiscard]] DeliveryResult Send(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition,
@@ -49,7 +54,7 @@ private:
     /// @brief Schedules the message delivery.
     /// @returns the future for delivery result, which must be awaited.
     [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition,
@@ -87,6 +92,8 @@ private:
 
 private:
     const std::chrono::milliseconds delivery_timeout_;
+    const logging::Level debug_info_log_level_;
+    const logging::Level operation_log_level_;
 
     mutable Stats stats_;
 

@@ -7,6 +7,11 @@
 #include <userver/formats/json_fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
+namespace dynamic_config::http_client_connect_throttle {
+struct VariableTypeRaw;
+using VariableType = VariableTypeRaw;
+}  // namespace dynamic_config::http_client_connect_throttle
+
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
@@ -52,7 +57,7 @@ struct ThrottleConfig final {
     std::chrono::microseconds per_host_connect_rate{0};
 };
 
-ThrottleConfig Parse(const formats::json::Value& value, formats::parse::To<ThrottleConfig>);
+ThrottleConfig Parse(const ::dynamic_config::http_client_connect_throttle::VariableType&);
 
 // Dynamic config
 struct Config final {
@@ -62,8 +67,6 @@ struct Config final {
     std::string proxy;
     ThrottleConfig throttle;
 };
-
-Config ParseConfig(const dynamic_config::DocsMap& docs_map);
 
 }  // namespace clients::http::impl
 

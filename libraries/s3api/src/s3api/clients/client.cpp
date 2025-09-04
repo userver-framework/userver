@@ -90,14 +90,14 @@ std::string GeneratePresignedUrl(
     // balancers support virtual host addressing and https
     generated_url << protocol << request.bucket << "." << host;
     const auto expires_at_time_t = std::chrono::system_clock::to_time_t(expires_at);
-    AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, authenticator);
+    AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, std::move(authenticator));
     return generated_url.str();
 }
 
 std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
     std::vector<ObjectMeta> result;
     pugi::xml_document xml;
-    pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
             "Failed to parse S3 list response as xml, error: {}, response: {}", parse_result.description(), s3_response
@@ -122,7 +122,7 @@ std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
 std::vector<std::string> ParseS3DirectoriesListResponse(std::string_view s3_response) {
     std::vector<std::string> result;
     pugi::xml_document xml;
-    pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
             "Failed to parse S3 directories list response as xml, error: {}, "
@@ -495,7 +495,9 @@ ClientPtr GetS3Client(
     std::shared_ptr<authenticators::AccessKey> authenticator,
     std::string bucket
 ) {
-    return GetS3Client(s3conn, std::static_pointer_cast<authenticators::Authenticator>(authenticator), bucket);
+    return GetS3Client(
+        std::move(s3conn), std::static_pointer_cast<authenticators::Authenticator>(authenticator), std::move(bucket)
+    );
 }
 
 ClientPtr GetS3Client(

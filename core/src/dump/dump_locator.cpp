@@ -23,7 +23,7 @@ const std::string kTimeZone = "UTC";
 }  // namespace
 
 DumpLocator::DumpLocator(Config static_config)
-    : config_(static_config),
+    : config_(std::move(static_config)),
       filename_regex_(GenerateFilenameRegex(FileFormatType::kNormal)),
       tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp)) {}
 
@@ -105,7 +105,7 @@ void DumpLocator::Cleanup() {
                 continue;
             }
 
-            std::string filename = file.path().filename().string();
+            const std::string filename = file.path().filename().string();
 
             if (utils::regex_match(filename, tmp_filename_regex_)) {
                 LOG_DEBUG() << "Removing a leftover tmp file \"" << file.path().string() << "\"";

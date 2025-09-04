@@ -12,8 +12,11 @@
 #include <vector>
 
 #include <bson/bson.h>
+#include <fmt/core.h>
 
 #include <userver/formats/common/path.hpp>
+#include <userver/logging/log_helper_fwd.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -89,6 +92,8 @@ private:
 
     bson_oid_t oid_;
 };
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const Oid& value);
 
 /// BSON Binary
 class Binary {
@@ -218,3 +223,13 @@ struct hash<USERVER_NAMESPACE::formats::bson::Timestamp> {
 };
 
 }  // namespace std
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::formats::bson::Oid> {
+    constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(USERVER_NAMESPACE::formats::bson::Oid oid, FormatContext& ctx) USERVER_FMT_CONST {
+        return fmt::format_to(ctx.out(), "{}", oid.ToString());
+    }
+};

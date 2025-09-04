@@ -2,20 +2,36 @@
 
 namespace functional_tests {
 
-void MyMiddleware::CallRequestHook(const ugrpc::server::MiddlewareCallContext&, google::protobuf::Message& request) {
-    auto* message = dynamic_cast<samples::api::GreetingRequest*>(&request);
-    auto name = message->name();
-    name += " One";
-    message->set_name(name);
+/// [gRPC CallRequestHook impl example]
+void MyMiddleware::PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
+    const {
+    const google::protobuf::Descriptor* descriptor = request.GetDescriptor();
+    const google::protobuf::FieldDescriptor* name_field = descriptor->FindFieldByName("name");
+    UINVARIANT(name_field->type() == google::protobuf::FieldDescriptor::TYPE_STRING, "field must be a string");
+    if (name_field) {
+        const google::protobuf::Reflection* reflection = request.GetReflection();
+        auto name = reflection->GetString(request, name_field);
+        name += " One";
+        reflection->SetString(&request, name_field, name);
+    } else {
+        return context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'name' not found"));
+    }
 }
 
-void MyMiddleware::CallResponseHook(const ugrpc::server::MiddlewareCallContext&, google::protobuf::Message& response) {
-    auto* message = dynamic_cast<samples::api::GreetingResponse*>(&response);
-    auto str = message->greeting();
-    str += " EndOne";
-    message->set_greeting(str);
+void MyMiddleware::PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
+    const {
+    const google::protobuf::Descriptor* descriptor = response.GetDescriptor();
+    const google::protobuf::FieldDescriptor* name_field = descriptor->FindFieldByName("greeting");
+    UINVARIANT(name_field->type() == google::protobuf::FieldDescriptor::TYPE_STRING, "field must be a string");
+    if (name_field) {
+        const google::protobuf::Reflection* reflection = response.GetReflection();
+        auto greeting = reflection->GetString(response, name_field);
+        greeting += " EndOne";
+        reflection->SetString(&response, name_field, greeting);
+    } else {
+        return context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'greeting' not found"));
+    }
 }
-
-void MyMiddleware::Handle(ugrpc::server::MiddlewareCallContext& context) const { context.Next(); }
+/// [gRPC CallRequestHook impl example]
 
 }  // namespace functional_tests

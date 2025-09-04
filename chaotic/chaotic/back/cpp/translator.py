@@ -1,10 +1,9 @@
 import collections
 import dataclasses
 import os
+import pathlib
 import re
 from typing import Callable
-from typing import Dict
-from typing import List
 from typing import NoReturn
 from typing import Optional
 
@@ -12,17 +11,18 @@ from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
+from chaotic.front import ref
 from chaotic.front import types
 
 
 @dataclasses.dataclass
 class GeneratorConfig:
     # vfull -> namespace
-    namespaces: Dict[str, str]
+    namespaces: dict[str, str]
     # infile_path -> cpp type
-    infile_to_name_func: Optional[Callable] = None
+    infile_to_name_func: Callable
     # type: ignore
-    include_dirs: Optional[List[str]] = dataclasses.field(
+    include_dirs: Optional[list[str]] = dataclasses.field(
         # type: ignore
         default_factory=list,
     )
@@ -32,10 +32,11 @@ class GeneratorConfig:
 
 @dataclasses.dataclass
 class GeneratorState:
-    types: Dict[str, cpp_types.CppType]
-    refs: Dict[types.Schema, str]  # type: ignore
-    ref_objects: List[cpp_types.CppRef]
-    external_types: Dict[types.Schema, cpp_types.CppType]  # type: ignore
+    types: dict[str, cpp_types.CppType]
+    refs: dict[types.Schema, str]  # type: ignore
+    ref_objects: list[cpp_types.CppRef]
+    external_types: dict[types.Schema, cpp_types.CppType]  # type: ignore
+    seen_includes: set[str]
 
 
 NON_NAME_SYMBOL_RE = re.compile('[^_0-9a-zA-Z]')
@@ -44,11 +45,11 @@ SPLIT_WORDS_RE = re.compile(r'[A-Z]+(?=[A-Z][a-z0-9])|[A-Z][a-z0-9]+|[a-z0-9]+|[
 
 
 class FormatChooser:
-    def __init__(self, types: List[cpp_types.CppType]) -> None:
+    def __init__(self, types: list[cpp_types.CppType]) -> None:
         self.types = types
-        self.parent: Dict[
+        self.parent: dict[
             cpp_types.CppType,
-            List[Optional[cpp_types.CppType]],
+            list[Optional[cpp_types.CppType]],
         ] = collections.defaultdict(list)
 
     def check_for_json_onlyness(self) -> None:
@@ -107,14 +108,17 @@ class Generator:
             refs={},
             ref_objects=[],
             external_types={},
+            seen_includes=set(),
         )
         self._state.ref_objects = []
 
     def generate_types(
         self,
         schemas: types.ResolvedSchemas,
-        external_schemas: Dict[str, cpp_types.CppType] = {},
-    ) -> Dict[str, cpp_types.CppType]:
+        external_schemas: dict[str, cpp_types.CppType] = {},
+    ) -> dict[str, cpp_types.CppType]:
+        self._state.seen_includes = set()
+
         for cpp_type in external_schemas.values():
             schema = cpp_type.json_schema
             assert schema
@@ -133,20 +137,29 @@ class Generator:
 
         return self._state.types
 
+    @property
+    def seen_includes(self) -> set[str]:
+        return self._state.seen_includes
+
     def _validate_type(self, type_: cpp_types.CppType) -> None:
         if not type_.user_cpp_type:
             return
         if type_.has_generated_user_cpp_type():
             return
 
+        user_includes = type_.get_includes_by_cpp_type(type_.user_cpp_type)
+        for user_include in user_includes:
+            self._validate_user_include_exists(type_, user_include)
+
+    def _validate_user_include_exists(self, type_: cpp_types.CppType, user_include: str) -> None:
         if self._config.include_dirs is None:
             # no check at all
             return
 
-        user_include = type_.cpp_type_to_user_include_path(type_.user_cpp_type)
         for include_dir in self._config.include_dirs:
             path = os.path.join(include_dir, user_include)
             if os.path.exists(path):
+                self._state.seen_includes.add(path)
                 return
 
         assert type_.json_schema
@@ -206,19 +219,19 @@ class Generator:
         return container
 
     def fixup_refs(self) -> None:
-        for ref in self._state.ref_objects:
-            assert isinstance(ref.json_schema, types.Ref)
-            schema = ref.json_schema.schema
+        for ref_ in self._state.ref_objects:
+            assert isinstance(ref_.json_schema, types.Ref)
+            schema = ref_.json_schema.schema
             name = self._state.refs.get(schema)
             if name:
                 orig_cpp_type = self._state.types[name]
             else:
                 orig_cpp_type = self._state.external_types[schema]
 
-            ref.orig_cpp_type = orig_cpp_type
-            ref.indirect = ref.json_schema.indirect
-            ref.self_ref = ref.json_schema.self_ref
-            ref.cpp_name = name
+            ref_.orig_cpp_type = orig_cpp_type
+            ref_.indirect = ref_.json_schema.indirect
+            ref_.self_ref = ref_.json_schema.self_ref
+            ref_.cpp_name = name
 
     def fixup_formats(self) -> None:
         chooser = FormatChooser(list(self._state.types.values()))
@@ -236,12 +249,9 @@ class Generator:
         return cpp_type
 
     def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
-        vfile, infile = jsonschema_name.split('#')
-        if self._config.infile_to_name_func:
-            name = self._config.infile_to_name_func(infile)
-        else:
-            name = infile
-        namespace = self._config.namespaces[vfile]
+        reference = ref.Ref(jsonschema_name)
+        name = self._config.infile_to_name_func(reference.fragment, pathlib.Path(reference.file).stem)
+        namespace = self._config.namespaces[reference.file]
         if namespace:
             return '::' + namespace + '::' + name
         else:
@@ -277,7 +287,7 @@ class Generator:
             if 'x-enum-varnames' in schema.x_properties:
                 enum_names = schema.x_properties['x-enum-varnames']
 
-            emum_items: List[cpp_types.CppIntEnumItem] = []
+            emum_items: list[cpp_types.CppIntEnumItem] = []
 
             def to_camel_case(text: str) -> str:
                 words = SPLIT_RE.findall(text)
@@ -435,24 +445,23 @@ class Generator:
                 )
             user_cpp_type = f'userver::utils::StrongTypedef<{typedef_tag}, std::string>'
 
-        if schema.format:
-            if schema.format == types.StringFormat.UUID:
+        if schema.format == types.StringFormat.URI:
+            assert not validators.pattern, '"format: uri" and "pattern" are not yet implemented'
+            validators.pattern = '^[a-z][-a-z0-9+.]*:.*'
+
+        if schema.format and schema.format not in {types.StringFormat.BINARY, types.StringFormat.URI}:
+            if schema.format == types.StringFormat.BYTE:
+                format_cpp_type = 'crypto::base64::String64'
+            elif schema.format == types.StringFormat.UUID:
                 format_cpp_type = 'boost::uuids::uuid'
             elif schema.format == types.StringFormat.DATE:
                 format_cpp_type = 'userver::utils::datetime::Date'
-            elif schema.format in [
-                types.StringFormat.DATE_TIME,
-                types.StringFormat.DATE_TIME_ISO_BASIC,
-            ]:
-                if schema.format == types.StringFormat.DATE_TIME:
-                    format_cpp_type = 'userver::utils::datetime::TimePointTz'
-                elif schema.format == types.StringFormat.DATE_TIME_ISO_BASIC:
-                    format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
-                else:
-                    self._raise(
-                        schema,
-                        f'Using unknown "format: {schema.format}"',
-                    )
+            elif schema.format == types.StringFormat.DATE_TIME:
+                format_cpp_type = 'userver::utils::datetime::TimePointTz'
+            elif schema.format == types.StringFormat.DATE_TIME_ISO_BASIC:
+                format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
+            elif schema.format == types.StringFormat.DATE_TIME_FRACTION:
+                format_cpp_type = 'userver::utils::datetime::TimePointTzFraction'
             else:
                 self._raise(
                     schema,
@@ -531,8 +540,7 @@ class Generator:
             user_cpp_type = None
 
         return cpp_types.CppArray(
-            # _cpp_type() is overridden in array
-            raw_cpp_type=type_name.TypeName('NOT_USED'),
+            raw_cpp_type=name,
             json_schema=schema,
             nullable=schema.nullable,
             user_cpp_type=user_cpp_type,
@@ -601,8 +609,8 @@ class Generator:
             mapping_values = schema.mapping.as_ints()
 
         for field_value, refs in zip(schema.oneOf, mapping_values):
-            for ref in refs:
-                variants[ref] = self._gen_ref(
+            for ref_ in refs:
+                variants[ref_] = self._gen_ref(
                     type_name.TypeName(''),
                     field_value,
                 )
@@ -692,7 +700,7 @@ class Generator:
         name: type_name.TypeName,
         schema: types.Ref,
     ) -> cpp_types.CppType:
-        ref = cpp_types.CppRef(
+        ref_ = cpp_types.CppRef(
             json_schema=schema,
             nullable=False,
             # stub
@@ -703,12 +711,12 @@ class Generator:
                 nullable=False,
                 user_cpp_type=None,
             ),
-            raw_cpp_type=type_name.TypeName(''),
+            raw_cpp_type=name,
             indirect=False,
             self_ref=False,
         )
-        self._state.ref_objects.append(ref)
-        return ref
+        self._state.ref_objects.append(ref_)
+        return ref_
 
 
 # pylint: disable=protected-access

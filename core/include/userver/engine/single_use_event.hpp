@@ -26,7 +26,7 @@ namespace engine {
 ///
 /// ## Destroying a SingleUseEvent after waking up
 ///
-/// The waiting coroutine is allowed to immediately destroy the `SingleUseEvent`
+/// The waiting task is allowed to immediately destroy the `SingleUseEvent`
 /// after waking up; it will not stop a concurrent `Send` from completing
 /// correctly. This is contrary to the properties of other userver
 /// synchronization primitives, like engine::Mutex.
@@ -64,11 +64,11 @@ public:
     /// @brief Waits until the event is in a signaled state, ignoring task
     /// cancellations.
     ///
-    /// The waiter coroutine can destroy the `SingleUseEvent` object immediately
+    /// The waiter task can destroy the `SingleUseEvent` object immediately
     /// after waking up, if necessary.
     void WaitNonCancellable() noexcept;
 
-    /// Sets the signal flag and wakes a coroutine that waits on it, if any.
+    /// Sets the signal flag and wakes a task that waits on it, if any.
     /// `Send` must not be called again.
     void Send() noexcept;
 

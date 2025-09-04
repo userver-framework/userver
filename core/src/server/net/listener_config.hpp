@@ -6,9 +6,12 @@
 #include <boost/filesystem/operations.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/crypto/ssl_ctx.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
+
+#include <userver/crypto/certificate.hpp>
 
 #include "connection_config.hpp"
 
@@ -29,7 +32,10 @@ struct PortConfig {
     crypto::PrivateKey tls_private_key;
     std::vector<crypto::Certificate> tls_certificate_authorities;
 
+    std::optional<crypto::SslCtx> ssl_ctx;
+
     void ReadTlsSettings(const storages::secdist::SecdistConfig& secdist);
+    void InitSslCtx();
 };
 
 struct ListenerConfig {
@@ -38,7 +44,7 @@ struct ListenerConfig {
     int backlog = 1024;  // truncated to net.core.somaxconn
     size_t max_connections = 32768;
     std::optional<size_t> shards;
-    std::string task_processor;
+    std::optional<std::string> task_processor;
 
     std::vector<PortConfig> ports;
 };

@@ -1,12 +1,12 @@
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 
+#include <userver/utils/assert.hpp>
+
 #include <userver/engine/task/cancel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
-
-EventBase::~EventBase() = default;
 
 AsyncMethodInvocation::~AsyncMethodInvocation() { WaitWhileBusy(); }
 
@@ -17,7 +17,7 @@ void AsyncMethodInvocation::Notify(bool ok) noexcept {
 
 bool AsyncMethodInvocation::IsBusy() const noexcept { return busy_; }
 
-void* AsyncMethodInvocation::GetTag() noexcept {
+void* AsyncMethodInvocation::GetCompletionTag() noexcept {
     UASSERT(!busy_);
     busy_ = true;
     return static_cast<EventBase*>(this);
@@ -45,8 +45,7 @@ AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::WaitUntil(engine::Deadl
         }
     }
 
-    UASSERT(false);
-    return WaitStatus::kError;
+    utils::AbortWithStacktrace("should be unreachable");
 }
 
 engine::impl::ContextAccessor* AsyncMethodInvocation::TryGetContextAccessor() noexcept {
@@ -55,10 +54,9 @@ engine::impl::ContextAccessor* AsyncMethodInvocation::TryGetContextAccessor() no
 
 bool AsyncMethodInvocation::IsReady() const noexcept { return event_.IsReady(); }
 
-void AsyncMethodInvocation::WaitWhileBusy() {
+void AsyncMethodInvocation::WaitWhileBusy() noexcept {
     if (busy_) {
-        engine::TaskCancellationBlocker blocker;
-        event_.Wait();
+        event_.WaitNonCancellable();
     }
     busy_ = false;
 }

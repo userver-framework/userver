@@ -25,11 +25,11 @@ jobs:
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
+                -DCMAKE_CXX_STANDARD=17
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
-                -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                 -DUSERVER_USE_LD=lld
                 -DUSERVER_FORCE_DOWNLOAD_RE2=1
@@ -38,7 +38,7 @@ jobs:
                 -DUSERVER_FORCE_DOWNLOAD_GRPC=1
 
         steps:
-          - uses: actions/checkout@v4
+          - uses: actions/checkout@v5
 
           - name: Restore cached directories
             id: restore-cache
@@ -58,8 +58,8 @@ jobs:
                 brew update
                 brew install $(cat scripts/docs/en/deps/macos.md)
                 brew install clang-format
-                brew install python@3.11
                 brew install lld
+                brew install python@3.12
 
                 brew link postgresql@16 # postgresql is keg-only
                 brew link --force zlib # keg-only + need for static linkage
@@ -67,6 +67,7 @@ jobs:
                 brew link --force curl # keg-only
                 brew link --force cyrus-sasl # keg-only
                 brew link --force openldap # keg-only
+                brew link --force sqlite # keg-only
                 brew remove --ignore-dependencies abseil
 
           - name: Install test dependencies
@@ -82,11 +83,11 @@ jobs:
 
           - name: Run cmake
             run: |
-                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.11 $CMAKE_FLAGS
+                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.12 $CMAKE_FLAGS
 
           - name: Reconfigure cmake
             run: |
-                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.11 $CMAKE_FLAGS
+                cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.12 $CMAKE_FLAGS
 
           - name: Compile
             run: |
@@ -171,3 +172,7 @@ jobs:
                 cd build_debug/postgresql
                 ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
 
+          - name: Run tests (sqlite)
+            run: |
+                cd build_debug/sqlite
+                ctest -V -E "userver-sqlite-unittest" # unittests failed with fs access

@@ -16,7 +16,7 @@ namespace storages::postgres::detail {
 /// Compare(...)
 /// Distance(...)
 /// Valid()
-template <typename FinalType, typename DataType, IteratorDirection direction = IteratorDirection::kForward>
+template <typename FinalType, typename DataType, IteratorDirection Direction = IteratorDirection::kForward>
 class ConstDataIterator : protected DataType {
     using Iter = ConstDataIterator;
 
@@ -70,9 +70,9 @@ public:
         return res;
     }
 
-    difference_type operator-(const FinalType& rhs) const { return this->Distance(rhs) * static_cast<int>(direction); }
+    difference_type operator-(const FinalType& rhs) const { return this->Distance(rhs) * static_cast<int>(Direction); }
 
-    FinalType operator[](difference_type index) const { return *this + index * static_cast<int>(direction); }
+    FinalType operator[](difference_type index) const { return *this + index * static_cast<int>(Direction); }
 
     FinalType& operator+=(difference_type distance) { return DoAdvance(distance); }
     FinalType& operator-=(difference_type distance) { return DoAdvance(-distance); }
@@ -97,7 +97,7 @@ private:
     const FinalType& Rebind() const { return static_cast<const FinalType&>(*this); }
 
     FinalType& DoAdvance(difference_type distance) {
-        this->Advance(distance * static_cast<int>(direction));
+        this->Advance(distance * static_cast<int>(Direction));
         return Rebind();
     }
     int DoCompare(const Iter& rhs) const { return this->Compare(rhs); }

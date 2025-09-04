@@ -32,7 +32,7 @@ public:
         SimpleRefcount& refcount_;
     };
 
-    ReadLock Lock() noexcept { return ReadLock{*this}; }
+    ReadLock GetLock() noexcept { return ReadLock{*this}; }
 
     bool IsFree() const noexcept { return counter_.load(std::memory_order_acquire); }
 
@@ -56,7 +56,7 @@ void ReadIndicatorLockUnlock(benchmark::State& state) {
 
         RunParallelBenchmark(state, [&](auto& range) {
             for ([[maybe_unused]] auto _ : range) {
-                auto lock = indicator.Lock();
+                auto lock = indicator.GetLock();
                 benchmark::DoNotOptimize(lock);
             }
         });
@@ -78,7 +78,7 @@ void ReadIndicatorIsFree(benchmark::State& state) {
         auto tasks = utils::GenerateFixedArray(state.range(0), [&](std::size_t) {
             return engine::CriticalAsyncNoSpan([&] {
                 while (keep_running) {
-                    const auto lock = indicator.Lock();
+                    const auto lock = indicator.GetLock();
                     benchmark::DoNotOptimize(keep_running.load());
                 }
             });

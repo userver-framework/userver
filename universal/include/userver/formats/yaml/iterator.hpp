@@ -15,16 +15,16 @@ USERVER_NAMESPACE_BEGIN
 namespace formats::yaml {
 
 /// @brief Iterator for `formats::yaml::Value`
-template <typename iter_traits>
+template <typename IterTraits>
 class Iterator final {
 public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = typename iter_traits::value_type;
-    using reference = typename iter_traits::reference;
-    using pointer = typename iter_traits::pointer;
+    using value_type = typename IterTraits::value_type;
+    using reference = typename IterTraits::reference;
+    using pointer = typename IterTraits::pointer;
 
-    Iterator(const typename iter_traits::native_iter& iter, int index, const formats::yaml::Path& path);
+    Iterator(const typename IterTraits::native_iter& iter, int index, const formats::yaml::Path& path);
     Iterator(const Iterator& other);
     Iterator(Iterator&& other) noexcept;
     Iterator& operator=(const Iterator& other);
@@ -54,7 +54,7 @@ private:
 
     static constexpr std::size_t kNativeIterSize = 48;
     static constexpr std::size_t kNativeIterAlignment = alignof(void*);
-    utils::FastPimpl<typename iter_traits::native_iter, kNativeIterSize, kNativeIterAlignment> iter_pimpl_;
+    utils::FastPimpl<typename IterTraits::native_iter, kNativeIterSize, kNativeIterAlignment> iter_pimpl_;
     formats::yaml::Path path_;
     // Temporary object replaced on every value access.
     mutable int index_;

@@ -38,7 +38,7 @@ std::string LogLevel::HandleRequestThrow(const http::HttpRequest& request, reque
 std::string LogLevel::ProcessGet(const http::HttpRequest& request, request::RequestContext&) const {
     const std::string& level_arg = request.GetPathArg(kLevel);
     if (!level_arg.empty()) {
-        std::string message = std::string{"unexpected parameter for log level getting: " + level_arg};
+        const std::string message = std::string{"unexpected parameter for log level getting: " + level_arg};
         throw ClientError(InternalMessage{message}, ExternalBody{message});
     }
     const std::string& logger_name = request.GetArg(kLogger);

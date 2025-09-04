@@ -30,12 +30,6 @@ components_manager:
 
         greeter-service:
             task-processor: main-task-processor
-            disable-all-pipeline-middlewares: true
-            middlewares:
-                grpc-server-logging:
-                    enabled: true
-                grpc-server-baggage:
-                    enabled: true
 
         # gRPC client
         grpc-client-common:

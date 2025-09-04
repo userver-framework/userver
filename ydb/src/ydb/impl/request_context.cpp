@@ -9,6 +9,9 @@
 #include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
+#include <dynamic_config/variables/YDB_DEADLINE_PROPAGATION_VERSION.hpp>
+#include <dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
@@ -21,17 +24,27 @@ tracing::Span MakeSpan(
     tracing::Span* custom_parent_span,
     utils::impl::SourceLocation location
 ) {
-    auto span = custom_parent_span
-                    ? custom_parent_span->CreateChild("ydb_query")
-                    : tracing::Span("ydb_query", tracing::ReferenceType::kChild, logging::Level::kInfo, location);
+    auto span = custom_parent_span ? custom_parent_span->CreateChild("ydb_query", location)
+                                   : tracing::Span("ydb_query", location);
 
     settings.trace_id = span.GetTraceId();
 
-    if (query.GetName()) {
-        span.AddTag("query_name", std::string{*query.GetName()});
-    } else {
-        span.AddTag("yql_query", query.Statement());
+    const auto optional_name_view = query.GetOptionalNameView();
+    switch (query.GetLogMode()) {
+        case Query::LogMode::kFull:
+            if (optional_name_view) {
+                span.AddTag("query_name", std::string{*optional_name_view});
+            } else {
+                span.AddTag("yql_query", std::string{query.GetStatementView()});
+            }
+            break;
+        case Query::LogMode::kNameOnly:
+            if (optional_name_view) {
+                span.AddTag("query_name", std::string{*optional_name_view});
+            }
+            break;
     }
+
     UASSERT(settings.retries.has_value());
     span.AddTag("max_retries", *settings.retries);
     span.AddTag("get_session_timeout_ms", settings.get_session_timeout_ms.count());
@@ -39,9 +52,9 @@ tracing::Span MakeSpan(
     span.AddTag("cancel_after_ms", settings.cancel_after_ms.count());
     span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
 
-    if (query.GetName()) {
+    if (optional_name_view) {
         try {
-            TESTPOINT("sql_statement", formats::json::MakeObject("name", query.GetName()->GetUnderlying()));
+            TESTPOINT("sql_statement", formats::json::MakeObject("name", *optional_name_view));
         } catch (const std::exception& e) {
             LOG_WARNING() << e;
         }
@@ -91,11 +104,11 @@ void PrepareSettings(
         os.tx_mode = default_settings.tx_mode.value();
     }
 
-    const auto& cc_map = config_snapshot[impl::kQueryCommandControl];
+    const auto& cc_map = config_snapshot[::dynamic_config::YDB_QUERIES_COMMAND_CONTROL];
 
-    if (!query.GetName()) return;
-    auto it = cc_map.find(query.GetName()->GetUnderlying());
-    if (it == cc_map.end()) return;
+    if (!query.GetOptionalNameView()) return;
+    auto it = cc_map.extra.find(std::string{*query.GetOptionalNameView()});  // TODO: avoid tmp string construction
+    if (it == cc_map.extra.end()) return;
 
     auto& cc = it->second;
 
@@ -110,8 +123,10 @@ void PrepareSettings(
 }
 
 engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
-    if (config_snapshot[impl::kDeadlinePropagationVersion] != impl::kDeadlinePropagationExperimentVersion) {
-        LOG_DEBUG() << "Wrong DP experiment version, config=" << config_snapshot[impl::kDeadlinePropagationVersion]
+    if (config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION] !=
+        impl::kDeadlinePropagationExperimentVersion) {
+        LOG_DEBUG() << "Wrong DP experiment version, config="
+                    << config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION]
                     << ", experiment=" << impl::kDeadlinePropagationExperimentVersion;
         return {};
     }
@@ -137,20 +152,20 @@ engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot
 RequestContext::RequestContext(
     TableClient& table_client_,
     const Query& query,
-    OperationSettings& settings,
+    OperationSettings&& settings,
     IsStreaming is_streaming,
     tracing::Span* custom_parent_span,
     const utils::impl::SourceLocation& location
 )
     : table_client(table_client_),
-      settings(settings),
+      settings(std::move(settings)),
       initial_uncaught_exceptions(std::uncaught_exceptions()),
       stats_scope(*table_client.stats_, query),
       config_snapshot(table_client.config_source_.GetSnapshot()),
       // Note: comma operator is used to insert code between initializations.
       span(
-          (PrepareSettings(query, config_snapshot, settings, is_streaming, table_client.default_settings_),
-           MakeSpan(query, settings, custom_parent_span, location))
+          (PrepareSettings(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
+           MakeSpan(query, this->settings, custom_parent_span, location))
       ),
       deadline(GetDeadline(span, config_snapshot)) {}
 
@@ -161,7 +176,7 @@ void RequestContext::HandleError(const NYdb::TStatus& status) {
     UASSERT(!status.IsSuccess());
     // To protect against double handling of error in the 'HandleError` and in the
     // destructor we have to set the flag
-    is_error_ = true;
+    is_error = true;
     span.AddTag(tracing::kErrorFlag, true);
     if (status.IsTransportError()) {
         stats_scope.OnTransportError();
@@ -171,7 +186,7 @@ void RequestContext::HandleError(const NYdb::TStatus& status) {
 }
 
 RequestContext::~RequestContext() {
-    if (engine::current_task::ShouldCancel() && !is_error_) {
+    if (engine::current_task::ShouldCancel() && !is_error) {
         stats_scope.OnCancelled();
         span.AddTag("cancelled", true);
     }

@@ -51,11 +51,11 @@ We use `chaotic-gen` executable for that. You may call it directly from terminal
 
 Some frequently used parameters are described below.
 
-* `-n` defines types mapping from in-yaml object path to C++ type name (with namespace).
+* `LAYOUT` defines types mapping from in-yaml object path to C++ type name (with namespace).
   The path regex is written first, then equal sign `=`, then C++ type name.
-  `-n` can be passed multiple times.
-* `--parse-extra-formats` generates YAML and YAML config parsers besides JSON parser.
-* `--generate-serializers` generates serializers into JSON besides JSON parser from `formats::json::Value`.
+  `LAYOUT` takes list of map items.
+* `PARSE_EXTRA_FORMATS` generates YAML and YAML config parsers besides JSON parser.
+* `GENERATE_SERIALIZERS` generates serializers into JSON besides JSON parser from `formats::json::Value`.
 
 #### Use generated .hpp and .cpp files in your C++ project.
 
@@ -361,6 +361,8 @@ in case of `x-usrv-cpp-type: X::Y`. The header must contain:
 1) the type definition;
 
 2) `Convert` functions (see below). `Convert` function is used to transform user type into JSONSchema type and vice versa.
+
+You have to pass `LINK_TARGETS` parameter to `userver_target_generate_chaotic` to link with a target that provides the required header.
 
 @include chaotic/integration_tests/include/userver/chaotic/io/my/custom_string.hpp
 

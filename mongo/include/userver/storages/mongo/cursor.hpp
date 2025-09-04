@@ -32,6 +32,7 @@ public:
         using reference = const value_type&;
         using pointer = const value_type*;
 
+        explicit Iterator() = default;
         explicit Iterator(Cursor*);
 
         class DocHolder {
@@ -57,6 +58,12 @@ public:
 
     bool HasMore() const;
     explicit operator bool() const { return HasMore(); }
+
+    /// Retrieve the cursor batch size; returns zero if the cursor uses the server-defined maximum batch size.
+    std::uint32_t GetBatchSize() const;
+
+    /// Set the cursor batch size; set to zero to force the cursor to use the server-defined maximum batch size.
+    void SetBatchSize(std::uint32_t);
 
     Iterator begin();
     Iterator end();

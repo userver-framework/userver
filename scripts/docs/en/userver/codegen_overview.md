@@ -10,6 +10,7 @@ You may use code generators for the following activity:
   * for dynamic configs 
   * for static configs
   * for Kafka/RabbitMQ messages
+* @ref scripts/docs/en/userver/chaotic_clients.md
 * @ref scripts/docs/en/userver/sql_files.md 
 
 ----------

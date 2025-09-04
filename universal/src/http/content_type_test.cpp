@@ -7,7 +7,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(ContentType, Smoke) {
-    http::ContentType content_type("text/html");
+    const http::ContentType content_type("text/html");
 
     EXPECT_EQ("text/html", content_type.MediaType());
     EXPECT_EQ("text", content_type.TypeToken());
@@ -42,7 +42,7 @@ TEST(ContentType, Invalid) {
 }
 
 TEST(ContentType, SkipUnknown) {
-    http::ContentType content_type(
+    const http::ContentType content_type(
         "text/html; some_option=value; charset=utf-8; v=2; q=0; "
         "other_option=123"
     );
@@ -56,24 +56,24 @@ TEST(ContentType, SkipUnknown) {
 }
 
 TEST(ContentType, Icase) {
-    http::ContentType lower("text/html");
-    http::ContentType upper("TEXT/HTML");
-    http::ContentType mixed("TeXt/HtMl");
+    const http::ContentType lower("text/html");
+    const http::ContentType upper("TEXT/HTML");
+    const http::ContentType mixed("TeXt/HtMl");
 
     EXPECT_EQ(lower, upper);
     EXPECT_EQ(lower, mixed);
     EXPECT_EQ(mixed, upper);
 
-    http::ContentType with_cs("text/html; CharSet=uTF-8");
+    const http::ContentType with_cs("text/html; CharSet=uTF-8");
     EXPECT_TRUE(with_cs.HasExplicitCharset());
     EXPECT_EQ("uTF-8", with_cs.Charset());
     EXPECT_EQ(mixed, with_cs);
 }
 
 TEST(ContentType, Charset) {
-    http::ContentType impli("application/json");
-    http::ContentType expli("application/json; charset=utf-8");
-    http::ContentType other("application/json;charset=koi8-r");
+    const http::ContentType impli("application/json");
+    const http::ContentType expli("application/json; charset=utf-8");
+    const http::ContentType other("application/json;charset=koi8-r");
 
     EXPECT_FALSE(impli.HasExplicitCharset());
     EXPECT_EQ("UTF-8", impli.Charset());
@@ -90,12 +90,12 @@ TEST(ContentType, Charset) {
 }
 
 TEST(ContentType, Quality) {
-    http::ContentType impli("text/html");
-    http::ContentType max0("text/html; q=1");
-    http::ContentType max1("text/html; q=1.");
-    http::ContentType max2("text/html; q=1.0");
-    http::ContentType max3("text/html; q=1.00");
-    http::ContentType max4("text/html; q=1.000");
+    const http::ContentType impli("text/html");
+    const http::ContentType max0("text/html; q=1");
+    const http::ContentType max1("text/html; q=1.");
+    const http::ContentType max2("text/html; q=1.0");
+    const http::ContentType max3("text/html; q=1.00");
+    const http::ContentType max4("text/html; q=1.000");
 
     EXPECT_EQ(1000, impli.Quality());
     EXPECT_EQ(1000, max0.Quality());
@@ -113,12 +113,12 @@ TEST(ContentType, Quality) {
     EXPECT_TRUE(impli.ToString().find("q=") == std::string::npos);
     // max quality may be skipped if specified
 
-    http::ContentType min1("text/html; q=0.");
+    const http::ContentType min1("text/html; q=0.");
     EXPECT_EQ(0, min1.Quality());
     EXPECT_FALSE(min1.ToString().find("q=0.000") == std::string::npos);
 
-    http::ContentType other1("text/html; q=0.1");
-    http::ContentType other2("text/html; q=0.397");
+    const http::ContentType other1("text/html; q=0.1");
+    const http::ContentType other2("text/html; q=0.397");
     EXPECT_EQ(100, other1.Quality());
     EXPECT_FALSE(other1.ToString().find("q=0.100") == std::string::npos);
     EXPECT_EQ(397, other2.Quality());
@@ -130,16 +130,16 @@ TEST(ContentType, Quality) {
 }
 
 TEST(ContentType, Ordering) {
-    http::ContentType any_mt("*/*");
-    http::ContentType any_subtype("text/*");
-    http::ContentType type("text/html; q=0.9");
-    http::ContentType type_less_q("text/html; q=0.7");
-    http::ContentType type_charset("text/html; charset=utf-8; q=0.2");
-    http::ContentType type_charset_less_q("text/html; charset=utf-8; q=0.02");
-    http::ContentType mixed_case("TeXt/HtMl; Q=0.9");
-    http::ContentType app_json("application/json");
-    http::ContentType app_json_charset("application/json; charset=utf-8");
-    http::ContentType app_json_charset_q("application/json; charset=utf-8; q=0.");
+    const http::ContentType any_mt("*/*");
+    const http::ContentType any_subtype("text/*");
+    const http::ContentType type("text/html; q=0.9");
+    const http::ContentType type_less_q("text/html; q=0.7");
+    const http::ContentType type_charset("text/html; charset=utf-8; q=0.2");
+    const http::ContentType type_charset_less_q("text/html; charset=utf-8; q=0.02");
+    const http::ContentType mixed_case("TeXt/HtMl; Q=0.9");
+    const http::ContentType app_json("application/json");
+    const http::ContentType app_json_charset("application/json; charset=utf-8");
+    const http::ContentType app_json_charset_q("application/json; charset=utf-8; q=0.");
 
     EXPECT_TRUE(any_mt < any_subtype);
     EXPECT_TRUE(any_mt < type);
@@ -207,7 +207,7 @@ TEST(ContentType, Ordering) {
 }
 
 TEST(ContentType, Hashing) {
-    http::ContentTypeHash hasher;
+    const http::ContentTypeHash hasher;
 
     auto any_mt_hash = hasher("*/*");
     auto any_subtype_hash = hasher("text/*");

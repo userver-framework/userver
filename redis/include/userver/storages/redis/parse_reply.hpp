@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Customizations for Redis response parsings
+
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -116,12 +119,16 @@ std::optional<T> Parse(ReplyData&& reply_data, const std::string& request_descri
     return Parse(std::move(reply_data), request_description, To<T>{});
 }
 
+namespace impl {
+
 template <typename Result, typename ReplyType = Result>
 ReplyType ParseReply(ReplyPtr reply, const std::string& request_description = {}) {
     const auto& description = impl::RequestDescription(reply, request_description);
     impl::ExpectIsOk(reply, description);
-    return Parse(impl::ExtractData(reply), description, To<Result, ReplyType>{});
+    return Parse(impl::ExtractData(reply), description, To<Result, ReplyType>{});  // Customization point
 }
+
+}  // namespace impl
 
 }  // namespace storages::redis
 

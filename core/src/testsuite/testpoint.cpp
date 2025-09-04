@@ -73,7 +73,7 @@ void ExecuteTestpointCoro(
     const formats::json::Value& json,
     TestpointClientBase::Callback callback
 ) {
-    TestpointScope tp_scope;
+    const TestpointScope tp_scope;
     if (!tp_scope) return;
 
     tp_scope.GetClient().Execute(name, json, callback);
@@ -104,7 +104,7 @@ TestpointClientBase::~TestpointClientBase() {
 }
 
 void TestpointClientBase::Unregister() noexcept {
-    std::lock_guard lock(client_instance_mutex);
+    const std::lock_guard lock(client_instance_mutex);
     TestpointClientBase* expected = this;
     client_instance.compare_exchange_strong(expected, nullptr);
 }
@@ -142,7 +142,7 @@ void TestpointControl::SetAllEnabled() {
 
 void TestpointControl::SetClient(TestpointClientBase& client) {
     (void)this;  // silence clang-tidy
-    std::lock_guard lock(client_instance_mutex);
+    const std::lock_guard lock(client_instance_mutex);
     UINVARIANT(!client_instance, "Only 1 TestpointClientBase may be registered at a time");
     client_instance = &client;
 }

@@ -94,7 +94,7 @@ public:
             UASSERT(data_->func != nullptr);
         }
 
-        OptionalSetNoneGuard guard(data_);
+        const OptionalSetNoneGuard guard(data_);
         auto& result = this->GetResultStore();
 
         // This is the point at which stacktrace is cut,

@@ -35,9 +35,13 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
 
         USERVER_NAMESPACE::secdist::RedisSettings settings;
         settings.password = storages::redis::Password(GetString(client_settings, "password"));
+        settings.sentinel_password =
+            storages::redis::Password(client_settings["sentinel_password"].As<std::string>(""));
         settings.secure_connection = GetValue<bool>(client_settings, "secure_connection", false)
                                          ? USERVER_NAMESPACE::storages::redis::ConnectionSecurity::kTLS
                                          : USERVER_NAMESPACE::storages::redis::ConnectionSecurity::kNone;
+
+        settings.database_index = client_settings["database_index"].As<std::size_t>(0);
 
         const auto& shards = client_settings["shards"];
         CheckIsArray(shards, "shards");
@@ -55,7 +59,7 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
             if (host_port.host.empty()) {
                 throw InvalidSecdistJson("Empty redis sentinel host");
             }
-            int port = GetInt(sentinel, "port", kDefaultSentinelPort);
+            const int port = GetInt(sentinel, "port", kDefaultSentinelPort);
             if (port <= 0 || port >= 65536) {
                 throw InvalidSecdistJson("Invalid redis sentinel port");
             }

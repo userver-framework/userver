@@ -14,9 +14,9 @@ namespace impl {
 class RedisLocalImpl;
 }  // namespace impl
 
-/// @brief Redis local class
+/// @brief Valkey or Redis local class
 ///
-/// Provide access to localhost Redis
+/// Provide access to localhost Valkey or Redis
 class RedisLocal {
 public:
     RedisLocal();

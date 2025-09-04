@@ -1,4 +1,4 @@
 default: true
-description: ''
+description: Controls HTTP requests and responses logging.
 schema:
     type: boolean

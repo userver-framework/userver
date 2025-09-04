@@ -5,6 +5,15 @@ components_manager:
             path: /chaos
             task_processor: main-task-processor
             method: GET,DELETE,POST
+        handler-chaos-many-requests:
+            path: /chaos-many-requests
+            task_processor: main-task-processor
+            method: GET
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
 
         key-value-database:
             groups:
@@ -21,6 +30,13 @@ components_manager:
             listener:
                 port: 8187
                 task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: main-task-processor
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -33,6 +49,13 @@ components_manager:
             updates-enabled: true
             defaults:
                 REDIS_DEADLINE_PROPAGATION_VERSION: 1
+                REDIS_METRICS_SETTINGS:
+                    command-timings-enabled: true
+                    reply-sizes-enabled: true
+                    request-sizes-enabled: true
+                    timings-enabled: true
+                REDIS_PUBSUB_METRICS_SETTINGS:
+                    per-shard-stats-enabled: true
 
         dynamic-config-client:
             config-url: $config-server-url

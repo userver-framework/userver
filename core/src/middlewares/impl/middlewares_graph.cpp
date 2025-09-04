@@ -15,7 +15,7 @@ namespace middlewares::impl {
 
 namespace {
 
-bool IsUserverGroup(const std::string& group) {
+bool IsGroupBoundary(const std::string& group) {
     return utils::text::EndsWith(group, "#end") || utils::text::EndsWith(group, "#begin");
 }
 
@@ -25,7 +25,7 @@ void ValidateConnects(
     const Dependencies& dependencies
 ) {
     for (const auto& con : connects) {
-        if (IsUserverGroup(con.node_name)) {
+        if (IsGroupBoundary(con.node_name)) {
             continue;
         }
 
@@ -49,7 +49,7 @@ void ValidateConnects(
             UINVARIANT(
                 con.type != DependencyType::kStrong,
                 fmt::format(
-                    "Middleware `{}` does not exist and there is a kStrong dependency from {}.",
+                    "Middleware '{}' does not exist and there is a `kStrong` dependency from '{}'.",
                     con.node_name,
                     dep.middleware_name
                 )
@@ -93,7 +93,8 @@ void AddEdgesForGroup(Graph& graph, const MiddlewareDependency& dep) {
 
 template <typename Group>
 void AddEdgesGroup(Graph& graph) {
-    const MiddlewareDependency dep = middlewares::MiddlewareDependencyBuilder{Group::kDependency}.Extract(Group::kName);
+    const MiddlewareDependency dep =
+        middlewares::MiddlewareDependencyBuilder{Group::kDependency}.ExtractGroupDependency(Group::kName);
     AddEdgesForGroup<Group>(graph, dep);
 }
 
@@ -159,11 +160,11 @@ MiddlewareOrderedList BuildPipeline(Dependencies&& dependencies) {
     MiddlewareOrderedList list{};
     list.reserve(nodes.size());
     for (auto& mid : nodes) {
-        if (IsUserverGroup(mid)) {
+        if (IsGroupBoundary(mid)) {
             continue;
         }
         const auto it = dependencies.find(mid);
-        UINVARIANT(it != dependencies.end(), fmt::format("Middleware {} does not exist.", mid));
+        UINVARIANT(it != dependencies.end(), fmt::format("Middleware `{}` does not exist.", mid));
         list.push_back({mid, it->second.enabled});
     }
 

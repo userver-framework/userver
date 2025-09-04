@@ -4,7 +4,6 @@
 
 #include <csignal>
 #include <cstring>
-#include <iostream>
 #include <variant>
 
 #include <fmt/format.h>
@@ -28,20 +27,18 @@
 #include <userver/utils/strerror.hpp>
 #include <userver/utils/string_literal.hpp>
 #include <userver/utils/traceful_exception.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <components/manager.hpp>
 #include <components/manager_config.hpp>
 #include <logging/config.hpp>
 #include <logging/tp_logger_utils.hpp>
+#include <server/handlers/auth/apikey/factories.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace server::handlers::auth::apikey {
-extern int auth_checker_apikey_module_activation;
-}  // namespace server::handlers::auth::apikey
 
 namespace components {
 
@@ -189,6 +186,8 @@ void DoRun(
     const ComponentList& component_list,
     RunMode run_mode
 ) {
+    const auto start_time = std::chrono::steady_clock::now();
+
     utils::impl::FinishStaticRegistration();
 
     utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1, SIGUSR2};
@@ -202,7 +201,9 @@ void DoRun(
         ParseManagerConfigAndSetupLogging(log_scope, config, config_vars_path, config_vars_override_path);
 
     utils::impl::UserverExperimentsScope experiments_scope;
-    std::optional<Manager> manager;
+    std::optional<impl::Manager> manager;
+
+    const utils::trx_tracker::impl::GlobalEnabler enabler{manager_config.enable_trx_tracker};
 
     try {
         experiments_scope.EnableOnly(manager_config.enabled_experiments);
@@ -212,7 +213,7 @@ void DoRun(
             PreheatStacktraceCollector();
         }
 
-        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), component_list);
+        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), start_time, component_list);
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Loading failed: " << ex;
         throw;

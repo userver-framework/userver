@@ -24,6 +24,14 @@ If you ignore the metric you might face a disaster anyway.
 In case of stack overflow the process gets a SIGSEGV on attempt to access missing memory page or even writes garbage to a random memory page.
 So you might want to use a metric to avoid the UB.
 
+The stack usage monitor can be explicitly disabled via `USERVER_ENABLE_STACK_USAGE_MONITOR` environment variable.
+If you have any issues with it, just set it to `0`:
+
+```
+bash
+export USERVER_ENABLE_STACK_USAGE_MONITOR=0
+```
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

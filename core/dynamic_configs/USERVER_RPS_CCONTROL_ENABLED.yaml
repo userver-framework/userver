@@ -1,5 +1,7 @@
 default: false
-description: ''
+description: |
+    Controls whether congestion control limiting of RPS is performed (if main task processor is overloaded,
+    then the server starts rejecting some requests).
 schema:
     type: boolean
 

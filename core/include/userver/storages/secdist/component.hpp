@@ -30,7 +30,7 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// provider | optional secdist provider component name | 'default-secdist-provider'
-/// update-period | period between data updates in utils::StringToDuration() suitable format ('0s' for no updates) | 0s
+/// update-period | period between data updates in utils::StringToDuration() suitable format ('0s' for no updates) | 10s
 
 // clang-format on
 

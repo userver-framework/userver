@@ -1,6 +1,6 @@
 #include <userver/components/manager_controller_component.hpp>
 
-#include <components/manager_config.hpp>
+#include <components/manager.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -8,12 +8,20 @@
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/utils/algo.hpp>
-
-#include <components/manager.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+void WriteRateAndLegacyMetrics(utils::statistics::Writer&& writer, utils::statistics::Rate metric) {
+    writer = metric.value;
+    writer["v2"] = metric;
+}
+
+}  // namespace
 
 namespace engine {
 
@@ -24,28 +32,24 @@ void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& 
     const auto created = counter.GetCreatedTasks();
     const auto stopped = counter.GetStoppedTasks();
 
-    // TODO report RATE metrics
     if (auto tasks = writer["tasks"]) {
-        tasks["created"] = created.value;
+        WriteRateAndLegacyMetrics(tasks["created"], created);
         tasks["alive"] = (created - std::min(destroyed, created)).value;
         tasks["running"] = counter.GetRunningTasks();
-        tasks["queued"] = task_processor.GetTaskQueueSize();
-        tasks["finished"] = stopped.value;
-        tasks["cancelled"] = counter.GetCancelledTasks().value;
-        tasks["cancelled_overload"] = counter.GetCancelledTasksOverload().value;
+        tasks["queued"] = GetQueueSize(task_processor);
+        WriteRateAndLegacyMetrics(tasks["finished"], stopped);
+        WriteRateAndLegacyMetrics(tasks["cancelled"], counter.GetCancelledTasks());
+        WriteRateAndLegacyMetrics(tasks["cancelled_overload"], counter.GetCancelledTasksOverload());
     }
 
-    writer["errors"].ValueWithLabels(
-        counter.GetTasksOverload().value, {{"task_processor_error", "wait_queue_overload"}}
-    );
+    writer["errors"].ValueWithLabels(counter.GetTasksOverload(), {{"task_processor_error", "wait_queue_overload"}});
 
     if (auto context_switch = writer["context_switch"]) {
-        context_switch["slow"] = counter.GetTasksStartedRunning().value;
-        context_switch["fast"] = 0;
-        context_switch["spurious_wakeups"] = counter.GetSpuriousWakeups().value;
+        WriteRateAndLegacyMetrics(context_switch["slow"], counter.GetTasksStartedRunning());
+        WriteRateAndLegacyMetrics(context_switch["spurious_wakeups"], counter.GetSpuriousWakeups());
 
-        context_switch["overloaded"] = counter.GetTasksOverloadSensor().value;
-        context_switch["no_overloaded"] = counter.GetTasksNoOverloadSensor().value;
+        WriteRateAndLegacyMetrics(context_switch["overloaded"], counter.GetTasksOverloadSensor());
+        WriteRateAndLegacyMetrics(context_switch["no_overloaded"], counter.GetTasksNoOverloadSensor());
     }
 
     writer["worker-threads"] = task_processor.GetWorkerCount();
@@ -59,7 +63,7 @@ ManagerControllerComponent::ManagerControllerComponent(
     const components::ComponentConfig&,
     const components::ComponentContext& context
 )
-    : components_manager_(context.GetManager()) {
+    : components_manager_(context.GetManager(utils::impl::InternalTag{})) {
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
     auto config_source = context.FindComponent<DynamicConfig>().GetSource();
@@ -114,6 +118,11 @@ void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writ
                                    .count();
     writer["load-ms"] =
         std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetLoadDuration()).count();
+
+    writer["pre-load-ms"] =
+        std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetPreLoadDuration()).count();
+
+    writer["heavy-operations-in-transactions"] = utils::trx_tracker::GetStatistics().triggers;
 }
 
 void ManagerControllerComponent::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {

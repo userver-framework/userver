@@ -18,7 +18,7 @@ enum class In {
 using Name = const char* const;
 
 template <typename T>
-inline constexpr bool kIsTrivialRawType = std::is_integral_v<T>;
+inline constexpr bool kIsTrivialRawType = std::is_integral_v<T> || std::is_enum_v<T>;
 
 template <>
 inline constexpr bool kIsTrivialRawType<bool> = true;
@@ -29,41 +29,41 @@ inline constexpr bool kIsTrivialRawType<std::string> = true;
 template <>
 inline constexpr bool kIsTrivialRawType<double> = true;
 
-template <typename RawType_, typename UserType_>
+template <typename TRawType, typename TUserType>
 struct TrivialParameterBase {
-    using RawType = RawType_;
-    using UserType = UserType_;
+    using RawType = TRawType;
+    using UserType = TUserType;
 
     static_assert(kIsTrivialRawType<RawType>);
 };
 
-template <In In_, const Name& Name_, typename RawType_, typename UserType_ = RawType_>
+template <In TIn, const Name& Name, typename RawType, typename UserType = RawType>
 struct TrivialParameter {
-    static constexpr auto kIn = In_;
-    static constexpr auto& kName = Name_;
+    static constexpr auto kIn = TIn;
+    static constexpr auto& kName = Name;
 
-    using Base = TrivialParameterBase<RawType_, UserType_>;
+    using Base = TrivialParameterBase<RawType, UserType>;
 
     static_assert(kIn != In::kQueryExplode);
 };
 
-template <In In_, char Delimiter_, typename RawItemType_, typename UserItemType_ = RawItemType_>
+template <In TIn, char Delimiter, typename TRawItemType, typename TUserItemType = TRawItemType>
 struct ArrayParameterBase {
-    static constexpr char kDelimiter = Delimiter_;
-    static constexpr auto kIn = In_;
+    static constexpr char kDelimiter = Delimiter;
+    static constexpr auto kIn = TIn;
 
     using RawType = std::vector<std::string>;
-    using RawItemType = RawItemType_;
-    using UserType = std::vector<UserItemType_>;
-    using UserItemType = UserItemType_;
+    using RawItemType = TRawItemType;
+    using UserType = std::vector<TUserItemType>;
+    using UserItemType = TUserItemType;
 };
 
-template <In In_, const Name& Name_, char Delimiter_, typename RawItemType_, typename UserItemType_ = RawItemType_>
+template <In TIn, const Name& Name, char Delimiter, typename TRawItemType, typename TUserItemType = TRawItemType>
 struct ArrayParameter {
-    static constexpr auto& kName = Name_;
-    static constexpr auto kIn = In_;
+    static constexpr auto& kName = Name;
+    static constexpr auto kIn = TIn;
 
-    using Base = ArrayParameterBase<In_, Delimiter_, RawItemType_, UserItemType_>;
+    using Base = ArrayParameterBase<TIn, Delimiter, TRawItemType, TUserItemType>;
 };
 
 }  // namespace chaotic::openapi

@@ -9,11 +9,11 @@ server-port: 8080
 
 grpc-server-port: 8081
 # grpc template off
-# postgres template on
+# postgresql template on
 
 # change to URI of your postgres database
 pg-connection: postgresql://testsuite@localhost:15433/service_template_db_1
-# postgres template off
+# postgresql template off
 # mongo template on
 
 # change to URI of your mongo database

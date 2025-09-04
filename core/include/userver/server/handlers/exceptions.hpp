@@ -107,13 +107,13 @@ template <typename T>
 using HasInternalMessage = decltype(std::declval<const T&>().GetInternalMessage());
 
 template <typename T>
-inline constexpr bool kHasInternalMessage = meta::kIsDetected<HasInternalMessage, T>;
+inline constexpr bool kHasInternalMessage = meta::IsDetected<HasInternalMessage, T>;
 
 template <typename T>
 using HasExternalBody = decltype(std::declval<const T&>().GetExternalBody());
 
 template <typename T>
-inline constexpr bool kHasExternalBody = meta::kIsDetected<HasExternalBody, T>;
+inline constexpr bool kHasExternalBody = meta::IsDetected<HasExternalBody, T>;
 
 template <typename T>
 inline constexpr bool kIsMessageBuilder = kHasExternalBody<T>;
@@ -121,7 +121,7 @@ inline constexpr bool kIsMessageBuilder = kHasExternalBody<T>;
 template <typename T>
 struct MessageExtractor {
     static_assert(
-        meta::kIsDetected<HasExternalBody, T>,
+        meta::IsDetected<HasExternalBody, T>,
         "Please use your message builder to build external body for "
         "your error. See server::handlers::CustomHandlerException "
         "for more info"
@@ -134,7 +134,7 @@ struct MessageExtractor {
     }
 
     std::string GetServiceCode() const {
-        if constexpr (meta::kIsDetected<HasServiceCode, T>) {
+        if constexpr (meta::IsDetected<HasServiceCode, T>) {
             return builder.GetServiceCode();
         } else {
             return std::string{};
@@ -185,7 +185,7 @@ private:
 
     template <typename MessageBuilder>
     void Apply(MessageBuilder&& builder) {
-        impl::MessageExtractor<MessageBuilder> extractor{builder};
+        const impl::MessageExtractor<MessageBuilder> extractor{builder};
         is_external_body_formatted = extractor.IsExternalBodyFormatted();
         service_code = extractor.GetServiceCode();
         external_body = extractor.GetExternalBody();

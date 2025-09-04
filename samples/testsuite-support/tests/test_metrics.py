@@ -43,7 +43,7 @@ async def test_reset(service_client, monitor_client):
 # /// [metrics labels]
 async def test_engine_metrics(service_client, monitor_client):
     metric = await monitor_client.single_metric(
-        'engine.task-processors.tasks.finished',
+        'engine.task-processors.tasks.finished.v2',
         labels={'task_processor': 'main-task-processor'},
     )
     assert metric.value > 0

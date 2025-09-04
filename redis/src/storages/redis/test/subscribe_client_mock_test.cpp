@@ -6,12 +6,12 @@ namespace storages::redis::test {
 
 /// Here, we test that our Mock is correct
 TEST(MockSubscribeClientTest, Basic) {
-    std::shared_ptr<MockSubscribeClient> client_mock = std::make_shared<MockSubscribeClient>();
+    const std::shared_ptr<MockSubscribeClient> client_mock = std::make_shared<MockSubscribeClient>();
 
     using testing::_;
 
     {
-        testing::InSequence seq;
+        const testing::InSequence seq;
         EXPECT_CALL(*client_mock, Subscribe("test_subscribe", _, _))
             .Times(1)
             .WillRepeatedly([](std::string, SubscriptionToken::OnMessageCb, const CommandControl&) {

@@ -37,7 +37,7 @@ class Histogram:
     Represents the value of a HIST_RATE (a.k.a. Histogram) metric.
 
     Usage example:
-    @snippet testsuite/tests/test_metrics.py  histogram
+    @snippet testsuite/tests/metrics/test_metrics.py  histogram
 
     Normally obtained from MetricsSnapshot
     """
@@ -73,7 +73,7 @@ class Metric:
     `value: int`.
 
     The type is hashable and comparable:
-    @snippet testsuite/tests/test_metrics.py  values set
+    @snippet testsuite/tests/metrics/test_metrics.py  values set
 
     @ingroup userver_testsuite
     """

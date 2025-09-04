@@ -1,4 +1,8 @@
 default: ''
-description: ''
+description: |
+    Proxy for all the HTTP and HTTPS clients. Empty string disables proxy usage.
+
+    Proxy string may be prefixed with `[scheme]://` to specify which kind of proxy is used. Schemes match the [libcurl supported ones](https://curl.se/libcurl/c/CURLOPT_PROXY.html).
+    A proxy host string can also embed user and password.
 schema:
     type: string

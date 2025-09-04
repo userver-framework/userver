@@ -133,7 +133,7 @@ constexpr crypto::PublicKey::CoordinateView kY{
 }  // namespace
 
 TEST(Crypto, EcdsaVerifierFromComponents) {
-    crypto::SignerEs256 signer(ecdsa256v1_priv_key);
+    const crypto::SignerEs256 signer(ecdsa256v1_priv_key);
     const auto sign = signer.Sign({"Hello, World"});
 
     const auto pub_key = crypto::PublicKey::LoadECFromComponents(kType, kX, kY);

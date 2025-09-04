@@ -8,15 +8,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config {
 
-template <typename iter_traits>
+template <typename IterTraits>
 class Iterator final {
 public:
     using YamlIterator = formats::yaml::Value::const_iterator;
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = typename iter_traits::value_type;
-    using reference = typename iter_traits::reference;
-    using pointer = typename iter_traits::pointer;
+    using value_type = typename IterTraits::value_type;
+    using reference = typename IterTraits::reference;
+    using pointer = typename IterTraits::pointer;
 
     Iterator(const value_type& container, YamlIterator it) : container_(&container), it_(std::move(it)) {}
 

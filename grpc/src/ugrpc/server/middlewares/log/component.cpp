@@ -1,12 +1,14 @@
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 
 #include <userver/components/component_config.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/middlewares/groups.hpp>
-#include <userver/ugrpc/server/middlewares/log/component.hpp>
+#include <userver/ugrpc/server/middlewares/access_log/component.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,21 +16,27 @@ namespace ugrpc::server::middlewares::log {
 
 Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
     Settings settings;
+    settings.log_level = config["log-level"].As<logging::Level>(settings.log_level);
     settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
     settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
-    settings.trim_secrets = config["trim-secrets"].As<bool>(settings.trim_secrets);
+    settings.local_log_level = config["local-log-level"].As<logging::Level>(settings.local_log_level);
+    settings.status_codes_log_level =
+        config["status-codes-log-level"].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({});
     return settings;
 }
 
+/// [middleware InGroup]
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : MiddlewareFactoryComponentBase(
           config,
           context,
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
+              .After<access_log::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak)
       ) {}
+/// [middleware InGroup]
 
-std::shared_ptr<MiddlewareBase>
+std::shared_ptr<const MiddlewareBase>
 Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
     return std::make_shared<Middleware>(middleware_config.As<Settings>());
 }
@@ -43,19 +51,31 @@ additionalProperties: false
 properties:
     log-level:
         type: string
-        description: gRPC handlers log level
+        description: set log level threshold
     msg-log-level:
         type: string
-        description: gRPC message body logging level
+        description: set up logging level for request/response messages
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated
-    trim-secrets:
-        type: boolean
+    local-log-level:
+        type: string
+        description: local log level of the span for user-provided handler
+    status-codes-log-level:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: string
+            description: log level
         description: |
-            trim the secrets from logs as marked by the protobuf option.
-            you should set this to false if the responses contain
-            optional fields and you are using protobuf prior to 3.13
+            gRPC status code string -> log level map.
+            Allows overriding the log level for the response for individual statuses.
+            See grpcpp StatusCode documentation for the list of possible values:
+            https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
+
+            Example:
+              -  FAILED_PRECONDITION: info
+
 )");
 }
 

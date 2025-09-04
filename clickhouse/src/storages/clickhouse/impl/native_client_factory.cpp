@@ -261,7 +261,7 @@ NativeClientWrapper NativeClientFactory::Create(
                              .SetDefaultDatabase(auth.database)
                              .SetCompressionMethod(GetCompressionMethod(connection_settings.compression_method));
 
-    tracing::Span span{scopes::kConnect};
+    const tracing::Span span{scopes::kConnect};
     return NativeClientWrapper{resolver, options, connection_settings.connection_mode};
 }
 

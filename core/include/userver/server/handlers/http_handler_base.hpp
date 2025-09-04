@@ -51,7 +51,7 @@ class HttpHandlerStatisticsScope;
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// log-level | overrides log level for this handle | <no override>
+/// log-level | overrides log level for this handle | `<no override>`
 /// status-codes-log-level | map of "status": log_level items to override span log level for specific status codes | {}
 /// middlewares.pipeline-builder | name of a component to build a middleware pipeline for this particular handler | default-handler-middleware-pipeline-builder
 ///
@@ -150,6 +150,11 @@ protected:
     /// @note The default implementation returns the cached value of
     /// "response-body-streamed" value from static config.
     virtual bool IsStreamed() const { return is_body_streamed_; }
+
+    /// Override it if you need a custom streamed logic based on request and context.
+    /// @note The default implementation returns the cached value of
+    /// "response-body-streamed" value from static config.
+    virtual bool IsStreamed(const http::HttpRequest&, server::request::RequestContext&) const { return IsStreamed(); }
 
     /// Override it to show per HTTP-method statistics besides statistics for all
     /// methods

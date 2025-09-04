@@ -260,7 +260,7 @@ TYPED_TEST_P(Conversion, ContainersSerialize) {
     ValueBuilder invb;
     std::vector ref_vector{1, 2, 3};
     invb["v"] = ref_vector;
-    std::array ref_array{1, 2, 3};
+    const std::array ref_array{1, 2, 3};
     invb["a"] = ref_array;
     std::unordered_map<std::string, int> ref_umap;
     ref_umap["one"] = 1;

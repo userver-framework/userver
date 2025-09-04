@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent {
 
 ConflatedEventChannel::ConflatedEventChannel(std::string name, OnRemoveCallback on_listener_removal)
-    : AsyncEventChannel<>(std::move(name), on_listener_removal), stop_flag_(false) {
+    : AsyncEventChannel<>(std::move(name), std::move(on_listener_removal)), stop_flag_(false) {
     LOG_DEBUG() << Name() << ": start event listener task";
     task_ = utils::Async(Name() + "/event_listener", [this] {
         while (event_.WaitForEvent()) {

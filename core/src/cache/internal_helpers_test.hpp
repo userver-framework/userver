@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <utility>
 
-#include <userver/alerts/storage.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/dump/config.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
@@ -12,6 +11,7 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -26,9 +26,9 @@ struct MockEnvironment final {
     explicit MockEnvironment(testsuite::impl::PeriodicUpdatesMode update_mode)
         : cache_control(update_mode, testsuite::CacheControl::UnitTests{}) {}
 
-    dynamic_config::StorageMock config_storage{{dump::kConfigSet, {}}, {cache::kCacheConfigSet, {}}};
+    dynamic_config::StorageMock config_storage{{::dynamic_config::USERVER_DUMPS, {}}, {cache::kCacheConfigSet, {}}};
     utils::statistics::Storage statistics_storage;
-    alerts::Storage alerts_storage;
+    utils::statistics::MetricsStoragePtr metrics_storage = std::make_shared<utils::statistics::MetricsStorage>();
     fs::blocking::TempDirectory dump_root = fs::blocking::TempDirectory::Create();
     testsuite::CacheControl cache_control{
         testsuite::impl::PeriodicUpdatesMode::kDisabled,

@@ -1,20 +1,32 @@
 # userver [<img src="./scripts/docs/img/logo.svg" align='right' width="10%">](https://userver.tech/)
 
-| Service Templates | Develop / Green Trunk  | v2.0 | v1.0 |
-|-------------------|------------------------|------|------|
-| Core: | [![CI](https://github.com/userver-framework/service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/service_template/) | [[➚]](https://github.com/userver-framework/service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/service_template/tree/v1.0.0) |
-| PostgreSQL: | [![CI](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_service_template/) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v1.0.0) |
-| gRPC+PostgreSQL: | [![CI](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template)| [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v1.0.0) |
-| gRPC+Mongo: | [![CI](https://github.com/userver-framework/mongo_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/mongo_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/mongo_grpc_service_template)| — | — |
+[![Ubuntu](https://github.com/userver-framework/userver/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/ci.yml)
+[![Fedora](https://github.com/userver-framework/userver/actions/workflows/fedora.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/fedora.yml)
+[![MacOS](https://github.com/userver-framework/userver/actions/workflows/macos.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/macos.yml)
+[![Alpine](https://github.com/userver-framework/userver/actions/workflows/alpine.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/alpine.yml)
+[![Docker CI](https://github.com/userver-framework/userver/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/docker.yaml)
+[![Conan](https://github.com/userver-framework/userver/actions/workflows/ci-conan.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/ci-conan.yml)
+[![CodeQL](https://github.com/userver-framework/userver/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/codeql-analysis.yml)
+
+[![Build and publish ubuntu-24.04-userver images](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-24.04-images.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-24.04-images.yaml)
+[![Build and publish ubuntu-22.04-userver images](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-22.04-images.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-22.04-images.yaml)
+
+[![uservice-dynconf CI](https://github.com/userver-framework/uservice-dynconf/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/uservice-dynconf/actions/workflows/ci.yml)
+[![uservice-dynconf Docker build](https://github.com/userver-framework/uservice-dynconf/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/uservice-dynconf/actions/workflows/docker.yaml)
+[![urealmedium CI](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml)
+[![urealmedium Docker build](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml)
+[![upastebin CI](https://github.com/userver-framework/upastebin/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/ci.yml)
+[![upastebin Docker](https://github.com/userver-framework/upastebin/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/docker.ymal)
+
 
 **userver** is an open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
 
 The framework solves the problem of efficient I/O interactions transparently for
-the developers. Operations that would typically suspend the thread of 
+the developers. Operations that would typically suspend the thread of
 execution do not suspend it. Instead of that, the thread processes other
 requests and tasks and returns to the handling of the operation only when it is
-guaranteed to execute immediately: 
+guaranteed to execute immediately:
 
 ```cpp
 #include <userver/easy.hpp>
@@ -50,13 +62,13 @@ avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
 
-You can learn more about history and key features of userver from our 
+You can learn more about history and key features of userver from our
 [publications and videos](https://userver.tech/dc/d30/md_en_2userver_2publications.html).
 
 ## Other Features
 
-* Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis,
-  ClickHouse, MySQL/MariaDB, YDB ...) and data transfer protocols
+* Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Valkey,
+  Redis, ClickHouse, MySQL/MariaDB, YDB, SQLite ...) and data transfer protocols
   (HTTP/{1.1, 2.0}, gRPC, AMQP 0-9-1, Kafka, TCP, TLS,
   WebSocket ...), tasks construction and cancellation.
 * Rich set of high-level components for caches, tasks, distributed locking,
@@ -65,7 +77,7 @@ You can learn more about history and key features of userver from our
 * On-the-fly configurable drivers, options of the deadline propagation,
   timeouts, congestion-control.
 * Comprehensive set of asynchronous low-level synchronization primitives and
-  OS abstractions. 
+  OS abstractions.
 
 
 [See the docs for more info](https://userver.tech/de/d6a/md_en_2index.html).

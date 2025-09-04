@@ -42,10 +42,6 @@ Qos Parse(const formats::json::Value& value, formats::parse::To<Qos>);
 
 formats::json::Value Serialize(const Qos& qos, formats::serialize::To<formats::json::Value>);
 
-std::optional<std::uint32_t> GetAttempts(const Qos& qos);
-
-std::optional<std::chrono::milliseconds> GetTotalTimeout(const Qos& qos);
-
 }  // namespace ugrpc::client
 
 USERVER_NAMESPACE_END

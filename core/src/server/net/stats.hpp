@@ -2,22 +2,21 @@
 
 #include <atomic>
 #include <cstddef>
-#include <optional>
-#include <vector>
 
 #include <userver/concurrent/striped_counter.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
+#include <userver/utils/statistics/striped_rate_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
 struct Http2Stats {
-    utils::statistics::RateCounter streams_count{0};
-    utils::statistics::RateCounter streams_parse_error{0};
-    utils::statistics::RateCounter streams_close{0};
-    utils::statistics::RateCounter reset_streams{0};
-    utils::statistics::RateCounter goaway{0};
+    utils::statistics::RateCounter streams_count;
+    utils::statistics::RateCounter streams_parse_error;
+    utils::statistics::RateCounter streams_close;
+    utils::statistics::RateCounter reset_streams;
+    utils::statistics::RateCounter goaway;
 };
 
 struct ParserStats {
@@ -49,23 +48,23 @@ struct ParserStatsAggregation final {
 
     std::size_t parsing_request_count{0};
     // HTTP/2.0
-    utils::statistics::Rate streams_count{0};
-    utils::statistics::Rate streams_parse_error{0};
-    utils::statistics::Rate streams_close{0};
-    utils::statistics::Rate reset_streams{0};
-    utils::statistics::Rate goaway{0};
+    utils::statistics::Rate streams_count;
+    utils::statistics::Rate streams_parse_error;
+    utils::statistics::Rate streams_close;
+    utils::statistics::Rate reset_streams;
+    utils::statistics::Rate goaway;
 };
 
 struct Stats {
     // per listener
-    std::atomic<size_t> active_connections{0};
-    std::atomic<size_t> connections_created{0};
-    std::atomic<size_t> connections_closed{0};
+    std::atomic<std::size_t> active_connections{0};
+    utils::statistics::RateCounter connections_created;
+    utils::statistics::RateCounter connections_closed;
 
     // per connection
     ParserStats parser_stats;
     concurrent::StripedCounter active_request_count;
-    concurrent::StripedCounter requests_processed_count;
+    utils::statistics::StripedRateCounter requests_processed_count;
 };
 
 struct StatsAggregation final {
@@ -73,11 +72,11 @@ struct StatsAggregation final {
 
     explicit StatsAggregation(const Stats& stats)
         : active_connections{stats.active_connections.load()},
-          connections_created{stats.connections_created.load()},
-          connections_closed{stats.connections_closed.load()},
+          connections_created{stats.connections_created.Load()},
+          connections_closed{stats.connections_closed.Load()},
           parser_stats{stats.parser_stats},
           active_request_count{stats.active_request_count.NonNegativeRead()},
-          requests_processed_count{stats.requests_processed_count.Read()} {}
+          requests_processed_count{stats.requests_processed_count.Load()} {}
 
     StatsAggregation& operator+=(const StatsAggregation& other) {
         active_connections += other.active_connections;
@@ -92,13 +91,13 @@ struct StatsAggregation final {
     }
 
     std::size_t active_connections{0};
-    std::size_t connections_created{0};
-    std::size_t connections_closed{0};
+    utils::statistics::Rate connections_created;
+    utils::statistics::Rate connections_closed;
 
     // per connection
     ParserStatsAggregation parser_stats;
     std::size_t active_request_count{0};
-    std::size_t requests_processed_count{0};
+    utils::statistics::Rate requests_processed_count;
 };
 
 }  // namespace server::net

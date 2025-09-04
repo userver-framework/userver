@@ -54,32 +54,39 @@ public:
 
     void Flush();
 
+    const clients::http::Headers& GetHeaders() const;
+
+    using HiddenQueryArgNamesFunc = bool (*)(std::string_view);
+
+    void SetHiddenQueryArgNamesFunc(HiddenQueryArgNamesFunc func);
+
 private:
     std::string url_pattern_;
     clients::http::Request& request_;
     clients::http::Headers headers_;
     http::MultiArgs query_args_;
+    HiddenQueryArgNamesFunc hidden_query_arg_names_func_{};
     std::unordered_map<std::string, std::string> cookies_;
     fmt::dynamic_format_arg_store<fmt::format_context> path_vars_;
 };
 
 void ValidatePathVariableValue(std::string_view name, std::string_view value);
 
-template <In In, typename StrType>
+template <In TIn, typename StrType>
 void SetParameter(Name& name, StrType&& str_value, ParameterSinkBase& dest) {
     static_assert(std::is_same_v<StrType, std::string> || std::is_same_v<StrType, std::vector<std::string>>);
 
-    if constexpr (In == In::kPath) {
+    if constexpr (TIn == In::kPath) {
         USERVER_NAMESPACE::chaotic::openapi::ValidatePathVariableValue(name, str_value);
         dest.SetPath(name, std::forward<StrType>(str_value));
-    } else if constexpr (In == In::kCookie) {
+    } else if constexpr (TIn == In::kCookie) {
         dest.SetCookie(name, std::forward<StrType>(str_value));
-    } else if constexpr (In == In::kHeader) {
+    } else if constexpr (TIn == In::kHeader) {
         dest.SetHeader(name, std::forward<StrType>(str_value));
-    } else if constexpr (In == In::kQuery) {
+    } else if constexpr (TIn == In::kQuery) {
         dest.SetQuery(name, std::forward<StrType>(str_value));
     } else {
-        static_assert(In == In::kQueryExplode, "Unknown 'In'");
+        static_assert(TIn == In::kQueryExplode, "Unknown 'In'");
         dest.SetMultiQuery(name, std::forward<StrType>(str_value));
     }
 }
@@ -145,9 +152,9 @@ struct SerializeParameter<ArrayParameterBase<In::kQueryExplode, Delimiter, T, U>
     }
 };
 
-template <In In_, char Delimiter, typename RawType, typename UserType>
-struct SerializeParameter<ArrayParameterBase<In_, Delimiter, RawType, UserType>> {
-    static_assert(In_ != In::kQueryExplode);
+template <In TIn, char Delimiter, typename RawType, typename UserType>
+struct SerializeParameter<ArrayParameterBase<TIn, Delimiter, RawType, UserType>> {
+    static_assert(TIn != In::kQueryExplode);
 
     std::string operator()(const UserType& item) const { return ToStrParameter(Convert(item, convert::To<RawType>{})); }
 

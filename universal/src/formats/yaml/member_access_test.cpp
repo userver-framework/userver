@@ -30,8 +30,8 @@ struct MemberAccess<formats::yaml::Value> : public ::testing::Test {
         "Value iterators are not assignable"
     );
 
-    inline MemberAccess() : doc_(formats::yaml::FromString(kDoc)) {}
-    formats::yaml::Value doc_;
+    inline MemberAccess() : doc(formats::yaml::FromString(kDoc)) {}
+    formats::yaml::Value doc;
 
     using ValueBuilder = formats::yaml::ValueBuilder;
     using Value = formats::yaml::Value;
@@ -54,13 +54,13 @@ TEST_F(FormatsYamlSpecificMemberAccess, CheckPrimitiveTypes) {
     //        negative numbers into unsigned types
     // EXPECT_FALSE(doc_["key3"]["sub"].IsUInt64());
 
-    EXPECT_NO_THROW(doc_["key1"].As<std::string>());
-    EXPECT_NO_THROW(doc_["key5"].As<std::string>());
-    EXPECT_NO_THROW(doc_["key6"].As<std::string>());
+    EXPECT_NO_THROW(doc["key1"].As<std::string>());
+    EXPECT_NO_THROW(doc["key5"].As<std::string>());
+    EXPECT_NO_THROW(doc["key6"].As<std::string>());
 }
 
 TEST_F(FormatsYamlSpecificMemberAccess, Items) {
-    for ([[maybe_unused]] const auto& [key, value] : Items(doc_)) {
+    for ([[maybe_unused]] const auto& [key, value] : Items(doc)) {
     }
 }
 

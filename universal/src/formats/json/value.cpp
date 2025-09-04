@@ -17,6 +17,7 @@
 #include <gdb_autogen/formats/json/printers.hpp>
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/impl/mutable_value_wrapper.hpp>
+#include <userver/formats/json/serialize.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -217,6 +218,16 @@ bool Value::IsInt64() const noexcept {
     if (native.IsInt64()) return true;
     if (native.IsDouble()) {
         return IsNonOverflowingIntegral<int64_t>(native.GetDouble());
+    }
+    return false;
+}
+
+bool Value::IsUInt() const noexcept {
+    if (IsMissing()) return false;
+    const auto& native = GetNative();
+    if (native.IsUint()) return true;
+    if (native.IsDouble()) {
+        return IsNonOverflowingIntegral<unsigned int>(native.GetDouble());
     }
     return false;
 }

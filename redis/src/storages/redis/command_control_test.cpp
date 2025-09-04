@@ -6,8 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 #ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(CommandControl, Comparison) {
-    storages::redis::CommandControl cc1{std::chrono::milliseconds(500), std::chrono::milliseconds(500), 1};
-    storages::redis::CommandControl cc2{std::chrono::milliseconds(500), std::chrono::milliseconds(500), 2};
+    const storages::redis::CommandControl cc1{std::chrono::milliseconds(500), std::chrono::milliseconds(500), 1};
+    const storages::redis::CommandControl cc2{std::chrono::milliseconds(500), std::chrono::milliseconds(500), 2};
     auto cc3 = cc1;
     cc3.force_request_to_master = true;
 

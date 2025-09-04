@@ -56,16 +56,16 @@ class HeadersHolder;
 /// @see https://docs.confluent.io/platform/current/clients/producer.html
 class Producer final {
 public:
-    /// @brief Creates the Kafka Producer.
-    ///
-    /// @param producer_task_processor is task processor where producer creates
-    /// tasks for message delivery scheduling and waiting.
+    /// @cond
+    // @param producer_task_processor is task processor where producer creates
+    // tasks for message delivery scheduling and waiting.
     Producer(
         const std::string& name,
         engine::TaskProcessor& producer_task_processor,
         const impl::ProducerConfiguration& configuration,
         const impl::Secret& secrets
     );
+    /// @endcond
 
     /// @brief Waits until all messages are sent for at most 2 x
     /// `delivery_timeout` and destroys the producer.
@@ -103,7 +103,7 @@ public:
     /// a sense to retry the message sending.
     /// @snippet kafka/tests/producer_kafkatest.cpp Producer retryable error
     void Send(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition = kUnassignedPartition,
@@ -134,7 +134,7 @@ public:
 
 private:
     void SendImpl(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition,

@@ -27,6 +27,7 @@ struct ConnectionInfo {
     bool read_only = false;
     ConnectionSecurity connection_security = ConnectionSecurity::kNone;
     using HostVector = std::vector<std::string>;
+    std::size_t database_index = 0;
 
     ConnectionInfo() = default;
     ConnectionInfo(
@@ -34,13 +35,15 @@ struct ConnectionInfo {
         int port,
         Password password,
         bool read_only = false,
-        ConnectionSecurity security = ConnectionSecurity::kNone
+        ConnectionSecurity security = ConnectionSecurity::kNone,
+        std::size_t db_index = 0
     )
         : host{std::move(host)},
           port{port},
           password{std::move(password)},
           read_only{read_only},
-          connection_security(security) {}
+          connection_security(security),
+          database_index(db_index) {}
 };
 
 struct Stat {
@@ -62,11 +65,6 @@ struct CommandsBufferingSettings {
                commands_buffering_threshold == o.commands_buffering_threshold &&
                watch_command_timer_interval == o.watch_command_timer_interval;
     }
-};
-
-enum class ConnectionMode {
-    kCommands,
-    kSubscriber,
 };
 
 struct MetricsSettings {

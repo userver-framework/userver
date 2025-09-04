@@ -6,21 +6,18 @@
 #include <chrono>
 #include <functional>
 #include <optional>
-#include <random>
 #include <string>
 
-#include <userver/engine/single_consumer_event.hpp>
-#include <userver/engine/task/task_with_result.hpp>
-#include <userver/rcu/rcu.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/flags.hpp>
 
-// TODO remove extra include
-#include <userver/engine/condition_variable.hpp>
-#include <userver/testsuite/periodic_task_control.hpp>
-#include <userver/tracing/span.hpp>
-
 USERVER_NAMESPACE_BEGIN
+
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
 
 namespace testsuite {
 class PeriodicTaskControl;
@@ -204,36 +201,10 @@ public:
     Settings GetCurrentSettings() const;
 
 private:
-    enum class SuspendState { kRunning, kSuspended };
-
-    void DoStart();
-
-    void Run();
-
-    bool Step();
-
-    bool StepDebug(bool preserve_span);
-
-    bool DoStep();
-
-    std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
-
-    std::string_view GetName() const noexcept;
-
-    std::string name_;
-    std::atomic<bool> is_name_set_{false};
-    Callback callback_;
-    engine::TaskWithResult<void> task_;
-    rcu::Variable<Settings> settings_;
-    engine::SingleConsumerEvent changed_event_;
-    std::atomic<bool> should_force_step_{false};
-    std::optional<std::minstd_rand> mutate_period_random_;
-
-    // For kNow only
-    engine::Mutex step_mutex_;
-    std::atomic<SuspendState> suspend_state_;
-
-    std::optional<USERVER_NAMESPACE::testsuite::PeriodicTaskRegistrationHolder> registration_holder_;
+    class Impl;
+    constexpr static std::size_t kSize = 432;
+    constexpr static std::size_t kAlignment = 16;
+    utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };
 
 }  // namespace utils

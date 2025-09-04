@@ -117,7 +117,7 @@ Poller::Status Poller::NextEventNoblock(Event& buf) {
 }
 
 void Poller::Interrupt() {
-    [[maybe_unused]] bool is_sent = event_producer_.PushNoblock({});
+    [[maybe_unused]] const bool is_sent = event_producer_.PushNoblock({});
     UASSERT(is_sent);
 }
 
@@ -162,7 +162,7 @@ void Poller::IoWatcher::IoEventCb(struct ev_loop*, ev_io* watcher, int revents) 
     if (watcher_meta->coro_epoch != ev_epoch) return;
 
     // NOTE: it might be better to poll() here to get POLLERR/POLLHUP as well
-    [[maybe_unused]] bool is_sent =
+    [[maybe_unused]] const bool is_sent =
         watcher_meta->poller.event_producer_.PushNoblock({watcher->fd, FromEvEvents(revents), ev_epoch});
     UASSERT(is_sent);
 

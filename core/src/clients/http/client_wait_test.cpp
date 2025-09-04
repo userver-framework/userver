@@ -2,6 +2,7 @@
 
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/wait_any.hpp>
+#include <userver/logging/log.hpp>
 
 #include <userver/http/http_version.hpp>
 #include <userver/utest/http_client.hpp>
@@ -78,7 +79,7 @@ std::size_t ProcessReadyRequests(std::vector<clients::http::ResponseFuture>& req
     while (auto indx = engine::WaitAnyUntil(deadline, requests)) {
         ++processed_requests;
 
-        std::shared_ptr<clients::http::Response> response = requests[*indx].Get();
+        const std::shared_ptr<clients::http::Response> response = requests[*indx].Get();
         EXPECT_TRUE(response->IsOk());
     }
 

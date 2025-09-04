@@ -1,16 +1,13 @@
 #pragma once
 
 #include <chrono>
-#include <memory>
 #include <string>
-
-#include <grpcpp/client_context.h>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 
-#include <userver/ugrpc/deadline_timepoint.hpp>
+#include <userver/ugrpc/client/call_options.hpp>
 
 #include <userver/utest/utest.hpp>
 
@@ -26,12 +23,12 @@ constexpr auto kAddSleep = std::chrono::milliseconds{100};
 
 const std::string kGrpcMethod = "grpc_method";
 
-inline std::unique_ptr<grpc::ClientContext> MakeClientContext(bool set_deadline) {
-    auto context = std::make_unique<grpc::ClientContext>();
-    if (set_deadline) {
-        context->set_deadline(engine::Deadline::FromDuration(kLongTimeout));
+inline ugrpc::client::CallOptions MakeCallOptions(bool set_timeout) {
+    ugrpc::client::CallOptions call_options;
+    if (set_timeout) {
+        call_options.SetTimeout(kLongTimeout);
     }
-    return context;
+    return call_options;
 }
 
 inline void InitTaskInheritedDeadline(const engine::Deadline deadline = engine::Deadline::FromDuration(kShortTimeout)) {

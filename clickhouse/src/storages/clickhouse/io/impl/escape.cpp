@@ -2,6 +2,8 @@
 
 #include <userver/storages/clickhouse/io/type_traits.hpp>
 
+#include <boost/uuid/uuid_io.hpp>
+
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -55,6 +57,9 @@ std::string Escape(int16_t v) { return FormatScalar(v); }
 std::string Escape(int32_t v) { return FormatScalar(v); }
 std::string Escape(int64_t v) { return FormatScalar(v); }
 
+std::string Escape(double number) { return Escape(FloatingWithPrecision<double>(number)); }
+std::string Escape(float number) { return Escape(FloatingWithPrecision<float>(number)); }
+
 std::string Escape(const char* source) { return Escape(std::string_view{source}); }
 
 std::string Escape(const std::string& source) { return Escape(std::string_view{source}); }
@@ -68,6 +73,10 @@ std::string Escape(std::string_view source) {
     result.push_back('\'');
 
     return result;
+}
+
+std::string Escape(const boost::uuids::uuid& uuid) {
+    return fmt::format("toUUID('{}')", boost::uuids::to_string(uuid));
 }
 
 std::string Escape(std::chrono::system_clock::time_point source) {

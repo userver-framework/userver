@@ -49,30 +49,30 @@ struct BusyStorage::Impl {
 };
 
 BusyStorage::BusyStorage(Duration epoch_duration, Duration history_period)
-    : pimpl(std::make_unique<Impl>(epoch_duration, history_period)) {}
+    : pimpl_(std::make_unique<Impl>(epoch_duration, history_period)) {}
 
 BusyStorage::~BusyStorage() { UASSERT_MSG(!IsAlreadyStarted(), "BusyStorage was not stopped before destruction"); }
 
 double BusyStorage::GetCurrentLoad() const {
-    pimpl->recent_period.UpdateEpochIfOld();
+    pimpl_->recent_period.UpdateEpochIfOld();
 
     const Duration current_load_duration = GetNotCommittedLoad();
 
-    const auto result = pimpl->recent_period.GetStatsForPeriod(Timer::duration::min(), true);
+    const auto result = pimpl_->recent_period.GetStatsForPeriod(Timer::duration::min(), true);
     auto duration = result.Total();
-    if (duration.count() == 0) duration = pimpl->recent_period.GetMaxDuration();
+    if (duration.count() == 0) duration = pimpl_->recent_period.GetMaxDuration();
 
     auto load_duration = result.Get() + std::min(current_load_duration, duration);
     return static_cast<double>(load_duration.count()) / duration.count();
 }
 
-bool BusyStorage::IsAlreadyStarted() const noexcept { return pimpl->refcount.load() != 0; }
+bool BusyStorage::IsAlreadyStarted() const noexcept { return pimpl_->refcount.load() != 0; }
 
 void BusyStorage::StartWork() {
-    if (++pimpl->refcount != 1) {
+    if (++pimpl_->refcount != 1) {
 #ifndef NDEBUG
         UASSERT_MSG(
-            pimpl->thread_id.load() == std::this_thread::get_id(),
+            pimpl_->thread_id.load() == std::this_thread::get_id(),
             "BusyStorage should be started and stopped at the same thread"
         );
 #endif
@@ -80,19 +80,19 @@ void BusyStorage::StartWork() {
     }
 
 #ifndef NDEBUG
-    pimpl->thread_id = std::this_thread::get_id();
+    pimpl_->thread_id = std::this_thread::get_id();
 #endif
 
-    pimpl->start_work = utils::datetime::SteadyNow();
+    pimpl_->start_work = utils::datetime::SteadyNow();
 }
 
 void BusyStorage::StopWork() noexcept {
-    const auto refcount_snapshot = pimpl->refcount--;
+    const auto refcount_snapshot = pimpl_->refcount--;
     UASSERT_MSG(refcount_snapshot != 0, "Stop was called more times than start");
     if (refcount_snapshot != 1) {
 #ifndef NDEBUG
         UASSERT_MSG(
-            pimpl->thread_id.load() == std::this_thread::get_id(),
+            pimpl_->thread_id.load() == std::this_thread::get_id(),
             "BusyStorage should be started and stopped at the same thread"
         );
 #endif
@@ -100,14 +100,14 @@ void BusyStorage::StopWork() noexcept {
     }
 
     auto not_committed_load = GetNotCommittedLoad();
-    auto& value = pimpl->recent_period.GetCurrentCounter().value;
+    auto& value = pimpl_->recent_period.GetCurrentCounter().value;
     value = value.load() + not_committed_load;
 
-    pimpl->start_work = Timer::time_point{};
+    pimpl_->start_work = Timer::time_point{};
 }
 
 Duration BusyStorage::GetNotCommittedLoad() const noexcept {
-    const auto start_work = pimpl->start_work.load();
+    const auto start_work = pimpl_->start_work.load();
     if (start_work == Timer::time_point{}) {
         return Duration(0);
     } else {

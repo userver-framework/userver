@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp
+/// @brief @copybrief ugrpc::server::middlewares::deadline_propagation::Middleware
+
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/middlewares/congestion_control/component.hpp>
 
@@ -20,7 +23,9 @@ public:
             .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
             .After<congestion_control::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak);
 
-    void Handle(MiddlewareCallContext& context) const override;
+    void OnCallStart(MiddlewareCallContext& context) const override;
+
+    void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation

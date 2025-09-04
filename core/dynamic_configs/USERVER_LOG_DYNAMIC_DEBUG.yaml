@@ -1,7 +1,10 @@
 default:
     force-enabled: []
     force-disabled: []
-description: ''
+description: |
+    Logging per line and file overrides.
+    Log locations are defined as path prefix from the Arcadia root (`taxi/uservices/services/`).
+    Location of file may be followed by `:[line index]` to specify 1 exact log in that file.
 schema:
     type: object
     additionalProperties: false

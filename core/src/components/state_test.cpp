@@ -1,7 +1,6 @@
 #include <userver/utest/utest.hpp>
 
 #include <components/component_list_test.hpp>
-#include <userver/alerts/component.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/run.hpp>
@@ -172,6 +171,7 @@ components_manager:
   event_thread_pool:
     threads: 1
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   task_processors:
     main-task-processor:
       worker_threads: 1
@@ -195,8 +195,7 @@ components::ComponentList MakeComponentList() {
         .Append<Component2>()
         .Append<Component1>()
         .Append<ComponentNotLoaded>()
-        .Append<Component3>()
-        .Append<alerts::StorageComponent>();
+        .Append<Component3>();
 }
 
 }  // namespace

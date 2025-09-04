@@ -16,7 +16,7 @@
 #include <userver/http/header_map.hpp>
 #include <userver/utils/str_icase.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

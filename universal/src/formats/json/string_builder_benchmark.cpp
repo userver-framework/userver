@@ -36,13 +36,13 @@ BENCHMARK(JsonSerialize)->RangeMultiplier(4)->Range(1, 1024);
 
 void Write(int level, StringBuilder& sw) {
     if (level % 2) {
-        StringBuilder::ArrayGuard guard(sw);
+        const StringBuilder::ArrayGuard guard(sw);
         sw.WriteString("abc");
         sw.WriteInt64(123);
         sw.WriteNull();
         if (level > 0) Write(level - 1, sw);
     } else {
-        StringBuilder::ObjectGuard guard(sw);
+        const StringBuilder::ObjectGuard guard(sw);
 
         sw.Key("key");
         sw.WriteString("abc");

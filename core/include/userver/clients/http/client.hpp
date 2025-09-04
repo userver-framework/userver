@@ -62,7 +62,11 @@ class DestinationStatistics;
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
 public:
-    Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor, impl::PluginPipeline&& plugin_pipeline);
+    Client(
+        ClientSettings settings,
+        engine::TaskProcessor& fs_task_processor,
+        std::vector<utils::NotNull<clients::http::Plugin*>> plugins
+    );
 
     ~Client();
 
@@ -172,7 +176,7 @@ private:
 
     clients::dns::Resolver* resolver_{nullptr};
     utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
-    impl::PluginPipeline plugin_pipeline_;
+    std::vector<utils::NotNull<clients::http::Plugin*>> plugins_;
 };
 
 }  // namespace clients::http

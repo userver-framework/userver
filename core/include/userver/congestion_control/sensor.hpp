@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,17 +33,20 @@ namespace v2 {
 
 class Sensor {
 public:
-    struct Data {
+    struct SingleObjectData {
+        static constexpr auto kCommonObjectName = "common";
+
         std::size_t total{0};
         std::size_t timeouts{0};
-
-        std::size_t timings_avg_ms{0};
-
-        std::size_t current_load{0};
+        std::size_t timings_sum_ms{0};
 
         double GetRate() const { return static_cast<double>(timeouts) / (total ? total : 1); }
-
         std::string ToLogString() const;
+    };
+
+    struct Data {
+        std::unordered_map<std::string, SingleObjectData> objects;
+        std::size_t current_load{0};
     };
 
     virtual ~Sensor() = default;

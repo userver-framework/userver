@@ -146,7 +146,7 @@ file (if it exists).
 @note Dynamic configs is an essential part of a reliable service with high
       availability. Those could be used as an emergency switch for new
       functionality, selector for experiments, limits/timeouts/log-level setup,
-      proxy setup. See @ref scripts/docs/en/schemas/dynamic_configs.md for
+      proxy setup. See @ref scripts/docs/en/dynamic_configs/dynamic_configs.md for
       more info and @ref scripts/docs/en/userver/tutorial/config_service.md for
       insights on how to implement such service.
 
@@ -192,7 +192,7 @@ List of userver built-in metrics could be found at
 
 ### Alerts
 
-Alerts is a way to propagate critical errors from your service to a monitoring system.
+Alerts is a way to propagate critical errors from your service to a monitoring system via @ref alerts::Source.
 
 When the code identifies that something bad happened and a user should be notified about that,
 `alert_storage.FireAlert()` is called with the appropriate arguments. Then the alert subsystem
@@ -247,14 +247,14 @@ python3 ../samples/tests/prepare_production_configs.py
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" are used to make sure
 that the service is working fine and
 implements the required functionality. A recommended practice is to build the
-service in Debug and Release modes and tests both of them, then deploy the
-Release build to the production, @ref "disabling all the tests related handlers".
+service in Debug and Release modes and test both of them, then deploy the
+Release build to the production, disabling all the tests-related handlers.
 
 Debug builds of the userver provide numerous assertions that validate the
 framework usage and help to detect bugs at early stages.
 
 Typical functional tests for a service consist of a `conftest.py` file with
-mocks+configs for the sereffectivelyvice and a bunch of `test_*.py` files with actual
+mocks+configs for the service and a bunch of `test_*.py` files with actual
 tests. Such approach allows to reuse mocks and configurations in different
 tests.
 

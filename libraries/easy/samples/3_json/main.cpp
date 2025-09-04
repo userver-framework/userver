@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
                     storages::postgres::ClusterHostType::kSlave, "SELECT value FROM key_value_table WHERE key=$1", key
                 );
 
-                schemas::KeyValue response{key, res[0][0].As<std::string>()};
+                const schemas::KeyValue response{key, res[0][0].As<std::string>()};
                 return formats::json::ValueBuilder{response}.ExtractValue();
             }
         )

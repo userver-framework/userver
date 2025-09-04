@@ -6,6 +6,7 @@
 #include <userver/kafka/impl/broker_secrets.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/kafka/impl/consumer.hpp>
+#include <userver/logging/level_serialization.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -37,6 +38,10 @@ ConsumerComponent::ConsumerComponent(
               params.restart_after_failure_delay =
                   config["restart_after_failure_delay"].As<std::chrono::milliseconds>(params.restart_after_failure_delay
                   );
+              params.message_key_log_format = config["message_key_log_format"].As<impl::MessageKeyLogFormat>();
+              params.debug_info_log_level =
+                  config["debug_info_log_level"].As<logging::Level>(params.debug_info_log_level);
+              params.operation_log_level = config["operation_log_level"].As<logging::Level>(params.operation_log_level);
 
               return params;
           }()
@@ -69,7 +74,10 @@ properties:
         description: |
             Client identifier.
             May be an arbitrary string.
-            Optional, but you should set this property on each instance because it enables you to more easily correlate requests on the broker with the client instance which made it, which can be helpful in debugging and troubleshooting scenarios.
+            Optional, but you should set this property on each instance
+            because it enables you to more easily correlate requests on the broker
+            with the client instance which made it,
+            which can be helpful in debugging and troubleshooting scenarios.
         defaultDescription: userver
     topics:
         type: array
@@ -85,6 +93,16 @@ properties:
         type: string
         description: maximum amount of time consumer waits for new messages before calling a callback
         defaultDescription: 1s
+    message_key_log_format:
+        type: string
+        enum:
+          - plaintext
+          - hex
+        description: |
+            Specifies the logging format for the message key.
+            - 'plaintext': logs the message key as-is.
+            - 'hex': logs the message key in hexadecimal format.
+        defaultDescription: plaintext
     max_callback_duration:
         type: string
         description: |
@@ -131,6 +149,7 @@ properties:
           - PLAINTEXT
           - SASL_SSL
           - SASL_PLAINTEXT
+          - SSL
     sasl_mechanisms:
         type: string
         description: |
@@ -144,7 +163,7 @@ properties:
         type: string
         description: |
             file or directory path to CA certificate(s) for verifying the broker's key.
-            Must be set if `security_protocol` equals `SASL_SSL`.
+            Must be set if `security_protocol` equals `SASL_SSL` or `SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none
     topic_metadata_refresh_interval:
@@ -172,6 +191,16 @@ properties:
             type: string
             description: librdkafka option value
         defaultDescription: '{}'
+    debug_info_log_level:
+        type: string
+        description: |
+            log level for everything debug information
+        defaultDescription: debug
+    operation_log_level:
+        type: string
+        description: |
+            log level for infos about ordinary actions
+        defaultDescription: debug
 )");
 }
 

@@ -3,6 +3,7 @@
 /// @file userver/storages/postgres/message.hpp
 /// @brief Database messages
 
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -40,6 +41,9 @@ public:
     void ThrowException() const;
 
     static Severity SeverityFromString(std::string_view);
+
+    /// This constant is returned from Message::Get* functions if the PostgreSQL failed retrieve some info.
+    static constexpr const char* kUnknown = "<unknown>";
 
 private:
     detail::ResultWrapperPtr res_;

@@ -237,7 +237,7 @@ typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr Connection
 
     auto connection_ptr = TryPop();
     if (!connection_ptr) {
-        engine::SemaphoreLock connecting_lock{connecting_semaphore_, deadline};
+        const engine::SemaphoreLock connecting_lock{connecting_semaphore_, deadline};
 
         connection_ptr = TryPop();
         if (!connection_ptr) {

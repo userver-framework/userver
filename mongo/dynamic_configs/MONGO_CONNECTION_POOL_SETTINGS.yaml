@@ -3,6 +3,10 @@ description: |
     Options for MongoDB connections pool (uservices) for service.
     This options replace static config.
     When using MultiMongo all pools are updated.
+
+    Dictionary keys can be either the service **component name** (not database name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    Mongo component of the service.
 schema:
     type: object
     example: |
@@ -22,6 +26,9 @@ schema:
                 "connecting_limit": 8
             }
         }
+    properties:
+        __default__:
+            $ref: "#/definitions/PoolSettings"
     additionalProperties:
         $ref: "#/definitions/PoolSettings"
     definitions:
@@ -32,18 +39,22 @@ schema:
                 initial_size:
                     type: integer
                     minimum: 0
+                    default: 16
                     description: number of connections created initially.
                 max_size:
                     type: integer
                     minimum: 1
+                    default: 128
                     description: limit for total connections number.
                 idle_limit:
                     type: integer
                     minimum: 1
+                    default: 64
                     description: limit for idle connections number.
                 connecting_limit:
                     type: integer
                     minimum: 0
+                    default: 8
                     description: limit for establishing connections number.
             required:
               - max_size

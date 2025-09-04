@@ -11,13 +11,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::utest {
 
-/// @brief Redis fixture
+/// @brief Valkey or Redis fixture
 ///
 /// Provides access to redis clients by means
 /// `storages::redis::utest::RedisLocal` class
 ///
 /// see example:
-/// @snippet samples/redis_service/unittests/redis_test.cpp
+/// @snippet samples/redis_service/unittests/redis_test.cpp Unit test
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class RedisTest : public ::testing::Test, public RedisLocal {
 public:

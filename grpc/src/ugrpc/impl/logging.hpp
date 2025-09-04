@@ -3,20 +3,21 @@
 #include <string>
 
 #include <google/protobuf/message.h>
-
-#include <userver/logging/level.hpp>
+#include <grpcpp/support/status.h>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-struct MessageLoggingOptions {
-    logging::Level log_level{logging::Level::kDebug};
-    std::size_t max_size{512};
-    bool trim_secrets{true};
-};
+extern const std::string kBodyTag;
+extern const std::string kCodeTag;
+extern const std::string kComponentTag;
+extern const std::string kMessageMarshalledLenTag;
+extern const std::string kTypeTag;
 
-std::string GetMessageForLogging(const google::protobuf::Message& message, MessageLoggingOptions options = {});
+std::string GetMessageForLogging(const google::protobuf::Message& message, std::size_t max_size);
+
+std::string GetErrorDetailsForLogging(const grpc::Status& status);
 
 }  // namespace ugrpc::impl
 

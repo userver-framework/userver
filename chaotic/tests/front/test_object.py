@@ -1,3 +1,5 @@
+import pytest
+
 from chaotic.front.parser import ParserError
 from chaotic.front.types import Boolean
 from chaotic.front.types import Integer
@@ -17,57 +19,49 @@ def test_very_empty(simple_parse):
 
 
 def test_unknown_required(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({
             'type': 'object',
             'properties': {},
             'additionalProperties': False,
             'required': ['unknown'],
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/required'
-        assert exc.msg == ('Field "unknown" is set in "required", but missing in "properties"')
+    assert exc.value.infile_path == '/definitions/type/required'
+    assert exc.value.msg == ('Field "unknown" is set in "required", but missing in "properties"')
 
 
 def test_unknown_fields(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({
             'type': 'object',
             'unknown_field': 'x',
             'properties': {},
             'additionalProperties': False,
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/unknown_field'
-        assert 'Unknown field: "unknown_field"' in exc.msg
+    assert exc.value.infile_path == '/definitions/type/unknown_field'
+    assert 'Unknown field: "unknown_field"' in exc.value.msg
 
 
 def test_error_in_property(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({
             'type': 'object',
             'properties': {'field': {'type': 'xxxx'}},
             'additionalProperties': False,
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/properties/field/type'
-        assert exc.msg == 'Unknown type "xxxx"'
+    assert exc.value.infile_path == '/definitions/type/properties/field/type'
+    assert exc.value.msg == 'Unknown type "xxxx"'
 
 
 def test_error_in_extra(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({
             'type': 'object',
             'properties': {},
             'additionalProperties': {'type': 'xxx'},
         })
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/additionalProperties/type'
-        assert exc.msg == 'Unknown type "xxx"'
+    assert exc.value.infile_path == '/definitions/type/additionalProperties/type'
+    assert exc.value.msg == 'Unknown type "xxx"'
 
 
 def test_property_and_additional(simple_parse):

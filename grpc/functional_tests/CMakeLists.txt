@@ -16,3 +16,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-middleware-server)
 
 add_subdirectory(middleware_client)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-middleware-client)
+
+add_subdirectory(lowlevel)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-lowlevel)

@@ -22,7 +22,7 @@ namespace components {
 /// ----------------- | ---------------------------------------------------- | -------------
 /// dir               | directory to cache files from                        | /var/www
 /// update-period     | Update period (0 - fill the cache only at startup)   | 0
-/// fs-task-processor | task processor to do filesystem operations           | fs-task-processor
+/// fs-task-processor | task processor to do filesystem operations           | engine::current_task::GetBlockingTaskProcessor()
 
 // clang-format on
 

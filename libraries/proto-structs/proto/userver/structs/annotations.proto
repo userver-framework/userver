@@ -1,0 +1,144 @@
+syntax = "proto2";
+package userver.structs;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/proto;protostructs";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  optional FileAnnotations file = 1241;
+}
+
+extend google.protobuf.MessageOptions {
+  optional MessageAnnotations message = 1241;
+}
+
+extend google.protobuf.OneofOptions {
+  optional OneofAnnotations oneof = 1241;
+}
+
+extend google.protobuf.FieldOptions {
+  optional FieldAnnotations field = 1241;
+}
+
+// Time resolution.
+enum TimeRes {
+  TIME_RES_UNSPECIFIED = 0; // default, nanonseconds
+  TIME_RES_NANOS = 1;
+  TIME_RES_MICROS = 2;
+  TIME_RES_MILLIS = 3;
+  TIME_RES_SECONDS = 4;
+}
+
+// File-level code generation annotations.
+message FileAnnotations {
+  // Always emit exact struct types.
+  //
+  // If set, codegen will not emit std or userver types for some well-known
+  // protobuf message types (for example, `std::chrono::time_point` for
+  // `google.protobuf.Timestamp`) and will generate compatible struct types
+  // for them instead.
+  optional bool exact = 1;
+}
+
+// Message-level code generation annotations.
+message MessageAnnotations {
+  // Always emit exact struct types.
+  //
+  // If set, codegen will not emit std or userver types for some well-known
+  // protobuf message types (for example, `std::chrono::time_point` for
+  // `google.protobuf.Timestamp`) and will generate compatible struct types
+  // for them instead.
+  optional bool exact = 1;
+
+  // Wrap generated struct type in `userver::utils::Box` in all occurances of
+  // the message type.
+  //
+  // Using generated struct type indirectly is necessary in cases when two
+  // or more message types form circular dependency. Without `indirect` this
+  // will lead to circular dependency in the generated C++ code which will
+  // fail to compile.
+  //
+  // Also `indirect` may be useful for large message types with plenty of
+  // fields, because it will trigger compatible struct allocation in the
+  // heap instead of a stack.
+  optional bool indirect = 2;
+}
+
+// Oneof-level code generation annotations
+message OneofAnnotations {
+    // Name of the C++ class generated to represent `oneof`
+    //
+    // By default, codegen uses oneof's name converted to CamelCase as a name
+    // for the generated C++ type. This annotations allows override this
+    // behavior.
+    optional string generated_type_name = 1;
+}
+
+// Field-level code generation annotations.
+message FieldAnnotations {
+  // Always emit exact struct types.
+  //
+  // If set, codegen will not emit std or userver types for some well-known
+  // protobuf message types (for example, `std::chrono::time_point` for
+  // `google.protobuf.Timestamp`) and will generate compatible struct types
+  // for them instead.
+  //
+  // Only meaningful for fields having protobuf message type, otherwise ignored.
+  optional bool exact = 1;
+
+  // Wrap generated struct type in `userver::utils::Box` in all occurances of
+  // the message type.
+  //
+  // Using generated struct type indirectly is necessary in cases when two
+  // or more message types form circular dependency. Without `indirect` this
+  // will lead to circular dependency in the generated C++ code which will
+  // fail to compile.
+  //
+  // Also `indirect` may be useful for large message types with plenty of
+  // fields, because it will trigger compatible struct allocation in the
+  // heap instead of a stack.
+  //
+  // Only meaningful for fields having protobuf message type, otherwise ignored.
+  optional bool indirect = 2;
+
+  // Duration resolution.
+  //
+  // Determines resolution which will be used for `std::chrono::duration`
+  // generated for `google.protobuf.Duration`. During conversion values
+  // of `google.protobuf.Duration` which do not fit inside
+  // `std::chrono::duration` are capped to its max/min.
+  //
+  // Only meaningful for fields having `google.protobuf.Duration` type.
+  optional TimeRes resolution = 3;
+
+  // Decimal precision.
+  //
+  // Determines precision which will be used for `userver::decimal64::Decimal`
+  // generated for `google.type.Decimal`. If protobuf's `Decimal` value has
+  // unsupported format or its precision is greater than value specified in
+  // the annotation, conversion will fail.
+  //
+  // Also note, that codegen will not emit `userver::decimal64::Decimal` unless
+  // precision is explicitly specified with this annotation. Instead, struct
+  // compatible to `google.type.Decimal` will be emitted.
+  //
+  // Only meaningful for fields having `google.type.Decimal` type.
+  optional int32 precision = 4;
+
+  // Emit ordered map.
+  //
+  // Tells codegen to emit ordered map (i.e. `std::map`) instead of unordered
+  // (i.e. `std::unordered_map`).
+  //
+  // Only meaningful for fields having protobuf map type.
+  optional bool ordered = 5;
+
+  // Use unsafe hash function in the emitted unordered map.
+  //
+  // By default, codegen uses hash function which is sustainable to HashDOS
+  // attack.
+  //
+  // Only meaningful for fields having protobuf map type.
+  optional bool use_unsafe_hash = 6;
+}

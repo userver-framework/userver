@@ -9,6 +9,7 @@
 #include <sys/syslog.h>
 
 #include <userver/engine/single_use_event.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fixed_array.hpp>
 
@@ -33,6 +34,19 @@ UTEST_F(ConsumerTest, BrokenConfiguration) {
     consumer_configuration.rd_kafka_options["session.timeout.ms"] = "10000";
 
     UEXPECT_THROW(MakeConsumer("kafka-consumer", {}, consumer_configuration), std::runtime_error);
+}
+
+UTEST_F(ConsumerTest, GetTopics) {
+    {
+        auto consumer = MakeConsumer("kafka-consumer", {});
+        auto consumer_scope = consumer.MakeConsumerScope();
+        ASSERT_TRUE(consumer_scope.GetTopics().empty());
+    }
+    {
+        auto consumer = MakeConsumer("kafka-consumer", {"topic-1", "topic-2"});
+        auto consumer_scope = consumer.MakeConsumerScope();
+        EXPECT_THAT(consumer_scope.GetTopics(), ::testing::ElementsAre("topic-1", "topic-2"));
+    }
 }
 
 UTEST_F(ConsumerTest, OneConsumerSmallTopics) {
@@ -328,6 +342,163 @@ UTEST_F(ConsumerTest, HeadersProcessing) {
             }
         }
     );
+}
+
+UTEST_F(ConsumerTest, DISABLED_IN_MAC_OS_TEST_NAME(SeekToBeginning)) {
+    const auto topic = GenerateTopic();
+
+    const std::array kMessages{
+        kafka::utest::Message{topic, "key-1", "value-1", 0, {}},
+        kafka::utest::Message{topic, "key-2", "value-2", 0, {}},
+        kafka::utest::Message{topic, "key-3", "value-3", 0, {}},
+        kafka::utest::Message{topic, "key-4", "value-4", 0, {}},
+    };
+    SendMessages(kMessages);
+
+    // Emulate that consumer processed all messages from topic
+    {
+        auto consumer = MakeConsumer("kafka-consumer", {topic});
+        ReceiveMessages(
+            consumer,
+            /*expected_messages_count=*/kMessages.size(),
+            /*commit_after_receive=*/true
+        );
+    }
+
+    // Check that seek to beginning works
+    // All messages must be re-read after its call
+    {
+        auto consumer = MakeConsumer("kafka-consumer", {topic});
+
+        engine::SingleUseEvent event;
+        auto consumer_scope = consumer.MakeConsumerScope();
+        auto rebalance_callback =
+            [&consumer_scope, &event](kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type) {
+                if (event_type == kafka::RebalanceEventType::kAssigned) {
+                    for (const auto& topic_partitions : partitions) {
+                        UEXPECT_NO_THROW(consumer_scope.SeekToBeginning(
+                            topic_partitions.topic, topic_partitions.partition_id, utest::kMaxTestWaitTime
+                        ));
+                    }
+
+                    event.Send();
+                }
+            };
+        consumer_scope.SetRebalanceCallback(std::move(rebalance_callback));
+
+        const auto received_messages = ReceiveMessages(
+            consumer_scope,
+            /*expected_messages_count=*/kMessages.size(),
+            /*commit_after_receive=*/true
+        );
+
+        // checks that callback was called after assign of partitions.
+        event.Wait();
+    }
+}
+
+UTEST_F(ConsumerTest, SeekToOffset) {
+    constexpr std::size_t kMessagesCount{20};
+
+    const auto topic = GenerateTopic();
+    const auto messages = utils::GenerateFixedArray(kMessagesCount, [&topic](std::size_t i) {
+        return kafka::utest::Message{topic, fmt::format("key-{}", i), fmt::format("msg-{}", i), std::nullopt};
+    });
+    SendMessages(messages);
+
+    auto consumer = MakeConsumer("kafka-consumer", {topic});
+
+    engine::SingleUseEvent event;
+    auto consumer_scope = consumer.MakeConsumerScope();
+
+    // On partitions assign shift offset by `kMessagesToSkip`
+    // After that, one excepts that consumer receives messages with offset greater of equal than `kMessagesToSkip`
+    constexpr std::uint64_t kMessagesToSkip{7};
+    auto rebalance_callback =
+        [&consumer_scope, &event](kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type) {
+            if (event_type == kafka::RebalanceEventType::kAssigned) {
+                for (const auto& topic_partitions : partitions) {
+                    const auto offset_range = consumer_scope.GetOffsetRange(
+                        topic_partitions.topic, topic_partitions.partition_id, utest::kMaxTestWaitTime
+                    );
+                    const auto offset_to_seek = offset_range.low + kMessagesToSkip;
+
+                    UEXPECT_NO_THROW(consumer_scope.Seek(
+                        topic_partitions.topic, topic_partitions.partition_id, offset_to_seek, utest::kMaxTestWaitTime
+                    ));
+                }
+
+                event.Send();
+            }
+        };
+    consumer_scope.SetRebalanceCallback(std::move(rebalance_callback));
+
+    const auto received_messages = ReceiveMessages(
+        consumer,
+        /*expected_messages_count=*/kMessagesCount - kMessagesToSkip,
+        /*commit_after_receive=*/true
+    );
+
+    // checks that callback was called after assign of partitions.
+    event.Wait();
+    EXPECT_EQ(received_messages[0].key, messages[kMessagesToSkip].key);
+}
+
+UTEST_F(ConsumerTest, SeekToEnd) {
+    const auto topic = GenerateTopic();
+
+    const std::array kMessages{
+        kafka::utest::Message{topic, "key-1", "value-1", 0, {}},
+        kafka::utest::Message{topic, "key-2", "value-2", 0, {}},
+    };
+    const std::array kAfterSeekMessages{
+        kafka::utest::Message{topic, "key-3", "value-3", 0, {}},
+        kafka::utest::Message{topic, "key-4", "value-4", 0, {}},
+        kafka::utest::Message{topic, "key-5", "value-5", 0, {}},
+    };
+    SendMessages(kMessages);
+
+    // Send first batch of messages to topic
+    // Asynchronously wait until rebalance callback called
+    // When rebalance called, send one more batch of messages to topic
+    // Expect that only that messages are read by consumer
+    engine::SingleUseEvent seek_completed;
+    auto task_send_after_seek =
+        utils::Async("send_messages_after_seek", [this, &seek_completed, &kAfterSeekMessages]() mutable {
+            // wait until seek occurs.
+            seek_completed.Wait();
+
+            // We need also to sleep for >= poll_timeout after seek, to send message only after seek occurs.
+            engine::SleepFor(3 * kafka::impl::ConsumerExecutionParams{}.poll_timeout);
+            SendMessages(kAfterSeekMessages);
+        });
+
+    auto consumer = MakeConsumer("kafka-consumer", {topic});
+    auto consumer_scope = consumer.MakeConsumerScope();
+    auto rebalance_callback = [&consumer_scope, &seek_completed](
+                                  kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type
+                              ) {
+        if (event_type == kafka::RebalanceEventType::kAssigned) {
+            for (const auto& topic_partitions : partitions) {
+                UEXPECT_NO_THROW(consumer_scope.SeekToEnd(
+                    topic_partitions.topic, topic_partitions.partition_id, utest::kMaxTestWaitTime
+                ));
+            }
+
+            // signals that seek have already occured.
+            seek_completed.Send();
+        }
+    };
+    consumer_scope.SetRebalanceCallback(std::move(rebalance_callback));
+
+    auto messages = ReceiveMessages(
+        consumer_scope,
+        /*expected_messages_count=*/kAfterSeekMessages.size(),
+        /*commit_after_receive=*/true
+    );
+
+    ASSERT_EQ(messages.size(), kAfterSeekMessages.size());
+    EXPECT_EQ(messages[0].key, kAfterSeekMessages[0].key);
 }
 
 UTEST_F(ConsumerTest, HeadersSaveAfterMessageDestroy) {

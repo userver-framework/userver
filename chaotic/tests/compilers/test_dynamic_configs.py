@@ -3,7 +3,6 @@ import tempfile
 from typing import Any
 
 from chaotic import error
-from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types
 from chaotic.compilers import dynamic_config
 
@@ -21,17 +20,14 @@ def parse_variable_content(
     return compiler.extract_variable_type()
 
 
-def test_smoke():
+def test_smoke(cpp_primitive_type):
     var = parse_variable_content({'schema': {'type': 'integer'}, 'default': 1})
-    expected = types.CppPrimitiveType(
-        raw_cpp_type=type_name.TypeName('int'),
-        nullable=False,
-        user_cpp_type=None,
-        json_schema=None,
+    expected = cpp_primitive_type(
         validators=types.CppPrimitiveValidator(
             namespace='::taxi_config::var',
             prefix='VariableTypeRaw',
         ),
+        raw_cpp_type_str='int',
     )
     assert var.without_json_schema() == expected
 
@@ -89,7 +85,10 @@ def test_strong_typedef_dependencies():
         })
         assert False
     except error.BaseError as exc:
-        assert 'Include file "userver/chaotic/io/xxx.hpp" not found' in exc.msg
+        assert (
+            'Include file "userver/utils/strong_typedef.hpp" not found' in exc.msg
+            or 'Include file "userver/chaotic/io/xxx.hpp" not found' in exc.msg
+        )
 
 
 def test_default_isomorphic():

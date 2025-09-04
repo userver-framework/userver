@@ -2,7 +2,8 @@ project(userver-redis CXX)
 
 find_package(hiredis REQUIRED)
 
-userver_module(redis
+userver_module(
+    redis
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES hiredis::hiredis
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
@@ -11,6 +12,7 @@ userver_module(redis
     DBTEST_DATABASES redis redis-cluster
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmark"
     UBENCH_DATABASES redis
+    DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
 )
 
@@ -22,39 +24,29 @@ set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/ev_thread/thread.cpp
     PROPERTIES COMPILE_FLAGS -fno-strict-aliasing
 )
-target_compile_options (${PROJECT_NAME} PRIVATE -Wno-old-style-cast)
-
-option(USERVER_FEATURE_REDIS_HI_MALLOC "Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025" OFF)
-if (USERVER_FEATURE_REDIS_HI_MALLOC)
-  set_source_files_properties(
-      ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/hi_malloc.cpp
-      PROPERTIES COMPILE_FLAGS -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-  )
-endif()
+target_compile_options(${PROJECT_NAME} PRIVATE -Wno-old-style-cast)
 
 option(USERVER_FEATURE_REDIS_TLS "SSL/TLS support for Redis driver" OFF)
 if(USERVER_FEATURE_REDIS_TLS)
-  add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
+    add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-if (USERVER_FEATURE_REDIS_TLS)
-  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
+if(USERVER_FEATURE_REDIS_TLS)
+    target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis_ssl)
 endif()
-target_include_directories(${PROJECT_NAME} PRIVATE
-    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
+target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>)
 
-_userver_directory_install(COMPONENT redis FILES
-	  "${USERVER_ROOT_DIR}/cmake/modules/Findhiredis.cmake"
+_userver_directory_install(
+    COMPONENT redis
+    FILES "${USERVER_ROOT_DIR}/cmake/modules/Findhiredis.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
-# Helper library for testing user code with redis. Provides mock_client_base.hpp
-# and other helper headers
-if (USERVER_FEATURE_UTEST)
-  add_subdirectory(testing)
+# Helper library for testing user code with redis. Provides mock_client_base.hpp and other helper headers
+if(USERVER_FEATURE_UTEST)
+    add_subdirectory(testing)
 endif()
 
-if (USERVER_BUILD_TESTS)
-  add_subdirectory(functional_tests)
+if(USERVER_BUILD_TESTS)
+    add_subdirectory(functional_tests)
 endif()

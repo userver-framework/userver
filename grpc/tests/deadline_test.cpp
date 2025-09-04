@@ -3,6 +3,8 @@
 #include <chrono>
 #include <string_view>
 
+#include <gmock/gmock.h>
+
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
@@ -12,8 +14,6 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <ugrpc/client/impl/client_configs.hpp>
-#include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
@@ -80,18 +80,18 @@ UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCall) {
     sample::ugrpc::GreetingRequest request;
     request.set_name("userver");
 
-    auto context = std::make_unique<grpc::ClientContext>();
+    ugrpc::client::CallOptions call_options;
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_THROW(in = Client().SayHello(request, std::move(context)), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(in = Client().SayHello(request, std::move(call_options)), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCallAsync) {
     sample::ugrpc::GreetingRequest request;
     request.set_name("userver");
 
-    auto context = std::make_unique<grpc::ClientContext>();
-    auto future = Client().AsyncSayHello(request, std::move(context));
+    ugrpc::client::CallOptions call_options;
+    auto future = Client().AsyncSayHello(request, std::move(call_options));
 
     sample::ugrpc::GreetingResponse in;
     UEXPECT_THROW(in = future.Get(), ugrpc::client::DeadlineExceededError);
@@ -101,11 +101,11 @@ UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCallAsyncWaitUntil) {
     sample::ugrpc::GreetingRequest request;
     request.set_name("userver");
 
-    auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(tests::kShortTimeout));
+    ugrpc::client::CallOptions call_options;
+    call_options.SetTimeout(tests::kShortTimeout);
     auto deadline = engine::Deadline::FromDuration(tests::kShortTimeout / 100);
 
-    auto future = Client().AsyncSayHello(request, std::move(context));
+    auto future = Client().AsyncSayHello(request, std::move(call_options));
 
     EXPECT_EQ(future.WaitUntil(deadline), engine::FutureStatus::kTimeout);
 
@@ -117,8 +117,8 @@ UTEST_F(GrpcDeadlinePropagation, TestClientReadManyRead) {
     sample::ugrpc::StreamGreetingRequest request;
     request.set_name("userver");
 
-    auto context = std::make_unique<grpc::ClientContext>();
-    auto call = Client().ReadMany(request, std::move(context));
+    ugrpc::client::CallOptions call_options;
+    auto call = Client().ReadMany(request, std::move(call_options));
 
     sample::ugrpc::StreamGreetingResponse response;
     bool res = false;
@@ -128,15 +128,17 @@ UTEST_F(GrpcDeadlinePropagation, TestClientReadManyRead) {
     CheckSuccessRead(call, response, "Three userver");
 
     UEXPECT_THROW(res = call.Read(response), ugrpc::client::DeadlineExceededError);
+
+    EXPECT_FALSE(call.Read(response));
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientWriteManyWriteAndCheck) {
     sample::ugrpc::StreamGreetingRequest request;
 
-    auto context = std::make_unique<grpc::ClientContext>();
-    auto call = Client().WriteMany(std::move(context));
+    ugrpc::client::CallOptions call_options;
+    auto call = Client().WriteMany(std::move(call_options));
 
-    sample::ugrpc::StreamGreetingResponse response;
+    const sample::ugrpc::StreamGreetingResponse response;
 
     CheckSuccessWrite(call, request, tests::kRequests[0]);
     CheckSuccessWrite(call, request, tests::kRequests[1]);
@@ -145,12 +147,19 @@ UTEST_F(GrpcDeadlinePropagation, TestClientWriteManyWriteAndCheck) {
 
     request.set_name(tests::kRequests[2]);
     UEXPECT_THROW(call.WriteAndCheck(request), ugrpc::client::DeadlineExceededError);
+
+    EXPECT_FALSE(call.Write(sample::ugrpc::StreamGreetingRequest()));
+    UEXPECT_THROW_MSG(
+        call.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()),
+        ugrpc::client::RpcError,
+        "'WriteAndCheck' called on a finished or closed stream"
+    );
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientWriteManyFinish) {
     sample::ugrpc::StreamGreetingRequest request;
-    auto context = std::make_unique<grpc::ClientContext>();
-    auto call = Client().WriteMany(std::move(context));
+    ugrpc::client::CallOptions call_options;
+    auto call = Client().WriteMany(std::move(call_options));
 
     sample::ugrpc::StreamGreetingResponse response;
 
@@ -159,6 +168,13 @@ UTEST_F(GrpcDeadlinePropagation, TestClientWriteManyFinish) {
     CheckSuccessWrite(call, request, tests::kRequests[2]);
 
     UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
+
+    EXPECT_FALSE(call.Write(sample::ugrpc::StreamGreetingRequest()));
+    UEXPECT_THROW_MSG(
+        call.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()),
+        ugrpc::client::RpcError,
+        "'WriteAndCheck' called on a finished or closed stream"
+    );
 }
 
 // Scenario for Chat tests (Read, ReadAsync, Write, WriteAndCheck):
@@ -169,9 +185,9 @@ UTEST_F(GrpcDeadlinePropagation, TestClientWriteManyFinish) {
 UTEST_F(GrpcDeadlinePropagation, TestClientChatWrite) {
     sample::ugrpc::StreamGreetingRequest request;
     sample::ugrpc::StreamGreetingResponse response;
-    auto context = std::make_unique<grpc::ClientContext>();
+    ugrpc::client::CallOptions call_options;
 
-    auto call = Client().Chat(std::move(context));
+    auto call = Client().Chat(std::move(call_options));
 
     WaitClientDeadline();
     bool res{false};
@@ -179,14 +195,28 @@ UTEST_F(GrpcDeadlinePropagation, TestClientChatWrite) {
     // have False as a result
     UEXPECT_NO_THROW(res = call.Write(request));
     EXPECT_FALSE(res);
+
+    EXPECT_FALSE(call.WritesDone());
+    UEXPECT_THROW_MSG(
+        call.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()),
+        ugrpc::client::RpcError,
+        "'WriteAndCheck' called on a finished or closed stream"
+    );
+    UEXPECT_THROW([[maybe_unused]] auto _ = call.Read(response), ugrpc::client::DeadlineExceededError);
+    EXPECT_FALSE(call.Read(response));
+    UEXPECT_THROW_MSG(
+        [[maybe_unused]] auto _ = call.ReadAsync(response),
+        ugrpc::client::RpcError,
+        "'ReadAsync' called on a finished call"
+    );
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientChatRead) {
     std::vector<sample::ugrpc::StreamGreetingRequest> requests(3);
     sample::ugrpc::StreamGreetingResponse response;
-    auto context = std::make_unique<grpc::ClientContext>();
+    ugrpc::client::CallOptions call_options;
 
-    auto call = Client().Chat(std::move(context));
+    auto call = Client().Chat(std::move(call_options));
 
     bool res = false;
 
@@ -200,14 +230,28 @@ UTEST_F(GrpcDeadlinePropagation, TestClientChatRead) {
     CheckSuccessRead(call, response, "Two request2");
 
     UEXPECT_THROW(res = call.Read(response), ugrpc::client::DeadlineExceededError);
+
+    EXPECT_FALSE(call.Write(sample::ugrpc::StreamGreetingRequest()));
+    EXPECT_FALSE(call.WritesDone());
+    UEXPECT_THROW_MSG(
+        call.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()),
+        ugrpc::client::RpcError,
+        "'WriteAndCheck' called on a finished or closed stream"
+    );
+    EXPECT_FALSE(call.Read(response));
+    UEXPECT_THROW_MSG(
+        [[maybe_unused]] auto _ = call.ReadAsync(response),
+        ugrpc::client::RpcError,
+        "'ReadAsync' called on a finished call"
+    );
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientChatReadAsync) {
     std::vector<sample::ugrpc::StreamGreetingRequest> requests(3);
     sample::ugrpc::StreamGreetingResponse response;
-    auto context = std::make_unique<grpc::ClientContext>();
+    ugrpc::client::CallOptions call_options;
 
-    auto call = Client().Chat(std::move(context));
+    auto call = Client().Chat(std::move(call_options));
 
     for (size_t i = 0; i < requests.size(); ++i) {
         CheckSuccessWrite(call, requests[i], tests::kRequests[i]);
@@ -220,6 +264,20 @@ UTEST_F(GrpcDeadlinePropagation, TestClientChatReadAsync) {
 
     auto future = call.ReadAsync(response);
     UEXPECT_THROW(future.Get(), ugrpc::client::DeadlineExceededError);
+
+    EXPECT_FALSE(call.Write(sample::ugrpc::StreamGreetingRequest()));
+    EXPECT_FALSE(call.WritesDone());
+    UEXPECT_THROW_MSG(
+        call.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()),
+        ugrpc::client::RpcError,
+        "'WriteAndCheck' called on a finished or closed stream"
+    );
+    EXPECT_FALSE(call.Read(response));
+    UEXPECT_THROW_MSG(
+        [[maybe_unused]] auto _ = call.ReadAsync(response),
+        ugrpc::client::RpcError,
+        "'ReadAsync' called on a finished call"
+    );
 }
 
 namespace {
@@ -261,18 +319,22 @@ UTEST_F(GrpcTestInheritedDedline, TestServerDataExist) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
 
-    auto context = std::make_unique<grpc::ClientContext>();
-    engine::Deadline deadline = engine::Deadline::FromDuration(tests::kLongTimeout);
+    ugrpc::client::CallOptions call_options;
+    const engine::Deadline deadline = engine::Deadline::FromDuration(tests::kLongTimeout);
 
     GetService().SetClientInitialTimeout(tests::kLongTimeout);
-    context->set_deadline(deadline);
+    call_options.SetClientContextFactory([deadline] {
+        auto client_context = std::make_unique<grpc::ClientContext>();
+        client_context->set_deadline(deadline);
+        return client_context;
+    });
 
     // In tests the gpr_timespec <> steady_clock conversions were giving
     // ~0.5ms precision loss once in 10k runs. Thus the 10ms delay.
     engine::SleepFor(std::chrono::milliseconds{10});
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(out, std::move(context)));
+    UEXPECT_NO_THROW(in = client.SayHello(out, std::move(call_options)));
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -281,16 +343,20 @@ UTEST_F(GrpcTestInheritedDedline, TestDeadlineExpiresBeforeCall) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
 
-    auto context = std::make_unique<grpc::ClientContext>();
-    engine::Deadline deadline = engine::Deadline::FromDuration(tests::kShortTimeout);
-    context->set_deadline(deadline);
+    ugrpc::client::CallOptions call_options;
+    const engine::Deadline deadline = engine::Deadline::FromDuration(tests::kShortTimeout);
+    call_options.SetClientContextFactory([deadline] {
+        auto client_context = std::make_unique<grpc::ClientContext>();
+        client_context->set_deadline(deadline);
+        return client_context;
+    });
 
     // Test that the time between client context
     // construction and client request is measured.
     engine::SleepFor(tests::kLongTimeout);
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_THROW(in = client.SayHello(out, std::move(context)), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(in = client.SayHello(out, std::move(call_options)), ugrpc::client::DeadlineExceededError);
 }
 
 namespace {
@@ -322,7 +388,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithoutDeadline) {
     // Context deadline not set
     sample::ugrpc::GreetingResponse in;
     UEXPECT_THROW(
-        in = client.SayHello(request, tests::MakeClientContext(/*set_deadline=*/false)),
+        in = client.SayHello(request, tests::MakeCallOptions(/*set_timeout=*/false)),
         ugrpc::client::DeadlineExceededError
     );
 }
@@ -342,7 +408,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithDeadline) {
     // Set additional client deadline
     sample::ugrpc::GreetingResponse in;
     UEXPECT_THROW(
-        in = client.SayHello(request, tests::MakeClientContext(/*set_deadline=*/true)),
+        in = client.SayHello(request, tests::MakeCallOptions(/*set_timeout=*/true)),
         ugrpc::client::DeadlineExceededError
     );
 }
@@ -364,10 +430,10 @@ using UnitTestClientInfiniteTest = ugrpc::tests::ServiceFixture<UnitTestClientIn
 UTEST_F(UnitTestClientInfiniteTest, NegativeDeadline) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
-    auto context = std::make_unique<grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(std::chrono::milliseconds{-10}));
+    ugrpc::client::CallOptions call_options;
+    call_options.SetTimeout(std::chrono::milliseconds{-10});
 
-    auto task = engine::AsyncNoSpan([&] { return client.SayHello({}, std::move(context)); });
+    auto task = engine::AsyncNoSpan([&] { return client.SayHello({}, std::move(call_options)); });
 
     // Check that SayHello did not hang.
     const auto wait_status = task.WaitNothrowUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime / 2));

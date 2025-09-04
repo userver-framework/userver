@@ -25,15 +25,42 @@ namespace otlp {
 
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : old_logger_(logging::GetDefaultLogger()) {
-    auto& client_factory = context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory();
+    auto client_factory_name = config["client-factory-name"].As<std::string>();
 
-    auto endpoint = config["endpoint"].As<std::string>();
+    auto& client_factory =
+        context.FindComponent<ugrpc::client::ClientFactoryComponent>(client_factory_name).GetFactory();
+
+    std::string logs_endpoint;
+    std::string tracing_endpoint;
+
+    auto endpoint_cfg = config["endpoint"];
+    auto logs_endpoint_cfg = config["logs-endpoint"];
+    auto tracing_endpoint_cfg = config["tracing-endpoint"];
+
+    auto is_present = [](auto&& x) { return !(x.IsMissing() || x.IsNull()); };
+
+    if (is_present(endpoint_cfg)) {
+        // we have one endpoint
+        if (is_present(logs_endpoint_cfg)) {
+            throw std::runtime_error(R"("endpoint" option is incompatible with "logs-endpoint")");
+        }
+        if (is_present(tracing_endpoint_cfg)) {
+            throw std::runtime_error(R"("endpoint" option is incompatible with "tracing-endpoint")");
+        }
+
+        logs_endpoint = endpoint_cfg.As<std::string>();
+        tracing_endpoint = endpoint_cfg.As<std::string>();
+    } else {
+        logs_endpoint = logs_endpoint_cfg.As<std::string>();
+        tracing_endpoint = tracing_endpoint_cfg.As<std::string>();
+    }
+
     auto client = client_factory.MakeClient<opentelemetry::proto::collector::logs::v1::LogsServiceClient>(
-        "otlp-logger", endpoint
+        "otlp-logger", logs_endpoint
     );
 
     auto trace_client = client_factory.MakeClient<opentelemetry::proto::collector::trace::v1::TraceServiceClient>(
-        "otlp-tracer", endpoint
+        "otlp-tracer", tracing_endpoint
     );
 
     LoggerConfig logger_config;
@@ -75,7 +102,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
         }
     }
 
-    logger_->SetDefaultLogger(default_logger);
+    logger_->SetDefaultLogger(std::move(default_logger));
 
     logging::impl::SetDefaultLoggerRef(*logger_);
     old_logger_.ForwardTo(&*logger_);
@@ -109,7 +136,37 @@ properties:
     endpoint:
         type: string
         description: >
-            Hostname:port of otel collector (gRPC).
+            Hostname:port of otel collector (gRPC). This endpoint is used
+            both for logs and traces. If you want separate endpoints, then
+            use "logs-endpoint" and "tracing-endpoint" members.
+            Please note that "endpoint" is mutually exclusive with either
+            "logs-endpoint" or "tracing-endpoint". Basically, you either have
+            one endpoint for both, or you specify directly what goes where.
+    logs-endpoint:
+        type: string
+        description: >
+            Hostname:port of otel collector (gRPC). This endpoint is used
+            only for logs.
+    tracing-endpoint:
+        type: string
+        description: >
+            Hostname:port of otel collector (gRPC). This endpoint is used
+            only for traces.
+    client-factory-name:
+        type: string
+        description: >
+            This component needs ugrpc::client::ClientFactoryComponent to
+            work and we will look for it with name given in this
+            parameter.
+            You need to set that component propertly, e.g. disable
+            middlwares (otherwise it will be an infinite loop of client
+            producing logs that go into otlp logger and back to client
+            and that causes even more logs).
+
+            Although it is possible to omit this parameter and use
+            default ClientFactoryComponent instance, it is not recommended
+            and will cause severe problems in the long run.
+
     log-level:
         type: string
         description: log level

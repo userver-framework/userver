@@ -11,10 +11,10 @@ std::string GreeterClient::SayHello(std::string name) {
     api::GreetingRequest request;
     request.set_name(std::move(name));
 
-    auto context = std::make_unique<::grpc::ClientContext>();
-    context->set_deadline(engine::Deadline::FromDuration(std::chrono::seconds{20}));
+    ugrpc::client::CallOptions call_options;
+    call_options.SetTimeout(std::chrono::seconds{20});
 
-    api::GreetingResponse response = client_.SayHello(request, std::move(context));
+    api::GreetingResponse response = client_.SayHello(request, std::move(call_options));
 
     return std::move(*response.mutable_greeting());
 }

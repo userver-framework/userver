@@ -1,12 +1,10 @@
 include_guard(GLOBAL)
 
 if(userver_rabbitmq_FOUND)
-  return()
+    return()
 endif()
 
-find_package(userver REQUIRED COMPONENTS
-    core
-)
+find_package(userver REQUIRED COMPONENTS core)
 
 find_package(amqpcpp REQUIRED)
 

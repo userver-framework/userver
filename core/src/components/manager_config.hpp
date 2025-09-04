@@ -23,12 +23,14 @@ struct ManagerConfig {
     std::vector<components::ComponentConfig> components;
     std::vector<engine::TaskProcessorConfig> task_processors;
     std::string default_task_processor;
+    std::string fs_task_processor;
     ValidationMode validate_components_configs{};
     utils::impl::UserverExperimentSet enabled_experiments;
     std::chrono::milliseconds graceful_shutdown_interval{};
     bool mlock_debug_info{true};
     bool disable_phdr_cache{false};
     bool preheat_stacktrace_collector{true};
+    bool enable_trx_tracker{true};
 
     static ManagerConfig FromString(
         const std::string&,

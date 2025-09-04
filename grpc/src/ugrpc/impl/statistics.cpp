@@ -209,10 +209,12 @@ void ServiceStatistics::DumpAndCountTotal(
     std::optional<std::string_view> client_name,
     MethodStatisticsSnapshot& total
 ) const {
-    for (const auto& [i, method_full_name] : utils::enumerate(metadata_.method_full_names)) {
+    for (const auto& [i, method_descriptor] : utils::enumerate(metadata_.methods)) {
         const MethodStatisticsSnapshot snapshot{method_statistics_[i]};
         total.Add(snapshot);
-        DumpMetricWithLabels(writer, snapshot, client_name, method_full_name, metadata_.service_full_name);
+        DumpMetricWithLabels(
+            writer, snapshot, client_name, method_descriptor.method_full_name, metadata_.service_full_name
+        );
     }
 }
 

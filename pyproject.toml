@@ -1,0 +1,74 @@
+[tool.mypy]
+implicit_optional = true
+disable_error_code = ["name-match", "arg-type"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.format]
+preview = true
+quote-style = "single"
+indent-style = "space"
+line-ending = "lf"
+
+skip-magic-trailing-comma = false
+
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint]
+preview = true
+select = [
+    "Q000",
+    "W291",
+    "I",
+]
+ignore = []
+unfixable = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "single"
+multiline-quotes = "double"
+
+[tool.ruff.lint.isort]
+force-single-line = true
+relative-imports-order = "closest-to-furthest"
+
+force-sort-within-sections = true
+case-sensitive = false
+order-by-type = false
+
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "appnexus",
+    "first-party",
+    "local-folder",
+]
+no-lines-before = [
+    "local-folder",
+]
+known-third-party = [
+    "grpc",
+    "google",
+    "conan",
+    "redis",
+]
+known-first-party = [
+    "requests_client",
+    "chaotic",
+    "samples",
+    "utils",
+]
+
+[tool.ruff.lint.isort.sections]
+appnexus = [
+    "testsuite",
+    "taxi",
+]

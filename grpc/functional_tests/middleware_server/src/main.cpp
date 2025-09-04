@@ -13,6 +13,7 @@
 #include "my_second_middleware.hpp"
 #include "service.hpp"
 
+/// [Register middlewares]
 int main(int argc, const char* const argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<congestion_control::Component>()
@@ -25,3 +26,4 @@ int main(int argc, const char* const argv[]) {
 
     return utils::DaemonMain(argc, argv, component_list);
 }
+/// [Register middlewares]

@@ -19,7 +19,7 @@ public:
     RpcFinishedEvent(RpcFinishedEvent&&) = delete;
     RpcFinishedEvent& operator=(RpcFinishedEvent&&) = delete;
 
-    void* GetTag() noexcept;
+    void* GetCompletionTag() noexcept;
 
     /// @see EventBase::Notify
     void Notify(bool ok) noexcept override;
@@ -33,7 +33,15 @@ private:
     engine::SingleUseEvent event_;
 };
 
-ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async);
+ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async) noexcept;
+
+[[nodiscard]] bool IsInvocationSuccessful(ugrpc::impl::AsyncMethodInvocation::WaitStatus status) noexcept;
+
+void CheckInvocationSuccessful(
+    ugrpc::impl::AsyncMethodInvocation::WaitStatus status,
+    std::string_view call_name,
+    std::string_view stage
+);
 
 }  // namespace ugrpc::server::impl
 

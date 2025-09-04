@@ -10,11 +10,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
-
+namespace storages {
 class Query;
+}
 
-namespace impl {
+namespace storages::clickhouse::impl {
+
 class PoolImpl;
 struct PoolSettings;
 class InsertionRequest;
@@ -38,8 +39,7 @@ public:
 private:
     std::shared_ptr<PoolImpl> impl_;
 };
-}  // namespace impl
 
-}  // namespace storages::clickhouse
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

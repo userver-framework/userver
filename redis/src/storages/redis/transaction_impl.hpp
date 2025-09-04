@@ -226,6 +226,11 @@ public:
 
     RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, std::chrono::milliseconds ttl) override;
 
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) override;
+
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
+
     RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) override;
 
     RequestSismember Sismember(std::string key, std::string member) override;

@@ -1,0 +1,136 @@
+name: Fedora
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+    CXX: clang++
+    CC: clang
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
+
+jobs:
+    fedora:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                  # - version: 36 EOL
+                  - version: 42
+
+        name: fedora-${{matrix.version}}
+        runs-on: ubuntu-latest
+
+        container:
+            image: fedora:${{matrix.version}}
+
+        env:
+            CMAKE_FLAGS: >-
+                -DCMAKE_BUILD_TYPE=Debug
+                -DCMAKE_CXX_STANDARD=17
+                -DUSERVER_USE_LD=lld
+                -DUSERVER_BUILD_ALL_COMPONENTS=1
+                -DUSERVER_BUILD_SAMPLES=1
+                -DUSERVER_BUILD_TESTS=1
+                -DUSERVER_USE_STATIC_LIBS=OFF
+                -DUSERVER_FEATURE_MONGODB=OFF
+                -DUSERVER_FEATURE_GRPC=OFF
+                -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
+                -DUSERVER_FEATURE_OTLP=OFF
+                -DUSERVER_FEATURE_ROCKS=OFF
+                -DUSERVER_FEATURE_CLICKHOUSE=OFF
+                -DUSERVER_FEATURE_RABBITMQ=OFF
+                -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
+                -DUSERVER_DOWNLOAD_PACKAGES=OFF
+                -DUSERVER_FEATURE_STACKTRACE=OFF
+
+        steps:
+          - uses: actions/checkout@v5
+            with:
+                fetch-depth: 0
+
+          - name: Setup cache directories
+            run: |
+                mkdir -p ${{env.CCACHE_DIR}}
+                mkdir -p ${{env.CPM_SOURCE_CACHE}}
+
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'fedora-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    fedora-cache-dir ${{github.ref}}
+                    fedora-cache-dir
+
+          - name: Install dependencies
+            run: |
+                dnf update -y
+                dnf install -y git lld which clang
+                dnf install -y $(cat scripts/docs/en/deps/fedora-${{matrix.version}}.md)
+
+          - name: Install test dependencies
+            if: ${{ false }}  # Not working yet
+            run: |
+                dnf install -y postgresql-server \
+                              redis \
+                              rabbitmq-server
+
+          - name: Setup caches
+            run: |
+                echo "Cached CPM packages:"
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}} || true
+                for f in $(find ${{env.CPM_SOURCE_CACHE}} -name "cmake.lock" 2>/dev/null || true);
+                do
+                  repo=$(ls -d $(dirname $f)/*/ 2>/dev/null || true);
+                  echo "Repository: $repo";
+                  git config --global --add safe.directory $repo;
+                done
+
+                ccache -M 2.0GB
+                ccache -s -v
+
+          - name: Run cmake
+            run: |
+                pwd
+                cmake -S . -B build_debug $CMAKE_FLAGS
+
+          - name: Reconfigure cmake
+            run: |
+                pwd
+                cmake -S . -B build_debug $CMAKE_FLAGS
+
+          - name: Compile
+            run: |
+                cmake --build build_debug -j$(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}} || true
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}} || true
+                ccache -s -v
+
+          - name: Run tests
+            if: ${{ false }}  # Not working yet
+            run: |
+                cd build_debug
+                ctest -V

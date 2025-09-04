@@ -21,7 +21,8 @@ TopologyBase::TopologyBase(
     const ConnectionSettings& conn_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings
+    error_injection::Settings ei_settings,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 )
     : bg_task_processor_(bg_task_processor),
       dsns_(std::move(dsns)),
@@ -30,7 +31,8 @@ TopologyBase::TopologyBase(
       conn_settings_(conn_settings),
       default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_(testsuite_pg_ctl),
-      ei_settings_(ei_settings) {}
+      ei_settings_(ei_settings),
+      metrics_(metrics) {}
 
 const DsnList& TopologyBase::GetDsnList() const { return dsns_; }
 
@@ -51,7 +53,9 @@ std::unique_ptr<Connection> TopologyBase::MakeTopologyConnection(DsnIndex idx) {
         conn_settings_,
         default_cmd_ctls_,
         testsuite_pg_ctl_,
-        ei_settings_
+        ei_settings_,
+        engine::SemaphoreLock{},
+        metrics_
     );
 }
 

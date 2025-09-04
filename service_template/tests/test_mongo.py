@@ -1,9 +1,7 @@
 # mongo template on
 # Start the tests via `make test-debug` or `make test-release`
 
-import pytest
-
-from testsuite.databases import mongo
+from testsuite.databases import mongo  # noqa: F401
 
 
 async def test_basic(service_client):

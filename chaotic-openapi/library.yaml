@@ -1,0 +1,6 @@
+project-name: userver-chaotic-openapi
+project-alt-names:
+  - yandex-userver-chaotic-openapi
+maintainers:
+  - Common components
+description: OpenAPI codegen library

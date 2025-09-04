@@ -22,6 +22,7 @@
 #include <views/upsert-row/post/view.hpp>
 #include <views/upsert-rows/post/view.hpp>
 
+#include <components/federated_topic_reader.hpp>
 #include <components/topic_reader.hpp>
 
 int main(int argc, char* argv[]) {
@@ -41,6 +42,7 @@ int main(int argc, char* argv[]) {
                               .Append<sample::UpsertRowHandler>()
                               .Append<sample::UpsertRowsHandler>()
                               .Append<sample::TopicReaderComponent>()
+                              .Append<sample::FederatedTopicReaderComponent>()
                               .Append<ydb::YdbComponent>();
 
     return ::utils::DaemonMain(argc, argv, component_list);

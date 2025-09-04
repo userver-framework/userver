@@ -23,7 +23,7 @@ UTEST(WaitAny, VectorTasks) {
     std::atomic<size_t> finished_counter{0};
     for (size_t i = 0; i < kTaskCount; i++) {
         tasks.push_back(engine::AsyncNoSpan([&finished_counter, i] {
-            size_t order = (i + kTaskCount - kTaskOrderShift) % kTaskCount;
+            const size_t order = (i + kTaskCount - kTaskOrderShift) % kTaskCount;
             while (finished_counter < order) engine::Yield();
             return i;
         }));
@@ -67,6 +67,17 @@ UTEST(WaitAny, Cancelled) {
     while (!started.load()) engine::Yield();
 
     task.SyncCancel();
+}
+
+UTEST(WaitAny, VectorWithCancelledTask) {
+    std::vector<engine::TaskWithResult<std::string>> tasks;
+    tasks.push_back(engine::AsyncNoSpan([] { return std::string{"some_value"}; }));
+    tasks[0].RequestCancel();
+
+    auto task_idx_opt = engine::WaitAny(tasks);
+    EXPECT_TRUE(!!task_idx_opt);
+    UEXPECT_THROW(tasks[*task_idx_opt].Get(), engine::TaskCancelledException);
+    EXPECT_EQ(engine::WaitAny(tasks), std::nullopt);
 }
 
 UTEST(WaitAny, WaitAnyFor) {

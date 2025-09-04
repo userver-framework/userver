@@ -47,8 +47,6 @@ struct PoolSettings final {
     void Validate(const std::string& pool_id) const;
 };
 
-PoolSettings Parse(const formats::json::Value& config, formats::parse::To<PoolSettings>);
-
 PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolSettings>);
 
 /// MongoDB connection pool configuration

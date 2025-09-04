@@ -34,7 +34,7 @@ public:
 
     OptionalCommandControl GetHandlerCmdCtl(std::string_view path, std::string_view method) const;
 
-    OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
+    OptionalCommandControl GetQueryCmdCtl(std::string_view query_name) const;
 
     void UpdateHandlersCommandControl(CommandControlByHandlerMap&& handlers_command_control);
 

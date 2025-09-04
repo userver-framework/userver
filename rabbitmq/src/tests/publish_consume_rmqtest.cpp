@@ -2,6 +2,10 @@
 
 #include <optional>
 
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/uuid4.hpp>
 

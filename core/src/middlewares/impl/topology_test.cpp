@@ -15,7 +15,7 @@ TEST(TopologySort, Basic) {
         {"grpc-server-logging", {}},
     };
     auto sort = middlewares::impl::BuildTopologySortOfMiddlewares(std::move(graph));
-    std::vector<std::string> expected{
+    const std::vector<std::string> expected{
         "grpc-server-logging",
         "grpc-server-baggage",
         "grpc-server-congestion-control",
@@ -42,7 +42,7 @@ TEST(TopologySort, Throw) {
     graph["A"] = {};
     graph["C"] = {};
     auto sort = middlewares::impl::BuildTopologySortOfMiddlewares(std::move(graph));
-    std::vector<std::string> expected{"A", "C", "B", "D"};
+    const std::vector<std::string> expected{"A", "C", "B", "D"};
     ASSERT_EQ(sort, expected);
 }
 
@@ -65,7 +65,7 @@ TEST(TopologySort, TwoSubPath) {
         {"D", {"E"}},
     };
     auto sort = middlewares::impl::BuildTopologySortOfMiddlewares(std::move(graph));
-    std::vector<std::string> expected{"A", "E", "B", "C", "D"};
+    const std::vector<std::string> expected{"A", "E", "B", "C", "D"};
     ASSERT_EQ(sort, expected);
 }
 

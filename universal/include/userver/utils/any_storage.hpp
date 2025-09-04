@@ -27,7 +27,7 @@ inline std::size_t count{0};
 template <typename StorageTag>
 Offset RegisterData(std::size_t size, std::size_t alignment) noexcept {
     data_offset<StorageTag> += (alignment - (data_offset<StorageTag> % alignment)) % alignment;
-    Offset result = data_offset<StorageTag>;
+    const Offset result = data_offset<StorageTag>;
     data_offset<StorageTag> += size;
 
     count<StorageTag> ++;
@@ -38,7 +38,7 @@ void AssertStaticRegistrationAllowed();
 
 template <typename T>
 void Delete(std::byte* data) noexcept {
-    reinterpret_cast<T*>(data)->~T();
+    std::destroy_at(reinterpret_cast<T*>(data));
 }
 
 }  // namespace any_storage::impl
@@ -80,6 +80,8 @@ class AnyStorage final {
 public:
     AnyStorage();
 
+    AnyStorage(AnyStorage&& other) noexcept = default;
+    AnyStorage& operator=(AnyStorage&& other) noexcept;
     ~AnyStorage();
 
     /// @returns Stored data.
@@ -124,6 +126,8 @@ private:
 
     static any_storage::impl::Offset CalcOffset() noexcept;
 
+    void Destroy() noexcept;
+
     std::unique_ptr<std::byte[]> raw_data_;
 };
 
@@ -138,6 +142,7 @@ AnyStorage<StorageTag>::AnyStorage()
     : raw_data_(new std::byte[CalcOffset() + sizeof(AllocRecord) * any_storage::impl::count<StorageTag>]) {
     static_assert(std::is_trivial_v<AllocRecord>);
 
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     auto records = GetRecords();
     for (std::size_t i = 0; i < any_storage::impl::count<StorageTag>; i++) {
         auto& record = records[i];
@@ -146,7 +151,21 @@ AnyStorage<StorageTag>::AnyStorage()
 }
 
 template <typename StorageTag>
+AnyStorage<StorageTag>& AnyStorage<StorageTag>::operator=(AnyStorage&& other) noexcept {
+    if (this != &other) {
+        Destroy();
+        raw_data_ = std::move(other.raw_data_);
+    }
+    return *this;
+}
+
+template <typename StorageTag>
 AnyStorage<StorageTag>::~AnyStorage() {
+    Destroy();
+}
+
+template <typename StorageTag>
+void AnyStorage<StorageTag>::Destroy() noexcept {
     auto records = GetRecords();
     for (std::size_t i = 0; i < any_storage::impl::count<StorageTag>; i++) {
         auto& record = records[i];

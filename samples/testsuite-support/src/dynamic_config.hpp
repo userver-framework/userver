@@ -16,7 +16,7 @@ public:
         const override;
 
 private:
-    dynamic_config::Source config_source_;
+    USERVER_NAMESPACE::dynamic_config::Source config_source_;
 };
 
 }  // namespace tests::handlers

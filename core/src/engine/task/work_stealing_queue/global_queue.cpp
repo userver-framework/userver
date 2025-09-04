@@ -43,7 +43,7 @@ std::size_t GlobalQueue::PopBulk(Token& token, utils::span<impl::TaskContext*> b
                 break;
             }
         }
-        std::size_t bulk_size = queue_.try_dequeue_bulk(token.moodycamel_token_, buffer.data(), buffer.size());
+        const std::size_t bulk_size = queue_.try_dequeue_bulk(token.moodycamel_token_, buffer.data(), buffer.size());
         if (bulk_size > 0) {
             shared_counters_[shared_index]->fetch_sub(bulk_size, std::memory_order_release);
             UpdateSize(std::nullopt);
@@ -72,7 +72,7 @@ std::int64_t GlobalQueue::GetCountersSum() const noexcept {
 }
 
 std::int64_t GlobalQueue::GetCountersSumAndUpdateSize() {
-    std::int64_t sum = GetCountersSum();
+    const std::int64_t sum = GetCountersSum();
     UpdateSize(std::max<std::int64_t>(sum, 0));
     return sum;
 }

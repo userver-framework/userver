@@ -48,7 +48,7 @@ std::string Client::FetchConfigsValues(std::string_view body) {
 
     try {
         auto no_proxy_reply = http_client_.CreateRequest()
-                                  .proxy({})
+                                  .proxy("")
                                   .post(url, std::string{body})
                                   .timeout(timeout_ms)
                                   .retry(retries)

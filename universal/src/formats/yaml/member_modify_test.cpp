@@ -29,7 +29,7 @@ struct MemberModify<formats::yaml::ValueBuilder> : public ::testing::Test {
         "ValueBuilder iterators are assignable"
     );
 
-    MemberModify() : builder_(formats::yaml::FromString(kDoc)) {}
+    MemberModify() : builder(formats::yaml::FromString(kDoc)) {}
 
     static formats::yaml::Value GetValue(formats::yaml::ValueBuilder& bld) {
         auto v = bld.ExtractValue();
@@ -37,9 +37,9 @@ struct MemberModify<formats::yaml::ValueBuilder> : public ::testing::Test {
         return v;
     }
 
-    formats::yaml::Value GetBuiltValue() { return GetValue(builder_); }
+    formats::yaml::Value GetBuiltValue() { return GetValue(builder); }
 
-    formats::yaml::ValueBuilder builder_;
+    formats::yaml::ValueBuilder builder;
 
     using ValueBuilder = formats::yaml::ValueBuilder;
     using Value = formats::yaml::Value;

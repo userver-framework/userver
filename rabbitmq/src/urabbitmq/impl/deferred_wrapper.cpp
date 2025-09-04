@@ -4,6 +4,8 @@
 
 #include <urabbitmq/make_shared_enabler.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {

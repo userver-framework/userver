@@ -1,21 +1,53 @@
-# gRPC middleware
+# gRPC middleware tutorial
 
 ## Before you start
 
 Make sure that you can compile and run core tests and read a basic example
-@ref scripts/docs/en/userver/tutorial/hello_service.md.
+@ref scripts/docs/en/userver/tutorial/grpc_service.md.
+
+For more information about grpc middlewares see:
+1. @ref scripts/docs/en/userver/grpc/server_middlewares.md
+2. @ref scripts/docs/en/userver/grpc/client_middlewares.md
 
 ## Step by step guide
 
 In this example, you will write an authentication middleware for both
-'GreeterService' and 'GreeterClient' of the basic grpc_service. 
-See @ref scripts/docs/en/userver/tutorial/grpc_service.md
+`GreeterService` and `GreeterClient` of the basic gRPC service. 
+See @ref scripts/docs/en/userver/tutorial/grpc_service.md.
 
 ### Installation
 
-Generate and link with necessary libraries:
+Generate wrappers for proto files and link necessary libraries:
 
 @snippet samples/grpc_middleware_service/CMakeLists.txt  gRPC middleware sample - CMake
+
+### The server middleware
+
+Server middleware will check metadata that comes with an rpc.
+
+Everything is the same as it is for client middleware, except there is no
+factory and the component stores the middleware itself:
+
+@snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware declaration
+
+For more information about `kDependency`:
+@see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
+
+`OnCallStart` method of `Middleware` does the actual work:
+
+@snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp Middleware implementation
+
+Lastly, add this component to the static config and register it in the pipeline:
+
+```yaml
+components_manager:
+    components:
+        grpc-server-auth:
+        grpc-server-middlewares-pipeline:
+            middlewares:
+                grpc-server-auth:  # register the middleware in the pipeline
+                    enabled: true
+```
 
 ### The client middleware
 
@@ -25,54 +57,19 @@ Derive `Middleware` and `MiddlewareFactory` from the respective base class and d
 
 @snippet samples/grpc_middleware_service/src/middlewares/client/auth.hpp Middleware declaration
 
+For more information about `kDependency`:
+@see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
+
 `PreStartCall` method of `Middleware` does the actual work:
 
-@snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp Middleware implementation
+@snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp gRPC middleware sample - Middleware implementation
 
 Lastly, add this component to the static config:
 
-```
-# yaml
-components_manager:
-    components:
-        grpc-auth-client:
-```
+@snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-auth-client
 
-And connect it with `ClientFactory`:
-
-@snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config client middleware
-
-
-### The server middleware
-
-Server middleware, in its turn, will validate metadata that comes with an rpc.
-
-Everything is the same as it is for client middleware, except there is no
-factory and the component stores the middleware itself:
-
-@snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware declaration
-
-Handle method of `Middleware` does the actual work:
-
-@snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp gRPC Middleware implementation
-
-Respective component:
-
-@snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware component declaration
-
-Lastly, add this component to the static config:
-
-```
-# yaml
-components_manager:
-    components:
-        grpc-auth-server:
-```
-
-And connect it with `Service`:
-
-@snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config server middleware
-
+To add static config options for the middleware:
+@see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md.
 
 ### int main()
 
@@ -86,7 +83,7 @@ Finally, register components and start the server.
 To build the sample, execute the following build steps at the userver root
 directory:
 
-```
+```shell
 mkdir build_release
 cd build_release
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -118,22 +115,19 @@ pytest_userver.plugins.grpc pytest plugin:
 
 #### gRPC server mock
 
-To mock the gRPC server provide a hook for the static config to change
-the endpoint:
-
-@snippet samples/grpc_middleware_service/tests/conftest.py  Prepare configs
-
-Alternatively, use `$grpc_mockserver`
+You can use `$grpc_mockserver`
 @ref pytest_userver.plugins.config.userver_config_substitutions "substitution var"
 in `config_vars.testsuite.yaml`:
 
-@code{.yaml}
-greeter-client-endpoint: $grpc_mockserver
-@endcode
+@include samples/grpc_middleware_service/configs/config_vars.testsuite.yaml
+
+And in static_config.yaml:
+
+@snippet samples/grpc_middleware_service/configs/static_config.yaml gRPC middleware sample - static config greeter-client
 
 Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver":
 
-@snippet samples/grpc_middleware_service/tests/conftest.py  Prepare server mock
+@snippet samples/grpc_middleware_service/tests/test_middlewares.py  gRPC mockserver
 
 
 #### gRPC client
@@ -163,7 +157,9 @@ See the full example at:
 
 * @ref samples/grpc_middleware_service/main.cpp
 * @ref samples/grpc_middleware_service/proto/samples/greeter.proto
-* @ref samples/grpc_middleware_service/static_config.yaml
+* @ref samples/grpc_middleware_service/configs/static_config.yaml
+* @ref samples/grpc_middleware_service/configs/config_vars.yaml
+* @ref samples/grpc_middleware_service/configs/config_vars.testsuite.yaml
 * @ref samples/grpc_middleware_service/tests/conftest.py
 * @ref samples/grpc_middleware_service/tests/test_middlewares.py
 * @ref samples/grpc_middleware_service/CMakeLists.txt
@@ -182,7 +178,9 @@ See the full example at:
 @example samples/grpc_middleware_service/src/middlewares/auth.cpp
 @example samples/grpc_middleware_service/main.cpp
 @example samples/grpc_middleware_service/proto/samples/greeter.proto
-@example samples/grpc_middleware_service/static_config.yaml
+@example samples/grpc_middleware_service/configs/static_config.yaml
+@example samples/grpc_middleware_service/configs/config_vars.yaml
+@example samples/grpc_middleware_service/configs/config_vars.testsuite.yaml
 @example samples/grpc_middleware_service/tests/conftest.py
 @example samples/grpc_middleware_service/tests/test_middlewares.py
 @example samples/grpc_middleware_service/CMakeLists.txt

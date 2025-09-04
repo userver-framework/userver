@@ -461,6 +461,17 @@ RequestSetIfNotExist MockTransaction::SetIfNotExist(std::string key, std::string
     return AddSubrequest(impl_->SetIfNotExist(std::move(key), std::move(value), ttl));
 }
 
+RequestSetIfNotExistOrGet MockTransaction::SetIfNotExistOrGet(std::string key, std::string value) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->SetIfNotExistOrGet(std::move(key), std::move(value)));
+}
+
+RequestSetIfNotExistOrGet
+MockTransaction::SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->SetIfNotExistOrGet(std::move(key), std::move(value), ttl));
+}
+
 RequestSetex MockTransaction::Setex(std::string key, std::chrono::seconds seconds, std::string value) {
     UpdateShard(key);
     return AddSubrequest(impl_->Setex(std::move(key), seconds, std::move(value)));

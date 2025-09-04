@@ -29,7 +29,7 @@ def _make_arcadia_loader(prefix: str) -> jinja2.FunctionLoader:
 
 
 def not_implemented(obj: Any = None) -> NoReturn:
-    raise Exception(repr(obj))
+    raise Exception('Not implemented: ' + repr(obj))
 
 
 def make_env(prefix: str, full_path: str) -> jinja2.Environment:

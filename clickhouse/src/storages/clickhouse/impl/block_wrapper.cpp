@@ -4,7 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::impl {
 
-BlockWrapper::BlockWrapper(clickhouse_cpp::Block&& block) : native_{block} {}
+BlockWrapper::BlockWrapper(clickhouse_cpp::Block&& block) : native_{std::move(block)} {}
 
 clickhouse_cpp::ColumnRef BlockWrapper::At(size_t ind) const { return native_[ind]; }
 

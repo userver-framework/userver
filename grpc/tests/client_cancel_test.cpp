@@ -68,9 +68,9 @@ public:
     }
 };
 
-std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
-    auto context = std::make_unique<grpc::ClientContext>();
-    return context;
+ugrpc::client::CallOptions PrepareCallOptions() {
+    ugrpc::client::CallOptions call_options;
+    return call_options;
 }
 
 void ExpectCancelledStats(const utils::statistics::Snapshot& stats) {
@@ -95,7 +95,7 @@ UTEST_F(GrpcClientCancel, UnaryCall) {
 
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
-        UEXPECT_THROW(client.SayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW(client.SayHello(out, PrepareCallOptions()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =
@@ -111,7 +111,7 @@ UTEST_F(GrpcClientCancel, AsyncUnaryRPC) {
 
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
-        UEXPECT_THROW((void)client.AsyncSayHello(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW((void)client.AsyncSayHello(out, PrepareCallOptions()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =
@@ -125,7 +125,7 @@ UTEST_F(GrpcClientCancel, UnaryFinish) {
     {
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
-        auto future = client.AsyncSayHello(out, PrepareClientContext());
+        auto future = client.AsyncSayHello(out, PrepareCallOptions());
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
@@ -145,7 +145,7 @@ UTEST_F(GrpcClientCancel, InputStreamRead) {
         out.set_name("userver");
         out.set_number(1);
 
-        auto is = client.ReadMany(out, PrepareClientContext());
+        auto is = client.ReadMany(out, PrepareCallOptions());
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
@@ -167,7 +167,7 @@ UTEST_F(GrpcClientCancel, InputStreamCall) {
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
-        UEXPECT_THROW(auto is = client.ReadMany(out, PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW(auto is = client.ReadMany(out, PrepareCallOptions()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =
@@ -181,7 +181,7 @@ UTEST_F(GrpcClientCancel, OutputStreamCall) {
     {
         engine::current_task::GetCancellationToken().RequestCancel();
 
-        UEXPECT_THROW(auto os = client.WriteMany(PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW(auto os = client.WriteMany(PrepareCallOptions()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =
@@ -193,7 +193,7 @@ UTEST_F(GrpcClientCancel, OutputStreamCall) {
 UTEST_F(GrpcClientCancel, OutputStreamWrite) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     {
-        auto os = client.WriteMany(PrepareClientContext());
+        auto os = client.WriteMany(PrepareCallOptions());
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
@@ -211,7 +211,7 @@ UTEST_F(GrpcClientCancel, OutputStreamWrite) {
 UTEST_F(GrpcClientCancel, OutputStreamFinish) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     {
-        auto os = client.WriteMany(PrepareClientContext());
+        auto os = client.WriteMany(PrepareCallOptions());
 
         sample::ugrpc::StreamGreetingRequest out;
         out.set_name("userver");
@@ -233,7 +233,7 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamCall) {
     {
         engine::current_task::GetCancellationToken().RequestCancel();
 
-        UEXPECT_THROW([[maybe_unused]] auto bs = client.Chat(PrepareClientContext()), ugrpc::client::RpcCancelledError);
+        UEXPECT_THROW([[maybe_unused]] auto bs = client.Chat(PrepareCallOptions()), ugrpc::client::RpcCancelledError);
     }
 
     const auto stats =
@@ -245,7 +245,7 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamCall) {
 UTEST_F(GrpcClientCancel, BidirectionalStreamRead) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     {
-        auto bs = client.Chat(PrepareClientContext());
+        auto bs = client.Chat(PrepareCallOptions());
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
@@ -261,11 +261,11 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamRead) {
 UTEST_F(GrpcClientCancel, BidirectionalStreamWrite) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     {
-        auto bs = client.Chat(PrepareClientContext());
+        auto bs = client.Chat(PrepareCallOptions());
 
         engine::current_task::GetCancellationToken().RequestCancel();
 
-        sample::ugrpc::StreamGreetingRequest out{};
+        const sample::ugrpc::StreamGreetingRequest out{};
         EXPECT_FALSE(bs.Write(out));
     }
 
@@ -277,7 +277,7 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamWrite) {
 UTEST_F(GrpcClientCancel, BidirectionalStreamWritesDone) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     {
-        auto bs = client.Chat(PrepareClientContext());
+        auto bs = client.Chat(PrepareCallOptions());
 
         engine::current_task::GetCancellationToken().RequestCancel();
 

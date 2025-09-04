@@ -14,7 +14,7 @@ public:
     template <typename Func>
     auto RetryOperationSync(std::size_t retries, Func func) {
         auto settings = MakeOperationSettings(retries);
-        ydb::impl::RequestContext context{GetTableClient(), ydb::Query{}, settings};
+        ydb::impl::RequestContext context{GetTableClient(), ydb::Query{}, std::move(settings)};
 
         auto future = ydb::impl::RetryOperation(context, std::move(func));
 

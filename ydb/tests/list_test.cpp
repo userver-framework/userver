@@ -74,4 +74,19 @@ UTEST_F(YdbListIO, BulkUpsertEmptyRangeOfStructs) {
     AssertArePreFilledRows(result.GetSingleCursor(), {});
 }
 
+UTEST_F(YdbListIO, WriteAndParseOptional) {
+    const ydb::Query query{R"(
+        --!syntax_v1
+        DECLARE $list_opt AS List<String>?;
+        SELECT $list_opt;
+    )"};
+    const auto list_opt_value = std::make_optional(std::vector<std::string>{"value1", "value2"});
+    auto builder = GetTableClient().GetBuilder();
+    builder.Add("$list_opt", list_opt_value);
+    auto result = GetTableClient().ExecuteDataQuery({}, query, std::move(builder));
+    for (auto row : result.GetSingleCursor()) {
+        EXPECT_EQ(row.Get<std::optional<std::vector<std::string>>>(0), list_opt_value);
+    }
+}
+
 USERVER_NAMESPACE_END

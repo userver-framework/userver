@@ -9,6 +9,6 @@ RUN apt install -y pycodestyle sudo
 
 RUN git clone https://github.com/userver-framework/userver \
   && cd userver \
-  && ./scripts/build_and_install_all.sh \
+  && BUILD_OPTIONS="-DUSERVER_FEATURE_GRPC_CHANNELZ=1" ./scripts/build_and_install_all.sh \
   && cd .. \
   && rm -rf userver/

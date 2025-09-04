@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/redis/command_control.hpp
+/// @file
 /// @brief @copybrief storages::redis::CommandControl
 
 #include <atomic>
@@ -105,6 +105,10 @@ struct CommandControl {
 
     /// Force execution on master node
     std::optional<bool> force_request_to_master{};
+
+    /// Consider ping to nodes in instance selection (true if not specified).
+    /// Setting to false makes the load on the database evenly distributed, but may increase timings
+    std::optional<bool> consider_ping{};
 
     /// Server latency limit
     std::optional<std::chrono::milliseconds> max_ping_latency{};

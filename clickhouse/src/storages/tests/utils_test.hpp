@@ -69,7 +69,7 @@ class QueryTester final {
 public:
     template <typename... Args>
     static Query WithArgs(const Query& query, const Args&... args) {
-        return query.WithArgs(args...);
+        return impl::WithArgs(query, args...);
     }
 };
 

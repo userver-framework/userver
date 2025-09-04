@@ -9,7 +9,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/storages/mongo/component.hpp>     // mongo template current
-#include <userver/storages/postgres/component.hpp>  // postgres template current
+#include <userver/storages/postgres/component.hpp>  // postgresql template current
 #include <userver/ugrpc/server/component_list.hpp>  // grpc template current
 
 #include <userver/utils/daemon_run.hpp>
@@ -17,7 +17,7 @@
 #include <hello.hpp>
 #include <hello_grpc.hpp>      // grpc template current
 #include <hello_mongo.hpp>     // mongo template current
-#include <hello_postgres.hpp>  // postgres template current
+#include <hello_postgres.hpp>  // postgresql template current
 
 int main(int argc, char* argv[]) {
     auto component_list = userver::components::MinimalServerComponentList()
@@ -28,10 +28,10 @@ int main(int argc, char* argv[]) {
                               .Append<userver::server::handlers::TestsControl>()
                               .Append<userver::congestion_control::Component>()
                               .Append<service_template::Hello>()
-                              // postgres template on
+                              // postgresql template on
                               .Append<userver::components::Postgres>("postgres-db-1")
                               .Append<service_template::HelloPostgres>()
-                              // postgres template off
+                              // postgresql template off
                               // mongo template on
                               .Append<userver::components::Mongo>("mongo-db-1")
                               .Append<service_template::HelloMongo>()

@@ -36,7 +36,7 @@ struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
         "ValueBuilder iterators are assignable"
     );
 
-    MemberModify() : builder_(kDoc) {}
+    MemberModify() : builder(kDoc) {}
 
     static formats::json::Value GetValue(formats::json::ValueBuilder& bld) {
         auto v = bld.ExtractValue();
@@ -44,9 +44,9 @@ struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
         return v;
     }
 
-    formats::json::Value GetBuiltValue() { return GetValue(builder_); }
+    formats::json::Value GetBuiltValue() { return GetValue(builder); }
 
-    formats::json::ValueBuilder builder_;
+    formats::json::ValueBuilder builder;
 
     using ValueBuilder = formats::json::ValueBuilder;
     using Value = formats::json::Value;

@@ -105,10 +105,10 @@ public:
 
 using GrpcClientTest = ugrpc::tests::ServiceFixture<UnitTestService>;
 
-std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
-    auto context = std::make_unique<grpc::ClientContext>();
-    context->AddMetadata("req_header", "value");
-    return context;
+ugrpc::client::CallOptions PrepareCallOptions() {
+    ugrpc::client::CallOptions call_options;
+    call_options.AddMetadata("req_header", "value");
+    return call_options;
 }
 
 void CheckClientContext(const grpc::ClientContext& context) {
@@ -123,7 +123,7 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(out, PrepareClientContext()));
+    UEXPECT_NO_THROW(in = client.SayHello(out, PrepareCallOptions()));
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -131,7 +131,7 @@ UTEST_F(GrpcClientTest, AsyncUnaryRPC) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto future_for_move = client.AsyncSayHello(out, PrepareClientContext());
+    auto future_for_move = client.AsyncSayHello(out, PrepareCallOptions());
     auto future = std::move(future_for_move);  // test move operation
 
     bool is_ready = false;
@@ -139,7 +139,7 @@ UTEST_F(GrpcClientTest, AsyncUnaryRPC) {
 
     sample::ugrpc::GreetingResponse in;
     UEXPECT_NO_THROW(in = future.Get());
-    CheckClientContext(future.GetCall().GetContext());
+    CheckClientContext(future.GetContext().GetClientContext());
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -147,14 +147,14 @@ UTEST_F(GrpcClientTest, AsyncUnaryRPCWithTimeout) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto future_for_move = client.AsyncSayHello(out, PrepareClientContext());
+    auto future_for_move = client.AsyncSayHello(out, PrepareCallOptions());
     auto future = std::move(future_for_move);  // test move operation
 
     EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(60s)), engine::FutureStatus::kReady);
 
     EXPECT_TRUE(future.IsReady());
 
-    CheckClientContext(future.GetCall().GetContext());
+    CheckClientContext(future.GetContext().GetClientContext());
 
     sample::ugrpc::GreetingResponse in;
     UEXPECT_NO_THROW(in = future.Get());
@@ -176,7 +176,7 @@ UTEST_F(GrpcClientTest, InputStream) {
     sample::ugrpc::StreamGreetingRequest out;
     out.set_name("userver");
     out.set_number(kNumber);
-    auto is_for_move = client.ReadMany(out, PrepareClientContext());
+    auto is_for_move = client.ReadMany(out, PrepareCallOptions());
     auto is = std::move(is_for_move);  // test move operation
 
     sample::ugrpc::StreamGreetingResponse in;
@@ -186,7 +186,7 @@ UTEST_F(GrpcClientTest, InputStream) {
     }
     EXPECT_FALSE(is.Read(in));
 
-    CheckClientContext(is.GetContext());
+    CheckClientContext(is.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcClientTest, EmptyInputStream) {
@@ -194,16 +194,16 @@ UTEST_F(GrpcClientTest, EmptyInputStream) {
     sample::ugrpc::StreamGreetingRequest out;
     out.set_name("userver");
     out.set_number(0);
-    auto is = client.ReadMany(out, PrepareClientContext());
+    auto is = client.ReadMany(out, PrepareCallOptions());
 
     sample::ugrpc::StreamGreetingResponse in;
     EXPECT_FALSE(is.Read(in));
-    CheckClientContext(is.GetContext());
+    CheckClientContext(is.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcClientTest, OutputStream) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto os_for_move = client.WriteMany(PrepareClientContext());
+    auto os_for_move = client.WriteMany(PrepareCallOptions());
     auto os = std::move(os_for_move);  // test move operation
 
     sample::ugrpc::StreamGreetingRequest out;
@@ -216,12 +216,12 @@ UTEST_F(GrpcClientTest, OutputStream) {
     sample::ugrpc::StreamGreetingResponse in;
     UEXPECT_NO_THROW(in = os.Finish());
     EXPECT_EQ(in.number(), kNumber);
-    CheckClientContext(os.GetContext());
+    CheckClientContext(os.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcClientTest, OutputStreamWriteAndCheck) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto os_for_move = client.WriteMany(PrepareClientContext());
+    auto os_for_move = client.WriteMany(PrepareCallOptions());
     auto os = std::move(os_for_move);  // test move operation
 
     sample::ugrpc::StreamGreetingRequest out;
@@ -234,22 +234,22 @@ UTEST_F(GrpcClientTest, OutputStreamWriteAndCheck) {
     sample::ugrpc::StreamGreetingResponse in;
     UEXPECT_NO_THROW(in = os.Finish());
     EXPECT_EQ(in.number(), kNumber);
-    CheckClientContext(os.GetContext());
+    CheckClientContext(os.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcClientTest, EmptyOutputStream) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto os = client.WriteMany(PrepareClientContext());
+    auto os = client.WriteMany(PrepareCallOptions());
 
     sample::ugrpc::StreamGreetingResponse in;
     UEXPECT_NO_THROW(in = os.Finish());
     EXPECT_EQ(in.number(), 0);
-    CheckClientContext(os.GetContext());
+    CheckClientContext(os.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcClientTest, BidirectionalStream) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto bs_for_move = client.Chat(PrepareClientContext());
+    auto bs_for_move = client.Chat(PrepareCallOptions());
     auto bs = std::move(bs_for_move);  // test move operation
 
     sample::ugrpc::StreamGreetingRequest out{};
@@ -264,12 +264,12 @@ UTEST_F(GrpcClientTest, BidirectionalStream) {
     }
     EXPECT_TRUE(bs.WritesDone());
     EXPECT_FALSE(bs.Read(in));
-    CheckClientContext(bs.GetContext());
+    CheckClientContext(bs.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcClientTest, BidirectionalStreamWriteAndCheck) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto bs_for_move = client.Chat(PrepareClientContext());
+    auto bs_for_move = client.Chat(PrepareCallOptions());
     auto bs = std::move(bs_for_move);  // test move operation
 
     sample::ugrpc::StreamGreetingRequest out{};
@@ -285,17 +285,17 @@ UTEST_F(GrpcClientTest, BidirectionalStreamWriteAndCheck) {
     }
     EXPECT_TRUE(bs.WritesDone());
     EXPECT_FALSE(bs.Read(in));
-    CheckClientContext(bs.GetContext());
+    CheckClientContext(bs.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto bs = client.Chat(PrepareClientContext());
+    auto bs = client.Chat(PrepareCallOptions());
 
     sample::ugrpc::StreamGreetingResponse in;
     EXPECT_TRUE(bs.WritesDone());
     EXPECT_FALSE(bs.Read(in));
-    CheckClientContext(bs.GetContext());
+    CheckClientContext(bs.GetContext().GetClientContext());
 }
 
 using GrpcClientLongAnswerTest = ugrpc::tests::ServiceFixture<UnitTestLongAnswerService>;
@@ -307,7 +307,7 @@ UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
 
-    auto future_for_move = client.AsyncSayHello(out, PrepareClientContext());
+    auto future_for_move = client.AsyncSayHello(out, PrepareCallOptions());
     auto future = std::move(future_for_move);  // test move operation
 
     EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(kLongTimeout / 100)), engine::FutureStatus::kTimeout);
@@ -317,7 +317,7 @@ UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
     sample::ugrpc::GreetingResponse in;
     UEXPECT_NO_THROW(in = future.Get());
 
-    CheckClientContext(future.GetCall().GetContext());
+    CheckClientContext(future.GetContext().GetClientContext());
     EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -335,9 +335,9 @@ UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
             out.set_name("userver");
 
             while (keep_running) {
-                auto future = client.AsyncSayHello(out, PrepareClientContext());
+                auto future = client.AsyncSayHello(out, PrepareCallOptions());
                 auto in = future.Get();
-                CheckClientContext(future.GetCall().GetContext());
+                CheckClientContext(future.GetContext().GetClientContext());
                 EXPECT_EQ("Hello " + out.name(), in.name());
                 request_finished.Send();
                 engine::Yield();
@@ -386,7 +386,7 @@ UTEST_F(GrpcWriteAndFinish, InputStream) {
     sample::ugrpc::StreamGreetingRequest out;
     out.set_name("userver");
     out.set_number(kNumber);
-    auto is = client.ReadMany(out, PrepareClientContext());
+    auto is = client.ReadMany(out, PrepareCallOptions());
 
     sample::ugrpc::StreamGreetingResponse in;
     EXPECT_TRUE(is.Read(in));
@@ -397,7 +397,7 @@ UTEST_F(GrpcWriteAndFinish, InputStream) {
 
 UTEST_F(GrpcWriteAndFinish, BidirectionalStream) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto is = client.Chat(PrepareClientContext());
+    auto is = client.Chat(PrepareCallOptions());
 
     sample::ugrpc::StreamGreetingResponse in;
     EXPECT_TRUE(is.Read(in));

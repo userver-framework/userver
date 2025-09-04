@@ -22,17 +22,17 @@ namespace mongo_cache::impl {
 template <typename T>
 using CollectionsField = decltype(T::kMongoCollectionsField);
 template <typename T>
-inline constexpr bool kHasCollectionsField = meta::kIsDetected<CollectionsField, T>;
+inline constexpr bool kHasCollectionsField = meta::IsDetected<CollectionsField, T>;
 
 template <typename T>
 using UpdateFieldName = decltype(T::kMongoUpdateFieldName);
 template <typename T>
-inline constexpr bool kHasUpdateFieldName = meta::kIsDetected<UpdateFieldName, T>;
+inline constexpr bool kHasUpdateFieldName = meta::IsDetected<UpdateFieldName, T>;
 
 template <typename T>
 using KeyField = decltype(T::kKeyField);
 template <typename T>
-inline constexpr bool kHasKeyField = meta::kIsDetected<KeyField, T>;
+inline constexpr bool kHasKeyField = meta::IsDetected<KeyField, T>;
 
 template <typename T>
 using DataType = typename T::DataType;
@@ -42,29 +42,29 @@ inline constexpr bool kHasValidDataType = meta::kIsMap<meta::DetectedType<DataTy
 template <typename T>
 using HasSecondaryPreferred = decltype(T::kIsSecondaryPreferred);
 template <typename T>
-inline constexpr bool kHasSecondaryPreferred = meta::kIsDetected<HasSecondaryPreferred, T>;
+inline constexpr bool kHasSecondaryPreferred = meta::IsDetected<HasSecondaryPreferred, T>;
 
 template <typename T>
 using HasDeserializeObject = decltype(T::DeserializeObject);
 template <typename T>
-inline constexpr bool kHasDeserializeObject = meta::kIsDetected<HasDeserializeObject, T>;
+inline constexpr bool kHasDeserializeObject = meta::IsDetected<HasDeserializeObject, T>;
 
 template <typename T>
 using HasCorrectDeserializeObject = meta::ExpectSame<
     typename T::ObjectType,
     decltype(std::declval<const T&>().DeserializeObject(std::declval<const formats::bson::Document&>()))>;
 template <typename T>
-inline constexpr bool kHasCorrectDeserializeObject = meta::kIsDetected<HasCorrectDeserializeObject, T>;
+inline constexpr bool kHasCorrectDeserializeObject = meta::IsDetected<HasCorrectDeserializeObject, T>;
 
 template <typename T>
 using HasDefaultDeserializeObject = decltype(T::kUseDefaultDeserializeObject);
 template <typename T>
-inline constexpr bool kHasDefaultDeserializeObject = meta::kIsDetected<HasDefaultDeserializeObject, T>;
+inline constexpr bool kHasDefaultDeserializeObject = meta::IsDetected<HasDefaultDeserializeObject, T>;
 
 template <typename T>
 using HasFindOperation = decltype(T::GetFindOperation);
 template <typename T>
-inline constexpr bool kHasFindOperation = meta::kIsDetected<HasFindOperation, T>;
+inline constexpr bool kHasFindOperation = meta::IsDetected<HasFindOperation, T>;
 
 template <typename T>
 using HasCorrectFindOperation = meta::ExpectSame<
@@ -77,17 +77,17 @@ using HasCorrectFindOperation = meta::ExpectSame<
     ))>;
 
 template <typename T>
-inline constexpr bool kHasCorrectFindOperation = meta::kIsDetected<HasCorrectFindOperation, T>;
+inline constexpr bool kHasCorrectFindOperation = meta::IsDetected<HasCorrectFindOperation, T>;
 
 template <typename T>
 using HasDefaultFindOperation = decltype(T::kUseDefaultFindOperation);
 template <typename T>
-inline constexpr bool kHasDefaultFindOperation = meta::kIsDetected<HasDefaultFindOperation, T>;
+inline constexpr bool kHasDefaultFindOperation = meta::IsDetected<HasDefaultFindOperation, T>;
 
 template <typename T>
 using HasInvalidDocumentsSkipped = decltype(T::kAreInvalidDocumentsSkipped);
 template <typename T>
-inline constexpr bool kHasInvalidDocumentsSkipped = meta::kIsDetected<HasInvalidDocumentsSkipped, T>;
+inline constexpr bool kHasInvalidDocumentsSkipped = meta::IsDetected<HasInvalidDocumentsSkipped, T>;
 
 template <typename>
 struct ClassByMemberPointer {};

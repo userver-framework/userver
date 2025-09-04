@@ -66,8 +66,8 @@ AMQP::Table CreateHeaders() {
     if (span == nullptr) return {};
 
     AMQP::Table headers;
-    headers["u-trace-id"] = span->GetTraceId();
-    headers["u-parent-span-id"] = span->GetSpanId();
+    headers["u-trace-id"] = std::string{span->GetTraceId()};
+    headers["u-parent-span-id"] = std::string{span->GetSpanId()};
 
     return headers;
 }

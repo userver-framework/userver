@@ -4,8 +4,6 @@ import enum
 import typing
 from typing import Any
 from typing import Callable
-from typing import Dict
-from typing import List
 from typing import Optional
 from typing import TypeVar
 from typing import Union
@@ -22,7 +20,7 @@ class FieldError(Exception):
 def is_ignored_prefix(arg: str) -> bool:
     if arg.startswith('x-'):
         return True
-    if arg in ('description', 'example'):
+    if arg in ('description', 'example', 'title'):
         return True
     return False
 
@@ -68,7 +66,6 @@ def validate_type(field_name: str, value, type_) -> None:
         except AttributeError:
             pytype = type_
 
-    # print(f'{value} is {pytype}?')
     try:
         if not isinstance(value, pytype):
             # TODO: better text
@@ -78,7 +75,7 @@ def validate_type(field_name: str, value, type_) -> None:
                 f'field "{field_name}" has wrong type',
             )
     except TypeError:
-        # TODO: type=List[str]
+        # TODO: type=list[str]
         pass
 
 
@@ -88,6 +85,9 @@ class SourceLocation:
     filepath: str
     # e.g. /definitions/Type
     location: str
+
+    def __str__(self) -> str:
+        return f'{self.filepath}#{self.location}'
 
 
 @dataclasses.dataclass
@@ -103,7 +103,7 @@ _OptionalStr = TypeVar('_OptionalStr', str, Optional[str])
 
 @dataclasses.dataclass
 class Schema(Base):
-    x_properties: Dict[str, Any] = dataclasses.field(
+    x_properties: dict[str, Any] = dataclasses.field(
         init=False,
         default_factory=dict,
     )
@@ -167,6 +167,9 @@ class Ref(Schema):
     self_ref: bool
     schema: Schema = _NOT_IMPL
 
+    def __post_init__(self):
+        assert self.ref.find('/../') == -1, self.ref
+
     __hash__ = Schema.__hash__
 
 
@@ -176,6 +179,7 @@ class Boolean(Schema):
     type: str = 'boolean'
     default: Optional[bool] = None
     nullable: bool = False
+    deprecated: bool = False
 
     __hash__ = Schema.__hash__
 
@@ -212,8 +216,9 @@ class Integer(Schema):
     exclusiveMinimum: Optional[int] = None
     exclusiveMaximum: Optional[int] = None
     # TODO: multipleOf
-    enum: Optional[List[int]] = None
+    enum: Optional[list[int]] = None
     format: Optional[IntegerFormat] = None
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -239,16 +244,21 @@ class Number(Schema):
     exclusiveMinimum: Optional[Union[float, int]] = None
     exclusiveMaximum: Optional[Union[float, int]] = None
     format: Optional[str] = None
+    deprecated: bool = False
     # TODO: multipleOf
 
     __hash__ = Schema.__hash__
 
 
 class StringFormat(enum.Enum):
+    BINARY = enum.auto()
+    BYTE = enum.auto()
     DATE = enum.auto()
     DATE_TIME = enum.auto()
     DATE_TIME_ISO_BASIC = enum.auto()
+    DATE_TIME_FRACTION = enum.auto()
     UUID = enum.auto()
+    URI = enum.auto()
 
     @classmethod
     def from_string(cls, data: str) -> 'StringFormat':
@@ -259,10 +269,14 @@ class StringFormat(enum.Enum):
 
 
 STRING_FORMAT_TO_FORMAT = {
+    'binary': StringFormat.BINARY,
+    'byte': StringFormat.BYTE,
     'date': StringFormat.DATE,
     'date-time': StringFormat.DATE_TIME,
     'date-time-iso-basic': StringFormat.DATE_TIME_ISO_BASIC,
+    'date-time-fraction': StringFormat.DATE_TIME_FRACTION,
     'uuid': StringFormat.UUID,
+    'uri': StringFormat.URI,
 }
 
 
@@ -272,11 +286,12 @@ class String(Schema):
     type: str = 'string'
     default: Optional[str] = None
     nullable: bool = False
-    enum: Optional[List[str]] = None
+    enum: Optional[list[str]] = None
     pattern: Optional[str] = None
     format: Optional[StringFormat] = None
     minLength: Optional[int] = None
     maxLength: Optional[int] = None
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -300,6 +315,7 @@ class Array(Schema):
     nullable: bool = False
     minItems: Optional[int] = None
     maxItems: Optional[int] = None
+    deprecated: bool = False
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
         cb(self.items, self)
@@ -314,16 +330,17 @@ class SchemaObjectRaw:
     type: str
     additionalProperties: Any
     properties: Optional[dict] = None
-    required: Optional[List[str]] = None
+    required: Optional[list[str]] = None
     nullable: bool = False
+    deprecated: bool = False
 
 
 @smart_fields
 @dataclasses.dataclass
 class SchemaObject(Schema):
     additionalProperties: Union[Schema, bool]
-    properties: Dict[str, Schema]
-    required: Optional[List[str]] = None
+    properties: dict[str, Schema]
+    required: Optional[list[str]] = None
     nullable: bool = False
 
     def __post_init__(self) -> None:
@@ -351,7 +368,7 @@ class SchemaObject(Schema):
 @smart_fields
 @dataclasses.dataclass
 class AllOf(Schema):
-    allOf: List[Schema]  # type: ignore
+    allOf: list[Schema]  # type: ignore
     nullable: bool = False
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
@@ -367,6 +384,7 @@ class AllOf(Schema):
 class AllOfRaw:
     allOf: list  # type:ignore
     nullable: bool = False
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         if not self.allOf:
@@ -376,7 +394,7 @@ class AllOfRaw:
 @smart_fields
 @dataclasses.dataclass
 class OneOfWithoutDiscriminator(Schema):
-    oneOf: List[Schema]  # type:ignore
+    oneOf: list[Schema]  # type:ignore
     nullable: bool = False
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
@@ -395,14 +413,14 @@ class MappingType(enum.Enum):
 @dataclasses.dataclass
 class DiscMapping:
     # only one list must be not none
-    str_values: Optional[List[List[str]]] = None
-    int_values: Optional[List[List[int]]] = None
+    str_values: Optional[list[list[str]]] = None
+    int_values: Optional[list[list[int]]] = None
 
     def append(self, value: list):
         if self.str_values is not None:
-            self.str_values.append(typing.cast(List[str], value))
+            self.str_values.append(typing.cast(list[str], value))
         elif self.int_values is not None:
-            self.int_values.append(typing.cast(List[int], value))
+            self.int_values.append(typing.cast(list[int], value))
 
     def enable_str(self):
         self.str_values = []
@@ -418,11 +436,11 @@ class DiscMapping:
 
         return MappingType.STR
 
-    def as_strs(self) -> List[List[str]]:
-        return typing.cast(List[List[str]], self.str_values)
+    def as_strs(self) -> list[list[str]]:
+        return typing.cast(list[list[str]], self.str_values)
 
-    def as_ints(self) -> List[List[int]]:
-        return typing.cast(List[List[int]], self.int_values)
+    def as_ints(self) -> list[list[int]]:
+        return typing.cast(list[list[int]], self.int_values)
 
     def is_int(self):
         return self.int_values is not None
@@ -434,7 +452,7 @@ class DiscMapping:
 @smart_fields
 @dataclasses.dataclass
 class OneOfWithDiscriminator(Schema):
-    oneOf: List[Ref]  # type:ignore
+    oneOf: list[Ref]  # type:ignore
     discriminator_property: Optional[str] = None
     mapping: DiscMapping = dataclasses.field(default_factory=DiscMapping)
     nullable: bool = False
@@ -451,7 +469,7 @@ class OneOfWithDiscriminator(Schema):
 @dataclasses.dataclass
 class OneOfDiscriminatorRaw:
     propertyName: str  # type:ignore
-    mapping: Optional[Dict[str, str]] = None
+    mapping: Optional[dict[str, str]] = None
 
 
 @smart_fields
@@ -459,6 +477,8 @@ class OneOfDiscriminatorRaw:
 class OneOfRaw:
     oneOf: list  # type:ignore
     discriminator: Optional[dict] = None
+    nullable: bool = False
+    deprecated: bool = False
 
     def __post_init__(self) -> None:
         if not self.oneOf:
@@ -467,12 +487,12 @@ class OneOfRaw:
 
 @dataclasses.dataclass
 class ParsedSchemas:
-    schemas: Dict[str, Schema] = dataclasses.field(
+    schemas: dict[str, Schema] = dataclasses.field(
         default_factory=collections.OrderedDict,
     )
 
     @staticmethod
-    def merge(schemas: List['ParsedSchemas']) -> 'ParsedSchemas':
+    def merge(schemas: list['ParsedSchemas']) -> 'ParsedSchemas':
         result = ParsedSchemas()
         for schema in schemas:
             result.schemas.update(schema.schemas)
@@ -481,4 +501,4 @@ class ParsedSchemas:
 
 @dataclasses.dataclass
 class ResolvedSchemas:
-    schemas: Dict[str, Schema]
+    schemas: dict[str, Schema]

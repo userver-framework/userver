@@ -3,6 +3,7 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/datetime.hpp>

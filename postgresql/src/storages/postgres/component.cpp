@@ -26,6 +26,11 @@
 #include <userver/utils/enumerate.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <storages/postgres/experiments.hpp>
+
+#include <dynamic_config/variables/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.hpp>
+#include <dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -40,11 +45,55 @@ storages::postgres::ConnlimitMode ParseConnlimitMode(const std::string& value) {
     UINVARIANT(false, "Unknown connlimit mode: " + value);
 }
 
+storages::postgres::OmitDescribeInExecuteMode ParseOmitDescribe(const dynamic_config::Snapshot& snapshot) {
+    return snapshot[::dynamic_config::POSTGRES_OMIT_DESCRIBE_IN_EXECUTE] ==
+                   storages::postgres::kOmitDescribeExperimentVersion
+               ? storages::postgres::OmitDescribeInExecuteMode::kEnabled
+               : storages::postgres::OmitDescribeInExecuteMode::kDisabled;
+}
+
+template <typename T>
+void MergeField(T& field, const std::optional<T>& opt) {
+    if (opt) field = *opt;
+}
+
+void MergePoolSettings(
+    std::optional<storages::postgres::PoolSettingsDynamic>&& dynamic_settings_opt,
+    storages::postgres::PoolSettings& static_settings
+) {
+    if (dynamic_settings_opt.has_value()) {
+        auto& dynamic_settings = dynamic_settings_opt.value();
+        MergeField(static_settings.max_size, dynamic_settings.max_size);
+        MergeField(static_settings.min_size, dynamic_settings.min_size);
+        MergeField(static_settings.max_queue_size, dynamic_settings.max_queue_size);
+        MergeField(static_settings.connecting_limit, dynamic_settings.connecting_limit);
+    }
+}
+
+void MergeConnectionSettings(
+    std::optional<storages::postgres::ConnectionSettingsDynamic>&& dynamic_settings_opt,
+    storages::postgres::ConnectionSettings& static_settings
+) {
+    if (dynamic_settings_opt.has_value()) {
+        auto& dynamic_settings = dynamic_settings_opt.value();
+        MergeField(static_settings.prepared_statements, dynamic_settings.prepared_statements);
+        MergeField(static_settings.user_types, dynamic_settings.user_types);
+        MergeField(static_settings.max_prepared_cache_size, dynamic_settings.max_prepared_cache_size);
+        MergeField(static_settings.ignore_unused_query_params, dynamic_settings.ignore_unused_query_params);
+        MergeField(static_settings.recent_errors_threshold, dynamic_settings.recent_errors_threshold);
+        MergeField(static_settings.discard_on_connect, dynamic_settings.discard_on_connect);
+        MergeField(static_settings.deadline_propagation_enabled, dynamic_settings.deadline_propagation_enabled);
+        if (const auto max_ttl = dynamic_settings.max_ttl; max_ttl) {
+            static_settings.max_ttl = *max_ttl;
+        }
+    }
+}
+
 }  // namespace
 
 Postgres::Postgres(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
-      name_{config.Name()},
+      name_{config["name_alias"].As<std::string>(config.Name())},
       database_{std::make_shared<storages::postgres::Database>()},
       config_source_{context.FindComponent<DynamicConfig>().GetSource()} {
     storages::postgres::LogRegisteredTypesOnce();
@@ -87,19 +136,27 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     initial_settings_.topology_settings.max_replication_lag =
         config["max_replication_lag"].As<std::chrono::milliseconds>(storages::postgres::kDefaultMaxReplicationLag);
 
-    initial_settings_.pool_settings =
-        pg_config.pool_settings.GetOptional(name_).value_or(config.As<storages::postgres::PoolSettings>());
-    initial_settings_.conn_settings =
-        pg_config.connection_settings.GetOptional(name_).value_or(config.As<storages::postgres::ConnectionSettings>());
-    initial_settings_.conn_settings.pipeline_mode = initial_config[storages::postgres::kPipelineModeKey];
-    initial_settings_.conn_settings.omit_describe_mode =
-        initial_config[storages::postgres::kOmitDescribeInExecuteModeKey];
+    initial_settings_.pool_settings = config.As<storages::postgres::PoolSettings>();
+    MergePoolSettings(pg_config.pool_settings.GetOptional(name_), initial_settings_.pool_settings);
+
+    initial_settings_.conn_settings = config.As<storages::postgres::ConnectionSettings>();
+    MergeConnectionSettings(pg_config.connection_settings.GetOptional(name_), initial_settings_.conn_settings);
+
+    initial_settings_.conn_settings.statement_log_mode =
+        config["statement-log-mode"].As<storages::postgres::ConnectionSettings::StatementLogMode>();
+
+    initial_settings_.conn_settings.pipeline_mode =
+        initial_config[::dynamic_config::POSTGRES_CONNECTION_PIPELINE_EXPERIMENT] > 0
+            ? storages::postgres::PipelineMode::kEnabled
+            : storages::postgres::PipelineMode::kDisabled;
+    initial_settings_.conn_settings.omit_describe_mode = ParseOmitDescribe(initial_config);
     initial_settings_.statement_metrics_settings = pg_config.statement_metrics_settings.GetOptional(name_).value_or(
         config.As<storages::postgres::StatementMetricsSettings>()
     );
 
-    const auto task_processor_name = config["blocking_task_processor"].As<std::string>();
-    auto* bg_task_processor = &context.GetTaskProcessor(task_processor_name);
+    const auto task_processor_name = config["blocking_task_processor"].As<std::optional<std::string>>();
+    auto& bg_task_processor = task_processor_name ? context.GetTaskProcessor(*task_processor_name)
+                                                  : engine::current_task::GetBlockingTaskProcessor();
 
     error_injection::Settings ei_settings;
     auto ei_settings_opt = config["error-injection"].As<std::optional<error_injection::Settings>>();
@@ -117,13 +174,14 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     auto& testsuite_tasks = testsuite::GetTestsuiteTasks(context);
 
     auto* resolver = clients::dns::GetResolverPtr(config, context);
+    auto metrics = context.FindComponent<components::StatisticsStorage>().GetMetricsStorage();
 
     int shard_number = 0;
     for (auto& dsns : cluster_desc) {
         auto cluster = std::make_shared<pg::Cluster>(
             std::move(dsns),
             resolver,
-            *bg_task_processor,
+            bg_task_processor,
             initial_settings_,
             storages::postgres::DefaultCommandControls{
                 pg_config.default_command_control,
@@ -133,6 +191,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
             ei_settings,
             testsuite_tasks,
             config_source_,
+            metrics,
             shard_number++
         );
         database_->clusters_.push_back(cluster);
@@ -174,13 +233,18 @@ void Postgres::ExtendStatistics(utils::statistics::Writer& writer) {
 
 void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     const auto& pg_config = cfg[storages::postgres::kConfig];
-    const auto pool_settings = pg_config.pool_settings.GetOptional(name_).value_or(initial_settings_.pool_settings);
+    auto pool_settings = initial_settings_.pool_settings;
+    MergePoolSettings(pg_config.pool_settings.GetOptional(name_), pool_settings);
     const auto topology_settings =
         pg_config.topology_settings.GetOptional(name_).value_or(initial_settings_.topology_settings);
-    auto connection_settings =
-        pg_config.connection_settings.GetOptional(name_).value_or(initial_settings_.conn_settings);
-    connection_settings.pipeline_mode = cfg[storages::postgres::kPipelineModeKey];
-    connection_settings.omit_describe_mode = cfg[storages::postgres::kOmitDescribeInExecuteModeKey];
+
+    auto connection_settings = initial_settings_.conn_settings;
+    MergeConnectionSettings(pg_config.connection_settings.GetOptional(name_), connection_settings);
+
+    connection_settings.pipeline_mode = cfg[::dynamic_config::POSTGRES_CONNECTION_PIPELINE_EXPERIMENT] > 0
+                                            ? storages::postgres::PipelineMode::kEnabled
+                                            : storages::postgres::PipelineMode::kDisabled;
+    connection_settings.omit_describe_mode = ParseOmitDescribe(cfg);
     const auto statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_).value_or(initial_settings_.statement_metrics_settings);
 
@@ -213,12 +277,17 @@ properties:
     dbalias:
         type: string
         description: name of the database in secdist config (if available)
+    name_alias:
+        type: string
+        description: name alias to use in dynamic configs
+        defaultDescription: name of the component
     dbconnection:
         type: string
         description: connection DSN string (used if no dbalias specified)
     blocking_task_processor:
         type: string
         description: name of task processor for background blocking operations
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
     max_replication_lag:
         type: string
         description: replication lag limit for usable slaves
@@ -246,6 +315,13 @@ properties:
         type: boolean
         description: cache prepared statements or not
         defaultDescription: true
+    statement-log-mode:
+        type: string
+        enum:
+          - hide
+          - show
+        description: whether to log SQL statements in a span tag
+        defaultDescription: show
     user-types-enabled:
         type: boolean
         description: disabling will disallow use of user-defined types
@@ -279,7 +355,7 @@ properties:
     max_prepared_cache_size:
         type: integer
         description: prepared statements cache size limit
-        defaultDescription: 5000
+        defaultDescription: 200
     max_statement_metrics:
         type: integer
         description: limit of exported metrics for named statements

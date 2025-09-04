@@ -1,12 +1,13 @@
+benchmark-dev
 boost1.84-dev
 boost1.84-static
-benchmark-dev
 clang17-extra-tools
 clang18
 cmake
 crypto++-dev
 curl-dev
 curl-static
+gdb
 gflags-dev
 git
 grpc-cpp
@@ -15,9 +16,9 @@ gtest-dev
 hiredis-dev
 jemalloc-dev
 krb5-dev
-libev-dev
 libbson-dev
 libbson-static
+libev-dev
 lz4-dev
 lz4-static
 make
@@ -44,6 +45,7 @@ rabbitmq-c-dev
 rocksdb-dev
 snappy-dev
 snappy-static
+unixodbc-dev
 yaml-cpp-dev
 zlib-dev
 zlib-static

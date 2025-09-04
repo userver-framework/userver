@@ -1,8 +1,17 @@
 import base64
 
+import pytest
 
-async def test_topic(service_client, ydb, testpoint):
-    @testpoint('topic-handle-message')
+
+@pytest.mark.parametrize(
+    'testpoint_name',
+    [
+        pytest.param('topic-handle-message', id='topic'),
+        pytest.param('federated-topic-handle-message', id='federated-topic'),
+    ],
+)
+async def test_topic(testpoint_name, service_client, ydb, testpoint):
+    @testpoint(testpoint_name)
     async def handle_message_testpoint(data):
         pass
 

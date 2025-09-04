@@ -111,6 +111,10 @@ properties:
                     lead to inaccuracy in coro pool size estimation.
                     local_cache_size=0 disables local cache.
                 defaultDescription: 8
+            stack_usage_monitor_enabled:
+                type: boolean
+                description: stack usage monitor status
+                defaultDescription: true
     event_thread_pool:
         type: object
         description: event thread pool options
@@ -193,6 +197,11 @@ properties:
     default_task_processor:
         type: string
         description: name of the default task processor to use in components
+        defaultDescription: main-task-processor
+    fs_task_processor:
+        type: string
+        description: name of the fs task processor to use in components
+        defaultDescription: fs-task-processor
     mlock_debug_info:
         type: boolean
         description: whether to mlock(2) process debug info
@@ -228,6 +237,12 @@ properties:
             the balancer a chance to redirect new requests to other hosts and
             to give the service a chance to finish handling old requests.
         defaultDescription: 0s
+    enable_trx_tracker:
+        type: boolean
+        description: |
+            Enable checking of heavy operations (like http calls) while having
+            active database transactions.
+        defaultDescription: true
 )");
 }
 
@@ -246,7 +261,8 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     }
     config.components = yaml_config::ParseMapToArray<components::ComponentConfig>(value["components"]);
     config.task_processors = yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(value["task_processors"]);
-    config.default_task_processor = value["default_task_processor"].As<std::string>();
+    config.default_task_processor = value["default_task_processor"].As<std::string>("main-task-processor");
+    config.fs_task_processor = value["fs_task_processor"].As<std::string>("fs-task-processor");
 
     config.mlock_debug_info = value["mlock_debug_info"].As<bool>(config.mlock_debug_info);
     config.disable_phdr_cache = value["disable_phdr_cache"].As<bool>(config.disable_phdr_cache);
@@ -260,6 +276,7 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     );
     config.graceful_shutdown_interval =
         value["graceful_shutdown_interval"].As<std::chrono::milliseconds>(config.graceful_shutdown_interval);
+    config.enable_trx_tracker = value["enable_trx_tracker"].As<bool>(config.enable_trx_tracker);
 
     return config;
 }

@@ -11,11 +11,24 @@ Component::Component(
     const USERVER_NAMESPACE::components::ComponentConfig& config,
     const USERVER_NAMESPACE::components::ComponentContext& context
 )
-    : USERVER_NAMESPACE::components::ComponentBase(config, context),
+    : USERVER_NAMESPACE::components::LoggableComponentBase(config, context),
       client_(
-          USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, "http://example.com"),
+          USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl),
           context.FindComponent<USERVER_NAMESPACE::components::HttpClient>().GetHttpClient()
-      ) {}
+      ) {
+    if (config.HasMember("middlewares")) {
+        const auto& mw_config = config["middlewares"];
+        const auto& registry = USERVER_NAMESPACE::chaotic::openapi::client::MiddlewareRegistry::Instance();
+        const auto& factories = registry.GetFactories();
+
+        for (const auto& [name, factory] : factories) {
+            if (mw_config.HasMember(name)) {
+                auto middleware = factory->Create(mw_config[name]);
+                client_.RegisterMiddleware(middleware);
+            }
+        }
+    }
+}
 
 Client& Component::GetClient() { return client_; }
 

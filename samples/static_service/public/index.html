@@ -1,8 +1,51 @@
-<html>
-	<head>
-		<title>userver</title>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+		<title>userver sample</title>
+    <link href="custom.css" rel="stylesheet">
+    <script type="text/javascript" src="custom.js"></script>
 	</head>
 	<body>
-		Welcome to userver
+
+<div class="nav-bar">
+  <form action="/v1/messages" id="send-message-form">
+    <label>Name:</label>
+    <input type="text" id="form-name" name="name">
+    
+    <label>Message:</label>
+    <input type="text" id="form-message" name="message">
+    <input type="submit" value="Send message">
+  </form>
+</div>
+
+<div class="clear-both"></div>
+
+<h1>Messages:</h1>
+<div id="the-messages"></div>
+
+<script>
+    function OnSubmit(event) {
+        PostJsonForm(event, _ => { window.location.reload(); });
+    }
+    document.getElementById('send-message-form').addEventListener('submit', OnSubmit);
+
+    function EscapeHTML(str){
+        var p = document.createElement("p");
+        p.appendChild(document.createTextNode(str));
+        return p.innerHTML;
+    }
+    function OnLoaded() {
+        GetMessages(messages_array =>{
+            var content = "";
+            messages_array.forEach(message => {
+                content += "<p><span class='name'>" + EscapeHTML(message["name"]) + "</span>: " + EscapeHTML(message["message"]) + "</p>";
+            });
+            document.getElementById("the-messages").innerHTML = content;
+        });
+    }
+    document.addEventListener('DOMContentLoaded', OnLoaded);
+</script>
+
 	</body>
 </html>

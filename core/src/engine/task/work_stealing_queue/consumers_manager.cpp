@@ -14,7 +14,7 @@ ConsumersManager::ConsumersManager(std::size_t consumers_count)
     : consumers_count_(consumers_count), is_sleeping_(consumers_count, false) {}
 
 void ConsumersManager::NotifyNewTask() {
-    ConsumersState::State curr_state = state_.Get();
+    const ConsumersState::State curr_state = state_.Get();
     UASSERT(curr_state.sleeping_count <= consumers_count_);
     UASSERT(curr_state.stealing_count <= consumers_count_);
     UASSERT(curr_state.stealing_count + curr_state.sleeping_count <= consumers_count_);
@@ -24,7 +24,7 @@ void ConsumersManager::NotifyNewTask() {
 }
 
 void ConsumersManager::NotifyWakeUp(Consumer* const consumer) {
-    std::lock_guard lock_(mutex_);
+    const std::lock_guard lock_(mutex_);
     if (!is_sleeping_[consumer->inner_index_]) {
         return;
     }
@@ -33,7 +33,7 @@ void ConsumersManager::NotifyWakeUp(Consumer* const consumer) {
 }
 
 void ConsumersManager::NotifySleep(Consumer* const consumer) {
-    std::lock_guard lock_(mutex_);
+    const std::lock_guard lock_(mutex_);
 
     if (is_sleeping_[consumer->inner_index_]) {
         return;
@@ -46,7 +46,7 @@ void ConsumersManager::NotifySleep(Consumer* const consumer) {
 bool ConsumersManager::AllowStealing() noexcept {
     while (true) {
         ConsumersState curr_consumers_state = state_;
-        ConsumersState::State curr_state = curr_consumers_state.Get();
+        const ConsumersState::State curr_state = curr_consumers_state.Get();
         if ((curr_state.stealing_count + 1) * 2 > consumers_count_) {
             return false;
         }
@@ -57,14 +57,14 @@ bool ConsumersManager::AllowStealing() noexcept {
 }
 
 bool ConsumersManager::StopStealing() noexcept {
-    ConsumersState::State old_state = state_.DerementStealersCount();
+    const ConsumersState::State old_state = state_.DerementStealersCount();
     return old_state.stealing_count == 1;
 }
 
 void ConsumersManager::WakeUpOne() {
     Consumer* consumer = nullptr;
     {
-        std::lock_guard lock_(mutex_);
+        const std::lock_guard lock_(mutex_);
         while (!sleep_dq_.empty()) {
             Consumer* candidate = sleep_dq_.front();
             sleep_dq_.pop_front();
@@ -92,7 +92,7 @@ void ConsumersManager::WakeUpAll() {
     std::vector<Consumer*> consumers;
     consumers.reserve(consumers_count_);
     {
-        std::lock_guard lock_(mutex_);
+        const std::lock_guard lock_(mutex_);
         while (!sleep_dq_.empty()) {
             Consumer* consumer = sleep_dq_.front();
             sleep_dq_.pop_front();

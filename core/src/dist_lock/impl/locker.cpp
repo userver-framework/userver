@@ -41,7 +41,7 @@ public:
     ~LockGuard() { TryUnlock(); }
 
     void TryUnlock() noexcept {
-        engine::TaskCancellationBlocker cancel_blocker;
+        const engine::TaskCancellationBlocker cancel_blocker;
         try {
             if (locker_.ExchangeLockState(false, utils::datetime::SteadyNow())) {
                 locker_.strategy_->Release(locker_.Id());
@@ -78,12 +78,12 @@ const std::string& Locker::Name() const { return name_; }
 const std::string& Locker::Id() const { return id_; }
 
 DistLockSettings Locker::GetSettings() const {
-    std::lock_guard<engine::Mutex> lock(settings_mutex_);
+    const std::lock_guard<engine::Mutex> lock(settings_mutex_);
     return settings_;
 }
 
 void Locker::SetSettings(const DistLockSettings& settings) {
-    std::lock_guard<engine::Mutex> lock(settings_mutex_);
+    const std::lock_guard<engine::Mutex> lock(settings_mutex_);
     settings_ = settings;
 }
 

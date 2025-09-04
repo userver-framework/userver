@@ -21,7 +21,7 @@ constexpr size_t kEntryCount = 1024;
 
 inline server::http::HttpRequestParser CreateBenchmarkParser(server::http::HttpRequestParser::OnNewRequestCb&& cb) {
     static const server::http::HandlerInfoIndex kTestHandlerInfoIndex;
-    static server::request::HttpRequestConfig kTestRequestConfig{
+    static const server::request::HttpRequestConfig kTestRequestConfig{
         /*.max_url_size = */ 8192,
         /*.max_request_size = */ 1024 * 1024,
         /*.max_headers_size = */ 65536,

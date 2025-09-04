@@ -9,6 +9,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/retry_budget.hpp>
@@ -17,6 +18,7 @@
 #include <userver/ydb/coordination.hpp>
 #include <userver/ydb/credentials.hpp>
 #include <userver/ydb/exceptions.hpp>
+#include <userver/ydb/federated_topic.hpp>
 #include <userver/ydb/table.hpp>
 #include <userver/ydb/topic.hpp>
 
@@ -24,6 +26,8 @@
 #include <ydb/impl/driver.hpp>
 #include <ydb/impl/secdist.hpp>
 #include <ydb/impl/stats.hpp>
+
+#include <dynamic_config/variables/YDB_RETRY_BUDGET.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,10 +65,16 @@ struct YdbComponent::DatabaseUtils final {
 
         auto topic_client = std::make_shared<TopicClient>(driver, topic_settings);
 
+        auto federated_topic_client = std::make_shared<FederatedTopicClient>(driver, topic_settings);
+
         auto coordination_client = std::make_shared<CoordinationClient>(driver);
 
         return Database{
-            std::move(driver), std::move(table_client), std::move(topic_client), std::move(coordination_client)};
+            std::move(driver),
+            std::move(table_client),
+            std::move(topic_client),
+            std::move(federated_topic_client),
+            std::move(coordination_client)};
     }
 };
 
@@ -91,12 +101,16 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
                 credentials_provider_component.CreateCredentialsProviderFactory(credentials_config);
         }
 
-        databases_.emplace(
-            dbname,
-            DatabaseUtils::Make(
-                dbname, dbconfig, dbsettings, credentials_provider_factory, operation_settings, config_source
-            )
-        );
+        databases_.emplace(dbname, engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&] {
+                                       return DatabaseUtils::Make(
+                                           dbname,
+                                           dbconfig,
+                                           dbsettings,
+                                           credentials_provider_factory,
+                                           operation_settings,
+                                           config_source
+                                       );
+                                   }).Get());
 
         if (dbconfig.HasMember("aliases")) {
             for (const auto& config_alias : dbconfig["aliases"]) {
@@ -145,6 +159,10 @@ std::shared_ptr<TopicClient> YdbComponent::GetTopicClient(const std::string& dbn
     return FindDatabase(dbname).topic_client;
 }
 
+std::shared_ptr<FederatedTopicClient> YdbComponent::GetFederatedTopicClient(const std::string& dbname) const {
+    return FindDatabase(dbname).federated_topic_client;
+}
+
 std::shared_ptr<CoordinationClient> YdbComponent::GetCoordinationClient(const std::string& dbname) const {
     return FindDatabase(dbname).coordination_client;
 }
@@ -158,8 +176,12 @@ const std::string& YdbComponent::GetDatabasePath(const std::string& dbname) cons
 }
 
 void YdbComponent::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-    for (const auto& [dbname, settings] : cfg[impl::kRetryBudgetSettings]) {
-        databases_[dbname].driver->GetRetryBudget().SetSettings(settings);
+    for (const auto& [dbname, settings] : cfg[::dynamic_config::YDB_RETRY_BUDGET].extra) {
+        databases_[dbname].driver->GetRetryBudget().SetSettings({
+            static_cast<float>(settings.max_tokens),
+            static_cast<float>(settings.token_ratio),
+            settings.enabled,
+        });
     }
 }
 

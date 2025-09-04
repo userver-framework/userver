@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(userver-samples-mongo-support CXX)
 
-find_package(userver COMPONENTS mongo REQUIRED)
+find_package(
+    userver
+    COMPONENTS mongo
+    REQUIRED
+)
 
 file(GLOB_RECURSE SOURCES main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})

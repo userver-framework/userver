@@ -15,6 +15,7 @@
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>
 #include <userver/server/handlers/auth/digest/directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/types.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
@@ -45,9 +46,11 @@ public:
     /// algorithm.
     std::string GetHash(std::string_view data) const;
 
+    /// @overload
+    std::string GetHash(std::initializer_list<std::string_view> data) const;
+
 private:
-    using HashAlgorithm = std::function<std::string(std::string_view, crypto::hash::OutputEncoding)>;
-    HashAlgorithm hash_algorithm_;
+    const HashAlgTypes hash_algorithm_;
     const SecdistConfig& secdist_config_;
 };
 
@@ -70,7 +73,7 @@ struct UserData final {
 class AuthCheckerBase : public auth::AuthCheckerBase {
 public:
     /// Accepts digest-authentication settings from
-    /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
+    /// @ref server::handlers::auth::digest::AuthCheckerSettingsComponent and "realm"
     /// from handler config in static_config.yaml.
     AuthCheckerBase(
         const AuthCheckerSettings& digest_settings,

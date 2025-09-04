@@ -1,5 +1,7 @@
 #include <server/middlewares/auth.hpp>
 
+#include <fmt/format.h>
+
 #include <server/handlers/auth/auth_checker.hpp>
 #include <userver/server/http/http_request.hpp>
 
@@ -14,13 +16,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
 
-Auth::Auth(const components::ComponentContext& context, const handlers::HttpHandlerBase& handler)
-    : handler_{handler},
-      auth_checkers_{handlers::auth::CreateAuthCheckers(
-          context,
-          handler_.GetConfig(),
-          context.FindComponent<components::AuthCheckerSettings>().Get()
-      )} {}
+Auth::Auth(const handlers::auth::AuthCheckerFactories& factories, const handlers::HttpHandlerBase& handler)
+    : handler_{handler}, auth_checkers_{handlers::auth::CreateAuthCheckers(factories, handler_.GetConfig())} {}
 
 void Auth::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     if (CheckAuth(request, context)) {
@@ -48,11 +45,18 @@ bool Auth::CheckAuth(const http::HttpRequest& request, request::RequestContext& 
 }
 
 AuthFactory::AuthFactory(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : HttpMiddlewareFactoryBase{config, context}, context_{context} {}
+    : HttpMiddlewareFactoryBase{config, context}, factories_(handlers::auth::CreateAuthCheckerFactories(context)) {}
+
+const handlers::auth::AuthCheckerFactoryBase& AuthFactory::GetAuthCheckerFactory(std::string_view auth_type) const {
+    if (const auto* checker_factory = utils::impl::FindTransparentOrNullptr(factories_, auth_type)) {
+        return **checker_factory;
+    }
+    throw std::runtime_error(fmt::format("Unknown auth type '{}'", auth_type));
+}
 
 std::unique_ptr<HttpMiddlewareBase>
 AuthFactory::Create(const handlers::HttpHandlerBase& handler, yaml_config::YamlConfig) const {
-    return std::make_unique<Auth>(context_, handler);
+    return std::make_unique<Auth>(factories_, handler);
 }
 
 }  // namespace server::middlewares

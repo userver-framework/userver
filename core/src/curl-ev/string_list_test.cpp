@@ -24,7 +24,7 @@ TEST(CurlStringList, Add) {
     list.add("aaa");
     list.add("bbb");
 
-    std::vector<std::string> expected{"aaa", "bbb"};
+    const std::vector<std::string> expected{"aaa", "bbb"};
     EXPECT_EQ(ToVector(list), expected);
 }
 
@@ -41,7 +41,7 @@ TEST(CurlStringList, Clear) {
 
     list.add("aaa");
     list.add("bbb");
-    std::vector<std::string> expected{"aaa", "bbb"};
+    const std::vector<std::string> expected{"aaa", "bbb"};
     EXPECT_EQ(ToVector(list), expected);
 }
 
@@ -63,7 +63,7 @@ TEST(CurlStringList, ReplaceFirstIf) {
     list.add("bab");
 
     EXPECT_TRUE(list.ReplaceFirstIf([](std::string_view value) { return value.size() > 1 && value[1] == 'a'; }, "cc"));
-    std::vector<std::string> expected1{"cc", "bab"};
+    const std::vector<std::string> expected1{"cc", "bab"};
     EXPECT_EQ(ToVector(list), expected1);
 
     EXPECT_FALSE(list.ReplaceFirstIf([](std::string_view value) { return value.size() > 3; }, "zxc"));
@@ -72,7 +72,7 @@ TEST(CurlStringList, ReplaceFirstIf) {
     EXPECT_TRUE(
         list.ReplaceFirstIf([](std::string_view value) { return value.size() > 1 && value[0] == 'b'; }, "dadddd")
     );
-    std::vector<std::string> expected2{"cc", "dadddd"};
+    const std::vector<std::string> expected2{"cc", "dadddd"};
     EXPECT_EQ(ToVector(list), expected2);
 }
 

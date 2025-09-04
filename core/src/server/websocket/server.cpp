@@ -1,5 +1,7 @@
 #include <userver/server/websocket/server.hpp>
 
+#include <atomic>
+
 #include <userver/components/component.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
@@ -37,7 +39,7 @@ Config Parse(const yaml_config::YamlConfig& config, formats::parse::To<Config>) 
 class WebSocketConnectionImpl final : public WebSocketConnection {
 public:
 private:
-    std::unique_ptr<engine::io::RwBase> io;
+    std::unique_ptr<engine::io::RwBase> io_;
 
     struct MessageExtended final {
         utils::span<const std::byte> data;
@@ -57,7 +59,9 @@ private:
     // only a single task calling Recv().
     impl::FrameParserState frame_;
 
-    Config config;
+    Config config_;
+
+    std::atomic<std::size_t> ping_pending_count_{0};
 
 public:
     WebSocketConnectionImpl(
@@ -65,7 +69,7 @@ public:
         const engine::io::Sockaddr& remote_addr,
         const Config& server_config
     )
-        : io(std::move(io_)), remote_addr_(remote_addr), config(server_config) {}
+        : io_(std::move(io_)), remote_addr_(remote_addr), config_(server_config) {}
 
     ~WebSocketConnectionImpl() override { LOG_TRACE() << "Websocket connection closed"; }
 
@@ -73,35 +77,35 @@ public:
         stats_.msg_sent++;
         stats_.bytes_sent += message.data.size();
 
-        const std::unique_lock lock(write_mutex_);
+        const std::lock_guard lock(write_mutex_);
 
         LOG_TRACE() << "Write message " << message.data.size() << " bytes";
         if (message.opcode == impl::WSOpcodes::kPing) {
-            SendExactly(*io, impl::frames::PingFrame(), {});
+            SendExactly(*io_, impl::frames::PingFrame(), {});
         } else if (message.opcode == impl::WSOpcodes::kPong) {
             const auto control_frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kPong, message.data);
-            SendExactly(*io, control_frame, message.data);
+            SendExactly(*io_, control_frame, message.data);
         } else if (message.close_status.has_value()) {
             const auto close_frame = impl::frames::CloseFrame(static_cast<int>(message.close_status.value()));
-            SendExactly(*io, close_frame, {});
+            SendExactly(*io_, close_frame, {});
         } else if (!message.data.empty()) {
             utils::span<const std::byte> data_to_send{message.data};
             auto continuation = impl::frames::Continuation::kNo;
-            while (data_to_send.size() > config.fragment_size && config.fragment_size > 0) {
+            while (data_to_send.size() > config_.fragment_size && config_.fragment_size > 0) {
                 const auto data_frame_header = impl::frames::DataFrameHeader(
-                    data_to_send.first(config.fragment_size),
+                    data_to_send.first(config_.fragment_size),
                     message.opcode == impl::WSOpcodes::kText,
                     continuation,
                     impl::frames::Final::kNo
                 );
-                SendExactly(*io, data_frame_header, data_to_send.first(config.fragment_size));
+                SendExactly(*io_, data_frame_header, data_to_send.first(config_.fragment_size));
                 continuation = impl::frames::Continuation::kYes;
-                data_to_send = data_to_send.last(data_to_send.size() - config.fragment_size);
+                data_to_send = data_to_send.last(data_to_send.size() - config_.fragment_size);
             }
             const auto data_frame_header = impl::frames::DataFrameHeader(
                 data_to_send, message.opcode == impl::WSOpcodes::kText, continuation, impl::frames::Final::kYes
             );
-            SendExactly(*io, data_frame_header, data_to_send);
+            SendExactly(*io_, data_frame_header, data_to_send);
         }
     }
 
@@ -118,6 +122,15 @@ public:
         SendExtended(mext);
     }
 
+    void SendPing() override {
+        MessageExtended ping_msg{{}, impl::WSOpcodes::kPing, {}};
+        SendExtended(ping_msg);
+        LOG_TRACE() << "Sent keep-alive ping";
+        ping_pending_count_.fetch_add(1);
+    }
+
+    std::size_t NotAnsweredSequentialPingsCount() override { return ping_pending_count_.load(); }
+
     void DoSendBinary(utils::span<const std::byte> message) override {
         MessageExtended mext{message, impl::WSOpcodes::kBinary, {}};
         SendExtended(mext);
@@ -133,12 +146,12 @@ public:
 
             if (do_not_wait_for_message_header) {
                 const auto opt_status_raw =
-                    ReadWSFrameDontWaitForHeader(frame_, *io, config.max_remote_payload, payload_len);
+                    ReadWSFrameDontWaitForHeader(frame_, *io_, config_.max_remote_payload, payload_len);
                 if (!opt_status_raw) return false;
                 status_raw = *opt_status_raw;
             } else {
                 // ReadWSFrame() returns kGoingAway in case of task cancellation
-                status_raw = ReadWSFrame(frame_, *io, config.max_remote_payload, payload_len);
+                status_raw = ReadWSFrame(frame_, *io_, config_.max_remote_payload, payload_len);
             }
 
             const auto status = static_cast<CloseStatusInt>(status_raw);
@@ -173,6 +186,7 @@ public:
             }
             if (frame_.pong_received) {
                 frame_.pong_received = false;
+                ping_pending_count_ = 0;
                 continue;
             }
             if (frame_.waiting_continuation) continue;

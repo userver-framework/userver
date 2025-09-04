@@ -1,7 +1,6 @@
 #include <userver/utest/utest.hpp>
 
 #include <components/component_list_test.hpp>
-#include <userver/alerts/component.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -52,9 +51,12 @@ namespace {
 
 constexpr std::string_view kStaticConfigBase = R"(
 components_manager:
+  coro_pool:
+    initial_size: 50
   event_thread_pool:
     threads: 1
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   task_processors:
     main-task-processor:
       worker_threads: 1
@@ -77,8 +79,7 @@ components::ComponentList MakeComponentList() {
         .Append<components::StatisticsStorage>()
         .Append<components::Logging>()
         .Append<components::Tracer>()
-        .Append<ConfigNotRequiredComponent>()
-        .Append<alerts::StorageComponent>();
+        .Append<ConfigNotRequiredComponent>();
 }
 
 }  // namespace

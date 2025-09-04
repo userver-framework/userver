@@ -17,6 +17,10 @@ size_t Collection::Execute(const operations::CountApprox& count_approx_op) const
 
 Cursor Collection::Execute(const operations::Find& find_op) const { return impl_->Execute(find_op); }
 
+std::vector<formats::bson::Value> Collection::Execute(const operations::Distinct& distinct_op) const {
+    return impl_->Execute(distinct_op);
+}
+
 WriteResult Collection::Execute(const operations::InsertOne& insert_op) { return impl_->Execute(insert_op); }
 
 WriteResult Collection::Execute(const operations::InsertMany& insert_op) { return impl_->Execute(insert_op); }

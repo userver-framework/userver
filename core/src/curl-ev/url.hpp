@@ -46,7 +46,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
-class url {
+class url {  // NOLINT(readability-identifier-naming)
 public:
     url();
 

@@ -3,9 +3,20 @@
 #include <storages/mongo/bulk_ops_impl.hpp>
 #include <storages/mongo/operations_common.hpp>
 
+#include <userver/utils/string_literal.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::bulk_ops {
+
+namespace {
+
+void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder, const options::ArrayFilters& filters) {
+    static constexpr utils::StringLiteral kOptionName = "arrayFilters";
+    builder.Append(kOptionName, filters.Value());
+}
+
+}  // namespace
 
 InsertOne::InsertOne(formats::bson::Document document) : impl_(std::move(document)) {}
 
@@ -40,6 +51,12 @@ Update& Update::operator=(Update&&) noexcept = default;
 
 void Update::SetOption(options::Upsert) { impl::AppendUpsert(impl::EnsureBuilder(impl_->options)); }
 
+void Update::SetOption(const options::ArrayFilters& filters) {
+    AppendArrayFilters(impl::EnsureBuilder(impl_->options), filters);
+}
+
+void Update::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+
 Delete::Delete(Mode mode, formats::bson::Document selector) : impl_(mode, std::move(selector)) {}
 
 Delete::~Delete() = default;
@@ -48,6 +65,8 @@ Delete::Delete(const Delete&) = default;
 Delete::Delete(Delete&&) noexcept = default;
 Delete& Delete::operator=(const Delete&) = default;
 Delete& Delete::operator=(Delete&&) noexcept = default;
+
+void Delete::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 }  // namespace storages::mongo::bulk_ops
 

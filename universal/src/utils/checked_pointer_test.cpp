@@ -28,7 +28,7 @@ TEST(CheckedPtr, ThrowOnNull) {
     // [[maybe_unused]] auto v = GetEmpty().Get();
     // [[maybe_unused]] auto v = GetEmpty()->value;
 
-    MyCheckedPtr empty = nullptr;
+    const MyCheckedPtr empty = nullptr;
 
     EXPECT_FALSE(empty);
     EXPECT_THROW(empty.Get(), std::runtime_error);

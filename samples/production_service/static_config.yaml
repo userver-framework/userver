@@ -52,10 +52,6 @@ components_manager:
             path: /service/monitor
             method: GET
             task_processor: monitor-task-processor
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: monitor-task-processor
         # /// [Production service sample - static config utility handlers]
 
         # /// [Production service sample - static config ping]
@@ -174,7 +170,7 @@ components_manager:
         testsuite-support:
     coro_pool:
         initial_size: $coro-pool-initial-size
-        initial_size#fallback: 5000
+        initial_size#fallback: 4000
         max_size: $coro-pool-max-size
         max_size#fallback: 50000
 

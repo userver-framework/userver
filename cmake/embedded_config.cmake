@@ -1,8 +1,9 @@
 cmake_policy(SET CMP0053 NEW)
 
-set(NAMESPACE userver)
+set(NAMESPACE USERVER_NAMESPACE)
 set(FILE_IN ${CMAKE_CURRENT_BINARY_DIR}/embedded.h.in)
-set(TEMPLATE "
+set(TEMPLATE
+    "
 #pragma once
 
 #include <string_view>
@@ -34,6 +35,7 @@ APPLE_PREFIX \"@NAME@_end:\\n\"
 \".byte 0\\n\"
 APPLE_PREFIX \"@NAME@_size:\\n\"
 \".int \" APPLE_PREFIX \"@NAME@_end - \" APPLE_PREFIX \"@NAME@_begin\\n\"
+\".previous\\n\"
 );
 
 extern \"C\" const char @NAME@_begin[];
@@ -42,8 +44,9 @@ extern \"C\" const int @NAME@_size;
 
 
 __attribute__((constructor)) void @NAME@_call() {
-  utils::RegisterResource(\"@NAME@\", std::string_view{@NAME@_begin, static_cast<size_t>(@NAME@_size)});
+  ${NAMESPACE}::utils::RegisterResource(\"@NAME@\", std::string_view{@NAME@_begin, static_cast<size_t>(@NAME@_size)});
 }
-")
+"
+)
 string(CONFIGURE "${TEMPLATE}" RENDERED)
 file(WRITE "${OUTPUT}" "${RENDERED}")

@@ -34,7 +34,7 @@ import yaml
 ##
 ## Example of patching config :
 ##
-## @snippet samples/grpc_service/tests/conftest.py Prepare configs
+## @snippet grpc/functional_tests/basic_server/tests-tls/conftest.py Prepare service config
 ##
 ## @hideinitializer
 USERVER_CONFIG_HOOKS = [
@@ -126,7 +126,7 @@ def service_config_path(pytestconfig, service_binary) -> pathlib.Path:
     Returns the path to service.yaml file set by command line
     `--service-config` option.
 
-    Override this fixture to change the way path to service.yaml is provided.
+    Override this fixture to change the way path to the static config is provided.
 
     @ingroup userver_testsuite_fixtures
     """
@@ -382,6 +382,8 @@ def _original_service_config(
 ) -> _UserverConfig:
     config_vars: dict
     config_yaml: dict
+
+    assert service_config_path is not None, 'Please specify proper path to the static config file, not None'
 
     with open(service_config_path, mode='rt') as fp:
         config_yaml = yaml.safe_load(fp)

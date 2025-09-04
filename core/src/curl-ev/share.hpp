@@ -6,6 +6,8 @@
         C++ wrapper for libcurl's share interface
 */
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 #pragma once
 
 #include <memory>
@@ -16,7 +18,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace curl {
-class share final : public std::enable_shared_from_this<share> {
+class share final : public std::enable_shared_from_this<share> {  // NOLINT(readability-identifier-naming)
 public:
     share();
     share(const share&) = delete;
@@ -46,3 +48,5 @@ private:
 }  // namespace curl
 
 USERVER_NAMESPACE_END
+
+// NOLINTEND(readability-identifier-naming)

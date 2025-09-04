@@ -197,7 +197,7 @@ std::string MakeDsnNick(const Dsn& dsn, bool escape) {
 DsnOptions OptionsFromDsn(const Dsn& dsn) {
     DsnOptions options;
     const auto hap = ParseDSNOptions(dsn, [&options](PQconninfoOption* opt) {
-        std::string keyword = opt->keyword;
+        const std::string keyword = opt->keyword;
         if (options.dbname.empty() && keyword == "dbname") {
             options.dbname = opt->val;
         }

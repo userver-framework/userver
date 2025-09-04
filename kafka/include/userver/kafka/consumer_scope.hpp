@@ -4,6 +4,8 @@
 
 #include <userver/kafka/message.hpp>
 #include <userver/kafka/offset_range.hpp>
+#include <userver/kafka/rebalance_types.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -79,6 +81,9 @@ public:
     ConsumerScope(ConsumerScope&&) noexcept = delete;
     ConsumerScope& operator=(ConsumerScope&&) noexcept = delete;
 
+    /// @brief Topics list consumer configured to subscribe.
+    const std::vector<std::string>& GetTopics() const;
+
     /// @brief Subscribes for configured topics and starts the consumer polling
     /// process.
     /// @note If `callback` throws an exception, entire message batch (also
@@ -117,13 +122,15 @@ public:
 
     /// @brief Retrieves the lowest and highest offsets for the specified topic and partition.
     /// @throws OffsetRangeException if offsets could not be retrieved
+    /// @throws OffsetRangeTimeoutException if `timeout` is set and is reached
     /// @warning This is a blocking call
     /// @param topic The name of the topic.
     /// @param partition The partition number of the topic.
+    /// @param timeout The optional timeout for the operation.
     /// @returns Lowest and highest offsets for the given topic and partition.
     /// @see OffsetRange for more explanation
     OffsetRange GetOffsetRange(
-        const std::string& topic,
+        utils::zstring_view topic,
         std::uint32_t partition,
         std::optional<std::chrono::milliseconds> timeout = std::nullopt
     ) const;
@@ -131,11 +138,74 @@ public:
     /// @brief Retrieves the partition IDs for the specified topic.
     /// @throws GetMetadataException if failed to fetch metadata
     /// @throws TopicNotFoundException if topic not found
+    /// @throws OffsetRangeTimeoutException if `timeout` is set and is reached
     /// @warning This is a blocking call
     /// @param topic The name of the topic.
+    /// @param timeout The optional timeout for the operation.
     /// @returns A vector of partition IDs for the given topic.
     std::vector<std::uint32_t>
-    GetPartitionIds(const std::string& topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+    GetPartitionIds(utils::zstring_view topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+
+    /// @brief Sets the rebalance callback for a consumer.
+    /// @warning The rebalance callback must be set before calling ConsumerScope::Start or after calling
+    /// ConsumerScope::Stop. The callback must not throw exceptions; any thrown exceptions will be caught and logged
+    /// by the consumer implementation.
+    /// @note The callback is invoked after the assign or revoke event has been successfully processed.
+    void SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback);
+
+    /// @brief Resets the rebalance callback for a consumer.
+    /// @warning The rebalance callback must be set before calling ConsumerScope::Start or after calling
+    /// ConsumerScope::Stop. The callback must not throw exceptions; any thrown exceptions will be caught and logged
+    /// by the consumer implementation.
+    /// @note The callback is invoked after the assign or revoke event has been successfully processed.
+    void ResetRebalanceCallback();
+
+    /// @brief Seeks the specified topic partition to the given \b offset.
+    /// @throws TimeoutException if the operation times out.
+    /// @throws SeekException if an error occurs during the seek operation.
+    /// @throws SeekInvalidArgumentException if invalid \b timeout or \b offset is passed.
+    /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start call and before
+    /// ConsumerScope::Stop call. It works only when the consumer has assigned partitions; otherwise, it throws
+    /// SeekException.
+    /// @warning Currently, it is required to call this from within the ConsumerRebalanceCallback.
+    /// @ref ConsumerScope::SetRebalanceCallback
+    /// @param topic The name of the topic.
+    /// @param partition_id The partition ID of the given topic.
+    /// @param offset The offset to seek to, must be <= std::int64_t::max() or SeekInvalidArgumentException occurs.
+    /// @param timeout The timeout duration for the operation, must be > 0 or SeekInvalidArgumentException occurs.
+    void Seek(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::uint64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
+
+    /// @brief Seeks the specified topic partition to the beginning.
+    /// @throws SeekException if an error occurs during the seek operation.
+    /// @throws SeekInvalidArgumentException if invalid \b timeout is passed.
+    /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start call and before
+    /// ConsumerScope::Stop call. It works only when the consumer has assigned partitions; otherwise, it throws
+    /// SeekException.
+    /// @warning Currently, it is required to call this from within the ConsumerRebalanceCallback.
+    /// @ref ConsumerScope::SetRebalanceCallback
+    /// @param topic The name of the topic.
+    /// @param partition_id The partition ID of the given topic.
+    /// @param timeout The timeout duration for the operation, must be > 0 or SeekInvalidArgumentException occurs.
+    void SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
+        const;
+
+    /// @brief Seeks the specified topic partition to the end.
+    /// @throws SeekException if an error occurs during the seek operation.
+    /// @throws SeekInvalidArgumentException if invalid \b timeout is passed.
+    /// @warning This is a blocking call and should only be invoked after ConsumerScope::Start call and before
+    /// ConsumerScope::Stop call. It works only when the consumer has assigned partitions; otherwise, it throws
+    /// SeekException.
+    /// @warning Currently, it is required to call this from within the ConsumerRebalanceCallback.
+    /// @ref ConsumerScope::SetRebalanceCallback
+    /// @param topic The name of the topic.
+    /// @param partition_id The partition ID of the given topic.
+    /// @param timeout The timeout duration for the operation, must be > 0 or SeekInvalidArgumentException occurs.
+    void SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
 private:
     friend class impl::Consumer;

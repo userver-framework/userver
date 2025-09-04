@@ -232,14 +232,14 @@ span.paramname em {
 
 
 /* Scale down image to the page width */
-.image img {
+.image img, p > img {
   max-width: calc(100% - 7px - 7px - 1px - 1px);
   background-color: var(--primary-color-1);
-  /* matches .fragment */
   border: 1px solid var(--separator-color);
   /* matches .fragment */
   padding: 7px;
   /* matches .fragment */
+  border-radius: var(--border-radius-large);
 }
 
 hr {

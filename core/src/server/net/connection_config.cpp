@@ -27,8 +27,17 @@ ConnectionConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<
     }
 
     config.http_version = value["http-version"].As<USERVER_NAMESPACE::http::HttpVersion>(config.http_version);
+    if (config.http_version == USERVER_NAMESPACE::http::HttpVersion::kDefault) {
+        config.http_version = USERVER_NAMESPACE::http::HttpVersion::k11;
+    }
 
     config.http2_session_config = value["http2-session"].As<Http2SessionConfig>(config.http2_session_config);
+    if (config.http_version != http::HttpVersion::k11 && config.http_version != http::HttpVersion::k2) {
+        throw std::runtime_error(fmt::format(
+            "Only 1.1 and 2 versions of HTTP are supported for static config 'http-version', but '{}' was provided",
+            value["http-version"].As<std::string>()
+        ));
+    }
 
     return config;
 }

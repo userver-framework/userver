@@ -1,4 +1,9 @@
+# yaml
+# [graceful_shutdown_interval]
 components_manager:
+    graceful_shutdown_interval: 10s
+    # [graceful_shutdown_interval]
+
     task_processors:
         main-task-processor:
             worker_threads: 4
@@ -7,8 +12,6 @@ components_manager:
             worker_threads: 2
 
     default_task_processor: main-task-processor
-
-    graceful_shutdown_interval: 10s
 
     components:
         logging:

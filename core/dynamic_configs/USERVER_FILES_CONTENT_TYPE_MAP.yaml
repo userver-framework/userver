@@ -10,14 +10,12 @@ default:
     .png: "image/png"
     .svg: "image/svg+xml"
     __default__: "text/plain"
-description: ''
+description: Dynamic config for mapping extension files with HTTP header content type.
 schema:
     type: object
     properties:
         __default__:
             type: string
-    required:
-      - __default__
     additionalProperties:
         type: string
 

@@ -53,7 +53,7 @@ union WSHeader {
         unsigned char reserved : 3;
         unsigned char fin : 1;
 
-        unsigned char payloadLen : 7;
+        unsigned char payload_len : 7;
         unsigned char mask : 1;
     } bits;
     uint16_t bytes = 0;

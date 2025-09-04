@@ -13,10 +13,27 @@ namespace utils {
 /// @ingroup userver_universal userver_containers
 ///
 /// @brief `std::shared_ptr<const T>` wrapper that makes sure that the pointer
-/// is stored before dereferencing. Protects from dangling references:
+/// is stored before dereferencing. Protects from dangling references.
+///
+/// Example of dangling:
 /// @code
 ///   // BAD! Result of `cache.Get()` may be destroyed after the invocation.
 ///   const auto& snapshot = *cache.Get();
+///   Use(snapshot);
+/// @endcode
+///
+/// Such code is may work fine 99.9% of that time and, and such bugs are not detectable by most tests.
+/// This is because typically the cache data will be held by the cache itself longer than the runtime
+/// of the current handler (or whatever) that uses the data.
+/// However, 0.1% of the time there will be a crash, because at that exact time the cache will update itself, replacing
+/// the data snapshot and dropping the old shared pointer, which will turn out to be the only one.
+///
+/// The correct way to handle shared pointers:
+/// @code
+///   // Stores the shared pointer.
+///   const auto snapshot = cache.Get();
+///   // We only have the right to use `*snapshot` while we hold `snapshot` itself.
+///   Use(*snapshot);
 /// @endcode
 template <typename T>
 class SharedReadablePtr final {

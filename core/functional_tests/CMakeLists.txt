@@ -23,6 +23,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https-no-passphrase)
 add_subdirectory(metrics)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
 
+add_subdirectory(static_service)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static-service)
+
 add_subdirectory(tracing)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tracing)
 

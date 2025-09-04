@@ -73,7 +73,7 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
                 ++tcounts[idx];
             }
 
-            std::scoped_lock guard(mutex);
+            const std::scoped_lock guard(mutex);
             for (size_t i = 0; i < kShards; ++i) counts[i] += tcounts[i];
         });
     }

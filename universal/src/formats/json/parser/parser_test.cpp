@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 namespace fjp = formats::json::parser;
 
 TEST(JsonStringParser, Int64) {
-    std::string input{"12345"};
+    const std::string input{"12345"};
 
     int64_t result{0};
     fjp::Int64Parser int_parser;
@@ -100,7 +100,7 @@ protected:
 };
 
 TEST(JsonStringParser, EmptyObject) {
-    std::string input{"{}"};
+    const std::string input{"{}"};
 
     EmptyObjectParser obj_parser;
 
@@ -170,7 +170,7 @@ private:
 };
 
 TEST(JsonStringParser, IntObject) {
-    std::string input("{\"field\": 234}");
+    const std::string input("{\"field\": 234}");
     EXPECT_EQ((fjp::ParseToType<IntObject, IntObjectParser>(input)), IntObject({234}));
 }
 
@@ -222,7 +222,7 @@ TEST(JsonStringParser, ArrayIntErrorMsg) {
 }
 
 TEST(JsonStringParser, ArrayInt) {
-    std::string input("[1,2,3]");
+    const std::string input("[1,2,3]");
     std::vector<int64_t> result{};
 
     fjp::Int64Parser int_parser;
@@ -238,7 +238,7 @@ TEST(JsonStringParser, ArrayInt) {
 }
 
 TEST(JsonStringParser, ArrayArrayInt) {
-    std::string input("[[1],[],[2,3,4]]");
+    const std::string input("[[1],[],[2,3,4]]");
     std::vector<std::vector<int64_t>> result{};
 
     fjp::Int64Parser int_parser;
@@ -256,7 +256,7 @@ TEST(JsonStringParser, ArrayArrayInt) {
 }
 
 TEST(JsonStringParser, ArrayBool) {
-    std::string input{"[true, false, true]"};
+    const std::string input{"[true, false, true]"};
     std::vector<bool> result;
 
 #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 9
@@ -352,7 +352,7 @@ TYPED_TEST(JsonStringParserMap, Invalid) {
 }
 
 TEST(JsonStringParser, JsonValue) {
-    std::string inputs[] = {
+    const std::string inputs[] = {
         R"([1, "123", "", -2, 3.5, {"key": 1, "other": {"key2": 2}}, {}])",
         R"({})",
     };
@@ -409,7 +409,7 @@ TEST(JsonStringParser, JsonValueLeak) {
 }
 
 TEST(JsonStringParser, JsonValueBad) {
-    std::string inputs[] = {
+    const std::string inputs[] = {
         R"({)",         //
         R"()",          //
         R"({}})",       //
@@ -426,7 +426,7 @@ TEST(JsonStringParser, JsonValueBad) {
 }
 
 TEST(JsonStringParser, BomSymbol) {
-    std::string input =
+    const std::string input =
         "{\r\n\"track_id\": \"0000436301831\",\r\n\"service\": "
         "\"boxberry\",\r\n\"status\": \"pickedup\"\r\n}";
     auto value_str = formats::json::FromString(input);

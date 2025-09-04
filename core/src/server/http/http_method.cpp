@@ -6,6 +6,8 @@ namespace server::http {
 
 namespace {
 
+// NOLINTBEGIN(readability-identifier-naming)
+// Struct because of static initialization order fiasco.
 struct HttpMethodStrings {
     const std::string kDelete = "DELETE";
     const std::string kGet = "GET";
@@ -17,6 +19,7 @@ struct HttpMethodStrings {
     const std::string kOptions = "OPTIONS";
     const std::string kUnknown = "unknown";
 };
+// NOLINTEND(readability-identifier-naming)
 
 // Modern SSO could hold 7 chars without dynamic allocation
 const HttpMethodStrings& GetHttpMethodStrings() noexcept {

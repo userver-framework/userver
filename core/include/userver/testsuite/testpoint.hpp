@@ -6,6 +6,7 @@
 #include <string>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/function_ref.hpp>
 

@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::ServerMonitor>()
-                                    .Append<ugrpc::client::ClientFactoryComponent>()
+                                    .Append<ugrpc::client::ClientFactoryComponent>("grpc-otlp-factory")
                                     .AppendComponentList(ugrpc::client::MinimalComponentList())
                                     .Append<server::handlers::Ping>()
                                     .Append<otlp::LoggerComponent>();

@@ -155,7 +155,9 @@ the debug logs for all the `*Log*` tests for the CMake built binary:
 Userver uses signals for internal matters to identify coroutine stack usage @ref scripts/docs/en/userver/stack.md.
 If you see too much "caught signal X" in debugger, you may disable stack usage monitor via environment variable:
 
-USERVER_GTEST_ENABLE_STACK_USAGE_MONITOR=1 
+```
+USERVER_ENABLE_STACK_USAGE_MONITOR=0
+```
 
 Now you should not be annoyed by extra "caught signal X" events.
 

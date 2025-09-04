@@ -66,7 +66,7 @@ LoggerPtr MakeFileLogger(const std::string& name, const std::string& path, Forma
     return MakeSimpleLogger(name, std::make_unique<impl::BufferedFileSink>(path), level, format);
 }
 
-namespace impl::default_ {
+namespace impl {
 
 bool DoShouldLog(Level level) noexcept {
     const auto* const span = tracing::Span::CurrentSpanUnchecked();
@@ -82,7 +82,7 @@ bool DoShouldLog(Level level) noexcept {
 
 void PrependCommonTags(TagWriter writer, Level logger_level) {
     auto* const span = tracing::Span::CurrentSpanUnchecked();
-    if (span) span->LogTo(writer);
+    if (span) span->LogTo(utils::impl::InternalTag{}, writer);
 
     if (logger_level <= Level::kDebug) {
         const void* const task = engine::current_task::GetCurrentTaskContextUnchecked();
@@ -98,7 +98,7 @@ void PrependCommonTags(TagWriter writer, Level logger_level) {
     }
 }
 
-}  // namespace impl::default_
+}  // namespace impl
 
 }  // namespace logging
 

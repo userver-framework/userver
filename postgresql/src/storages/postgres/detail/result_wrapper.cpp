@@ -11,6 +11,8 @@
 
 #include <storages/postgres/detail/pg_message_severity.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/message.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -144,15 +146,15 @@ struct ResultWrapper::CachedFieldBufferCategories final {
     boost::container::small_vector<io::BufferCategory, 16> data;
 };
 
-ResultWrapper::ResultWrapper(ResultHandle&& res) : handle_{std::move(res)} { UASSERT(handle_); }
+ResultWrapper::ResultWrapper(ResultHandle&& res) : handle{std::move(res)} { UASSERT(handle); }
 
 ResultWrapper::~ResultWrapper() = default;
 
 void ResultWrapper::FillBufferCategories(const UserTypes& types) {
-    buffer_categories_.clear();
+    buffer_categories.clear();
 
     const auto n_fields = FieldCount();
-    buffer_categories_.reserve(n_fields);
+    buffer_categories.reserve(n_fields);
 
     const auto oid_fn = [this](auto f_no) { return GetFieldTypeOid(f_no); };
     const auto name_fn = [this](auto f_no) { return GetFieldName(f_no); };
@@ -168,39 +170,39 @@ void ResultWrapper::FillBufferCategories(const UserTypes& types) {
     // performed without preserving paths, and iff it fails the second attempt
     // re-runs the process from scratch with all the info it needs,
     // and is guaranteed to throw.
-    if (!AddTypeBufferCategories<NoopTypeNameScope>(n_fields, oid_fn, name_fn, types, buffer_categories_)) {
-        buffer_categories_.clear();
-        AddTypeBufferCategories<TypeNameScope>(n_fields, oid_fn, name_fn, types, buffer_categories_);
+    if (!AddTypeBufferCategories<NoopTypeNameScope>(n_fields, oid_fn, name_fn, types, buffer_categories)) {
+        buffer_categories.clear();
+        AddTypeBufferCategories<TypeNameScope>(n_fields, oid_fn, name_fn, types, buffer_categories);
         UINVARIANT(false, "Should be unreachable");
     }
 
-    cached_buffer_categories_->data.resize(n_fields);
+    cached_buffer_categories->data.resize(n_fields);
     for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
         const auto data_type = GetFieldTypeOid(f_no);
-        const auto f = buffer_categories_.find(data_type);
+        const auto f = buffer_categories.find(data_type);
 
-        cached_buffer_categories_->data[f_no] =
-            (f == buffer_categories_.end() ? io::BufferCategory::kNoParser : f->second);
+        cached_buffer_categories->data[f_no] =
+            (f == buffer_categories.end() ? io::BufferCategory::kNoParser : f->second);
     }
 }
 
-ExecStatusType ResultWrapper::GetStatus() const { return PQresultStatus(handle_.get()); }
+ExecStatusType ResultWrapper::GetStatus() const { return PQresultStatus(handle.get()); }
 
-std::size_t ResultWrapper::RowCount() const { return PQntuples(handle_.get()); }
+std::size_t ResultWrapper::RowCount() const { return PQntuples(handle.get()); }
 
-std::size_t ResultWrapper::FieldCount() const { return PQnfields(handle_.get()); }
+std::size_t ResultWrapper::FieldCount() const { return PQnfields(handle.get()); }
 
-const io::TypeBufferCategory& ResultWrapper::GetTypeBufferCategories() const { return buffer_categories_; }
+const io::TypeBufferCategory& ResultWrapper::GetTypeBufferCategories() const { return buffer_categories; }
 
 void ResultWrapper::SetTypeBufferCategories(const ResultWrapper& description) {
-    buffer_categories_ = description.buffer_categories_;
-    cached_buffer_categories_ = description.cached_buffer_categories_;
+    buffer_categories = description.buffer_categories;
+    cached_buffer_categories = description.cached_buffer_categories;
 }
 
-std::string ResultWrapper::CommandStatus() const { return PQcmdStatus(handle_.get()); }
+std::string ResultWrapper::CommandStatus() const { return PQcmdStatus(handle.get()); }
 
 std::size_t ResultWrapper::RowsAffected() const {
-    auto* str = PQcmdTuples(handle_.get());
+    auto* str = PQcmdTuples(handle.get());
     if (str) {
         char* endptr = nullptr;
         auto val = std::strtoll(str, &endptr, 10);
@@ -216,14 +218,14 @@ std::size_t ResultWrapper::RowsAffected() const {
     return 0;
 }
 
-std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
-    auto n = PQfnumber(handle_.get(), name.c_str());
+std::size_t ResultWrapper::IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const {
+    auto n = PQfnumber(handle.get(), name.c_str());
     if (n < 0) return ResultSet::npos;
     return n;
 }
 
 std::string_view ResultWrapper::GetFieldName(std::size_t col) const {
-    auto* name = PQfname(handle_.get(), col);
+    auto* name = PQfname(handle.get(), col);
     if (name) {
         return {name};
     }
@@ -235,26 +237,26 @@ FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
         col,
         GetFieldTypeOid(col),
         std::string{GetFieldName(col)},
-        PQftable(handle_.get(), col),
-        PQftablecol(handle_.get(), col),
-        PQfsize(handle_.get(), col),
-        PQfmod(handle_.get(), col)};
+        PQftable(handle.get(), col),
+        PQftablecol(handle.get(), col),
+        PQfsize(handle.get(), col),
+        PQfmod(handle.get(), col)};
 }
 
-bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const { return PQgetisnull(handle_.get(), row, col); }
+bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const { return PQgetisnull(handle.get(), row, col); }
 
-Oid ResultWrapper::GetFieldTypeOid(std::size_t col) const { return PQftype(handle_.get(), col); }
+Oid ResultWrapper::GetFieldTypeOid(std::size_t col) const { return PQftype(handle.get(), col); }
 
 io::BufferCategory ResultWrapper::GetFieldBufferCategory(std::size_t col) const {
-    return cached_buffer_categories_->data[col];
+    return cached_buffer_categories->data[col];
 }
 
 std::size_t ResultWrapper::GetFieldLength(std::size_t row, std::size_t col) const {
-    return PQgetlength(handle_.get(), row, col);
+    return PQgetlength(handle.get(), row, col);
 }
 
 io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row, std::size_t col) const {
-    if (PQfformat(handle_.get(), col) != io::kPgBinaryDataFormat) {
+    if (PQfformat(handle.get(), col) != io::kPgBinaryDataFormat) {
         throw ResultSetError{
             fmt::format("Column with index {} has text format\n", col) +
             logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{})};
@@ -263,53 +265,70 @@ io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row, std::size_t col) 
         IsFieldNull(row, col),
         GetFieldBufferCategory(col),
         GetFieldLength(row, col),
-        reinterpret_cast<const std::uint8_t*>(PQgetvalue(handle_.get(), row, col))};
+        reinterpret_cast<const std::uint8_t*>(PQgetvalue(handle.get(), row, col))};
 }
 
 std::string ResultWrapper::GetErrorMessage() const {
-    auto* msg = PQresultErrorMessage(handle_.get());
+    const char* msg = PQresultErrorMessage(handle.get());
     return {msg ? msg : "no error message"};
 }
 
-std::string ResultWrapper::GetPrimaryErrorMessage() const { return GetMessageField(PG_DIAG_MESSAGE_PRIMARY); }
+std::string ResultWrapper::GetPrimaryErrorMessage() const {
+    return GetMessageField(PG_DIAG_MESSAGE_PRIMARY).value_or(Message::kUnknown);
+}
 
-std::string ResultWrapper::GetDetailErrorMessage() const { return GetMessageField(PG_DIAG_MESSAGE_DETAIL); }
+std::string ResultWrapper::GetDetailErrorMessage() const {
+    return GetMessageField(PG_DIAG_MESSAGE_DETAIL).value_or(Message::kUnknown);
+}
 
-std::string ResultWrapper::GetMessageSeverityString() const { return GetMessageField(PG_DIAG_SEVERITY); }
+std::string ResultWrapper::GetMessageSeverityString() const {
+    return GetMessageField(PG_DIAG_SEVERITY).value_or(Message::kUnknown);
+}
 
 Message::Severity ResultWrapper::GetMessageSeverity() const {
-    return Message::SeverityFromString(GetMachineReadableSeverity(handle_.get()));
+    return Message::SeverityFromString(GetMachineReadableSeverity(handle.get()));
 }
 
-std::string ResultWrapper::GetSqlCode() const { return GetMessageField(PG_DIAG_SQLSTATE); }
+std::string ResultWrapper::GetSqlCode() const { return GetMessageField(PG_DIAG_SQLSTATE).value(); }
 
-SqlState ResultWrapper::GetSqlState() const {
-    auto* msg = PQresultErrorField(handle_.get(), PG_DIAG_SQLSTATE);
-    return msg ? SqlStateFromString(msg) : SqlState::kUnknownState;
+SqlState ResultWrapper::GetSqlState() const { return SqlStateFromString(GetSqlCode()); }
+
+std::string ResultWrapper::GetMessageSchema() const {
+    return GetMessageField(PG_DIAG_SCHEMA_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageTable() const {
+    return GetMessageField(PG_DIAG_TABLE_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageColumn() const {
+    return GetMessageField(PG_DIAG_COLUMN_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageDatatype() const {
+    return GetMessageField(PG_DIAG_DATATYPE_NAME).value_or(Message::kUnknown);
+}
+std::string ResultWrapper::GetMessageConstraint() const {
+    return GetMessageField(PG_DIAG_CONSTRAINT_NAME).value_or(Message::kUnknown);
 }
 
-std::string ResultWrapper::GetMessageSchema() const { return GetMessageField(PG_DIAG_SCHEMA_NAME); }
-std::string ResultWrapper::GetMessageTable() const { return GetMessageField(PG_DIAG_TABLE_NAME); }
-std::string ResultWrapper::GetMessageColumn() const { return GetMessageField(PG_DIAG_COLUMN_NAME); }
-std::string ResultWrapper::GetMessageDatatype() const { return GetMessageField(PG_DIAG_DATATYPE_NAME); }
-std::string ResultWrapper::GetMessageConstraint() const { return GetMessageField(PG_DIAG_CONSTRAINT_NAME); }
-
-std::string ResultWrapper::GetMessageField(int fieldcode) const {
-    return {PQresultErrorField(handle_.get(), fieldcode)};
+std::optional<std::string> ResultWrapper::GetMessageField(int fieldcode) const {
+    const char* res = PQresultErrorField(handle.get(), fieldcode);
+    if (res == nullptr) {
+        return std::nullopt;
+    }
+    return std::string{res};
 }
 
 logging::LogExtra ResultWrapper::GetMessageLogExtra() const {
     logging::LogExtra log_extra;
 
-    auto severity = GetMachineReadableSeverity(handle_.get());
+    auto severity = GetMachineReadableSeverity(handle.get());
     if (!severity.empty()) {
         log_extra.Extend(kSeverityLogExtraKey, std::string{severity});
     }
 
     for (auto [key, field] : kExtraErrorFields) {
-        auto* msg = PQresultErrorField(handle_.get(), field);
+        const auto msg = GetMessageField(field);
         if (msg) {
-            log_extra.Extend(key, std::string{msg});
+            log_extra.Extend(key, *msg);
         }
     }
     return log_extra;

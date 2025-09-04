@@ -18,10 +18,6 @@ public:
 
     MOCK_METHOD(size_t, ShardByKey, (const std::string& key), (const, override));
 
-    MOCK_METHOD(const std::string&, GetAnyKeyForShard, (size_t shard_idx), (const, override));
-
-    MOCK_METHOD(std::shared_ptr<Client>, GetClientForShard, (size_t shard_idx), (override));
-
     MOCK_METHOD(void, WaitConnectedOnce, (RedisWaitConnected wait_connected), (override));
 
     MOCK_METHOD(

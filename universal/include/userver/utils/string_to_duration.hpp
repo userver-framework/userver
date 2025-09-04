@@ -5,7 +5,7 @@
 /// @ingroup userver_universal
 
 #include <chrono>
-#include <string>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,7 +19,7 @@ namespace utils {
 ///   m   - minutes
 ///   h   - hours
 ///   d   - days
-std::chrono::milliseconds StringToDuration(const std::string& data);
+std::chrono::milliseconds StringToDuration(std::string_view data);
 
 }  // namespace utils
 

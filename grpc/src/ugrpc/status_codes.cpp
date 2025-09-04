@@ -2,9 +2,12 @@
 
 #include <fmt/format.h>
 
+#include <userver/formats/json.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/trivial_map.hpp>
 #include <userver/utils/underlying_value.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -52,7 +55,7 @@ std::string ToString(grpc::StatusCode code) noexcept {
         return std::string{*str};
     }
 
-    return fmt::format("non_standard({})", utils::UnderlyingValue(code));
+    return fmt::format("CODE({})", utils::UnderlyingValue(code));
 }
 
 // See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/
@@ -71,5 +74,31 @@ bool IsServerError(grpc::StatusCode status) noexcept {
 }
 
 }  // namespace ugrpc
+
+namespace formats::parse {
+
+grpc::StatusCode Parse(const yaml_config::YamlConfig& value, To<grpc::StatusCode>) {
+    return utils::ParseFromValueString(value, ugrpc::kStatusCodesMap);
+}
+
+grpc::StatusCode Parse(std::string_view value, To<grpc::StatusCode>) {
+    const auto result = ugrpc::kStatusCodesMap.TryFind(value);
+    if (!result) {
+        throw std::runtime_error(fmt::format(
+            "Invalid value of grpc::StatusCode: '{}' is not one of {}", value, ugrpc::kStatusCodesMap.DescribeSecond()
+        ));
+    }
+    return *result;
+}
+
+}  // namespace formats::parse
+
+namespace formats::serialize {
+
+formats::json::Value Serialize(const grpc::StatusCode& value, formats::serialize::To<formats::json::Value>) {
+    return formats::json::ValueBuilder(ugrpc::ToString(value)).ExtractValue();
+}
+
+}  // namespace formats::serialize
 
 USERVER_NAMESPACE_END

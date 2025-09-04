@@ -90,7 +90,7 @@ void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats) {
 
 }  // namespace impl
 
-UpdateStatisticsScope::UpdateStatisticsScope(impl::Statistics& stats, cache::UpdateType type)
+UpdateStatisticsScope::UpdateStatisticsScope(utils::impl::InternalTag, impl::Statistics& stats, cache::UpdateType type)
     : stats_(stats),
       update_stats_(type == cache::UpdateType::kIncremental ? stats.incremental_update : stats.full_update),
       update_start_time_(utils::datetime::SteadyNow()) {

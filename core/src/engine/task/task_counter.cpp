@@ -24,7 +24,7 @@ compiler::ThreadLocal local_task_counter_data = [] { return LocalTaskCounterData
 
 }  // namespace
 
-TaskCounter::Token::Token(TaskCounter& counter) noexcept : lock_(counter.tasks_alive_.Lock()) {
+TaskCounter::Token::Token(TaskCounter& counter) noexcept : lock_(counter.tasks_alive_.GetLock()) {
     concurrent::impl::AsymmetricThreadFenceLight();
 }
 

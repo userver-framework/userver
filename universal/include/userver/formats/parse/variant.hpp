@@ -65,7 +65,8 @@ void ParseVariantSingle(const Value& value, std::optional<Result>& result) {
 }  // namespace impl
 
 template <class Value, typename... Types>
-auto Parse(const Value& value, formats::parse::To<std::variant<Types...>>) {
+std::variant<decltype(Parse(std::declval<Value>(), To<Types>{}))...>
+Parse(const Value& value, formats::parse::To<std::variant<Types...>>) {
     std::optional<std::variant<decltype(Parse(std::declval<Value>(), To<Types>{}))...>> result;
 
     if constexpr (std::is_same_v<Value, formats::json::Value>) {

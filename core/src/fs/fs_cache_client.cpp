@@ -5,6 +5,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/fs/read.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/periodic_task.hpp>

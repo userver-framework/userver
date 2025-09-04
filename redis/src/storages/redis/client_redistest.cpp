@@ -116,7 +116,7 @@ UTEST_F(RedisClientTest, Unlink) {
 }
 
 UTEST_F(RedisClientTest, Geosearch) {
-    Version since{6, 2, 0};
+    const Version since{6, 2, 0};
     if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Geosearch", since);
 
     auto client = GetClient();
@@ -236,6 +236,23 @@ UTEST_F(RedisClientTest, EvalSha) {
     EXPECT_EQ(result.Get().size(), 4);
     auto result_array = result.Extract();
     EXPECT_EQ(result_array[0], "key1");
+}
+
+UTEST_F(RedisClientTest, Generic) {
+    auto client = GetClient();
+    const storages::redis::CommandControl kCommandControl{};
+    constexpr size_t kKeyIndex = 0;
+    UEXPECT_NO_THROW(client->GenericCommand<void>("set", {"key0", "foo"}, kKeyIndex, kCommandControl).Wait());
+    EXPECT_EQ(client->GenericCommand<std::string>("get", {"key0"}, kKeyIndex, kCommandControl).Get(), "foo");
+    EXPECT_EQ(
+        client->GenericCommand<int64_t>("LPUSH", {"list", "1", "2", "3", "4"}, kKeyIndex, kCommandControl).Get(), 4
+    );
+    const std::vector<std::string> kExpected{"4", "3", "2", "1"};
+    EXPECT_EQ(
+        client->GenericCommand<std::vector<std::string>>("LRANGE", {"list", "0", "-1"}, kKeyIndex, kCommandControl)
+            .Get(),
+        kExpected
+    );
 }
 
 UTEST_F(RedisClientTest, Exists) {
@@ -698,7 +715,7 @@ UTEST_F(RedisClientTest, Zadd) {
 }
 
 UTEST_F(RedisClientTest, ZaddGtLt) {
-    Version since{6, 2, 0};
+    const Version since{6, 2, 0};
     if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Zadd gt/lt", since);
 
     auto client = GetClient();
@@ -850,15 +867,23 @@ UTEST_F(RedisClientTest, Zscore) {
 
 UTEST_F(RedisClientTest, TransactionType) {
     auto client = GetClient();
+    /// [redis transaction sample]
+    // Create a storages::redis::Transaction
     auto transaction = client->Multi();
 
+    // Fill transaction with commands
     auto set = transaction->Set("key1", "value");
     auto lpush = transaction->Lpush("key2", "value");
     auto type1 = transaction->Type("key1");
     auto type2 = transaction->Type("key2");
+
+    // Send all the commands to the server in one go
     transaction->Exec({}).Get();
+
+    // Deal with individual results
     EXPECT_EQ(type1.Get(), storages::redis::KeyType::kString);
     EXPECT_EQ(type2.Get(), storages::redis::KeyType::kList);
+    /// [redis transaction sample]
 }
 
 UTEST_F(RedisClientTest, TransactionZrem) {

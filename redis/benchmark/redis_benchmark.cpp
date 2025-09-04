@@ -7,7 +7,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/storages/redis/base.hpp>
 #include <userver/utils/rand.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 #include "redis_fixture.hpp"
 

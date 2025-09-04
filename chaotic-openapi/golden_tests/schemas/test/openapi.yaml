@@ -10,20 +10,31 @@ servers:
   - url: uservice-sample.tst.yandex.net
     description: testing
 
-# x-usrv-middlewares:
-#     tvm: true
-
 # x-usrv-client-qos:
 #     dynamic-config: taxi/schemas/schemas/configs/declarations/uservice-template/USERVICE_TEMPLATE_CLIENT_QOS.yaml
 
 paths:
-    /v1/test:
-        get:
+    /testme:
+        post:
+            description: A testing method to call
             parameters:
               - in: query
-                name: uid
+                name: number
+                required: true
                 schema:
                     type: string
+              - in: query
+                name: array
+                required: true
+                schema:
+                    type: array
+                    items:
+                        type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: integer
             responses:
                 200:
                     description: OK

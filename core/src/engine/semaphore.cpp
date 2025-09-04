@@ -74,10 +74,7 @@ void CancellableSemaphore::SetCapacity(Counter capacity) {
     }
 }
 
-CancellableSemaphore::Counter CancellableSemaphore::GetCapacity()  //
-    const noexcept {
-    return capacity_.load();
-}
+CancellableSemaphore::Counter CancellableSemaphore::GetCapacity() const noexcept { return capacity_.load(); }
 
 std::size_t CancellableSemaphore::RemainingApprox() const {
     const auto acquired = acquired_locks_.load(std::memory_order_relaxed);
@@ -108,8 +105,9 @@ void CancellableSemaphore::lock_shared_count(const Counter count) {
 void CancellableSemaphore::unlock_shared() { unlock_shared_count(1); }
 
 void CancellableSemaphore::unlock_shared_count(const Counter count) {
-    UASSERT(count > 0);
-
+    if (count == 0) {
+        return;
+    }
     const auto old_acquired_locks = acquired_locks_.fetch_sub(count, std::memory_order_acq_rel);
     UASSERT_MSG(
         old_acquired_locks >= old_acquired_locks - count,
@@ -178,8 +176,9 @@ CancellableSemaphore::TryLockStatus CancellableSemaphore::DoTryLock(const Counte
 }
 
 CancellableSemaphore::TryLockStatus CancellableSemaphore::LockFastPath(const Counter count) {
-    UASSERT(count > 0);
-
+    if (count == 0) {
+        return TryLockStatus::kSuccess;
+    }
     const auto status = DoTryLock(count);
     return status;
 }

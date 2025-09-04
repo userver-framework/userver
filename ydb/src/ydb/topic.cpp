@@ -16,15 +16,10 @@ TopicReadSession::TopicReadSession(std::shared_ptr<NYdb::NTopic::IReadSession> r
     UASSERT(read_session_);
 }
 
-std::vector<NYdb::NTopic::TReadSessionEvent::TEvent> TopicReadSession::GetEvents(
-    std::optional<std::size_t> max_events_count
-) {
+std::vector<NYdb::NTopic::TReadSessionEvent::TEvent>
+TopicReadSession::GetEvents(std::optional<std::size_t> max_events_count, size_t max_size_bytes) {
     impl::GetFutureValue(read_session_->WaitEvent());
-    if (max_events_count.has_value()) {
-        return read_session_->GetEvents(false, *max_events_count);
-    } else {
-        return read_session_->GetEvents(false);
-    }
+    return read_session_->GetEvents(false, max_events_count, max_size_bytes);
 }
 
 bool TopicReadSession::Close(std::chrono::milliseconds timeout) { return read_session_->Close(timeout); }

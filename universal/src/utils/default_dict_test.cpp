@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 TEST(DefaultDict, UseAsRange) {
     using DefaultDict = utils::DefaultDict<int>;
 
-    DefaultDict m_dict{
+    const DefaultDict m_dict{
         "name",
         {{"one", 1}, {"two", 2}, {"three", 3}},
     };
@@ -36,7 +36,7 @@ TEST(DefaultDict, ParseFromJson) {
     using DefaultDict = utils::DefaultDict<std::string>;
     using formats::literals::operator""_json;
 
-    DefaultDict expected_dict{
+    const DefaultDict expected_dict{
         "",
         {{"a", "one"}, {"b", "two"}, {"c", "three"}},
     };
@@ -49,7 +49,7 @@ TEST(DefaultDict, ParseFromYaml) {
     using DefaultDict = utils::DefaultDict<std::string>;
     using formats::literals::operator""_yaml;
 
-    DefaultDict expected_dict{
+    const DefaultDict expected_dict{
         "",
         {{"a", "one"}, {"b", "two"}, {"c", "three"}},
     };

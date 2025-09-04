@@ -8,7 +8,7 @@ TEST(FastScopeGuard, Dtr) {
     /// [FastScopeGuard]
     int x = 0;
     {
-        utils::FastScopeGuard d([&]() noexcept { x = 1; });
+        const utils::FastScopeGuard d([&]() noexcept { x = 1; });
         EXPECT_EQ(x, 0);
     }
     EXPECT_EQ(x, 1);
@@ -28,7 +28,7 @@ TEST(FastScopeGuard, Cancel) {
 TEST(FastScopeGuard, Exception) {
     int x = 0;
     try {
-        utils::FastScopeGuard d([&]() noexcept { x = 1; });
+        const utils::FastScopeGuard d([&]() noexcept { x = 1; });
         EXPECT_EQ(x, 0);
         throw std::runtime_error("");
     } catch (const std::runtime_error&) {

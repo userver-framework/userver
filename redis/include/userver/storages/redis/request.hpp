@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file
+/// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Transaction.
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -18,9 +21,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-template <ScanTag scan_tag>
+template <ScanTag TScanTag>
 class RequestScanData;
 
+/// @brief Valkey or Redis future for a non-scan and non-eval responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send request to the
+/// Redis return this type or storages::redis::ScanRequest.
 template <typename ResultType, typename ReplyType>
 class [[nodiscard]] Request final {
 public:
@@ -29,10 +36,13 @@ public:
 
     explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
+    /// Wait for the request to finish on Redis server
     void Wait() { impl_->Wait(); }
 
-    void IgnoreResult() const {}
+    /// Ignore the query result and do not wait for the Redis server to finish executing it
+    void IgnoreResult() const noexcept {}
 
+    /// Wait for the request to finish on Redis server and get the result
     ReplyType Get(const std::string& request_description = {}) { return impl_->Get(request_description); }
 
     /// @cond
@@ -46,8 +56,11 @@ public:
     template <typename T1, typename T2>
     friend class RequestEvalSha;
 
-    template <ScanTag scan_tag>
+    template <ScanTag TScanTag>
     friend class RequestScanData;
+
+    template <typename T1>
+    friend class RequestGeneric;
 
 private:
     ReplyPtr GetRaw() { return impl_->GetRaw(); }
@@ -55,12 +68,16 @@ private:
     std::unique_ptr<RequestDataBase<ReplyType>> impl_;
 };
 
-template <ScanTag scan_tag>
+/// @brief Redis future for a SCAN-like responses.
+///
+/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send SCAN-like request
+/// to the Redis return this type or storages::redis::ScanRequest.
+template <ScanTag TScanTag>
 class ScanRequest final {
 public:
-    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
-    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<scan_tag>>&& impl) : impl_(std::move(impl)) {}
+    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<TScanTag>>&& impl) : impl_(std::move(impl)) {}
 
     template <typename T = std::vector<ReplyElem>>
     T GetAll(std::string request_description) {
@@ -140,15 +157,18 @@ private:
 
     friend class Iterator;
 
-    std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
+    std::unique_ptr<RequestScanDataBase<TScanTag>> impl_;
 };
 
+/// @name Valkey/Redis futures aliases
+/// @{
 using RequestAppend = Request<size_t>;
 using RequestBitop = Request<size_t>;
 using RequestDbsize = Request<size_t>;
 using RequestDecr = Request<int64_t>;
 using RequestDel = Request<size_t>;
 using RequestUnlink = Request<size_t>;
+using RequestGenericCommon = Request<ReplyData>;
 using RequestEvalCommon = Request<ReplyData>;
 using RequestEvalShaCommon = Request<ReplyData>;
 using RequestScriptLoad = Request<std::string>;
@@ -201,6 +221,7 @@ using RequestScard = Request<size_t>;
 using RequestSet = Request<StatusOk, void>;
 using RequestSetIfExist = Request<std::optional<StatusOk>, bool>;
 using RequestSetIfNotExist = Request<std::optional<StatusOk>, bool>;
+using RequestSetIfNotExistOrGet = Request<std::optional<std::string>>;
 using RequestSetOptions = Request<SetReply>;
 using RequestSetex = Request<StatusOk, void>;
 using RequestSismember = Request<size_t>;
@@ -227,6 +248,7 @@ using RequestZremrangebyrank = Request<size_t>;
 using RequestZremrangebyscore = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
+/// @}
 
 }  // namespace storages::redis
 

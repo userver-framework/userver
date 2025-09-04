@@ -5,6 +5,7 @@
 #include <clients/http/request_state.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -94,7 +95,9 @@ void ResponseFuture::Detach() {
     request_state_.reset();
 }
 
-std::future_status ResponseFuture::Wait() {
+std::future_status ResponseFuture::Wait(utils::impl::SourceLocation location) {
+    utils::trx_tracker::CheckNoTransactions(location);
+
     switch (future_.wait_until(deadline_)) {
         case engine::FutureStatus::kCancelled: {
             const auto stats = request_state_->easy().get_local_stats();
@@ -122,8 +125,8 @@ std::future_status ResponseFuture::Wait() {
     UINVARIANT(false, "Invalid engine::FutureStatus");
 }
 
-std::shared_ptr<Response> ResponseFuture::Get() {
-    const auto future_status = Wait();
+std::shared_ptr<Response> ResponseFuture::Get(utils::impl::SourceLocation location) {
+    const auto future_status = Wait(location);
     if (future_status == std::future_status::ready) {
         if (request_state_->IsDeadlineExpired()) {
             server::request::MarkTaskInheritedDeadlineExpired();

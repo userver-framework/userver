@@ -13,7 +13,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/middlewares/impl/middleware_pipeline_config.hpp>
-#include <userver/middlewares/impl/simple_middleware_pipeline.hpp>
+#include <userver/middlewares/impl/pipeline_creator_interface.hpp>
 #include <userver/middlewares/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,6 +22,10 @@ namespace middlewares {
 
 namespace impl {
 
+// Options for a middleware can be from two places:
+// 1. The global config of a middleware.
+// 2. Overriding in RunnerComponentBase component.
+// We must validate (2) and merge values from (1) and (2).
 yaml_config::YamlConfig ValidateAndMergeMiddlewareConfigs(
     const formats::yaml::Value& global,
     const yaml_config::YamlConfig& local,
@@ -36,7 +40,6 @@ public:
     WithMiddlewareDependencyComponentBase(
         const components::ComponentConfig& config,
         const components::ComponentContext& context
-
     )
         : components::ComponentBase(config, context) {}
 
@@ -44,6 +47,8 @@ public:
 };
 
 void LogConfiguration(std::string_view component_name, const std::vector<std::string>& names);
+
+void LogValidateError(std::string_view middleware_name, const std::exception& e);
 
 }  // namespace impl
 
@@ -62,7 +67,7 @@ public:
     )
         : impl::WithMiddlewareDependencyComponentBase(config, context),
           global_config_(config.As<formats::yaml::Value>()),
-          dependency_(std::move(builder).Extract(config.Name())) {}
+          dependency_(std::move(builder).ExtractDependency(/*middleware_name=*/config.Name())) {}
 
     /// @brief Returns a middleware according to the component's settings.
     ///
@@ -70,7 +75,7 @@ public:
     /// @param middleware_config config for the middleware.
     ///
     /// @warning Don't store `info` by reference. `info` object will be dropped after the `CreateMiddleware` call.
-    virtual std::shared_ptr<MiddlewareBase>
+    virtual std::shared_ptr<const MiddlewareBase>
     CreateMiddleware(const HandlerInfo& info, const yaml_config::YamlConfig& middleware_config) const = 0;
 
     /// @brief This method should return the schema of a middleware configuration.
@@ -131,7 +136,7 @@ properties:
         defaultDescription: false
     disable-all-pipeline-middlewares:
         type: boolean
-        description: flag to disable all middlewares from pipline
+        description: flag to disable all middlewares from pipeline
         defaultDescription: false
     middlewares:
         type: object
@@ -158,8 +163,8 @@ protected:
     );
 
     /// @cond
-    /// Only for internal use.
-    std::vector<std::shared_ptr<MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const override;
+    // Only for internal use.
+    std::vector<std::shared_ptr<const MiddlewareBase>> CreateMiddlewares(const HandlerInfo& info) const override;
     /// @endcond
 
 private:
@@ -189,20 +194,27 @@ RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
     }
 }
 
+/// @cond
 template <typename MiddlewareBase, typename HandlerInfo>
-std::vector<std::shared_ptr<MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
+std::vector<std::shared_ptr<const MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
     const HandlerInfo& info
 ) const {
-    std::vector<std::shared_ptr<MiddlewareBase>> middlewares{};
+    std::vector<std::shared_ptr<const MiddlewareBase>> middlewares{};
     middlewares.reserve(middleware_infos_.size());
     for (const auto& [factory, local_config] : middleware_infos_) {
-        auto config = impl::ValidateAndMergeMiddlewareConfigs(
-            factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
-        );
-        middlewares.push_back(factory->CreateMiddleware(info, config));
+        try {
+            auto config = impl::ValidateAndMergeMiddlewareConfigs(
+                factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
+            );
+            middlewares.push_back(factory->CreateMiddleware(info, config));
+        } catch (const std::exception& e) {
+            impl::LogValidateError(factory->GetMiddlewareDependency(utils::impl::InternalTag{}).middleware_name, e);
+            throw;
+        }
     }
     return middlewares;
 }
+/// @endcond
 
 namespace impl {
 
@@ -226,7 +238,7 @@ public:
           ) {}
 
 private:
-    std::shared_ptr<MiddlewareBase> CreateMiddleware(const HandlerInfo&, const yaml_config::YamlConfig&)
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(const HandlerInfo&, const yaml_config::YamlConfig&)
         const override {
         return std::make_shared<Middleware>();
     }

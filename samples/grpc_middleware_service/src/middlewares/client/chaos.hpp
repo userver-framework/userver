@@ -4,7 +4,7 @@
 
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
-namespace sample::grpc::auth::client {
+namespace samples::grpc::auth::client {
 
 class ChaosMiddleware final : public ugrpc::client::MiddlewareBase {
 public:
@@ -28,9 +28,9 @@ public:
 
     static yaml_config::Schema GetStaticConfigSchema();
 
-    std::shared_ptr<MiddlewareBase>
+    std::shared_ptr<const MiddlewareBase>
     CreateMiddleware(const ugrpc::client::ClientInfo&, const yaml_config::YamlConfig& middleware_config) const override;
 };
 /// [gRPC middleware sample]
 
-}  // namespace sample::grpc::auth::client
+}  // namespace samples::grpc::auth::client

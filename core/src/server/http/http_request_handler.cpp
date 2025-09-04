@@ -17,6 +17,8 @@
 #include <userver/server/request/task_inherited_request.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <dynamic_config/variables/USERVER_RPS_CCONTROL_CUSTOM_STATUS.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -111,12 +113,12 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
 
     if (throttling_enabled && !rate_limit_.Obtain()) {
         const auto config = config_source_.GetSnapshot();
-        auto config_var = config[handlers::kCcCustomStatus];
-        const auto& delta = config_var.max_time_delta;
+        auto config_var = config[::dynamic_config::USERVER_RPS_CCONTROL_CUSTOM_STATUS];
+        const auto& delta = config_var.max_time_ms;
 
         auto status = HttpStatus::kTooManyRequests;
         if (cc_enabled_tp_ > std::chrono::steady_clock::now() - delta) {
-            status = config_var.initial_status_code;
+            status = static_cast<http::HttpStatus>(config_var.initial_status_code);
             metrics_->GetMetric(kCcStatusCodeIsCustom) = 1;
         } else {
             status = cc_status_code_.load();
@@ -175,7 +177,7 @@ void HttpRequestHandler::AddHandler(const handlers::HttpHandlerBase& handler, en
             (is_monitor_ ? "" : "non-") + "monitor HttpRequestHandler"
         );
     }
-    std::lock_guard<engine::Mutex> lock(handler_infos_mutex_);
+    const std::lock_guard<engine::Mutex> lock(handler_infos_mutex_);
     handler_info_index_.AddHandler(handler, task_processor);
 }
 

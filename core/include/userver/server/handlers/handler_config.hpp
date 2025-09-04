@@ -28,7 +28,7 @@ enum class UrlTrailingSlashOption {
 
 struct HandlerConfig {
     std::variant<std::string, FallbackHandler> path;
-    std::string task_processor;
+    std::optional<std::string> task_processor;
     std::string method;
     request::HttpRequestConfig request_config{};
     size_t request_body_size_log_limit{0};

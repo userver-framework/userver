@@ -31,6 +31,9 @@ public:
     /// the size of a way reaches this number, existing elements are deleted
     /// according to the LRU policy.
     ///
+    /// @param hash is the instance of `Hash` function to use, in case of a custom stateful `Hash`.
+    /// @param equal is the instance of `Equal` function to use, in case of a custom stateful `Equal`.
+    ///
     /// The maximum total number of elements is `ways * way_size`.
     NWayLRU(size_t ways, size_t way_size, const Hash& hash = Hash(), const Equal& equal = Equal());
 
@@ -100,7 +103,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::Put(const T& key, U value) {
     auto& way = GetWay(key);
     {
-        std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock<engine::Mutex> lock(way.mutex);
         way.cache.Put(key, std::move(value));
     }
     NotifyDumper();
@@ -110,7 +113,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 template <typename Validator>
 std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key, Validator validator) {
     auto& way = GetWay(key);
-    std::unique_lock<engine::Mutex> lock(way.mutex);
+    const std::unique_lock<engine::Mutex> lock(way.mutex);
     auto* value = way.cache.Get(key);
 
     if (value) {
@@ -125,7 +128,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::InvalidateByKey(const T& key) {
     auto& way = GetWay(key);
     {
-        std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock<engine::Mutex> lock(way.mutex);
         way.cache.Erase(key);
     }
     NotifyDumper();
@@ -141,7 +144,7 @@ U NWayLRU<T, U, Hash, Eq>::GetOr(const T& key, const U& default_value) {
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::Invalidate() {
     for (auto& way : caches_) {
-        std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock<engine::Mutex> lock(way.mutex);
         way.cache.Clear();
     }
     NotifyDumper();
@@ -160,7 +163,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 size_t NWayLRU<T, U, Hash, Eq>::GetSize() const {
     size_t size{0};
     for (const auto& way : caches_) {
-        std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock<engine::Mutex> lock(way.mutex);
         size += way.cache.GetSize();
     }
     return size;
@@ -169,7 +172,7 @@ size_t NWayLRU<T, U, Hash, Eq>::GetSize() const {
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::UpdateWaySize(size_t way_size) {
     for (auto& way : caches_) {
-        std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock<engine::Mutex> lock(way.mutex);
         way.cache.SetMaxSize(way_size);
     }
 }
@@ -191,7 +194,7 @@ void NWayLRU<T, U, Hash, Equal>::Write(dump::Writer& writer) const {
     writer.Write(caches_.size());
 
     for (const Way& way : caches_) {
-        std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock<engine::Mutex> lock(way.mutex);
 
         writer.Write(way.cache.GetSize());
 

@@ -122,11 +122,13 @@ username and password.
 Producer and Consumer read the aforementioned settings from Secdist in format:
 
 ```json
-"kafka_settings": {
-    "<kafka-component-name>": {
-        "brokers": "<brokers comma-separated endpoint list>",
-        "username": "SASL2 username (may be empty if use PLAINTEXT)",
-        "password": "SASL2 password (may be empty if use PLAINTEXT)"
+{
+    "kafka_settings": {
+        "<kafka-component-name>": {
+            "brokers": "<brokers comma-separated endpoint list>",
+            "username": "SASL2 username (may be empty if use PLAINTEXT)",
+            "password": "SASL2 password (may be empty if use PLAINTEXT)"
+        }
     }
 }
 ```
@@ -273,7 +275,7 @@ See the full example at:
 * @ref samples/kafka_service/src/producer_handler.hpp
 * @ref samples/kafka_service/src/producer_handler.cpp
 * @ref samples/kafka_service/src/consumer_handler.hpp
-* @ref samples/kafka_service/src/consumer_handler.hpp
+* @ref samples/kafka_service/src/consumer_handler.cpp
 * @ref samples/kafka_service/src/produce.hpp
 * @ref samples/kafka_service/src/produce.cpp
 * @ref samples/kafka_service/src/consume.hpp
@@ -294,7 +296,7 @@ See the full example at:
 @example samples/kafka_service/src/producer_handler.hpp
 @example samples/kafka_service/src/producer_handler.cpp
 @example samples/kafka_service/src/consumer_handler.hpp
-@example samples/kafka_service/src/consumer_handler.hpp
+@example samples/kafka_service/src/consumer_handler.cpp
 @example samples/kafka_service/src/produce.hpp
 @example samples/kafka_service/src/produce.cpp
 @example samples/kafka_service/src/consume.hpp

@@ -279,7 +279,7 @@ void SmallString<N>::push_back(char c) {
 
 template <std::size_t N>
 void SmallString<N>::append(std::string_view str) {
-    std::size_t old_size = data_.size();
+    const std::size_t old_size = data_.size();
     data_.insert(data_.begin() + old_size, str.begin(), str.end());
 }
 

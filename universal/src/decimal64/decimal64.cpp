@@ -34,6 +34,10 @@ std::string_view ErrorDescription(ParseErrorCode error_code) {
         case ParseErrorCode::kBoundaryDot:
             return "the input includes leading or trailing dot (like '42.'), while "
                    "such notation is disallowed";
+        case ParseErrorCode::kExponentNotAllowed:
+            return "the input contains an exponent character, but exponent notation is disabled";
+        case ParseErrorCode::kNoExponentDigits:
+            return "exponent detected, but no digits follow it (or its sign)";
     }
 
     UINVARIANT(false, "Unexpected decimal64 error code");

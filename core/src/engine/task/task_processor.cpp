@@ -3,6 +3,12 @@
 #include <sys/types.h>
 #include <csignal>
 
+#if __has_include(<util/system/progname.h>)
+#define ARCADIA
+#include <util/system/info.h>
+#include <util/system/progname.h>
+#endif
+
 #include <fmt/format.h>
 
 #include <concurrent/impl/latch.hpp>
@@ -11,6 +17,7 @@
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/numeric_cast.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/str_icase.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <userver/utils/threads.hpp>
 #include <utils/statistics/thread_statistics.hpp>
@@ -75,7 +82,24 @@ void EmitMagicNanosleep() {
 
 void TaskProcessorThreadStartedHook() {
     utils::impl::AssertStaticRegistrationFinished();
-    utils::WithDefaultRandom([](auto&) {});
+
+    {
+        // The block initializes static/global variables by preheating some in-memory caches.
+        // Subsequent calls should not access filesystem at all.
+
+        // uses /dev/urandom
+        utils::WithDefaultRandom([](auto&) {});
+
+        // uses /dev/urandom
+        const utils::StrCaseHash hash;
+
+#ifdef ARCADIA
+        // caches result in static variables on the first call
+        (void)GetProgramName();
+        (void)NSystemInfo::CachedNumberOfCpus();
+#endif
+    }
+
     for (const auto& func : ThreadStartedHooks()) {
         func();
     }
@@ -237,9 +261,11 @@ void TaskProcessor::SetSettings(
     profiler_force_stacktrace_.store(profiler_settings.profiler_force_stacktrace.value_or(false));
 }
 
-std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const { return task_profiler_threshold_.load(); }
+std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const noexcept {
+    return task_profiler_threshold_.load();
+}
 
-bool TaskProcessor::ShouldProfilerForceStacktrace() const { return profiler_force_stacktrace_.load(); }
+bool TaskProcessor::ShouldProfilerForceStacktrace() const noexcept { return profiler_force_stacktrace_.load(); }
 
 std::size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {
     thread_local std::size_t count = 0;
@@ -271,6 +297,15 @@ std::vector<std::uint8_t> TaskProcessor::CollectCurrentLoadPct() const {
 
     return cpu_stats_storage_->CollectCurrentLoadPct();
 }
+
+TaskProcessor& TaskProcessor::GetBlockingTaskProcessor() {
+    if (fs_task_processor_) return *fs_task_processor_;
+    return *this;
+}
+
+void TaskProcessor::SetBlockingTaskProcessor(TaskProcessor& task_processor) { fs_task_processor_ = &task_processor; }
+
+size_t GetQueueSize(const TaskProcessor& task_processor) { return task_processor.GetTaskQueueSize(); }
 
 void RegisterThreadStartedHook(std::function<void()> func) {
     utils::impl::AssertStaticRegistrationAllowed("Calling engine::RegisterThreadStartedHook()");
@@ -313,7 +348,7 @@ void TaskProcessor::ProcessTasks() noexcept {
 
         bool has_failed = false;
         try {
-            impl::TaskCounter::RunningToken token{GetTaskCounter()};
+            const impl::TaskCounter::RunningToken token{GetTaskCounter()};
             context->DoStep();
         } catch (const std::exception& ex) {
             LOG_ERROR() << "uncaught exception from DoStep: " << ex;

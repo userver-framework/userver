@@ -1,7 +1,8 @@
-#include "middleware.hpp"
+#include <ugrpc/server/middlewares/log/middleware.hpp>
 
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 
@@ -12,64 +13,98 @@ namespace ugrpc::server::middlewares::log {
 namespace {
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
-    return ugrpc::impl::GetMessageForLogging(
-        message,
-        ugrpc::impl::MessageLoggingOptions{settings.msg_log_level, settings.max_msg_size, settings.trim_secrets}
-    );
+    if (!logging::ShouldLog(settings.msg_log_level)) {
+        return "";
+    }
+    return ugrpc::impl::GetMessageForLogging(message, settings.max_msg_size);
 }
+
+class Logger {
+public:
+    explicit Logger(logging::Level log_level) : log_level_threshold_(log_level) {}
+
+    void Log(logging::Level level, std::string_view message, logging::LogExtra&& extra) const {
+        if (level < log_level_threshold_) {
+            return;
+        }
+        LOG(level) << message << std::move(extra);
+    }
+
+private:
+    logging::Level log_level_threshold_;
+};
 
 }  // namespace
 
 Middleware::Middleware(const Settings& settings) : settings_(settings) {}
 
-void Middleware::CallRequestHook(const MiddlewareCallContext& context, google::protobuf::Message& request) {
-    logging::LogExtra extra{{"grpc_type", "request"}, {"body", GetMessageForLogging(request, settings_)}};
-    if (!context.IsClientStreaming()) {
-        extra.Extend("type", "request");
-    }
-    LOG_INFO() << "gRPC request message" << std::move(extra);
-}
+void Middleware::OnCallStart(MiddlewareCallContext& context) const {
+    auto& span = context.GetSpan();
+    span.SetLocalLogLevel(settings_.local_log_level);
 
-void Middleware::CallResponseHook(const MiddlewareCallContext& context, google::protobuf::Message& response) {
-    if (!context.IsServerStreaming()) {
-        auto& span = context.GetCall().GetSpan();
-        span.AddTag("grpc_type", "response");
-        span.AddNonInheritableTag("body", GetMessageForLogging(response, settings_));
-    } else {
-        LOG_INFO() << "gRPC response message"
-                   << logging::LogExtra{{"grpc_type", "response"}, {"body", GetMessageForLogging(response, settings_)}};
-    }
-}
-
-void Middleware::Handle(MiddlewareCallContext& context) const {
-    auto& span = context.GetCall().GetSpan();
-
-    span.AddTag("meta_type", std::string{context.GetCall().GetCallName()});
-    span.AddNonInheritableTag("type", "response");
+    span.AddTag(ugrpc::impl::kComponentTag, "server");
+    span.AddTag("meta_type", std::string{context.GetCallName()});
     span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
-    if (context.IsServerStreaming()) {
-        // Just like in HTTP, there must be a single trailing Span log
-        // with type=response and some `body`. We don't have a real single response
-        // (responses are written separately, 1 log per response), so we fake
-        // the required response log.
-        span.AddNonInheritableTag("body", "response stream finished");
-    } else {
-        // Write this dummy `body` in case unary response RPC fails
-        // (with or without status) before receiving the response.
-        // If the RPC finishes with OK status, `body` tag will be overwritten.
-        span.AddNonInheritableTag("body", "error status");
-    }
 
     if (context.IsClientStreaming()) {
-        // Just like in HTTP, there must be a single initial log
-        // with type=request and some body. We don't have a real single request
-        // (requests are written separately, 1 log per request), so we fake
-        // the required request log.
-        LOG_INFO() << "gRPC request stream"
-                   << logging::LogExtra{{"body", "request stream started"}, {"type", "request"}};
+        Logger{settings_.log_level}.Log(
+            settings_.msg_log_level, "gRPC request stream started", logging::LogExtra{{"type", "request"}}
+        );
     }
+}
 
-    context.Next();
+void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const {
+    const Logger logger{settings_.log_level};
+    logging::LogExtra extra{
+        {ugrpc::impl::kTypeTag, "request"},
+        {ugrpc::impl::kBodyTag, GetMessageForLogging(request, settings_)},
+        {ugrpc::impl::kMessageMarshalledLenTag, request.ByteSizeLong()},
+    };
+    if (context.IsClientStreaming()) {
+        logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
+    } else {
+        extra.Extend("type", "request");
+        logger.Log(settings_.msg_log_level, "gRPC request", std::move(extra));
+    }
+}
+
+void Middleware::PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const {
+    const Logger logger{settings_.log_level};
+    logging::LogExtra extra{
+        {ugrpc::impl::kTypeTag, "response"},
+        {"grpc_code", "OK"},  // TODO: revert
+        {ugrpc::impl::kBodyTag, GetMessageForLogging(response, settings_)},
+    };
+    if (context.IsServerStreaming()) {
+        logger.Log(settings_.msg_log_level, "gRPC response stream message", std::move(extra));
+    } else {
+        extra.Extend("type", "response");
+        logger.Log(settings_.msg_log_level, "gRPC response", std::move(extra));
+    }
+}
+
+void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+    const Logger logger{settings_.log_level};
+    if (status.ok()) {
+        if (context.IsServerStreaming()) {
+            logger.Log(
+                settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{{"type", "response"}}
+            );
+        }
+    } else {
+        auto error_details = ugrpc::impl::GetErrorDetailsForLogging(status);
+        logging::LogExtra extra{
+            {"type", "response"},
+            {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},
+            {ugrpc::impl::kTypeTag, "error_status"},
+            {ugrpc::impl::kBodyTag, std::move(error_details)},
+        };
+        const auto default_error_log_level =
+            IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
+        const auto error_log_level =
+            utils::FindOrDefault(settings_.status_codes_log_level, status.error_code(), default_error_log_level);
+        logger.Log(error_log_level, "gRPC error", std::move(extra));
+    }
 }
 
 }  // namespace ugrpc::server::middlewares::log

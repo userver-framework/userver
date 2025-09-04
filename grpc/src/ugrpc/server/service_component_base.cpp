@@ -10,10 +10,9 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/server/impl/parse_config.hpp>
-#include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/server/middlewares/pipeline.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
-#include <userver/yaml_config/impl/validate_static_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,12 +22,14 @@ ServiceComponentBase::ServiceComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : impl::MiddlewareRunner(config, context, MiddlewarePipelineComponent::kName),
+    : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName),
       server_(context.FindComponent<ServerComponent>()),
       config_(server_.ParseServiceConfig(config, context)),
-      info_{config.Name()} {
-    config_.middlewares = CreateMiddlewares(info_);
+      info_(ServiceInfo{config.Name()}) {
+    config_.middlewares = CreateMiddlewares(*info_);
 }
+
+ServiceComponentBase::~ServiceComponentBase() = default;
 
 void ServiceComponentBase::RegisterService(ServiceBase& service) {
     UINVARIANT(!registered_.exchange(true), "Register must only be called once");
@@ -42,7 +43,7 @@ void ServiceComponentBase::RegisterService(GenericServiceBase& service) {
 }
 
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<impl::MiddlewareRunner>(R"(
+    return yaml_config::MergeSchemas<impl::MiddlewareRunnerComponentBase>(R"(
 type: object
 description: base class for all the gRPC service components
 additionalProperties: false
@@ -51,6 +52,20 @@ properties:
         type: string
         description: the task processor to use for responses
         defaultDescription: uses grpc-server.service-defaults.task-processor
+    status-codes-log-level:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: string
+            description: log level
+        description: |
+            gRPC status code string -> log level map.
+            Allows overriding the log level for the span for individual statuses.
+            See grpcpp StatusCode documentation for the list of possible values:
+            https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
+
+            Example:
+              -  FAILED_PRECONDITION: info
 )");
 }
 

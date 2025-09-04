@@ -48,7 +48,7 @@ constexpr utils::StringLiteral kOwsChars = " \t";
 }
 
 [[nodiscard]] bool SkipCrLf(std::string_view& str, std::string_view crlf) {
-    for (char c : crlf) {
+    for (const char c : crlf) {
         if (!SkipSymbol(str, c)) return false;
     }
     return true;
@@ -74,7 +74,7 @@ std::string_view ReadToken(std::string_view& str) {
         for (int i = 33; i < 127; i++) {
             res[i] = true;
         }
-        for (char c : "()<>@,;:\\\"/[]?={}") {
+        for (const char c : "()<>@,;:\\\"/[]?={}") {
             res[static_cast<uint8_t>(c)] = false;
         }
         return res;
@@ -82,7 +82,7 @@ std::string_view ReadToken(std::string_view& str) {
 
     size_t pos = 0;
     while (pos < str.size() && kAllowed[static_cast<uint8_t>(str[pos])]) ++pos;
-    std::string_view res = str.substr(0, pos);
+    const std::string_view res = str.substr(0, pos);
     str.remove_prefix(pos);
     return res;
 }
@@ -140,7 +140,7 @@ bool ParseHeaderParamValue(std::string_view& str, std::string* value) {
                 str.remove_prefix(1);
                 if (str.empty()) break;
             }
-            char c = str.front();
+            const char c = str.front();
             str.remove_prefix(1);
             if (value) *value += c;
         }
@@ -176,9 +176,9 @@ bool ParseContentDisposition(std::string_view content_disposition, FormDataArgIn
         if (!param_name.empty()) {
             SkipOptionalSpaces(str);
             if (!SkipSymbol(str, '=')) return false;
-            bool is_name = IEquals(param_name, kName);
-            bool is_filename = IEquals(param_name, kFilename);
-            bool need_header_value = is_name || is_filename;
+            const bool is_name = IEquals(param_name, kName);
+            const bool is_filename = IEquals(param_name, kFilename);
+            const bool need_header_value = is_name || is_filename;
             std::string value;
             if (!ParseHeaderParamValue(str, need_header_value ? &value : nullptr)) return false;
             SkipOptionalSpaces(str);
@@ -283,7 +283,7 @@ bool ParseMultipartFormDataValue(
         return false;
     }
 
-    size_t pos = FindBoundaryEnd(body, boundary, crlf);
+    const size_t pos = FindBoundaryEnd(body, boundary, crlf);
     if (pos == std::string_view::npos) {
         LOG_WARNING() << "Unexpected end of form-data part value";
         return false;
@@ -316,7 +316,7 @@ bool ParseMultipartFormDataBody(
     } else {
         while (!body.empty() && body.front() != kCr && body.front() != kLf) body.remove_prefix(1);
         if (!strict_cr_lf) crlf = AutoDetectCrLf(body, crlf);
-        size_t pos = FindBoundaryEnd(body, boundary, crlf);
+        const size_t pos = FindBoundaryEnd(body, boundary, crlf);
         if (pos == std::string_view::npos) {
             LOG_WARNING() << "Unexpected request body end";
             return false;
@@ -407,9 +407,9 @@ bool ParseMultipartFormData(
         if (!param_name.empty()) {
             SkipOptionalSpaces(unparsed);
             if (!SkipSymbol(unparsed, '=')) return false;
-            bool is_boundary = IEquals(param_name, kBoundary);
-            bool is_charset = IEquals(param_name, kCharset);
-            bool need_header_value = is_boundary || is_charset;
+            const bool is_boundary = IEquals(param_name, kBoundary);
+            const bool is_charset = IEquals(param_name, kCharset);
+            const bool need_header_value = is_boundary || is_charset;
             std::string value;
             if (!ParseHeaderParamValue(unparsed, need_header_value ? &value : nullptr)) return false;
             SkipOptionalSpaces(unparsed);

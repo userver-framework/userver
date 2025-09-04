@@ -1,5 +1,7 @@
 #include "utils_rmqtest.hpp"
 
+#include <userver/engine/task/current_task.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {

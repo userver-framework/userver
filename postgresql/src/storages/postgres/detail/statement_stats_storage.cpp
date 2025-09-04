@@ -24,14 +24,17 @@ StatementStatsStorage::~StatementStatsStorage() {
     }
 }
 
-void StatementStatsStorage::Account(const std::string& statement_name, std::size_t duration_ms, ExecutionResult result)
-    const {
+void StatementStatsStorage::Account(
+    USERVER_NAMESPACE::utils::zstring_view statement_name,
+    std::size_t duration_ms,
+    ExecutionResult result
+) const {
     if (!IsEnabled()) return;
 
     const auto producer = data_.events_queue->GetProducer();
 
     [[maybe_unused]] const auto success =
-        producer.PushNoblock(std::make_unique<StatementEvent>(statement_name, duration_ms, result));
+        producer.PushNoblock(std::make_unique<StatementEvent>(std::string{statement_name}, duration_ms, result));
 }
 
 std::unordered_map<std::string, StatementStatistics> StatementStatsStorage::GetStatementsStats() const {

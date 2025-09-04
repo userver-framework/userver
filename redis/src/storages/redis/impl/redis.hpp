@@ -31,7 +31,12 @@ public:
 
     Redis(Redis&& o) = delete;
 
-    void Connect(const ConnectionInfo::HostVector& host_addrs, int port, const Password& password);
+    void Connect(
+        const ConnectionInfo::HostVector& host_addrs,
+        int port,
+        const Password& password,
+        std::size_t database_index
+    );
 
     bool AsyncCommand(const CommandPtr& command);
     size_t GetRunningCommands() const;
@@ -53,8 +58,6 @@ public:
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     boost::signals2::signal<void(State)> signal_state_change;
-    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-    boost::signals2::signal<void()> signal_not_in_cluster_mode;
 
 private:
     class RedisImpl;

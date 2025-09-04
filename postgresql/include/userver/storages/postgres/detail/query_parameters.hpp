@@ -54,10 +54,10 @@ public:
     StaticQueryParameters& operator=(StaticQueryParameters&&) = delete;
 
     std::size_t Size() const { return ParamsCount; }
-    const char* const* ParamBuffers() const { return param_buffers; }
-    const Oid* ParamTypesBuffer() const { return param_types; }
-    const int* ParamLengthsBuffer() const { return param_lengths; }
-    const int* ParamFormatsBuffer() const { return param_formats; }
+    const char* const* ParamBuffers() const { return param_buffers_; }
+    const Oid* ParamTypesBuffer() const { return param_types_; }
+    const int* ParamLengthsBuffer() const { return param_lengths_; }
+    const int* ParamFormatsBuffer() const { return param_formats_; }
 
     template <typename T>
     void Write(std::size_t index, const UserTypes& types, const T& arg) {
@@ -67,9 +67,11 @@ public:
             "Type doesn't have mapping to Postgres type. "
             "Enums should be either streamed as their underlying value via the "
             "`template<> struct CanUseEnumAsStrongTypedef<T>: std::true_type {};` "
-            "specialization or as a PostgreSQL datatype via the "
+            "specialization, or as a PostgreSQL datatype via the "
             "`template<> struct CppToUserPg<T> : EnumMappingBase<R> { ... };` "
-            "specialization. "
+            "specialization, or for enums with Parse() and ToString() functions, use "
+            "`template<> struct CppToSystemPg<T> : PredefinedOid<PredefinedOids::kText> {};` "
+            "specialization for automatic mapping to PostgreSQL text type. "
             "See page `uPg: Supported data types` for more information."
         );
         WriteParamType(index, types, arg);
@@ -86,16 +88,16 @@ private:
     template <typename T>
     void WriteParamType(std::size_t index, const UserTypes& types, const T&) {
         // C++ to pg oid mapping
-        param_types[index] = io::CppToPg<T>::GetOid(types);
+        param_types_[index] = io::CppToPg<T>::GetOid(types);
     }
 
     template <typename T>
     void WriteNullable(std::size_t index, const UserTypes& types, const T& arg, std::true_type) {
         using NullDetector = io::traits::GetSetNull<T>;
         if (NullDetector::IsNull(arg)) {
-            param_formats[index] = io::kPgBinaryDataFormat;
-            param_lengths[index] = io::kPgNullBufferSize;
-            param_buffers[index] = nullptr;
+            param_formats_[index] = io::kPgBinaryDataFormat;
+            param_lengths_[index] = io::kPgNullBufferSize;
+            param_buffers_[index] = nullptr;
         } else {
             WriteNullable(index, types, arg, std::false_type{});
         }
@@ -103,15 +105,15 @@ private:
 
     template <typename T>
     void WriteNullable(std::size_t index, const UserTypes& types, const T& arg, std::false_type) {
-        param_formats[index] = io::kPgBinaryDataFormat;
-        auto& buffer = parameters[index];
+        param_formats_[index] = io::kPgBinaryDataFormat;
+        auto& buffer = parameters_[index];
         io::WriteBuffer(types, buffer, arg);
         auto size = buffer.size();
-        param_lengths[index] = size;
+        param_lengths_[index] = size;
         if (size == 0) {
-            param_buffers[index] = empty_buffer;
+            param_buffers_[index] = empty_buffer;
         } else {
-            param_buffers[index] = buffer.data();
+            param_buffers_[index] = buffer.data();
         }
     }
 
@@ -122,11 +124,11 @@ private:
 
     static constexpr const char* empty_buffer = "";
 
-    ParameterList parameters{};
-    OidList param_types{};
-    const char* param_buffers[ParamsCount]{};
-    IntList param_lengths{};
-    IntList param_formats{};
+    ParameterList parameters_{};
+    OidList param_types_{};
+    const char* param_buffers_[ParamsCount]{};
+    IntList param_lengths_{};
+    IntList param_formats_{};
 };
 
 template <>
@@ -149,11 +151,11 @@ public:
     DynamicQueryParameters& operator=(const DynamicQueryParameters&) = delete;
     DynamicQueryParameters& operator=(DynamicQueryParameters&&) = default;
 
-    std::size_t Size() const { return param_types.size(); }
-    const char* const* ParamBuffers() const { return param_buffers.data(); }
-    const Oid* ParamTypesBuffer() const { return param_types.data(); }
-    const int* ParamLengthsBuffer() const { return param_lengths.data(); }
-    const int* ParamFormatsBuffer() const { return param_formats.data(); }
+    std::size_t Size() const { return param_types_.size(); }
+    const char* const* ParamBuffers() const { return param_buffers_.data(); }
+    const Oid* ParamTypesBuffer() const { return param_types_.data(); }
+    const int* ParamLengthsBuffer() const { return param_lengths_.data(); }
+    const int* ParamFormatsBuffer() const { return param_formats_.data(); }
 
     template <typename T>
     void Write(const UserTypes& types, const T& arg) {
@@ -171,16 +173,16 @@ private:
     template <typename T>
     void WriteParamType(const UserTypes& types, const T&) {
         // C++ to pg oid mapping
-        param_types.push_back(io::CppToPg<T>::GetOid(types));
+        param_types_.push_back(io::CppToPg<T>::GetOid(types));
     }
 
     template <typename T>
     void WriteNullable(const UserTypes& types, const T& arg, std::true_type) {
         using NullDetector = io::traits::GetSetNull<T>;
         if (NullDetector::IsNull(arg)) {
-            param_formats.push_back(io::kPgBinaryDataFormat);
-            param_lengths.push_back(io::kPgNullBufferSize);
-            param_buffers.push_back(nullptr);
+            param_formats_.push_back(io::kPgBinaryDataFormat);
+            param_lengths_.push_back(io::kPgNullBufferSize);
+            param_buffers_.push_back(nullptr);
         } else {
             WriteNullable(types, arg, std::false_type{});
         }
@@ -188,15 +190,15 @@ private:
 
     template <typename T>
     void WriteNullable(const UserTypes& types, const T& arg, std::false_type) {
-        param_formats.push_back(io::kPgBinaryDataFormat);
-        auto& buffer = parameters.emplace_back();
+        param_formats_.push_back(io::kPgBinaryDataFormat);
+        auto& buffer = parameters_.emplace_back();
         io::WriteBuffer(types, buffer, arg);
         auto size = buffer.size();
-        param_lengths.push_back(size);
+        param_lengths_.push_back(size);
         if (size == 0) {
-            param_buffers.push_back(empty_buffer);
+            param_buffers_.push_back(empty_buffer);
         } else {
-            param_buffers.push_back(buffer.data());
+            param_buffers_.push_back(buffer.data());
         }
     }
 
@@ -207,11 +209,11 @@ private:
 
     static constexpr const char* empty_buffer = "";
 
-    ParameterList parameters;  // TODO Replace with a single buffer
-    OidList param_types;
-    std::vector<const char*> param_buffers;
-    IntList param_lengths;
-    IntList param_formats;
+    ParameterList parameters_;  // TODO Replace with a single buffer
+    OidList param_types_;
+    std::vector<const char*> param_buffers_;
+    IntList param_lengths_;
+    IntList param_formats_;
 };
 
 }  // namespace storages::postgres::detail

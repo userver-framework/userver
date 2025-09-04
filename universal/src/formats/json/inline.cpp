@@ -9,7 +9,7 @@
 #include <userver/formats/common/validations.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 #include <formats/json/impl/types_impl.hpp>
 
@@ -30,7 +30,7 @@ impl::Value WrapStringView(std::string_view key) {
 }
 
 std::string FormatTimePoint(std::chrono::system_clock::time_point value) {
-    return utils::datetime::Timestring(value, "UTC", utils::datetime::kRfc3339Format);
+    return utils::datetime::UtcTimestring(value, utils::datetime::kRfc3339Format);
 }
 
 }  // namespace

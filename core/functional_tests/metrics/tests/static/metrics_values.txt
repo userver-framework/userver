@@ -1,3 +1,10 @@
+# Alerts reporteed by instances of alerts::Source
+alerts.cache_update_error:	GAUGE	0
+alerts.config_parse_error:	GAUGE	0
+alerts.dynamic_debug_invalid_location:	GAUGE	0
+alerts.log_reopening_error:	GAUGE	0
+
+# Info on caches
 cache.any.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
 cache.any.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
 cache.any.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
@@ -24,6 +31,7 @@ cache.any.update.no_changes_count.v2: cache_name=dynamic-config-client-updater	R
 cache.any.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.any.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.update.no_changes_count: cache_name=sample-cache	GAUGE	0
+cache.background-updates.v2: cache_name=sample-lru-cache	RATE	0
 cache.background-updates: cache_name=sample-lru-cache	GAUGE	0
 cache.current-documents-count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.current-documents-count: cache_name=sample-cache	GAUGE	0
@@ -57,6 +65,7 @@ cache.full.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.full.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.update.no_changes_count: cache_name=sample-cache	GAUGE	0
 cache.hit_ratio.1min: cache_name=sample-lru-cache	GAUGE	0
+cache.hits.v2: cache_name=sample-lru-cache	RATE	0
 cache.hits: cache_name=sample-lru-cache	GAUGE	0
 cache.incremental.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
 cache.incremental.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
@@ -84,16 +93,19 @@ cache.incremental.update.no_changes_count.v2: cache_name=dynamic-config-client-u
 cache.incremental.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.incremental.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.update.no_changes_count: cache_name=sample-cache	GAUGE	0
+cache.misses.v2: cache_name=sample-lru-cache	RATE	0
 cache.misses: cache_name=sample-lru-cache	GAUGE	0
+cache.stale.v2: cache_name=sample-lru-cache	RATE	0
 cache.stale: cache_name=sample-lru-cache	GAUGE	0
+
 congestion-control.rps.is-custom-status-activated:	GAUGE	0
 cpu_time_sec:	GAUGE	0
-dns-client.replies: dns_reply_source=cached	GAUGE	0
-dns-client.replies: dns_reply_source=cached-failure	GAUGE	0
-dns-client.replies: dns_reply_source=cached-stale	GAUGE	0
-dns-client.replies: dns_reply_source=file	GAUGE	0
-dns-client.replies: dns_reply_source=network	GAUGE	0
-dns-client.replies: dns_reply_source=network-failure	GAUGE	0
+dns-client.replies: dns_reply_source=cached	RATE	0
+dns-client.replies: dns_reply_source=cached-failure	RATE	0
+dns-client.replies: dns_reply_source=cached-stale	RATE	0
+dns-client.replies: dns_reply_source=file	RATE	0
+dns-client.replies: dns_reply_source=network	RATE	0
+dns-client.replies: dns_reply_source=network-failure	RATE	0
 dynamic-config.parse-errors:	RATE	0
 dynamic-config.was-last-parse-successful:	GAUGE	0
 engine.coro-pool.coroutines.active:	GAUGE	0
@@ -103,6 +115,7 @@ engine.coro-pool.stack-usage.max-usage-percent:	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_0	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_1	GAUGE	0
 engine.load-ms:	GAUGE	0
+engine.pre-load-ms:	GAUGE	0
 engine.task-processors-load-percent: task_processor=fs-task-processor, thread=0	GAUGE	0
 engine.task-processors-load-percent: task_processor=fs-task-processor, thread=1	GAUGE	0
 engine.task-processors-load-percent: task_processor=main-task-processor, thread=0	GAUGE	0
@@ -112,36 +125,57 @@ engine.task-processors-load-percent: task_processor=main-task-processor, thread=
 engine.task-processors-load-percent: task_processor=main-task-processor, thread=4	GAUGE	0
 engine.task-processors-load-percent: task_processor=main-task-processor, thread=5	GAUGE	0
 engine.task-processors-load-percent: task_processor=monitor-task-processor, thread=0	GAUGE	0
-engine.task-processors.context_switch.fast: task_processor=fs-task-processor	GAUGE	0
-engine.task-processors.context_switch.fast: task_processor=main-task-processor	GAUGE	0
-engine.task-processors.context_switch.fast: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.no_overloaded.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.context_switch.no_overloaded.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.context_switch.no_overloaded.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.context_switch.no_overloaded: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.context_switch.no_overloaded: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.context_switch.no_overloaded: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.overloaded.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.context_switch.overloaded.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.context_switch.overloaded.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.context_switch.overloaded: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.context_switch.overloaded: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.context_switch.overloaded: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.slow.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.context_switch.slow.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.context_switch.slow.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.context_switch.slow: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.context_switch.slow: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.context_switch.slow: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.spurious_wakeups.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.context_switch.spurious_wakeups.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.context_switch.spurious_wakeups.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.context_switch.spurious_wakeups: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.context_switch.spurious_wakeups: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.context_switch.spurious_wakeups: task_processor=monitor-task-processor	GAUGE	0
-engine.task-processors.errors: task_processor=fs-task-processor, task_processor_error=wait_queue_overload	GAUGE	0
-engine.task-processors.errors: task_processor=main-task-processor, task_processor_error=wait_queue_overload	GAUGE	0
-engine.task-processors.errors: task_processor=monitor-task-processor, task_processor_error=wait_queue_overload	GAUGE	0
+engine.task-processors.errors: task_processor=fs-task-processor, task_processor_error=wait_queue_overload	RATE	0
+engine.task-processors.errors: task_processor=main-task-processor, task_processor_error=wait_queue_overload	RATE	0
+engine.task-processors.errors: task_processor=monitor-task-processor, task_processor_error=wait_queue_overload	RATE	0
 engine.task-processors.tasks.alive: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.alive: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.alive: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.cancelled.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.cancelled.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.cancelled.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.cancelled: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.cancelled_overload.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.cancelled_overload.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.cancelled_overload.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.cancelled_overload: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled_overload: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.cancelled_overload: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.created.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.created.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.created.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.created: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.created: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.created: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.finished.v2: task_processor=fs-task-processor	RATE	0
+engine.task-processors.tasks.finished.v2: task_processor=main-task-processor	RATE	0
+engine.task-processors.tasks.finished.v2: task_processor=monitor-task-processor	RATE	0
 engine.task-processors.tasks.finished: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.finished: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.finished: task_processor=monitor-task-processor	GAUGE	0
@@ -154,7 +188,15 @@ engine.task-processors.tasks.running: task_processor=monitor-task-processor	GAUG
 engine.task-processors.worker-threads: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.worker-threads: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.worker-threads: task_processor=monitor-task-processor	GAUGE	0
+
+# How many times heavy operations (like http calls) were called with open DB transaction
+# See userver/utils/trx_tracker.hpp
+engine.heavy-operations-in-transactions:	RATE	0
+
+# How long the engine is running. It does not account components state (i.e. `components::State::IsAnyComponentInFatalState()`),
+# the engine could be fine, the components could be in components::ComponentHealth::kFatal state.
 engine.uptime-seconds:	GAUGE	0
+
 http.by-fallback.implicit-http-options.handler.cancelled-by-deadline: http_handler=handler-implicit-http-options, version=2	RATE	0
 http.by-fallback.implicit-http-options.handler.deadline-received: http_handler=handler-implicit-http-options, version=2	RATE	0
 http.by-fallback.implicit-http-options.handler.in-flight: http_handler=handler-implicit-http-options, version=2	GAUGE	0
@@ -338,6 +380,8 @@ http.handler.too-many-requests-in-flight: http_handler=handler-on-log-rotate, ht
 http.handler.too-many-requests-in-flight: http_handler=handler-ping, http_path=/ping, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=handler-server-monitor, http_path=/service/monitor, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=tests-control, http_path=/tests/_action_, version=2	RATE	0
+
+# HTTP server metrics aggregated by all the handlers
 http.handler.total.cancelled-by-deadline: version=2	RATE	0
 http.handler.total.deadline-received: version=2	RATE	0
 http.handler.total.in-flight: version=2	GAUGE	0
@@ -357,6 +401,7 @@ http.handler.total.timings: percentile=p99, version=2	GAUGE	0
 http.handler.total.timings: percentile=p99_6, version=2	GAUGE	0
 http.handler.total.timings: percentile=p99_9, version=2	GAUGE	0
 http.handler.total.too-many-requests-in-flight: version=2	RATE	0
+
 httpclient.cancelled-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
 httpclient.cancelled-by-deadline: version=2	RATE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=cancelled, version=2	RATE	0
@@ -449,8 +494,12 @@ logger.total: logger=default	RATE	0
 major_pagefaults:	GAUGE	0
 open_files:	GAUGE	0
 rss_kb:	GAUGE	0
+
+# HTTP server related metrics (no gRPC metrics!)
 server.connections.active:	GAUGE	0
+server.connections.closed.v2:	RATE	0
 server.connections.closed:	GAUGE	0
+server.connections.opened.v2:	RATE	0
 server.connections.opened:	GAUGE	0
 server.requests.active:	GAUGE	0
 server.requests.avg-lifetime-ms:	GAUGE	0
@@ -460,4 +509,5 @@ server.requests.http2.streams-close:	RATE	0
 server.requests.http2.streams-count:	RATE	0
 server.requests.http2.streams-parse-error:	RATE	0
 server.requests.parsing:	GAUGE	0
+server.requests.processed.v2:	RATE	0
 server.requests.processed:	GAUGE	0

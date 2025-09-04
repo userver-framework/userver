@@ -1,9 +1,8 @@
-from typing import List
 from typing import Union
 
 
 class TypeName:
-    def __init__(self, name: Union[str, List[str]]) -> None:
+    def __init__(self, name: Union[str, list[str]]) -> None:
         if isinstance(name, str):
             self._components = name.split('::')
         else:
@@ -19,7 +18,7 @@ class TypeName:
         return '::'.join(self._components)
 
     def __repr__(self) -> str:
-        return self.__str__()
+        return 'TypeName("{}")'.format(str(self))
 
     def add_suffix(self, suffix: str) -> 'TypeName':
         comp = self._components.copy()

@@ -16,6 +16,7 @@
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
@@ -47,7 +48,8 @@ public:
         const DefaultCommandControls& default_cmd_ctls,
         const testsuite::PostgresControl& testsuite_pg_ctl,
         const error_injection::Settings& ei_settings,
-        engine::SemaphoreLock&& size_lock
+        engine::SemaphoreLock&& size_lock,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     void AsyncConnect(const Dsn& dsn, engine::Deadline deadline);
@@ -67,13 +69,13 @@ public:
     bool ArePreparedStatementsEnabled() const;
     bool IsBroken() const;
     bool IsExpired() const;
-    ConnectionSettings const& GetSettings() const;
+    const ConnectionSettings& GetSettings() const;
 
     CommandControl GetDefaultCommandControl() const;
     void UpdateDefaultCommandControl();
 
     const OptionalCommandControl& GetTransactionCommandControl() const;
-    OptionalCommandControl GetNamedQueryCommandControl(const std::optional<Query::Name>& query_name) const;
+    OptionalCommandControl GetNamedQueryCommandControl(std::optional<Query::NameView> query_name) const;
 
     Connection::Statistics GetStatsAndReset();
 
@@ -103,7 +105,7 @@ public:
     void Finish();
 
     Connection::StatementId PortalBind(
-        const std::string& statement,
+        USERVER_NAMESPACE::utils::zstring_view statement,
         const std::string& portal_name,
         const detail::QueryParameters& params,
         OptionalCommandControl statement_cmd_ctl
@@ -149,6 +151,8 @@ private:
     TimeoutDuration NetworkTimeout(OptionalCommandControl) const;
     TimeoutDuration CurrentNetworkTimeout() const;
 
+    bool PreparedStatementsEnabled(OptionalCommandControl cmd_ctl) const;
+
     void SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
 
     void SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
@@ -156,7 +160,7 @@ private:
     void SetStatementTimeout(OptionalCommandControl cmd_ctl);
 
     const PreparedStatementInfo& DoPrepareStatement(
-        const std::string& statement,
+        USERVER_NAMESPACE::utils::zstring_view statement,
         const detail::QueryParameters& params,
         engine::Deadline deadline,
         tracing::Span& span,
@@ -167,7 +171,13 @@ private:
 
     ResultSet ExecuteCommand(const Query& query, engine::Deadline deadline);
 
-    ResultSet ExecuteCommand(const Query& query, const detail::QueryParameters& params, engine::Deadline deadline);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        const detail::QueryParameters& params,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo,
+        bool ignore_prepared_statements_setting = false
+    );
 
     ResultSet ExecuteCommandNoPrepare(const Query& query, engine::Deadline deadline);
 
@@ -175,7 +185,12 @@ private:
 
     void SendCommandNoPrepare(const Query& query, engine::Deadline deadline);
 
-    void SendCommandNoPrepare(const Query& query, const QueryParameters& params, engine::Deadline deadline);
+    void SendCommandNoPrepare(
+        const Query& query,
+        const QueryParameters& params,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo
+    );
 
     void SetParameter(
         std::string_view name,
@@ -189,7 +204,7 @@ private:
 
     template <typename Counter>
     ResultSet WaitResult(
-        const std::string& statement,
+        USERVER_NAMESPACE::utils::zstring_view statement,
         engine::Deadline deadline,
         TimeoutDuration network_timeout,
         Counter& counter,
@@ -200,7 +215,7 @@ private:
 
     void Cancel();
 
-    void ReportStatement(const std::string& name);
+    void ReportStatement(std::string_view name);
 
     bool IsOmitDescribeInExecuteEnabled() const;
 
@@ -222,8 +237,9 @@ private:
     OptionalCommandControl transaction_cmd_ctl_;
     TimeoutDuration current_statement_timeout_{};
     const error_injection::Settings ei_settings_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 
-    std::unordered_set<std::string> statements_reported_;
+    USERVER_NAMESPACE::utils::impl::TransparentSet<std::string> statements_reported_;
     engine::Mutex statements_mutex_;
     // Flag to check a correct order of calling Begin.
     bool in_transaction_{false};

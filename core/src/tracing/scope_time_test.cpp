@@ -11,15 +11,15 @@ TEST(ScopeTime, Durations) {
     using DurationMillis = tracing::ScopeTime::DurationMillis;
     using namespace std::literals::chrono_literals;
 
-    Duration d = 42us;
+    const Duration d = 42us;
     EXPECT_NE(std::chrono::duration_cast<DurationMillis>(d), DurationMillis{});
     EXPECT_GE(std::chrono::duration_cast<DurationMillis>(d), 40us);
     EXPECT_LE(std::chrono::duration_cast<DurationMillis>(d), 44us);
 }
 
 UTEST(ScopeTime, Constructor) {
-    tracing::ScopeTime sc;
-    tracing::ScopeTime sc2("da name");
+    const tracing::ScopeTime sc;
+    const tracing::ScopeTime sc2("da name");
 
     engine::SleepFor(std::chrono::milliseconds(1));
 

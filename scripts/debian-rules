@@ -1,0 +1,64 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all optimize=-lto
+
+BUILD_DIR_RELEASE = $(CURDIR)/debian/obj-$(DEB_HOST_GNU_TYPE)-release
+BUILD_DIR_DEBUG = $(CURDIR)/debian/obj-$(DEB_HOST_GNU_TYPE)-debug
+
+# YDB has no official .deb package, so skip it
+# TODO: pg patch
+# TODO: clickhouse
+CMAKE_OPTS = \
+	     -DUSERVER_INSTALL=ON \
+	     -DUSERVER_BUILD_SAMPLES=ON \
+	     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
+	     -DUSERVER_FEATURE_YDB=OFF \
+	     -DUSERVER_FEATURE_CLICKHOUSE=OFF \
+	     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
+	     -DUSERVER_FEATURE_UTEST=ON
+	     # -DUSERVER_BUILD_TESTS=ON \
+
+DEBUG_SANITIZERS = ub addr
+
+
+%:
+	dh $@ --buildsystem=cmake+ninja
+
+override_dh_ctest_configure:
+	dh_ctest_configure --builddirectory=$(BUILD_DIR_RELEASE) -- \
+		-DCMAKE_BUILD_TYPE=Release \
+		$(CMAKE_OPTS)
+	
+	dh_ctest_configure --builddirectory=$(BUILD_DIR_DEBUG) -- \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DUSERVER_SANITIZE=$(DEBUG_SANITIZERS) \
+		$(CMAKE_OPTS)
+
+override_dh_ctest_build:
+	dh_ctest_build --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_ctest_build --builddirectory=$(BUILD_DIR_DEBUG)
+
+override_dh_ctest_test:
+	dh_ctest_test --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_ctest_test --builddirectory=$(BUILD_DIR_DEBUG)
+
+override_dh_cpack_generate:
+	cpack -G External \
+		--config $(BUILD_DIR_RELEASE)/CPackConfig.cmake \
+		-D CPACK_PACKAGE_FILE_NAME=cpack-metadata \
+		-D CPACK_EXT_REQUESTED_VERSIONS=1.0 \
+		-D CPACK_INSTALL_CMAKE_PROJECTS="$(BUILD_DIR_DEBUG);userver;ALL;/;$(BUILD_DIR_RELEASE);userver;ALL;/" \
+		-B debian/.cpack
+	
+
+override_dh_cpack_install:
+	dh_cpack_install --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_cpack_install --builddirectory=$(BUILD_DIR_DEBUG)
+
+override_dh_auto_install:
+	dh_auto_install --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_auto_install --builddirectory=$(BUILD_DIR_DEBUG)
+
+override_dh_auto_clean:
+	dh_auto_clean --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_auto_clean --builddirectory=$(BUILD_DIR_DEBUG)

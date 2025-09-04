@@ -12,6 +12,7 @@ A directory with samples:
 * mongo-support - distlock using MongoDB
 * multipart_service - sample on how to receive files and deal with multipart/form-data requests
 * postgres_auth - custom "Bearer" authentication that uses PostgreSQL. [Documentation](https://userver.tech/da/d24/md_en_2userver_2tutorial_2auth__postgres.html)
+* postgres_cache_order_by - sample of a PostgreSQL cache that stores onnly the old/new values for a key. 
 * postgres_service - sample service that uses PostgreSQL. [Documentation](https://userver.tech/d4/d31/md_en_2userver_2tutorial_2postgres__service.html)
 * postgres-support - distlock using PostgreSQL
 * production_service - close to the production sample service. [Documentation](https://userver.tech/db/d69/md_en_2userver_2tutorial_2production__service.html)

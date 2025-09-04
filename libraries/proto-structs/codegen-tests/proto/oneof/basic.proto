@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package oneof;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/oneof;oneof";
+
+message Message1 {
+    string field = 1;
+}
+
+enum Enum1 {
+    ENUM1_UNSPECIFIED = 0;
+    ENUM1_FOO = 1;
+}
+
+message Parent {
+    optional string field_before = 1;
+
+    message Message2 {
+        string field = 1;
+    }
+
+    enum Enum2 {
+        ENUM2_UNSPECIFIED = 0;
+        ENUM2_FOO = 1;
+    }
+
+    oneof lowercase {
+        int64 integer = 3;
+        string string = 2;
+        Message1 message1 = 5;
+        Message2 message2 = 6;
+        Enum1 enum1 = 7;
+        Enum2 enum2 = 8;
+    }
+
+    oneof Uppercase {
+        string foo = 9;
+        int64 bar = 10;
+    }
+
+    oneof single_field_oneof {
+        string single = 11;
+    }
+}

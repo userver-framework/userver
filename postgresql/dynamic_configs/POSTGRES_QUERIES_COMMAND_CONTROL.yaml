@@ -1,7 +1,24 @@
 default: {}
-description: ''
+description: |
+    Dynamic config that controls per-query/per-transaction statement and network timeouts, if those were not explicitly set via
+    storages::postgres::CommandControl. Overrides the @ref POSTGRES_HANDLERS_COMMAND_CONTROL, @ref POSTGRES_QUERIES_COMMAND_CONTROL,
+    @ref POSTGRES_DEFAULT_COMMAND_CONTROL, and built-in timeouts from components::Postgres::kDefaultCommandControl.
+
+    Transaction timeouts in POSTGRES_QUERIES_COMMAND_CONTROL override the per-query timeouts in POSTGRES_QUERIES_COMMAND_CONTROL,
+    so the latter are ignored if transaction timeouts are set.
 schema:
     type: object
+    example: |
+        {
+          "cleanup_processed_data": {
+            "network_timeout_ms": 92000,
+            "statement_timeout_ms": 90000
+          },
+          "select_recent_users": {
+            "network_timeout_ms": 70,
+            "statement_timeout_ms": 30
+          }
+        }
     additionalProperties:
         $ref: "#/definitions/CommandControl"
     definitions:
@@ -15,3 +32,5 @@ schema:
                 statement_timeout_ms:
                     type: integer
                     minimum: 1
+                prepared_statements_enabled:
+                    type: boolean

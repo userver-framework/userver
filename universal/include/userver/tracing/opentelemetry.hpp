@@ -3,16 +3,20 @@
 #include <string>
 
 #include <userver/utils/expected.hpp>
+#include <userver/utils/small_string.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing::opentelemetry {
 
+inline constexpr std::size_t kTraceIdSize = 32;
+inline constexpr std::size_t kSpanIdSize = 16;
+
 struct TraceParentData {
     std::string version;
-    std::string trace_id;
-    std::string span_id;
+    utils::SmallString<kTraceIdSize> trace_id;
+    utils::SmallString<kSpanIdSize> span_id;
     std::string trace_flags;
 };
 

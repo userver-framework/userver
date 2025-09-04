@@ -3,16 +3,16 @@ import chaotic.main as main
 
 def test_name_map_item():
     item = main.NameMapItem('x=y')
-    assert item.match('x') == 'y'
-    assert item.match('y') is None
+    assert item.match('x', stem='stem') == 'y'
+    assert item.match('y', stem='stem') is None
 
 
 def test_name_map_item_pattern():
     item = main.NameMapItem('/schemas/([^/]*)/={0}')
-    assert item.match('x') is None
-    assert item.match('/schemas') is None
-    assert item.match('/schemas/') is None
-    assert item.match('/schemas/X/') == 'X'
+    assert item.match('x', stem='stem') is None
+    assert item.match('/schemas', stem='stem') is None
+    assert item.match('/schemas/', stem='stem') is None
+    assert item.match('/schemas/X/', stem='stem') == 'X'
 
 
 def test_extract_schemas_to_scan():

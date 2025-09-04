@@ -5,33 +5,44 @@
 
 #include <userver/utils/span.hpp>
 
+#include <userver/ugrpc/impl/rpc_type.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
+/// Descriptor of an RPC method
+struct MethodDescriptor final {
+    std::string_view method_full_name;
+    RpcType method_type;
+};
+
 /// Per-gRPC-service statically generated data
 struct StaticServiceMetadata final {
     std::string_view service_full_name;
-    utils::span<const std::string_view> method_full_names;
+    utils::span<const MethodDescriptor> methods;
 };
 
 template <typename GrpcppService>
-constexpr StaticServiceMetadata MakeStaticServiceMetadata(utils::span<const std::string_view> method_full_names
-) noexcept {
-    return {GrpcppService::service_full_name(), method_full_names};
+constexpr StaticServiceMetadata MakeStaticServiceMetadata(utils::span<const MethodDescriptor> methods) noexcept {
+    return {GrpcppService::service_full_name(), methods};
 }
 
 constexpr std::size_t GetMethodsCount(const StaticServiceMetadata& metadata) noexcept {
-    return metadata.method_full_names.size();
+    return metadata.methods.size();
 }
 
 constexpr std::string_view GetMethodFullName(const StaticServiceMetadata& metadata, std::size_t method_id) {
-    return metadata.method_full_names[method_id];
+    return metadata.methods[method_id].method_full_name;
 }
 
 constexpr std::string_view GetMethodName(const StaticServiceMetadata& metadata, std::size_t method_id) {
-    const auto& method_full_name = metadata.method_full_names[method_id];
+    auto method_full_name = GetMethodFullName(metadata, method_id);
     return method_full_name.substr(metadata.service_full_name.size() + 1);
+}
+
+constexpr RpcType GetMethodType(const StaticServiceMetadata& metadata, std::size_t method_id) {
+    return metadata.methods[method_id].method_type;
 }
 
 std::optional<std::size_t>

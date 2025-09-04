@@ -1,7 +1,9 @@
 #include <ugrpc/server/impl/parse_config.hpp>
 
+#include <boost/container/flat_map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/logging/impl/logger_base.hpp>
@@ -11,6 +13,7 @@
 #include <userver/utils/algo.hpp>
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,6 +22,7 @@ namespace ugrpc::server::impl {
 namespace {
 
 constexpr std::string_view kTaskProcessorKey = "task-processor";
+constexpr std::string_view kStatusCodesLogLevelKey = "status-codes-log-level";
 
 template <typename ParserFunc>
 auto ParseOptional(
@@ -71,10 +75,12 @@ server::ServiceConfig ParseServiceConfig(
             value[kTaskProcessorKey], defaults.task_processor, context, ParseTaskProcessor
         ),
         /*middlewares=*/{},
+        /*status_codes_log_level=*/
+        value[kStatusCodesLogLevelKey].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({}),
     };
 }
 
-ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const components::ComponentContext& context) {
+ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value) {
     ServerConfig config;
     config.unix_socket_path = value["unix-socket-path"].As<std::optional<std::string>>();
     config.port = value["port"].As<std::optional<int>>();
@@ -98,14 +104,6 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const compo
 
     if (config.tls.key && !config.tls.cert) {
         throw std::runtime_error("'tls.cert' cannot be missing if 'tls.key' is set");
-    }
-
-    const auto logger_name = value["access-tskv-logger"];
-    if (!logger_name.IsMissing()) {
-        config.access_tskv_logger =
-            context.FindComponent<components::Logging>().GetTextLogger(logger_name.As<std::string>());
-    } else {
-        config.access_tskv_logger = logging::MakeNullLogger();
     }
 
     return config;

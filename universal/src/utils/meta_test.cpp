@@ -221,11 +221,11 @@ template <typename T>
 using DummyAlias = typename T::dummy_alias;
 
 TEST(Meta, Detection) {
-    static_assert(meta::kIsDetected<DummyAlias, Dummy>);
+    static_assert(meta::IsDetected<DummyAlias, Dummy>);
     static_assert(std::is_same_v<meta::DetectedType<DummyAlias, Dummy>, int>);
     static_assert(std::is_same_v<meta::DetectedOr<bool, DummyAlias, Dummy>, int>);
 
-    static_assert(!meta::kIsDetected<DummyAlias, std::string>);
+    static_assert(!meta::IsDetected<DummyAlias, std::string>);
     static_assert(std::is_same_v<meta::DetectedType<DummyAlias, std::string>, meta::NotDetected>);
     static_assert(std::is_same_v<meta::DetectedOr<bool, DummyAlias, std::string>, bool>);
 }

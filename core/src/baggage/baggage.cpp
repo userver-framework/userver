@@ -304,7 +304,7 @@ std::optional<BaggageEntry> Baggage::TryMakeBaggageEntry(std::string_view entry)
             }
         }
     }
-    return std::make_optional<BaggageEntry>({key, value, properties});
+    return std::make_optional<BaggageEntry>({key, value, std::move(properties)});
 }
 
 std::optional<BaggageEntryProperty> Baggage::TryMakeBaggageEntryProperty(std::string_view property) {

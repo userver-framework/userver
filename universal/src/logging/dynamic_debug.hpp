@@ -39,14 +39,15 @@ struct LogEntryContent {
 bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept;
 bool operator==(const LogEntryContent& x, const LogEntryContent& y) noexcept;
 
-using LogEntryContentSet = bi::set<  //
-    LogEntryContent,                 //
-    bi::constant_time_size<false>,   //
-    bi::member_hook<                 //
-        LogEntryContent,             //
-        LogEntryContentHook,         //
-        &LogEntryContent::hook       //
-        >                            //
+// multiset to allow multiple logs on the same line (happens with templates).
+using LogEntryContentSet = bi::multiset<  //
+    LogEntryContent,                      //
+    bi::constant_time_size<false>,        //
+    bi::member_hook<                      //
+        LogEntryContent,                  //
+        LogEntryContentHook,              //
+        &LogEntryContent::hook            //
+        >                                 //
     >;
 
 void AddDynamicDebugLog(

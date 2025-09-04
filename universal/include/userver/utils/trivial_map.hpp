@@ -161,7 +161,7 @@ private:
 };
 
 template <typename Value>
-class SearchState<NullTerminatedView, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> final
+class SearchState<zstring_view, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> final
     : public SearchState<std::string_view, Value> {};
 
 template <typename Value>
@@ -189,7 +189,7 @@ private:
 };
 
 template <typename Key>
-class SearchState<Key, NullTerminatedView, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
+class SearchState<Key, zstring_view, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
 public:
     constexpr explicit SearchState(Key key) noexcept : state_(key) {}
 
@@ -197,12 +197,11 @@ public:
 
     constexpr Key GetKey() const noexcept { return state_.GetPayload(); }
 
-    constexpr void SetValue(NullTerminatedView value) noexcept { state_ = StringOrPayload<Key>{value}; }
+    constexpr void SetValue(zstring_view value) noexcept { state_ = StringOrPayload<Key>{value}; }
 
-    [[nodiscard]] constexpr std::optional<NullTerminatedView> Extract() noexcept {
-        return IsFound()
-                   ? std::optional{NullTerminatedView::UnsafeMake(state_.GetStringPointer(), state_.GetStringSize())}
-                   : std::nullopt;
+    [[nodiscard]] constexpr std::optional<zstring_view> Extract() noexcept {
+        return IsFound() ? std::optional{zstring_view::UnsafeMake(state_.GetStringPointer(), state_.GetStringSize())}
+                         : std::nullopt;
     }
 
 private:
@@ -407,8 +406,8 @@ public:
         std::is_convertible_v<T, StringLiteral>,
         StringLiteral,
         std::conditional_t<  // TODO: force StringLiteral
-            std::is_same_v<T, NullTerminatedView>,
-            NullTerminatedView,
+            std::is_same_v<T, zstring_view>,
+            zstring_view,
             std::conditional_t<std::is_convertible_v<T, std::string_view>, std::string_view, T>>>;
 
     constexpr SwitchTypesDetector& operator()() noexcept { return *this; }
@@ -629,10 +628,10 @@ private:
 
 }  // namespace impl
 
-/// Decays utils::StringLiteral and utils::NullTerminatedView to a more generic std::string_view type.
+/// Decays utils::StringLiteral and utils::zstring_view to a more generic std::string_view type.
 template <class T>
 using DecayToStringView =
-    std::conditional_t<std::is_same_v<T, StringLiteral> || std::is_same_v<T, NullTerminatedView>, std::string_view, T>;
+    std::conditional_t<std::is_same_v<T, StringLiteral> || std::is_same_v<T, zstring_view>, std::string_view, T>;
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -669,7 +668,7 @@ public:
     using First = typename TypesPair::first_type;
     using Second = typename TypesPair::second_type;
 
-    struct value_type {
+    struct ValueType {
         First first;
         Second second;
     };
@@ -789,45 +788,45 @@ public:
         }
     }
 
-    constexpr value_type GetValuesByIndex(std::size_t index) const {
+    constexpr ValueType GetValuesByIndex(std::size_t index) const {
         UASSERT_MSG(index < size(), "Index is out of bounds");
         auto result = func_([index]() { return impl::CaseGetValuesByIndex<First, Second>{index}; });
-        return value_type{result.GetFirst(), result.GetSecond()};
+        return ValueType{result.GetFirst(), result.GetSecond()};
     }
 
-    class iterator {
+    class Iterator {
     public:
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
 
-        explicit constexpr iterator(const TrivialBiMap& map, std::size_t position) : map_{map}, position_{position} {}
+        explicit constexpr Iterator(const TrivialBiMap& map, std::size_t position) : map_{map}, position_{position} {}
 
-        constexpr bool operator==(iterator other) const { return position_ == other.position_; }
+        constexpr bool operator==(Iterator other) const { return position_ == other.position_; }
 
-        constexpr bool operator!=(iterator other) const { return position_ != other.position_; }
+        constexpr bool operator!=(Iterator other) const { return position_ != other.position_; }
 
-        constexpr iterator operator++() {
+        constexpr Iterator operator++() {
             ++position_;
             return *this;
         }
 
-        constexpr iterator operator++(int) {
-            iterator copy{*this};
+        constexpr Iterator operator++(int) {
+            Iterator copy{*this};
             ++position_;
             return copy;
         }
 
-        constexpr value_type operator*() const { return map_.GetValuesByIndex(position_); }
+        constexpr ValueType operator*() const { return map_.GetValuesByIndex(position_); }
 
     private:
         const TrivialBiMap& map_;
         std::size_t position_;
     };
 
-    constexpr iterator begin() const { return iterator(*this, 0); }
-    constexpr iterator end() const { return iterator(*this, size()); }
-    constexpr iterator cbegin() const { return begin(); }
-    constexpr iterator cend() const { return end(); }
+    constexpr Iterator begin() const { return Iterator(*this, 0); }
+    constexpr Iterator end() const { return Iterator(*this, size()); }
+    constexpr Iterator cbegin() const { return begin(); }
+    constexpr Iterator cend() const { return end(); }
 
 private:
     const BuilderFunc func_;
@@ -841,7 +840,7 @@ TrivialBiMap(BuilderFunc) -> TrivialBiMap<BuilderFunc>;
 /// @brief Unordered set for trivial types, including string literals.
 ///
 /// For a two-value Case statements or efficiency notes
-/// see @ref utils::TrivialBimap.
+/// see @ref utils::TrivialBiMap.
 template <typename BuilderFunc>
 class TrivialSet final {
     using TypesPair = std::invoke_result_t<const BuilderFunc&, impl::SwitchTypesDetector>;

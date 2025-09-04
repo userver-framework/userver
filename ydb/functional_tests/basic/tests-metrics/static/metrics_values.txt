@@ -44,6 +44,7 @@ ydb.native.Endpoints/Good: database=/local, ydb_database=sampledb	GAUGE	0
 ydb.native.Endpoints/Total: database=/local, ydb_database=sampledb	GAUGE	0
 ydb.native.Grpc/InFlight: database=/local, ydb_database=sampledb	GAUGE	0
 ydb.native.Grpc/InFlightByYdbHost: YdbHost=(REDACTED), database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Grpc/InFlightByYdbHost: YdbHost=(REDACTED), database=/local, ydb_database=sampledb	GAUGE	0
 ydb.native.Request/ClientQueryCacheMiss: database=/local, ydb_client=Table, ydb_database=sampledb	RATE	4
 ydb.native.Request/FailedDiscoveryQueueOverflow: database=/local, ydb_database=sampledb	RATE	0
 ydb.native.Request/FailedNoEndpoint: database=/local, ydb_database=sampledb	RATE	0
@@ -66,6 +67,7 @@ ydb.native.Sessions/SessionsLimitExceeded: database=/local, ydb_client=Table, yd
 ydb.native.Sessions/WaitForReturn: database=/local, ydb_client=Query, ydb_database=sampledb	GAUGE	0
 ydb.native.Sessions/WaitForReturn: database=/local, ydb_client=Table, ydb_database=sampledb	GAUGE	0
 ydb.native.SessionsByYdbHost: YdbHost=(REDACTED), database=/local, ydb_database=sampledb	GAUGE	1
+ydb.native.TransportErrorsByYdbHost: YdbHost=(REDACTED), database=/local, ydb_database=sampledb	RATE	0
 ydb.retry_budget.account_fail: ydb_database=sampledb	RATE	0
 ydb.retry_budget.account_ok: ydb_database=sampledb	RATE	14
 ydb.retry_budget.approx_token_count: ydb_database=sampledb	GAUGE	100

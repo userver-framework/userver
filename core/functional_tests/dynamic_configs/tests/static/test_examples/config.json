@@ -1,0 +1,4 @@
+{
+  "USERVER_LOG_REQUEST": true,
+  "USERVER_LOG_REQUEST_HEADERS": true
+}

@@ -86,6 +86,36 @@ CertificatesChain LoadCertificatesChainFromString(std::string_view chain) {
     return certificates;
 }
 
+std::string Certificate::GetSubject() const {
+    X509* x509 = GetNative();
+    if (!x509) {
+        throw KeyParseError(FormatSslError("Invalid certificate"));
+    }
+
+    X509_NAME* subject_name = X509_get_subject_name(x509);
+    if (!subject_name) {
+        throw KeyParseError(FormatSslError("Failed to get subject name from certificate"));
+    }
+
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (!bio) {
+        throw KeyParseError(FormatSslError("Failed to create BIO"));
+    }
+
+    const int flags = XN_FLAG_RFC2253;
+    if (X509_NAME_print_ex(bio, subject_name, 0, flags) < 0) {
+        BIO_free(bio);
+        throw KeyParseError(FormatSslError("Failed to print subject name"));
+    }
+
+    char* data = nullptr;
+    long len = BIO_get_mem_data(bio, &data);  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+    std::string result(data, len);
+
+    BIO_free(bio);
+    return result;
+}
+
 }  // namespace crypto
 
 USERVER_NAMESPACE_END

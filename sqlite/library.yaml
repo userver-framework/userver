@@ -1,0 +1,6 @@
+project-name: userver-sqlite
+project-alt-names:
+  - yandex-userver-sqlite
+description: SQLite Driver
+libraries:
+  - userver-core

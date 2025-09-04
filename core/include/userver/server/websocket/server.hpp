@@ -75,10 +75,9 @@ public:
     /// @brief Read a message from websocket, handling pings under the hood.
     /// @param message input message
     /// @throws engine::io::IoException in case of socket errors
-    /// @note Recv() is not thread-safe by itself (you may not call Recv() from
-    /// multiple coroutines at once), but it is safe to call Recv() and Send()
-    /// from different coroutines at once thus implementing full-duplex socket
-    /// connection.
+    /// @note Recv() is **not** thread-safe by itself (you may not call Recv() from
+    /// multiple coroutines at once). It is **not** safe to call Recv() and Send() from different coroutines
+    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instead.
     virtual void Recv(Message& message) = 0;
 
     /// @brief Behaves in the same way as Recv(), but in case of first bytes of
@@ -91,11 +90,20 @@ public:
     /// @param message message to send
     /// @throws engine::io::IoException in case of socket errors
     /// @note Send() is not thread-safe by itself (you may not call Send() from
-    /// multiple coroutines at once), but it is safe to call Recv() and Send()
-    /// from different coroutines at once thus implementing full-duplex socket
-    /// connection.
+    /// multiple coroutines at once). It is **not** safe to call Recv() and Send() from different coroutines
+    /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instead.
     virtual void Send(const Message& message) = 0;
     virtual void SendText(std::string_view message) = 0;
+
+    /// @brief Send a ping message to websocket.
+    /// @throws engine::io::IoException in case of socket errors
+    virtual void SendPing() = 0;
+
+    /// @brief Get the number of not answered sequential pings;
+    /// calls to SendPing() increment this value, Recv and TryRecv
+    /// reset this value if some 'pong' is received.
+    /// @returns the number of not answered sequential pings
+    virtual std::size_t NotAnsweredSequentialPingsCount() = 0;
 
     template <typename ContiguousContainer>
     void SendBinary(const ContiguousContainer& message) {

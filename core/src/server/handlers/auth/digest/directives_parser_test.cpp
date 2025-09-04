@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth::digest::test {
 
 TEST(DirectivesParser, MandatoryDirectives) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 username="Mufasa",
 realm="testrealm@host.com",
 nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
@@ -31,7 +31,7 @@ response="6629fae49393a05397450978507c4ef1"
 }
 
 TEST(DirectivesParser, WithPartialOptionalDirectives) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 username="Mufasa",
 realm="testrealm@host.com",
 nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
@@ -57,7 +57,7 @@ algorithm=MD5
 }
 
 TEST(DirectivesParser, WithAllOptionalDirectives) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 username="Mufasa",
 realm="testrealm@host.com",
 nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
@@ -88,7 +88,7 @@ auth-param="fictional parameter"
 }
 
 TEST(DirectivesParser, MandatoryRealmDirectiveMissing) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 username="Mufasa",
 nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
 uri="/dir/index.html",
@@ -114,7 +114,7 @@ auth-param="fictional parameter"
 }
 
 TEST(DirectivesParser, MultipleMandatoryDirectivesMissing) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 algorithm=MD5,
 qop=auth,
 nc=00000001,
@@ -146,7 +146,7 @@ auth-param="fictional parameter"
 }
 
 TEST(DirectivesParser, InvalidHeader) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 username=="Mufasa",
 realm="testrea=lm@host.com",
 nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
@@ -158,7 +158,7 @@ response="6629fae49393a05397450978507c4ef1"
 }
 
 TEST(DirectivesParser, UnknownDirective) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 username="Mufasa",
 realm="testrealm@host.com",
 nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
@@ -171,7 +171,7 @@ unknown="some-value"
 }
 
 TEST(DirectivesParser, InvalidMandatoryDirective) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 usergame="Mubasa",
 nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
 uri="/dir/index.html",
@@ -183,7 +183,7 @@ response="6629fae49393a05397450978507c4ef1"
 }
 
 TEST(DirectivesParser, DuplicateDirectives) {
-    std::string_view directives_str = R"(Digest
+    const std::string_view directives_str = R"(Digest
 username="Mubasa",
 realm="testrealm@host.com",
 username="Alex",

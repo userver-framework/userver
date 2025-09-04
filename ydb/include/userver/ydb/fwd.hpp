@@ -6,6 +6,7 @@ namespace ydb {
 
 class TableClient;
 class TopicClient;
+class FederatedTopicClient;
 class CoordinationClient;
 class YdbComponent;
 

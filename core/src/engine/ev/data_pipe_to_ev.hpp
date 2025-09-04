@@ -105,14 +105,14 @@ public:
     void Push(Data&& data) {
         static_assert(std::is_nothrow_move_assignable_v<Data>);
 
-        impl::DoubleBufferingState::ProducerLock producer{state_};
+        const impl::DoubleBufferingState::ProducerLock producer{state_};
         double_buffer_[producer.GetLockedIndex()] = std::move(data);
     }
 
     std::optional<Data> TryPop() {
         std::optional<Data> ret;
 
-        impl::DoubleBufferingState::ConsumerLock consumer{state_};
+        const impl::DoubleBufferingState::ConsumerLock consumer{state_};
         if (consumer) {
             ret = std::move(double_buffer_[consumer.GetLockedIndex()]);
         }

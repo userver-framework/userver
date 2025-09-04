@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/formats/json/serialize.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {

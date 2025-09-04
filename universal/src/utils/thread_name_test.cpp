@@ -22,7 +22,7 @@ TEST(ThreadName, Scoped) {
     constexpr std::string_view new_name = "in_scope";
 
     {
-        utils::CurrentThreadNameGuard thread_name_guard(new_name);
+        const utils::CurrentThreadNameGuard thread_name_guard(new_name);
         EXPECT_EQ(new_name, utils::GetCurrentThreadName());
     }
     EXPECT_EQ(old_name, utils::GetCurrentThreadName());

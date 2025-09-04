@@ -6,6 +6,8 @@ Make gRPC requests to the service.
 
 # pylint: disable=redefined-outer-name
 import asyncio
+import pathlib
+import tempfile
 from typing import AsyncIterable
 from typing import Awaitable
 from typing import Callable
@@ -24,23 +26,6 @@ _AsyncExcCheck = Callable[[], None]
 
 
 @pytest.fixture(scope='session')
-def grpc_service_port(service_config) -> Optional[int]:
-    """
-    Returns the gRPC listener port number of the service that is set in the
-    static configuration file.
-
-    Override this fixture to change the way the gRPC listener port number
-    is retrieved by the testsuite for tests.
-
-    @ingroup userver_testsuite_fixtures
-    """
-    components = service_config['components_manager']['components']
-    if 'grpc-server' not in components:
-        raise RuntimeError('No grpc-server component')
-    return components['grpc-server'].get('port', None)
-
-
-@pytest.fixture(scope='session')
 def grpc_service_port_fallback() -> int:
     """
     Returns the gRPC port that should be used in service runner mode in case
@@ -52,22 +37,26 @@ def grpc_service_port_fallback() -> int:
 
 
 @pytest.fixture(scope='session')
-def grpc_service_endpoint(service_config, grpc_service_port) -> str:
+def grpc_service_endpoint(service_config) -> str:
     """
     Returns the gRPC endpoint of the service.
+    Used by @ref pytest_userver.plugins.grpc.client.grpc_channel "grpc_channel" fixture.
 
-    Override this fixture to change the way the gRPC endpoint
-    is retrieved by the testsuite for tests.
+    By default, gets the actual gRPC endpoint from `service_config`.
+    Override this fixture if you add gRPC server listening ports in a custom way.
 
     @ingroup userver_testsuite_fixtures
     """
     components = service_config['components_manager']['components']
     if 'grpc-server' not in components:
         raise RuntimeError('No grpc-server component')
-    grpc_server_unix_socket = components['grpc-server'].get('unix-socket-path')
-    return (
-        f'unix:{grpc_server_unix_socket}' if grpc_server_unix_socket is not None else f'localhost:{grpc_service_port}'
-    )
+    grpc_server = components['grpc-server']
+
+    if unix_socket_path := grpc_server.get('unix-socket-path'):
+        return f'unix:{unix_socket_path}'
+    if port := grpc_server.get('port'):
+        return f'localhost:{port}'
+    raise RuntimeError("No 'port' or 'unix-socket-path' found in 'grpc-server' component config")
 
 
 @pytest.fixture(scope='session')
@@ -153,14 +142,40 @@ async def grpc_channel(
 
 
 @pytest.fixture(scope='session')
+def grpc_socket_path() -> Optional[pathlib.Path]:
+    """
+    Path for the UNIX socket over which testsuite will talk to the gRPC service, if it chooses to use a UNIX socket.
+
+    @see pytest_userver.plugins.grpc.client.userver_config_grpc_endpoint "userver_config_grpc_endpoint"
+
+    @ingroup userver_testsuite_fixtures
+    """
+    # Path must be as short as possible due to 108 character limitation.
+    # 'service_tempdir', for example, is typically too long.
+    with tempfile.TemporaryDirectory(prefix='userver-grpc-socket-') as name:
+        yield pathlib.Path(name) / 'grpc.sock'
+
+
+@pytest.fixture(scope='session')
 def userver_config_grpc_endpoint(
     pytestconfig,
     grpc_service_port_fallback,
     substitute_config_vars,
+    request,
+    choose_free_port,
 ):
     """
     Returns a function that adjusts the static config for testsuite.
-    Ensures that in service runner mode, Unix socket is never used.
+
+    * if the original service config specifies `grpc-server.port`, and that port is taken,
+      then adjusts it to a free port;
+    * if the original service config specifies `grpc-server.unix-socket-path`,
+      then adjusts it to a tmp path
+      (see @ref pytest_userver.plugins.grpc.client.grpc_socket_path "grpc_socket_path");
+    * in service runner mode, uses the original grpc port from config or
+      @ref pytest_userver.plugins.grpc.client.grpc_service_port_fallback "grpc_service_port_fallback".
+
+    Override this fixture to change the way `grpc-server` endpoint config is patched for tests.
 
     @ingroup userver_testsuite_fixtures
     """
@@ -171,14 +186,20 @@ def userver_config_grpc_endpoint(
         if not grpc_server:
             return
 
-        service_runner = pytestconfig.option.service_runner_mode
-        if not service_runner:
-            return
+        original_grpc_server = substitute_config_vars(grpc_server, config_vars)
 
-        grpc_server.pop('unix-socket-path', None)
-        if 'port' not in substitute_config_vars(grpc_server, config_vars):
-            grpc_server['port'] = grpc_service_port_fallback
-        config_vars['grpc_server_port'] = grpc_service_port_fallback
+        if pytestconfig.option.service_runner_mode:
+            grpc_server.pop('unix-socket-path', None)
+            if 'port' not in original_grpc_server:
+                grpc_server['port'] = grpc_service_port_fallback
+            config_vars['grpc_server_port'] = grpc_service_port_fallback
+        elif 'unix-socket-path' in original_grpc_server:
+            grpc_server.pop('port', None)
+            grpc_socket_path = request.getfixturevalue('grpc_socket_path')
+            grpc_server['unix-socket-path'] = str(grpc_socket_path)
+        else:
+            grpc_server.pop('unix-socket-path', None)
+            grpc_server['port'] = choose_free_port(original_grpc_server.get('port', None))
 
     return patch_config
 

@@ -27,7 +27,7 @@ TEST(FormatsYaml, NullAsDefaulted) {
 
     EXPECT_EQ(yaml["nulled"].As<int>(42), 42);
 
-    std::vector<int> value{4, 2};
+    const std::vector<int> value{4, 2};
     EXPECT_EQ(yaml["nulled"].As<std::vector<int>>(value), value);
 }
 
@@ -35,7 +35,7 @@ TEST(FormatsYaml, ExampleUsage) {
     /// [Sample formats::yaml::Value usage]
     // #include <userver/formats/yaml.hpp>
 
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
   key1: 1
   key2:
       key3: "val"
@@ -65,7 +65,7 @@ MyKeyValue Parse(const formats::yaml::Value& yaml, formats::parse::To<MyKeyValue
 }
 
 TEST(FormatsYaml, ExampleUsageMyStruct) {
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
     my_value:
       field1: "one"
       field2: 1
@@ -98,7 +98,7 @@ TEST(FormatsYaml, UserDefinedLiterals) {
 }
 
 TEST(FormatsYaml, NodesTags) {
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
 # Indenting matters
 %TAG !example! tag:example,2024:
 

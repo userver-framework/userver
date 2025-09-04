@@ -12,6 +12,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     clangd-18 \
     clang-format-18 \
     clang-tidy-18 \
+    lldb-18 \
     libclang-rt-18-dev
 apt clean all
 
@@ -22,6 +23,7 @@ update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
 update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 100
 update-alternatives --install /usr/bin/lld lld /usr/bin/lld-18 100
 update-alternatives --install /usr/bin/ld ld /usr/bin/lld 100
+update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-18 100
 update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-18 100
 update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
 update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 100

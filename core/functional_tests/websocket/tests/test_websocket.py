@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import pytest
@@ -13,6 +14,19 @@ async def test_echo(websocket_client):
         await chat.send('hello')
         response = await chat.recv()
         assert response == 'hello'
+
+
+async def test_echo_with_continuation(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        # Send first fragment (not final, text frame)
+        await chat.write_frame(fin=False, opcode=0x1, data=b'First')
+        # Send intermediate fragment (not final, continuation frame)
+        await chat.write_frame(fin=False, opcode=0x0, data=b' second')
+        # Send last fragment (final, continuation frame)
+        await chat.write_frame(fin=True, opcode=0x0, data=b' third')
+
+        response = await chat.recv()
+        assert response == 'First second third'
 
 
 async def test_close_by_server(websocket_client):
@@ -120,3 +134,49 @@ async def test_two_but_handler_alt(websocket_client):
             for _ in range(10):
                 msg = await chat1.recv()
                 assert msg == 'A'
+
+
+async def test_ping_pong(websocket_client):
+    async with websocket_client.get('ping-pong'):
+        await asyncio.sleep(1)
+
+
+async def test_ping_pong_close(websocket_client):
+    async with websocket_client.get('ping-pong') as chat:
+        websocket_client.ping_interval = None
+        websocket_client.ping_timeout = None
+
+        for _ in range(20):
+            try:
+                await chat.recv()
+                await asyncio.sleep(1)
+            except websockets.exceptions.ConnectionClosed:
+                connection_closed_by_ping = True
+                break
+
+        assert connection_closed_by_ping
+
+
+async def test_upgrade_header_with_tab_then_reconnect(service_port):
+    reader, writer = await asyncio.open_connection('localhost', service_port)
+
+    # request with tab in Upgrade header
+    bad_request = (
+        'GET /chat HTTP/1.1\r\n'
+        'Sec-WebSocket-Version: 13\r\n'
+        'Sec-WebSocket-Key: fQU/VaAZ3+lpmSjWKevurQ==\r\n'
+        'Connection: Upgrade\r\n'
+        'Upgrade:\twebsocket\r\n'
+        '\r\n'
+    )
+
+    writer.write(bad_request.encode('ascii'))
+    await writer.drain()
+    writer.close()
+    await writer.wait_closed()
+
+    # 2. Check new connection can be established
+    async with websockets.connect(f'ws://localhost:{service_port}/chat') as chat:
+        await chat.send('ping')
+        resp = await chat.recv()
+        assert resp == 'ping'

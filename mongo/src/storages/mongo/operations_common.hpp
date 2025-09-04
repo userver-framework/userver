@@ -19,6 +19,7 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(options::WriteConcern::Level);
 cdriver::WriteConcernPtr MakeCDriverWriteConcern(const options::WriteConcern&);
 
 void AppendUpsert(formats::bson::impl::BsonBuilder&);
+void AppendHint(formats::bson::impl::BsonBuilder&, const options::Hint& hint);
 
 }  // namespace storages::mongo::impl
 

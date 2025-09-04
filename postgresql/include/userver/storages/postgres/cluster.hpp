@@ -98,6 +98,10 @@ public:
     /// @param default_cmd_ctls default command execution options
     /// @param testsuite_pg_ctl command execution options customizer for testsuite
     /// @param ei_settings error injection settings
+    /// @param testsuite_tasks see @ref testsuite::TestsuiteTasks
+    /// @param config_source see @ref dynamic_config::Source
+    /// @param metrics metrics storage for alerts
+    /// @param shard_number shard number
     /// @note When `max_connection_pool_size` is reached, and no idle connections
     /// available, `PoolError` is thrown for every new connection
     /// request
@@ -111,6 +115,7 @@ public:
         const error_injection::Settings& ei_settings,
         testsuite::TestsuiteTasks& testsuite_tasks,
         dynamic_config::Source config_source,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics,
         int shard_number
     );
     ~Cluster();
@@ -221,6 +226,48 @@ public:
         const Query& query,
         const ParameterStore& store
     );
+
+    /// @snippet storages/postgres/tests/landing_test.cpp ExecuteDecompose
+
+    /// @brief Execute statement, that uses an array of arguments transforming that array
+    /// into N arrays of corresponding fields and executing the statement
+    /// with these arrays values, at host of specified type.
+    /// Basically, a column-wise Execute.
+    ///
+    /// @note You must specify at least one role from ClusterHostType here
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
+    /// @snippet storages/postgres/tests/landing_test.cpp ExecuteDecompose
+    ///
+    /// @warning Do NOT create a query string manually by embedding arguments!
+    /// It leads to vulnerabilities and bad performance. Either pass arguments
+    /// separately, or use storages::postgres::ParameterScope.
+    template <typename Container>
+    ResultSet ExecuteDecompose(ClusterHostTypeFlags flags, const Query& query, const Container& args);
+
+    /// @brief Execute statement, that uses an array of arguments transforming that array
+    /// into N arrays of corresponding fields and executing the statement
+    /// with these arrays values, with host selection rules and command
+    /// control settings.
+    /// Basically, a column-wise Execute.
+    ///
+    /// @note You must specify at least one role from ClusterHostType here
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
+    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecompose
+    ///
+    /// @warning Do NOT create a query string manually by embedding arguments!
+    /// It leads to vulnerabilities and bad performance. Either pass arguments
+    /// separately, or use storages::postgres::ParameterScope.
+    template <typename Container>
+    ResultSet ExecuteDecompose(
+        ClusterHostTypeFlags flags,
+        OptionalCommandControl statement_cmd_ctl,
+        const Query& query,
+        const Container& args
+    );
     /// @}
 
     /// @brief Listen for notifications on channel
@@ -259,7 +306,7 @@ public:
 private:
     detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 
-    OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
+    OptionalCommandControl GetQueryCmdCtl(std::string_view query_name) const;
     OptionalCommandControl GetHandlersCmdCtl(OptionalCommandControl cmd_ctl) const;
 
     detail::ClusterImplPtr pimpl_;
@@ -277,12 +324,35 @@ ResultSet Cluster::Execute(
     const Query& query,
     const Args&... args
 ) {
-    if (!statement_cmd_ctl && query.GetName()) {
-        statement_cmd_ctl = GetQueryCmdCtl(query.GetName()->GetUnderlying());
+    if (!statement_cmd_ctl && query.GetOptionalNameView()) {
+        statement_cmd_ctl = GetQueryCmdCtl(*query.GetOptionalNameView());
     }
     statement_cmd_ctl = GetHandlersCmdCtl(statement_cmd_ctl);
     auto ntrx = Start(flags, statement_cmd_ctl);
     return ntrx.Execute(statement_cmd_ctl, query, args...);
+}
+
+template <typename Container>
+ResultSet Cluster::ExecuteDecompose(ClusterHostTypeFlags flags, const Query& query, const Container& args) {
+    return ExecuteDecompose(flags, OptionalCommandControl{}, query, args);
+}
+
+template <typename Container>
+ResultSet Cluster::ExecuteDecompose(
+    ClusterHostTypeFlags flags,
+    OptionalCommandControl statement_cmd_ctl,
+    const Query& query,
+    const Container& args
+) {
+    if (!statement_cmd_ctl && query.GetOptionalNameView()) {
+        statement_cmd_ctl = GetQueryCmdCtl(*query.GetOptionalNameView());
+    }
+    statement_cmd_ctl = GetHandlersCmdCtl(statement_cmd_ctl);
+    auto ntrx = Start(flags, statement_cmd_ctl);
+
+    return io::DecomposeContainerByColumns(args).Perform([&ntrx, &statement_cmd_ctl, &query](const auto&... args) {
+        return ntrx.Execute(statement_cmd_ctl, query, args...);
+    });
 }
 
 }  // namespace storages::postgres

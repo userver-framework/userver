@@ -26,7 +26,7 @@ void SubscribeImplImpl(
     SubscriptionId id
 ) {
     const auto& channel = channel_name.channel;
-    const std::lock_guard<std::mutex> lock(storage_impl.mutex_);
+    const std::lock_guard lock{storage_impl.mutex};
     auto find_res = map.find(channel);
     if (find_res == map.end()) {
         const size_t selected_shard_idx = ClusterTopology::kUnknownShard;
@@ -67,22 +67,22 @@ ClusterSubscriptionStorage::ClusterSubscriptionStorage(size_t shards_count)
 
 ClusterSubscriptionStorage::~ClusterSubscriptionStorage() = default;
 
-void ClusterSubscriptionStorage::SetShardsCount(size_t shards_count) { storage_impl_.shards_count_ = shards_count; }
+void ClusterSubscriptionStorage::SetShardsCount(size_t shards_count) { storage_impl_.SetShardsCount(shards_count); }
 
 void ClusterSubscriptionStorage::SetSubscribeCallback(CommandCb cb) {
-    storage_impl_.subscribe_callback_ = std::move(cb);
+    storage_impl_.subscribe_callback = std::move(cb);
 }
 
 void ClusterSubscriptionStorage::SetUnsubscribeCallback(CommandCb cb) {
-    storage_impl_.unsubscribe_callback_ = std::move(cb);
+    storage_impl_.unsubscribe_callback = std::move(cb);
 }
 
 void ClusterSubscriptionStorage::SetShardedSubscribeCallback(ShardedCommandCb cb) {
-    storage_impl_.sharded_subscribe_callback_ = std::move(cb);
+    storage_impl_.sharded_subscribe_callback = std::move(cb);
 }
 
 void ClusterSubscriptionStorage::SetShardedUnsubscribeCallback(ShardedCommandCb cb) {
-    storage_impl_.sharded_unsubscribe_callback_ = std::move(cb);
+    storage_impl_.sharded_unsubscribe_callback = std::move(cb);
 }
 
 SubscriptionToken ClusterSubscriptionStorage::Subscribe(
@@ -114,20 +114,16 @@ void ClusterSubscriptionStorage::Unsubscribe(SubscriptionId subscription_id) {
 }
 
 void ClusterSubscriptionStorage::Stop() {
-    {
-        const std::unique_lock<std::mutex> lock(storage_impl_.mutex_);
-        storage_impl_.callback_map_.clear();
-        storage_impl_.pattern_callback_map_.clear();
-        storage_impl_.sharded_callback_map_.clear();
-    }
-    rebalance_scheduler_.reset();
+    storage_impl_.ClearCallbackMaps();
+    rebalance_scheduler_->Stop();
 }
 
 RawPubsubClusterStatistics ClusterSubscriptionStorage::GetStatistics() const {
     RawPubsubClusterStatistics ret;
     /// We need only one shard's stats because GetShardStatistics() for ClusterSubscriptionStorage returns shared stats
     /// for all real shards.
-    if (storage_impl_.shards_count_ > 0) ret.by_shard.push_back(storage_impl_.GetShardStatistics(0));
+    const std::lock_guard lock{storage_impl_.mutex};
+    if (storage_impl_.GetShardsCount(lock) > 0) ret.by_shard.push_back(storage_impl_.GetShardStatistics(0, lock));
     return ret;
 }
 
@@ -145,17 +141,14 @@ void ClusterSubscriptionStorage::RequestRebalance(size_t /*shard_idx*/, ServerWe
 
 void ClusterSubscriptionStorage::DoRebalance(size_t shard_idx, ServerWeights weights) {
     /// Rebalances subscriptions between instances of shard
-    if (shard_idx >= storage_impl_.shards_count_ && shard_idx != ClusterTopology::kUnknownShard) {
+    const std::lock_guard lock{storage_impl_.mutex};
+    if (shard_idx >= storage_impl_.GetShardsCount(lock) && shard_idx != ClusterTopology::kUnknownShard) {
         throw std::runtime_error(
             "requested rebalance for non-existing shard (" + std::to_string(shard_idx) +
-            " >= " + std::to_string(storage_impl_.shards_count_) + ')'
+            " >= " + std::to_string(storage_impl_.GetShardsCount(lock)) + ')'
         );
     }
-    storage_impl_.DoRebalance(shard_idx, std::move(weights));
-}
-
-void ClusterSubscriptionStorage::SwitchToNonClusterMode() {
-    throw std::runtime_error(std::string(__func__) + " Unimplemented yet");
+    storage_impl_.DoRebalance(shard_idx, std::move(weights), lock);
 }
 
 void ClusterSubscriptionStorage::SubscribeImpl(
@@ -165,9 +158,7 @@ void ClusterSubscriptionStorage::SubscribeImpl(
     SubscriptionId id
 ) {
     const ChannelName channel_name(channel, /*pattern=*/false, /*sharded=*/false);
-    SubscribeImplImpl<ChannelInfo>(
-        storage_impl_, storage_impl_.callback_map_, channel_name, std::move(cb), control, id
-    );
+    SubscribeImplImpl<ChannelInfo>(storage_impl_, storage_impl_.callback_map, channel_name, std::move(cb), control, id);
 }
 
 void ClusterSubscriptionStorage::SsubscribeImpl(
@@ -178,7 +169,7 @@ void ClusterSubscriptionStorage::SsubscribeImpl(
 ) {
     const ChannelName channel_name(channel, /*pattern=*/false, /*sharded=*/true);
     SubscribeImplImpl<ChannelInfo>(
-        storage_impl_, storage_impl_.sharded_callback_map_, channel_name, std::move(cb), control, id
+        storage_impl_, storage_impl_.sharded_callback_map, channel_name, std::move(cb), control, id
     );
 }
 
@@ -190,7 +181,7 @@ void ClusterSubscriptionStorage::PsubscribeImpl(
 ) {
     const ChannelName channel_name(pattern, /*pattern=*/true, /*sharded=*/false);
     SubscribeImplImpl<PChannelInfo>(
-        storage_impl_, storage_impl_.pattern_callback_map_, channel_name, std::move(cb), control, id
+        storage_impl_, storage_impl_.pattern_callback_map, channel_name, std::move(cb), control, id
     );
 }
 

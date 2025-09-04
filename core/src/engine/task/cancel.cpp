@@ -79,14 +79,15 @@ std::string_view ToString(TaskCancellationReason reason) noexcept {
             return "Task deadline reached";
         case TaskCancellationReason::kOverload:
             return "Task processor overload";
+        case TaskCancellationReason::kOOM:
+            return "Not enough memory";
         case TaskCancellationReason::kAbandoned:
             return "Task destructor is called before the payload finished execution";
         case TaskCancellationReason::kShutdown:
             return "Task processor shutdown";
     }
 
-    utils::impl::AbortWithStacktrace(fmt::format("Garbage task cancellation reason: {}", utils::UnderlyingValue(reason))
-    );
+    utils::AbortWithStacktrace(fmt::format("Garbage task cancellation reason: {}", utils::UnderlyingValue(reason)));
 }
 
 TaskCancellationToken::TaskCancellationToken() noexcept = default;
@@ -117,6 +118,16 @@ TaskCancellationToken::~TaskCancellationToken() = default;
 void TaskCancellationToken::RequestCancel() {
     UASSERT(context_);
     context_->RequestCancel(TaskCancellationReason::kUserRequest);
+}
+
+TaskCancellationReason TaskCancellationToken::CancellationReason() const noexcept {
+    UASSERT(context_);
+    return context_->CancellationReason();
+}
+
+bool TaskCancellationToken::IsCancelRequested() const noexcept {
+    UASSERT(context_);
+    return context_->IsCancelRequested();
 }
 
 bool TaskCancellationToken::IsValid() const noexcept { return !!context_; }

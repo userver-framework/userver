@@ -82,7 +82,7 @@ ProtoServerReflection::ServerReflectionInfo(CallContext& /*context*/, ServerRefl
             FillErrorResponse(status, *response.mutable_error_response());
         }
         response.set_valid_host(request.host());
-        response.set_allocated_original_request(new proto_reflection::ServerReflectionRequest(request));
+        response.set_allocated_original_request(new proto_reflection::ServerReflectionRequest(std::move(request)));
         stream.Write(response);
     }
 
@@ -116,7 +116,7 @@ ProtoServerReflection::GetFileByName(std::string_view file_name, proto_reflectio
     }
 
     const grpc::protobuf::FileDescriptor* file_desc =
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
         descriptor_pool_->FindFileByName(file_name);
 #else
         descriptor_pool_->FindFileByName(std::string{file_name});
@@ -137,7 +137,7 @@ ProtoServerReflection::GetFileByName(std::string_view file_name, proto_reflectio
         return ::grpc::Status::CANCELLED;
     }
 
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     const grpc::protobuf::FileDescriptor* file_desc = descriptor_pool_->FindFileContainingSymbol(symbol);
 #else
     const grpc::protobuf::FileDescriptor* file_desc = descriptor_pool_->FindFileContainingSymbol(std::string{symbol});
@@ -181,7 +181,7 @@ ProtoServerReflection::GetFileByName(std::string_view file_name, proto_reflectio
         return ::grpc::Status::CANCELLED;
     }
 
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     const grpc::protobuf::Descriptor* desc = descriptor_pool_->FindMessageTypeByName(type);
 #else
     const grpc::protobuf::Descriptor* desc = descriptor_pool_->FindMessageTypeByName(std::string{type});

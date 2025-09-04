@@ -23,7 +23,7 @@ USERVER_NAMESPACE_BEGIN
 /// Components, clients and helpers for different databases and storages
 namespace storages {}
 
-/// Redis client and helpers
+/// Valkey and Redis client and helpers
 namespace storages::redis {
 
 class SubscribeClientImpl;
@@ -40,9 +40,9 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Redis client component
+/// @brief Valkey and Redis client component
 ///
-/// Provides access to a redis cluster.
+/// Provides access to a valkey or redis cluster.
 ///
 /// ## Dynamic options:
 /// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
@@ -99,6 +99,8 @@ namespace components {
 ///   "redis_settings": {
 ///     "some_name_of_your_database": {
 ///       "password": "the_password_of_your_database",
+///       "sentinel_password": "the_password_for_sentinels_if_any",
+///       "secure_connection": false,
 ///       "sentinels": [
 ///         {"host": "the_host1_of_your_database", "port": 11564}
 ///       ],
@@ -114,10 +116,12 @@ namespace components {
 ///
 /// @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
 ///
-/// ## Cluster Redis setup
+/// Note that if the components::Secdist component has `update-period` other
+/// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
 ///
-/// Redis cluster is the new recommended way of setting up Redis servers
-/// with improved stability.
+/// ## Cluster Valkey or Cluster Redis setup
+///
+/// Valkey/Redis cluster is the new recommended way of setting up key-value datastores with improved stability.
 ///
 /// To start, set `sharding_strategy: RedisCluster` in the static config
 /// as shown above.

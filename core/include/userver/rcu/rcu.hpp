@@ -42,7 +42,7 @@ struct SnapshotRecord final {
 // SnapshotRecord<T> ahead of time.
 template <typename T>
 struct FreeListHookGetter {
-    auto& operator()(SnapshotRecord<T>& node) const noexcept { return node.free_list_hook; }
+    static auto& GetHook(SnapshotRecord<T>& node) noexcept { return node.free_list_hook; }
 };
 
 template <typename T>
@@ -86,6 +86,23 @@ public:
 
 private:
     SnapshotRecord<T>* head_{nullptr};
+};
+
+class ExclusiveMutex final {
+public:
+    void lock() {
+        const bool was_locked = is_locked_.exchange(true);
+        UINVARIANT(
+            !was_locked,
+            "Detected a race condition when multiple writers Assign to an rcu::Variable concurrently. The value that "
+            "will remain in rcu::Variable when the dust settles is unspecified."
+        );
+    }
+
+    void unlock() noexcept { is_locked_.store(false); }
+
+private:
+    std::atomic<bool> is_locked_{false};
 };
 
 }  // namespace impl
@@ -142,10 +159,10 @@ public:
             SyncDeleter{}.Delete(std::move(handle));
         } else {
             try {
-                engine::CriticalAsyncNoSpan(
+                engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
                     // The order of captures is important, 'handle' must be destroyed before 'token'.
                     [token = wait_token_storage_.GetToken(), handle = std::move(handle)]() mutable {}
-                ).Detach();
+                ));
                 // NOLINTNEXTLINE(bugprone-empty-catch)
             } catch (...) {
                 // Task creation somehow failed.
@@ -197,6 +214,15 @@ struct BlockingRcuTraits : public DefaultRcuTraits {
     using DeleterType = SyncDeleter;
 };
 
+/// @brief Rcu traits that only allow a single writer.
+/// Detects race conditions when multiple writers call `Assign` concurrently.
+/// @note Allows reads and writes from any kind of thread.
+/// @see rcu::DefaultRcuTraits
+struct ExclusiveRcuTraits : public DefaultRcuTraits {
+    using MutexType = impl::ExclusiveMutex;
+    using DeleterType = SyncDeleter;
+};
+
 /// Reader smart pointer for rcu::Variable<T>. You may use operator*() or
 /// operator->() to do something with the stored value. Once created,
 /// ReadablePtr references the same immutable value: if Variable's value is
@@ -211,7 +237,7 @@ public:
         while (true) {
             // Lock 'record', which may or may not be 'current_' by the time we got
             // there.
-            lock_ = record->indicator.Lock();
+            lock_ = record->indicator.GetLock();
 
             // seq_cst is required for indicator.Lock in the following case.
             //

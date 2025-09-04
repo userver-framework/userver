@@ -6,21 +6,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-struct data_t {
+struct DataT {
     const char* const name;
     const char* const data;
     const std::chrono::milliseconds ethalon;
 };
 
-inline std::string PrintToString(const data_t& d) { return d.name; }
+inline std::string PrintToString(const DataT& d) { return d.name; }
 
-using TestData = std::initializer_list<data_t>;
+using TestData = std::initializer_list<DataT>;
 
 }  // namespace
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class StringToDuration : public ::testing::TestWithParam<data_t> {};
+class StringToDuration : public ::testing::TestWithParam<DataT> {};
 
 INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/,
@@ -51,8 +51,15 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(StringToDuration, Basic) {
     const auto p = GetParam();
-    std::chrono::milliseconds ms = utils::StringToDuration(p.data);
+    const std::chrono::milliseconds ms = utils::StringToDuration(p.data);
     EXPECT_EQ(ms, p.ethalon);
+}
+
+TEST(StringToDurationCheck, NotNullTerminated) {
+    std::string_view minutes{"42ms"};
+    minutes.remove_suffix(1);
+    const auto ms = utils::StringToDuration(minutes);
+    EXPECT_EQ(ms, std::chrono::minutes(42));
 }
 
 TEST(StringToDurationError, Throw) {
@@ -64,6 +71,10 @@ TEST(StringToDurationError, Throw) {
     EXPECT_ANY_THROW(utils::StringToDuration("h"));
     EXPECT_ANY_THROW(utils::StringToDuration("s"));
     EXPECT_ANY_THROW(utils::StringToDuration(""));
+    EXPECT_ANY_THROW(utils::StringToDuration("-1z"));
+    EXPECT_ANY_THROW(utils::StringToDuration("-h"));
+    EXPECT_ANY_THROW(utils::StringToDuration("-s"));
+    EXPECT_ANY_THROW(utils::StringToDuration("-"));
 }
 
 USERVER_NAMESPACE_END

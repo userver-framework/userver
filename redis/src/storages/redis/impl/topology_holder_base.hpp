@@ -39,9 +39,7 @@ public:
     virtual Password GetPassword() = 0;
 
     virtual std::string GetReadinessInfo() const = 0;
-
-protected:
-    ~TopologyHolderBase() = default;
+    virtual ~TopologyHolderBase() = default;
 };
 
 }  // namespace storages::redis::impl

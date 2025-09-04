@@ -13,6 +13,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
+#include <userver/utils/impl/source_location.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,13 +35,20 @@ public:
     ResponseFuture& operator=(const ResponseFuture&) = delete;
     ~ResponseFuture();
 
+    /// @brief Cancel the request in flight
     void Cancel();
 
+    /// @brief Keep executing the request but do not care any more about the result. It is fine to destroy this future
+    /// after Detach(), the request will continue execution.
     void Detach();
 
-    std::future_status Wait();
+    /// @brief Stops the current task execution until the request finishes
+    /// @throws clients::http::CancelException if the current task is being cancelled
+    /// @returns std::future_status::ready or std::future_status::timeout
+    std::future_status Wait(utils::impl::SourceLocation location = utils::impl::SourceLocation::Current());
 
-    std::shared_ptr<Response> Get();
+    /// @brief Wait for the response and return it
+    std::shared_ptr<Response> Get(utils::impl::SourceLocation location = utils::impl::SourceLocation::Current());
 
     void SetCancellationPolicy(CancellationPolicy cp);
 
