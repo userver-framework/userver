@@ -99,16 +99,7 @@ public:
     virtual void Publish(
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
-        engine::Deadline deadline
-    ) = 0;
-
-    /// @brief overload of Publish
-    virtual void Publish(
-        const Exchange& exchange,
-        const std::string& routing_key,
-        const std::string& message,
+        const Publishing& publishing,
         engine::Deadline deadline
     ) = 0;
 
@@ -155,16 +146,7 @@ public:
     virtual void PublishReliable(
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
-        engine::Deadline deadline
-    ) = 0;
-
-    /// @brief overload of PublishReliable
-    virtual void PublishReliable(
-        const Exchange& exchange,
-        const std::string& routing_key,
-        const std::string& message,
+        const Publishing& publishing,
         engine::Deadline deadline
     ) = 0;
 

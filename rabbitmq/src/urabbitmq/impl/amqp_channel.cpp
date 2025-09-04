@@ -165,13 +165,18 @@ ResponseAwaiter AmqpChannel::Get(
 void AmqpChannel::Publish(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Publishing& publishing,
     engine::Deadline deadline
 ) {
-    AMQP::Envelope envelope{message.data(), message.size()};
-    envelope.setPersistent(type == MessageType::kPersistent);
+    AMQP::Envelope envelope{publishing.message.data(), publishing.message.size()};
+    envelope.setPersistent(publishing.type == MessageType::kPersistent);
     envelope.setHeaders(CreateHeaders());
+    if (publishing.reply_to.has_value()) {
+        envelope.setReplyTo(publishing.reply_to.value().c_str());
+    }
+    if (publishing.correlation_id.has_value()) {
+        envelope.setReplyTo(publishing.correlation_id.value().c_str());
+    }
 
     {
         auto channel = conn_.GetChannel(deadline);
@@ -238,12 +243,17 @@ AmqpReliableChannel::~AmqpReliableChannel() = default;
 ResponseAwaiter AmqpReliableChannel::Publish(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Publishing& publishing,
     engine::Deadline deadline
 ) {
-    AMQP::Envelope envelope{message.data(), message.size()};
-    envelope.setPersistent(type == MessageType::kPersistent);
+    AMQP::Envelope envelope{publishing.message.data(), publishing.message.size()};
+    envelope.setPersistent(publishing.type == MessageType::kPersistent);
+    if (publishing.reply_to.has_value()) {
+        envelope.setReplyTo(publishing.reply_to.value().c_str());
+    }
+    if (publishing.correlation_id.has_value()) {
+        envelope.setCorrelationID(publishing.correlation_id.value().c_str());
+    }
     envelope.setHeaders(CreateHeaders());
 
     auto awaiter = conn_.GetAwaiter(deadline);

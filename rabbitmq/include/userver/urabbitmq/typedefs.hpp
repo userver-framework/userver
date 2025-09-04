@@ -71,6 +71,18 @@ struct ConsumedMessage {
     };
     std::string message;
     Metadata metadata;
+    std::optional<std::string> reply_to;
+    std::optional<std::string> correlation_id;
+};
+
+/// @brief Structure holding an AMQP message body along with some of its
+/// metadata fields. This struct is used to pass messages from the end user,
+/// hiding the actual AMQP message object implementation.
+struct Publishing {
+    std::string message;
+    MessageType type;
+    std::optional<std::string> reply_to;
+    std::optional<std::string> correlation_id;
 };
 
 }  // namespace urabbitmq
