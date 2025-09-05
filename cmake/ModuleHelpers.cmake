@@ -1,9 +1,5 @@
 include_guard(GLOBAL)
 
-if(NOT USERVER_CONAN)
-include(DownloadUsingCPM)
-endif()
-
 cmake_policy(SET CMP0054 NEW)
 
 macro(_userver_module_begin)
@@ -373,6 +369,8 @@ macro(_userver_module_end)
 endmacro()
 
 macro(_userver_cpm_addpackage name)
+    include(DownloadUsingCPM)
+
     set(EXTRA_ARGS)
     if(ARG_CPM_DOWNLOAD_ONLY)
         set(EXTRA_ARGS ${EXTRA_ARGS} DOWNLOAD_ONLY)
