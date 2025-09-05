@@ -254,6 +254,9 @@ ResponseAwaiter AmqpReliableChannel::Publish(
     if (publishing.correlation_id.has_value()) {
         envelope.setCorrelationID(publishing.correlation_id.value().c_str());
     }
+    if (publishing.expiration.has_value()) {
+        envelope.setExpiration(std::to_string(publishing.expiration.value().count()));
+    }
     envelope.setHeaders(CreateHeaders());
 
     auto awaiter = conn_.GetAwaiter(deadline);

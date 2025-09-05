@@ -3,6 +3,8 @@
 /// @file userver/urabbitmq/typedefs.hpp
 /// @brief Convenient typedefs for RabbitMQ entities.
 
+#include <chrono>
+
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -83,6 +85,7 @@ struct Publishing {
     MessageType type;
     std::optional<std::string> reply_to;
     std::optional<std::string> correlation_id;
+    std::optional<std::chrono::milliseconds> expiration;
 };
 
 }  // namespace urabbitmq
