@@ -48,21 +48,21 @@ public:
     }
 
     void PublishReliable(const std::string& message) const {
+        const urabbitmq::Publishing publishing{message, urabbitmq::MessageType::kTransient};
         rabbit_client_->PublishReliable(
             exchange_,
             routing_key_,
-            message,
-            urabbitmq::MessageType::kTransient,
+            publishing,
             engine::Deadline::FromDuration(kDefaultOperationTimeout)
         );
     }
 
     void PublishUnreliable(const std::string& message) const {
+        const urabbitmq::Publishing publishing{message, urabbitmq::MessageType::kTransient};
         rabbit_client_->Publish(
             exchange_,
             routing_key_,
-            message,
-            urabbitmq::MessageType::kTransient,
+            publishing,
             engine::Deadline::FromDuration(kDefaultOperationTimeout)
         );
     }
