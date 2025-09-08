@@ -69,13 +69,6 @@ jobs:
                 sudo apt install build-essential clang cmake ccache libjemalloc-dev
                 sudo apt install \
                   libssl-dev \
-                  libboost-context1.83-dev \
-                  libboost-coroutine1.83-dev \
-                  libboost-filesystem1.83-dev \
-                  libboost-iostreams1.83-dev \
-                  libboost-locale1.83-dev \
-                  libboost-program-options1.83-dev \
-                  libboost-stacktrace1.83-dev \
                   libbenchmark-dev
 
           - name: Setup ccache
