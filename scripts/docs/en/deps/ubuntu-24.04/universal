@@ -21,7 +21,6 @@ libpugixml-dev
 libsnappy-dev
 libre2-dev
 libsnappy-dev
-libssh2-1-dev
 libxxhash-dev
 libyaml-cpp-dev
 libyaml-cpp0.8

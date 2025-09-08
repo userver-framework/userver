@@ -517,6 +517,7 @@
   "cmake/SetupLTO.cmake":"taxi/uservices/userver/cmake/SetupLTO.cmake",
   "cmake/SetupLinker.cmake":"taxi/uservices/userver/cmake/SetupLinker.cmake",
   "cmake/SetupMongoDeps.cmake":"taxi/uservices/userver/cmake/SetupMongoDeps.cmake",
+  "cmake/SetupOpenssl.cmake":"taxi/uservices/userver/cmake/SetupOpenssl.cmake",
   "cmake/SetupOpentelemetryProto.cmake":"taxi/uservices/userver/cmake/SetupOpentelemetryProto.cmake",
   "cmake/SetupPGO.cmake":"taxi/uservices/userver/cmake/SetupPGO.cmake",
   "cmake/SetupPostgresqlDeps.cmake":"taxi/uservices/userver/cmake/SetupPostgresqlDeps.cmake",

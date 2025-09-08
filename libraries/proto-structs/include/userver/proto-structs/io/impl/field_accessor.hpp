@@ -194,13 +194,14 @@ auto CreateFieldSetter(
 namespace traits {
 
 template <typename T>
-concept FieldGetter = proto_structs::impl::traits::InheritsFromInstantiation<FieldGetter, T>;
+concept FieldGetter = proto_structs::impl::traits::InheritsFromInstantiation<proto_structs::io::impl::FieldGetter, T>;
 
 template <typename T>
-concept FieldGetterWithPresence = proto_structs::impl::traits::InheritsFromInstantiation<FieldGetterWithPresence, T>;
+concept FieldGetterWithPresence =
+    proto_structs::impl::traits::InheritsFromInstantiation<proto_structs::io::impl::FieldGetterWithPresence, T>;
 
 template <typename T>
-concept FieldSetter = proto_structs::impl::traits::InheritsFromInstantiation<FieldSetter, T>;
+concept FieldSetter = proto_structs::impl::traits::InheritsFromInstantiation<proto_structs::io::impl::FieldSetter, T>;
 
 }  // namespace traits
 
