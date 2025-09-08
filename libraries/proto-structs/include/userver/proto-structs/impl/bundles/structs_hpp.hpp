@@ -7,3 +7,5 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <userver/proto-structs/io/fwd.hpp>

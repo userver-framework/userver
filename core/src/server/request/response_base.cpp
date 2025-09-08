@@ -31,22 +31,22 @@ std::chrono::milliseconds ToMsFromStart(std::chrono::steady_clock::time_point tp
 }  // namespace
 
 void ResponseDataAccounter::StartRequest(size_t size, std::chrono::steady_clock::time_point create_time) {
-    count_.Add(1);
-    current_ += size;
+    pending_responses_count_.Add(1);
+    pending_responses_size_in_bytes_ += size;
     auto ms = ToMsFromStart(create_time);
     time_sum_.Add(ms.count());
 }
 
 void ResponseDataAccounter::StopRequest(size_t size, std::chrono::steady_clock::time_point create_time) {
-    current_ -= size;
+    pending_responses_size_in_bytes_ -= size;
     auto ms = ToMsFromStart(create_time);
     time_sum_.Subtract(ms.count());
-    count_.Subtract(1);
+    pending_responses_count_.Subtract(1);
 }
 
 std::chrono::milliseconds ResponseDataAccounter::GetAvgRequestTime() const {
     // TODO: race
-    auto count = count_.NonNegativeRead();
+    auto count = pending_responses_count_.NonNegativeRead();
     auto time_sum = std::chrono::milliseconds(time_sum_.NonNegativeRead());
 
     auto now_ms = ToMsFromStart(std::chrono::steady_clock::now());
@@ -83,7 +83,9 @@ void ResponseBase::SetReady(std::chrono::steady_clock::time_point now) {
     is_ready_ = true;
 }
 
-bool ResponseBase::IsLimitReached() const { return accounter_.GetCurrentLevel() >= accounter_.GetMaxLevel(); }
+bool ResponseBase::IsLimitReached() const {
+    return accounter_.GetPendingResponsesSizeInBytes() >= accounter_.GetMaxPendingResponsesSizeInBytes();
+}
 
 void ResponseBase::SetSendFailed(std::chrono::steady_clock::time_point failure_time) { SetSent(0, failure_time); }
 

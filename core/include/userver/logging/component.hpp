@@ -54,9 +54,9 @@ namespace components {
 ///
 /// ### Logs output
 /// You can specify where logs are written in the `file_path` option:
-/// - Use <tt>file_path: '@stdout'</tt> to write your logs to standard output stream;
-/// - Use <tt>file_path: '@stderr'</tt> to write your logs to standard error stream;
-/// - Use <tt>file_path: '@null'</tt> to suppress sending of logs;
+/// - Use <tt>file_path: '\@stdout'</tt> to write your logs to standard output stream;
+/// - Use <tt>file_path: '\@stderr'</tt> to write your logs to standard error stream;
+/// - Use <tt>file_path: '\@null'</tt> to suppress sending of logs;
 /// - Use <tt>file_path: /absolute/path/to/log/file.log</tt> to write your logs to file. Use USR1 signal or @ref server::handlers::OnLogRotate to reopen files after log rotation;
 /// - Use <tt>file_path: 'unix:/absolute/path/to/logs.sock'</tt> to write your logs to unix socket. Socket must be created before the service starts and closed by listener after service is shut down.
 ///

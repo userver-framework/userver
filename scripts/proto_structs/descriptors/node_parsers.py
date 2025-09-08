@@ -22,6 +22,7 @@ from proto_structs.models import names
 from proto_structs.models import options
 from proto_structs.models import sort_dependencies
 from proto_structs.models import type_ref
+from proto_structs.models import vanilla
 
 TypeDescriptor = Union[descriptor.Descriptor, descriptor.EnumDescriptor]
 
@@ -36,16 +37,20 @@ def parse_file(file: descriptor.FileDescriptor) -> gen_node.File:
         if message_type := parse_message(message, fields_options):
             types.append(message_type)
 
-    namespace_members: List[gen_node.TypeNode] = sort_dependencies.sort_types(types)
+    types = sort_dependencies.sort_types(types)
 
     structs_namespace = gen_node.NamespaceNode.make_for_structs(
         typing.cast(str, file.package),
-        children=namespace_members,
+        children=types,
+    )
+    vanilla_namespace = gen_node.NamespaceNode.make_for_vanilla(
+        typing.cast(str, file.package),
+        children=vanilla.collect_vanilla_types(types=types),
     )
 
     return gen_node.File(
         proto_relative_path=pathlib.Path(typing.cast(str, file.name)),
-        children=(structs_namespace,),
+        children=[structs_namespace, vanilla_namespace],
     )
 
 

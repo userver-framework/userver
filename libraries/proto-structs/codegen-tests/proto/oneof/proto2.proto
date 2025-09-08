@@ -49,4 +49,6 @@ message Proto2 {
 
     optional Group.MessageInGroup message_from_group = 10;
     repeated Group.EnumInGroup enum_from_group = 11;
+    repeated float Float = 12;
+    optional bool New = 13;
 }

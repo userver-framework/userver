@@ -52,23 +52,23 @@ namespace server::request {
 
 class ResponseDataAccounter final {
 public:
-    void StartRequest(size_t size, std::chrono::steady_clock::time_point create_time);
+    void StartRequest(std::size_t size, std::chrono::steady_clock::time_point create_time);
 
-    void StopRequest(size_t size, std::chrono::steady_clock::time_point create_time);
+    void StopRequest(std::size_t size, std::chrono::steady_clock::time_point create_time);
 
-    size_t GetCurrentLevel() const { return current_; }
+    std::size_t GetPendingResponsesSizeInBytes() const { return pending_responses_size_in_bytes_; }
 
-    size_t GetMaxLevel() const { return max_; }
+    std::size_t GetMaxPendingResponsesSizeInBytes() const { return max_pending_responses_size_in_bytes_; }
 
-    void SetMaxLevel(size_t size) { max_ = size; }
+    void SetMaxPendingResponsesSizeInBytes(size_t size) { max_pending_responses_size_in_bytes_ = size; }
 
     std::chrono::milliseconds GetAvgRequestTime() const;
 
 private:
-    std::atomic<size_t> current_{0};
-    std::atomic<size_t> max_{std::numeric_limits<size_t>::max()};
-    concurrent::StripedCounter count_;
-    concurrent::StripedCounter time_sum_;
+    std::atomic<std::size_t> pending_responses_size_in_bytes_{0};
+    std::atomic<std::size_t> max_pending_responses_size_in_bytes_{std::numeric_limits<std::size_t>::max()};
+    concurrent::StripedCounter pending_responses_count_{};
+    concurrent::StripedCounter time_sum_{};
 };
 
 // TODO: merge with HttpResponse

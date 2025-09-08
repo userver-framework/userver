@@ -80,32 +80,14 @@ CMAKE_COMMON_FLAGS += \
     -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64'
 ```
 
-### Fedora 35
+### Fedora 42
 
-\b Dependencies: @ref scripts/docs/en/deps/fedora-36.md "third_party/userver/scripts/docs/en/deps/fedora-35.md"
-
-Dependencies can be installed via:
-
-```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/fedora-35.md" && \
-sudo dnf install -y $(wget -q -O - ${DEPS_FILE})
-```
-
-Recommended CMake options:
-
-```
-USERVER_FEATURE_STACKTRACE=0
-USERVER_FEATURE_PATCH_LIBPQ=0
-```
-
-### Fedora 36
-
-\b Dependencies: @ref scripts/docs/en/deps/fedora-36.md "third_party/userver/scripts/docs/en/deps/fedora-36.md"
+\b Dependencies: @ref scripts/docs/en/deps/fedora-42.md "third_party/userver/scripts/docs/en/deps/fedora-42.md"
 
 Dependencies can be installed via:
 
 ```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/fedora-36.md" && \
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/fedora-42.md" && \
 sudo dnf install -y $(wget -q -O - ${DEPS_FILE})
 ```
 

@@ -17,18 +17,16 @@ void FormatLogMessage(benchmark::State& state) {
     std::string peer = "2a02:aaaa:aaaa:aaaa::1:1f";
     std::chrono::system_clock::time_point start_time(std::chrono::seconds{1024 * 1024 * 42});
     std::string_view call_name = "hello.HelloService/SayHello";
-    logging::LogExtra log_extra;
 
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
     for (auto _ : state) {
-        auto result = ugrpc::server::impl::FormatLogMessage(
-            metadata, peer, start_time, call_name, grpc::StatusCode::OK, log_extra
-        );
+        auto result =
+            ugrpc::server::impl::FormatLogMessage(metadata, peer, start_time, call_name, grpc::StatusCode::OK, nullptr);
         benchmark::DoNotOptimize(result);
     }
 
     auto result =
-        ugrpc::server::impl::FormatLogMessage(metadata, peer, start_time, call_name, grpc::StatusCode::OK, log_extra);
+        ugrpc::server::impl::FormatLogMessage(metadata, peer, start_time, call_name, grpc::StatusCode::OK, nullptr);
 
     const std::string_view log_line_view{result.ExtractTextLogItem().log_line};  // Convert SmallString to string_view
 

@@ -19,7 +19,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
     std::chrono::system_clock::time_point start_time,
     std::string_view call_name,
     grpc::StatusCode code,
-    const logging::LogExtra& log_extra
+    const logging::LogExtra* log_extra
 );
 
 }  // namespace ugrpc::server::impl

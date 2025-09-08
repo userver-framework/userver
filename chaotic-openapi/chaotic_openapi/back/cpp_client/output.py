@@ -2,6 +2,7 @@ import collections
 import dataclasses
 import os
 import pathlib
+from typing import Any
 from typing import Optional
 
 import yaml
@@ -107,10 +108,12 @@ def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -
         content = yaml.safe_load(ifile)
 
     includes: list[str] = []
+    is_file_produced = False
 
     relpath = os.path.relpath(os.path.dirname(path), schemas_dir)
 
     def visit(data) -> None:
+        nonlocal is_file_produced
         if isinstance(data, dict):
             for v in data.values():
                 visit(v)
@@ -125,16 +128,32 @@ def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -
                 pass
             if 'x-usrv-cpp-type' in data:
                 pass
+
+            if is_file_produced_feature(data):
+                is_file_produced = True
         elif isinstance(data, list):
             for v in data:
                 visit(v)
 
+    visit(content)
     if content.get('definitions') or content.get('components', {}).get('schemas'):
-        visit(content)
+        is_file_produced = True
+
+    if includes or is_file_produced:
         return includes
-    else:
-        # No schemas in file, it will generate no .hpp/.cpp
-        return None
+
+    # No schemas in file, it will generate no .hpp/.cpp
+    return None
+
+
+def is_file_produced_feature(data: dict[str, Any]) -> bool:
+    if data.get('type') == 'object':
+        return True
+    if data.get('oneOf'):
+        return True
+    if data.get('allOf'):
+        return True
+    return False
 
 
 def include_graph(name: str, schemas_dir: pathlib.Path) -> dict[str, list[str]]:
@@ -207,6 +226,8 @@ def external_libraries(schemas_dir: str) -> External:
             if 'x-usrv-cpp-type' in data:
                 types.add(data['x-usrv-cpp-type'])
 
+            if data.get('x-taxi-middlewares', {}).get('api-4.0') is True:
+                libraries.append('passenger-authorizer-backend')
             if data.get('x-taxi-middlewares', {}).get('eats') == 'v1':
                 libraries.append('eats-authproxy-backend')
             if data.get('x-taxi-middlewares', {}).get('bank-authproxy') is True:
