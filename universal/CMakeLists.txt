@@ -246,6 +246,12 @@ if(TARGET Boost::algorithm)
         PUBLIC Boost::algorithm Boost::uuid Boost::random Boost::container
     )
 endif()
+if(USERVER_CONAN)
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PUBLIC Boost::boost
+    )
+endif()
 
 if(USERVER_CONAN)
     target_link_libraries(
