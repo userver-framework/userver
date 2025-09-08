@@ -9,6 +9,7 @@
 {{ do_render_enum(node) }}
 {%- elif node.kind == "oneof" %}
 {{ do_render_oneof(node) }}
+{%- elif node.kind == "vanilla_class" %}
 {%- else %}
 NOT_IMPLEMENTED_ERROR()
 {%- endif %}
@@ -20,12 +21,17 @@ namespace {{ namespace.short_name }} {
 {% for child in namespace.children %}
 {{ render_gen_node(child) }}
 {% endfor %}
+{%- for child in namespace.iter_all_children %}
+{{ forward_declarations.do_render_io_functions(child, namespace) }}
+{% endfor %}
 }  // namespace {{ namespace.short_name }}
 {% endmacro -%}
 
 {%- macro do_render_struct(struct) %}
 struct {{ struct.name.short_name }} final {
 {% filter indent(width=4, first=True) %}
+using ProtobufMessage = ::{{ struct.vanilla_type_reference_fwd.full_cpp_name() }};
+
 {%- for child in struct.children %}
 {{ forward_declarations.render_gen_node(child) }}
 {%- endfor %}

@@ -7,9 +7,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
-#include <ugrpc/impl/protobuf_utils.hpp>
 #include <userver/ugrpc/impl/protobuf_collector.hpp>
-#include <userver/ugrpc/protobuf_visit.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

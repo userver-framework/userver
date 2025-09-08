@@ -1,4 +1,5 @@
 #include <userver/congestion_control/component.hpp>
+#include <userver/congestion_control/controller.hpp>
 
 #include <congestion_control/watchdog.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
@@ -167,6 +168,8 @@ void Component::ExtendWriter(utils::statistics::Writer& writer) {
 server::congestion_control::Limiter& Component::GetServerLimiter() { return pimpl_->server_limiter; }
 
 server::congestion_control::Sensor& Component::GetServerSensor() { return pimpl_->server_sensor; }
+
+const congestion_control::Controller& Component::GetServerController() const { return pimpl_->server_controller; }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<components::ComponentBase>(R"(

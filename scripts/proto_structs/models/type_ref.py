@@ -13,6 +13,7 @@ from typing import Optional
 from typing_extensions import override
 
 from proto_structs.models import includes
+from proto_structs.models import io
 from proto_structs.models import names
 
 
@@ -44,13 +45,21 @@ class HasTypeDependencies(abc.ABC):
         raise NotImplementedError()
 
 
-class TypeReference(names.HasCppName, includes.HasCppIncludes, HasTypeDependencies, abc.ABC):
+class TypeReference(names.HasCppName, includes.HasCppIncludes, HasTypeDependencies, io.HasIO, abc.ABC):
     """A usage of C++ type (not its definition)."""
 
     @override
     def type_dependencies(self) -> Iterable[TypeDependency]:
         # Usage of a C++ type requires its definition by default.
         return [TypeDependency(type_reference=self, kind=TypeDependencyKind.STRONG)]
+
+    @property
+    def read_field_kind(self) -> str:
+        return self.read_kind_impl(io.ReadGetterKind.OTHER)
+
+    @property
+    def write_field_kind(self) -> str:
+        return self.write_kind_impl(io.WriteSetterKind.OTHER)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -86,7 +95,7 @@ class TemplateType(TypeReference):
         return *itertools.islice(template_name_segments, len(template_name_segments) - 1), last_segment
 
     @override
-    def collect_includes(self) -> Iterable[str]:
+    def collect_includes(self) -> Iterable[includes.Include]:
         yield from self.template.collect_includes()
         for arg in self.template_args:
             yield from arg.collect_includes()
@@ -100,6 +109,39 @@ class TemplateType(TypeReference):
                     yield TypeDependency(sub_arg.type_reference, TypeDependencyKind.WEAK)
             else:
                 yield from arg.type_dependencies()
+
+    @property
+    @override
+    def read_field_kind(self) -> str:
+        if self.template.full_cpp_name() == 'std::optional':
+            return self.read_kind_impl(io.ReadGetterKind.OPTIONAL)
+        return super().read_field_kind
+
+    @property
+    @override
+    def write_field_kind(self) -> str:
+        template_name = self.template.full_cpp_name()
+        if (
+            template_name == 'std::optional'
+            and len(self.template_args) == 1
+            and self.template_args[0].full_cpp_name() == 'std::string'
+        ):
+            return self.write_kind_impl(io.WriteSetterKind.STRING)
+        if template_name == 'std::optional':
+            if len(self.template_args) == 1 and (
+                isinstance(self.template_args[0], KeywordType)
+                or isinstance(self.template_args[0], BuiltinType)
+                or isinstance(self.template_args[0], UseerverCodegenEnumType)
+            ):
+                return super().write_field_kind
+        if (
+            template_name == 'std::vector'
+            or template_name == 'std::optional'
+            or template_name == '::proto_structs::HashMap'
+            or template_name == '::utils::Box'
+        ):
+            return self.write_kind_impl(io.WriteSetterKind.VECTOR_MAP_MESSAGE)
+        return super().write_field_kind
 
 
 class KeywordType(TypeReference, names.HasCppName):
@@ -122,7 +164,7 @@ class KeywordType(TypeReference, names.HasCppName):
         return (self._full_cpp_name,)
 
     @override
-    def collect_includes(self) -> Sequence[str]:
+    def collect_includes(self) -> Iterable[includes.Include]:
         return ()
 
 
@@ -140,8 +182,15 @@ class BuiltinType(TypeReference, names.HasCppNameImpl):
         return (self._full_cpp_name,)
 
     @override
-    def collect_includes(self) -> Iterable[str]:
-        return [self._include]
+    def collect_includes(self) -> Iterable[includes.Include]:
+        yield includes.Include(path=self._include, kind=includes.IncludeKind.FOR_HPP)
+
+    @property
+    @override
+    def write_field_kind(self) -> str:
+        if self.full_cpp_name() == 'std::string':
+            return self.write_kind_impl(io.WriteSetterKind.STRING)
+        return super().write_field_kind
 
 
 _hardcoded_userver_namespace: Optional[str] = None
@@ -171,8 +220,13 @@ class UserverLibraryType(TypeReference, names.HasCppNameImpl):
         return (f'{userver_namespace}::{self._full_cpp_name_wo_userver}',)
 
     @override
-    def collect_includes(self) -> Iterable[str]:
-        return [self._include]
+    def collect_includes(self) -> Iterable[includes.Include]:
+        yield includes.Include(path=self._include, kind=includes.IncludeKind.FOR_HPP)
+
+    @property
+    @override
+    def write_field_kind(self) -> str:
+        return self.write_kind_impl(io.WriteSetterKind.VECTOR_MAP_MESSAGE)
 
 
 BOX_TEMPLATE = UserverLibraryType(full_cpp_name_wo_userver='utils::Box', include='userver/utils/box.hpp')
@@ -191,22 +245,37 @@ class UserverCodegenType(TypeReference, names.HasCppNameImpl):
         return self._name.name_segments()
 
     @override
-    def collect_includes(self) -> Iterable[str]:
-        return [self._include]
+    def collect_includes(self) -> Iterable[includes.Include]:
+        yield includes.Include(path=self._include, kind=includes.IncludeKind.FOR_HPP)
+        yield includes.Include(
+            path=self._include.removesuffix('.structs.usrv.pb.hpp') + '.pb.h', kind=includes.IncludeKind.VANILLA
+        )
+
+
+class UseerverCodegenStructType(UserverCodegenType):
+    """A usage of a C++ struct type generated by userver proto_structs plugin."""
+
+    @property
+    @override
+    def write_field_kind(self) -> str:
+        return self.write_kind_impl(io.WriteSetterKind.VECTOR_MAP_MESSAGE)
+
+
+class UseerverCodegenEnumType(UserverCodegenType):
+    """A usage of a C++ enum type generated by userver proto_structs plugin."""
 
 
 class VanillaCodegenType(TypeReference, names.HasCppNameImpl):
     """A usage of a type generated by vanilla C++ protoc plugin."""
 
-    def __init__(self, *, name: names.TypeName, include: str) -> None:
+    def __init__(self, *, name: names.TypeName) -> None:
         super().__init__()
-        self._name = name
-        self._include = include
+        self.name = name
 
     @override
     def full_cpp_name_segments(self) -> Sequence[str]:
-        return self._name.name_segments()
+        return self.name.name_segments()
 
     @override
-    def collect_includes(self) -> Iterable[str]:
-        return [self._include]
+    def collect_includes(self) -> Iterable[includes.Include]:
+        return ()

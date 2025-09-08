@@ -163,7 +163,7 @@ ServerImpl::ServerImpl(
 
     main_port_info_.Init(config_, config_.listener, component_context, false);
     if (config_.max_response_size_in_flight) {
-        main_port_info_.data_accounter.SetMaxLevel(*config_.max_response_size_in_flight);
+        main_port_info_.data_accounter.SetMaxPendingResponsesSizeInBytes(*config_.max_response_size_in_flight);
     }
     if (config_.monitor_listener) {
         monitor_port_info_.Init(config_, *config_.monitor_listener, component_context, true);

@@ -1,8 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/ugrpc/impl/to_string.hpp>
-
-#include <ugrpc/impl/protobuf_utils.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
 
 #include <tests/logging.pb.h>
 #include <tests/messages.pb.h>
@@ -45,11 +44,11 @@ UTEST(ToLimitedDebugString, Basic) {
     message.set_id("swag");
     *message.add_names() = "test-name-1";
     *message.add_names() = "test-name-2";
-    auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     const auto expected = message.DebugString();
     EXPECT_EQ(out, expected);
 
-    out = ugrpc::impl::ToLimitedDebugString(message, 8);
+    out = ugrpc::ToLimitedDebugString(message, 8);
     EXPECT_EQ(out, expected.substr(0, 8));
 }
 
@@ -57,7 +56,7 @@ UTEST(ToLimitedDebugString, Fit) {
     constexpr std::size_t kLimit = 20;
     sample::ugrpc::GreetingResponse message;
     message.set_name("1234567890");
-    const auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     EXPECT_EQ(out, "name: \"1234567890\"\n");
 }
 
@@ -65,7 +64,7 @@ UTEST(ToLimitedDebugString, Limited) {
     constexpr std::size_t kLimit = 10;
     sample::ugrpc::GreetingResponse message;
     message.set_name("1234567890");
-    const auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     EXPECT_EQ(out, "name: \"123");
 }
 
@@ -73,7 +72,7 @@ UTEST(ToLimitedDebugString, Complex) {
     constexpr std::size_t kLimit = 512;
     const auto message = ConstructComplexMessage();
     const auto expected = ugrpc::impl::ToString(message.Utf8DebugString().substr(0, kLimit));
-    ASSERT_EQ(expected, ugrpc::impl::ToLimitedDebugString(message, kLimit));
+    ASSERT_EQ(expected, ugrpc::ToLimitedDebugString(message, kLimit));
 }
 
 USERVER_NAMESPACE_END

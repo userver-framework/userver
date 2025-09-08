@@ -74,7 +74,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
     std::chrono::system_clock::time_point start_time,
     std::string_view call_name,
     grpc::StatusCode code,
-    const logging::LogExtra& log_extra
+    const logging::LogExtra* log_extra
 ) {
     static const auto timezone = utils::datetime::LocalTimezoneTimestring(start_time, "%z");
 
@@ -120,7 +120,9 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
         ToString(code)
     );
 
-    formatter.Append(log_extra);
+    if (log_extra) {
+        formatter.Append(*log_extra);
+    }
 
     return formatter;
 }

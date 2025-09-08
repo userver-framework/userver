@@ -1,8 +1,7 @@
 #include <benchmark/benchmark.h>
 
+#include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/utils/log.hpp>
-
-#include <ugrpc/impl/protobuf_utils.hpp>
 
 #include <tests/logging.pb.h>
 
@@ -53,7 +52,7 @@ void BenchCustomLimit(benchmark::State& state) {
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
     for (auto _ : state) {
         {
-            auto log = impl::ToLimitedDebugString(kMessage, 1024);
+            auto log = ugrpc::ToLimitedDebugString(kMessage, 1024);
             benchmark::DoNotOptimize(log);
         }
     }

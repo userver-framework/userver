@@ -45,8 +45,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 endif()
 
-find_package_required(OpenSSL "libssl-dev")
-
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
 
@@ -240,7 +238,11 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
-    PRIVATE Boost::filesystem Boost::program_options OpenSSL::Crypto OpenSSL::SSL
+    PRIVATE
+        Boost::filesystem
+        Boost::program_options
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
 
 if(USERVER_CONAN)

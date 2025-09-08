@@ -18,7 +18,7 @@ jobs:
         strategy:
             fail-fast: false
 
-        name: macos-latest
+        name: macos-latest (brew)
         runs-on: macos-latest
 
         env:
@@ -56,6 +56,7 @@ jobs:
             run: |
                 export SDKROOT="`xcrun --show-sdk-path`"
                 brew update
+                brew uninstall cmake
                 brew install $(cat scripts/docs/en/deps/macos.md)
                 brew install clang-format
                 brew install lld

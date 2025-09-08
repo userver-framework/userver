@@ -141,11 +141,7 @@ public:
             // may throw a non std::exception based exception
             PutRange(value);
         } else {
-            static_assert(
-                !sizeof(T),
-                "Please implement logging for your type: "
-                "logging::LogHelper& operator<<(logging::LogHelper& lh, const T& value)"
-            );
+            VFormat("{}", fmt::make_format_args(value));
         }
 
         return *this;

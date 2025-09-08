@@ -13,8 +13,11 @@ from typing import Optional
 
 from typing_extensions import override
 
+from proto_structs.descriptors import type_mapping
 from proto_structs.models import includes
+from proto_structs.models import io
 from proto_structs.models import names
+from proto_structs.models import reserved_identifiers
 from proto_structs.models import type_ref
 
 
@@ -32,6 +35,13 @@ class CodegenNode(names.HasCppNameImpl, includes.HasCppIncludes, type_ref.HasTyp
         """Returns the child C++ entities, if any. Empty by default, intended to be overridden."""
         return ()
 
+    @property
+    def iter_all_children(self) -> Iterable[CodegenNode]:
+        """Iterate over all childrens, including inners."""
+        yield self
+        for child in self.children:
+            yield from child.iter_all_children
+
     @override
     @abc.abstractmethod
     def full_cpp_name_segments(self) -> Sequence[str]:
@@ -39,12 +49,12 @@ class CodegenNode(names.HasCppNameImpl, includes.HasCppIncludes, type_ref.HasTyp
 
     @final  # Prevent derived classes from overriding this instead of `own_includes` by mistake.
     @override
-    def collect_includes(self) -> Iterable[str]:
+    def collect_includes(self) -> Iterable[includes.Include]:
         yield from self.own_includes()
         for child in self.children:
             yield from child.collect_includes()
 
-    def own_includes(self) -> Iterable[str]:
+    def own_includes(self) -> Iterable[includes.Include]:
         """
         Returns includes required by the current node itself, not accounting for `children`.
         Empty by default, intended to be overridden.
@@ -69,7 +79,11 @@ class File(includes.HasCppIncludes):
         self.children = children
 
     @override
-    def collect_includes(self) -> Iterable[str]:
+    def collect_includes(self) -> Iterable[includes.Include]:
+        yield includes.Include(
+            path=_build_vanilla_include_from_proto_path(path=self.proto_relative_path),
+            kind=includes.IncludeKind.VANILLA,
+        )
         for child in self.children:
             yield from child.collect_includes()
 
@@ -121,6 +135,43 @@ class NamespaceNode(CodegenNode):
             children=children,
         )
 
+    @classmethod
+    def make_for_vanilla(cls, package: str, children: Sequence[CodegenNode]) -> NamespaceNode:
+        return NamespaceNode(
+            parent_name_segments=(),
+            name_segments=names.proto_namespace_to_segments(names.package_to_namespace(package)),
+            children=children,
+        )
+
+
+class HasVanillaName(abc.ABC):
+    """A C++ entity with a vanilla proto name."""
+
+    @property
+    @abc.abstractmethod
+    def vanilla_name(self) -> names.TypeName:
+        """Returns a vanilla type name."""
+        raise NotImplementedError()
+
+    @property
+    def vanilla_type_reference(self) -> type_ref.VanillaCodegenType:
+        """
+        Vanilla name when the definition is available.
+        Example: 'path::to::Struct::Nested::Inner.
+        """
+        return self._vanilla_type_reference(name=self.vanilla_name)
+
+    @property
+    def vanilla_type_reference_fwd(self) -> type_ref.VanillaCodegenType:
+        """
+        Vanilla name when the definition isn't available. For fwd.
+        Example: 'path::to:Struct_Nested_Inner'.
+        """
+        return self._vanilla_type_reference(name=type_mapping.get_vanilla_type_name(name=self.vanilla_name))
+
+    def _vanilla_type_reference(self, name: names.TypeName) -> type_ref.VanillaCodegenType:
+        return type_ref.VanillaCodegenType(name=name)
+
 
 class TypeNode(CodegenNode, abc.ABC):
     """A base class that contains the common logic for any C++ type definition scheduled for generation."""
@@ -135,7 +186,11 @@ class TypeNode(CodegenNode, abc.ABC):
         return self.name.name_segments()
 
 
-class StructNode(TypeNode):
+def _build_vanilla_include_from_proto_path(path: pathlib.Path) -> str:
+    return str(path).removesuffix('.proto') + '.pb.h'
+
+
+class StructNode(TypeNode, HasVanillaName):
     """A C++ proto struct definition scheduled for generation."""
 
     def __init__(
@@ -148,13 +203,13 @@ class StructNode(TypeNode):
     ) -> None:
         super().__init__(name=names.make_structs_type_name(vanilla_name))
         #: Vanilla message class name.
-        self.vanilla_name: Final[names.TypeName] = vanilla_name
+        self.vanilla: Final[names.TypeName] = vanilla_name
         #: Source proto file path, as it appears in imports.
         self.proto_file: Final[pathlib.Path] = proto_file
         #: Nested types definitions.
         self.nested_types: Final[Sequence[TypeNode]] = nested_types
         #: Struct fields.
-        self.fields: Final[Sequence[StructField]] = fields
+        self.fields: Final[Sequence[StructField]] = [f for f in fields if f.short_name not in ['minor', 'major']]
 
     @property
     @override
@@ -167,15 +222,9 @@ class StructNode(TypeNode):
         return self.nested_types
 
     @override
-    def own_includes(self) -> Iterable[str]:
+    def own_includes(self) -> Iterable[includes.Include]:
         for field in self.fields:
             yield from field.field_type.collect_includes()
-
-    @property
-    def vanilla_type_reference(self) -> type_ref.VanillaCodegenType:
-        return type_ref.VanillaCodegenType(
-            name=self.vanilla_name, include=str(includes.proto_path_to_vanilla_pb_h(self.proto_file))
-        )
 
     @override
     def type_dependencies(self) -> Iterable[type_ref.TypeDependency]:
@@ -184,9 +233,14 @@ class StructNode(TypeNode):
         for nested in self.nested_types:
             yield from nested.type_dependencies()
 
+    @property
+    @override
+    def vanilla_name(self) -> names.TypeName:
+        return self.vanilla
+
 
 @dataclasses.dataclass
-class StructField:
+class StructField(io.HasIO):
     """A field of a C++ proto struct."""
 
     #: Name of the field.
@@ -198,8 +252,46 @@ class StructField:
     #: If this struct field maps to oneof, lists the fields of the oneof type.
     oneof_fields: Final[Optional[Sequence[StructField]]]
 
+    @property
+    def field_number_name(self) -> str:
+        """
+        some_bytes_my_word -> kSomeBytesMyWordFieldNumber
+        by2tes_m1y -> kBy2TesM1YFieldNumber
+        IYandexUid -> kIYandexUidFieldNumber
+        """
+        result = ''.join(word[0].upper() + word[1:] for word in self.short_name.split('_') if len(word) > 0)
 
-class EnumNode(TypeNode):
+        handle_digits = ''
+        for prev, ch in zip(' ' + result, result):
+            if prev.isdigit() and ch.isalpha():
+                handle_digits = handle_digits + ch.upper()
+            else:
+                handle_digits = handle_digits + ch
+        return f'k{handle_digits}FieldNumber'
+
+    @property
+    def read_kind(self) -> str:
+        if self.oneof_fields is not None:
+            return self.read_kind_impl(io.ReadGetterKind.ONEOF)
+        return self.field_type.read_field_kind
+
+    @property
+    def write_kind(self) -> str:
+        if self.oneof_fields is not None:
+            return self.write_kind_impl(io.WriteSetterKind.ONEOF)
+        return self.field_type.write_field_kind
+
+    @property
+    def short_vanilla_name(self) -> str:
+        if self.short_name.lower() in reserved_identifiers.CPP_KEYWORDS:
+            return f'{self.short_name.lower()}_'
+        if self.short_name.endswith('_'):
+            if self.short_name[:-1].lower() in reserved_identifiers.CPP_KEYWORDS or self.short_name.endswith('__'):
+                return self.short_name.lower()
+        return self.short_name.removesuffix('_').lower()
+
+
+class EnumNode(TypeNode, HasVanillaName):
     """A C++ proto enum class definition scheduled for generation."""
 
     def __init__(
@@ -211,7 +303,7 @@ class EnumNode(TypeNode):
     ) -> None:
         super().__init__(name=names.make_structs_type_name(vanilla_name))
         #: Vanilla enum type name.
-        self.vanilla_name: Final[names.TypeName] = vanilla_name
+        self.vanilla: Final[names.TypeName] = vanilla_name
         #: Source proto file path, as it appears in imports.
         self.proto_file: Final[pathlib.Path] = proto_file
         #: Enum values (cases).
@@ -223,15 +315,17 @@ class EnumNode(TypeNode):
         return 'enum'
 
     @override
-    def own_includes(self) -> Iterable[str]:
+    def own_includes(self) -> Iterable[includes.Include]:
         # 'cstdint' and 'limits' are included in bundle_hpp.
-        return [includes.BUNDLE_STRUCTS_HPP]
+        yield includes.Include(path=includes.BUNDLE_STRUCTS_HPP, kind=includes.IncludeKind.FOR_HPP)
+        yield includes.Include(
+            path=_build_vanilla_include_from_proto_path(self.proto_file), kind=includes.IncludeKind.VANILLA
+        )
 
     @property
-    def vanilla_type_reference(self) -> type_ref.VanillaCodegenType:
-        return type_ref.VanillaCodegenType(
-            name=self.vanilla_name, include=str(includes.proto_path_to_vanilla_pb_h(self.proto_file))
-        )
+    @override
+    def vanilla_name(self) -> names.TypeName:
+        return self.vanilla
 
 
 @dataclasses.dataclass(frozen=True)
@@ -270,7 +364,7 @@ class OneofNode(TypeNode):
         return 'oneof'
 
     @override
-    def own_includes(self) -> Iterable[str]:
+    def own_includes(self) -> Iterable[includes.Include]:
         yield from self.base_class_template.collect_includes()
         for field in self.fields:
             yield from field.field_type.collect_includes()
@@ -280,3 +374,25 @@ class OneofNode(TypeNode):
         yield from super().type_dependencies()
         for field in self.fields:
             yield from field.field_type.type_dependencies()
+
+
+class VanillaType(TypeNode):
+    """A C++ vanilla type."""
+
+    def __init__(
+        self,
+        *,
+        vanilla_name: names.TypeName,
+    ) -> None:
+        super().__init__(name=names.make_structs_type_name(vanilla_name))
+        #: Vanilla type name.
+        self.vanilla_name: Final[names.TypeName] = vanilla_name
+
+
+class VanillaClass(VanillaType):
+    """A C++ vanilla class."""
+
+    @property
+    @override
+    def kind(self) -> str:
+        return 'vanilla_class'

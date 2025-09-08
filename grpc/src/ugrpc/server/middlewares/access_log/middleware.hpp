@@ -17,8 +17,6 @@ class Middleware final : public MiddlewareBase {
 public:
     explicit Middleware(Settings&& settings);
 
-    void OnCallStart(MiddlewareCallContext& context) const override;
-
     void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
 
 private:

@@ -6,17 +6,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace proto_structs {
 
-ConversionError::ConversionError(
-    const std::string_view message_name,
-    const std::string_view field_name,
-    const std::string_view reason
-)
-    : Error(fmt::format(
-          "Message '{}' field '{}' can't be converted to/from corresponding struct field ({})",
-          message_name,
-          field_name,
-          reason
-      )) {}
+ReadError::ReadError(const std::string_view path, const std::string_view reason)
+    : ConversionError(fmt::format("Failed to read protobuf message field '{}' ({})", path, reason)) {}
+
+WriteError::WriteError(const std::string_view path, const std::string_view reason)
+    : ConversionError(fmt::format("Failed to write protobuf message field '{}' ({})", path, reason)) {}
 
 OneofAccessError::OneofAccessError(const std::size_t field_idx)
     : Error(fmt::format("Oneof field is not set (index = {})", field_idx)) {}

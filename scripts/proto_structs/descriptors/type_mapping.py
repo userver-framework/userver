@@ -41,14 +41,14 @@ _VECTOR_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::vector', include=_BU
 
 
 def parse_enum_reference(field_type: descriptor.EnumDescriptor) -> type_ref.TypeReference:
-    return type_ref.UserverCodegenType(
+    return type_ref.UseerverCodegenEnumType(
         name=names.make_structs_type_name(vanilla_type_name=parse_type_name(field_type)),
         include=parse_include(field_type),
     )
 
 
 def parse_struct_reference(field_type: descriptor.Descriptor) -> type_ref.TypeReference:
-    return type_ref.UserverCodegenType(
+    return type_ref.UseerverCodegenStructType(
         name=names.make_structs_type_name(vanilla_type_name=parse_type_name(field_type)),
         include=parse_include(field_type),
     )
@@ -79,6 +79,19 @@ def parse_type_name(proto_type: TypeDescriptor) -> names.TypeName:
         outer_type_names=_get_outer_structs_names(proto_type),
         short_name=typing.cast(str, proto_type.name),
     )
+
+
+def get_vanilla_type_name(*, name: names.TypeName) -> names.TypeName:
+    """
+    Converts a proto package to a vanilla protobuf name.
+    Example: 'path::to::Struct::Nested::Inner' -> 'path::to:Struct_Nested_Inner'
+    """
+    short_name: str = ''
+    for outer_type in name.outer_type_names:
+        short_name += f'{outer_type}_'
+
+    short_name += name.short_name
+    return names.TypeName(namespace_segments=name.namespace_segments, outer_type_names=(), short_name=short_name)
 
 
 def _get_outer_structs_names(proto_type: TypeDescriptor) -> Sequence[str]:

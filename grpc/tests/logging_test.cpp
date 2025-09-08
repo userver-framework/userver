@@ -2,10 +2,10 @@
 
 #include <gmock/gmock.h>
 
+#include <ugrpc/server/middlewares/access_log/middleware.hpp>
+#include <userver/ugrpc/server/middlewares/access_log/log_extra.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/regex.hpp>
-
-#include <ugrpc/server/middlewares/access_log/middleware.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -73,17 +73,20 @@ private:
 // Test middleware that adds custom tags to LogExtra
 class TagsMiddleware final : public ugrpc::server::MiddlewareBase {
 public:
+    /// [grpc log extra tag]
     void OnCallStart(ugrpc::server::MiddlewareCallContext& context) const override {
-        auto* log_extra = context.GetStorageContext().GetOptional(ugrpc::server::middlewares::access_log::kLogExtraTag);
-
-        if (log_extra) {
-            log_extra->Extend("user_id", "12345");
-            log_extra->Extend("session_id", "abc-def-ghi");
-            log_extra->Extend("request_id", "req-98765");
-            log_extra->Extend("custom_tag", "test-value");
-            log_extra->Extend("numeric_tag", "42");
-        }
+        ugrpc::server::middlewares::access_log::SetAdditionalLogKeys(
+            context,
+            logging::LogExtra{
+                std::pair<std::string, std::string>("user_id", "12345"),
+                std::pair<std::string, std::string>("session_id", "abc-def-ghi"),
+                std::pair<std::string, std::string>("request_id", "req-98765"),
+                std::pair<std::string, std::string>("custom_tag", "test-value"),
+                std::pair<std::string, std::string>("numeric_tag", "42"),
+            }
+        );
     }
+    /// [grpc log extra tag]
 };
 
 template <typename GrpcService>

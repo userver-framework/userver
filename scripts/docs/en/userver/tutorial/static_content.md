@@ -45,7 +45,7 @@ concurrently on the same instance of `MessagesHandler` if more than one requests
 ### Serving Static Content
 
 The C++ code for serving static content is extremely simple because all the logic is provided by the ready-to-use
-@ref userver::server::handlers::HttpHandlerStatic. Just add it and the components::FsCache into the component list:
+@ref server::handlers::HttpHandlerStatic. Just add it and the components::FsCache into the component list:
 
 @snippet samples/static_service/main.cpp  Static service sample - main
 
@@ -60,7 +60,7 @@ Providing paths to files in file system to the `fs-cache-main` component, tellin
 With the above config a request to
 * `/index.html` will receive file `/var/www/index.html`;
 * `/` will receive file `/var/www/index.html` due to the default value of `directory-file` static config option of
-  @ref userver::server::handlers::HttpHandlerStatic;
+  @ref server::handlers::HttpHandlerStatic;
 * `/custom.js` will receive file `/var/www/custom.js`;
 * `/custom.css` will receive file `/var/www/custom.css`;
 * `/v1/messages` request will be processed by our `MessagesHandler` handler.

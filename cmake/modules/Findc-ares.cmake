@@ -13,6 +13,16 @@ _userver_module_begin(
     c-ares
     PKG_CONFIG_NAMES
     libcares
+
+    CPM_NAME c-ares
+    CPM_GITHUB_REPOSITORY c-ares/c-ares
+    CPM_VERSION 1.34.5
+    CPM_OPTIONS
+        "CARES_STATIC ON"
+        "CARES_SHARED OFF"
+        "CARES_INSTALL OFF"
+        "CARES_BUILD_TOOLS OFF"
+        "CARES_STATIC_PIC ON"
 )
 
 _userver_module_find_include(NAMES ares.h)

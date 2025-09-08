@@ -21,7 +21,7 @@ void WriteAccessLog(
         constexpr auto kLevel = logging::Level::kInfo;
 
         if (access_tskv_logger.ShouldLog(kLevel)) {
-            const auto& log_extra = context.GetStorageContext().Get(kLogExtraTag);
+            const auto* log_extra = context.GetStorageContext().GetOptional(kLogExtraTag);
 
             access_tskv_logger.Log(
                 kLevel,
@@ -44,11 +44,6 @@ void WriteAccessLog(
 }  // namespace
 
 Middleware::Middleware(Settings&& settings) : logger_(std::move(settings.access_tskv_logger)) {}
-
-void Middleware::OnCallStart(MiddlewareCallContext& context) const {
-    // Add common storage to extra log tags for other middlewares
-    context.GetStorageContext().Emplace(kLogExtraTag, logging::LogExtra{});
-}
 
 void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
     WriteAccessLog(context, status, *logger_);

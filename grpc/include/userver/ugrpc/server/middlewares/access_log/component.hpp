@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::middlewares::access_log {
 
 /// @brief Storage to handle additional fields in access_log
-/// @snippet grpc/tests/logging_test.cpp
+/// @snippet grpc/tests/logging_test.cpp grpc log extra tag
 inline const utils::AnyStorageDataTag<ugrpc::server::StorageContext, logging::LogExtra> kLogExtraTag;
 
 /// @ingroup userver_components userver_base_classes

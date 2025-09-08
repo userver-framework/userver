@@ -195,6 +195,9 @@ include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
 include(DownloadUsingCPM)
 
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
+include(SetupOpenssl)
+
 set(USERVER_THIRD_PARTY_DIRS
     ${USERVER_ROOT_DIR}/third_party
     CACHE INTERNAL ""

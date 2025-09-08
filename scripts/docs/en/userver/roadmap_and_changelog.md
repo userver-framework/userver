@@ -63,7 +63,7 @@ Changelog news also go to the
   @ref storages::postgres::TimePointTz converters.
 
 * gRPC and Protobuf
-  * Implemented retries. See @ref scripts/docs/en/userver/grpc/grpc_retries.md for more info.
+  * Implemented retries. See @ref scripts/docs/en/userver/grpc/timeouts_retries.md for more info.
   * @ref ugrpc::client::ClientFactoryComponent now can be customized via `ssl-credentials-options`. Many thanks to
     [aklyuchev86](https://github.com/aklyuchev86) for the PR!
   * @ref decimal64::Decimal::FromStringPermissive() now understands format with exponent, which makes it compatible

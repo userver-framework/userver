@@ -5,8 +5,11 @@ endif()
 option(USERVER_DOWNLOAD_PACKAGE_GTEST "Download and setup gtest if no gtest of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+option(USERVER_FORCE_DOWNLOAD_GTEST "Download gtest even if there is an installed system package"
+       ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+)
 
-if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+if(NOT USERVER_FORCE_DOWNLOAD_GTEST)
     find_package(GTest QUIET)
     if(NOT GTest_FOUND AND NOT USERVER_DOWNLOAD_PACKAGE_GTEST)
         message(

@@ -1,74 +1,25 @@
 #pragma once
 
 /// @file userver/proto-structs/oneof.hpp
-/// @brief Contains type to represent `oneof` protobuf message fields in a struct
+/// @brief Contains type to represent `oneof` protobuf message fields in a proto struct
 
 #include <optional>
-#include <string>
-#include <type_traits>
 #include <utility>
 #include <variant>
 
 #include <userver/proto-structs/exceptions.hpp>
-#include <userver/proto-structs/impl/traits_light.hpp>
 #include <userver/proto-structs/type_mapping.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace proto_structs {
 
-namespace traits {
-
-template <typename T>
-concept OneofField =
-    std::is_same_v<std::remove_cv_t<T>, bool> || std::is_same_v<std::remove_cv_t<T>, std::int32_t> ||
-    std::is_same_v<std::remove_cv_t<T>, std::int64_t> || std::is_same_v<std::remove_cv_t<T>, std::uint32_t> ||
-    std::is_same_v<std::remove_cv_t<T>, std::uint64_t> || std::is_same_v<std::remove_cv_t<T>, float> ||
-    std::is_same_v<std::remove_cv_t<T>, double> || std::is_same_v<std::remove_cv_t<T>, std::string> ||
-    std::is_enum_v<T> || ProtoStruct<T>;
-
-}  // namespace traits
-
-template <traits::OneofField... TFields>
-class Oneof;
-
-namespace impl {
-
-template <std::size_t Index, typename T>
-struct OneofAlternativeTrait;
-
-/// @brief Provides information about @ref proto_structs::Oneof field type at position `Index`
-template <std::size_t Index, proto_structs::traits::OneofField... TFields>
-struct OneofAlternativeTrait<Index, Oneof<TFields...>> {
-    using Type = std::variant_alternative_t<Index, std::variant<TFields...>>;
-};
-
-}  // namespace impl
-
-namespace traits {
-
-/// @brief Concept of the @ref proto_structs::Oneof
-template <typename T>
-concept Oneof = impl::traits::InheritsFromInstantiation<proto_structs::Oneof, T>;
-
-}  // namespace traits
-
-/// @brief Provides information about @ref proto_structs::Oneof field type at position `Index`
-template <std::size_t Index, typename T>
-using OneofAlternativeTrait = impl::OneofAlternativeTrait<Index, std::remove_cv_t<T>>;
-
-template <std::size_t Index, typename T>
-using OneofAlternativeType = OneofAlternativeTrait<Index, T>::Type;
-
-/// @brief Special index value used to indicate `oneof` without any field set
-inline constexpr std::size_t kOneofNpos = -1;
-
 /// @brief Wrapper for `oneof` protobuf message fields
 /// @tparam TFields `oneof` field types
-template <traits::OneofField... TFields>
+template <typename... TFields>
 class Oneof {
 public:
-    /// @brief Type of this `Oneof` base class specialization
+    /// @brief Type of this `Oneof`
     using Base = Oneof;
 
     /// @brief Number of fields in the oneof

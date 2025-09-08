@@ -174,7 +174,7 @@ public:
     /// the first time immediately invokes the function with the current config
     /// snapshot (this invocation will be executed synchronously).
     ///
-    /// @note Сallbacks occur only if one of the passed config is changed. This is
+    /// @note Callbacks occur only if one of the passed config is changed. This is
     /// true under any components::DynamicConfigClientUpdater options.
     ///
     /// @warning To use this function, configs must have the `operator==`.

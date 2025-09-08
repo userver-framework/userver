@@ -99,13 +99,13 @@ class Translator:
         if name.startswith('/components/schemas/'):
             return '{}::{}'.format(
                 self._spec.cpp_namespace,
-                name.split('/')[-1],
+                cpp_names.cpp_identifier(name.split('/')[-1]),
             )
 
         if name.startswith('/definitions/'):
             return '{}::{}'.format(
                 self._spec.cpp_namespace,
-                name.split('/')[-1],
+                cpp_names.cpp_identifier(name.split('/')[-1]),
             )
 
         match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/requestBody(/schema)?', name)

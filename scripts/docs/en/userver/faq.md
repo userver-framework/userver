@@ -20,6 +20,19 @@ for a list of supported CMake options.
 If you have problems with PostgreSQL build, see @ref postgres_deps_versions "PostgreSQL versions".
 
 
+### SIGUSR1 terminates the service or SIGUSR1 ignored instead of rotating logs
+
+A third-party library is setting a custom signal mask for its own thread. This causes the SIGUSR1 signal to be
+delivered to that thread instead of the userver threads, which are supposed to handle log rotation.
+
+To locate the code that is interfering with signal handling, try the following approaches:
+* Search the source code of your dependencies for calls to POSIX and pthread functions that manage signals. For
+  instance, you can search using regular expressions like `.*sigmask.*` and `sig.*`.
+* Run your service under a debugger and set breakpoints on all relevant POSIX and pthread functions that manage signal
+  handling (e.g., `sigaction`, `rt_sigaction`, `signal`, `sigset`, `sighold`, `sigrelse`, `sigignore`, `sigprocmask`,
+  `pthread_sigmask`, `pthread_attr_setsigmask_np`, etc.).
+
+
 ### Service Terminated/Aborted/SIGSEGV. What to do?
 
 #### Hint: Take a look at the service logs

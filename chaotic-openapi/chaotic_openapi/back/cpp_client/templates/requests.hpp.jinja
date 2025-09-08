@@ -5,6 +5,9 @@
 #pragma once
 
 #include <string>
+{% if spec.has_array_in_request_body() %}
+#include <userver/formats/serialize/common_containers.hpp>
+{% endif %}
 {% if spec.has_multiple_content_type_request() %}
 #include <variant>
 {% endif %}
