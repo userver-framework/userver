@@ -75,10 +75,6 @@ function(mark_targets_as_system directory)
 endfunction()
 
 function(_userver_print_cpm_packages)
-    if(NOT CPM_PACKAGES)
-        return()
-    endif()
-
     message(STATUS "Dependencies from CPM:")
     foreach(PACKAGE ${CPM_PACKAGES})
         message(STATUS "- ${PACKAGE}")
