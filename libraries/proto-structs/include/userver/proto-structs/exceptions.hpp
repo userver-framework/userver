@@ -8,6 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Top namespace for the proto-structs library
 namespace proto_structs {
 
 /// @brief Library basic exception type
@@ -17,35 +18,50 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-/// @brief Conversion error
-/// Exception is thrown if protobuf message field can't be converted to/from struct field.
+/// @brief Conversion error base class
 class ConversionError : public Error {
-public:
-    /// @brief Creates error signalling that conversion failed for field @a field_name of message @a message_name
-    ConversionError(std::string_view message_name, std::string_view field_name, std::string_view reason);
+protected:
+    using Error::Error;
 };
 
-/// @brief Trying to access unset @ref proto_structs::Oneof field
-/// @note This exception is also thrown if @ref proto_structs::Oneof is cleared
+/// @brief Error reading proto struct from protobuf message
+class ReadError final : public ConversionError {
+public:
+    /// @brief Creates error with information what protobuf message field was considered invalid
+    /// Parameter @a path contains dot-separated field names from the top-level message up to erroneous field, for
+    /// example, "msg.field.nested_field".
+    ReadError(std::string_view path, std::string_view reason);
+};
+
+/// @brief Error writing proto struct to protobuf message
+class WriteError final : public ConversionError {
+public:
+    /// @brief Creates error with information what protobuf message field was not correctly initialized
+    /// Parameter @a path contains dot-separated field names from the top-level message up to field that was not
+    /// initialized, for example, "msg.field.nested_field".
+    WriteError(std::string_view path, std::string_view reason);
+};
+
+/// @brief Invalid attempt to access unset @ref proto_structs::Oneof field
 class OneofAccessError : public Error {
 public:
-    /// @brief Creates error when attempting to access @a field_idx field of `oneof`
+    /// @brief Creates error on invalid attempt to access @a field_idx field of `oneof`
     explicit OneofAccessError(std::size_t field_idx);
 };
 
-/// @brief Failed to pack struct's compatible message to @ref proto_structs::Any underlying storage.
-/// @note This exception is thrown *after* struct to protobuf message conversion.
+/// @brief Error packing protobuf message to @ref proto_structs::Any underlying storage.
 class AnyPackError : public Error {
 public:
-    /// @brief Creates error when trying to pack protobuf message @a message_name
+    /// @brief Creates error with information what protobuf message was not packed
     explicit AnyPackError(std::string_view message_name);
 };
 
-/// @brief Failed to unpack struct's compatible message from @ref proto_structs::Any underlying storage
-/// @note This exception is thrown *before* protobuf message to struct conversion.
+/// @brief Error unpacking protobuf message from @ref proto_structs::Any underlying storage.
+/// The main reason of this exception is the attempt to unpack message type different from the one stored in the
+/// @ref proto_structs::Any underlying storage
 class AnyUnpackError : public Error {
 public:
-    /// @brief Creates error when trying to unpack protobuf message @a message_name
+    /// @brief Creates error with information what protobuf message was not unpacked
     explicit AnyUnpackError(std::string_view message_name);
 };
 

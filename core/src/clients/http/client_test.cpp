@@ -507,6 +507,8 @@ std::string DifferentUrlsRetryStreamResponseBody(
     }
 
     UINVARIANT(false, "No alive servers");
+    // Never reaches
+    return {};
 }
 
 }  // namespace sample

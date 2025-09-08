@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <userver/dump/meta.hpp>
+#include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -193,6 +193,13 @@ class ClientSpec:
                 return True
         return False
 
+    def has_array_in_request_body(self) -> bool:
+        for op in self.operations:
+            for body in op.request_bodies:
+                if isinstance(body.schema, cpp_types.CppArray):
+                    return True
+        return False
+
     def requests_declaration_includes(self) -> list[str]:
         includes: set[str] = set()
         for op in self.operations:

@@ -419,6 +419,8 @@ AddrVector Resolver::Resolve(const std::string& name, engine::Deadline deadline)
     }
 
     UINVARIANT(false, "Unexpected cache result status");
+    // never reaches
+    return LocalhostAddrs();
 }
 
 const Resolver::LookupSourceCounters& Resolver::GetLookupSourceCounters() const {

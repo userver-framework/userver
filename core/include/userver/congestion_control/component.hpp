@@ -14,6 +14,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace congestion_control {
 
+class Controller;
+
 // clang-format off
 
 /// @ingroup userver_components
@@ -52,6 +54,7 @@ public:
 
     server::congestion_control::Limiter& GetServerLimiter();
     server::congestion_control::Sensor& GetServerSensor();
+    const congestion_control::Controller& GetServerController() const;
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

@@ -73,6 +73,7 @@ cpmaddpackage(
     GITHUB_REPOSITORY
     grpc/grpc
     SYSTEM
+    PATCHES grpc_pr_36805.patch
     OPTIONS
     "BUILD_SHARED_LIBS OFF"
     "CARES_BUILD_TOOLS OFF"

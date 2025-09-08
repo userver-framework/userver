@@ -411,7 +411,7 @@ public:
 ///
 /// Decimal should be serialized and stored as a string, NOT as `double`. Use
 /// `Decimal{str}` constructor (or `Decimal::FromStringPermissive` if rounding
-/// is allowed) to read a `Decimal`, and `ToString(dec)`
+/// and exponential format are allowed) to read a `Decimal`, and `ToString(dec)`
 /// (or `ToStringTrailingZeros(dec)`/`ToStringFixed<N>(dec)`) to write a
 /// `Decimal`.
 ///
@@ -461,6 +461,8 @@ public:
     /// No extra characters, including spaces, are allowed. Extra leading
     /// and trailing zeros (within `Prec`) are discarded. Input containing more
     /// fractional digits that `Prec` is not allowed (no implicit rounding).
+    /// Exponential format (e.g., "1.23e4", "5E-2") is not supported by this
+    /// constructor.
     ///
     /// @throw decimal64::ParseError on invalid input
     /// @see FromStringPermissive
@@ -494,6 +496,7 @@ public:
     /// - rounding (as per `RoundPolicy`), e.g. "12.3456789" with `Prec == 2`
     /// - space characters, e.g. " \t42  \n"
     /// - leading and trailing dot, e.g. "5." and ".5"
+    /// - exponential format, e.g. "1.23e4" -> 12300, "5E-2" -> 0.05
     ///
     /// @throw decimal64::ParseError on invalid input
     /// @see Decimal(std::string_view)
@@ -1508,7 +1511,8 @@ std::string ToStringFixed(Decimal<Prec, RoundPolicy> dec) {
 /// @brief Parses a `Decimal` from the `istream`
 ///
 /// Acts like the `Decimal(str)` constructor, except that it allows junk that
-/// immediately follows the number. Sets the stream's fail bit on failure.
+/// immediately follows the number and supports exponential format.
+/// Sets the stream's fail bit on failure.
 ///
 /// Usage example:
 ///

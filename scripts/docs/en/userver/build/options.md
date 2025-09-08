@@ -131,12 +131,16 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_DOWNLOAD_PACKAGE_PROTOBUF`      | Download and setup Protobuf if no Protobuf of matching version was found                | `${USERVER_DOWNLOAD_PACKAGE_GRPC}`   |
 | `USERVER_DOWNLOAD_PACKAGE_KAFKA`         | Download and setup librdkafka if no librdkafka matching version was found               | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK`     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_C_ARES`        | Download and setup libc-ares if no libc-ares of matching version was found              | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_LIBEV`         | Download and setup libev if no libev of matching version was found                      | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_LIBNGHTTP2`    | Download and setup libnghttp2 if no libnghttp2 of matching version was found            | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_YAMLCPP`       | Download and setup libyaml-cpp if no libyaml-cpp of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_FORCE_DOWNLOAD_PACKAGES`        | Download all possible third-party packages even if there is an installed system package | `OFF`                                |
 | `USERVER_FORCE_DOWNLOAD_ABSEIL`          | Download Abseil even if it exists in a system                                           | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_FORCE_DOWNLOAD_CURL`            | Download Curl even if it exists in a system                                             | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_PROTOBUF`        | Download Protobuf even if there is an installed system package                          | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_GRPC`            | Download gRPC even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
-| `USERVER_FORCE_DOWNLOAD_FMT`            | Download Fmt even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
+| `USERVER_FORCE_DOWNLOAD_FMT`             | Download Fmt even if there is an installed system package                               | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 
 ### CMake options for paths to dependencies
 

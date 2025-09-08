@@ -1,14 +1,14 @@
-#include <userver/utest/utest.hpp>
-
 #include <google/protobuf/stubs/common.h>
 #if defined(ARCADIA_ROOT) || GOOGLE_PROTOBUF_VERSION >= 4022000
 
-#include <ugrpc/client/middlewares/log/middleware.hpp>
-#include <ugrpc/impl/protobuf_utils.hpp>
-#include <ugrpc/server/middlewares/log/middleware.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
+#include <userver/utest/utest.hpp>
 #include <userver/utils/flags.hpp>
+
+#include <ugrpc/client/middlewares/log/middleware.hpp>
+#include <ugrpc/server/middlewares/log/middleware.hpp>
 
 #include <tests/secret_fields.pb.h>
 #include <tests/secret_fields_client.usrv.pb.hpp>
@@ -138,11 +138,11 @@ UTEST(ToLimitedDebugStringWithSecrets, Basic) {
     message.set_password("qwerty12345678");
     message.set_name("test-name");
     message.set_count(7);
-    auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     const std::string_view expected = "id: \"swag\"\nname: \"test-name\"\npassword: [REDACTED]\ncount: [REDACTED]\n";
     EXPECT_EQ(out, expected);
 
-    out = ugrpc::impl::ToLimitedDebugString(message, 44);
+    out = ugrpc::ToLimitedDebugString(message, 44);
     EXPECT_EQ(out, expected.substr(0, 44));
 }
 
@@ -157,7 +157,7 @@ UTEST(ToLimitedDebugStringWithSecrets, InnerSecrets) {
     item->set_value("value");
     const std::string_view expected = "id: \"swag\"\nitems {\n  index: 7\n  value: [REDACTED]\n}\n";
 
-    const auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 
@@ -172,7 +172,7 @@ UTEST(ToLimitedDebugStringWithSecrets, SecretsAndFit) {
     item->set_value("value");
     const std::string_view expected = "id: \"swag\"\n";
 
-    const auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 
@@ -187,7 +187,7 @@ UTEST(ToLimitedDebugStringWithSecrets, TheSameName) {
 
     const auto expected = message.DebugString();
 
-    const auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 
@@ -203,7 +203,7 @@ UTEST(ToLimitedDebugStringWithSecrets, StructSecret) {
 
     const auto expected = "name1: \"name1\"\ncurrent_state: [REDACTED]\nname2: \"name2\"\n";
 
-    const auto out = ugrpc::impl::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 

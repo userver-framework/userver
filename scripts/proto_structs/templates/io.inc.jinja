@@ -1,0 +1,184 @@
+{%- macro render_gen_node(node) %}
+{%- if node.kind == "namespace" %}
+{{ do_render_namespace(node) }}
+{%- endif %}
+{% endmacro -%}
+
+{%- macro do_render_namespace(namespace) %}
+namespace {{ namespace.short_name }} {
+
+{%- for child in namespace.children %}
+
+{%- if child.kind == "struct" %}
+{{ do_render_io(child, namespace) }}
+{%- else %}
+{{ render_gen_node(child) }}
+{%- endif %}
+{% endfor %}
+
+}  // namespace {{ namespace.short_name }}
+{% endmacro -%}
+
+
+{%- macro do_render_io(node, context) %}
+{%- for child in node.iter_all_children %}
+{%- if child.kind == "struct" %}
+{%- if child.fields | length > 0 %}
+{{ do_render_read(child, context) }}
+{{ do_render_write_impl(child) }}
+{{ do_render_write_const_ref(child, context) }}
+{{ do_render_write_rvalue(child, context) }}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endmacro -%}
+
+{%- macro do_render_vanilla(struct) %}
+::{{ struct.vanilla_type_reference.full_cpp_name() }}
+{% endmacro -%}
+
+{%- macro do_render_field_number(struct, field) %}
+{{ do_render_vanilla(struct) }}::{{ field.field_number_name }}
+{% endmacro -%}
+
+{%- macro do_render_field_set(struct, field) %}
+&{{ do_render_vanilla(struct) }}::set_{{ field.short_vanilla_name }}
+{% endmacro -%}
+
+{%- macro do_render_field_clear(struct, field) %}
+&{{ do_render_vanilla(struct) }}::clear_{{ field.short_vanilla_name }}
+{% endmacro -%}
+
+{%- macro do_render_field_mutable(struct, field) %}
+&{{ do_render_vanilla(struct) }}::mutable_{{ field.short_vanilla_name }}
+{% endmacro -%}
+
+{%- macro do_render_ptr_getter(struct, field) %}
+&{{ do_render_vanilla(struct) }}::{{ field.short_vanilla_name }}
+{% endmacro -%}
+
+{%- macro do_render_ptr_has(struct, field) %}
+&{{ do_render_vanilla(struct) }}::has_{{ field.short_vanilla_name }}
+{% endmacro -%}
+
+{%- macro do_render_field_getter(struct, field, pass_has) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldGetter(msg, ::{{ struct.vanilla_type_reference.full_cpp_name() }}::{{ field.field_number_name }},
+    {{ do_render_ptr_getter(struct, field) }} 
+    {%- if pass_has %}
+        ,
+        {{ do_render_ptr_has(struct, field) }}
+    {% endif %}
+)
+{% endmacro -%}
+
+{%- macro do_render_read_field(struct, context, field) %}
+.{{ field.short_name }} = USERVER_NAMESPACE::proto_structs::io::impl::ReadField<decltype({{ struct.contextual_cpp_name(context=context) }}::{{ field.short_name }})>(ctx, 
+{%- if field.read_kind == "other" %}
+    {{ do_render_field_getter(struct, field, False) }}
+{%- elif field.read_kind == "optional" %}
+    {{ do_render_field_getter(struct, field, True) }}
+{%- elif field.read_kind == "oneof" %}
+    {%- for oneof_field in field.oneof_fields %} 
+        {{ do_render_field_getter(struct, oneof_field, True) }}
+        {%- if not loop.last %}
+        ,
+        {% endif %}
+    {% endfor %}
+{% endif %}
+),
+{% endmacro -%}
+
+{%- macro do_render_read(struct, context) %}
+{{ struct.contextual_cpp_name(context=context) }}
+ReadProtoStruct(USERVER_NAMESPACE::proto_structs::io::ReadContext& ctx,
+    USERVER_NAMESPACE::proto_structs::io::To<{{ struct.contextual_cpp_name(context=context) }}>,
+    const ::{{ struct.vanilla_type_reference.full_cpp_name() }}& msg) {
+    return {
+        {%- for field in struct.fields %} 
+            {{ do_render_read_field(struct, context, field) }}
+        {% endfor %}
+    };
+}
+{% endmacro -%}
+
+
+{%- macro do_render_string_setter(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldSetter(
+    msg,
+    {{ do_render_field_number(struct, field) }},
+    {{ do_render_field_set(struct, field) }}<const std::string&>,
+    {{ do_render_field_clear(struct, field) }}
+)
+{% endmacro -%}
+
+{%- macro do_render_simple_setter(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldSetter(
+    msg, 
+    {{ do_render_field_number(struct, field) }},
+    {{ do_render_field_set(struct, field) }},
+    {{ do_render_field_clear(struct, field) }}
+)
+{% endmacro -%}
+
+{%- macro do_render_message_setter(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldSetter(
+    msg, 
+    {{ do_render_field_number(struct, field) }},
+    {{ do_render_field_mutable(struct, field) }},
+    {{ do_render_field_clear(struct, field) }}
+)
+{% endmacro -%}
+
+{%- macro do_render_field_setter(struct, field) %}
+{%- if field.write_kind == "other" %}
+    {{ do_render_simple_setter(struct, field) }}
+{%- elif field.write_kind == "string" %}
+    {{ do_render_string_setter(struct, field) }}
+{%- elif field.write_kind == "vector_map_message" %}
+    {{ do_render_message_setter(struct, field) }}
+{%- elif field.write_kind == "oneof" %}
+    {%- for oneof_field in field.oneof_fields %} 
+        {{ do_render_field_setter(struct, oneof_field) }}
+        {%- if not loop.last %}
+        ,
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% endmacro -%}
+
+{%- macro do_render_write_field(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::WriteField(ctx, std::forward<T>(obj).{{ field.short_name }},
+ {{ do_render_field_setter(struct, field) }}
+);
+{% endmacro -%}
+
+{%- macro do_render_write_impl(struct) %}
+template<typename T>
+void WriteProtoStructImpl(
+  [[maybe_unused]] USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
+  [[maybe_unused]] T&& obj,
+  [[maybe_unused]] ::{{ struct.vanilla_type_reference.full_cpp_name() }}& msg
+) {
+    {%- for field in struct.fields %} 
+        {{ do_render_write_field(struct, field) }}
+    {% endfor %}
+}
+{% endmacro -%}
+
+{%- macro do_render_write_const_ref(struct, context) %}
+void
+WriteProtoStruct(USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
+    const {{ struct.contextual_cpp_name(context=context) }}& obj,
+   ::{{ struct.vanilla_type_reference.full_cpp_name() }}& msg) {
+    WriteProtoStructImpl(ctx, obj, msg);
+}
+{% endmacro -%}
+
+{%- macro do_render_write_rvalue(struct, context) %}
+void
+WriteProtoStruct(USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
+    {{ struct.contextual_cpp_name(context=context) }}&& obj,
+    ::{{ struct.vanilla_type_reference.full_cpp_name() }}& msg) {
+    WriteProtoStructImpl(ctx, std::move(obj), msg);
+}
+{% endmacro -%}

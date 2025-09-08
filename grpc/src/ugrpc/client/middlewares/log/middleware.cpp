@@ -3,6 +3,7 @@
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
 #include <ugrpc/impl/logging.hpp>
@@ -17,7 +18,7 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, const
     if (!logging::ShouldLog(settings.msg_log_level)) {
         return "";
     }
-    return ugrpc::impl::GetMessageForLogging(message, settings.max_msg_size);
+    return ugrpc::ToLimitedDebugString(message, settings.max_msg_size);
 }
 
 class SpanLogger {
@@ -91,7 +92,7 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status& 
             logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
         }
     } else {
-        auto error_details = ugrpc::impl::GetErrorDetailsForLogging(status);
+        auto error_details = ugrpc::ToUnlimitedDebugString(status);
         logging::LogExtra extra{
             {ugrpc::impl::kTypeTag, "error_status"},
             {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},

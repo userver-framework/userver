@@ -41,11 +41,9 @@ find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
 
-_userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
-find_package_required(OpenSSL "libssl-dev")
 
-find_package(libnghttp2 REQUIRED)
 find_package(libev REQUIRED)
+find_package(libnghttp2 REQUIRED)
 
 if(USERVER_CONAN)
     find_package(c-ares REQUIRED)
@@ -97,14 +95,18 @@ endif()
 
 target_link_libraries(
     ${PROJECT_NAME}
-    PUBLIC userver-universal Boost::locale CURL::libcurl
-    PRIVATE Boost::filesystem
-            Boost::program_options
-            Boost::iostreams
-            Iconv::Iconv
-            OpenSSL::Crypto
-            OpenSSL::SSL
-            ZLIB::ZLIB
+    PUBLIC
+	userver-universal
+	Boost::locale
+	CURL::libcurl
+    PRIVATE
+	Boost::filesystem
+	Boost::program_options
+	Boost::iostreams
+	Iconv::Iconv
+	OpenSSL::SSL
+	OpenSSL::Crypto
+	ZLIB::ZLIB
 )
 if(TARGET Boost::endian)
     # Boost from CPM

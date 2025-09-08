@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <simple/file1.pb.h>
 #include <simple/file1.structs.usrv.pb.hpp>
+#include <userver/proto-structs/convert.hpp>
 
 namespace ss = simple::structs;
 
@@ -15,6 +17,19 @@ TEST(SingleFile, SimpleStruct) {
     message.some_text = std::optional<std::string>("foo");
     message.is_condition = true;
     message.some_bytes = {"foo", "bar"};
+
+    ss::SimpleStruct::ProtobufMessage s;
+
+    ::proto_structs::StructToMessage(std::move(message), s);
+
+    [[maybe_unused]] ss::SimpleStruct to;
+    ::proto_structs::MessageToStruct(s, to);
+
+    ASSERT_EQ(to.some_text, std::optional<std::string>("foo"));
+    ASSERT_EQ(to.some_integer, 5);
+    ASSERT_TRUE(to.is_condition);
+    std::vector<std::string> exp = {"foo", "bar"};
+    ASSERT_EQ(to.some_bytes, exp);
 }
 
 TEST(SingleFile, NestedStruct) {

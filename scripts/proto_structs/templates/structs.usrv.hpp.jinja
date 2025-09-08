@@ -5,7 +5,9 @@
 
 #pragma once
 
-{% for include in includes %}
+#include <userver/proto-structs/impl/bundles/structs_hpp.hpp>
+
+{% for include in includes_hpp %}
 #include <{{ include }}>
 {% endfor %}
 

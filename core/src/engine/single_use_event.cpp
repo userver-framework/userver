@@ -27,9 +27,8 @@ void SingleUseEvent::Wait() {
                 "Timeout is not expected here due to unreachable "
                 "Deadline at Sleep"
             );
-#ifdef NDEBUG
-            [[fallthrough]];
-#endif
+            // Never reaches
+            break;
         case FutureStatus::kCancelled:
             throw WaitInterruptedException(current_task::CancellationReason());
     }

@@ -1,0 +1,33 @@
+commit 6dee153242d7becebe026a9bed52f4114441719d
+Author: Soo-Hwan Na <whiteshell2544@naver.com>
+Date:   Wed Jul 10 09:20:07 2024 -0700
+
+    PR #1707: Fixup absl_random compile breakage in Apple ARM64 targets
+    
+    Imported from GitHub PR https://github.com/abseil/abseil-cpp/pull/1707
+    
+    Switched to append a full string of "-Xarch_x86_64 -maes" instead of " -Xarch_x86_64" "-maes", for example. Now cmake correctly appends -Xarch_x86_64 to each x64 specific compile option, removing the error caused in recent clang releases:
+    
+    clang++: error: unsupported option '-msse4.1' for target 'arm64-apple-darwin23.5.0'
+    
+    Merge 83d17537ee70158d627681a0f0c15f15f30ef838 into f46495ea96f68fc3f6c394f099b2992743f6ff7f
+    
+    Merging this change closes #1707
+    
+    COPYBARA_INTEGRATE_REVIEW=https://github.com/abseil/abseil-cpp/pull/1707 from Royna2544:patch-1 83d17537ee70158d627681a0f0c15f15f30ef838
+    PiperOrigin-RevId: 651046496
+    Change-Id: Ifdb3848febeead4fb562a2d9f0fdca2e0aea185d
+
+diff --git a/absl/copts/AbseilConfigureCopts.cmake b/absl/copts/AbseilConfigureCopts.cmake
+index 1afb9610..e0007ef8 100644
+--- a/absl/copts/AbseilConfigureCopts.cmake
++++ b/absl/copts/AbseilConfigureCopts.cmake
+@@ -42,7 +42,7 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES [[Clang]])
+     string(TOUPPER "${_arch}" _arch_uppercase)
+     string(REPLACE "X86_64" "X64" _arch_uppercase ${_arch_uppercase})
+     foreach(_flag IN LISTS ABSL_RANDOM_HWAES_${_arch_uppercase}_FLAGS)
+-      list(APPEND ABSL_RANDOM_RANDEN_COPTS "-Xarch_${_arch}" "${_flag}")
++      list(APPEND ABSL_RANDOM_RANDEN_COPTS "-Xarch_${_arch} ${_flag}")
+     endforeach()
+   endforeach()
+   # If a compiler happens to deal with an argument for a currently unused

@@ -56,12 +56,19 @@ class _CodeGenerator:
 
     def _make_jinja_data(self, file_node: gen_node.File) -> Dict[str, Any]:
         includes_list = includes.sorted_includes(file_node, current_hpp=str(file_node.gen_path(ext='hpp')))
+        includes_hpp_list = [include.path for include in includes_list if include.kind == includes.IncludeKind.FOR_HPP]
+        includes_cpp_list = [
+            include.path
+            for include in includes_list
+            if include.kind == includes.IncludeKind.FOR_CPP or include.kind == includes.IncludeKind.VANILLA
+        ]
         proto_file_name = typing.cast(str, self.file_descriptor.name)
 
         return {
             'file_name_wo_ext': _strip_ext(proto_file_name),
             'gen_nodes': file_node.children,
-            'includes': includes_list,
+            'includes_hpp': includes_hpp_list,
+            'includes_cpp': includes_cpp_list,
         }
 
 
