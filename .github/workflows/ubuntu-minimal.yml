@@ -29,7 +29,7 @@ jobs:
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
 
-        name: ubuntu (minimal installation)
+        name: ubuntu (CPM)
         runs-on: ubuntu-latest
 
         steps:
