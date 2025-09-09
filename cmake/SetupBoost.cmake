@@ -17,10 +17,10 @@ set(BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE
     iostreams
     context
     coroutine
+    coroutine2
 )
 set(BOOST_INCLUDE_LIBRARIES
     ${BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE}
-    coroutine2
     stacktrace
     uuid
     lockfree
