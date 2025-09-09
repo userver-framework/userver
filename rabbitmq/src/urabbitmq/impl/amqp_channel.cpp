@@ -175,7 +175,7 @@ void AmqpChannel::Publish(
         envelope.setReplyTo(publishing.reply_to.value().c_str());
     }
     if (publishing.correlation_id.has_value()) {
-        envelope.setReplyTo(publishing.correlation_id.value().c_str());
+        envelope.setCorrelationID(publishing.correlation_id.value().c_str());
     }
 
     {
