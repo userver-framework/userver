@@ -40,6 +40,28 @@ TEST_F(LoggingJsonTest, NoThreadIdInProduction) {
     EXPECT_FALSE(json.HasMember("thread_id")) << ToString(json);
 }
 
+TEST_F(LoggingJsonTest, LogExtraBool) {
+    // Force thread_id and task_id to appear.
+    SetDefaultLoggerLevel(logging::Level::kDebug);
+
+    LOG_CRITICAL() << "test" << logging::LogExtra{{"bool_true", true}, {"bool_false", false}};
+
+    auto str = GetStreamString();
+    auto json = formats::json::FromString(str);
+
+    EXPECT_EQ(str.back(), '\n');
+
+    EXPECT_EQ(json["level"].As<std::string>(), "CRITICAL");
+    EXPECT_NO_THROW(json["module"].As<std::string>());
+    EXPECT_NO_THROW(json["timestamp"].As<std::string>());
+    EXPECT_EQ(json["task_id"].As<std::string>(), "0");
+    EXPECT_EQ(json["text"].As<std::string>(), "test");
+    EXPECT_NO_THROW(json["thread_id"].As<std::string>());
+
+    EXPECT_TRUE(json["bool_true"].As<bool>());
+    EXPECT_FALSE(json["bool_false"].As<bool>());
+}
+
 TEST_F(LoggingJsonTest, LogExtraJsonString) {
     // Force thread_id and task_id to appear.
     SetDefaultLoggerLevel(logging::Level::kDebug);

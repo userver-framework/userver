@@ -335,6 +335,18 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
     CheckModulePath(GetStreamString(), kPath);
 }
 
+TEST_F(LoggingTest, LogExtraBool) {
+    LOG_CRITICAL() << "test" << logging::LogExtra{{"bool_true", true}};
+    logging::LogFlush();
+    EXPECT_THAT(GetStreamString(), testing::HasSubstr("bool_true=1"));
+
+    ClearLog();
+
+    LOG_CRITICAL() << "test" << logging::LogExtra{{"bool_false", false}};
+    logging::LogFlush();
+    EXPECT_THAT(GetStreamString(), testing::HasSubstr("bool_false=0"));
+}
+
 TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {
     const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
     const std::string input(str, str + sizeof(tskv_test::data_bin));

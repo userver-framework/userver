@@ -40,6 +40,7 @@ public:
     using Value = std::variant<
         std::string,
         int,
+        bool,
         long,
         long long,
         unsigned int,
