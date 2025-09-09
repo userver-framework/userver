@@ -96,6 +96,6 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-internal-compile-options)
 if(USERVER_CONAN)
-    target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Boost::config Boost::assert)
 endif()
 _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
