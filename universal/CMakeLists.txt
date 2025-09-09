@@ -62,6 +62,9 @@ add_library(userver-internal-compile-options INTERFACE)
 userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
 target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
 target_compile_options(userver-internal-compile-options INTERFACE "-Wall" "-Wextra")
+if(USERVER_CONAN)
+    target_link_libraries(userver-internal-compile-options INTERFACE Boost::boost)
+endif()
 
 # as alternative for -Wno-gnu-zero-variadic-macro-arguments
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_STANDARD GREATER_EQUAL 20)
@@ -244,12 +247,6 @@ if(TARGET Boost::algorithm)
     target_link_libraries(
         ${PROJECT_NAME}
         PUBLIC Boost::algorithm Boost::uuid Boost::random Boost::container
-    )
-endif()
-if(USERVER_CONAN)
-    target_link_libraries(
-        ${PROJECT_NAME}
-        PUBLIC Boost::boost
     )
 endif()
 
