@@ -17,10 +17,10 @@ set(BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE
     iostreams
     context
     coroutine
-    coroutine2
 )
 set(BOOST_INCLUDE_LIBRARIES
     ${BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE}
+    coroutine2
     stacktrace
     uuid
     lockfree
@@ -39,7 +39,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_BOOST AND NOT BOOST_CPM)
     find_package(
         Boost ${MAYBE_REQUIRED} CONFIG
         COMPONENTS ${BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE} stacktrace_basic
-        OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
+        OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg coroutine2
     )
 
     if(Boost_FOUND)
