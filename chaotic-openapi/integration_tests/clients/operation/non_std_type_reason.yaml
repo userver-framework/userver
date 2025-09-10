@@ -4,24 +4,23 @@ info:
     version: '1.0'
 
 paths:
-    /test1:
+    /test2:
         get:
-            operationId: MyTest
+            operationId: MyTest2
+            requestBody:
+                content:
+                    application/json:
+                        x-usrv-non-std-type-reason: bla bla
+                        schema:
+                            type: string
             responses:
                 '200':
                     description: OK
                     content:
                         application/json:
+                            x-usrv-non-std-type-reason: bla bla bla
                             schema:
                                 type: object
                                 properties: {}
                                 additionalProperties: false
-    /test2:
-        get:
-            operationId: MyTest2
-            responses:
-                '200':
-                    description: OK
-                    content:
-                        application/json: {}
 components: {}

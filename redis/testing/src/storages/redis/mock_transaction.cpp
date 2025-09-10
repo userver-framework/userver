@@ -170,6 +170,11 @@ RequestGeoadd MockTransaction::Geoadd(std::string key, std::vector<GeoaddArg> po
     return AddSubrequest(impl_->Geoadd(std::move(key), std::move(point_members)));
 }
 
+RequestGeopos MockTransaction::Geopos(std::string key, std::vector<std::string> members) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->Geopos(std::move(key), std::move(members)));
+}
+
 RequestGeoradius MockTransaction::Georadius(
     std::string key,
     Longitude lon,

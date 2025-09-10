@@ -39,6 +39,8 @@ public:
 
     virtual RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members);
 
+    virtual RequestGeopos Geopos(std::string key, std::vector<std::string> members);
+
     virtual RequestGeoradius
     Georadius(std::string key, Longitude lon, Latitude lat, double radius, const GeoradiusOptions& georadius_options);
 

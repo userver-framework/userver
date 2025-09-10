@@ -49,6 +49,8 @@ public:
 
     RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members) override;
 
+    RequestGeopos Geopos(std::string key, std::vector<std::string> members) override;
+
     RequestGeoradius Georadius(
         std::string key,
         Longitude lon,

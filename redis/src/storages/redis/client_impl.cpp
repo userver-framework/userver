@@ -236,6 +236,16 @@ ClientImpl::Geoadd(std::string key, std::vector<GeoaddArg> point_members, const 
     ));
 }
 
+RequestGeopos
+ClientImpl::Geopos(std::string key, std::vector<std::string> members, const CommandControl& command_control) {
+    if (members.empty())
+        return CreateDummyRequest<RequestGeopos>(std::make_shared<Reply>("geopos", ReplyData::Array{}));
+    const auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestGeopos>(MakeRequest(
+        CmdArgs{"geopos", std::move(key), std::move(members)}, shard, false, GetCommandControl(command_control)
+    ));
+}
+
 RequestGeoradius ClientImpl::Georadius(
     std::string key,
     Longitude lon,

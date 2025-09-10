@@ -46,7 +46,7 @@ class Parameter:
 
 @dataclasses.dataclass
 class MediaType:
-    schema: Union[types.Schema, types.Ref]
+    schema: Union[types.Schema, types.Ref, None]
     examples: dict[str, Any]
 
 

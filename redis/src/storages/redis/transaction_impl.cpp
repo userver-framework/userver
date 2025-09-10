@@ -110,6 +110,11 @@ RequestGeoadd TransactionImpl::Geoadd(std::string key, std::vector<GeoaddArg> po
     return AddCmd<RequestGeoadd>("geoadd", true, std::move(key), std::move(point_members));
 }
 
+RequestGeopos TransactionImpl::Geopos(std::string key, std::vector<std::string> members) {
+    UpdateShard(key);
+    return AddCmd<RequestGeopos>("geopos", false, std::move(key), std::move(members));
+}
+
 RequestGeoradius TransactionImpl::Georadius(
     std::string key,
     Longitude lon,

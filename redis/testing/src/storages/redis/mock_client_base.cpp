@@ -128,6 +128,11 @@ RequestGeoadd MockClientBase::
     AbortWithStacktrace(kNotMocked);
 }
 
+RequestGeopos MockClientBase::
+    Geopos(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
+    AbortWithStacktrace(kNotMocked);
+}
+
 RequestGeoradius MockClientBase::Georadius(
     std::string /*key*/,
     Longitude /*lon*/,

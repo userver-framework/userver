@@ -209,6 +209,22 @@ ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& 
     return result;
 }
 
+std::vector<std::optional<Point>>
+ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<Point>>>) {
+    auto&& array = std::move(array_data).GetArray();
+    std::vector<std::optional<Point>> result;
+    result.reserve(array.size());
+
+    for (auto&& elem : array) {
+        if (elem.IsNil()) {
+            result.emplace_back(std::nullopt);
+            continue;
+        }
+        result.emplace_back(ParsePointArray(std::move(elem), request_description));
+    }
+    return result;
+}
+
 std::string Parse(ReplyData&& reply_data, const std::string& request_description, To<std::string>) {
     reply_data.ExpectString(request_description);
     return std::move(reply_data.GetString());
@@ -343,6 +359,11 @@ Parse(ReplyData&& reply_data, const std::string& request_description, To<std::un
         result[std::move(elem.Key())] = std::move(elem.Value());
     }
     return result;
+}
+
+Point Parse(ReplyData&& reply_data, const std::string& request_description, To<Point>) {
+    reply_data.ExpectArray(request_description);
+    return ParsePointArray(reply_data, request_description);
 }
 
 ReplyData Parse(ReplyData&& reply_data, const std::string&, To<ReplyData>) { return std::move(reply_data); }

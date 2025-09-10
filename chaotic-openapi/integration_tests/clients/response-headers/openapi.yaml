@@ -26,4 +26,11 @@ paths:
                             schema:
                                 type: integer
                                 x-taxi-cpp-type: std::chrono::seconds
-components: {}
+components:
+    responses:
+        ResponseX:
+            description: OK
+            headers:
+                X-Header:
+                    schema:
+                        type: string

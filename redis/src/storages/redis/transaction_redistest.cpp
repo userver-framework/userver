@@ -247,6 +247,22 @@ UTEST_F(RedisClientTransactionTest, Georadius) {
     EXPECT_EQ(result[1].dist, 56.4413);
 }
 
+UTEST_F(RedisClientTransactionTest, Geopos) {
+    auto& client = GetTransactionClient();
+    Get(client->Geoadd("Sicily", {{13.1, 38.2, "Palermo"}, {15.3, 37.4, "Catania"}}));
+
+    const auto result = Get(client->Geopos("Sicily", std::vector<std::string>{"Palermo", "Catania", "NonExisting"}));
+    const auto kGeoTolerance = 1e-5;
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_TRUE(result[0].has_value());
+    EXPECT_TRUE(result[1].has_value());
+    EXPECT_FALSE(result[2].has_value());
+    EXPECT_NEAR(result[0].value().lon, 13.1, kGeoTolerance);
+    EXPECT_NEAR(result[0].value().lat, 38.2, kGeoTolerance);
+    EXPECT_NEAR(result[1].value().lon, 15.3, kGeoTolerance);
+    EXPECT_NEAR(result[1].value().lat, 37.4, kGeoTolerance);
+}
+
 UTEST_F(RedisClientTransactionTest, Getset) {
     auto& client = GetTransactionClient();
     EXPECT_EQ(Get(client->Incr("key")), 1);

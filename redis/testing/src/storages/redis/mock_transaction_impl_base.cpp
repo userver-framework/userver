@@ -53,6 +53,10 @@ RequestGeoadd MockTransactionImplBase::Geoadd(std::string /*key*/, std::vector<G
     AbortWithStacktrace("Redis method not mocked");
 }
 
+RequestGeopos MockTransactionImplBase::Geopos(std::string /*key*/, std::vector<std::string> /*members*/) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
 RequestGeoradius MockTransactionImplBase::Georadius(
     std::string /*key*/,
     Longitude /*lon*/,
