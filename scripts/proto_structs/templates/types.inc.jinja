@@ -1,4 +1,5 @@
 {% import "forward_declarations.inc.jinja" as forward_declarations %}
+{% import "io_forward_declarations.inc.jinja" as io_forward_declarations %}
 
 {%- macro render_gen_node(node) %}
 {%- if node.kind == "namespace" %}
@@ -21,8 +22,8 @@ namespace {{ namespace.short_name }} {
 {% for child in namespace.children %}
 {{ render_gen_node(child) }}
 {% endfor %}
-{%- for child in namespace.iter_all_children %}
-{{ forward_declarations.do_render_io_functions(child, namespace) }}
+{%- for child in namespace.iter_all_children() %}
+{{ io_forward_declarations.do_render_io_functions(child, namespace) }}
 {% endfor %}
 }  // namespace {{ namespace.short_name }}
 {% endmacro -%}
@@ -30,7 +31,7 @@ namespace {{ namespace.short_name }} {
 {%- macro do_render_struct(struct) %}
 struct {{ struct.name.short_name }} final {
 {% filter indent(width=4, first=True) %}
-using ProtobufMessage = ::{{ struct.vanilla_type_reference_fwd.full_cpp_name() }};
+using ProtobufMessage = ::{{ struct.vanilla_full_name_fwd }};
 
 {%- for child in struct.children %}
 {{ forward_declarations.render_gen_node(child) }}

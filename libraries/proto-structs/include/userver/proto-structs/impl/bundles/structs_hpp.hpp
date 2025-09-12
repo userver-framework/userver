@@ -8,4 +8,5 @@
 #include <utility>
 #include <vector>
 
+#include <userver/proto-structs/impl/oneof_codegen.hpp>
 #include <userver/proto-structs/io/fwd.hpp>

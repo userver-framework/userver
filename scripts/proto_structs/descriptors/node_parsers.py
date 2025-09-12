@@ -19,6 +19,7 @@ import google.protobuf.descriptor as descriptor
 from proto_structs.descriptors import option_parsers
 from proto_structs.descriptors import type_mapping
 from proto_structs.models import gen_node
+from proto_structs.models import io
 from proto_structs.models import names
 from proto_structs.models import options
 from proto_structs.models import sort_dependencies
@@ -142,6 +143,42 @@ def parse_message(
 _SYNTHETIC_ONEOF_NAME_REGEX = re.compile(r'X*_\w*')
 
 
+def _io_kind_read(field: descriptor.FieldDescriptor) -> io.ReadVanillaFieldKind:
+    if typing.cast(int, field.label) == descriptor.FieldDescriptor.LABEL_OPTIONAL:
+        if typing.cast(bool, field.has_presence):
+            return io.ReadVanillaFieldKind.OPTIONAL
+
+    return io.ReadVanillaFieldKind.OTHER
+
+
+def _io_kind_write(field: descriptor.FieldDescriptor) -> io.WriteVanillaFieldKind:
+    type_kind: int = field.type
+    label = typing.cast(int, field.label)
+
+    # Check repeated firstly. Also handle a repeated map entry.
+    if label == descriptor.FieldDescriptor.LABEL_REPEATED:
+        return io.WriteVanillaFieldKind.VECTOR_MAP_MESSAGE
+
+    if type_kind == descriptor.FieldDescriptor.TYPE_STRING or type_kind == descriptor.FieldDescriptor.TYPE_BYTES:
+        return io.WriteVanillaFieldKind.STRING
+
+    if type_mapping.BUILTIN_TYPES.get(type_kind) is not None or type_kind == descriptor.FieldDescriptor.TYPE_ENUM:
+        return io.WriteVanillaFieldKind.OTHER
+
+    if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or type_kind == descriptor.FieldDescriptor.TYPE_GROUP:
+        return io.WriteVanillaFieldKind.VECTOR_MAP_MESSAGE
+
+    raise Exception('unreachable')
+
+
+def _io_kind_by_field(field: descriptor.FieldDescriptor) -> io.IoKind:
+    return io.IoKind(read=_io_kind_read(field), write=_io_kind_write(field))
+
+
+def _io_kind_oneof() -> io.IoKind:
+    return io.IoKind(read=io.ReadVanillaFieldKind.ONEOF, write=io.WriteVanillaFieldKind.ONEOF)
+
+
 def _apply_options_to_field(
     field: descriptor.FieldDescriptor, struct_field: gen_node.StructField, *, plugin_options: options.PluginOptions
 ) -> gen_node.StructField:
@@ -223,6 +260,7 @@ def parse_field(
         field_type=parsed_type,
         number=typing.cast(int, field.number),
         oneof_fields=None,
+        io_kinds=_io_kind_by_field(field),
     )
     return _apply_options_to_field(field, result_field, plugin_options=plugin_options)
 
@@ -279,6 +317,7 @@ def parse_oneof(
         field_type=type_reference,
         number=None,
         oneof_fields=fields,
+        io_kinds=_io_kind_oneof(),
     )
 
 

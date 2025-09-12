@@ -17,24 +17,23 @@ from proto_structs.models import type_ref_consts
 
 TypeDescriptor = Union[descriptor.Descriptor, descriptor.EnumDescriptor]
 
-_BUNDLE_HPP = includes.BUNDLE_STRUCTS_HPP
 
 BUILTIN_TYPES: Mapping[int, type_ref.TypeReference] = {
     descriptor.FieldDescriptor.TYPE_BOOL: type_ref.KeywordType(full_cpp_name='bool'),
     descriptor.FieldDescriptor.TYPE_FLOAT: type_ref.KeywordType(full_cpp_name='float'),
     descriptor.FieldDescriptor.TYPE_DOUBLE: type_ref.KeywordType(full_cpp_name='double'),
-    descriptor.FieldDescriptor.TYPE_STRING: type_ref.BuiltinType(full_cpp_name='std::string', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_BYTES: type_ref.BuiltinType(full_cpp_name='std::string', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_INT32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_INT64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_UINT32: type_ref.BuiltinType(full_cpp_name='std::uint32_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_UINT64: type_ref.BuiltinType(full_cpp_name='std::uint64_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_SINT32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_SINT64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_FIXED32: type_ref.BuiltinType(full_cpp_name='std::uint32_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_FIXED64: type_ref.BuiltinType(full_cpp_name='std::uint64_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_SFIXED32: type_ref.BuiltinType(full_cpp_name='std::int32_t', include=_BUNDLE_HPP),
-    descriptor.FieldDescriptor.TYPE_SFIXED64: type_ref.BuiltinType(full_cpp_name='std::int64_t', include=_BUNDLE_HPP),
+    descriptor.FieldDescriptor.TYPE_STRING: type_ref.BuiltinType(full_cpp_name='std::string'),
+    descriptor.FieldDescriptor.TYPE_BYTES: type_ref.BuiltinType(full_cpp_name='std::string'),
+    descriptor.FieldDescriptor.TYPE_INT32: type_ref.BuiltinType(full_cpp_name='std::int32_t'),
+    descriptor.FieldDescriptor.TYPE_INT64: type_ref.BuiltinType(full_cpp_name='std::int64_t'),
+    descriptor.FieldDescriptor.TYPE_UINT32: type_ref.BuiltinType(full_cpp_name='std::uint32_t'),
+    descriptor.FieldDescriptor.TYPE_UINT64: type_ref.BuiltinType(full_cpp_name='std::uint64_t'),
+    descriptor.FieldDescriptor.TYPE_SINT32: type_ref.BuiltinType(full_cpp_name='std::int32_t'),
+    descriptor.FieldDescriptor.TYPE_SINT64: type_ref.BuiltinType(full_cpp_name='std::int64_t'),
+    descriptor.FieldDescriptor.TYPE_FIXED32: type_ref.BuiltinType(full_cpp_name='std::uint32_t'),
+    descriptor.FieldDescriptor.TYPE_FIXED64: type_ref.BuiltinType(full_cpp_name='std::uint64_t'),
+    descriptor.FieldDescriptor.TYPE_SFIXED32: type_ref.BuiltinType(full_cpp_name='std::int32_t'),
+    descriptor.FieldDescriptor.TYPE_SFIXED64: type_ref.BuiltinType(full_cpp_name='std::int64_t'),
 }
 
 
@@ -75,19 +74,6 @@ def parse_type_name(proto_type: TypeDescriptor) -> names.TypeName:
         outer_type_names=_get_outer_structs_names(proto_type),
         short_name=typing.cast(str, proto_type.name),
     )
-
-
-def get_vanilla_type_name(*, name: names.TypeName) -> names.TypeName:
-    """
-    Converts a proto package to a vanilla protobuf name.
-    Example: 'path::to::Struct::Nested::Inner' -> 'path::to:Struct_Nested_Inner'
-    """
-    short_name: str = ''
-    for outer_type in name.outer_type_names:
-        short_name += f'{outer_type}_'
-
-    short_name += name.short_name
-    return names.TypeName(namespace_segments=name.namespace_segments, outer_type_names=(), short_name=short_name)
 
 
 def _get_outer_structs_names(proto_type: TypeDescriptor) -> Sequence[str]:

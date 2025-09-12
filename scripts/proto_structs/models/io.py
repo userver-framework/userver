@@ -1,11 +1,11 @@
 """Concepts and helpers for io functions."""
 
-import abc
+import dataclasses
 import enum
 
 
-class ReadGetterKind(enum.Enum):
-    """The kind of ReadProtoStruct getter."""
+class ReadVanillaFieldKind(enum.Enum):
+    """The kind of ReadProtoStruct getter. A kind is depended only from protobuf type."""
 
     #: Oneof.
     ONEOF = enum.auto()
@@ -15,28 +15,24 @@ class ReadGetterKind(enum.Enum):
     OTHER = enum.auto()
 
 
-class WriteSetterKind(enum.Enum):
-    """The kind of WriteProtoStruct setter."""
+class WriteVanillaFieldKind(enum.Enum):
+    """The kind of WriteProtoStruct setter. A kind is depended only from protobuf type."""
 
     #: std::string or std::optional<std::string>.
     STRING = enum.auto()
-    #: std::vector.
-    VECTOR = enum.auto()
-    #: proto_structs::HashMap.
-    MAP = enum.auto()
-    #: Proto message.
-    MESSAGE = enum.auto()
     #: Oneof.
     ONEOF = enum.auto()
     #: Other.
     OTHER = enum.auto()
-    #: Combine.
-    VECTOR_MAP_MESSAGE = VECTOR | MAP | MESSAGE
+    #: Vector|Map|Message.
+    VECTOR_MAP_MESSAGE = enum.auto()
 
 
-class HasIO(abc.ABC):
-    def read_kind_impl(self, kind: ReadGetterKind) -> str:
-        return kind.name.lower()
+@dataclasses.dataclass
+class IoKind:
+    """IO kinds for getters and setters."""
 
-    def write_kind_impl(self, kind: WriteSetterKind) -> str:
-        return kind.name.lower()
+    #: Read kind.
+    read: ReadVanillaFieldKind = ReadVanillaFieldKind.OTHER
+    #: Write kind.
+    write: WriteVanillaFieldKind = WriteVanillaFieldKind.OTHER

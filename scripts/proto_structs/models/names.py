@@ -50,6 +50,47 @@ class HasCppNameImpl(HasCppName, abc.ABC):
         return _get_contextual_cpp_name(self, context=context)
 
 
+class HasVanillaName(abc.ABC):
+    """A C++ entity with a vanilla proto name."""
+
+    @property
+    @abc.abstractmethod
+    def vanilla_name(self) -> TypeName:
+        """Returns a vanilla type name."""
+        raise NotImplementedError()
+
+    @property
+    def vanilla_full_name(self) -> str:
+        """
+        Vanilla name when the definition is available.
+        Example: 'path::to::MyType::Nested::Inner'.
+        """
+        return self.name_impl(name=self.vanilla_name)
+
+    @property
+    def vanilla_full_name_fwd(self) -> str:
+        """
+        Vanilla name when the definition isn't available. For fwd.
+        Example: 'path::to:MyType_Nested_Inner'.
+        """
+        return self.name_impl(name=get_vanilla_type_name(name=self.vanilla_name))
+
+    def name_impl(self, name: TypeName) -> str:
+        segments = name.name_segments()
+        assert all(segments), f'Empty name segments are not allowed for {self}'
+        return '::'.join(segments)
+
+
+def get_vanilla_type_name(*, name: TypeName) -> TypeName:
+    """
+    Converts a proto package to a vanilla protobuf name.
+    Example: 'path::to::MyType::Nested::Inner' -> 'path::to:MyType_Nested_Inner'.
+    """
+    short_name: str = '_'.join((*name.outer_type_names, name.short_name))
+
+    return TypeName(namespace_segments=name.namespace_segments, outer_type_names=(), short_name=short_name)
+
+
 _GLOBAL_PREFIXES: Sequence[str] = (
     '::',
     'std::',
@@ -185,8 +226,23 @@ def make_nested_type_name(containing_type_name: TypeName, short_name: str) -> Ty
 
 
 def to_pascal_case(name: str) -> str:
-    """Converts a `snake_case` or `camelCase` identifier to `PascalCase`."""
-    return ''.join(part.capitalize() for part in name.split('_'))
+    """
+    Converts a `snake_case` or `camelCase` identifier to `PascalCase`.
+    Examples:
+    some_bytes_my_word -> kSomeBytesMyWordFieldNumber
+    by2tes_m1y -> kBy2TesM1YFieldNumber
+    IYandexUid -> kIYandexUidFieldNumber
+    """
+    words = ''.join(word[0].upper() + word[1:] for word in name.split('_') if len(word) > 0)
+
+    result = ''
+    for prev, ch in zip(' ' + words, words):
+        # Handle digits.
+        if prev.isdigit() and ch.isalpha():
+            result = result + ch.upper()
+        else:
+            result = result + ch
+    return result
 
 
 def to_upper_case(name: str) -> str:
@@ -199,3 +255,9 @@ def to_upper_case(name: str) -> str:
             result += '_'
         result += char
     return result.upper()
+
+
+def to_snake_case(name: str) -> str:
+    name = re.sub(r'[\s-]+', '_', name)
+    name = re.sub(r'(?<!^)(?=[A-Z])', r'_', name)
+    return name.lower()

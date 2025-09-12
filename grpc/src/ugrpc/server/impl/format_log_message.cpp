@@ -63,7 +63,15 @@ std::string_view GetCurrentTimeString(std::chrono::system_clock::time_point star
         );
         cache->cached_time = rounded_now;
     }
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-stack-address"
+#endif
     return std::string_view{cache->cached_time_string, kTimeTemplate.size()};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 }
 
 }  // namespace

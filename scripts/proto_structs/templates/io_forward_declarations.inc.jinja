@@ -1,0 +1,34 @@
+{%- macro do_render_io_functions(node, context) %}
+{%- if node.kind == "struct" %}
+{{ do_render_read(node, context) }}
+{{ do_render_write_const_ref(node, context) }}
+{{ do_render_write_rvalue(node, context) }}
+{%- endif %}
+{% endmacro -%}
+
+{%- macro do_render_read(type_node, context) %}
+{{ type_node.contextual_cpp_name(context=context) }} ReadProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::ReadContext&,
+USERVER_NAMESPACE::proto_structs::io::To<{{ type_node.contextual_cpp_name(context=context) }}>,
+const ::{{ type_node.vanilla_full_name_fwd }}&);
+{% endfilter %}
+{% endmacro -%}
+
+{%- macro do_render_write_const_ref(type_node, context) %}
+void WriteProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::WriteContext&,
+const {{ type_node.contextual_cpp_name(context=context) }}&,
+::{{ type_node.vanilla_full_name_fwd }}&);
+{% endfilter %}
+{% endmacro -%}
+
+{%- macro do_render_write_rvalue(type_node, context) %}
+void WriteProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::WriteContext&,
+{{ type_node.contextual_cpp_name(context=context) }}&&,
+::{{ type_node.vanilla_full_name_fwd }}&);
+{% endfilter %}
+{% endmacro -%}

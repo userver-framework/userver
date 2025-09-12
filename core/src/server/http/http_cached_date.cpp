@@ -46,7 +46,14 @@ std::string_view GetCachedDate() {
         cache->last_time_string_size = time_str.size();
     }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-stack-address"
+#endif
     return std::string_view{cache->last_time_string, cache->last_time_string_size};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 }
 
 }  // namespace impl

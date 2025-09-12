@@ -43,19 +43,6 @@ message SimpleStruct {
     string digit1u = 8;
 }
 
-message NotRecommendedFieldNames {
-    string protected = 1;
-    string final = 2;
-    string void__ = 3;
-    string XYandexUid = 4;
-    int32 float = 5;
-    int32 typeid = 6;
-    int32 new = 7;
-    int32 double = 8;
-    string major = 9;
-    string minor = 10;
-}
-
 message SecondStruct {
     string str = 1;
 

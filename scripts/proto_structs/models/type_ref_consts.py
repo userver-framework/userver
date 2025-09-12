@@ -1,19 +1,14 @@
 """`TypeReference` constants for common built-in C++ types."""
 
-from proto_structs.models import includes
 from proto_structs.models import type_ref
 
-OPTIONAL_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::optional', include=includes.BUNDLE_STRUCTS_HPP)
-VECTOR_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::vector', include=includes.BUNDLE_STRUCTS_HPP)
-HASH_MAP_TEMPLATE = type_ref.UserverLibraryType(
-    full_cpp_name_wo_userver='proto_structs::HashMap', include='userver/proto-structs/hash_map.hpp'
-)
+OPTIONAL_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::optional')
+VECTOR_TEMPLATE = type_ref.BuiltinType(full_cpp_name='std::vector')
+HASH_MAP_TEMPLATE = type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::HashMap')
 
-BOX_TEMPLATE = type_ref.UserverLibraryType(full_cpp_name_wo_userver='utils::Box', include='userver/utils/box.hpp')
+BOX_TEMPLATE = type_ref.UserverLibraryType(full_cpp_name_wo_userver='utils::Box')
 
-ONEOF_BASE_CLASS = type_ref.UserverLibraryType(
-    full_cpp_name_wo_userver='proto_structs::Oneof', include='userver/proto-structs/impl/oneof_codegen.hpp'
-)
+ONEOF_BASE_CLASS = type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Oneof')
 
 
 def make_optional(value: type_ref.TypeReference) -> type_ref.TypeReference:

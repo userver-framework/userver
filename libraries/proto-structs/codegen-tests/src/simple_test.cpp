@@ -2,9 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <userver/proto-structs/convert.hpp>
+
 #include <simple/file1.pb.h>
 #include <simple/file1.structs.usrv.pb.hpp>
-#include <userver/proto-structs/convert.hpp>
 
 namespace ss = simple::structs;
 
@@ -17,19 +18,31 @@ TEST(SingleFile, SimpleStruct) {
     message.some_text = std::optional<std::string>("foo");
     message.is_condition = true;
     message.some_bytes = {"foo", "bar"};
+    message.something.set_bar("bar_val");
+    message.inner_enum = ss::SimpleStruct::InnerEnum2::FOO_VAL;
 
-    ss::SimpleStruct::ProtobufMessage s;
+    ss::SimpleStruct::ProtobufMessage vanilla;
 
-    ::proto_structs::StructToMessage(std::move(message), s);
+    ::proto_structs::StructToMessage(std::move(message), vanilla);
 
-    [[maybe_unused]] ss::SimpleStruct to;
-    ::proto_structs::MessageToStruct(s, to);
+    EXPECT_EQ(vanilla.some_integer(), 5);
+    EXPECT_EQ(vanilla.some_text(), "foo");
+    EXPECT_EQ(vanilla.is_condition(), true);
+    EXPECT_EQ(vanilla.some_bytes().Get(0), "foo");
+    EXPECT_EQ(vanilla.some_bytes().Get(1), "bar");
+    EXPECT_EQ(vanilla.bar(), "bar_val");
+    EXPECT_EQ(vanilla.inner_enum(), ss::SimpleStruct::ProtobufMessage::FOO_VAL);
 
-    ASSERT_EQ(to.some_text, std::optional<std::string>("foo"));
+    ss::SimpleStruct to;
+    ::proto_structs::MessageToStruct(vanilla, to);
+
     ASSERT_EQ(to.some_integer, 5);
+    ASSERT_EQ(to.some_text, std::optional<std::string>("foo"));
     ASSERT_TRUE(to.is_condition);
     std::vector<std::string> exp = {"foo", "bar"};
     ASSERT_EQ(to.some_bytes, exp);
+    ASSERT_EQ(to.something.bar(), "bar_val");
+    ASSERT_THROW([[maybe_unused]] auto foo = to.something.foo(), proto_structs::OneofAccessError);
 }
 
 TEST(SingleFile, NestedStruct) {

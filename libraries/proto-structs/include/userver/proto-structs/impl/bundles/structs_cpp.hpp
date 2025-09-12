@@ -9,5 +9,11 @@
 #include <userver/proto-structs/io/std/string_conv.hpp>
 #include <userver/proto-structs/io/std/vector_conv.hpp>
 
-// RM
-#include <userver/proto-structs/io/supported_types_conv.hpp>
+#include <userver/proto-structs/io/std/int32_t_conv.hpp>
+#include <userver/proto-structs/io/std/int64_t_conv.hpp>
+#include <userver/proto-structs/io/std/size_t_conv.hpp>
+#include <userver/proto-structs/io/std/uint32_t_conv.hpp>
+#include <userver/proto-structs/io/std/uint64_t_conv.hpp>
+
+// For keyword types.
+#include <userver/proto-structs/io/std/scalar_conv.hpp>
