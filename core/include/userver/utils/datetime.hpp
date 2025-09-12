@@ -93,6 +93,15 @@ cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp, con
 /// @snippet utils/datetime_test.cpp  Localize example
 std::time_t Unlocalize(const cctz::civil_second& local_tp, const std::string& timezone);
 
+/// @brief Retrieves a time zone by name
+///
+/// Returns the corresponding time zone if the given timezone name is valid.
+/// Returns std::nullopt if no matching time zone is found.
+///
+/// @param timezone Time zone name (e.g. "UTC", "Europe/Moscow")
+/// @return std::optional containing the time zone or std::nullopt
+std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& timezone);
+
 }  // namespace utils::datetime
 
 USERVER_NAMESPACE_END

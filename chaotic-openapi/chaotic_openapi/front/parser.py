@@ -685,6 +685,7 @@ class Parser:
                 },
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
+                x_client_codegen=operation.x_client_codegen,
             )
         )
 
@@ -722,6 +723,7 @@ class Parser:
                 },
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
+                x_client_codegen=operation.x_client_codegen,
             )
         )
 

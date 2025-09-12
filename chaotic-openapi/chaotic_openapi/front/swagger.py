@@ -181,6 +181,10 @@ class Operation(base_model.BaseModel):
         default=True,
         validation_alias=pydantic.AliasChoices('x-taxi-handler-codegen', 'x-usrv-handler-codegen'),
     )
+    x_client_codegen: bool = pydantic.Field(
+        default=True,
+        validation_alias=pydantic.AliasChoices('x-taxi-client-codegen', 'x-usrv-client-codegen'),
+    )
 
 
 # https://spec.openapis.org/oas/v2.0.html#paths-object

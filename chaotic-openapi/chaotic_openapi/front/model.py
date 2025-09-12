@@ -140,6 +140,7 @@ class Operation:
     responses: dict[int, Union[Response, Ref]]
     security: list[Security]
 
+    x_client_codegen: bool
     x_middlewares: base_model.XMiddlewares
 
 

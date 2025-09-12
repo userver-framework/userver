@@ -175,6 +175,8 @@ def include_graph(name: str, schemas_dir: pathlib.Path) -> dict[str, list[str]]:
     result = {}
     for root, _, filenames in schemas_dir.walk():
         for filename in filenames:
+            if not filename.endswith('.yaml'):
+                continue
             filepath = pathlib.Path(root) / filename
             if filepath == schemas_dir / 'client.yaml' or filename == 'a.yaml':
                 continue
@@ -245,11 +247,11 @@ def external_libraries(schemas_dir: str) -> External:
             if 'x-usrv-cpp-typedef-tag' in data:
                 types.add(data['x-usrv-cpp-typedef-tag'])
 
-            if data.get('x-taxi-middlewares', {}).get('api-4.0') is True:
+            if data.get('x-taxi-middlewares', {}).get('api-4.0'):
                 libraries.append('passenger-authorizer-backend')
             if data.get('x-taxi-middlewares', {}).get('eats') == 'v1':
                 libraries.append('eats-authproxy-backend')
-            if data.get('x-taxi-middlewares', {}).get('bank-authproxy') is True:
+            if data.get('x-taxi-middlewares', {}).get('bank-authproxy'):
                 libraries.append('bank-authproxy-backend')
 
         elif isinstance(data, list):

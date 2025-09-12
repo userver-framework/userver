@@ -128,6 +128,10 @@ class Parameter(base_model.BaseModel):
         default=QueryLogMode.show,
         validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
     )
+    x_explode_true_reason: str = pydantic.Field(
+        default='',
+        validation_alias=pydantic.AliasChoices('x-taxi-explode-true-reason', 'x-usrv-explode-true-reason'),
+    )
 
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
@@ -269,6 +273,10 @@ class Operation(base_model.BaseModel):
     x_query_log_mode: QueryLogMode = pydantic.Field(
         default=QueryLogMode.show,
         validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+    )
+    x_client_codegen: bool = pydantic.Field(
+        default=True,
+        validation_alias=pydantic.AliasChoices('x-taxi-client-codegen', 'x-usrv-client-codegen'),
     )
 
     def model_post_init(self, context: Any, /) -> None:

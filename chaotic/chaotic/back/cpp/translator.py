@@ -126,6 +126,16 @@ class Generator:
 
         for name, schema in schemas.schemas.items():
             fq_cpp_name = self._gen_fq_cpp_name(name)
+            if fq_cpp_name in self._state.types:
+                sl1 = schema.source_location()
+                path1 = f'{sl1.filepath}#{sl1.location}'
+
+                existing_schema = self._state.types[fq_cpp_name].json_schema
+                assert existing_schema
+                sl2 = existing_schema.source_location()
+                path2 = f'{sl2.filepath}#{sl2.location}'
+                raise Exception(f'Duplicate type name: {fq_cpp_name}, generated from {path1} and {path2}')
+
             self._state.refs[schema] = fq_cpp_name
             self._state.types[fq_cpp_name] = self._generate_type(
                 type_name.TypeName(fq_cpp_name),
