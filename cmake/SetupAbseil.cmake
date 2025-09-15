@@ -33,6 +33,7 @@ cpmaddpackage(
     SYSTEM
     PATCHES
     abseil_pr_1707.patch
+    abseil_pr_1739.patch
     OPTIONS
     "ABSL_PROPAGATE_CXX_STD ON"
     "ABSL_ENABLE_INSTALL ON"
