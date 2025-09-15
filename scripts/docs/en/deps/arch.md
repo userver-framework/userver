@@ -17,6 +17,7 @@ krb5
 libev
 libunwind
 libnghttp2
+librdkafka
 makepkg|libbacktrace-git
 makepkg|boost-stacktrace-backtrace
 makepkg|cctz
