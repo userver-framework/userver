@@ -367,3 +367,17 @@ sendFailed:
   /* error message should be set up already */
   return 0;
 }
+
+#if PG_VERSION_NUM >= 170000
+extern const char * pg_encoding_to_char_private(int);
+
+const char * pg_encoding_to_char(int encode){
+  return pg_encoding_to_char_private(encode);
+}
+
+extern int	pg_char_to_encoding_private(const char *name);
+
+int pg_char_to_encoding(const char *name){
+  return pg_char_to_encoding_private(name);
+}
+#endif

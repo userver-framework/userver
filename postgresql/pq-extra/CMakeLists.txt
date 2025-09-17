@@ -4,6 +4,11 @@ include(SetupPostgresqlDeps)
 
 set(PQ_EXTRA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/pq_portal_funcs.c ${CMAKE_CURRENT_SOURCE_DIR}/pq_workaround.c)
 
+option(USERVER_FORCE_PG17_LIGPQ_PATCH OFF)
+if (${USERVER_FORCE_PG17_LIGPQ_PATCH})
+    list(APPEND ${PQ_EXTRA_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/fix_pg17.c)
+endif()
+
 add_library(${PROJECT_NAME} STATIC ${PQ_EXTRA_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
@@ -18,7 +23,7 @@ cmake_policy(SET CMP0067 NEW)
 try_compile(
     COMPILE_RESULT ${CMAKE_CURRENT_BINARY_DIR}/require_pq_extra
     SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/check_main.c ${PQ_EXTRA_SOURCES}
-    LINK_LIBRARIES PostgreSQLInternal
+    LINK_LIBRARIES PostgreSQLInternal ssl crypto
     OUTPUT_VARIABLE COMPILE_OUTPUT
 )
 
