@@ -75,6 +75,25 @@ public:
     void Publish(
         const Exchange& exchange,
         const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    ) override {
+        Publish(exchange, routing_key, Publishing{message, type, {}, {}, {}}, deadline);
+    };
+
+    void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        engine::Deadline deadline
+    ) override {
+        Publish(exchange, routing_key, message, MessageType::kTransient, deadline);
+    };
+
+    void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
         const Publishing& publishing,
         engine::Deadline deadline
     ) override;
@@ -85,6 +104,25 @@ public:
     ///
     /// @param deadline deadline for connection acquisition from the pool
     Channel GetChannel(engine::Deadline deadline);
+
+    void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    ) override {
+        PublishReliable(exchange, routing_key, Publishing{message, type, {}, {}, {}}, deadline);
+    }
+
+    void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        engine::Deadline deadline
+    ) override {
+        PublishReliable(exchange, routing_key, message, MessageType::kTransient, deadline);
+    }
 
     void PublishReliable(
         const Exchange& exchange,

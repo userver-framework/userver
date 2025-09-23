@@ -177,7 +177,7 @@ private:
         if (message.empty()) {
             throw server::handlers::ClientError{server::handlers::ExternalBody{"No 'message' query argument"}};
         }
-        urabbitmq::Publishing publishing{message, urabbitmq::MessageType::kTransient};
+        urabbitmq::Publishing publishing{message, urabbitmq::MessageType::kTransient, {}, {}, {}};
         const auto& correlation_id = request.GetArg("correlation_id");
         if (!correlation_id.empty()) {
             publishing.correlation_id = correlation_id;

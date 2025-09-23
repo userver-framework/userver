@@ -46,7 +46,7 @@ public:
     }
 
     void Publish(const std::string& message) {
-        const urabbitmq::Publishing publishing{message, urabbitmq::MessageType::kTransient};
+        const urabbitmq::Publishing publishing{message, urabbitmq::MessageType::kTransient, {}, {}, {}};
         client_->PublishReliable(
             exchange_,
             routing_key_,
