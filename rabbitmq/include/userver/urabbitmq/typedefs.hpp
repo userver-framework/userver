@@ -83,9 +83,9 @@ struct ConsumedMessage {
 struct Publishing {
     std::string message;
     MessageType type;
-    std::optional<std::string> reply_to;
-    std::optional<std::string> correlation_id;
-    std::optional<std::chrono::milliseconds> expiration;
+    std::optional<std::string> reply_to{};
+    std::optional<std::string> correlation_id{};
+    std::optional<std::chrono::milliseconds> expiration{};
 };
 
 }  // namespace urabbitmq
