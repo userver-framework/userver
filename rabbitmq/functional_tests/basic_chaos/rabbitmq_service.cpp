@@ -93,7 +93,7 @@ public:
         return urabbitmq::ConsumerComponentBase::GetStaticConfigSchema();
     }
 
-    std::vector<userver::urabbitmq::ConsumedMessage> GetMessages() const {
+    std::vector<urabbitmq::ConsumedMessage> GetMessages() const {
         auto messages = [this] {
             auto storage = messages_.Lock();
             return *storage;
@@ -118,7 +118,7 @@ private:
         Consumer(
             const components::ComponentConfig& config,
             const components::ComponentContext& context,
-            concurrent::Variable<std::vector<userver::urabbitmq::ConsumedMessage>>& messages
+            concurrent::Variable<std::vector<urabbitmq::ConsumedMessage>>& messages
         )
             : urabbitmq::
                   ConsumerBase{context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient(), ParseSettings(config)},
@@ -138,10 +138,10 @@ private:
             return {urabbitmq::Queue{config["queue"].As<std::string>()}, config["prefetch_count"].As<std::uint16_t>()};
         }
 
-        concurrent::Variable<std::vector<userver::urabbitmq::ConsumedMessage>>& messages_;
+        concurrent::Variable<std::vector<urabbitmq::ConsumedMessage>>& messages_;
     };
 
-    concurrent::Variable<std::vector<userver::urabbitmq::ConsumedMessage>> messages_;
+    concurrent::Variable<std::vector<urabbitmq::ConsumedMessage>> messages_;
     Consumer consumer_;
 };
 
