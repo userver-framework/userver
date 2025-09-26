@@ -64,7 +64,7 @@ private:
 };
 
 struct TextLogItem : formatters::LoggerItemBase {
-    utils::SmallString<4096> log_line;
+    std::string log_line;
 
     TextLogItem() = default;
     explicit TextLogItem(std::string_view str) : log_line(str) {}
