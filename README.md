@@ -80,5 +80,4 @@ You can learn more about history and key features of userver from our
 * Comprehensive set of asynchronous low-level synchronization primitives and
   OS abstractions.
 
-
 [See the docs for more info](https://userver.tech/de/d6a/md_en_2index.html).
