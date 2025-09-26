@@ -38,12 +38,13 @@ void FromJsonStringImpl(
 ) {
 #if GOOGLE_PROTOBUF_VERSION >= 4022000
     // JSON utils use absl::string_view.
-    const auto status =
-        google::protobuf::util::JsonStringToMessage({json_string.data(), json_string.size()}, &output, options);
+    const auto status = google::protobuf::util::JsonStringToMessage(
+        absl::string_view(json_string.data(), json_string.size()), &output, options
+    );
 #else
     // JSON utils use StringPiece.
     const auto status = google::protobuf::util::JsonStringToMessage(
-        {json_string.data(), static_cast<std::ptrdiff_t>(json_string.size())}, &output, options
+        google::protobuf::StringPiece(json_string.data(), json_string.size()), &output, options
     );
 #endif
 
