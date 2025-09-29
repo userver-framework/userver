@@ -77,6 +77,9 @@ public:
 
     /// Adds a single key-value pair
     void Extend(std::string key, Value value, ExtendType extend_type = ExtendType::kNormal);
+    void Extend(std::string key, const char* value, ExtendType extend_type = ExtendType::kNormal) {
+        Extend(std::move(key), std::string{value}, extend_type);
+    }
 
     /// Adds a single key-value pair
     void Extend(Pair extra, ExtendType extend_type = ExtendType::kNormal);
