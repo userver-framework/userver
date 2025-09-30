@@ -12,7 +12,6 @@ env:
     CCACHE_DIR: /Users/runner/Library/Caches/ccache
     CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /Users/runner/Library/Caches/CPM
-    CMAKE_POLICY_VERSION_MINIMUM: 3.15  # Shut up the 'Compatibility with CMake < 3.5 has been removed from CMake'
 
 jobs:
     macos:
