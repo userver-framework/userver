@@ -74,7 +74,7 @@ jobs:
           - name: Run conan
             run: |
                 ${{ matrix.container && 'sudo -u test-user' }} git config --global --add safe.directory `pwd`
-                ${{ matrix.container && 'sudo -u test-user' }} conan create . --udpate --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
+                ${{ matrix.container && 'sudo -u test-user' }} conan create . --update --build=missing -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
 
           - name: Install test dependencies
             if: matrix.os == 'ubuntu-22.04'
