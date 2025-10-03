@@ -24,7 +24,7 @@ RUN ( \
   && ./pip-install.sh \
   && mkdir /app \
   && cd /app \
-  && git clone --depth 1 -b 1.50.0 https://github.com/googleapis/api-common-protos.git \
+  && git clone --depth 1 https://github.com/googleapis/api-common-protos.git \
   && rm -rf /app/api-common-protos/.git \
   && rm -rf /userver_tmp \
   && cd /app \
