@@ -77,7 +77,7 @@ void ParseAndConsumeArgs(std::string_view args, ArgsConsumer handler) {
                 const std::string_view key(key_begin, key_end - key_begin);
                 handler(
                     USERVER_NAMESPACE::http::parser::UrlDecode(key),
-                    USERVER_NAMESPACE::http::parser::UrlDecode("1")
+                    USERVER_NAMESPACE::http::parser::UrlDecode("")
                 );
             }
 
