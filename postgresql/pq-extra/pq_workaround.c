@@ -60,6 +60,10 @@ static int getNotify(PGconn* conn);
 static int getCopyStart(PGconn* conn, ExecStatusType copytype);
 static int getReadyForQuery(PGconn* conn);
 
+#if PG_VERSION_NUM >= 180000
+static int getBackendKeyData(PGconn *conn, int msgLength);
+#endif
+
 /* Glue to simplify working with error reporting between versions */
 #if PG_VERSION_NUM >= 140000
 #define updatePQXExpBuffer appendPQExpBuffer
@@ -394,8 +398,12 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
            * just as easy to handle it as part of the main loop.
            * Save the data and continue processing.
            */
+#if PG_VERSION_NUM >= 180000
+          if (getBackendKeyData(conn, msgLength)) return;
+#else
           if (pqGetInt(&(conn->be_pid), 4, conn)) return;
           if (pqGetInt(&(conn->be_key), 4, conn)) return;
+#endif
           break;
         case 'T': /* Row Description */
           if (conn->result != NULL &&
@@ -908,6 +916,78 @@ static int getReadyForQuery(PGconn* conn) {
 
   return 0;
 }
+
+#if PG_VERSION_NUM >= 180000
+/*
+ * This is copy-paste of getNotify from fe-protocol3.c
+ *
+ * parseInput subroutine to read a BackendKeyData message.
+ * Entry: 'v' message type and length have already been consumed.
+ * Exit: returns 0 if successfully consumed message.
+ *       returns EOF if not enough data.
+ */
+static int
+getBackendKeyData(PGconn *conn, int msgLength)
+{
+    int         cancel_key_len;
+
+    if (conn->be_cancel_key)
+    {
+        free(conn->be_cancel_key);
+        conn->be_cancel_key = NULL;
+        conn->be_cancel_key_len = 0;
+    }
+
+    if (pqGetInt(&(conn->be_pid), 4, conn))
+        return EOF;
+
+    cancel_key_len = 5 + msgLength - (conn->inCursor - conn->inStart);
+
+    if (cancel_key_len != 4 && conn->pversion == PG_PROTOCOL(3, 0))
+    {
+        updatePQXExpBuffer(&conn->errorMessage,
+                           libpq_gettext("received invalid BackendKeyData message: cancel key with length %d not allowed in protocol version 3.0 (must be 4 bytes)"),
+                           cancel_key_len);
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+
+    if (cancel_key_len < 4)
+    {
+        updatePQXExpBuffer(&conn->errorMessage,
+                           libpq_gettext("received invalid BackendKeyData message: cancel key with length %d is too short (minimum 4 bytes)"),
+                           cancel_key_len);
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+
+    if (cancel_key_len > 256)
+    {
+        updatePQXExpBuffer(&conn->errorMessage,
+                           libpq_gettext("received invalid BackendKeyData message: cancel key with length %d is too long (maximum 256 bytes)"),
+                           cancel_key_len);
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+
+    conn->be_cancel_key = malloc(cancel_key_len);
+    if (conn->be_cancel_key == NULL)
+    {
+        updatePQXExpBufferStr(&conn->errorMessage,
+                              libpq_gettext("out of memory"));
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+    if (pqGetnchar(conn->be_cancel_key, cancel_key_len, conn))
+    {
+        free(conn->be_cancel_key);
+        conn->be_cancel_key = NULL;
+        return EOF;
+    }
+    conn->be_cancel_key_len = cancel_key_len;
+    return 0;
+}
+#endif
 
 /*
  * This is copy-paste of getNotify from fe-protocol3.c
