@@ -1,16 +1,13 @@
 #pragma once
 
 #include <boost/intrusive/link_mode.hpp>
-#include <boost/intrusive/list.hpp>
-#include <boost/intrusive/list_hook.hpp>
-#include <boost/intrusive/unordered_set.hpp>
-#include <boost/intrusive/unordered_set_hook.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 
 #include <list>
 #include <functional>
 #include <unordered_set>
 
-namespace {
+namespace lru_list {
 using namespace boost::multi_index;
 
 template<typename Value>
@@ -51,7 +48,7 @@ private:
     
     using ExtendedIndexSpecifierList = typename boost::mpl::push_back<
         IndexSpecifierList,
-        ordered_unique<
+        hashed_unique<
             tag<internal_id_tag>,
             member<CacheItem, size_t, &CacheItem::internal_id>
         >

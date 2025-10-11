@@ -1,24 +1,42 @@
 #pragma once
 
-#include <chrono>
+#include <boost/intrusive/link_mode.hpp>
+#include <boost/intrusive/list.hpp>
+#include <boost/intrusive/list_hook.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 
-namespace lru_time_index {
+#include <list>
+#include <functional>
+#include <unordered_set>
+#include <iostream>
+
+namespace lru_boost_list {
 using namespace boost::multi_index;
 
-struct lru_time_tag {};
-
 template<typename Value>
-struct TimestampedValue {
+struct ValueWithHook : public boost::intrusive::list_base_hook
+                                                        <boost::intrusive::link_mode
+                                                            <boost::intrusive::safe_link>>
+{
+    static size_t id;
     Value value;
-    std::chrono::steady_clock::time_point last_accessed;
+    size_t internal_id;
+
+    ValueWithHook() : internal_id(++id) {}
     
-    TimestampedValue() = default;
-    
-    explicit TimestampedValue(const Value& val) 
-        : value(val), last_accessed(std::chrono::steady_clock::now()) {}
+    explicit ValueWithHook(const Value& val) 
+        : value(val), internal_id(++id) {
+            #ifdef LRU_CONTAINER_DEBUG__
+            std::cout << "created id " << internal_id << std::endl;
+            #endif
+        }
         
-    explicit TimestampedValue(Value&& val) 
-        : value(std::move(val)), last_accessed(std::chrono::steady_clock::now()) {}
+    explicit ValueWithHook(Value&& val) 
+        : value(std::move(val)), internal_id(++id) {
+            #ifdef LRU_CONTAINER_DEBUG__
+            std::cout << "created id " << internal_id << std::endl;
+            #endif
+        }
     
     operator Value&() { return value; }
     operator const Value&() const { return value; }
@@ -30,20 +48,23 @@ struct TimestampedValue {
     const Value& get() const { return value; }
 };
 
+struct internal_id_tag {};
+
 template<
     typename Value,
     typename IndexSpecifierList,
-    typename Allocator = std::allocator<TimestampedValue<Value>>
+    typename Allocator = std::allocator<ValueWithHook<Value>>
 >
-class LRUCacheContainer_TimeIndex {
+class LRUCacheContainer_BoostList {
 private:
-    using CacheItem = TimestampedValue<Value>;
-    
+    using CacheItem = ValueWithHook<Value>;
+    using List = boost::intrusive::list<ValueWithHook<Value>>;
+
     using ExtendedIndexSpecifierList = typename boost::mpl::push_back<
         IndexSpecifierList,
-        ordered_non_unique<
-            tag<lru_time_tag>,
-            member<CacheItem, std::chrono::steady_clock::time_point, &CacheItem::last_accessed>
+        hashed_unique<
+            tag<internal_id_tag>,
+            member<CacheItem, size_t, &CacheItem::internal_id>
         >
     >::type;
 
@@ -55,12 +76,14 @@ private:
 
     Container container;
     size_t max_size;
+
+    List usage_list;
     
 public:
     using value_type = Value;
     using cache_item_type = CacheItem;
     
-    LRUCacheContainer_TimeIndex(size_t max_size) : max_size(max_size) {}
+    LRUCacheContainer_BoostList(size_t max_size) : max_size(max_size) {}
     
     template<typename... Args>
     bool emplace(Args&&... args) {
@@ -69,6 +92,12 @@ public:
         }
         
         auto result = container.emplace(std::forward<Args>(args)...);
+        auto &value = const_cast<ValueWithHook<Value>&>(*result.first);
+        if (result.second) {
+            usage_list.push_back(value);
+        } else {
+            touch(value);
+        }
         return result.second;
     }
     
@@ -86,9 +115,8 @@ public:
         auto it = primary_index.find(key);
         
         if (it != primary_index.end()) {
-            primary_index.modify(it, [](CacheItem& item) {
-                item.last_accessed = std::chrono::steady_clock::now();
-            });
+            auto &value = const_cast<ValueWithHook<Value>&>(*it);
+            touch(value);
         }
         
         return it;
@@ -101,6 +129,11 @@ public:
     
     template<typename Tag, typename Key>
     bool erase(const Key& key) {
+        auto& primary_index = container.template get<Tag>();
+        auto it = primary_index.find(key);
+        if (it != primary_index.end()) {
+            usage_list.erase(usage_list.iterator_to(*it));
+        }
         return container.template get<Tag>().erase(key) > 0;
     }
     
@@ -131,11 +164,21 @@ public:
     
 private:
     void evict_lru() {
-        auto& time_based_index = container.template get<lru_time_tag>();
-        
-        if (!time_based_index.empty()) {
-            time_based_index.erase(time_based_index.begin());
+        if (!usage_list.empty()) {
+            size_t id_to_erase = usage_list.begin()->internal_id;
+            usage_list.erase(usage_list.begin());
+            container.template get<internal_id_tag>().erase(id_to_erase);
+        }
+    }
+
+    void touch(CacheItem &item) {
+        auto it = usage_list.iterator_to(item);
+        if (it != usage_list.end()) {
+            usage_list.splice(usage_list.end(), usage_list, it);
         }
     }
 };
+
+template<typename T>
+size_t ValueWithHook<T>::id = 0;
 }
