@@ -28,6 +28,7 @@ concept LRUCacheType = requires(T cache, size_t size, const Key &key, Args&&... 
     {cache.emplace(std::forward<Args>(args)...)} -> std::same_as<bool>;
 };
 
+// проверка концептом вместо наследования от абстрактного класса кэша
 #define lru_concept_assert_for_one_tag(CahceType, Tag, IndexType, ValueType) \
     static_assert((LRUCacheType<CahceType, Tag, IndexType, const ValueType&>, "LRUCacheType concept")); \
     static_assert((LRUCacheType<CahceType, Tag, IndexType, ValueType&&>, "LRUCacheType concept")); 

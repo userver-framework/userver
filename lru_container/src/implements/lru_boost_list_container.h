@@ -96,6 +96,9 @@ public:
         }
         
         auto result = container.emplace(std::forward<Args>(args)...);
+
+        // здесь и далее - данные гарантировано не "испортятся" - const_cast 
+        // нужен потому, что итератор константный, а intrusive::list должен поменять хуки
         auto &value = const_cast<ValueWithHook<Value>&>(*result.first);
         if (result.second) {
             usage_list.push_back(value);
