@@ -22,6 +22,10 @@ struct ValueWithHook : public boost::intrusive::list_base_hook
     Value value;
     size_t internal_id;
 
+    // тестовая реализация, я понимаю, что вариант с таким стаким счетчиком 
+    // работает только до переполнения size_t.
+    // пока думаю, как сделать лучше, например можно 
+    // обязать Value иметь поле ::key хэшируемого типа 
     ValueWithHook() : internal_id(++id) {}
     
     explicit ValueWithHook(const Value& val) 

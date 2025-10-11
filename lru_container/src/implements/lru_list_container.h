@@ -16,6 +16,10 @@ struct ValueWithIdentificator {
     Value value;
     size_t internal_id;
     
+    // тестовая реализация, я понимаю, что вариант с таким стаким счетчиком 
+    // работает только до переполнения size_t.
+    // пока думаю, как сделать лучше, например можно 
+    // обязать Value иметь поле ::key хэшируемого типа 
     ValueWithIdentificator() : internal_id(++id) {};
     
     explicit ValueWithIdentificator(const Value& val) 
@@ -44,6 +48,10 @@ template<
 class LRUCacheContainer_List {
 private:
     using CacheItem = ValueWithIdentificator<Value>;
+
+    // реализация для тестирования подхода с list, я понимаю, что у 
+    // std::list линейный поиск по элементу 
+    // (т.е. сильно хуже ассимптотика, что видно и по бенчмаркам)
     using List = std::list<size_t>;
     
     using ExtendedIndexSpecifierList = typename boost::mpl::push_back<
