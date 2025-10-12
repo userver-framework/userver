@@ -169,7 +169,11 @@ private:
     void DiscardOldPreparedStatements(engine::Deadline deadline);
     void DiscardPreparedStatement(const PreparedStatementInfo& info, engine::Deadline deadline);
 
-    ResultSet ExecuteCommand(const Query& query, engine::Deadline deadline);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo
+    );
 
     ResultSet ExecuteCommand(
         const Query& query,

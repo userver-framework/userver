@@ -209,9 +209,9 @@ struct ConnectionImpl::ResetTransactionCommandControl {
 
     ~ResetTransactionCommandControl() {
         connection.transaction_cmd_ctl_.reset();
-        connection.current_statement_timeout_ =
-            connection.testsuite_pg_ctl_.MakeStatementTimeout(connection.GetDefaultCommandControl().statement_timeout_ms
-            );
+        connection.current_statement_timeout_ = connection.testsuite_pg_ctl_.MakeStatementTimeout(
+            connection.GetDefaultCommandControl().statement_timeout_ms
+        );
     }
 };
 
@@ -634,7 +634,7 @@ TimeoutDuration ConnectionImpl::GetStatementTimeout() const { return current_sta
 
 void ConnectionImpl::Ping() {
     Start(SteadyClock::now());
-    ExecuteCommand(kPingStatement, MakeCurrentDeadline());
+    ExecuteCommand(kPingStatement, MakeCurrentDeadline(), logging::Level::kDebug);
     Finish();
 }
 
@@ -868,9 +868,9 @@ void ConnectionImpl::DiscardPreparedStatement(const PreparedStatementInfo& info,
     ExecuteCommandNoPrepare("DEALLOCATE " + info.statement_name, deadline);
 }
 
-ResultSet ConnectionImpl::ExecuteCommand(const Query& query, engine::Deadline deadline) {
+ResultSet ConnectionImpl::ExecuteCommand(const Query& query, engine::Deadline deadline, logging::Level span_log_level) {
     static const QueryParameters kNoParams;
-    return ExecuteCommand(query, kNoParams, deadline);
+    return ExecuteCommand(query, kNoParams, deadline, span_log_level);
 }
 
 ResultSet ConnectionImpl::ExecuteCommand(
