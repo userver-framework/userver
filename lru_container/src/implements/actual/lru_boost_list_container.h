@@ -14,33 +14,26 @@ namespace lru_boost_list {
 using namespace boost::multi_index;
 
 template<typename Value>
-struct ValueWithHook : public boost::intrusive::list_base_hook
-                                                        <boost::intrusive::link_mode
-                                                            <boost::intrusive::safe_link>>
+struct ValueWithHook
 {
-    static size_t id;
     Value value;
-    size_t internal_id;
+    mutable boost::intrusive::list_member_hook<> list_hook;
+    ValueWithHook *__this;
 
-    // тестовая реализация, я понимаю, что вариант с таким стаким счетчиком 
-    // работает только до переполнения size_t.
-    // пока думаю, как сделать лучше, например можно 
-    // обязать Value иметь поле ::key хэшируемого типа 
-    ValueWithHook() : internal_id(++id) {}
-    
-    explicit ValueWithHook(const Value& val) 
-        : value(val), internal_id(++id) {
-            #ifdef LRU_CONTAINER_DEBUG__
-            std::cout << "created id " << internal_id << std::endl;
-            #endif
-        }
+    explicit ValueWithHook(const Value& val) : value(val) {
+        __this = this;
+    }
         
-    explicit ValueWithHook(Value&& val) 
-        : value(std::move(val)), internal_id(++id) {
-            #ifdef LRU_CONTAINER_DEBUG__
-            std::cout << "created id " << internal_id << std::endl;
-            #endif
-        }
+    explicit ValueWithHook(Value&& val) : value(std::move(val)) {
+        __this = this;
+    }
+    
+    ValueWithHook() = delete;
+    ValueWithHook(const ValueWithHook&) = delete;
+    ValueWithHook(ValueWithHook &&) = delete;
+
+    ValueWithHook &operator=(const ValueWithHook&) = delete;
+    ValueWithHook &operator=(ValueWithHook&&) = delete;
     
     operator Value&() { return value; }
     operator const Value&() const { return value; }
@@ -50,9 +43,26 @@ struct ValueWithHook : public boost::intrusive::list_base_hook
     
     Value& get() { return value; }
     const Value& get() const { return value; }
+
+    using boost_list = boost::intrusive::list<
+                            ValueWithHook,
+                            boost::intrusive::member_hook<
+                                ValueWithHook,
+                                boost::intrusive::list_member_hook<>, 
+                                &ValueWithHook::list_hook
+                            >
+                        >;
+
+    void push_back_to_list(boost_list &lst) const {
+        lst.push_back(const_cast<ValueWithHook&>(*this));
+    }
+
+    void splice_in_list(boost_list &lst) const {
+        lst.splice(lst.end(), lst, lst.iterator_to(const_cast<ValueWithHook&>(*this)));
+    }
 };
 
-struct internal_id_tag {};
+struct internal_ptr_tag {};
 
 template<
     typename Value,
@@ -62,13 +72,20 @@ template<
 class LRUCacheContainer_BoostList {
 private:
     using CacheItem = ValueWithHook<Value>;
-    using List = boost::intrusive::list<ValueWithHook<Value>>;
+    using List =  boost::intrusive::list<
+                        CacheItem,
+                        boost::intrusive::member_hook<
+                            CacheItem,
+                            boost::intrusive::list_member_hook<>, 
+                            &CacheItem::list_hook
+                        >
+                    >;
 
     using ExtendedIndexSpecifierList = typename boost::mpl::push_back<
         IndexSpecifierList,
         hashed_unique<
-            tag<internal_id_tag>,
-            member<CacheItem, size_t, &CacheItem::internal_id>
+            tag<internal_ptr_tag>,
+            member<CacheItem, CacheItem*, &CacheItem::__this>
         >
     >::type;
 
@@ -97,13 +114,11 @@ public:
         
         auto result = container.emplace(std::forward<Args>(args)...);
 
-        // здесь и далее - данные гарантировано не "испортятся" - const_cast 
-        // нужен потому, что итератор константный, а intrusive::list должен поменять хуки
-        auto &value = const_cast<ValueWithHook<Value>&>(*result.first);
+        auto &value = *result.first;
         if (result.second) {
-            usage_list.push_back(value);
+            value.push_back_to_list(usage_list);
         } else {
-            touch(value);
+            value.splice_in_list(usage_list);
         }
         return result.second;
     }
@@ -122,8 +137,7 @@ public:
         auto it = primary_index.find(key);
         
         if (it != primary_index.end()) {
-            auto &value = const_cast<ValueWithHook<Value>&>(*it);
-            touch(value);
+            it->splice_in_list(usage_list);
         }
         
         return it;
@@ -172,20 +186,10 @@ public:
 private:
     void evict_lru() {
         if (!usage_list.empty()) {
-            size_t id_to_erase = usage_list.begin()->internal_id;
+            CacheItem *ptr_to_erase = &*usage_list.begin();
             usage_list.erase(usage_list.begin());
-            container.template get<internal_id_tag>().erase(id_to_erase);
-        }
-    }
-
-    void touch(CacheItem &item) {
-        auto it = usage_list.iterator_to(item);
-        if (it != usage_list.end()) {
-            usage_list.splice(usage_list.end(), usage_list, it);
+            container.template get<internal_ptr_tag>().erase(ptr_to_erase);
         }
     }
 };
-
-template<typename T>
-size_t ValueWithHook<T>::id = 0;
 }

@@ -3,9 +3,9 @@
 #include "src/benchmarks/lru_google_benchmarks.h"
 
 // #define LRU_CONTAINER_DEBUG__
-#include "src/implements/lru_time_index_container.h"
-#include "src/implements/lru_list_container.h"
-#include "src/implements/lru_boost_list_container.h"
+#include "src/implements/examples/lru_time_index_container.h"
+#include "src/implements/examples/lru_list_container.h"
+#include "src/implements/actual/lru_boost_list_container.h"
 
 
 int main() {
