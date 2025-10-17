@@ -18,14 +18,14 @@ struct ValueWithHook
 {
     Value value;
     mutable boost::intrusive::list_member_hook<> list_hook;
-    ValueWithHook *__this;
+    ValueWithHook *self;
 
     explicit ValueWithHook(const Value& val) : value(val) {
-        __this = this;
+        self = this;
     }
         
     explicit ValueWithHook(Value&& val) : value(std::move(val)) {
-        __this = this;
+        self = this;
     }
     
     ValueWithHook() = delete;
@@ -85,7 +85,7 @@ private:
         IndexSpecifierList,
         hashed_unique<
             tag<internal_ptr_tag>,
-            member<CacheItem, CacheItem*, &CacheItem::__this>
+            member<CacheItem, CacheItem*, &CacheItem::self>
         >
     >::type;
 
