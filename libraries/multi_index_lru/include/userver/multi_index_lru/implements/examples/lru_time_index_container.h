@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace lru_time_index {
 using namespace boost::multi_index;
 
@@ -139,3 +141,5 @@ private:
     }
 };
 }
+
+USERVER_NAMESPACE_END

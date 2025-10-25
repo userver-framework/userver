@@ -8,9 +8,11 @@
 #include <chrono>
 #include <iomanip>
 
-#include "../lru_container_concept.h"
+#include "../lru_container_concept.h" 
 
-namespace benchmark {
+USERVER_NAMESPACE_BEGIN
+
+namespace benchmarks {
 
 const std::vector<long long> CACHE_SIZES = {1000, 10000, 100000};
 const size_t OPERATIONS_NUMBER = 100000;
@@ -54,4 +56,5 @@ std::string generate_email() {
     return "email" + std::to_string(id_dist(gen));
 }
 } // generator
-} // benchmark
+} // benchmarks
+USERVER_NAMESPACE_END

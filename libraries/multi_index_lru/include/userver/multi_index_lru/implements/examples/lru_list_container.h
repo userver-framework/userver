@@ -7,6 +7,8 @@
 #include <functional>
 #include <unordered_set>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace lru_list {
 using namespace boost::multi_index;
 
@@ -178,3 +180,5 @@ template<typename T>
 size_t ValueWithIdentificator<T>::id = 0;
 
 }
+
+USERVER_NAMESPACE_END

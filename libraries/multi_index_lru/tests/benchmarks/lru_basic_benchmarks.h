@@ -2,7 +2,9 @@
 
 #include "benchmarks_resourses.h"
 
-namespace benchmark {
+USERVER_NAMESPACE_BEGIN
+
+namespace benchmarks {
 
 template<
     template<typename, typename, typename> class LRUCacheContainer
@@ -82,5 +84,5 @@ void simple_benchmark(std::string &&output_filename) {
 
     output_file.close();
 }
-
-}
+} // benchmarks
+USERVER_NAMESPACE_END

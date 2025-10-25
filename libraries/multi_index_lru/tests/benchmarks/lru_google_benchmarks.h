@@ -3,7 +3,9 @@
 #include <benchmark/benchmark.h>
 #include "benchmarks_resourses.h"
 
-namespace benchmark {
+USERVER_NAMESPACE_BEGIN
+
+namespace benchmarks {
 
 template<
     template<typename, typename, typename> class LRUCacheContainer
@@ -27,7 +29,7 @@ private:
     }
 
 public:
-    static void BM_GetOperations(benchmark::State& state) {
+    static void BM_GetOperations(::benchmark::State& state) {
         const size_t cache_size = state.range(0);
         const size_t operations_count = state.range(1);
         
@@ -46,9 +48,9 @@ public:
             state.ResumeTiming();
 
             for (size_t i = 0; i < operations_count; ++i) {
-                benchmark::DoNotOptimize(cache.template find<name_tag, std::string>(names[i]));
-                benchmark::DoNotOptimize(cache.template find<email_tag, std::string>(emails[i]));
-                benchmark::DoNotOptimize(cache.template find<id_tag, int>(ids[i]));
+                ::benchmark::DoNotOptimize(cache.template find<name_tag, std::string>(names[i]));
+                ::benchmark::DoNotOptimize(cache.template find<email_tag, std::string>(emails[i]));
+                ::benchmark::DoNotOptimize(cache.template find<id_tag, int>(ids[i]));
             }
         }
 
@@ -56,7 +58,7 @@ public:
         state.SetComplexityN(cache_size);
     }
 
-    static void BM_EmplaceOperations(benchmark::State& state) {
+    static void BM_EmplaceOperations(::benchmark::State& state) {
         const size_t cache_size = state.range(0);
         const size_t operations_count = state.range(1);
         
@@ -90,13 +92,13 @@ void google_benchmark_init(std::string&& output_filename) {
     std::string format_arg = "--benchmark_out_format=json";
     args.push_back(format_arg.data());
     int argc = args.size();
-    benchmark::Initialize(&argc, args.data());
+    ::benchmark::Initialize(&argc, args.data());
 }
 
 void google_benchmark_run() {
-    benchmark::RunSpecifiedBenchmarks();
-    benchmark::ClearRegisteredBenchmarks();
-    benchmark::Shutdown();
+    ::benchmark::RunSpecifiedBenchmarks();
+    ::benchmark::ClearRegisteredBenchmarks();
+    ::benchmark::Shutdown();
 }
 
 template<
@@ -118,18 +120,18 @@ void google_benchmark() {
     lru_concept_assert_for_one_tag(UserCache, name_tag, std::string, User);
 
     for (auto size : CACHE_SIZES) {
-        benchmark::RegisterBenchmark(
+        ::benchmark::RegisterBenchmark(
             "GetOperations", 
             &LRUCacheBenchmark<LRUCacheContainer>::BM_GetOperations
-        )->Args({size, OPERATIONS_NUMBER})->Unit(benchmark::kMicrosecond);
+        )->Args({size, OPERATIONS_NUMBER})->Unit(::benchmark::kMicrosecond);
     }
 
     for (auto size : CACHE_SIZES) {
-        benchmark::RegisterBenchmark(
+        ::benchmark::RegisterBenchmark(
             "EmplaceOperations", 
             &LRUCacheBenchmark<LRUCacheContainer>::BM_EmplaceOperations
-        )->Args({size, OPERATIONS_NUMBER})->Unit(benchmark::kMicrosecond);
+        )->Args({size, OPERATIONS_NUMBER})->Unit(::benchmark::kMicrosecond);
     }
 }
-
-} // namespace benchmark
+} // benchmarks
+USERVER_NAMESPACE_END

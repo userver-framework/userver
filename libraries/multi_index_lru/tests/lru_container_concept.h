@@ -10,6 +10,8 @@
 #include <concepts>
 #include <cassert>
 
+USERVER_NAMESPACE_BEGIN
+
 template<typename T, typename Tag, typename Key, typename... Args>
 concept LRUCacheType = requires(T cache, size_t size, const Key &key, Args&&... args) {
     T{size}; 
@@ -32,3 +34,5 @@ concept LRUCacheType = requires(T cache, size_t size, const Key &key, Args&&... 
 #define lru_concept_assert_for_one_tag(CahceType, Tag, IndexType, ValueType) \
     static_assert((LRUCacheType<CahceType, Tag, IndexType, const ValueType&>, "LRUCacheType concept")); \
     static_assert((LRUCacheType<CahceType, Tag, IndexType, ValueType&&>, "LRUCacheType concept")); 
+
+USERVER_NAMESPACE_END

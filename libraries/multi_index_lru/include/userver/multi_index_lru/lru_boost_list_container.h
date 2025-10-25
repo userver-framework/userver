@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <iostream>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace lru_boost_list {
 using namespace boost::multi_index;
 
@@ -69,7 +71,7 @@ template<
     typename IndexSpecifierList,
     typename Allocator = std::allocator<ValueWithHook<Value>>
 >
-class LRUCacheContainer_BoostList {
+class LRUCacheContainer {
 private:
     using CacheItem = ValueWithHook<Value>;
     using List =  boost::intrusive::list<
@@ -104,7 +106,7 @@ public:
     using value_type = Value;
     using cache_item_type = CacheItem;
     
-    LRUCacheContainer_BoostList(size_t max_size) : max_size(max_size) {}
+    LRUCacheContainer(size_t max_size) : max_size(max_size) {}
     
     template<typename... Args>
     bool emplace(Args&&... args) {
@@ -193,3 +195,5 @@ private:
     }
 };
 }
+
+USERVER_NAMESPACE_END

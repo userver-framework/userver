@@ -5,6 +5,8 @@
 
 #include "../lru_container_concept.h"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 using namespace boost::multi_index;
@@ -126,3 +128,5 @@ void test_lru_products() {
     std::cout << "test_lru_products correct" << std::endl;
 }
 }
+
+USERVER_NAMESPACE_END
