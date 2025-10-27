@@ -4,6 +4,7 @@
 #include <boost/intrusive/list.hpp>
 #include <boost/intrusive/list_hook.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/mem_fun.hpp>
 
 #include <list>
 #include <functional>
@@ -20,15 +21,11 @@ struct ValueWithHook
 {
     Value value;
     mutable boost::intrusive::list_member_hook<> list_hook;
-    ValueWithHook *self;
+    const ValueWithHook *GetPointerToSelf() const { return this; };
 
-    explicit ValueWithHook(const Value& val) : value(val) {
-        self = this;
-    }
+    explicit ValueWithHook(const Value& val) : value(val) {}
         
-    explicit ValueWithHook(Value&& val) : value(std::move(val)) {
-        self = this;
-    }
+    explicit ValueWithHook(Value&& val) : value(std::move(val)) {}
     
     ValueWithHook() = delete;
     ValueWithHook(const ValueWithHook&) = delete;
@@ -87,7 +84,7 @@ private:
         IndexSpecifierList,
         hashed_unique<
             tag<internal_ptr_tag>,
-            member<CacheItem, CacheItem*, &CacheItem::self>
+            const_mem_fun<CacheItem, const CacheItem*, &CacheItem::GetPointerToSelf>
         >
     >::type;
 
