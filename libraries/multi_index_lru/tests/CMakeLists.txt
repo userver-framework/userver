@@ -1,7 +1,9 @@
 project(multi-index-lru-tests)
 
 find_package(Boost REQUIRED)
-find_package(benchmark REQUIRED)
+if(NOT TARGET benchmark::benchmark)
+    find_package(benchmark REQUIRED)
+endif()
 
 file(GLOB_RECURSE MULTIINDEX_LRU_LIB_TESTS_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp 
