@@ -7,8 +7,8 @@
 using namespace USERVER_NAMESPACE;
 
 int main() {
-    benchmarks::simple_benchmark<lru_boost_list::LRUCacheContainer>("boost_list_output.txt");
-    benchmarks::google_benchmark<lru_boost_list::LRUCacheContainer>();
+    benchmarks::simple_benchmark<multi_index_lru::LRUCacheContainer>("boost_list_output.txt");
+    benchmarks::google_benchmark<multi_index_lru::LRUCacheContainer>();
 
     benchmarks::google_benchmark_init("google_output.txt");
     benchmarks::google_benchmark_run();
