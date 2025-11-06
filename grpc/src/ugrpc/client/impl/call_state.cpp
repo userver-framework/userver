@@ -2,7 +2,11 @@
 
 #include <dynamic_config/variables/USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION.hpp>
 
+#include <string>
+
+#include <userver/http/url.hpp>
 #include <userver/tracing/opentelemetry.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/source_location.hpp>
@@ -21,11 +25,22 @@ namespace ugrpc::client::impl {
 
 namespace {
 
-void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder, std::string_view call_name) {
+void SetupSpan(
+    std::optional<tracing::InPlaceSpan>& span_holder,
+    std::string_view endpoint,
+    std::string_view call_name,
+    std::string_view service_name,
+    std::string_view method_name
+) {
     UASSERT(!span_holder);
-    span_holder.emplace(utils::StrCat("external_grpc/", call_name), utils::impl::SourceLocation::Current());
+    span_holder.emplace(std::string{call_name}, utils::impl::SourceLocation::Current());
     auto& span = span_holder->Get();
     span.DetachFromCoroStack();
+
+    span.AddNonInheritableTag(tracing::kServerAddress, USERVER_NAMESPACE::http::ExtractHostname(endpoint));
+    span.AddNonInheritableTag(tracing::kRpcSystem, "grpc");
+    span.AddNonInheritableTag(tracing::kRpcService, std::string{service_name});
+    span.AddNonInheritableTag(tracing::kRpcMethod, std::string{method_name});
 }
 
 void AddTracingMetadata(grpc::ClientContext& client_context, const tracing::Span& span) {
@@ -63,7 +78,7 @@ CallState::CallState(CallParams&& params, CallKind call_kind)
       call_kind_(call_kind) {
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
-    SetupSpan(span_, call_name_.Get());
+    SetupSpan(span_, params.endpoint, call_name_.Get(), params.service_name, params.method_name);
 }
 
 StubHandle& CallState::GetStub() noexcept { return stub_; }
@@ -196,7 +211,9 @@ bool IsWriteAndCheckAvailable(const StreamingCallState& state) noexcept {
 
 void SetupClientContext(CallState& state, const CallOptions& call_options) {
     auto client_context = CallOptionsAccessor::CreateClientContext(call_options);
+
     AddTracingMetadata(*client_context, state.GetSpan());
+
     state.SetClientContext(std::move(client_context));
 }
 

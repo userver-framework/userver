@@ -34,8 +34,6 @@ namespace clients::http {
 
 namespace {
 
-constexpr std::string_view kHeaderExpect = "Expect";
-
 static constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
     return selector()
         .Case(HttpMethod::kGet, "GET")
@@ -46,8 +44,6 @@ static constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
         .Case(HttpMethod::kDelete, "DELETE")
         .Case(HttpMethod::kOptions, "OPTIONS");
 });
-
-std::string ToString(HttpMethod method) { return std::string{ToStringView(method)}; }
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
     switch (version) {
@@ -340,8 +336,7 @@ Request& Request::connect_to(const ConnectTo& connect_to) & {
 Request Request::connect_to(const ConnectTo& connect_to) && { return std::move(this->connect_to(connect_to)); }
 
 Request& Request::data(std::string data) & {
-    if (!data.empty()) pimpl_->easy().add_header(kHeaderExpect, "", curl::easy::EmptyHeaderAction::kDoNotSend);
-    pimpl_->easy().set_post_fields(std::move(data));
+    pimpl_->data(data);
     return *this;
 }
 Request Request::data(std::string data) && { return std::move(this->data(std::move(data))); }
@@ -427,28 +422,7 @@ Request Request::cookies(const std::unordered_map<std::string, std::string>& coo
 }
 
 Request& Request::method(HttpMethod method) & {
-    switch (method) {
-        case HttpMethod::kDelete:
-        case HttpMethod::kOptions:
-            pimpl_->easy().set_custom_request(ToString(method));
-            break;
-        case HttpMethod::kGet:
-            pimpl_->easy().set_http_get(true);
-            pimpl_->easy().set_custom_request(nullptr);
-            break;
-        case HttpMethod::kHead:
-            pimpl_->easy().set_no_body(true);
-            pimpl_->easy().set_custom_request(nullptr);
-            break;
-        // NOTE: set_post makes libcURL to read from stdin if no data is set
-        case HttpMethod::kPost:
-        case HttpMethod::kPut:
-        case HttpMethod::kPatch:
-            pimpl_->easy().set_custom_request(ToString(method));
-            // ensure a body as we should send Content-Length for this method
-            if (!pimpl_->easy().has_post_data()) data({});
-            break;
-    };
+    pimpl_->SetMethod(method);
     return *this;
 }
 
@@ -535,6 +509,15 @@ Request& Request::SetLoggedUrl(std::string url) & {
     return *this;
 }
 Request Request::SetLoggedUrl(std::string url) && { return std::move(this->SetLoggedUrl(std::move(url))); }
+
+Request& Request::SetUrlTemplate(std::string url_template) & {
+    pimpl_->SetUrlTemplate(std::move(url_template));
+    return *this;
+}
+
+Request Request::SetUrlTemplate(std::string url_template) && {
+    return std::move(this->SetUrlTemplate(std::move(url_template)));
+}
 
 Request& Request::SetDestinationMetricName(const std::string& destination) & {
     pimpl_->SetDestinationMetricName(destination);

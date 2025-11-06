@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import gdb
+import gdb.printing
 
 
 @dataclass

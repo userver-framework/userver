@@ -103,7 +103,7 @@ TEST(SentinelQuery, ParseReplySimpleIps) {
 
     namespace impl = storages::redis::impl;
     impl::ClusterSlotsResponse response;
-    ASSERT_EQ(impl::ParseClusterSlotsResponse(reply, response), impl::ClusterSlotsResponseStatus::kOk);
+    ASSERT_EQ(impl::ParseClusterSlotsResponse(reply, response, "redisdb"), impl::ClusterSlotsResponseStatus::kOk);
 
     using Pair = std::pair<std::string, int>;
     EXPECT_EQ(response.size(), 3);
@@ -194,7 +194,7 @@ TEST(SentinelQuery, ParseReplySimpleHostname) {
 
     namespace impl = storages::redis::impl;
     impl::ClusterSlotsResponse response;
-    ASSERT_EQ(impl::ParseClusterSlotsResponse(reply, response), impl::ClusterSlotsResponseStatus::kOk);
+    ASSERT_EQ(impl::ParseClusterSlotsResponse(reply, response, "redisdb"), impl::ClusterSlotsResponseStatus::kOk);
 
     using Pair = std::pair<std::string, int>;
     EXPECT_EQ(response.size(), 2);

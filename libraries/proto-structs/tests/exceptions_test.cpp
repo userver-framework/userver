@@ -9,10 +9,15 @@ namespace proto_structs::tests {
 
 TEST(ExceptionsTest, What) {
     {
-        proto_structs::ConversionError error("SomeMessage", "SomeField", "SomeReason");
-        EXPECT_THAT(error.what(), ::testing::HasSubstr("Message 'SomeMessage'"));
-        EXPECT_THAT(error.what(), ::testing::HasSubstr("field 'SomeField'"));
-        EXPECT_THAT(error.what(), ::testing::HasSubstr("SomeReason"));
+        proto_structs::ReadError error("msg.field.nested_field", "oops");
+        EXPECT_THAT(error.what(), ::testing::HasSubstr("msg.field.nested_field"));
+        EXPECT_THAT(error.what(), ::testing::HasSubstr("oops"));
+    }
+
+    {
+        proto_structs::WriteError error("msg.field.nested_field", "oops");
+        EXPECT_THAT(error.what(), ::testing::HasSubstr("msg.field.nested_field"));
+        EXPECT_THAT(error.what(), ::testing::HasSubstr("oops"));
     }
 
     {
@@ -21,13 +26,13 @@ TEST(ExceptionsTest, What) {
     }
 
     {
-        proto_structs::AnyPackError error("SomeMessage");
-        EXPECT_THAT(error.what(), ::testing::HasSubstr("SomeMessage"));
+        proto_structs::AnyPackError error("some message");
+        EXPECT_THAT(error.what(), ::testing::HasSubstr("some message"));
     }
 
     {
-        proto_structs::AnyUnpackError error("SomeMessage");
-        EXPECT_THAT(error.what(), ::testing::HasSubstr("SomeMessage"));
+        proto_structs::AnyUnpackError error("some message");
+        EXPECT_THAT(error.what(), ::testing::HasSubstr("some message"));
     }
 }
 

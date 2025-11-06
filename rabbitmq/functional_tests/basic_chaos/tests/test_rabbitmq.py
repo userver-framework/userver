@@ -2,7 +2,12 @@ import asyncio
 
 import pytest
 
-MESSAGES = ['a', 'b', 'c']
+MESSAGES = [
+    {'message': 'a'},
+    {'message': 'b', 'reply_to': 'reply_from_b'},
+    {'message': 'c', 'correlation_id': 'id_from_c'},
+    {'message': 'd', 'correlation_id': 'id_from_d', 'reply_to': 'reply_from_d'},
+]
 
 
 async def _start_consumer(service_client):
@@ -16,8 +21,13 @@ async def _stop_consumer(service_client):
 
 
 async def _publish_message(service_client, message):
+    request_str = f'/v1/messages?message={message["message"]}&reliable=1'
+    if 'reply_to' in message:
+        request_str = request_str + f'&reply_to={message["reply_to"]}'
+    if 'correlation_id' in message:
+        request_str = request_str + f'&correlation_id={message["correlation_id"]}'
     response = await service_client.post(
-        f'/v1/messages?message={message}&reliable=1',
+        request_str,
     )
     assert response.status_code == 200
 

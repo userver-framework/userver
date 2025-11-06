@@ -13,6 +13,10 @@ class YdbClient:
         return self._session.transaction().execute(query, commit_tx=True)
 
     @property
+    def topic_client(self):
+        return self._driver.topic_client
+
+    @property
     def session(self):
         return self._session
 

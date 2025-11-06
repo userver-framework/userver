@@ -1,6 +1,7 @@
 #include <userver/ugrpc/client/call_options.hpp>
 
 #include <userver/ugrpc/impl/to_string.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,9 +11,16 @@ void CallOptions::SetAttempts(int attempts) { attempts_ = attempts; }
 
 int CallOptions::GetAttempts() const { return attempts_; }
 
-void CallOptions::SetTimeout(std::chrono::milliseconds timeout) { timeout_ = timeout; }
+void CallOptions::SetTimeout(std::chrono::milliseconds timeout) {
+    UINVARIANT(std::chrono::milliseconds::zero() < timeout, "'timeout' should be greater than 0");
+    timeout_ = timeout;
+}
 
 std::chrono::milliseconds CallOptions::GetTimeout() const { return timeout_; }
+
+void CallOptions::SetDeadline(engine::Deadline deadline) { deadline_ = deadline; }
+
+engine::Deadline CallOptions::GetDeadline() const { return deadline_; }
 
 void CallOptions::AddMetadata(std::string_view meta_key, std::string_view meta_value) {
     metadata_.emplace_back(ugrpc::impl::ToGrpcString(meta_key), ugrpc::impl::ToGrpcString(meta_value));

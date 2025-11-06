@@ -266,9 +266,9 @@ std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
     auto& dir = fd_control_->Read();
     dir.ResetReady();
     const impl::Direction::SingleUserGuard guard(dir);
-    const auto bytesRead = RecvWrapper(fd_control_->Fd(), buf, len);
-    if (bytesRead >= 0)
-        return {bytesRead};
+    const auto bytes_read = RecvWrapper(fd_control_->Fd(), buf, len);
+    if (bytes_read >= 0)
+        return {bytes_read};
     else if (
 #if EAGAIN != EWOULDBLOCK
         EWOULDBLOCK == errno

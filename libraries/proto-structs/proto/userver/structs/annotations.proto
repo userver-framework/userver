@@ -1,7 +1,7 @@
 syntax = "proto2";
 package userver.structs;
 
-option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/proto;protostructs";
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/proto/userver/structs;protostructs";
 
 import "google/protobuf/descriptor.proto";
 

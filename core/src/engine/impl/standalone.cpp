@@ -30,11 +30,16 @@ std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(const TaskProcessorPo
     return std::make_shared<TaskProcessorPools>(std::move(coro_config), std::move(ev_config));
 }
 
-TaskProcessorHolder
-TaskProcessorHolder::Make(std::size_t threads_num, std::string thread_name, std::shared_ptr<TaskProcessorPools> pools) {
+TaskProcessorHolder TaskProcessorHolder::Make(
+    std::size_t threads_num,
+    std::string thread_name,
+    TaskQueueType queue_type,
+    std::shared_ptr<TaskProcessorPools> pools
+) {
     TaskProcessorConfig config;
     config.worker_threads = threads_num;
     config.thread_name = std::move(thread_name);
+    config.task_processor_queue = queue_type;
 
     return TaskProcessorHolder(std::make_unique<TaskProcessor>(std::move(config), std::move(pools)));
 }

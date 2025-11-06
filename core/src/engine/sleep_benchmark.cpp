@@ -9,7 +9,7 @@ using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
-void sleep_benchmark_us(benchmark::State& state) {
+void SleepBenchmarkUs(benchmark::State& state) {
     engine::RunStandalone([&] {
         const std::chrono::microseconds sleep_duration{state.range(0)};
         for ([[maybe_unused]] auto _ : state) {
@@ -18,9 +18,9 @@ void sleep_benchmark_us(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(sleep_benchmark_us)->RangeMultiplier(2)->Range(1, 1024 * 128)->Unit(benchmark::kMicrosecond);
+BENCHMARK(SleepBenchmarkUs)->RangeMultiplier(2)->Range(1, 1024 * 128)->Unit(benchmark::kMicrosecond);
 
-void run_in_ev_loop_benchmark(benchmark::State& state) {
+void RunInEvLoopBenchmark(benchmark::State& state) {
     engine::RunStandalone([&] {
         auto& ev_thread = engine::current_task::GetEventThread();
         for ([[maybe_unused]] auto _ : state) {
@@ -28,9 +28,9 @@ void run_in_ev_loop_benchmark(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(run_in_ev_loop_benchmark);
+BENCHMARK(RunInEvLoopBenchmark);
 
-[[maybe_unused]] void successful_wait_for_benchmark(benchmark::State& state) {
+[[maybe_unused]] void SuccessfulWaitForBenchmark(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             auto task = engine::AsyncNoSpan([] { engine::Yield(); });
@@ -40,9 +40,9 @@ BENCHMARK(run_in_ev_loop_benchmark);
         }
     });
 }
-BENCHMARK(successful_wait_for_benchmark);
+BENCHMARK(SuccessfulWaitForBenchmark);
 
-void unreached_task_deadline_benchmark(benchmark::State& state, bool has_task_deadline) {
+void UnreachedTaskDeadlineBenchmark(benchmark::State& state, bool has_task_deadline) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             const auto sleep_deadline = engine::Deadline::FromDuration(20s);
@@ -56,7 +56,7 @@ void unreached_task_deadline_benchmark(benchmark::State& state, bool has_task_de
         }
     });
 }
-BENCHMARK_CAPTURE(unreached_task_deadline_benchmark, no_task_deadline, false);
-BENCHMARK_CAPTURE(unreached_task_deadline_benchmark, unreached_task_deadline, true);
+BENCHMARK_CAPTURE(UnreachedTaskDeadlineBenchmark, no_task_deadline, false);
+BENCHMARK_CAPTURE(UnreachedTaskDeadlineBenchmark, unreached_task_deadline, true);
 
 USERVER_NAMESPACE_END

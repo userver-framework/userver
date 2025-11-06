@@ -123,6 +123,24 @@ public:
 
     std::vector<std::string> ListBucketDirectories(std::string_view path_prefix) const final;
 
+    multipart_upload::InitiateMultipartUploadResult CreateMultipartUpload(
+        const multipart_upload::CreateMultipartUploadRequest& request
+    ) const final;
+
+    multipart_upload::UploadPartResult UploadPart(const multipart_upload::UploadPartRequest& request) const final;
+
+    multipart_upload::CompleteMultipartUploadResult CompleteMultipartUpload(
+        const multipart_upload::CompleteMultipartUploadRequest& request
+    ) const final;
+
+    void AbortMultipartUpload(const multipart_upload::AbortMultipartUploadRequest& request) const final;
+
+    multipart_upload::ListPartsResult ListParts(const multipart_upload::ListPartsRequest& request) const final;
+
+    multipart_upload::ListMultipartUploadsResult ListMultipartUploads(
+        const multipart_upload::ListMultipartUploadsRequest& request
+    ) const final;
+
     void UpdateConfig(ConnectionCfg&& config) final;
 
     std::string_view GetBucketName() const final;

@@ -47,13 +47,12 @@ class Parser:
 
         self._append_schema(parsed)
 
-    @staticmethod
-    def _guess_parser(schema: dict):
+    def _guess_parser(self, schema: dict):
         if 'openapi' in schema or 'components' in schema:
             return openapi.OpenApi
         elif 'swagger' in schema or 'definitions' in schema:
             return swagger.Swagger
-        assert False, schema
+        assert False, f"Don't know about file format ({self._state.full_filepath}): {schema}"
 
     def _convert_openapi_header(
         self,
@@ -685,6 +684,7 @@ class Parser:
                 },
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
+                x_client_codegen=operation.x_client_codegen,
             )
         )
 
@@ -722,6 +722,7 @@ class Parser:
                 },
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
+                x_client_codegen=operation.x_client_codegen,
             )
         )
 

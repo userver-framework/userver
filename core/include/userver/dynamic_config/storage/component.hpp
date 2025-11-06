@@ -110,6 +110,8 @@ public:
 
     concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& GetEventSource() noexcept;
 
+    concurrent::AsyncEventSource<const dynamic_config::Diff&>& GetDiffSource() noexcept;
+
 private:
     DynamicConfig& config_component_;
 };

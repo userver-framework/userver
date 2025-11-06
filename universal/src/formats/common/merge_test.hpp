@@ -25,37 +25,37 @@ class FormatsMerge;
 TYPED_TEST_SUITE_P(FormatsMerge);
 
 TYPED_TEST_P(FormatsMerge, MissingOrigin) {
-    TestFixture::CheckMerge(R"({"a": 1})", R"({"b": 2})", R"({"a": 1,"b": 2})");
-    TestFixture::CheckMerge(R"({"z": 0})", R"({"a": {"b": 1} })", R"({"z": 0, "a": {"b": 1} })");
+    TestFixture::kCheckMerge(R"({"a": 1})", R"({"b": 2})", R"({"a": 1,"b": 2})");
+    TestFixture::kCheckMerge(R"({"z": 0})", R"({"a": {"b": 1} })", R"({"z": 0, "a": {"b": 1} })");
 }
 
 TYPED_TEST_P(FormatsMerge, IntOriginal) {
-    TestFixture::CheckMerge(R"({"a": 1})", R"({"a": 2})", R"({"a": 2})");
-    TestFixture::CheckMerge(R"({"a": 1})", R"({"a": {"b": 2} })", R"({"a": {"b": 2} })");
+    TestFixture::kCheckMerge(R"({"a": 1})", R"({"a": 2})", R"({"a": 2})");
+    TestFixture::kCheckMerge(R"({"a": 1})", R"({"a": {"b": 2} })", R"({"a": {"b": 2} })");
 }
 
 TYPED_TEST_P(FormatsMerge, ObjectOrigIntPatch) {
-    TestFixture::CheckMerge(R"({"a": {"b": 2} })", R"({"a": 1})", R"({"a": 1})");
-    TestFixture::CheckMerge(R"({"a": {"b": 1} })", R"({"a": {"c": 2} })", R"({"a": {"b": 1, "c": 2} })");
+    TestFixture::kCheckMerge(R"({"a": {"b": 2} })", R"({"a": 1})", R"({"a": 1})");
+    TestFixture::kCheckMerge(R"({"a": {"b": 1} })", R"({"a": {"c": 2} })", R"({"a": {"b": 1, "c": 2} })");
 }
 
 TYPED_TEST_P(FormatsMerge, Array) {
-    TestFixture::CheckMerge(R"({"a": {"b": [1]} })", R"({"a": {"b": [2]} })", R"({"a": {"b": [2]} })");
+    TestFixture::kCheckMerge(R"({"a": {"b": [1]} })", R"({"a": {"b": [2]} })", R"({"a": {"b": [2]} })");
 }
 
 TYPED_TEST_P(FormatsMerge, Null) {
-    TestFixture::CheckMerge(R"({"a": null})", R"({"a": null})", R"({"a": null})");
-    TestFixture::CheckMerge(R"({"a": {"b": 1}})", R"({"a": null})", R"({"a": null})");
-    TestFixture::CheckMerge(R"({"a": {"b": 1} })", R"({"a": null})", R"({"a": null})");
-    TestFixture::CheckMerge(R"({"a": null})", R"({"a": {"b": 1}})", R"({"a": {"b": 1}})");
-    TestFixture::CheckMerge(R"({"a": null})", R"({"a": {"b": 1}})", R"({"a": {"b": 1}})");
+    TestFixture::kCheckMerge(R"({"a": null})", R"({"a": null})", R"({"a": null})");
+    TestFixture::kCheckMerge(R"({"a": {"b": 1}})", R"({"a": null})", R"({"a": null})");
+    TestFixture::kCheckMerge(R"({"a": {"b": 1} })", R"({"a": null})", R"({"a": null})");
+    TestFixture::kCheckMerge(R"({"a": null})", R"({"a": {"b": 1}})", R"({"a": {"b": 1}})");
+    TestFixture::kCheckMerge(R"({"a": null})", R"({"a": {"b": 1}})", R"({"a": {"b": 1}})");
 }
 
 TYPED_TEST_P(FormatsMerge, Empty) {
-    TestFixture::CheckMerge(R"({"a": 1})", "{}", R"({"a": 1})");
-    TestFixture::CheckMerge("{}", R"({"a": 1})", R"({"a": 1})");
-    TestFixture::CheckMerge(R"({"a": {"b": 2} })", "{}", R"({"a": {"b": 2} })");
-    TestFixture::CheckMerge("{}", R"({"a": {"b": 2} })", R"({"a": {"b": 2} })");
+    TestFixture::kCheckMerge(R"({"a": 1})", "{}", R"({"a": 1})");
+    TestFixture::kCheckMerge("{}", R"({"a": 1})", R"({"a": 1})");
+    TestFixture::kCheckMerge(R"({"a": {"b": 2} })", "{}", R"({"a": {"b": 2} })");
+    TestFixture::kCheckMerge("{}", R"({"a": {"b": 2} })", R"({"a": {"b": 2} })");
 }
 
 REGISTER_TYPED_TEST_SUITE_P(FormatsMerge, MissingOrigin, IntOriginal, ObjectOrigIntPatch, Array, Null, Empty);

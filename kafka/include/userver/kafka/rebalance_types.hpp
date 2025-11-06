@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 
 #include <userver/utils/span.hpp>
 #include <userver/utils/zstring_view.hpp>

@@ -1,3 +1,4 @@
+import argparse
 from contextlib import contextmanager
 from dataclasses import dataclass
 import functools
@@ -213,7 +214,7 @@ class TaskContext:
     @functools.cached_property
     def state(self):
         atomic_state = self.task['state_']
-        return str(atomic_state.cast(atomic_state.type.template_argument(0))).split('::')[-1][1:]
+        return self._state_enum_to_str(str(atomic_state.cast(atomic_state.type.template_argument(0))))
 
     @functools.cached_property
     def _fctx(self):
@@ -241,6 +242,29 @@ class TaskContext:
     def attached_span(self):
         return Span.from_task(self.task)
 
+    @functools.cache
+    @staticmethod
+    def possible_states():
+        try:
+            return [
+                TaskContext._state_enum_to_str(match.group(1))
+                for match in re.finditer(
+                    re.escape(f'{USERVER_NAMESPACE}engine::TaskBase::State::') + '([a-zA-Z0-9_]+)',
+                    gdb.execute(f"ptype '{USERVER_NAMESPACE}engine::TaskBase::State'", to_string=True),
+                )
+            ]
+        except gdb.error:
+            return ['invalid', 'new', 'queued', 'running', 'suspended', 'cancelled', 'completed']
+
+    @staticmethod
+    def _state_enum_to_str(state: str):
+        return state.split('::')[-1][1:].lower()
+
+    @functools.cache
+    @staticmethod
+    def _native_type():
+        return gdb.lookup_type(f'{USERVER_NAMESPACE}engine::impl::TaskContext')
+
 
 class Span:
     def __init__(self, span: gdb.Value):
@@ -263,9 +287,10 @@ class Span:
         if not data_base:
             return None
         data_impl = data_base.cast(Span._data_impl_type().pointer())
-        raw_span = data_impl['variable_']['data_']['root_plus_size_']['m_header']['prev_']
-        if not raw_span:
+        span_list_root = data_impl['variable_']['data_']['root_plus_size_']['m_header']
+        if not span_list_root or int(span_list_root.address) == int(span_list_root['next_']):
             return None
+        raw_span = span_list_root['prev_']
         return Span(gdb.parse_and_eval(f'({Span._span_impl_type().name}*){raw_span}'))
 
     @functools.cached_property
@@ -316,7 +341,9 @@ def get_task_from_stacktrace() -> gdb.Value | None:
             if (name := frame.name()) and name.startswith(f'{USERVER_NAMESPACE}engine::impl::TaskContext::CoroFunc'):
                 frame.select()
                 try:
-                    if task := frame.read_var('context', frame.block()):
+                    if (
+                        task := frame.read_var('context', frame.block())
+                    ) and task.type == TaskContext._native_type().pointer():
                         return task
                 except ValueError:
                     pass
@@ -351,7 +378,7 @@ def lookup_mappings():
         )
     else:
         command = 'info proc mappings'
-        regexp = re.compile(rf'\s+({hex_re})\s+({hex_re})\s+{hex(PAGE_SIZE)}\s+{hex_re}\s+---p\s+$')
+        regexp = re.compile(rf'\s*({hex_re})\s+({hex_re})\s+{hex(PAGE_SIZE)}\s+{hex_re}\s+---p\s*$')
 
     mappings = gdb.execute(command, to_string=True).split('\n')
     for line in mappings:
@@ -422,19 +449,69 @@ class UtaskCmd(gdb.Command):
 
 
 class UtaskListCmd(gdb.Command):
-    """List all userver tasks."""
-
     def __init__(self):
         super().__init__('utask list', gdb.COMMAND_STATUS)
 
+    @functools.cache
+    @staticmethod
+    def get_argparser():
+        def _regexp_parser(pattern: str):
+            try:
+                return re.compile(pattern)
+            except re.error as e:
+                raise argparse.ArgumentTypeError(e)
+
+        parser = argparse.ArgumentParser(
+            'utask list', description='List userver tasks (all or some of them)', exit_on_error=False
+        )
+        parser.add_argument(
+            '-s',
+            '--states',
+            action='extend',
+            nargs='*',
+            metavar='STATE',
+            choices=TaskContext.possible_states(),
+            help=f'List utasks with specific states only (one of {{{str(TaskContext.possible_states())[1:-1]}}})',
+        )
+        parser.add_argument('-i', '--id', help='List utask with specific id only')
+        parser.add_argument('-n', '--name', type=_regexp_parser, help='List utasks which names match the regex')
+        parser.add_argument(
+            '-b', '--backtrace', type=_regexp_parser, help='List utasks which backtraces match the regex'
+        )
+        return parser
+
     def invoke(self, arg: str, from_tty: bool):
+        parser = UtaskListCmd.get_argparser()
         try:
-            print(f'{"Task":14}', f'{"State":9}', 'Span')
+            args = parser.parse_args(gdb.string_to_argv(arg))
+        except SystemExit:
+            return
+
+        def filterer(task: TaskContext):
+            if args.states and task.state not in args.states:
+                return False
+            if args.id and task.task_id != args.id:
+                return False
+            if args.name and not args.name.search(task.attached_span.name):
+                return False
+            if args.backtrace:
+                with task.switch_to():
+                    backtrace = gdb.execute('bt', to_string=True)
+                    if not args.backtrace.search(backtrace):
+                        return False
+            return True
+
+        try:
+            print(f'{"Task ID":14}', f'{"State":9}', 'Span name')
             for task in get_all_tasks():
-                print(task.task_id, f'{task.state:9}', span.name if (span := task.attached_span) else '')
+                if filterer(task):
+                    print(f'{task.task_id:14}', f'{task.state:9}', span.name if (span := task.attached_span) else '')
         except Exception:
-            print(traceback.format_exc())
+            traceback.print_exc()
             raise
+
+
+UtaskListCmd.__doc__ = UtaskListCmd.get_argparser().format_help()
 
 
 class UtaskApplyCmd(gdb.Command):
@@ -446,6 +523,10 @@ class UtaskApplyCmd(gdb.Command):
     Use "all" to apply <gdbcmd> to all tasks.
 
     For example: `(gdb) utask apply all backtrace`
+
+    During command execution the convenience variables are available:
+        '$this_utask' holds pointer to current TaskContext
+        '$this_utask_name' holds the name of this task (span name)
     """
 
     def __init__(self):
@@ -479,13 +560,19 @@ class UtaskApplyCmd(gdb.Command):
                         return self.invoke_per_task(task, cmd, from_tty)
                 raise gdb.error(f'Task "{which_task}" not found')
         except gdb.error:
-            print(traceback.format_exc())
+            traceback.print_exc()
             raise
 
     def invoke_per_task(self, task: TaskContext, cmd: str, from_tty: bool):
         print(f'Executing command `{cmd}` for task {task.task_id}')
         with task.switch_to():
-            gdb.execute(cmd, from_tty)
+            try:
+                gdb.set_convenience_variable('this_utask', task.task)
+                gdb.set_convenience_variable('this_utask_name', (task.attached_span and task.attached_span.name or ''))
+                gdb.execute(cmd, from_tty)
+            finally:
+                gdb.set_convenience_variable('this_utask', None)
+                gdb.set_convenience_variable('this_utask_name', None)
 
     def complete(self, text: str, word: str) -> list[str] | int | None:
         complete_args_count = len(text.split()) - int(bool(word))
@@ -503,10 +590,11 @@ class UtaskApplyCmd(gdb.Command):
 
 
 if __name__ == '__main__':
-    print('Registering Utask cmd')
+    print('Registering Utask cmd...')
     try:
         UtaskCmd()
         UtaskListCmd()
         UtaskApplyCmd()
+        print('Utask cmd registered')
     except Exception:
-        print(traceback.format_exc())
+        traceback.print_exc()

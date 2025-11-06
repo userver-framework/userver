@@ -22,25 +22,25 @@ void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
 }  // namespace
 
 TEST(StaticConfigValidator, ValidConfig) {
-    const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
         example-cache:
             size: 1
             ways: 1
             lifetime: 1s # 0 (unlimited) by default
             config-settings: false # true by default
     )";
-    ValidateExampleCacheConfig(formats::yaml::FromString(std::string{kStaticConfig}));
+    ValidateExampleCacheConfig(formats::yaml::FromString(std::string{static_config}));
 }
 
 TEST(StaticConfigValidator, InvalidFieldName) {
-    const std::string kInvalidStaticConfig = R"(
+    const std::string invalid_static_config = R"(
         example-cache:
             size: 1
             ways: 1
             not_declared_property: 1
     )";
     UEXPECT_THROW_MSG(
-        ValidateExampleCacheConfig(formats::yaml::FromString(kInvalidStaticConfig)),
+        ValidateExampleCacheConfig(formats::yaml::FromString(invalid_static_config)),
         std::runtime_error,
         "Error while validating static config against schema. Field "
         "'example-cache.not_declared_property' is not declared in schema '/'"
@@ -48,13 +48,13 @@ TEST(StaticConfigValidator, InvalidFieldName) {
 }
 
 TEST(StaticConfigValidator, InvalidFieldType) {
-    const std::string kInvalidStaticConfig = R"(
+    const std::string invalid_static_config = R"(
         example-cache:
             size: 1
             ways: abc # must be integer
     )";
     UEXPECT_THROW_MSG(
-        ValidateExampleCacheConfig(formats::yaml::FromString(kInvalidStaticConfig)),
+        ValidateExampleCacheConfig(formats::yaml::FromString(invalid_static_config)),
         std::runtime_error,
         "Error while validating static config against schema. Value "
         "'abc' of field 'example-cache.ways' must be integer"

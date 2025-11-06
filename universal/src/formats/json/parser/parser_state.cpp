@@ -116,6 +116,12 @@ void ParserState::ProcessInput(std::string_view sw) {
         };
     }
 
+    if (is.Tell() != sw.size()) {
+        throw ParseError(
+            is.Tell(), "", rapidjson::GetParseError_En(rapidjson::ParseErrorCode::kParseErrorDocumentRootNotSingular)
+        );
+    }
+
     if (!stack.empty()) {
         throw ParseError(is.Tell(), "", "data is expected after the end of file");
     }

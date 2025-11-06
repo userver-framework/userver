@@ -48,6 +48,11 @@ AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::WaitUntil(engine::Deadl
     utils::AbortWithStacktrace("should be unreachable");
 }
 
+bool AsyncMethodInvocation::WaitNonCancellable() noexcept {
+    event_.WaitNonCancellable();
+    return ok_;
+}
+
 engine::impl::ContextAccessor* AsyncMethodInvocation::TryGetContextAccessor() noexcept {
     return event_.TryGetContextAccessor();
 }

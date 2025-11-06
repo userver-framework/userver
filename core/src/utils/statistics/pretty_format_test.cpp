@@ -14,10 +14,10 @@ int HeavyComputation2() { return 5; }
 UTEST(MetricsPrettyFormat, SampleBasic) {
     utils::statistics::Storage storage;
 
-    utils::statistics::Entry holder_;
+    utils::statistics::Entry holder;
     /// [Writer basic sample]
     // `storage` is a utils::statistics::Storage, `holder_` is a component member of type utils::statistics::Entry
-    holder_ = storage.RegisterWriter(
+    holder = storage.RegisterWriter(
         "path-begin",
         [&](utils::statistics::Writer& writer) {
             // Metric without labels

@@ -332,7 +332,7 @@ ParseError(std::string input, std::initializer_list<decimal64::impl::ParseOption
         .error;
 };
 
-const std::initializer_list<decimal64::impl::ParseOptions> OPTIONS = {
+const std::initializer_list<decimal64::impl::ParseOptions> kOptions = {
     decimal64::impl::ParseOptions::kAllowSpaces,
     decimal64::impl::ParseOptions::kAllowBoundaryDot,
     decimal64::impl::ParseOptions::kAllowExponent,
@@ -341,17 +341,17 @@ const std::initializer_list<decimal64::impl::ParseOptions> OPTIONS = {
 }  // namespace
 
 TEST(Decimal64Exponent, Errors) {
-    EXPECT_EQ(ParseError("1e1000", OPTIONS), decimal64::impl::ParseErrorCode::kOverflow);
+    EXPECT_EQ(ParseError("1e1000", kOptions), decimal64::impl::ParseErrorCode::kOverflow);
     // kSign->kLeadingZeros->kExpSign
-    EXPECT_EQ(ParseError("0e", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    EXPECT_EQ(ParseError("0e", kOptions), decimal64::impl::ParseErrorCode::kNoExponentDigits);
     // kSign->kBeforeDec->kExpSign
-    EXPECT_EQ(ParseError("1e", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    EXPECT_EQ(ParseError("1e", kOptions), decimal64::impl::ParseErrorCode::kNoExponentDigits);
     // kSign->kLeadingZeros->kAfterDec->kExpSign
-    EXPECT_EQ(ParseError("0.1e", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    EXPECT_EQ(ParseError("0.1e", kOptions), decimal64::impl::ParseErrorCode::kNoExponentDigits);
     // kSign->kLeadingZeros->kExpSign->kExpFirstDigit
-    EXPECT_EQ(ParseError("0e+", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    EXPECT_EQ(ParseError("0e+", kOptions), decimal64::impl::ParseErrorCode::kNoExponentDigits);
     // kSign->kLeadingZeros->kExpSign->kExpFirstDigit
-    EXPECT_EQ(ParseError("0e-", OPTIONS), decimal64::impl::ParseErrorCode::kNoExponentDigits);
+    EXPECT_EQ(ParseError("0e-", kOptions), decimal64::impl::ParseErrorCode::kNoExponentDigits);
 
     EXPECT_EQ(
         ParseError(
@@ -386,10 +386,10 @@ TEST(Decimal64Exponent, MaxSize) {
     EXPECT_EQ(Dec4::FromStringPermissive("0.00000000000000002e20"), Dec4{"2000"});
     EXPECT_EQ(Dec4::FromStringPermissive("0.0000000000000000002e17"), Dec4{0});
     EXPECT_EQ(
-        ParseError("10000000000000000e-19", OPTIONS), decimal64::impl::ParseErrorCode::kOverflow
+        ParseError("10000000000000000e-19", kOptions), decimal64::impl::ParseErrorCode::kOverflow
     );  // limitation of the current implementation. Truth result is 0.001
     EXPECT_EQ(
-        ParseError("-10000000000000000e-19", OPTIONS), decimal64::impl::ParseErrorCode::kOverflow
+        ParseError("-10000000000000000e-19", kOptions), decimal64::impl::ParseErrorCode::kOverflow
     );  // limitation of the current implementation. Truth result is -0.001
 }
 

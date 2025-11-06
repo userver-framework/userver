@@ -28,7 +28,7 @@ Component::Component(const USERVER_NAMESPACE::components::ComponentConfig& confi
     if (config.HasMember("middlewares")) {
         const auto& mw_config = config["middlewares"];
         
-        for (const auto& [name, config] : Items(mw_config)) {
+        for (const auto& [name, config] : USERVER_NAMESPACE::formats::common::Items(mw_config)) {
             auto &factory = context.FindComponent<USERVER_NAMESPACE::chaotic::openapi::client::MiddlewareFactory>("chaotic-client-middleware-" + name);
             auto middleware = factory.Create(config);
             client_.RegisterMiddleware(middleware);

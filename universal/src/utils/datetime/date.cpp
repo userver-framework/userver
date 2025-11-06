@@ -15,7 +15,7 @@ const std::string kDateFormat = "%Y-%m-%d";
 const auto kUtcTz = cctz::utc_time_zone();
 
 // TODO: replace with C++20 std::chrono::days
-constexpr date::days to_days(int year, int month, int day) noexcept {
+constexpr date::days ToDays(int year, int month, int day) noexcept {
     const date::year_month_day ymd{
         date::year{year}, date::month{static_cast<unsigned>(month)}, date::day{static_cast<unsigned>(day)}};
 
@@ -24,7 +24,7 @@ constexpr date::days to_days(int year, int month, int day) noexcept {
 
 }  // namespace
 
-Date::Date(int year, int month, int day) : sys_days_{to_days(year, month, day)} {}
+Date::Date(int year, int month, int day) : sys_days_{ToDays(year, month, day)} {}
 
 Date DateFromRFC3339String(const std::string& date_string) {
     const auto time_point = FromStringSaturating(date_string, kDateFormat);

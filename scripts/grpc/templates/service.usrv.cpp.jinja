@@ -5,6 +5,9 @@
 
 {# DO NOT ADD NEW INCLUDES HERE! Add them inside codegen_definitions.hpp instead #}
 #include <userver/ugrpc/server/impl/codegen_definitions.hpp>
+{% if params.structs %}
+#include <userver/grpc-proto-structs/server/impl/codegen_definitions.hpp>
+{% endif %}
 
 {{ utils.include_grpcpp(proto.source_file_without_ext) }}
 
@@ -82,19 +85,104 @@ inline const bool k{{service.name}}TypesRegistration =
 {% endfor %}
 
 std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
-{{service.name}}Base::MakeWorker(
-    USERVER_NAMESPACE::ugrpc::server::impl::ServiceInternals&& internals) {
-  (void)k{{service.name}}TypesRegistration;  // odr-use
+{{service.name}}Base::MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceInternals&& internals) {
+    (void)k{{service.name}}TypesRegistration;  // odr-use
 
-  return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<
-      {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
-      std::move(internals), k{{service.name}}Methods, *this{% if service.method %},{% endif %}
-      {% for method in service.method %}
-      &{{service.name}}Base::{{method.name}}{{ "," if not loop.last }}
-      {% endfor %}
-      );
+    return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<
+        {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
+        std::move(internals), k{{service.name}}Methods, *this{% if service.method %},{% endif %}
+        {% for method in service.method %}
+        &{{service.name}}Base::{{method.name}}{{ "," if not loop.last }}
+        {% endfor %}
+    );
 }
 
 {% endfor %}
+
+{% if params.structs %}
+namespace structs {
+{% for service in proto.services %}
+{% for method in service.method %}
+{% if method.client_streaming and method.server_streaming %}
+
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{method.name}}ReaderWriter& stream) {
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
+}
+
+{{service.name}}ProtobufBase::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    CallContext& context,
+    {{service.name}}ProtobufBase::{{method.name}}ReaderWriter& stream) {
+  {{method.name}}ReaderWriter proto_struct_stream{stream};
+  auto result = {{method.name}}(context, proto_struct_stream);
+  return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+}
+
+{% elif method.client_streaming %}
+
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{method.name}}Reader& reader) {
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
+}
+
+{{service.name}}ProtobufBase::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    CallContext& context,
+    {{service.name}}ProtobufBase::{{method.name}}Reader& reader) {
+  {{method.name}}Reader proto_struct_reader{reader};
+  auto result = {{method.name}}(context, proto_struct_reader);
+  return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+}
+
+{% elif method.server_streaming %}
+
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{ method.input_type | grpc_to_structs_name }}&& request,
+    [[maybe_unused]] {{method.name}}Writer& writer) {
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
+}
+
+{{service.name}}ProtobufBase::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    {{ method.input_type | grpc_to_cpp_name }}&& request,
+  {{service.name}}ProtobufBase::{{method.name}}Writer& writer) {
+  {{method.name}}Writer proto_struct_writer{writer};
+  auto result = {{method.name}}(
+      context,
+      USERVER_NAMESPACE::proto_structs::MessageToStruct<{{ method.input_type | grpc_to_structs_name }}>(std::move(request)),
+      proto_struct_writer
+  );
+  return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+}
+
+{% else %}
+
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{ method.input_type | grpc_to_structs_name }}&& request) {
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
+}
+
+{{service.name}}ProtobufBase::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
+  auto result = {{method.name}}(
+    context,
+    USERVER_NAMESPACE::proto_structs::MessageToStruct<{{ method.input_type | grpc_to_structs_name }}>(std::move(request))
+  );
+  return USERVER_NAMESPACE::grpc_proto_structs::server::impl::ConvertMethodResult(std::move(result));
+}
+
+{% endif %}
+{% endfor %}
+{% endfor %}
+}  // namespace structs
+{% endif %}
 
 {% endcall %} {# utils.optional_namespace #}

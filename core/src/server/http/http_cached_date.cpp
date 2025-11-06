@@ -16,9 +16,9 @@ namespace impl {
 
 std::string MakeHttpDate(std::chrono::system_clock::time_point date) {
     static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
-    static const auto tz = cctz::utc_time_zone();
+    static const auto kTz = cctz::utc_time_zone();
 
-    return cctz::format(kFormatString, date, tz);
+    return cctz::format(kFormatString, date, kTz);
 }
 
 constexpr size_t kMaxDateHeaderLength = 128;
@@ -46,7 +46,14 @@ std::string_view GetCachedDate() {
         cache->last_time_string_size = time_str.size();
     }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-stack-address"
+#endif
     return std::string_view{cache->last_time_string, cache->last_time_string_size};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 }
 
 }  // namespace impl

@@ -51,9 +51,9 @@ void CreateDirectories(std::string_view path, boost::filesystem::perms perms) {
 
 void CreateDirectories(std::string_view path) {
     using boost::filesystem::perms;
-    const auto kPerms0755 =
+    const auto perms0755 =
         perms::owner_all | perms::group_read | perms::group_exe | perms::others_read | perms::others_exe;
-    CreateDirectories(path, kPerms0755);
+    CreateDirectories(path, perms0755);
 }
 
 void RewriteFileContents(const std::string& path, std::string_view contents) {

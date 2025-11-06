@@ -377,8 +377,8 @@ void Connection::SendResponse(http::HttpRequest& request) {
 std::string Connection::Getpeername() const { return peer_name_; }
 
 std::unique_ptr<request::RequestParser> Connection::MakeParser(USERVER_NAMESPACE::http::HttpVersion ver) {
-    const auto on_req_cb = [&pending_requests_ = pending_requests_](HttpRequestPtr&& request_ptr) {
-        pending_requests_.push_back(std::move(request_ptr));
+    const auto on_req_cb = [&pending_requests = pending_requests_](HttpRequestPtr&& request_ptr) {
+        pending_requests.push_back(std::move(request_ptr));
     };
     if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {
         return std::make_unique<http::Http2Session>(

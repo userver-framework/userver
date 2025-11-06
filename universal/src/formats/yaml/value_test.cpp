@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 struct Parsing<formats::yaml::Value> : public ::testing::Test {
-    constexpr static auto FromString = formats::yaml::FromString;
+    constexpr static auto kFromString = formats::yaml::FromString;
     using ParseException = formats::yaml::Value::ParseException;
 };
 

@@ -21,8 +21,8 @@ namespace storages::postgres::io {
 namespace {
 
 struct PredefinedOidsPair {
-    PredefinedOidsPair(PredefinedOids first_, PredefinedOids second_)
-        : first(std::min(first_, second_)), second(std::max(first_, second_)) {}
+    PredefinedOidsPair(PredefinedOids l_first, PredefinedOids l_second)
+        : first(std::min(l_first, l_second)), second(std::max(l_first, l_second)) {}
 
     PredefinedOids first;
     PredefinedOids second;
@@ -72,22 +72,22 @@ private:
 };
 
 auto& Registry() {
-    static auto registry_ = [] {
+    static auto registry = [] {
         ParserOidsRegistry registry;
         registry.Add("void", PredefinedOids::kVoid);
         return registry;
     }();
-    return registry_;
+    return registry;
 }
 
 auto& ArrayToElement() {
-    static std::unordered_map<PredefinedOids, PredefinedOids> element_by_array_;
-    return element_by_array_;
+    static std::unordered_map<PredefinedOids, PredefinedOids> element_by_array;
+    return element_by_array;
 }
 
 TypeBufferCategory& TypeCategories() {
-    static TypeBufferCategory cats_{{static_cast<Oid>(PredefinedOids::kVoid), BufferCategory::kVoid}};
-    return cats_;
+    static TypeBufferCategory cats{{static_cast<Oid>(PredefinedOids::kVoid), BufferCategory::kVoid}};
+    return cats;
 }
 
 constexpr USERVER_NAMESPACE::utils::TrivialBiMap kBufferCategoryToString = [](auto selector) {

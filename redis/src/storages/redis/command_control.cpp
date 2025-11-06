@@ -79,8 +79,8 @@ void ServerId::RemoveDescription() const {
 
 std::string ServerId::GetDescription() const { return GetServerIdDescriptionMap().GetDescription(id_); }
 
-std::atomic<int64_t> ServerId::next_id_{0};
-ServerId ServerId::invalid_ = ServerId::Generate();
+std::atomic<int64_t> ServerId::next_id{0};
+ServerId ServerId::invalid = ServerId::Generate();
 
 CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     CommandControl res(*this);

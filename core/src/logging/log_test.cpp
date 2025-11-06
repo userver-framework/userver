@@ -154,13 +154,28 @@ TEST_F(LoggingTest, LogRaw) {
     EXPECT_EQ(GetStreamString(), "foo\n");
 }
 
-TEST_F(LoggingTest, DISABLED_Format) {
+TEST_F(LoggingTest, Format) {
+    // Expanded macro
+    const auto should_not_log =
+        __builtin_expect(
+            USERVER_IMPL_DYNAMIC_DEBUG_ENTRY().ShouldNotLog(
+                (USERVER_NAMESPACE::logging::GetDefaultLogger()), ((USERVER_NAMESPACE::logging::Level::kError))
+            ),
+            static_cast<int>(USERVER_NAMESPACE::logging::Level::kError) <
+                static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo)
+        )
+            ? true
+            : false;
+    EXPECT_FALSE(should_not_log);
+
     LOG_ERROR("Hello, {}", "world");
-    EXPECT_EQ("Hello, world", LoggedText());
+    EXPECT_EQ("Hello, world", LoggedText())
+        << "Full message size is " << GetStreamString().size() << ":" << GetStreamString();
     ClearLog();
 
     LOG_ERROR("{}, {}", "Hello", "world");
-    EXPECT_EQ("Hello, world", LoggedText());
+    EXPECT_EQ("Hello, world", LoggedText())
+        << "Full message size is " << GetStreamString().size() << ":" << GetStreamString();
     ClearLog();
 }
 
@@ -176,7 +191,7 @@ TEST_F(LoggingTest, Call) {
     EXPECT_EQ("1=2, 2=3, 3=4, ", LoggedText());
 }
 
-TEST_F(LoggingTest, DISABLED_CallFormat) {
+TEST_F(LoggingTest, CallFormat) {
     const int user_id = 42;
     const std::string ip_address = "127.0.0.1";
     const std::string_view expected_result = "User 42 logged in from 127.0.0.1";
@@ -184,13 +199,15 @@ TEST_F(LoggingTest, DISABLED_CallFormat) {
     /// [Example format bad logging usage]
     LOG_INFO() << fmt::format("User {} logged in from {}", user_id, ip_address);
     /// [Example format bad logging usage]
-    EXPECT_EQ(expected_result, LoggedText());
+    EXPECT_EQ(expected_result, LoggedText())
+        << "Full message size is " << GetStreamString().size() << ":" << GetStreamString();
     ClearLog();
 
     /// [Example format-based logging usage]
     LOG_INFO("User {} logged in from {}", user_id, ip_address);
     /// [Example format-based logging usage]
-    EXPECT_EQ(expected_result, LoggedText());
+    EXPECT_EQ(expected_result, LoggedText())
+        << "Full message size is " << GetStreamString().size() << ":" << GetStreamString();
 }
 
 TEST_F(LoggingTest, LoggingContainerElementFields) {

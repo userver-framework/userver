@@ -5,6 +5,9 @@
 
 #include <grpcpp/support/status.h>
 
+#include <userver/formats/json_fwd.hpp>
+#include <userver/yaml_config/fwd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc {
@@ -33,5 +36,21 @@ std::string ToString(grpc::StatusCode code) noexcept;
 bool IsServerError(grpc::StatusCode code) noexcept;
 
 }  // namespace ugrpc
+
+namespace formats::parse {
+
+/// @ref yaml_config::YamlConfig parsing support for `grpc::StatusCode`.
+grpc::StatusCode Parse(const yaml_config::YamlConfig& value, To<grpc::StatusCode>);
+
+/// Support for parsing `grpc::StatusCode` from string. Used for headers and map keys.
+grpc::StatusCode Parse(std::string_view value, To<grpc::StatusCode>);
+
+}  // namespace formats::parse
+
+namespace formats::serialize {
+
+formats::json::Value Serialize(const grpc::StatusCode& value, formats::serialize::To<formats::json::Value>);
+
+}
 
 USERVER_NAMESPACE_END

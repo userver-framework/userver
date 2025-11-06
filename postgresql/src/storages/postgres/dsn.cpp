@@ -243,10 +243,10 @@ std::string DsnMaskPassword(const Dsn& dsn) {
     static constexpr USERVER_NAMESPACE::utils::Re2Replacement url_replace{"\\1***\\2"};
     static constexpr USERVER_NAMESPACE::utils::Re2Replacement option_replace{"\\1***"};
     if (USERVER_NAMESPACE::utils::text::StartsWith(dsn.GetUnderlying(), pg_url_start)) {
-        static const USERVER_NAMESPACE::utils::regex url_re("^(postgresql://[^:]*:)[^@]+(@)");
-        static const USERVER_NAMESPACE::utils::regex option_re("\\b(password=)[^&]+");
-        auto masked = regex_replace(dsn.GetUnderlying(), url_re, url_replace);
-        masked = regex_replace(masked, option_re, option_replace);
+        static const USERVER_NAMESPACE::utils::regex kUrlRe("^(postgresql://[^:]*:)[^@]+(@)");
+        static const USERVER_NAMESPACE::utils::regex kOptionRe("\\b(password=)[^&]+");
+        auto masked = regex_replace(dsn.GetUnderlying(), kUrlRe, url_replace);
+        masked = regex_replace(masked, kOptionRe, option_replace);
         return masked;
     } else {
         // (\bpassword\s*=\s*)            # option keyword
@@ -256,10 +256,10 @@ std::string DsnMaskPassword(const Dsn& dsn) {
         //   |                            # or
         //   \S+                          # a sequence without spaces
         // )
-        static const USERVER_NAMESPACE::utils::regex option_re(
+        static const USERVER_NAMESPACE::utils::regex kOptionRe(
             R"~((\bpassword\s*=\s*)(?:(?:'(?:(?:\\['\\])|[^'])+')|\S+))~"
         );
-        auto masked = regex_replace(dsn.GetUnderlying(), option_re, option_replace);
+        auto masked = regex_replace(dsn.GetUnderlying(), kOptionRe, option_replace);
         return masked;
     }
 }

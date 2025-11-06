@@ -10,8 +10,12 @@ class TwoStandaloneTaskProcessors final {
 public:
     TwoStandaloneTaskProcessors()
         : pools_(engine::impl::MakeTaskProcessorPools({})),
-          main_task_processor_(engine::impl::TaskProcessorHolder::Make(1, "main", pools_)),
-          secondary_task_processor_(engine::impl::TaskProcessorHolder::Make(1, "secondary", pools_)) {}
+          main_task_processor_(
+              engine::impl::TaskProcessorHolder::Make(1, "main", engine::TaskQueueType::kGlobalTaskQueue, pools_)
+          ),
+          secondary_task_processor_(
+              engine::impl::TaskProcessorHolder::Make(1, "secondary", engine::TaskQueueType::kGlobalTaskQueue, pools_)
+          ) {}
 
     auto& GetMain() { return *main_task_processor_; }
     auto& GetSecondary() { return *secondary_task_processor_; }

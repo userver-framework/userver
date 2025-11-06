@@ -47,7 +47,7 @@ void ProducerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason, 
 }
 
 void ProducerImpl::LogCallback(const char* facility, const char* message, int log_level) const {
-    LOG(convertRdKafkaLogLevelToLoggingLevel(log_level))
+    LOG(ConvertRdKafkaLogLevelToLoggingLevel(log_level))
         << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}} << message;
 }
 
@@ -201,8 +201,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #endif
 
     if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
-        [[maybe_unused]] const auto _headers_holder = headers_holder.release();
-        [[maybe_unused]] const auto _waiter = waiter.release();
+        [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
+        [[maybe_unused]] const auto waiter_ptr = waiter.release();
     } else {
         LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
         waiter->SetDeliveryResult(DeliveryResult{enqueue_error});

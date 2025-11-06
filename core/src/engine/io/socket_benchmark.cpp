@@ -25,7 +25,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 
 }  // namespace
 
-void socket_send_all(benchmark::State& state) {
+void SocketSendAll(benchmark::State& state) {
     engine::RunStandalone([&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
         internal::net::TcpListener listener;
@@ -49,9 +49,9 @@ void socket_send_all(benchmark::State& state) {
         task_reader.Get();
     });
 }
-BENCHMARK(socket_send_all);
+BENCHMARK(SocketSendAll);
 
-void socket_send_all_v(benchmark::State& state) {
+void SocketSendAllV(benchmark::State& state) {
     engine::RunStandalone([&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
         internal::net::TcpListener listener;
@@ -73,9 +73,9 @@ void socket_send_all_v(benchmark::State& state) {
         task_reader.Get();
     });
 }
-BENCHMARK(socket_send_all_v);
+BENCHMARK(SocketSendAllV);
 
-[[maybe_unused]] void socket_send_all_v_range(benchmark::State& state) {
+[[maybe_unused]] void SocketSendAllVRange(benchmark::State& state) {
     engine::RunStandalone(2, [&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
         internal::net::TcpListener listener;
@@ -105,7 +105,7 @@ BENCHMARK(socket_send_all_v);
 // TODO(TAXICOMMON-5510) flaky, sometimes throws engine::io::IoTimeout
 // BENCHMARK(socket_send_all_v_range)->RangeMultiplier(10)->Range(10, 10000);
 
-[[maybe_unused]] void socket_send_all_range(benchmark::State& state) {
+[[maybe_unused]] void SocketSendAllRange(benchmark::State& state) {
     engine::RunStandalone(2, [&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
         internal::net::TcpListener listener;

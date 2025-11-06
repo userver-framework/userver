@@ -8,7 +8,7 @@ namespace samples::grpc::auth::client {
 
 class ChaosMiddleware final : public ugrpc::client::MiddlewareBase {
 public:
-    explicit ChaosMiddleware(bool feature_enabled_);
+    explicit ChaosMiddleware(bool feature_enabled);
 
     void PreStartCall(ugrpc::client::MiddlewareCallContext& context) const override;
 

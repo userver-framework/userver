@@ -16,21 +16,39 @@ const std::string kSpanKindInternal = "internal";
 
 const std::string kHttpUrl = "http.url";
 
+const std::string kUrlFull = "url.full";
+
+const std::string kHttpUrlTemplate = "url.template";
+
 const std::string kHttpMetaType = "meta_type";
 
 const std::string kHttpMethod = "method";
 
+const std::string kHttpRequestMethod = "http.request.method";
+
 const std::string kHttpStatusCode = "meta_code";
 
-const std::string kAttempts = "attempts";
+const std::string kHttpResponseStatusCode = "meta_code";
 
-const std::string kMaxAttempts = "max_attempts";
+const std::string kHttpRoute = "http.route";
+
+const std::string kAttempts = "http.request.resend_count";
+
+const std::string kMaxAttempts = "http.request.max_resend_count";
 
 const std::string kTimeoutMs = "timeout_ms";
 
 const std::string kErrorFlag = "error";
 
 const std::string kErrorMessage = "error_msg";
+
+const std::string kRpcSystem = "rpc.system";
+
+const std::string kRpcService = "rpc.service";
+
+const std::string kRpcMethod = "rpc.method";
+
+const std::string kGrpcCode = "rpc.grpc.status_code";
 
 const std::string kDatabaseType = "db.type";
 
@@ -51,6 +69,8 @@ const std::string kDatabaseStatementName = "db.statement_name";
 const std::string kDatabaseStatementDescription = "db.statement_description";
 
 const std::string kPeerAddress = "peer.address";
+
+const std::string kServerAddress = "server.address";
 
 }  // namespace tracing
 

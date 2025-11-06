@@ -45,16 +45,6 @@ OsScheduling Parse(const yaml_config::YamlConfig& value, formats::parse::To<OsSc
     return utils::ParseFromValueString(value, kMap);
 }
 
-TaskQueueType Parse(const yaml_config::YamlConfig& value, formats::parse::To<TaskQueueType>) {
-    static constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector()
-            .Case(TaskQueueType::kGlobalTaskQueue, "global-task-queue")
-            .Case(TaskQueueType::kWorkStealingTaskQueue, "work-stealing-task-queue");
-    });
-
-    return utils::ParseFromValueString(value, kMap);
-}
-
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<TaskProcessorConfig>) {
     TaskProcessorConfig config;
     config.should_guess_cpu_limit = value["guess-cpu-limit"].As<bool>(config.should_guess_cpu_limit);

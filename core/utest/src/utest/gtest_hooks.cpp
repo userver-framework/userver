@@ -35,7 +35,7 @@ void SetLogLevel(logging::Level log_level) {
         logging::stacktrace_cache::GlobalEnableStacktrace(false);
     }
 
-    static const logging::DefaultLoggerGuard logger{
+    static const logging::DefaultLoggerGuard kLogger{
         logging::MakeStderrLogger("default", logging::Format::kTskv, log_level)};
 
     logging::SetDefaultLoggerLevel(log_level);

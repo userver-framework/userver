@@ -1,0 +1,39 @@
+{% macro render_gen_node(node) %}
+{% if node.kind == "namespace" %}
+{# For nested scopes, only render forward declarations in them, but not in their parent namespaces -#}
+{% elif node.kind == "struct" %}
+{{ do_render_struct(node) -}}
+{% elif node.kind == "vanilla_class" %}
+{{ do_render_vanilla_class(node) -}}
+{% elif node.kind == "oneof" %}
+{{ do_render_oneof(node) -}}
+{% elif node.kind == "enum" %}
+{{ do_render_enum(node) -}}
+{% else %}
+NOT_IMPLEMENTED_ERROR()
+{% endif %}
+{% endmacro %}
+
+{% macro do_render_struct(struct) %}
+{% if struct.should_forward_declare %}
+struct {{ struct.name.short_name }};
+{% endif %}
+{% endmacro %}
+
+{% macro do_render_vanilla_class(node) %}
+{% if node.should_forward_declare %}
+class {{ node.name.short_name }};
+{% endif %}
+{% endmacro %}
+
+{% macro do_render_oneof(oneof) %}
+{% if oneof.should_forward_declare %}
+struct {{ oneof.name.short_name }};
+{% endif %}
+{% endmacro %}
+
+{% macro do_render_enum(enum) %}
+{% if enum.should_forward_declare %}
+enum class {{ enum.name.short_name }} : std::int32_t;
+{% endif %}
+{% endmacro %}

@@ -93,6 +93,9 @@ if(UBOOST_CORO_USE_UCONTEXT)
     endif()
 endif()
 
-find_package(Boost REQUIRED CONFIG)
-target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost userver-internal-compile-options)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-internal-compile-options)
+if(USERVER_CONAN)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Boost::headers)
+endif()
 _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})

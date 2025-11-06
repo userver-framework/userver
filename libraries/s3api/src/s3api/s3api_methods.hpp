@@ -4,7 +4,7 @@
 #include <string>
 
 #include <userver/http/predefined_header.hpp>
-
+#include <userver/s3api/models/multipart_upload/requests.hpp>
 #include <userver/s3api/models/request.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -51,6 +51,22 @@ Request CopyObject(
     std::string_view dest_key,
     std::string_view content_type
 );
+
+Request
+CreateInternalApiRequest(const std::string& bucket, const multipart_upload::CreateMultipartUploadRequest& request);
+
+Request
+CreateInternalApiRequest(const std::string& bucket, const multipart_upload::AbortMultipartUploadRequest& request);
+
+Request
+CreateInternalApiRequest(const std::string& bucket, const multipart_upload::CompleteMultipartUploadRequest& request);
+
+Request CreateInternalApiRequest(const std::string& bucket, const multipart_upload::UploadPartRequest& request);
+
+Request CreateInternalApiRequest(const std::string& bucket, const multipart_upload::ListPartsRequest& request);
+
+Request
+CreateInternalApiRequest(const std::string& bucket, const multipart_upload::ListMultipartUploadsRequest& request);
 
 }  // namespace s3api::api_methods
 

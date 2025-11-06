@@ -101,7 +101,7 @@ Sometimes it is handy to embed file(s) content into the binary to avoid addition
 You may use it with `userver_embed_file()` cmake function.
 It generates cmake target which can be linked into your executable target.
 
-Cmake part looks like the following:
+CMake part looks like the following:
 
 @snippet samples/embedded_files/CMakeLists.txt  embedded
 

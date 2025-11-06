@@ -8,3 +8,7 @@ enum SeparateEnum {
   ValZero = 0;
   ValOne = 1;
 }
+
+message SeparateEnumMessage {
+  SeparateEnum e = 1;
+}

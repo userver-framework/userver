@@ -41,3 +41,11 @@ message NestedTrickEnum {
         BAR_VAR = 2;
     }
 }
+
+enum WithoutPrefix {
+    BarVar = 0;
+    Bar_Foo = 1;
+    Bar_foo1 = 2;
+    Bar_FooQux = 3;
+    Bar_FooQuX1 = 4;
+}

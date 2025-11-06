@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-void make_url(benchmark::State& state, std::size_t size) {
+void MakeUrl(benchmark::State& state, std::size_t size) {
     const std::string path = "http://example.com/v1/something";
     std::string spaces(size, ' ');
     std::string latins(size, 'a');
@@ -15,16 +15,16 @@ void make_url(benchmark::State& state, std::size_t size) {
     }
 }
 
-void make_url_tiny(benchmark::State& state) { make_url(state, 5); }
-BENCHMARK(make_url_tiny);
+void MakeUrlTiny(benchmark::State& state) { MakeUrl(state, 5); }
+BENCHMARK(MakeUrlTiny);
 
-void make_url_small(benchmark::State& state) { make_url(state, 50); }
-BENCHMARK(make_url_small);
+void MakeUrlSmall(benchmark::State& state) { MakeUrl(state, 50); }
+BENCHMARK(MakeUrlSmall);
 
-void make_url_big(benchmark::State& state) { make_url(state, 5000); }
-BENCHMARK(make_url_big);
+void MakeUrlBig(benchmark::State& state) { MakeUrl(state, 5000); }
+BENCHMARK(MakeUrlBig);
 
-void make_query(benchmark::State& state) {
+void MakeQuery(benchmark::State& state) {
     http::Args query_args;
     const auto agrs_count = state.range(0);
     for (int i = 0; i < agrs_count; i++) {
@@ -36,9 +36,9 @@ void make_query(benchmark::State& state) {
         benchmark::DoNotOptimize(result);
     }
 }
-BENCHMARK(make_query)->RangeMultiplier(2)->Range(1, 256);
+BENCHMARK(MakeQuery)->RangeMultiplier(2)->Range(1, 256);
 
-void make_url_with_path_args_value_sizes(benchmark::State& state, std::size_t size) {
+void MakeUrlWithPathArgsValueSizes(benchmark::State& state, std::size_t size) {
     const std::string path_template = "http://example.com/v1/{resource}/{id}";
     std::string large_value(size, 'x');
 
@@ -51,16 +51,16 @@ void make_url_with_path_args_value_sizes(benchmark::State& state, std::size_t si
     }
 }
 
-void make_url_with_path_args_small_values(benchmark::State& state) { make_url_with_path_args_value_sizes(state, 50); }
-BENCHMARK(make_url_with_path_args_small_values);
+void MakeUrlWithPathArgsSmallValues(benchmark::State& state) { MakeUrlWithPathArgsValueSizes(state, 50); }
+BENCHMARK(MakeUrlWithPathArgsSmallValues);
 
-void make_url_with_path_args_medium_values(benchmark::State& state) { make_url_with_path_args_value_sizes(state, 500); }
-BENCHMARK(make_url_with_path_args_medium_values);
+void MakeUrlWithPathArgsMediumValues(benchmark::State& state) { MakeUrlWithPathArgsValueSizes(state, 500); }
+BENCHMARK(MakeUrlWithPathArgsMediumValues);
 
-void make_url_with_path_args_large_values(benchmark::State& state) { make_url_with_path_args_value_sizes(state, 5000); }
-BENCHMARK(make_url_with_path_args_large_values);
+void MakeUrlWithPathArgsLargeValues(benchmark::State& state) { MakeUrlWithPathArgsValueSizes(state, 5000); }
+BENCHMARK(MakeUrlWithPathArgsLargeValues);
 
-void make_url_with_path_args_template_complexity(benchmark::State& state) {
+void MakeUrlWithPathArgsTemplateComplexity(benchmark::State& state) {
     std::string path_template;
     http::PathArgs path_args;
 
@@ -78,6 +78,6 @@ void make_url_with_path_args_template_complexity(benchmark::State& state) {
         benchmark::DoNotOptimize(result);
     }
 }
-BENCHMARK(make_url_with_path_args_template_complexity)->Range(1, 256);
+BENCHMARK(MakeUrlWithPathArgsTemplateComplexity)->Range(1, 256);
 
 USERVER_NAMESPACE_END

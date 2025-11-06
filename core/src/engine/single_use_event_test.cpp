@@ -6,6 +6,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -72,6 +73,7 @@ UTEST(SingleUseEvent, Sample) {
     sender.Get();
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     struct SimpleTask final {
         std::uint64_t request;
@@ -119,6 +121,7 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     keep_running_server = false;
     server_task.Get();
 }
+#endif
 
 UTEST(SingleUseEvent, Cancellation) {
     engine::SingleUseEvent event;
@@ -163,6 +166,7 @@ UTEST_MT(SingleUseEvent, SendWaitRace, 2) {
     }
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
     const auto test_deadline = engine::Deadline::FromDuration(100ms);
 
@@ -200,6 +204,7 @@ UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
         }
     }
 }
+#endif
 
 namespace {
 

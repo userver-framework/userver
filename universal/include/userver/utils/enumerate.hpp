@@ -82,7 +82,7 @@ namespace utils {
 /// for (auto [pos, elem] : enumerate(someContainer)) {...}
 /// @endcode
 template <typename Container>
-constexpr auto enumerate(Container&& iterable) {
+constexpr auto enumerate(Container&& iterable) {  // NOLINT(readability-identifier-naming)
     return impl::ContainerWrapper<Container>{std::forward<Container>(iterable)};
 }
 

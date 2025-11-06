@@ -28,6 +28,10 @@ properties:
         type: integer
         description: number of rows to request from PostgreSQL, 0 to fetch all rows in one request
         defaultDescription: 1000
+    sleep-between-chunks:
+        type: string
+        description: duration to wait between reading chunks from PostgreSQL
+        defaultDescription: 0ms
     pgcomponent:
         type: string
         description: PostgreSQL component name

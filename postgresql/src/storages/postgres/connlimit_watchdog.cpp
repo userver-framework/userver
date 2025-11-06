@@ -67,7 +67,7 @@ void ConnlimitWatchdog::Start() {
 }
 
 void ConnlimitWatchdog::StepV1() {
-    static auto kHostname = hostinfo::blocking::GetRealHostName();
+    static auto hostname = hostinfo::blocking::GetRealHostName();
     try {
         auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
 
@@ -89,7 +89,7 @@ void ConnlimitWatchdog::StepV1() {
             "($1, "
             "NOW(), $2) ON CONFLICT (hostname) DO UPDATE SET updated = NOW(), "
             "max_connections = $2",
-            kHostname,
+            hostname,
             static_cast<int>(GetConnlimit())
         );
         auto instances = trx.Execute(
@@ -125,7 +125,7 @@ void ConnlimitWatchdog::StepV1() {
 }
 
 void ConnlimitWatchdog::StepV2() {
-    static auto kHostname = hostinfo::blocking::GetRealHostName();
+    static auto hostname = hostinfo::blocking::GetRealHostName();
     try {
         auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
 

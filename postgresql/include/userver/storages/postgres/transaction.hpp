@@ -147,11 +147,12 @@ public:
     //@{
     /** @name Shortcut transaction options constants */
     /// Read-write read committed transaction
-    static constexpr TransactionOptions RW{};
+    static constexpr TransactionOptions RW{};  // NOLINT(readability-identifier-naming)
     /// Read-only read committed transaction
-    static constexpr TransactionOptions RO{TransactionOptions::kReadOnly};
+    static constexpr TransactionOptions RO{TransactionOptions::kReadOnly};  // NOLINT(readability-identifier-naming)
     /// Read-only serializable deferrable transaction
-    static constexpr TransactionOptions Deferrable{TransactionOptions::Deferrable()};
+    static constexpr TransactionOptions Deferrable{// NOLINT(readability-identifier-naming)
+                                                   TransactionOptions::Deferrable()};
     //@}
 
     static constexpr std::size_t kDefaultRowsInChunk = 1024;

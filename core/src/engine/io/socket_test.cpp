@@ -104,11 +104,11 @@ UTEST(Socket, ListenConnect) {
         EXPECT_EQ('2', c);
         ASSERT_EQ(1, first_client.RecvAll(&c, 1, test_deadline));
         EXPECT_EQ('1', c);
-        for (int64_t bytesRead = 0; bytesRead < 1;) {
-            const auto optRead = third_client.RecvNoblock(&c, 1);
-            if (optRead && *optRead > 0) {
-                bytesRead += *optRead;
-                ASSERT_EQ(1, *optRead);
+        for (int64_t bytes_read = 0; bytes_read < 1;) {
+            const auto opt_read = third_client.RecvNoblock(&c, 1);
+            if (opt_read && *opt_read > 0) {
+                bytes_read += *opt_read;
+                ASSERT_EQ(1, *opt_read);
                 EXPECT_EQ('3', c);
             } else if (test_deadline.IsReached()) {
                 FAIL() << "third_client: deadline is reached w/o value being set";
@@ -469,17 +469,17 @@ UTEST(Socket, WriteALot) {
     UdpListener listener;
     EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
     EXPECT_EQ(listener.Port(), listener.socket.Getsockname().Port());
-    const std::size_t kPyaloadSize = 900;
-    const std::size_t kRepetitions = 1000;
+    const std::size_t payload_size = 900;
+    const std::size_t repetitions = 1000;
 
-    std::string data(kPyaloadSize, '!');
+    std::string data(payload_size, '!');
     engine::io::Socket& socket = listener.socket;
     const auto& addr = socket.Getsockname();
 
     // Attempt to provoke EWOULDBLOCK on send
-    for (std::size_t i = 0; i < kRepetitions; ++i) {
-        const auto bytes_sent = socket.SendAllTo(addr, data.data(), kPyaloadSize, deadline);
-        EXPECT_EQ(bytes_sent, kPyaloadSize);
+    for (std::size_t i = 0; i < repetitions; ++i) {
+        const auto bytes_sent = socket.SendAllTo(addr, data.data(), payload_size, deadline);
+        EXPECT_EQ(bytes_sent, payload_size);
     }
 }
 

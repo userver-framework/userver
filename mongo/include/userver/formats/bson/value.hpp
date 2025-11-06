@@ -332,7 +332,7 @@ using formats::common::Items;
 /// 'using namespace ABC' may contradict code style of your company.
 namespace formats::literals {
 
-bson::Value operator"" _bson(const char* str, std::size_t len);
+bson::Value operator""_bson(const char* str, std::size_t len);
 
 }  // namespace formats::literals
 

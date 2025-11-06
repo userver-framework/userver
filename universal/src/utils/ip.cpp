@@ -56,7 +56,7 @@ NetworkBase<Address> NetworkFromString(const std::string& str) {
     if (end != std::string::npos) {
         throw_exception();
     }
-    const auto addr = AddressFromString<Address::AddressSize>(str.substr(0, pos));
+    const auto addr = AddressFromString<Address::kAddressSize>(str.substr(0, pos));
     const int prefix_len = utils::FromString<int>(str.substr(pos + 1));
     if (prefix_len < 0 || prefix_len > NetworkBase<Address>::kMaximumPrefixLength) {
         throw_exception();

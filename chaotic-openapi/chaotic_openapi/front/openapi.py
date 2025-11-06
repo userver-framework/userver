@@ -62,6 +62,11 @@ class MediaType(base_model.BaseModel):
     examples: dict[str, Any] = pydantic.Field(default_factory=dict)
     # encoding: dict[str, Encoding] = {}
 
+    _model_userver_tags: list[str] = [
+        'x-taxi-non-std-type-reason',
+        'x-usrv-non-std-type-reason',
+    ]
+
 
 # https://spec.openapis.org/oas/v3.0.0.html#reference-object
 class Ref(base_model.BaseModel):
@@ -74,6 +79,11 @@ class Response(base_model.BaseModel):
     headers: dict[str, Union[Header, Ref]] = pydantic.Field(default_factory=dict)
     content: dict[str, MediaType] = pydantic.Field(default_factory=dict)
     # TODO: links
+
+    def model_post_init(self, context: Any, /) -> None:
+        if 'application/json' in self.content and not self.content['application/json'].schema_:
+            # empty application/json means the same "no body"
+            del self.content['application/json']
 
 
 class In(str, enum.Enum):
@@ -117,6 +127,10 @@ class Parameter(base_model.BaseModel):
     x_query_log_mode: QueryLogMode = pydantic.Field(
         default=QueryLogMode.show,
         validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+    )
+    x_explode_true_reason: str = pydantic.Field(
+        default='',
+        validation_alias=pydantic.AliasChoices('x-taxi-explode-true-reason', 'x-usrv-explode-true-reason'),
     )
 
     def model_post_init(self, context: Any, /) -> None:
@@ -259,6 +273,10 @@ class Operation(base_model.BaseModel):
     x_query_log_mode: QueryLogMode = pydantic.Field(
         default=QueryLogMode.show,
         validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+    )
+    x_client_codegen: bool = pydantic.Field(
+        default=True,
+        validation_alias=pydantic.AliasChoices('x-taxi-client-codegen', 'x-usrv-client-codegen'),
     )
 
     def model_post_init(self, context: Any, /) -> None:

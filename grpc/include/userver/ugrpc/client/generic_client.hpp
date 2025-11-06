@@ -8,9 +8,11 @@
 
 #include <grpcpp/support/byte_buffer.h>
 
+#include <userver/utils/box.hpp>
+
 #include <userver/ugrpc/client/call_options.hpp>
 #include <userver/ugrpc/client/generic_options.hpp>
-#include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/fwd.hpp>
 #include <userver/ugrpc/client/response_future.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 
@@ -47,8 +49,10 @@ namespace ugrpc::client {
 /// For a more complete sample, see @ref grpc_generic_api.
 class GenericClient final {
 public:
-    GenericClient(GenericClient&&) noexcept = default;
-    GenericClient& operator=(GenericClient&&) noexcept = delete;
+    GenericClient(GenericClient&&) noexcept;
+    GenericClient& operator=(GenericClient&&) noexcept;
+
+    ~GenericClient();
 
     /// Initiate a `single request -> single response` RPC with the given name.
     ResponseFuture<grpc::ByteBuffer> AsyncUnaryCall(
@@ -74,10 +78,9 @@ public:
     /// @endcond
 
 private:
-    template <typename Client>
-    friend impl::ClientData& impl::GetClientData(Client& client);
+    friend class impl::ClientDataAccessor;
 
-    impl::ClientData impl_;
+    utils::Box<impl::ClientData> client_data_;
 };
 
 }  // namespace ugrpc::client

@@ -5,6 +5,10 @@
 #include <cstdio>
 #include <memory>
 
+#if __has_include(<stdio_ext.h>)
+#include <stdio_ext.h>  // for FSETLOCKING_BYCALLER, __fsetlocking
+#endif
+
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -65,6 +69,12 @@ CFile::CFile(const std::string& path, OpenMode flags, boost::filesystem::perms p
         utils::CheckSyscallNotEquals(::fdopen(fd.GetNative(), ToMode(flags)), nullptr, "calling ::fdopen")
     );
     std::move(fd).Release();
+
+#ifdef FSETLOCKING_BYCALLER
+    // Synchronization is not required for this FILE* because where are sure that it is not shared
+    // (unlike FILE* stderr, stdin, stdout).
+    __fsetlocking(impl_->handle.get(), FSETLOCKING_BYCALLER);
+#endif
 }
 
 bool CFile::IsOpen() const { return static_cast<bool>(impl_->handle); }

@@ -705,14 +705,14 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
       )
     )~"));
 
-        const auto searchQuery = storages::Query(R"(
+        const auto search_query = storages::Query(R"(
       SELECT id, status
       FROM __pgtest.user
       WHERE id = $1.id and status = $1.status;
     )");
 
         UEXPECT_THROW_MSG(
-            GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+            GetConn()->Execute(search_query, pgtest::User{1, 2}),
             storages::postgres::UserTypeError,
             fmt::format(
                 "Type '__pgtest.user' was not created in database and "
@@ -740,7 +740,7 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
       )
     )~"));
 
-        const auto searchQuery = storages::Query(R"(
+        const auto search_query = storages::Query(R"(
       SELECT id, status
       FROM __pgtest.user_table
       WHERE id = $1.id and status = $1.status;
@@ -750,7 +750,7 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
         UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
 
         UEXPECT_THROW_MSG(
-            GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+            GetConn()->Execute(search_query, pgtest::User{1, 2}),
             storages::postgres::UserTypeError,
             "Type mismatch for '__pgtest.user' field 'status'. In database the "
             "type is 'bit' (oid: 1560), user supplied type is 'varbit' (oid: "

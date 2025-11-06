@@ -21,8 +21,8 @@ struct MutableValueWrapper::JsonPath {
     std::shared_ptr<JsonPath> parent;
 
     template <typename T>
-    JsonPath(T&& element_, std::shared_ptr<JsonPath> parent_)
-        : element(std::forward<T>(element_)), parent(std::move(parent_)) {}
+    JsonPath(T&& element, std::shared_ptr<JsonPath> parent)
+        : element(std::forward<T>(element)), parent(std::move(parent)) {}
 
     static Value& FetchMember(Value& root, const std::shared_ptr<JsonPath>& path);
     static std::string ToString(const std::shared_ptr<JsonPath>&);

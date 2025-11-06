@@ -51,7 +51,7 @@ void UpdateDeadline(MiddlewareCallContext& context) {
         span.AddTag("deadline_updated", true);
         state.SetDeadlinePropagated();
 
-        client_context.set_deadline(ugrpc::DurationToTimespec(task_time_left));
+        client_context.set_deadline(task_deadline);
 
         AddTimeoutMsToSpan(span, task_time_left);
     } else {

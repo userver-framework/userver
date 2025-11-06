@@ -12,40 +12,48 @@ from typing import List
 from typing import Mapping
 from typing import MutableSet
 from typing import Optional
-from typing import Union
 
 import google.protobuf.descriptor as descriptor
 
+from proto_structs.descriptors import option_parsers
+from proto_structs.descriptors import services
 from proto_structs.descriptors import type_mapping
+from proto_structs.models import forward_decls
 from proto_structs.models import gen_node
+from proto_structs.models import io
 from proto_structs.models import names
 from proto_structs.models import options
 from proto_structs.models import sort_dependencies
 from proto_structs.models import type_ref
+from proto_structs.models import type_ref_consts
+from proto_structs.models import vanilla
 
-TypeDescriptor = Union[descriptor.Descriptor, descriptor.EnumDescriptor]
 
-
-def parse_file(file: descriptor.FileDescriptor) -> gen_node.File:
-    fields_options: options.PluginOptions = options.load_fields_options()
-
+def parse_file(file: descriptor.FileDescriptor, *, plugin_options: options.PluginOptions) -> gen_node.File:
     types: List[gen_node.TypeNode] = []
     for enum in typing.cast(Dict[str, descriptor.EnumDescriptor], file.enum_types_by_name).values():
         types.append(parse_enum(enum))
     for message in typing.cast(Dict[str, descriptor.Descriptor], file.message_types_by_name).values():
-        if message_type := parse_message(message, fields_options):
+        if message_type := parse_message(message, plugin_options=plugin_options):
             types.append(message_type)
 
-    namespace_members: List[gen_node.TypeNode] = sort_dependencies.sort_types(types)
+    types = sort_dependencies.sort_types_topologically(types)
 
+    vanilla_namespace = gen_node.NamespaceNode.make_for_vanilla(
+        typing.cast(str, file.package),
+        children=vanilla.collect_vanilla_types(types=types),
+    )
     structs_namespace = gen_node.NamespaceNode.make_for_structs(
         typing.cast(str, file.package),
-        children=namespace_members,
+        children=types,
     )
+
+    forward_decls.add_forward_declarations((structs_namespace,))
 
     return gen_node.File(
         proto_relative_path=pathlib.Path(typing.cast(str, file.name)),
-        children=(structs_namespace,),
+        children=[vanilla_namespace, structs_namespace],
+        services_type_dependencies=list(services.collect_rpc_input_output_types(file)),
     )
 
 
@@ -66,9 +74,14 @@ def parse_enum_value(value: descriptor.EnumValueDescriptor) -> gen_node.EnumValu
     enum_name = typing.cast(str, enum_descriptor.name)
 
     return gen_node.EnumValue(
-        short_name=names.escape_id(_cut_enum_value_name(enum_value_name, enum_name=enum_name)),
+        short_name=names.escape_id(_format_enum_value_name(enum_value_name, enum_name=enum_name)),
         number=typing.cast(int, value.number),
     )
+
+
+def _format_enum_value_name(value_name: str, *, enum_name: str) -> str:
+    name = _cut_enum_value_name(value_name, enum_name=enum_name)
+    return f'k{names.to_pascal_case(name, to_lower=True)}'
 
 
 def _cut_enum_value_name(value_name: str, *, enum_name: str) -> str:
@@ -80,7 +93,9 @@ def _cut_enum_value_name(value_name: str, *, enum_name: str) -> str:
     return value_name
 
 
-def parse_message(message: descriptor.Descriptor, plugin_options: options.PluginOptions) -> Optional[gen_node.TypeNode]:
+def parse_message(
+    message: descriptor.Descriptor, *, plugin_options: options.PluginOptions
+) -> Optional[gen_node.TypeNode]:
     if _is_map_entry(message):
         return None
 
@@ -94,10 +109,10 @@ def parse_message(message: descriptor.Descriptor, plugin_options: options.Plugin
     for nested_enum in typing.cast(List[descriptor.EnumDescriptor], message.enum_types):
         nested_types.append(parse_enum(nested_enum))
     for nested_message in typing.cast(List[descriptor.Descriptor], message.nested_types):
-        if message_type := parse_message(nested_message, plugin_options):
+        if message_type := parse_message(nested_message, plugin_options=plugin_options):
             nested_types.append(message_type)
 
-    nested_types = sort_dependencies.sort_types(nested_types)
+    nested_types = sort_dependencies.sort_types_topologically(nested_types)
 
     fields: List[gen_node.StructField] = []
 
@@ -118,7 +133,7 @@ def parse_message(message: descriptor.Descriptor, plugin_options: options.Plugin
                 continue
         fields.append(parse_field(field, plugin_options=plugin_options))
 
-    nested_types = sort_dependencies.sort_types(nested_types)
+    nested_types = sort_dependencies.sort_types_topologically(nested_types)
 
     result = gen_node.StructNode(
         vanilla_name=vanilla_type_name,
@@ -135,21 +150,57 @@ def parse_message(message: descriptor.Descriptor, plugin_options: options.Plugin
 _SYNTHETIC_ONEOF_NAME_REGEX = re.compile(r'X*_\w*')
 
 
+def _io_kind_read(field: descriptor.FieldDescriptor) -> io.ReadVanillaFieldKind:
+    if typing.cast(int, field.label) == descriptor.FieldDescriptor.LABEL_OPTIONAL:
+        if typing.cast(bool, field.has_presence):
+            return io.ReadVanillaFieldKind.OPTIONAL
+
+    return io.ReadVanillaFieldKind.OTHER
+
+
+def _io_kind_write(field: descriptor.FieldDescriptor) -> io.WriteVanillaFieldKind:
+    type_kind: int = field.type
+    label = typing.cast(int, field.label)
+
+    # Check repeated firstly. Also handle a repeated map entry.
+    if label == descriptor.FieldDescriptor.LABEL_REPEATED:
+        return io.WriteVanillaFieldKind.VECTOR_MAP_MESSAGE
+
+    if type_kind == descriptor.FieldDescriptor.TYPE_STRING or type_kind == descriptor.FieldDescriptor.TYPE_BYTES:
+        return io.WriteVanillaFieldKind.STRING
+
+    if type_kind in type_mapping.PRIMITIVE_TYPES_TO_PROTOBUF_NAME or type_kind == descriptor.FieldDescriptor.TYPE_ENUM:
+        return io.WriteVanillaFieldKind.OTHER
+
+    if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or type_kind == descriptor.FieldDescriptor.TYPE_GROUP:
+        return io.WriteVanillaFieldKind.VECTOR_MAP_MESSAGE
+
+    raise Exception('unreachable')
+
+
+def _io_kind_by_field(field: descriptor.FieldDescriptor) -> io.IoKind:
+    return io.IoKind(read=_io_kind_read(field), write=_io_kind_write(field))
+
+
+def _io_kind_oneof() -> io.IoKind:
+    return io.IoKind(read=io.ReadVanillaFieldKind.ONEOF, write=io.WriteVanillaFieldKind.ONEOF)
+
+
 def _apply_options_to_field(
-    field: descriptor.FieldDescriptor, plugin_options: options.PluginOptions, struct_field: gen_node.StructField
+    field: descriptor.FieldDescriptor, struct_field: gen_node.StructField, *, plugin_options: options.PluginOptions
 ) -> gen_node.StructField:
-    full_name: Any = field.full_name
-    if options := plugin_options.field_options.get(str(full_name)):
-        if options.should_box:
-            template_args = (struct_field.field_type,)
-            if isinstance(struct_field.field_type, type_ref.TemplateType):
-                if struct_field.field_type.template.full_cpp_name() == 'std::optional':
-                    template_args = struct_field.field_type.template_args
-            struct_field.field_type = type_ref.TemplateType(
-                template=type_ref.BOX_TEMPLATE,
-                template_args=template_args,
-                works_with_forward_references=True,
-            )
+    message_type = _get_optional_message_type(field)
+    if message_type:
+        message_options = option_parsers.parse_message(message_type, plugin_options)
+    else:
+        message_options = None
+
+    field_options = option_parsers.parse_field(field, plugin_options)
+
+    should_box = field_options.indirect or (message_options and message_options.indirect)
+    if should_box:
+        gen_node.wrap_field_in_box(struct_field)
+
     return struct_field
 
 
@@ -194,28 +245,30 @@ def parse_field(
     plugin_options: options.PluginOptions,
     ignore_label: bool = False,
 ) -> gen_node.StructField:
-    if map_field_type := _try_parse_map_field_type(field):
+    if map_field_type := _try_parse_map_field_type(field, plugin_options=plugin_options):
         parsed_type = map_field_type
+        initializer = ''
     else:
-        parsed_type = _parse_type_reference(field)
+        parsed_type = type_mapping.parse_type_reference(field, plugin_options=plugin_options)
+        initializer = '' if isinstance(parsed_type, type_ref.UserverCodegenType) else '{}'
         if not ignore_label:
             parsed_type = type_mapping.handle_type_label(field, parsed_type)
 
     result_field = gen_node.StructField(
         short_name=names.escape_id(typing.cast(str, field.name)),
         field_type=parsed_type,
+        initializer=initializer,
         number=typing.cast(int, field.number),
         oneof_fields=None,
+        io_kinds=_io_kind_by_field(field),
     )
-    return _apply_options_to_field(field, plugin_options, result_field)
+    return _apply_options_to_field(field, result_field, plugin_options=plugin_options)
 
 
-_HASH_MAP_TEMPLATE = type_ref.UserverLibraryType(
-    full_cpp_name_wo_userver='proto_structs::HashMap', include='userver/proto-structs/hash_map.hpp'
-)
-
-
-def _try_parse_map_field_type(field: descriptor.FieldDescriptor) -> Optional[type_ref.TypeReference]:
+def _try_parse_map_field_type(
+    field: descriptor.FieldDescriptor,
+    plugin_options: options.PluginOptions,
+) -> Optional[type_ref.TypeReference]:
     # https://protobuf.com/docs/descriptors#map-fields
     if typing.cast(int, field.type) != descriptor.FieldDescriptor.TYPE_MESSAGE:
         return None
@@ -224,10 +277,10 @@ def _try_parse_map_field_type(field: descriptor.FieldDescriptor) -> Optional[typ
         return None
 
     fields_by_name = typing.cast(Mapping[str, descriptor.FieldDescriptor], message_type.fields_by_name)
-    key_type = _parse_type_reference(fields_by_name['key'])
-    value_type = _parse_type_reference(fields_by_name['value'])
+    key_type = type_mapping.parse_type_reference(fields_by_name['key'], plugin_options=plugin_options)
+    value_type = type_mapping.parse_type_reference(fields_by_name['value'], plugin_options=plugin_options)
 
-    return type_ref.TemplateType(template=_HASH_MAP_TEMPLATE, template_args=[key_type, value_type])
+    return type_ref_consts.make_hash_map(key_type, value_type)
 
 
 def parse_oneof(
@@ -236,6 +289,8 @@ def parse_oneof(
     nested_types_to_generate: List[gen_node.TypeNode],
     plugin_options: options.PluginOptions,
 ) -> gen_node.StructField:
+    oneof_options = option_parsers.parse_oneof(oneof, plugin_options)
+
     fields: List[gen_node.StructField] = []
 
     for field in typing.cast(List[descriptor.FieldDescriptor], oneof.fields):
@@ -246,11 +301,9 @@ def parse_oneof(
     containing_type_name = names.make_structs_type_name(type_mapping.parse_type_name(containing_type_descriptor))
 
     oneof_field_short_name = names.escape_id(typing.cast(str, oneof.name))
-    if oneof_field_short_name[0].isupper():
-        oneof_type_short_name = f'T{names.to_pascal_case(oneof_field_short_name)}'
-    else:
-        oneof_type_short_name = names.to_pascal_case(oneof_field_short_name)
-    oneof_type_short_name = _make_unique_member_name(oneof_type_short_name, taken_member_names)
+    oneof_type_short_name = oneof_options.generated_type_name or _synthesize_oneof_type_name(
+        oneof_field_short_name, taken_member_names
+    )
 
     oneof_type_name = names.make_nested_type_name(containing_type_name, oneof_type_short_name)
 
@@ -259,15 +312,25 @@ def parse_oneof(
 
     type_reference = type_ref.UserverCodegenType(
         name=oneof_type_name,
-        include=type_mapping.parse_include(containing_type_descriptor),
+        proto_file=type_mapping.parse_file_path(containing_type_descriptor),
     )
 
     return gen_node.StructField(
         short_name=oneof_field_short_name,
         field_type=type_reference,
+        initializer='',
         number=None,
         oneof_fields=fields,
+        io_kinds=_io_kind_oneof(),
     )
+
+
+def _synthesize_oneof_type_name(oneof_field_short_name: str, taken_member_names: MutableSet[str]) -> str:
+    if oneof_field_short_name[0].isupper():
+        oneof_type_short_name = f'T{names.to_pascal_case(oneof_field_short_name)}'
+    else:
+        oneof_type_short_name = names.to_pascal_case(oneof_field_short_name)
+    return _make_unique_member_name(oneof_type_short_name, taken_member_names)
 
 
 def _collect_taken_member_names(message: descriptor.Descriptor) -> MutableSet[str]:
@@ -291,19 +354,11 @@ def _make_unique_member_name(base_name: str, taken_member_names: MutableSet[str]
     return base_name
 
 
-def _parse_type_reference(field_type: descriptor.FieldDescriptor) -> type_ref.TypeReference:
-    type_kind = typing.cast(int, field_type.type)
-    if builtin_type := type_mapping.BUILTIN_TYPES.get(type_kind):
-        return builtin_type
-
-    if type_kind == descriptor.FieldDescriptor.TYPE_ENUM:
-        enum_type = typing.cast(descriptor.EnumDescriptor, field_type.enum_type)
-        return type_mapping.parse_enum_reference(enum_type)
-
+def _get_optional_message_type(field: descriptor.FieldDescriptor) -> Optional[descriptor.Descriptor]:
+    type_kind: int = field.type
     if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or type_kind == descriptor.FieldDescriptor.TYPE_GROUP:
         # Details on groups:
         # https://protobuf.com/docs/descriptors#groups
-        message_type = typing.cast(descriptor.Descriptor, field_type.message_type)
-        return type_mapping.parse_struct_reference(message_type)
-
-    raise RuntimeError(f'Invalid field type kind: {type_kind}')
+        message_type: descriptor.Descriptor = field.message_type
+        return message_type
+    return None

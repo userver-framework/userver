@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 
 #include <concurrent/impl/latch.hpp>
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/static_registration.hpp>
@@ -107,12 +108,21 @@ void TaskProcessorThreadStartedHook() {
 }
 
 auto MakeTaskQueue(TaskProcessorConfig config) {
-    using ResultType = std::variant<TaskQueue, WorkStealingTaskQueue>;
+#if USERVER_IMPL_HAS_TSAN
+    if (config.task_processor_queue != TaskQueueType::kTSanTaskQueue) {
+        LOG_WARNING() << "Forcing task processor queue to TaskQueueType::kTSanTaskQueue because of Thread Sanitizer";
+        config.task_processor_queue = TaskQueueType::kTSanTaskQueue;
+    }
+#endif
+
+    using ResultType = std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueueTSan>;
     switch (config.task_processor_queue) {
         case TaskQueueType::kGlobalTaskQueue:
             return ResultType{std::in_place_index<0>, std::move(config)};
         case TaskQueueType::kWorkStealingTaskQueue:
             return ResultType{std::in_place_index<1>, std::move(config)};
+        case TaskQueueType::kTSanTaskQueue:
+            return ResultType{std::in_place_index<2>, std::move(config)};
     }
     UINVARIANT(false, "Unexpected value of TaskQueueType enum");
 }
@@ -198,7 +208,7 @@ ev::ThreadPool& TaskProcessor::EventThreadPool() { return pools_->EventThreadPoo
 
 impl::CountedCoroutinePtr TaskProcessor::GetCoroutine() { return {pools_->GetCoroPool().GetCoroutine(), *this}; }
 
-std::size_t TaskProcessor::GetTaskQueueSize() const {
+std::size_t TaskProcessor::GetTaskQueueSize() const noexcept {
     return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); }, task_queue_);
 }
 
@@ -305,7 +315,9 @@ TaskProcessor& TaskProcessor::GetBlockingTaskProcessor() {
 
 void TaskProcessor::SetBlockingTaskProcessor(TaskProcessor& task_processor) { fs_task_processor_ = &task_processor; }
 
-size_t GetQueueSize(const TaskProcessor& task_processor) { return task_processor.GetTaskQueueSize(); }
+std::size_t GetQueueSize(const TaskProcessor& task_processor) noexcept { return task_processor.GetTaskQueueSize(); }
+
+std::size_t GetWorkerCount(const TaskProcessor& task_processor) noexcept { return task_processor.GetWorkerCount(); }
 
 void RegisterThreadStartedHook(std::function<void()> func) {
     utils::impl::AssertStaticRegistrationAllowed("Calling engine::RegisterThreadStartedHook()");

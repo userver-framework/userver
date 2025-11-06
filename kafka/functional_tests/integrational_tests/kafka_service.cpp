@@ -202,13 +202,13 @@ formats::json::Value HandlerKafkaConsumer::HandleRequestJsonThrow(
 }
 
 std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const std::string& topic) const {
-    auto thisMessages = messages_by_topic_.Lock();
+    auto this_messages = messages_by_topic_.Lock();
 
     if (topic.empty()) {
         LOG_WARNING("Consuming messages from all topics!");
 
         std::vector<formats::json::Value> consumed_messages;
-        for (auto&& topic_messages : *thisMessages) {
+        for (auto&& topic_messages : *this_messages) {
             LOG_WARNING("Clearing topic: {}", topic_messages.first);
             auto& messages = topic_messages.second;
             consumed_messages.reserve(consumed_messages.size() + messages.size());
@@ -220,17 +220,17 @@ std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const st
             messages.clear();
         }
 
-        thisMessages->clear();
+        this_messages->clear();
 
         return consumed_messages;
     }
 
-    const auto topic_messages_it = thisMessages->find(topic);
-    if (topic_messages_it == thisMessages->end()) {
+    const auto topic_messages_it = this_messages->find(topic);
+    if (topic_messages_it == this_messages->end()) {
         return {};
     }
 
-    DumpCurrentConsumed(*thisMessages, topic);
+    DumpCurrentConsumed(*this_messages, topic);
 
     std::vector<formats::json::Value> consumed_messages;
     topic_messages_it->second.swap(consumed_messages);
@@ -239,19 +239,19 @@ std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const st
 }
 
 void HandlerKafkaConsumer::Consume(kafka::MessageBatchView messages) {
-    auto thisMessages = messages_by_topic_.Lock();
+    auto this_messages = messages_by_topic_.Lock();
 
     for (const auto& message : messages) {
         if (!message.GetTimestamp().has_value()) {
             continue;
         }
 
-        (*thisMessages)[message.GetTopic()].emplace_back(
+        (*this_messages)[message.GetTopic()].emplace_back(
             Serialize(message, formats::serialize::To<formats::json::Value>{})
         );
     }
 
-    DumpCurrentConsumed(*thisMessages);
+    DumpCurrentConsumed(*this_messages);
 }
 
 void HandlerKafkaConsumer::DumpCurrentConsumed(

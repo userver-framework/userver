@@ -1,0 +1,38 @@
+From faf1b03a591f06933da02976119da5743f428e4f Mon Sep 17 00:00:00 2001
+From: Christopher Fore <csfore@posteo.net>
+Date: Mon, 5 Aug 2024 10:48:19 -0400
+Subject: [PATCH] container/internal: Explicitly include <cstdint>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+GCC 15 will no longer include <cstdint> by default, resulting in build
+failures in projects that do not explicitly include it.
+
+Error:
+absl/container/internal/container_memory.h:66:27: error: ‘uintptr_t’ does not name a type
+   66 |   assert(reinterpret_cast<uintptr_t>(p) % Alignment == 0 &&
+      |                           ^~~~~~~~~
+absl/container/internal/container_memory.h:31:1: note: ‘uintptr_t’ is defined in header ‘<cstdint>’; this is probably fixable by adding ‘#include <cstdint>’
+   30 | #include "absl/utility/utility.h"
+  +++ |+#include <cstdint>
+   31 |
+
+See-also: https://gcc.gnu.org/pipermail/gcc-cvs/2024-August/407124.html
+Signed-off-by: Christopher Fore <csfore@posteo.net>
+---
+ absl/container/internal/container_memory.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/absl/container/internal/container_memory.h b/absl/container/internal/container_memory.h
+index ba8e08a2d22..e7031797018 100644
+--- a/absl/container/internal/container_memory.h
++++ b/absl/container/internal/container_memory.h
+@@ -17,6 +17,7 @@
+ 
+ #include <cassert>
+ #include <cstddef>
++#include <cstdint>
+ #include <cstring>
+ #include <memory>
+ #include <new>

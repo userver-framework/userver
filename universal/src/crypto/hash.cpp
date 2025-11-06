@@ -28,7 +28,7 @@ namespace {
 class AlgoBlake2b128 final : public CryptoPP::BLAKE2b {
 public:
     AlgoBlake2b128() : CryptoPP::BLAKE2b(false, 16) {}
-    static constexpr size_t DIGESTSIZE{16};
+    static constexpr size_t DIGESTSIZE{16};  // NOLINT(readability-identifier-naming)
 };
 #endif
 

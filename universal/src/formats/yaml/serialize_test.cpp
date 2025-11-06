@@ -21,8 +21,8 @@ struct Serialization<formats::yaml::Value> : public ::testing::Test {
     using MemberMissingException = formats::yaml::MemberMissingException;
     using BadStreamException = formats::yaml::BadStreamException;
 
-    constexpr static auto FromString = formats::yaml::FromString;
-    constexpr static auto FromStream = formats::yaml::FromStream;
+    constexpr static auto kFromString = formats::yaml::FromString;
+    constexpr static auto kFromStream = formats::yaml::FromStream;
 };
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Serialization, formats::yaml::Value);

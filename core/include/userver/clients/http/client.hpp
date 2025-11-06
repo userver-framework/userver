@@ -71,7 +71,7 @@ public:
     ~Client();
 
     /// @brief Returns a HTTP request builder type with preset values of
-    /// User-Agent, Proxy and some of the Testsuite suff (if any).
+    /// User-Agent and some of the Testsuite stuff (if any).
     ///
     /// @note This method is thread-safe despite being non-const.
     Request CreateRequest();
@@ -115,13 +115,6 @@ public:
     /// userver identity string.
     void ResetUserAgent(std::optional<std::string> user_agent = std::nullopt);
 
-    /// @brief Returns the current proxy that is automatically used for each
-    /// request.
-    ///
-    /// @warning The value may become immediately obsolete as the proxy could be
-    /// concurrently changed from runtime config.
-    std::string GetProxy() const;
-
     /// @brief Sets the DNS resolver to use.
     ///
     /// If given nullptr, the default resolver will be used
@@ -163,7 +156,6 @@ private:
 
     engine::TaskProcessor& fs_task_processor_;
     std::optional<std::string> user_agent_;
-    rcu::Variable<std::string> proxy_;
 
     utils::SwappingSmart<const curl::easy> easy_;
     utils::PeriodicTask easy_reinit_task_;

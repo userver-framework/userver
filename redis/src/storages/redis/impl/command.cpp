@@ -21,7 +21,7 @@ std::string ToLower(std::string_view str) {
 }  // namespace
 
 Command::Command(
-    CmdArgs&& _args,
+    CmdArgs&& l_args,
     ReplyCallback callback,
     CommandControl control,
     int counter,
@@ -30,7 +30,7 @@ Command::Command(
     bool redirected,
     bool read_only
 )
-    : args(std::move(_args)),
+    : args(std::move(l_args)),
       callback(std::move(callback)),
       log_extra(PrepareLogExtra()),
       control(control),

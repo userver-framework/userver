@@ -278,9 +278,9 @@ UTEST_F(Options, ProjectionTwo) {
         bson::MakeDoc("a", 1, "b", "2", "doc", bson::MakeDoc("a", nullptr, "b", 0), "arr", bson::MakeArray(0, 1, 2, 3))
     );
 
-    const auto kDummyUpdate = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
+    const auto dummy_update = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -292,7 +292,7 @@ UTEST_F(Options, ProjectionTwo) {
         EXPECT_EQ(5, doc.GetSize());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"_id"});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"_id"});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -305,7 +305,7 @@ UTEST_F(Options, ProjectionTwo) {
         EXPECT_TRUE(doc.HasMember("_id"));
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"a"});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"a"});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -320,7 +320,7 @@ UTEST_F(Options, ProjectionTwo) {
     }
     {
         auto result = coll.FindAndModify(
-            {}, kDummyUpdate, mongo::options::Projection{"a"}.Exclude("_id").Include("b").Include("arr")
+            {}, dummy_update, mongo::options::Projection{"a"}.Exclude("_id").Include("b").Include("arr")
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -337,7 +337,7 @@ UTEST_F(Options, ProjectionTwo) {
     }
     {
         auto result =
-            coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{}.Exclude("_id").Exclude("doc.a"));
+            coll.FindAndModify({}, dummy_update, mongo::options::Projection{}.Exclude("_id").Exclude("doc.a"));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -364,11 +364,11 @@ UTEST_F(Options, ProjectionThree) {
         bson::MakeDoc("a", 1, "b", "2", "doc", bson::MakeDoc("a", nullptr, "b", 0), "arr", bson::MakeArray(0, 1, 2, 3))
     );
 
-    const auto kDummyUpdate = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
+    const auto dummy_update = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
 
     {
         auto result = coll.FindAndModify(
-            bson::MakeDoc("arr", bson::MakeDoc("$gt", 0)), kDummyUpdate, mongo::options::Projection{"arr.$"}
+            bson::MakeDoc("arr", bson::MakeDoc("$gt", 0)), dummy_update, mongo::options::Projection{"arr.$"}
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -385,7 +385,7 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(1, doc["arr"][0].As<int>());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{}.Slice("arr", -1));
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{}.Slice("arr", -1));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -404,11 +404,11 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(3, doc["arr"][0].As<int>());
     }
     UEXPECT_THROW(
-        coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{}.Slice("arr", -1, 2)),
+        coll.FindAndModify({}, dummy_update, mongo::options::Projection{}.Slice("arr", -1, 2)),
         mongo::InvalidQueryArgumentException
     );
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"a"}.Slice("arr", 2, -3));
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"a"}.Slice("arr", 2, -3));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -426,7 +426,7 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(2, doc["arr"][1].As<int>());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"a"}.ElemMatch("arr", {}));
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"a"}.ElemMatch("arr", {}));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -441,7 +441,7 @@ UTEST_F(Options, ProjectionThree) {
     }
     {
         auto result = coll.FindAndModify(
-            {}, kDummyUpdate, mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc("$bitsAllSet", 2))
+            {}, dummy_update, mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc("$bitsAllSet", 2))
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -459,7 +459,7 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(2, doc["arr"][0].As<int>());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"doc.b"});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"doc.b"});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());

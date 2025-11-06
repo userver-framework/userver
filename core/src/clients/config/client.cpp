@@ -25,44 +25,9 @@ std::string Client::FetchConfigsValues(std::string_view body) {
     const auto url =
         config_.append_path_to_url ? utils::StrCat(config_.config_url, kConfigsValues) : config_.config_url;
 
-    // Storing and overriding proxy below to avoid issues with concurrent update
-    // of proxy runtime config.
-    const auto proxy = http_client_.GetProxy();
-
-    std::exception_ptr exception;
-    try {
-        auto reply = http_client_.CreateRequest()
-                         .post(url, std::string{body})
-                         .timeout(timeout_ms)
-                         .retry(retries)
-                         .proxy(proxy)
-                         .perform();
-        reply->raise_for_status();
-        return std::move(*reply).body();
-    } catch (const clients::http::BaseException& /*e*/) {
-        if (!config_.fallback_to_no_proxy || proxy.empty()) {
-            throw;
-        }
-        exception = std::current_exception();
-    }
-
-    try {
-        auto no_proxy_reply = http_client_.CreateRequest()
-                                  .proxy("")
-                                  .post(url, std::string{body})
-                                  .timeout(timeout_ms)
-                                  .retry(retries)
-                                  .perform();
-
-        if (no_proxy_reply->IsOk()) {
-            LOG_WARNING() << "Using non proxy response in config client";
-            return std::move(*no_proxy_reply).body();
-        }
-    } catch (const clients::http::BaseException& e) {
-        LOG_WARNING() << "Non proxy request in config client failed: " << e;
-    }
-
-    std::rethrow_exception(exception);
+    auto reply = http_client_.CreateRequest().post(url, std::string{body}).timeout(timeout_ms).retry(retries).perform();
+    reply->raise_for_status();
+    return std::move(*reply).body();
 }
 
 Client::Reply

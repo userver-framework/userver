@@ -26,7 +26,8 @@ As will be shown below, custom middlewares require additional actions to work: r
 `ugrpc::client::MiddlewarePipelineComponent` is a global configuration of client middlewares.
 If you don't want to disable userver middlewares, just take that config:
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-client-middlewares-pipeline:
@@ -40,7 +41,8 @@ components_manager:
 
 You can enable or disable any middleware:
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-client-common:

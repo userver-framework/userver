@@ -114,8 +114,13 @@ engine.coro-pool.stack-usage.is-monitor-active:	GAUGE	0
 engine.coro-pool.stack-usage.max-usage-percent:	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_0	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_1	GAUGE	0
+
+# Duration of time the service is running
 engine.load-ms:	GAUGE	0
+
+# Service startup took this amount of time 
 engine.pre-load-ms:	GAUGE	0
+
 engine.task-processors-load-percent: task_processor=fs-task-processor, thread=0	GAUGE	0
 engine.task-processors-load-percent: task_processor=fs-task-processor, thread=1	GAUGE	0
 engine.task-processors-load-percent: task_processor=main-task-processor, thread=0	GAUGE	0

@@ -2,8 +2,8 @@
 
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
-
-#include <userver/ugrpc/status_codes.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 
@@ -17,7 +17,7 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, const
     if (!logging::ShouldLog(settings.msg_log_level)) {
         return "";
     }
-    return ugrpc::impl::GetMessageForLogging(message, settings.max_msg_size);
+    return ugrpc::ToLimitedDebugString(message, settings.max_msg_size);
 }
 
 class Logger {
@@ -45,7 +45,6 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
 
     span.AddTag(ugrpc::impl::kComponentTag, "server");
     span.AddTag("meta_type", std::string{context.GetCallName()});
-    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
 
     if (context.IsClientStreaming()) {
         Logger{settings_.log_level}.Log(
@@ -93,15 +92,17 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status
             );
         }
     } else {
-        auto error_details = ugrpc::impl::GetErrorDetailsForLogging(status);
+        auto error_details = ugrpc::ToLimitedDebugString(status, settings_.max_msg_size);
         logging::LogExtra extra{
             {"type", "response"},
             {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},
             {ugrpc::impl::kTypeTag, "error_status"},
             {ugrpc::impl::kBodyTag, std::move(error_details)},
         };
-        const auto error_log_level =
+        const auto default_error_log_level =
             IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
+        const auto error_log_level =
+            utils::FindOrDefault(settings_.status_codes_log_level, status.error_code(), default_error_log_level);
         logger.Log(error_log_level, "gRPC error", std::move(extra));
     }
 }

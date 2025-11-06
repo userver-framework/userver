@@ -24,7 +24,6 @@ struct ClientConfig {
     std::string config_url;
     bool append_path_to_url{true};
     std::string stage_name;
-    bool fallback_to_no_proxy{true};
 };
 
 /// @ingroup userver_clients

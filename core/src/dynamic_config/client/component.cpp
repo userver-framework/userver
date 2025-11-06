@@ -43,7 +43,6 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const Co
         }
     }
     client_config.config_url = config["config-url"].As<std::string>();
-    client_config.fallback_to_no_proxy = config["fallback-to-no-proxy"].As<bool>(true);
 
     if (!client_config.stage_name.empty() && client_config.get_configs_overrides_for_service) {
         throw std::logic_error("Cannot get overrides for both stage and service yet");
@@ -85,10 +84,6 @@ properties:
     configs-stage:
         type: string
         description: stage name provided statically, can be overridden from file
-    fallback-to-no-proxy:
-        type: boolean
-        description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
-        defaultDescription: true
     append-path-to-url:
         type: boolean
         description: add default path '/configs/values' to 'config-url'

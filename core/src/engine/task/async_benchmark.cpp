@@ -20,7 +20,7 @@ using WrappedSpanCall = utils::impl::WrappedCallImplType<decltype(utils::impl::S
 // Note: We intentionally do not run this benchmark from RunStandalone to avoid
 // any side-effects (RunStandalone spawns additional std::threads and uses some
 // synchronization primitives).
-void async_comparisons_std_thread(benchmark::State& state) {
+void AsyncComparisonsStdThread(benchmark::State& state) {
     std::uint64_t constructed_joined_count = 0;
     for ([[maybe_unused]] auto _ : state) {
         std::thread([] {}).join();
@@ -28,9 +28,9 @@ void async_comparisons_std_thread(benchmark::State& state) {
     }
     benchmark::DoNotOptimize(constructed_joined_count);
 }
-BENCHMARK(async_comparisons_std_thread);
+BENCHMARK(AsyncComparisonsStdThread);
 
-void async_comparisons_coro(benchmark::State& state) {
+void AsyncComparisonsCoro(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::uint64_t constructed_joined_count = 0;
         for ([[maybe_unused]] auto _ : state) {
@@ -40,18 +40,18 @@ void async_comparisons_coro(benchmark::State& state) {
         benchmark::DoNotOptimize(constructed_joined_count);
     });
 }
-BENCHMARK(async_comparisons_coro)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(AsyncComparisonsCoro)->RangeMultiplier(2)->Range(1, 32);
 
-void wrap_call_single(benchmark::State& state) {
+void WrapCallSingle(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             WrappedSpanCall(utils::impl::SpanLazyPrvalue(""), []() {});
         }
     });
 }
-BENCHMARK(wrap_call_single);
+BENCHMARK(WrapCallSingle);
 
-void wrap_call_multiple(benchmark::State& state) {
+void WrapCallMultiple(benchmark::State& state) {
     engine::RunStandalone([&] {
         constexpr std::size_t kInMemoryInstancesCount = 100;
         utils::FixedArray<std::optional<WrappedSpanCall>> calls{kInMemoryInstancesCount};
@@ -66,9 +66,9 @@ void wrap_call_multiple(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(wrap_call_multiple);
+BENCHMARK(WrapCallMultiple);
 
-void wrap_call_and_perform(benchmark::State& state) {
+void WrapCallAndPerform(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             WrappedSpanCall wrapped_call{utils::impl::SpanLazyPrvalue(""), []() {}};
@@ -81,9 +81,9 @@ void wrap_call_and_perform(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(wrap_call_and_perform);
+BENCHMARK(WrapCallAndPerform);
 
-void async_comparisons_coro_spanned(benchmark::State& state) {
+void AsyncComparisonsCoroSpanned(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::uint64_t constructed_joined_count = 0;
         for ([[maybe_unused]] auto _ : state) {
@@ -93,6 +93,6 @@ void async_comparisons_coro_spanned(benchmark::State& state) {
         benchmark::DoNotOptimize(constructed_joined_count);
     });
 }
-BENCHMARK(async_comparisons_coro_spanned)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(AsyncComparisonsCoroSpanned)->RangeMultiplier(2)->Range(1, 32);
 
 USERVER_NAMESPACE_END

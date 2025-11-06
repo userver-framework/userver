@@ -59,6 +59,8 @@ public:
     dynamic_config::Source GetSource();
     auto& GetChannel() { return cache_.GetChannel(); }
 
+    auto& GetDiffChannel() { return cache_.GetDiffChannel(); }
+
     const dynamic_config::DocsMap& GetDefaultDocsMap() const;
     bool AreUpdatesEnabled() const;
 
@@ -319,6 +321,10 @@ DynamicConfig::NoblockSubscriber::NoblockSubscriber(DynamicConfig& config_compon
 concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& DynamicConfig::NoblockSubscriber::GetEventSource(
 ) noexcept {
     return config_component_.impl_->GetChannel();
+}
+
+concurrent::AsyncEventSource<const dynamic_config::Diff&>& DynamicConfig::NoblockSubscriber::GetDiffSource() noexcept {
+    return config_component_.impl_->GetDiffChannel();
 }
 
 DynamicConfig::DynamicConfig(const ComponentConfig& config, const ComponentContext& context)

@@ -30,7 +30,7 @@ public:
         const std::optional<std::string>& static_service_config
     );
 
-    ServiceConfigBuilder(ServiceConfigBuilder&&) noexcept = default;
+    ServiceConfigBuilder(ServiceConfigBuilder&&) noexcept = delete;
     ServiceConfigBuilder(const ServiceConfigBuilder&) = delete;
     ServiceConfigBuilder& operator=(ServiceConfigBuilder&&) = delete;
     ServiceConfigBuilder& operator=(const ServiceConfigBuilder&) = delete;
@@ -58,7 +58,7 @@ public:
         const ugrpc::impl::StaticServiceMetadata& metadata
     );
 
-    ChannelArgumentsBuilder(ChannelArgumentsBuilder&&) noexcept = default;
+    ChannelArgumentsBuilder(ChannelArgumentsBuilder&&) noexcept = delete;
     ChannelArgumentsBuilder(const ChannelArgumentsBuilder&) = delete;
     ChannelArgumentsBuilder& operator=(ChannelArgumentsBuilder&&) = delete;
     ChannelArgumentsBuilder& operator=(const ChannelArgumentsBuilder&) = delete;

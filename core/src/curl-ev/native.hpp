@@ -41,6 +41,7 @@ namespace curl::native {
 
 }  // namespace curl::native
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline void throw_error(std::error_code ec, const char* s) {
     if (ec) throw std::system_error(ec, s);
 }

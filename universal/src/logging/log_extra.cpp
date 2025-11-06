@@ -59,9 +59,7 @@ LogExtra& LogExtra::operator=(LogExtra&&) = default;
 
 LogExtra& LogExtra::operator=(const LogExtra&) = default;
 
-LogExtra::LogExtra(std::initializer_list<Pair> initial, ExtendType extend_type) {
-    ExtendRange(initial.begin(), initial.end(), extend_type);
-}
+LogExtra::LogExtra(InitializerList initial, ExtendType extend_type) { Extend(initial, extend_type); }
 
 void LogExtra::Extend(std::string key, Value value, ExtendType extend_type) {
     Extend(std::move(key), ProtectedValue(std::move(value), extend_type == ExtendType::kFrozen), extend_type);
@@ -71,8 +69,23 @@ void LogExtra::Extend(Pair extra, ExtendType extend_type) {
     Extend(std::move(extra.first), std::move(extra.second), extend_type);
 }
 
-void LogExtra::Extend(std::initializer_list<Pair> extra, ExtendType extend_type) {
-    ExtendRange(extra.begin(), extra.end(), extend_type);
+void LogExtra::Extend(InitializerList extra, ExtendType extend_type) {
+    static_assert(std::variant_size_v<Value> == std::variant_size_v<ValueView>, "Value and ValueView do not match");
+    constexpr auto visitor = [](auto view_or_small) -> Value {
+        if constexpr (std::is_same_v<decltype(view_or_small), impl::JsonStringViewForInitializerList>) {
+            UASSERT(view_or_small.json_str || view_or_small.json_value);
+            UASSERT(!view_or_small.json_str || !view_or_small.json_value);
+            return JsonString{view_or_small.json_str ? *view_or_small.json_str : *view_or_small.json_value};
+        } else if constexpr (std::is_same_v<decltype(view_or_small), std::string_view>) {
+            return std::string{view_or_small};
+        } else {
+            return view_or_small;
+        }
+    };
+
+    for (const auto& view : extra) {
+        Extend(std::string{view.first}, std::visit(visitor, view.second), extend_type);
+    }
 }
 
 void LogExtra::Extend(const LogExtra& extra) {
@@ -113,9 +126,9 @@ std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(std::string_v
     return nullptr;
 }
 
-void LogExtra::SetFrozen(const std::string& key) {
+void LogExtra::SetFrozen(std::string_view key) {
     auto* it = Find(key);
-    if (!it) throw std::runtime_error("can't set frozen for non-existing key " + key);
+    if (!it) throw std::runtime_error(fmt::format("can't set frozen for non-existing key '{}'", key));
     it->second.SetFrozen();
 }
 

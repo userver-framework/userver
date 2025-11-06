@@ -3,7 +3,7 @@
 /// @file
 /// @brief @copybrief engine::TaskProcessor
 
-#include <cstdint>
+#include <cstddef>
 #include <functional>
 
 /// @file userver/engine/task/task_processor_fwd.hpp
@@ -21,7 +21,10 @@ namespace engine {
 class TaskProcessor;
 
 /// @brief Get approximate count of ready-to-run tasks on the `task_processor`
-std::size_t GetQueueSize(const TaskProcessor& task_processor);
+std::size_t GetQueueSize(const TaskProcessor& task_processor) noexcept;
+
+/// @brief Get the number of worker threads in `task_processor`.
+std::size_t GetWorkerCount(const TaskProcessor& task_processor) noexcept;
 
 /// @brief Register a function that runs on all threads on task processor
 /// creation. Used for pre-initializing thread_local variables with heavy

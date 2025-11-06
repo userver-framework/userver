@@ -337,8 +337,8 @@ UTEST(DynamicConfig, GetEventChannel) {
     EXPECT_EQ(subscribers[1].GetCounter(), 1);
     EXPECT_EQ(subscribers[2].GetCounter(), 2);
 
-    auto& mainChannel = source.GetEventChannel();
-    scopes[3] = mainChannel.AddListener(
+    auto& main_channel = source.GetEventChannel();
+    scopes[3] = main_channel.AddListener(
         concurrent::FunctionId(&subscribers[3]),
         "",
         [&](const dynamic_config::Snapshot& snapshot) {
@@ -495,5 +495,82 @@ SomeEnum Parse(const formats::json::Value& value, formats::parse::To<SomeEnum>) 
 
 const dynamic_config::Key<SomeEnum> kEnumConfig{dynamic_config::ConstantConfig{}, SomeEnum::kOne};
 /// [parse enum]
+
+UTEST(DynamicConfig, DeadlockOnSubscribeInCallback) {
+    dynamic_config::StorageMock storage{{kDummyConfig, {42, "what"}}, {kIntConfig, 5}};
+    auto source = storage.GetSource();
+
+    Subscriber sub1;
+
+    struct RecursiveSubscriber {
+        void OnConfigUpdate(const dynamic_config::Snapshot&) {
+            subscriber = source.UpdateAndListen(&sub, "test", &Subscriber::OnConfigUpdate);
+        }
+
+        Subscriber& sub;
+        dynamic_config::Source& source;
+        concurrent::AsyncEventSubscriberScope subscriber;
+    };
+    RecursiveSubscriber sub{sub1, source, {}};
+
+    auto subscriber = source.UpdateAndListen(&sub, "test", &RecursiveSubscriber::OnConfigUpdate);
+    sub.subscriber.Unsubscribe();
+}
+
+UTEST(DynamicConfig, DeadlockOnSubscribeInSendEvent) {
+    struct LocalSubscriber {
+        void OnConfigUpdate(const dynamic_config::Snapshot&) {
+            if (cb) cb();
+        }
+
+        std::function<void()> cb;
+    };
+
+    dynamic_config::StorageMock storage{{kDummyConfig, {42, "what"}}, {kIntConfig, 5}};
+    auto source = storage.GetSource();
+    LocalSubscriber subscriber;
+
+    auto scope = source.UpdateAndListen(&subscriber, "test", &LocalSubscriber::OnConfigUpdate);
+
+    LocalSubscriber subscriber2;
+    concurrent::AsyncEventSubscriberScope subscriber2_scope;
+    subscriber.cb = [&] {
+        // Subscribe inside of callback
+        subscriber2_scope = source.UpdateAndListen(&subscriber2, "test2", &LocalSubscriber::OnConfigUpdate);
+    };
+
+    // emit SendEvent() which calls callback which subscribes
+    storage.Extend({});
+
+    subscriber.cb = {};  // cleanup to avoid UAF in dtr (in debug)
+}
+
+UTEST(DynamicConfig, DeadlockOnSubscribeInSendEventDiff) {
+    struct LocalSubscriber {
+        void OnDiffUpdate(const dynamic_config::Diff&) {
+            if (cb) cb();
+        }
+
+        std::function<void()> cb;
+    };
+
+    dynamic_config::StorageMock storage{{kDummyConfig, {42, "what"}}, {kIntConfig, 5}};
+    auto source = storage.GetSource();
+    LocalSubscriber subscriber;
+
+    auto scope = source.UpdateAndListen(&subscriber, "test", &LocalSubscriber::OnDiffUpdate);
+
+    LocalSubscriber subscriber2;
+    concurrent::AsyncEventSubscriberScope subscriber2_scope;
+    subscriber.cb = [&] {
+        // Subscribe inside of callback
+        subscriber2_scope = source.UpdateAndListen(&subscriber2, "test2", &LocalSubscriber::OnDiffUpdate);
+    };
+
+    // emit SendEvent() which calls callback which subscribes
+    storage.Extend({});
+
+    subscriber.cb = {};  // cleanup to avoid UAF in dtr (in debug)
+}
 
 USERVER_NAMESPACE_END

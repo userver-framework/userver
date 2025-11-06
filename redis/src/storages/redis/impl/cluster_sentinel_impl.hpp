@@ -79,6 +79,7 @@ private:
     std::unique_ptr<TopologyHolderBase> topology_holder_;
 
     const std::string shard_group_name_;
+    logging::LogExtra log_extra_;
     const std::vector<ConnectionInfo> conns_;
 
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;

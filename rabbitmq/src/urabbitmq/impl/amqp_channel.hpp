@@ -55,8 +55,7 @@ public:
     void Publish(
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 
@@ -95,8 +94,7 @@ public:
     ResponseAwaiter Publish(
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 

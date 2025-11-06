@@ -88,7 +88,7 @@ public:
 
     std::deque<Producer> MakeProducers(
         std::size_t count,
-        std::function<std::string(std::size_t)> nameGenerator,
+        std::function<std::string(std::size_t)> name_generator,
         impl::ProducerConfiguration configuration = {}
     );
 

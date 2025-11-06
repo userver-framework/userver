@@ -28,7 +28,7 @@ private:
     std::shared_ptr<const T> storage_;
 };
 
-void atomic_shared_ptr_read(benchmark::State& state) {
+void AtomicSharedPtrRead(benchmark::State& state) {
     engine::RunStandalone([&] {
         const AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
 
@@ -38,9 +38,9 @@ void atomic_shared_ptr_read(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(atomic_shared_ptr_read);
+BENCHMARK(AtomicSharedPtrRead);
 
-void atomic_shared_ptr_contention(benchmark::State& state) {
+void AtomicSharedPtrContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::atomic<bool> run{true};
         AtomicSharedPtr<std::unordered_map<int, int>> ptr{std::make_shared<std::unordered_map<int, int>>()};
@@ -74,6 +74,6 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
         run = false;
     });
 }
-BENCHMARK(atomic_shared_ptr_contention)->RangeMultiplier(2)->Ranges({{2, 32}, {false, true}});
+BENCHMARK(AtomicSharedPtrContention)->RangeMultiplier(2)->Ranges({{2, 32}, {false, true}});
 
 USERVER_NAMESPACE_END

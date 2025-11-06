@@ -41,7 +41,7 @@ __attribute__((noinline)) std::uint64_t SelfLimitingRecursiveFunction() {
     return scope.Get() + SelfLimitingRecursiveFunction();
 }
 
-void create_async(benchmark::State& state, bool enable) {
+void CreateAsync(benchmark::State& state, bool enable) {
     engine::TaskProcessorPoolsConfig config;
     config.is_stack_usage_monitor_enabled = enable;
 
@@ -52,10 +52,10 @@ void create_async(benchmark::State& state, bool enable) {
 
 }  // namespace
 
-void stack_usage_monitor_on(benchmark::State& state) { create_async(state, true); }
-BENCHMARK(stack_usage_monitor_on);
+void StackUsageMonitorOn(benchmark::State& state) { CreateAsync(state, true); }
+BENCHMARK(StackUsageMonitorOn);
 
-void stack_usage_monitor_off(benchmark::State& state) { create_async(state, false); }
-BENCHMARK(stack_usage_monitor_off);
+void StackUsageMonitorOff(benchmark::State& state) { CreateAsync(state, false); }
+BENCHMARK(StackUsageMonitorOff);
 
 USERVER_NAMESPACE_END

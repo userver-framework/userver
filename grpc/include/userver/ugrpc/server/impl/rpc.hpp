@@ -1,18 +1,15 @@
 #pragma once
 
 #include <google/protobuf/message.h>
-#include <grpcpp/server_context.h>
 
 #include <userver/engine/single_waiting_task_mutex.hpp>
-#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
 #include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
-#include <userver/ugrpc/server/stream.hpp>
-#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -7,6 +7,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/get_all.hpp>
 
+#include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/time_utils.hpp>
@@ -37,7 +38,7 @@ DoTryWaitForConnected(grpc::Channel& channel, grpc::CompletionQueue& queue, engi
 }  // namespace
 
 [[nodiscard]] bool TryWaitForConnected(
-    ClientData& client_data,
+    const ClientData& client_data,
     engine::Deadline deadline,
     engine::TaskProcessor& blocking_task_processor
 ) {

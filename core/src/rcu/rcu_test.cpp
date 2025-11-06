@@ -217,7 +217,7 @@ UTEST(Rcu, ReadablePtrMoveAssign) {
 
 UTEST(Rcu, NoCopy) {
     struct X {
-        X(int x_, bool y_) : x(x_), y(y_) {}
+        X(int x, bool y) : x(x), y(y) {}
 
         X(X&&) = default;
         X(const X&) = delete;
@@ -544,12 +544,12 @@ UTEST_MT(Rcu, Core, 3) {
 
         // reader task
         tasks.push_back(engine::AsyncNoSpan([&] {
-            auto* t_ptr_ = &non_null;
+            auto* t_ptr = &non_null;
             // mimics storing current_ address into a hazard pointer
-            hazard_pointer.store(t_ptr_, std::memory_order_seq_cst);
+            hazard_pointer.store(t_ptr, std::memory_order_seq_cst);
 
             // mimics checking if the previously read current_ is still current
-            if (t_ptr_ == is_old_value_current.load()) {
+            if (t_ptr == is_old_value_current.load()) {
                 // success - check that "the object is alive"
                 EXPECT_EQ(old_value, 42);
             }
@@ -588,6 +588,14 @@ TEST(Rcu, StdMutexChangeRead) {
 
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(3, 2), *reader);
+}
+
+TEST(Rcu, StdMutexWrite) {
+    std::thread new_thread{[] {
+        rcu::Variable<int, rcu::BlockingRcuTraits> v;
+        v.Assign(42);
+    }};
+    new_thread.join();
 }
 
 TEST(Rcu, StdMutexConcurrentWrites) {

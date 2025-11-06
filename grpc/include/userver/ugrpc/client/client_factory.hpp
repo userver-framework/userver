@@ -9,10 +9,10 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/testsuite/grpc_control.hpp>
 
 #include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/client/client_settings.hpp>
+#include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/middlewares/pipeline.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>

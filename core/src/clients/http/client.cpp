@@ -40,8 +40,8 @@ const tracing::TracingManagerBase* GetTracingManager(const ClientSettings& setti
         return settings.tracing_manager;
     }
 
-    static const tracing::GenericTracingManager noop_tracing{tracing::Format{0}, tracing::Format{0}};
-    return &noop_tracing;
+    static const tracing::GenericTracingManager kNoopTracing{tracing::Format{0}, tracing::Format{0}};
+    return &kNoopTracing;
 }
 
 }  // namespace
@@ -160,12 +160,6 @@ Request Client::CreateRequest() {
         request.user_agent(*user_agent_);
     }
 
-    {
-        // Even if proxy is an empty string we should set it, because empty proxy
-        // for CURL disables the use of *_proxy env variables.
-        auto proxy_value = proxy_.Read();
-        request.proxy(*proxy_value);
-    }
     request.SetDeadlinePropagationConfig(deadline_propagation_config_);
     request.SetCancellationPolicy(cancellation_policy_);
 
@@ -183,8 +177,6 @@ void Client::SetMaxHostConnections(size_t max_host_connections) {
         multi->SetMaxHostConnections(ClampToLong(max_host_connections));
     }
 }
-
-std::string Client::GetProxy() const { return proxy_.ReadCopy(); }
 
 void Client::SetDnsResolver(clients::dns::Resolver* resolver) { resolver_ = resolver; }
 
@@ -272,8 +264,6 @@ void Client::SetConfig(const impl::Config& config) {
     connect_rate_limiter_->SetPerHostLimits(
         config.throttle.per_host_connect_limit, config.throttle.per_host_connect_rate
     );
-
-    proxy_.Assign(config.proxy);
 }
 
 void Client::ResetUserAgent(std::optional<std::string> user_agent) { user_agent_ = std::move(user_agent); }

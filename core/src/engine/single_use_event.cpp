@@ -11,9 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-// Not considered implicitly noexcept on gcc-9.
-// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
-SingleUseEvent::SingleUseEvent() noexcept {}
+SingleUseEvent::SingleUseEvent() noexcept = default;
 
 SingleUseEvent::~SingleUseEvent() = default;
 
@@ -27,9 +25,8 @@ void SingleUseEvent::Wait() {
                 "Timeout is not expected here due to unreachable "
                 "Deadline at Sleep"
             );
-#ifdef NDEBUG
-            [[fallthrough]];
-#endif
+            // Never reaches
+            break;
         case FutureStatus::kCancelled:
             throw WaitInterruptedException(current_task::CancellationReason());
     }

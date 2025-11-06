@@ -65,7 +65,7 @@ UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
 
 UTEST(BackgroundTaskStorage, Sample) {
     constexpr auto kString = "a very-very-very-very long string";
-    const auto DoStuff = [] {
+    const auto do_stuff = [] {
         // Make sure the task starts
         engine::Yield();
     };
@@ -83,7 +83,7 @@ UTEST(BackgroundTaskStorage, Sample) {
             y = std::move(x);
         });
 
-        DoStuff();
+        do_stuff();
 
         // It is recommended to call CancelAndWait explicitly for the clarity of
         // tasks' lifetime. BTS destructor calls CancelAndWait implicitly as well.
@@ -113,14 +113,14 @@ UTEST(BackgroundTaskStorage, MutableLambda) {
 }
 
 UTEST(BackgroundTaskStorage, ActiveTasksCounter) {
-    const long kNoopTasks = 2;
-    const long kLongTasks = 3;
+    const long noop_tasks = 2;
+    const long long_tasks = 3;
     concurrent::BackgroundTaskStorage bts;
 
-    for (int i = 0; i < kNoopTasks; ++i) {
+    for (int i = 0; i < noop_tasks; ++i) {
         bts.AsyncDetach("noop-task", [] { /* noop */ });
     }
-    for (int i = 0; i < kLongTasks; ++i) {
+    for (int i = 0; i < long_tasks; ++i) {
         bts.AsyncDetach("long-task", [] {
             engine::SingleConsumerEvent event;
 
@@ -128,12 +128,12 @@ UTEST(BackgroundTaskStorage, ActiveTasksCounter) {
         });
     }
 
-    EXPECT_EQ(bts.ActiveTasksApprox(), kNoopTasks + kLongTasks);
+    EXPECT_EQ(bts.ActiveTasksApprox(), noop_tasks + long_tasks);
 
     engine::SingleConsumerEvent event;
     EXPECT_FALSE(event.WaitForEventFor(50ms));
 
-    EXPECT_EQ(bts.ActiveTasksApprox(), kLongTasks);
+    EXPECT_EQ(bts.ActiveTasksApprox(), long_tasks);
 }
 
 UTEST(BackgroundTaskStorage, ExceptionWhilePreparingTask) {

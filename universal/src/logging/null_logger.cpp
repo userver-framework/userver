@@ -17,13 +17,13 @@ public:
 
     void SetText(std::string_view) override {}
 
-    impl::formatters::LoggerItemRef ExtractLoggerItem() override { return item_; }
+    impl::formatters::LoggerItemRef ExtractLoggerItem() override { return item; }
 
 private:
-    static impl::formatters::LoggerItemBase item_;
+    static impl::formatters::LoggerItemBase item;
 };
 
-impl::formatters::LoggerItemBase NullFormatter::item_;
+impl::formatters::LoggerItemBase NullFormatter::item;
 
 class NullLogger final : public impl::TextLogger {
 public:

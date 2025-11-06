@@ -87,46 +87,35 @@ std::string GetHeadersLogString(
     return sb.GetString();
 }
 
-// Separate function to avoid heavy computations when the result is not going
-// to be logged
-logging::LogExtra LogRequestExtra(
+logging::LogExtra GetHeadersLogExtra(
     bool need_log_request_headers,
     const http::HttpRequest& http_request,
-    std::string_view meta_type,
-    const std::string& body_to_log,
-    std::uint64_t body_length,
     const handlers::HeadersWhitelist& headers_whitelist,
     size_t request_headers_size_log_limit
 ) {
-    logging::LogExtra log_extra;
+    logging::LogExtra headers_log_extra;
 
     if (need_log_request_headers) {
-        log_extra.Extend(
+        headers_log_extra.Extend(
             "request_headers", GetHeadersLogString(http_request, headers_whitelist, request_headers_size_log_limit)
         );
     }
-    log_extra.Extend(tracing::kHttpMetaType, std::string{meta_type});
-    log_extra.Extend(tracing::kType, std::string{kTracingTypeRequest});
-    log_extra.Extend("request_body_length", body_length);
-    log_extra.Extend(std::string{kTracingBody}, body_to_log);
-    log_extra.Extend(std::string{kTracingUri}, http_request.GetUrl());
-    log_extra.Extend(tracing::kHttpMethod, std::string{http_request.GetMethodStr()});
 
     const auto& request_application = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestApplication);
     if (!request_application.empty()) {
-        log_extra.Extend("request_application", request_application);
+        headers_log_extra.Extend("request_application", request_application);
     }
 
     const auto& user_agent = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
     if (!user_agent.empty()) {
-        log_extra.Extend(std::string{kUserAgentTag}, user_agent);
+        headers_log_extra.Extend(std::string{kUserAgentTag}, user_agent);
     }
     const auto& accept_language = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kAcceptLanguage);
     if (!accept_language.empty()) {
-        log_extra.Extend(std::string{kAcceptLanguageTag}, accept_language);
+        headers_log_extra.Extend(std::string{kAcceptLanguageTag}, accept_language);
     }
 
-    return log_extra;
+    return headers_log_extra;
 }
 
 }  // namespace
@@ -164,15 +153,19 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
         const std::string_view meta_type =
             misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
 
-        LOG_INFO("start handling {} {}", request.GetMethodStr(), meta_type) << LogRequestExtra(
-            need_log_request_headers,
-            request,
-            meta_type,
-            handler_.GetRequestBodyForLoggingChecked(request, context, request.RequestBody()),
-            request.RequestBody().length(),
-            header_whitelist,
-            handler_.GetConfig().request_headers_size_log_limit
-        );
+        logging::LogExtra log_extra{
+            {tracing::kHttpMetaType, meta_type},
+            {tracing::kType, kTracingTypeRequest},
+            {"request_body_length", request.RequestBody().length()},
+            {kTracingBody, handler_.GetRequestBodyForLoggingChecked(request, context, request.RequestBody())},
+            {kTracingUri, handler_.GetUrlForLoggingChecked(request, context)},
+            {tracing::kHttpMethod, request.GetMethodStr()},
+        };
+        log_extra.Extend(GetHeadersLogExtra(
+            need_log_request_headers, request, header_whitelist, handler_.GetConfig().request_headers_size_log_limit
+        ));
+
+        LOG_INFO("start handling {} {}", request.GetMethodStr(), meta_type) << log_extra;
     }
 }
 

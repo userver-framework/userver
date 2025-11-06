@@ -11,12 +11,14 @@ namespace storages::redis::impl {
 StandaloneTopologyHolder::StandaloneTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+    const std::string& shard_group_name,
     const Password& password,
     std::size_t database_index,
     ConnectionInfo conn
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
+      shard_group_name_(shard_group_name),
       password_(std::move(password)),
       database_index_(database_index),
       conn_to_create_(conn),
@@ -154,6 +156,7 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
     return RedisConnectionHolder::Create(
         ev_thread_,
         redis_thread_pool_,
+        shard_group_name_,
         info.HostPort().first,
         info.HostPort().second,
         GetPassword(),

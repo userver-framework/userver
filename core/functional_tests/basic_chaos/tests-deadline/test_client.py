@@ -96,11 +96,11 @@ async def test_timeout_expired(
     # Client metrics are counted per attempt.
     assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == attempts
 
-    logs = capture.select(stopwatch_name='external/localhost')
+    logs = capture.select(stopwatch_name='GET localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
-    assert logs[0]['attempts'] == str(attempts)
-    assert logs[0]['max_attempts'] == str(attempts)
+    assert logs[0]['http.request.resend_count'] == str(attempts)
+    assert logs[0]['http.request.max_resend_count'] == str(attempts)
     assert logs[0].get('cancelled_by_deadline', '0') == '0'
     assert logs[0]['error_msg'] == 'Timeout was reached'
     assert logs[0]['timeout_ms'] == str(timeout)
@@ -163,10 +163,10 @@ async def test_deadline_expired(
         # Client metrics are counted per attempt.
         assert timed_out == attempts
 
-    logs = capture.select(stopwatch_name='external/localhost')
+    logs = capture.select(stopwatch_name='GET localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
-    assert logs[0]['max_attempts'] == str(attempts)
+    assert logs[0]['http.request.max_resend_count'] == str(attempts)
     assert logs[0]['cancelled_by_deadline'] == '1'
     assert logs[0]['error_msg'] == 'Timeout was reached'
     assert logs[0]['timeout_ms'] == str(timeout)
@@ -247,11 +247,11 @@ async def test_fake_deadline_expired(
     assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
     assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == 1
 
-    logs = capture.select(stopwatch_name='external/localhost')
+    logs = capture.select(stopwatch_name='GET localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
-    assert logs[0]['attempts'] == '1'
-    assert logs[0]['max_attempts'] == '3'
+    assert logs[0]['http.request.resend_count'] == '1'
+    assert logs[0]['http.request.max_resend_count'] == '3'
     assert logs[0]['cancelled_by_deadline'] == '1'
     assert logs[0]['error_msg'] == 'Timeout was reached'
     assert logs[0]['timeout_ms'] == '500'

@@ -2,8 +2,10 @@
 
 #include <type_traits>
 
-#include <userver/ugrpc/impl/queue_runner.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/rand.hpp>
+
+#include <userver/ugrpc/impl/queue_runner.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,7 +20,11 @@ CompletionQueuePoolBase::CompletionQueuePoolBase(utils::FixedArray<std::unique_p
 
 CompletionQueuePoolBase::~CompletionQueuePoolBase() = default;
 
-grpc::CompletionQueue& CompletionQueuePoolBase::NextQueue() { return *queues_[utils::RandRange(queues_.size())]; }
+grpc::CompletionQueue& CompletionQueuePoolBase::NextQueue() {
+    UINVARIANT(!queues_.empty(), "queues should not be empty");
+    if (1 == queues_.size()) return *queues_[0];
+    return *queues_[utils::RandRange(queues_.size())];
+}
 
 }  // namespace ugrpc::impl
 

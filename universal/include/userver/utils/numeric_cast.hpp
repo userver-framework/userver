@@ -28,7 +28,7 @@ using PrintableValue = std::conditional_t<(sizeof(T) > 1), T, int>;
 ///
 /// @snippet utils/numeric_cast_test.cpp  Sample utils::numeric_cast usage
 template <typename To, typename From>
-constexpr To numeric_cast(From input) {
+constexpr To numeric_cast(From input) {  // NOLINT(readability-identifier-naming)
     static_assert(std::is_integral_v<From>);
     static_assert(std::is_integral_v<To>);
     using FromLimits = std::numeric_limits<From>;

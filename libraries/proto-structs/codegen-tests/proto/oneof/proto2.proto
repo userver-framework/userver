@@ -12,8 +12,8 @@ message Proto2 {
     }
 
     enum Enum {
-        ENUM2_UNSPECIFIED = 0;
-        ENUM2_FOO = 1;
+        ENUM_UNSPECIFIED = 0;
+        ENUM_FOO = 1;
     }
 
     oneof oneof {
@@ -49,4 +49,5 @@ message Proto2 {
 
     optional Group.MessageInGroup message_from_group = 10;
     repeated Group.EnumInGroup enum_from_group = 11;
+    optional bool opt_bool = 12;
 }

@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 constexpr ssize_t kCountLogs = 100000;
 
-void check_file_sink(benchmark::State& state) {
+void CheckFileSink(benchmark::State& state) {
     const auto temp_root = fs::blocking::TempDirectory::Create();
     const std::string filename = temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
     auto sink = logging::impl::FileSink(filename);
@@ -21,9 +21,9 @@ void check_file_sink(benchmark::State& state) {
     }
     sink.Flush();
 }
-BENCHMARK(check_file_sink);
+BENCHMARK(CheckFileSink);
 
-void check_buffered_file_sink(benchmark::State& state) {
+void CheckBufferedFileSink(benchmark::State& state) {
     const auto temp_root = fs::blocking::TempDirectory::Create();
     const std::string filename = temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
     auto sink = logging::impl::BufferedFileSink(filename);
@@ -34,6 +34,6 @@ void check_buffered_file_sink(benchmark::State& state) {
     }
     sink.Flush();
 }
-BENCHMARK(check_buffered_file_sink);
+BENCHMARK(CheckBufferedFileSink);
 
 USERVER_NAMESPACE_END

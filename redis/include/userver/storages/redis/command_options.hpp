@@ -190,6 +190,29 @@ struct SetOptions {
     Exist exist = Exist::kSetAlways;
 };
 
+struct ExpireOptions {
+    enum class Exist { kSetAlways, kSetIfNotExist, kSetIfExist };
+    enum class Compare { kNone, kGreaterThan, kLessThan };
+
+    ExpireOptions() = default;
+    constexpr ExpireOptions(Exist exist, Compare compare = Compare::kNone) : exist(exist), compare(compare) {
+        if (exist == Exist::kSetIfNotExist && compare != Compare::kNone) {
+            // @see https://redis-docs.ru/commands/expire/
+            throw std::invalid_argument("When exist is kSetIfNotExist, compare must be kNone");
+        }
+    }
+
+    constexpr ExpireOptions(Compare compare, Exist exist = Exist::kSetAlways) : exist(exist), compare(compare) {
+        if (exist == Exist::kSetIfNotExist && compare != Compare::kNone) {
+            // @see https://redis-docs.ru/commands/expire/
+            throw std::invalid_argument("When exist is kSetIfNotExist, compare must be kNone");
+        }
+    }
+
+    Exist exist = Exist::kSetAlways;
+    Compare compare = Compare::kNone;
+};
+
 struct ScoreOptions {
     bool withscores = false;
 };

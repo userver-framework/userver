@@ -40,11 +40,11 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
         HandleNonWebsocketRequest(request, context);
     }
 
-    const std::string& secWebsocketKey = request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
+    const std::string& sec_websocket_key = request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
 
     // We are fine if `secWebsocketKey` is not properly base64-ecoded
     static constexpr std::size_t kLengthOfBase64Encoded16Bytes = 24;
-    if (kLengthOfBase64Encoded16Bytes != secWebsocketKey.size()) {
+    if (kLengthOfBase64Encoded16Bytes != sec_websocket_key.size()) {
         LOG_WARNING() << "Empty or invalid Websocket Key";
         throw server::handlers::ClientError();
     }
@@ -65,7 +65,7 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
     response.SetHeader(USERVER_NAMESPACE::http::headers::kConnection, "Upgrade");
     response.SetHeader(USERVER_NAMESPACE::http::headers::kUpgrade, "websocket");
     response.SetHeader(
-        USERVER_NAMESPACE::http::headers::kWebsocketAccept, websocket::impl::WebsocketSecAnswer(secWebsocketKey)
+        USERVER_NAMESPACE::http::headers::kWebsocketAccept, websocket::impl::WebsocketSecAnswer(sec_websocket_key)
     );
 
     request.SetUpgradeWebsocket([context = std::make_shared<server::request::RequestContext>(std::move(context)),

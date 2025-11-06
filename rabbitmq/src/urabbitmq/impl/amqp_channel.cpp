@@ -165,13 +165,18 @@ ResponseAwaiter AmqpChannel::Get(
 void AmqpChannel::Publish(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
-    AMQP::Envelope envelope{message.data(), message.size()};
-    envelope.setPersistent(type == MessageType::kPersistent);
-    envelope.setHeaders(CreateHeaders());
+    AMQP::Envelope native_envelope{envelope.message.data(), envelope.message.size()};
+    native_envelope.setPersistent(envelope.type == MessageType::kPersistent);
+    native_envelope.setHeaders(CreateHeaders());
+    if (envelope.reply_to.has_value()) {
+        native_envelope.setReplyTo(envelope.reply_to.value().c_str());
+    }
+    if (envelope.correlation_id.has_value()) {
+        native_envelope.setCorrelationID(envelope.correlation_id.value().c_str());
+    }
 
     {
         auto channel = conn_.GetChannel(deadline);
@@ -179,7 +184,7 @@ void AmqpChannel::Publish(
         // We don't care about the result here,
         // even thought publish() could fail synchronously (connection breakage,
         // channel breakage)
-        channel->publish(exchange.GetUnderlying(), routing_key, envelope);
+        channel->publish(exchange.GetUnderlying(), routing_key, native_envelope);
     }
 
     // We don't account publish here, because there's no way to ensure success
@@ -238,20 +243,28 @@ AmqpReliableChannel::~AmqpReliableChannel() = default;
 ResponseAwaiter AmqpReliableChannel::Publish(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
-    AMQP::Envelope envelope{message.data(), message.size()};
-    envelope.setPersistent(type == MessageType::kPersistent);
-    envelope.setHeaders(CreateHeaders());
+    AMQP::Envelope native_envelope{envelope.message.data(), envelope.message.size()};
+    native_envelope.setPersistent(envelope.type == MessageType::kPersistent);
+    if (envelope.reply_to.has_value()) {
+        native_envelope.setReplyTo(envelope.reply_to.value().c_str());
+    }
+    if (envelope.correlation_id.has_value()) {
+        native_envelope.setCorrelationID(envelope.correlation_id.value().c_str());
+    }
+    if (envelope.expiration.has_value()) {
+        native_envelope.setExpiration(std::to_string(envelope.expiration.value().count()));
+    }
+    native_envelope.setHeaders(CreateHeaders());
 
     auto awaiter = conn_.GetAwaiter(deadline);
 
     {
         auto reliable = conn_.GetReliableChannel(deadline);
 
-        reliable->publish(exchange.GetUnderlying(), routing_key, envelope)
+        reliable->publish(exchange.GetUnderlying(), routing_key, native_envelope)
             .onAck([this, deferred = awaiter.GetWrapper()] {
                 AccountMessagePublished();
                 deferred->Ok();

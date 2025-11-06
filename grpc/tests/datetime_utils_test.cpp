@@ -17,7 +17,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr auto GrpcCompare = google::protobuf::util::MessageDifferencer::Equals;
+constexpr auto kGrpcCompare = google::protobuf::util::MessageDifferencer::Equals;
 
 google::protobuf::Timestamp MakeTimestamp(std::int64_t seconds, std::int32_t nanos) {
     google::protobuf::Timestamp ts;
@@ -47,7 +47,7 @@ TEST(DatetimeUtilsTimestampIsValid, NegativeNanos) { EXPECT_FALSE(ugrpc::IsValid
 TEST(DatetimeUtilsTimestampIsValid, BigNanos) { EXPECT_FALSE(ugrpc::IsValid(MakeTimestamp(100, 1'000'000'000))); }
 
 TEST(DatetimeUtils, SystemTimePointToProtoTimestamp) {
-    EXPECT_TRUE(GrpcCompare(kTimestamp, ugrpc::ToProtoTimestamp(kTimePoint)));
+    EXPECT_TRUE(kGrpcCompare(kTimestamp, ugrpc::ToProtoTimestamp(kTimePoint)));
 }
 
 TEST(DatetimeUtils, InvalidTimePointToProtoTimestamp) {
@@ -79,15 +79,15 @@ TEST(DatetimeUtils, InvalidTimestampToSystemClock) {
 
 TEST(DatetimeUtils, NowTimestamp) {
     utils::datetime::MockNowSet(kTimePoint);
-    EXPECT_TRUE(GrpcCompare(kTimestamp, ugrpc::NowTimestamp()));
+    EXPECT_TRUE(kGrpcCompare(kTimestamp, ugrpc::NowTimestamp()));
 }
 
 TEST(DatetimeUtils, TimestampJsonParse) {
-    EXPECT_TRUE(GrpcCompare(kTimestamp, kTsJson.As<google::protobuf::Timestamp>()));
+    EXPECT_TRUE(kGrpcCompare(kTimestamp, kTsJson.As<google::protobuf::Timestamp>()));
 }
 
 TEST(DatetimeUtils, BigTimestampJsonParse) {
-    EXPECT_TRUE(GrpcCompare(kBigGrpcTimestamp, kBigTsJson.As<google::protobuf::Timestamp>()));
+    EXPECT_TRUE(kGrpcCompare(kBigGrpcTimestamp, kBigTsJson.As<google::protobuf::Timestamp>()));
 }
 
 TEST(DatetimeUtils, TimestampJsonSerialize) {
@@ -170,7 +170,7 @@ TEST(DatetimeUtils, ToYearMonthDayInvalidDate) {
 
 #endif
 
-TEST(DatetimeUtils, ToProtoDateFromUtilsDate) { EXPECT_TRUE(GrpcCompare(kDate, ugrpc::ToProtoDate(kUtilsDate))); }
+TEST(DatetimeUtils, ToProtoDateFromUtilsDate) { EXPECT_TRUE(kGrpcCompare(kDate, ugrpc::ToProtoDate(kUtilsDate))); }
 
 TEST(DatetimeUtils, ToProtoDateFromInvalidUtilsDate) {
     UEXPECT_THROW_MSG(
@@ -184,7 +184,7 @@ TEST(DatetimeUtils, ToUtilsDateInvalid) {
     UEXPECT_THROW_MSG(ugrpc::ToUtilsDate(MakeDate(11000, 4, 10)), ugrpc::DateConversionError, "grpc_date is invalid");
 }
 
-TEST(DatetimeUtils, ToProtoDateFromTimePoint) { EXPECT_TRUE(GrpcCompare(kDate, ugrpc::ToProtoDate(kDateTimePoint))); }
+TEST(DatetimeUtils, ToProtoDateFromTimePoint) { EXPECT_TRUE(kGrpcCompare(kDate, ugrpc::ToProtoDate(kDateTimePoint))); }
 
 TEST(DatetimeUtils, ToProtoDateFromInvalidTimePoint) {
     std::chrono::time_point<std::chrono::system_clock, utils::datetime::Days> system_ts(kManySeconds);
@@ -199,10 +199,10 @@ TEST(DatetimeUtils, InvalidDateToSystemClock) {
 
 TEST(DatetimeUtils, NowDate) {
     utils::datetime::MockNowSet(kDateTimePoint);
-    EXPECT_TRUE(GrpcCompare(kDate, ugrpc::NowDate()));
+    EXPECT_TRUE(kGrpcCompare(kDate, ugrpc::NowDate()));
 }
 
-TEST(DatetimeUtils, DateJsonParse) { EXPECT_TRUE(GrpcCompare(kDate, kDateJson.As<google::type::Date>())); }
+TEST(DatetimeUtils, DateJsonParse) { EXPECT_TRUE(kGrpcCompare(kDate, kDateJson.As<google::type::Date>())); }
 
 TEST(DatetimeUtils, DateJsonSerialize) { EXPECT_EQ(formats::json::ValueBuilder(kDate).ExtractValue(), kDateJson); }
 
@@ -266,7 +266,7 @@ TEST(DatetimeUtils, ToDurationInvalid) {
     );
 }
 
-TEST(DatetimeUtils, ToProtoDuration) { EXPECT_TRUE(GrpcCompare(kGrpcDuration, ugrpc::ToProtoDuration(kDuration))); }
+TEST(DatetimeUtils, ToProtoDuration) { EXPECT_TRUE(kGrpcCompare(kGrpcDuration, ugrpc::ToProtoDuration(kDuration))); }
 
 TEST(DatetimeUtils, ToProtoDurationInvalid) {
     UEXPECT_THROW_MSG(ugrpc::ToProtoDuration(kManySeconds), ugrpc::DurationConversionError, "duration is invalid");

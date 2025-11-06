@@ -58,8 +58,8 @@ public:
     const Key& GetKey() const noexcept { return key_; }
 
     EmptyPlaceholder& GetValue() const noexcept {
-        static EmptyPlaceholder kValue{};
-        return kValue;
+        static EmptyPlaceholder value{};
+        return value;
     }
 
 private:

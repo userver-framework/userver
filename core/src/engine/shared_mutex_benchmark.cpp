@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-void shared_mutex_benchmark(benchmark::State& state) {
+void SharedMutexBenchmark(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         int variable = 0;
         engine::SharedMutex mutex;
@@ -26,6 +26,6 @@ void shared_mutex_benchmark(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(shared_mutex_benchmark)->DenseRange(1, 6);
+BENCHMARK(SharedMutexBenchmark)->DenseRange(1, 6);
 
 USERVER_NAMESPACE_END

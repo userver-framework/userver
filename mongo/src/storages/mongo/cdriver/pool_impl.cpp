@@ -25,7 +25,7 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 
-#include <dynamic_config/variables/MONGO_DEADLINE_PROPAGATION_ENABLED_V2.hpp>
+#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -298,9 +298,9 @@ void CreateGlobalInitializer() {
     static engine::Mutex mutex;
     const std::lock_guard lock(mutex);
 
-    static std::optional<GlobalInitializer> kInitMongoc;
+    static std::optional<GlobalInitializer> init_mongoc;
     engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [] {
-        if (!kInitMongoc) kInitMongoc.emplace();
+        if (!init_mongoc) init_mongoc.emplace();
     }).Get();
 }
 
@@ -418,13 +418,13 @@ void CDriverPoolImpl::SetConnectionString(const std::string& connection_string) 
 }
 
 void CDriverPoolImpl::Ping() {
-    static const char* kPingDatabase = "admin";
+    static const char* ping_database = "admin";
     static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
     static const ReadPrefsPtr kPingReadPrefs(MONGOC_READ_NEAREST);
 
     tracing::Span span("mongo_ping");
     span.AddTag(tracing::kDatabaseType, tracing::kDatabaseMongoType);
-    span.AddTag(tracing::kDatabaseInstance, kPingDatabase);
+    span.AddTag(tracing::kDatabaseInstance, ping_database);
 
     // Do not mess with error stats
     auto conn = Acquire();
@@ -433,7 +433,7 @@ void CDriverPoolImpl::Ping() {
     stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
     const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
     if (!mongoc_client_command_simple(
-            conn.get(), kPingDatabase, native_cmd_bson_ptr, kPingReadPrefs.Get(), nullptr, error.GetNative()
+            conn.get(), ping_database, native_cmd_bson_ptr, kPingReadPrefs.Get(), nullptr, error.GetNative()
         )) {
         ping_sw.AccountError(error.GetKind());
         error.Throw("Ping failed");
@@ -454,7 +454,7 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Pop() {
     std::optional<engine::Deadline::Duration> inherited_timeout{};
 
     const auto dynamic_config = GetConfig();
-    if (dynamic_config[::dynamic_config::MONGO_DEADLINE_PROPAGATION_ENABLED_V2]) {
+    if (dynamic_config[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
         HandleCancellations(queue_deadline, inherited_timeout);
     }
 
@@ -524,7 +524,7 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::TryGetIdle() {
 
 CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
     // "admin" is an internal mongodb database and always exists/accessible
-    static const char* kPingDatabase = "admin";
+    static const char* ping_database = "admin";
     static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
     static const ReadPrefsPtr kPingReadPrefs(MONGOC_READ_NEAREST);
 
@@ -569,7 +569,7 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
     stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
     const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
     if (!mongoc_client_command_simple(
-            conn->GetNativePtr(), kPingDatabase, native_cmd_bson_ptr, kPingReadPrefs.Get(), nullptr, error.GetNative()
+            conn->GetNativePtr(), ping_database, native_cmd_bson_ptr, kPingReadPrefs.Get(), nullptr, error.GetNative()
         )) {
         ping_sw.AccountError(error.GetKind());
         error.Throw("Couldn't create a connection in mongo pool '" + Id() + '\'');

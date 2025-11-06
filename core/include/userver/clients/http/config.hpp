@@ -64,7 +64,6 @@ struct Config final {
     static constexpr std::size_t kDefaultConnectionPoolSize = 10000;
 
     std::size_t connection_pool_size{kDefaultConnectionPoolSize};
-    std::string proxy;
     ThrottleConfig throttle;
 };
 

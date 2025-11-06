@@ -129,12 +129,12 @@ Producer KafkaCluster::MakeProducer(const std::string& name, impl::ProducerConfi
 
 std::deque<Producer> KafkaCluster::MakeProducers(
     std::size_t count,
-    std::function<std::string(std::size_t)> nameGenerator,
+    std::function<std::string(std::size_t)> name_generator,
     impl::ProducerConfiguration configuration
 ) {
     std::deque<Producer> producers;
     for (std::size_t i{0}; i < count; ++i) {
-        producers.emplace_back(utils::LazyPrvalue([&] { return MakeProducer(nameGenerator(i), configuration); }));
+        producers.emplace_back(utils::LazyPrvalue([&] { return MakeProducer(name_generator(i), configuration); }));
     }
 
     return producers;

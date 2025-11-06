@@ -3,6 +3,7 @@
 
 """The core of the proto structs generation."""
 
+import dataclasses
 import pathlib
 import sys
 import typing
@@ -19,10 +20,23 @@ import jinja2
 from proto_structs.descriptors import node_parsers
 from proto_structs.models import gen_node
 from proto_structs.models import includes
+from proto_structs.models import options
+from proto_structs.models import type_ref_consts
 
 
 def _strip_ext(path: str) -> str:
     return path.removesuffix('.proto')
+
+
+@dataclasses.dataclass(frozen=True)
+class Params(options.ModelBase):
+    """
+    protoc allows to pass a single string option to a plugin (`--uproto-structs_opt`).
+    The option must contain JSON described by this model.
+    """
+
+    #: Absolute path to the file with the JSON containing detailed options, see `models/options.py`.
+    opts_file: Optional[pathlib.Path] = None
 
 
 class _CodeGenerator:
@@ -30,15 +44,17 @@ class _CodeGenerator:
         self,
         file_descriptor: descriptor.FileDescriptor,
         jinja_env: jinja2.Environment,
+        plugin_options: options.PluginOptions,
         response: plugin_pb2.CodeGeneratorResponse,  # pyright: ignore
     ) -> None:
         self.file_descriptor = file_descriptor
         self.jinja_env = jinja_env
+        self.plugin_options = plugin_options
         self.response = response  # pyright: ignore
 
     def run(self) -> None:
         try:
-            file_node = node_parsers.parse_file(self.file_descriptor)
+            file_node = node_parsers.parse_file(self.file_descriptor, plugin_options=self.plugin_options)
             data = self._make_jinja_data(file_node)
 
             for file_ext in ['cpp', 'hpp']:
@@ -51,17 +67,22 @@ class _CodeGenerator:
                 file = self.response.file.add()  # pyright: ignore
                 file.name = file_name  # pyright: ignore
                 file.content = file_content  # pyright: ignore
-        except Exception as exc:
-            raise Exception(f'File: {self.file_descriptor.name}.\n{exc}')
+        except Exception:
+            raise Exception(
+                f'userver proto structs codegen failed for file: {self.file_descriptor.name} '
+                '(see details in the exception above)'
+            )
 
-    def _make_jinja_data(self, file_node: gen_node.File) -> Dict[str, Any]:
-        includes_list = includes.sorted_includes(file_node, current_hpp=str(file_node.gen_path(ext='hpp')))
-        proto_file_name = typing.cast(str, self.file_descriptor.name)
+    @staticmethod
+    def _make_jinja_data(file_node: gen_node.File) -> Dict[str, Any]:
+        includes_dict = includes.sorted_includes(file_node, current_hpp=str(file_node.gen_path(ext='hpp')))
 
         return {
-            'file_name_wo_ext': _strip_ext(proto_file_name),
-            'gen_nodes': file_node.children,
-            'includes': includes_list,
+            'file_name_wo_ext': _strip_ext(str(file_node.proto_relative_path)),
+            'file': file_node,
+            'includes_hpp': includes_dict[includes.IncludeKind.FOR_HPP],
+            'includes_cpp': includes_dict[includes.IncludeKind.FOR_CPP],
+            'type_ref_consts': type_ref_consts,
         }
 
 
@@ -70,6 +91,8 @@ def generate(loader: jinja2.BaseLoader) -> None:
 
     request = plugin_pb2.CodeGeneratorRequest()  # pyright: ignore
     request.ParseFromString(data)  # pyright: ignore
+
+    params = Params.from_json(request.parameter or '{}')  # pyright: ignore
 
     response = plugin_pb2.CodeGeneratorResponse()  # pyright: ignore
     if hasattr(response, 'FEATURE_PROTO3_OPTIONAL'):  # pyright: ignore
@@ -96,11 +119,20 @@ def generate(loader: jinja2.BaseLoader) -> None:
         name: str = typing.cast(str, proto_file.name)
         files.append(name)
 
+    try:
+        plugin_options = options.load_plugin_options(params.opts_file)
+    except Exception:
+        raise Exception(
+            f'userver proto structs codegen failed to parse options for files: {", ".join(files)} '
+            '(see details in the exception above)'
+        )
+
     # pylint: disable=no-member
     for file_to_generate in request.file_to_generate:  # pyright: ignore
         _CodeGenerator(
             file_descriptor=pool.FindFileByName(file_to_generate),  # pyright: ignore
             jinja_env=jinja_env,
+            plugin_options=plugin_options,
             response=response,  # pyright: ignore
         ).run()
 

@@ -124,7 +124,7 @@ namespace components {
 /// name_alias              | name alias to use in dynamic configs                                          | name of the component
 /// dbconnection            | connection DSN string (used if no dbalias specified)                          | --
 /// blocking_task_processor | name of task processor for background blocking operations                     | engine::current_task::GetBlockingTaskProcessor()
-/// max_replication_lag     | replication lag limit for usable slaves                                       | 60s
+/// max_replication_lag     | replication lag limit for usable replicas. If a replica's lag exceeds this value, it stops receiving new requests | 60s
 /// sync-start              | perform initial connections synchronously                                     | true
 /// dns_resolver            | server hostname resolver type (getaddrinfo or async)                          | 'async'
 /// persistent-prepared-statements | cache prepared statements or not                                       | true
@@ -134,11 +134,11 @@ namespace components {
 /// monitoring-dbalias      | name of the database for monitorings                                          | calculated from dbalias or dbconnection options
 /// max_prepared_cache_size | prepared statements cache size limit                                          | 200
 /// max_statement_metrics   | limit of exported metrics for named statements                                | 0
-/// min_pool_size           | number of connections created initially                                       | 4
-/// max_pool_size           | maximum number of created connections for "connlimit_mode: manual"            | 15
-/// max_queue_size          | maximum number of clients waiting for a connection                            | 200
-/// connecting_limit        | limit for concurrent establishing connections number per pool (0 - unlimited) | 0
-/// connlimit_mode          | max_connections setup mode (manual or auto), also see @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | auto
+/// min_pool_size           | number of connections created initially by this component instance to each of the provided PostgreSQL hosts. Connections are kept even without requests | 4
+/// max_pool_size           | maximum number of connections that can be created by this component instance to each of the provided hosts for "connlimit_mode: manual". Should not be less than `min_pool_size` | 15
+/// max_queue_size          | maximum number of clients waiting for a connection. storages::postgres::PoolError is thrown if a new request exceeds this limit.                        | 200
+/// connecting_limit        | limit for concurrent establishing connections number per PostgreSQL host (0 - unlimited)                                                                | 0
+/// connlimit_mode          | max_connections setup mode (manual or auto), also see @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md                                            | auto
 /// error-injection         | artificial error injection settings, error_injection::Settings                | --
 /// deadline-propagation-enabled | whether deadline propagation sets statement timeout                      | true
 

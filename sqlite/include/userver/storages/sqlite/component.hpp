@@ -49,7 +49,7 @@ namespace components {
 /// ---------------------------------- | --------------------------------------------------------------------------------- | ---------------
 /// fs-task-processor                  | name of the task processor to handle the blocking file operations                 | engine::current_task::GetBlockingTaskProcessor()
 /// db-path                            | path to the database file or `::memory::` for in-memory mode                      | -
-/// create_file                        | сreate the database file if it does not exist at the specified path               | true
+/// create_file                        | create the database file if it does not exist at the specified path               | true
 /// is_read_only                       | open the database in read-only mode                                               | false
 /// shared_cache                       | enable shared in-memory cache for the database                                    | false
 /// read_uncommitted                   | allow reading uncommitted data (requires shared_cache)                            | false

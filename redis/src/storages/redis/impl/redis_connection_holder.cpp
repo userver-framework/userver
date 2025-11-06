@@ -10,6 +10,7 @@ RedisConnectionHolder::RedisConnectionHolder(
     EmplaceEnabler,
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+    const std::string& shard_group_name,
     const std::string& host,
     uint16_t port,
     Password password,
@@ -24,6 +25,7 @@ RedisConnectionHolder::RedisConnectionHolder(
       retry_budget_settings_(std::move(retry_budget_settings)),
       ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
+      shard_group_name_(shard_group_name),
       host_(host),
       port_(port),
       password_(std::move(password)),
@@ -42,6 +44,7 @@ RedisConnectionHolder::~RedisConnectionHolder() {
 std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+    const std::string& shard_group_name,
     const std::string& host,
     uint16_t port,
     Password password,
@@ -55,6 +58,7 @@ std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
         EmplaceEnabler{},
         sentinel_thread_control,
         redis_thread_pool,
+        shard_group_name,
         host,
         port,
         std::move(password),
@@ -86,7 +90,7 @@ void RedisConnectionHolder::EnsureConnected() {
 }
 
 void RedisConnectionHolder::CreateConnection() {
-    auto instance = std::make_shared<Redis>(redis_thread_pool_, redis_creation_settings_);
+    auto instance = std::make_shared<Redis>(redis_thread_pool_, redis_creation_settings_, shard_group_name_);
     UASSERT(weak_from_this().lock());
     instance->signal_state_change.connect([weak_ptr{weak_from_this()}](Redis::State state) {
         const auto ptr = weak_ptr.lock();

@@ -184,43 +184,43 @@ UTEST_F(LogServiceTest, SmokeTrace) {
 }
 
 UTEST_F(LogServiceTest, SpanEvent) {
-    const tracing::SpanEvent::KeyValue kAttributes{
+    const tracing::SpanEvent::KeyValue attributes_map{
         {"string", tracing::AnyValue{"value"}},
         {"int", tracing::AnyValue{123}},
         {"double", tracing::AnyValue{123.456}},
         {"true", tracing::AnyValue{true}},
         {"false", tracing::AnyValue{false}},
     };
-    const auto kExpectedAttributes = [&kAttributes] {
+    const auto expected_attributes = [&attributes_map] {
         std::vector<::opentelemetry::proto::common::v1::KeyValue> attributes;
         {
             ::opentelemetry::proto::common::v1::KeyValue attr;
             attr.set_key("string");
-            attr.mutable_value()->set_string_value(std::get<std::string>(kAttributes.at(attr.key()).GetData()));
+            attr.mutable_value()->set_string_value(std::get<std::string>(attributes_map.at(attr.key()).GetData()));
             attributes.push_back(std::move(attr));
         }
         {
             ::opentelemetry::proto::common::v1::KeyValue attr;
             attr.set_key("int");
-            attr.mutable_value()->set_int_value(std::get<std::int64_t>(kAttributes.at(attr.key()).GetData()));
+            attr.mutable_value()->set_int_value(std::get<std::int64_t>(attributes_map.at(attr.key()).GetData()));
             attributes.push_back(std::move(attr));
         }
         {
             ::opentelemetry::proto::common::v1::KeyValue attr;
             attr.set_key("double");
-            attr.mutable_value()->set_double_value(std::get<double>(kAttributes.at(attr.key()).GetData()));
+            attr.mutable_value()->set_double_value(std::get<double>(attributes_map.at(attr.key()).GetData()));
             attributes.push_back(std::move(attr));
         }
         {
             ::opentelemetry::proto::common::v1::KeyValue attr;
             attr.set_key("true");
-            attr.mutable_value()->set_bool_value(std::get<bool>(kAttributes.at(attr.key()).GetData()));
+            attr.mutable_value()->set_bool_value(std::get<bool>(attributes_map.at(attr.key()).GetData()));
             attributes.push_back(std::move(attr));
         }
         {
             ::opentelemetry::proto::common::v1::KeyValue attr;
             attr.set_key("false");
-            attr.mutable_value()->set_bool_value(std::get<bool>(kAttributes.at(attr.key()).GetData()));
+            attr.mutable_value()->set_bool_value(std::get<bool>(attributes_map.at(attr.key()).GetData()));
             attributes.push_back(std::move(attr));
         }
 
@@ -233,7 +233,7 @@ UTEST_F(LogServiceTest, SpanEvent) {
     {
         tracing::Span span{"some_span"};
         span.AddEvent("simple_event");
-        span.AddEvent(tracing::SpanEvent{"event_with_attributes", kAttributes});
+        span.AddEvent(tracing::SpanEvent{"event_with_attributes", attributes_map});
     }
     const auto timestamp2 =
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch())
@@ -260,7 +260,7 @@ UTEST_F(LogServiceTest, SpanEvent) {
     EXPECT_LE(event_with_attributes.time_unix_nano(), timestamp2);
     const auto& attributes = event_with_attributes.attributes();
 
-    EXPECT_THAT(attributes, ::testing::UnorderedElementsAreArray(kExpectedAttributes));
+    EXPECT_THAT(attributes, ::testing::UnorderedElementsAreArray(expected_attributes));
 }
 
 USERVER_NAMESPACE_END

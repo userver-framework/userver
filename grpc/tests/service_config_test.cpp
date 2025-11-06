@@ -5,6 +5,7 @@
 
 #include <userver/ugrpc/client/channels.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/client_data_accessor.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
@@ -55,7 +56,7 @@ protected:
 UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
-    auto& data = ugrpc::client::impl::GetClientData(client);
+    const auto& data = ugrpc::client::impl::ClientDataAccessor::GetClientData(client);
 
     // This is a very important moment. THe default service_config is applied not
     // upon creation, but when the name resolution process returns no service

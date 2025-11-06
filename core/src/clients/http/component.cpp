@@ -1,6 +1,7 @@
 #include <userver/clients/http/component.hpp>
 
 #include <curl/curlver.h>
+#include <boost/range/adaptor/map.hpp>
 
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
@@ -16,11 +17,11 @@
 #include <userver/clients/http/config.hpp>
 #include <userver/clients/http/plugin_component.hpp>
 #include <userver/tracing/manager_component.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <dynamic_config/variables/HTTP_CLIENT_CONNECTION_POOL_SIZE.hpp>
 #include <dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.hpp>
-#include <dynamic_config/variables/USERVER_HTTP_PROXY.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,6 +31,8 @@ namespace {
 
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
 constexpr std::string_view kHttpClientPluginPrefix = "http-client-plugin-";
+
+using PluginsIndices = std::unordered_map<std::string, std::uint32_t>;
 
 clients::http::ClientSettings
 GetClientSettings(const ComponentConfig& component_config, const ComponentContext& context) {
@@ -52,6 +55,22 @@ void ValidateCurlVersion() {
                                  "crash on HTTP/2 requests");
     }
 }
+
+static std::vector<utils::NotNull<clients::http::Plugin*>>
+FindPlugins(const PluginsIndices& plugins_indices, const components::ComponentContext& context) {
+    auto names = utils::AsContainer<std::vector<std::string>>(plugins_indices | boost::adaptors::map_keys);
+    std::sort(names.begin(), names.end(), [&plugins_indices](const std::string& lhs, const std::string& rhs) {
+        return std::tie(plugins_indices.at(lhs), lhs) < std::tie(plugins_indices.at(rhs), rhs);
+    });
+    std::vector<utils::NotNull<clients::http::Plugin*>> plugins;
+    for (const auto& name : names) {
+        auto& component =
+            context.FindComponent<clients::http::plugin::ComponentBase>(std::string{kHttpClientPluginPrefix} + name);
+        plugins.emplace_back(&component.GetPlugin());
+    }
+    return plugins;
+}
+
 }  // namespace
 
 HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentContext& context)
@@ -60,7 +79,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentC
       http_client_(
           GetClientSettings(component_config, context),
           GetFsTaskProcessor(component_config, context),
-          FindPlugins(component_config["plugins"].As<std::vector<std::string>>(std::vector<std::string>()), context)
+          FindPlugins(component_config["plugins"].As<PluginsIndices>({}), context)
       ) {
     ValidateCurlVersion();
 
@@ -92,7 +111,6 @@ HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentC
     }
 
     clients::http::impl::Config bootstrap_config;
-    bootstrap_config.proxy = component_config["bootstrap-http-proxy"].As<std::string>({});
     http_client_.SetConfig(bootstrap_config);
 
     auto& config_component = context.FindComponent<components::DynamicConfig>();
@@ -108,17 +126,6 @@ HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentC
     });
 }
 
-std::vector<utils::NotNull<clients::http::Plugin*>>
-HttpClient::FindPlugins(const std::vector<std::string>& names, const components::ComponentContext& context) {
-    std::vector<utils::NotNull<clients::http::Plugin*>> plugins;
-    for (const auto& name : names) {
-        auto& component =
-            context.FindComponent<clients::http::plugin::ComponentBase>(std::string{kHttpClientPluginPrefix} + name);
-        plugins.emplace_back(&component.GetPlugin());
-    }
-    return plugins;
-}
-
 HttpClient::~HttpClient() {
     subscriber_scope_.Unsubscribe();
     statistics_holder_.Unregister();
@@ -129,7 +136,6 @@ clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     http_client_.SetConfig(clients::http::impl::Config{
         config[::dynamic_config::HTTP_CLIENT_CONNECTION_POOL_SIZE],
-        config[::dynamic_config::USERVER_HTTP_PROXY],
         clients::http::impl::Parse(config[::dynamic_config::HTTP_CLIENT_CONNECT_THROTTLE]),
     });
 }
@@ -171,10 +177,6 @@ properties:
         type: string
         description: User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty
         defaultDescription: empty
-    bootstrap-http-proxy:
-        type: string
-        description: HTTP proxy to use at service start. Will be overridden by @ref USERVER_HTTP_PROXY at runtime config update
-        defaultDescription: ''
     testsuite-enabled:
         type: boolean
         description: enable testsuite testing support
@@ -204,11 +206,13 @@ properties:
             when present.
         defaultDescription: true
     plugins:
-        type: array
-        description: HTTP client plugin names
-        items:
-            type: string
-            description: plugin name
+        type: object
+        description: HTTP client plugins
+        properties: {}
+        additionalProperties:
+            type: integer
+            description: Index by which plugins are sorted
+            minimum: 0
     cancellation-policy:
         type: string
         description: Cancellation policy for new requests

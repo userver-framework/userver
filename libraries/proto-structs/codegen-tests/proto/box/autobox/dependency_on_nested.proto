@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package box.autobox;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/box/autobox;boxautobox";
+
+// There is no dependency cycle, just need to define `Bar` before `Foo`.
+message DependencyOnNested {
+  message Foo {
+    Bar.Nested field = 1;
+  }
+
+  message Bar {
+    message Nested {}
+  }
+}
+
+// Same as above, but with double nesting.
+message DependencyOnNestedNested {
+  message Foo {
+    Bar.Nested.Nested2 field = 1;
+  }
+
+  message Bar {
+    message Nested {
+      message Nested2 {}
+    }
+  }
+}
+
+// There is no dependency cycle, but still need to define `Bar` before `Foo`, despite the field being a `std::vector`.
+// This is because we need the definition of `Bar` to mention `Bar::Nested`.
+message RepeatedDependencyOnNested {
+  message Foo {
+    repeated Bar.Nested field = 1;
+  }
+
+  message Bar {
+    message Nested {}
+  }
+}
+
+// There is a dependency cycle `Foo <-> Bar`, and the dependency `Foo.field -> Bar.Nested` is unbreakable using fwd,
+// because `Bar` needs to be defined to mention `Bar::Nested`.
+message CyclicDependencyOnNested {
+  message Foo {
+    // Should NOT be boxed, it is meaningless. Instead, definition of `Foo` should be moved after `Bar`.
+    Bar.Nested field = 1;
+  }
+
+  message Bar {
+    message Nested {}
+
+    // Should be boxed to break the cycle.
+    Foo field = 1;
+  }
+}
+
+// Same as above. Boxing `Foo.field` is meaningless, because `Bar` needs to be defined to mention `Bar::Nested`.
+message RepeatedCyclicDependencyOnNested {
+  message Foo {
+    // Should NOT be boxed, it is meaningless. Instead, definition of `Foo` should be moved after `Bar`.
+    repeated Bar.Nested field = 1;
+  }
+
+  message Bar {
+    message Nested {}
+
+    // Should be boxed to break the cycle.
+    Foo field = 1;
+  }
+}
+
+// Sanity check: for WEAK dependencies on direct neighbours (not their nested types), a forward declaration is enough.
+message VectorsDoNotCreateCycles {
+  message Foo {
+    repeated Bar field = 1;
+  }
+
+  message Bar {
+    repeated Foo field = 1;
+  }
+}

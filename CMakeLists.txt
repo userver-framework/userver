@@ -194,6 +194,9 @@ include(UserverGenerateDynamicConfigsDocs)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
 
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
+include(SetupOpenssl)
+
 set(USERVER_THIRD_PARTY_DIRS
     ${USERVER_ROOT_DIR}/third_party
     CACHE INTERNAL ""
@@ -201,6 +204,7 @@ set(USERVER_THIRD_PARTY_DIRS
 
 init_debian_depends()
 
+include(SetupBoost)
 include(SetupGTest)
 
 if(USERVER_FEATURE_GRPC)
@@ -365,6 +369,10 @@ endif()
 _userver_add_target_gen_dynamic_configs_docs()
 
 _userver_print_features_list()
+if(CPM_PACKAGES)
+    include(DownloadUsingCPM)
+    _userver_print_cpm_packages()
+endif()
 
 if(USERVER_INSTALL)
     include(cmake/UserverPack.cmake)

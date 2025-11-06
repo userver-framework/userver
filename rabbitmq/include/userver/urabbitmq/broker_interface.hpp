@@ -112,6 +112,14 @@ public:
         engine::Deadline deadline
     ) = 0;
 
+    /// @brief overload of Publish
+    virtual void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const Envelope& envelope,
+        engine::Deadline deadline
+    ) = 0;
+
     /// @brief Gets a single message.
     ///
     /// You should to set `kNoAck` flag in order for server to implicitly
@@ -165,6 +173,14 @@ public:
         const Exchange& exchange,
         const std::string& routing_key,
         const std::string& message,
+        engine::Deadline deadline
+    ) = 0;
+
+    /// @brief overload of PublishReliable
+    virtual void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const Envelope& envelope,
         engine::Deadline deadline
     ) = 0;
 

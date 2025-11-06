@@ -221,8 +221,7 @@ to the `🐙 Service`.
 about all the instances of all the services. If the `🐙 Service` has to do a
 network request, it does it via `Sidecar Proxy`,
 that routes the request directly into one of the instances of the service. See
-@ref USERVER_HTTP_PROXY "USERVER_HTTP_PROXY" for an info on how to route all
-the HTTP client requests to the `Sidecar Proxy`.
+@ref clients::http::Request::proxy() for an info on how to route HTTP client requests to the `Sidecar Proxy`.
 
 All other parts of the setup remain the same as in the previous approach.
 
@@ -319,7 +318,7 @@ digraph TypicalService
   without it after container restart.
 
 The setup is very close to the setup from previous recipe (except for the
-@ref USERVER_HTTP_PROXY "USERVER_HTTP_PROXY"). refer to it for more tips.
+proxy configuration of @ref clients::http::Request::proxy(), refer to it for more tips).
 
 
 ### Sidecar

@@ -142,9 +142,9 @@ UTEST(TaskInheritedVariable, Overwrite) {
 
 UTEST(TaskInheritedVariable, SameObjectIsInherited) {
     kStringVariable.Set("foo");
-    const auto* const kParentVariablePtr = &kStringVariable.Get();
+    const auto* const parent_variable_ptr = &kStringVariable.Get();
 
-    utils::Async("subtask", [&] { EXPECT_EQ(&kStringVariable.Get(), kParentVariablePtr); }).Get();
+    utils::Async("subtask", [&] { EXPECT_EQ(&kStringVariable.Get(), parent_variable_ptr); }).Get();
 }
 
 UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {

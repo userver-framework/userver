@@ -123,9 +123,9 @@ std::chrono::system_clock::time_point Stringtime(const std::string& timestring) 
 
 std::chrono::system_clock::time_point
 DoGuessStringtime(const std::string& timestring, const cctz::time_zone& timezone) {
-    static const std::array<std::string, 3> formats{
+    static const std::array<std::string, 3> kFormats{
         {"%Y-%m-%dT%H:%M:%E*S%Ez", "%Y-%m-%dT%H:%M:%E*S%z", "%Y-%m-%dT%H:%M:%E*SZ"}};
-    for (const auto& format : formats) {
+    for (const auto& format : kFormats) {
         const auto optional_tp = OptionalStringtime(timestring, timezone, format);
         if (optional_tp) {
             return *optional_tp;

@@ -11,7 +11,7 @@ template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct ShouldInitMapping : std::false_type {};
 
 template <typename T>
-struct ShouldInitMapping<T, USERVER_NAMESPACE::utils::void_t<decltype(T::init_)>> : std::true_type {};
+struct ShouldInitMapping<T, USERVER_NAMESPACE::utils::void_t<decltype(T::init)>> : std::true_type {};
 
 template <typename T>
 struct BufferParserBase {
@@ -21,7 +21,7 @@ struct BufferParserBase {
     explicit BufferParserBase(ValueType& v) : value{v} {
         using PgMapping = CppToPg<ValueType>;
         if constexpr (ShouldInitMapping<PgMapping>{}) {
-            ForceReference(PgMapping::init_);
+            ForceReference(PgMapping::init);
         }
     }
 };
@@ -34,7 +34,7 @@ struct BufferParserBase<T&&> {
     explicit BufferParserBase(ValueType&& v) : value{std::move(v)} {
         using PgMapping = CppToPg<ValueType>;
         if constexpr (ShouldInitMapping<PgMapping>{}) {
-            ForceReference(PgMapping::init_);
+            ForceReference(PgMapping::init);
         }
     }
 };

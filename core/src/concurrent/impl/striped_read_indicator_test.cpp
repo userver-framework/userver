@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
@@ -9,6 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+#if !USERVER_IMPL_HAS_TSAN
 namespace {
 constexpr std::size_t kReadersCount = 3;
 constexpr std::size_t kCheckersCount = 1;
@@ -51,6 +53,7 @@ UTEST_MT(StripedReadIndicator, LockPassingStress, kReadersCount + kCheckersCount
     indicator_lock = concurrent::impl::StripedReadIndicatorLock{};
     EXPECT_TRUE(indicator.IsFree());
 }
+#endif
 
 UTEST(StripedReadIndicator, Metrics) {
     concurrent::impl::StripedReadIndicator indicator;

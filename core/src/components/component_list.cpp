@@ -40,7 +40,10 @@ yaml_config::Schema ComponentList::GetStaticConfigSchema() const {
 
 ComponentList& ComponentList::Append(impl::ComponentAdderPtr&& added) & {
     auto [it, ok] = adders_.insert(std::move(added));
-    UINVARIANT(ok, fmt::format("Attempt to add a duplicate component '{}'", added->GetComponentName()));
+    if (!ok) {
+        // Append is typically called from main(), throwing an exception would std::terminate.
+        utils::AbortWithStacktrace(fmt::format("Attempt to add a duplicate component '{}'", added->GetComponentName()));
+    }
     return *this;
 }
 

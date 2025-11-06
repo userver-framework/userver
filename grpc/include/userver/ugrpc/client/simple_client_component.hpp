@@ -3,7 +3,10 @@
 /// @file userver/ugrpc/client/simple_client_component.hpp
 /// @brief @copybrief ugrpc::client::SimpleClientComponent
 
+#include <memory>
+
 #include <userver/components/component_base.hpp>
+#include <userver/utils/not_null.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/fwd.hpp>
@@ -75,7 +78,9 @@ public:
     /// Main component's constructor.
     SimpleClientComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : SimpleClientComponentAny(config, context),
-          client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, nullptr))) {}
+          client_(utils::MakeSharedRef<Client>(
+              FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, nullptr))
+          )) {}
 
     /// To use a ClientQos config, derive from SimpleClientComponent and provide the parameter at construction:
     /// @snippet samples/grpc_service/src/greeter_client.hpp  component
@@ -85,13 +90,19 @@ public:
         const dynamic_config::Key<ClientQos>& client_qos
     )
         : SimpleClientComponentAny(config, context),
-          client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, &client_qos))) {}
+          client_(utils::MakeSharedRef<Client>(
+              FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, &client_qos))
+          )) {}
 
-    /// @brief Get gRPC service client
-    Client& GetClient() { return client_; }
+    /// @brief Get gRPC service client.
+    Client& GetClient() noexcept { return *client_; }
+
+protected:
+    /// @brief Get gRPC service client ptr.
+    utils::SharedRef<Client> GetClientPtr() noexcept { return client_; }
 
 private:
-    Client client_;
+    utils::SharedRef<Client> client_;
 };
 
 }  // namespace ugrpc::client

@@ -362,6 +362,10 @@ std::string HttpHandlerBase::GetResponseDataForLogging(
     return utils::log::ToLimitedUtf8(response_data, limit);
 }
 
+std::string HttpHandlerBase::GetUrlForLogging(const http::HttpRequest& request, request::RequestContext&) const {
+    return request.GetUrl();
+}
+
 std::string HttpHandlerBase::GetMetaType(const http::HttpRequest& request) const { return request.GetRequestPath(); }
 
 std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
@@ -397,6 +401,16 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "failed to get response data for logging: " << ex;
         return "<error in GetResponseDataForLogging>";
+    }
+}
+
+std::string HttpHandlerBase::GetUrlForLoggingChecked(const http::HttpRequest& request, request::RequestContext& context)
+    const {
+    try {
+        return GetUrlForLogging(request, context);
+    } catch (const std::exception& ex) {
+        LOG_LIMITED_ERROR() << "failed to get url for logging: " << ex;
+        return "<error in GetUrlForLogging>";
     }
 }
 
@@ -494,12 +508,12 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
 
     ValidateMiddlewaresConfiguration(middlewares_config, handler_middlewares);
 
-    auto* next_middleware_ptr_{&first_middleware_};
-    const auto add_middleware = [this, &middlewares_config, &context, &next_middleware_ptr_](std::string_view name) {
-        *next_middleware_ptr_ = context.FindComponent<middlewares::HttpMiddlewareFactoryBase>(name).CreateChecked(
+    auto* next_middleware_ptr{&first_middleware_};
+    const auto add_middleware = [this, &middlewares_config, &context, &next_middleware_ptr](std::string_view name) {
+        *next_middleware_ptr = context.FindComponent<middlewares::HttpMiddlewareFactoryBase>(name).CreateChecked(
             *this, middlewares_config[name]
         );
-        next_middleware_ptr_ = &(*next_middleware_ptr_)->next_;
+        next_middleware_ptr = &(*next_middleware_ptr)->next_;
     };
 
     for (const auto& middleware_name : handler_middlewares) {

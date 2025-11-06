@@ -8,6 +8,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 
 #include <userver/ugrpc/client/call_options.hpp>
+#include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/generic_options.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
@@ -24,7 +25,10 @@ struct CallParams {
     std::string_view client_name;
     grpc::CompletionQueue& queue;
     dynamic_config::Snapshot config;
+    std::string_view endpoint;
     ugrpc::impl::MaybeOwnedString call_name;
+    std::string_view service_name;
+    std::string_view method_name;
     CallOptions call_options;
     StubHandle stub;
     const Middlewares& middlewares;

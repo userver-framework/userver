@@ -2,10 +2,12 @@ import collections
 import dataclasses
 import os
 import pathlib
+from typing import Any
 from typing import Optional
 
 import yaml
 
+from chaotic.back.cpp import types as cpp_types
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref
 from . import renderer
@@ -107,10 +109,12 @@ def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -
         content = yaml.safe_load(ifile)
 
     includes: list[str] = []
+    is_file_produced = False
 
     relpath = os.path.relpath(os.path.dirname(path), schemas_dir)
 
     def visit(data) -> None:
+        nonlocal is_file_produced
         if isinstance(data, dict):
             for v in data.values():
                 visit(v)
@@ -121,26 +125,58 @@ def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -
                     stem = os.path.join(relpath, filepath_with_stem(filename))
                     stem = chaotic_parser.SchemaParser._normalize_ref(stem)
                     includes.append(f'clients/{name}/{stem}.hpp')
-            if 'x-taxi-cpp-type' in data:
-                pass
-            if 'x-usrv-cpp-type' in data:
-                pass
+
+            for field in ('x-taxi-cpp-type', 'x-usrv-cpp-type'):
+                if field not in data:
+                    continue
+                header = extract_cpp_type_header(data[field])
+                if header:
+                    includes.append(header)
+
+            if is_file_produced_feature(data):
+                is_file_produced = True
         elif isinstance(data, list):
             for v in data:
                 visit(v)
 
+    visit(content)
     if content.get('definitions') or content.get('components', {}).get('schemas'):
-        visit(content)
+        is_file_produced = True
+
+    if includes or is_file_produced:
         return includes
-    else:
-        # No schemas in file, it will generate no .hpp/.cpp
+
+    # No schemas in file, it will generate no .hpp/.cpp
+    return None
+
+
+def is_file_produced_feature(data: dict[str, Any]) -> bool:
+    if data.get('type') == 'object':
+        return True
+    if data.get('oneOf'):
+        return True
+    if data.get('allOf'):
+        return True
+    return False
+
+
+def extract_cpp_type_header(cpp_type: str) -> Optional[str]:
+    parts = cpp_type.split('::')
+    if len(parts) < 2:
         return None
+    library = parts[0].replace('_', '-')
+    if library == 'std':
+        return None
+    filename = cpp_types.camel_to_snake_case(parts[1])
+    return '{}/{}.hpp'.format(library, filename)
 
 
 def include_graph(name: str, schemas_dir: pathlib.Path) -> dict[str, list[str]]:
     result = {}
     for root, _, filenames in schemas_dir.walk():
         for filename in filenames:
+            if not filename.endswith('.yaml'):
+                continue
             filepath = pathlib.Path(root) / filename
             if filepath == schemas_dir / 'client.yaml' or filename == 'a.yaml':
                 continue
@@ -206,10 +242,16 @@ def external_libraries(schemas_dir: str) -> External:
                 types.add(data['x-taxi-cpp-type'])
             if 'x-usrv-cpp-type' in data:
                 types.add(data['x-usrv-cpp-type'])
+            if 'x-taxi-cpp-typedef-tag' in data:
+                types.add(data['x-taxi-cpp-typedef-tag'])
+            if 'x-usrv-cpp-typedef-tag' in data:
+                types.add(data['x-usrv-cpp-typedef-tag'])
 
+            if data.get('x-taxi-middlewares', {}).get('api-4.0'):
+                libraries.append('passenger-authorizer-backend')
             if data.get('x-taxi-middlewares', {}).get('eats') == 'v1':
                 libraries.append('eats-authproxy-backend')
-            if data.get('x-taxi-middlewares', {}).get('bank-authproxy') is True:
+            if data.get('x-taxi-middlewares', {}).get('bank-authproxy'):
                 libraries.append('bank-authproxy-backend')
 
         elif isinstance(data, list):
@@ -222,6 +264,8 @@ def external_libraries(schemas_dir: str) -> External:
             visit(content)
 
     for type_ in types:
+        if type_.startswith('::'):
+            type_ = type_[2:]
         library = type_.split('::')[0].replace('_', '-')
         # special namespaces (and unsigned) which are defined in userver/, not in libraries/
         if library not in {'std', 'storages', 'decimal64', 'unsigned'}:

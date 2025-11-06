@@ -11,6 +11,14 @@ import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
             (('x-yatraceid', 'traceid'), ('x-yaspanid', 'span')),
             {'trace_id': 'traceid', 'parent_id': 'span'},
         ],
+        [
+            (('x-yatraceid', 'traceid'), ('x-yarequestid', 'request_id_value')),
+            {'trace_id': 'traceid', 'parent_link': 'request_id_value'},
+        ],
+        [
+            (('x-yatraceid', 'traceid'), ('x-yaspanid', 'span'), ('x-yarequestid', 'request_id_value')),
+            {'trace_id': 'traceid', 'parent_id': 'span', 'parent_link': 'request_id_value'},
+        ],
     ],
 )
 async def test_tracing_metadata(

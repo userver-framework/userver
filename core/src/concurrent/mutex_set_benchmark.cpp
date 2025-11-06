@@ -27,7 +27,7 @@ T GetKeyForBenchmark(std::size_t i) {
 }
 
 template <typename T>
-void mutex_set_lock_unlock_no_contention(benchmark::State& state) {
+void MutexSetLockUnlockNoContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         concurrent::MutexSet<T> ms;
 
@@ -64,11 +64,11 @@ void mutex_set_lock_unlock_no_contention(benchmark::State& state) {
     });
 }
 
-BENCHMARK_TEMPLATE(mutex_set_lock_unlock_no_contention, int)->RangeMultiplier(2)->Range(1, 8);
-BENCHMARK_TEMPLATE(mutex_set_lock_unlock_no_contention, std::string)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK_TEMPLATE(MutexSetLockUnlockNoContention, int)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK_TEMPLATE(MutexSetLockUnlockNoContention, std::string)->RangeMultiplier(2)->Range(1, 8);
 
 template <typename T>
-void mutex_set_lock_unlock_contention(benchmark::State& state) {
+void MutexSetLockUnlockContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         concurrent::MutexSet<T> ms;
 
@@ -126,11 +126,11 @@ void mutex_set_lock_unlock_contention(benchmark::State& state) {
     });
 }
 
-BENCHMARK_TEMPLATE(mutex_set_lock_unlock_contention, int)->RangeMultiplier(2)->Range(1, 8);
-BENCHMARK_TEMPLATE(mutex_set_lock_unlock_contention, std::string)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK_TEMPLATE(MutexSetLockUnlockContention, int)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK_TEMPLATE(MutexSetLockUnlockContention, std::string)->RangeMultiplier(2)->Range(1, 8);
 
 template <typename T>
-void mutex_set_8ways_lock_unlock_contention(benchmark::State& state) {
+void MutexSet8waysLockUnlockContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         constexpr std::size_t kKeysCount = 128;
         concurrent::MutexSet<T> ms(8);
@@ -171,8 +171,8 @@ void mutex_set_8ways_lock_unlock_contention(benchmark::State& state) {
     });
 }
 
-BENCHMARK_TEMPLATE(mutex_set_8ways_lock_unlock_contention, int)->RangeMultiplier(2)->Range(1, 8);
-BENCHMARK_TEMPLATE(mutex_set_8ways_lock_unlock_contention, std::string)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK_TEMPLATE(MutexSet8waysLockUnlockContention, int)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK_TEMPLATE(MutexSet8waysLockUnlockContention, std::string)->RangeMultiplier(2)->Range(1, 8);
 
 }  // namespace
 

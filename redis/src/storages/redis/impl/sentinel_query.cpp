@@ -247,71 +247,75 @@ std::string GetIpFromHostInfo(const ReplyData::Array& host_info_array) {
 
 }  // namespace
 
-ClusterSlotsResponseStatus ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res) {
+ClusterSlotsResponseStatus
+ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res, const std::string& shard_group_name) {
     UASSERT(reply);
-    LOG_TRACE() << "Got reply to CLUSTER SLOTS: " << reply->data.ToDebugString();
+    auto log_extra = [&shard_group_name] { return logging::LogExtra({{"shard_group_name", shard_group_name}}); };
+
+    LOG_TRACE() << log_extra() << "Got reply to CLUSTER SLOTS: " << reply->data.ToDebugString();
     if (reply->IsUnknownCommandError()) {
-        LOG_ERROR() << "Redis CLUSTER SLOTS reply contains unknown command error: " << reply->data.ToDebugString();
+        LOG_ERROR() << log_extra()
+                    << "Redis CLUSTER SLOTS reply contains unknown command error: " << reply->data.ToDebugString();
         return ClusterSlotsResponseStatus::kNonCluster;
     }
     if (reply->status != ReplyStatus::kOk) {
-        LOG_ERROR() << "Redis CLUSTER SLOTS reply contains error: " << reply->data.ToDebugString();
+        LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply contains error: " << reply->data.ToDebugString();
         return ClusterSlotsResponseStatus::kFail;
     }
     if (!reply->data.IsArray()) {
-        LOG_ERROR() << "Redis CLUSTER SLOTS reply is not an array: " << reply->data.ToDebugString();
+        LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply is not an array: " << reply->data.ToDebugString();
         return ClusterSlotsResponseStatus::kFail;
     }
 
     std::size_t array_index = 0;
     for (const auto& reply_interval : reply->data.GetArray()) {
         if (!reply_interval.IsArray()) {
-            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+            LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index
                         << "] is not an array: " << reply_interval.ToDebugString();
             return ClusterSlotsResponseStatus::kFail;
         }
 
         const auto& array = reply_interval.GetArray();
         if (array.size() < 3) {
-            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+            LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index
                         << "] is an array of size less than 3: " << reply_interval.ToDebugString();
             return ClusterSlotsResponseStatus::kFail;
         }
 
         if (!array[0].IsInt()) {
-            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+            LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index
                         << "][0] is not an int: " << array[0].ToDebugString();
             return ClusterSlotsResponseStatus::kFail;
         }
 
         if (!array[1].IsInt()) {
-            LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index
+            LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index
                         << "][1] is not an int: " << array[1].ToDebugString();
             return ClusterSlotsResponseStatus::kFail;
         }
 
         for (std::size_t i = 2; i < array.size(); i++) {
             if (!array[i].IsArray()) {
-                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
                             << "] is not an array: " << array[i].ToDebugString();
                 return ClusterSlotsResponseStatus::kFail;
             }
 
             const auto& host_info_array = array[i].GetArray();
             if (host_info_array.size() < 2) {
-                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
                             << "] is an array of size less than 2: " << array[i].ToDebugString();
                 return ClusterSlotsResponseStatus::kFail;
             }
 
             if (!host_info_array[0].IsString()) {
-                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
                             << "][0] is not a string: " << host_info_array[0].ToDebugString();
                 return ClusterSlotsResponseStatus::kFail;
             }
 
             if (!host_info_array[1].IsInt()) {
-                LOG_ERROR() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
+                LOG_ERROR() << log_extra() << "Redis CLUSTER SLOTS reply element[" << array_index << "][" << i
                             << "][1] is not an int: " << host_info_array[1].ToDebugString();
                 return ClusterSlotsResponseStatus::kFail;
             }
@@ -332,7 +336,7 @@ ClusterSlotsResponseStatus ParseClusterSlotsResponse(const ReplyPtr& reply, Clus
                         res[slot_interval].master.HostPort().first,
                         conn_info.HostPort().first
                     );
-                    LOG_ERROR() << message;
+                    LOG_ERROR() << log_extra() << message;
                     UASSERT_MSG(false, message);
                 }
 
@@ -456,7 +460,7 @@ void ProcessGetClusterHostsRequest(
 ) {
     auto ids = request.sentinel_shard.GetAllInstancesServerId();
     auto context = std::make_shared<GetClusterHostsContext>(
-        request.password, std::move(shard_names), std::move(callback), ids.size()
+        request.password, std::move(shard_names), request.shard_group_name, std::move(callback), ids.size()
     );
 
     for (const auto& id : ids) {
@@ -473,10 +477,12 @@ void ProcessGetClusterHostsRequest(
 GetClusterHostsContext::GetClusterHostsContext(
     Password password,
     std::shared_ptr<const std::vector<std::string>> shard_names,
+    std::string shard_group_name,
     ProcessGetClusterHostsRequestCb&& callback,
     size_t expected_responses_cnt
 )
-    : password_(std::move(password)),
+    : shard_group_name_(std::move(shard_group_name)),
+      password_(std::move(password)),
       shard_names_(std::move(shard_names)),
       callback_(std::move(callback)),
       expected_responses_cnt_(expected_responses_cnt) {}
@@ -489,7 +495,7 @@ void GetClusterHostsContext::OnAsyncCommandFailed() {
 
 void GetClusterHostsContext::OnResponse(const CommandPtr&, const ReplyPtr& reply) {
     ClusterSlotsResponse response;
-    switch (ParseClusterSlotsResponse(reply, response)) {
+    switch (ParseClusterSlotsResponse(reply, response, shard_group_name_)) {
         case ClusterSlotsResponseStatus::kOk: {
             {
                 const std::lock_guard<std::mutex> lock(mutex_);
@@ -523,6 +529,7 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
         return;
     }
 
+    auto log_extra = [this] { return logging::LogExtra({{"shard_group_name", shard_group_name_}}); };
     std::set<size_t> slot_bounds;
     for (const auto& [_, response] : responses_by_id_) {
         for (const auto& [interval, _] : response) {
@@ -531,10 +538,12 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
         }
     }
     if (slot_bounds.empty()) {
-        LOG_WARNING() << "Failed to process CLUSTER SLOTS replies: responses_parsed=" << responses_parsed_
+        LOG_WARNING() << log_extra()
+                      << "Failed to process CLUSTER SLOTS replies: responses_parsed=" << responses_parsed_
                       << ", no slots info found";
     } else if (*slot_bounds.begin() != 0 || *std::prev(slot_bounds.end()) != kClusterHashSlots) {
-        LOG_ERROR() << "Failed to process CLUSTER SLOTS replies: slot bounds begin=" << *slot_bounds.begin()
+        LOG_ERROR() << log_extra()
+                    << "Failed to process CLUSTER SLOTS replies: slot bounds begin=" << *slot_bounds.begin()
                     << ", end=" << *std::prev(slot_bounds.end());
     }
 
@@ -603,7 +612,8 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
 
         size_t shard_index = 0;
         if (res.size() > shard_names_->size()) {
-            LOG_ERROR() << "Too many shards found: " << res.size() << ", maximum: " << shard_names_->size();
+            LOG_ERROR() << log_extra() << "Too many shards found: " << res.size()
+                        << ", maximum: " << shard_names_->size();
             res = {};
         } else {
             std::sort(res.begin(), res.end());

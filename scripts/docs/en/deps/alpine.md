@@ -31,6 +31,7 @@ nghttp2-static
 openldap-dev
 openssl-dev
 openssl-libs-static
+patch
 postgresql16-dev
 protobuf-c-compiler
 protobuf-c-dev

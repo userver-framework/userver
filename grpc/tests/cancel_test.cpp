@@ -89,6 +89,7 @@ UTEST_F_MT(GrpcCancelDeadline, TryCancel, 2) {
 
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(500ms);
+    bool deadline_exception_caught = false;
     try {
         auto call = client.Chat(std::move(call_options));
         for (;;) {
@@ -97,10 +98,12 @@ UTEST_F_MT(GrpcCancelDeadline, TryCancel, 2) {
             if (!call.Read(response)) return;
         }
     } catch (const ugrpc::client::DeadlineExceededError&) {
-        // If the server detects the deadline first
+        deadline_exception_caught = true;
     } catch (const ugrpc::client::RpcInterruptedError&) {
-        // If the client detects the deadline first
+        FAIL() << "RpcInterruptedError should not be thrown for deadline exceeded cases";
     }
+
+    EXPECT_TRUE(deadline_exception_caught) << "DeadlineExceededError should have been thrown";
 }
 
 namespace {

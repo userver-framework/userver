@@ -1,0 +1,15 @@
+default:
+    targets: []
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - targets
+    properties:
+        targets:
+            type: array
+            items:
+                type: string
+                pattern: '^([^\/]+)(:\d+)?$'
+            x-taxi-cpp-type: std::unordered_set

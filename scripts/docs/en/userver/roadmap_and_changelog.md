@@ -35,6 +35,74 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.13
+
+* Recursive subscriptions on dynamic configs now work without deadlocks.
+* Added virtual method @ref server::handlers::HttpHandlerBase::GetUrlForLogging() for custom URL logging.
+* Support parsing of HTTP keys without `=`, i.e. `/endpoint?key1&key2`. Many thanks to
+  [Norlin](https://github.com/mistergad) for the PR!
+* Dots in tag keys of logs and spans are now not changed to underscores. HTTP client/server spans are now written
+  according to OTel conventions.
+* Added support for ReplyTo, CorrelationId, Expiration fields. Many thanks to
+  [Alexander Aparin](https://github.com/alex-aparin) for the PR! 
+* @ref s3api::Client now supports multipart upload.
+* Redis now understands the `GEOPOS` and `EXPIRE` commands via @ref storages::redis::Client member function `Geopos()`
+  and `Expire()`.
+* Thread Sanitizer suppression file `cmake/tsan.suppressions.txt` is now installed and used in internal CI TSan tests
+  for universal, core and gRPC.
+* @ref logging::LogExtra::Value now supports `bool` values. Many thanks to
+  [Maxim Drugov](https://github.com/crystalixxx) for the PR!
+* YDB `topic_client` is now exposed in testsuite's @ref pytest_userver.plugins.ydb.client.YdbClient "YdbClient".
+* Removed `MONGO_DEADLINE_PROPAGATION_ENABLED_V2` dynamic config. Many thanks to [Spar](https://github.com/GitSparTV)
+  for vibe-codding the PR at at Zero Cost Conf!
+* @ref yaml_config::YamlConfig now treats `#env` values as string.
+
+* Optimizations
+  * TSKV based formatters are now constructed 3 times faster leading to about 1% overall improvement for CPU
+    consumption of some services.
+  * Trace data extraction and processing is now 10 times faster.
+  * Optimized @ref logging::LogExtra efficiency with std::initializer_list to avoid memory allocations. 
+  * @ref fs::blocking::CFile now does not lock internal mutex when works with files. Up to 0.2% improvement in logging
+    and ~40% improvement for dumping caches of integers.
+  * Reuse `SSL_CTX` for TLS/SSL connections. As a result memory consumption drastically reduced for TLS/SSL server with.
+    Many thanks to [DenisRazinkin](https://github.com/DenisRazinkin) for the awesome PR!
+
+* Build
+  * Fix compiling with `fmt` >= 12. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * Improved compatibility of response body for aws sdk clients. Many thanks to
+    [Alexander Aparin](https://github.com/alex-aparin) for the PR! 
+  * Support libpq patching with pq >= 18. MAny thanks to [Vladislav Nepogodin](https://github.com/vnepogodin) for
+    the PR!
+  * `api-common-protos` are now used from the main branch of the upstream, rather than from `1.50` version.
+    Many thanks to [Alexey Medvedev](https://github.com/Reavolt) for the PR!
+  * Support for compiler GCC-9 and below was dropped.
+  * Fix issue with pip call ignored args specified in USERVER_PIP_OPTIONS. Many thanks to
+    [Komar Dmitry](https://github.com/KomarDL) for the PR!
+  * Fix building with CPM downloaded abseil-cpp. Many thanks to [Konstantin Goncharik](https://github.com/botanegg)
+    for the PR!
+  * Added support for Protobuf v6 (30.x). Many thanks to
+    [Vasily Sviridov](https://github.com/vasily-sviridov) for the PR!
+  * Third-party date/date.h was updated. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * Fixed missing namespace for @ref scripts/docs/en/userver/codegen_overview.md "userver_embed_file".
+    Many thanks to [Sergei Fedorov](https://github.com/zmij) for the PR!
+  * Packaged installed via CPM are now printed at the end of configure stage.
+  * Boost, c-ares, libev, libnghttp2, yaml-cpp, openssl now can be downloaded via CPM.
+  * Added more tests for gRPC in subdirectories. Many thanks to [Aleksey Ignatiev](https://github.com/ae-ignatiev)
+    for providing test samples.
+  * Added CI runs on Arch. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * Added CI runs on Debian.
+
+* Documentation and diagnostics
+  * Use SFINAE for @ref utils::MakeSharedRef() and @ref utils::MakeUniqueRef() to simplify diagnostics. Many thanks
+    to [Pantus Raman](https://github.com/NiskashY) for the PR!
+  * Improved deadlock detection for @ref engine::Mutex.
+  * Set span level=debug for annoying ping queries. Many thanks to [j4niwzis](https://github.com/j4niwzis) for the PR!
+  * Clarified ownership of buckets in @ref utils::statistics::Histogram.
+  * Added mirrors to the videos at @ref scripts/docs/en/userver/publications.md.
+  * Redis now provides much more information in logs.
+  * Added troubleshooting info on `SIGUSR1` to @ref ‎scripts/docs/en/userver/faq.md .
+
+
 ### Release v2.12
 
 * Added infrastructure to detect IO-bound operations in transactions. See `enable_trx_tracker` static config option into
@@ -63,7 +131,7 @@ Changelog news also go to the
   @ref storages::postgres::TimePointTz converters.
 
 * gRPC and Protobuf
-  * Implemented retries. See @ref scripts/docs/en/userver/grpc/grpc_retries.md for more info.
+  * Implemented retries. See @ref scripts/docs/en/userver/grpc/timeouts_retries.md for more info.
   * @ref ugrpc::client::ClientFactoryComponent now can be customized via `ssl-credentials-options`. Many thanks to
     [aklyuchev86](https://github.com/aklyuchev86) for the PR!
   * @ref decimal64::Decimal::FromStringPermissive() now understands format with exponent, which makes it compatible

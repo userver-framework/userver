@@ -150,14 +150,14 @@ engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot
 }  // namespace
 
 RequestContext::RequestContext(
-    TableClient& table_client_,
+    TableClient& l_table_client,
     const Query& query,
     OperationSettings&& settings,
     IsStreaming is_streaming,
     tracing::Span* custom_parent_span,
     const utils::impl::SourceLocation& location
 )
-    : table_client(table_client_),
+    : table_client(l_table_client),
       settings(std::move(settings)),
       initial_uncaught_exceptions(std::uncaught_exceptions()),
       stats_scope(*table_client.stats_, query),

@@ -123,7 +123,7 @@ properties:
         description: path to the database file or `::memory::` for in-memory mode
     create_file:
         type: boolean
-        description: сreate the database file if it does not exist at the specified path
+        description: create the database file if it does not exist at the specified path
         defaultDescription: true
     is_read_only:
         type: boolean

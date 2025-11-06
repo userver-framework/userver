@@ -29,7 +29,7 @@ class AddressBase final {
     static_assert(N == 4 || N == 16, "Address can only be 4 or 16 bytes size");
 
 public:
-    static constexpr std::size_t AddressSize = N;
+    static constexpr std::size_t kAddressSize = N;
     using BytesType = std::array<unsigned char, N>;
 
     AddressBase() noexcept : address_({0}) {}

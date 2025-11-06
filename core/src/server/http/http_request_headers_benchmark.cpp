@@ -25,7 +25,7 @@ constexpr PredefinedHeader kHeadersArray[kHeadersCount] = {
     PredefinedHeader{"TestHeader30"}, PredefinedHeader{"TestHeader31"},
 };
 
-void http_request_headers_insert(benchmark::State& state) {
+void HttpRequestHeadersInsert(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         server::http::HttpRequest::HeadersMap map;
 
@@ -35,7 +35,7 @@ void http_request_headers_insert(benchmark::State& state) {
     }
 }
 
-void http_request_headers_get(benchmark::State& state) {
+void HttpRequestHeadersGet(benchmark::State& state) {
     server::http::HttpRequest::HeadersMap map;
     for (const auto& header : kHeadersArray) map[header] = "1";
 
@@ -47,8 +47,8 @@ void http_request_headers_get(benchmark::State& state) {
 }
 
 }  // namespace
-BENCHMARK(http_request_headers_insert)->RangeMultiplier(2)->Range(1, kHeadersCount);
+BENCHMARK(HttpRequestHeadersInsert)->RangeMultiplier(2)->Range(1, kHeadersCount);
 
-BENCHMARK(http_request_headers_get);
+BENCHMARK(HttpRequestHeadersGet);
 
 USERVER_NAMESPACE_END

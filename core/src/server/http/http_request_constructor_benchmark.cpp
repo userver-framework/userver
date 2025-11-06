@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-void http_request_constructor_url_decode(benchmark::State& state) {
+void HttpRequestConstructorUrlDecode(benchmark::State& state) {
     const std::string tmp = "1";
     std::string input;
 
@@ -16,6 +16,6 @@ void http_request_constructor_url_decode(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) benchmark::DoNotOptimize(USERVER_NAMESPACE::http::parser::UrlDecode(input));
 }
 }  // namespace
-BENCHMARK(http_request_constructor_url_decode)->RangeMultiplier(2)->Range(1, 1024);
+BENCHMARK(HttpRequestConstructorUrlDecode)->RangeMultiplier(2)->Range(1, 1024);
 
 USERVER_NAMESPACE_END

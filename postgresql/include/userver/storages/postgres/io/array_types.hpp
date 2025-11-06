@@ -107,7 +107,7 @@ template <typename Element>
 inline bool ForceInitElementMapping() {
     // composite types can be parsed without an explicit mapping
     if constexpr (io::traits::kIsMappedToPg<Element> || !io::traits::kIsCompositeType<Element>) {
-        return ForceReference(CppToPg<Element>::init_);
+        return ForceReference(CppToPg<Element>::init);
     } else {
         return true;
     }

@@ -280,7 +280,8 @@ See native [docs about compression](https://github.com/grpc/grpc/blob/master/doc
 See docs for more information https://grpc.io/docs/guides/compression.
 
 Config example:
-```yaml
+```
+# yaml
         grpc-client-factory:
             channel-args:
                 grpc.default_compression_algorithm: 2 # GRPC_COMPRESS_GZIP

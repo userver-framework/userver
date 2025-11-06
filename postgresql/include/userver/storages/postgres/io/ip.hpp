@@ -82,12 +82,12 @@ struct AddressNetworkBuffer : IpBufferFormatterBase<T> {
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) {
         using Address = typename T::BytesType;
-        constexpr bool is_address_v4 = std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4>;
+        constexpr bool kIsAddressV4 = std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4>;
         const typename BaseType::template IpFormatterInfo<Address> info{
             /* .address = */ this->value.GetBytes(),
-            /* .address_family = */ is_address_v4 ? kPgsqlAfInet : kPgsqlAfInet6,
+            /* .address_family = */ kIsAddressV4 ? kPgsqlAfInet : kPgsqlAfInet6,
             /* .prefix_length = */
-            static_cast<char>(is_address_v4 ? NetworkV4::kMaximumPrefixLength : NetworkV6::kMaximumPrefixLength),
+            static_cast<char>(kIsAddressV4 ? NetworkV4::kMaximumPrefixLength : NetworkV6::kMaximumPrefixLength),
             /* .is_cidr = */ kIsCidr};
         BaseType::Format(info, types, buffer);
     }

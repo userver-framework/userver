@@ -101,20 +101,20 @@ TEST(Primitive, UserTypeMinMax) {
 }
 
 TEST(Primitive, StringMinMaxLength) {
-    auto kLocalJson = formats::json::MakeObject("1", "1", "2", "12", "6", "123456");
+    auto local_json = formats::json::MakeObject("1", "1", "2", "12", "6", "123456");
 
     using Str = chaotic::Primitive<std::string, chaotic::MinLength<2>, chaotic::MaxLength<5>>;
 
-    const std::string x = kLocalJson["2"].As<Str>();
+    const std::string x = local_json["2"].As<Str>();
     EXPECT_EQ(x, "12");
 
     UEXPECT_THROW_MSG(
-        kLocalJson["1"].As<Str>(),
+        local_json["1"].As<Str>(),
         chaotic::Error<formats::json::Value>,
         "Error at path '1': Too short string, minimum length=2, given=1"
     );
     UEXPECT_THROW_MSG(
-        kLocalJson["6"].As<Str>(),
+        local_json["6"].As<Str>(),
         chaotic::Error<formats::json::Value>,
         "Error at path '6': Too long string, maximum length=5, given=6"
     );
@@ -123,14 +123,14 @@ TEST(Primitive, StringMinMaxLength) {
 static constexpr std::string_view kPattern = "fo.*";
 
 TEST(Primitive, StringPattern) {
-    auto kLocalJson = formats::json::MakeObject("1", "foo", "2", "bar");
+    auto local_json = formats::json::MakeObject("1", "foo", "2", "bar");
 
     using Str = chaotic::Primitive<std::string, chaotic::Pattern<kPattern>>;
 
-    const std::string x = kLocalJson["1"].As<Str>();
+    const std::string x = local_json["1"].As<Str>();
     EXPECT_EQ(x, "foo");
 
-    UEXPECT_THROW_MSG(kLocalJson["2"].As<Str>(), chaotic::Error<formats::json::Value>, "doesn't match regex");
+    UEXPECT_THROW_MSG(local_json["2"].As<Str>(), chaotic::Error<formats::json::Value>, "doesn't match regex");
 }
 
 USERVER_NAMESPACE_END

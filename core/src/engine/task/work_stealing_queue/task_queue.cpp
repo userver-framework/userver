@@ -12,7 +12,7 @@ namespace engine {
 namespace {
 // It is only used in worker threads outside of any coroutine,
 // so it does not need to be protected via compiler::ThreadLocal
-thread_local Consumer* localConsumer = nullptr;
+thread_local Consumer* local_consumer = nullptr;
 }  // namespace
 
 WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
@@ -56,7 +56,7 @@ std::size_t WorkStealingTaskQueue::GetSizeApproximate() const noexcept {
 
 void WorkStealingTaskQueue::PrepareWorker(std::size_t index) {
     if (index < consumers_count_) {
-        localConsumer = &consumers_[index];
+        local_consumer = &consumers_[index];
     }
 }
 
@@ -81,7 +81,7 @@ impl::TaskContext* WorkStealingTaskQueue::DoPopBlocking() {
     return consumer->PopBlocking();
 }
 
-Consumer* WorkStealingTaskQueue::GetConsumer() { return localConsumer; }
+Consumer* WorkStealingTaskQueue::GetConsumer() { return local_consumer; }
 
 }  // namespace engine
 

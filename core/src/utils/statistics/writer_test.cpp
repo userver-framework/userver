@@ -135,20 +135,20 @@ UTEST(MetricsWriter, Sample) {
     Storage storage;
 
     // The names mimic class member names, for the sample purposes
-    ComponentMetrics component_metrics_;
-    utils::statistics::Entry holder_;
-    component_metrics_.metrics.Insert("metric-in-map", std::make_shared<ComponentMetricsNested>());
+    ComponentMetrics component_metrics;
+    utils::statistics::Entry holder;
+    component_metrics.metrics.Insert("metric-in-map", std::make_shared<ComponentMetricsNested>());
     constexpr std::chrono::seconds kDuration{1674810371};
     utils::datetime::MockNowSet(std::chrono::system_clock::time_point{kDuration});
 
     /// [DumpMetric RegisterWriter]
-    holder_ = storage.RegisterWriter(
+    holder = storage.RegisterWriter(
         "begin-on-the-metric-path",
         [&](Writer& writer) {
             // Metric without labels
             writer["metric1"] = 42;
 
-            const ComponentMetrics& metrics = component_metrics_;
+            const ComponentMetrics& metrics = component_metrics;
             writer["more_metrics"] = metrics;
         },
         {{"label_for_all", "labell value"}}

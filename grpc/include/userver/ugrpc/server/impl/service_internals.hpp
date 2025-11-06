@@ -1,10 +1,14 @@
 #pragma once
 
+#include <boost/container/flat_map.hpp>
+
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/fwd.hpp>
+#include <userver/logging/level.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +27,7 @@ struct ServiceInternals final {
     ugrpc::impl::StatisticsStorage& statistics_storage;
     Middlewares middlewares;
     const dynamic_config::Source config_source;
+    boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level;
 };
 
 }  // namespace ugrpc::server::impl

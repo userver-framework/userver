@@ -26,8 +26,7 @@ class Parameter:
             return ['optional']
         return []
 
-    @classmethod
-    def _validate_schema(cls, schema: cpp_types.CppType, *, is_array_allowed: bool) -> None:
+    def _validate_schema(self, schema: cpp_types.CppType, *, is_array_allowed: bool) -> None:
         assert schema.json_schema
         if not is_array_allowed and isinstance(schema, cpp_types.CppArray):
             source_location = schema.json_schema.source_location()
@@ -54,13 +53,13 @@ class Parameter:
                 full_filepath=source_location.filepath,
                 infile_path=source_location.location,
                 schema_type='jsonschema',
-                msg='Unsupported parameter type',
+                msg=f'Unsupported parameter type for parameter "{self.raw_name}"',
             )
 
         if isinstance(schema, cpp_types.CppRef):
-            cls._validate_schema(schema.orig_cpp_type, is_array_allowed=is_array_allowed)
+            self._validate_schema(schema.orig_cpp_type, is_array_allowed=is_array_allowed)
         if isinstance(schema, cpp_types.CppArray):
-            cls._validate_schema(schema.items, is_array_allowed=False)
+            self._validate_schema(schema.items, is_array_allowed=False)
 
     def __post_init__(self) -> None:
         self._validate_schema(self.cpp_type, is_array_allowed=True)
@@ -191,6 +190,13 @@ class ClientSpec:
         for op in self.operations:
             if len(op.request_bodies) > 1:
                 return True
+        return False
+
+    def has_array_in_request_body(self) -> bool:
+        for op in self.operations:
+            for body in op.request_bodies:
+                if isinstance(body.schema, cpp_types.CppArray):
+                    return True
         return False
 
     def requests_declaration_includes(self) -> list[str]:

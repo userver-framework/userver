@@ -23,6 +23,7 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
@@ -66,6 +67,7 @@ namespace components {
 /// incremental-update-op-timeout | timeout for an incremental update | 1s
 /// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
 /// chunk-size | number of rows to request from PostgreSQL via portals, 0 to fetch all rows in one request without portals | 1000
+/// sleep-between-chunks | duration to wait between reading chunks from PostgreSQL | 0ms
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
@@ -101,6 +103,10 @@ namespace components {
 ///
 /// In case one provides a custom CacheContainer within Policy, it is notified
 /// of Update completion via its public member function OnWritesDone, if any.
+/// Custom CacheContainer must provide size method and insert_or_assign method
+/// similar to std::unordered_map's one or CacheInsertOrAssign function similar
+/// to one defined in namespace utils::impl::projected_set (i.e. used for
+/// utils::ProjectedUnorderedSet).
 /// See the following code snippet for an example of usage:
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Container With Write Notification Example
@@ -193,6 +199,33 @@ inline constexpr bool kHasKeyMember = meta::IsDetected<KeyMemberTypeImpl, T>;
 template <typename T>
 using KeyMemberType = meta::DetectedType<KeyMemberTypeImpl, T>;
 
+// size method in custom container in policy
+template <typename T>
+using SizeMethodInvokeResultImpl = decltype(std::declval<T>().size());
+template <typename T>
+inline constexpr bool kHasSizeMethod = meta::IsDetected<SizeMethodInvokeResultImpl, T> &&
+                                       std::is_convertible_v<SizeMethodInvokeResultImpl<T>, std::size_t>;
+
+// insert_or_assign method in custom container in policy
+template <typename T>
+using InsertOrAssignMethodInvokeResultImpl = decltype(std::declval<typename T::CacheContainer>().insert_or_assign(
+    std::declval<KeyMemberTypeImpl<T>>(),
+    std::declval<ValueType<T>>()
+));
+template <typename T>
+inline constexpr bool kHasInsertOrAssignMethod = meta::IsDetected<InsertOrAssignMethodInvokeResultImpl, T>;
+
+// CacheInsertOrAssign function for custom container in policy
+template <typename T>
+using CacheInsertOrAssignFunctionInvokeResultImpl = decltype(CacheInsertOrAssign(
+    std::declval<typename T::CacheContainer&>(),
+    std::declval<ValueType<T>>(),
+    std::declval<KeyMemberTypeImpl<T>>()
+));
+template <typename T>
+inline constexpr bool kHasCacheInsertOrAssignFunction =
+    meta::IsDetected<CacheInsertOrAssignFunctionInvokeResultImpl, T>;
+
 // Data container for cache
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct DataCacheContainer {
@@ -206,6 +239,13 @@ struct DataCacheContainer {
 
 template <typename T>
 struct DataCacheContainer<T, USERVER_NAMESPACE::utils::void_t<typename T::CacheContainer>> {
+    static_assert(kHasSizeMethod<typename T::CacheContainer>, "Custom CacheContainer must provide `size` method");
+    static_assert(
+        kHasInsertOrAssignMethod<T> || kHasCacheInsertOrAssignFunction<T>,
+        "Custom CacheContainer must provide `insert_or_assign`  method similar to std::unordered_map's "
+        "one or CacheInsertOrAssign function"
+    );
+
     using type = typename T::CacheContainer;
 };
 
@@ -384,6 +424,7 @@ inline constexpr std::string_view kFetchStage = "fetch";
 inline constexpr std::string_view kParseStage = "parse";
 
 inline constexpr std::size_t kDefaultChunkSize = 1000;
+inline constexpr std::chrono::milliseconds kDefaultSleepBetweenChunks{0};
 }  // namespace pg_cache::detail
 
 /// @ingroup userver_components
@@ -449,6 +490,7 @@ private:
     const std::chrono::milliseconds full_update_timeout_;
     const std::chrono::milliseconds incremental_update_timeout_;
     const std::size_t chunk_size_;
+    const std::chrono::milliseconds sleep_between_chunks_;
     std::size_t cpu_relax_iterations_parse_{0};
     std::size_t cpu_relax_iterations_copy_{0};
 };
@@ -465,7 +507,9 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config, co
       incremental_update_timeout_{config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
           pg_cache::detail::kDefaultIncrementalUpdateTimeout
       )},
-      chunk_size_{config["chunk-size"].As<size_t>(pg_cache::detail::kDefaultChunkSize)} {
+      chunk_size_{config["chunk-size"].As<size_t>(pg_cache::detail::kDefaultChunkSize)},
+      sleep_between_chunks_{
+          config["sleep-between-chunks"].As<std::chrono::milliseconds>(pg_cache::detail::kDefaultSleepBetweenChunks)} {
     UINVARIANT(
         !chunk_size_ || storages::postgres::Portal::IsSupportedByDriver(),
         "Either set 'chunk-size' to 0, or enable PostgreSQL portals by building "
@@ -620,6 +664,9 @@ void PostgreCache<PostgreCachePolicy>::Update(
                 scope.Reset(std::string{pg_cache::detail::kParseStage});
                 CacheResults(res, data_cache, stats_scope, scope);
                 changes += res.Size();
+                if (sleep_between_chunks_.count() > 0) {
+                    engine::InterruptibleSleepFor(sleep_between_chunks_);
+                }
             }
             trx.Commit();
         } else {

@@ -430,6 +430,12 @@ void Value::CheckObjectOrNull() const {
     }
 }
 
+void Value::CheckArray() const {
+    if (!IsArray()) {
+        throw TypeMismatchException(GetExtendedType(), impl::arrayValue, GetPath());
+    }
+}
+
 void Value::CheckObject() const {
     if (!IsObject()) {
         throw TypeMismatchException(GetExtendedType(), impl::objectValue, GetPath());
@@ -499,7 +505,7 @@ void PrintTo(const Value& json, std::ostream* out) { Serialize(json, *out); }
 
 namespace formats::literals {
 
-json::Value operator"" _json(const char* str, size_t len) { return json::FromString(std::string_view(str, len)); }
+json::Value operator""_json(const char* str, size_t len) { return json::FromString(std::string_view(str, len)); }
 
 }  // namespace formats::literals
 

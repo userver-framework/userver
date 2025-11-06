@@ -39,10 +39,15 @@
 ## Technologies overview
 * 📖 Generic async engine implementation (ru): [Анатомия асинхронных фреймворков в С++ и других языках](https://habr.com/ru/company/yandex/blog/647853/)
 * 🎥 Generic async engine implementation (ru): [Анатомия асинхронных движков](https://youtu.be/MiE22pTvnPs)
-* 🎥 Mutex implementation in userver (ru): [Реализация мьютекса в userver](https://www.youtube.com/watch?v=myaEpjYyx3I)
-* 🎥 Description of utils::FastPimpl, formats::parse::To and logging implementation (ru): [C++ трюки из Такси](https://youtu.be/_AkF8SpUV3k)
-* 🎥 Description of utils::LazyPrvalue, utils::FixedArray, utils::TrivialBiMap, ODR-detection in PostgreSQL [C++ трюки из userver](https://www.youtube.com/watch?v=FcQC19CX-AY)
+* 🎥 Mutex implementation in userver (ru): [Реализация мьютекса в userver](https://www.youtube.com/watch?v=myaEpjYyx3I),
+  [VK mirror](https://vkvideo.ru/video-17796776_456240865)
+* 🎥 Description of utils::FastPimpl, formats::parse::To and logging implementation (ru): [C++ трюки из Такси](https://youtu.be/_AkF8SpUV3k),
+  [VK mirror](https://vkvideo.ru/video-77278886_456239394)
+* 🎥 Description of utils::LazyPrvalue, utils::FixedArray, utils::TrivialBiMap, ODR-detection in PostgreSQL [C++ трюки из userver](https://www.youtube.com/watch?v=FcQC19CX-AY),
+  [VK mirror](https://vkvideo.ru/video-77278886_456239838)
 * 🎥 Description of cache::LruSet implementation and optimizations (ru): [Ещё чуть быстрее делаем свой контейнер](https://youtu.be/60XhYzkXu1M)
+* 🎥 Description of Exception hacks and third-party tweaks [Грязные C++ трюки из userver и Boost](https://youtu.be/-pE3T6wsIrM),
+  [VK mirror](https://vkvideo.ru/video-77278886_456239891)
 * 🎥 Monolithic vs. Microservices architecture and how userver works around their issues (ru):
   [Монолит vs Микросервисы, и Как эффективно работать с последними в C++](https://youtu.be/5QtAFKgS938)
 * 📖 Retries, exponential backoff, jitter, rate limits, circuit breakers, deadline propagations and other
@@ -52,8 +57,12 @@
 * 📖 [Story of website design at Behance](https://www.behance.net/gallery/185906583/Userver-C)
 
 
-## Fun
+## Fun and Management
 * 📖 Half a year in open-source (ru): [userver — что мы узнали за полгода в open-source](https://habr.com/ru/companies/yandex/articles/729588/)
+* 🎥 666 PRs later [666 PR спустя: как мы делаем userver](https://youtu.be/ufILdqDUUcY),
+  [VK mirror](https://vkvideo.ru/video-17796776_456241259)
+* 🎥 Opensource for companies and developers in Boost, C++ and userver [Опенсорс для компаний и разработчиков на примере Boost, C++, userver](https://youtu.be/htxvkdho70Y),
+  [VK mirror](https://vkvideo.ru/video-152308462_456242774)
 
 ----------
 

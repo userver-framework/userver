@@ -18,12 +18,13 @@ def service_env(redis_sentinels, redis_cluster_nodes, redis_cluster_replicas, re
         )
     ]
 
+    # All the `sentinels` accept host and port. For example `'sentinels': [{'host': '192.168.1.7','port': 6379}]`
     secdist_config = {
         'redis_settings': {
             'redis-cluster': {
                 'password': '',
                 'sentinels': redis_cluster_nodes,
-                'shards': cluster_shards,
+                'shards': cluster_shards,  # For example, it can be [{"name": "shard0"}, {"name": "shard1"}]
             },
             'redis-sentinel': {
                 'password': '',

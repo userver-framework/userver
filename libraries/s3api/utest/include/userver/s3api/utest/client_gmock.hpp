@@ -125,6 +125,48 @@ public:
 
     MOCK_METHOD(std::vector<std::string>, ListBucketDirectories, (std::string_view path_prefix), (const, override));
 
+    MOCK_METHOD(
+        multipart_upload::InitiateMultipartUploadResult,
+        CreateMultipartUpload,
+        (const multipart_upload::CreateMultipartUploadRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::UploadPartResult,
+        UploadPart,
+        (const multipart_upload::UploadPartRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::CompleteMultipartUploadResult,
+        CompleteMultipartUpload,
+        (const multipart_upload::CompleteMultipartUploadRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        void,
+        AbortMultipartUpload,
+        (const multipart_upload::AbortMultipartUploadRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::ListPartsResult,
+        ListParts,
+        (const multipart_upload::ListPartsRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::ListMultipartUploadsResult,
+        ListMultipartUploads,
+        (const multipart_upload::ListMultipartUploadsRequest& request),
+        (const, override)
+    );
+
     MOCK_METHOD(void, UpdateConfig, (ConnectionCfg && config), (override));
 
     MOCK_METHOD(std::string_view, GetBucketName, (), (const, override));

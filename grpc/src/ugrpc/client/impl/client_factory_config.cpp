@@ -1,14 +1,10 @@
 #include <ugrpc/client/impl/client_factory_config.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
-#include <userver/logging/level_serialization.hpp>
-#include <userver/logging/log.hpp>
-#include <userver/utils/trivial_map.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
-
-#include <ugrpc/client/secdist.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/trivial_map.hpp>
+
 #include <userver/ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,16 +12,6 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 namespace {
-
-std::shared_ptr<grpc::ChannelCredentials> MakeCredentials(const ClientFactoryConfig& config) {
-    if (config.auth_type == AuthType::kSsl) {
-        LOG_INFO() << "GRPC client (SSL) initialized...";
-        return grpc::SslCredentials(config.ssl_credentials_options);
-    } else {
-        LOG_INFO() << "GRPC client (non SSL) initialized...";
-        return grpc::InsecureChannelCredentials();
-    }
-}
 
 grpc::SslCredentialsOptions MakeCredentialsOptions(const yaml_config::YamlConfig& config) {
     grpc::SslCredentialsOptions result;
@@ -64,14 +50,6 @@ grpc::ChannelArguments MakeChannelArgs(const yaml_config::YamlConfig& channel_ar
 
 }  // namespace
 
-AuthType Parse(const yaml_config::YamlConfig& value, formats::parse::To<AuthType>) {
-    constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector().Case(AuthType::kInsecure, "insecure").Case(AuthType::kSsl, "ssl");
-    });
-
-    return utils::ParseFromValueString(value, kMap);
-}
-
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ClientFactoryConfig>) {
     ClientFactoryConfig config;
     config.auth_type = value["auth-type"].As<AuthType>(AuthType::kInsecure);
@@ -83,32 +61,8 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value, formats::parse::
     config.channel_args = MakeChannelArgs(value["channel-args"]);
     config.default_service_config = value["default-service-config"].As<std::optional<std::string>>();
     config.channel_count = value["channel-count"].As<std::size_t>(config.channel_count);
+    LOG_INFO() << "ChannelCount: " << config.channel_count;
     return config;
-}
-
-ClientFactorySettings
-MakeFactorySettings(ClientFactoryConfig&& config, const storages::secdist::SecdistConfig* secdist) {
-    std::shared_ptr<grpc::ChannelCredentials> credentials = MakeCredentials(config);
-    std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>> client_credentials;
-
-    if (secdist) {
-        const auto& tokens = secdist->Get<Secdist>();
-
-        for (const auto& [client_name, token] : tokens.tokens) {
-            client_credentials[client_name] = grpc::CompositeChannelCredentials(
-                credentials, grpc::AccessTokenCredentials(ugrpc::impl::ToGrpcString(token))
-            );
-        }
-    }
-
-    return ClientFactorySettings{
-        std::move(credentials),
-        std::move(client_credentials),
-        std::move(config.retry_config),
-        std::move(config.channel_args),
-        std::move(config.default_service_config),
-        config.channel_count,
-    };
 }
 
 }  // namespace ugrpc::client::impl

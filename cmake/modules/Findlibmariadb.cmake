@@ -7,6 +7,8 @@ _userver_module_begin(
     libmariadb-dev
     FORMULA_NAMES
     mariadb
+    PACMAN_NAMES
+    mariadb-libs
     PKG_CONFIG_NAMES
     mariadb
 )

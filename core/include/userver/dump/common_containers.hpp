@@ -76,10 +76,10 @@ auto ReadLazyPrvalue(Reader& reader) {
 
 template <typename VariantType>
 VariantType ReadVariant(Reader& reader, std::size_t index) {
-    static constexpr auto VariantSize = std::variant_size_v<VariantType>;
+    static constexpr auto kVariantSize = std::variant_size_v<VariantType>;
     std::optional<VariantType> result;
 
-    utils::WithConstexprIndex<VariantSize>(index, [&](auto index_constant) {
+    utils::WithConstexprIndex<kVariantSize>(index, [&](auto index_constant) {
         static constexpr auto kIndex = decltype(index_constant)::value;
         using Alternative = std::variant_alternative_t<kIndex, VariantType>;
         // Not using ReadLazyPrvalue because of stdlib issues on some compilers.

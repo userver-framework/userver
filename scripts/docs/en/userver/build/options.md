@@ -118,6 +118,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | Option                                   | Description                                                                             | Default                              |
 |------------------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------|
 | `USERVER_DOWNLOAD_PACKAGES`              | Download missing third party packages and use the downloaded versions                   | `ON`                                 |
+| `USERVER_DOWNLOAD_PACKAGE_BOOST`         | Download and setup Boost C++ if no Boost of matching version was found                  | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_BROTLI`        | Download and setup Brotli if no Brotli of matching version was found                    | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_CARES`         | Download and setup c-ares if no c-ares of matching version was found                    | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_CCTZ`          | Download and setup cctz if no cctz of matching version was found                        | `${USERVER_DOWNLOAD_PACKAGES}`       |
@@ -131,12 +132,17 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_DOWNLOAD_PACKAGE_PROTOBUF`      | Download and setup Protobuf if no Protobuf of matching version was found                | `${USERVER_DOWNLOAD_PACKAGE_GRPC}`   |
 | `USERVER_DOWNLOAD_PACKAGE_KAFKA`         | Download and setup librdkafka if no librdkafka matching version was found               | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK`     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_C_ARES`        | Download and setup libc-ares if no libc-ares of matching version was found              | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_LIBEV`         | Download and setup libev if no libev of matching version was found                      | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_LIBNGHTTP2`    | Download and setup libnghttp2 if no libnghttp2 of matching version was found            | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_YAMLCPP`       | Download and setup libyaml-cpp if no libyaml-cpp of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_FORCE_DOWNLOAD_PACKAGES`        | Download all possible third-party packages even if there is an installed system package | `OFF`                                |
 | `USERVER_FORCE_DOWNLOAD_ABSEIL`          | Download Abseil even if it exists in a system                                           | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_FORCE_DOWNLOAD_BOOST`           | Download Boost C++ even if it exists in a system                                        | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_CURL`            | Download Curl even if it exists in a system                                             | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_PROTOBUF`        | Download Protobuf even if there is an installed system package                          | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 | `USERVER_FORCE_DOWNLOAD_GRPC`            | Download gRPC even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
-| `USERVER_FORCE_DOWNLOAD_FMT`            | Download Fmt even if there is an installed system package                              | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
+| `USERVER_FORCE_DOWNLOAD_FMT`             | Download Fmt even if there is an installed system package                               | `${USERVER_FORCE_DOWNLOAD_PACKAGES}` |
 
 ### CMake options for paths to dependencies
 
@@ -156,7 +162,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | Option                                  | Description                                                                                                 | Default                                                     |
 |-----------------------------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | `USERVER_CHECK_PACKAGE_VERSIONS`        | Check package versions                                                                                      | `ON`                                                        |
-| `USERVER_SANITIZE`                      | Build with sanitizers support, allows combination of values via 'val1 val2'. Available: `addr`, `mem`, `ub` | (no sanitizers)                                             |
+| `USERVER_SANITIZE`                      | Build with sanitizers. Combine values via 'val1 val2'. Available: `addr`, `mem`, `ub`, and [thread][tsan]   | (no sanitizers)                                             |
 | `USERVER_SANITIZE_BLACKLIST`            | Path to file that is passed to the -fsanitize-blacklist option                                              | (no blacklist)                                              |
 | `USERVER_USE_LD`                        | Linker to use, e.g. `gold` or `lld`                                                                         | `lld` for Clang, system linker otherwise (typically GNU ld) |
 | `USERVER_USE_STATIC_LIBS`               | Tries to find all dependencies as static libraries                                                          | `ON` for `Clang` not older than `14` version                |
@@ -179,6 +185,8 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_CHAOTIC_FORMAT`                | Whether to format generated code if FORMAT option is missing                                                | `ON`                                                        |
 
 @warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
+
+[tsan]: https://github.com/userver-framework/userver/blob/develop/cmake/tsan.suppressions.txt
 
 ### CMake options for static linking
 

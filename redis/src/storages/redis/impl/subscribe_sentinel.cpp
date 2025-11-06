@@ -90,8 +90,8 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     LOG_DEBUG() << "shards.size() = " << shards.size();
     for (const std::string& shard : shards) LOG_DEBUG() << "shard:  name = " << shard;
 
-    KeyShardFactory keysShardFactory{sharding_strategy};
-    auto is_cluster_mode = keysShardFactory.IsClusterStrategy();
+    KeyShardFactory keys_shard_factory{sharding_strategy};
+    auto is_cluster_mode = keys_shard_factory.IsClusterStrategy();
     std::vector<ConnectionInfo> conns;
     conns.reserve(settings.sentinels.size());
     LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
@@ -123,7 +123,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         client_name,
         password,
         settings.secure_connection,
-        std::move(keysShardFactory),
+        std::move(keys_shard_factory),
         is_cluster_mode,
         command_control,
         testsuite_redis_control

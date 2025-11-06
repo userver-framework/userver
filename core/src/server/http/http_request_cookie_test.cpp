@@ -519,8 +519,8 @@ UTEST(HttpRequestCookiesHashDos, HashDos) {
 
     // 1 second for "good" code, 100 seconds for "bad" code
     // use 10 sec limit as a geometric mean to differentiate these cases
-    const auto kLimitTime = std::chrono::seconds(10);
-    EXPECT_LE(stop - start, kLimitTime);
+    const auto limit_time = std::chrono::seconds(10);
+    EXPECT_LE(stop - start, limit_time);
 }
 
 USERVER_NAMESPACE_END

@@ -16,7 +16,7 @@ using utest::SimpleServer;
 const std::string kOkRequest = "OK";
 const std::string kOkResponse = "OK RESPONSE DATA";
 
-SimpleServer::Response assert_received_ok(const SimpleServer::Request& r) {
+SimpleServer::Response AssertReceivedOk(const SimpleServer::Request& r) {
     EXPECT_EQ(r, kOkRequest) << "SimpleServer received: " << r;
     return {kOkResponse, SimpleServer::Response::kWriteAndClose};
 }
@@ -24,7 +24,7 @@ SimpleServer::Response assert_received_ok(const SimpleServer::Request& r) {
 }  // namespace
 
 UTEST(SimpleServer, ExampleTcpIpV4) {
-    const SimpleServer s(assert_received_ok);
+    const SimpleServer s(AssertReceivedOk);
 
     // ... invoke code that sends "OK" to localhost
     auto addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();
@@ -51,7 +51,7 @@ UTEST(SimpleServer, NothingReceived) {
 }
 
 UTEST(SimpleServer, ExampleTcpIpV6) {
-    const SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
+    const SimpleServer s(AssertReceivedOk, SimpleServer::kTcpIpV6);
 
     // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
     auto addr = engine::io::Sockaddr::MakeLoopbackAddress();

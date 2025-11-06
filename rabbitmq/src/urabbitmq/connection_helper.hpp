@@ -61,8 +61,7 @@ public:
         const ConnectionPtr& connection,
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 
@@ -70,8 +69,7 @@ public:
         const ConnectionPtr& connection,
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 

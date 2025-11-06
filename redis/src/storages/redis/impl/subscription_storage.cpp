@@ -42,8 +42,8 @@ void SubscriptionToken::Unsubscribe() {
 
 SubscriptionToken::~SubscriptionToken() { Unsubscribe(); }
 
-SubscriptionStorageBase::RebalanceState::RebalanceState(size_t shard_idx, ServerWeights _weights)
-    : shard_idx(shard_idx), weights(std::move(_weights)) {
+SubscriptionStorageBase::RebalanceState::RebalanceState(size_t shard_idx, ServerWeights l_weights)
+    : shard_idx(shard_idx), weights(std::move(l_weights)) {
     for (const auto& weight_item : weights) {
         sum_weights += weight_item.second;
         LOG_DEBUG() << "rebalance shard=" << shard_idx << " server_id=" << weight_item.first.GetId()

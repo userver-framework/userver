@@ -88,7 +88,7 @@ private:
 };
 
 Secdist::Impl::Impl(SecdistConfig::Settings settings)
-    : settings_(std::move(settings)), channel_("secdist", [this](auto& function) {
+    : settings_(std::move(settings)), channel_("secdist", [this](const auto& function) {
           const auto snapshot = dynamic_secdist_config_.Read();
           function(*snapshot);
       }) {

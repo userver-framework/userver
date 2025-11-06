@@ -203,6 +203,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl::errc {
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 inline std::error_code make_error_code(EasyErrorCode e) { return {static_cast<int>(e), GetEasyCategory()}; }
 
 inline std::error_code make_error_code(MultiErrorCode e) { return {static_cast<int>(e), GetMultiCategory()}; }
@@ -214,6 +216,8 @@ inline std::error_code make_error_code(FormErrorCode e) { return {static_cast<in
 inline std::error_code make_error_code(UrlErrorCode e) { return {static_cast<int>(e), GetUrlCategory()}; }
 
 inline std::error_code make_error_code(RateLimitErrorCode e) { return {static_cast<int>(e), GetRateLimitCategory()}; }
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace curl::errc
 

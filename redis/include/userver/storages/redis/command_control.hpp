@@ -43,11 +43,11 @@ public:
 
     static ServerId Generate() {
         ServerId sid;
-        sid.id_ = next_id_++;
+        sid.id_ = next_id++;
         return sid;
     }
 
-    static ServerId Invalid() { return invalid_; }
+    static ServerId Invalid() { return invalid; }
 
     int64_t GetId() const { return id_; }
 
@@ -56,8 +56,8 @@ public:
     std::string GetDescription() const;
 
 private:
-    static std::atomic<std::int64_t> next_id_;
-    static ServerId invalid_;
+    static std::atomic<std::int64_t> next_id;
+    static ServerId invalid;
 
     std::int64_t id_{-1};
 };

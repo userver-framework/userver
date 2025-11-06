@@ -31,7 +31,7 @@ public:
     explicit AsyncService(std::size_t method_count) { UASSERT(method_count == 1); }
 
     template <typename CallTraits>
-    void Prepare(
+    void RequestCall(
         int method_id,
         grpc::GenericServerContext& context,
         typename CallTraits::InitialRequest& /*initial_request*/,

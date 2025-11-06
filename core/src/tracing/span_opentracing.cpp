@@ -114,10 +114,13 @@ void Span::Impl::DoLogOpenTracing(const Tracer& tracer, logging::impl::TagWriter
 void Span::Impl::AddOpentracingTags(formats::json::StringBuilder& output, const logging::LogExtra& input) {
     using OpentracingTag = jaeger::OpentracingTag;
     static const std::unordered_map<std::string_view, OpentracingTag> kGetOpentracingTags = {
+        {kHttpResponseStatusCode, OpentracingTag{"http.response.status_code", "int64"}},
         {kHttpStatusCode, OpentracingTag{"http.status_code", "int64"}},
         {kErrorFlag, OpentracingTag{"error", "bool"}},
-        {kHttpMethod, OpentracingTag{"http.method", "string"}},
+        {kHttpRequestMethod, OpentracingTag{"http.request.method", "string"}},
+        {kHttpMethod, OpentracingTag{"http.request.method", "string"}},
         {kHttpUrl, OpentracingTag{"http.url", "string"}},
+        {kUrlFull, OpentracingTag{"url.full", "string"}},
 
         {kDatabaseType, OpentracingTag{"db.type", "string"}},
         {kDatabaseStatement, OpentracingTag{"db.statement", "string"}},
@@ -126,7 +129,7 @@ void Span::Impl::AddOpentracingTags(formats::json::StringBuilder& output, const 
         {kDatabaseCollection, OpentracingTag{"db.collection", "string"}},
         {kDatabaseStatementDescription, OpentracingTag{"db.query_description", "string"}},
 
-        {kPeerAddress, OpentracingTag{"peer.address", "string"}},
+        {kPeerAddress, OpentracingTag{"server.address", "string"}},
     };
 
     for (const auto& [key, value] : *input.extra_) {

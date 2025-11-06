@@ -63,8 +63,8 @@ public:
     void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
         server::websocket::Message message;
         while (!engine::current_task::ShouldCancel()) {
-            const bool msgIsReceived = chat.TryRecv(message);
-            if (msgIsReceived) {
+            const bool msg_is_received = chat.TryRecv(message);
+            if (msg_is_received) {
                 if (message.close_status) break;
                 chat.Send(std::move(message));
             } else {

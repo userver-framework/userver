@@ -22,8 +22,8 @@
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 
-#include <dynamic_config/variables/MONGO_DEADLINE_PROPAGATION_ENABLED_V2.hpp>
 #include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
+#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -105,7 +105,7 @@ impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(const impl::cdriver
 }
 
 std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(const dynamic_config::Snapshot& config) {
-    if (!config[::dynamic_config::MONGO_DEADLINE_PROPAGATION_ENABLED_V2]) return std::nullopt;
+    if (!config[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) return std::nullopt;
 
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
     if (!inherited_deadline.IsReachable()) return std::nullopt;

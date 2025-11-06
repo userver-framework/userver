@@ -18,7 +18,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr auto rsa512_priv_key = R"(-----BEGIN RSA PRIVATE KEY-----
+constexpr auto kRsa512PrivKey = R"(-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQDdlatRjRjogo3WojgGHFHYLugdUWAY9iR3fy4arWNA1KoS8kVw
 33cJibXr8bvwUAUparCwlvdbH6dvEOfou0/gCFQsHUfQrSDv+MuSUMAe8jzKE4qW
 +jK+xQU9a03GUnKHkkle+Q0pX/g6jXZ7r1/xAK5Do2kQ+X5xK9cipRgEKwIDAQAB
@@ -33,13 +33,13 @@ fSSjAkLRi54PKJ8TFUeOP15h9sQzydI8zJU+upvDEKZsZc/UhT/SySDOxQ4G/523
 Y0sz/OZtSWcol/UMgQJALesy++GdvoIDLfJX5GBQpuFgFenRiRDabxrE9MNUZ2aP
 FaFp+DyAe+b4nDwuJaW2LURbr8AEZga7oQj0uYxcYw==
 -----END RSA PRIVATE KEY-----)";
-constexpr auto rsa512_pub_key = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kRsa512PubKey = R"(-----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdlatRjRjogo3WojgGHFHYLugd
 UWAY9iR3fy4arWNA1KoS8kVw33cJibXr8bvwUAUparCwlvdbH6dvEOfou0/gCFQs
 HUfQrSDv+MuSUMAe8jzKE4qW+jK+xQU9a03GUnKHkkle+Q0pX/g6jXZ7r1/xAK5D
 o2kQ+X5xK9cipRgEKwIDAQAB
 -----END PUBLIC KEY-----)";
-constexpr auto rsa512_pub_key_invalid = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kRsa512PubKeyInvalid = R"(-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxzYuc22QSst/dS7geYYK
 5l5kLxU0tayNdixkEQ17ix+CUcUbKIsnyftZxaCYT46rQtXgCaYRdJcbB3hmyrOa
 vkhTpX79xJZnQmfuamMbZBqitvscxW9zRR9tBUL6vdi/0rpoUwPMEh8+Bw7CgYR0
@@ -49,7 +49,7 @@ r3F7aM9YpErzeYLrl0GhQr9BVJxOvXcVd4kmY+XkiCcrkyS1cnghnllh+LCwQu1s
 YwIDAQAB
 -----END PUBLIC KEY-----)";
 
-constexpr auto rsa2048_priv_key = R"(-----BEGIN PRIVATE KEY-----
+constexpr auto kRsa2048PrivKey = R"(-----BEGIN PRIVATE KEY-----
 MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4ZtdaIrd1BPIJ
 tfnF0TjIK5inQAXZ3XlCrUlJdP+XHwIRxdv1FsN12XyMYO/6ymLmo9ryoQeIrsXB
 XYqlET3zfAY+diwCb0HEsVvhisthwMU4gZQu6TYW2s9LnXZB5rVtcBK69hcSlA2k
@@ -77,7 +77,7 @@ RultUEe2C0jYMDQx+JYxbPmtcopvZQrFEur3WKVuLy5UAy7EBvwMnZwIG7OOohJb
 vkSpADK6VPn9lbqq7O8cTedEHttm6otmLt8ZyEl3hZMaL3hbuRj6ysjmoFKx6CrX
 rK0/Ikt5ybqUzKCMJZg2VKGTxg==
 -----END PRIVATE KEY-----)";
-constexpr auto rsa2048_pub_key = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kRsa2048PubKey = R"(-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuGbXWiK3dQTyCbX5xdE4
 yCuYp0AF2d15Qq1JSXT/lx8CEcXb9RbDddl8jGDv+spi5qPa8qEHiK7FwV2KpRE9
 83wGPnYsAm9BxLFb4YrLYcDFOIGULuk2FtrPS512Qea1bXASuvYXEpQNpGbnTGVs
@@ -86,7 +86,7 @@ WXI9C+yjHztqyL2h8P6mlThPY9E9ue2fCqdgixfTFIF9Dm4SLHbphUS2iw7w1JgT
 AziMCxS+VrRPDM+zfvpIJg3JljAh3PJHDiLu902v9w+Iplu1WyoB2aPfitxEhRN0
 YwIDAQAB
 -----END PUBLIC KEY-----)";
-constexpr auto rsa2048_pub_key_invalid = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kRsa2048PubKeyInvalid = R"(-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxzYuc22QSst/dS7geYYK
 5l5kLxU0tayNdixkEQ17ix+CUcUbKIsnyftZxaCYT46rQtXgCaYRdJcbB3hmyrOa
 vkhTpX79xJZnQmfuamMbZBqitvscxW9zRR9tBUL6vdi/0rpoUwPMEh8+Bw7CgYR0
@@ -96,34 +96,34 @@ r3F7aM9YpErzeYLrl0GhQr9BVJxOvXcVd4kmY+XkiCcrkyS1cnghnllh+LCwQu1s
 YwIDAQAB
 -----END PUBLIC KEY-----)";
 
-constexpr auto ecdsa256v1_priv_key = R"(-----BEGIN PRIVATE KEY-----
+constexpr auto kEcdsa256v1PrivKey = R"(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgPGJGAm4X1fvBuC1z
 SpO/4Izx6PXfNMaiKaS5RUkFqEGhRANCAARCBvmeksd3QGTrVs2eMrrfa7CYF+sX
 sjyGg+Bo5mPKGH4Gs8M7oIvoP9pb/I85tdebtKlmiCZHAZE5w4DfJSV6
 -----END PRIVATE KEY-----)";
-constexpr auto ecdsa256v1_pub_key = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kEcdsa256v1PubKey = R"(-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQgb5npLHd0Bk61bNnjK632uwmBfr
 F7I8hoPgaOZjyhh+BrPDO6CL6D/aW/yPObXXm7SpZogmRwGROcOA3yUleg==
 -----END PUBLIC KEY-----)";
-constexpr auto ecdsa256v1_pub_key_invalid = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kEcdsa256v1PubKeyInvalid = R"(-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEoBUyo8CQAFPeYPvv78ylh5MwFZjT
 CLQeb042TjiMJxG+9DLFmRSMlBQ9T/RsLLc+PmpB1+7yPAR+oR5gZn3kJQ==
 -----END PUBLIC KEY-----)";
 
-constexpr auto ecdsa521p1_priv_key = R"(-----BEGIN EC PRIVATE KEY-----
+constexpr auto kEcdsa521p1PrivKey = R"(-----BEGIN EC PRIVATE KEY-----
 MIHcAgEBBEIADZbvukRPYwxbnY0RRAm7TnXV04JS3c/afpJ7kkL6FPI9S0bOjYIy
 SKoARgcENeLiqm6U2wCfgC06mo2KxRfWvYOgBwYFK4EEACOhgYkDgYYABAFDGNaa
 Lwb5Ra5PbFXL0I8T8E4FHtoinKCw8Lb0g/mhY79L68Lepc9zXu0ZLcKjAn9Sb6kT
 UFwYEYSBmnpmabtKbwG7CkxfvyqcCkPY84+5N1mOK+kc/uzF9/wreN+q5sj/1lLh
 HIZMRqqP+mZgYVH+/DmpTGOzY/EZBKGDBc/9yClIcg==
 -----END EC PRIVATE KEY-----)";
-constexpr auto ecdsa521p1_pub_key = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kEcdsa521p1PubKey = R"(-----BEGIN PUBLIC KEY-----
 MIGbMBAGByqGSM49AgEGBSuBBAAjA4GGAAQBQxjWmi8G+UWuT2xVy9CPE/BOBR7a
 IpygsPC29IP5oWO/S+vC3qXPc17tGS3CowJ/Um+pE1BcGBGEgZp6Zmm7Sm8BuwpM
 X78qnApD2POPuTdZjivpHP7sxff8K3jfqubI/9ZS4RyGTEaqj/pmYGFR/vw5qUxj
 s2PxGQShgwXP/cgpSHI=
 -----END PUBLIC KEY-----)";
-constexpr auto ecdsa521p1_pub_key_invalid = R"(-----BEGIN PUBLIC KEY-----
+constexpr auto kEcdsa521p1PubKeyInvalid = R"(-----BEGIN PUBLIC KEY-----
 MIGbMBAGByqGSM49AgEGBSuBBAAjA4GGAAQBKlesxr9XembXLzb+woZBbcZjWDUA
 wAfpnIWG/Wn6OGChEZ2UBIthj1882o6XsNhpKjFwdkTknZS39KlcLk3xre4ASAwC
 WYfPaMaswhyGJNFMHdFIxk13B2fC9COe9fyQAHrGDhKJbBZQZqV8HIveVclBqXSr
@@ -294,7 +294,7 @@ TEST(Crypto, SignatureCMSSignVerify) {
 TEST(Crypto, SignatureCMSVerify) {
     const crypto::CmsVerifier verifier{crypto::Certificate::LoadFromString(kSomeCert)};
 
-    constexpr std::string_view signed_data_base64{
+    constexpr std::string_view kSignedDataBase64{
         "MIICsQYJKoZIhvcNAQcCoIICojCCAp4CAQExDTALBglghkgBZQMEAgEwGQYJKoZIhvcNAQcB"
         "oAwECnRlc3QgZGF0YQoxggJtMIICaQIBATBdMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApT"
         "b21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQCFCQY6okVZGIQ"
@@ -312,7 +312,7 @@ TEST(Crypto, SignatureCMSVerify) {
         "3pVtOqn49Y+p2Jq+"
         "jT0dbrCHghRYp2oLvn1NLfzDIFp8SQQPGGywHkzOrBCl1KHCS9puDKR53oNef8s+"
         "nUytFyYNUslSbMqW"};
-    const auto signed_data = crypto::base64::Base64Decode(signed_data_base64);
+    const auto signed_data = crypto::base64::Base64Decode(kSignedDataBase64);
 
     EXPECT_NO_THROW(verifier.Verify(
         {signed_data}, {crypto::CmsVerifier::Flags::kNoSignerCertVerify}, crypto::CmsVerifier::InForm::kDer
@@ -321,9 +321,9 @@ TEST(Crypto, SignatureCMSVerify) {
 
 TEST(Crypto, SignatureRs1) {
     TestDsaSignature(
-        crypto::weak::SignerRs1{rsa512_priv_key},
-        crypto::weak::VerifierRs1{rsa512_pub_key},
-        crypto::weak::VerifierRs1{rsa512_pub_key_invalid},
+        crypto::weak::SignerRs1{kRsa512PrivKey},
+        crypto::weak::VerifierRs1{kRsa512PubKey},
+        crypto::weak::VerifierRs1{kRsa512PubKeyInvalid},
         "test",
         crypto::hash::Sha1("test"),
         crypto::hash::Sha256("test")
@@ -332,9 +332,9 @@ TEST(Crypto, SignatureRs1) {
 
 TEST(Crypto, SignatureRs256) {
     TestDsaSignature(
-        crypto::SignerRs256{rsa512_priv_key},
-        crypto::VerifierRs256{rsa512_pub_key},
-        crypto::VerifierRs256{rsa512_pub_key_invalid},
+        crypto::SignerRs256{kRsa512PrivKey},
+        crypto::VerifierRs256{kRsa512PubKey},
+        crypto::VerifierRs256{kRsa512PubKeyInvalid},
         "test",
         crypto::hash::Sha256("test"),
         crypto::hash::Sha512("test")
@@ -343,9 +343,9 @@ TEST(Crypto, SignatureRs256) {
 
 TEST(Crypto, SignatureRs512) {
     TestDsaSignature(
-        crypto::SignerRs512{rsa2048_priv_key},
-        crypto::VerifierRs512{rsa2048_pub_key},
-        crypto::VerifierRs512{rsa2048_pub_key_invalid},
+        crypto::SignerRs512{kRsa2048PrivKey},
+        crypto::VerifierRs512{kRsa2048PubKey},
+        crypto::VerifierRs512{kRsa2048PubKeyInvalid},
         "test",
         crypto::hash::Sha512("test"),
         crypto::hash::Sha384("test")
@@ -354,9 +354,9 @@ TEST(Crypto, SignatureRs512) {
 
 TEST(Crypto, SignatureEs256) {
     TestDsaSignature(
-        crypto::SignerEs256{ecdsa256v1_priv_key},
-        crypto::VerifierEs256{ecdsa256v1_pub_key},
-        crypto::VerifierEs256{ecdsa256v1_pub_key_invalid},
+        crypto::SignerEs256{kEcdsa256v1PrivKey},
+        crypto::VerifierEs256{kEcdsa256v1PubKey},
+        crypto::VerifierEs256{kEcdsa256v1PubKeyInvalid},
         "test",
         crypto::hash::Sha256("test"),
         crypto::hash::Sha512("test")
@@ -365,9 +365,9 @@ TEST(Crypto, SignatureEs256) {
 
 TEST(Crypto, SignatureEs512) {
     TestDsaSignature(
-        crypto::SignerEs512{ecdsa521p1_priv_key},
-        crypto::VerifierEs512{ecdsa521p1_pub_key},
-        crypto::VerifierEs512{ecdsa521p1_pub_key_invalid},
+        crypto::SignerEs512{kEcdsa521p1PrivKey},
+        crypto::VerifierEs512{kEcdsa521p1PubKey},
+        crypto::VerifierEs512{kEcdsa521p1PubKeyInvalid},
         "test",
         crypto::hash::Sha512("test"),
         crypto::hash::Sha384("test")
@@ -376,9 +376,9 @@ TEST(Crypto, SignatureEs512) {
 
 TEST(Crypto, SignaturePs1) {
     TestDsaSignature(
-        crypto::weak::SignerPs1{rsa512_priv_key},
-        crypto::weak::VerifierPs1{rsa512_pub_key},
-        crypto::weak::VerifierPs1{rsa512_pub_key_invalid},
+        crypto::weak::SignerPs1{kRsa512PrivKey},
+        crypto::weak::VerifierPs1{kRsa512PubKey},
+        crypto::weak::VerifierPs1{kRsa512PubKeyInvalid},
         "test",
         {},
         {},
@@ -388,9 +388,9 @@ TEST(Crypto, SignaturePs1) {
 
 TEST(Crypto, SignaturePs256) {
     TestDsaSignature(
-        crypto::SignerPs256{rsa512_priv_key},
-        crypto::VerifierPs256{rsa512_pub_key},
-        crypto::VerifierPs256{rsa512_pub_key_invalid},
+        crypto::SignerPs256{kRsa512PrivKey},
+        crypto::VerifierPs256{kRsa512PubKey},
+        crypto::VerifierPs256{kRsa512PubKeyInvalid},
         "test",
         {},
         {},
@@ -400,9 +400,9 @@ TEST(Crypto, SignaturePs256) {
 
 TEST(Crypto, SignaturePs512) {
     TestDsaSignature(
-        crypto::SignerPs512{rsa2048_priv_key},
-        crypto::VerifierPs512{rsa2048_pub_key},
-        crypto::VerifierPs512{rsa2048_pub_key_invalid},
+        crypto::SignerPs512{kRsa2048PrivKey},
+        crypto::VerifierPs512{kRsa2048PubKey},
+        crypto::VerifierPs512{kRsa2048PubKeyInvalid},
         "test",
         {},
         {},

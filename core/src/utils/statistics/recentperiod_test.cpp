@@ -9,17 +9,17 @@ class TestTimer {
 public:
     using duration = std::chrono::system_clock::duration;
 
-    static std::chrono::system_clock::time_point now() { return std::chrono::system_clock::time_point(timer_); }
+    static std::chrono::system_clock::time_point now() { return std::chrono::system_clock::time_point(timer); }
 
-    static void sleep(duration duration) { timer_ += duration; }
+    static void sleep(duration duration) { timer += duration; }
 
-    static void reset() { timer_ = duration{0}; }
+    static void reset() { timer = duration{0}; }
 
 private:
-    static duration timer_;
+    static duration timer;
 };
 
-TestTimer::duration TestTimer::timer_{0};
+TestTimer::duration TestTimer::timer{0};
 
 }  // namespace
 

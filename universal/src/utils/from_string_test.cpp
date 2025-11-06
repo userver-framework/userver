@@ -37,19 +37,19 @@ auto TestInvalid(const std::string& input) {
 }
 
 template <typename StringType, typename T>
-auto CheckConverts(StringType input, T expectedResult) {
-    T actualResult{};
-    ASSERT_NO_THROW(actualResult = utils::FromString<T>(input))
+auto CheckConverts(StringType input, T expected_result) {
+    T actual_result{};
+    ASSERT_NO_THROW(actual_result = utils::FromString<T>(input))
         << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
-    ASSERT_EQ(actualResult, expectedResult)
+    ASSERT_EQ(actual_result, expected_result)
         << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
 }
 
 template <typename T>
-auto TestConverts(const std::string& input, T expectedResult) {
-    CheckConverts(input.c_str(), expectedResult);
-    CheckConverts(input, expectedResult);
-    CheckConverts(std::string_view{input}, expectedResult);
+auto TestConverts(const std::string& input, T expected_result) {
+    CheckConverts(input.c_str(), expected_result);
+    CheckConverts(input, expected_result);
+    CheckConverts(std::string_view{input}, expected_result);
 }
 
 template <typename T>
@@ -98,11 +98,11 @@ TYPED_TEST(FromStringTest, Randomized) {
 
     // `randomEngine` is initialized with a fixed default seed
     // NOLINTNEXTLINE(cert-msc51-cpp)
-    std::default_random_engine randomEngine;
+    std::default_random_engine random_engine;
     auto distribution = DistributionForTesting<T>();
 
     for (int i = 0; i < kTestIterations; ++i) {
-        TestPreserves(static_cast<T>(distribution(randomEngine)));
+        TestPreserves(static_cast<T>(distribution(random_engine)));
     }
 }
 
@@ -140,6 +140,16 @@ TYPED_TEST(FromStringTest, StrangeDecimalPoints) {
     }
 }
 
+TYPED_TEST(FromStringTest, HasZeroByte) {
+    using T = TypeParam;
+
+    if constexpr (std::is_floating_point_v<T>) {
+        TestInvalid<T>({"1.1\0 <- zero byte", 17});
+    }
+
+    TestInvalid<T>({"1\0 <- zero byte", 15});
+}
+
 TYPED_TEST(FromStringTest, Exponents) {
     using T = TypeParam;
 
@@ -159,14 +169,8 @@ TYPED_TEST(FromStringTest, NonDecimal) {
     TestInvalid<T>("0b10");
     TestInvalid<T>("0o10");
 
-    if constexpr (std::is_floating_point_v<T>) {
-        TestConverts("0x10", T{0x10});
-        TestConverts("0xAB", T{0xAB});
-        TestConverts("0xab", T{0xAB});
-        TestConverts("0xABP2", T{0xABP2});
-    } else {
-        TestInvalid<T>("0x10");
-    }
+    TestInvalid<T>("0x10");
+    TestInvalid<T>("0X10");
 }
 
 TYPED_TEST(FromStringTest, ExtraSpaces) {

@@ -18,7 +18,7 @@ public:
 
     CallGreeterClientTestHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          grpc_greeter_client_(context.FindComponent<GreeterClientComponent>().GetClient()) {}
+          grpc_greeter_client_(context.FindComponent<GreeterClientComponent>().GetClientWrapper()) {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         const auto& arg_case = request.GetArg("case");

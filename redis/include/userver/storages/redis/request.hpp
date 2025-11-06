@@ -36,13 +36,17 @@ public:
 
     explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
-    /// Wait for the request to finish on Redis server
+    /// Wait for the request to finish on Redis server, server or request errors (if any) are logged but not thrown.
+    ///
+    /// @throws Exceptions on missuse (for example, calling Wait() on a single result from a transaction before waiting
+    /// for the transaction itself).
     void Wait() { impl_->Wait(); }
 
     /// Ignore the query result and do not wait for the Redis server to finish executing it
     void IgnoreResult() const noexcept {}
 
     /// Wait for the request to finish on Redis server and get the result
+    /// @throws server or request related exceptions
     ReplyType Get(const std::string& request_description = {}) { return impl_->Get(request_description); }
 
     /// @cond
@@ -176,6 +180,7 @@ using RequestExec = Request<ReplyData, void>;
 using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGeoadd = Request<size_t>;
+using RequestGeopos = Request<std::vector<std::optional<Point>>>;
 using RequestGeoradius = Request<std::vector<GeoPoint>>;
 using RequestGeosearch = Request<std::vector<GeoPoint>>;
 using RequestGet = Request<std::optional<std::string>>;

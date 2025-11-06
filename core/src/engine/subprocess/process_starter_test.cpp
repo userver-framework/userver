@@ -96,22 +96,22 @@ UTEST(Subprocess, ExecvFileNotFound) {
 
 UTEST(Subprocess, EnvironmentVariablesScope) {
     engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
-    const std::string kEnvVariableName = "SUPER_DUPER";
-    const std::string kEnvVariableValue = "secret";
+    const std::string env_variable_name = "SUPER_DUPER";
+    const std::string env_variable_value = "secret";
 
-    ASSERT_EQ(std::nullopt, GetEnvironmentInsideExec(starter, kEnvVariableName));
+    ASSERT_EQ(std::nullopt, GetEnvironmentInsideExec(starter, env_variable_name));
 
     const auto before = engine::subprocess::GetCurrentEnvironmentVariables();
     {
         const engine::subprocess::EnvironmentVariablesScope scope{};
-        SetEnvironmentVariable(kEnvVariableName, kEnvVariableValue, engine::subprocess::Overwrite::kAllowed);
+        SetEnvironmentVariable(env_variable_name, env_variable_value, engine::subprocess::Overwrite::kAllowed);
 
-        EXPECT_EQ(kEnvVariableValue, engine::subprocess::GetCurrentEnvironmentVariables().GetValue(kEnvVariableName));
+        EXPECT_EQ(env_variable_value, engine::subprocess::GetCurrentEnvironmentVariables().GetValue(env_variable_name));
 
-        ASSERT_EQ(kEnvVariableValue, GetEnvironmentInsideExec(starter, kEnvVariableName));
+        ASSERT_EQ(env_variable_value, GetEnvironmentInsideExec(starter, env_variable_name));
     }
 
-    ASSERT_EQ(std::nullopt, GetEnvironmentInsideExec(starter, kEnvVariableName));
+    ASSERT_EQ(std::nullopt, GetEnvironmentInsideExec(starter, env_variable_name));
 
     const auto after = engine::subprocess::GetCurrentEnvironmentVariables();
     EXPECT_EQ(after, before);
