@@ -6,16 +6,12 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 
-#include <list>
-#include <functional>
-#include <unordered_set>
-#include <iostream>
-
 USERVER_NAMESPACE_BEGIN
 
-namespace lru_boost_list {
+namespace multi_index_lru {
 using namespace boost::multi_index;
 
+namespace impl {
 template<typename Value>
 struct ValueWithHook
 {
@@ -62,15 +58,16 @@ struct ValueWithHook
 };
 
 struct internal_ptr_tag {};
+} // namespace impl
 
 template<
     typename Value,
     typename IndexSpecifierList,
-    typename Allocator = std::allocator<ValueWithHook<Value>>
+    typename Allocator = std::allocator<impl::ValueWithHook<Value>>
 >
 class LRUCacheContainer {
 private:
-    using CacheItem = ValueWithHook<Value>;
+    using CacheItem = impl::ValueWithHook<Value>;
     using List =  boost::intrusive::list<
                         CacheItem,
                         boost::intrusive::member_hook<
@@ -83,7 +80,7 @@ private:
     using ExtendedIndexSpecifierList = typename boost::mpl::push_back<
         IndexSpecifierList,
         hashed_unique<
-            tag<internal_ptr_tag>,
+            tag<impl::internal_ptr_tag>,
             const_mem_fun<CacheItem, const CacheItem*, &CacheItem::GetPointerToSelf>
         >
     >::type;
@@ -187,10 +184,10 @@ private:
         if (!usage_list.empty()) {
             CacheItem *ptr_to_erase = &*usage_list.begin();
             usage_list.erase(usage_list.begin());
-            container.template get<internal_ptr_tag>().erase(ptr_to_erase);
+            container.template get<impl::internal_ptr_tag>().erase(ptr_to_erase);
         }
     }
 };
-}
+} // namespace multi_index_lru
 
 USERVER_NAMESPACE_END
