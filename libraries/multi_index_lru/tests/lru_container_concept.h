@@ -6,6 +6,8 @@
 #include "boost/multi_index/identity.hpp"
 #include "boost/multi_index/member.hpp"
 #include "boost/multi_index/tag.hpp"
+
+#if __cplusplus >= 202002L
 #include <type_traits>
 #include <concepts>
 #include <cassert>
@@ -36,3 +38,6 @@ concept LRUCacheType = requires(T cache, size_t size, const Key &key, Args&&... 
     static_assert((LRUCacheType<CahceType, Tag, IndexType, ValueType&&>, "LRUCacheType concept")); 
 
 USERVER_NAMESPACE_END
+#else
+#define lru_concept_assert_for_one_tag(CahceType, Tag, IndexType, ValueType)
+#endif
