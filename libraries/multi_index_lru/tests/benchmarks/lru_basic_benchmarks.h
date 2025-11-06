@@ -6,6 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace benchmarks {
 
+using namespace boost::multi_index;
+
 template<
     template<typename, typename, typename> class LRUCacheContainer
 >
